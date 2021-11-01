@@ -34,7 +34,6 @@ import { LiquidityPool } from "../types/LiquidityPool";
 import { Volatility } from "../types/Volatility";
 import { WETH } from "../types/WETH";
 import { Protocol } from "../types/Protocol";
-import { OptionsCompute } from "../types/OptionsCompute";
 import { convertDoubleToDec } from "../utils/math"
 
 const IMPLIED_VOL = '60';
@@ -57,7 +56,6 @@ let putOptionExpiration: moment.Moment;
 let erc20PutOptionExpiration: moment.Moment;
 let erc20Token: ERC20;
 let signers: Signer[];
-let optionsCompute: OptionsCompute;
 let volatility: Volatility;
 let senderAddress: string;
 let receiverAddress: string;
@@ -557,7 +555,7 @@ describe("Liquidity Pools", async () => {
         libraries: {}
       }
     );
-    optionsCompute = await optComputeFactory.deploy() as OptionsCompute;
+    await optComputeFactory.deploy();
     const volFactory = await ethers.getContractFactory(
       "Volatility",
       {
