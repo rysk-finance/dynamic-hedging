@@ -6,7 +6,7 @@ library AddressStringUtil {
         require(len % 2 == 0 && len > 0 && len <= 40, "AddressStringUtil: INVALID_LEN");
 
         bytes memory s = new bytes(len);
-        uint addrNum = uint(addr);
+        uint addrNum = uint256(uint160(addr));
         for (uint i = 0; i < len / 2; i++) {
             // shift right and truncate all but the least significant byte to extract the byte at position 19-i
             uint8 b = uint8(addrNum >> (8 * (19 - i)));
@@ -23,11 +23,11 @@ library AddressStringUtil {
     // hi and lo are only 4 bits and between 0 and 16
     // this method converts those values to the unicode/ascii code point for the hex representation
     // uses upper case for the characters
-    function char(uint8 b) pure private returns (byte c) {
+    function char(uint8 b) pure private returns (bytes1 c) {
         if (b < 10) {
-            return byte(b + 0x30);
+            return bytes1(b + 0x30);
         } else {
-            return byte(b + 0x37);
+            return bytes1(b + 0x37);
         }
     }
 }

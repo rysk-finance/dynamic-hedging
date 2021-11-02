@@ -1,4 +1,4 @@
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.8.0;
 
 import "./LiquidityPool.sol";
 import "./OptionsProtocol.sol";
@@ -24,7 +24,7 @@ contract LiquidityPools {
        symbol
     ));
     strikeAssets[_strikeAsset] = lp;
-    LiquidityPool(lp).transferOwnership(msg.sender);
+    LiquidityPool(lp).transferOwnership(payable(msg.sender));
     emit LiquidityPoolCreated(lp, _strikeAsset);
   }
 

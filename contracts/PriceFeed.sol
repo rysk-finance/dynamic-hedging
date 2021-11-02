@@ -1,4 +1,4 @@
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.8.9;
 
 import "./tokens/UniversalERC20.sol";
 import "./mocks/uniswap-v2/interfaces/IUniswapV2Pair.sol";

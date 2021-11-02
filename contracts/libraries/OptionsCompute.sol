@@ -1,4 +1,5 @@
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.8.0;
+
 import { ABDKMathQuad } from "./ABDKMathQuad.sol";
 import { Constants } from "./Constants.sol";
 

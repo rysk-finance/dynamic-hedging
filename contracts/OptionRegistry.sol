@@ -1,4 +1,4 @@
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.8.9;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IERC20.sol";
@@ -47,7 +47,7 @@ contract OptionRegistry {
     // Note, this just creates an option token, it doesn't guarantee
     // settlement of that token. For guaranteed settlement see the DSFProtocolProxy contract(s)
     function issue(address underlying, address strikeAsset, uint expiration, Types.Flavor flavor, uint strike) public returns (address) {
-        require(expiration > now, "Already expired");
+        require(expiration > block.timestamp, "Already expired");
         require(strike > 1 ether, "Strike is not greater than 1");
         address u = IERC20(underlying).isETH() ? Constants.ethAddress() : underlying;
         address s = strikeAsset == address(0) ? usd : strikeAsset;
@@ -62,7 +62,7 @@ contract OptionRegistry {
 
     function open(address _series, uint amount) public payable returns (bool) {
         Types.OptionSeries memory series = seriesInfo[_series];
-        require(now < series.expiration, "Options can not be opened after expiration");
+        require(block.timestamp < series.expiration, "Options can not be opened after expiration");
 
         if (series.flavor == Types.Flavor.Call) {
           openCall(series.underlying, amount);
@@ -82,7 +82,7 @@ contract OptionRegistry {
     function close(address _series, uint amount) public returns (bool) {
         Types.OptionSeries memory series = seriesInfo[_series];
 
-        require(now < series.expiration);
+        require(block.timestamp < series.expiration);
         require(openInterest[_series] >= amount);
         OptionToken(_series).burnFrom(msg.sender, amount);
 
@@ -102,7 +102,7 @@ contract OptionRegistry {
     function exercise(address _series, uint amount) public payable {
         Types.OptionSeries memory series = seriesInfo[_series];
 
-        require(now < series.expiration, "Series already expired");
+        require(block.timestamp < series.expiration, "Series already expired");
         require(openInterest[_series] >= amount, " Amount greater than open interest");
         OptionToken(_series).burnFrom(msg.sender, amount);
 
@@ -128,7 +128,7 @@ contract OptionRegistry {
     function redeemWriter(address _series, address writer) public returns (uint underlying, uint strikeAsset) {
         Types.OptionSeries memory series = seriesInfo[_series];
 
-        require(now > series.expiration, "Series did not expire");
+        require(block.timestamp > series.expiration, "Series did not expire");
 
         (underlying, strikeAsset) = calculateWriterSettlement(writers[_series][writer], _series);
 
@@ -167,7 +167,7 @@ contract OptionRegistry {
 
     function settle(address _series) public returns (uint strikeAmount) {
         Types.OptionSeries memory series = seriesInfo[_series];
-        require(now > series.expiration);
+        require(block.timestamp > series.expiration);
 
         uint bal = IERC20(_series).balanceOf(msg.sender);
         OptionToken(_series).burnFrom(msg.sender, bal);

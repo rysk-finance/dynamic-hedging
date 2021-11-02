@@ -1,4 +1,4 @@
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.8.9;
 
 import "../interfaces/IERC20.sol";
 import "./SafeERC20.sol";
@@ -18,7 +18,7 @@ library UniversalERC20 {
         }
 
         if (token == ZERO_ADDRESS || token == ETH_ADDRESS) {
-            address(uint160(to)).transfer(amount);
+            payable(address(uint160(to))).transfer(amount);
         } else {
             token.safeTransfer(to, amount);
             return true;
@@ -33,10 +33,10 @@ library UniversalERC20 {
         if (token == ZERO_ADDRESS || token == ETH_ADDRESS) {
             require(from == msg.sender && msg.value >= amount, "msg.value is less than amount");
             if (to != address(this)) {
-                address(uint160(to)).transfer(amount);
+                payable(address(uint160(to))).transfer(amount);
             }
             if (msg.value > amount) {
-                msg.sender.transfer(msg.value.sub(amount));
+                payable(msg.sender).transfer(msg.value.sub(amount));
             }
         } else {
             require(msg.value == 0, "msg.value should be zero");

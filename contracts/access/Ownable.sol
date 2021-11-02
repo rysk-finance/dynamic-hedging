@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.8;
+pragma solidity >=0.8.9;
 
 import "../GSN/Context.sol";
 /**
@@ -23,7 +23,7 @@ contract Ownable is Context {
     /**
      * @dev Initializes the contract setting the deployer as the initial owner.
      */
-    constructor () internal {
+    constructor () {
         address payable msgSender = _msgSender();
         _owner = msgSender;
         emit OwnershipTransferred(address(0), msgSender);
@@ -53,7 +53,7 @@ contract Ownable is Context {
      */
     function renounceOwnership() public virtual onlyOwner {
         emit OwnershipTransferred(_owner, address(0));
-        _owner = address(0);
+        _owner = payable(address(0));
     }
 
     /**

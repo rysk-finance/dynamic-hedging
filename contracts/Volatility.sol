@@ -1,4 +1,4 @@
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.8.9;
 pragma experimental ABIEncoderV2;
 
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";

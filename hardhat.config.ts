@@ -46,13 +46,26 @@ module.exports = {
         disambiguatePaths: false,
     },
     solidity: {
-        version: "0.6.8",
-        settings: {
-            optimizer: {
-                enabled: true,
-                runs: 200
+        compilers: [
+            {
+                version: "0.6.8",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200
+                    }
+                }
+            },
+            {
+                version: "0.8.9",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200
+                    }
+                }
             }
-        },
+        ]
     },
     namedAccounts: {
         deployer: 0,

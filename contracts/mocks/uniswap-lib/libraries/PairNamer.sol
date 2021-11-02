@@ -4,7 +4,7 @@ import './SafeERC20Namer.sol';
 
 // produces names for pairs of tokens using Uniswap's naming scheme
 library PairNamer {
-    string private constant TOKEN_SYMBOL_PREFIX = '🦄';
+    string private constant TOKEN_SYMBOL_PREFIX = '';
     string private constant TOKEN_SEPARATOR = ':';
 
     // produces a pair descriptor in the format of `${prefix}${name0}:${name1}${suffix}`

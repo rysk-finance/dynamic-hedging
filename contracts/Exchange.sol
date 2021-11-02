@@ -1,4 +1,4 @@
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.8.9;
 
 import "./interfaces/IERC20.sol";
 import "./tokens/SafeERC20.sol";
@@ -29,7 +29,7 @@ contract Exchange {
    * Note: Remember to call Token(address).approve(this, amount) or this contract will not be able to do the transfer on your behalf.
    * @param token Ethereum contract address of the token or 0 for Ether
    * @param amount uint of the amount of the token the user wishes to deposit
-   * @author forkdelta
+   * author forkdelta
    */
   function depositToken(address token, uint amount) public {
     require(token != address(0));
@@ -104,7 +104,7 @@ contract Exchange {
     bytes32 hash = keccak256(abi.encodePacked(address(this), tokenGet, amountGet, tokenGive, amountGive, expires, nonce));
     require((
       orders[user][hash] &&
-      now <= expires &&
+      block.timestamp <= expires &&
       orderFills[user][hash].add(amount) <= amountGet
     ));
     tradeBalances(tokenGet, amountGet, tokenGive, amountGive, user, amount);

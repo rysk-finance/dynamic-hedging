@@ -1,4 +1,4 @@
-pragma solidity >=0.5.0 <0.7.0;
+pragma solidity >=0.8.0;
 pragma experimental ABIEncoderV2;
 
 import { Constants } from "./libraries/Constants.sol";
@@ -103,12 +103,12 @@ contract LiquidityPool is
     uint tokenSupply = totalSupply();
     uint decimals = IERC20(strikeAsset).decimals();
     uint exchangeRate = getUnderlyingPrice(underlyingAsset, strikeAsset);
-    uint strikeAmount = exchangeRate.mul(amount).div(10**decimals);
+    uint strikeAmount = (exchangeRate * amount) / (10**decimals);
     // needs to transfer underlying as well using ratio param (initially 1)
     uint balance = IERC20(strikeAsset).balanceOf(msg.sender);
     TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), strikeAmount);
     TransferHelper.safeTransferFrom(underlyingAsset, msg.sender, address(this), amount);
-    uint newAmount = amount.add(strikeAmount);
+    uint newAmount = amount + strikeAmount;
     if (tokenSupply == 0) {
       _mint(msg.sender, newAmount);
       emit LiquidityAdded(newAmount);
@@ -116,10 +116,10 @@ contract LiquidityPool is
     }
     uint strikeBalance = IERC20(strikeAsset).universalBalanceOf(address(this));
     uint underlyingBalance = IERC20(underlyingAsset).universalBalanceOf(address(this));
-    uint totalBalance = strikeBalance.add(underlyingBalance);
-    uint allocated = strikeAllocated.add(underlyingAllocated);
+    uint totalBalance = strikeBalance + underlyingBalance;
+    uint allocated = strikeAllocated + underlyingAllocated;
     //TODO use underlying and strike allocated
-    bytes16 totalAssets =  (totalBalance.add(allocated)).fromUInt();
+    bytes16 totalAssets =  (totalBalance + allocated).fromUInt();
     bytes16 percentage = newAmount.fromUInt().div(totalAssets);
     bytes16 newTokens = percentage.mul(totalAssets);
     _mint(msg.sender, newTokens.toUInt());
@@ -173,7 +173,7 @@ contract LiquidityPool is
   {
     uint iv = impliedVolatility[optionSeries.underlying];
     require(iv > 0, "Implied volatility not found");
-    require(optionSeries.expiration > now, "Already expired");
+    require(optionSeries.expiration > block.timestamp, "Already expired");
     uint underlyingPrice = getUnderlyingPrice(optionSeries);
     return retBlackScholesCalc(
        underlyingPrice,
@@ -194,7 +194,7 @@ contract LiquidityPool is
   {
       uint iv = impliedVolatility[optionSeries.underlying];
       require(iv > 0, "Implied volatility not found");
-      require(optionSeries.expiration > now, "Already expired");
+      require(optionSeries.expiration > block.timestamp, "Already expired");
       underlyingPrice = getUnderlyingPrice(optionSeries);
       (quote, delta) = retBlackScholesCalcGreeks(
          underlyingPrice,

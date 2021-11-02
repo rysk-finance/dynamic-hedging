@@ -1,4 +1,4 @@
-pragma solidity >=0.6.8 <0.7.0;
+pragma solidity >=0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "./ABDKMathQuad.sol";
@@ -142,7 +142,7 @@ contract BlackScholes {
       bytes16 res = blackScholesCalc(
           price.fromUInt().div(DECIMAL_PLACE),
           strike.fromUInt().div(DECIMAL_PLACE),
-          uint(expiration - now).fromUInt().div(ONE_YEAR_SECONDS),
+          uint(expiration - block.timestamp).fromUInt().div(ONE_YEAR_SECONDS),
           uint(vol).fromUInt().div(HUNDRED),
           uint(rfr).fromUInt().div(HUNDRED),
           flavor
@@ -165,7 +165,7 @@ contract BlackScholes {
         return blackScholesCalcGreeks(
            price.fromUInt().div(DECIMAL_PLACE),
            strike.fromUInt().div(DECIMAL_PLACE),
-           uint(expiration - now).fromUInt().div(ONE_YEAR_SECONDS),
+           uint(expiration - block.timestamp).fromUInt().div(ONE_YEAR_SECONDS),
            uint(vol).fromUInt().div(HUNDRED),
            uint(rfr).fromUInt().div(HUNDRED),
            flavor
@@ -314,7 +314,7 @@ contract BlackScholes {
         (bytes16 d1,) = getD1(
             price.div(DECIMAL_PLACE),
             strike.div(DECIMAL_PLACE),
-            expiration.sub(now.fromUInt()).div(ONE_YEAR_SECONDS),
+            expiration.sub(block.timestamp.fromUInt()).div(ONE_YEAR_SECONDS),
             vol.div(HUNDRED),
             rfr.div(HUNDRED)
         );

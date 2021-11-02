@@ -9,7 +9,7 @@ library SafeERC20Namer {
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
         for (uint j = 0; j < 32; j++) {
-            byte char = x[j];
+            bytes1 char = x[j];
             if (char != 0) {
                 bytesString[charCount] = char;
                 charCount++;

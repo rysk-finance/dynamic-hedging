@@ -1,4 +1,4 @@
-pragma solidity ^0.6.8;
+pragma solidity >=0.8.9;
 
 import '../../interfaces/IERC20.sol';
 import '../../access/Ownable.sol';
@@ -29,7 +29,7 @@ contract StakingRewardsFactory is Ownable {
         //require(_stakingRewardsGenesis >= block.timestamp, 'StakingRewardsFactory::constructor: genesis too soon');
 
         rewardsToken = _rewardsToken;
-        stakingRewardsGenesis = now;
+        stakingRewardsGenesis = block.timestamp;
     }
 
     ///// permissioned functions
