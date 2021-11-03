@@ -43,6 +43,7 @@
     "greeks": "^1.0.0",
     "hardhat-typechain": "^0.3.3",
     "moment": "^2.29.1",
+    "prb-math": "^2.4.1",
     "ts-generator": "^0.1.1",
     "typechain": "^4.0.1"
   }

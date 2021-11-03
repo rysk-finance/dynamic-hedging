@@ -896,10 +896,10 @@ describe("Liquidity Pools", async () => {
     //@ts-ignore
     const res = await liquidityPool.setVolatilitySkew(coefs, BigNumber.from(call))
     const vs = await liquidityPool.getVolatilitySkew(BigNumber.from(call))
-    const converted = vs.map((n: string) => convertDoubleToDec(n))
+    const converted = vs.map((n: BigNumber) => fromWei(n))
     const diff = percentDiffArr(converted, coefInts)
     // allow for small float inprecision
-    expect(diff).to.be.lt(0.01);
+    expect(diff).to.eq(0);
   });
 
   it('can set the puts volatility skew', async () => {});

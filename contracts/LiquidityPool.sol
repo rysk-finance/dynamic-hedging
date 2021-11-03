@@ -12,6 +12,8 @@ import "./tokens/UniversalERC20.sol";
 import "./OptionsProtocol.sol";
 import "./PriceFeed.sol";
 import "./access/Ownable.sol";
+import "prb-math/contracts/PRBMathSD59x18.sol";
+import "prb-math/contracts/PRBMathUD60x18.sol";
 // import "hardhat/console.sol";
 
 contract LiquidityPool is
@@ -20,9 +22,9 @@ contract LiquidityPool is
   Ownable
 {
   using UniversalERC20 for IERC20;
-  using ABDKMathQuad for uint256;
   using ABDKMathQuad for bytes16;
-  using ABDKMathQuad for int256;
+  using PRBMathSD59x18 for int256;
+  using PRBMathUD60x18 for uint256;
 
   bytes16 private constant ONE = 0x3fff0000000000000000000000000000;
 
@@ -39,8 +41,8 @@ contract LiquidityPool is
   bytes16 public weightedTimeCall;
   bytes16 public weightedStrikePut;
   bytes16 public weightedTimePut;
-  bytes16[7] public callsVolatilitySkew;
-  bytes16[7] public putsVolatilitySkew;
+  int[7] public callsVolatilitySkew;
+  int[7] public putsVolatilitySkew;
   // Implied volatility for an underlying
   mapping(address => uint) public impliedVolatility;
 
@@ -66,20 +68,17 @@ contract LiquidityPool is
       returns (bool)
   {
       //TODO add modifier for permissioned only
-      for(uint i=0; i < 7; i++) {
-          bytes16 value = values[i].fromInt().div(Constants.decimalPlace());
-          if (Types.isCall(flavor)) {
-              callsVolatilitySkew[i] = value;
-          } else {
-              putsVolatilitySkew[i] = value;
-          }
+      if (Types.isCall(flavor)) {
+          callsVolatilitySkew = values;
+      } else {
+          putsVolatilitySkew = values;
       }
   }
 
   function getVolatilitySkew(Types.Flavor flavor)
       external
       view
-      returns (bytes16[7] memory)
+      returns (int[7] memory)
   {
       if (Types.isCall(flavor)) {
           return callsVolatilitySkew;
@@ -119,10 +118,10 @@ contract LiquidityPool is
     uint totalBalance = strikeBalance + underlyingBalance;
     uint allocated = strikeAllocated + underlyingAllocated;
     //TODO use underlying and strike allocated
-    bytes16 totalAssets =  (totalBalance + allocated).fromUInt();
-    bytes16 percentage = newAmount.fromUInt().div(totalAssets);
-    bytes16 newTokens = percentage.mul(totalAssets);
-    _mint(msg.sender, newTokens.toUInt());
+    uint totalAssets =  totalBalance + allocated;
+    uint percentage = newAmount.div(totalAssets);
+    uint newTokens = percentage.mul(totalAssets);
+    _mint(msg.sender, newTokens);
     emit LiquidityAdded(amount);
     //TODO do balance reconcilation here and revert if unbalanced
     return true;
@@ -211,9 +210,9 @@ contract LiquidityPool is
       view
       returns (bytes16)
   {
-      bytes16 price = getUnderlyingPrice(underlyingAsset, strikeAsset).fromUInt();
-      bytes16 vol = impliedVolatility[underlyingAsset].fromUInt();
-      bytes16 rfr = riskFreeRate.fromUInt();
+      bytes16 price = ABDKMathQuad.fromUInt(getUnderlyingPrice(underlyingAsset, strikeAsset));
+      bytes16 vol = ABDKMathQuad.fromUInt(impliedVolatility[underlyingAsset]);
+      bytes16 rfr = ABDKMathQuad.fromUInt(riskFreeRate);
       //TODO use skew for volatility
       bytes16 callsDelta = getDeltaBytes(
          price,
@@ -242,13 +241,11 @@ contract LiquidityPool is
     view
     returns (uint)
   {
-    bytes16 bytesAmount = amount.fromUInt();
     uint optionQuote = quotePrice(optionSeries);
-    int8 isNegitive = bytesAmount.cmp(ONE);
-    uint optionPrice = isNegitive < 0 ? optionQuote.fromUInt().mul(bytesAmount).toUInt() : optionQuote;
-    bytes16 underlyingPrice = getUnderlyingPrice(optionSeries).fromUInt();
-    bytes16 utilization = bytesAmount.div(totalSupply().fromUInt());
-    uint utilizationPrice = underlyingPrice.mul(utilization).toUInt();
+    uint optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
+    uint underlyingPrice = getUnderlyingPrice(optionSeries);
+    uint utilization = amount.div(totalSupply());
+    uint utilizationPrice = underlyingPrice.mul(utilization);
     return utilizationPrice > optionPrice ? utilizationPrice : optionPrice;
   }
 
@@ -260,15 +257,15 @@ contract LiquidityPool is
       view
       returns (bytes16 quote, bytes16 delta)
   {
-      bytes16 bytesAmount = amount.fromUInt();
+      bytes16 bytesAmount = ABDKMathQuad.fromUInt(amount);
       (bytes16 optionQuote, bytes16 delta, uint price) = quotePriceGreeks(optionSeries);
       int8 isNegitive = bytesAmount.cmp(ONE);
       bytes16 optionPrice = isNegitive < 0 ? optionQuote.mul(bytesAmount) : optionQuote;
-      bytes16 underlyingPrice = price.fromUInt();
+      bytes16 underlyingPrice = ABDKMathQuad.fromUInt(price);
       // factor in portfolio delta
       // if decreases portfolio delta quote standard bs
       // abs(portfolio delta + new delta) < abs(portfolio delta)
-      bytes16 utilization = bytesAmount.div(totalSupply().fromUInt());
+      bytes16 utilization = bytesAmount.div(ABDKMathQuad.fromUInt(totalSupply()));
       bytes16 utilizationPrice = underlyingPrice.mul(utilization);
       quote = optionPrice.cmp(utilizationPrice) > 0 ? utilizationPrice : optionPrice;
   }
