@@ -2,11 +2,12 @@ pragma solidity >=0.8.0;
 
 import { ABDKMathQuad } from "./ABDKMathQuad.sol";
 import { Constants } from "./Constants.sol";
+import "prb-math/contracts/PRBMathUD60x18.sol";
 
 library OptionsCompute {
-    using ABDKMathQuad for uint256;
     using ABDKMathQuad for bytes16;
     using ABDKMathQuad for int256;
+    using PRBMathUD60x18 for uint256;
 
     bytes16 private constant DECIMAL_PLACE = 0x403abc16d674ec800000000000000000;
     bytes16 private constant ONE = 0x3fff0000000000000000000000000000;
@@ -17,10 +18,7 @@ library OptionsCompute {
         pure
         returns (uint)
     {
-        bytes16 reducedAmount = amount.fromUInt().div(DECIMAL_PLACE);
-        bytes16 strikeBytes = strike.fromUInt();
-        bytes16 escrow = strikeBytes.mul(reducedAmount);
-        return escrow.toUInt();
+        return strike.mul(amount);
     }
 
     function toUInt(bytes16 x)
@@ -35,18 +33,18 @@ library OptionsCompute {
        uint amount,
        uint strike,
        uint expiration,
-       bytes16 totalAmount,
-       bytes16 weightedStrike,
-       bytes16 weightedTime
-    ) internal pure returns (bytes16, bytes16, bytes16) {
-        bytes16 amountBytes = amount.fromUInt();
-        bytes16 strikeBytes = strike.fromUInt();
-        bytes16 time = expiration.fromUInt();
-        bytes16 weight = amountBytes.div(totalAmount);
-        bytes16 exWeight = ONE.sub(weight);
-        bytes16 newTotalAmount = totalAmount.add(amountBytes);
-        bytes16 newWeightedStrike = (exWeight.mul(weightedStrike)).add(weight.mul(strikeBytes));
-        bytes16 newWeightedTime = (exWeight.mul(weightedTime)).add(weight.mul(time));
+       uint totalAmount,
+       uint weightedStrike,
+       uint weightedTime
+    ) internal pure returns (uint, uint, uint) {
+        uint weight = PRBMathUD60x18.scale();
+        if (totalAmount > 0) {
+            weight = amount.div(totalAmount);
+        }
+        uint exWeight = PRBMathUD60x18.scale() - weight;
+        uint newTotalAmount = totalAmount + amount;
+        uint newWeightedStrike = (exWeight.mul(weightedStrike)) + (weight.mul(strike));
+        uint newWeightedTime = (exWeight.mul(weightedTime)) + (weight.mul(expiration));
         return (newTotalAmount, newWeightedStrike, newWeightedTime);
     }
 

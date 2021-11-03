@@ -35,12 +35,12 @@ contract LiquidityPool is
   uint public strikeAllocated;
   uint public underlyingAllocated;
 
-  bytes16 public totalAmountCall;
-  bytes16 public totalAmountPut;
-  bytes16 public weightedStrikeCall;
-  bytes16 public weightedTimeCall;
-  bytes16 public weightedStrikePut;
-  bytes16 public weightedTimePut;
+  uint public totalAmountCall;
+  uint public totalAmountPut;
+  uint public weightedStrikeCall;
+  uint public weightedTimeCall;
+  uint public weightedStrikePut;
+  uint public weightedTimePut;
   int[7] public callsVolatilitySkew;
   int[7] public putsVolatilitySkew;
   // Implied volatility for an underlying
@@ -205,7 +205,7 @@ contract LiquidityPool is
       );
   }
 
-  function getPortfolioDelta(uint256 underlyingPrice)
+  function getPortfolioDelta()
       public
       view
       returns (bytes16)
@@ -216,16 +216,16 @@ contract LiquidityPool is
       //TODO use skew for volatility
       bytes16 callsDelta = getDeltaBytes(
          price,
-         weightedStrikeCall,
-         weightedTimeCall,
+         ABDKMathQuad.fromUInt(weightedStrikeCall),
+         ABDKMathQuad.fromUInt(weightedTimeCall),
          vol,
          rfr,
          Types.Flavor.Call
       );
       bytes16 putsDelta = getDeltaBytes(
          price,
-         weightedStrikePut,
-         weightedTimePut,
+         ABDKMathQuad.fromUInt(weightedStrikePut),
+         ABDKMathQuad.fromUInt(weightedTimePut),
          vol,
          rfr,
          Types.Flavor.Put
@@ -317,13 +317,13 @@ contract LiquidityPool is
     }
 
     if (Types.isCall(flavor)) {
-        (bytes16 newTotal, bytes16 newWeight, bytes16 newTime) = OptionsCompute.computeNewWeights(
+        (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
             amount, optionSeries.strike, optionSeries.expiration, totalAmountCall, weightedStrikeCall, weightedTimeCall);
         totalAmountCall = newTotal;
         weightedStrikeCall = newWeight;
         weightedTimeCall = newTime;
     } else {
-        (bytes16 newTotal, bytes16 newWeight, bytes16 newTime) = OptionsCompute.computeNewWeights(
+        (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
             amount, optionSeries.strike, optionSeries.expiration, totalAmountPut, weightedStrikePut, weightedTimePut);
         totalAmountPut = newTotal;
         weightedStrikePut = newWeight;
