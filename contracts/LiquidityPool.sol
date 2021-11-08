@@ -7,6 +7,7 @@ import { TransferHelper } from "./libraries/TransferHelper.sol";
 import "./tokens/ERC20.sol";
 import "./OptionRegistry.sol";
 import "./libraries/ABDKMathQuad.sol";
+import "./libraries/Math.sol";
 import "./libraries/BlackScholes.sol";
 import "./tokens/UniversalERC20.sol";
 import "./OptionsProtocol.sol";
@@ -25,6 +26,7 @@ contract LiquidityPool is
   using ABDKMathQuad for bytes16;
   using PRBMathSD59x18 for int256;
   using PRBMathUD60x18 for uint256;
+  using Math for uint256;
 
   bytes16 private constant ONE = 0x3fff0000000000000000000000000000;
 
@@ -34,6 +36,7 @@ contract LiquidityPool is
   uint public riskFreeRate;
   uint public strikeAllocated;
   uint public underlyingAllocated;
+  uint public maxTotalSupply = type(uint256).max;
 
   uint public totalAmountCall;
   uint public totalAmountPut;
@@ -49,6 +52,7 @@ contract LiquidityPool is
   event LiquidityAdded(uint amount);
   event UnderlyingAdded(address underlying);
   event ImpliedVolatilityUpdated(address underlying, uint iv);
+  event LiquidityDeposited(uint strikeAmount, uint underlyingAmount);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
 
   constructor(address _protocol, address _strikeAsset, address underlying, uint rfr, uint iv, string memory name, string memory symbol) ERC20(name, symbol) public {
@@ -87,45 +91,133 @@ contract LiquidityPool is
       }
   }
 
-  function addLiquidity(uint amount)
-    public
-    payable
-    returns (bool)
-  {
-    addTokenLiquidity(amount);
+  function setMaxTotalSupply(uint256 _maxTotalSupply) external onlyOwner {
+      maxTotalSupply = _maxTotalSupply;
   }
 
-  function addTokenLiquidity(uint amount)
-    internal
-    returns (bool)
+  /**
+   * @notice function for adding liquidity to the options liquidity pool
+   * @param strikeAmountDesired Max amount of strikeAsset to deposit
+   * @param underlyingAmountDesired Max amount of underlyingAsset to deposit
+   * @param strikeAmountMin Revert if resulting `strikeAmount` is less than this
+   * @param underlyingAmountMin Revert if resulting `underlyingAmount` is less than this
+   * @return shares Number of shares minted
+   * @return strikeAmount Amount of strikeAsset deposited
+   * @return underlyingAmount Amount of underlyingAsset deposited
+   * @dev    entry point to provide liquidity to dynamic hedging vault 
+   */
+  function addLiquidity(
+    uint strikeAmountDesired,
+    uint underlyingAmountDesired,
+    uint strikeAmountMin,
+    uint underlyingAmountMin
+    ) 
+    external
+    returns(uint shares, uint strikeAmount, uint underlyingAmount)
   {
-    uint tokenSupply = totalSupply();
-    uint decimals = IERC20(strikeAsset).decimals();
-    uint exchangeRate = getUnderlyingPrice(underlyingAsset, strikeAsset);
-    uint strikeAmount = (exchangeRate * amount) / (10**decimals);
-    // needs to transfer underlying as well using ratio param (initially 1)
-    uint balance = IERC20(strikeAsset).balanceOf(msg.sender);
-    TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), strikeAmount);
-    TransferHelper.safeTransferFrom(underlyingAsset, msg.sender, address(this), amount);
-    uint newAmount = amount + strikeAmount;
-    if (tokenSupply == 0) {
-      _mint(msg.sender, newAmount);
-      emit LiquidityAdded(newAmount);
-      return true;
-    }
-    uint strikeBalance = IERC20(strikeAsset).universalBalanceOf(address(this));
-    uint underlyingBalance = IERC20(underlyingAsset).universalBalanceOf(address(this));
-    uint totalBalance = strikeBalance + underlyingBalance;
-    uint allocated = strikeAllocated + underlyingAllocated;
-    //TODO use underlying and strike allocated
-    uint totalAssets =  totalBalance + allocated;
-    uint percentage = newAmount.div(totalAssets);
-    uint newTokens = percentage.mul(totalAssets);
-    _mint(msg.sender, newTokens);
-    emit LiquidityAdded(amount);
-    //TODO do balance reconcilation here and revert if unbalanced
-    return true;
+    require(strikeAmountDesired > 0 || underlyingAmountDesired> 0, "strikeAmountDesired or underlyingAmountDesired");
+
+    // Calculate amounts proportional to pool's holdings
+    (shares, strikeAmount, underlyingAmount) = _calcSharesAndAmounts(strikeAmountDesired, underlyingAmountDesired);
+    require(shares > 0, "shares");
+    require(strikeAmount >= strikeAmountMin, "strikeAmountMin");
+    require(underlyingAmount >= underlyingAmountMin, "underlyingAmountMin");
+
+    // Pull in tokens from sender
+    if (strikeAmount > 0) TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), strikeAmount);
+    if (underlyingAmount > 0) TransferHelper.safeTransferFrom(underlyingAsset, msg.sender, address(this), underlyingAmount);
+    _mint(msg.sender, shares);
+    emit LiquidityDeposited(strikeAmount, underlyingAmount);
+    require(totalSupply() <= maxTotalSupply, "maxTotalSupply");
+    // TODO: do some funky delta hedging rebalancing here
   }
+
+  function _calcSharesAndAmounts(uint strikeAmountDesired, uint underlyingAmountDesired) 
+    internal 
+    returns 
+    (uint shares, uint strikeAmount, uint underlyingAmount)
+  {
+    uint totalSupply = totalSupply();
+    uint strikeTotal = IERC20(strikeAsset).universalBalanceOf(address(this)) + strikeAllocated;
+    uint underlyingTotal = IERC20(underlyingAsset).universalBalanceOf(address(this)) + underlyingAllocated;
+
+    if (totalSupply == 0) {
+      strikeAmount = strikeAmountDesired;
+      underlyingAmount = underlyingAmountDesired;
+      shares = Math.max(strikeAmount, underlyingAmount);
+    } else if (strikeTotal == 0) {
+      underlyingAmount = underlyingAmountDesired;
+      shares = underlyingAmount.mul(totalSupply).div(underlyingTotal);
+    } else if (underlyingTotal == 0) {
+      strikeAmount = strikeAmountDesired;
+      shares = strikeAmount.mul(totalSupply).div(strikeTotal);
+    } else {
+      uint cross = Math.min(strikeAmountDesired.mul(underlyingTotal), underlyingAmountDesired.mul(strikeTotal));
+      require(cross > 0, "cross");
+
+      // do rounding
+      strikeAmount = (cross - 1).div(underlyingTotal) + 1;
+      underlyingAmount = (cross - 1).div(strikeTotal) + 1;
+      shares = cross.mul(totalSupply).div(strikeTotal).div(underlyingTotal);
+    }
+  }
+
+  // /**
+  //  * @notice function for adding liquidity to the options liquidity pool
+  //  * @param  amount (uint) amount of funds of the underlying asset to send in
+  //  * @dev    entry point to provide liquidity to dynamic hedging vault 
+  //  */
+  // function addLiquidity(uint amount)
+  //   public
+  //   payable
+  //   returns (bool)
+  // {
+  //   addTokenLiquidity(amount);
+  // }
+
+
+  // function addTokenLiquidity(uint amount)
+  //   internal
+  //   returns (bool)
+  // {
+  //   uint tokenSupply = totalSupply();
+  //   uint decimals = IERC20(strikeAsset).decimals();
+  //   // get the exchange rate of the underlyingAsset to the strikeAsset from chainlink
+  //   uint exchangeRate = getUnderlyingPrice(underlyingAsset, strikeAsset);
+  //   // determine the strikeAmount from the exchangeRate and the amount specified by the user
+  //   uint strikeAmount = (exchangeRate * amount) / (10**decimals);
+  //   // needs to transfer underlying as well using ratio param (initially 1)
+  //   uint balance = IERC20(strikeAsset).balanceOf(msg.sender);
+  //   // transfer funds to the liquidity pool, note amount of underlying is sent and strikeAmount
+  //   // strikeAsset is sent.
+  //   TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), strikeAmount);
+  //   TransferHelper.safeTransferFrom(underlyingAsset, msg.sender, address(this), amount);
+    
+  //   uint newAmount = amount + strikeAmount;
+  //   if (tokenSupply == 0) {
+  //     _mint(msg.sender, newAmount);
+  //     emit LiquidityAdded(newAmount);
+  //     return true;
+  //   }
+  //   // get the strike balance in underlying terms
+  //   uint strikeBalance = (IERC20(strikeAsset).universalBalanceOf(address(this)) * exchangeRate) / (10**decimals);
+  //   // get the underlying balance
+  //   uint underlyingBalance = IERC20(underlyingAsset).universalBalanceOf(address(this));
+  //   uint totalBalance = strikeBalance + underlyingBalance;
+  //   // allocated stored in terms of underlying, strikeAllocated is stored in terms of strike so should
+  //   // be converted to underlying terms
+  //   uint allocated = ((strikeAllocated  * exchangeRate) / (10**decimals)) + underlyingAllocated;
+  //   //TODO use underlying and strike allocated
+  //   uint totalAssets =  totalBalance + allocated;
+  //   // calculate the percentage of the amount just inputted to the totalAssets
+  //   uint percentage = (newAmount.mul(10**decimals)).div(totalAssets);
+  //   // determine the number of shares by the percentage allocation of the pool
+  //   uint newTokens = percentage.mul(totalAssets).div(10**decimals);
+  //   _mint(msg.sender, newTokens);
+  //   emit LiquidityAdded(amount);
+  //   //TODO do balance reconcilation here and revert if unbalanced
+  //   return true;
+  // }
 
   function getPriceFeed() internal view returns (PriceFeed) {
     address feedAddress = Protocol(protocol).priceFeed();

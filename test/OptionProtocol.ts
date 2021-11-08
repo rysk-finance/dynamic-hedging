@@ -618,16 +618,16 @@ describe("Liquidity Pools", async () => {
     const wethBalance = await weth.balanceOf(senderAddress);
     await dai.approve(liquidityPool.address, toWei('600'));
     await weth.approve(liquidityPool.address, toWei('1'));
-    const addLiquidity = await liquidityPool.addLiquidity(toWei('1'));
+    const addLiquidity = await liquidityPool.addLiquidity(toWei('600'), toWei('1'), 0, 0);
     const liquidityPoolBalance = await liquidityPool.balanceOf(senderAddress);
     const receipt = await addLiquidity.wait(1);
-    const event = receipt?.events?.find(x => x.event == 'LiquidityAdded');
+    const event = receipt?.events?.find(x => x.event == 'LiquidityDeposited');
     const newBalance = await dai.balanceOf(senderAddress);
     const newWethBalance = await weth.balanceOf(senderAddress);
-    expect(event?.event).to.eq('LiquidityAdded');
+    expect(event?.event).to.eq('LiquidityDeposited');
     expect(wethBalance.sub(newWethBalance)).to.eq(toWei('1'));
-    expect(balance.sub(newBalance)).to.eq(price);
-    expect(liquidityPoolBalance).to.eq(toWei('1').add(price));
+    expect(balance.sub(newBalance)).to.eq(toWei('600'));
+    expect(liquidityPoolBalance).to.eq(toWei('600'));
   });
 
   it('Adds additional liquidity from new account', async () => {
@@ -643,7 +643,7 @@ describe("Liquidity Pools", async () => {
     const lpReceiver = liquidityPool.connect(receiver);
     await wethReceiver.approve(liquidityPool.address, sendAmount);
     const totalSupply = await liquidityPool.totalSupply();
-    await lpReceiver.addLiquidity(sendAmount);
+    await lpReceiver.addLiquidity(toWei('1000'), toWei('1'), 0, 0);
     const newTotalSupply = await liquidityPool.totalSupply();
     const lpBalance = await lpReceiver.balanceOf(receiverAddress);
     const difference = newTotalSupply.sub(lpBalance)
@@ -799,7 +799,7 @@ describe("Liquidity Pools", async () => {
     await dai.approve(liquidityPool.address, toWei('6000'));
     await weth.deposit({ value: amount.mul('5') });
     await weth.approve(liquidityPool.address, amount.mul('5'));
-    await liquidityPool.addLiquidity(amount.mul('4'));
+    await liquidityPool.addLiquidity(toWei('6000'), amount.mul('4'), 0, 0);
     const lpDaiBalanceBefore = await dai.balanceOf(liquidityPool.address);
     const proposedSeries = {
       expiration: BigNumber.from(expiration.unix()),
