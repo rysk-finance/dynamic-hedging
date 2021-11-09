@@ -3,11 +3,12 @@ pragma solidity >=0.8.0;
 import { ABDKMathQuad } from "./ABDKMathQuad.sol";
 import { Constants } from "./Constants.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
+import "prb-math/contracts/PRBMathSD59x18.sol";
 
 library OptionsCompute {
     using ABDKMathQuad for bytes16;
-    using ABDKMathQuad for int256;
     using PRBMathUD60x18 for uint256;
+    using PRBMathSD59x18 for int256;
 
     bytes16 private constant DECIMAL_PLACE = 0x403abc16d674ec800000000000000000;
     bytes16 private constant ONE = 0x3fff0000000000000000000000000000;
@@ -54,12 +55,12 @@ library OptionsCompute {
     // a == spot_distance, b == expiration time
     // spot_distance = (strike - spot_price) / spot_price
     function computeIVFromSkew(
-       bytes16[7] memory coef,
-       bytes16[2] memory points
-    ) internal pure returns (bytes16){
-        bytes16 iPlusC1 = coef[0].add(coef[1]);
-        bytes16 c2PlusC3 = coef[2].mul(points[0]).add(coef[3].mul(points[1]));
-        bytes16 c4PlusC5 = coef[4].mul(points[0].mul(points[0])).add(coef[5].mul(points[0]).mul(points[1]));
-        return iPlusC1.add(c2PlusC3).add(c4PlusC5).add(coef[6].mul(points[1].mul(points[1])));
+       int[7] memory coef,
+       int[2] memory points
+    ) internal pure returns (int){
+        int iPlusC1 = coef[0] + coef[1];
+        int c2PlusC3 = coef[2].mul(points[0]) + (coef[3].mul(points[1]));
+        int c4PlusC5 = coef[4].mul(points[0].mul(points[0])) + (coef[5].mul(points[0]).mul(points[1]));
+        return iPlusC1 + c2PlusC3 + c4PlusC5 + (coef[6].mul(points[1].mul(points[1])));
     }
 }

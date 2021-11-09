@@ -559,9 +559,7 @@ describe("Liquidity Pools", async () => {
     const volFactory = await ethers.getContractFactory(
       "Volatility",
       {
-        libraries: {
-          Constants: constants.address
-        }
+        libraries: {}
       }
     )
     volatility = await volFactory.deploy() as Volatility;
@@ -904,7 +902,9 @@ describe("Liquidity Pools", async () => {
 
   it('can set the puts volatility skew', async () => {});
 
-  it('can compute portfolio delta', async function() {});
+  it('can compute portfolio delta', async function() {
+    const res = await liquidityPool.getPortfolioDelta();
+  });
 
   it('LP can buy back option to reduce open interest', async () => {});
 
