@@ -129,11 +129,38 @@ contract LiquidityPool is
     _mint(msg.sender, shares);
     emit LiquidityDeposited(strikeAmount, underlyingAmount);
     require(totalSupply() <= maxTotalSupply, "maxTotalSupply");
-    // TODO: do some funky delta hedging rebalancing here
   }
+
+  /**
+   * @notice function for removing liquidity from the options liquidity pool
+   * @param shares number of shares to burn
+   * @param strikeAmountMin minimum strike amount to receive (revert if amount received is lower)
+   * @param underlyingAmountMin minimum underlying amount to receive Revert if resulting `underlyingAmount` is less than this
+   * @return strikeAmount Amount of strikeAsset withdrawn
+   * @return underlyingAmount Amount of underlyingAsset withdrawn
+   * @dev    entry point to remove liquidity to dynamic hedging vault 
+   */
+  function removeLiquidity(
+    uint shares,
+    uint strikeAmountMin,
+    uint underlyingAmountMin
+    ) 
+    external
+    returns(uint strikeAmount, uint underlyingAmount)
+  {
+    require(shares > 0, "!shares");
+    uint256 totalSupply = totalSupply();
+
+    // Burn shares
+    _burn(msg.sender, shares);
+
+    // withdraw logic
+  }
+
 
   function _calcSharesAndAmounts(uint strikeAmountDesired, uint underlyingAmountDesired) 
     internal 
+    view
     returns 
     (uint shares, uint strikeAmount, uint underlyingAmount)
   {
