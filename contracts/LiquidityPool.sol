@@ -15,7 +15,7 @@ import "./PriceFeed.sol";
 import "./access/Ownable.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract LiquidityPool is
   BlackScholes,
@@ -53,6 +53,7 @@ contract LiquidityPool is
   event UnderlyingAdded(address underlying);
   event ImpliedVolatilityUpdated(address underlying, uint iv);
   event LiquidityDeposited(uint strikeAmount, uint underlyingAmount);
+  event LiquidityRemoved(address user, uint shares,  uint strikeAmount, uint underlyingAmount);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
 
   constructor(address _protocol, address _strikeAsset, address underlying, uint rfr, uint iv, string memory name, string memory symbol) ERC20(name, symbol) public {
@@ -111,7 +112,7 @@ contract LiquidityPool is
     uint underlyingAmountDesired,
     uint strikeAmountMin,
     uint underlyingAmountMin
-    ) 
+    )
     external
     returns(uint shares, uint strikeAmount, uint underlyingAmount)
   {
@@ -144,24 +145,42 @@ contract LiquidityPool is
     uint shares,
     uint strikeAmountMin,
     uint underlyingAmountMin
-    ) 
+    )
     external
     returns(uint strikeAmount, uint underlyingAmount)
   {
     require(shares > 0, "!shares");
     uint256 totalSupply = totalSupply();
+    uint256 ratio = shares.div(totalSupply);
 
-    // Burn shares
     _burn(msg.sender, shares);
 
-    // withdraw logic
+    // Calculate liquidity that can be withdrawn
+    uint256 availableStrike = IERC20(strikeAsset).balanceOf(address(this)) - _calcStrikeCommitted();
+    strikeAmount = availableStrike.mul(ratio);
+    require(strikeAmountMin <= strikeAmount, "strikeAmountMin exceeds available liquidity");
+    uint256 availableUnderlying = IERC20(underlyingAsset).balanceOf(address(this)) - totalAmountCall;
+    underlyingAmount = availableUnderlying.mul(ratio);
+    require(underlyingAmountMin <= underlyingAmount, "underlyingAmountMin exceeds available liquidity");
+
+    IERC20(strikeAsset).universalTransfer(msg.sender, strikeAmount);
+    IERC20(underlyingAsset).universalTransfer(msg.sender, underlyingAmount);
+    emit LiquidityRemoved(msg.sender, shares, strikeAmount, underlyingAmount);
   }
 
+  function _calcStrikeCommitted()
+      internal
+      view
+      returns (uint)
+  {
+      // TODO consider caching this into a variable when put is written
+      return totalAmountPut.mul(weightedStrikePut);
+  }
 
-  function _calcSharesAndAmounts(uint strikeAmountDesired, uint underlyingAmountDesired) 
-    internal 
+  function _calcSharesAndAmounts(uint strikeAmountDesired, uint underlyingAmountDesired)
+    internal
     view
-    returns 
+    returns
     (uint shares, uint strikeAmount, uint underlyingAmount)
   {
     uint totalSupply = totalSupply();
