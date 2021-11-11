@@ -1,11 +1,11 @@
 {
-  "name": "dicer",
+  "name": "delta-hedging",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "hardhat test",
-    "deploy:ropsten": "buidler deploy --network ropsten"
+    "deploy:rinkeby": "hardhat deploy --network rinkeby --tags testnet --deploy-scripts deploy"
   },
   "keywords": [],
   "author": "",

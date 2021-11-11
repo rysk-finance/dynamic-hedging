@@ -35,6 +35,10 @@ const ropsten =
     process.env.ROPSTEN ||
     new ethers.providers.InfuraProvider("ropsten").connection.url;
 
+const rinkeby =
+  process.env.RINKEBY ||
+  new ethers.providers.InfuraProvider("rinkeby").connection.url;
+
 module.exports = {
     typechain: {
         outDir: "types",
@@ -52,7 +56,7 @@ module.exports = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 200
+                        runs: 1
                     }
                 }
             },
@@ -61,7 +65,7 @@ module.exports = {
                 settings: {
                     optimizer: {
                         enabled: true,
-                        runs: 200
+                        runs: 1
                     }
                 }
             }
@@ -82,7 +86,13 @@ module.exports = {
             url: ropsten,
             accounts,
             chainId: 3,
-        }
+        },
+      rinkeby: {
+        url: rinkeby,
+        accounts,
+        chainId: 4,
+        saveDeployments: true
+      }
     },
     etherscan: {
         apiKey: process.env.ETHERSCAN
