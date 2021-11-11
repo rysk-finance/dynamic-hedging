@@ -508,7 +508,7 @@ describe("Price Feed", async () => {
 
 
     const priceFeedFactory = await ethers.getContractFactory("PriceFeed");
-    const _priceFeed = await priceFeedFactory.deploy(uniswapFactory.address, uniswapRouter.address) as PriceFeed;
+    const _priceFeed = await priceFeedFactory.deploy() as PriceFeed;
     priceFeed = _priceFeed;
     await priceFeed.addPriceFeed(ZERO_ADDRESS, dai.address, ethDaiAggregator.address);
     await priceFeed.addPriceFeed(weth.address, dai.address, ethDaiAggregator.address);
