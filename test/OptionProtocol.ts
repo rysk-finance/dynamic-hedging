@@ -908,6 +908,31 @@ describe("Liquidity Pools", async () => {
 
   it('LP can buy back option to reduce open interest', async () => {});
 
-  it('LP redeems', async () => {});
+  it('LP can not redeems shares when in excess of liquidity', async () => {
+    const shares = await liquidityPool.balanceOf(senderAddress);
+    const withdraw = liquidityPool.removeLiquidity(shares, 0, 0);
+    await expect(withdraw).to.be.revertedWith("underlyingAmount exceeds available liquidity");
+  });
+
+  it('LP can redeem shares', async () => {
+    const shares = await liquidityPool.balanceOf(senderAddress);
+    const totalShares = await liquidityPool.totalSupply();
+    //@ts-ignore
+    const ratio = 1 / fromWei(totalShares);
+    const wethBalance = await weth.balanceOf(liquidityPool.address);
+    const daiBalance = await dai.balanceOf(liquidityPool.address);
+    const totalAmountCall = await liquidityPool.totalAmountCall();
+    const totalAmountPut = await liquidityPool.totalAmountPut();
+    const withdraw = await liquidityPool.removeLiquidity(toWei('1'), 0, 0);
+    const receipt = await withdraw.wait(1);
+    const events = receipt.events;
+    const removeEvent = events?.find(x => x.event == 'LiquidityRemoved');
+    const strikeAmount = removeEvent?.args?.strikeAmount;
+    const daiBalanceAfter = await dai.balanceOf(liquidityPool.address);
+    //@ts-ignore
+    const diff = fromWei(daiBalance) * ratio;
+    expect(diff).to.be.lt(1);
+    expect(strikeAmount).to.be.eq(daiBalance.sub(daiBalanceAfter));
+  });
 
 });
