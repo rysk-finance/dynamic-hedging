@@ -72,7 +72,6 @@ contract LiquidityPool is
       external
       returns (bool)
   {
-      //TODO add modifier for permissioned only
       if (Types.isCall(flavor)) {
           callsVolatilitySkew = values;
       } else {
@@ -145,7 +144,7 @@ contract LiquidityPool is
     uint shares,
     uint strikeAmountMin,
     uint underlyingAmountMin
-    )
+  )
     external
     returns(uint strikeAmount, uint underlyingAmount)
   {
@@ -156,16 +155,62 @@ contract LiquidityPool is
     _burn(msg.sender, shares);
 
     // Calculate liquidity that can be withdrawn
-    uint256 availableStrike = IERC20(strikeAsset).balanceOf(address(this)) - _calcStrikeCommitted();
-    strikeAmount = availableStrike.mul(ratio);
+    uint256 strikeBalance = IERC20(strikeAsset).balanceOf(address(this));
+    uint256 strikeEquity = strikeBalance - _valuePutsWritten();
+    uint256 strikeLiquidity = strikeBalance - _calcStrikeCommitted();
+    strikeAmount = strikeEquity.mul(ratio);
     require(strikeAmountMin <= strikeAmount, "strikeAmountMin exceeds available liquidity");
-    uint256 availableUnderlying = IERC20(underlyingAsset).balanceOf(address(this)) - totalAmountCall;
-    underlyingAmount = availableUnderlying.mul(ratio);
+    require(strikeAmount <= strikeLiquidity, "strikeAmount amount exceeds available liquidity");
+    uint256 underlyingBalance = IERC20(underlyingAsset).balanceOf(address(this));
+    uint256 underlyingEquity = underlyingBalance - _valueCallsWritten();
+    uint256 underlyingLiquidity = IERC20(underlyingAsset).balanceOf(address(this)) - totalAmountCall;
+    underlyingAmount = underlyingEquity.mul(ratio);
     require(underlyingAmountMin <= underlyingAmount, "underlyingAmountMin exceeds available liquidity");
+    require(underlyingAmount <= underlyingLiquidity, "underlyingAmount exceeds available liquidity");
 
     IERC20(strikeAsset).universalTransfer(msg.sender, strikeAmount);
     IERC20(underlyingAsset).universalTransfer(msg.sender, underlyingAmount);
     emit LiquidityRemoved(msg.sender, shares, strikeAmount, underlyingAmount);
+  }
+
+  function _valuePutsWritten()
+      internal
+      view
+      returns (uint)
+  {
+      uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
+      // TODO replace with skew
+      // TODO Consider using VAR (value at risk) approach in the future
+      uint iv = impliedVolatility[underlyingAsset];
+      uint price = retBlackScholesCalc(
+         underlyingPrice,
+         weightedStrikePut,
+         weightedTimePut,
+         iv,
+         riskFreeRate,
+         Types.Flavor.Put
+      );
+      return totalAmountPut.mul(price);
+  }
+
+  function _valueCallsWritten()
+      internal
+      view
+      returns (uint)
+  {
+      uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
+      //TODO replace with skew
+      uint iv = impliedVolatility[underlyingAsset];
+      uint price = retBlackScholesCalc(
+         underlyingPrice,
+         weightedStrikeCall,
+         weightedTimeCall,
+         iv,
+         riskFreeRate,
+         Types.Flavor.Call
+      );
+      uint callsValue = totalAmountCall.mul(price).div(underlyingPrice);
+      return callsValue.min(totalAmountCall);
   }
 
   function _calcStrikeCommitted()
