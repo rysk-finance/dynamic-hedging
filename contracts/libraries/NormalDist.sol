@@ -36,7 +36,7 @@ library NormalDist {
         return ONE_HALF.mul(onePlusPhi);
     }
 
-    function phi(bytes16 x) internal pure returns(bytes16) {
+    function phi(bytes16 x) public pure returns(bytes16) {
         int8 sign = x.sign();
         bytes16 abs = x.abs();
 
@@ -48,7 +48,7 @@ library NormalDist {
         return sign.fromInt().mul(y);
     }
 
-    function getScoresFromT(bytes16 t) internal pure returns(bytes16) {
+    function getScoresFromT(bytes16 t) public pure returns(bytes16) {
         bytes16 byA5T = A5.mul(t);
         bytes16 byA4T = byA5T.add(A4).mul(t);
         bytes16 byA3T = byA4T.add(A3).mul(t);

@@ -20,26 +20,53 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const signerAddress = await signer.getAddress();
   console.log({signerAddress, deployer})
 
-   let normDistDeploy: DeployResult = await deploy("NormalDist", {
-     from: deployer,
-     log: true
-   });
+  let abdkMathDeploy: DeployResult = await deploy("ABDKMathQuad", {
+    from: deployer,
+    log: true
+  });
+
+  let PRBMathSD60x18Deploy: DeployResult = await deploy("PRBMathInt", {
+    from: deployer,
+    log: true
+  });
+
+  let PRBMathSD59x18Deploy: DeployResult = await deploy("PRBMathUint", {
+    from: deployer,
+    log: true
+  });
+
+  let normDistDeploy: DeployResult = await deploy("NormalDist", {
+    from: deployer,
+    log: true,
+    libraries: {
+      ABDKMathQuad: abdkMathDeploy.address
+    }
+  });
+
+  let blackScholesDeploy: DeployResult = await deploy("BlackScholesLib", {
+    from: deployer,
+    log: true,
+    libraries: {
+      ABDKMathQuad: abdkMathDeploy.address,
+      NormalDist: normDistDeploy.address
+    }
+  });
 
   let constantsDeploy: DeployResult = await deploy("Constants", {
     from: deployer,
     log: true
   });
 
-  let liquidityPoolsDeploy: DeployResult = await deploy("LiquidityPools", {
-    from: deployer,
-    log: true,
-    libraries: {
-      Constants: constantsDeploy.address,
-      NormalDist: normDistDeploy.address
-    }
-  });
+  // let liquidityPoolsDeploy: DeployResult = await deploy("LiquidityPools", {
+  //   from: deployer,
+  //   log: true,
+  //   libraries: {
+  //     Constants: constantsDeploy.address,
+  //     NormalDist: normDistDeploy.address
+  //   }
+  // });
 
-  let liquidityPools: LiquidityPools = getContractFromDeploy(liquidityPoolsDeploy, signer) as unknown as LiquidityPools;
+  // let liquidityPools: LiquidityPools = getContractFromDeploy(liquidityPoolsDeploy, signer) as unknown as LiquidityPools;
 
   let optionRegistryDeploy: DeployResult = await deploy("OptionRegistry", {
     from: deployer,
@@ -60,27 +87,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const priceFeed: PriceFeed = getContractFromDeploy(pricefeedDeploy, signer) as unknown as PriceFeed;
   await priceFeed.addPriceFeed(WETH9_ADDRESS, USDC_ADDRESS, ETH_USD_AGGREGATOR);
 
-  let protocolDeploy: DeployResult = await deploy("Protocol", {
+  let indliquidityPoolsDeploy: DeployResult = await deploy("IndependentLiquidityPool", {
     from: deployer,
-    args: [optionRegistryDeploy.address, liquidityPoolsDeploy.address, pricefeedDeploy.address],
-    log: true
+    log: true,
+    libraries: {
+      Constants: constantsDeploy.address,
+      NormalDist: normDistDeploy.address,
+      ABDKMathQuad: abdkMathDeploy.address,
+      PRBMathUint: PRBMathSD60x18Deploy.address,
+      PRBMathInt: PRBMathSD59x18Deploy.address,
+      BlackScholesLib: blackScholesDeploy.address
+    },
+    args: [pricefeedDeploy.address, optionRegistryDeploy.address, USDC_ADDRESS, WETH9_ADDRESS, '3', IMPLIED_VOL, 'WETH/USDC', 'EUS']
   });
 
-  await liquidityPools.setup(protocolDeploy.address);
-
-  const lp = await liquidityPools.createLiquidityPool(
-    USDC_ADDRESS,
-    WETH9_ADDRESS,
-    '3',
-    IMPLIED_VOL,
-    'WETH/USDC',
-    'EUS'
-  );
-  const lpReceipt = await lp.wait(1);
-  const events = lpReceipt.events;
-  const createEvent = events?.find(x => x.event == 'LiquidityPoolCreated');
-  const lpAddress = createEvent?.args?.lp;
-  console.log({lpAddress})
 }
 
 func.tags = ["testnet"];
