@@ -43,7 +43,7 @@ library ABDKMathQuad {
    * @param x signed 256-bit integer number
    * @return quadruple precision number
    */
-  function fromInt (int256 x) internal pure returns (bytes16) {
+  function fromInt (int256 x) public pure returns (bytes16) {
     unchecked {
       if (x == 0) return bytes16 (0);
       else {
@@ -69,7 +69,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return signed 256-bit integer number
    */
-  function toInt (bytes16 x) internal pure returns (int256) {
+  function toInt (bytes16 x) public pure returns (int256) {
     unchecked {
       uint256 exponent = uint128 (x) >> 112 & 0x7FFF;
 
@@ -98,7 +98,7 @@ library ABDKMathQuad {
    * @param x unsigned 256-bit integer number
    * @return quadruple precision number
    */
-  function fromUInt (uint256 x) internal pure returns (bytes16) {
+  function fromUInt (uint256 x) public pure returns (bytes16) {
     unchecked {
       if (x == 0) return bytes16 (0);
       else {
@@ -124,7 +124,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return unsigned 256-bit integer number
    */
-  function toUInt (bytes16 x) internal pure returns (uint256) {
+  function toUInt (bytes16 x) public pure returns (uint256) {
     unchecked {
       uint256 exponent = uint128 (x) >> 112 & 0x7FFF;
 
@@ -150,7 +150,7 @@ library ABDKMathQuad {
    * @param x signed 128.128 bit fixed point number
    * @return quadruple precision number
    */
-  function from128x128 (int256 x) internal pure returns (bytes16) {
+  function from128x128 (int256 x) public pure returns (bytes16) {
     unchecked {
       if (x == 0) return bytes16 (0);
       else {
@@ -176,7 +176,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return signed 128.128 bit fixed point number
    */
-  function to128x128 (bytes16 x) internal pure returns (int256) {
+  function to128x128 (bytes16 x) public pure returns (int256) {
     unchecked {
       uint256 exponent = uint128 (x) >> 112 & 0x7FFF;
 
@@ -206,7 +206,7 @@ library ABDKMathQuad {
    * @param x signed 64.64 bit fixed point number
    * @return quadruple precision number
    */
-  function from64x64 (int128 x) internal pure returns (bytes16) {
+  function from64x64 (int128 x) public pure returns (bytes16) {
     unchecked {
       if (x == 0) return bytes16 (0);
       else {
@@ -232,7 +232,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return signed 64.64 bit fixed point number
    */
-  function to64x64 (bytes16 x) internal pure returns (int128) {
+  function to64x64 (bytes16 x) public pure returns (int128) {
     unchecked {
       uint256 exponent = uint128 (x) >> 112 & 0x7FFF;
 
@@ -261,7 +261,7 @@ library ABDKMathQuad {
    * @param x octuple precision number
    * @return quadruple precision number
    */
-  function fromOctuple (bytes32 x) internal pure returns (bytes16) {
+  function fromOctuple (bytes32 x) public pure returns (bytes16) {
     unchecked {
       bool negative = x & 0x8000000000000000000000000000000000000000000000000000000000000000 > 0;
 
@@ -298,7 +298,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return octuple precision number
    */
-  function toOctuple (bytes16 x) internal pure returns (bytes32) {
+  function toOctuple (bytes16 x) public pure returns (bytes32) {
     unchecked {
       uint256 exponent = uint128 (x) >> 112 & 0x7FFF;
 
@@ -330,7 +330,7 @@ library ABDKMathQuad {
    * @param x double precision number
    * @return quadruple precision number
    */
-  function fromDouble (bytes8 x) internal pure returns (bytes16) {
+  function fromDouble (bytes8 x) public pure returns (bytes16) {
     unchecked {
       uint256 exponent = uint64 (x) >> 52 & 0x7FF;
 
@@ -362,7 +362,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return double precision number
    */
-  function toDouble (bytes16 x) internal pure returns (bytes8) {
+  function toDouble (bytes16 x) public pure returns (bytes8) {
     unchecked {
       bool negative = uint128 (x) >= 0x80000000000000000000000000000000;
 
@@ -405,7 +405,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return true if x is NaN, false otherwise
    */
-  function isNaN (bytes16 x) internal pure returns (bool) {
+  function isNaN (bytes16 x) public pure returns (bool) {
     unchecked {
       return uint128 (x) & 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF >
         0x7FFF0000000000000000000000000000;
@@ -419,7 +419,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return true if x is positive or negative infinity, false otherwise
    */
-  function isInfinity (bytes16 x) internal pure returns (bool) {
+  function isInfinity (bytes16 x) public pure returns (bool) {
     unchecked {
       return uint128 (x) & 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF ==
         0x7FFF0000000000000000000000000000;
@@ -433,7 +433,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return sign of x
    */
-  function sign (bytes16 x) internal pure returns (int8) {
+  function sign (bytes16 x) public pure returns (int8) {
     unchecked {
       uint128 absoluteX = uint128 (x) & 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
@@ -453,7 +453,7 @@ library ABDKMathQuad {
    * @param y quadruple precision number
    * @return sign (x - y)
    */
-  function cmp (bytes16 x, bytes16 y) internal pure returns (int8) {
+  function cmp (bytes16 x, bytes16 y) public pure returns (int8) {
     unchecked {
       uint128 absoluteX = uint128 (x) & 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
@@ -490,7 +490,7 @@ library ABDKMathQuad {
    * @param y quadruple precision number
    * @return true if x equals to y, false otherwise
    */
-  function eq (bytes16 x, bytes16 y) internal pure returns (bool) {
+  function eq (bytes16 x, bytes16 y) public pure returns (bool) {
     unchecked {
       if (x == y) {
         return uint128 (x) & 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF <
@@ -513,7 +513,7 @@ library ABDKMathQuad {
    * @param y quadruple precision number
    * @return quadruple precision number
    */
-  function add (bytes16 x, bytes16 y) internal pure returns (bytes16) {
+  function add (bytes16 x, bytes16 y) public pure returns (bytes16) {
     unchecked {
       uint256 xExponent = uint128 (x) >> 112 & 0x7FFF;
       uint256 yExponent = uint128 (y) >> 112 & 0x7FFF;
@@ -632,7 +632,7 @@ library ABDKMathQuad {
    * @param y quadruple precision number
    * @return quadruple precision number
    */
-  function sub (bytes16 x, bytes16 y) internal pure returns (bytes16) {
+  function sub (bytes16 x, bytes16 y) public pure returns (bytes16) {
     unchecked {
       return add (x, y ^ 0x80000000000000000000000000000000);
     }
@@ -657,7 +657,7 @@ library ABDKMathQuad {
    * @param y quadruple precision number
    * @return quadruple precision number
    */
-  function mul (bytes16 x, bytes16 y) internal pure returns (bytes16) {
+  function mul (bytes16 x, bytes16 y) public pure returns (bytes16) {
     unchecked {
       uint256 xExponent = uint128 (x) >> 112 & 0x7FFF;
       uint256 yExponent = uint128 (y) >> 112 & 0x7FFF;
@@ -758,7 +758,7 @@ library ABDKMathQuad {
    * @param y quadruple precision number
    * @return quadruple precision number
    */
-  function div (bytes16 x, bytes16 y) internal pure returns (bytes16) {
+  function div (bytes16 x, bytes16 y) public pure returns (bytes16) {
     unchecked {
       uint256 xExponent = uint128 (x) >> 112 & 0x7FFF;
       uint256 yExponent = uint128 (y) >> 112 & 0x7FFF;
@@ -838,7 +838,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return quadruple precision number
    */
-  function neg (bytes16 x) internal pure returns (bytes16) {
+  function neg (bytes16 x) public pure returns (bytes16) {
     unchecked {
       return x ^ 0x80000000000000000000000000000000;
     }
@@ -850,7 +850,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return quadruple precision number
    */
-  function abs (bytes16 x) internal pure returns (bytes16) {
+  function abs (bytes16 x) public pure returns (bytes16) {
     unchecked {
       return x & 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
     }
@@ -862,7 +862,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return quadruple precision number
    */
-  function sqrt (bytes16 x) internal pure returns (bytes16) {
+  function sqrt (bytes16 x) public pure returns (bytes16) {
     unchecked {
       if (uint128 (x) >  0x80000000000000000000000000000000) return NaN;
       else {
@@ -921,7 +921,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return quadruple precision number
    */
-  function log_2 (bytes16 x) internal pure returns (bytes16) {
+  function log_2 (bytes16 x) public pure returns (bytes16) {
     unchecked {
       if (uint128 (x) > 0x80000000000000000000000000000000) return NaN;
       else if (x == 0x3FFF0000000000000000000000000000) return POSITIVE_ZERO; 
@@ -986,7 +986,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return quadruple precision number
    */
-  function ln (bytes16 x) internal pure returns (bytes16) {
+  function ln (bytes16 x) public pure returns (bytes16) {
     unchecked {
       return mul (log_2 (x), 0x3FFE62E42FEFA39EF35793C7673007E5);
     }
@@ -998,7 +998,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return quadruple precision number
    */
-  function pow_2 (bytes16 x) internal pure returns (bytes16) {
+  function pow_2 (bytes16 x) public pure returns (bytes16) {
     unchecked {
       bool xNegative = uint128 (x) > 0x80000000000000000000000000000000;
       uint256 xExponent = uint128 (x) >> 112 & 0x7FFF;
@@ -1181,7 +1181,7 @@ library ABDKMathQuad {
    * @param x quadruple precision number
    * @return quadruple precision number
    */
-  function exp (bytes16 x) internal pure returns (bytes16) {
+  function exp (bytes16 x) public pure returns (bytes16) {
     unchecked {
       return pow_2 (mul (x, 0x3FFF71547652B82FE1777D0FFDA0D23A));
     }

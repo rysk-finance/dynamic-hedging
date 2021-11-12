@@ -7,9 +7,7 @@ import "./tokens/UniversalERC20.sol";
 import { Types } from "./Types.sol";
 import { Constants } from "./libraries/Constants.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
-import "hardhat/console.sol";
 
-// @author Brian Wheeler - (DSF Protocol)
 contract OptionRegistry {
 
     using UniversalERC20 for IERC20;

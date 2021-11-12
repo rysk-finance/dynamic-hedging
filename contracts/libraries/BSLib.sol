@@ -5,7 +5,7 @@ import "./ABDKMathQuad.sol";
 import { NormalDist } from "./NormalDist.sol";
 import { Types } from "../Types.sol";
 
-contract BlackScholes {
+library BlackScholesLib {
     using ABDKMathQuad for uint256;
     using ABDKMathQuad for bytes16;
     using ABDKMathQuad for int256;
@@ -15,7 +15,7 @@ contract BlackScholes {
     bytes16 private constant TWO = 0x40000000000000000000000000000000;
     bytes16 private constant HUNDRED = 0x40059000000000000000000000000000;
     bytes16 private constant DECIMAL_PLACE = 0x403abc16d674ec800000000000000000;
-    bytes16 ONE_YEAR_SECONDS = 0x4017e187e00000000000000000000000;
+    bytes16 private constant ONE_YEAR_SECONDS = 0x4017e187e00000000000000000000000;
 
     struct Intermediates {
       bytes16 d1Denominator;

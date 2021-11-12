@@ -5,7 +5,6 @@ import "./access/Ownable.sol";
 import "./interfaces/AggregatorV3Interface.sol";
 import "./interfaces/IERC20.sol";
 import "./math/SafeMath.sol";
-import "hardhat/console.sol";
 
 contract PriceFeed is Ownable {
 

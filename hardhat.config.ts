@@ -45,7 +45,7 @@ module.exports = {
         target: "ethers-v5",
     },
     contractSizer: {
-        alphaSort: true,
+        alphaSort: false,
         runOnCompile: true,
         disambiguatePaths: false,
     },
@@ -91,7 +91,7 @@ module.exports = {
         url: rinkeby,
         accounts,
         chainId: 4,
-        saveDeployments: true
+        saveDeployments: true,
       }
     },
     etherscan: {
