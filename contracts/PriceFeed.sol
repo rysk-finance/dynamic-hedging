@@ -48,6 +48,11 @@ contract PriceFeed is Ownable {
         uint8 feedDecimals = feed.decimals();
         uint8 strikeDecimals = strikeToken.decimals();
         (, int rate,,,) = feed.latestRoundData();
+        if (strikeDecimals < feedDecimals) {
+            uint exponent = feedDecimals.sub(strikeDecimals);
+            uint normalized = uint(rate).div(10**(exponent));
+            return normalized;
+        }
         uint exponent = strikeDecimals.sub(feedDecimals);
         uint normalized = uint(rate).mul(10**(exponent));
         return normalized;

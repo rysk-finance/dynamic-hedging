@@ -545,8 +545,21 @@ let liquidityPool: LiquidityPool;
 let ethLiquidityPool: LiquidityPool;
 describe("Liquidity Pools", async () => {
   it('Should deploy liquidity pools', async () => {
-    const normDistFactory = await ethers.getContractFactory("NormalDist");
+    const abdkMathFactory = await ethers.getContractFactory("ABDKMathQuad");
+    const abdkMathDeploy = await abdkMathFactory.deploy();
+    const normDistFactory = await ethers.getContractFactory("NormalDist", {
+      libraries: {
+        ABDKMathQuad: abdkMathDeploy.address
+      }
+    });
     const normDist = await normDistFactory.deploy();
+    const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+      libraries: {
+        ABDKMathQuad: abdkMathDeploy.address,
+        NormalDist: normDist.address
+      }
+    });
+    const blackScholesDeploy = await blackScholesFactory.deploy();
     const constFactory = await ethers.getContractFactory("contracts/libraries/Constants.sol:Constants");
     const constants = await constFactory.deploy();
     const optComputeFactory = await ethers.getContractFactory(
@@ -568,7 +581,8 @@ describe("Liquidity Pools", async () => {
       {
         libraries: {
           Constants: constants.address,
-          NormalDist: normDist.address
+          ABDKMathQuad: abdkMathDeploy.address,
+          BlackScholes: blackScholesDeploy.address
         }
       }
     );
@@ -628,6 +642,13 @@ describe("Liquidity Pools", async () => {
     expect(liquidityPoolBalance).to.eq(toWei('600'));
   });
 
+  it('Removes from liquidityPool with no options written', async () => {
+    const liquidityPoolBalance = await liquidityPool.balanceOf(senderAddress);
+    await liquidityPool.removeLiquidity(toWei('60'), '0', '0');
+    const newLiquidityPoolBalance = await liquidityPool.balanceOf(senderAddress);
+    expect(liquidityPoolBalance.sub(newLiquidityPoolBalance)).to.eq(toWei('60'));
+  });
+
   it('Adds additional liquidity from new account', async () => {
     const [sender, receiver] = signers
     const price = await priceFeed.getNormalizedRate(weth.address, dai.address);
@@ -646,8 +667,8 @@ describe("Liquidity Pools", async () => {
     const lpBalance = await lpReceiver.balanceOf(receiverAddress);
     const difference = newTotalSupply.sub(lpBalance)
     const supplyRatio = convertRounded(newTotalSupply) / convertRounded((totalSupply));
-    expect(supplyRatio).to.eq(2);
-    expect(difference).to.eq(lpBalance);
+    expect(Math.floor(supplyRatio)).to.eq(2);
+    expect(difference).to.eq(lpBalance.sub(toWei('60')));
   });
 
   it('Creates a liquidity pool with ETH as strikeAsset', async () => {

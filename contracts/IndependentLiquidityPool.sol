@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import { Constants } from "./libraries/Constants.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { TransferHelper } from "./libraries/TransferHelper.sol";
-import { BlackScholesLib } from "./libraries/BSLib.sol";
+import "./libraries/BlackScholes.sol";
 import "./tokens/ERC20.sol";
 import "./OptionRegistry.sol";
 import "./libraries/ABDKMathQuad.sol";
@@ -177,11 +177,12 @@ contract IndependentLiquidityPool is
       view
       returns (uint)
   {
+      if (weightedStrikePut == 0) return uint(0);
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
       // TODO replace with skew
       // TODO Consider using VAR (value at risk) approach in the future
       uint iv = impliedVolatility[underlyingAsset];
-      uint price = BlackScholesLib.retBlackScholesCalc(
+      uint price = BlackScholes.retBlackScholesCalc(
          underlyingPrice,
          weightedStrikePut,
          weightedTimePut,
@@ -197,10 +198,11 @@ contract IndependentLiquidityPool is
       view
       returns (uint)
   {
+      if (weightedStrikeCall == 0) return uint(0);
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
       //TODO replace with skew
       uint iv = impliedVolatility[underlyingAsset];
-      uint price = BlackScholesLib.retBlackScholesCalc(
+      uint price = BlackScholes.retBlackScholesCalc(
          underlyingPrice,
          weightedStrikeCall,
          weightedTimeCall,
@@ -288,7 +290,7 @@ contract IndependentLiquidityPool is
     require(iv > 0, "Implied volatility not found");
     require(optionSeries.expiration > block.timestamp, "Already expired");
     uint underlyingPrice = getUnderlyingPrice(optionSeries);
-    return BlackScholesLib.retBlackScholesCalc(
+    return BlackScholes.retBlackScholesCalc(
        underlyingPrice,
        optionSeries.strike,
        optionSeries.expiration,
@@ -309,7 +311,7 @@ contract IndependentLiquidityPool is
       require(iv > 0, "Implied volatility not found");
       require(optionSeries.expiration > block.timestamp, "Already expired");
       underlyingPrice = getUnderlyingPrice(optionSeries);
-      (quote, delta) = BlackScholesLib.retBlackScholesCalcGreeks(
+      (quote, delta) = BlackScholes.retBlackScholesCalcGreeks(
          underlyingPrice,
          optionSeries.strike,
          optionSeries.expiration,
@@ -328,7 +330,7 @@ contract IndependentLiquidityPool is
       bytes16 vol = ABDKMathQuad.fromUInt(impliedVolatility[underlyingAsset]);
       bytes16 rfr = ABDKMathQuad.fromUInt(riskFreeRate);
       //TODO use skew for volatility
-      bytes16 callsDelta = BlackScholesLib.getDeltaBytes(
+      bytes16 callsDelta = BlackScholes.getDeltaBytes(
          price,
          ABDKMathQuad.fromUInt(weightedStrikeCall),
          ABDKMathQuad.fromUInt(weightedTimeCall),
@@ -336,7 +338,7 @@ contract IndependentLiquidityPool is
          rfr,
          Types.Flavor.Call
       );
-      bytes16 putsDelta = BlackScholesLib.getDeltaBytes(
+      bytes16 putsDelta = BlackScholes.getDeltaBytes(
          price,
          ABDKMathQuad.fromUInt(weightedStrikePut),
          ABDKMathQuad.fromUInt(weightedTimePut),
