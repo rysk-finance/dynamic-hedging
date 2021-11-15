@@ -15,10 +15,9 @@ import "./PriceFeed.sol";
 import "./access/Ownable.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-//import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 contract LiquidityPool is
-  BlackScholes,
   ERC20,
   Ownable
 {
@@ -178,11 +177,12 @@ contract LiquidityPool is
       view
       returns (uint)
   {
+      if (weightedStrikePut == 0) return uint(0);
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
       // TODO replace with skew
       // TODO Consider using VAR (value at risk) approach in the future
       uint iv = impliedVolatility[underlyingAsset];
-      uint price = retBlackScholesCalc(
+      uint price = BlackScholes.retBlackScholesCalc(
          underlyingPrice,
          weightedStrikePut,
          weightedTimePut,
@@ -198,10 +198,11 @@ contract LiquidityPool is
       view
       returns (uint)
   {
+      if (weightedStrikeCall == 0) return uint(0);
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
       //TODO replace with skew
       uint iv = impliedVolatility[underlyingAsset];
-      uint price = retBlackScholesCalc(
+      uint price = BlackScholes.retBlackScholesCalc(
          underlyingPrice,
          weightedStrikeCall,
          weightedTimeCall,
@@ -357,7 +358,7 @@ contract LiquidityPool is
     require(iv > 0, "Implied volatility not found");
     require(optionSeries.expiration > block.timestamp, "Already expired");
     uint underlyingPrice = getUnderlyingPrice(optionSeries);
-    return retBlackScholesCalc(
+    return BlackScholes.retBlackScholesCalc(
        underlyingPrice,
        optionSeries.strike,
        optionSeries.expiration,
@@ -378,7 +379,7 @@ contract LiquidityPool is
       require(iv > 0, "Implied volatility not found");
       require(optionSeries.expiration > block.timestamp, "Already expired");
       underlyingPrice = getUnderlyingPrice(optionSeries);
-      (quote, delta) = retBlackScholesCalcGreeks(
+      (quote, delta) = BlackScholes.retBlackScholesCalcGreeks(
          underlyingPrice,
          optionSeries.strike,
          optionSeries.expiration,
@@ -397,7 +398,7 @@ contract LiquidityPool is
       bytes16 vol = ABDKMathQuad.fromUInt(impliedVolatility[underlyingAsset]);
       bytes16 rfr = ABDKMathQuad.fromUInt(riskFreeRate);
       //TODO use skew for volatility
-      bytes16 callsDelta = getDeltaBytes(
+      bytes16 callsDelta = BlackScholes.getDeltaBytes(
          price,
          ABDKMathQuad.fromUInt(weightedStrikeCall),
          ABDKMathQuad.fromUInt(weightedTimeCall),
@@ -405,7 +406,7 @@ contract LiquidityPool is
          rfr,
          Types.Flavor.Call
       );
-      bytes16 putsDelta = getDeltaBytes(
+      bytes16 putsDelta = BlackScholes.getDeltaBytes(
          price,
          ABDKMathQuad.fromUInt(weightedStrikePut),
          ABDKMathQuad.fromUInt(weightedTimePut),
