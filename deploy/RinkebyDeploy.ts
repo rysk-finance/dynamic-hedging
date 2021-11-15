@@ -43,7 +43,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   });
 
-  let blackScholesDeploy: DeployResult = await deploy("BlackScholesLib", {
+  let blackScholesDeploy: DeployResult = await deploy("BlackScholes", {
     from: deployer,
     log: true,
     libraries: {
@@ -85,7 +85,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ABDKMathQuad: abdkMathDeploy.address,
       PRBMathUint: PRBMathSD60x18Deploy.address,
       PRBMathInt: PRBMathSD59x18Deploy.address,
-      BlackScholesLib: blackScholesDeploy.address
+      BlackScholes: blackScholesDeploy.address
     },
     args: [pricefeedDeploy.address, optionRegistryDeploy.address, DAI_ADDRESS, WETH9_ADDRESS, '3', IMPLIED_VOL, 'WETH/DAI', 'WEDAI']
   });
