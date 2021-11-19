@@ -8,7 +8,7 @@ import { OptionRegistry } from "../types/OptionRegistry";
 import { LiquidityPools } from "../types/LiquidityPools";
 
 const ETH_USD_AGGREGATOR = "0x8A753747A1Fa494EC906cE90E9f37563A8AF630e";
-const DAI_ADDRESS = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa";
+const USDC_ADDRESS = "0x4dbcdf9b62e891a7cec5a2568c3f4faf9e8abe2b";
 const WETH9_ADDRESS = "0xc778417E063141139Fce010982780140Aa0cD5Ab";
 const IMPLIED_VOL = '60';
 
@@ -62,7 +62,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     libraries: {
       Constants: constantsDeploy.address
     },
-    args: [DAI_ADDRESS],
+    args: [USDC_ADDRESS],
     log: true
   });
 
@@ -74,7 +74,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   const priceFeed: PriceFeed = getContractFromDeploy(pricefeedDeploy, signer) as unknown as PriceFeed;
-  await priceFeed.addPriceFeed(WETH9_ADDRESS, DAI_ADDRESS, ETH_USD_AGGREGATOR);
+  await priceFeed.addPriceFeed(WETH9_ADDRESS, USDC_ADDRESS, ETH_USD_AGGREGATOR);
 
   let indliquidityPoolsDeploy: DeployResult = await deploy("IndependentLiquidityPool", {
     from: deployer,
@@ -87,11 +87,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       PRBMathInt: PRBMathSD59x18Deploy.address,
       BlackScholes: blackScholesDeploy.address
     },
-    args: [pricefeedDeploy.address, optionRegistryDeploy.address, DAI_ADDRESS, WETH9_ADDRESS, '3', IMPLIED_VOL, 'WETH/DAI', 'WEDAI']
+    args: [pricefeedDeploy.address, optionRegistryDeploy.address, USDC_ADDRESS, WETH9_ADDRESS, '3', IMPLIED_VOL, 'WETH/USDC', 'WEUSDC']
   });
   await hre.run("verify:verify", {
     address: indliquidityPoolsDeploy.address,
-    constructorArguments: [pricefeedDeploy.address, optionRegistryDeploy.address, DAI_ADDRESS, WETH9_ADDRESS, '3', IMPLIED_VOL, 'WETH/DAI', 'WEDAI'],
+    constructorArguments: [pricefeedDeploy.address, optionRegistryDeploy.address, USDC_ADDRESS, WETH9_ADDRESS, '3', IMPLIED_VOL, 'WETH/USDC', 'WEUSDC'],
     libraries: {
       Constants: constantsDeploy.address
     }
