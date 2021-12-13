@@ -55,15 +55,15 @@ contract LiquidityPool is
   event LiquidityRemoved(address user, uint shares,  uint strikeAmount, uint underlyingAmount);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
 
-  constructor(address _protocol, address _strikeAsset, address underlying, uint rfr, uint iv, string memory name, string memory symbol) ERC20(name, symbol) public {
+  constructor(address _protocol, address _strikeAsset, address underlying, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol) {
     strikeAsset = IERC20(_strikeAsset).isETH() ? Constants.ethAddress() : _strikeAsset;
     riskFreeRate = rfr;
     address underlyingAddress = IERC20(underlying).isETH() ? Constants.ethAddress() : underlying;
     underlyingAsset = underlyingAddress;
-    impliedVolatility[underlyingAddress] = iv;
+    callsVolatilitySkew = callSkew;
+    putsVolatilitySkew = putSkew;
     protocol = _protocol;
     emit UnderlyingAdded(underlyingAddress);
-    emit ImpliedVolatilityUpdated(underlyingAddress, iv);
   }
 
   function setVolatilitySkew(int[7] calldata values, Types.Flavor flavor)
@@ -150,7 +150,6 @@ contract LiquidityPool is
     require(shares > 0, "!shares");
     uint256 totalSupply = totalSupply();
     uint256 ratio = shares.div(totalSupply);
-
     _burn(msg.sender, shares);
 
     // Calculate liquidity that can be withdrawn
@@ -162,13 +161,14 @@ contract LiquidityPool is
     require(strikeAmount <= strikeLiquidity, "strikeAmount amount exceeds available liquidity");
     uint256 underlyingBalance = IERC20(underlyingAsset).balanceOf(address(this));
     uint256 underlyingEquity = underlyingBalance - _valueCallsWritten();
-    uint256 underlyingLiquidity = IERC20(underlyingAsset).balanceOf(address(this)) - totalAmountCall;
+    uint256 underlyingLiquidity = underlyingBalance - totalAmountCall;
     underlyingAmount = underlyingEquity.mul(ratio);
     require(underlyingAmountMin <= underlyingAmount, "underlyingAmountMin exceeds available liquidity");
     require(underlyingAmount <= underlyingLiquidity, "underlyingAmount exceeds available liquidity");
 
     IERC20(strikeAsset).universalTransfer(msg.sender, strikeAmount);
     IERC20(underlyingAsset).universalTransfer(msg.sender, underlyingAmount);
+    //TODO implement book balance reconcilation check
     emit LiquidityRemoved(msg.sender, shares, strikeAmount, underlyingAmount);
   }
 
@@ -179,9 +179,8 @@ contract LiquidityPool is
   {
       if (weightedStrikePut == 0) return uint(0);
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      // TODO replace with skew
       // TODO Consider using VAR (value at risk) approach in the future
-      uint iv = impliedVolatility[underlyingAsset];
+      uint iv = getImpliedVolatility(Types.Flavor.Put, underlyingPrice, weightedStrikePut, weightedTimePut);
       uint price = BlackScholes.retBlackScholesCalc(
          underlyingPrice,
          weightedStrikePut,
@@ -200,8 +199,7 @@ contract LiquidityPool is
   {
       if (weightedStrikeCall == 0) return uint(0);
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      //TODO replace with skew
-      uint iv = impliedVolatility[underlyingAsset];
+      uint iv = getImpliedVolatility(Types.Flavor.Call, underlyingPrice, weightedStrikeCall, weightedTimeCall);
       uint price = BlackScholes.retBlackScholesCalc(
          underlyingPrice,
          weightedStrikeCall,
@@ -347,6 +345,23 @@ contract LiquidityPool is
       return underlyingPrice;
   }
 
+  function getImpliedVolatility(
+    Types.Flavor flavor,
+    uint underlyingPrice,
+    uint strikePrice,
+    uint expiration
+  )
+    public
+    view
+    returns (uint) 
+    {
+      int underlying = int(underlyingPrice);
+      int spot_distance = (int(strikePrice) - int(underlying)).div(underlying);
+      int[2] memory points = [spot_distance, int(expiration)];
+      int[7] memory coef = flavor == Types.Flavor.Call ? callsVolatilitySkew : putsVolatilitySkew;
+      return uint(OptionsCompute.computeIVFromSkew(coef, points));
+    }
+
   function quotePrice(
     Types.OptionSeries memory optionSeries
   )
@@ -354,18 +369,21 @@ contract LiquidityPool is
     view
     returns (uint)
   {
-    uint iv = impliedVolatility[optionSeries.underlying];
+    uint underlyingPrice = getUnderlyingPrice(optionSeries);
+    uint iv = getImpliedVolatility(optionSeries.flavor, underlyingPrice, optionSeries.strike, optionSeries.expiration);
+    //TODO refactor BlackScholes module to not need normalization
+    uint ivNorm = iv.div(PRBMathUD60x18.SCALE).mul(100);
     require(iv > 0, "Implied volatility not found");
     require(optionSeries.expiration > block.timestamp, "Already expired");
-    uint underlyingPrice = getUnderlyingPrice(optionSeries);
-    return BlackScholes.retBlackScholesCalc(
+    uint quote = BlackScholes.retBlackScholesCalc(
        underlyingPrice,
        optionSeries.strike,
        optionSeries.expiration,
-       iv,
+       ivNorm,
        riskFreeRate,
        optionSeries.flavor
     );
+    return quote;
   }
 
   function quotePriceGreeks(
@@ -375,7 +393,9 @@ contract LiquidityPool is
       view
       returns (bytes16 quote, bytes16 delta, uint256 underlyingPrice)
   {
-      uint iv = impliedVolatility[optionSeries.underlying];
+      uint underlyingPrice = getUnderlyingPrice(optionSeries);
+      uint iv = getImpliedVolatility(optionSeries.flavor, underlyingPrice, optionSeries.strike, optionSeries.expiration);
+      uint ivNorm = iv.div(PRBMathUD60x18.SCALE).mul(100);
       require(iv > 0, "Implied volatility not found");
       require(optionSeries.expiration > block.timestamp, "Already expired");
       underlyingPrice = getUnderlyingPrice(optionSeries);
@@ -383,7 +403,7 @@ contract LiquidityPool is
          underlyingPrice,
          optionSeries.strike,
          optionSeries.expiration,
-         iv,
+         ivNorm,
          riskFreeRate,
          optionSeries.flavor
       );
@@ -461,16 +481,15 @@ contract LiquidityPool is
   ) public payable returns (uint optionAmount, address series)
   {
     OptionRegistry optionRegistry = getOptionRegistry();
-    address series = optionRegistry.issue(
+    series = optionRegistry.issue(
        optionSeries.underlying,
        optionSeries.strikeAsset,
        optionSeries.expiration,
        optionSeries.flavor,
        optionSeries.strike
     );
-    uint optionAmount = writeOption(series, amount);
+    optionAmount = writeOption(series, amount);
     //TODO if destroy address, destroy old option series to reduce gas cost
-    return (optionAmount, series);
   }
 
   function writeOption(
@@ -486,8 +505,7 @@ contract LiquidityPool is
     require(optionSeries.strikeAsset == strikeAsset, "incorrect strike asset");
     Types.Flavor flavor = optionSeries.flavor;
     address escrowAsset = Types.isCall(flavor) ? underlyingAsset : strikeAsset;
-    (bytes16 premiumBytes, bytes16 delta) = quotePriceWithUtilizationGreeks(optionSeries, amount);
-    uint premium = OptionsCompute.toUInt(premiumBytes);
+    uint premium = quotePriceWithUtilization(optionSeries, amount);
     TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), premium);
     uint escrow = Types.isCall(flavor) ? amount : OptionsCompute.computeEscrow(amount, optionSeries.strike);
     require(IERC20(escrowAsset).universalBalanceOf(address(this)) >= escrow, "Insufficient balance for escrow");
