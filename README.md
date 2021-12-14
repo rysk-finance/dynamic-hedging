@@ -5,7 +5,7 @@
     <img src="https://images.emojiterra.com/mozilla/128px/1f52a.png" alt="Logo" width="80" height="80">
   </a>
 
-  <h3 align="center">Delta hedged</h3>
+  <h3 align="center">Dynamic hedging</h3>
 
   <p align="center">
      Options delta neutrality as a crypto native uncorrelated asset class
