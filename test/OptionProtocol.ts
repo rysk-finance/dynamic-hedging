@@ -961,13 +961,6 @@ describe("Liquidity Pools", async () => {
 
   it('LP can buy back option to reduce open interest', async () => {});
 
-  it('LP can not redeems shares when in excess of liquidity', async () => {
-    const shares = await liquidityPool.balanceOf(senderAddress);
-    //const withdraw = liquidityPool.removeLiquidity(shares, 0, 0);
-    //@TODO create setup
-    //await expect(withdraw).to.be.revertedWith("underlyingAmount exceeds available liquidity");
-  });
-
   it('LP can redeem shares', async () => {
     const shares = await liquidityPool.balanceOf(senderAddress);
     const totalShares = await liquidityPool.totalSupply();
@@ -985,5 +978,13 @@ describe("Liquidity Pools", async () => {
     expect(diff).to.be.lt(1);
     expect(strikeAmount).to.be.eq(daiBalance.sub(daiBalanceAfter));
   });
+
+  it('LP can not redeems shares when in excess of liquidity', async () => {
+    const shares = await liquidityPool.balanceOf(receiverAddress);
+    const liquidityPoolReceiver = liquidityPool.connect(receiverAddress);
+    const withdraw = liquidityPoolReceiver.removeLiquidity(shares, 0, 0);
+    await expect(withdraw).to.be.revertedWith("StrikeAmountExceedsLiquidity");
+  });
+
 
 });

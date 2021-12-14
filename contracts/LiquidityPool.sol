@@ -17,6 +17,11 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "hardhat/console.sol";
 
+error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
+error MinUnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingAmountMin);
+error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
+error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
+
 contract LiquidityPool is
   ERC20,
   Ownable
@@ -157,14 +162,14 @@ contract LiquidityPool is
     uint256 strikeEquity = strikeBalance - _valuePutsWritten();
     uint256 strikeLiquidity = strikeBalance - _calcStrikeCommitted();
     strikeAmount = strikeEquity.mul(ratio);
-    require(strikeAmountMin <= strikeAmount, "strikeAmountMin exceeds available liquidity");
-    require(strikeAmount <= strikeLiquidity, "strikeAmount amount exceeds available liquidity");
+    if (strikeAmountMin > strikeAmount) { revert MinStrikeAmountExceedsLiquidity(strikeAmount, strikeAmountMin); }
+    if (strikeAmount > strikeLiquidity) { revert StrikeAmountExceedsLiquidity(strikeAmount, strikeLiquidity); }
     uint256 underlyingBalance = IERC20(underlyingAsset).balanceOf(address(this));
     uint256 underlyingEquity = underlyingBalance - _valueCallsWritten();
     uint256 underlyingLiquidity = underlyingBalance - totalAmountCall;
     underlyingAmount = underlyingEquity.mul(ratio);
-    require(underlyingAmountMin <= underlyingAmount, "underlyingAmountMin exceeds available liquidity");
-    require(underlyingAmount <= underlyingLiquidity, "underlyingAmount exceeds available liquidity");
+    if (underlyingAmountMin > underlyingAmount) { revert MinUnderlyingAmountExceedsLiquidity(underlyingAmount, underlyingAmountMin); }
+    if (underlyingAmount > underlyingLiquidity) { revert UnderlyingAmountExceedsLiquidity(underlyingAmount, underlyingAmountMin); }
 
     IERC20(strikeAsset).universalTransfer(msg.sender, strikeAmount);
     IERC20(underlyingAsset).universalTransfer(msg.sender, underlyingAmount);
