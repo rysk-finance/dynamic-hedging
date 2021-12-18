@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../interfaces/IERC20.sol";
+import "../interfaces/IERC20Detailed.sol";
 import {
     IOtokenFactory,
     IOtoken,
     IController,
     GammaTypes
 } from "../interfaces/GammaInterface.sol";
-import { Types } from "./Types.sol";
+import { Types } from "../Types.sol";
+import {Constants} from "./Constants.sol";
 
 library OpynInteractions {
-
 
     /**
      * @notice Either retrieves the option token if it already exists, or deploy it
@@ -78,7 +79,7 @@ library OpynInteractions {
     ) external returns (uint256) {
         IController controller = IController(gammaController);
         uint256 newVaultID =
-            (controller.getAccountVaultCounter(address(this))).add(1);
+            (controller.getAccountVaultCounter(address(this))) + 1;
 
         // An otoken's collateralAsset is the vault's `asset`
         // So in the context of performing Opyn short operations we call them collateralAsset
@@ -105,23 +106,23 @@ library OpynInteractions {
             // MarginCalculatorInterface(0x7A48d10f372b3D7c60f6c9770B91398e4ccfd3C7).getExcessCollateral(vault)
             // to see how much dust (or excess collateral) is left behind.
             mintAmount = depositAmount
-                .mul(10**Vault.OTOKEN_DECIMALS)
-                .mul(10**18) // we use 10**18 to give extra precision
-                .div(oToken.strikePrice().mul(10**(10 + collateralDecimals)));
+                * 10**Constants.OTOKEN_DECIMALS
+                * 10**18 // we use 10**18 to give extra precision
+                / oToken.strikePrice() * 10**(10 + collateralDecimals);
         } else {
             mintAmount = depositAmount;
 
             if (collateralDecimals > 8) {
-                uint256 scaleBy = 10**(collateralDecimals.sub(8)); // oTokens have 8 decimals
+                uint256 scaleBy = 10**(collateralDecimals - 8); // oTokens have 8 decimals
                 if (mintAmount > scaleBy) {
-                    mintAmount = depositAmount.div(scaleBy); // scale down from 10**18 to 10**8
+                    mintAmount = depositAmount/ scaleBy; // scale down from 10**18 to 10**8
                 }
             }
         }
 
         // double approve to fix non-compliant ERC20s
         IERC20 collateralToken = IERC20(collateralAsset);
-        collateralToken.safeApprove(marginPool, depositAmount);
+        collateralToken.approve(marginPool, depositAmount);
 
         IController.ActionArgs[] memory actions =
             new IController.ActionArgs[](3);

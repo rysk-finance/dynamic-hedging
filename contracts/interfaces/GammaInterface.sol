@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.4;
+pragma solidity >=0.8.4;
 
 library GammaTypes {
     // vault is a struct of 6 arrays that describe a position a user has, a user can have multiple vaults.

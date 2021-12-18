@@ -48,6 +48,9 @@ contract OpynOptionRegistry {
         // deploy an oToken contract address
         require(expiration > block.timestamp, "Already expired");
         require(strike > 1 ether, "Strike is not greater than 1");
+        // create option storage hash
+        address u = IERC20(underlying).isETH() ? Constants.ethAddress() : underlying;
+        address s = strikeAsset == address(0) ? usd : strikeAsset;
         bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, expiration, flavor, strike);
         // check for an opyn oToken if it doesn't exist deploy it
         address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, usd, underlying, strikeAsset, strike, expiration, flavor);
@@ -78,7 +81,8 @@ contract OpynOptionRegistry {
         // mint the option token following the opyn interface
         uint256 mintAmount = OpynInteractions.createShort(gammaController, marginPool, _series, collateralAmount);
         // transfer the option to the liquidity pool
-        IERC20(_series).safeTransfer(msg.sender, mintAmount);
+        // TODO: FIX to safeTransfer once openZs are imported properly
+        IERC20(_series).transfer(msg.sender, mintAmount);
         openInterest[_series] += amount;
         totalInterest[_series] += amount;
         writers[_series][msg.sender] += amount;

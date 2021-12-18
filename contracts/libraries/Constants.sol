@@ -4,7 +4,8 @@ library Constants {
     address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     // 10**18
     bytes16 private constant DECIMAL_PLACE = 0x403abc16d674ec800000000000000000;
-
+    // Otokens have 8 decimal places.
+    uint256 internal constant OTOKEN_DECIMALS = 8;
     function ethAddress() public pure returns (address) {
         return ETH;
     }
