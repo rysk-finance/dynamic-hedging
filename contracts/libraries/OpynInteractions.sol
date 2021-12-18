@@ -11,9 +11,10 @@ import {
 } from "../interfaces/GammaInterface.sol";
 import { Types } from "../Types.sol";
 import {Constants} from "./Constants.sol";
+import {SafeERC20} from "../tokens/SafeERC20.sol";
 
 library OpynInteractions {
-
+    using SafeERC20 for IERC20;
     /**
      * @notice Either retrieves the option token if it already exists, or deploy it
      * @param oTokenFactory is the address of the opyn oTokenFactory
@@ -122,7 +123,7 @@ library OpynInteractions {
 
         // double approve to fix non-compliant ERC20s
         IERC20 collateralToken = IERC20(collateralAsset);
-        collateralToken.approve(marginPool, depositAmount);
+        collateralToken.safeApprove(marginPool, depositAmount);
 
         IController.ActionArgs[] memory actions =
             new IController.ActionArgs[](3);

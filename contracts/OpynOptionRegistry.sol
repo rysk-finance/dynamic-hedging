@@ -4,6 +4,7 @@ import "./interfaces/IERC20.sol";
 import "./tokens/OptionToken.sol";
 import "./tokens/UniversalERC20.sol";
 import { Types } from "./Types.sol";
+import {SafeERC20} from "./tokens/SafeERC20.sol";
 import { Constants } from "./libraries/Constants.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import {OpynInteractions} from "./libraries/OpynInteractions.sol";
@@ -11,6 +12,7 @@ import {OpynInteractions} from "./libraries/OpynInteractions.sol";
 contract OpynOptionRegistry {
 
     using UniversalERC20 for IERC20;
+    using SafeERC20 for IERC20;
     string public constant VERSION = "1.0";
     address internal usd;
     address internal oTokenFactory;
@@ -81,8 +83,7 @@ contract OpynOptionRegistry {
         // mint the option token following the opyn interface
         uint256 mintAmount = OpynInteractions.createShort(gammaController, marginPool, _series, collateralAmount);
         // transfer the option to the liquidity pool
-        // TODO: FIX to safeTransfer once openZs are imported properly
-        IERC20(_series).transfer(msg.sender, mintAmount);
+        IERC20(_series).safeTransfer(msg.sender, mintAmount);
         openInterest[_series] += amount;
         totalInterest[_series] += amount;
         writers[_series][msg.sender] += amount;
