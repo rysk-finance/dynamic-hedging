@@ -15,4 +15,11 @@ library Types {
             address underlying;
             address strikeAsset;
         }
+    function isCall(Flavor _flavor) internal pure returns (bool) {
+        return _flavor == Flavor.Call;
+    }
+
+    function isPut(Flavor _flavor) internal pure returns (bool) {
+        return _flavor == Flavor.Put;
+    }
 }
