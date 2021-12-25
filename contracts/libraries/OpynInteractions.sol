@@ -302,4 +302,47 @@ library OpynInteractions {
 
         return endCollateralBalance - startCollateralBalance;
     }
+
+
+    /**
+     * @notice Exercises an ITM option
+     * @param gammaController is the address of the opyn controller contract
+     * @param series is the address of the option to redeem
+     * @return amount of asset received by exercising the option
+     */
+    function redeem(
+        address gammaController,
+        address series
+    ) external returns (uint256) {
+        IController controller = IController(gammaController);
+
+        uint256 seriesBalance = IERC20(series).balanceOf(msg.sender);
+
+        if (controller.getPayout(series, seriesBalance) == 0) {
+            return 0;
+        }
+        address asset = IOtoken(series).collateralAsset();
+        uint256 startAssetBalance = IERC20(asset).balanceOf(msg.sender);
+
+        // If it is after expiry, we need to redeem the profits
+        IController.ActionArgs[] memory actions =
+            new IController.ActionArgs[](1);
+
+        actions[0] = IController.ActionArgs(
+            IController.ActionType.Redeem,
+            address(0), // not used
+            msg.sender, // address to send profits to
+            series, // address of otoken
+            0, // not used
+            seriesBalance, // otoken balance
+            0, // not used
+            "" // not used
+        );
+
+        controller.operate(actions);
+
+        uint256 endAssetBalance = IERC20(asset).balanceOf(msg.sender);
+
+        return endAssetBalance - startAssetBalance;
+    }
 }

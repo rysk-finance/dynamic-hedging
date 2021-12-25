@@ -192,6 +192,23 @@ contract OpynOptionRegistry is Ownable {
     }
 
     /**
+     * @notice Redeem oTokens for the locked collateral
+     * @param  _series the address of the option token to be burnt and redeemed
+     * @return amount returned
+     */
+    function redeem(address _series) external returns (uint256) {
+        Types.OptionSeries memory series = seriesInfo[_series];
+        require(series.expiration != 0, "non-existent series");
+        // check that the option has expired
+        require(block.timestamp > series.expiration, "option not past expiry");
+        // transfer the oToken back to this account
+        IERC20(_series).safeTransferFrom(msg.sender, address(this), IERC20(_series).balanceOf(msg.sender));
+        // redeem
+        uint256 amount = OpynInteractions.redeem(gammaController, _series);
+        return amount;
+    }
+
+    /**
      * @notice Send collateral funds for a call option to be minted
      * @param  underlying address of the asset to transfer
      * @param  amount amount of underlying to transfer
