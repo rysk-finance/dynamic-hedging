@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { BigNumberish, Contract, ContractFactory, utils, Signer, BigNumber } from "ethers";
 import {MockProvider} from '@ethereum-waffle/provider';
 import {
@@ -19,14 +19,15 @@ import moment from "moment";
 //@ts-ignore
 import bs from "black-scholes";
 import { expect } from "chai";
-import OptionToken from "../artifacts/contracts/tokens/OptionToken.sol/OptionToken.json";
+import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json";
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json";
 import { AggregatorV3Interface as IAggregatorV3 } from "../types/AggregatorV3Interface";
 import { ERC20 } from "../types/ERC20";
-import { OptionRegistry } from "../types/OptionRegistry";
+import { ERC20Interface } from "../types/ERC20Interface";
+import { OpynOptionRegistry } from "../types/OpynOptionRegistry";
 import { Exchange } from "../types/Exchange";
-import { OptionToken as IOptionToken } from "../types/OptionToken";
+import { Otoken as IOToken } from "../types/Otoken";
 import { UniswapV2Factory } from "../types/UniswapV2Factory";
 import { UniswapV2Router02 } from "../types/UniswapV2Router02";
 import { PriceFeed } from "../types/PriceFeed";
@@ -36,21 +37,38 @@ import { Volatility } from "../types/Volatility";
 import { WETH } from "../types/WETH";
 import { Protocol } from "../types/Protocol";
 import { convertDoubleToDec } from "../utils/math"
-
+import {
+  CHAINLINK_WETH_PRICER,
+  CHAINID,
+  ETH_PRICE_ORACLE,
+  USDC_PRICE_ORACLE,
+  GAMMA_CONTROLLER,
+  MARGIN_POOL,
+  OTOKEN_FACTORY,
+  USDC_ADDRESS,
+  USDC_OWNER_ADDRESS,
+  WETH_ADDRESS,
+} from "./constants";
+import { send } from "process";
 const IMPLIED_VOL = '60';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
-let expiration = moment().add(3, 'weeks');
-const strike = toWei('300');
+// Aug 13th 2021 8am
+// TODO: figure out better way to do this
+let expiration = 1628841600;
+const strike = toWei('3500');
+// edit depending on the chain id to be tested on
+const chainId = 1;
+const oTokenDecimalShift18 = 10000000000;
 
 
 let dai: ERC20;
 let currentTime: moment.Moment;
-let optionRegistry: OptionRegistry;
-let optionToken: IOptionToken;
-let putOption: IOptionToken;
-let erc20PutOption: IOptionToken;
-let erc20CallOption: IOptionToken;
+let optionRegistry: OpynOptionRegistry;
+let optionToken: IOToken;
+let putOption: IOToken;
+let erc20PutOption: IOToken;
+let erc20CallOption: IOToken;
 let optionProtocol: Protocol;
 let erc20CallExpiration: moment.Moment;
 let putOptionExpiration: moment.Moment;
@@ -66,55 +84,61 @@ describe("Options protocol", function() {
     signers = await ethers.getSigners();
     senderAddress = await signers[0].getAddress();
     receiverAddress = await signers[1].getAddress();
-    const erc20 = await ethers.getContractFactory("MintableERC20");
-    const erc20Contract: ERC20 = await erc20.deploy('DAI', 'DAI') as ERC20;
+
+    // deploy libraries
     const constantsFactory = await ethers.getContractFactory("Constants");
+    const interactionsFactory = await ethers.getContractFactory("OpynInteractions");
     const constants = await constantsFactory.deploy();
+    const interactions = await interactionsFactory.deploy();
+
+    // deploy options registry
     const optionRegistryFactory = await ethers.getContractFactory(
-      "OptionRegistry",
+      "OpynOptionRegistry",
       {
         libraries: {
-          Constants: constants.address
+          Constants: constants.address,
+          OpynInteractions: interactions.address 
         }
       }
     );
-    dai = erc20Contract;
-    const _optionRegistry = await optionRegistryFactory.deploy(dai.address) as OptionRegistry;
+
+    // get and transfer weth
+    weth = (await ethers.getContractAt("IWETH", WETH_ADDRESS[chainId])) as WETH;
+    await weth.deposit({value: utils.parseEther("100")})
+
+    const _optionRegistry = await optionRegistryFactory.deploy(
+      USDC_ADDRESS[chainId], 
+      OTOKEN_FACTORY[chainId],
+      GAMMA_CONTROLLER[chainId],
+      MARGIN_POOL[chainId],
+      senderAddress ) as OpynOptionRegistry;
     optionRegistry = _optionRegistry
     expect(optionRegistry).to.have.property('deployTransaction');
   });
-
   it("Creates an option token series", async () => {
     const [sender] = signers;
-    let optionTokenEvent = new Promise((resolve, reject) => {
-      optionRegistry.on('OptionTokenCreated', (address, event) => {
-        event.removeListener();
-
-        resolve({
-          address: address
-        });
-      });
-
-      setTimeout(() => {
-        reject(new Error('timeout'));
-      }, 60000)
-    });
-    const issue = optionRegistry.issue(ZERO_ADDRESS, ZERO_ADDRESS, expiration.unix(), call, strike);
-    let event: any = await optionTokenEvent;
+   
+    const issue = await optionRegistry.issue(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId], expiration, call, strike);
     await expect(issue)
       .to.emit(optionRegistry, 'OptionTokenCreated');
-    optionToken = new Contract(event.address, OptionToken.abi, sender) as IOptionToken;
+      const receipt = await issue.wait(1);
+      const events = receipt.events;
+      const removeEvent = events?.find(x => x.event == 'OptionTokenCreated');
+      const seriesAddress = removeEvent?.args?.token;
+    // save the option token address
+    optionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken;
   });
 
   it('opens option token with ETH', async () => {
     const value = toWei('2');
+    const WETH = (await ethers.getContractAt("ERC20Interface", WETH_ADDRESS[chainId])) as ERC20Interface;
+    await WETH.approve(optionRegistry.address, value);
     await optionRegistry.open(
       optionToken.address,
       value,
-      { value }
     );
     const balance = await optionToken.balanceOf(senderAddress);
-    expect(balance).to.equal(value);
+    expect(balance).to.equal(value.div(oTokenDecimalShift18));
   });
 
   it('writer transfers part of balance to new account', async () => {
@@ -202,7 +226,7 @@ describe("Options protocol", function() {
     let event: any = await optionTokenEvent;
     await expect(issue)
       .to.emit(optionRegistry, 'OptionTokenCreated');
-    erc20CallOption = new Contract(event.address, OptionToken.abi, sender) as IOptionToken;
+    erc20CallOption = new Contract(event.address, Otoken.abi, sender) as IOToken;
   });
 
   it('opens an ERC20 call option', async () => {
@@ -288,7 +312,7 @@ describe("Options protocol", function() {
     let events = receipt.events
     //@ts-ignore
     const address = events[1]['args'][0];
-    putOption = new Contract(address, OptionToken.abi, sender) as IOptionToken;
+    putOption = new Contract(address, Otoken.abi, sender) as IOToken;
   });
 
   it('opens put option token position with ETH', async () => {
@@ -349,7 +373,7 @@ describe("Options protocol", function() {
     //@ts-ignore
     const address = optionTokenCreated['args'][0];
     expect(optionTokenCreated.event).to.eq('OptionTokenCreated');
-    erc20PutOption = new Contract(address, OptionToken.abi, sender) as IOptionToken;
+    erc20PutOption = new Contract(address, Otoken.abi, sender) as IOToken;
   });
 
   it('opens an ERC20 put option', async () => {
@@ -397,99 +421,99 @@ describe("Options protocol", function() {
   });
 })
 
-describe("Exchange", async () => {
-  let optionToken: IOptionToken;
-  let optionTokenExpiration: moment.Moment;
-  let optionExchange: Exchange;
-  it("Deploys the Options Exchange", async () => {
-    const [sender] = signers
-    const optionExchangeFactory = await ethers.getContractFactory(
-      "Exchange"
-    );
-    const _optionExchange = await optionExchangeFactory.deploy() as Exchange;
-    optionExchange = _optionExchange
-    expect(optionRegistry).to.have.property('deployTransaction');
-  });
+// describe("Exchange", async () => {
+//   let optionToken: IOptionToken;
+//   let optionTokenExpiration: moment.Moment;
+//   let optionExchange: Exchange;
+//   it("Deploys the Options Exchange", async () => {
+//     const [sender] = signers
+//     const optionExchangeFactory = await ethers.getContractFactory(
+//       "Exchange"
+//     );
+//     const _optionExchange = await optionExchangeFactory.deploy() as Exchange;
+//     optionExchange = _optionExchange
+//     expect(optionRegistry).to.have.property('deployTransaction');
+//   });
 
-  it('Creates an eth call option and deposits it on the exchange', async () => {
-    const [sender] = signers
-    optionTokenExpiration = moment(currentTime).add('12', 'M');
-    const issue = await optionRegistry.issue(ZERO_ADDRESS, ZERO_ADDRESS, optionTokenExpiration.unix(), call, strike);
-    let receipt = await issue.wait(1);
-    let events = receipt.events;
-    const optionTokenCreated: any = events ? events[1] : undefined;
-    const address = optionTokenCreated?.args[0];
-    expect(optionTokenCreated.event).to.eq('OptionTokenCreated');
-    optionToken = new Contract(address, OptionToken.abi, sender) as IOptionToken;
-    const value = toWei('2')
-    await optionRegistry.open(optionToken.address, value, {
-      value
-    });
-    const balance = await optionToken.balanceOf(senderAddress);
-    expect(balance).to.eq(value);
-    await optionToken.approve(optionExchange.address, balance);
-    const deposit = await optionExchange.depositToken(optionToken.address, balance);
-    const depositReceipt = await deposit.wait(1);
-    const depositEvents = depositReceipt.events
-    const depositEvent = depositEvents?.find(x => x.event == "Deposit")
-    const eventBalance = depositEvent?.args?.balance;
-    expect(eventBalance).to.eq(balance);
-  });
+//   it('Creates an eth call option and deposits it on the exchange', async () => {
+//     const [sender] = signers
+//     optionTokenExpiration = moment(currentTime).add('12', 'M');
+//     const issue = await optionRegistry.issue(ZERO_ADDRESS, ZERO_ADDRESS, optionTokenExpiration.unix(), call, strike);
+//     let receipt = await issue.wait(1);
+//     let events = receipt.events;
+//     const optionTokenCreated: any = events ? events[1] : undefined;
+//     const address = optionTokenCreated?.args[0];
+//     expect(optionTokenCreated.event).to.eq('OptionTokenCreated');
+//     optionToken = new Contract(address, OptionToken.abi, sender) as IOptionToken;
+//     const value = toWei('2')
+//     await optionRegistry.open(optionToken.address, value, {
+//       value
+//     });
+//     const balance = await optionToken.balanceOf(senderAddress);
+//     expect(balance).to.eq(value);
+//     await optionToken.approve(optionExchange.address, balance);
+//     const deposit = await optionExchange.depositToken(optionToken.address, balance);
+//     const depositReceipt = await deposit.wait(1);
+//     const depositEvents = depositReceipt.events
+//     const depositEvent = depositEvents?.find(x => x.event == "Deposit")
+//     const eventBalance = depositEvent?.args?.balance;
+//     expect(eventBalance).to.eq(balance);
+//   });
 
-  it('Creates a limit order to sell the eth call option', async () => {
-    const order = await optionExchange.createOrder(
-      dai.address,
-      toWei('50'),
-      optionToken.address,
-      toWei('2'),
-      optionTokenExpiration.unix(),
-      '1'
-    );
+//   it('Creates a limit order to sell the eth call option', async () => {
+//     const order = await optionExchange.createOrder(
+//       dai.address,
+//       toWei('50'),
+//       optionToken.address,
+//       toWei('2'),
+//       optionTokenExpiration.unix(),
+//       '1'
+//     );
 
-    const receipt = await order.wait(1);
-    const events = receipt.events;
-    const orderEvent = events?.find(x => x.event == 'Order');
-    expect(orderEvent?.event).to.eq('Order');
-  });
+//     const receipt = await order.wait(1);
+//     const events = receipt.events;
+//     const orderEvent = events?.find(x => x.event == 'Order');
+//     expect(orderEvent?.event).to.eq('Order');
+//   });
 
-  it('Buys the options from a holder of strike token', async () => {
-    const[,receiver] = signers;
-    const daiReceiver = dai.connect(receiver);
-    await daiReceiver.approve(optionExchange.address, toWei('26'));
-    const exchangeReceiver = optionExchange.connect(receiver);
-    await exchangeReceiver.depositToken(dai.address, toWei('26'));
-    const trade = await exchangeReceiver.trade(
-      dai.address,
-      toWei('50'),
-      optionToken.address,
-      toWei('2'),
-      optionTokenExpiration.unix(),
-      '1',
-      senderAddress,
-      toWei('25')
-    );
-    const optionBalance = await optionExchange.balanceOf(optionToken.address, receiverAddress);
-    const receipt = await trade.wait(1);
-    const events = receipt.events;
-    const tradeEvent = events?.find(x => x.event == 'Trade');
-    expect(optionBalance).to.eq(toWei('1'));
-    expect(tradeEvent?.event).to.eq('Trade');
-  });
+//   it('Buys the options from a holder of strike token', async () => {
+//     const[,receiver] = signers;
+//     const daiReceiver = dai.connect(receiver);
+//     await daiReceiver.approve(optionExchange.address, toWei('26'));
+//     const exchangeReceiver = optionExchange.connect(receiver);
+//     await exchangeReceiver.depositToken(dai.address, toWei('26'));
+//     const trade = await exchangeReceiver.trade(
+//       dai.address,
+//       toWei('50'),
+//       optionToken.address,
+//       toWei('2'),
+//       optionTokenExpiration.unix(),
+//       '1',
+//       senderAddress,
+//       toWei('25')
+//     );
+//     const optionBalance = await optionExchange.balanceOf(optionToken.address, receiverAddress);
+//     const receipt = await trade.wait(1);
+//     const events = receipt.events;
+//     const tradeEvent = events?.find(x => x.event == 'Trade');
+//     expect(optionBalance).to.eq(toWei('1'));
+//     expect(tradeEvent?.event).to.eq('Trade');
+//   });
 
-  it('Buyer of option should be able to withdraw from exchange', async () => {
-    const[,receiver] = signers;
-    const balanceStart = await optionToken.balanceOf(receiverAddress);
-    expect(balanceStart).to.eq('0');
-    const exchangeReceiver = optionExchange.connect(receiver);
-    await exchangeReceiver.withdrawToken(
-      optionToken.address,
-      toWei('1'),
-    );
-    const balance = await optionToken.balanceOf(receiverAddress);
-    expect(balance).to.eq(toWei('1'));
-  });
-  //TODO add implied vol based orders
-});
+//   it('Buyer of option should be able to withdraw from exchange', async () => {
+//     const[,receiver] = signers;
+//     const balanceStart = await optionToken.balanceOf(receiverAddress);
+//     expect(balanceStart).to.eq('0');
+//     const exchangeReceiver = optionExchange.connect(receiver);
+//     await exchangeReceiver.withdrawToken(
+//       optionToken.address,
+//       toWei('1'),
+//     );
+//     const balance = await optionToken.balanceOf(receiverAddress);
+//     expect(balance).to.eq(toWei('1'));
+//   });
+//   //TODO add implied vol based orders
+// });
 
 let priceFeed: PriceFeed;
 let ethDaiAggregator: MockContract;
@@ -835,7 +859,7 @@ describe("Liquidity Pools", async () => {
     expect(diff).to.be.lt(0.01)
     });
 
-  let lpCallOption: IOptionToken;
+  let lpCallOption: IOToken;
   it('LP Writes a ETH/USD call for premium', async () => {
     const [sender] = signers;
     const amount = toWei('1');
@@ -869,7 +893,7 @@ describe("Liquidity Pools", async () => {
     const events = receipt.events;
     const writeEvent = events?.find(x => x.event == 'WriteOption');
     const seriesAddress = writeEvent?.args?.series;
-    const callOptionToken = new Contract(seriesAddress, OptionToken.abi, sender) as IOptionToken;
+    const callOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken;
     lpCallOption = callOptionToken;
     const buyerOptionBalance = await callOptionToken.balanceOf(senderAddress);
     const openInterest = await optionRegistry.totalInterest(seriesAddress);
@@ -910,7 +934,7 @@ describe("Liquidity Pools", async () => {
     const events = receipt.events;
     const writeEvent = events?.find(x => x.event == 'WriteOption');
     const seriesAddress = writeEvent?.args?.series;
-    const putOptionToken = new Contract(seriesAddress, OptionToken.abi, sender) as IOptionToken;
+    const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken;
     const putBalance = await putOptionToken.balanceOf(senderAddress);
     const balanceNew = await dai.balanceOf(senderAddress);
     expect(putBalance).to.eq(amount);

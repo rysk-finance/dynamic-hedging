@@ -61,6 +61,15 @@ module.exports = {
                 }
             },
             {
+                version: "0.6.10",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200
+                    }
+                }
+            },
+            {
                 version: "0.8.9",
                 settings: {
                     optimizer: {
@@ -76,24 +85,15 @@ module.exports = {
         admin: "0xA0b4E98dB8Be8A3a6D8506dD5f3a826855633cb3",
     },
     networks: {
-        hardhat: {
-            accounts: hardhatEvmAccounts,
-            gas: 12000000,
-            blockGasLimit: 0x1fffffffffffff,
-            allowUnlimitedContractSize: true
+            hardhat: {
+              chainId: 1,
+              forking: {
+                url: "https://eth-mainnet.alchemyapi.io/v2/8wbFqtaYsTb1NUVFl8ip6MK_RggCynjL",
+                blockNumber : 12821000,
+                gasLimit: 8e6,
+              },
+            }
         },
-        ropsten: {
-            url: ropsten,
-            accounts,
-            chainId: 3,
-        },
-      rinkeby: {
-        url: rinkeby,
-        accounts,
-        chainId: 4,
-        saveDeployments: true,
-      }
-    },
     etherscan: {
         apiKey: process.env.ETHERSCAN
     },

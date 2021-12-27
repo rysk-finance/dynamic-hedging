@@ -5,7 +5,7 @@ import { Constants } from "./libraries/Constants.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { TransferHelper } from "./libraries/TransferHelper.sol";
 import "./tokens/ERC20.sol";
-import "./OptionRegistry.sol";
+import "./OpynOptionRegistry.sol";
 import "./libraries/ABDKMathQuad.sol";
 import "./libraries/Math.sol";
 import "./libraries/BlackScholes.sol";
@@ -319,9 +319,9 @@ contract LiquidityPool is
     return PriceFeed(feedAddress);
   }
 
-  function getOptionRegistry() internal returns (OptionRegistry) {
+  function getOpynOptionRegistry() internal returns (OpynOptionRegistry) {
     address registryAddress = Protocol(protocol).optionRegistry();
-    return OptionRegistry(registryAddress);
+    return OpynOptionRegistry(registryAddress);
   }
 
   function getUnderlyingPrice(
@@ -485,7 +485,7 @@ contract LiquidityPool is
      address destroy
   ) public payable returns (uint optionAmount, address series)
   {
-    OptionRegistry optionRegistry = getOptionRegistry();
+    OpynOptionRegistry optionRegistry = getOpynOptionRegistry();
     series = optionRegistry.issue(
        optionSeries.underlying,
        optionSeries.strikeAsset,
@@ -505,7 +505,7 @@ contract LiquidityPool is
     payable
     returns (uint)
   {
-    OptionRegistry optionRegistry = getOptionRegistry();
+    OpynOptionRegistry optionRegistry = getOpynOptionRegistry();
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     require(optionSeries.strikeAsset == strikeAsset, "incorrect strike asset");
     Types.Flavor flavor = optionSeries.flavor;
@@ -515,7 +515,7 @@ contract LiquidityPool is
     uint escrow = Types.isCall(flavor) ? amount : OptionsCompute.computeEscrow(amount, optionSeries.strike);
     require(IERC20(escrowAsset).universalBalanceOf(address(this)) >= escrow, "Insufficient balance for escrow");
     if (IERC20(optionSeries.underlying).isETH()) {
-        optionRegistry.open{value : escrow}(seriesAddress, amount);
+        optionRegistry.open(seriesAddress, amount);
         emit WriteOption(seriesAddress, amount, premium, escrow, msg.sender);
     } else {
         IERC20(escrowAsset).approve(address(optionRegistry), escrow);
