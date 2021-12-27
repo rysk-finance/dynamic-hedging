@@ -24,6 +24,7 @@ import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/Liquidity
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json";
 import { AggregatorV3Interface as IAggregatorV3 } from "../types/AggregatorV3Interface";
 import { ERC20 } from "../types/ERC20";
+import { MintableERC20 } from "../types/MintableERC20";
 import { OptionRegistry } from "../types/OptionRegistry";
 import { Exchange } from "../types/Exchange";
 import { OptionToken as IOptionToken } from "../types/OptionToken";
@@ -44,7 +45,7 @@ let expiration = moment().add(3, 'weeks');
 const strike = toWei('300');
 
 
-let dai: ERC20;
+let dai: MintableERC20;
 let currentTime: moment.Moment;
 let optionRegistry: OptionRegistry;
 let optionToken: IOptionToken;
@@ -55,7 +56,7 @@ let optionProtocol: Protocol;
 let erc20CallExpiration: moment.Moment;
 let putOptionExpiration: moment.Moment;
 let erc20PutOptionExpiration: moment.Moment;
-let erc20Token: ERC20;
+let erc20Token: MintableERC20;
 let signers: Signer[];
 let volatility: Volatility;
 let senderAddress: string;
@@ -67,7 +68,7 @@ describe("Options protocol", function() {
     senderAddress = await signers[0].getAddress();
     receiverAddress = await signers[1].getAddress();
     const erc20 = await ethers.getContractFactory("MintableERC20");
-    const erc20Contract: ERC20 = await erc20.deploy('DAI', 'DAI') as ERC20;
+    const erc20Contract: MintableERC20 = await erc20.deploy('DAI', 'DAI') as MintableERC20;
     const constantsFactory = await ethers.getContractFactory("Constants");
     const constants = await constantsFactory.deploy();
     const optionRegistryFactory = await ethers.getContractFactory(
@@ -195,7 +196,7 @@ describe("Options protocol", function() {
     const future = moment(now).add(14, 'M');
     erc20CallExpiration = future;
     const erc20 = await ethers.getContractFactory("MintableERC20");
-    const erc20Contract: ERC20 = await erc20.deploy('genericERC', 'GRC') as ERC20;
+    const erc20Contract: MintableERC20 = await erc20.deploy('genericERC', 'GRC') as MintableERC20;
     erc20Token = erc20Contract;
     await erc20Token.mint(senderAddress, toWei('1000'));
     const issue = optionRegistry.issue(erc20Token.address, dai.address, future.unix(), call, strike);

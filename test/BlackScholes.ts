@@ -5,8 +5,8 @@ import {
     toWei,
     truncate,
     tFormatEth,
-    call,
-    put,
+    CALL,
+    PUT,
     genOptionTime,
     sample,
     percentDiff
@@ -18,24 +18,40 @@ import bs from "black-scholes";
 import greeks from "greeks";
 import { expect } from "chai";
 import { BlackScholes as IBlackScholes } from "../types/BlackScholes";
+import { BlackScholesTest as IBlackScholesTest } from "../types/BlackScholesTest";
 
 describe("Pricing options", function() {
     let BlackScholes: IBlackScholes;
+    let BlackScholesTest: IBlackScholesTest;
 
     it("Should deploy Black Scholes library", async function() {
-        const normDistFactory = await ethers.getContractFactory("NormalDist");
+        const abdkMathFactory = await ethers.getContractFactory("ABDKMathQuad");
+        const abdkMathDeploy = await abdkMathFactory.deploy();
+        const normDistFactory = await ethers.getContractFactory("NormalDist", {
+          libraries: {
+            ABDKMathQuad: abdkMathDeploy.address
+          }
+        });
         const normDist = await normDistFactory.deploy();
         const bsFactory = await ethers.getContractFactory(
             "BlackScholes",
             {
                 libraries: {
-                    NormalDist: normDist.address
+                    NormalDist: normDist.address,
+                    ABDKMathQuad: abdkMathDeploy.address
                 }
             }
         );
         const blackScholes = await bsFactory.deploy() as IBlackScholes;
         BlackScholes = blackScholes;
+        const bsTestFactory = await ethers.getContractFactory("BlackScholesTest", {
+            libraries: {
+                BlackScholes: BlackScholes.address
+            }
+        });
+        BlackScholesTest = await bsTestFactory.deploy() as IBlackScholesTest;
     });
+
     it("correctly prices in the money call with a one year time to expiration", async function() {
         const strike = toWei('250');
         const price = toWei('300');
@@ -45,7 +61,7 @@ describe("Pricing options", function() {
         const vol = 15;
         const rfr = 3;
         const localBS = bs.blackScholes(300, 250, time, .15, .03, "call");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, call);
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, CALL);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
@@ -58,7 +74,7 @@ describe("Pricing options", function() {
         const vol = 15;
         const rfr = 3;
         const localBS = bs.blackScholes(300, 350, time, .15, .03, "call");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, call);
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, CALL);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
@@ -71,7 +87,7 @@ describe("Pricing options", function() {
         const vol = 150;
         const rfr = 3;
         const localBS = bs.blackScholes(300, 350, time, 1.5, .03, "call");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, call);
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, CALL);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
@@ -84,7 +100,7 @@ describe("Pricing options", function() {
         const vol = 150;
         const rfr = 3;
         const localBS = bs.blackScholes(300, 250, time, 1.5, .03, "call");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, call);
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, CALL);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
@@ -97,7 +113,7 @@ describe("Pricing options", function() {
         const vol = 15;
         const rfr = 3;
         const localBS = bs.blackScholes(200, 250, time, .15, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, put);
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
@@ -110,7 +126,7 @@ describe("Pricing options", function() {
         const vol = 150;
         const rfr = 3;
         const localBS = bs.blackScholes(200, 250, time, 1.5, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, put);
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
@@ -123,7 +139,7 @@ describe("Pricing options", function() {
         const vol = 150;
         const rfr = 3;
         const localBS = bs.blackScholes(200, 250, time, 1.5, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, put);
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
@@ -136,7 +152,7 @@ describe("Pricing options", function() {
         const vol = 150;
         const rfr = 3;
         const localBS = bs.blackScholes(200, 250, time, 1.5, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, put);
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
@@ -149,7 +165,7 @@ describe("Pricing options", function() {
         const vol = 150;
         const rfr = 3;
         const localBS = bs.blackScholes(200, 200, time, 1.5, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, put);
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
@@ -162,7 +178,7 @@ describe("Pricing options", function() {
         const vol = 150;
         const rfr = 3;
         const localBS = bs.blackScholes(200, 190, time, 1.5, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, put);
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
@@ -175,7 +191,7 @@ describe("Pricing options", function() {
         const vol = 150;
         const rfr = 3;
         const localBS = bs.blackScholes(200, 150, time, 1.5, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, put);
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
@@ -188,7 +204,7 @@ describe("Pricing options", function() {
         const vol = 15;
         const rfr = 3;
         const localBS = bs.blackScholes(200, 150, time, .15, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, put);
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
@@ -201,7 +217,7 @@ describe("Pricing options", function() {
         const vol = 15;
         const rfr = 3;
         const localDelta = greeks.getDelta(200, 220, time, .15, .03, "call");
-        const contractDelta = await BlackScholes.getDeltaWei(price, strike, future.unix(), vol, rfr, call);
+        const contractDelta = await BlackScholesTest.getDeltaWei(price, strike, future.unix(), vol, rfr, CALL);
         expect(tFormatEth(contractDelta)).to.eq(truncate(localDelta));
     });
 
@@ -214,7 +230,7 @@ describe("Pricing options", function() {
         const vol = 15;
         const rfr = 3;
         const localDelta = greeks.getDelta(200, 190, time, .15, .03, "put");
-        const contractDelta = await BlackScholes.getDeltaWei(price, strike, future.unix(), vol, rfr, put);
+        const contractDelta = await BlackScholesTest.getDeltaWei(price, strike, future.unix(), vol, rfr, PUT);
         expect(tFormatEth(contractDelta)).to.eq(truncate(localDelta));
     });
 

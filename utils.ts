@@ -1,4 +1,4 @@
-import { BigNumberish, utils } from "ethers";
+import { BigNumberish, utils, BigNumber } from "ethers";
 
 export const formatEth = (x: BigNumberish) => Number(utils.formatEther(x));
 
@@ -10,6 +10,8 @@ export const tFormatEth = (x: BigNumberish): number => truncate(formatEth(x));
 export const toWei = (x: string) => utils.parseEther(x);
 
 export const call = 0, put = 1;
+export const CALL = BigNumber.from(call);
+export const PUT = BigNumber.from(put);
 export const SECONDS_IN_DAY = 86400;
 export const SECONDS_IN_YEAR = SECONDS_IN_DAY * 365.25;
 export const genOptionTime = (now: moment.Moment, future: moment.Moment) => (future.unix() - now.unix()) / SECONDS_IN_YEAR;
