@@ -1,7 +1,6 @@
 pragma solidity >=0.8.9;
 import "./access/Ownable.sol";
 import "./interfaces/IERC20.sol";
-import "./tokens/OptionToken.sol";
 import "./tokens/UniversalERC20.sol";
 import { Types } from "./Types.sol";
 import {SafeERC20} from "./tokens/SafeERC20.sol";
@@ -9,6 +8,7 @@ import { Constants } from "./libraries/Constants.sol";
 import { IController} from "./interfaces/GammaInterface.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import {OpynInteractions} from "./libraries/OpynInteractions.sol";
+import "hardhat/console.sol";
 
 contract OpynOptionRegistry is Ownable {
 
@@ -81,7 +81,6 @@ contract OpynOptionRegistry is Ownable {
     function issue(address underlying, address strikeAsset, uint expiration, Types.Flavor flavor, uint strike) external returns (address) {
         // deploy an oToken contract address
         require(expiration > block.timestamp, "Already expired");
-        require(strike > 1 ether, "Strike is not greater than 1");
         // create option storage hash
         address u = IERC20(underlying).isETH() ? Constants.ethAddress() : underlying;
         address s = strikeAsset == address(0) ? usd : strikeAsset;
@@ -107,6 +106,7 @@ contract OpynOptionRegistry is Ownable {
         Types.OptionSeries memory series = seriesInfo[_series];
         require(block.timestamp < series.expiration, "Options can not be opened after expiration");
         uint256 collateralAmount;
+    
         // transfer collateral to this contract, collateral will depend on the flavor
         if (series.flavor == Types.Flavor.Call) {
           collateralAmount = openCall(series.underlying, amount);
@@ -227,7 +227,7 @@ contract OpynOptionRegistry is Ownable {
      * @return amount transferred
      */
     function openPut(address strikeAsset, uint amount, uint strike) internal returns (uint256) {
-        uint escrow = OptionsCompute.computeEscrow(amount, strike);
+        uint escrow = OptionsCompute.computeEscrow(amount, strike, IERC20(strikeAsset).decimals());
         IERC20(strikeAsset).universalTransferFrom(msg.sender, address(this), escrow);
         return escrow;
     }

@@ -419,7 +419,7 @@ contract IndependentLiquidityPool is
     (bytes16 premiumBytes, bytes16 delta) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     uint premium = OptionsCompute.toUInt(premiumBytes);
     TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), premium);
-    uint escrow = Types.isCall(flavor) ? amount : OptionsCompute.computeEscrow(amount, optionSeries.strike);
+    uint escrow = Types.isCall(flavor) ? amount : OptionsCompute.computeEscrow(amount, optionSeries.strike, IERC20(strikeAsset).decimals());
     require(IERC20(escrowAsset).universalBalanceOf(address(this)) >= escrow, "Insufficient balance");
     if (IERC20(optionSeries.underlying).isETH()) {
         optionRegistry.open{value : escrow}(seriesAddress, amount);

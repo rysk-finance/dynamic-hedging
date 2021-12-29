@@ -56,13 +56,14 @@ const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 // Aug 13th 2021 8am
 // TODO: figure out better way to do this
 let expiration = 1628841600;
-const strike = toWei('3500');
+
 // edit depending on the chain id to be tested on
 const chainId = 1;
 const oTokenDecimalShift18 = 10000000000;
+const strike = toWei('3500').div(oTokenDecimalShift18);
 
-
-let dai: ERC20;
+let usd: ERC20Interface;
+let wethERC20: ERC20Interface;
 let currentTime: moment.Moment;
 let optionRegistry: OpynOptionRegistry;
 let optionToken: IOToken;
@@ -104,7 +105,15 @@ describe("Options protocol", function() {
 
     // get and transfer weth
     weth = (await ethers.getContractAt("IWETH", WETH_ADDRESS[chainId])) as WETH;
-    await weth.deposit({value: utils.parseEther("100")})
+    usd = (await ethers.getContractAt("ERC20Interface", USDC_ADDRESS[chainId])) as ERC20Interface;
+    await network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: [USDC_OWNER_ADDRESS[chainId]],
+    });
+    
+    const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId]);
+    await usd.connect(signer).transfer(senderAddress, toWei('1000').div(oTokenDecimalShift18))
+    await weth.deposit({value: utils.parseEther("99")})
 
     const _optionRegistry = await optionRegistryFactory.deploy(
       USDC_ADDRESS[chainId], 
@@ -131,8 +140,8 @@ describe("Options protocol", function() {
 
   it('opens option token with ETH', async () => {
     const value = toWei('2');
-    const WETH = (await ethers.getContractAt("ERC20Interface", WETH_ADDRESS[chainId])) as ERC20Interface;
-    await WETH.approve(optionRegistry.address, value);
+    wethERC20 = (await ethers.getContractAt("ERC20Interface", WETH_ADDRESS[chainId])) as ERC20Interface;
+    await wethERC20.approve(optionRegistry.address, value);
     await optionRegistry.open(
       optionToken.address,
       value,
@@ -143,7 +152,7 @@ describe("Options protocol", function() {
 
   it('writer transfers part of balance to new account', async () => {
     const sender1Address = receiverAddress;
-    const transferAmount = toWei('1');
+    const transferAmount = toWei('1').div(oTokenDecimalShift18);
     await optionToken.transfer(sender1Address, transferAmount);
     const balance = await optionToken.balanceOf(sender1Address);
     expect(balance).to.equal(transferAmount);
@@ -153,110 +162,106 @@ describe("Options protocol", function() {
     const [sender, receiver] = signers;
     const optionRegistryReceiver = optionRegistry.connect(receiver);
     await expect(
-      optionRegistryReceiver.close(optionToken.address, toWei('1'))
-    ).to.be.revertedWith('Caller did not write sufficient amount');
+      optionRegistryReceiver.close(optionToken.address, toWei('1').div(oTokenDecimalShift18))
+    ).to.be.revertedWith('!liquidityPool');
   });
 
-  it('should not allow anyone outside registry to mint options tokens', async () => {
-    await expect(
-      optionToken.mint(receiverAddress, toWei('1000'))
-    ).to.be.reverted;
-  });
-
-  it('receiver exercises call option', async () => {
+  it('liquidityPool close and transaction succeeds', async () => {
     const [sender, receiver] = signers;
-    const daiReceiver = dai.connect(receiver);
-    const optionRegistryReceiver = optionRegistry.connect(receiver);
-    await dai.mint(receiverAddress, toWei('1000'));
-    const series = await optionRegistry.seriesInfo(optionToken.address);
-    const { expiration, strike } = series;
-    await daiReceiver.approve(optionRegistry.address, toWei('1000'));
-    const ethBalanceReceiver = await receiver.getBalance();
-    await optionRegistryReceiver.exercise(optionToken.address, toWei('1'));
-    const newBalance = await optionToken.balanceOf(receiverAddress);
-    const newBalanceUSD = await dai.balanceOf(receiverAddress);
-    const newEthBalanceReceiver = await receiver.getBalance();
-    expect(newBalance).to.equal(0);
-    expect(newBalanceUSD).to.equal(toWei('700'));
-    expect(newEthBalanceReceiver.sub(ethBalanceReceiver))
-      .to.lte(toWei('1')).to.gte(toWei('0.98'));
-  });
-
-  it('writer closes not transfered balance on option token', async () => {
-    await optionRegistry.close(optionToken.address, toWei('1'));
+    const value = toWei('1').div(oTokenDecimalShift18);
+    const optionRegistrySender = optionRegistry.connect(sender);
+    await optionToken.approve(optionRegistry.address, value)
+    const wethBalanceBefore = await wethERC20.balanceOf(senderAddress);
+    await optionRegistrySender.close(optionToken.address, value)
     const balance = await optionToken.balanceOf(senderAddress);
-    expect(balance).to.equal('0');
+    expect(balance).to.equal(0);
+    const wethBalance = await wethERC20.balanceOf(senderAddress);
+    expect(wethBalance.sub(wethBalanceBefore)).to.equal(toWei('1'))
   });
 
-  it('writer redeems and receives monies owed from exercises', async () => {
-    const balanceUSD = await dai.balanceOf(senderAddress);
-    expect(balanceUSD).to.equal('0');
-    const now = moment();
-    const future = moment(now).add(13, 'M');
-    const time = Number(getDiffSeconds(now, future));
-    await ethers.provider.send("evm_increaseTime", [time]);
-    await optionRegistry.redeem(optionToken.address);
-    const newBalanceUSD = await dai.balanceOf(senderAddress);
-    expect(newBalanceUSD).to.equal(toWei('300'));
+  it('should not allow anyone outside liquidityPool to open', async () => {
+    const value = toWei('2');
+    const [sender, receiver] = signers;
+    await wethERC20.connect(receiver).approve(optionRegistry.address, value);
+    await expect(
+      optionRegistry.connect(receiver).open(
+        optionToken.address,
+        value)
+    ).to.be.revertedWith('!liquidityPool');
   });
+
+  it('receiver transfers to liquidityPool and closes option token', async () => {
+    const value = toWei('1').div(oTokenDecimalShift18);
+    const [sender, receiver] = signers;
+    await optionToken.connect(receiver).transfer(senderAddress, value)
+    await optionToken.approve(optionRegistry.address, value) 
+    const wethBalanceBefore = await wethERC20.balanceOf(receiverAddress);
+    await optionRegistry.close(optionToken.address, value);
+    const balance = await optionToken.balanceOf(receiverAddress);
+    expect(balance).to.equal('0');
+    const senderBalance = await optionToken.balanceOf(receiverAddress);
+    expect(senderBalance).to.equal('0');
+    await wethERC20.transfer(receiverAddress, toWei('1'));
+    const wethBalance = await wethERC20.balanceOf(receiverAddress);
+    expect(wethBalance.sub(wethBalanceBefore)).to.equal(toWei('1'))
+    
+  });
+
+  // it('writer redeems and receives monies owed from exercises', async () => {
+  //   const balanceUSD = await usd.balanceOf(senderAddress);
+  //   expect(balanceUSD).to.equal('0');
+  //   const now = moment();
+  //   const future = moment(now).add(13, 'M');
+  //   const time = Number(getDiffSeconds(now, future));
+  //   await ethers.provider.send("evm_increaseTime", [time]);
+  //   await optionRegistry.redeem(optionToken.address);
+  //   const newBalanceUSD = await usd.balanceOf(senderAddress);
+  //   expect(newBalanceUSD).to.equal(toWei('300'));
+  // });
 
   it('creates an ERC20 call option token series', async () => {
     const [sender] = signers;
-    let optionTokenEvent = new Promise((resolve, reject) => {
-      optionRegistry.on('OptionTokenCreated', (address, event) => {
-        event.removeListener();
-
-        resolve({
-          address: address
-        });
-      });
-
-      setTimeout(() => {
-        reject(new Error('timeout'));
-      }, 60000)
-    });
-    const now = moment();
-    const future = moment(now).add(14, 'M');
-    erc20CallExpiration = future;
-    const erc20 = await ethers.getContractFactory("MintableERC20");
-    const erc20Contract: ERC20 = await erc20.deploy('genericERC', 'GRC') as ERC20;
-    erc20Token = erc20Contract;
-    await erc20Token.mint(senderAddress, toWei('1000'));
-    const issue = optionRegistry.issue(erc20Token.address, dai.address, future.unix(), call, strike);
-    let event: any = await optionTokenEvent;
-    await expect(issue)
+    const future = 1640678400;
+    const issueCall = await optionRegistry.issue(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId], future, call, strike);
+    await expect(issueCall)
       .to.emit(optionRegistry, 'OptionTokenCreated');
-    erc20CallOption = new Contract(event.address, Otoken.abi, sender) as IOToken;
+      const receipt = await issueCall.wait(1);
+      const events = receipt.events;
+      const removeEvent = events?.find(x => x.event == 'OptionTokenCreated');
+      const seriesAddress = removeEvent?.args?.token;
+    // save the option token address
+    erc20CallOption = new Contract(seriesAddress, Otoken.abi, sender) as IOToken;
   });
 
   it('opens an ERC20 call option', async () => {
-    await erc20Token.approve(optionRegistry.address, toWei('2'));
+    await wethERC20.approve(optionRegistry.address, toWei('2'));
     await optionRegistry.open(erc20CallOption.address, toWei('2'));
     const balance = await erc20CallOption.balanceOf(senderAddress);
-    expect(balance).to.be.equal(toWei('2'));
+    expect(balance).to.be.equal(toWei('2').div(oTokenDecimalShift18));
   });
 
   it('writer transfers part of erc20 call balance to new account', async () => {
     const [sender, receiver] = signers;
-    await erc20CallOption.transfer(receiverAddress, toWei('1'));
+    const value = toWei('1').div(oTokenDecimalShift18);
+    await erc20CallOption.transfer(receiverAddress, value);
     const balance = await erc20CallOption.balanceOf(receiverAddress);
-    expect(balance).to.be.equal(toWei('1'));
+    expect(balance).to.be.equal(value);
   });
 
   it('new account exercises erc20 call option', async () => {
     const [sender, receiver] = signers;
-    const daiReceiver = dai.connect(receiver);
-    await daiReceiver.mint(receiverAddress, toWei('1000'));
+    const usdReceiver = usd.connect(receiver);
+    await usdReceiver.mint(receiverAddress, toWei('1000'));
     const optionRegistryReceiver = optionRegistry.connect(receiver);
-    const usdBalance = await dai.balanceOf(receiverAddress);
+    const usdBalance = await usd.balanceOf(receiverAddress);
     const series = await optionRegistry.seriesInfo(erc20CallOption.address);
     const { strike } = series
     const balance = await erc20CallOption.balanceOf(receiverAddress);
     const exerciseAmount = balance.div(toWei('1')).mul(strike);
-    await daiReceiver.approve(erc20CallOption.address, exerciseAmount);
+    await usdReceiver.approve(erc20CallOption.address, exerciseAmount);
     await optionRegistryReceiver.exercise(erc20CallOption.address, balance);
     const newBalance = await erc20CallOption.balanceOf(receiverAddress);
-    const newUsdBalance = await dai.balanceOf(receiverAddress);
+    const newUsdBalance = await usd.balanceOf(receiverAddress);
     const newBalanceToken = await erc20Token.balanceOf(receiverAddress);
     expect(newBalance).to.equal('0');
     expect(usdBalance.sub(exerciseAmount)).to.equal(newUsdBalance);
@@ -265,7 +270,9 @@ describe("Options protocol", function() {
 
   it('writer closes not transfered balance on ERC20 call option', async () => {
     const [sender] = signers;
-    await optionRegistry.close(erc20CallOption.address, toWei('1'));
+    const value = toWei('1').div(oTokenDecimalShift18);
+    await erc20CallOption.approve(optionRegistry.address, value) 
+    await optionRegistry.close(erc20CallOption.address, value);
     const balance = await optionToken.balanceOf(senderAddress);
     expect(balance).to.equal('0');
   });
@@ -292,7 +299,7 @@ describe("Options protocol", function() {
       }, 60000)
     });
     await optionRegistry.redeem(erc20CallOption.address);
-    const newBalance = await dai.balanceOf(senderAddress);
+    const newBalance = await usd.balanceOf(senderAddress);
     let event: any = await optionTokenEvent;
     const { underlyingAmount, strikeAmount } = event;
     expect(underlyingAmount).to.eq('0');
@@ -302,40 +309,40 @@ describe("Options protocol", function() {
 
   it('creates a put option token series', async () => {
     const [sender] = signers;
-    let expiration = currentTime.add(24, 'M');
-    putOptionExpiration = expiration;
-    let issue = optionRegistry.issue(ZERO_ADDRESS, ZERO_ADDRESS, expiration.unix(), put, strike);
+    const future = 1643356800;
+    const issuePut = await optionRegistry.issue(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId], future, put, strike);
     await expect(
-      issue
+      issuePut
     ).to.emit(optionRegistry, 'OptionTokenCreated');
-    let receipt = await (await issue).wait(1);
+    let receipt = await (await issuePut).wait(1);
     let events = receipt.events
     //@ts-ignore
-    const address = events[1]['args'][0];
+    const removeEvent = events?.find(x => x.event == 'OptionTokenCreated');
+    const address = removeEvent?.args?.token;
     putOption = new Contract(address, Otoken.abi, sender) as IOToken;
   });
 
   it('opens put option token position with ETH', async () => {
     const [sender] = signers;
-    const amount = 2 * 300;
-    await dai.approve(optionRegistry.address, toWei(amount.toString()));
+    const amount = strike.mul(2);
+    await usd.approve(optionRegistry.address, toWei(amount.toString()));
     await optionRegistry.open(putOption.address, toWei('2'));
     const balance = await putOption.balanceOf(senderAddress);
-    expect(balance).to.be.equal(toWei('2'));
+    expect(balance).to.be.equal(toWei('2').div(oTokenDecimalShift18));
   });
 
   it('writer transfers part of put balance to new account', async () => {
     const [sender, receiver] = signers;
-    await putOption.transfer(receiverAddress, toWei('1'));
+    await putOption.transfer(receiverAddress, toWei('1').div(oTokenDecimalShift18));
     const balance = await putOption.balanceOf(receiverAddress);
-    expect(balance).to.eq(toWei('1'));
+    expect(balance).to.eq(toWei('1').div(oTokenDecimalShift18));
   });
 
   it('new account exercises put option', async () => {
     const [sender, receiver] = signers;
     const optionRegistryReceiver = optionRegistry.connect(receiver);
-    await dai.mint(receiverAddress, toWei('1000'));
-    const originalBalanceUSD = await dai.balanceOf(receiverAddress);
+    await usd.mint(receiverAddress, toWei('1000'));
+    const originalBalanceUSD = await usd.balanceOf(receiverAddress);
     const series = await optionRegistry.seriesInfo(putOption.address);
     const { strike } = series;
     const balance = await putOption.balanceOf(receiverAddress);
@@ -345,7 +352,7 @@ describe("Options protocol", function() {
       value: toWei('1')
     });
     const newBalance = await putOption.balanceOf(receiverAddress);
-    const newBalanceUSD = await dai.balanceOf(receiverAddress);
+    const newBalanceUSD = await usd.balanceOf(receiverAddress);
     const newBalanceEth = await receiver.getBalance();
     const expectedUSDBalance = originalBalanceUSD.add(exerciseAmount);
     expect(newBalance).to.eq('0');
@@ -355,168 +362,16 @@ describe("Options protocol", function() {
   });
 
   it('writer closes not transfered balance on put option token', async () => {
-    await optionRegistry.close(putOption.address, toWei('1'));
+    const value = toWei('1').div(oTokenDecimalShift18);
+    await putOption.approve(optionRegistry.address, value) 
+    await optionRegistry.close(putOption.address, value);
     const balance = await putOption.balanceOf(senderAddress);
     expect(balance).to.eq('0');
   });
-
-  it('creates an ERC20 put option token series', async () => {
-    const [sender] = signers;
-    const now = currentTime;
-    const future = moment(now).add(14, 'M');
-    erc20PutOptionExpiration = future;
-    const issue = await optionRegistry.issue(erc20Token.address, dai.address, future.unix(), put, strike);
-    let receipt = await issue.wait(1);
-    let events = receipt.events
-    //@ts-ignore
-    const optionTokenCreated = events[1];
-    //@ts-ignore
-    const address = optionTokenCreated['args'][0];
-    expect(optionTokenCreated.event).to.eq('OptionTokenCreated');
-    erc20PutOption = new Contract(address, Otoken.abi, sender) as IOToken;
-  });
-
-  it('opens an ERC20 put option', async () => {
-    // amount * strike
-    await dai.mint(senderAddress, toWei('1000'));
-    await dai.approve(optionRegistry.address, toWei('1000'));
-    await optionRegistry.open(erc20PutOption.address, toWei('2'));
-    const balance = await erc20PutOption.balanceOf(senderAddress);
-    expect(balance).to.eq(toWei('2'));
-  });
-
-  it('writer transfers part of erc20 put balance to new account', async () => {
-    await erc20PutOption.transfer(receiverAddress, toWei('1'));
-    const balance = await erc20PutOption.balanceOf(receiverAddress)
-    expect(balance).to.eq(toWei('1'));
-  });
-
-  it('new account exercises erc20 put option', async () => {
-    const [sender, receiver] = signers;
-    const balance = await erc20PutOption.balanceOf(receiverAddress);
-    const strikeBalance = await dai.balanceOf(receiverAddress);
-    const series = await optionRegistry.seriesInfo(erc20PutOption.address);
-    const { strike } = series;
-    const erc20TokenReceiver = erc20Token.connect(receiver);
-    const optionRegistryReceiver = optionRegistry.connect(receiver);
-    await erc20TokenReceiver.approve(optionRegistry.address, balance);
-    await optionRegistryReceiver.exercise(erc20PutOption.address, balance);
-    const newBalance = await erc20PutOption.balanceOf(receiverAddress);
-    const newStrikeBalance = await dai.balanceOf(receiverAddress);
-    expect(newBalance).to.eq('0');
-    const newUnderlyingBalance = await erc20Token.balanceOf(receiverAddress);
-    expect(newUnderlyingBalance).to.eq('0');
-    expect(newStrikeBalance.sub(strikeBalance)).to.eq(balance.div(toWei('1')).mul(strike));
-  });
-
-  it('writer closes not transfered balance on erc20 put option', async () => {
-    const series = await optionRegistry.seriesInfo(erc20PutOption.address);
-    const { strike } = series;
-    const balanceUSD = await dai.balanceOf(receiverAddress);
-    await optionRegistry.close(erc20PutOption.address, toWei('1'))
-    const balance = await erc20PutOption.balanceOf(receiverAddress);
-    const newBalanceUSD = await dai.balanceOf(receiverAddress);
-    expect(balance).to.eq('0');
-    expect(newBalanceUSD.sub(balanceUSD)).to.eq(strike.mul(balance).div(toWei('1')));
-  });
-})
-
-// describe("Exchange", async () => {
-//   let optionToken: IOptionToken;
-//   let optionTokenExpiration: moment.Moment;
-//   let optionExchange: Exchange;
-//   it("Deploys the Options Exchange", async () => {
-//     const [sender] = signers
-//     const optionExchangeFactory = await ethers.getContractFactory(
-//       "Exchange"
-//     );
-//     const _optionExchange = await optionExchangeFactory.deploy() as Exchange;
-//     optionExchange = _optionExchange
-//     expect(optionRegistry).to.have.property('deployTransaction');
-//   });
-
-//   it('Creates an eth call option and deposits it on the exchange', async () => {
-//     const [sender] = signers
-//     optionTokenExpiration = moment(currentTime).add('12', 'M');
-//     const issue = await optionRegistry.issue(ZERO_ADDRESS, ZERO_ADDRESS, optionTokenExpiration.unix(), call, strike);
-//     let receipt = await issue.wait(1);
-//     let events = receipt.events;
-//     const optionTokenCreated: any = events ? events[1] : undefined;
-//     const address = optionTokenCreated?.args[0];
-//     expect(optionTokenCreated.event).to.eq('OptionTokenCreated');
-//     optionToken = new Contract(address, OptionToken.abi, sender) as IOptionToken;
-//     const value = toWei('2')
-//     await optionRegistry.open(optionToken.address, value, {
-//       value
-//     });
-//     const balance = await optionToken.balanceOf(senderAddress);
-//     expect(balance).to.eq(value);
-//     await optionToken.approve(optionExchange.address, balance);
-//     const deposit = await optionExchange.depositToken(optionToken.address, balance);
-//     const depositReceipt = await deposit.wait(1);
-//     const depositEvents = depositReceipt.events
-//     const depositEvent = depositEvents?.find(x => x.event == "Deposit")
-//     const eventBalance = depositEvent?.args?.balance;
-//     expect(eventBalance).to.eq(balance);
-//   });
-
-//   it('Creates a limit order to sell the eth call option', async () => {
-//     const order = await optionExchange.createOrder(
-//       dai.address,
-//       toWei('50'),
-//       optionToken.address,
-//       toWei('2'),
-//       optionTokenExpiration.unix(),
-//       '1'
-//     );
-
-//     const receipt = await order.wait(1);
-//     const events = receipt.events;
-//     const orderEvent = events?.find(x => x.event == 'Order');
-//     expect(orderEvent?.event).to.eq('Order');
-//   });
-
-//   it('Buys the options from a holder of strike token', async () => {
-//     const[,receiver] = signers;
-//     const daiReceiver = dai.connect(receiver);
-//     await daiReceiver.approve(optionExchange.address, toWei('26'));
-//     const exchangeReceiver = optionExchange.connect(receiver);
-//     await exchangeReceiver.depositToken(dai.address, toWei('26'));
-//     const trade = await exchangeReceiver.trade(
-//       dai.address,
-//       toWei('50'),
-//       optionToken.address,
-//       toWei('2'),
-//       optionTokenExpiration.unix(),
-//       '1',
-//       senderAddress,
-//       toWei('25')
-//     );
-//     const optionBalance = await optionExchange.balanceOf(optionToken.address, receiverAddress);
-//     const receipt = await trade.wait(1);
-//     const events = receipt.events;
-//     const tradeEvent = events?.find(x => x.event == 'Trade');
-//     expect(optionBalance).to.eq(toWei('1'));
-//     expect(tradeEvent?.event).to.eq('Trade');
-//   });
-
-//   it('Buyer of option should be able to withdraw from exchange', async () => {
-//     const[,receiver] = signers;
-//     const balanceStart = await optionToken.balanceOf(receiverAddress);
-//     expect(balanceStart).to.eq('0');
-//     const exchangeReceiver = optionExchange.connect(receiver);
-//     await exchangeReceiver.withdrawToken(
-//       optionToken.address,
-//       toWei('1'),
-//     );
-//     const balance = await optionToken.balanceOf(receiverAddress);
-//     expect(balance).to.eq(toWei('1'));
-//   });
-//   //TODO add implied vol based orders
-// });
+});
 
 let priceFeed: PriceFeed;
-let ethDaiAggregator: MockContract;
+let ethUSDAggregator: MockContract;
 let weth: WETH;
 describe("Price Feed", async () => {
   it('Should deploy price feed', async () => {
@@ -529,36 +384,36 @@ describe("Price Feed", async () => {
     const uniswapRouterFactory = await ethers.getContractFactory("UniswapV2Router02");
     const _uniswapRouter = await uniswapRouterFactory.deploy(uniswapFactory.address, wethContract.address) as UniswapV2Router02;
     let uniswapRouter: UniswapV2Router02 = _uniswapRouter;
-    ethDaiAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi);
+    ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi);
 
 
     const priceFeedFactory = await ethers.getContractFactory("PriceFeed");
     const _priceFeed = await priceFeedFactory.deploy() as PriceFeed;
     priceFeed = _priceFeed;
-    await priceFeed.addPriceFeed(ZERO_ADDRESS, dai.address, ethDaiAggregator.address);
-    await priceFeed.addPriceFeed(weth.address, dai.address, ethDaiAggregator.address);
-    const feedAddress = await priceFeed.priceFeeds(ZERO_ADDRESS, dai.address);
-    expect(feedAddress).to.eq(ethDaiAggregator.address);
+    await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, ethUSDAggregator.address);
+    await priceFeed.addPriceFeed(weth.address, usd.address, ethUSDAggregator.address);
+    const feedAddress = await priceFeed.priceFeeds(ZERO_ADDRESS, usd.address);
+    expect(feedAddress).to.eq(ethUSDAggregator.address);
   });
 
   let rate: string;
   it('Should return a price quote', async () => {
     // 567.70 - Chainlink uses 8 decimal places for this pair
     rate = '56770839675';
-    await ethDaiAggregator.mock.latestRoundData.returns(
+    await ethUSDAggregator.mock.latestRoundData.returns(
       '55340232221128660932',
       rate,
       '1607534965',
       '1607535064',
       '55340232221128660932'
     );
-    const quote = await priceFeed.getRate(ZERO_ADDRESS, dai.address);
+    const quote = await priceFeed.getRate(ZERO_ADDRESS, usd.address);
     expect(quote).to.eq(rate);
   });
 
   it('Should return a normalized price quote', async () => {
-    await ethDaiAggregator.mock.decimals.returns('8');
-    const quote = await priceFeed.getNormalizedRate(ZERO_ADDRESS, dai.address);
+    await ethUSDAggregator.mock.decimals.returns('8');
+    const quote = await priceFeed.getNormalizedRate(ZERO_ADDRESS, usd.address);
     // get decimal to 18 places
     const expected = BigNumber.from(rate).mul(BigNumber.from(10**10));
     expect(quote).to.eq(expected);
@@ -638,7 +493,7 @@ describe("Liquidity Pools", async () => {
     //@ts-ignore
     const coefs: int7 = coefInts.map(x => toWei(x.toString()));
     const lp = await liquidityPools.createLiquidityPool(
-      dai.address,
+      usd.address,
       weth.address,
       '3',
       coefs,
@@ -652,22 +507,22 @@ describe("Liquidity Pools", async () => {
     const strikeAsset = createEvent?.args?.strikeAsset
     const lpAddress = createEvent?.args?.lp;
     expect(createEvent?.event).to.eq('LiquidityPoolCreated');
-    expect(strikeAsset).to.eq(dai.address);
+    expect(strikeAsset).to.eq(usd.address);
     liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool;
   });
 
   it('Adds liquidity to the liquidityPool', async () => {
-    const price = await priceFeed.getNormalizedRate(weth.address, dai.address);
+    const price = await priceFeed.getNormalizedRate(weth.address, usd.address);
     await weth.deposit({ value: toWei('1') });
-    const balance = await dai.balanceOf(senderAddress);
+    const balance = await usd.balanceOf(senderAddress);
     const wethBalance = await weth.balanceOf(senderAddress);
-    await dai.approve(liquidityPool.address, toWei('600'));
+    await usd.approve(liquidityPool.address, toWei('600'));
     await weth.approve(liquidityPool.address, toWei('1'));
     const addLiquidity = await liquidityPool.addLiquidity(toWei('600'), toWei('1'), 0, 0);
     const liquidityPoolBalance = await liquidityPool.balanceOf(senderAddress);
     const receipt = await addLiquidity.wait(1);
     const event = receipt?.events?.find(x => x.event == 'LiquidityDeposited');
-    const newBalance = await dai.balanceOf(senderAddress);
+    const newBalance = await usd.balanceOf(senderAddress);
     const newWethBalance = await weth.balanceOf(senderAddress);
     expect(event?.event).to.eq('LiquidityDeposited');
     expect(wethBalance.sub(newWethBalance)).to.eq(toWei('1'));
@@ -684,12 +539,12 @@ describe("Liquidity Pools", async () => {
 
   it('Adds additional liquidity from new account', async () => {
     const [sender, receiver] = signers
-    const price = await priceFeed.getNormalizedRate(weth.address, dai.address);
-    const balance = await dai.balanceOf(receiverAddress);
+    const price = await priceFeed.getNormalizedRate(weth.address, usd.address);
+    const balance = await usd.balanceOf(receiverAddress);
     const wethBalance = await weth.balanceOf(receiverAddress);
     const sendAmount = toWei('1');
-    const daiReceiver = dai.connect(receiver);
-    await daiReceiver.approve(liquidityPool.address, toWei('1000'));
+    const usdReceiver = usd.connect(receiver);
+    await usdReceiver.approve(liquidityPool.address, toWei('1000'));
     const wethReceiver = weth.connect(receiver);
     await wethReceiver.deposit({ value: toWei('1') });
     const lpReceiver = liquidityPool.connect(receiver);
@@ -712,11 +567,11 @@ describe("Liquidity Pools", async () => {
     const coefs: int7 = coefInts.map(x => toWei(x.toString()));
     const lp = await liquidityPools.createLiquidityPool(
       weth.address,
-      dai.address,
+      usd.address,
       '3',
       coefs,
       coefs,
-      'weth/dai',
+      'weth/usd',
       'wdp'
     );
     const receipt = await lp.wait(1);
@@ -749,13 +604,13 @@ describe("Liquidity Pools", async () => {
     const { timestamp } = block;
     const expiration = moment(Number(timestamp) * 1000).add('5', 'M');
     const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration.unix());
-    const priceQuote = await priceFeed.getNormalizedRate(weth.address, dai.address);
+    const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address);
     const strikePrice = priceQuote.add(toWei('20'));
     const optionSeries = {
       expiration: BigNumber.from(expiration.unix()),
       flavor: CALL_FLAVOR,
       strike: strikePrice,
-      strikeAsset: dai.address,
+      strikeAsset: usd.address,
       underlying: weth.address
     }
     const iv = await liquidityPool.getImpliedVolatility(optionSeries.flavor, priceQuote, optionSeries.strike, optionSeries.expiration);
@@ -767,7 +622,7 @@ describe("Liquidity Pools", async () => {
       .03,
       "call"
     );
-    await priceFeed.addPriceFeed(ETH_ADDRESS, dai.address, ethDaiAggregator.address);
+    await priceFeed.addPriceFeed(ETH_ADDRESS, usd.address, ethUSDAggregator.address);
     const quote = await liquidityPool.quotePrice(optionSeries);
     expect(Math.round(truncate(localBS))).to.eq(Math.round(tFormatEth(quote.toString())));
     });
@@ -780,7 +635,7 @@ describe("Liquidity Pools", async () => {
     const { timestamp } = block;
     const expiration = moment(Number(timestamp) * 1000).add('5', 'M');
     const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration.unix());
-    const priceQuote = await priceFeed.getNormalizedRate(weth.address, dai.address);
+    const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address);
     const strikePrice = priceQuote.add(toWei('20'));
     const priceNorm = fromWei(priceQuote);
     const volatility = Number(IMPLIED_VOL) / 100;
@@ -790,7 +645,7 @@ describe("Liquidity Pools", async () => {
       expiration: BigNumber.from(expiration.unix()),
       flavor: CALL_FLAVOR,
       strike: strikePrice,
-      strikeAsset: dai.address,
+      strikeAsset: usd.address,
       underlying: weth.address
     }
     const iv = await liquidityPool.getImpliedVolatility(optionSeries.flavor, priceQuote, optionSeries.strike, optionSeries.expiration);
@@ -807,7 +662,7 @@ describe("Liquidity Pools", async () => {
       expiration: BigNumber.from(expiration.unix()),
       flavor: BigNumber.from(call),
       strike: BigNumber.from(strikePrice),
-      strikeAsset: dai.address,
+      strikeAsset: usd.address,
       underlying: weth.address
     }, amount);
     const truncFinalQuote = Math.round(truncate(finalQuote));
@@ -824,7 +679,7 @@ describe("Liquidity Pools", async () => {
     const { timestamp } = block;
     const expiration = moment(Number(timestamp) * 1000).add('5', 'M');
     const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration.unix());
-    const priceQuote = await priceFeed.getNormalizedRate(weth.address, dai.address);
+    const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address);
     const strikePrice = priceQuote.sub(toWei('20'));
     const priceNorm = fromWei(priceQuote);
     const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity));
@@ -833,7 +688,7 @@ describe("Liquidity Pools", async () => {
       expiration: BigNumber.from(expiration.unix()),
       flavor: PUT_FLAVOR,
       strike: strikePrice,
-      strikeAsset: dai.address,
+      strikeAsset: usd.address,
       underlying: weth.address
     }
     const iv = await liquidityPool.getImpliedVolatility(optionSeries.flavor, priceQuote, optionSeries.strike, optionSeries.expiration);
@@ -850,7 +705,7 @@ describe("Liquidity Pools", async () => {
         expiration: BigNumber.from(expiration.unix()),
         flavor: PUT_FLAVOR,
         strike: BigNumber.from(strikePrice),
-        strikeAsset: dai.address,
+        strikeAsset: usd.address,
         underlying: weth.address
       }, amount);
     const truncQuote = truncate(finalQuote);
@@ -867,23 +722,23 @@ describe("Liquidity Pools", async () => {
     const block = await ethers.provider.getBlock(blockNum);
     const { timestamp } = block;
     const expiration = moment(Number(timestamp) * 1000).add('5', 'M');
-    const priceQuote = await priceFeed.getNormalizedRate(weth.address, dai.address);
+    const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address);
     const strikePrice = priceQuote.add(toWei('20'));
-    await dai.mint(senderAddress, toWei('6000'));
-    await dai.approve(liquidityPool.address, toWei('6000'));
+    await usd.mint(senderAddress, toWei('6000'));
+    await usd.approve(liquidityPool.address, toWei('6000'));
     await weth.deposit({ value: amount.mul('5') });
     await weth.approve(liquidityPool.address, amount.mul('5'));
     await liquidityPool.addLiquidity(toWei('6000'), amount.mul('4'), 0, 0);
-    const lpDaiBalanceBefore = await dai.balanceOf(liquidityPool.address);
+    const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address);
     const proposedSeries = {
       expiration: BigNumber.from(expiration.unix()),
       flavor: BigNumber.from(call),
       strike: BigNumber.from(strikePrice),
-      strikeAsset: dai.address,
+      strikeAsset: usd.address,
       underlying: weth.address
     };
     const quote = await liquidityPool.quotePriceWithUtilization(proposedSeries, amount);
-    await dai.approve(liquidityPool.address, quote.toString());
+    await usd.approve(liquidityPool.address, quote.toString());
     const write = await liquidityPool.issueAndWriteOption(
       proposedSeries,
       amount,
@@ -898,9 +753,9 @@ describe("Liquidity Pools", async () => {
     const buyerOptionBalance = await callOptionToken.balanceOf(senderAddress);
     const openInterest = await optionRegistry.totalInterest(seriesAddress);
     const writersBalance = await optionRegistry.writers(seriesAddress, liquidityPool.address);
-    const lpDaiBalance = await dai.balanceOf(liquidityPool.address);
+    const lpUSDBalance = await usd.balanceOf(liquidityPool.address);
     const senderEthBalance = await sender.getBalance();
-    const balanceDiff = lpDaiBalanceBefore.sub(lpDaiBalance);
+    const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance);
     expect(writersBalance).to.eq(amount);
     expect(buyerOptionBalance).to.eq(amount);
     expect(openInterest).to.eq(amount);
@@ -913,18 +768,18 @@ describe("Liquidity Pools", async () => {
     const block = await ethers.provider.getBlock(blockNum);
     const { timestamp } = block;
     const expiration = moment(Number(timestamp) * 1000).add('5', 'M');
-    const priceQuote = await priceFeed.getNormalizedRate(weth.address, dai.address);
+    const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address);
     const strikePrice = priceQuote.sub(toWei('20'));
     const proposedSeries = {
       expiration: BigNumber.from(expiration.unix()),
       flavor: PUT_FLAVOR,
       strike: BigNumber.from(strikePrice),
-      strikeAsset: dai.address,
+      strikeAsset: usd.address,
       underlying: weth.address
     };
     const quote = await liquidityPool.quotePriceWithUtilization(proposedSeries, amount);
-    await dai.approve(liquidityPool.address, quote);
-    const balance = await dai.balanceOf(senderAddress);
+    await usd.approve(liquidityPool.address, quote);
+    const balance = await usd.balanceOf(senderAddress);
     const write = await liquidityPool.issueAndWriteOption(
       proposedSeries,
       amount,
@@ -936,7 +791,7 @@ describe("Liquidity Pools", async () => {
     const seriesAddress = writeEvent?.args?.series;
     const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken;
     const putBalance = await putOptionToken.balanceOf(senderAddress);
-    const balanceNew = await dai.balanceOf(senderAddress);
+    const balanceNew = await usd.balanceOf(senderAddress);
     expect(putBalance).to.eq(amount);
     // ensure funds are being transfered
     expect(tFormatEth(balance.sub(balanceNew))).to.eq(tFormatEth(quote));
@@ -948,11 +803,11 @@ describe("Liquidity Pools", async () => {
     const strike = seriesInfo.strike;
     const exerciseAmount = toWei('0.5');
     const amount = strike.mul(exerciseAmount).div(toWei('1'));
-    const balance = await dai.balanceOf(senderAddress);
-    const lpBalance = await dai.balanceOf(liquidityPool.address);
+    const balance = await usd.balanceOf(senderAddress);
+    const lpBalance = await usd.balanceOf(liquidityPool.address);
     await optionRegistry.exercise(lpCallOption.address, exerciseAmount);
-    const balanceAfter = await dai.balanceOf(senderAddress);
-    const lpBalanceAfter = await dai.balanceOf(liquidityPool.address);
+    const balanceAfter = await usd.balanceOf(senderAddress);
+    const lpBalanceAfter = await usd.balanceOf(liquidityPool.address);
     expect(balance.sub(balanceAfter)).to.eq(amount);
   });
 
@@ -990,23 +845,23 @@ describe("Liquidity Pools", async () => {
     const totalShares = await liquidityPool.totalSupply();
     //@ts-ignore
     const ratio = 1 / fromWei(totalShares);
-    const daiBalance = await dai.balanceOf(liquidityPool.address);
+    const usdBalance = await usd.balanceOf(liquidityPool.address);
     const withdraw = await liquidityPool.removeLiquidity(shares, 0, 0);
     const receipt = await withdraw.wait(1);
     const events = receipt.events;
     const removeEvent = events?.find(x => x.event == 'LiquidityRemoved');
     const strikeAmount = removeEvent?.args?.strikeAmount;
-    const daiBalanceAfter = await dai.balanceOf(liquidityPool.address);
+    const usdBalanceAfter = await usd.balanceOf(liquidityPool.address);
     //@ts-ignore
-    const diff = fromWei(daiBalance) * ratio;
+    const diff = fromWei(usdBalance) * ratio;
     expect(diff).to.be.lt(1);
-    expect(strikeAmount).to.be.eq(daiBalance.sub(daiBalanceAfter));
+    expect(strikeAmount).to.be.eq(usdBalance.sub(usdBalanceAfter));
   });
 
   it('LP can not redeems shares when in excess of liquidity', async () => {
     const shares = await liquidityPool.balanceOf(receiverAddress);
     const liquidityPoolReceiver = liquidityPool.connect(receiverAddress);
-    const withdraw = liquidityPoolReceiver.removeLiquidity(shares, 0, 0);
+    const withdraw = await liquidityPoolReceiver.removeLiquidity(shares, 0, 0);
     await expect(withdraw).to.be.revertedWith("StrikeAmountExceedsLiquidity");
   });
 

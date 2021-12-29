@@ -512,7 +512,7 @@ contract LiquidityPool is
     address escrowAsset = Types.isCall(flavor) ? underlyingAsset : strikeAsset;
     uint premium = quotePriceWithUtilization(optionSeries, amount);
     TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), premium);
-    uint escrow = Types.isCall(flavor) ? amount : OptionsCompute.computeEscrow(amount, optionSeries.strike);
+    uint escrow = Types.isCall(flavor) ? amount : OptionsCompute.computeEscrow(amount, optionSeries.strike, IERC20(strikeAsset).decimals());
     require(IERC20(escrowAsset).universalBalanceOf(address(this)) >= escrow, "Insufficient balance for escrow");
     if (IERC20(optionSeries.underlying).isETH()) {
         optionRegistry.open(seriesAddress, amount);

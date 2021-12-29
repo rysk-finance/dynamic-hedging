@@ -5,6 +5,7 @@ import { Constants } from "./Constants.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 
+
 library OptionsCompute {
     using ABDKMathQuad for bytes16;
     using PRBMathUD60x18 for uint256;
@@ -14,12 +15,13 @@ library OptionsCompute {
     bytes16 private constant ONE = 0x3fff0000000000000000000000000000;
     bytes16 private constant TWO = 0x40000000000000000000000000000000;
 
-    function computeEscrow(uint amount, uint strike)
+    function computeEscrow(uint amount, uint strike, uint underlyingDecimals)
         internal
         pure
         returns (uint)
     {
-        return strike.mul(amount);
+        uint decimalShift = 18 - underlyingDecimals;
+        return strike.mul(amount).div(10**(8 + decimalShift));
     }
 
     function toUInt(bytes16 x)

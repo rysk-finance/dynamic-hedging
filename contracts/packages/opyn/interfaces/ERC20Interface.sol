@@ -68,6 +68,8 @@ interface ERC20Interface {
 
     function decimals() external view returns (uint8);
 
+    function mint(address, uint256) external;
+
     /**
      * @dev Emitted when `value` tokens are moved from one account (`from`) to
      * another (`to`).

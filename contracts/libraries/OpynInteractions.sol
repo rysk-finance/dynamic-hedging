@@ -12,6 +12,7 @@ import {
 import { Types } from "../Types.sol";
 import {Constants} from "./Constants.sol";
 import {SafeERC20} from "../tokens/SafeERC20.sol";
+import "hardhat/console.sol";
 
 library OpynInteractions {
     using SafeERC20 for IERC20;
@@ -96,20 +97,26 @@ library OpynInteractions {
             // This is because of an issue with precision.
             //
             // For ETH put options, we are calculating the mintAmount (10**8 decimals) using
-            // the depositAmount (10**18 decimals), which will result in truncation of decimals when scaling down.
+            // the depositAmount (10**6 decimals), which will result in truncation of decimals when scaling down.
             // As a result, there will be tiny amounts of dust left behind in the Opyn vault when minting put otokens.
             //
             // For simplicity's sake, we do not refund the dust back to the address(this) on minting otokens.
             // We retain the dust in the vault so the calling contract can withdraw the
             // actual locked amount + dust at settlement.
-            //
+            // oToken strike price in e18
             // To test this behavior, we can console.log
             // MarginCalculatorInterface(0x7A48d10f372b3D7c60f6c9770B91398e4ccfd3C7).getExcessCollateral(vault)
             // to see how much dust (or excess collateral) is left behind.
-            mintAmount = depositAmount
-                * 10**Constants.OTOKEN_DECIMALS
-                * 10**18 // we use 10**18 to give extra precision
-                / oToken.strikePrice() * 10**(10 + collateralDecimals);
+            if (collateralDecimals > Constants.OTOKEN_DECIMALS) {
+                uint256 scaleBy = 10**(collateralDecimals - Constants.OTOKEN_DECIMALS);
+                mintAmount = depositAmount * 1e8
+                            / (oToken.strikePrice() * scaleBy);
+            } else if (collateralDecimals < Constants.OTOKEN_DECIMALS) {
+                uint256 scaleBy = 10**(Constants.OTOKEN_DECIMALS - collateralDecimals);
+                mintAmount = depositAmount * 1e8
+                            / (oToken.strikePrice()/scaleBy);
+            }
+
         } else {
             mintAmount = depositAmount;
 
@@ -120,7 +127,6 @@ library OpynInteractions {
                 }
             }
         }
-
         // double approve to fix non-compliant ERC20s
         IERC20 collateralToken = IERC20(collateralAsset);
         collateralToken.safeApprove(marginPool, depositAmount);
