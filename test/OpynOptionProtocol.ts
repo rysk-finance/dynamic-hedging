@@ -62,7 +62,7 @@ const chainId = 1;
 const oTokenDecimalShift18 = 10000000000;
 const strike = toWei('3500').div(oTokenDecimalShift18);
 
-let usd: ERC20Interface;
+let usd: ERC20;
 let wethERC20: ERC20Interface;
 let currentTime: moment.Moment;
 let optionRegistry: OpynOptionRegistry;
@@ -104,8 +104,8 @@ describe("Options protocol", function() {
     );
 
     // get and transfer weth
-    weth = (await ethers.getContractAt("IWETH", WETH_ADDRESS[chainId])) as WETH;
-    usd = (await ethers.getContractAt("ERC20Interface", USDC_ADDRESS[chainId])) as ERC20Interface;
+    weth = (await ethers.getContractAt("contracts/interfaces/WETH.sol:WETH", WETH_ADDRESS[chainId])) as WETH;
+    usd = (await ethers.getContractAt("ERC20", USDC_ADDRESS[chainId])) as ERC20;
     await network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [USDC_OWNER_ADDRESS[chainId]],
@@ -378,12 +378,6 @@ describe("Price Feed", async () => {
     const Weth = await ethers.getContractFactory("contracts/tokens/WETH.sol:WETH");
     const wethContract = await Weth.deploy() as WETH;
     weth = wethContract;
-    const uniswapFactoryFactory = await ethers.getContractFactory("UniswapV2Factory");
-    const _uniswapFactory = await uniswapFactoryFactory.deploy(senderAddress) as UniswapV2Factory;
-    let uniswapFactory: UniswapV2Factory = _uniswapFactory;
-    const uniswapRouterFactory = await ethers.getContractFactory("UniswapV2Router02");
-    const _uniswapRouter = await uniswapRouterFactory.deploy(uniswapFactory.address, wethContract.address) as UniswapV2Router02;
-    let uniswapRouter: UniswapV2Router02 = _uniswapRouter;
     ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi);
 
 
@@ -864,6 +858,4 @@ describe("Liquidity Pools", async () => {
     const withdraw = await liquidityPoolReceiver.removeLiquidity(shares, 0, 0);
     await expect(withdraw).to.be.revertedWith("StrikeAmountExceedsLiquidity");
   });
-
-
 });

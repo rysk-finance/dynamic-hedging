@@ -16,6 +16,7 @@ import "hardhat/console.sol";
 
 library OpynInteractions {
     using SafeERC20 for IERC20;
+    
     /**
      * @notice Either retrieves the option token if it already exists, or deploy it
      * @param oTokenFactory is the address of the opyn oTokenFactory
