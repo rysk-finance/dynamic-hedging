@@ -314,20 +314,19 @@ library OpynInteractions {
     /**
      * @notice Exercises an ITM option
      * @param gammaController is the address of the opyn controller contract
+     * @param marginPool is the address of the opyn margin pool
      * @param series is the address of the option to redeem
+     * @param amount is the number of oTokens to redeem
      * @return amount of asset received by exercising the option
      */
     function redeem(
         address gammaController,
-        address series
+        address marginPool,
+        address series,
+        uint256 amount
     ) external returns (uint256) {
         IController controller = IController(gammaController);
 
-        uint256 seriesBalance = IERC20(series).balanceOf(msg.sender);
-
-        if (controller.getPayout(series, seriesBalance) == 0) {
-            return 0;
-        }
         address asset = IOtoken(series).collateralAsset();
         uint256 startAssetBalance = IERC20(asset).balanceOf(msg.sender);
 
@@ -341,15 +340,14 @@ library OpynInteractions {
             msg.sender, // address to send profits to
             series, // address of otoken
             0, // not used
-            seriesBalance, // otoken balance
+            amount, // otoken balance
             0, // not used
             "" // not used
         );
-
+        IERC20(series).approve(marginPool, amount);
         controller.operate(actions);
 
         uint256 endAssetBalance = IERC20(asset).balanceOf(msg.sender);
-
         return endAssetBalance - startAssetBalance;
     }
 }

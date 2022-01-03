@@ -201,10 +201,12 @@ contract OpynOptionRegistry is Ownable {
         require(series.expiration != 0, "non-existent series");
         // check that the option has expired
         require(block.timestamp > series.expiration, "option not past expiry");
+        require(IERC20(_series).balanceOf(msg.sender) > 0, "insufficient option tokens");
+        uint256 seriesBalance = IERC20(_series).balanceOf(msg.sender);
         // transfer the oToken back to this account
         IERC20(_series).safeTransferFrom(msg.sender, address(this), IERC20(_series).balanceOf(msg.sender));
         // redeem
-        uint256 amount = OpynInteractions.redeem(gammaController, _series);
+        uint256 amount = OpynInteractions.redeem(gammaController, marginPool, _series, seriesBalance);
         return amount;
     }
 
