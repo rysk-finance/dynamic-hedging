@@ -1,59 +1,53 @@
 pragma solidity >=0.8.0;
-import "./ABDKMathQuad.sol";
+import "prb-math/contracts/PRBMathSD59x18.sol";
+import "prb-math/contracts/PRBMathUD60x18.sol";
 
 library NormalDist {
-    using ABDKMathQuad for uint256;
-    using ABDKMathQuad for bytes16;
-    using ABDKMathQuad for int256;
-    using ABDKMathQuad for int8;
+    using PRBMathSD59x18 for int256;
+    using PRBMathSD59x18 for int8;
+    using PRBMathUD60x18 for uint256;
 
-    bytes16 private constant ONE = 0x3fff0000000000000000000000000000;
-    bytes16 private constant ONE_HALF = 0x3ffe0000000000000000000000000000;
-    bytes16 private constant SQRT_TWO = 0x3fff6a09e667f3bcc908b2fb1366ea95;
+    int256 private constant ONE = 1000000000000000000;
+    int256 private constant ONE_HALF = 500000000000000000;
+    int256 private constant SQRT_TWO = 1414213562373095048;
     // z-scores
     // A1 0.254829592
-    bytes16 private constant A1 = 0x3ffd04f20c6ec5a7e1d33b9e3328c3ba;
+    int256 private constant A1 = 254829592000000000;
     // A2 -0.284496736
-    bytes16 private constant A2 = 0xbffd23531cc3c14697fb1a2352fc8d6a;
+    int256 private constant A2 = -284496736000000000;
     // A3 1.421413741
-    bytes16 private constant A3 = 0x3fff6be1c55bae156b65ee6034370310;
+    int256 private constant A3 = 1421413741000000000;
     // A4 -1.453152027
-    bytes16 private constant A4 = 0xbfff7401c57014c38f140d30c8a85881;
+    int256 private constant A4 = -1453152027000000000;
     // A5 1.061405429
-    bytes16 private constant A5 = 0x3fff0fb844255a12d72e60ccafacbc9d;
+    int256 private constant A5 = 1061405429000000000;
     // P 0.3275911
-    bytes16 private constant P = 0x3ffd4f740a93d7b8b91991a17d93a995;
+    int256 private constant P = 327591100000000000;
 
-    // use this function to sanity check
-    function stdNormCDF(uint256 x) public pure returns(uint256) {
-        bytes16 result = cdf(x.fromUInt());
-        return result.mul(uint256(10000000000000000).fromUInt()).toUInt();
-    }
-
-    function cdf(bytes16 x) public pure returns(bytes16) {
-        bytes16 phiParam = x.div(SQRT_TWO);
-        bytes16 onePlusPhi = ONE.add(phi(phiParam));
+    function cdf(int256 x) public pure returns(int256) {
+        int256 phiParam = x.div(SQRT_TWO);
+        int256 onePlusPhi = ONE + (phi(phiParam));
         return ONE_HALF.mul(onePlusPhi);
     }
 
-    function phi(bytes16 x) public pure returns(bytes16) {
-        int8 sign = x.sign();
-        bytes16 abs = x.abs();
+    function phi(int256 x) public pure returns(int256) {
+        int256 sign = x >= 0 ? ONE : -ONE;
+        int256 abs = x.abs();
 
         // A&S formula 7.1.26
-        bytes16 t = ONE.div(ONE.add(P.mul(abs)));
-        bytes16 scoresByT = getScoresFromT(t);
-        bytes16 eToXs = abs.neg().mul(abs).exp();
-        bytes16 y = ONE.sub(scoresByT.mul(eToXs));
-        return sign.fromInt().mul(y);
+        int256 t = ONE.div(ONE + (P.mul(abs)));
+        int256 scoresByT = getScoresFromT(t);
+        int256 eToXs = abs.mul(-ONE).mul(abs).exp();
+        int256 y = ONE - (scoresByT.mul(eToXs));
+        return sign.mul(y);
     }
 
-    function getScoresFromT(bytes16 t) public pure returns(bytes16) {
-        bytes16 byA5T = A5.mul(t);
-        bytes16 byA4T = byA5T.add(A4).mul(t);
-        bytes16 byA3T = byA4T.add(A3).mul(t);
-        bytes16 byA2T = byA3T.add(A2).mul(t);
-        bytes16 byA1T = byA2T.add(A1).mul(t);
+    function getScoresFromT(int256 t) public pure returns(int256) {
+        int256 byA5T = A5.mul(t);
+        int256 byA4T = (byA5T + A4).mul(t);
+        int256 byA3T = (byA4T + A3).mul(t);
+        int256 byA2T = (byA3T + A2).mul(t);
+        int256 byA1T = (byA2T + A1).mul(t);
         return byA1T;
     }
 }

@@ -1,14 +1,11 @@
 import { BigNumberish, utils, BigNumber } from "ethers";
 
 export const formatEth = (x: BigNumberish) => Number(utils.formatEther(x));
-
 export function truncate (num: number, places: number = 3): number {
     return Math.trunc(num * Math.pow(10, places)) / Math.pow(10, places);
 }
 export const tFormatEth = (x: BigNumberish): number => truncate(formatEth(x));
-
 export const toWei = (x: string) => utils.parseEther(x);
-
 export const call = 0, put = 1;
 export const CALL = BigNumber.from(call);
 export const PUT = BigNumber.from(put);
@@ -30,3 +27,4 @@ export const percentDiffArr = (a: (number|string)[], b: (number|string)[]): numb
     const sum = diffs.reduce((a: number, b: number) => a + b, 0)
     return sum
 }
+export type BlackScholesCalcArgs = [BigNumber, BigNumber, BigNumber, BigNumber, BigNumber];

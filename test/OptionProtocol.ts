@@ -552,9 +552,7 @@ describe("Liquidity Pools", async () => {
     const abdkMathFactory = await ethers.getContractFactory("ABDKMathQuad");
     const abdkMathDeploy = await abdkMathFactory.deploy();
     const normDistFactory = await ethers.getContractFactory("NormalDist", {
-      libraries: {
-        ABDKMathQuad: abdkMathDeploy.address
-      }
+      libraries: {}
     });
     const normDist = await normDistFactory.deploy();
     const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {

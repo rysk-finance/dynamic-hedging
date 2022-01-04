@@ -186,7 +186,7 @@ contract LiquidityPool is
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
       // TODO Consider using VAR (value at risk) approach in the future
       uint iv = getImpliedVolatility(Types.Flavor.Put, underlyingPrice, weightedStrikePut, weightedTimePut);
-      uint price = BlackScholes.retBlackScholesCalc(
+      uint price = BlackScholes.blackScholesCalc(
          underlyingPrice,
          weightedStrikePut,
          weightedTimePut,
@@ -194,7 +194,7 @@ contract LiquidityPool is
          riskFreeRate,
          Types.Flavor.Put
       );
-      return totalAmountPut.mul(price);
+      return totalAmountPut.mul(price);      
   }
 
   function _valueCallsWritten()
@@ -205,15 +205,15 @@ contract LiquidityPool is
       if (weightedStrikeCall == 0) return uint(0);
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
       uint iv = getImpliedVolatility(Types.Flavor.Call, underlyingPrice, weightedStrikeCall, weightedTimeCall);
-      uint price = BlackScholes.retBlackScholesCalc(
-         underlyingPrice,
-         weightedStrikeCall,
-         weightedTimeCall,
-         iv,
-         riskFreeRate,
-         Types.Flavor.Call
-      );
-      uint callsValue = totalAmountCall.mul(price).div(underlyingPrice);
+      uint price = BlackScholes.blackScholesCalc(
+        underlyingPrice,
+        weightedStrikePut,
+        weightedTimePut,
+        iv,
+        riskFreeRate,
+        Types.Flavor.Call
+      );     
+      uint callsValue = totalAmountCall.mul(uint256(price)).div(underlyingPrice);
       return callsValue.min(totalAmountCall);
   }
 
@@ -380,15 +380,15 @@ contract LiquidityPool is
     uint ivNorm = iv.div(PRBMathUD60x18.SCALE).mul(100);
     require(iv > 0, "Implied volatility not found");
     require(optionSeries.expiration > block.timestamp, "Already expired");
-    uint quote = BlackScholes.retBlackScholesCalc(
+    uint quote = BlackScholes.blackScholesCalc(
        underlyingPrice,
        optionSeries.strike,
        optionSeries.expiration,
-       ivNorm,
+       iv,
        riskFreeRate,
        optionSeries.flavor
-    );
-    return quote;
+    );    
+    return uint(quote);
   }
 
   function quotePriceGreeks(
@@ -396,50 +396,50 @@ contract LiquidityPool is
   )
       public
       view
-      returns (bytes16 quote, bytes16 delta, uint256 underlyingPrice)
+      returns (uint256 quote, int256 delta, uint256 underlyingPrice)
   {
-      uint underlyingPrice = getUnderlyingPrice(optionSeries);
+      underlyingPrice = getUnderlyingPrice(optionSeries);
       uint iv = getImpliedVolatility(optionSeries.flavor, underlyingPrice, optionSeries.strike, optionSeries.expiration);
       uint ivNorm = iv.div(PRBMathUD60x18.SCALE).mul(100);
       require(iv > 0, "Implied volatility not found");
       require(optionSeries.expiration > block.timestamp, "Already expired");
       underlyingPrice = getUnderlyingPrice(optionSeries);
-      (quote, delta) = BlackScholes.retBlackScholesCalcGreeks(
-         underlyingPrice,
-         optionSeries.strike,
-         optionSeries.expiration,
-         ivNorm,
-         riskFreeRate,
-         optionSeries.flavor
+      (quote, delta) = BlackScholes.blackScholesCalcGreeks(
+       underlyingPrice,
+       optionSeries.strike,
+       optionSeries.expiration,
+       iv,
+       riskFreeRate,
+       optionSeries.flavor
       );
   }
 
   function getPortfolioDelta()
       public
       view
-      returns (bytes16)
+      returns (int256)
   {
-      bytes16 price = ABDKMathQuad.fromUInt(getUnderlyingPrice(underlyingAsset, strikeAsset));
-      bytes16 vol = ABDKMathQuad.fromUInt(impliedVolatility[underlyingAsset]);
-      bytes16 rfr = ABDKMathQuad.fromUInt(riskFreeRate);
-      //TODO use skew for volatility
-      bytes16 callsDelta = BlackScholes.getDeltaBytes(
+      uint256 price = getUnderlyingPrice(underlyingAsset, strikeAsset);
+      uint256 callIv = getImpliedVolatility(Types.Flavor.Call, price, weightedStrikeCall, weightedTimeCall);
+      uint256 putIv = getImpliedVolatility(Types.Flavor.Put, price, weightedStrikePut, weightedTimePut);
+      uint256 rfr = riskFreeRate;
+      int256 callsDelta = BlackScholes.getDelta(
          price,
-         ABDKMathQuad.fromUInt(weightedStrikeCall),
-         ABDKMathQuad.fromUInt(weightedTimeCall),
-         vol,
+         weightedStrikeCall,
+         weightedTimeCall,
+         callIv,
          rfr,
          Types.Flavor.Call
       );
-      bytes16 putsDelta = BlackScholes.getDeltaBytes(
+      int256 putsDelta = BlackScholes.getDelta(
          price,
-         ABDKMathQuad.fromUInt(weightedStrikePut),
-         ABDKMathQuad.fromUInt(weightedTimePut),
-         vol,
+         weightedStrikePut,
+         weightedTimePut,
+         putIv,
          rfr,
          Types.Flavor.Put
       );
-      return callsDelta.add(putsDelta);
+      return callsDelta + putsDelta;
   }
 
   function quotePriceWithUtilization(
@@ -464,19 +464,18 @@ contract LiquidityPool is
   )
       public
       view
-      returns (bytes16 quote, bytes16 delta)
+      returns (uint256 quote, int256 delta)
   {
-      bytes16 bytesAmount = ABDKMathQuad.fromUInt(amount);
-      (bytes16 optionQuote, bytes16 delta, uint price) = quotePriceGreeks(optionSeries);
-      int8 isNegitive = bytesAmount.cmp(ONE);
-      bytes16 optionPrice = isNegitive < 0 ? optionQuote.mul(bytesAmount) : optionQuote;
-      bytes16 underlyingPrice = ABDKMathQuad.fromUInt(price);
+      (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries);
+      uint optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
+      uint underlyingPrice = getUnderlyingPrice(optionSeries);
       // factor in portfolio delta
       // if decreases portfolio delta quote standard bs
       // abs(portfolio delta + new delta) < abs(portfolio delta)
-      bytes16 utilization = bytesAmount.div(ABDKMathQuad.fromUInt(totalSupply()));
-      bytes16 utilizationPrice = underlyingPrice.mul(utilization);
-      quote = optionPrice.cmp(utilizationPrice) > 0 ? utilizationPrice : optionPrice;
+      uint utilization = amount.div(totalSupply());
+      uint utilizationPrice = underlyingPrice.mul(utilization);
+      quote = utilizationPrice > optionPrice ? utilizationPrice : optionPrice;
+      delta = deltaQuote;
   }
 
   function issueAndWriteOption(
