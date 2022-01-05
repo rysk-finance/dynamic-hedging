@@ -33,6 +33,7 @@ contract LiquidityPool is
   using Math for uint256;
 
   bytes16 private constant ONE = 0x3fff0000000000000000000000000000;
+  uint256 private constant ONE_YEAR_SECONDS = 31557600000000000000000000;
 
   address public protocol;
   address public strikeAsset;
@@ -360,9 +361,10 @@ contract LiquidityPool is
     view
     returns (uint) 
     {
+      uint256 time = (expiration - block.timestamp.fromUint()).div(ONE_YEAR_SECONDS);
       int underlying = int(underlyingPrice);
       int spot_distance = (int(strikePrice) - int(underlying)).div(underlying);
-      int[2] memory points = [spot_distance, int(expiration)];
+      int[2] memory points = [spot_distance, int(time)];
       int[7] memory coef = flavor == Types.Flavor.Call ? callsVolatilitySkew : putsVolatilitySkew;
       return uint(OptionsCompute.computeIVFromSkew(coef, points));
     }
@@ -376,8 +378,6 @@ contract LiquidityPool is
   {
     uint underlyingPrice = getUnderlyingPrice(optionSeries);
     uint iv = getImpliedVolatility(optionSeries.flavor, underlyingPrice, optionSeries.strike, optionSeries.expiration);
-    //TODO refactor BlackScholes module to not need normalization
-    uint ivNorm = iv.div(PRBMathUD60x18.SCALE).mul(100);
     require(iv > 0, "Implied volatility not found");
     require(optionSeries.expiration > block.timestamp, "Already expired");
     uint quote = BlackScholes.blackScholesCalc(

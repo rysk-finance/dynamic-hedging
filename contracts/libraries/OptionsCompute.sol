@@ -53,7 +53,8 @@ library OptionsCompute {
     // @param points[1] expiration time
     // @param coef degree-2 polynomial features are [intercept, 1, a, b, a^2, ab, b^2]
     // a == spot_distance, b == expiration time
-    // spot_distance = (strike - spot_price) / spot_price
+    // spot_distance: (strike - spot_price) / spot_price
+    // expiration: years to expiration
     function computeIVFromSkew(
        int[7] memory coef,
        int[2] memory points

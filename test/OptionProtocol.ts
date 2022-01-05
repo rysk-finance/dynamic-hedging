@@ -557,7 +557,6 @@ describe("Liquidity Pools", async () => {
     const normDist = await normDistFactory.deploy();
     const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
       libraries: {
-        ABDKMathQuad: abdkMathDeploy.address,
         NormalDist: normDist.address
       }
     });
@@ -583,7 +582,6 @@ describe("Liquidity Pools", async () => {
       {
         libraries: {
           Constants: constants.address,
-          ABDKMathQuad: abdkMathDeploy.address,
           BlackScholes: blackScholesDeploy.address
         }
       }
@@ -615,7 +613,7 @@ describe("Liquidity Pools", async () => {
     const lp = await liquidityPools.createLiquidityPool(
       dai.address,
       weth.address,
-      '3',
+      toWei('0.03'),
       coefs,
       coefs,
       'ETH/DAI',
@@ -688,7 +686,7 @@ describe("Liquidity Pools", async () => {
     const lp = await liquidityPools.createLiquidityPool(
       weth.address,
       dai.address,
-      '3',
+      toWei('0.03'),
       coefs,
       coefs,
       'weth/dai',
@@ -727,7 +725,7 @@ describe("Liquidity Pools", async () => {
     const priceQuote = await priceFeed.getNormalizedRate(weth.address, dai.address);
     const strikePrice = priceQuote.add(toWei('20'));
     const optionSeries = {
-      expiration: BigNumber.from(expiration.unix()),
+      expiration: toWei(expiration.unix().toString()),
       flavor: CALL_FLAVOR,
       strike: strikePrice,
       strikeAsset: dai.address,
@@ -736,7 +734,7 @@ describe("Liquidity Pools", async () => {
     const iv = await liquidityPool.getImpliedVolatility(optionSeries.flavor, priceQuote, optionSeries.strike, optionSeries.expiration);
     const localBS = bs.blackScholes(
       fromWei(priceQuote),
-      fromWei(priceQuote.add(toWei('20'))),
+      fromWei(strikePrice),
       timeToExpiration,
       fromWei(iv),
       .03,
@@ -762,7 +760,7 @@ describe("Liquidity Pools", async () => {
     const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity));
     const utilizationPrice = Number(priceNorm) * utilization;
     const optionSeries = {
-      expiration: BigNumber.from(expiration.unix()),
+      expiration: toWei(expiration.unix().toString()),
       flavor: CALL_FLAVOR,
       strike: strikePrice,
       strikeAsset: dai.address,
@@ -778,20 +776,13 @@ describe("Liquidity Pools", async () => {
       "call"
     );
     const finalQuote = utilizationPrice > localBS ? utilizationPrice : localBS;
-    const quote = await liquidityPool.quotePriceWithUtilization({
-      expiration: BigNumber.from(expiration.unix()),
-      flavor: BigNumber.from(call),
-      strike: BigNumber.from(strikePrice),
-      strikeAsset: dai.address,
-      underlying: weth.address
-    }, amount);
+    const quote = await liquidityPool.quotePriceWithUtilization(optionSeries, amount);
     const truncFinalQuote = Math.round(truncate(finalQuote));
     const formatEthQuote = Math.round(tFormatEth(quote.toString()));
     expect(truncFinalQuote).to.be.eq(formatEthQuote);
     });
 
   it('Returns a quote for a ETH/USD put with utilization', async () => {
-
     const totalLiqidity = await liquidityPool.totalSupply();
     const amount = toWei('5');
     const blockNum = await ethers.provider.getBlockNumber();
@@ -805,7 +796,7 @@ describe("Liquidity Pools", async () => {
     const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity));
     const utilizationPrice = Number(priceNorm) * utilization;
     const optionSeries = {
-      expiration: BigNumber.from(expiration.unix()),
+      expiration: toWei(expiration.unix().toString()),
       flavor: PUT_FLAVOR,
       strike: strikePrice,
       strikeAsset: dai.address,
@@ -821,13 +812,7 @@ describe("Liquidity Pools", async () => {
       "put"
       );
       const finalQuote = utilizationPrice > localBS ? utilizationPrice : localBS;
-      const quote = await liquidityPool.quotePriceWithUtilization({
-        expiration: BigNumber.from(expiration.unix()),
-        flavor: PUT_FLAVOR,
-        strike: BigNumber.from(strikePrice),
-        strikeAsset: dai.address,
-        underlying: weth.address
-      }, amount);
+      const quote = await liquidityPool.quotePriceWithUtilization(optionSeries, amount);
     const truncQuote = truncate(finalQuote);
     const chainQuote = tFormatEth(quote.toString());
     const diff = percentDiff(truncQuote, chainQuote);
@@ -851,7 +836,7 @@ describe("Liquidity Pools", async () => {
     await liquidityPool.addLiquidity(toWei('6000'), amount.mul('4'), 0, 0);
     const lpDaiBalanceBefore = await dai.balanceOf(liquidityPool.address);
     const proposedSeries = {
-      expiration: BigNumber.from(expiration.unix()),
+      expiration: toWei(expiration.unix().toString()),
       flavor: BigNumber.from(call),
       strike: BigNumber.from(strikePrice),
       strikeAsset: dai.address,
@@ -891,7 +876,7 @@ describe("Liquidity Pools", async () => {
     const priceQuote = await priceFeed.getNormalizedRate(weth.address, dai.address);
     const strikePrice = priceQuote.sub(toWei('20'));
     const proposedSeries = {
-      expiration: BigNumber.from(expiration.unix()),
+      expiration: toWei(expiration.unix().toString()),
       flavor: PUT_FLAVOR,
       strike: BigNumber.from(strikePrice),
       strikeAsset: dai.address,
