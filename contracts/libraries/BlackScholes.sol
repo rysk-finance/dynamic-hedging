@@ -5,7 +5,6 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import { NormalDist } from "./NormalDist.sol";
 import { Types } from "../Types.sol";
-import "hardhat/console.sol";
 
 library BlackScholes {
     using PRBMathSD59x18 for int256;

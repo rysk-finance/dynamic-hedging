@@ -702,20 +702,6 @@ describe("Liquidity Pools", async () => {
     ethLiquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool;
   });
 
-  //TODO change to weth deposit contract
-  // it('Adds liquidity to the ETH liquidityPool', async () => {
-  //     const amount = toWei('10');
-  //     await weth.deposit({ value: amount});
-  //     await weth.approve(ethLiquidityPool.address, amount);
-  //     const addLiquidity = await ethLiquidityPool.addLiquidity(amount);
-  //     const liquidityPoolBalance = await ethLiquidityPool.balanceOf(senderAddress);
-  //     const addLiquidityReceipt = await addLiquidity.wait(1);
-  //     const addLiquidityEvents = addLiquidityReceipt.events;
-  //     const addLiquidityEvent = addLiquidityEvents?.find(x => x.event == 'LiquidityAdded');
-  //     expect(liquidityPoolBalance).to.eq(amount);
-  //     expect(addLiquidityEvent?.event).to.eq('LiquidityAdded');
-  // });
-
   it('Returns a quote for a single ETH/USD call option', async () => {
     const blockNum = await ethers.provider.getBlockNumber();
     const block = await ethers.provider.getBlock(blockNum);
