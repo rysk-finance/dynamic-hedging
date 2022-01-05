@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import "./libraries/ABDKMathQuad.sol";
+import "hardhat/console.sol";
 
 contract Volatility {
     using ABDKMathQuad for uint256;
