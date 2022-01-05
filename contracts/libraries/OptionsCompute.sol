@@ -1,18 +1,12 @@
 pragma solidity >=0.8.0;
 
-import { ABDKMathQuad } from "./ABDKMathQuad.sol";
 import { Constants } from "./Constants.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 
 library OptionsCompute {
-    using ABDKMathQuad for bytes16;
     using PRBMathUD60x18 for uint256;
     using PRBMathSD59x18 for int256;
-
-    bytes16 private constant DECIMAL_PLACE = 0x403abc16d674ec800000000000000000;
-    bytes16 private constant ONE = 0x3fff0000000000000000000000000000;
-    bytes16 private constant TWO = 0x40000000000000000000000000000000;
 
     function computeEscrow(uint amount, uint strike)
         internal
@@ -20,14 +14,6 @@ library OptionsCompute {
         returns (uint)
     {
         return strike.mul(amount);
-    }
-
-    function toUInt(bytes16 x)
-        internal
-        pure
-        returns (uint)
-    {
-        return x.mul(DECIMAL_PLACE).toUInt();
     }
 
     function computeNewWeights(

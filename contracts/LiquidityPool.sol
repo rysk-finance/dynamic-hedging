@@ -6,7 +6,6 @@ import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { TransferHelper } from "./libraries/TransferHelper.sol";
 import "./tokens/ERC20.sol";
 import "./OptionRegistry.sol";
-import "./libraries/ABDKMathQuad.sol";
 import "./libraries/Math.sol";
 import "./libraries/BlackScholes.sol";
 import "./tokens/UniversalERC20.sol";
@@ -27,12 +26,10 @@ contract LiquidityPool is
   Ownable
 {
   using UniversalERC20 for IERC20;
-  using ABDKMathQuad for bytes16;
   using PRBMathSD59x18 for int256;
   using PRBMathUD60x18 for uint256;
   using Math for uint256;
 
-  bytes16 private constant ONE = 0x3fff0000000000000000000000000000;
   uint256 private constant ONE_YEAR_SECONDS = 31557600000000000000000000;
 
   address public protocol;
@@ -258,69 +255,12 @@ contract LiquidityPool is
     }
   }
 
-  // /**
-  //  * @notice function for adding liquidity to the options liquidity pool
-  //  * @param  amount (uint) amount of funds of the underlying asset to send in
-  //  * @dev    entry point to provide liquidity to dynamic hedging vault 
-  //  */
-  // function addLiquidity(uint amount)
-  //   public
-  //   payable
-  //   returns (bool)
-  // {
-  //   addTokenLiquidity(amount);
-  // }
-
-
-  // function addTokenLiquidity(uint amount)
-  //   internal
-  //   returns (bool)
-  // {
-  //   uint tokenSupply = totalSupply();
-  //   uint decimals = IERC20(strikeAsset).decimals();
-  //   // get the exchange rate of the underlyingAsset to the strikeAsset from chainlink
-  //   uint exchangeRate = getUnderlyingPrice(underlyingAsset, strikeAsset);
-  //   // determine the strikeAmount from the exchangeRate and the amount specified by the user
-  //   uint strikeAmount = (exchangeRate * amount) / (10**decimals);
-  //   // needs to transfer underlying as well using ratio param (initially 1)
-  //   uint balance = IERC20(strikeAsset).balanceOf(msg.sender);
-  //   // transfer funds to the liquidity pool, note amount of underlying is sent and strikeAmount
-  //   // strikeAsset is sent.
-  //   TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), strikeAmount);
-  //   TransferHelper.safeTransferFrom(underlyingAsset, msg.sender, address(this), amount);
-    
-  //   uint newAmount = amount + strikeAmount;
-  //   if (tokenSupply == 0) {
-  //     _mint(msg.sender, newAmount);
-  //     emit LiquidityAdded(newAmount);
-  //     return true;
-  //   }
-  //   // get the strike balance in underlying terms
-  //   uint strikeBalance = (IERC20(strikeAsset).universalBalanceOf(address(this)) * exchangeRate) / (10**decimals);
-  //   // get the underlying balance
-  //   uint underlyingBalance = IERC20(underlyingAsset).universalBalanceOf(address(this));
-  //   uint totalBalance = strikeBalance + underlyingBalance;
-  //   // allocated stored in terms of underlying, strikeAllocated is stored in terms of strike so should
-  //   // be converted to underlying terms
-  //   uint allocated = ((strikeAllocated  * exchangeRate) / (10**decimals)) + underlyingAllocated;
-  //   //TODO use underlying and strike allocated
-  //   uint totalAssets =  totalBalance + allocated;
-  //   // calculate the percentage of the amount just inputted to the totalAssets
-  //   uint percentage = (newAmount.mul(10**decimals)).div(totalAssets);
-  //   // determine the number of shares by the percentage allocation of the pool
-  //   uint newTokens = percentage.mul(totalAssets).div(10**decimals);
-  //   _mint(msg.sender, newTokens);
-  //   emit LiquidityAdded(amount);
-  //   //TODO do balance reconcilation here and revert if unbalanced
-  //   return true;
-  // }
-
   function getPriceFeed() internal view returns (PriceFeed) {
     address feedAddress = Protocol(protocol).priceFeed();
     return PriceFeed(feedAddress);
   }
 
-  function getOptionRegistry() internal returns (OptionRegistry) {
+  function getOptionRegistry() internal view returns (OptionRegistry) {
     address registryAddress = Protocol(protocol).optionRegistry();
     return OptionRegistry(registryAddress);
   }
@@ -493,7 +433,6 @@ contract LiquidityPool is
        optionSeries.strike
     );
     optionAmount = writeOption(series, amount);
-    //TODO if destroy address, destroy old option series to reduce gas cost
   }
 
   function writeOption(
