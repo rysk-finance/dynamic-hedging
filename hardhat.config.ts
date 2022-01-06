@@ -85,27 +85,45 @@ module.exports = {
         deployer: 0,
         admin: "0xA0b4E98dB8Be8A3a6D8506dD5f3a826855633cb3",
     },
-    networks: {
-            hardhat: {
-              chainId: 1,
-              forking: {
-                url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
-                blockNumber : 12821000,
-                gasLimit: 8e6,
-              },
-            }
-        },
-    etherscan: {
-        apiKey: process.env.ETHERSCAN
+  networks: {
+    // mainnetFork: {
+    //   chainId: 1,
+    //   forking: {
+    //     url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
+    //     blockNumber : 12821000,
+    //     gasLimit: 8e6,
+    //   },
+    // }
+    //,
+    hardhat: {
+      accounts: hardhatEvmAccounts,
+      gas: 12000000,
+      blockGasLimit: 0x1fffffffffffff,
+      allowUnlimitedContractSize: true
     },
-    gasReporter: {
-        currency: 'USD',
-        gasPrice: 44,
-        enabled: (process.env.REPORT_GAS) ? true : false,
-        onlyCalledMethods: true
+    ropsten: {
+      url: ropsten,
+      accounts,
+      chainId: 3,
     },
-    paths: {
-        sources: path.join(__dirname, "contracts"),
+    rinkeby: {
+      url: rinkeby,
+      accounts,
+      chainId: 4,
+      saveDeployments: true,
+    }
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN
+  },
+  gasReporter: {
+    currency: 'USD',
+    gasPrice: 44,
+    enabled: (process.env.REPORT_GAS) ? true : false,
+    onlyCalledMethods: true
+  },
+  paths: {
+    sources: path.join(__dirname, "contracts"),
         tests: path.join(__dirname, "test"),
         cache: path.join(__dirname, "cache"),
         artifacts: path.join(__dirname, "artifacts"),

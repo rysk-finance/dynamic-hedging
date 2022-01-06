@@ -9,7 +9,7 @@ library OptionsCompute {
     using PRBMathUD60x18 for uint256;
     using PRBMathSD59x18 for int256;
 
-    function computeEscrow(uint amount, uint strike)
+    function computeEscrow(uint amount, uint strike, uint underlyingDecimals)
         internal
         pure
         returns (uint)

@@ -19,9 +19,11 @@ import bs from "black-scholes";
 import greeks from "greeks";
 import { expect } from "chai";
 import { BlackScholes as IBlackScholes } from "../types/BlackScholes";
+import { BlackScholesTest as IBlackScholesTest } from "../types/BlackScholesTest";
 
 describe("Pricing options", function() {
     let BlackScholes: IBlackScholes;
+    let BlackScholesTest: IBlackScholesTest;
 
     it("Should deploy Black Scholes library", async function() {
         const normDistFactory = await ethers.getContractFactory("NormalDist", {
@@ -38,7 +40,14 @@ describe("Pricing options", function() {
         );
         const blackScholes = await bsFactory.deploy() as IBlackScholes;
         BlackScholes = blackScholes;
+        const bsTestFactory = await ethers.getContractFactory("BlackScholesTest", {
+            libraries: {
+                BlackScholes: BlackScholes.address
+            }
+        });
+        BlackScholesTest = await bsTestFactory.deploy() as IBlackScholesTest;
     });
+
     it("correctly prices in the money call with a one year time to expiration", async function() {
         const strike = 250;
         const price = 300;
