@@ -35,6 +35,7 @@ import Otoken from '../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.
 import LiquidityPoolSol from '../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json'
 import { ERC20 } from '../types/ERC20'
 import { ERC20Interface } from '../types/ERC20Interface'
+import { MintableERC20 } from "../types/MintableERC20";
 import { OpynOptionRegistry } from '../types/OpynOptionRegistry'
 import { Otoken as IOToken } from '../types/Otoken'
 import { PriceFeed } from '../types/PriceFeed'
@@ -43,7 +44,6 @@ import { LiquidityPool } from '../types/LiquidityPool'
 import { Volatility } from '../types/Volatility'
 import { WETH } from '../types/WETH'
 import { Protocol } from '../types/Protocol'
-import { RibbonInterface } from '../types/RibbonInterface'
 import {
   CHAINLINK_WETH_PRICER,
   CHAINID,
@@ -77,7 +77,7 @@ const chainId = 1
 const oTokenDecimalShift18 = 10000000000
 const strike = toWei('3500').div(oTokenDecimalShift18)
 
-let usd: ERC20
+let usd: MintableERC20
 let wethERC20: ERC20Interface
 let currentTime: moment.Moment
 let optionRegistry: OpynOptionRegistry
@@ -96,6 +96,28 @@ let senderAddress: string
 let receiverAddress: string
 
 describe('Options protocol', function () {
+
+  before(async function() {
+    await hre.network.provider.request({
+      method: "hardhat_reset",
+      params: [
+        {
+          forking: {
+            jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
+            blockNumber: 12821000,
+          },
+        },
+      ],
+    });
+  });
+
+  after(async function() {
+    await network.provider.request({
+      method: "hardhat_reset",
+      params: [],
+    });
+  })
+
   it('Deploys the Option Registry', async () => {
     signers = await ethers.getSigners()
     senderAddress = await signers[0].getAddress()
@@ -122,7 +144,7 @@ describe('Options protocol', function () {
       'contracts/interfaces/WETH.sol:WETH',
       WETH_ADDRESS[chainId],
     )) as WETH
-    usd = (await ethers.getContractAt('ERC20', USDC_ADDRESS[chainId])) as ERC20
+    usd = (await ethers.getContractAt('ERC20', USDC_ADDRESS[chainId])) as MintableERC20
     await network.provider.request({
       method: 'hardhat_impersonateAccount',
       params: [USDC_OWNER_ADDRESS[chainId]],
@@ -958,6 +980,7 @@ describe('Liquidity Pools', async () => {
     ) as IOToken
     lpCallOption = callOptionToken
     const buyerOptionBalance = await callOptionToken.balanceOf(senderAddress)
+    //@ts-ignore
     const openInterest = await optionRegistry.totalInterest(seriesAddress)
     const writersBalance = await optionRegistry.writers(
       seriesAddress,
@@ -1025,6 +1048,7 @@ describe('Liquidity Pools', async () => {
     const amount = strike.mul(exerciseAmount).div(toWei('1'))
     const balance = await usd.balanceOf(senderAddress)
     const lpBalance = await usd.balanceOf(liquidityPool.address)
+    //@ts-ignore
     await optionRegistry.exercise(lpCallOption.address, exerciseAmount)
     const balanceAfter = await usd.balanceOf(senderAddress)
     const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)

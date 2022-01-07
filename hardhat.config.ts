@@ -40,6 +40,7 @@ const rinkeby =
   process.env.RINKEBY ||
   new ethers.providers.InfuraProvider("rinkeby").connection.url;
 
+
 module.exports = {
     typechain: {
         outDir: "types",
@@ -86,15 +87,14 @@ module.exports = {
         admin: "0xA0b4E98dB8Be8A3a6D8506dD5f3a826855633cb3",
     },
   networks: {
-    // mainnetFork: {
-    //   chainId: 1,
-    //   forking: {
-    //     url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
-    //     blockNumber : 12821000,
-    //     gasLimit: 8e6,
-    //   },
-    // }
-    //,
+    mainnetFork: {
+      chainId: 1,
+      url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
+      forking: {
+        blockNumber : 12821000,
+        gasLimit: 8e6,
+      },
+    },
     hardhat: {
       accounts: hardhatEvmAccounts,
       gas: 12000000,
