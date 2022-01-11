@@ -529,13 +529,13 @@ describe("Price Feed", async () => {
       '1607535064',
       '55340232221128660932'
     );
-    const quote = await priceFeed.getRate(ZERO_ADDRESS, dai.address);
+    const quote = await priceFeed.getRate(weth.address, dai.address);
     expect(quote).to.eq(rate);
   });
 
   it('Should return a normalized price quote', async () => {
     await ethDaiAggregator.mock.decimals.returns('8');
-    const quote = await priceFeed.getNormalizedRate(ZERO_ADDRESS, dai.address);
+    const quote = await priceFeed.getNormalizedRate(weth.address, dai.address);
     // get decimal to 18 places
     const expected = BigNumber.from(rate).mul(BigNumber.from(10**10));
     expect(quote).to.eq(expected);

@@ -4,15 +4,18 @@ import "./tokens/UniversalERC20.sol";
 import "./access/Ownable.sol";
 import "./interfaces/AggregatorV3Interface.sol";
 import "./interfaces/IERC20.sol";
-import "./math/SafeMath.sol";
+import "prb-math/contracts/PRBMathSD59x18.sol";
+import "prb-math/contracts/PRBMathUD60x18.sol";
 
 contract PriceFeed is Ownable {
 
     mapping(address => mapping(address => address)) public priceFeeds;
 
     using UniversalERC20 for IERC20;
-    using SafeMath for uint8;
-    using SafeMath for uint;
+    using PRBMathUD60x18 for uint8;
+    using PRBMathSD59x18 for int256;
+    using PRBMathUD60x18 for uint256;
+    uint8 private constant SCALE_DECIMALS = 18;
 
     constructor() public {}
 
@@ -41,20 +44,16 @@ contract PriceFeed is Ownable {
        address strike
     ) external view returns(uint) {
         address feedAddress = priceFeeds[underlying][strike];
-        IERC20 strikeToken = IERC20(strike);
         //TODO attempt path through ETH
         require(feedAddress != address(0), "Price feed does not exist");
         AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
         uint8 feedDecimals = feed.decimals();
-        uint8 strikeDecimals = strikeToken.decimals();
         (, int rate,,,) = feed.latestRoundData();
-        if (strikeDecimals < feedDecimals) {
-            uint exponent = feedDecimals.sub(strikeDecimals);
-            uint normalized = uint(rate).div(10**(exponent));
-            return normalized;
+        if (SCALE_DECIMALS > feedDecimals) {
+            uint8 difference = SCALE_DECIMALS - feedDecimals;
+            return uint(rate) * (10**difference);
         }
-        uint exponent = strikeDecimals.sub(feedDecimals);
-        uint normalized = uint(rate).mul(10**(exponent));
-        return normalized;
+        uint8 difference = feedDecimals - SCALE_DECIMALS;
+        return uint(rate) / (10**difference);
     }
 }

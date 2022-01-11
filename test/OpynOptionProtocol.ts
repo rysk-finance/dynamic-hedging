@@ -103,6 +103,7 @@ describe('Options protocol', function () {
       params: [
         {
           forking: {
+            chainId: 1,
             jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
             blockNumber: 12821000,
           },
@@ -111,12 +112,6 @@ describe('Options protocol', function () {
     });
   });
 
-  after(async function() {
-    await network.provider.request({
-      method: "hardhat_reset",
-      params: [],
-    });
-  })
 
   it('Deploys the Option Registry', async () => {
     signers = await ethers.getSigners()
@@ -555,6 +550,13 @@ let ethLiquidityPool: LiquidityPool
 const CALL_FLAVOR = BigNumber.from(call)
 const PUT_FLAVOR = BigNumber.from(put)
 describe('Liquidity Pools', async () => {
+  after(async function() {
+    await network.provider.request({
+      method: "hardhat_reset",
+      params: [],
+    });
+  })
+
   it('Should deploy liquidity pools', async () => {
     const abdkMathFactory = await ethers.getContractFactory('ABDKMathQuad')
     const abdkMathDeploy = await abdkMathFactory.deploy()
