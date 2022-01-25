@@ -382,6 +382,26 @@ contract LiquidityPool is
       return callsDelta + putsDelta;
   }
 
+  // This variable would be the value where it isnt worth hedging due to gas costs if delta is below.
+  uint256 dustValue; 
+
+  function rebalancePortfolioDelta(int256 _delta)
+    public 
+  {
+    if(_delta < 0 ) {
+      // Buy ETH until delta == 0
+    }
+    if(_delta > 0) {
+      // check to see if we can be paid to open a negative delta position using derivatives
+      // check if we have any ETH to sell
+      // if we do - sell until delta == 0
+      // if we dont / not enough - look at derivatives
+    }
+
+    // thought: is there a range of delta values around zero at which point it isn't even worth hedging due to gas?
+  }
+    
+
   function quotePriceWithUtilization(
     Types.OptionSeries memory optionSeries,
     uint amount
