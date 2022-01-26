@@ -12,6 +12,7 @@ import "./tokens/UniversalERC20.sol";
 import "./OptionsProtocol.sol";
 import "./PriceFeed.sol";
 import "./access/Ownable.sol";
+import "./hedging/UniswapV3HedgingReactor.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "hardhat/console.sol";
@@ -388,17 +389,15 @@ contract LiquidityPool is
   function rebalancePortfolioDelta(int256 _delta)
     public 
   {
-    if(_delta < 0 ) {
-      // Buy ETH until delta == 0
-    }
-    if(_delta > 0) {
-      // check to see if we can be paid to open a negative delta position using derivatives
+      // check to see if we can be paid to open a position using derivatives using funding rate
       // check if we have any ETH to sell
       // if we do - sell until delta == 0
+      UniswapV3HedgingReactor.hedgeDelta(_delta);
       // if we dont / not enough - look at derivatives
-    }
+    
 
-    // thought: is there a range of delta values around zero at which point it isn't even worth hedging due to gas?
+    // how do we want to manage our balances across the different reactors?
+
   }
     
 

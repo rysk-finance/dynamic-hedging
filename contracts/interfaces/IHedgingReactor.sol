@@ -12,6 +12,4 @@ interface IHedgingReactor {
 
     function update() external;
 
-
-
 }

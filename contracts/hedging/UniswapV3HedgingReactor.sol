@@ -64,6 +64,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor {
     }
 
     function update() external returns (bool) {
+        // no collateral management necessary since only using spot assets
         return true;
     }
 
