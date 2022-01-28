@@ -49,11 +49,12 @@ contract PriceFeed is Ownable {
         AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
         uint8 feedDecimals = feed.decimals();
         (, int rate,,,) = feed.latestRoundData();
+        uint8 difference;
         if (SCALE_DECIMALS > feedDecimals) {
-            uint8 difference = SCALE_DECIMALS - feedDecimals;
+            difference = SCALE_DECIMALS - feedDecimals;
             return uint(rate) * (10**difference);
         }
-        uint8 difference = feedDecimals - SCALE_DECIMALS;
+        difference = feedDecimals - SCALE_DECIMALS;
         return uint(rate) / (10**difference);
     }
 }

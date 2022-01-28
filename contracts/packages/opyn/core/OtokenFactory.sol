@@ -5,6 +5,7 @@ import {SafeMath} from "../packages/oz/SafeMath.sol";
 import {AddressBookInterface} from "../interfaces/AddressBookInterface.sol";
 import {OtokenInterface} from "../interfaces/OtokenInterface.sol";
 import {WhitelistInterface} from "../interfaces/WhitelistInterface.sol";
+import "hardhat/console.sol";
 
 /**
  * SPDX-License-Identifier: UNLICENSED
@@ -71,6 +72,7 @@ contract OtokenFactory is OtokenSpawner {
         require(idToAddress[id] == address(0), "OtokenFactory: Option already created");
 
         address whitelist = AddressBookInterface(addressBook).getWhitelist();
+        console.log(_underlyingAsset, _strikeAsset, _collateralAsset);
         require(
             WhitelistInterface(whitelist).isWhitelistedProduct(
                 _underlyingAsset,

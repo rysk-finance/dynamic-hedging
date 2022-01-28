@@ -4,6 +4,8 @@ pragma experimental ABIEncoderV2;
 import { Constants } from "./libraries/Constants.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { TransferHelper } from "./libraries/TransferHelper.sol";
+import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
+import { SafeERC20 } from "./tokens/SafeERC20.sol";
 import "./tokens/ERC20.sol";
 import "./OpynOptionRegistry.sol";
 import "./libraries/Math.sol";
@@ -35,7 +37,7 @@ contract LiquidityPool is
   address public protocol;
   address public strikeAsset;
   address public underlyingAsset;
-  uint public riskFreeRate;
+  uint public riskFreeRate; // riskFreeRate as a percentage PRBMath Float. IE: 3% -> 0.03 * 10**18
   uint public strikeAllocated;
   uint public underlyingAllocated;
   uint public maxTotalSupply = type(uint256).max;
@@ -126,8 +128,8 @@ contract LiquidityPool is
     require(underlyingAmount >= underlyingAmountMin, "underlyingAmountMin");
 
     // Pull in tokens from sender
-    if (strikeAmount > 0) TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), strikeAmount);
-    if (underlyingAmount > 0) TransferHelper.safeTransferFrom(underlyingAsset, msg.sender, address(this), underlyingAmount);
+    if (strikeAmount > 0) SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), strikeAmount);
+    if (underlyingAmount > 0) SafeTransferLib.safeTransferFrom(underlyingAsset, msg.sender, address(this), underlyingAmount);
     _mint(msg.sender, shares);
     emit LiquidityDeposited(strikeAmount, underlyingAmount);
     require(totalSupply() <= maxTotalSupply, "maxTotalSupply");
@@ -291,6 +293,13 @@ contract LiquidityPool is
       return underlyingPrice;
   }
 
+  /**
+   * @param flavor Is the option a call or put?
+   * @param underlyingPrice The underlying price 
+   * @param strikePrice The strike price of the option
+   * @param expiration expiration timestamp of option as a PRBMath Float
+   * @return Implied volatility adjusted for volatility surface
+   */
   function getImpliedVolatility(
     Types.Flavor flavor,
     uint underlyingPrice,
@@ -428,7 +437,7 @@ contract LiquidityPool is
     series = optionRegistry.issue(
        optionSeries.underlying,
        optionSeries.strikeAsset,
-       optionSeries.expiration,
+       optionSeries.expiration.toUint(),
        optionSeries.flavor,
        optionSeries.strike
     );
