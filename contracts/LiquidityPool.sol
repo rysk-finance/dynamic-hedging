@@ -380,24 +380,30 @@ contract LiquidityPool is
          rfr,
          Types.Flavor.Put
       );
-      return callsDelta + putsDelta;
+      int256 externalDelta = UniswapV3HedgingReactor.getDelta(); // TODO add getDelta from other reactors when complete
+      return callsDelta + putsDelta + externalDelta;
   }
 
-  // This variable would be the value where it isnt worth hedging due to gas costs if delta is below.
-  uint256 dustValue; 
+  /// @dev value below which delta is not worth dedging due to gas costs
+  uint256 private dustValue;
 
-  function rebalancePortfolioDelta(int256 _delta)
+  /// @notice function to return absolute value of input
+  function abs(int256 x) private pure returns (int256) {
+    return x >= 0 ? x : -x;
+}
+
+  /**
+  @notice function for hedging portfolio delta through external means
+  @param delta the current portfolio delta
+   */
+  function rebalancePortfolioDelta(int256 delta)
     public 
-  {
-      // check to see if we can be paid to open a position using derivatives using funding rate
-      // check if we have any ETH to sell
-      // if we do - sell until delta == 0
-      UniswapV3HedgingReactor.hedgeDelta(_delta);
-      // if we dont / not enough - look at derivatives
-    
-
-    // how do we want to manage our balances across the different reactors?
-
+  { 
+      if(abs(delta) > dustValue) {
+      // TODO check to see if we can be paid to open a position using derivatives using funding rate
+        UniswapV3HedgingReactor.hedgeDelta(delta);
+      }
+      // TODO if we dont / not enough - look at derivatives
   }
     
 
