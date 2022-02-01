@@ -172,6 +172,7 @@ describe('Options protocol', function () {
       expiration,
       call,
       strike,
+      USDC_ADDRESS[chainId]
     )
     await expect(issue).to.emit(optionRegistry, 'OptionTokenCreated')
     const receipt = await issue.wait(1)
@@ -311,6 +312,7 @@ describe('Options protocol', function () {
       expiration,
       call,
       strike,
+      USDC_ADDRESS[chainId]
     )
     await expect(issueCall).to.emit(optionRegistry, 'OptionTokenCreated')
     const receipt = await issueCall.wait(1)
@@ -405,6 +407,7 @@ describe('Options protocol', function () {
       expiration,
       put,
       strike,
+      USDC_ADDRESS[chainId]
     )
     await expect(issuePut).to.emit(optionRegistry, 'OptionTokenCreated')
     let receipt = await (await issuePut).wait(1)
@@ -942,7 +945,7 @@ describe('Liquidity Pools', async () => {
   })
 
   let lpCallOption: IOToken
-  it('LP Writes a ETH/USD call for premium', async () => {
+  it('LP Writes a WETH/USD call collateralized by WETH for premium', async () => {
     const [sender] = signers
     const amount = toWei('1')
     const blockNum = await ethers.provider.getBlockNumber()
@@ -976,7 +979,7 @@ describe('Liquidity Pools', async () => {
     const write = await liquidityPool.issueAndWriteOption(
       proposedSeries,
       amount,
-      weth.address,
+      WETH_ADDRESS[chainId]
     )
     const receipt = await write.wait(1)
     const events = receipt.events
@@ -1031,7 +1034,7 @@ describe('Liquidity Pools', async () => {
     const write = await liquidityPool.issueAndWriteOption(
       proposedSeries,
       amount,
-      weth.address,
+      usd.address,
     )
     const receipt = await write.wait(1)
     const events = receipt.events
