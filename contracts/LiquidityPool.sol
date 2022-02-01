@@ -12,7 +12,7 @@ import "./tokens/UniversalERC20.sol";
 import "./OptionsProtocol.sol";
 import "./PriceFeed.sol";
 import "./access/Ownable.sol";
-import "./hedging/UniswapV3HedgingReactor.sol";
+import "./interfaces/IHedgingReactor.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "hardhat/console.sol";
@@ -32,6 +32,8 @@ contract LiquidityPool is
   using Math for uint256;
 
   uint256 private constant ONE_YEAR_SECONDS = 31557600000000000000000000;
+
+  address[] public hedgingReactors;
 
   address public protocol;
   address public strikeAsset;
@@ -68,6 +70,10 @@ contract LiquidityPool is
     putsVolatilitySkew = putSkew;
     protocol = _protocol;
     emit UnderlyingAdded(underlyingAddress);
+  }
+
+  function setHedgingReactorAddress(address _reactorAddress) onlyOwner public {
+    hedgingReactors.push(_reactorAddress);
   }
 
   function setVolatilitySkew(int[7] calldata values, Types.Flavor flavor)
@@ -380,12 +386,13 @@ contract LiquidityPool is
          rfr,
          Types.Flavor.Put
       );
-      int256 externalDelta = UniswapV3HedgingReactor.getDelta(); // TODO add getDelta from other reactors when complete
+      // TODO fix hedging reactor address to be dynamic
+      int256 externalDelta = IHedgingReactor(hedgingReactors[0]).getDelta(); // TODO add getDelta from other reactors when complete
       return callsDelta + putsDelta + externalDelta;
   }
 
   /// @dev value below which delta is not worth dedging due to gas costs
-  uint256 private dustValue;
+  int256 private dustValue;
 
   /// @notice function to return absolute value of input
   function abs(int256 x) private pure returns (int256) {
@@ -401,7 +408,7 @@ contract LiquidityPool is
   { 
       if(abs(delta) > dustValue) {
       // TODO check to see if we can be paid to open a position using derivatives using funding rate
-        UniswapV3HedgingReactor.hedgeDelta(delta);
+        IHedgingReactor(hedgingReactors[0]).hedgeDelta(delta);
       }
       // TODO if we dont / not enough - look at derivatives
   }

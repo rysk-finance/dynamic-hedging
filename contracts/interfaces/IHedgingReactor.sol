@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
 
 pragma solidity >=0.8.9;
 
@@ -17,9 +17,9 @@ interface IHedgingReactor {
     /// @notice Withdraw a given asset from the hedging reactor to the calling liquidity pool.
     /// @param amount The amount to withdraw
     /// @param token The asset to withdraw
-    function withdraw(int256 amount, address token) external;
+    function withdraw(uint256 amount, address token) external;
 
     /// @notice Handle events such as collateralisation rebalancing
-    function update() external;
+    function update() external returns (int256);
 
 }
