@@ -430,7 +430,7 @@ contract LiquidityPool is
   function issueAndWriteOption(
      Types.OptionSeries memory optionSeries,
      uint amount,
-     address destroy
+     address collateral
   ) public payable returns (uint optionAmount, address series)
   {
     OpynOptionRegistry optionRegistry = getOpynOptionRegistry();
@@ -439,7 +439,8 @@ contract LiquidityPool is
        optionSeries.strikeAsset,
        optionSeries.expiration.toUint(),
        optionSeries.flavor,
-       optionSeries.strike
+       optionSeries.strike,
+       collateral
     );
     optionAmount = writeOption(series, amount);
   }

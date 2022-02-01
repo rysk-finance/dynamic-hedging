@@ -76,17 +76,19 @@ contract OpynOptionRegistry is Ownable {
      * @param  expiration is the expiry timestamp of the option
      * @param  flavor the type of option
      * @param  strike is the strike price of the option
+     * @param collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
-    function issue(address underlying, address strikeAsset, uint expiration, Types.Flavor flavor, uint strike) external returns (address) {
+    function issue(address underlying, address strikeAsset, uint expiration, Types.Flavor flavor, uint strike, address collateral) external returns (address) {
         // deploy an oToken contract address
         require(expiration > block.timestamp, "Already expired");
         // create option storage hash
         address u = IERC20(underlying).isETH() ? Constants.ethAddress() : underlying;
         address s = strikeAsset == address(0) ? usd : strikeAsset;
         bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, expiration, flavor, strike);
+        //address collateralAsset = collateral == address(0) ? usd : collateral;
         // check for an opyn oToken if it doesn't exist deploy it
-        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, usd, underlying, strikeAsset, strike, expiration, flavor);
+        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, strike, expiration, flavor);
         // store the option data as a hash
         seriesInfo[series] = Types.OptionSeries(expiration, flavor, strike, u, s);
         seriesAddress[issuanceHash] = series;
