@@ -7,6 +7,8 @@ import '../libraries/TransferHelper.sol';
 import "../access/Ownable.sol";
 import "../interfaces/IERC20.sol";
 import "../tokens/SafeERC20.sol";
+import "hardhat/console.sol";
+
 
 /**
     @title A hedging reactor that will manage delta by swapping between ETH and stablecoin spot assets.
@@ -54,6 +56,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     
     /// @inheritdoc IHedgingReactor
     function hedgeDelta(int256 _delta) external returns (int256 deltaChange) {
+        
         require(msg.sender == parentLiquidityPool, "!vault");
         uint amountOutMinimum = 0;
         uint amountInMaximum = MAX_UINT;
@@ -65,13 +68,14 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             return deltaChange;
         } else { // sell wETH
             uint256 ethBalance = IERC20(wETH).balanceOf(address(this));
+            require(ethBalance > 0, "ETH balance is 0");
             if(_delta > int256(ethBalance)){ // not enough ETH to sell to offset delta so sell all ETH available.
                 //TODO calculate amountOutMinmmum using live oracle data
                 (int256 deltaChange, uint256 amountReceived) = _swapExactInputSingle(ethBalance, amountOutMinimum, stablecoinAddresses[0]);
                   internalDelta += deltaChange;
                 return deltaChange;
             } else {
-                 (int256 deltaChange, uint256 amountReceived) = _swapExactInputSingle(uint256(-_delta), amountOutMinimum, stablecoinAddresses[0]);
+                 (int256 deltaChange, uint256 amountReceived) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, stablecoinAddresses[0]);
                   internalDelta += deltaChange;
                 return deltaChange;
             }
@@ -112,7 +116,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         @return _convertedAmount amount converted to correct decimal format
      */
     function decimalHelper(address _token, uint _amount) internal pure returns(uint _convertedAmount) {
-        // will divide inputs accordingly
+        return _amount;
     }
 
 
@@ -122,8 +126,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         @param _sellToken the stablecoin to sell
     */
     function _swapExactOutputSingle(uint256 _amountOut, uint256 _amountInMaximum, address _sellToken) internal returns (int256, uint256) {
-
-        TransferHelper.safeTransferFrom(_sellToken, msg.sender, address(this), _amountInMaximum);
+        TransferHelper.safeTransferFrom(_sellToken, msg.sender, address(this), 100000000000);
 
         ISwapRouter.ExactOutputSingleParams memory params =
             ISwapRouter.ExactOutputSingleParams({
@@ -139,7 +142,6 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
 
         // Executes the swap returning the amountIn needed to spend to receive the desired amountOut.
         uint256 amountIn = swapRouter.exactOutputSingle(params);
-
         return (int256(_amountOut), amountIn);
     }
 
@@ -150,9 +152,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         @return deltaChange The resulting difference in delta exposure
     */
     function _swapExactInputSingle(uint256 _amountIn, uint256 _amountOutMinimum, address _buyToken) internal returns (int256, uint256) {
-
-        uint24 poolfee; // need to find this depending on pool we are using
-
+    
         ISwapRouter.ExactInputSingleParams memory params =
             ISwapRouter.ExactInputSingleParams({
                 tokenIn: wETH,
