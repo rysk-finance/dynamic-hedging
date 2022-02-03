@@ -32,4 +32,5 @@ contract UniswapV3HedgingTest {
     function update() public returns(int256){
         return IHedgingReactor(uniswapV3HedgingReactor).update();
     }
+
 }

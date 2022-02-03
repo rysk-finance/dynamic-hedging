@@ -35,7 +35,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
 
     /// @notice uniswap v3 pool fee expressed at 10e6
 
-    uint24 poolFee;
+    uint24 public poolFee;
 
     int256 private internalDelta = 0;
 
@@ -91,23 +91,33 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     function withdraw(uint256 _amount, address _token) external {
         require(msg.sender == parentLiquidityPool, "!vault");
         uint balance = IERC20(_token).balanceOf(address(this));
-        if(_amount > balance){ // not enough in balance. Liquidate ETH.
-        //TODO change amountInMaximum
-            _liquidateETH(_amount - balance, MAX_UINT, _token);
-        }  
-        SafeERC20.safeTransfer( IERC20(_token) ,msg.sender, _amount);
-        internalDelta = int256(IERC20(wETH).balanceOf(address(this)));
+        if (_amount <= balance) {
+            SafeERC20.safeTransfer( IERC20(_token) ,msg.sender, _amount);
+        } else {
+            // not enough in balance. Liquidate ETH.
+            //TODO change amountInMaximum
+            uint256 ethBalance = IERC20(wETH).balanceOf(address(this));
+            uint256 stablesReceived = _liquidateETH(_amount - balance, ethBalance, _token);         
+            balance = IERC20(_token).balanceOf(address(this));
+            if(balance < _amount){
+                SafeERC20.safeTransfer( IERC20(_token) ,msg.sender, balance);
+            } else {
+                SafeERC20.safeTransfer( IERC20(_token) ,msg.sender, _amount);
+            }
+            internalDelta = int256(IERC20(wETH).balanceOf(address(this)));
+        }
     }
 
     /// @inheritdoc IHedgingReactor
-    function update() external  returns (int256) {
-        return 0;
+    function update() external view returns (int256) {
+        return 69420;
     }
 
     /// @notice update the uniswap v3 pool fee
     function changePoolFee(uint24 _poolFee) public onlyOwner {
         poolFee = _poolFee;
     }
+
 
     /**
         @notice convert between standand 10e18 decimals and custom decimals for different tokens
@@ -175,12 +185,11 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     /**
         @notice function to sell ETH if stable collateral is needed in the liquidity pool.
         @param _amountOut Amount of stablecoin needed
-        @param _amountInMaximum The max amount of stablecoin willing to spend. Slippage limit.
+        @param _amountInMaximum The max amount of ETH willing to spend. Slippage limit.
         @param _buyToken The stablecoin to buy to withdraw to LP
      */
 
-    function _liquidateETH(uint256 _amountOut, uint256 _amountInMaximum, address _buyToken) internal {
-
+    function _liquidateETH(uint256 _amountOut, uint256 _amountInMaximum, address _buyToken) internal returns (uint256 stableBalanceReceived){
         ISwapRouter.ExactOutputSingleParams memory params =
             ISwapRouter.ExactOutputSingleParams({
                 tokenIn: wETH,
@@ -194,7 +203,24 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             });
 
         // Executes the swap returning the amountIn needed to spend to receive the desired amountOut.
-        swapRouter.exactOutputSingle(params);
+        try swapRouter.exactOutputSingle(params) returns (uint256 amountIn) {
+            return (_amountOut);
+        } catch {
+            ISwapRouter.ExactInputSingleParams memory params =
+            ISwapRouter.ExactInputSingleParams({
+                tokenIn: wETH,
+                tokenOut: _buyToken,
+                fee: poolFee,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: uint256(internalDelta),
+                amountOutMinimum: decimalHelper(_buyToken, 0),
+                sqrtPriceLimitX96: 0
+            });
+            uint256 amountOut = swapRouter.exactInputSingle(params);
 
+            return (amountOut);
+
+        }
     }
 }
