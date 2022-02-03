@@ -393,4 +393,15 @@ describe('UniswapV3HedgingReactor', () => {
     let poolFee = await uniswapV3HedgingReactor.poolFee()
     expect(poolFee).to.equal(1000)
   })
+
+  it('withdraw reverts if not called form liquidity pool', async () => {
+    await expect(
+      uniswapV3HedgingReactor.withdraw(100000000000, usdcContract.address),
+    ).to.be.revertedWith('!vault')
+  })
+  it('hedgeDelta reverts if not called from liquidity pool', async () => {
+    await expect(
+      uniswapV3HedgingReactor.hedgeDelta(ethers.utils.parseEther('-10')),
+    ).to.be.revertedWith('!vault')
+  })
 })
