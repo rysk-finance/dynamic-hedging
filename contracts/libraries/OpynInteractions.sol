@@ -20,17 +20,17 @@ library OpynInteractions {
     /**
      * @notice Either retrieves the option token if it already exists, or deploy it
      * @param oTokenFactory is the address of the opyn oTokenFactory
-     * @param usdc is the address of the usd to use
+     * @param collateral asset that is held as collateral against short/written options
      * @param underlying is the address of the underlying asset of the option
      * @param strikeAsset is the address of the collateral asset of the option
-     * @param strike is the strike price of the option
+     * @param strike is the strike price of the option in 1e8 format
      * @param expiration is the expiry timestamp of the option
      * @param flavor the type of option
      * @return the address of the option
      */
     function getOrDeployOtoken(
         address oTokenFactory,
-        address usdc,
+        address collateral,
         address underlying,
         address strikeAsset,
         uint256 strike,
@@ -42,8 +42,8 @@ library OpynInteractions {
         address otokenFromFactory =
             factory.getOtoken(
                 underlying,
-                usdc,
                 strikeAsset,
+                collateral,
                 strike,
                 expiration,
                 Types.isPut(flavor)
@@ -56,8 +56,8 @@ library OpynInteractions {
         address otoken =
             factory.createOtoken(
                 underlying,
-                usdc,
                 strikeAsset,
+                collateral,
                 strike,
                 expiration,
                 Types.isPut(flavor)
@@ -94,6 +94,7 @@ library OpynInteractions {
         uint256 mintAmount;
 
         if (oToken.isPut()) {
+            // TODO rewrite or remove this comment section it is no longer current.
             // For minting puts, there will be instances where the full depositAmount will not be used for minting.
             // This is because of an issue with precision.
             //

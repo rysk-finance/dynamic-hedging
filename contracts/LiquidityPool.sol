@@ -33,6 +33,7 @@ contract LiquidityPool is
   using Math for uint256;
 
   uint256 private constant ONE_YEAR_SECONDS = 31557600000000000000000000;
+  uint8 private constant SCALE_DECIMALS = 18;
 
   address public protocol;
   address public strikeAsset;
@@ -317,6 +318,28 @@ contract LiquidityPool is
       int[7] memory coef = flavor == Types.Flavor.Call ? callsVolatilitySkew : putsVolatilitySkew;
       return uint(OptionsCompute.computeIVFromSkew(coef, points));
     }
+  
+  /**
+   * @param quote A 10**18 price quote
+   * @return Quote adjusted for the decimals of the strike asset
+   */
+  function toDecimals(
+    uint256 quote,
+    address token
+  ) 
+    internal 
+    view
+    returns (uint)
+  {
+    uint256 decimals = IERC20(token).decimals();
+    uint difference;
+    if (SCALE_DECIMALS > decimals) {
+      difference = SCALE_DECIMALS - decimals;
+      return quote / (10**difference);
+    }
+    difference = decimals - SCALE_DECIMALS;
+    return quote * (10**difference);
+  }
 
   function quotePrice(
     Types.OptionSeries memory optionSeries
@@ -336,8 +359,8 @@ contract LiquidityPool is
        iv,
        riskFreeRate,
        optionSeries.flavor
-    );    
-    return uint(quote);
+    );
+    return quote;
   }
 
   function quotePriceGreeks(
@@ -455,13 +478,18 @@ contract LiquidityPool is
   {
     OpynOptionRegistry optionRegistry = getOpynOptionRegistry();
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+    // expiration requires conversion back due to opyn not use PRB floats
+    optionSeries.expiration = optionSeries.expiration.fromUint();
     require(optionSeries.strikeAsset == strikeAsset, "incorrect strike asset");
     Types.Flavor flavor = optionSeries.flavor;
+    //TODO breakout into function to support multiple collateral types
     address escrowAsset = Types.isCall(flavor) ? underlyingAsset : strikeAsset;
     uint premium = quotePriceWithUtilization(optionSeries, amount);
-    TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), premium);
+    // premium needs to adjusted for decimals of base strike asset
+    TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), toDecimals(premium, strikeAsset));
     uint escrow = Types.isCall(flavor) ? amount : OptionsCompute.computeEscrow(amount, optionSeries.strike, IERC20(strikeAsset).decimals());
     require(IERC20(escrowAsset).universalBalanceOf(address(this)) >= escrow, "Insufficient balance for escrow");
+    // TODO Consider removing this conditional to support only ERC20 tokens
     if (IERC20(optionSeries.underlying).isETH()) {
         optionRegistry.open(seriesAddress, amount);
         emit WriteOption(seriesAddress, amount, premium, escrow, msg.sender);
@@ -484,6 +512,6 @@ contract LiquidityPool is
         weightedStrikePut = newWeight;
         weightedTimePut = newTime;
     }
-    IERC20(seriesAddress).universalTransfer(msg.sender, amount);
+    IERC20(seriesAddress).universalTransfer(msg.sender, toDecimals(amount, seriesAddress));
   }
 }
