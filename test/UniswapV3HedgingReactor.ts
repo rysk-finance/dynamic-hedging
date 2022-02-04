@@ -1,57 +1,15 @@
 import hre, { ethers, network } from 'hardhat'
 import { BigNumberish, Contract, ContractFactory, utils, Signer, BigNumber } from 'ethers'
-import { MockProvider } from '@ethereum-waffle/provider'
-import {
-  toWei,
-  truncate,
-  tFormatEth,
-  call,
-  put,
-  genOptionTimeFromUnix,
-  fromWei,
-  getDiffSeconds,
-  convertRounded,
-  percentDiffArr,
-  percentDiff,
-} from '../utils'
-import { deployMockContract, MockContract } from '@ethereum-waffle/mock-contract'
-import moment from 'moment'
-import AggregatorV3Interface from '../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json'
-import { AggregatorV3Interface as IAggregatorV3 } from '../types/AggregatorV3Interface'
-//@ts-ignore
-import bs from 'black-scholes'
 import { expect } from 'chai'
-import Otoken from '../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json'
-import LiquidityPoolSol from '../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json'
-import { ERC20 } from '../types/ERC20'
-import { ERC20Interface } from '../types/ERC20Interface'
 import { MintableERC20 } from '../types/MintableERC20'
-import { OpynOptionRegistry } from '../types/OpynOptionRegistry'
-import { Otoken as IOToken } from '../types/Otoken'
-import { PriceFeed } from '../types/PriceFeed'
-import { LiquidityPools } from '../types/LiquidityPools'
-import { LiquidityPool } from '../types/LiquidityPool'
 import { UniswapV3HedgingReactor } from '../types/UniswapV3HedgingReactor'
 import { UniswapV3HedgingTest } from '../types/UniswapV3HedgingTest'
-import { ISwapRouter } from '../types/ISwapRouter'
-import { Volatility } from '../types/Volatility'
-import { WETH } from '../types/WETH'
-import { Protocol } from '../types/Protocol'
 import {
-  CHAINLINK_WETH_PRICER,
-  CHAINID,
-  ETH_PRICE_ORACLE,
-  USDC_PRICE_ORACLE,
-  GAMMA_CONTROLLER,
-  MARGIN_POOL,
-  OTOKEN_FACTORY,
   USDC_ADDRESS,
   USDC_OWNER_ADDRESS,
   WETH_ADDRESS,
-  ORACLE_LOCKING_PERIOD,
   UNISWAP_V3_SWAP_ROUTER,
 } from './constants'
-import exp from 'constants'
 
 let signers: Signer[]
 let deployerAddress: string
@@ -144,7 +102,7 @@ describe('UniswapV3HedgingReactor', () => {
     )
   })
 
-  it('hedges a positive delta', async () => {
+  it('hedges a negative delta', async () => {
     wethContract = (await ethers.getContractAt('ERC20', WETH_ADDRESS[chainId])) as MintableERC20
 
     const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther('-20'))
@@ -166,7 +124,7 @@ describe('UniswapV3HedgingReactor', () => {
     )
     expect(reactorDelta).to.equal(20)
   })
-  it('hedges a negative delta with sufficient funds', async () => {
+  it('hedges a positive delta with sufficient funds', async () => {
     const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther('15'))
     await hedgeDeltaTx.wait()
     const reactorWethBalance = parseFloat(
@@ -182,7 +140,7 @@ describe('UniswapV3HedgingReactor', () => {
     expect(reactorDelta).to.equal(20 - 15)
     expect(reactorWethBalance).to.equal(20 - 15)
   })
-  it('hedges a negative delta with insufficient funds', async () => {
+  it('hedges a positive delta with insufficient funds', async () => {
     // has a balance of 5 wETH at this point
     // try to hedge another 15 delta
     const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther('15'))
@@ -320,7 +278,7 @@ describe('UniswapV3HedgingReactor', () => {
     expect(reactorWethBalanceAfter).to.be.below(reactorWethBalanceBefore)
     expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.equal(parseFloat(withdrawAmount))
     expect(reactorUsdcBalanceAfter).to.equal(0)
-    expect(reactorDelta).to.to.equal(reactorWethBalanceAfter)
+    expect(reactorDelta).to.equal(reactorWethBalanceAfter)
   })
 
   it('liquidates all ETH and withdraws but does not have enough funds', async () => {
