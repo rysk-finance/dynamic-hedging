@@ -23,6 +23,7 @@ import {
   percentDiff,
   toUSDC,
   fmtExpiration,
+  fromOpyn,
 } from '../utils'
 import {
   deployMockContract,
@@ -168,11 +169,11 @@ describe('Options protocol', function () {
     const [sender] = signers
     const issue = await optionRegistry.issue(
       WETH_ADDRESS[chainId],
-      WETH_ADDRESS[chainId],
+      USDC_ADDRESS[chainId],
       expiration,
       call,
       strike,
-      USDC_ADDRESS[chainId]
+      WETH_ADDRESS[chainId]
     )
     await expect(issue).to.emit(optionRegistry, 'OptionTokenCreated')
     const receipt = await issue.wait(1)
@@ -308,11 +309,11 @@ describe('Options protocol', function () {
     expiration = 1640678400
     const issueCall = await optionRegistry.issue(
       WETH_ADDRESS[chainId],
-      WETH_ADDRESS[chainId],
+      USDC_ADDRESS[chainId],
       expiration,
       call,
       strike,
-      USDC_ADDRESS[chainId]
+      WETH_ADDRESS[chainId]
     )
     await expect(issueCall).to.emit(optionRegistry, 'OptionTokenCreated')
     const receipt = await issueCall.wait(1)
@@ -946,6 +947,8 @@ describe('Liquidity Pools', async () => {
 
   let lpCallOption: IOToken
   it('LP Writes a WETH/USD call collateralized by WETH for premium', async () => {
+    // registry requires liquidity pool to be owner
+    optionRegistry.setLiquidityPool(liquidityPool.address);
     const [sender] = signers
     const amount = toWei('1')
     const blockNum = await ethers.provider.getBlockNumber()
@@ -959,10 +962,10 @@ describe('Liquidity Pools', async () => {
     )
     const strikePrice = priceQuote.add(toWei('20'))
     //await usd.mint(senderAddress, toWei('6000'))
-    await usd.approve(liquidityPool.address, toWei('6000'))
+    await usd.approve(liquidityPool.address, toUSDC('6000'))
     await weth.deposit({ value: amount.mul('5') })
     await weth.approve(liquidityPool.address, amount.mul('5'))
-    await liquidityPool.addLiquidity(toWei('6000'), amount.mul('4'), 0, 0)
+    await liquidityPool.addLiquidity(toUSDC('6000'), amount.mul('4'), 0, 0)
     const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
     const proposedSeries = {
       expiration: fmtExpiration(expiration.unix()),
@@ -993,7 +996,7 @@ describe('Liquidity Pools', async () => {
     lpCallOption = callOptionToken
     const buyerOptionBalance = await callOptionToken.balanceOf(senderAddress)
     //@ts-ignore
-    const openInterest = await optionRegistry.totalInterest(seriesAddress)
+    const totalInterest = await callOptionToken.totalSupply();
     const writersBalance = await optionRegistry.writers(
       seriesAddress,
       liquidityPool.address,
@@ -1002,8 +1005,8 @@ describe('Liquidity Pools', async () => {
     const senderEthBalance = await sender.getBalance()
     const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance)
     expect(writersBalance).to.eq(amount)
-    expect(buyerOptionBalance).to.eq(amount)
-    expect(openInterest).to.eq(amount)
+    expect(fromOpyn(buyerOptionBalance)).to.eq(fromWei(amount))
+    expect(fromOpyn(totalInterest)).to.eq(fromWei(amount))
   })
 
   it('LP Writes a ETH/USD put for premium', async () => {
@@ -1012,14 +1015,14 @@ describe('Liquidity Pools', async () => {
     const blockNum = await ethers.provider.getBlockNumber()
     const block = await ethers.provider.getBlock(blockNum)
     const { timestamp } = block
-    const expiration = moment(Number(timestamp) * 1000).add('5', 'M')
+    const expiration = moment(Number(timestamp) * 1000).add('5', 'M').subtract('1', 'h').startOf('hour')
     const priceQuote = await priceFeed.getNormalizedRate(
       weth.address,
       usd.address,
     )
     const strikePrice = priceQuote.sub(toWei('20'))
     const proposedSeries = {
-      expiration: BigNumber.from(expiration.unix()),
+      expiration: fmtExpiration(expiration.unix()),
       flavor: PUT_FLAVOR,
       strike: BigNumber.from(strikePrice),
       strikeAsset: usd.address,

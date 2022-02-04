@@ -75,7 +75,7 @@ contract OpynOptionRegistry is Ownable {
      * @param  strikeAsset is the address of the collateral asset of the option
      * @param  expiration is the expiry timestamp of the option
      * @param  flavor the type of option
-     * @param  strike is the strike price of the option
+     * @param  strike is the strike price of the option - 1e18 format
      * @param collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
@@ -88,7 +88,8 @@ contract OpynOptionRegistry is Ownable {
         bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, expiration, flavor, strike);
         //address collateralAsset = collateral == address(0) ? usd : collateral;
         // check for an opyn oToken if it doesn't exist deploy it
-        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, strike, expiration, flavor);
+        // convert strike to 1e8 format
+        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, strike / (10**10), expiration, flavor);
         // store the option data as a hash
         seriesInfo[series] = Types.OptionSeries(expiration, flavor, strike, u, s);
         seriesAddress[issuanceHash] = series;
@@ -111,9 +112,9 @@ contract OpynOptionRegistry is Ownable {
     
         // transfer collateral to this contract, collateral will depend on the flavor
         if (series.flavor == Types.Flavor.Call) {
-          collateralAmount = openCall(series.underlying, amount);
+          collateralAmount = getCallCollateral(series.underlying, amount);
         } else {
-          collateralAmount = openPut(series.strikeAsset, amount, series.strike);
+          collateralAmount = getPutCollateral(series.strikeAsset, amount, series.strike);
         }
         // mint the option token following the opyn interface
         IController controller = IController(gammaController);
@@ -218,7 +219,7 @@ contract OpynOptionRegistry is Ownable {
      * @param  amount amount of underlying to transfer
      * @return amount transferred
      */
-    function openCall(address underlying, uint amount) internal returns (uint256) {
+    function getCallCollateral(address underlying, uint amount) internal returns (uint256) {
       IERC20(underlying).universalTransferFrom(msg.sender, address(this), amount);
       return amount;
     }
@@ -230,7 +231,7 @@ contract OpynOptionRegistry is Ownable {
      * @param  strike the strike of the option
      * @return amount transferred
      */
-    function openPut(address strikeAsset, uint amount, uint strike) internal returns (uint256) {
+    function getPutCollateral(address strikeAsset, uint amount, uint strike) internal returns (uint256) {
         uint escrow = OptionsCompute.computeEscrow(amount, strike, IERC20(strikeAsset).decimals());
         IERC20(strikeAsset).universalTransferFrom(msg.sender, address(this), escrow);
         return escrow;

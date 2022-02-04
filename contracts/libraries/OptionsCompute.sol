@@ -9,13 +9,25 @@ library OptionsCompute {
     using PRBMathUD60x18 for uint256;
     using PRBMathSD59x18 for int256;
 
+    uint8 private constant SCALE_DECIMALS = 18;
+
+    function convertToDecimals(
+        uint value,
+        uint decimals
+    ) internal pure returns (uint) {   
+        uint difference = SCALE_DECIMALS - decimals;
+        return value / (10**difference);
+    }
+
     function computeEscrow(uint amount, uint strike, uint underlyingDecimals)
         internal
         pure
         returns (uint)
     {
-        uint decimalShift = 18 - underlyingDecimals;
-        return strike.mul(amount).div(10**(8 + decimalShift));
+        //uint decimalShift = 18 - underlyingDecimals;
+        //return strike.mul(amount).div(10**(8 + decimalShift));
+        uint escrow = strike.mul(amount);
+        return convertToDecimals(escrow, underlyingDecimals);
     }
 
     function computeNewWeights(
