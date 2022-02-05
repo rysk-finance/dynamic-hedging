@@ -14,6 +14,7 @@ export const SECONDS_IN_YEAR = SECONDS_IN_DAY * 365.25;
 export const genOptionTime = (now: moment.Moment, future: moment.Moment) => (future.unix() - now.unix()) / SECONDS_IN_YEAR;
 export const fromWei = (x: BigNumberish) => utils.formatEther(x);
 export const fromUSDC = (x: BigNumberish) => utils.formatUnits(x, 6);
+export const tFormatUSDC = (x: BigNumberish) => truncate(Number(fromUSDC(x)));
 export const fmtExpiration = (x: number) => toWei(x.toString())
 export const toUSDC = (x: string) => utils.parseUnits(x, 6);
 export const toOpyn = (x: string) => utils.parseUnits(x, 8);
