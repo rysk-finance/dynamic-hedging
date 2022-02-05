@@ -81,7 +81,7 @@ let expiration = 1628841600;
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
-const strike = toWei('3500').div(oTokenDecimalShift18)
+const strike = toWei('3500')
 
 let usd: MintableERC20
 let wethERC20: ERC20Interface
@@ -262,7 +262,7 @@ describe('Options protocol', function () {
     // get balance before
     const balanceWETH = await wethERC20.balanceOf(senderAddress)
     // get the desired settlement price
-    const settlePrice = strike.add(toWei('200').div(oTokenDecimalShift18));
+    const settlePrice = (strike.add(toWei('200')).div(oTokenDecimalShift18));
     // get the oracle
     const oracle = await setupOracle(
       CHAINLINK_WETH_PRICER[chainId],
@@ -357,7 +357,7 @@ describe('Options protocol', function () {
     // get balance before
     const balanceWETH = await wethERC20.balanceOf(senderAddress)
     // get the desired settlement price
-    const settlePrice = strike.sub(toWei('200').div(oTokenDecimalShift18));
+    const settlePrice = (strike.sub(toWei('200')).div(oTokenDecimalShift18));
     // get the oracle
     const oracle = await setupOracle(
       CHAINLINK_WETH_PRICER[chainId],
@@ -453,7 +453,7 @@ describe('Options protocol', function () {
     // get balance before
     const balanceUSD = await usd.balanceOf(senderAddress)
     // get the desired settlement price
-    const settlePrice = strike.sub(toWei('200').div(oTokenDecimalShift18));
+    const settlePrice = (strike.sub(toWei('200')).div(oTokenDecimalShift18));
     // get the oracle
     const oracle = await setupOracle(
       CHAINLINK_WETH_PRICER[chainId],
@@ -469,7 +469,7 @@ describe('Options protocol', function () {
     );
 
     await putOption.approve(optionRegistry.address, (await putOption.balanceOf(senderAddress)));
-    // call redeem from the options registry
+    // call settle from the options registry
     await optionRegistry.settle(putOption.address)
     // check balances are in order
     const newBalanceUSD = await usd.balanceOf(senderAddress);
