@@ -24,6 +24,8 @@ import {
   toUSDC,
   fmtExpiration,
   fromOpyn,
+  toOpyn,
+  tFormatUSDC,
 } from '../utils'
 import {
   deployMockContract,
@@ -1050,9 +1052,10 @@ describe('Liquidity Pools', async () => {
     ) as IOToken
     const putBalance = await putOptionToken.balanceOf(senderAddress)
     const balanceNew = await usd.balanceOf(senderAddress)
-    expect(putBalance).to.eq(amount)
+    const opynAmount = toOpyn(fromWei(amount))
+    expect(putBalance).to.eq(opynAmount)
     // ensure funds are being transfered
-    expect(tFormatEth(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
+    expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
   })
 
   it('Exercises call option issued by LP', async () => {

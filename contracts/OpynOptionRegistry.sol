@@ -16,6 +16,7 @@ contract OpynOptionRegistry is Ownable {
     using SafeERC20 for IERC20;
     // public versioning of the contract for external use
     string public constant VERSION = "1.0";
+    uint8 private constant OPYN_DECIMALS = 8;
     // address of the usd asset used
     // TODO: maybe make into flexible usd
     address internal usd;
@@ -88,13 +89,31 @@ contract OpynOptionRegistry is Ownable {
         bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, expiration, flavor, strike);
         //address collateralAsset = collateral == address(0) ? usd : collateral;
         // check for an opyn oToken if it doesn't exist deploy it
-        // convert strike to 1e8 format
-        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, strike / (10**10), expiration, flavor);
+        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, flavor);
         // store the option data as a hash
         seriesInfo[series] = Types.OptionSeries(expiration, flavor, strike, u, s);
         seriesAddress[issuanceHash] = series;
         emit OptionTokenCreated(series);
         return series;
+    }
+    
+    /**
+     * @notice Converts strike price to 1e8 format and floors least significant digits if needed
+     * @param  strikePrice strikePrice in 1e18 format
+     * @param  collateral address of collateral asset
+     * @return if the transaction succeeded
+     */
+    function formatStrikePrice(
+        uint256 strikePrice,
+        address collateral
+    ) internal view returns (uint) {
+        // convert strike to 1e8 format
+        uint price = strikePrice / (10**10);
+        uint collateralDecimals = IERC20(collateral).decimals();
+        if (collateralDecimals >= OPYN_DECIMALS) return price;
+        uint difference = OPYN_DECIMALS - collateralDecimals;
+        // round floor strike to prevent errors in Gamma protocol
+        return price / (10**difference) * (10**difference);
     }
 
     /**
