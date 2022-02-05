@@ -1058,21 +1058,6 @@ describe('Liquidity Pools', async () => {
     expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
   })
 
-  it('Exercises call option issued by LP', async () => {
-    // exercise half
-    const seriesInfo = await optionRegistry.seriesInfo(lpCallOption.address)
-    const strike = seriesInfo.strike
-    const exerciseAmount = toWei('0.5')
-    const amount = strike.mul(exerciseAmount).div(toWei('1'))
-    const balance = await usd.balanceOf(senderAddress)
-    const lpBalance = await usd.balanceOf(liquidityPool.address)
-    //@ts-ignore
-    await optionRegistry.exercise(lpCallOption.address, exerciseAmount)
-    const balanceAfter = await usd.balanceOf(senderAddress)
-    const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
-    expect(balance.sub(balanceAfter)).to.eq(amount)
-  })
-
   it('Can compute IV from volatility skew coefs', async () => {
     const coefs: BigNumberish[] = [
       1.42180236,
