@@ -76,6 +76,10 @@ contract LiquidityPool is
     hedgingReactors.push(_reactorAddress);
   }
 
+  function removeHedgingReactorAddress(uint256 _index) onlyOwner public {
+    delete hedgingReactors[_index];
+  }
+
   function setVolatilitySkew(int[7] calldata values, Types.Flavor flavor)
       onlyOwner
       external

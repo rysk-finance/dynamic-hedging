@@ -22,7 +22,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     uint256 private constant MAX_UINT = 2**256 - 1;
 
     /// @notice address of the parent liquidity pool contract
-    address private immutable parentLiquidityPool;
+    address private parentLiquidityPool;
 
     /// @notice generalised list of stablecoin addresses to trade against wETH
     address[] public stablecoinAddresses; // we should try not to use unfixed length array
@@ -37,7 +37,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
 
     uint24 public poolFee;
 
-    int256 private internalDelta = 0;
+    int256 public internalDelta;
 
 
     constructor (ISwapRouter _swapRouter, address[] memory _stableAddresses, address _wethAddress, address _parentLiquidityPool, uint24 _poolFee) {
@@ -68,7 +68,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             return deltaChange;
         } else { // sell wETH
             uint256 ethBalance = IERC20(wETH).balanceOf(address(this));
-            require(ethBalance > 0, "ETH balance is 0");
+            if(ethBalance == 0){
+                return 0;
+            }
             if(_delta > int256(ethBalance)){ // not enough ETH to sell to offset delta so sell all ETH available.
                 //TODO calculate amountOutMinmmum using live oracle data
                 (int256 deltaChange, uint256 amountReceived) = _swapExactInputSingle(ethBalance, amountOutMinimum, stablecoinAddresses[0]);
@@ -188,8 +190,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         @param _amountInMaximum The max amount of ETH willing to spend. Slippage limit.
         @param _buyToken The stablecoin to buy to withdraw to LP
      */
-
+    
     function _liquidateETH(uint256 _amountOut, uint256 _amountInMaximum, address _buyToken) internal returns (uint256 stableBalanceReceived){
+        // tries to use exact output to obtain amount of stablecoin needed to withdraw without over-selling
         ISwapRouter.ExactOutputSingleParams memory params =
             ISwapRouter.ExactOutputSingleParams({
                 tokenIn: wETH,
@@ -202,9 +205,11 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
                 sqrtPriceLimitX96: 0
             });
 
-        // Executes the swap returning the amountIn needed to spend to receive the desired amountOut.
+        // Tries to execute the swap and return output 
         try swapRouter.exactOutputSingle(params) returns (uint256 amountIn) {
             return (_amountOut);
+        // Transaction will fail if not enough ETH to fund the output needed
+        // So in this case, liquidate all ETH and return output
         } catch {
             ISwapRouter.ExactInputSingleParams memory params =
             ISwapRouter.ExactInputSingleParams({
@@ -213,7 +218,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
                 fee: poolFee,
                 recipient: address(this),
                 deadline: block.timestamp,
-                amountIn: uint256(internalDelta),
+                amountIn: uint256(internalDelta), // amount of ETH this reactor has
                 amountOutMinimum: decimalHelper(_buyToken, 0),
                 sqrtPriceLimitX96: 0
             });
