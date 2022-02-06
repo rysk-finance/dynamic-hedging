@@ -1127,7 +1127,7 @@ describe('Liquidity Pools', async () => {
   it('LP can not redeems shares when in excess of liquidity', async () => {
     const shares = await liquidityPool.balanceOf(receiverAddress)
     const liquidityPoolReceiver = liquidityPool.connect(receiverAddress)
-    const withdraw = await liquidityPoolReceiver.removeLiquidity(shares, 0, 0)
+    const withdraw = liquidityPoolReceiver.removeLiquidity(shares, 0, 0)
     await expect(withdraw).to.be.revertedWith('StrikeAmountExceedsLiquidity')
   })
 })

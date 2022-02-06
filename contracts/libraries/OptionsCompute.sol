@@ -4,7 +4,7 @@ import { Constants } from "./Constants.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 
-
+error DecimalIsLargerThanScale(uint256 decimals);
 library OptionsCompute {
     using PRBMathUD60x18 for uint256;
     using PRBMathSD59x18 for int256;
@@ -14,9 +14,19 @@ library OptionsCompute {
     function convertToDecimals(
         uint value,
         uint decimals
-    ) internal pure returns (uint) {   
+    ) internal pure returns (uint) {
+        if (decimals > SCALE_DECIMALS) { revert DecimalIsLargerThanScale(decimals); }
         uint difference = SCALE_DECIMALS - decimals;
         return value / (10**difference);
+    }
+
+    function convertFromDecimals(
+        uint value,
+        uint decimals
+    ) internal pure returns (uint) {
+        if (decimals > SCALE_DECIMALS) { revert DecimalIsLargerThanScale(decimals); }
+        uint difference = SCALE_DECIMALS - decimals;
+        return value * (10**difference);
     }
 
     function computeEscrow(uint amount, uint strike, uint underlyingDecimals)

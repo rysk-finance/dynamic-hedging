@@ -159,23 +159,45 @@ contract LiquidityPool is
     _burn(msg.sender, shares);
 
     // Calculate liquidity that can be withdrawn
-    uint256 strikeBalance = IERC20(strikeAsset).balanceOf(address(this));
-    uint256 strikeEquity = strikeBalance - _valuePutsWritten();
-    uint256 strikeLiquidity = strikeBalance - _calcStrikeCommitted();
-    strikeAmount = strikeEquity.mul(ratio);
-    if (strikeAmountMin > strikeAmount) { revert MinStrikeAmountExceedsLiquidity(strikeAmount, strikeAmountMin); }
-    if (strikeAmount > strikeLiquidity) { revert StrikeAmountExceedsLiquidity(strikeAmount, strikeLiquidity); }
-    uint256 underlyingBalance = IERC20(underlyingAsset).balanceOf(address(this));
-    uint256 underlyingEquity = underlyingBalance - _valueCallsWritten();
-    uint256 underlyingLiquidity = underlyingBalance - totalAmountCall;
-    underlyingAmount = underlyingEquity.mul(ratio);
-    if (underlyingAmountMin > underlyingAmount) { revert MinUnderlyingAmountExceedsLiquidity(underlyingAmount, underlyingAmountMin); }
-    if (underlyingAmount > underlyingLiquidity) { revert UnderlyingAmountExceedsLiquidity(underlyingAmount, underlyingAmountMin); }
-
-    IERC20(strikeAsset).universalTransfer(msg.sender, strikeAmount);
+    (uint256 normalizedStrikeBalance,, uint256 decimals) = getNormalizedBalance(strikeAsset);
+    // new scope to avoid stack too deep error
+    {
+      uint256 strikeEquity = normalizedStrikeBalance - _valuePutsWritten();
+      uint256 strikeLiquidity = normalizedStrikeBalance - _calcStrikeCommitted();
+      strikeAmount = strikeEquity.mul(ratio);
+      if (strikeAmountMin > strikeAmount) { revert MinStrikeAmountExceedsLiquidity(strikeAmount, strikeAmountMin); }
+      if (strikeAmount > strikeLiquidity) { revert StrikeAmountExceedsLiquidity(strikeAmount, strikeLiquidity); }
+      uint256 underlyingBalance = IERC20(underlyingAsset).balanceOf(address(this));
+      uint256 underlyingEquity = underlyingBalance - _valueCallsWritten();
+      uint256 underlyingLiquidity = underlyingBalance - totalAmountCall;
+      underlyingAmount = underlyingEquity.mul(ratio);
+      if (underlyingAmountMin > underlyingAmount) { revert MinUnderlyingAmountExceedsLiquidity(underlyingAmount, underlyingAmountMin); }
+      if (underlyingAmount > underlyingLiquidity) { revert UnderlyingAmountExceedsLiquidity(underlyingAmount, underlyingAmountMin); }
+    }
+    uint256 transferStrikeAmount = OptionsCompute.convertToDecimals(strikeAmount, decimals);
+    IERC20(strikeAsset).universalTransfer(msg.sender, transferStrikeAmount);
     IERC20(underlyingAsset).universalTransfer(msg.sender, underlyingAmount);
     //TODO implement book balance reconcilation check
-    emit LiquidityRemoved(msg.sender, shares, strikeAmount, underlyingAmount);
+    emit LiquidityRemoved(msg.sender, shares, transferStrikeAmount, underlyingAmount);
+  }
+
+  /**
+   * @notice Returning balance in 1e18 format
+   * @param asset address of the asset to get balance and normalize
+   * @return normalizedBalance balance in 1e18 format
+   * @return strikeBalance balance in original decimal format
+   * @return decimals decimals of asset
+   */
+  function getNormalizedBalance(
+    address asset
+  )
+    internal
+    view
+    returns (uint256 normalizedBalance, uint256 strikeBalance, uint256 decimals) 
+  {
+    strikeBalance = IERC20(asset).balanceOf(address(this));
+    decimals = IERC20(asset).decimals();
+    normalizedBalance = OptionsCompute.convertFromDecimals(strikeBalance, decimals);
   }
 
   function _valuePutsWritten()
