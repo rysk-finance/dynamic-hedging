@@ -181,7 +181,7 @@ contract OptionRegistry {
     }
 
     function openPut(address strikeAsset, uint amount, uint strike) internal {
-        uint escrow = OptionsCompute.computeEscrow(amount, strike);
+        uint escrow = OptionsCompute.computeEscrow(amount, strike,IERC20(strikeAsset).decimals());
         IERC20(strikeAsset).universalTransferFrom(msg.sender, address(this), escrow);
     }
 

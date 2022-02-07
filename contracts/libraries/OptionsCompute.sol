@@ -1,33 +1,43 @@
 pragma solidity >=0.8.0;
 
-import { ABDKMathQuad } from "./ABDKMathQuad.sol";
 import { Constants } from "./Constants.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 
+error DecimalIsLargerThanScale(uint256 decimals);
 library OptionsCompute {
-    using ABDKMathQuad for bytes16;
     using PRBMathUD60x18 for uint256;
     using PRBMathSD59x18 for int256;
 
-    bytes16 private constant DECIMAL_PLACE = 0x403abc16d674ec800000000000000000;
-    bytes16 private constant ONE = 0x3fff0000000000000000000000000000;
-    bytes16 private constant TWO = 0x40000000000000000000000000000000;
+    uint8 private constant SCALE_DECIMALS = 18;
 
-    function computeEscrow(uint amount, uint strike)
-        internal
-        pure
-        returns (uint)
-    {
-        return strike.mul(amount);
+    function convertToDecimals(
+        uint value,
+        uint decimals
+    ) internal pure returns (uint) {
+        if (decimals > SCALE_DECIMALS) { revert DecimalIsLargerThanScale(decimals); }
+        uint difference = SCALE_DECIMALS - decimals;
+        return value / (10**difference);
     }
 
-    function toUInt(bytes16 x)
+    function convertFromDecimals(
+        uint value,
+        uint decimals
+    ) internal pure returns (uint) {
+        if (decimals > SCALE_DECIMALS) { revert DecimalIsLargerThanScale(decimals); }
+        uint difference = SCALE_DECIMALS - decimals;
+        return value * (10**difference);
+    }
+
+    function computeEscrow(uint amount, uint strike, uint underlyingDecimals)
         internal
         pure
         returns (uint)
     {
-        return x.mul(DECIMAL_PLACE).toUInt();
+        //uint decimalShift = 18 - underlyingDecimals;
+        //return strike.mul(amount).div(10**(8 + decimalShift));
+        uint escrow = strike.mul(amount);
+        return convertToDecimals(escrow, underlyingDecimals);
     }
 
     function computeNewWeights(
@@ -53,7 +63,8 @@ library OptionsCompute {
     // @param points[1] expiration time
     // @param coef degree-2 polynomial features are [intercept, 1, a, b, a^2, ab, b^2]
     // a == spot_distance, b == expiration time
-    // spot_distance = (strike - spot_price) / spot_price
+    // spot_distance: (strike - spot_price) / spot_price
+    // expiration: years to expiration
     function computeIVFromSkew(
        int[7] memory coef,
        int[2] memory points

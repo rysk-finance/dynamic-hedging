@@ -1,19 +1,24 @@
-import { BigNumberish, utils } from "ethers";
+import { BigNumberish, utils, BigNumber } from "ethers";
 
 export const formatEth = (x: BigNumberish) => Number(utils.formatEther(x));
-
 export function truncate (num: number, places: number = 3): number {
     return Math.trunc(num * Math.pow(10, places)) / Math.pow(10, places);
 }
 export const tFormatEth = (x: BigNumberish): number => truncate(formatEth(x));
-
 export const toWei = (x: string) => utils.parseEther(x);
-
 export const call = 0, put = 1;
+export const CALL = BigNumber.from(call);
+export const PUT = BigNumber.from(put);
 export const SECONDS_IN_DAY = 86400;
 export const SECONDS_IN_YEAR = SECONDS_IN_DAY * 365.25;
 export const genOptionTime = (now: moment.Moment, future: moment.Moment) => (future.unix() - now.unix()) / SECONDS_IN_YEAR;
 export const fromWei = (x: BigNumberish) => utils.formatEther(x);
+export const fromUSDC = (x: BigNumberish) => utils.formatUnits(x, 6);
+export const tFormatUSDC = (x: BigNumberish) => truncate(Number(fromUSDC(x)));
+export const fmtExpiration = (x: number) => toWei(x.toString())
+export const toUSDC = (x: string) => utils.parseUnits(x, 6);
+export const toOpyn = (x: string) => utils.parseUnits(x, 8);
+export const fromOpyn = (x: BigNumberish) => utils.formatUnits(x, 8);
 export const getDiffSeconds = (now: moment.Moment, future: moment.Moment) => (future.unix() - now.unix());
 export const convertRounded = (x: BigNumberish): number => Math.round(Number(x.toString()));
 
@@ -28,3 +33,4 @@ export const percentDiffArr = (a: (number|string)[], b: (number|string)[]): numb
     const sum = diffs.reduce((a: number, b: number) => a + b, 0)
     return sum
 }
+export type BlackScholesCalcArgs = [BigNumber, BigNumber, BigNumber, BigNumber, BigNumber];

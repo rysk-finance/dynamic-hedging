@@ -1,15 +1,16 @@
 import { ethers } from "hardhat";
-import { BigNumberish, Contract, ContractFactory, utils } from "ethers";
+import { BigNumber, BigNumberish, Contract, ContractFactory, utils } from "ethers";
 import {MockProvider} from '@ethereum-waffle/provider';
 import {
     toWei,
     truncate,
     tFormatEth,
-    call,
-    put,
+    CALL,
+    PUT,
     genOptionTime,
     sample,
-    percentDiff
+    percentDiff,
+    BlackScholesCalcArgs
 } from '../utils';
 import moment from "moment";
 //@ts-ignore
@@ -18,12 +19,16 @@ import bs from "black-scholes";
 import greeks from "greeks";
 import { expect } from "chai";
 import { BlackScholes as IBlackScholes } from "../types/BlackScholes";
+import { BlackScholesTest as IBlackScholesTest } from "../types/BlackScholesTest";
 
 describe("Pricing options", function() {
     let BlackScholes: IBlackScholes;
+    let BlackScholesTest: IBlackScholesTest;
 
     it("Should deploy Black Scholes library", async function() {
-        const normDistFactory = await ethers.getContractFactory("NormalDist");
+        const normDistFactory = await ethers.getContractFactory("NormalDist", {
+          libraries: {}
+        });
         const normDist = await normDistFactory.deploy();
         const bsFactory = await ethers.getContractFactory(
             "BlackScholes",
@@ -35,186 +40,207 @@ describe("Pricing options", function() {
         );
         const blackScholes = await bsFactory.deploy() as IBlackScholes;
         BlackScholes = blackScholes;
+        const bsTestFactory = await ethers.getContractFactory("BlackScholesTest", {
+            libraries: {
+                BlackScholes: BlackScholes.address
+            }
+        });
+        BlackScholesTest = await bsTestFactory.deploy() as IBlackScholesTest;
     });
+
     it("correctly prices in the money call with a one year time to expiration", async function() {
-        const strike = toWei('250');
-        const price = toWei('300');
+        const strike = 250;
+        const price = 300;
         const now: moment.Moment = moment();
         const oneYear = moment(now).add(12, 'M');
         const time = genOptionTime(now, oneYear);
-        const vol = 15;
-        const rfr = 3;
+        const vol = 0.15;
+        const rfr = 0.03;
         const localBS = bs.blackScholes(300, 250, time, .15, .03, "call");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, call);
+        const args = [price, strike, oneYear.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, CALL);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
     it("correctly  prices out of the money call with one year time", async () => {
-        const strike = toWei('350');
-        const price = toWei('300');
+        const strike = 350;
+        const price = 300;
         const now: moment.Moment = moment();
         const oneYear = moment(now).add(12, 'M');
         const time = genOptionTime(now, oneYear);
-        const vol = 15;
-        const rfr = 3;
+        const vol = 0.15;
+        const rfr = 0.03;
         const localBS = bs.blackScholes(300, 350, time, .15, .03, "call");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, call);
+        const args = [price, strike, oneYear.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, CALL);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
     it("correctly prices out of the money call with one year time high volatility", async () => {
-        const strike = toWei('350');
-        const price = toWei('300');
+        const strike = 350;
+        const price = 300;
         const now: moment.Moment = moment();
         const oneYear = moment(now).add(12, 'M');
         const time = genOptionTime(now, oneYear);
-        const vol = 150;
-        const rfr = 3;
+        const vol = 1.50;
+        const rfr = 0.03;
         const localBS = bs.blackScholes(300, 350, time, 1.5, .03, "call");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, call);
+        const args = [price, strike, oneYear.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, CALL);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
     it("correctly prices in the money call with one month expiration high volatility", async () => {
-        const strike = toWei('250');
-        const price = toWei('300');
+        const strike = 250;
+        const price = 300;
         const now: moment.Moment = moment();
         const oneYear = moment(now).add(12, 'M');
         const time = genOptionTime(now, oneYear);
-        const vol = 150;
-        const rfr = 3;
+        const vol = 1.50;
+        const rfr = 0.03;
         const localBS = bs.blackScholes(300, 250, time, 1.5, .03, "call");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, call);
+        const args = [price, strike, oneYear.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, CALL);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
     it("correctly prices in the money put with one year time", async () => {
-        const strike = toWei('250');
-        const price = toWei('200');
+        const strike = 250;
+        const price = 200;
         const now: moment.Moment = moment();
         const oneYear = moment(now).add(12, 'M');
         const time = genOptionTime(now, oneYear);
-        const vol = 15;
-        const rfr = 3;
+        const vol = 0.15;
+        const rfr = 0.03;
         const localBS = bs.blackScholes(200, 250, time, .15, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, put);
+        const args = [price, strike, oneYear.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
     it('correctly prices in the money put with one year time high volatility', async () => {
-        const strike = toWei('250');
-        const price = toWei('200');
+        const strike = 250;
+        const price = 200;
         const now: moment.Moment = moment();
         const oneYear = moment(now).add(12, 'M');
         const time = genOptionTime(now, oneYear);
-        const vol = 150;
-        const rfr = 3;
+        const vol = 1.50;
+        const rfr = 0.03;
         const localBS = bs.blackScholes(200, 250, time, 1.5, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, oneYear.unix(), vol, rfr, put);
+        const args = [price, strike, oneYear.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
     it('correctly prices in the money put with one month time high volatility', async () => {
-        const strike = toWei('250');
-        const price = toWei('200');
+        const strike = 250;
+        const price = 200;
         const now: moment.Moment = moment();
         const future = moment(now).add(1, 'M');
         const time = genOptionTime(now, future);
-        const vol = 150;
-        const rfr = 3;
+        const vol = 1.50;
+        const rfr = 0.03;
         const localBS = bs.blackScholes(200, 250, time, 1.5, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, put);
+        const args = [price, strike, future.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
     it('correctly prices in the money put with one month time high volatility', async () => {
-        const strike = toWei('250');
-        const price = toWei('200');
+        const strike = 250;
+        const price = 200;
         const now: moment.Moment = moment();
         const future = moment(now).add(1, 'M');
         const time = genOptionTime(now, future);
-        const vol = 150;
-        const rfr = 3;
+        const vol = 1.50;
+        const rfr = 0.03;
         const localBS = bs.blackScholes(200, 250, time, 1.5, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, put);
+        const args = [price, strike, future.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
     it('correctly prices at the money put with one month time high volatility', async () => {
-        const strike = toWei('200');
-        const price = toWei('200');
+        const strike = 200;
+        const price = 200;
         const now: moment.Moment = moment();
         const future = moment(now).add(1, 'M');
         const time = genOptionTime(now, future);
-        const vol = 150;
-        const rfr = 3;
+        const vol = 1.50;
+        const rfr = 0.03;
         const localBS = bs.blackScholes(200, 200, time, 1.5, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, put);
+        const args = [price, strike, future.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
     it('correctly prices near the money put with one month time high volatility', async () => {
-        const strike = toWei('190');
-        const price = toWei('200');
+        const strike = 190;
+        const price = 200;
         const now: moment.Moment = moment();
         const future = moment(now).add(1, 'M');
         const time = genOptionTime(now, future);
-        const vol = 150;
-        const rfr = 3;
+        const vol = 1.50;
+        const rfr = 0.03;
         const localBS = bs.blackScholes(200, 190, time, 1.5, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, put);
+        const args = [price, strike, future.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
     it('correctly prices out of the money put with one month time high volatility', async () => {
-        const strike = toWei('150');
-        const price = toWei('200');
+        const strike = 150;
+        const price = 200;
         const now: moment.Moment = moment();
         const future = moment(now).add(1, 'M');
         const time = genOptionTime(now, future);
-        const vol = 150;
-        const rfr = 3;
+        const vol = 1.50;
+        const rfr = 0.03;
         const localBS = bs.blackScholes(200, 150, time, 1.5, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, put);
+        const args = [price, strike, future.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
     it('correctly prices out of the money put with one month time', async () => {
-        const strike = toWei('150');
-        const price = toWei('200');
+        const strike = 150;
+        const price = 200;
         const now: moment.Moment = moment();
         const future = moment(now).add(1, 'M');
         const time = genOptionTime(now, future);
-        const vol = 15;
-        const rfr = 3;
+        const vol = 0.15;
+        const rfr = 0.03;
         const localBS = bs.blackScholes(200, 150, time, .15, .03, "put");
-        const contractBS = await BlackScholes.retBlackScholesCalc(price, strike, future.unix(), vol, rfr, put);
+        const args = [price, strike, future.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT);
         expect(truncate(localBS)).to.eq(tFormatEth(contractBS));
     });
 
     it('correctly computes delta of out of the money call with one month time', async () => {
-        const strike = toWei('220');
-        const price = toWei('200');
+        const strike = 220;
+        const price = 200;
         const now: moment.Moment = moment();
         const future = moment(now).add(1, 'M');
         const time = genOptionTime(now, future);
-        const vol = 15;
-        const rfr = 3;
+        const vol = 0.15;
+        const rfr = 0.03;
         const localDelta = greeks.getDelta(200, 220, time, .15, .03, "call");
-        const contractDelta = await BlackScholes.getDeltaWei(price, strike, future.unix(), vol, rfr, call);
+        const args = [price, strike, future.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractDelta = await BlackScholesTest.getDelta(...args, CALL);
         expect(tFormatEth(contractDelta)).to.eq(truncate(localDelta));
     });
 
     it('correctly computes delta of out of the money put with one month time', async () => {
-        const strike = toWei('190');
-        const price = toWei('200');
+        const strike = 190;
+        const price = 200;
         const now: moment.Moment = moment();
         const future = moment(now).add(1, 'M');
         const time = genOptionTime(now, future);
-        const vol = 15;
-        const rfr = 3;
+        const vol = 0.15;
+        const rfr = 0.03;
         const localDelta = greeks.getDelta(200, 190, time, .15, .03, "put");
-        const contractDelta = await BlackScholes.getDeltaWei(price, strike, future.unix(), vol, rfr, put);
+        const args = [price, strike, future.unix(), vol, rfr].map(x => toWei(x.toString())) as BlackScholesCalcArgs;
+        const contractDelta = await BlackScholesTest.getDelta(...args, PUT);
         expect(tFormatEth(contractDelta)).to.eq(truncate(localDelta));
     });
 

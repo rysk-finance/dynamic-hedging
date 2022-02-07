@@ -24,6 +24,7 @@ import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/Liquidity
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json";
 import { AggregatorV3Interface as IAggregatorV3 } from "../types/AggregatorV3Interface";
 import { ERC20 } from "../types/ERC20";
+import { MintableERC20 } from "../types/MintableERC20";
 import { OptionRegistry } from "../types/OptionRegistry";
 import { Exchange } from "../types/Exchange";
 import { OptionToken as IOptionToken } from "../types/OptionToken";
@@ -44,7 +45,7 @@ let expiration = moment().add(3, 'weeks');
 const strike = toWei('300');
 
 
-let dai: ERC20;
+let dai: MintableERC20;
 let currentTime: moment.Moment;
 let optionRegistry: OptionRegistry;
 let optionToken: IOptionToken;
@@ -55,7 +56,7 @@ let optionProtocol: Protocol;
 let erc20CallExpiration: moment.Moment;
 let putOptionExpiration: moment.Moment;
 let erc20PutOptionExpiration: moment.Moment;
-let erc20Token: ERC20;
+let erc20Token: MintableERC20;
 let signers: Signer[];
 let volatility: Volatility;
 let senderAddress: string;
@@ -67,7 +68,7 @@ describe("Options protocol", function() {
     senderAddress = await signers[0].getAddress();
     receiverAddress = await signers[1].getAddress();
     const erc20 = await ethers.getContractFactory("MintableERC20");
-    const erc20Contract: ERC20 = await erc20.deploy('DAI', 'DAI') as ERC20;
+    const erc20Contract: MintableERC20 = await erc20.deploy('DAI', 'DAI') as MintableERC20;
     const constantsFactory = await ethers.getContractFactory("Constants");
     const constants = await constantsFactory.deploy();
     const optionRegistryFactory = await ethers.getContractFactory(
@@ -195,7 +196,7 @@ describe("Options protocol", function() {
     const future = moment(now).add(14, 'M');
     erc20CallExpiration = future;
     const erc20 = await ethers.getContractFactory("MintableERC20");
-    const erc20Contract: ERC20 = await erc20.deploy('genericERC', 'GRC') as ERC20;
+    const erc20Contract: MintableERC20 = await erc20.deploy('genericERC', 'GRC') as MintableERC20;
     erc20Token = erc20Contract;
     await erc20Token.mint(senderAddress, toWei('1000'));
     const issue = optionRegistry.issue(erc20Token.address, dai.address, future.unix(), call, strike);
@@ -528,13 +529,13 @@ describe("Price Feed", async () => {
       '1607535064',
       '55340232221128660932'
     );
-    const quote = await priceFeed.getRate(ZERO_ADDRESS, dai.address);
+    const quote = await priceFeed.getRate(weth.address, dai.address);
     expect(quote).to.eq(rate);
   });
 
   it('Should return a normalized price quote', async () => {
     await ethDaiAggregator.mock.decimals.returns('8');
-    const quote = await priceFeed.getNormalizedRate(ZERO_ADDRESS, dai.address);
+    const quote = await priceFeed.getNormalizedRate(weth.address, dai.address);
     // get decimal to 18 places
     const expected = BigNumber.from(rate).mul(BigNumber.from(10**10));
     expect(quote).to.eq(expected);
@@ -551,14 +552,11 @@ describe("Liquidity Pools", async () => {
     const abdkMathFactory = await ethers.getContractFactory("ABDKMathQuad");
     const abdkMathDeploy = await abdkMathFactory.deploy();
     const normDistFactory = await ethers.getContractFactory("NormalDist", {
-      libraries: {
-        ABDKMathQuad: abdkMathDeploy.address
-      }
+      libraries: {}
     });
     const normDist = await normDistFactory.deploy();
     const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
       libraries: {
-        ABDKMathQuad: abdkMathDeploy.address,
         NormalDist: normDist.address
       }
     });
@@ -584,7 +582,6 @@ describe("Liquidity Pools", async () => {
       {
         libraries: {
           Constants: constants.address,
-          ABDKMathQuad: abdkMathDeploy.address,
           BlackScholes: blackScholesDeploy.address
         }
       }
@@ -616,7 +613,7 @@ describe("Liquidity Pools", async () => {
     const lp = await liquidityPools.createLiquidityPool(
       dai.address,
       weth.address,
-      '3',
+      toWei('0.03'),
       coefs,
       coefs,
       'ETH/DAI',
@@ -689,7 +686,7 @@ describe("Liquidity Pools", async () => {
     const lp = await liquidityPools.createLiquidityPool(
       weth.address,
       dai.address,
-      '3',
+      toWei('0.03'),
       coefs,
       coefs,
       'weth/dai',
@@ -705,20 +702,6 @@ describe("Liquidity Pools", async () => {
     ethLiquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool;
   });
 
-  //TODO change to weth deposit contract
-  // it('Adds liquidity to the ETH liquidityPool', async () => {
-  //     const amount = toWei('10');
-  //     await weth.deposit({ value: amount});
-  //     await weth.approve(ethLiquidityPool.address, amount);
-  //     const addLiquidity = await ethLiquidityPool.addLiquidity(amount);
-  //     const liquidityPoolBalance = await ethLiquidityPool.balanceOf(senderAddress);
-  //     const addLiquidityReceipt = await addLiquidity.wait(1);
-  //     const addLiquidityEvents = addLiquidityReceipt.events;
-  //     const addLiquidityEvent = addLiquidityEvents?.find(x => x.event == 'LiquidityAdded');
-  //     expect(liquidityPoolBalance).to.eq(amount);
-  //     expect(addLiquidityEvent?.event).to.eq('LiquidityAdded');
-  // });
-
   it('Returns a quote for a single ETH/USD call option', async () => {
     const blockNum = await ethers.provider.getBlockNumber();
     const block = await ethers.provider.getBlock(blockNum);
@@ -728,7 +711,7 @@ describe("Liquidity Pools", async () => {
     const priceQuote = await priceFeed.getNormalizedRate(weth.address, dai.address);
     const strikePrice = priceQuote.add(toWei('20'));
     const optionSeries = {
-      expiration: BigNumber.from(expiration.unix()),
+      expiration: toWei(expiration.unix().toString()),
       flavor: CALL_FLAVOR,
       strike: strikePrice,
       strikeAsset: dai.address,
@@ -737,7 +720,7 @@ describe("Liquidity Pools", async () => {
     const iv = await liquidityPool.getImpliedVolatility(optionSeries.flavor, priceQuote, optionSeries.strike, optionSeries.expiration);
     const localBS = bs.blackScholes(
       fromWei(priceQuote),
-      fromWei(priceQuote.add(toWei('20'))),
+      fromWei(strikePrice),
       timeToExpiration,
       fromWei(iv),
       .03,
@@ -763,7 +746,7 @@ describe("Liquidity Pools", async () => {
     const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity));
     const utilizationPrice = Number(priceNorm) * utilization;
     const optionSeries = {
-      expiration: BigNumber.from(expiration.unix()),
+      expiration: toWei(expiration.unix().toString()),
       flavor: CALL_FLAVOR,
       strike: strikePrice,
       strikeAsset: dai.address,
@@ -779,20 +762,13 @@ describe("Liquidity Pools", async () => {
       "call"
     );
     const finalQuote = utilizationPrice > localBS ? utilizationPrice : localBS;
-    const quote = await liquidityPool.quotePriceWithUtilization({
-      expiration: BigNumber.from(expiration.unix()),
-      flavor: BigNumber.from(call),
-      strike: BigNumber.from(strikePrice),
-      strikeAsset: dai.address,
-      underlying: weth.address
-    }, amount);
+    const quote = await liquidityPool.quotePriceWithUtilization(optionSeries, amount);
     const truncFinalQuote = Math.round(truncate(finalQuote));
     const formatEthQuote = Math.round(tFormatEth(quote.toString()));
     expect(truncFinalQuote).to.be.eq(formatEthQuote);
     });
 
   it('Returns a quote for a ETH/USD put with utilization', async () => {
-
     const totalLiqidity = await liquidityPool.totalSupply();
     const amount = toWei('5');
     const blockNum = await ethers.provider.getBlockNumber();
@@ -806,7 +782,7 @@ describe("Liquidity Pools", async () => {
     const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity));
     const utilizationPrice = Number(priceNorm) * utilization;
     const optionSeries = {
-      expiration: BigNumber.from(expiration.unix()),
+      expiration: toWei(expiration.unix().toString()),
       flavor: PUT_FLAVOR,
       strike: strikePrice,
       strikeAsset: dai.address,
@@ -822,13 +798,7 @@ describe("Liquidity Pools", async () => {
       "put"
       );
       const finalQuote = utilizationPrice > localBS ? utilizationPrice : localBS;
-      const quote = await liquidityPool.quotePriceWithUtilization({
-        expiration: BigNumber.from(expiration.unix()),
-        flavor: PUT_FLAVOR,
-        strike: BigNumber.from(strikePrice),
-        strikeAsset: dai.address,
-        underlying: weth.address
-      }, amount);
+      const quote = await liquidityPool.quotePriceWithUtilization(optionSeries, amount);
     const truncQuote = truncate(finalQuote);
     const chainQuote = tFormatEth(quote.toString());
     const diff = percentDiff(truncQuote, chainQuote);
@@ -852,7 +822,7 @@ describe("Liquidity Pools", async () => {
     await liquidityPool.addLiquidity(toWei('6000'), amount.mul('4'), 0, 0);
     const lpDaiBalanceBefore = await dai.balanceOf(liquidityPool.address);
     const proposedSeries = {
-      expiration: BigNumber.from(expiration.unix()),
+      expiration: toWei(expiration.unix().toString()),
       flavor: BigNumber.from(call),
       strike: BigNumber.from(strikePrice),
       strikeAsset: dai.address,
@@ -892,7 +862,7 @@ describe("Liquidity Pools", async () => {
     const priceQuote = await priceFeed.getNormalizedRate(weth.address, dai.address);
     const strikePrice = priceQuote.sub(toWei('20'));
     const proposedSeries = {
-      expiration: BigNumber.from(expiration.unix()),
+      expiration: toWei(expiration.unix().toString()),
       flavor: PUT_FLAVOR,
       strike: BigNumber.from(strikePrice),
       strikeAsset: dai.address,
