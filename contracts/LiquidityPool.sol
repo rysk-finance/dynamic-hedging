@@ -444,8 +444,9 @@ contract LiquidityPool is
          rfr,
          Types.Flavor.Put
       );
+      int256 externalDelta;
       // TODO fix hedging reactor address to be dynamic
-      int256 externalDelta = IHedgingReactor(hedgingReactors[0]).getDelta(); // TODO add getDelta from other reactors when complete
+      // int256 externalDelta = IHedgingReactor(hedgingReactors[0]).getDelta(); // TODO add getDelta from other reactors when complete
       return callsDelta + putsDelta + externalDelta;
   }
 
