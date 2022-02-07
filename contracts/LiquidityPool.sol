@@ -14,6 +14,7 @@ import "./tokens/UniversalERC20.sol";
 import "./OptionsProtocol.sol";
 import "./PriceFeed.sol";
 import "./access/Ownable.sol";
+import "./interfaces/IHedgingReactor.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "hardhat/console.sol";
@@ -34,6 +35,8 @@ contract LiquidityPool is
 
   uint256 private constant ONE_YEAR_SECONDS = 31557600000000000000000000;
   uint8 private constant SCALE_DECIMALS = 18;
+
+  address[] public hedgingReactors;
 
   address public protocol;
   address public strikeAsset;
@@ -70,6 +73,14 @@ contract LiquidityPool is
     putsVolatilitySkew = putSkew;
     protocol = _protocol;
     emit UnderlyingAdded(underlyingAddress);
+  }
+
+  function setHedgingReactorAddress(address _reactorAddress) onlyOwner public {
+    hedgingReactors.push(_reactorAddress);
+  }
+
+  function removeHedgingReactorAddress(uint256 _index) onlyOwner public {
+    delete hedgingReactors[_index];
   }
 
   function setVolatilitySkew(int[7] calldata values, Types.Flavor flavor)
@@ -433,8 +444,33 @@ contract LiquidityPool is
          rfr,
          Types.Flavor.Put
       );
-      return callsDelta + putsDelta;
+      // TODO fix hedging reactor address to be dynamic
+      int256 externalDelta = IHedgingReactor(hedgingReactors[0]).getDelta(); // TODO add getDelta from other reactors when complete
+      return callsDelta + putsDelta + externalDelta;
   }
+
+  /// @dev value below which delta is not worth dedging due to gas costs
+  int256 private dustValue;
+
+  /// @notice function to return absolute value of input
+  function abs(int256 x) private pure returns (int256) {
+    return x >= 0 ? x : -x;
+}
+
+  /**
+  @notice function for hedging portfolio delta through external means
+  @param delta the current portfolio delta
+   */
+  function rebalancePortfolioDelta(int256 delta)
+    public 
+  { 
+      if(abs(delta) > dustValue) {
+      // TODO check to see if we can be paid to open a position using derivatives using funding rate
+        IHedgingReactor(hedgingReactors[0]).hedgeDelta(delta);
+      }
+      // TODO if we dont / not enough - look at derivatives
+  }
+    
 
   function quotePriceWithUtilization(
     Types.OptionSeries memory optionSeries,
