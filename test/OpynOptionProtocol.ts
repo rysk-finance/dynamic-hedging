@@ -1,103 +1,65 @@
 import hre, { ethers, network } from "hardhat"
 import {
-	BigNumberish,
 	Contract,
-	ContractFactory,
 	utils,
 	Signer,
-	BigNumber
 } from "ethers"
-import { MockProvider } from "@ethereum-waffle/provider"
 import {
 	toWei,
-	truncate,
-	tFormatEth,
 	call,
 	put,
-	genOptionTimeFromUnix,
-	fromWei,
-	fromUSDC,
-	getDiffSeconds,
-	convertRounded,
-	percentDiffArr,
-	percentDiff,
-	toUSDC,
-	fmtExpiration,
-	fromOpyn,
-	toOpyn,
-	tFormatUSDC
 } from "../utils"
-import {
-	deployMockContract,
-	MockContract
-} from "@ethereum-waffle/mock-contract"
-import moment from "moment"
-import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
-import { AggregatorV3Interface as IAggregatorV3 } from "../types/AggregatorV3Interface"
-//@ts-ignore
-import bs from "black-scholes"
 import { expect } from "chai"
+import moment from 'moment'
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { ERC20 } from "../types/ERC20"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OpynOptionRegistry } from "../types/OpynOptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
-import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPools } from "../types/LiquidityPools"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { Volatility } from "../types/Volatility"
 import { WETH } from "../types/WETH"
-import { Protocol } from "../types/Protocol"
 import {
 	CHAINLINK_WETH_PRICER,
-	CHAINID,
-	ETH_PRICE_ORACLE,
-	USDC_PRICE_ORACLE,
 	GAMMA_CONTROLLER,
 	MARGIN_POOL,
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS,
-	ORACLE_LOCKING_PERIOD
 } from "./constants"
 import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
-import { send } from "process"
-import { convertDoubleToDec } from "../utils/math"
-import { OptionRegistry } from "../types/OptionRegistry"
 
-const IMPLIED_VOL = "60"
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
-// Aug 13th 2021 8am
-// TODO: figure out better way to do this
-let expiration = 1628841600
+// Date for option to expire on format yyyy-mm-dd
+// Will automatically convert to 08:00 UTC timestamp
+const expiryDate: string = '2022-05-12'
+
+// time travel period between each expiry
+const expiryPeriod = {
+  days: 0,
+  weeks: 0,
+  months: 1,
+  years: 0,
+}
 
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
 const strike = toWei("3500")
 
+// handles the conversion of expiryDate to a unix timestamp
+let expiration = moment.utc(expiryDate).add(8, 'h').valueOf() / 1000
+
 let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
-let currentTime: moment.Moment
 let optionRegistry: OpynOptionRegistry
 let optionToken: IOToken
 let putOption: IOToken
-let erc20PutOption: IOToken
 let erc20CallOption: IOToken
-let optionProtocol: Protocol
-let erc20CallExpiration: moment.Moment
-let putOptionExpiration: moment.Moment
-let erc20PutOptionExpiration: moment.Moment
-let erc20Token: ERC20
 let signers: Signer[]
-let volatility: Volatility
 let senderAddress: string
 let receiverAddress: string
+
+
 
 describe("Options protocol", function () {
 	before(async function () {
@@ -314,7 +276,8 @@ describe("Options protocol", function () {
 
 	it("creates an ERC20 call option token series", async () => {
 		const [sender] = signers
-		expiration = 1640678400
+    // fast forward expiryPeriod length of time
+		expiration = moment.utc(expiration*1000).add(expiryPeriod).utc(true).valueOf()/1000
 		const issueCall = await optionRegistry.issue(
 			WETH_ADDRESS[chainId],
 			USDC_ADDRESS[chainId],
@@ -414,7 +377,8 @@ describe("Options protocol", function () {
 
 	it("creates a put option token series", async () => {
 		const [sender] = signers
-		expiration = 1643356800
+    // fast forward expiryPeriod length of time
+		expiration = moment.utc(expiration*1000).add(expiryPeriod).utc(true).valueOf()/1000
 		const issuePut = await optionRegistry.issue(
 			WETH_ADDRESS[chainId],
 			USDC_ADDRESS[chainId],
