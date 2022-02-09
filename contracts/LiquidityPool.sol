@@ -530,7 +530,7 @@ contract LiquidityPool is
       // int256 externalDelta = IHedgingReactor(hedgingReactors[0]).getDelta(); // TODO add getDelta from other reactors when complete
       return callsDelta + putsDelta + externalDelta;
   }
-
+    
   /**
    * @notice function to return absolute value of an input
    * @param  x value to check
