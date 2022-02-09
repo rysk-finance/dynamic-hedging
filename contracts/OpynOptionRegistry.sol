@@ -122,8 +122,9 @@ contract OpynOptionRegistry is Ownable {
      * @param  amount the amount of options to deploy
      * @dev only callable by the liquidityPool
      * @return if the transaction succeeded
+     * @return the amount of collateral taken from the liquidityPool
      */
-    function open(address _series, uint amount) external onlyLiquidityPool returns (bool) {
+    function open(address _series, uint amount) external onlyLiquidityPool returns (bool, uint256) {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
         require(block.timestamp < series.expiration, "Options can not be opened after expiration");
@@ -149,7 +150,7 @@ contract OpynOptionRegistry is Ownable {
         writers[_series][msg.sender] += amount;
         vaultIds[_series] = vaultId;
         emit OptionsContractOpened(_series, vaultId, mintAmount);
-        return true;
+        return (true, collateralAmount);
     }
 
     /**
