@@ -329,7 +329,7 @@ contract LiquidityPool is
     if (totalSupply() == 0) {
       amount = _shares;
     } else {
-      uint assets = IERC20(strikeAsset).universalBalanceOf(address(this)) + strikeAllocated;
+      uint assets = OptionsCompute.convertFromDecimals(IERC20(strikeAsset).balanceOf(address(this)), IERC20(strikeAsset).decimals()) + strikeAllocated;
      // TODO: account for hedging reactors in share calculation (loop through hedging reactors)
       uint liabilities = _valueCallsWritten() + _valuePutsWritten();
       uint NAV = assets - liabilities;
