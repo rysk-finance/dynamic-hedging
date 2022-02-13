@@ -613,12 +613,21 @@ contract LiquidityPool is
       (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries);
       uint optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
       uint underlyingPrice = getUnderlyingPrice(optionSeries);
-      // factor in portfolio delta
-      // if decreases portfolio delta quote standard bs
-      // abs(portfolio delta + new delta) < abs(portfolio delta)
+      int portfolioDelta = getPortfolioDelta();
+      int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
+      bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
       uint utilization = amount.div(totalSupply());
       uint utilizationPrice = underlyingPrice.mul(utilization);
-      quote = utilizationPrice > optionPrice ? utilizationPrice : optionPrice;
+      if (isDecreased) {
+        quote = utilizationPrice > optionPrice ? utilizationPrice : optionPrice;
+      } else {
+        // compute delta adjusted price
+        // get percentage increase of new portfolio delta and increase option price by that percentage
+        int percentageDifference = (newDelta - deltaQuote).div(deltaQuote);
+        uint onePlusPercentage = PRBMathUD60x18.SCALE + uint256(percentageDifference);
+        uint newOptionPrice = onePlusPercentage.mul(optionPrice);
+        quote = utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice;
+      }
       delta = deltaQuote;
   }
 
