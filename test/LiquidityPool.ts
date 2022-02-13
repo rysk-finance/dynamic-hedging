@@ -19,7 +19,7 @@ import {
   fromOpyn,
   toOpyn,
   tFormatUSDC,
-} from '../utils'
+} from '../utils/conversion-helper'
 import { deployMockContract, MockContract } from '@ethereum-waffle/mock-contract'
 import moment from 'moment'
 import AggregatorV3Interface from '../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json'

@@ -5,7 +5,7 @@ import { MintableERC20 } from '../types/MintableERC20'
 import { UniswapV3HedgingReactor } from '../types/UniswapV3HedgingReactor'
 import { UniswapV3HedgingTest } from '../types/UniswapV3HedgingTest'
 import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_SWAP_ROUTER } from './constants'
-import { toWei } from '../utils'
+import { toWei } from '../utils/conversion-helper'
 
 let signers: Signer[]
 let deployerAddress: string

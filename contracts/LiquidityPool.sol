@@ -300,14 +300,15 @@ contract LiquidityPool is
     // equities = assets - liabilities
     // assets: Any token such as eth usd, collateral sent to opynOptionRegistry, hedging reactor stuff
     // liabilities: Options that we wrote 
+    uint256 convertedAmount = OptionsCompute.convertFromDecimals(_amount, IERC20(strikeAsset).decimals());
     if (totalSupply() == 0) {
-      shares = _amount;
+      shares = convertedAmount;
     } else {
       uint assets = IERC20(strikeAsset).universalBalanceOf(address(this)) + strikeAllocated;
      // TODO: account for hedging reactors in share calculation (loop through hedging reactors)
       uint liabilities = _valueCallsWritten() + _valuePutsWritten();
       uint NAV = assets - liabilities;
-      shares = _amount.mul(totalSupply()).div(NAV);
+      shares = convertedAmount.mul(totalSupply()).div(NAV);
     }
   }
 

@@ -13,7 +13,7 @@ import {
 	convertRounded,
 	percentDiffArr,
 	percentDiff
-} from "../utils"
+} from "../utils/conversion-helper"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
 //@ts-ignore
