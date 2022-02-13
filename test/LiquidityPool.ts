@@ -85,7 +85,7 @@ const liquidityPoolWethWidthdraw = '0.1'
 
 /* --- end variables to change --- */
 
-const expiration = moment(expiryDate).add(8, 'h').valueOf() / 1000
+const expiration = moment.utc(expiryDate).add(8, 'h').valueOf() / 1000
 
 let usd: MintableERC20
 let wethERC20: ERC20Interface
