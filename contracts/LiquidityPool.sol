@@ -44,10 +44,12 @@ contract LiquidityPool is
   address public strikeAsset;
   // asset that is used as the reference asset
   address public underlyingAsset;
+  // asset that is used for collateral asset
+  address public collateralAsset;
   // riskFreeRate as a percentage PRBMath Float. IE: 3% -> 0.03 * 10**18
   uint public riskFreeRate; 
   // amount of strikeAsset allocated as collateral
-  uint public strikeAllocated;
+  uint public collateralAllocated;
   // amount of underlyingAsset allocated as collateral
   uint public underlyingAllocated;
   // max total supply of the lp shares
@@ -80,11 +82,12 @@ contract LiquidityPool is
   event Withdraw(address recipient, uint shares,  uint strikeAmount);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
 
-  constructor(address _protocol, address _strikeAsset, address underlying, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol) {
+  constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol) {
     strikeAsset = IERC20(_strikeAsset).isETH() ? Constants.ethAddress() : _strikeAsset;
     riskFreeRate = rfr;
-    address underlyingAddress = IERC20(underlying).isETH() ? Constants.ethAddress() : underlying;
+    address underlyingAddress = IERC20(_underlyingAsset).isETH() ? Constants.ethAddress() : _underlyingAsset;
     underlyingAsset = underlyingAddress;
+    collateralAsset = _collateralAsset;
     callsVolatilitySkew = callSkew;
     putsVolatilitySkew = putSkew;
     protocol = _protocol;
@@ -174,7 +177,7 @@ contract LiquidityPool is
     (shares) = _calcShareValue(_amount);
     require(shares > 0, "!shares");
     // Pull in tokens from sender
-    SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), _amount);
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _amount);
     // mint lp token to recipient
     _mint(_recipient, shares);
     emit Deposit(_recipient, _amount, shares);
@@ -185,7 +188,7 @@ contract LiquidityPool is
    * @notice function for removing liquidity from the options liquidity pool
    * @param _shares    amount of shares to return
    * @param _recipient the recipient of the amount to return
-   * @return transferStrikeAmount amount of strike asset to return to the recipient
+   * @return transferCollateralAmount amount of strike asset to return to the recipient
    * @dev    entry point to remove liquidity to dynamic hedging vault 
    */
   function withdraw(
@@ -193,37 +196,45 @@ contract LiquidityPool is
     address _recipient
   )
     external
-    returns(uint transferStrikeAmount)
+    returns(uint transferCollateralAmount)
   {
     require(_shares > 0, "!shares");
     // get the value of amount for the shares
-    uint strikeAmount = _calcAmountValue(_shares);
+    uint collateralAmount = _calcAmountValue(_shares);
     // determine if there is enough in the pool to withdraw
     // Calculate liquidity that can be withdrawn
-    (uint256 normalizedStrikeBalance,, uint256 _decimals) = getNormalizedBalance(strikeAsset);               
-    if (strikeAmount > normalizedStrikeBalance) {
-      // TODO: liquidate assets from a hedging reactor
+    (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);               
+    if (collateralAmount > normalizedCollateralBalance) {
+      uint256 amountNeeded = collateralAmount - normalizedCollateralBalance;
+
+      for (uint8 i=0; i < hedgingReactors.length; i++) {
+        amountNeeded -= IHedgingReactor(hedgingReactors[i]).withdraw(amountNeeded, collateralAsset);
+        if (amountNeeded == 0) {
+          break;
+        }
+      }
       // Calculate liquidity that can be withdrawn again after an attempt has been made to free funds
-      (normalizedStrikeBalance,, _decimals) = getNormalizedBalance(strikeAsset);
-      if (strikeAmount > normalizedStrikeBalance) {
+      (normalizedCollateralBalance,, _decimals) = getNormalizedBalance(collateralAsset);
+      if (collateralAmount > normalizedCollateralBalance) {
         // if there still arent enough funds then revert or TODO: return partial amount
         revert("Insufficient funds for a full withdrawal");
       }
     }
-    transferStrikeAmount = OptionsCompute.convertToDecimals(strikeAmount, _decimals);
+    transferCollateralAmount = OptionsCompute.convertToDecimals(collateralAmount, _decimals);
     // burn the shares
     _burn(msg.sender, _shares);
     // send funds to user
-    IERC20(strikeAsset).universalTransfer(_recipient, transferStrikeAmount);
+    IERC20(collateralAsset).universalTransfer(_recipient, transferCollateralAmount);
     //TODO implement book balance reconcilation check
-    emit Withdraw(_recipient, _shares, transferStrikeAmount);
+    console.log(transferCollateralAmount);
+    emit Withdraw(_recipient, _shares, transferCollateralAmount);
   }
 
   /**
    * @notice Returning balance in 1e18 format
    * @param asset address of the asset to get balance and normalize
    * @return normalizedBalance balance in 1e18 format
-   * @return strikeBalance balance in original decimal format
+   * @return collateralBalance balance in original decimal format
    * @return _decimals decimals of asset
    */
   function getNormalizedBalance(
@@ -231,16 +242,16 @@ contract LiquidityPool is
   )
     internal
     view
-    returns (uint256 normalizedBalance, uint256 strikeBalance, uint256 _decimals) 
+    returns (uint256 normalizedBalance, uint256 collateralBalance, uint256 _decimals) 
   {
-    strikeBalance = IERC20(asset).balanceOf(address(this));
+    collateralBalance = IERC20(asset).balanceOf(address(this));
     _decimals = IERC20(asset).decimals();
-    normalizedBalance = OptionsCompute.convertFromDecimals(strikeBalance, _decimals);
+    normalizedBalance = OptionsCompute.convertFromDecimals(collateralBalance, _decimals);
   }
 
   /**
    * @notice value of all puts written by the pool
-   * @return value of all puts denomincated in the strikeAsset
+   * @return value of all puts denominated in the collateralAsset
    */
   function _valuePutsWritten()
       internal
@@ -300,12 +311,14 @@ contract LiquidityPool is
     // equities = assets - liabilities
     // assets: Any token such as eth usd, collateral sent to opynOptionRegistry, hedging reactor stuff
     // liabilities: Options that we wrote 
-    uint256 convertedAmount = OptionsCompute.convertFromDecimals(_amount, IERC20(strikeAsset).decimals());
+    uint256 convertedAmount = OptionsCompute.convertFromDecimals(_amount, IERC20(collateralAsset).decimals());
     if (totalSupply() == 0) {
       shares = convertedAmount;
     } else {
-      uint assets = IERC20(strikeAsset).universalBalanceOf(address(this)) + strikeAllocated;
-     // TODO: account for hedging reactors in share calculation (loop through hedging reactors)
+      uint assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + collateralAllocated;
+      for (uint8 i=0; i < hedgingReactors.length; i++) {
+        assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
+      }
       uint liabilities = _valueCallsWritten() + _valuePutsWritten();
       uint NAV = assets - liabilities;
       shares = convertedAmount.mul(totalSupply()).div(NAV);
@@ -329,8 +342,10 @@ contract LiquidityPool is
     if (totalSupply() == 0) {
       amount = _shares;
     } else {
-      uint assets = OptionsCompute.convertFromDecimals(IERC20(strikeAsset).balanceOf(address(this)), IERC20(strikeAsset).decimals()) + strikeAllocated;
-     // TODO: account for hedging reactors in share calculation (loop through hedging reactors)
+      uint assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + collateralAllocated;
+      for (uint8 i=0; i < hedgingReactors.length; i++) {
+        assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
+      }
       uint liabilities = _valueCallsWritten() + _valuePutsWritten();
       uint NAV = assets - liabilities;
       amount = _shares.mul(NAV).div(totalSupply());
@@ -528,7 +543,9 @@ contract LiquidityPool is
       );
       int256 externalDelta;
       // TODO fix hedging reactor address to be dynamic
-      // int256 externalDelta = IHedgingReactor(hedgingReactors[0]).getDelta(); // TODO add getDelta from other reactors when complete
+      for (uint8 i=0; i < hedgingReactors.length; i++) {
+        externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
+      }
       return callsDelta + putsDelta + externalDelta;
   }
     
@@ -608,14 +625,12 @@ contract LiquidityPool is
    * @notice write a number of options for a given series addres
    * @param  optionSeries option type to mint
    * @param  amount       the number of options to mint 
-   * @param  collateral   the address of the collateral to be used for writing the option
    * @return optionAmount the number of options minted
    * @return series       the address of the option series minted
    */
   function issueAndWriteOption(
      Types.OptionSeries memory optionSeries,
-     uint amount,
-     address collateral
+     uint amount
   ) public payable returns (uint optionAmount, address series)
   {
     OpynOptionRegistry optionRegistry = getOpynOptionRegistry();
@@ -625,7 +640,7 @@ contract LiquidityPool is
        optionSeries.expiration.toUint(),
        optionSeries.flavor,
        optionSeries.strike,
-       collateral
+       collateralAsset
     );
     optionAmount = writeOption(series, amount);
   }
@@ -642,7 +657,7 @@ contract LiquidityPool is
   )
     public
     payable
-    returns (uint)
+    returns (uint256)
   {
     OpynOptionRegistry optionRegistry = getOpynOptionRegistry();
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
@@ -651,22 +666,22 @@ contract LiquidityPool is
     require(optionSeries.strikeAsset == strikeAsset, "incorrect strike asset");
     Types.Flavor flavor = optionSeries.flavor;
     //TODO breakout into function to support multiple collateral types
-    address escrowAsset = Types.isCall(flavor) ? underlyingAsset : strikeAsset;
-    uint premium = quotePriceWithUtilization(optionSeries, amount);
+    uint256 premium = quotePriceWithUtilization(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
     TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), toDecimals(premium, strikeAsset));
-    uint escrow = Types.isCall(flavor) ? amount : OptionsCompute.computeEscrow(amount, optionSeries.strike, IERC20(strikeAsset).decimals());
-    require(IERC20(escrowAsset).universalBalanceOf(address(this)) >= escrow, "Insufficient balance for escrow");
-    uint collateralAmount;
-    // TODO Consider removing this conditional to support only ERC20 tokens
-    if (IERC20(optionSeries.underlying).isETH()) {
-        (, collateralAmount) = optionRegistry.open(seriesAddress, amount);
-        emit WriteOption(seriesAddress, amount, premium, escrow, msg.sender);
-    } else {
-        IERC20(escrowAsset).approve(address(optionRegistry), escrow);
-        (, collateralAmount) = optionRegistry.open(seriesAddress, amount);
-        emit WriteOption(seriesAddress, amount, premium, escrow, msg.sender);
+    uint256 collateralAmount;
+    if (underlyingAsset == collateralAsset) {
+      collateralAmount = amount;
+    } else if (strikeAsset == collateralAsset) {
+      collateralAmount = OptionsCompute.computeEscrow(amount, optionSeries.strike, IERC20(collateralAsset).decimals());
     }
+    
+    require(IERC20(collateralAsset).balanceOf(address(this)) >= collateralAmount, "Insufficient balance for collateral");
+
+    IERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);
+    (, collateralAmount) = optionRegistry.open(seriesAddress, amount);
+    emit WriteOption(seriesAddress, amount, premium, collateralAmount, msg.sender);
+    
 
     if (Types.isCall(flavor)) {
         (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
@@ -675,14 +690,14 @@ contract LiquidityPool is
         weightedStrikeCall = newWeight;
         weightedTimeCall = newTime;
         // TODO: make sure this is ok with collateral types
-        strikeAllocated += collateralAmount;
+        collateralAllocated += collateralAmount;
     } else {
         (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
             amount, optionSeries.strike, optionSeries.expiration, totalAmountPut, weightedStrikePut, weightedTimePut);
         totalAmountPut = newTotal;
         weightedStrikePut = newWeight;
         weightedTimePut = newTime;
-        strikeAllocated += collateralAmount;
+        collateralAllocated += collateralAmount;
     }
     IERC20(seriesAddress).universalTransfer(msg.sender, toDecimals(amount, seriesAddress));
   }

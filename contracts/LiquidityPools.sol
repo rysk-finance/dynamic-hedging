@@ -11,13 +11,13 @@ contract LiquidityPools {
 
   event LiquidityPoolCreated(address lp, address strikeAsset);
 
-  function createLiquidityPool(address _strikeAsset, address underlying, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) public {
+  function createLiquidityPool(address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) public {
     address lp = strikeAssets[_strikeAsset];
-    require(lp == address(0), "Liquidity Pool already exists");
     lp = address(new LiquidityPool(
        protocol,
        _strikeAsset,
-       underlying,
+       _underlyingAsset,
+       _collateralAsset,
        rfr,
        callSkew,
        putSkew,

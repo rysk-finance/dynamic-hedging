@@ -61,7 +61,6 @@ import { OptionRegistry } from '../types/OptionRegistry'
 
 const IMPLIED_VOL = '60'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
-const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 
 /* --- variables to change --- */
 
@@ -78,12 +77,12 @@ const oTokenDecimalShift18 = 10000000000
 const strike = '20'
 
 // balances to deposit into the LP
-const liquidityPoolUsdcDeposit = '6000'
+const liquidityPoolUsdcDeposit = '10000'
 const liquidityPoolWethDeposit = '1'
 
 // balance to withdraw after deposit
 const liquidityPoolWethWithdraw = '0.1'
-const liquidityPoolUsdcWithdraw = '6000'
+const liquidityPoolUsdcWithdraw = '10000'
 
 /* --- end variables to change --- */
 
@@ -118,7 +117,7 @@ let rate: string
 const CALL_FLAVOR = BigNumber.from(call)
 const PUT_FLAVOR = BigNumber.from(put)
 
-describe('Liquidity Pools', async () => {
+describe('Liquidity Pools Deposit Withdraw', async () => {
   before(async function () {
     await hre.network.provider.request({
       method: 'hardhat_reset',
@@ -151,7 +150,6 @@ describe('Liquidity Pools', async () => {
     // deploy options registry
     const optionRegistryFactory = await ethers.getContractFactory('OpynOptionRegistry', {
       libraries: {
-        Constants: constants.address,
         OpynInteractions: interactions.address,
       },
     })
@@ -278,6 +276,7 @@ describe('Liquidity Pools', async () => {
     const lp = await liquidityPools.createLiquidityPool(
       usd.address,
       weth.address,
+      usd.address,
       toWei(rfr),
       coefs,
       coefs,
@@ -341,12 +340,12 @@ describe('Liquidity Pools', async () => {
       toUSDC(liquidityPoolUsdcDeposit),
       senderAddress
     )
-    const sendAmount = toUSDC('600')
+    const sendAmount = toUSDC('1000')
     const usdReceiver = usd.connect(receiver)
-    await usdReceiver.approve(liquidityPool.address, toUSDC('1000'))
+    await usdReceiver.approve(liquidityPool.address, sendAmount)
     const lpReceiver = liquidityPool.connect(receiver)
     const totalSupply = await liquidityPool.totalSupply()
-    await lpReceiver.deposit(toUSDC('600'), receiverAddress)
+    await lpReceiver.deposit(sendAmount, receiverAddress)
     const newTotalSupply = await liquidityPool.totalSupply()
     const lpBalance = await lpReceiver.balanceOf(receiverAddress)
     const difference = newTotalSupply.sub(lpBalance)
@@ -355,19 +354,32 @@ describe('Liquidity Pools', async () => {
   })
 
   it('LP can redeem shares', async () => {
-    const shares = await liquidityPool.balanceOf(senderAddress)
-    const totalShares = await liquidityPool.totalSupply();
-    const usdBalance = await usd.balanceOf(liquidityPool.address)
-    const withdraw = await liquidityPool.withdraw(shares, senderAddress)
+    const senderSharesBefore = await liquidityPool.balanceOf(senderAddress);
+    expect(senderSharesBefore).to.be.gt(0);
+    const senderUsdcBefore = await usd.balanceOf(senderAddress);
+    const receiverSharesBefore = await liquidityPool.balanceOf(receiverAddress);
+    expect(receiverSharesBefore).to.be.gt(0);
+    const totalSharesBefore = await liquidityPool.totalSupply();
+    const usdBalanceBefore = await usd.balanceOf(liquidityPool.address)
+    const withdraw = await liquidityPool.withdraw(senderSharesBefore, senderAddress)
     const receipt = await withdraw.wait(1)
     const events = receipt.events
     const removeEvent = events?.find((x) => x.event == 'Withdraw')
     const strikeAmount = removeEvent?.args?.strikeAmount
     const usdBalanceAfter = await usd.balanceOf(liquidityPool.address)
+    const receiverUsd = await usd.balanceOf(receiverAddress);
+    const senderUsdcAfter = await usd.balanceOf(senderAddress);
+    const senderSharesAfter = await liquidityPool.balanceOf(senderAddress);
+    const totalSharesAfter = await liquidityPool.totalSupply();
     //@ts-ignore
-    const diff = usdBalanceAfter - usdBalance;
-    expect(diff).to.be.eq(0)
-    expect(strikeAmount).to.be.eq(diff)
+    const diff = usdBalanceBefore - usdBalanceAfter;
+    expect(diff).to.be.eq(toUSDC(liquidityPoolUsdcDeposit));
+    expect(senderUsdcAfter.sub(senderUsdcBefore)).to.be.eq(toUSDC(liquidityPoolUsdcDeposit))
+    expect(senderUsdcAfter.sub(senderUsdcBefore)).to.be.eq(strikeAmount);
+    expect(senderSharesAfter).to.eq(0);
+    expect(totalSharesBefore.sub(totalSharesAfter)).to.be.eq(senderSharesBefore);
+    expect(totalSharesAfter).to.be.eq(receiverSharesBefore);
+    
   })
 
 })

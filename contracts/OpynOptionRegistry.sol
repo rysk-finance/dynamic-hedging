@@ -4,7 +4,6 @@ import "./interfaces/IERC20.sol";
 import "./tokens/UniversalERC20.sol";
 import { Types } from "./Types.sol";
 import {SafeERC20} from "./tokens/SafeERC20.sol";
-import { Constants } from "./libraries/Constants.sol";
 import { IController} from "./interfaces/GammaInterface.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import {OpynInteractions} from "./libraries/OpynInteractions.sol";
@@ -84,8 +83,8 @@ contract OpynOptionRegistry is Ownable {
         // deploy an oToken contract address
         require(expiration > block.timestamp, "Already expired");
         // create option storage hash
-        address u = IERC20(underlying).isETH() ? Constants.ethAddress() : underlying;
-        address s = strikeAsset == address(0) ? usd : strikeAsset;
+        address u = underlying;
+        address s = strikeAsset;
         bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, expiration, flavor, strike);
         //address collateralAsset = collateral == address(0) ? usd : collateral;
         // check for an opyn oToken if it doesn't exist deploy it
