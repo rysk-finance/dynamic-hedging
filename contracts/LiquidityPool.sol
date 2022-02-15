@@ -53,8 +53,9 @@ contract LiquidityPool is
   // amount of underlyingAsset allocated as collateral
   uint public underlyingAllocated;
   // max total supply of the lp shares
-  uint public maxTotalSupply;
-  // total number of calls active
+  uint public maxTotalSupply = type(uint256).max;
+  // TODO add setter
+  uint public maxDiscount = PRBMathUD60x18.SCALE.div(10); // As a percentage. Init at 10%
   uint public totalAmountCall;
   // total number of puts active
   uint public totalAmountPut;
@@ -523,25 +524,32 @@ contract LiquidityPool is
       returns (int256)
   {
       uint256 price = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      uint256 callIv = getImpliedVolatility(Types.Flavor.Call, price, weightedStrikeCall, weightedTimeCall);
-      uint256 putIv = getImpliedVolatility(Types.Flavor.Put, price, weightedStrikePut, weightedTimePut);
       uint256 rfr = riskFreeRate;
-      int256 callsDelta = BlackScholes.getDelta(
-         price,
-         weightedStrikeCall,
-         weightedTimeCall,
-         callIv,
-         rfr,
-         Types.Flavor.Call
-      );
-      int256 putsDelta = BlackScholes.getDelta(
-         price,
-         weightedStrikePut,
-         weightedTimePut,
-         putIv,
-         rfr,
-         Types.Flavor.Put
-      );
+      int256 callsDelta;
+      int256 putsDelta;
+      if (weightedTimeCall != 0) {
+        uint256 callIv = getImpliedVolatility(Types.Flavor.Call, price, weightedStrikeCall, weightedTimeCall);
+        callsDelta = BlackScholes.getDelta(
+          price,
+          weightedStrikeCall,
+          weightedTimeCall,
+          callIv,
+          rfr,
+          Types.Flavor.Call
+        );
+      }
+
+      if (weightedTimePut != 0) {
+        uint256 putIv = getImpliedVolatility(Types.Flavor.Put, price, weightedStrikePut, weightedTimePut);
+        putsDelta = BlackScholes.getDelta(
+           price,
+           weightedStrikePut,
+           weightedTimePut,
+           putIv,
+           rfr,
+           Types.Flavor.Put
+        );
+      }
       int256 externalDelta;
       // TODO fix hedging reactor address to be dynamic
       for (uint8 i=0; i < hedgingReactors.length; i++) {
@@ -615,17 +623,18 @@ contract LiquidityPool is
       uint underlyingPrice = getUnderlyingPrice(optionSeries);
       int portfolioDelta = getPortfolioDelta();
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
+      int distanceFromZero = PRBMathSD59x18.abs(newDelta - int(0));
+      uint percentageDifference = uint(distanceFromZero.div(portfolioDelta));
+
       bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
       uint utilization = amount.div(totalSupply());
       uint utilizationPrice = underlyingPrice.mul(utilization);
       if (isDecreased) {
+        uint discount = percentageDifference > maxDiscount ? maxDiscount : percentageDifference;
+        uint newOptionPrice = optionPrice - discount.mul(optionPrice);
         quote = utilizationPrice > optionPrice ? utilizationPrice : optionPrice;
       } else {
-        // compute delta adjusted price
-        // get percentage increase of new portfolio delta and increase option price by that percentage
-        int percentageDifference = (newDelta - deltaQuote).div(deltaQuote);
-        uint onePlusPercentage = PRBMathUD60x18.SCALE + uint256(percentageDifference);
-        uint newOptionPrice = onePlusPercentage.mul(optionPrice);
+        uint newOptionPrice = percentageDifference.mul(optionPrice) + optionPrice;
         quote = utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice;
       }
       delta = deltaQuote;
