@@ -383,16 +383,19 @@ describe('Liquidity Pools', async () => {
       strikeAsset: usd.address,
       underlying: weth.address,
     }
+    const poolBalanceBefore = await usd.balanceOf(liquidityPool.address);
     const quote = await liquidityPool.quotePriceWithUtilization(proposedSeries, amount)
     await usd.approve(liquidityPool.address, quote)
     const balance = await usd.balanceOf(senderAddress)
     const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
+    const poolBalanceAfter = await usd.balanceOf(liquidityPool.address);
     const receipt = await write.wait(1)
     const events = receipt.events
     const writeEvent = events?.find((x) => x.event == 'WriteOption')
     const seriesAddress = writeEvent?.args?.series
     const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
     const putBalance = await putOptionToken.balanceOf(senderAddress)
+    const registryUsdBalance = await liquidityPool.collateralAllocated();
     const balanceNew = await usd.balanceOf(senderAddress)
     const opynAmount = toOpyn(fromWei(amount))
     expect(putBalance).to.eq(opynAmount)
@@ -643,11 +646,6 @@ describe('Liquidity Pools', async () => {
 
   it('Adds additional liquidity from new account', async () => {
     const [sender, receiver] = signers
-    await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
-    await liquidityPool.deposit(
-      toUSDC(liquidityPoolUsdcDeposit),
-      senderAddress
-    )
     const sendAmount = toUSDC('10000')
     const usdReceiver = usd.connect(receiver)
     await usdReceiver.approve(liquidityPool.address, sendAmount)
@@ -681,9 +679,10 @@ describe('Liquidity Pools', async () => {
 
   it('LP can not redeems shares when in excess of liquidity', async () => {
     const [sender, receiver] = signers
+    
     const shares = await liquidityPool.balanceOf(receiverAddress)
     const liquidityPoolReceiver = liquidityPool.connect(receiver)
     const withdraw = liquidityPoolReceiver.withdraw(shares, receiverAddress)
-    await expect(withdraw).to.be.revertedWith('StrikeAmountExceedsLiquidity')
+    await expect(withdraw).to.be.revertedWith('Insufficient funds for a full withdrawal')
   })
 })

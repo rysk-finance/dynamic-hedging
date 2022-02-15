@@ -93,7 +93,6 @@ describe("Options protocol", function () {
 			"OpynOptionRegistry",
 			{
 				libraries: {
-					Constants: constants.address,
 					OpynInteractions: interactions.address
 				}
 			}

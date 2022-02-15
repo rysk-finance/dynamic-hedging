@@ -174,7 +174,7 @@ contract LiquidityPool is
   {
     require(_amount > 0, "!_amount");
     // Calculate shares to mint based on the amount provided
-    (shares) = _calcShareValue(_amount);
+    (shares) = _sharesForAmount(_amount);
     require(shares > 0, "!shares");
     // Pull in tokens from sender
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _amount);
@@ -200,7 +200,7 @@ contract LiquidityPool is
   {
     require(_shares > 0, "!shares");
     // get the value of amount for the shares
-    uint collateralAmount = _calcAmountValue(_shares);
+    uint collateralAmount = _shareValue(_shares);
     // determine if there is enough in the pool to withdraw
     // Calculate liquidity that can be withdrawn
     (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);               
@@ -226,7 +226,6 @@ contract LiquidityPool is
     // send funds to user
     IERC20(collateralAsset).universalTransfer(_recipient, transferCollateralAmount);
     //TODO implement book balance reconcilation check
-    console.log(transferCollateralAmount);
     emit Withdraw(_recipient, _shares, transferCollateralAmount);
   }
 
@@ -294,7 +293,7 @@ contract LiquidityPool is
         Types.Flavor.Call
       );     
       uint callsValue = totalAmountCall.mul(uint256(optionPrice));
-      return callsValue.min(totalAmountCall);
+      return callsValue;
   }
 
   /**
@@ -302,7 +301,7 @@ contract LiquidityPool is
    * @param _amount  the amount to convert to shares
    * @return shares the number of shares based on the amount
    */
-  function _calcShareValue(uint _amount)
+  function _sharesForAmount(uint _amount)
     internal
     view
     returns
@@ -315,7 +314,7 @@ contract LiquidityPool is
     if (totalSupply() == 0) {
       shares = convertedAmount;
     } else {
-      uint assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + collateralAllocated;
+      uint assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
       }
@@ -330,7 +329,7 @@ contract LiquidityPool is
    * @param _shares  the shares to convert to amount
    * @return amount the number of amount based on shares
    */
-  function _calcAmountValue(uint _shares)
+  function _shareValue(uint _shares)
     internal
     view
     returns
@@ -342,15 +341,17 @@ contract LiquidityPool is
     if (totalSupply() == 0) {
       amount = _shares;
     } else {
-      uint assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + collateralAllocated;
+      uint256 assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
       }
-      uint liabilities = _valueCallsWritten() + _valuePutsWritten();
-      uint NAV = assets - liabilities;
+      uint256 liabilities = _valueCallsWritten() + _valuePutsWritten();
+      uint256 NAV = assets - liabilities;
       amount = _shares.mul(NAV).div(totalSupply());
     }
+
   }
+
 
   /**
    * @notice get the price feed used by the liquidity pool
