@@ -595,6 +595,40 @@ describe('Liquidity Pools', async () => {
     expect(fromOpyn(totalInterest)).to.eq(fromWei(amount))
   })
 
+  it('LP Writes a ETH/USD put for premium', async () => {
+    const [sender] = signers
+    const amount = toWei('1')
+    const blockNum = await ethers.provider.getBlockNumber()
+    const block = await ethers.provider.getBlock(blockNum)
+    const { timestamp } = block
+    const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+    const strikePrice = priceQuote.sub(toWei(strike))
+    const proposedSeries = {
+      expiration: fmtExpiration(expiration),
+      flavor: PUT_FLAVOR,
+      strike: BigNumber.from(strikePrice),
+      strikeAsset: usd.address,
+      underlying: weth.address,
+    }
+    const quote = await liquidityPool.quotePriceWithUtilization(proposedSeries, amount)
+    const quoteUtil = await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
+    console.log({quote, quoteUtil}, quoteUtil.quote, quoteUtil.delta);
+    await usd.approve(liquidityPool.address, quote)
+    const balance = await usd.balanceOf(senderAddress)
+    const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount, usd.address)
+    const receipt = await write.wait(1)
+    const events = receipt.events
+    const writeEvent = events?.find((x) => x.event == 'WriteOption')
+    const seriesAddress = writeEvent?.args?.series
+    const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+    const putBalance = await putOptionToken.balanceOf(senderAddress)
+    const balanceNew = await usd.balanceOf(senderAddress)
+    const opynAmount = toOpyn(fromWei(amount))
+    expect(putBalance).to.eq(opynAmount)
+    // ensure funds are being transfered
+    expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
+  })
+
   it('Can compute IV from volatility skew coefs', async () => {
     const coefs: BigNumberish[] = [
       1.42180236,
