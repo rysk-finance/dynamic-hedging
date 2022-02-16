@@ -1,6 +1,6 @@
 import hre, { ethers, network } from "hardhat"
 import { Contract, utils, Signer } from "ethers"
-import { toWei, call, put } from "../utils"
+import { toWei, call, put } from "../utils/conversion-helper"
 import { expect } from "chai"
 import moment from "moment"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
@@ -79,7 +79,6 @@ describe("Options protocol", function () {
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OpynOptionRegistry", {
 			libraries: {
-				Constants: constants.address,
 				OpynInteractions: interactions.address
 			}
 		})
