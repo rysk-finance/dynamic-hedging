@@ -52,7 +52,11 @@ contract LiquidityPool is
   uint public collateralAllocated;
   // amount of underlyingAsset allocated as collateral
   uint public underlyingAllocated;
+<<<<<<< variant A
   // max total supply of the lp shares
+>>>>>>> variant B
+  // total number of calls active
+======= end
   uint public maxTotalSupply = type(uint256).max;
   // TODO add setter
   uint public maxDiscount = PRBMathUD60x18.SCALE.div(10); // As a percentage. Init at 10%
