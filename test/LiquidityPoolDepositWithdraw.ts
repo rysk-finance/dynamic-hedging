@@ -19,6 +19,7 @@ import {
   fromOpyn,
   toOpyn,
   tFormatUSDC,
+  toWeiFromUSDC
 } from '../utils/conversion-helper'
 import { deployMockContract, MockContract } from '@ethereum-waffle/mock-contract'
 import moment from 'moment'
@@ -60,7 +61,6 @@ import { OptionRegistry } from '../types/OptionRegistry'
 
 const IMPLIED_VOL = '60'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
-const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
 
 /* --- variables to change --- */
 
@@ -81,11 +81,12 @@ const liquidityPoolUsdcDeposit = '10000'
 const liquidityPoolWethDeposit = '1'
 
 // balance to withdraw after deposit
-const liquidityPoolWethWidthdraw = '0.1'
+const liquidityPoolWethWithdraw = '0.1'
+const liquidityPoolUsdcWithdraw = '10000'
 
 /* --- end variables to change --- */
 
-const expiration = moment.utc(expiryDate).add(8, 'h').valueOf() / 1000
+const expiration = moment(expiryDate).add(8, 'h').valueOf() / 1000
 
 let usd: MintableERC20
 let wethERC20: ERC20Interface
@@ -116,7 +117,7 @@ let rate: string
 const CALL_FLAVOR = BigNumber.from(call)
 const PUT_FLAVOR = BigNumber.from(put)
 
-describe('Liquidity Pools', async () => {
+describe('Liquidity Pools Deposit Withdraw', async () => {
   before(async function () {
     await hre.network.provider.request({
       method: 'hardhat_reset',
@@ -285,7 +286,7 @@ describe('Liquidity Pools', async () => {
     expect(createEvent?.event).to.eq('LiquidityPoolCreated')
     expect(strikeAsset).to.eq(usd.address)
     liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
-    optionRegistry.setLiquidityPool(liquidityPool.address)
+    await optionRegistry.setLiquidityPool(liquidityPool.address)
   })
 
   it('Deposit to the liquidityPool', async () => {
@@ -314,54 +315,38 @@ describe('Liquidity Pools', async () => {
     expect(liquidityPoolBalance.toString()).to.eq(toWei(liquidityPoolUsdcDeposit));
 
   })
-  it('Returns a quote for a ETH/USD put with utilization', async () => {
-    const totalLiqidity = await liquidityPool.totalSupply()
-    const amount = toWei('5')
-    const blockNum = await ethers.provider.getBlockNumber()
-    const block = await ethers.provider.getBlock(blockNum)
-    const { timestamp } = block
-    const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration)
-    const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-    const strikePrice = priceQuote.sub(toWei(strike))
-    const priceNorm = fromWei(priceQuote)
-    const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity))
-    const utilizationPrice = Number(priceNorm) * utilization
-    const optionSeries = {
-      expiration: fmtExpiration(expiration),
-      flavor: PUT_FLAVOR,
-      strike: strikePrice,
-      strikeAsset: usd.address,
-      underlying: weth.address,
-    }
-    const iv = await liquidityPool.getImpliedVolatility(
-      optionSeries.flavor,
-      priceQuote,
-      optionSeries.strike,
-      optionSeries.expiration,
+
+  it('Removes from liquidityPool with no options written', async () => {
+    const liquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
+    await liquidityPool.withdraw(liquidityPoolBalance, senderAddress)
+    const newLiquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
+    const expectedBalance = (
+      parseFloat(liquidityPoolUsdcDeposit) - parseFloat(liquidityPoolUsdcWithdraw)
+    ).toString()
+    expect(newLiquidityPoolBalance).to.eq(toWei(expectedBalance))
+    expect(liquidityPoolBalance.sub(newLiquidityPoolBalance)).to.eq(
+      toWei(liquidityPoolUsdcWithdraw),
     )
-    const localBS = bs.blackScholes(
-      priceNorm,
-      fromWei(strikePrice),
-      timeToExpiration,
-      fromWei(iv),
-      parseFloat(rfr),
-      'put',
+  })
+
+  it('Adds additional liquidity from new account', async () => {
+    const [sender, receiver] = signers
+    await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
+    await liquidityPool.deposit(
+      toUSDC(liquidityPoolUsdcDeposit),
+      senderAddress
     )
-    const finalQuote = utilizationPrice > localBS ? utilizationPrice : localBS
-    const quote = await liquidityPool.quotePriceWithUtilization(
-      {
-        expiration: fmtExpiration(expiration),
-        flavor: PUT_FLAVOR,
-        strike: BigNumber.from(strikePrice),
-        strikeAsset: usd.address,
-        underlying: weth.address,
-      },
-      amount,
-    )
-    const truncQuote = truncate(finalQuote)
-    const chainQuote = tFormatEth(quote.toString())
-    const diff = percentDiff(truncQuote, chainQuote)
-    expect(diff).to.be.lt(0.01)
+    const sendAmount = toUSDC('1000')
+    const usdReceiver = usd.connect(receiver)
+    await usdReceiver.approve(liquidityPool.address, sendAmount)
+    const lpReceiver = liquidityPool.connect(receiver)
+    const totalSupply = await liquidityPool.totalSupply()
+    await lpReceiver.deposit(sendAmount, receiverAddress)
+    const newTotalSupply = await liquidityPool.totalSupply()
+    const lpBalance = await lpReceiver.balanceOf(receiverAddress)
+    const difference = newTotalSupply.sub(lpBalance)
+    expect(difference).to.eq((await lpReceiver.balanceOf(senderAddress)))
+    expect(newTotalSupply).to.eq(totalSupply.add(lpBalance))
   })
   it('LP Writes a ETH/USD put for premium', async () => {
     const [sender] = signers
@@ -397,281 +382,34 @@ describe('Liquidity Pools', async () => {
     // ensure funds are being transfered
     expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
   })
-  it('can compute portfolio delta', async function () {
-    const res = await liquidityPool.getPortfolioDelta()
-  })
-
-  it('Creates a liquidity pool with ETH as collateralAsset', async () => {
-    type int7 = [
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-    ]
-    type number7 = [number, number, number, number, number, number, number]
-    const coefInts: number7 = [
-      1.42180236,
-      0,
-      -0.08626792,
-      0.07873822,
-      0.00650549,
-      0.02160918,
-      -0.1393287,
-    ]
-    //@ts-ignore
-    const coefs: int7 = coefInts.map((x) => toWei(x.toString()))
-    const lp = await liquidityPools.createLiquidityPool(
-      usd.address,
-      weth.address,
-      weth.address,
-      toWei(rfr),
-      coefs,
-      coefs,
-      'weth/usd',
-      'wdp',
-    )
-    const receipt = await lp.wait(1)
-    const events = receipt.events
-    const createEvent = events?.find((x) => x.event == 'LiquidityPoolCreated')
-    const strikeAsset = createEvent?.args?.strikeAsset
-    const lpAddress = createEvent?.args?.lp
-
-    expect(createEvent?.event).to.eq('LiquidityPoolCreated')
-    
-    ethLiquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
-    const collateralAsset = await ethLiquidityPool.collateralAsset();
-    expect(collateralAsset).to.eq(weth.address)
-  })
-
-  //TODO change to weth deposit contract
-  // it('Adds liquidity to the ETH liquidityPool', async () => {
-  //     const amount = toWei('10');
-  //     await weth.deposit({ value: amount});
-  //     await weth.approve(ethLiquidityPool.address, amount);
-  //     const addLiquidity = await ethLiquidityPool.addLiquidity(amount);
-  //     const liquidityPoolBalance = await ethLiquidityPool.balanceOf(senderAddress);
-  //     const addLiquidityReceipt = await addLiquidity.wait(1);
-  //     const addLiquidityEvents = addLiquidityReceipt.events;
-  //     const addLiquidityEvent = addLiquidityEvents?.find(x => x.event == 'LiquidityAdded');
-  //     expect(liquidityPoolBalance).to.eq(amount);
-  //     expect(addLiquidityEvent?.event).to.eq('LiquidityAdded');
-  // });
-
-  it('Returns a quote for a single ETH/USD call option', async () => {
-    const blockNum = await ethers.provider.getBlockNumber()
-    const block = await ethers.provider.getBlock(blockNum)
-    const { timestamp } = block
-
-    const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration)
-    const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-    // const strikePrice = priceQuote.add(toWei(strike))
-    // const optionSeries = {
-    //   expiration: fmtExpiration(expiration.unix()),
-    //   flavor: CALL_FLAVOR,
-    //   strike: strikePrice,
-    //   strikeAsset: usd.address,
-    //   underlying: weth.address,
-    // }
-    // const iv = await liquidityPool.getImpliedVolatility(
-    //   optionSeries.flavor,
-    //   priceQuote,
-    //   optionSeries.strike,
-    //   optionSeries.expiration,
-    // )
-    // const localBS = bs.blackScholes(
-    //   fromWei(priceQuote),
-    //   fromWei(strikePrice),
-    //   timeToExpiration,
-    //   fromWei(iv),
-    //   parseFloat(rfr),
-    //   'call',
-    // )
-    // await priceFeed.addPriceFeed(ETH_ADDRESS, usd.address, ethUSDAggregator.address)
-    // const quote = await liquidityPool.quotePrice(optionSeries)
-    // expect(Math.round(truncate(localBS))).to.eq(Math.round(tFormatEth(quote.toString())))
-  })
-
-  it('Returns a quote for ETH/USD call with utilization', async () => {
-    const totalLiqidity = await liquidityPool.totalSupply()
-    const amount = toWei('5')
-    const blockNum = await ethers.provider.getBlockNumber()
-    const block = await ethers.provider.getBlock(blockNum)
-    const { timestamp } = block
-    const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration)
-    const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-    const strikePrice = priceQuote.add(toWei(strike))
-    const priceNorm = fromWei(priceQuote)
-    const volatility = Number(IMPLIED_VOL) / 100
-    const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity))
-    const utilizationPrice = Number(priceNorm) * utilization
-    const optionSeries = {
-      expiration: fmtExpiration(expiration),
-      flavor: CALL_FLAVOR,
-      strike: strikePrice,
-      strikeAsset: usd.address,
-      underlying: weth.address,
-    }
-    const iv = await liquidityPool.getImpliedVolatility(
-      optionSeries.flavor,
-      priceQuote,
-      optionSeries.strike,
-      optionSeries.expiration,
-    )
-    const localBS = bs.blackScholes(
-      priceNorm,
-      fromWei(strikePrice),
-      timeToExpiration,
-      fromWei(iv),
-      parseFloat(rfr),
-      'call',
-    )
-    const finalQuote = utilizationPrice > localBS ? utilizationPrice : localBS
-    const quote = await liquidityPool.quotePriceWithUtilization(
-      {
-        expiration: fmtExpiration(expiration),
-        flavor: BigNumber.from(call),
-        strike: BigNumber.from(strikePrice),
-        strikeAsset: usd.address,
-        underlying: weth.address,
-      },
-      amount,
-    )
-    const truncFinalQuote = Math.round(truncate(finalQuote))
-    const formatEthQuote = Math.round(tFormatEth(quote.toString()))
-    expect(truncFinalQuote).to.be.eq(formatEthQuote)
-  })
-
-  let lpCallOption: IOToken
-  it('LP Writes a WETH/USD call collateralized by WETH for premium', async () => {
-    // registry requires liquidity pool to be owner
-    optionRegistry.setLiquidityPool(ethLiquidityPool.address)
-    const [sender] = signers
-    const amount = toWei('1')
-    const blockNum = await ethers.provider.getBlockNumber()
-    const block = await ethers.provider.getBlock(blockNum)
-    const { timestamp } = block
-
-    // opyn contracts require expiration to be at 8:00 UTC
-
-    const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-    const strikePrice = priceQuote.add(toWei(strike))
-    //await usd.mint(senderAddress, toWei('6000'))
-    await usd.approve(ethLiquidityPool.address, toUSDC('6000'))
-    await weth.deposit({ value: amount.mul('5') })
-    await weth.approve(ethLiquidityPool.address, amount.mul('5'))
-    await ethLiquidityPool.deposit(amount.mul('4'), senderAddress)
-    const lpUSDBalanceBefore = await usd.balanceOf(ethLiquidityPool.address)
-    const proposedSeries = {
-      expiration: fmtExpiration(expiration),
-      flavor: BigNumber.from(call),
-      strike: BigNumber.from(strikePrice),
-      strikeAsset: usd.address,
-      underlying: weth.address,
-    }
-    const quote = await ethLiquidityPool.quotePriceWithUtilization(proposedSeries, amount)
-    await usd.approve(ethLiquidityPool.address, quote.toString())
-    const write = await ethLiquidityPool.issueAndWriteOption(
-      proposedSeries,
-      amount
-    )
-    const receipt = await write.wait(1)
-    const events = receipt.events
-    const writeEvent = events?.find((x) => x.event == 'WriteOption')
-    const seriesAddress = writeEvent?.args?.series
-    const callOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
-    lpCallOption = callOptionToken
-    const buyerOptionBalance = await callOptionToken.balanceOf(senderAddress)
-    //@ts-ignore
-    const totalInterest = await callOptionToken.totalSupply()
-    const writersBalance = await optionRegistry.writers(seriesAddress, ethLiquidityPool.address)
-    const lpUSDBalance = await usd.balanceOf(ethLiquidityPool.address)
-    const senderEthBalance = await sender.getBalance()
-    const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance)
-    expect(writersBalance).to.eq(amount)
-    expect(fromOpyn(buyerOptionBalance)).to.eq(fromWei(amount))
-    expect(fromOpyn(totalInterest)).to.eq(fromWei(amount))
-  })
-
-  it('Can compute IV from volatility skew coefs', async () => {
-    const coefs: BigNumberish[] = [
-      1.42180236,
-      0,
-      -0.08626792,
-      0.07873822,
-      0.00650549,
-      0.02160918,
-      -0.1393287,
-    ].map((x) => toWei(x.toString()))
-    const points = [-0.36556715, 0.59115575].map((x) => toWei(x.toString()))
-    const expected_iv = 1.4473946
-    //@ts-ignore
-    const res = await volatility.computeIVFromSkewInts(coefs, points)
-    expect(tFormatEth(res)).to.eq(truncate(expected_iv))
-  })
-
-  // it('Can set the calls volatility skew', async () => {
-  //   const coefInts: number[] = [
-  //     1.42180236,
-  //     0,
-  //     -0.08626792,
-  //     0.07873822,
-  //     0.00650549,
-  //     0.02160918,
-  //     -0.1393287,
-  //   ]
-  //   const coefs: BigNumberish[] = coefInts.map((x) => toWei(x.toString()))
-  //   //@ts-ignore
-  //   const res = await liquidityPool.setVolatilitySkew(
-  //     coefs,
-  //     BigNumber.from(call),
-  //   )
-  //   const vs = await liquidityPool.getVolatilitySkew(BigNumber.from(call))
-  //   const converted = vs.map((n: BigNumber) => fromWei(n))
-  //   const diff = percentDiffArr(converted, coefInts)
-  //   // allow for small float inprecision
-  //   expect(diff).to.eq(0)
-  // })
-
-  it('can set the puts volatility skew', async () => {})
-
-  it('LP can buy back option to reduce open interest', async () => {})
-
-  it('Adds additional liquidity from new account', async () => {
-    const [sender, receiver] = signers
-    const sendAmount = toUSDC('10000')
-    const usdReceiver = usd.connect(receiver)
-    await usdReceiver.approve(liquidityPool.address, sendAmount)
-    const lpReceiver = liquidityPool.connect(receiver)
-    const totalSupply = await liquidityPool.totalSupply()
-    await lpReceiver.deposit(sendAmount, receiverAddress)
-    const newTotalSupply = await liquidityPool.totalSupply()
-    const lpBalance = await lpReceiver.balanceOf(receiverAddress)
-    const difference = newTotalSupply.sub(lpBalance)
-    expect(difference).to.eq((await lpReceiver.balanceOf(senderAddress)))
-    expect(newTotalSupply).to.eq(totalSupply.add(lpBalance))
-  })
-
   it('LP can redeem shares', async () => {
-    const shares = await liquidityPool.balanceOf(senderAddress)
-    const totalShares = await liquidityPool.totalSupply()
-    //@ts-ignore
-    const ratio = 1 / fromWei(totalShares)
-    const usdBalance = await usd.balanceOf(liquidityPool.address)
-    const withdraw = await liquidityPool.withdraw(shares, senderAddress)
+    const senderSharesBefore = await liquidityPool.balanceOf(senderAddress);
+    expect(senderSharesBefore).to.be.gt(0);
+    const senderUsdcBefore = await usd.balanceOf(senderAddress);
+    const receiverSharesBefore = await liquidityPool.balanceOf(receiverAddress);
+    expect(receiverSharesBefore).to.be.gt(0);
+    const totalSharesBefore = await liquidityPool.totalSupply();
+    const usdBalanceBefore = await usd.balanceOf(liquidityPool.address)
+    const withdraw = await liquidityPool.withdraw(senderSharesBefore, senderAddress)
     const receipt = await withdraw.wait(1)
     const events = receipt.events
     const removeEvent = events?.find((x) => x.event == 'Withdraw')
     const strikeAmount = removeEvent?.args?.strikeAmount
     const usdBalanceAfter = await usd.balanceOf(liquidityPool.address)
+    const receiverUsd = await usd.balanceOf(receiverAddress);
+    const senderUsdcAfter = await usd.balanceOf(senderAddress);
+    const senderSharesAfter = await liquidityPool.balanceOf(senderAddress);
+    const totalSharesAfter = await liquidityPool.totalSupply();
     //@ts-ignore
-    const diff = fromWei(usdBalance) * ratio
-    expect(diff).to.be.lt(1)
-    expect(strikeAmount).to.be.eq(usdBalance.sub(usdBalanceAfter))
+    const diff = usdBalanceBefore - usdBalanceAfter;
+    expect(diff - (toUSDC(liquidityPoolUsdcDeposit).toNumber())).to.be.within(0, 20);
+    expect(senderUsdcAfter.sub(senderUsdcBefore).sub(toUSDC(liquidityPoolUsdcDeposit))).to.be.within(0, 20)
+    expect(senderUsdcAfter.sub(senderUsdcBefore)).to.be.eq(strikeAmount);
+    expect(senderSharesAfter).to.eq(0);
+    expect(totalSharesBefore.sub(totalSharesAfter)).to.be.eq(senderSharesBefore);
+    expect(totalSharesAfter).to.be.eq(receiverSharesBefore);
+    
   })
-
   it('LP can not redeems shares when in excess of liquidity', async () => {
     const [sender, receiver] = signers
     

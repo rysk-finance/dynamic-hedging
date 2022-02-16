@@ -25,7 +25,7 @@ contract UniswapV3HedgingTest {
         return IHedgingReactor(uniswapV3HedgingReactor).getDelta();
     }
 
-    function withdraw(uint256 _amount, address _token) public {
+    function withdraw(uint256 _amount, address _token) public returns (uint256){
         return IHedgingReactor(uniswapV3HedgingReactor).withdraw(_amount, _token);
     }
 

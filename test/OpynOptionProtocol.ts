@@ -8,7 +8,7 @@ import {
 	toWei,
 	call,
 	put,
-} from "../utils"
+} from "../utils/conversion-helper"
 import { expect } from "chai"
 import moment from 'moment'
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
@@ -93,7 +93,6 @@ describe("Options protocol", function () {
 			"OpynOptionRegistry",
 			{
 				libraries: {
-					Constants: constants.address,
 					OpynInteractions: interactions.address
 				}
 			}

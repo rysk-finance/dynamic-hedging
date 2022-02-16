@@ -5,8 +5,10 @@ import { MintableERC20 } from '../types/MintableERC20'
 import { UniswapV3HedgingReactor } from '../types/UniswapV3HedgingReactor'
 import { UniswapV3HedgingTest } from '../types/UniswapV3HedgingTest'
 import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_SWAP_ROUTER } from './constants'
-import { toWei } from '../utils'
-
+import { toWei } from '../utils/conversion-helper'
+import { PriceFeed } from '../types/PriceFeed'
+import { deployMockContract, MockContract } from '@ethereum-waffle/mock-contract'
+import AggregatorV3Interface from '../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json'
 let signers: Signer[]
 let deployerAddress: string
 let usdcWhale: Signer
@@ -16,6 +18,10 @@ let liquidityPoolDummyAddress: string
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let usdcContract: MintableERC20
 let wethContract: MintableERC20
+let priceFeed: PriceFeed
+let ethUSDAggregator: MockContract
+let rate: string
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 // edit depending on the chain id to be tested on
 const chainId = 1
@@ -64,7 +70,27 @@ describe('UniswapV3HedgingReactor', () => {
 
     expect(LPContractBalance).to.equal(1000000)
   })
+  it('Should deploy price feed', async () => {
 
+    ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
+
+    const priceFeedFactory = await ethers.getContractFactory('PriceFeed')
+    const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
+    priceFeed = _priceFeed
+    await priceFeed.addPriceFeed(ZERO_ADDRESS, USDC_ADDRESS[chainId], ethUSDAggregator.address)
+    await priceFeed.addPriceFeed(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId], ethUSDAggregator.address)
+    const feedAddress = await priceFeed.priceFeeds(ZERO_ADDRESS, USDC_ADDRESS[chainId])
+    expect(feedAddress).to.eq(ethUSDAggregator.address)
+    rate = '2890000000'
+    await ethUSDAggregator.mock.latestRoundData.returns(
+      '55340232221128660932',
+      rate,
+      '1607534965',
+      '1607535064',
+      '55340232221128660932',
+    )
+    await ethUSDAggregator.mock.decimals.returns('6')
+  })
   it('deploys the hedging reactor', async () => {
     const uniswapV3HedgingReactorFactory = await ethers.getContractFactory(
       'UniswapV3HedgingReactor',
@@ -79,6 +105,7 @@ describe('UniswapV3HedgingReactor', () => {
       WETH_ADDRESS[chainId],
       liquidityPoolDummyAddress,
       3000,
+      priceFeed.address
     )) as UniswapV3HedgingReactor
 
     expect(uniswapV3HedgingReactor).to.have.property('hedgeDelta')
@@ -168,6 +195,14 @@ describe('UniswapV3HedgingReactor', () => {
       ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta())),
     )
     expect(reactorDelta).to.equal(20)
+  })
+  it('gets the portfolio value', async () => {
+    const usdBalance = await usdcContract.balanceOf(uniswapV3HedgingReactor.address);
+    const wethBalance = await wethContract.balanceOf(uniswapV3HedgingReactor.address);
+    const val = await uniswapV3HedgingReactor.getPoolDenominatedValue()
+    const usdValue = usdBalance.mul(1000000000000);
+    const wethValue = wethBalance.mul(rate).div(1000000);
+    expect(usdValue.add(wethValue)).to.eq(val);
   })
   it('hedges a positive delta with sufficient funds', async () => {
     const LpUsdcBalanceBefore = parseFloat(
@@ -266,7 +301,7 @@ describe('UniswapV3HedgingReactor', () => {
       ),
     )
     const withdrawTx = await liquidityPoolDummy.withdraw(
-      ethers.utils.parseUnits(withdrawAmount, 6),
+      ethers.utils.parseUnits(withdrawAmount, 18),
       usdcContract.address,
     )
     let reactorUsdcBalanceOld = reactorUsdcBalance
@@ -326,7 +361,7 @@ describe('UniswapV3HedgingReactor', () => {
     expect(parseFloat(withdrawAmount)).to.be.above(reactorUsdcBalanceBefore)
     // withdraw more than current balance
     await liquidityPoolDummy.withdraw(
-      ethers.utils.parseUnits(withdrawAmount, 6),
+      ethers.utils.parseUnits(withdrawAmount, 18),
       usdcContract.address,
     )
     await liquidityPoolDummy.getDelta()
@@ -375,7 +410,7 @@ describe('UniswapV3HedgingReactor', () => {
     expect(reactorWethBalanceBefore).to.be.above(0)
     const withdrawAmount = '100000000' //100 million
     const tx = await liquidityPoolDummy.withdraw(
-      ethers.utils.parseUnits(withdrawAmount, 6),
+      ethers.utils.parseUnits(withdrawAmount, 18),
       usdcContract.address,
     )
 
@@ -451,7 +486,6 @@ describe('UniswapV3HedgingReactor', () => {
     const tx = await uniswapV3HedgingReactor.changePoolFee(1000)
     poolFee = await uniswapV3HedgingReactor.poolFee()
     expect(poolFee).to.equal(1000)
-    console.log(poolFee)
   })
 
   it('update pool fee reverts if not owner', async () => {
@@ -465,9 +499,11 @@ describe('UniswapV3HedgingReactor', () => {
       uniswapV3HedgingReactor.withdraw(100000000000, usdcContract.address),
     ).to.be.revertedWith('!vault')
   })
+
   it('hedgeDelta reverts if not called from liquidity pool', async () => {
     await expect(
       uniswapV3HedgingReactor.hedgeDelta(ethers.utils.parseEther('-10')),
     ).to.be.revertedWith('!vault')
   })
+
 })

@@ -11,7 +11,7 @@ import {
     sample,
     percentDiff,
     BlackScholesCalcArgs
-} from '../utils';
+} from '../utils/conversion-helper';
 import moment from "moment";
 //@ts-ignore
 import bs from "black-scholes";
