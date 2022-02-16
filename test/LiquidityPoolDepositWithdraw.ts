@@ -177,11 +177,6 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
     expect(optionRegistry).to.have.property('deployTransaction')
   })
   it('Should deploy price feed', async () => {
-    //const Weth = await ethers.getContractFactory(
-    //  'contracts/tokens/WETH.sol:WETH',
-    // )
-    //const wethContract = (await Weth.deploy()) as WETH
-    //weth = wethContract
 
     ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
 
@@ -291,6 +286,7 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
     expect(createEvent?.event).to.eq('LiquidityPoolCreated')
     expect(strikeAsset).to.eq(usd.address)
     liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
+    await optionRegistry.setLiquidityPool(liquidityPool.address)
   })
 
   it('Deposit to the liquidityPool', async () => {
@@ -352,7 +348,40 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
     expect(difference).to.eq((await lpReceiver.balanceOf(senderAddress)))
     expect(newTotalSupply).to.eq(totalSupply.add(lpBalance))
   })
-
+  it('LP Writes a ETH/USD put for premium', async () => {
+    const [sender] = signers
+    const amount = toWei('1')
+    const blockNum = await ethers.provider.getBlockNumber()
+    const block = await ethers.provider.getBlock(blockNum)
+    const { timestamp } = block
+    const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+    const strikePrice = priceQuote.sub(toWei(strike))
+    const proposedSeries = {
+      expiration: fmtExpiration(expiration),
+      flavor: PUT_FLAVOR,
+      strike: BigNumber.from(strikePrice),
+      strikeAsset: usd.address,
+      underlying: weth.address,
+    }
+    const poolBalanceBefore = await usd.balanceOf(liquidityPool.address);
+    const quote = await liquidityPool.quotePriceWithUtilization(proposedSeries, amount)
+    await usd.approve(liquidityPool.address, quote)
+    const balance = await usd.balanceOf(senderAddress)
+    const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
+    const poolBalanceAfter = await usd.balanceOf(liquidityPool.address);
+    const receipt = await write.wait(1)
+    const events = receipt.events
+    const writeEvent = events?.find((x) => x.event == 'WriteOption')
+    const seriesAddress = writeEvent?.args?.series
+    const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+    const putBalance = await putOptionToken.balanceOf(senderAddress)
+    const registryUsdBalance = await liquidityPool.collateralAllocated();
+    const balanceNew = await usd.balanceOf(senderAddress)
+    const opynAmount = toOpyn(fromWei(amount))
+    expect(putBalance).to.eq(opynAmount)
+    // ensure funds are being transfered
+    expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
+  })
   it('LP can redeem shares', async () => {
     const senderSharesBefore = await liquidityPool.balanceOf(senderAddress);
     expect(senderSharesBefore).to.be.gt(0);
@@ -373,13 +402,20 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
     const totalSharesAfter = await liquidityPool.totalSupply();
     //@ts-ignore
     const diff = usdBalanceBefore - usdBalanceAfter;
-    expect(diff).to.be.eq(toUSDC(liquidityPoolUsdcDeposit));
-    expect(senderUsdcAfter.sub(senderUsdcBefore)).to.be.eq(toUSDC(liquidityPoolUsdcDeposit))
+    expect(diff - (toUSDC(liquidityPoolUsdcDeposit).toNumber())).to.be.within(0, 20);
+    expect(senderUsdcAfter.sub(senderUsdcBefore).sub(toUSDC(liquidityPoolUsdcDeposit))).to.be.within(0, 20)
     expect(senderUsdcAfter.sub(senderUsdcBefore)).to.be.eq(strikeAmount);
     expect(senderSharesAfter).to.eq(0);
     expect(totalSharesBefore.sub(totalSharesAfter)).to.be.eq(senderSharesBefore);
     expect(totalSharesAfter).to.be.eq(receiverSharesBefore);
     
   })
-
+  it('LP can not redeems shares when in excess of liquidity', async () => {
+    const [sender, receiver] = signers
+    
+    const shares = await liquidityPool.balanceOf(receiverAddress)
+    const liquidityPoolReceiver = liquidityPool.connect(receiver)
+    const withdraw = liquidityPoolReceiver.withdraw(shares, receiverAddress)
+    await expect(withdraw).to.be.revertedWith('Insufficient funds for a full withdrawal')
+  })
 })

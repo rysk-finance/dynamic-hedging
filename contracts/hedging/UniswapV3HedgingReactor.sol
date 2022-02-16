@@ -2,10 +2,9 @@ pragma solidity >=0.8.9;
 
 import "../PriceFeed.sol";
 import "../access/Ownable.sol";
-import "../tokens/SafeERC20.sol";
 import "../interfaces/IERC20.sol";
 import "../libraries/OptionsCompute.sol";
-import '../libraries/TransferHelper.sol';
+import '../libraries/SafeTransferLib.sol';
 import "../interfaces/IHedgingReactor.sol";
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import "hardhat/console.sol";
@@ -16,8 +15,6 @@ import "hardhat/console.sol";
  */
 
 contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
-
-    using SafeERC20 for IERC20;
 
     /// @notice used for unlimited token approval 
     uint256 private constant MAX_UINT = 2**256 - 1;
@@ -52,9 +49,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         priceFeed = _priceFeed;
 
         for (uint i=0; i < _stableAddresses.length; i++) {
-            TransferHelper.safeApprove( _stableAddresses[i] , address(swapRouter), MAX_UINT );
+            SafeTransferLib.safeApprove( ERC20(_stableAddresses[i]), address(swapRouter), MAX_UINT );
         }
-        TransferHelper.safeApprove( _wethAddress , address(swapRouter), MAX_UINT );
+        SafeTransferLib.safeApprove( ERC20(_wethAddress), address(swapRouter), MAX_UINT );
     }
 
     
@@ -106,7 +103,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         uint256 balance = IERC20(_token).balanceOf(address(this));
         uint256 convertedBalance = OptionsCompute.convertFromDecimals(balance, IERC20(_token).decimals());
         if (convertedAmount <= balance) {
-            SafeERC20.safeTransfer( IERC20(_token) ,msg.sender, convertedAmount);
+            SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, convertedAmount);
             return _amount;
         } else {
             // not enough in balance. Liquidate ETH.
@@ -115,11 +112,11 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             uint256 stablesReceived = _liquidateETH(convertedAmount - balance, ethBalance, _token);         
             balance = IERC20(_token).balanceOf(address(this));
             if(balance < convertedAmount){
-                SafeERC20.safeTransfer( IERC20(_token) ,msg.sender, balance);
+                SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, balance);
                 internalDelta = int256(IERC20(wETH).balanceOf(address(this)));
                 return convertedBalance;
             } else {
-                SafeERC20.safeTransfer( IERC20(_token) ,msg.sender, convertedAmount);
+                SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, convertedAmount);
                 internalDelta = int256(IERC20(wETH).balanceOf(address(this)));
                 return _amount;
             }
@@ -154,7 +151,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         @param _sellToken the stablecoin to sell
     */
     function _swapExactOutputSingle(uint256 _amountOut, uint256 _amountInMaximum, address _sellToken) internal returns (int256, uint256) {
-        TransferHelper.safeTransferFrom(_sellToken, msg.sender, address(this), 100000000000);
+        SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), 100000000000);
 
         ISwapRouter.ExactOutputSingleParams memory params =
             ISwapRouter.ExactOutputSingleParams({

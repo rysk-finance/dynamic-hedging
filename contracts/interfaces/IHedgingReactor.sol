@@ -21,6 +21,7 @@ interface IHedgingReactor {
     /// @notice Withdraw a given asset from the hedging reactor to the calling liquidity pool.
     /// @param amount The amount to withdraw
     /// @param token The asset to withdraw
+    /// @return the amount actually withdrawn from the reactor denominated in the liquidity pool asset
     function withdraw(uint256 amount, address token) external returns (uint256);
 
     /// @notice Handle events such as collateralisation rebalancing

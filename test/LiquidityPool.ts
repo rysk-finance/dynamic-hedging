@@ -176,11 +176,6 @@ describe('Liquidity Pools', async () => {
     expect(optionRegistry).to.have.property('deployTransaction')
   })
   it('Should deploy price feed', async () => {
-    //const Weth = await ethers.getContractFactory(
-    //  'contracts/tokens/WETH.sol:WETH',
-    // )
-    //const wethContract = (await Weth.deploy()) as WETH
-    //weth = wethContract
 
     ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
 
