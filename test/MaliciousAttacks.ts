@@ -19,7 +19,7 @@ import {
 	fromOpyn,
 	toOpyn,
 	tFormatUSDC
-} from "../utils"
+} from "../utils/conversion-helper"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
@@ -80,6 +80,9 @@ const strike = "-100"
 const liquidityPoolUsdcDeposit = "10000"
 const liquidityPoolWethDeposit = "10"
 
+// attacker deposit LP
+const attackerUsdcDeposit = "1000"
+
 // balance to withdraw after deposit
 const liquidityPoolWethWidthdraw = "0.1"
 
@@ -116,7 +119,7 @@ let rate: string
 const CALL_FLAVOR = BigNumber.from(call)
 const PUT_FLAVOR = BigNumber.from(put)
 
-describe("Options protocol", function () {
+describe("Hegic Attack", function () {
 	before(async function () {
 		await hre.network.provider.request({
 			method: "hardhat_reset",
@@ -144,7 +147,6 @@ describe("Options protocol", function () {
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OpynOptionRegistry", {
 			libraries: {
-				Constants: constants.address,
 				OpynInteractions: interactions.address
 			}
 		})
@@ -263,6 +265,7 @@ describe("Options protocol", function () {
 		const lp = await liquidityPools.createLiquidityPool(
 			usd.address,
 			weth.address,
+			usd.address,
 			toWei(rfr),
 			coefs,
 			coefs,
@@ -277,6 +280,7 @@ describe("Options protocol", function () {
 		expect(createEvent?.event).to.eq("LiquidityPoolCreated")
 		expect(strikeAsset).to.eq(usd.address)
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
+		optionRegistry.setLiquidityPool(liquidityPool.address)
 	})
 
 	it("Adds liquidity to the liquidityPool", async () => {
@@ -287,42 +291,34 @@ describe("Options protocol", function () {
 		})
 		const usdcWhale = await ethers.getSigner(USDC_WHALE)
 		const usdWhaleConnect = await usd.connect(usdcWhale)
-		await weth.connect(signers[0]).deposit({ value: toWei(liquidityPoolWethDeposit) })
 		await usdWhaleConnect.transfer(liquidityProviderAddress, toUSDC(liquidityPoolUsdcDeposit))
 		await usdWhaleConnect.transfer(attackerAddress, toUSDC("5000"))
 		const balance = await usd.balanceOf(liquidityProviderAddress)
 		await usd.approve(liquidityPool.address, toWei(liquidityPoolUsdcDeposit))
-		await weth.approve(liquidityPool.address, toWei(liquidityPoolWethDeposit))
-		const addLiquidity = await liquidityPool.addLiquidity(
+		const deposit = await liquidityPool.deposit(
 			toUSDC(liquidityPoolUsdcDeposit),
-			toWei(liquidityPoolWethDeposit),
-			0,
-			0
+			liquidityProviderAddress
 		)
-		const liquidityPoolBalance = await wethERC20.balanceOf(liquidityPool.address)
 		const liquidityPoolBalanceUSDC = await usd.balanceOf(liquidityPool.address)
-		const receipt = await addLiquidity.wait(1)
-		const event = receipt?.events?.find(x => x.event == "LiquidityDeposited")
+		const receipt = await deposit.wait(1)
+		const event = receipt?.events?.find(x => x.event == "Deposit")
 		const newBalance = await usd.balanceOf(liquidityProviderAddress)
-		const newWethBalance = await weth.balanceOf(liquidityProviderAddress)
-		expect(event?.event).to.eq("LiquidityDeposited")
-		//expect(wethBalance.sub(newWethBalance)).to.eq(toWei(liquidityPoolWethDeposit))
+		expect(event?.event).to.eq("Deposit")
 		expect(balance.sub(newBalance)).to.eq(toUSDC(liquidityPoolUsdcDeposit))
-		expect(liquidityPoolBalance).to.eq(toWei(liquidityPoolWethDeposit))
 		expect(liquidityPoolBalanceUSDC).to.equal(utils.parseUnits(liquidityPoolUsdcDeposit, 6))
 	})
 
 	it("Attacker adds liquidity", async () => {
 		const [liquidityProvider, attacker] = await ethers.getSigners()
 		const usdAttacker = usd.connect(attacker)
-		await usdAttacker.approve(liquidityPool.address, toUSDC("1000"))
+		await usdAttacker.approve(liquidityPool.address, toUSDC(attackerUsdcDeposit))
 		const wethAttacker = weth.connect(attacker)
 		const wethDeposit = await wethAttacker.deposit({ value: toWei("99") })
 		await wethDeposit.wait(1)
 		const lpAttacker = liquidityPool.connect(attacker)
 		await wethAttacker.approve(liquidityPool.address, toWei("1"))
 		const totalSupply = await liquidityPool.totalSupply()
-		await lpAttacker.addLiquidity(toUSDC("1000"), toWei("1"), 0, 0)
+		await lpAttacker.deposit(toUSDC(attackerUsdcDeposit), attackerAddress)
 		const newTotalSupply = await liquidityPool.totalSupply()
 
 		const lpBalance = await lpAttacker.balanceOf(attackerAddress)
@@ -334,7 +330,7 @@ describe("Options protocol", function () {
 	})
 
 	let lpCallOption: IOToken
-	it("LP Writes a WETH/USD call collateralized by WETH for premium to the attacker", async () => {
+	it("LP Writes a WETH/USD put collateralized by WETH for premium to the attacker", async () => {
 		const [liquidityProvider, attacker] = signers
 		// registry requires liquidity pool to be owner
 		optionRegistry.setLiquidityPool(liquidityPool.address)
@@ -346,12 +342,7 @@ describe("Options protocol", function () {
 		// opyn contracts require expiration to be at 8:00 UTC
 
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		console.log(priceQuote)
-		console.log(
-			utils.formatEther(await wethERC20.balanceOf(attackerAddress)),
-			utils.formatUnits(await usd.balanceOf(attackerAddress), 6)
-		)
-		const strikePrice = priceQuote.add(toWei(strike))
+		const strikePrice = priceQuote.sub(toWei(strike))
 		// await usd.connect(attacker).approve(liquidityPool.address, toUSDC("2000"))
 		// await weth.deposit({ value: amount.mul("5") })
 		// await weth.approve(liquidityPool.address, amount.mul("5"))
@@ -359,7 +350,7 @@ describe("Options protocol", function () {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const proposedSeries = {
 			expiration: fmtExpiration(expiration),
-			flavor: BigNumber.from(call),
+			flavor: BigNumber.from(put),
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
 			underlying: weth.address
@@ -371,9 +362,7 @@ describe("Options protocol", function () {
 				liquidityPool.address,
 				Math.ceil(parseFloat(utils.formatUnits(BigNumber.from(quote), 12)))
 			)
-		const write = await liquidityPool
-			.connect(attacker)
-			.issueAndWriteOption(proposedSeries, amount, WETH_ADDRESS[chainId])
+		const write = await liquidityPool.connect(attacker).issueAndWriteOption(proposedSeries, amount)
 		const receipt = await write.wait(1)
 		const events = receipt.events
 		const writeEvent = events?.find(x => x.event == "WriteOption")
@@ -395,18 +384,11 @@ describe("Options protocol", function () {
 	it("attacker withdraws liquidity", async () => {
 		const [liquidityProvider, attacker] = signers
 		const shares = await liquidityPool.balanceOf(attackerAddress)
-		console.log({ shares })
 		const usdcBalanceBefore = await usd.balanceOf(attackerAddress)
 		const wethBalanceBefore = await wethERC20.balanceOf(attackerAddress)
-		await liquidityPool.connect(attacker).removeLiquidity(shares, 0, 0)
+		await liquidityPool.connect(attacker).withdraw(shares, attackerAddress)
 		const usdcBalanceAfter = await usd.balanceOf(attackerAddress)
 		const wethBalanceAfter = await wethERC20.balanceOf(attackerAddress)
-
-		console.log(
-			utils.formatEther(wethBalanceBefore),
-			utils.formatEther(wethBalanceAfter),
-			utils.formatUnits(usdcBalanceBefore, 6),
-			utils.formatUnits(usdcBalanceAfter, 6)
-		)
+		expect(usdcBalanceAfter).to.equal(usdcBalanceBefore.add(utils.parseUnits(attackerUsdcDeposit, 6)))
 	})
 })
