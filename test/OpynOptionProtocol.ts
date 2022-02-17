@@ -1,16 +1,8 @@
 import hre, { ethers, network } from "hardhat"
-import {
-	Contract,
-	utils,
-	Signer,
-} from "ethers"
-import {
-	toWei,
-	call,
-	put,
-} from "../utils/conversion-helper"
+import { Contract, utils, Signer } from "ethers"
+import { toWei, call, put } from "../utils/conversion-helper"
 import { expect } from "chai"
-import moment from 'moment'
+import moment from "moment"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
@@ -24,20 +16,20 @@ import {
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS,
+	WETH_ADDRESS
 } from "./constants"
 import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = '2022-05-12'
+const expiryDate: string = "2022-05-12"
 
 // time travel period between each expiry
 const expiryPeriod = {
-  days: 0,
-  weeks: 0,
-  months: 1,
-  years: 0,
+	days: 0,
+	weeks: 0,
+	months: 1,
+	years: 0
 }
 
 // edit depending on the chain id to be tested on
@@ -46,7 +38,7 @@ const oTokenDecimalShift18 = 10000000000
 const strike = toWei("3500")
 
 // handles the conversion of expiryDate to a unix timestamp
-let expiration = moment.utc(expiryDate).add(8, 'h').valueOf() / 1000
+let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 
 let usd: MintableERC20
 let wethERC20: ERC20Interface
@@ -58,8 +50,6 @@ let erc20CallOption: IOToken
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
-
-
 
 describe("Options protocol", function () {
 	before(async function () {
@@ -83,37 +73,27 @@ describe("Options protocol", function () {
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
 		const constantsFactory = await ethers.getContractFactory("Constants")
-		const interactionsFactory = await ethers.getContractFactory(
-			"OpynInteractions"
-		)
+		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory(
-			"OpynOptionRegistry",
-			{
-				libraries: {
-					OpynInteractions: interactions.address
-				}
+		const optionRegistryFactory = await ethers.getContractFactory("OpynOptionRegistry", {
+			libraries: {
+				OpynInteractions: interactions.address
 			}
-		)
+		})
 		// get and transfer weth
 		weth = (await ethers.getContractAt(
 			"contracts/interfaces/WETH.sol:WETH",
 			WETH_ADDRESS[chainId]
 		)) as WETH
-		usd = (await ethers.getContractAt(
-			"ERC20",
-			USDC_ADDRESS[chainId]
-		)) as MintableERC20
+		usd = (await ethers.getContractAt("ERC20", USDC_ADDRESS[chainId])) as MintableERC20
 		await network.provider.request({
 			method: "hardhat_impersonateAccount",
 			params: [USDC_OWNER_ADDRESS[chainId]]
 		})
 		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
-		await usd
-			.connect(signer)
-			.transfer(senderAddress, toWei("1000").div(oTokenDecimalShift18))
+		await usd.connect(signer).transfer(senderAddress, toWei("1000").div(oTokenDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
@@ -172,10 +152,7 @@ describe("Options protocol", function () {
 		const [sender, receiver] = signers
 		const optionRegistryReceiver = optionRegistry.connect(receiver)
 		await expect(
-			optionRegistryReceiver.close(
-				optionToken.address,
-				toWei("1").div(oTokenDecimalShift18)
-			)
+			optionRegistryReceiver.close(optionToken.address, toWei("1").div(oTokenDecimalShift18))
 		).to.be.revertedWith("!liquidityPool")
 	})
 
@@ -211,9 +188,7 @@ describe("Options protocol", function () {
 		const senderBalanceBefore = await optionToken.balanceOf(senderAddress)
 		await optionRegistry.close(optionToken.address, value)
 		const senderBalance = await optionToken.balanceOf(senderAddress)
-		expect(senderBalanceBefore.sub(senderBalance)).to.equal(
-			toWei("1").div(oTokenDecimalShift18)
-		)
+		expect(senderBalanceBefore.sub(senderBalance)).to.equal(toWei("1").div(oTokenDecimalShift18))
 		await wethERC20.transfer(receiverAddress, toWei("1"))
 		const wethBalance = await wethERC20.balanceOf(receiverAddress)
 		expect(wethBalance.sub(wethBalanceBefore)).to.equal(toWei("1"))
@@ -225,23 +200,11 @@ describe("Options protocol", function () {
 		// get the desired settlement price
 		const settlePrice = strike.add(toWei("200")).div(oTokenDecimalShift18)
 		// get the oracle
-		const oracle = await setupOracle(
-			CHAINLINK_WETH_PRICER[chainId],
-			senderAddress,
-			true
-		)
+		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
 		// set the option expiry price, make sure the option has now expired
-		await setOpynOracleExpiryPrice(
-			WETH_ADDRESS[chainId],
-			oracle,
-			expiration,
-			settlePrice
-		)
+		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
 
-		await optionToken.approve(
-			optionRegistry.address,
-			await optionToken.balanceOf(senderAddress)
-		)
+		await optionToken.approve(optionRegistry.address, await optionToken.balanceOf(senderAddress))
 		// call redeem from the options registry
 		await optionRegistry.settle(optionToken.address)
 		// check balances are in order
@@ -256,10 +219,7 @@ describe("Options protocol", function () {
 	it("writer redeems when option expires ITM", async () => {
 		// get balance before
 		const balanceWETH = await wethERC20.balanceOf(senderAddress)
-		await optionToken.approve(
-			optionRegistry.address,
-			await optionToken.balanceOf(senderAddress)
-		)
+		await optionToken.approve(optionRegistry.address, await optionToken.balanceOf(senderAddress))
 		// call redeem from the options registry
 		await optionRegistry.redeem(optionToken.address)
 		// check balances are in order
@@ -275,8 +235,13 @@ describe("Options protocol", function () {
 
 	it("creates an ERC20 call option token series", async () => {
 		const [sender] = signers
-    // fast forward expiryPeriod length of time
-		expiration = moment.utc(expiration*1000).add(expiryPeriod).utc(true).valueOf()/1000
+		// fast forward expiryPeriod length of time
+		expiration =
+			moment
+				.utc(expiration * 1000)
+				.add(expiryPeriod)
+				.utc(true)
+				.valueOf() / 1000
 		const issueCall = await optionRegistry.issue(
 			WETH_ADDRESS[chainId],
 			USDC_ADDRESS[chainId],
@@ -326,18 +291,9 @@ describe("Options protocol", function () {
 		// get the desired settlement price
 		const settlePrice = strike.sub(toWei("200")).div(oTokenDecimalShift18)
 		// get the oracle
-		const oracle = await setupOracle(
-			CHAINLINK_WETH_PRICER[chainId],
-			senderAddress,
-			true
-		)
+		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
 		// set the option expiry price, make sure the option has now expired
-		await setOpynOracleExpiryPrice(
-			WETH_ADDRESS[chainId],
-			oracle,
-			expiration,
-			settlePrice
-		)
+		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
 
 		await erc20CallOption.approve(
 			optionRegistry.address,
@@ -376,8 +332,13 @@ describe("Options protocol", function () {
 
 	it("creates a put option token series", async () => {
 		const [sender] = signers
-    // fast forward expiryPeriod length of time
-		expiration = moment.utc(expiration*1000).add(expiryPeriod).utc(true).valueOf()/1000
+		// fast forward expiryPeriod length of time
+		expiration =
+			moment
+				.utc(expiration * 1000)
+				.add(expiryPeriod)
+				.utc(true)
+				.valueOf() / 1000
 		const issuePut = await optionRegistry.issue(
 			WETH_ADDRESS[chainId],
 			USDC_ADDRESS[chainId],
@@ -406,10 +367,7 @@ describe("Options protocol", function () {
 
 	it("writer transfers part of put balance to new account", async () => {
 		const [sender, receiver] = signers
-		await putOption.transfer(
-			receiverAddress,
-			toWei("1").div(oTokenDecimalShift18)
-		)
+		await putOption.transfer(receiverAddress, toWei("1").div(oTokenDecimalShift18))
 		const balance = await putOption.balanceOf(receiverAddress)
 		expect(balance).to.eq(toWei("1").div(oTokenDecimalShift18))
 	})
@@ -429,23 +387,11 @@ describe("Options protocol", function () {
 		// get the desired settlement price
 		const settlePrice = strike.sub(toWei("200")).div(oTokenDecimalShift18)
 		// get the oracle
-		const oracle = await setupOracle(
-			CHAINLINK_WETH_PRICER[chainId],
-			senderAddress,
-			true
-		)
+		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
 		// set the option expiry price, make sure the option has now expired
-		await setOpynOracleExpiryPrice(
-			WETH_ADDRESS[chainId],
-			oracle,
-			expiration,
-			settlePrice
-		)
+		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
 
-		await putOption.approve(
-			optionRegistry.address,
-			await putOption.balanceOf(senderAddress)
-		)
+		await putOption.approve(optionRegistry.address, await putOption.balanceOf(senderAddress))
 		// call settle from the options registry
 		await optionRegistry.settle(putOption.address)
 		// check balances are in order
@@ -460,10 +406,7 @@ describe("Options protocol", function () {
 	it("writer redeems put when option expires ITM", async () => {
 		// get balance before
 		const balanceUSD = await usd.balanceOf(senderAddress)
-		await putOption.approve(
-			optionRegistry.address,
-			await putOption.balanceOf(senderAddress)
-		)
+		await putOption.approve(optionRegistry.address, await putOption.balanceOf(senderAddress))
 		// call redeem from the options registry
 		await optionRegistry.redeem(putOption.address)
 		// check balances are in order
@@ -477,4 +420,3 @@ describe("Options protocol", function () {
 		expect(opBalSender).to.equal(0)
 	})
 })
-
