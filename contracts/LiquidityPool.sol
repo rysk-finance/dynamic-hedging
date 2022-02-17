@@ -634,7 +634,7 @@ contract LiquidityPool is
   /**
    * @notice get the quote price and delta for a given option
    * @param  optionSeries option type to quote
-   * @param  amount       the number of options to mint 
+   * @param  amount the number of options to mint 
    * @return quote the price of the options
    * @return delta the delta of the options
    */
@@ -649,24 +649,17 @@ contract LiquidityPool is
       (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries);
       UtilizationState memory quoteState;
       quoteState.optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
-      // brackets and struct usage to prevent stack too deep error
-      {
-        uint underlyingPrice = getUnderlyingPrice(optionSeries);
-        int portfolioDelta = getPortfolioDelta();
-        int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
-        {
-          uint utilization = amount.div(totalSupply());
-          quoteState.utilizationPrice = underlyingPrice.mul(utilization);
-          int distanceFromZero = PRBMathSD59x18.abs(newDelta - int(0));
-          quoteState.percentageDifference = uint(distanceFromZero.div(portfolioDelta));
-          quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
-        }
-        {
-          uint normalizedDelta = uint256(newDelta).div(_getNAV());
-          uint maxPrice = optionSeries.flavor == Types.Flavor.Call ? underlyingPrice : optionSeries.strike;
-          quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
-        }
-      }
+      uint underlyingPrice = getUnderlyingPrice(optionSeries);
+      int portfolioDelta = getPortfolioDelta();
+      int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
+      uint utilization = amount.div(totalSupply());
+      quoteState.utilizationPrice = underlyingPrice.mul(utilization);
+      int distanceFromZero = PRBMathSD59x18.abs(newDelta - int(0));
+      quoteState.percentageDifference = uint(distanceFromZero.div(portfolioDelta));
+      quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
+      uint normalizedDelta = uint256(newDelta).div(_getNAV());
+      uint maxPrice = optionSeries.flavor == Types.Flavor.Call ? underlyingPrice : optionSeries.strike;
+      quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
       if (quoteState.isDecreased) {
         uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
         uint newOptionPrice = quoteState.optionPrice - discount.mul(quoteState.optionPrice);
