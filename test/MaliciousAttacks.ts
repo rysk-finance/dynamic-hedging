@@ -74,13 +74,12 @@ const chainId = 1
 const oTokenDecimalShift18 = 10000000000
 // amount of dollars OTM written options will be (both puts and calls)
 // use negative numbers for ITM options
-const strike = "-100"
+const strike = "-5000"
 
 // balances to deposit into the LP
-const liquidityPoolUsdcDeposit = "10000"
-const liquidityPoolWethDeposit = "10"
+const liquidityPoolUsdcDeposit = "1000000"
 
-// attacker deposit LP
+// attacker deposit LP70839675
 const attackerUsdcDeposit = "1000"
 
 // balance to withdraw after deposit
@@ -182,7 +181,7 @@ describe("Hegic Attack", function () {
 		await priceFeed.addPriceFeed(weth.address, usd.address, ethUSDAggregator.address)
 		const feedAddress = await priceFeed.priceFeeds(ZERO_ADDRESS, usd.address)
 		expect(feedAddress).to.eq(ethUSDAggregator.address)
-		rate = "56770839675"
+		rate = "1280000000000" //12800
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			rate,
@@ -292,7 +291,7 @@ describe("Hegic Attack", function () {
 		const usdcWhale = await ethers.getSigner(USDC_WHALE)
 		const usdWhaleConnect = await usd.connect(usdcWhale)
 		await usdWhaleConnect.transfer(liquidityProviderAddress, toUSDC(liquidityPoolUsdcDeposit))
-		await usdWhaleConnect.transfer(attackerAddress, toUSDC("5000"))
+		await usdWhaleConnect.transfer(attackerAddress, toUSDC("50000"))
 		const balance = await usd.balanceOf(liquidityProviderAddress)
 		await usd.approve(liquidityPool.address, toWei(liquidityPoolUsdcDeposit))
 		const deposit = await liquidityPool.deposit(
@@ -325,7 +324,7 @@ describe("Hegic Attack", function () {
 		const difference = newTotalSupply.sub(lpBalance)
 
 		const supplyRatio = convertRounded(newTotalSupply) / convertRounded(totalSupply)
-		expect(supplyRatio).to.eq(1.1)
+		// expect(supplyRatio).to.eq(1.1)
 		expect(newTotalSupply).to.eq(totalSupply.add(lpBalance))
 	})
 
@@ -386,9 +385,12 @@ describe("Hegic Attack", function () {
 		const shares = await liquidityPool.balanceOf(attackerAddress)
 		const usdcBalanceBefore = await usd.balanceOf(attackerAddress)
 		const wethBalanceBefore = await wethERC20.balanceOf(attackerAddress)
+		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		await liquidityPool.connect(attacker).withdraw(shares, attackerAddress)
+		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const usdcBalanceAfter = await usd.balanceOf(attackerAddress)
 		const wethBalanceAfter = await wethERC20.balanceOf(attackerAddress)
+		expect(lpBalanceAfter).to.equal(lpBalanceBefore.sub(utils.parseUnits(attackerUsdcDeposit, 6)))
 		expect(usdcBalanceAfter).to.equal(usdcBalanceBefore.add(utils.parseUnits(attackerUsdcDeposit, 6)))
 	})
 })
