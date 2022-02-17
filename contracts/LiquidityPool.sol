@@ -52,11 +52,15 @@ contract LiquidityPool is
   uint public collateralAllocated;
   // amount of underlyingAsset allocated as collateral
   uint public underlyingAllocated;
+<<<<<<< HEAD
 <<<<<<< variant A
   // max total supply of the lp shares
 >>>>>>> variant B
   // total number of calls active
 ======= end
+=======
+  // max total supply of the lp shares
+>>>>>>> 065feae (add delta tilting)
   uint public maxTotalSupply = type(uint256).max;
   // TODO add setter
   uint public maxDiscount = PRBMathUD60x18.SCALE.div(10); // As a percentage. Init at 10%
@@ -330,6 +334,27 @@ contract LiquidityPool is
   }
 
   /**
+   * @notice get the Net Asset Value
+   * @return Net Asset Value
+   */
+  function _getNAV()
+    internal
+    view
+    returns (uint)
+  {
+    // equities = assets - liabilities
+    // assets: Any token such as eth usd, collateral sent to opynOptionRegistry, hedging reactor stuff
+    // liabilities: Options that we wrote 
+    uint256 assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
+    for (uint8 i=0; i < hedgingReactors.length; i++) {
+       assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
+    }
+    uint256 liabilities = _valueCallsWritten() + _valuePutsWritten();
+    uint256 NAV = assets - liabilities;
+    return NAV;
+  }
+
+  /**
    * @notice get the amount for a given number of shares
    * @param _shares  the shares to convert to amount
    * @return amount the number of amount based on shares
@@ -337,21 +362,12 @@ contract LiquidityPool is
   function _shareValue(uint _shares)
     internal
     view
-    returns
-    (uint amount)
+    returns (uint amount)
   {
-    // equities = assets - liabilities
-    // assets: Any token such as eth usd, collateral sent to opynOptionRegistry, hedging reactor stuff
-    // liabilities: Options that we wrote 
     if (totalSupply() == 0) {
       amount = _shares;
     } else {
-      uint256 assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
-      for (uint8 i=0; i < hedgingReactors.length; i++) {
-        assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
-      }
-      uint256 liabilities = _valueCallsWritten() + _valuePutsWritten();
-      uint256 NAV = assets - liabilities;
+      uint256 NAV = _getNAV();
       amount = _shares.mul(NAV).div(totalSupply());
     }
 
@@ -607,6 +623,14 @@ contract LiquidityPool is
     return utilizationPrice > optionPrice ? utilizationPrice : optionPrice;
   }
 
+  struct UtilizationState {
+    uint optionPrice;
+    uint percentageDifference;
+    uint utilizationPrice;
+    bool isDecreased;
+    uint deltaTiltFactor;
+  }
+
   /**
    * @notice get the quote price and delta for a given option
    * @param  optionSeries option type to quote
@@ -623,23 +647,33 @@ contract LiquidityPool is
       returns (uint256 quote, int256 delta)
   {
       (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries);
-      uint optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
-      uint underlyingPrice = getUnderlyingPrice(optionSeries);
-      int portfolioDelta = getPortfolioDelta();
-      int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
-      int distanceFromZero = PRBMathSD59x18.abs(newDelta - int(0));
-      uint percentageDifference = uint(distanceFromZero.div(portfolioDelta));
-
-      bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
-      uint utilization = amount.div(totalSupply());
-      uint utilizationPrice = underlyingPrice.mul(utilization);
-      if (isDecreased) {
-        uint discount = percentageDifference > maxDiscount ? maxDiscount : percentageDifference;
-        uint newOptionPrice = optionPrice - discount.mul(optionPrice);
-        quote = utilizationPrice > optionPrice ? utilizationPrice : optionPrice;
+      UtilizationState memory quoteState;
+      quoteState.optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
+      // brackets and struct usage to prevent stack too deep error
+      {
+        uint underlyingPrice = getUnderlyingPrice(optionSeries);
+        int portfolioDelta = getPortfolioDelta();
+        int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
+        {
+          uint utilization = amount.div(totalSupply());
+          quoteState.utilizationPrice = underlyingPrice.mul(utilization);
+          int distanceFromZero = PRBMathSD59x18.abs(newDelta - int(0));
+          quoteState.percentageDifference = uint(distanceFromZero.div(portfolioDelta));
+          quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
+        }
+        {
+          uint normalizedDelta = uint256(newDelta).div(_getNAV());
+          uint maxPrice = optionSeries.flavor == Types.Flavor.Call ? underlyingPrice : optionSeries.strike;
+          quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
+        }
+      }
+      if (quoteState.isDecreased) {
+        uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
+        uint newOptionPrice = quoteState.optionPrice - discount.mul(quoteState.optionPrice);
+        quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       } else {
-        uint newOptionPrice = percentageDifference.mul(optionPrice) + optionPrice;
-        quote = utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice;
+        uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice) + quoteState.optionPrice;
+        quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       }
       delta = deltaQuote;
   }
