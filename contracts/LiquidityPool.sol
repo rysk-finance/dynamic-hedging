@@ -47,20 +47,12 @@ contract LiquidityPool is
   // asset that is used for collateral asset
   address public collateralAsset;
   // riskFreeRate as a percentage PRBMath Float. IE: 3% -> 0.03 * 10**18
-  uint public riskFreeRate; 
+  uint public riskFreeRate;
   // amount of strikeAsset allocated as collateral
   uint public collateralAllocated;
   // amount of underlyingAsset allocated as collateral
   uint public underlyingAllocated;
-<<<<<<< HEAD
-<<<<<<< variant A
   // max total supply of the lp shares
->>>>>>> variant B
-  // total number of calls active
-======= end
-=======
-  // max total supply of the lp shares
->>>>>>> 065feae (add delta tilting)
   uint public maxTotalSupply = type(uint256).max;
   // TODO add setter
   uint public maxDiscount = PRBMathUD60x18.SCALE.div(10); // As a percentage. Init at 10%
@@ -625,7 +617,6 @@ contract LiquidityPool is
 
   struct UtilizationState {
     uint optionPrice;
-    uint percentageDifference;
     uint utilizationPrice;
     bool isDecreased;
     uint deltaTiltFactor;
@@ -655,7 +646,6 @@ contract LiquidityPool is
       uint utilization = amount.div(totalSupply());
       quoteState.utilizationPrice = underlyingPrice.mul(utilization);
       int distanceFromZero = PRBMathSD59x18.abs(newDelta - int(0));
-      quoteState.percentageDifference = uint(distanceFromZero.div(portfolioDelta));
       quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
       uint normalizedDelta = uint256(newDelta).div(_getNAV());
       uint maxPrice = optionSeries.flavor == Types.Flavor.Call ? underlyingPrice : optionSeries.strike;
@@ -715,8 +705,7 @@ contract LiquidityPool is
     optionSeries.expiration = optionSeries.expiration.fromUint();
     require(optionSeries.strikeAsset == strikeAsset, "incorrect strike asset");
     Types.Flavor flavor = optionSeries.flavor;
-    //TODO breakout into function to support multiple collateral types
-    uint256 premium = quotePriceWithUtilization(optionSeries, amount);
+    (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
     TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), toDecimals(premium, strikeAsset));
     uint256 collateralAmount;
