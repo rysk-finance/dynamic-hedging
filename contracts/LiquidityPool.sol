@@ -14,7 +14,6 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import { SafeERC20 } from "./tokens/SafeERC20.sol";
 import { Constants } from "./libraries/Constants.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
-import { TransferHelper } from "./libraries/TransferHelper.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 
 import "hardhat/console.sol";
@@ -23,6 +22,7 @@ error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmount
 error MinUnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingAmountMin);
 error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
 error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
+error DeltaQuoteError(uint256 quote, int256 delta);
 
 contract LiquidityPool is
   ERC20,
@@ -653,12 +653,16 @@ contract LiquidityPool is
       if (quoteState.isDecreased) {
         uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
         uint newOptionPrice = quoteState.optionPrice - discount.mul(quoteState.optionPrice);
+        //TODO adjust utilization price with deltaTiltFactor
         quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       } else {
         uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice) + quoteState.optionPrice;
+        //TODO adjust utilization price with deltaTiltFactor
         quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       }
       delta = deltaQuote;
+      //@TODO think about more robust considitions for this check
+      if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta); }
   }
 
   /**
@@ -707,7 +711,7 @@ contract LiquidityPool is
     Types.Flavor flavor = optionSeries.flavor;
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
-    TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), toDecimals(premium, strikeAsset));
+    SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), toDecimals(premium, strikeAsset));
     uint256 collateralAmount;
     if (underlyingAsset == collateralAsset) {
       collateralAmount = amount;
