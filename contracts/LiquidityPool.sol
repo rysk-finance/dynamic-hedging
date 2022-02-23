@@ -2,9 +2,9 @@ pragma solidity >=0.8.0;
 
 import "./PriceFeed.sol";
 import "./tokens/ERC20.sol";
-import "./utils/access/Ownable.sol";
-import "./OptionsProtocol.sol";
 import "./OptionRegistry.sol";
+import "./OptionsProtocol.sol";
+import "./utils/access/Ownable.sol";
 import "./libraries/BlackScholes.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";

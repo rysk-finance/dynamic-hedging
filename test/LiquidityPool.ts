@@ -23,8 +23,6 @@ import bs from "black-scholes"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { ERC20 } from "../types/ERC20"
-import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
@@ -43,19 +41,9 @@ import {
 	WETH_ADDRESS,
 } from "./constants"
 let usd: MintableERC20
-let wethERC20: ERC20Interface
 let weth: WETH
-let currentTime: moment.Moment
 let optionRegistry: OptionRegistry
-let optionToken: IOToken
-let putOption: IOToken
-let erc20PutOption: IOToken
-let erc20CallOption: IOToken
 let optionProtocol: Protocol
-let erc20CallExpiration: moment.Moment
-let putOptionExpiration: moment.Moment
-let erc20PutOptionExpiration: moment.Moment
-let erc20Token: ERC20
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
