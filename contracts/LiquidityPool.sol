@@ -653,11 +653,11 @@ contract LiquidityPool is
       if (quoteState.isDecreased) {
         uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
         uint newOptionPrice = quoteState.optionPrice - discount.mul(quoteState.optionPrice);
-        //TODO adjust utilization price with deltaTiltFactor
+        quoteState.utilizationPrice = quoteState.utilizationPrice - discount.mul(quoteState.utilizationPrice);
         quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       } else {
         uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice) + quoteState.optionPrice;
-        //TODO adjust utilization price with deltaTiltFactor
+        quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice);
         quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       }
       delta = deltaQuote;
