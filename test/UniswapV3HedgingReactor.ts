@@ -1,16 +1,14 @@
-import hre, { ethers, network } from 'hardhat'
-import { BigNumberish, Contract, ContractFactory, utils, Signer, BigNumber } from 'ethers'
+import { ethers, network } from 'hardhat'
+import { Signer, BigNumber } from 'ethers'
 import { expect } from 'chai'
 import { MintableERC20 } from '../types/MintableERC20'
 import { UniswapV3HedgingReactor } from '../types/UniswapV3HedgingReactor'
 import { UniswapV3HedgingTest } from '../types/UniswapV3HedgingTest'
 import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_SWAP_ROUTER } from './constants'
-import { toWei } from '../utils/conversion-helper'
 import { PriceFeed } from '../types/PriceFeed'
 import { deployMockContract, MockContract } from '@ethereum-waffle/mock-contract'
 import AggregatorV3Interface from '../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json'
 let signers: Signer[]
-let deployerAddress: string
 let usdcWhale: Signer
 let usdcWhaleAddress: string
 let liquidityPoolDummy: UniswapV3HedgingTest

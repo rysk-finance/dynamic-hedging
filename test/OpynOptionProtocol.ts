@@ -19,6 +19,16 @@ import {
 	WETH_ADDRESS
 } from "./constants"
 import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
+let usd: MintableERC20
+let wethERC20: ERC20Interface
+let weth: WETH
+let optionRegistry: OptionRegistry
+let optionToken: IOToken
+let putOption: IOToken
+let erc20CallOption: IOToken
+let signers: Signer[]
+let senderAddress: string
+let receiverAddress: string
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
@@ -39,17 +49,6 @@ const strike = toWei("3500")
 
 // handles the conversion of expiryDate to a unix timestamp
 let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
-
-let usd: MintableERC20
-let wethERC20: ERC20Interface
-let weth: WETH
-let optionRegistry: OptionRegistry
-let optionToken: IOToken
-let putOption: IOToken
-let erc20CallOption: IOToken
-let signers: Signer[]
-let senderAddress: string
-let receiverAddress: string
 
 describe("Options protocol", function () {
 	before(async function () {

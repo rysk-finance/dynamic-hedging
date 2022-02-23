@@ -1,6 +1,4 @@
 import { ethers } from "hardhat";
-import { BigNumber, BigNumberish, Contract, ContractFactory, utils } from "ethers";
-import {MockProvider} from '@ethereum-waffle/provider';
 import {
     toWei,
     truncate,
