@@ -1,21 +1,14 @@
-import hre, { ethers, artifacts } from "hardhat";
-import ORACLE_ABI from "../artifacts/contracts/packages/opyn/core/Oracle.sol/Oracle.json";
-import CHAINLINK_PRICER_ABI from "../artifacts/contracts/packages/opyn/pricers/ChainlinkPricer.sol/ChainLinkPricer.json";
-import {OracleInterface} from "../types/OracleInterface";
-import {ChainLinkPricer} from "../types/ChainLinkPricer";
+import hre, { ethers} from "hardhat";
 import {
-  CHAINID,
   CHAINLINK_WETH_PRICER,
   GAMMA_ORACLE,
-  GAMMA_ORACLE_NEW,
   GAMMA_WHITELIST,
   ORACLE_DISPUTE_PERIOD,
   ORACLE_LOCKING_PERIOD,
   ORACLE_OWNER,
   USDC_ADDRESS,
-  WETH_ADDRESS,
 } from "./constants";
-import { BigNumber, BigNumberish, Contract } from "ethers";
+import { BigNumber,Contract } from "ethers";
 
 const { provider } = ethers;
 const { parseEther } = ethers.utils;
