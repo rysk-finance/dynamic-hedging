@@ -32,14 +32,14 @@ import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/Liquidity
 import { ERC20 } from "../types/ERC20"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
-import { OpynOptionRegistry } from "../types/OpynOptionRegistry"
+import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPools } from "../types/LiquidityPools"
 import { LiquidityPool } from "../types/LiquidityPool"
-import { Volatility } from "../types/Volatility"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
+import { Volatility } from "../types/Volatility"
 import {
 	CHAINLINK_WETH_PRICER,
 	CHAINID,
@@ -56,7 +56,6 @@ import {
 import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
 import { send } from "process"
 import { convertDoubleToDec } from "../utils/math"
-import { OptionRegistry } from "../types/OptionRegistry"
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -91,7 +90,7 @@ let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
 let currentTime: moment.Moment
-let optionRegistry: OpynOptionRegistry
+let optionRegistry: OptionRegistry
 let optionToken: IOToken
 let putOption: IOToken
 let erc20PutOption: IOToken
@@ -102,13 +101,12 @@ let putOptionExpiration: moment.Moment
 let erc20PutOptionExpiration: moment.Moment
 let erc20Token: ERC20
 let signers: Signer[]
-let volatility: Volatility
 let senderAddress: string
 let receiverAddress: string
 let liquidityPools: LiquidityPools
 let liquidityPool: LiquidityPool
 let ethLiquidityPool: LiquidityPool
-
+let volatility: Volatility
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
 let rate: string
@@ -147,7 +145,7 @@ describe("Liquidity Pools", async () => {
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OpynOptionRegistry", {
+		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
 				OpynInteractions: interactions.address
 			}
@@ -171,7 +169,7 @@ describe("Liquidity Pools", async () => {
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
 			senderAddress
-		)) as OpynOptionRegistry
+		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
 	})
@@ -224,7 +222,6 @@ describe("Liquidity Pools", async () => {
 		volatility = (await volFactory.deploy()) as Volatility
 		const liquidityPoolsFactory = await ethers.getContractFactory("LiquidityPools", {
 			libraries: {
-				Constants: constants.address,
 				BlackScholes: blackScholesDeploy.address
 			}
 		})
@@ -375,6 +372,7 @@ describe("Liquidity Pools", async () => {
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const quote = await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
+		console.log(quote)
 		await usd.approve(liquidityPool.address, quote[0])
 		const balance = await usd.balanceOf(senderAddress)
 		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)

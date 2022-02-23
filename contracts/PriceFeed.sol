@@ -1,7 +1,6 @@
 pragma solidity >=0.8.9;
 
-import "./tokens/UniversalERC20.sol";
-import "./access/Ownable.sol";
+import "./utils/access/Ownable.sol";
 import "./interfaces/AggregatorV3Interface.sol";
 import "./interfaces/IERC20.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
@@ -10,8 +9,6 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 contract PriceFeed is Ownable {
 
     mapping(address => mapping(address => address)) public priceFeeds;
-
-    using UniversalERC20 for IERC20;
     using PRBMathUD60x18 for uint8;
     using PRBMathSD59x18 for int256;
     using PRBMathUD60x18 for uint256;

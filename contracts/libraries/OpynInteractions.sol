@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import "../interfaces/IERC20.sol";
 import "../interfaces/IERC20Detailed.sol";
 import {
     IOtokenFactory,
@@ -9,13 +8,12 @@ import {
     IController,
     GammaTypes
 } from "../interfaces/GammaInterface.sol";
-import { Types } from "../Types.sol";
+import { Types } from "./Types.sol";
 import {Constants} from "./Constants.sol";
-import {SafeERC20} from "../tokens/SafeERC20.sol";
+import "./SafeTransferLib.sol";
 import "hardhat/console.sol";
 
 library OpynInteractions {
-    using SafeERC20 for IERC20;
     
     /**
      * @notice Either retrieves the option token if it already exists, or deploy it
@@ -130,8 +128,8 @@ library OpynInteractions {
             }
         }
         // double approve to fix non-compliant ERC20s
-        IERC20 collateralToken = IERC20(collateralAsset);
-        collateralToken.safeApprove(marginPool, depositAmount);
+        ERC20 collateralToken = ERC20(collateralAsset);
+        SafeTransferLib.safeApprove(collateralToken, marginPool, depositAmount);
         // initialise the controller args with 2 incase the vault already exists
         IController.ActionArgs[] memory actions =
                 new IController.ActionArgs[](2);
@@ -345,7 +343,7 @@ library OpynInteractions {
             0, // not used
             "" // not used
         );
-        IERC20(series).approve(marginPool, amount);
+        SafeTransferLib.safeApprove(ERC20(series), marginPool, amount);
         controller.operate(actions);
 
         uint256 endAssetBalance = IERC20(asset).balanceOf(msg.sender);
