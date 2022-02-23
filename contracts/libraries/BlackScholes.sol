@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import { NormalDist } from "./NormalDist.sol";
-import { Types } from "../Types.sol";
+import { Types } from "./Types.sol";
 
 library BlackScholes {
     using PRBMathSD59x18 for int256;

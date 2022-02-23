@@ -2,16 +2,13 @@ pragma solidity >=0.8.0;
 
 import "./PriceFeed.sol";
 import "./tokens/ERC20.sol";
-import "./libraries/Math.sol";
-import "./access/Ownable.sol";
+import "./utils/access/Ownable.sol";
 import "./OptionsProtocol.sol";
-import "./OpynOptionRegistry.sol";
-import "./tokens/UniversalERC20.sol";
+import "./OptionRegistry.sol";
 import "./libraries/BlackScholes.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-import { SafeERC20 } from "./tokens/SafeERC20.sol";
 import { Constants } from "./libraries/Constants.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
@@ -28,10 +25,8 @@ contract LiquidityPool is
   ERC20,
   Ownable
 {
-  using UniversalERC20 for IERC20;
   using PRBMathSD59x18 for int256;
   using PRBMathUD60x18 for uint256;
-  using Math for uint256;
 
   uint256 private constant ONE_YEAR_SECONDS = 31557600000000000000000000;
   // standard expected decimals of ERC20s
@@ -83,10 +78,10 @@ contract LiquidityPool is
   event Withdraw(address recipient, uint shares,  uint strikeAmount);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
 
-  constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol) {
-    strikeAsset = IERC20(_strikeAsset).isETH() ? Constants.ethAddress() : _strikeAsset;
+  constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol, 18) {
+    strikeAsset = _strikeAsset;
     riskFreeRate = rfr;
-    address underlyingAddress = IERC20(_underlyingAsset).isETH() ? Constants.ethAddress() : _underlyingAsset;
+    address underlyingAddress = _underlyingAsset;
     underlyingAsset = underlyingAddress;
     collateralAsset = _collateralAsset;
     callsVolatilitySkew = callSkew;
@@ -182,7 +177,7 @@ contract LiquidityPool is
     // mint lp token to recipient
     _mint(_recipient, shares);
     emit Deposit(_recipient, _amount, shares);
-    require(totalSupply() <= maxTotalSupply, "maxTotalSupply");
+    require(totalSupply <= maxTotalSupply, "maxTotalSupply");
   }
 
   /**
@@ -225,7 +220,7 @@ contract LiquidityPool is
     // burn the shares
     _burn(msg.sender, _shares);
     // send funds to user
-    IERC20(collateralAsset).universalTransfer(_recipient, transferCollateralAmount);
+    SafeTransferLib.safeTransfer(ERC20(collateralAsset), _recipient, transferCollateralAmount);
     //TODO implement book balance reconcilation check
     emit Withdraw(_recipient, _shares, transferCollateralAmount);
   }
@@ -309,19 +304,14 @@ contract LiquidityPool is
     (uint shares)
   {
     // equities = assets - liabilities
-    // assets: Any token such as eth usd, collateral sent to opynOptionRegistry, hedging reactor stuff
+    // assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff
     // liabilities: Options that we wrote 
     uint256 convertedAmount = OptionsCompute.convertFromDecimals(_amount, IERC20(collateralAsset).decimals());
-    if (totalSupply() == 0) {
+    if (totalSupply == 0) {
       shares = convertedAmount;
     } else {
-      uint assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
-      for (uint8 i=0; i < hedgingReactors.length; i++) {
-        assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
-      }
-      uint liabilities = _valueCallsWritten() + _valuePutsWritten();
-      uint NAV = assets - liabilities;
-      shares = convertedAmount.mul(totalSupply()).div(NAV);
+      uint NAV = _getNAV();
+      shares = convertedAmount.mul(totalSupply).div(NAV);
     }
   }
 
@@ -335,7 +325,7 @@ contract LiquidityPool is
     returns (uint)
   {
     // equities = assets - liabilities
-    // assets: Any token such as eth usd, collateral sent to opynOptionRegistry, hedging reactor stuff
+    // assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff
     // liabilities: Options that we wrote 
     uint256 assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
     for (uint8 i=0; i < hedgingReactors.length; i++) {
@@ -356,11 +346,11 @@ contract LiquidityPool is
     view
     returns (uint amount)
   {
-    if (totalSupply() == 0) {
+    if (totalSupply == 0) {
       amount = _shares;
     } else {
       uint256 NAV = _getNAV();
-      amount = _shares.mul(NAV).div(totalSupply());
+      amount = _shares.mul(NAV).div(totalSupply);
     }
 
   }
@@ -379,9 +369,9 @@ contract LiquidityPool is
    * @notice get the option registry used for storing and managing the options
    * @return the option registry contract interface
    */
-  function getOpynOptionRegistry() internal returns (OpynOptionRegistry) {
+  function getOptionRegistry() internal view returns (OptionRegistry) {
     address registryAddress = Protocol(protocol).optionRegistry();
-    return OpynOptionRegistry(registryAddress);
+    return OptionRegistry(registryAddress);
   }
 
   /**
@@ -610,7 +600,7 @@ contract LiquidityPool is
     uint optionQuote = quotePrice(optionSeries);
     uint optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
     uint underlyingPrice = getUnderlyingPrice(optionSeries);
-    uint utilization = amount.div(totalSupply());
+    uint utilization = amount.div(totalSupply);
     uint utilizationPrice = underlyingPrice.mul(utilization);
     return utilizationPrice > optionPrice ? utilizationPrice : optionPrice;
   }
@@ -643,7 +633,7 @@ contract LiquidityPool is
       uint underlyingPrice = getUnderlyingPrice(optionSeries);
       int portfolioDelta = getPortfolioDelta();
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
-      uint utilization = amount.div(totalSupply());
+      uint utilization = amount.div(totalSupply);
       quoteState.utilizationPrice = underlyingPrice.mul(utilization);
       int distanceFromZero = PRBMathSD59x18.abs(newDelta - int(0));
       quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
@@ -677,7 +667,7 @@ contract LiquidityPool is
      uint amount
   ) public payable returns (uint optionAmount, address series)
   {
-    OpynOptionRegistry optionRegistry = getOpynOptionRegistry();
+    OptionRegistry optionRegistry = getOptionRegistry();
     series = optionRegistry.issue(
        optionSeries.underlying,
        optionSeries.strikeAsset,
@@ -703,9 +693,9 @@ contract LiquidityPool is
     payable
     returns (uint256)
   {
-    OpynOptionRegistry optionRegistry = getOpynOptionRegistry();
+    OptionRegistry optionRegistry = getOptionRegistry();
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
-    // expiration requires conversion back due to opyn not use PRB floats
+    // expiration requires conversion back due to option protocol not using PRB floats
     optionSeries.expiration = optionSeries.expiration.fromUint();
     require(optionSeries.strikeAsset == strikeAsset, "incorrect strike asset");
     Types.Flavor flavor = optionSeries.flavor;
@@ -742,6 +732,6 @@ contract LiquidityPool is
         weightedTimePut = newTime;
         collateralAllocated += collateralAmount;
     }
-    IERC20(seriesAddress).universalTransfer(msg.sender, toDecimals(amount, seriesAddress));
+    SafeTransferLib.safeTransfer(ERC20(seriesAddress), msg.sender, toDecimals(amount, seriesAddress));
   }
 }

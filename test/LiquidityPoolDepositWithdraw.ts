@@ -33,7 +33,7 @@ import LiquidityPoolSol from '../artifacts/contracts/LiquidityPool.sol/Liquidity
 import { ERC20 } from '../types/ERC20'
 import { ERC20Interface } from '../types/ERC20Interface'
 import { MintableERC20 } from '../types/MintableERC20'
-import { OpynOptionRegistry } from '../types/OpynOptionRegistry'
+import { OptionRegistry } from '../types/OptionRegistry'
 import { Otoken as IOToken } from '../types/Otoken'
 import { PriceFeed } from '../types/PriceFeed'
 import { LiquidityPools } from '../types/LiquidityPools'
@@ -57,7 +57,6 @@ import {
 import { setupOracle, setOpynOracleExpiryPrice } from './helpers'
 import { send } from 'process'
 import { convertDoubleToDec } from '../utils/math'
-import { OptionRegistry } from '../types/OptionRegistry'
 
 const IMPLIED_VOL = '60'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -92,7 +91,7 @@ let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
 let currentTime: moment.Moment
-let optionRegistry: OpynOptionRegistry
+let optionRegistry: OptionRegistry
 let optionToken: IOToken
 let putOption: IOToken
 let erc20PutOption: IOToken
@@ -148,7 +147,7 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
     const constants = await constantsFactory.deploy()
     const interactions = await interactionsFactory.deploy()
     // deploy options registry
-    const optionRegistryFactory = await ethers.getContractFactory('OpynOptionRegistry', {
+    const optionRegistryFactory = await ethers.getContractFactory('OptionRegistry', {
       libraries: {
         OpynInteractions: interactions.address,
       },
@@ -172,7 +171,7 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
       GAMMA_CONTROLLER[chainId],
       MARGIN_POOL[chainId],
       senderAddress,
-    )) as OpynOptionRegistry
+    )) as OptionRegistry
     optionRegistry = _optionRegistry
     expect(optionRegistry).to.have.property('deployTransaction')
   })
@@ -226,7 +225,6 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
     volatility = (await volFactory.deploy()) as Volatility
     const liquidityPoolsFactory = await ethers.getContractFactory('LiquidityPools', {
       libraries: {
-        Constants: constants.address,
         BlackScholes: blackScholesDeploy.address,
       },
     })
@@ -364,7 +362,7 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
       underlying: weth.address,
     }
     const poolBalanceBefore = await usd.balanceOf(liquidityPool.address);
-    const quote = await liquidityPool.quotePriceWithUtilization(proposedSeries, amount)
+    const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
     await usd.approve(liquidityPool.address, quote)
     const balance = await usd.balanceOf(senderAddress)
     const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
@@ -402,6 +400,7 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
     const totalSharesAfter = await liquidityPool.totalSupply();
     //@ts-ignore
     const diff = usdBalanceBefore - usdBalanceAfter;
+    console.log(diff, toUSDC(liquidityPoolUsdcDeposit).toNumber())
     expect(diff - (toUSDC(liquidityPoolUsdcDeposit).toNumber())).to.be.within(0, 20);
     expect(senderUsdcAfter.sub(senderUsdcBefore).sub(toUSDC(liquidityPoolUsdcDeposit))).to.be.within(0, 20)
     expect(senderUsdcAfter.sub(senderUsdcBefore)).to.be.eq(strikeAmount);

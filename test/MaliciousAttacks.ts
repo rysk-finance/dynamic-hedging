@@ -32,7 +32,7 @@ import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/Liquidity
 import { ERC20 } from "../types/ERC20"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
-import { OpynOptionRegistry } from "../types/OpynOptionRegistry"
+import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPools } from "../types/LiquidityPools"
@@ -56,7 +56,6 @@ import {
 import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
 import { send } from "process"
 import { convertDoubleToDec } from "../utils/math"
-import { OptionRegistry } from "../types/OptionRegistry"
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -93,7 +92,7 @@ let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
 let currentTime: moment.Moment
-let optionRegistry: OpynOptionRegistry
+let optionRegistry: OptionRegistry
 let optionToken: IOToken
 let putOption: IOToken
 let erc20PutOption: IOToken
@@ -144,7 +143,7 @@ describe("Hegic Attack", function () {
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OpynOptionRegistry", {
+		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
 				OpynInteractions: interactions.address
 			}
@@ -166,7 +165,7 @@ describe("Hegic Attack", function () {
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
 			liquidityProviderAddress
-		)) as OpynOptionRegistry
+		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
 	})
@@ -214,13 +213,8 @@ describe("Hegic Attack", function () {
 			}
 		)
 		await optComputeFactory.deploy()
-		const volFactory = await ethers.getContractFactory("Volatility", {
-			libraries: {}
-		})
-		volatility = (await volFactory.deploy()) as Volatility
 		const liquidityPoolsFactory = await ethers.getContractFactory("LiquidityPools", {
 			libraries: {
-				Constants: constants.address,
 				BlackScholes: blackScholesDeploy.address
 			}
 		})
@@ -354,12 +348,13 @@ describe("Hegic Attack", function () {
 			strikeAsset: usd.address,
 			underlying: weth.address
 		}
-		const quote = await liquidityPool.quotePriceWithUtilization(proposedSeries, amount)
+		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		console.log(quote);
 		await usd
 			.connect(attacker)
 			.approve(
 				liquidityPool.address,
-				Math.ceil(parseFloat(utils.formatUnits(BigNumber.from(quote), 12)))
+				toWei('10000000000')
 			)
 		const write = await liquidityPool.connect(attacker).issueAndWriteOption(proposedSeries, amount)
 		const receipt = await write.wait(1)

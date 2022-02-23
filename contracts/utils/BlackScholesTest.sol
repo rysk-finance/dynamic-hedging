@@ -1,7 +1,7 @@
 pragma solidity >=0.8.9;
 
 import { BlackScholes } from "../libraries/BlackScholes.sol";
-import { Types } from "../Types.sol";
+import { Types } from "../libraries/Types.sol";
 
 contract BlackScholesTest {
     function retBlackScholesCalc(uint price, uint strike, uint expiration, uint vol, uint rfr, uint8 flavor) public view returns(uint) {

@@ -1,8 +1,8 @@
 pragma solidity >=0.8.9;
 
 import { IHedgingReactor } from "../interfaces/IHedgingReactor.sol";
-import  {SafeERC20} from '../tokens/SafeERC20.sol';
-import {IERC20} from '../interfaces/IERC20.sol';
+import {ERC20} from '../tokens/ERC20.sol';
+import "../libraries/SafeTransferLib.sol";
 
 
 contract UniswapV3HedgingTest {
@@ -13,7 +13,7 @@ contract UniswapV3HedgingTest {
 
     function setHedgingReactorAddress(address _address) public {
         uniswapV3HedgingReactor= _address;
-        SafeERC20.safeApprove(IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48), _address, MAX_UINT);
+        SafeTransferLib.safeApprove(ERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48), _address, MAX_UINT);
 
     }
 

@@ -1,7 +1,7 @@
 pragma solidity >=0.8.9;
 
 import "../PriceFeed.sol";
-import "../access/Ownable.sol";
+import "../utils/access/Ownable.sol";
 import "../interfaces/IERC20.sol";
 import "../libraries/OptionsCompute.sol";
 import '../libraries/SafeTransferLib.sol';
