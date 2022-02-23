@@ -702,4 +702,26 @@ contract LiquidityPool is
     }
     IERC20(seriesAddress).universalTransfer(msg.sender, toDecimals(amount, seriesAddress));
   }
+
+  /**
+    @notice buys a number of options back ad burns the tokens
+    @param seriesAddress the option token series address
+    @param amount the number of options to buyback
+    @return the number of options bought and burned
+  */
+  function buybackOption(address seriesAddress, uint amount) public returns (uint256){
+    OpynOptionRegistry optionRegistry = getOpynOptionRegistry();        
+    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+    require(optionSeries.strikeAsset == strikeAsset, "incorrect strike asset");
+    Types.Flavor flavor = optionSeries.flavor;
+
+    //TODO create IV skew specifically for buyback 
+    uint256 premium = quotePriceWithUtilization(optionSeries, amount);
+    
+
+
+
+
+
+  }
 }
