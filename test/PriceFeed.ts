@@ -7,18 +7,15 @@ import { MintableERC20 } from "../types/MintableERC20"
 import { PriceFeed } from "../types/PriceFeed"
 import { WETH } from "../types/WETH"
 import { USDC_ADDRESS, WETH_ADDRESS } from "./constants"
+let usd: MintableERC20
+let weth: WETH
+let signers: Signer[]
+let priceFeed: PriceFeed
+let ethUSDAggregator: MockContract
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 // edit depending on the chain id to be tested on
 const chainId = 1
-
-let usd: MintableERC20
-let weth: WETH
-
-let signers: Signer[]
-
-let priceFeed: PriceFeed
-let ethUSDAggregator: MockContract
 
 describe("Price Feed", async () => {
 	before(async function () {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import "../interfaces/IERC20Detailed.sol";
+import "../interfaces/IERC20.sol";
 import {
     IOtokenFactory,
     IOtoken,
@@ -88,7 +88,7 @@ library OpynInteractions {
         address collateralAsset = oToken.collateralAsset();
 
         uint256 collateralDecimals =
-            uint256(IERC20Detailed(collateralAsset).decimals());
+            uint256(IERC20(collateralAsset).decimals());
         uint256 mintAmount;
 
         if (oToken.isPut()) {
