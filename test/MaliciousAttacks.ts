@@ -312,7 +312,6 @@ describe("Hegic Attack", function () {
 			underlying: weth.address
 		}
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
-		console.log(quote);
 		await usd
 			.connect(attacker)
 			.approve(
