@@ -502,7 +502,6 @@ contract LiquidityPool is
   {
       underlyingPrice = getUnderlyingPrice(optionSeries);
       uint iv = getImpliedVolatility(optionSeries.flavor, underlyingPrice, optionSeries.strike, optionSeries.expiration);
-      uint ivNorm = iv.div(PRBMathUD60x18.SCALE).mul(100);
       require(iv > 0, "Implied volatility not found");
       require(optionSeries.expiration > block.timestamp, "Already expired");
       underlyingPrice = getUnderlyingPrice(optionSeries);

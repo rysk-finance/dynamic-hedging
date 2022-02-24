@@ -8,7 +8,7 @@ import {
 	convertRounded,
 	toUSDC,
 	fmtExpiration,
-	fromOpyn,
+	fromOpyn
 } from "../utils/conversion-helper"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
@@ -31,7 +31,7 @@ import {
 	MARGIN_POOL,
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
-	WETH_ADDRESS,
+	WETH_ADDRESS
 } from "./constants"
 let usd: MintableERC20
 let wethERC20: ERC20Interface
@@ -312,12 +312,7 @@ describe("Hegic Attack", function () {
 			underlying: weth.address
 		}
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
-		await usd
-			.connect(attacker)
-			.approve(
-				liquidityPool.address,
-				toWei('10000000000')
-			)
+		await usd.connect(attacker).approve(liquidityPool.address, toWei("10000000000"))
 		const write = await liquidityPool.connect(attacker).issueAndWriteOption(proposedSeries, amount)
 		const receipt = await write.wait(1)
 		const events = receipt.events
