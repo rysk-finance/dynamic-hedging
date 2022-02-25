@@ -140,7 +140,7 @@ contract OptionRegistry is Ownable {
         if (vaultId == 0) {
           vaultId = (controller.getAccountVaultCounter(address(this))) + 1;
         } 
-        uint256 mintAmount = OpynInteractions.createShort(gammaController, marginPool, _series, collateralAmount, vaultId);
+        uint256 mintAmount = OpynInteractions.createShort(gammaController, marginPool, _series, collateralAmount, vaultId, amount);
         // transfer the option to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(_series), msg.sender, mintAmount);
         openInterest[_series] += amount;
