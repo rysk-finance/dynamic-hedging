@@ -49,8 +49,9 @@ contract LiquidityPool is
   uint public underlyingAllocated;
   // max total supply of the lp shares
   uint public maxTotalSupply = type(uint256).max;
-  // TODO add setter
+  // Maximum discount that an option tilting factor can discount an option price
   uint public maxDiscount = PRBMathUD60x18.SCALE.div(10); // As a percentage. Init at 10%
+  // total number of calls active
   uint public totalAmountCall;
   // total number of puts active
   uint public totalAmountPut;
@@ -143,6 +144,40 @@ contract LiquidityPool is
       } else {
           return putsVolatilitySkew;
       }
+  }
+
+  /**
+   * @notice set the cached options variables used to estimate portfolio delta
+   * @param _totalAmountCall total amount of written calls
+   * @param _totalAmountPut total amount of written puts
+   * @param _weightedStrikeCall weighted average strike of written calls
+   * @param _weightedTimeCall weighted average time to expiration of written calls
+   * @param _weightedStrikePut weighted average strike of written puts
+   * @param _weightedTimePut weighted average time to expiration of puts
+   */
+  function setCachedOptionsVariables(
+    uint256 _totalAmountCall,
+    uint256 _totalAmountPut,
+    uint256 _weightedStrikeCall,
+    uint256 _weightedTimeCall,
+    uint256 _weightedStrikePut,
+    uint256 _weightedTimePut
+  ) external onlyOwner {
+      totalAmountCall = _totalAmountCall;
+      totalAmountPut = _totalAmountPut;
+      weightedStrikeCall = _weightedStrikeCall;
+      weightedTimeCall = _weightedTimeCall;
+      weightedStrikePut = _weightedStrikePut;
+      weightedTimePut = _weightedTimePut;
+  }
+
+  /**
+   * @notice set the maximum percentage discount for an option
+   * @param _maxDiscount of the option as a percentage in 1e18 format. ie: 1*e18 == 1%
+   * @dev   only governance can call this function
+   */
+  function setMaxDiscount(uint256 _maxDiscount) external onlyOwner {
+      maxDiscount = _maxDiscount;
   }
 
   /**
