@@ -17,6 +17,8 @@ interface WhitelistInterface {
 
     function isWhitelistedOtoken(address _otoken) external view returns (bool);
 
+    function isVaultType0WhitelistedCollateral(address _collateral, bool _isPut) external view returns (bool);
+
     function isWhitelistedCallee(address _callee) external view returns (bool);
 
     /* Admin / factory only functions */
@@ -37,6 +39,8 @@ interface WhitelistInterface {
     function whitelistCollateral(address _collateral) external;
 
     function blacklistCollateral(address _collateral) external;
+
+    function whitelistVaultType0Collateral(address _collateral, bool _isPut) external;
 
     function whitelistOtoken(address _otoken) external;
 
