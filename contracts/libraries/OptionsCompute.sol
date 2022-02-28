@@ -40,6 +40,18 @@ library OptionsCompute {
         return convertToDecimals(escrow, underlyingDecimals);
     }
 
+    /**
+        @dev computes new portfolio options position on a given side (put or call). Reduces and represents this position as a single option.
+        @param amount the number number of newly written options
+        @param strike the strike of the newly written option
+        @param expiration expiration date of the new option
+        @param totalAmount total amount of active calls/puts
+        @param weightedStrike weighted strike price of active calls/puts
+        @param weightedTime weighted time to expiry of active calls/puts
+        @return newTotalAmount the new total amount of active calls/puts
+        @return newWeightedStrike new weighted strike price of active calls/puts
+        @return newWeightedTime new weighted time to expiry of active calls/puts
+     */
     function computeNewWeights(
        uint amount,
        uint strike,
@@ -58,6 +70,7 @@ library OptionsCompute {
         uint newWeightedTime = (exWeight.mul(weightedTime)) + (weight.mul(expiration));
         return (newTotalAmount, newWeightedStrike, newWeightedTime);
     }
+    
 
     // @param points[0] spot distance
     // @param points[1] expiration time
