@@ -72,6 +72,25 @@ library OptionsCompute {
     }
     
 
+     function computeNewWeightsBuyback(
+       uint amount,
+       uint strike,
+       uint expiration,
+       uint totalAmount,
+       uint weightedStrike,
+       uint weightedTime
+    ) internal pure returns (uint, uint, uint) {
+        uint weight = PRBMathUD60x18.scale();
+        if (totalAmount > 0) {
+            weight = amount.div(totalAmount);
+        }
+        uint exWeight = PRBMathUD60x18.scale() - weight;
+        uint newTotalAmount = totalAmount - amount;
+        uint newWeightedStrike = (exWeight.mul(weightedStrike)) - (weight.mul(strike));
+        uint newWeightedTime = (exWeight.mul(weightedTime)) - (weight.mul(expiration));
+        return (newTotalAmount, newWeightedStrike, newWeightedTime);
+    }
+
     // @param points[0] spot distance
     // @param points[1] expiration time
     // @param coef degree-2 polynomial features are [intercept, 1, a, b, a^2, ab, b^2]
