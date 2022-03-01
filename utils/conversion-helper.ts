@@ -1,4 +1,5 @@
-import { BigNumberish, utils, BigNumber } from "ethers";
+import { BigNumberish, utils } from "ethers";
+import BigNumber from 'bignumber.js'
 
 export const formatEth = (x: BigNumberish) => Number(utils.formatEther(x));
 export function truncate (num: number, places: number = 3): number {
@@ -7,8 +8,8 @@ export function truncate (num: number, places: number = 3): number {
 export const tFormatEth = (x: BigNumberish): number => truncate(formatEth(x));
 export const toWei = (x: string) => utils.parseEther(x);
 export const call = 0, put = 1;
-export const CALL = BigNumber.from(call);
-export const PUT = BigNumber.from(put);
+export const CALL = new BigNumber(call);
+export const PUT =  new BigNumber(put);
 export const SECONDS_IN_DAY = 86400;
 export const SECONDS_IN_YEAR = SECONDS_IN_DAY * 365.25;
 export const genOptionTime = (now: moment.Moment, future: moment.Moment) => (future.unix() - now.unix()) / SECONDS_IN_YEAR;
@@ -22,7 +23,7 @@ export const toWeiFromUSDC = (x: string) => utils.parseUnits(x, 12);
 export const fromOpyn = (x: BigNumberish) => utils.formatUnits(x, 8);
 export const getDiffSeconds = (now: moment.Moment, future: moment.Moment) => (future.unix() - now.unix());
 export const convertRounded = (x: BigNumberish): number => Math.round(Number(x.toString()));
-
+export const scaleNum = (x: string, decimals: number) => utils.parseUnits(x, decimals);
 export const genOptionTimeFromUnix = (now: number, future: number) => (future - now) / SECONDS_IN_YEAR;
 export const sample = (x: any[]): any => x[Math.floor(Math.random() * x.length)];
 export const percentDiff = (a: number, b: number): number => a === b ? 0 : Math.abs(1 - a / b);
@@ -34,4 +35,8 @@ export const percentDiffArr = (a: (number|string)[], b: (number|string)[]): numb
     const sum = diffs.reduce((a: number, b: number) => a + b, 0)
     return sum
 }
+export const createValidExpiry = (now: number, days: number) => {
+    const multiplier = (now - 28800) / 86400
+    return (Number(multiplier.toFixed(0)) + 1) * 86400 + days * 86400 + 28800
+  }
 export type BlackScholesCalcArgs = [BigNumber, BigNumber, BigNumber, BigNumber, BigNumber];

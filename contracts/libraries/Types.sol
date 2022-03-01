@@ -14,6 +14,7 @@ library Types {
             uint strike;
             address underlying;
             address strikeAsset;
+            address collateral;
         }
     function isCall(Flavor _flavor) internal pure returns (bool) {
         return _flavor == Flavor.Call;

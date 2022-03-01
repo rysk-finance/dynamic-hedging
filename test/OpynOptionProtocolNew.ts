@@ -1,6 +1,6 @@
 import hre, { ethers, network } from "hardhat"
 import { Contract, utils, Signer } from "ethers"
-import { toWei, call, put } from "../utils/conversion-helper"
+import { toWei, call, put, fromOpyn, scaleNum, createValidExpiry } from "../utils/conversion-helper"
 import { expect } from "chai"
 import moment from "moment"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
@@ -10,7 +10,7 @@ import {NewMarginCalculator} from "../types/NewMarginCalculator";
 import {NewWhitelist} from "../types/NewWhitelist";
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry } from "../types/OptionRegistry"
+import { OptionRegistryV2 } from "../types/OptionRegistryV2"
 import { Otoken as IOToken } from "../types/Otoken"
 import { WETH } from "../types/WETH"
 import {
@@ -31,17 +31,14 @@ let wethERC20: ERC20Interface
 let weth: WETH
 let controller: Controller
 let addressBook: AddressBook
-let optionRegistry: OptionRegistry
+let optionRegistry: OptionRegistryV2
 let optionToken: IOToken
+let optionTokenUSDC: IOToken
 let putOption: IOToken
 let erc20CallOption: IOToken
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
-
-// Date for option to expire on format yyyy-mm-dd
-// Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-05-12"
 
 // time travel period between each expiry
 const expiryPeriod = {
@@ -50,14 +47,26 @@ const expiryPeriod = {
 	months: 1,
 	years: 0
 }
-
+const productSpotShockValue = scaleNum('0.6', 27)
+// array of time to expiry
+const day = 60 * 60 * 24
+const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56]
+// array of upper bound value correspond to time to expiry
+const expiryToValue = [
+  scaleNum('0.1678', 27),
+  scaleNum('0.237', 27),
+  scaleNum('0.3326', 27),
+  scaleNum('0.4032', 27),
+  scaleNum('0.4603', 27),
+]
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
 const strike = toWei("3500")
 
 // handles the conversion of expiryDate to a unix timestamp
-let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
+const now = moment().utc().unix()
+let expiration = createValidExpiry(now, 14)
 
 describe("Options protocol", function () {
 	before(async function () {
@@ -68,7 +77,7 @@ describe("Options protocol", function () {
 					forking: {
 						chainId: 1,
 						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
-						blockNumber: 12821000
+						blockNumber: 14290000
 					}
 				}
 			]
@@ -125,6 +134,16 @@ describe("Options protocol", function () {
         // whitelist vault type 0 collateral
         await newWhitelist.whitelistVaultType0Collateral(WETH_ADDRESS[chainId], false)
         await newWhitelist.whitelistVaultType0Collateral(USDC_ADDRESS[chainId], true)
+        // set product spot shock values
+        // usd collateralised calls
+        await newCalculator.setSpotShock(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId], USDC_ADDRESS[chainId], false, productSpotShockValue)
+        // usd collateralised puts
+        await newCalculator.setSpotShock(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId], USDC_ADDRESS[chainId], true, productSpotShockValue)
+        // set expiry to value values
+        // usd collateralised calls
+        await newCalculator.setUpperBoundValues(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId], USDC_ADDRESS[chainId], false, timeToExpiry, expiryToValue)
+        // usd collateralised puts
+        await newCalculator.setUpperBoundValues(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId], USDC_ADDRESS[chainId], true, timeToExpiry, expiryToValue)
     })
 
 	it("Deploys the Option Registry", async () => {
@@ -133,13 +152,13 @@ describe("Options protocol", function () {
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
 		const constantsFactory = await ethers.getContractFactory("Constants")
-		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
+		const interactionsFactory = await ethers.getContractFactory("OpynInteractionsV2")
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
+		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistryV2", {
 			libraries: {
-				OpynInteractions: interactions.address
+				OpynInteractionsV2: interactions.address
 			}
 		})
 		// get and transfer weth
@@ -153,7 +172,7 @@ describe("Options protocol", function () {
 			params: [USDC_OWNER_ADDRESS[chainId]]
 		})
 		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
-		await usd.connect(signer).transfer(senderAddress, toWei("1000").div(oTokenDecimalShift18))
+		await usd.connect(signer).transfer(senderAddress, toWei("1000000").div(oTokenDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
@@ -161,12 +180,30 @@ describe("Options protocol", function () {
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
 			senderAddress
-		)) as OptionRegistry
+		)) as OptionRegistryV2
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
 	})
 
-	it("Creates an option token series", async () => {
+	it("Creates a USDC collataralised call option token series", async () => {
+		const [sender] = signers
+		const issue = await optionRegistry.issue(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			expiration,
+			call,
+			strike,
+			USDC_ADDRESS[chainId]
+		)
+		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
+		const receipt = await issue.wait(1)
+		const events = receipt.events
+		const removeEvent = events?.find(x => x.event == "OptionTokenCreated")
+		const seriesAddress = removeEvent?.args?.token
+		// save the option token address
+		optionTokenUSDC = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+	})
+	it("Creates a ETH collataralised call option token series", async () => {
 		const [sender] = signers
 		const issue = await optionRegistry.issue(
 			WETH_ADDRESS[chainId],
@@ -183,6 +220,15 @@ describe("Options protocol", function () {
 		const seriesAddress = removeEvent?.args?.token
 		// save the option token address
 		optionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+	})
+    it("opens option token with USDC", async () => {
+		const value = toWei("4")
+		const USDbalanceBefore = await usd.balanceOf(senderAddress)
+		await usd.approve(optionRegistry.address, value)
+		await optionRegistry.open(optionTokenUSDC.address, value)
+		const USDbalance = await usd.balanceOf(senderAddress)
+		const balance = await optionTokenUSDC.balanceOf(senderAddress)
+		expect(balance).to.equal(value.div(oTokenDecimalShift18))
 	})
 
 	it("opens option token with ETH", async () => {
@@ -263,7 +309,6 @@ describe("Options protocol", function () {
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
-
 		await optionToken.approve(optionRegistry.address, await optionToken.balanceOf(senderAddress))
 		// call redeem from the options registry
 		await optionRegistry.settle(optionToken.address)

@@ -5,11 +5,11 @@ import "./utils/access/Ownable.sol";
 import { Types } from "./libraries/Types.sol";
 import { IController} from "./interfaces/GammaInterface.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
-import {OpynInteractions} from "./libraries/OpynInteractions.sol";
+import {OpynInteractionsV2} from "./libraries/OpynInteractionsV2.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import "hardhat/console.sol";
 
-contract OptionRegistry is Ownable {
+contract OptionRegistryV2 is Ownable {
 
     // public versioning of the contract for external use
     string public constant VERSION = "1.0";
@@ -86,7 +86,7 @@ contract OptionRegistry is Ownable {
         bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, collateral, expiration, flavor, strike);
         //address collateralAsset = collateral == address(0) ? usd : collateral;
         // check for an opyn oToken if it doesn't exist deploy it
-        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, flavor);
+        address series = OpynInteractionsV2.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, flavor);
         // store the option data as a hash
         seriesInfo[series] = Types.OptionSeries(expiration, flavor, strike, u, s, collateral);
         seriesAddress[issuanceHash] = series;
@@ -121,7 +121,7 @@ contract OptionRegistry is Ownable {
      * @return if the transaction succeeded
      * @return the amount of collateral taken from the liquidityPool
      */
-    function open(address _series, uint amount) external onlyLiquidityPool returns (bool, uint256) {
+    function open(address _series, uint256 amount) external onlyLiquidityPool returns (bool, uint256) {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
         require(block.timestamp < series.expiration, "Options can not be opened after expiration");
@@ -129,9 +129,9 @@ contract OptionRegistry is Ownable {
     
         // transfer collateral to this contract, collateral will depend on the flavor
         if (series.flavor == Types.Flavor.Call) {
-          collateralAmount = getCallCollateral(series.underlying, amount);
+          collateralAmount = getCallCollateral(series.collateral, amount, series.strike);
         } else {
-          collateralAmount = getPutCollateral(series.strikeAsset, amount, series.strike);
+          collateralAmount = getPutCollateral(series.collateral, amount, series.strike);
         }
         // mint the option token following the opyn interface
         IController controller = IController(gammaController);
@@ -140,7 +140,7 @@ contract OptionRegistry is Ownable {
         if (vaultId == 0) {
           vaultId = (controller.getAccountVaultCounter(address(this))) + 1;
         } 
-        uint256 mintAmount = OpynInteractions.createShort(gammaController, marginPool, _series, collateralAmount, vaultId, amount);
+        uint256 mintAmount = OpynInteractionsV2.createShort(gammaController, marginPool, _series, collateralAmount, vaultId, amount, 1);
         // transfer the option to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(_series), msg.sender, mintAmount);
         openInterest[_series] += amount;
@@ -169,7 +169,7 @@ contract OptionRegistry is Ownable {
         // transfer the oToken back to this account
         SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), amount);
         // burn the oToken tracking the amount of collateral returned
-        uint256 collatReturned = OpynInteractions.burnShort(gammaController, marginPool, _series, amount, vaultId);
+        uint256 collatReturned = OpynInteractionsV2.burnShort(gammaController, marginPool, _series, amount, vaultId);
 
         require(writers[_series][msg.sender] >= collatReturned, "Caller did not write sufficient amount");
         writers[_series][msg.sender] -= collatReturned;
@@ -198,7 +198,7 @@ contract OptionRegistry is Ownable {
         // get the vault
         uint256 vaultId = vaultIds[_series];
         // settle the vault
-        uint256 collatReturned = OpynInteractions.settle(gammaController, vaultId);
+        uint256 collatReturned = OpynInteractionsV2.settle(gammaController, vaultId);
         openInterest[_series] = 0;
         writers[_series][msg.sender] = 0;
         // transfer the collateral back to the liquidity pool
@@ -226,31 +226,32 @@ contract OptionRegistry is Ownable {
         // transfer the oToken back to this account
         SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), IERC20(_series).balanceOf(msg.sender));
         // redeem
-        uint256 amount = OpynInteractions.redeem(gammaController, marginPool, _series, seriesBalance);
+        uint256 amount = OpynInteractionsV2.redeem(gammaController, marginPool, _series, seriesBalance);
         return amount;
     }
 
     /**
      * @notice Send collateral funds for a call option to be minted
-     * @param  underlying address of the asset to transfer
+     * @param  collateral address of the asset to transfer
      * @param  amount amount of underlying to transfer
      * @return amount transferred
      */
-    function getCallCollateral(address underlying, uint amount) internal returns (uint256) {
-      SafeTransferLib.safeTransferFrom(underlying, msg.sender, address(this), amount);
-      return amount;
+    function getCallCollateral(address collateral, uint256 amount, uint256 strike) internal returns (uint256) {
+      uint escrow = OptionsCompute.computeEscrow(amount, strike, IERC20(collateral).decimals());
+      SafeTransferLib.safeTransferFrom(collateral, msg.sender, address(this), escrow);
+      return escrow;
     }
 
     /**
      * @notice Send collateral funds for a put option to be minted
-     * @param  strikeAsset address of the asset to transfer
+     * @param  collateral address of the asset to transfer
      * @param  amount amount of underlying to transfer
      * @param  strike the strike of the option
      * @return amount transferred
      */
-    function getPutCollateral(address strikeAsset, uint amount, uint strike) internal returns (uint256) {
-        uint escrow = OptionsCompute.computeEscrow(amount, strike, IERC20(strikeAsset).decimals());
-        SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), escrow);
+    function getPutCollateral(address collateral, uint256 amount, uint256 strike) internal returns (uint256) {
+        uint escrow = OptionsCompute.computeEscrow(amount, strike, IERC20(collateral).decimals());
+        SafeTransferLib.safeTransferFrom(collateral, msg.sender, address(this), escrow);
         return escrow;
     }
 
