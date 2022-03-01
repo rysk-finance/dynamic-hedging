@@ -159,7 +159,7 @@ contract OpynOptionRegistry is Ownable {
      * @dev only callable by the liquidityPool
      * @return if the transaction succeeded
      */
-    function close(address _series, uint amount) external onlyLiquidityPool returns (bool) {
+    function close(address _series, uint amount) external onlyLiquidityPool returns (bool, uint256) {
         // withdraw and burn
         Types.OptionSeries memory series = seriesInfo[_series];
         // make sure the option hasnt expired yet
@@ -183,7 +183,7 @@ contract OpynOptionRegistry is Ownable {
           transferOutStrike(series, collatReturned);
         }
         emit OptionsContractClosed(_series, vaultId, amount);
-        return true;
+        return (true, collatReturned);
     }
 
     /**
