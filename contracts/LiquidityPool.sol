@@ -81,6 +81,8 @@ contract LiquidityPool is
   event Deposit(address recipient, uint strikeAmount, uint shares);
   event Withdraw(address recipient, uint shares,  uint strikeAmount);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
+  event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
+
 
   constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol) {
     strikeAsset = IERC20(_strikeAsset).isETH() ? Constants.ethAddress() : _strikeAsset;
@@ -717,11 +719,24 @@ contract LiquidityPool is
 
     //TODO create IV skew specifically for buyback 
     uint256 premium = quotePriceWithUtilization(optionSeries, amount);
-    
+    (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
+    emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
 
-
-
-
-
+    if (Types.isCall(flavor)) {
+      (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeightsBuyback(
+          amount, optionSeries.strike, optionSeries.expiration, totalAmountCall, weightedStrikeCall, weightedTimeCall);
+      totalAmountCall = newTotal;
+      weightedStrikeCall = newWeight;
+      weightedTimeCall = newTime;
+      // TODO: make sure this is ok with collateral types
+      collateralAllocated -= collateralReturned;
+  } else {
+      (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeightsBuyback(
+          amount, optionSeries.strike, optionSeries.expiration, totalAmountPut, weightedStrikePut, weightedTimePut);
+      totalAmountPut = newTotal;
+      weightedStrikePut = newWeight;
+      weightedTimePut = newTime;
+      collateralAllocated -= collateralReturned;
+  }
   }
 }
