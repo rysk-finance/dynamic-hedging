@@ -467,12 +467,16 @@ contract NewMarginCalculator is Ownable {
             _vault.collateralAmounts[0],
             vaultDetails.collateralDecimals
         );
-
+        OptionType opType = getOptionType(
+            vaultDetails.isShortPut,
+            vaultDetails.shortCollateralAsset,
+            vaultDetails.shortUnderlyingAsset
+        );
         FPI.FixedPointInt memory collateralRequired = _getNakedMarginRequired(
             productHash,
             shortDetails,
             vaultDetails.shortExpiryTimestamp,
-            getOptionType(vaultDetails.isShortPut, vaultDetails.shortCollateralAsset, vaultDetails.shortUnderlyingAsset)
+            opType
         );
 
         // if collateral required <= collateral in the vault, the vault is not liquidatable
@@ -485,11 +489,7 @@ contract NewMarginCalculator is Ownable {
             shortDetails.shortUnderlyingPrice,
             vaultDetails.isShortPut
         );
-        OptionType opType = getOptionType(
-            vaultDetails.isShortPut,
-            vaultDetails.shortCollateralAsset,
-            vaultDetails.shortUnderlyingAsset
-        );
+
         // get the amount of collateral per 1 repaid otoken
         uint256 debtPrice = _getDebtPrice(
             depositedCollateral,
@@ -1229,8 +1229,9 @@ contract NewMarginCalculator is Ownable {
             // make sure that if the vault is fully collateralised that the collateral asset is acceptable
             if (_vaultDetails.vaultType == 0) {
                 WhitelistInterface whitelist = WhitelistInterface(addressBook.getWhitelist());
-                isMarginable = whitelist.isVaultType0WhitelistedCollateral(
+                isMarginable = whitelist.isCoveredWhitelistedCollateral(
                     _vault.collateralAssets[0],
+                    _vaultDetails.shortUnderlyingAsset,
                     _vaultDetails.isShortPut
                 );
             }
@@ -1335,21 +1336,26 @@ contract NewMarginCalculator is Ownable {
      * @notice get the type of option that is being created based on flavor and collateral
      * @param _isPut option type, true for put and false for call option
      * @param collateral the asset used as vault collateral
-     * @param underlying the asset used as the reference asset of the option
+     * @param underlying the asset used as the option reference asset
      */
     function getOptionType(
         bool _isPut,
         address collateral,
         address underlying
-    ) internal pure returns (OptionType) {
-        if (_isPut && collateral == underlying) {
-            return OptionType.NAKED_PUT;
-        } else if (_isPut) {
+    ) internal view returns (OptionType) {
+        WhitelistInterface whitelist = WhitelistInterface(addressBook.getWhitelist());
+        bool covered = whitelist.isCoveredWhitelistedCollateral(collateral, underlying, _isPut);
+        bool naked = whitelist.isNakedWhitelistedCollateral(collateral, underlying, _isPut);
+        if (_isPut && covered) {
             return OptionType.PUT;
-        } else if (!_isPut && collateral == underlying) {
+        } else if (!_isPut && covered) {
             return OptionType.COVERED_CALL;
-        } else {
+        } else if (_isPut && naked) {
+            return OptionType.NAKED_PUT;
+        } else if (!_isPut && naked) {
             return OptionType.NAKED_CALL;
+        } else {
+            revert("invalid option type");
         }
     }
 }

@@ -16,7 +16,8 @@ import {
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS
+	WETH_ADDRESS,
+	ADDRESS_BOOK
 } from "./constants"
 import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
 let usd: MintableERC20
@@ -99,7 +100,8 @@ describe("Options protocol", function () {
 			OTOKEN_FACTORY[chainId],
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
-			senderAddress
+			senderAddress,
+			ADDRESS_BOOK[chainId],
 		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")

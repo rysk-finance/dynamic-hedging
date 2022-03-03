@@ -3,6 +3,7 @@ import "./tokens/ERC20.sol";
 import "./interfaces/IERC20.sol";
 import "./utils/access/Ownable.sol";
 import { Types } from "./libraries/Types.sol";
+import "./interfaces/AddressBookInterface.sol";
 import { IController} from "./interfaces/GammaInterface.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import {OpynInteractionsV2} from "./libraries/OpynInteractionsV2.sol";
@@ -21,6 +22,8 @@ contract OptionRegistryV2 is Ownable {
     address internal oTokenFactory;
     // address of the gammaController for oToken operations
     address internal gammaController;
+    // address of the opyn addressBook for accessing important opyn modules
+    AddressBookInterface internal addressBook;
     // address of the marginPool, contract for storing options collateral
     address internal marginPool;
     // address of the rysk liquidity pools
@@ -51,12 +54,13 @@ contract OptionRegistryV2 is Ownable {
         _;
     }
 
-    constructor(address usdToken, address _oTokenFactory, address _gammaController, address _marginPool, address _liquidityPool) {
+    constructor(address usdToken, address _oTokenFactory, address _gammaController, address _marginPool, address _liquidityPool, address _addressBook) {
       usd = usdToken;
       oTokenFactory = _oTokenFactory;
       gammaController = _gammaController;
       marginPool = _marginPool;
       liquidityPool = _liquidityPool;
+      addressBook = AddressBookInterface(_addressBook);
     }
 
     /**

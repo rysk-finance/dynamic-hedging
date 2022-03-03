@@ -132,8 +132,10 @@ describe("Options protocol", function () {
         // usd collateralised calls
         await newWhitelist.whitelistProduct(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId], USDC_ADDRESS[chainId], false)
         // whitelist vault type 0 collateral
-        await newWhitelist.whitelistVaultType0Collateral(WETH_ADDRESS[chainId], false)
-        await newWhitelist.whitelistVaultType0Collateral(USDC_ADDRESS[chainId], true)
+        await newWhitelist.whitelistCoveredCollateral(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId], false)
+        await newWhitelist.whitelistCoveredCollateral(USDC_ADDRESS[chainId], WETH_ADDRESS[chainId], true)
+		// whitelist vault type 1 collateral
+		await newWhitelist.whitelistNakedCollateral(USDC_ADDRESS[chainId], WETH_ADDRESS[chainId], false)
         // set product spot shock values
         // usd collateralised calls
         await newCalculator.setSpotShock(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId], USDC_ADDRESS[chainId], false, productSpotShockValue)
@@ -179,7 +181,8 @@ describe("Options protocol", function () {
 			OTOKEN_FACTORY[chainId],
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
-			senderAddress
+			senderAddress,
+			ADDRESS_BOOK[chainId],
 		)) as OptionRegistryV2
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
