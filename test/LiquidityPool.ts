@@ -629,7 +629,63 @@ describe("Liquidity Pools", async () => {
 
 	it("can set the puts volatility skew", async () => {})
 
-	it("LP can buy back option to reduce open interest", async () => {})
+	it("LP can buy back option to reduce open interest", async () => {
+		const [sender] = signers
+		const amount = utils.parseUnits("1", 8)
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const { timestamp } = block
+		const callOptionAddress = lpCallOption.address
+		// opyn contracts require expiration to be at 8:00 UTC
+
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.add(toWei(strike))
+
+		const lpUSDBalanceBefore = await usd.balanceOf(ethLiquidityPool.address)
+		const proposedSeries = {
+			expiration: fmtExpiration(expiration),
+			flavor: BigNumber.from(call),
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address
+		}
+		const callOptionToken = new Contract(callOptionAddress, Otoken.abi, sender) as IOToken
+		const totalInterestBefore = await callOptionToken.totalSupply()
+		const sellerOTokenBalanceBefore = await callOptionToken.balanceOf(senderAddress)
+		const sellerUsdcBalanceBefore = await usd.balanceOf(senderAddress)
+		const writersBalanceBefore = await optionRegistry.writers(
+			callOptionAddress,
+			ethLiquidityPool.address
+		)
+		await callOptionToken.approve(ethLiquidityPool.address, amount)
+		const [quote] = await ethLiquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
+		await usd.approve(ethLiquidityPool.address, quote.toString())
+		const write = await ethLiquidityPool.buybackOption(proposedSeries, amount)
+		const receipt = await write.wait(1)
+		const events = receipt.events
+		const buybackEvent = events?.find(x => x.event == "BuybackOption")
+		expect(buybackEvent?.args?.series).to.equal(callOptionAddress)
+		expect(buybackEvent?.args?.amount).to.equal(amount)
+		const totalInterest = await callOptionToken.totalSupply()
+		expect(totalInterest).to.equal(totalInterestBefore.sub(amount))
+		const sellerOTokenBalance = await callOptionToken.balanceOf(senderAddress)
+		const sellerUsdcBalance = await usd.balanceOf(senderAddress)
+		// div quote by 100 because quote is in 8dp but USDC uses 6
+		// test to ensure option seller's USDC balance increases by quoted amount (1 USDC error allowed)
+		expect(sellerUsdcBalance.sub(sellerUsdcBalanceBefore.add(quote.div(100))).abs()).to.be.below(
+			utils.parseUnits("1", 6)
+		)
+		expect(sellerOTokenBalance).to.equal(sellerOTokenBalanceBefore.sub(amount))
+		const writersBalance = await optionRegistry.writers(callOptionAddress, ethLiquidityPool.address)
+		expect(writersBalance).to.equal(writersBalanceBefore.sub(utils.parseEther("1")))
+
+		const lpUSDBalance = await usd.balanceOf(ethLiquidityPool.address)
+		const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance)
+		// test to ensure Liquidity pool balance decreased by quoted amount (1 USDC error allowed)
+		expect(balanceDiff.sub(quote.div(100)).abs()).to.be.below(utils.parseUnits("1", 6))
+		// expect(fromOpyn(buyerOptionBalance)).to.eq(fromWei(amount))
+		// expect(fromOpyn(totalInterest)).to.eq(fromWei(amount))
+	})
 
 	it("Adds additional liquidity from new account", async () => {
 		const [sender, receiver] = signers
