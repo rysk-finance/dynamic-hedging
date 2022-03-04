@@ -459,6 +459,29 @@ contract LiquidityPool is
   }
 
   /**
+    @notice updated function to convert decimals between tokens
+    @param from address of token that the input is formatted to
+    @param to address of token that output needs to be formatted to
+    @param value value to convert
+    @return value converted to appropriate decimal
+   */
+
+  function convertDecimal(
+    address from,
+    address to,
+    uint256 value
+  ) internal view returns (uint) 
+  {
+    int8 difference = int8(IERC20(to).decimals()) - int8(IERC20(from).decimals());
+    if(difference >= 0){
+       return value * (10 ** uint8(difference));
+    } else {
+      return value / (10 ** uint8(-difference));
+    }
+  }
+
+
+  /**
    * @notice get a price quote for a given optionSeries
    * @param  optionSeries Types.OptionSeries struct for describing the option to price
    * @return Quote price of the option
@@ -707,18 +730,28 @@ contract LiquidityPool is
 
   /**
     @notice buys a number of options back ad burns the tokens
-    @param seriesAddress the option token series address
+    @param optionSeries the option token series to buyback
     @param amount the number of options to buyback
     @return the number of options bought and burned
   */
-  function buybackOption(address seriesAddress, uint amount) public returns (uint256){
-    OpynOptionRegistry optionRegistry = getOpynOptionRegistry();        
-    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
-    require(optionSeries.strikeAsset == strikeAsset, "incorrect strike asset");
+  function buybackOption(
+    Types.OptionSeries memory optionSeries,
+    uint amount
+  ) public returns (uint256){
+    OpynOptionRegistry optionRegistry = getOpynOptionRegistry();  
+    address seriesAddress = optionRegistry.issue(
+       optionSeries.underlying,
+       optionSeries.strikeAsset,
+       optionSeries.expiration.toUint(),
+       optionSeries.flavor,
+       optionSeries.strike,
+       collateralAsset
+    );      
     Types.Flavor flavor = optionSeries.flavor;
-
+    SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), amount);
+    SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), amount);
     //TODO create IV skew specifically for buyback 
-    uint256 premium = quotePriceWithUtilization(optionSeries, amount);
+    (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, convertDecimal(seriesAddress, optionSeries.underlying, amount));
     (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
     emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
 
@@ -730,13 +763,15 @@ contract LiquidityPool is
       weightedTimeCall = newTime;
       // TODO: make sure this is ok with collateral types
       collateralAllocated -= collateralReturned;
-  } else {
+    } else {
       (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeightsBuyback(
           amount, optionSeries.strike, optionSeries.expiration, totalAmountPut, weightedStrikePut, weightedTimePut);
       totalAmountPut = newTotal;
       weightedStrikePut = newWeight;
       weightedTimePut = newTime;
       collateralAllocated -= collateralReturned;
-  }
+    }
+    SafeTransferLib.safeTransfer(ERC20(strikeAsset), msg.sender, toDecimals(premium, strikeAsset));
+    return amount;
   }
 }
