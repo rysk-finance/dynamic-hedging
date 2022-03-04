@@ -1,207 +1,280 @@
 pragma solidity >=0.8.9;
-pragma experimental ABIEncoderV2;
-
+import "./tokens/ERC20.sol";
 import "./interfaces/IERC20.sol";
-import "./tokens/OptionToken.sol";
-import "./tokens/UniversalERC20.sol";
-import { Types } from "./Types.sol";
-import { Constants } from "./libraries/Constants.sol";
+import "./utils/access/Ownable.sol";
+import { Types } from "./libraries/Types.sol";
+import { IController} from "./interfaces/GammaInterface.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
+import {OpynInteractions} from "./libraries/OpynInteractions.sol";
+import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
+import "hardhat/console.sol";
 
-contract OptionRegistry {
+contract OptionRegistry is Ownable {
 
-    using UniversalERC20 for IERC20;
+    // public versioning of the contract for external use
     string public constant VERSION = "1.0";
+    uint8 private constant OPYN_DECIMALS = 8;
+    // address of the usd asset used
+    // TODO: maybe make into flexible usd
     address internal usd;
-
+    // address of the opyn oTokenFactory for oToken minting
+    address internal oTokenFactory;
+    // address of the gammaController for oToken operations
+    address internal gammaController;
+    // address of the marginPool, contract for storing options collateral
+    address internal marginPool;
+    // address of the rysk liquidity pools
+    // TODO: have multiple liquidityPools enabled
+    address internal liquidityPool;
+    // amount of openInterest (assets) held in a specific series
     mapping(address => uint) public openInterest;
-    mapping(address => uint) public earlyExercised;
-    mapping(address => uint) public totalInterest;
+    // amount of assets held in a series by an address
     mapping(address => mapping(address => uint)) public writers;
+    // information of a series
     mapping(address => Types.OptionSeries) public seriesInfo;
-    mapping(address => uint) public holdersSettlement;
+    // vaultId that is responsible for a specific series address
+    mapping(address => uint) public vaultIds;
+    // issuance hash mapped against the series address
     mapping(bytes32 => address) seriesAddress;
 
     event OptionTokenCreated(address token);
     event SeriesRedeemed(address series, uint underlyingAmount, uint strikeAmount);
+    event OptionsContractOpened(address indexed series, uint256 vaultId, uint256 optionsAmount);
+    event OptionsContractClosed(address indexed series, uint256 vaultId, uint256 closedAmount);
+    event OptionsContractSettled(address indexed series);
 
-    constructor(address usdToken) public {
-      usd = usdToken;
+    /**
+     * @dev Throws if called by any account other than the liquidity pool.
+     */
+    modifier onlyLiquidityPool() {
+        require(msg.sender == liquidityPool, "!liquidityPool");
+        _;
     }
 
-    /* function issue(Types.OptionSeries memory optionSeries) */
-    /*   public */
-    /*   returns (address) */
-    /* { */
-    /*   return issue( */
-    /*     optionSeries.underlying, */
-    /*     optionSeries.strikeAsset, */
-    /*     optionSeries.expiration, */
-    /*     optionSeries.flavor, */
-    /*     optionSeries.strike */
-    /*   ); */
-    /* } */
+    constructor(address usdToken, address _oTokenFactory, address _gammaController, address _marginPool, address _liquidityPool) {
+      usd = usdToken;
+      oTokenFactory = _oTokenFactory;
+      gammaController = _gammaController;
+      marginPool = _marginPool;
+      liquidityPool = _liquidityPool;
+    }
 
-    // Note, this just creates an option token, it doesn't guarantee
-    // settlement of that token. For guaranteed settlement see the DSFProtocolProxy contract(s)
-    function issue(address underlying, address strikeAsset, uint expiration, Types.Flavor flavor, uint strike) public returns (address) {
+    /**
+     * @notice Set the liquidity pool address
+     * @param  _newLiquidityPool set the liquidityPool address
+     */
+    function setLiquidityPool(address _newLiquidityPool) external onlyOwner {
+      liquidityPool = _newLiquidityPool;
+    }
+
+    /**
+     * @notice Either retrieves the option token if it already exists, or deploy it
+     * @param  underlying is the address of the underlying asset of the option
+     * @param  strikeAsset is the address of the collateral asset of the option
+     * @param  expiration is the expiry timestamp of the option
+     * @param  flavor the type of option
+     * @param  strike is the strike price of the option - 1e18 format
+     * @param collateral is the address of the asset to collateralize the option with
+     * @return the address of the option
+     */
+    function issue(address underlying, address strikeAsset, uint expiration, Types.Flavor flavor, uint strike, address collateral) external returns (address) {
+        // deploy an oToken contract address
         require(expiration > block.timestamp, "Already expired");
-        require(strike > 1 ether, "Strike is not greater than 1");
-        address u = IERC20(underlying).isETH() ? Constants.ethAddress() : underlying;
-        address s = strikeAsset == address(0) ? usd : strikeAsset;
+        // create option storage hash
+        address u = underlying;
+        address s = strikeAsset;
         bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, expiration, flavor, strike);
-        require(seriesAddress[issuanceHash] == address(0), "Series already exists");
-        address series = address(new OptionToken(issuanceHash, "", ""));
+        //address collateralAsset = collateral == address(0) ? usd : collateral;
+        // check for an opyn oToken if it doesn't exist deploy it
+        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, flavor);
+        // store the option data as a hash
         seriesInfo[series] = Types.OptionSeries(expiration, flavor, strike, u, s);
         seriesAddress[issuanceHash] = series;
         emit OptionTokenCreated(series);
         return series;
     }
+    
+    /**
+     * @notice Converts strike price to 1e8 format and floors least significant digits if needed
+     * @param  strikePrice strikePrice in 1e18 format
+     * @param  collateral address of collateral asset
+     * @return if the transaction succeeded
+     */
+    function formatStrikePrice(
+        uint256 strikePrice,
+        address collateral
+    ) internal view returns (uint) {
+        // convert strike to 1e8 format
+        uint price = strikePrice / (10**10);
+        uint collateralDecimals = IERC20(collateral).decimals();
+        if (collateralDecimals >= OPYN_DECIMALS) return price;
+        uint difference = OPYN_DECIMALS - collateralDecimals;
+        // round floor strike to prevent errors in Gamma protocol
+        return price / (10**difference) * (10**difference);
+    }
 
-    function open(address _series, uint amount) public payable returns (bool) {
+    /**
+     * @notice Open an options contract using collateral from the liquidity pool
+     * @param  _series the address of the option token to be created
+     * @param  amount the amount of options to deploy
+     * @dev only callable by the liquidityPool
+     * @return if the transaction succeeded
+     * @return the amount of collateral taken from the liquidityPool
+     */
+    function open(address _series, uint amount) external onlyLiquidityPool returns (bool, uint256) {
+        // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
         require(block.timestamp < series.expiration, "Options can not be opened after expiration");
-
+        uint256 collateralAmount;
+    
+        // transfer collateral to this contract, collateral will depend on the flavor
         if (series.flavor == Types.Flavor.Call) {
-          openCall(series.underlying, amount);
+          collateralAmount = getCallCollateral(series.underlying, amount);
         } else {
-          openPut(series.strikeAsset, amount, series.strike);
+          collateralAmount = getPutCollateral(series.strikeAsset, amount, series.strike);
         }
-
-        OptionToken(_series).mint(msg.sender, amount);
-
+        // mint the option token following the opyn interface
+        IController controller = IController(gammaController);
+        // check if a vault for this option already exists
+        uint256 vaultId = vaultIds[_series];
+        if (vaultId == 0) {
+          vaultId = (controller.getAccountVaultCounter(address(this))) + 1;
+        } 
+        uint256 mintAmount = OpynInteractions.createShort(gammaController, marginPool, _series, collateralAmount, vaultId, amount);
+        // transfer the option to the liquidity pool
+        SafeTransferLib.safeTransfer(ERC20(_series), msg.sender, mintAmount);
         openInterest[_series] += amount;
-        totalInterest[_series] += amount;
         writers[_series][msg.sender] += amount;
-
-        return true;
+        vaultIds[_series] = vaultId;
+        emit OptionsContractOpened(_series, vaultId, mintAmount);
+        return (true, collateralAmount);
     }
 
-    function close(address _series, uint amount) public returns (bool) {
+    /**
+     * @notice Close an options contract (oToken) before it has expired
+     * @param  _series the address of the option token to be burnt
+     * @param  amount the amount of options to burn
+     * @dev only callable by the liquidityPool
+     * @return if the transaction succeeded
+     */
+    function close(address _series, uint amount) external onlyLiquidityPool returns (bool, uint256) {
+        // withdraw and burn
         Types.OptionSeries memory series = seriesInfo[_series];
-
-        require(block.timestamp < series.expiration);
+        // make sure the option hasnt expired yet
+        require(block.timestamp < series.expiration, "Option already expired");
+        // make sure the option was issued by this account
         require(openInterest[_series] >= amount);
-        OptionToken(_series).burnFrom(msg.sender, amount);
+        // get the vault id
+        uint256 vaultId = vaultIds[_series];
+        // transfer the oToken back to this account
+        SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), amount);
+        // burn the oToken tracking the amount of collateral returned
+        uint256 collatReturned = OpynInteractions.burnShort(gammaController, marginPool, _series, amount, vaultId);
 
-        require(writers[_series][msg.sender] >= amount, "Caller did not write sufficient amount");
-        writers[_series][msg.sender] -= amount;
-        openInterest[_series] -= amount;
-        totalInterest[_series] -= amount;
+        require(writers[_series][msg.sender] >= collatReturned, "Caller did not write sufficient amount");
+        writers[_series][msg.sender] -= collatReturned;
+        openInterest[_series] -= collatReturned;
 
         if (series.flavor == Types.Flavor.Call) {
-          transferOutUnderlying(series, amount);
+          transferOutUnderlying(series, collatReturned);
         } else {
-          IERC20(series.strikeAsset).universalTransfer(msg.sender, amount * series.strike / 1 ether);
+          transferOutStrike(series, collatReturned);
         }
+        emit OptionsContractClosed(_series, vaultId, amount);
+        return (true, collatReturned);
+    }
+
+    /**
+     * @notice Settle an options vault
+     * @param  _series the address of the option token to be burnt
+     * @return if the transaction succeeded
+     * @dev only callable by the liquidityPool
+     */
+    function settle(address _series) external onlyLiquidityPool returns (bool) {
+        Types.OptionSeries memory series = seriesInfo[_series];
+        require(series.expiration != 0, "non-existent series");
+        // check that the option has expired
+        require(block.timestamp > series.expiration, "option not past expiry");
+        // get the vault
+        uint256 vaultId = vaultIds[_series];
+        // settle the vault
+        uint256 collatReturned = OpynInteractions.settle(gammaController, vaultId);
+        openInterest[_series] = 0;
+        writers[_series][msg.sender] = 0;
+        // transfer the collateral back to the liquidity pool
+        if (series.flavor == Types.Flavor.Call) {
+          transferOutUnderlying(series, collatReturned);
+        } else {
+          transferOutStrike(series, collatReturned);
+        }
+        emit OptionsContractSettled(_series);
         return true;
     }
 
-    function exercise(address _series, uint amount) public payable {
+    /**
+     * @notice Redeem oTokens for the locked collateral
+     * @param  _series the address of the option token to be burnt and redeemed
+     * @return amount returned
+     */
+    function redeem(address _series) external returns (uint256) {
         Types.OptionSeries memory series = seriesInfo[_series];
-
-        require(block.timestamp < series.expiration, "Series already expired");
-        require(openInterest[_series] >= amount, " Amount greater than open interest");
-        OptionToken(_series).burnFrom(msg.sender, amount);
-
-        uint exerciseAmount = amount * series.strike;
-        require(exerciseAmount / amount == series.strike, "Exercise amount does not balance");
-        exerciseAmount /= 1 ether;
-
-        openInterest[_series] -= amount;
-        earlyExercised[_series] += amount;
-
-        if (series.flavor == Types.Flavor.Call) {
-          exerciseCall(series, amount, exerciseAmount);
-        } else {
-          exercisePut(series, amount, exerciseAmount);
-        }
+        require(series.expiration != 0, "non-existent series");
+        // check that the option has expired
+        require(block.timestamp > series.expiration, "option not past expiry");
+        require(IERC20(_series).balanceOf(msg.sender) > 0, "insufficient option tokens");
+        uint256 seriesBalance = IERC20(_series).balanceOf(msg.sender);
+        // transfer the oToken back to this account
+        SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), IERC20(_series).balanceOf(msg.sender));
+        // redeem
+        uint256 amount = OpynInteractions.redeem(gammaController, marginPool, _series, seriesBalance);
+        return amount;
     }
 
-
-    function redeem(address _series) external returns (uint underlying, uint strikeAsset) {
-        return redeemWriter(_series, msg.sender);
+    /**
+     * @notice Send collateral funds for a call option to be minted
+     * @param  underlying address of the asset to transfer
+     * @param  amount amount of underlying to transfer
+     * @return amount transferred
+     */
+    function getCallCollateral(address underlying, uint amount) internal returns (uint256) {
+      SafeTransferLib.safeTransferFrom(underlying, msg.sender, address(this), amount);
+      return amount;
     }
 
-    function redeemWriter(address _series, address writer) public returns (uint underlying, uint strikeAsset) {
-        Types.OptionSeries memory series = seriesInfo[_series];
-
-        require(block.timestamp > series.expiration, "Series did not expire");
-
-        (underlying, strikeAsset) = calculateWriterSettlement(writers[_series][writer], _series);
-
-        if (underlying > 0) {
-            transferOutUnderlying(series, underlying);
-        }
-
-        if (strikeAsset > 0) {
-            transferOutStrike(series, strikeAsset);
-        }
-
-        emit SeriesRedeemed(_series, underlying, strikeAsset);
-        return (underlying, strikeAsset);
+    /**
+     * @notice Send collateral funds for a put option to be minted
+     * @param  strikeAsset address of the asset to transfer
+     * @param  amount amount of underlying to transfer
+     * @param  strike the strike of the option
+     * @return amount transferred
+     */
+    function getPutCollateral(address strikeAsset, uint amount, uint strike) internal returns (uint256) {
+        uint escrow = OptionsCompute.computeEscrow(amount, strike, IERC20(strikeAsset).decimals());
+        SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), escrow);
+        return escrow;
     }
 
-    function calculateWriterSettlement(
-        uint written,
-        address _series
-    ) public view returns (uint underlying, uint strikeAsset) {
-        Types.OptionSeries memory series = seriesInfo[_series];
-        uint unsettledPercent = openInterest[_series] * 1 ether / totalInterest[_series];
-        uint exercisedPercent = (totalInterest[_series] - openInterest[_series]) * 1 ether / totalInterest[_series];
-
-        if (series.flavor == Types.Flavor.Call) {
-            underlying = written * unsettledPercent / 1 ether;
-            strikeAsset = written * exercisedPercent / 1 ether;
-            strikeAsset = strikeAsset * series.strike / 1 ether;
-            return (underlying, strikeAsset);
-        } else {
-            strikeAsset = written * unsettledPercent / 1 ether;
-            strikeAsset = strikeAsset * series.strike / 1 ether;
-            underlying = written * exercisedPercent / 1 ether;
-            return (underlying, strikeAsset);
-        }
-    }
-
-    function settle(address _series) public returns (uint strikeAmount) {
-        Types.OptionSeries memory series = seriesInfo[_series];
-        require(block.timestamp > series.expiration);
-
-        uint bal = IERC20(_series).balanceOf(msg.sender);
-        OptionToken(_series).burnFrom(msg.sender, bal);
-
-        uint percent = bal * 1 ether / (totalInterest[_series] - earlyExercised[_series]);
-        strikeAmount = holdersSettlement[_series] * percent / 1 ether;
-        IERC20(series.strikeAsset).universalTransfer(msg.sender, strikeAmount);
-        return strikeAmount;
-    }
-
-    function openCall(address underlying, uint amount) internal {
-      IERC20(underlying).universalTransferFrom(msg.sender, address(this), amount);
-    }
-
-    function openPut(address strikeAsset, uint amount, uint strike) internal {
-        uint escrow = OptionsCompute.computeEscrow(amount, strike,IERC20(strikeAsset).decimals());
-        IERC20(strikeAsset).universalTransferFrom(msg.sender, address(this), escrow);
-    }
-
-    function exerciseCall(Types.OptionSeries memory _series, uint amount, uint exerciseAmount) internal {
-      IERC20(_series.underlying).universalTransfer(msg.sender, amount);
-      IERC20(_series.strikeAsset).universalTransferFrom(msg.sender, address(this), exerciseAmount);
-    }
-
-    function exercisePut(Types.OptionSeries memory _series, uint amount, uint exerciseAmount) internal {
-      IERC20(_series.underlying).universalTransferFrom(msg.sender, address(this), amount);
-      IERC20(_series.strikeAsset).universalTransfer(msg.sender, exerciseAmount);
-    }
-
+    /**
+     * @notice Send collateral funds to the liquidityPool
+     * @param  _series address of the oToken
+     * @param  amount amount of underlying to transfer
+     */
    function transferOutUnderlying(Types.OptionSeries memory _series, uint amount) internal {
-     IERC20(_series.underlying).universalTransfer(msg.sender, amount);
+     SafeTransferLib.safeTransfer(ERC20(_series.underlying), msg.sender, amount);
     }
 
+    /**
+     * @notice Send collateral funds to the liquidityPool
+     * @param  _series address of the oToken
+     * @param  amount amount of strike to transfer
+     */
    function transferOutStrike(Types.OptionSeries memory _series, uint amount) internal {
-     IERC20(_series.strikeAsset).universalTransfer(msg.sender, amount);
+     SafeTransferLib.safeTransfer(ERC20(_series.strikeAsset), msg.sender, amount);
    }
+
+  /*********
+    GETTERS
+   *********/
 
    function getSeriesAddress(bytes32 issuanceHash) public view returns (address) {
      return seriesAddress[issuanceHash];
@@ -231,15 +304,4 @@ contract OptionRegistry {
       );
     }
 
-    function _min(uint a, uint b) pure public returns (uint) {
-        if (a > b)
-            return b;
-        return a;
-    }
-
-    function _max(uint a, uint b) pure public returns (uint) {
-        if (a > b)
-            return a;
-        return b;
-    }
 }

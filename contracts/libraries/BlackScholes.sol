@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import { NormalDist } from "./NormalDist.sol";
-import { Types } from "../Types.sol";
+import { Types } from "./Types.sol";
 
 library BlackScholes {
     using PRBMathSD59x18 for int256;
@@ -56,7 +56,7 @@ library BlackScholes {
         int256 cdfD2 = NormalDist.cdf(d2);
         int256 priceCdf = price.mul(cdfD1);
         int256 strikeBy = strike.mul(eToNegRT).mul(cdfD2);
-        quote = uint(priceCdf - strikeBy);
+        quote = uint256(priceCdf - strikeBy);
         delta = cdfD1;
     }
 
@@ -71,12 +71,12 @@ library BlackScholes {
         pure
         returns (uint256 quote, int256 delta)
     {
-        int256 d2 = d1 - d1Denominator;
+        int256 d2 = d1Denominator - d1;
         int256 cdfD1 = NormalDist.cdf(-d1);
         int256 cdfD2 = NormalDist.cdf(d2);
         int256 priceCdf = price.mul(cdfD1);
         int256 strikeBy = strike.mul(eToNegRT).mul(cdfD2);
-        quote = uint(strikeBy - priceCdf);
+        quote = uint256(strikeBy - priceCdf);
         delta = -cdfD1;
     }
 

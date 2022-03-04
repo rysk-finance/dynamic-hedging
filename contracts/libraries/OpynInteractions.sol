@@ -2,20 +2,20 @@
 pragma solidity >=0.8.4;
 
 import "../interfaces/IERC20.sol";
-import "../interfaces/IERC20Detailed.sol";
 import {
     IOtokenFactory,
     IOtoken,
     IController,
     GammaTypes
 } from "../interfaces/GammaInterface.sol";
-import { Types } from "../Types.sol";
+import { Types } from "./Types.sol";
 import {Constants} from "./Constants.sol";
-import {SafeERC20} from "../tokens/SafeERC20.sol";
+import "./SafeTransferLib.sol";
 import "hardhat/console.sol";
 
 library OpynInteractions {
-    using SafeERC20 for IERC20;
+
+    uint256 private constant SCALE_FROM = 10**10;
     
     /**
      * @notice Either retrieves the option token if it already exists, or deploy it
@@ -73,6 +73,7 @@ library OpynInteractions {
      * @param oTokenAddress is the address of the otoken to mint
      * @param depositAmount is the amount of collateral to deposit
      * @param vaultId is the vault id to use for creating this short 
+     * @param amount is the mint amount in 1e18 format
      * @return the otoken mint amount
      */
     function createShort(
@@ -80,7 +81,8 @@ library OpynInteractions {
         address marginPool,
         address oTokenAddress,
         uint256 depositAmount,
-        uint256 vaultId
+        uint256 vaultId,
+        uint256 amount
     ) external returns (uint256) {
         IController controller = IController(gammaController);
 
@@ -88,50 +90,12 @@ library OpynInteractions {
         // So in the context of performing Opyn short operations we call them collateralAsset
         IOtoken oToken = IOtoken(oTokenAddress);
         address collateralAsset = oToken.collateralAsset();
+        // TODO Consider if safemath division is needed here
+        uint256 mintAmount = amount / SCALE_FROM;
 
-        uint256 collateralDecimals =
-            uint256(IERC20Detailed(collateralAsset).decimals());
-        uint256 mintAmount;
-
-        if (oToken.isPut()) {
-            // TODO rewrite or remove this comment section it is no longer current.
-            // For minting puts, there will be instances where the full depositAmount will not be used for minting.
-            // This is because of an issue with precision.
-            //
-            // For ETH put options, we are calculating the mintAmount (10**8 decimals) using
-            // the depositAmount (10**6 decimals), which will result in truncation of decimals when scaling down.
-            // As a result, there will be tiny amounts of dust left behind in the Opyn vault when minting put otokens.
-            //
-            // For simplicity's sake, we do not refund the dust back to the address(this) on minting otokens.
-            // We retain the dust in the vault so the calling contract can withdraw the
-            // actual locked amount + dust at settlement.
-            // oToken strike price in e18
-            // To test this behavior, we can console.log
-            // MarginCalculatorInterface(0x7A48d10f372b3D7c60f6c9770B91398e4ccfd3C7).getExcessCollateral(vault)
-            // to see how much dust (or excess collateral) is left behind.
-            if (collateralDecimals > Constants.OTOKEN_DECIMALS) {
-                uint256 scaleBy = 10**(collateralDecimals - Constants.OTOKEN_DECIMALS);
-                mintAmount = depositAmount * 1e8
-                            / (oToken.strikePrice() * scaleBy);
-            } else if (collateralDecimals < Constants.OTOKEN_DECIMALS) {
-                uint256 scaleBy = 10**(Constants.OTOKEN_DECIMALS - collateralDecimals);
-                mintAmount = depositAmount * 1e8
-                            / (oToken.strikePrice()/scaleBy);
-            }
-
-        } else {
-            mintAmount = depositAmount;
-
-            if (collateralDecimals > 8) {
-                uint256 scaleBy = 10**(collateralDecimals - 8); // oTokens have 8 decimals
-                if (mintAmount > scaleBy) {
-                    mintAmount = depositAmount/ scaleBy; // scale down from 10**18 to 10**8
-                }
-            }
-        }
         // double approve to fix non-compliant ERC20s
-        IERC20 collateralToken = IERC20(collateralAsset);
-        collateralToken.safeApprove(marginPool, depositAmount);
+        ERC20 collateralToken = ERC20(collateralAsset);
+        SafeTransferLib.safeApprove(collateralToken, marginPool, depositAmount);
         // initialise the controller args with 2 incase the vault already exists
         IController.ActionArgs[] memory actions =
                 new IController.ActionArgs[](2);
@@ -345,7 +309,7 @@ library OpynInteractions {
             0, // not used
             "" // not used
         );
-        IERC20(series).approve(marginPool, amount);
+        SafeTransferLib.safeApprove(ERC20(series), marginPool, amount);
         controller.operate(actions);
 
         uint256 endAssetBalance = IERC20(asset).balanceOf(msg.sender);

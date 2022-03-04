@@ -1,6 +1,5 @@
 import hre, { ethers, network } from "hardhat"
-import { BigNumberish, Contract, ContractFactory, utils, Signer, BigNumber } from "ethers"
-import { MockProvider } from "@ethereum-waffle/provider"
+import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
 import {
 	toWei,
 	truncate,
@@ -9,10 +8,6 @@ import {
 	put,
 	genOptionTimeFromUnix,
 	fromWei,
-	fromUSDC,
-	getDiffSeconds,
-	convertRounded,
-	percentDiffArr,
 	percentDiff,
 	toUSDC,
 	fmtExpiration,
@@ -23,40 +18,42 @@ import {
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
-import { AggregatorV3Interface as IAggregatorV3 } from "../types/AggregatorV3Interface"
 //@ts-ignore
 import bs from "black-scholes"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { ERC20 } from "../types/ERC20"
-import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
-import { OpynOptionRegistry } from "../types/OpynOptionRegistry"
+import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPools } from "../types/LiquidityPools"
 import { LiquidityPool } from "../types/LiquidityPool"
-import { Volatility } from "../types/Volatility"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
+import { Volatility } from "../types/Volatility"
 import {
-	CHAINLINK_WETH_PRICER,
-	CHAINID,
-	ETH_PRICE_ORACLE,
-	USDC_PRICE_ORACLE,
 	GAMMA_CONTROLLER,
 	MARGIN_POOL,
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS,
-	ORACLE_LOCKING_PERIOD
 } from "./constants"
-import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
-import { send } from "process"
-import { convertDoubleToDec } from "../utils/math"
-import { OptionRegistry } from "../types/OptionRegistry"
+let usd: MintableERC20
+let weth: WETH
+let optionRegistry: OptionRegistry
+let optionProtocol: Protocol
+let signers: Signer[]
+let senderAddress: string
+let receiverAddress: string
+let liquidityPools: LiquidityPools
+let liquidityPool: LiquidityPool
+let ethLiquidityPool: LiquidityPool
+let volatility: Volatility
+let priceFeed: PriceFeed
+let ethUSDAggregator: MockContract
+let rate: string
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -86,32 +83,6 @@ const liquidityPoolWethWidthdraw = "0.1"
 /* --- end variables to change --- */
 
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
-
-let usd: MintableERC20
-let wethERC20: ERC20Interface
-let weth: WETH
-let currentTime: moment.Moment
-let optionRegistry: OpynOptionRegistry
-let optionToken: IOToken
-let putOption: IOToken
-let erc20PutOption: IOToken
-let erc20CallOption: IOToken
-let optionProtocol: Protocol
-let erc20CallExpiration: moment.Moment
-let putOptionExpiration: moment.Moment
-let erc20PutOptionExpiration: moment.Moment
-let erc20Token: ERC20
-let signers: Signer[]
-let volatility: Volatility
-let senderAddress: string
-let receiverAddress: string
-let liquidityPools: LiquidityPools
-let liquidityPool: LiquidityPool
-let ethLiquidityPool: LiquidityPool
-
-let priceFeed: PriceFeed
-let ethUSDAggregator: MockContract
-let rate: string
 
 const CALL_FLAVOR = BigNumber.from(call)
 const PUT_FLAVOR = BigNumber.from(put)
@@ -147,7 +118,7 @@ describe("Liquidity Pools", async () => {
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OpynOptionRegistry", {
+		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
 				OpynInteractions: interactions.address
 			}
@@ -171,7 +142,7 @@ describe("Liquidity Pools", async () => {
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
 			senderAddress
-		)) as OpynOptionRegistry
+		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
 	})
@@ -224,7 +195,6 @@ describe("Liquidity Pools", async () => {
 		volatility = (await volFactory.deploy()) as Volatility
 		const liquidityPoolsFactory = await ethers.getContractFactory("LiquidityPools", {
 			libraries: {
-				Constants: constants.address,
 				BlackScholes: blackScholesDeploy.address
 			}
 		})
@@ -374,8 +344,8 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		const quote = await liquidityPool.quotePriceWithUtilization(proposedSeries, amount)
-		await usd.approve(liquidityPool.address, quote)
+		const quote = await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
+		await usd.approve(liquidityPool.address, quote[0])
 		const balance = await usd.balanceOf(senderAddress)
 		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
@@ -390,7 +360,7 @@ describe("Liquidity Pools", async () => {
 		const opynAmount = toOpyn(fromWei(amount))
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
+		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote[0]))
 	})
 	it("can compute portfolio delta", async function () {
 		const res = await liquidityPool.getPortfolioDelta()

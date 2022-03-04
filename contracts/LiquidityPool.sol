@@ -2,19 +2,15 @@ pragma solidity >=0.8.0;
 
 import "./PriceFeed.sol";
 import "./tokens/ERC20.sol";
-import "./libraries/Math.sol";
-import "./access/Ownable.sol";
+import "./OptionRegistry.sol";
 import "./OptionsProtocol.sol";
-import "./OpynOptionRegistry.sol";
-import "./tokens/UniversalERC20.sol";
+import "./utils/access/Ownable.sol";
 import "./libraries/BlackScholes.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-import { SafeERC20 } from "./tokens/SafeERC20.sol";
 import { Constants } from "./libraries/Constants.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
-import { TransferHelper } from "./libraries/TransferHelper.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 
 import "hardhat/console.sol";
@@ -23,15 +19,14 @@ error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmount
 error MinUnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingAmountMin);
 error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
 error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
+error DeltaQuoteError(uint256 quote, int256 delta);
 
 contract LiquidityPool is
   ERC20,
   Ownable
 {
-  using UniversalERC20 for IERC20;
   using PRBMathSD59x18 for int256;
   using PRBMathUD60x18 for uint256;
-  using Math for uint256;
 
   uint256 private constant ONE_YEAR_SECONDS = 31557600000000000000000000;
   // standard expected decimals of ERC20s
@@ -47,13 +42,15 @@ contract LiquidityPool is
   // asset that is used for collateral asset
   address public collateralAsset;
   // riskFreeRate as a percentage PRBMath Float. IE: 3% -> 0.03 * 10**18
-  uint public riskFreeRate; 
+  uint public riskFreeRate;
   // amount of strikeAsset allocated as collateral
   uint public collateralAllocated;
   // amount of underlyingAsset allocated as collateral
   uint public underlyingAllocated;
   // max total supply of the lp shares
-  uint public maxTotalSupply;
+  uint public maxTotalSupply = type(uint256).max;
+  // Maximum discount that an option tilting factor can discount an option price
+  uint public maxDiscount = PRBMathUD60x18.SCALE.div(10); // As a percentage. Init at 10%
   // total number of calls active
   uint public totalAmountCall;
   // total number of puts active
@@ -84,10 +81,10 @@ contract LiquidityPool is
   event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
 
 
-  constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol) {
-    strikeAsset = IERC20(_strikeAsset).isETH() ? Constants.ethAddress() : _strikeAsset;
+  constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol, 18) {
+    strikeAsset = _strikeAsset;
     riskFreeRate = rfr;
-    address underlyingAddress = IERC20(_underlyingAsset).isETH() ? Constants.ethAddress() : _underlyingAsset;
+    address underlyingAddress = _underlyingAsset;
     underlyingAsset = underlyingAddress;
     collateralAsset = _collateralAsset;
     callsVolatilitySkew = callSkew;
@@ -152,6 +149,40 @@ contract LiquidityPool is
   }
 
   /**
+   * @notice set the cached options variables used to estimate portfolio delta
+   * @param _totalAmountCall total amount of written calls
+   * @param _totalAmountPut total amount of written puts
+   * @param _weightedStrikeCall weighted average strike of written calls
+   * @param _weightedTimeCall weighted average time to expiration of written calls
+   * @param _weightedStrikePut weighted average strike of written puts
+   * @param _weightedTimePut weighted average time to expiration of puts
+   */
+  function setCachedOptionsVariables(
+    uint256 _totalAmountCall,
+    uint256 _totalAmountPut,
+    uint256 _weightedStrikeCall,
+    uint256 _weightedTimeCall,
+    uint256 _weightedStrikePut,
+    uint256 _weightedTimePut
+  ) external onlyOwner {
+      totalAmountCall = _totalAmountCall;
+      totalAmountPut = _totalAmountPut;
+      weightedStrikeCall = _weightedStrikeCall;
+      weightedTimeCall = _weightedTimeCall;
+      weightedStrikePut = _weightedStrikePut;
+      weightedTimePut = _weightedTimePut;
+  }
+
+  /**
+   * @notice set the maximum percentage discount for an option
+   * @param _maxDiscount of the option as a percentage in 1e18 format. ie: 1*e18 == 1%
+   * @dev   only governance can call this function
+   */
+  function setMaxDiscount(uint256 _maxDiscount) external onlyOwner {
+      maxDiscount = _maxDiscount;
+  }
+
+  /**
    * @notice set the maximum share supply of the pool
    * @param _maxTotalSupply of the shares
    * @dev   only governance can call this function
@@ -183,7 +214,7 @@ contract LiquidityPool is
     // mint lp token to recipient
     _mint(_recipient, shares);
     emit Deposit(_recipient, _amount, shares);
-    require(totalSupply() <= maxTotalSupply, "maxTotalSupply");
+    require(totalSupply <= maxTotalSupply, "maxTotalSupply");
   }
 
   /**
@@ -226,7 +257,7 @@ contract LiquidityPool is
     // burn the shares
     _burn(msg.sender, _shares);
     // send funds to user
-    IERC20(collateralAsset).universalTransfer(_recipient, transferCollateralAmount);
+    SafeTransferLib.safeTransfer(ERC20(collateralAsset), _recipient, transferCollateralAmount);
     //TODO implement book balance reconcilation check
     emit Withdraw(_recipient, _shares, transferCollateralAmount);
   }
@@ -310,20 +341,36 @@ contract LiquidityPool is
     (uint shares)
   {
     // equities = assets - liabilities
-    // assets: Any token such as eth usd, collateral sent to opynOptionRegistry, hedging reactor stuff
+    // assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff
     // liabilities: Options that we wrote 
     uint256 convertedAmount = OptionsCompute.convertFromDecimals(_amount, IERC20(collateralAsset).decimals());
-    if (totalSupply() == 0) {
+    if (totalSupply == 0) {
       shares = convertedAmount;
     } else {
-      uint assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
-      for (uint8 i=0; i < hedgingReactors.length; i++) {
-        assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
-      }
-      uint liabilities = _valueCallsWritten() + _valuePutsWritten();
-      uint NAV = assets - liabilities;
-      shares = convertedAmount.mul(totalSupply()).div(NAV);
+      uint NAV = _getNAV();
+      shares = convertedAmount.mul(totalSupply).div(NAV);
     }
+  }
+
+  /**
+   * @notice get the Net Asset Value
+   * @return Net Asset Value
+   */
+  function _getNAV()
+    internal
+    view
+    returns (uint)
+  {
+    // equities = assets - liabilities
+    // assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff
+    // liabilities: Options that we wrote 
+    uint256 assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
+    for (uint8 i=0; i < hedgingReactors.length; i++) {
+       assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
+    }
+    uint256 liabilities = _valueCallsWritten() + _valuePutsWritten();
+    uint256 NAV = assets - liabilities;
+    return NAV;
   }
 
   /**
@@ -334,22 +381,13 @@ contract LiquidityPool is
   function _shareValue(uint _shares)
     internal
     view
-    returns
-    (uint amount)
+    returns (uint amount)
   {
-    // equities = assets - liabilities
-    // assets: Any token such as eth usd, collateral sent to opynOptionRegistry, hedging reactor stuff
-    // liabilities: Options that we wrote 
-    if (totalSupply() == 0) {
+    if (totalSupply == 0) {
       amount = _shares;
     } else {
-      uint256 assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
-      for (uint8 i=0; i < hedgingReactors.length; i++) {
-        assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
-      }
-      uint256 liabilities = _valueCallsWritten() + _valuePutsWritten();
-      uint256 NAV = assets - liabilities;
-      amount = _shares.mul(NAV).div(totalSupply());
+      uint256 NAV = _getNAV();
+      amount = _shares.mul(NAV).div(totalSupply);
     }
 
   }
@@ -368,9 +406,9 @@ contract LiquidityPool is
    * @notice get the option registry used for storing and managing the options
    * @return the option registry contract interface
    */
-  function getOpynOptionRegistry() internal returns (OpynOptionRegistry) {
+  function getOptionRegistry() internal view returns (OptionRegistry) {
     address registryAddress = Protocol(protocol).optionRegistry();
-    return OpynOptionRegistry(registryAddress);
+    return OptionRegistry(registryAddress);
   }
 
   /**
@@ -524,7 +562,6 @@ contract LiquidityPool is
   {
       underlyingPrice = getUnderlyingPrice(optionSeries);
       uint iv = getImpliedVolatility(optionSeries.flavor, underlyingPrice, optionSeries.strike, optionSeries.expiration);
-      uint ivNorm = iv.div(PRBMathUD60x18.SCALE).mul(100);
       require(iv > 0, "Implied volatility not found");
       require(optionSeries.expiration > block.timestamp, "Already expired");
       underlyingPrice = getUnderlyingPrice(optionSeries);
@@ -548,25 +585,32 @@ contract LiquidityPool is
       returns (int256)
   {
       uint256 price = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      uint256 callIv = getImpliedVolatility(Types.Flavor.Call, price, weightedStrikeCall, weightedTimeCall);
-      uint256 putIv = getImpliedVolatility(Types.Flavor.Put, price, weightedStrikePut, weightedTimePut);
       uint256 rfr = riskFreeRate;
-      int256 callsDelta = BlackScholes.getDelta(
-         price,
-         weightedStrikeCall,
-         weightedTimeCall,
-         callIv,
-         rfr,
-         Types.Flavor.Call
-      );
-      int256 putsDelta = BlackScholes.getDelta(
-         price,
-         weightedStrikePut,
-         weightedTimePut,
-         putIv,
-         rfr,
-         Types.Flavor.Put
-      );
+      int256 callsDelta;
+      int256 putsDelta;
+      if (weightedTimeCall != 0) {
+        uint256 callIv = getImpliedVolatility(Types.Flavor.Call, price, weightedStrikeCall, weightedTimeCall);
+        callsDelta = BlackScholes.getDelta(
+          price,
+          weightedStrikeCall,
+          weightedTimeCall,
+          callIv,
+          rfr,
+          Types.Flavor.Call
+        );
+      }
+
+      if (weightedTimePut != 0) {
+        uint256 putIv = getImpliedVolatility(Types.Flavor.Put, price, weightedStrikePut, weightedTimePut);
+        putsDelta = BlackScholes.getDelta(
+           price,
+           weightedStrikePut,
+           weightedTimePut,
+           putIv,
+           rfr,
+           Types.Flavor.Put
+        );
+      }
       int256 externalDelta;
       // TODO fix hedging reactor address to be dynamic
       for (uint8 i=0; i < hedgingReactors.length; i++) {
@@ -615,15 +659,22 @@ contract LiquidityPool is
     uint optionQuote = quotePrice(optionSeries);
     uint optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
     uint underlyingPrice = getUnderlyingPrice(optionSeries);
-    uint utilization = amount.div(totalSupply());
+    uint utilization = amount.div(totalSupply);
     uint utilizationPrice = underlyingPrice.mul(utilization);
     return utilizationPrice > optionPrice ? utilizationPrice : optionPrice;
+  }
+
+  struct UtilizationState {
+    uint optionPrice;
+    uint utilizationPrice;
+    bool isDecreased;
+    uint deltaTiltFactor;
   }
 
   /**
    * @notice get the quote price and delta for a given option
    * @param  optionSeries option type to quote
-   * @param  amount       the number of options to mint 
+   * @param  amount the number of options to mint 
    * @return quote the price of the options
    * @return delta the delta of the options
    */
@@ -636,15 +687,31 @@ contract LiquidityPool is
       returns (uint256 quote, int256 delta)
   {
       (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries);
-      uint optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
+      UtilizationState memory quoteState;
+      quoteState.optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
       uint underlyingPrice = getUnderlyingPrice(optionSeries);
-      // factor in portfolio delta
-      // if decreases portfolio delta quote standard bs
-      // abs(portfolio delta + new delta) < abs(portfolio delta)
-      uint utilization = amount.div(totalSupply());
-      uint utilizationPrice = underlyingPrice.mul(utilization);
-      quote = utilizationPrice > optionPrice ? utilizationPrice : optionPrice;
+      int portfolioDelta = getPortfolioDelta();
+      int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
+      uint utilization = amount.div(totalSupply);
+      quoteState.utilizationPrice = underlyingPrice.mul(utilization);
+      int distanceFromZero = PRBMathSD59x18.abs(newDelta - int(0));
+      quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
+      uint normalizedDelta = uint256(newDelta).div(_getNAV());
+      uint maxPrice = optionSeries.flavor == Types.Flavor.Call ? underlyingPrice : optionSeries.strike;
+      quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
+      if (quoteState.isDecreased) {
+        uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
+        uint newOptionPrice = quoteState.optionPrice - discount.mul(quoteState.optionPrice);
+        quoteState.utilizationPrice = quoteState.utilizationPrice - discount.mul(quoteState.utilizationPrice);
+        quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
+      } else {
+        uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice) + quoteState.optionPrice;
+        quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice);
+        quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
+      }
       delta = deltaQuote;
+      //@TODO think about more robust considitions for this check
+      if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta); }
   }
 
   /**
@@ -659,7 +726,7 @@ contract LiquidityPool is
      uint amount
   ) public payable returns (uint optionAmount, address series)
   {
-    OpynOptionRegistry optionRegistry = getOpynOptionRegistry();
+    OptionRegistry optionRegistry = getOptionRegistry();
     series = optionRegistry.issue(
        optionSeries.underlying,
        optionSeries.strikeAsset,
@@ -685,16 +752,15 @@ contract LiquidityPool is
     payable
     returns (uint256)
   {
-    OpynOptionRegistry optionRegistry = getOpynOptionRegistry();
+    OptionRegistry optionRegistry = getOptionRegistry();
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
-    // expiration requires conversion back due to opyn not use PRB floats
+    // expiration requires conversion back due to option protocol not using PRB floats
     optionSeries.expiration = optionSeries.expiration.fromUint();
     require(optionSeries.strikeAsset == strikeAsset, "incorrect strike asset");
     Types.Flavor flavor = optionSeries.flavor;
-    //TODO breakout into function to support multiple collateral types
-    uint256 premium = quotePriceWithUtilization(optionSeries, amount);
+    (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
-    TransferHelper.safeTransferFrom(strikeAsset, msg.sender, address(this), toDecimals(premium, strikeAsset));
+    SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), toDecimals(premium, strikeAsset));
     uint256 collateralAmount;
     if (underlyingAsset == collateralAsset) {
       collateralAmount = amount;
@@ -725,7 +791,7 @@ contract LiquidityPool is
         weightedTimePut = newTime;
         collateralAllocated += collateralAmount;
     }
-    IERC20(seriesAddress).universalTransfer(msg.sender, toDecimals(amount, seriesAddress));
+    SafeTransferLib.safeTransfer(ERC20(seriesAddress), msg.sender, toDecimals(amount, seriesAddress));
   }
 
   /**
@@ -738,7 +804,7 @@ contract LiquidityPool is
     Types.OptionSeries memory optionSeries,
     uint amount
   ) public returns (uint256){
-    OpynOptionRegistry optionRegistry = getOpynOptionRegistry();  
+    OptionRegistry optionRegistry = getOptionRegistry();  
     address seriesAddress = optionRegistry.issue(
        optionSeries.underlying,
        optionSeries.strikeAsset,

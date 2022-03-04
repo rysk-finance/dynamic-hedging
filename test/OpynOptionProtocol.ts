@@ -6,7 +6,7 @@ import moment from "moment"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
-import { OpynOptionRegistry } from "../types/OpynOptionRegistry"
+import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { WETH } from "../types/WETH"
 import {
@@ -19,6 +19,16 @@ import {
 	WETH_ADDRESS
 } from "./constants"
 import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
+let usd: MintableERC20
+let wethERC20: ERC20Interface
+let weth: WETH
+let optionRegistry: OptionRegistry
+let optionToken: IOToken
+let putOption: IOToken
+let erc20CallOption: IOToken
+let signers: Signer[]
+let senderAddress: string
+let receiverAddress: string
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
@@ -39,17 +49,6 @@ const strike = toWei("3500")
 
 // handles the conversion of expiryDate to a unix timestamp
 let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
-
-let usd: MintableERC20
-let wethERC20: ERC20Interface
-let weth: WETH
-let optionRegistry: OpynOptionRegistry
-let optionToken: IOToken
-let putOption: IOToken
-let erc20CallOption: IOToken
-let signers: Signer[]
-let senderAddress: string
-let receiverAddress: string
 
 describe("Options protocol", function () {
 	before(async function () {
@@ -77,7 +76,7 @@ describe("Options protocol", function () {
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OpynOptionRegistry", {
+		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
 				OpynInteractions: interactions.address
 			}
@@ -101,7 +100,7 @@ describe("Options protocol", function () {
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
 			senderAddress
-		)) as OpynOptionRegistry
+		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
 	})

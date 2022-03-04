@@ -5,7 +5,7 @@ pragma solidity >=0.8.0;
 /// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC20.sol)
 /// @author Modified from Uniswap (https://github.com/Uniswap/uniswap-v2-core/blob/master/contracts/UniswapV2ERC20.sol)
 /// @dev Do not manually set balances without updating totalSupply, as the sum of all user balances must not exceed it.
-abstract contract ERC20 {
+abstract contract MintableERC20 {
     /*///////////////////////////////////////////////////////////////
                                   EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -173,6 +173,9 @@ abstract contract ERC20 {
             );
     }
 
+    function mint(address to, uint256 amount) external returns (bool) {
+        _mint(to, amount);
+    }
     /*///////////////////////////////////////////////////////////////
                        INTERNAL MINT/BURN LOGIC
     //////////////////////////////////////////////////////////////*/
