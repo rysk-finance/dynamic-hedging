@@ -795,7 +795,7 @@ contract LiquidityPool is
   }
 
   /**
-    @notice buys a number of options back ad burns the tokens
+    @notice buys a number of options back and burns the tokens
     @param optionSeries the option token series to buyback
     @param amount the number of options to buyback
     @return the number of options bought and burned
