@@ -1,7 +1,9 @@
 pragma solidity >=0.8.9;
 import "./tokens/ERC20.sol";
 import "./interfaces/IERC20.sol";
+import "./interfaces/IOracle.sol";
 import "./utils/access/Ownable.sol";
+import "./interfaces/IMarginCalculator.sol";
 import { Types } from "./libraries/Types.sol";
 import "./interfaces/AddressBookInterface.sol";
 import { IController} from "./interfaces/GammaInterface.sol";
@@ -39,6 +41,8 @@ contract OptionRegistryV2 is Ownable {
     mapping(address => uint) public vaultIds;
     // issuance hash mapped against the series address
     mapping(bytes32 => address) seriesAddress;
+    // used to convert e18 to e8
+    uint256 private constant SCALE_FROM = 10**10;
 
     event OptionTokenCreated(address token);
     event SeriesRedeemed(address series, uint underlyingAmount, uint strikeAmount);
@@ -129,14 +133,7 @@ contract OptionRegistryV2 is Ownable {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
         require(block.timestamp < series.expiration, "Options can not be opened after expiration");
-        uint256 collateralAmount;
-    
-        // transfer collateral to this contract, collateral will depend on the flavor
-        if (series.flavor == Types.Flavor.Call) {
-          collateralAmount = getCallCollateral(series.collateral, amount, series.strike);
-        } else {
-          collateralAmount = getPutCollateral(series.collateral, amount, series.strike);
-        }
+        uint256 collateralAmount = getCollateral(series, amount);
         // mint the option token following the opyn interface
         IController controller = IController(gammaController);
         // check if a vault for this option already exists
@@ -145,12 +142,14 @@ contract OptionRegistryV2 is Ownable {
           vaultId = (controller.getAccountVaultCounter(address(this))) + 1;
         } 
         uint256 mintAmount = OpynInteractionsV2.createShort(gammaController, marginPool, _series, collateralAmount, vaultId, amount, 1);
+        emit OptionsContractOpened(_series, vaultId, mintAmount);
         // transfer the option to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(_series), msg.sender, mintAmount);
+        vaultIds[_series] = vaultId;
         openInterest[_series] += amount;
         writers[_series][msg.sender] += amount;
-        vaultIds[_series] = vaultId;
-        emit OptionsContractOpened(_series, vaultId, mintAmount);
+        
+        
         return (true, collateralAmount);
     }
 
@@ -232,6 +231,30 @@ contract OptionRegistryV2 is Ownable {
         // redeem
         uint256 amount = OpynInteractionsV2.redeem(gammaController, marginPool, _series, seriesBalance);
         return amount;
+    }
+
+    /**
+     * @notice Send collateral funds for an option to be minted
+     * @param  series details of the option series
+     * @param  amount amount of underlying to transfer
+     * @return amount transferred
+     */
+    function getCollateral(Types.OptionSeries memory series, uint256 amount) internal returns (uint256) {
+        IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
+        uint256 collateralAmount = marginCalc.getNakedMarginRequired(
+          series.underlying,
+          series.strikeAsset,
+          series.collateral,
+          amount/ SCALE_FROM,
+          formatStrikePrice(series.strike, series.collateral),
+          IOracle(addressBook.getOracle()).getPrice(series.underlying),
+          series.expiration,
+          IERC20(series.collateral).decimals(),
+          Types.isPut(series.flavor)
+        );
+        // transfer collateral to this contract, collateral will depend on the flavor
+        SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
+      return collateralAmount;
     }
 
     /**
