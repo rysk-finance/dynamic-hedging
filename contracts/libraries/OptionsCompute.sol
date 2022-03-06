@@ -62,7 +62,7 @@ library OptionsCompute {
     ) internal pure returns (uint, uint, uint) {
         uint weight = PRBMathUD60x18.scale();
         if (totalAmount > 0) {
-            weight = amount.div(totalAmount);
+            weight = amount.div(totalAmount + amount);
         }
         uint exWeight = PRBMathUD60x18.scale() - weight;
         uint newTotalAmount = totalAmount + amount;
@@ -82,9 +82,9 @@ library OptionsCompute {
     ) internal pure returns (uint, uint, uint) {
         uint weight = PRBMathUD60x18.scale();
         if (totalAmount > 0) {
-            weight = amount.div(totalAmount);
+            weight = amount.div(totalAmount - amount);
         }
-        uint exWeight = PRBMathUD60x18.scale() - weight;
+        uint exWeight = PRBMathUD60x18.scale() + weight;
         uint newTotalAmount = totalAmount - amount;
         uint newWeightedStrike = (exWeight.mul(weightedStrike)) - (weight.mul(strike));
         uint newWeightedTime = (exWeight.mul(weightedTime)) - (weight.mul(expiration));
