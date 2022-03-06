@@ -14,7 +14,8 @@ import {
 	fromOpyn,
 	toOpyn,
 	tFormatUSDC,
-	PUT
+	PUT,
+	fromUSDC
 } from "../utils/conversion-helper"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
@@ -321,7 +322,8 @@ describe("Liquidity Pool Integration Simulation", async () => {
 	})
 	it("LP Writes a ETH/USD put for premium under utilization", async () => {
 		const [sender] = signers
-		const amount = toWei("1")
+		const rawAmount = 1
+		const amount = toWei(rawAmount.toString())
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
@@ -349,8 +351,14 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const registryUsdBalance = await liquidityPool.collateralAllocated()
 		const balanceNew = await usd.balanceOf(senderAddress)
 		const opynAmount = toOpyn(fromWei(amount))
+		// convert to numeric
+		const escrow = Number(fromWei(strikePrice))
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote[0]))
+		const expectedPoolBalance = truncate(
+			Number(fromUSDC(poolBalanceBefore)) + Number(fromWei(quote[0])) - escrow
+		)
+		expect(expectedPoolBalance).to.eq(truncate(Number(fromUSDC(poolBalanceAfter))))
 	})
 })
