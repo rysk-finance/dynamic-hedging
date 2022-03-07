@@ -5,6 +5,7 @@ import "./tokens/ERC20.sol";
 import "./OptionRegistry.sol";
 import "./OptionsProtocol.sol";
 import "./utils/access/Ownable.sol";
+import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
@@ -23,7 +24,8 @@ error DeltaQuoteError(uint256 quote, int256 delta);
 
 contract LiquidityPool is
   ERC20,
-  Ownable
+  Ownable,
+  ReentrancyGuard
 {
   using PRBMathSD59x18 for int256;
   using PRBMathUD60x18 for uint256;
@@ -820,7 +822,7 @@ contract LiquidityPool is
   function buybackOption(
     Types.OptionSeries memory optionSeries,
     uint amount
-  ) public whitelistedBuybackAddressesOnly returns (uint256){
+  ) public whitelistedBuybackAddressesOnly nonReentrant returns (uint256){
     OptionRegistry optionRegistry = getOptionRegistry();  
     address seriesAddress = optionRegistry.issue(
        optionSeries.underlying,
