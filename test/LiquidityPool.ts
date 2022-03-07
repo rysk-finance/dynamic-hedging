@@ -599,6 +599,30 @@ describe("Liquidity Pools", async () => {
 
 	it("can set the puts volatility skew", async () => {})
 
+	it("reverts if non-whitelisted address attempts to buyback", async () => {
+		const [sender] = signers
+		const amount = utils.parseUnits("1", 8)
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.add(toWei(strike))
+
+		const proposedSeries = {
+			expiration: fmtExpiration(expiration),
+			flavor: BigNumber.from(call),
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address
+		}
+		await expect(ethLiquidityPool.buybackOption(proposedSeries, amount)).to.be.revertedWith(
+			"This address is not authorized to buy options."
+		)
+	})
+	it("adds address to the buyback whitelist", async () => {
+		await ethLiquidityPool.addBuybackAddress(senderAddress)
+		await expect(await ethLiquidityPool.whitelistedBuybackAddresses(senderAddress)).to.be.true
+	})
+
 	it("LP can buy back option to reduce open interest", async () => {
 		const [sender] = signers
 		const amount = utils.parseUnits("1", 8)

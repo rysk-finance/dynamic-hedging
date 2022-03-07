@@ -71,6 +71,8 @@ contract LiquidityPool is
   mapping(address => uint) public impliedVolatility;
   // value below which delta is not worth dedging due to gas costs
   int256 private dustValue;
+  // addresses that are whitelisted to buy options back from the protocol
+  mapping(address => bool) public whitelistedBuybackAddresses;
 
   event LiquidityAdded(uint amount);
   event UnderlyingAdded(address underlying);
@@ -93,6 +95,15 @@ contract LiquidityPool is
     maxTotalSupply = type(uint256).max;
     emit UnderlyingAdded(underlyingAddress);
   }
+
+  modifier whitelistedBuybackAddressesOnly {
+    require(whitelistedBuybackAddresses[msg.sender], "This address is not authorized to buy options.");
+    _;
+  }
+
+  function addBuybackAddress(address _addressToWhitelist) public onlyOwner {
+    whitelistedBuybackAddresses[_addressToWhitelist] = true;
+}
 
   /**
    * @notice set a new hedging reactor
@@ -803,7 +814,7 @@ contract LiquidityPool is
   function buybackOption(
     Types.OptionSeries memory optionSeries,
     uint amount
-  ) public returns (uint256){
+  ) public whitelistedBuybackAddressesOnly returns (uint256){
     OptionRegistry optionRegistry = getOptionRegistry();  
     address seriesAddress = optionRegistry.issue(
        optionSeries.underlying,
