@@ -703,12 +703,14 @@ contract LiquidityPool is
       uint underlyingPrice = getUnderlyingPrice(optionSeries);
       int portfolioDelta = getPortfolioDelta();
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
-      uint utilization = amount.div(totalSupply);
-      quoteState.utilizationPrice = underlyingPrice.mul(utilization);
-      int distanceFromZero = PRBMathSD59x18.abs(newDelta - int(0));
+      // assumes a single collateral type regardless of call or put
+      //@TODO update quoteValue to use shock value
+      uint quoteValue = amount.mul(optionQuote);
+      uint utilization = quoteValue.div(totalSupply);
       quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
       uint normalizedDelta = uint256(newDelta).div(_getNAV());
       uint maxPrice = optionSeries.flavor == Types.Flavor.Call ? underlyingPrice : optionSeries.strike;
+      quoteState.utilizationPrice = maxPrice.mul(utilization);
       quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
       if (quoteState.isDecreased) {
         uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
@@ -717,8 +719,12 @@ contract LiquidityPool is
         quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       } else {
         uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice) + quoteState.optionPrice;
-        quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice);
-        quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
+        if (quoteState.utilizationPrice < maxPrice) {
+          quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
+          quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
+        } else {
+          quote = maxPrice;
+        }
       }
       delta = deltaQuote;
       //@TODO think about more robust considitions for this check
