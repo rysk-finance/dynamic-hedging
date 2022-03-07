@@ -99,7 +99,10 @@ contract LiquidityPool is
   }
 
   modifier buybackWhitelistOnly {
-    require(buybackWhitelist[msg.sender], "This address is not authorized to sell options.");
+    if (!buybackWhitelist[msg.sender]){
+      // address is not on the whitelist
+      //TODO run some checks to determine if we want to buy this option back
+    }
     _;
   }
 
