@@ -73,7 +73,7 @@ contract LiquidityPool is
   mapping(address => uint) public impliedVolatility;
   // value below which delta is not worth dedging due to gas costs
   int256 private dustValue;
-  // addresses that are whitelisted to buy options back from the protocol
+  // addresses that are whitelisted to sell options back to the protocol
   mapping(address => bool) public whitelistedBuybackAddresses;
 
   event LiquidityAdded(uint amount);
@@ -99,7 +99,7 @@ contract LiquidityPool is
   }
 
   modifier whitelistedBuybackAddressesOnly {
-    require(whitelistedBuybackAddresses[msg.sender], "This address is not authorized to buy options.");
+    require(whitelistedBuybackAddresses[msg.sender], "This address is not authorized to sell options.");
     _;
   }
 
