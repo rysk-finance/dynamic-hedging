@@ -24,7 +24,8 @@ import {
 	WETH_ADDRESS,
     CONTROLLER_OWNER,
     ADDRESS_BOOK,
-    GAMMA_ORACLE_NEW
+    GAMMA_ORACLE_NEW,
+	ORACLE_OWNER
 } from "./constants"
 import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
 let usd: MintableERC20
@@ -70,7 +71,7 @@ const strike = toWei("3500")
 
 // handles the conversion of expiryDate to a unix timestamp
 const now = moment().utc().unix()
-let expiration = createValidExpiry(now, 14)
+let expiration = createValidExpiry(now, 21)
 
 describe("Options protocol", function () {
 	before(async function () {
@@ -332,36 +333,58 @@ describe("Options protocol", function () {
 		expect(balanceBef.sub(balance)).to.equal(value)
 		const usdBalance = await usd.balanceOf(senderAddress)
 		expect((usdBalance.sub(usdBalanceBefore)).sub(marginReq)).to.be.within(-1,1)
-		
 	})
 
+	it("liquidityPool close and transaction succeeds ETH options", async () => {
+		const [sender, receiver] = signers
+		const value = toWei("1").div(oTokenDecimalShift18)
+		const calculatorAddy = (await addressBook.getMarginCalculator())
+		const oracleAddy = (await addressBook.getOracle())
+		const balanceBef = await optionTokenETH.balanceOf(senderAddress)
+		const optionRegistrySender = optionRegistryETH.connect(sender)
+		await optionTokenETH.approve(optionRegistryETH.address, value)
+		const ethBalanceBefore = await wethERC20.balanceOf(senderAddress)
+
+		const calculator = (await ethers.getContractAt(
+            "contracts/packages/opyn/new/NewCalculator.sol:NewMarginCalculator",
+            calculatorAddy
+        )) as NewMarginCalculator
+		const oracle = (await ethers.getContractAt(
+			"contracts/packages/opyn/core/Oracle.sol:Oracle",
+			oracleAddy
+		))
+		const underlyingPrice = (await oracle.getPrice(weth.address))
+		const marginReq = (await calculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			weth.address,
+			value,
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			18,
+			false,
+		))
+		await optionRegistrySender.close(optionTokenETH.address, value)
+		const balance = await optionTokenETH.balanceOf(senderAddress)
+		expect(balanceBef.sub(balance)).to.equal(value)
+		const ethBalance = (await wethERC20.balanceOf(senderAddress));
+		const diff = ethBalance.sub(ethBalanceBefore);
+		expect(diff.sub(marginReq)).to.be.within(-1,1);
+	})
 	it("should not allow anyone outside liquidityPool to open", async () => {
 		const value = toWei("2")
 		const [sender, receiver] = signers
-		await wethERC20.connect(receiver).approve(optionRegistry.address, value)
+		await usd.connect(receiver).approve(optionRegistry.address, value)
 		await expect(
 			optionRegistry.connect(receiver).open(optionTokenUSDC.address, value)
 		).to.be.revertedWith("!liquidityPool")
 	})
 
-	it("receiver transfers to liquidityPool and closes option token", async () => {
-		const value = toWei("1").div(oTokenDecimalShift18)
+	it("settles when option expires ITM USD collateral", async () => {
 		const [sender, receiver] = signers
-		await optionTokenUSDC.connect(receiver).transfer(senderAddress, value)
-		await optionTokenUSDC.approve(optionRegistry.address, value)
-		const wethBalanceBefore = await wethERC20.balanceOf(receiverAddress)
-		const senderBalanceBefore = await optionTokenUSDC.balanceOf(senderAddress)
-		await optionRegistry.close(optionTokenUSDC.address, value)
-		const senderBalance = await optionTokenUSDC.balanceOf(senderAddress)
-		expect(senderBalanceBefore.sub(senderBalance)).to.equal(toWei("1").div(oTokenDecimalShift18))
-		await wethERC20.transfer(receiverAddress, toWei("1"))
-		const wethBalance = await wethERC20.balanceOf(receiverAddress)
-		expect(wethBalance.sub(wethBalanceBefore)).to.equal(toWei("1"))
-	})
-
-	it("settles when option expires ITM", async () => {
 		// get balance before
-		const balanceWETH = await wethERC20.balanceOf(senderAddress)
+		const balanceUSD = await usd.balanceOf(senderAddress)
 		// get the desired settlement price
 		const settlePrice = strike.add(toWei("200")).div(oTokenDecimalShift18)
 		// get the oracle
@@ -372,27 +395,60 @@ describe("Options protocol", function () {
 		// call redeem from the options registry
 		await optionRegistry.settle(optionTokenUSDC.address)
 		// check balances are in order
-		const newBalanceWETH = await wethERC20.balanceOf(senderAddress)
+		const newBalanceUSD = await usd.balanceOf(senderAddress)
 		const opBalRegistry = await optionTokenUSDC.balanceOf(optionRegistry.address)
-		const ethBalRegistry = await wethERC20.balanceOf(optionRegistry.address)
+		const usdBalRegistry = await usd.balanceOf(optionRegistry.address)
 		expect(opBalRegistry).to.equal(0)
-		expect(ethBalRegistry).to.equal(0)
-		expect(newBalanceWETH > balanceWETH).to.be.true
+		expect(usdBalRegistry).to.equal(0)
+		expect(newBalanceUSD > balanceUSD).to.be.true
 	})
 
-	it("writer redeems when option expires ITM", async () => {
+	it("settles when option expires ITM ETH collateral", async () => {
+		const [sender, receiver] = signers
 		// get balance before
-		const balanceWETH = await wethERC20.balanceOf(senderAddress)
+		const balanceETH = await wethERC20.balanceOf(senderAddress)
+		await optionTokenETH.approve(optionRegistryETH.address, await optionTokenETH.balanceOf(senderAddress))
+		// call redeem from the options registry
+		await optionRegistryETH.settle(optionTokenETH.address)
+		// check balances are in order
+		const newBalanceETH = await wethERC20.balanceOf(senderAddress)
+		const opBalRegistry = await optionTokenETH.balanceOf(optionRegistryETH.address)
+		const ethBalRegistry = await wethERC20.balanceOf(optionRegistryETH.address)
+		expect(opBalRegistry).to.equal(0)
+		expect(ethBalRegistry).to.equal(0)
+		expect(newBalanceETH > balanceETH).to.be.true
+	})
+
+	it("writer redeems when option expires ITM USD collateral", async () => {
+		// get balance before
+		const balanceUSD = await usd.balanceOf(senderAddress)
 		await optionTokenUSDC.approve(optionRegistry.address, await optionTokenUSDC.balanceOf(senderAddress))
 		// call redeem from the options registry
 		await optionRegistry.redeem(optionTokenUSDC.address)
 		// check balances are in order
-		const newBalanceWETH = await wethERC20.balanceOf(senderAddress)
+		const newBalanceUSD = await usd.balanceOf(senderAddress)
 		const opBalRegistry = await optionTokenUSDC.balanceOf(optionRegistry.address)
 		const opBalSender = await optionTokenUSDC.balanceOf(senderAddress)
-		const ethBalRegistry = await wethERC20.balanceOf(optionRegistry.address)
+		const usdBalRegistry = await usd.balanceOf(optionRegistry.address)
+		expect(usdBalRegistry).to.equal(0)
+		expect(newBalanceUSD.toNumber()).to.be.greaterThan(balanceUSD.toNumber())
+		expect(opBalRegistry).to.equal(0)
+		expect(opBalSender).to.equal(0)
+	})
+
+	it("writer redeems when option expires ITM ETH collateral", async () => {
+		// get balance before
+		const balanceETH = await wethERC20.balanceOf(senderAddress)
+		await optionTokenETH.approve(optionRegistryETH.address, await optionTokenETH.balanceOf(senderAddress))
+		// call redeem from the options registry
+		await optionRegistryETH.redeem(optionTokenETH.address)
+		// check balances are in order
+		const newBalanceETH = await wethERC20.balanceOf(senderAddress)
+		const opBalRegistry = await optionTokenETH.balanceOf(optionRegistryETH.address)
+		const opBalSender = await optionTokenETH.balanceOf(senderAddress)
+		const ethBalRegistry = await wethERC20.balanceOf(optionRegistryETH.address)
 		expect(ethBalRegistry).to.equal(0)
-		expect(newBalanceWETH > balanceWETH).to.be.true
+		expect(newBalanceETH > balanceETH).to.be.true
 		expect(opBalRegistry).to.equal(0)
 		expect(opBalSender).to.equal(0)
 	})

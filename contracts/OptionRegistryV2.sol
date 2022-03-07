@@ -188,9 +188,9 @@ contract OptionRegistryV2 is Ownable {
      * @notice Settle an options vault
      * @param  _series the address of the option token to be burnt
      * @return if the transaction succeeded
-     * @dev only callable by the liquidityPool
+     * @dev callable by anyone but returns funds to the liquidityPool
      */
-    function settle(address _series) external onlyLiquidityPool returns (bool) {
+    function settle(address _series) external returns (bool) {
         Types.OptionSeries memory series = seriesInfo[_series];
         require(series.expiration != 0, "non-existent series");
         // check that the option has expired
@@ -200,14 +200,9 @@ contract OptionRegistryV2 is Ownable {
         // settle the vault
         uint256 collatReturned = OpynInteractionsV2.settle(gammaController, vaultId);
         openInterest[_series] = 0;
-        writers[_series][msg.sender] = 0;
+        writers[_series][liquidityPool] = 0;
         // transfer the collateral back to the liquidity pool
-
-        if (series.flavor == Types.Flavor.Call) {
-          transferOutUnderlying(series, collatReturned);
-        } else {
-          transferOutStrike(series, collatReturned);
-        }
+        SafeTransferLib.safeTransfer(ERC20(series.collateral), liquidityPool, collatReturned);
         emit OptionsContractSettled(_series);
         return true;
     }
@@ -227,8 +222,8 @@ contract OptionRegistryV2 is Ownable {
         // transfer the oToken back to this account
         SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), IERC20(_series).balanceOf(msg.sender));
         // redeem
-        uint256 amount = OpynInteractionsV2.redeem(gammaController, marginPool, _series, seriesBalance);
-        return amount;
+        uint256 collatReturned = OpynInteractionsV2.redeem(gammaController, marginPool, _series, seriesBalance);
+        return collatReturned;
     }
 
     /**
@@ -254,24 +249,6 @@ contract OptionRegistryV2 is Ownable {
         SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
       return collateralAmount;
     }
-
-    /**
-     * @notice Send collateral funds to the liquidityPool
-     * @param  _series address of the oToken
-     * @param  amount amount of underlying to transfer
-     */
-   function transferOutUnderlying(Types.OptionSeries memory _series, uint amount) internal {
-     SafeTransferLib.safeTransfer(ERC20(_series.underlying), msg.sender, amount);
-    }
-
-    /**
-     * @notice Send collateral funds to the liquidityPool
-     * @param  _series address of the oToken
-     * @param  amount amount of strike to transfer
-     */
-   function transferOutStrike(Types.OptionSeries memory _series, uint amount) internal {
-     SafeTransferLib.safeTransfer(ERC20(_series.strikeAsset), msg.sender, amount);
-   }
 
   /*********
     GETTERS
