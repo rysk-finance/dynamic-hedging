@@ -98,14 +98,6 @@ contract LiquidityPool is
     emit UnderlyingAdded(underlyingAddress);
   }
 
-  modifier buybackWhitelistOnly {
-    if (!buybackWhitelist[msg.sender]){
-      // address is not on the whitelist
-      //TODO run some checks to determine if we want to buy this option back
-    }
-    _;
-  }
-
   function addBuybackAddress(address _addressToWhitelist) public onlyOwner {
     buybackWhitelist[_addressToWhitelist] = true;
 }
@@ -825,7 +817,11 @@ contract LiquidityPool is
   function buybackOption(
     Types.OptionSeries memory optionSeries,
     uint amount
-  ) public buybackWhitelistOnly nonReentrant returns (uint256){
+  ) public nonReentrant returns (uint256){
+     if (!buybackWhitelist[msg.sender]){
+      // address is not on the whitelist
+      //TODO run some checks to determine if we want to buy this option back
+    }
     OptionRegistry optionRegistry = getOptionRegistry();  
     address seriesAddress = optionRegistry.issue(
        optionSeries.underlying,
