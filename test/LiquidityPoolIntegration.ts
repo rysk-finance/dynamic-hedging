@@ -360,5 +360,6 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			Number(fromUSDC(poolBalanceBefore)) + Number(fromWei(quote[0])) - escrow
 		)
 		expect(expectedPoolBalance).to.eq(truncate(Number(fromUSDC(poolBalanceAfter))))
+		//@TODO add assertion checking if other state variables are properly updated such as weighted variables
 	})
 })
