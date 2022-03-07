@@ -38,7 +38,7 @@ import {
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS,
+	WETH_ADDRESS
 } from "./constants"
 let usd: MintableERC20
 let weth: WETH
@@ -628,7 +628,7 @@ describe("Liquidity Pools", async () => {
 			ethLiquidityPool.address
 		)
 		await callOptionToken.approve(ethLiquidityPool.address, amount)
-		const [quote] = await ethLiquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
+		const quote = await ethLiquidityPool.quotePriceWithUtilization(proposedSeries, amount)
 		await usd.approve(ethLiquidityPool.address, quote.toString())
 		const write = await ethLiquidityPool.buybackOption(proposedSeries, amount)
 		const receipt = await write.wait(1)
