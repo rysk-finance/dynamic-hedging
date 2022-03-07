@@ -40,6 +40,18 @@ library OptionsCompute {
         return convertToDecimals(escrow, underlyingDecimals);
     }
 
+    /**
+        @dev computes new portfolio options position on a given side (put or call). Reduces and represents this position as a single option.
+        @param amount the number number of newly written options
+        @param strike the strike of the newly written option
+        @param expiration expiration date of the new option
+        @param totalAmount total amount of active calls/puts
+        @param weightedStrike weighted strike price of active calls/puts
+        @param weightedTime weighted time to expiry of active calls/puts
+        @return newTotalAmount the new total amount of active calls/puts
+        @return newWeightedStrike new weighted strike price of active calls/puts
+        @return newWeightedTime new weighted time to expiry of active calls/puts
+     */
     function computeNewWeights(
        uint amount,
        uint strike,
@@ -50,12 +62,32 @@ library OptionsCompute {
     ) internal pure returns (uint, uint, uint) {
         uint weight = PRBMathUD60x18.scale();
         if (totalAmount > 0) {
-            weight = amount.div(totalAmount);
+            weight = amount.div(totalAmount + amount);
         }
         uint exWeight = PRBMathUD60x18.scale() - weight;
         uint newTotalAmount = totalAmount + amount;
         uint newWeightedStrike = (exWeight.mul(weightedStrike)) + (weight.mul(strike));
         uint newWeightedTime = (exWeight.mul(weightedTime)) + (weight.mul(expiration));
+        return (newTotalAmount, newWeightedStrike, newWeightedTime);
+    }
+    
+
+     function computeNewWeightsBuyback(
+       uint amount,
+       uint strike,
+       uint expiration,
+       uint totalAmount,
+       uint weightedStrike,
+       uint weightedTime
+    ) internal pure returns (uint, uint, uint) {
+        uint weight = PRBMathUD60x18.scale();
+        if (totalAmount > 0) {
+            weight = amount.div(totalAmount - amount);
+        }
+        uint exWeight = PRBMathUD60x18.scale() + weight;
+        uint newTotalAmount = totalAmount - amount;
+        uint newWeightedStrike = (exWeight.mul(weightedStrike)) - (weight.mul(strike));
+        uint newWeightedTime = (exWeight.mul(weightedTime)) - (weight.mul(expiration));
         return (newTotalAmount, newWeightedStrike, newWeightedTime);
     }
 
