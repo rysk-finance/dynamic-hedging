@@ -836,7 +836,6 @@ contract LiquidityPool is
     SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), amount);
     SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), amount);
     //TODO create IV skew specifically for buyback 
-    console.log(convertDecimal(seriesAddress, optionSeries.underlying, amount));
     //TODO swap out quotePriceWithUtilization for new buyback pricing func
     uint256 premium = quotePriceWithUtilization(optionSeries, convertDecimal(seriesAddress, optionSeries.underlying, amount));
     (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);

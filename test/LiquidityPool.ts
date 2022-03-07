@@ -677,8 +677,8 @@ describe("Liquidity Pools", async () => {
 		const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance)
 		// test to ensure Liquidity pool balance decreased by quoted amount (1 USDC error allowed)
 		expect(balanceDiff.sub(quote.div(100)).abs()).to.be.below(utils.parseUnits("1", 6))
-		// expect(fromOpyn(buyerOptionBalance)).to.eq(fromWei(amount))
-		// expect(fromOpyn(totalInterest)).to.eq(fromWei(amount))
+		expect(parseFloat(fromOpyn(sellerOTokenBalance))).to.eq(0)
+		expect(parseFloat(fromOpyn(totalInterest))).to.eq(0)
 	})
 
 	it("Adds additional liquidity from new account", async () => {
