@@ -6,6 +6,7 @@ import moment from "moment"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import {Controller} from "../types/Controller"
 import {AddressBook} from "../types/AddressBook";
+import {Oracle} from "../types/Oracle";
 import {NewMarginCalculator} from "../types/NewMarginCalculator";
 import {NewWhitelist} from "../types/NewWhitelist";
 import { ERC20Interface } from "../types/ERC20Interface"
@@ -299,15 +300,39 @@ describe("Options protocol", function () {
 	it("liquidityPool close and transaction succeeds", async () => {
 		const [sender, receiver] = signers
 		const value = toWei("1").div(oTokenDecimalShift18)
+		const calculatorAddy = (await addressBook.getMarginCalculator())
+		const oracleAddy = (await addressBook.getOracle())
 		const balanceBef = await optionTokenUSDC.balanceOf(senderAddress)
 		const optionRegistrySender = optionRegistry.connect(sender)
 		await optionTokenUSDC.approve(optionRegistry.address, value)
-		const wethBalanceBefore = await wethERC20.balanceOf(senderAddress)
+		const usdBalanceBefore = await usd.balanceOf(senderAddress)
+
+		const calculator = (await ethers.getContractAt(
+            "contracts/packages/opyn/new/NewCalculator.sol:NewMarginCalculator",
+            calculatorAddy
+        )) as NewMarginCalculator
+		const oracle = (await ethers.getContractAt(
+			"contracts/packages/opyn/core/Oracle.sol:Oracle",
+			oracleAddy
+		))
+		const underlyingPrice = (await oracle.getPrice(weth.address))
+		const marginReq = (await calculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			usd.address,
+			value,
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			6,
+			false,
+		))
 		await optionRegistrySender.close(optionTokenUSDC.address, value)
 		const balance = await optionTokenUSDC.balanceOf(senderAddress)
 		expect(balanceBef.sub(balance)).to.equal(value)
-		const wethBalance = await wethERC20.balanceOf(senderAddress)
-		expect(wethBalance.sub(wethBalanceBefore)).to.equal(toWei("1"))
+		const usdBalance = await usd.balanceOf(senderAddress)
+		expect((usdBalance.sub(usdBalanceBefore)).sub(marginReq)).to.be.within(-1,1)
+		
 	})
 
 	it("should not allow anyone outside liquidityPool to open", async () => {
@@ -423,7 +448,7 @@ describe("Options protocol", function () {
 		// save the option token address
 		erc20CallOptionETH = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 	})
-	
+
 	it("creates a USDC put option token series", async () => {
 		const [sender] = signers
 		// fast forward expiryPeriod length of time

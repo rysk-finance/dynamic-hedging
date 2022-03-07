@@ -173,7 +173,6 @@ library OpynInteractionsV2 {
     /**
      * @notice Burns an opyn short position
      * @param gammaController is the address of the opyn controller contract
-     * @param marginPool is the address of the opyn margin contract which holds the collateral
      * @param oTokenAddress is the address of the otoken to burn
      * @param burnAmount is the amount of options to burn
      * @param vaultId is the vault id used that holds the short
@@ -181,7 +180,6 @@ library OpynInteractionsV2 {
      */
     function burnShort(
         address gammaController,
-        address marginPool,
         address oTokenAddress,
         uint256 burnAmount,
         uint256 vaultId
@@ -202,9 +200,9 @@ library OpynInteractionsV2 {
             IController.ActionType.BurnShortOption,
             address(this), // owner
             address(this), // address to transfer from
-            oTokenAddress, // oToken address
-            vaultId,       // vaultId
-            burnAmount,    // amount to burn
+            oTokenAddress,// oToken address
+            vaultId,      // vaultId
+            burnAmount,   // amount to burn
             0,             //index
             ""             //data
         );
@@ -221,8 +219,6 @@ library OpynInteractionsV2 {
         );
 
         controller.operate(actions);
-
-
         return collateralAsset.balanceOf(address(this)) - startCollatBalance;
     }
 

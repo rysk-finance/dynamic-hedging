@@ -133,6 +133,7 @@ contract OptionRegistryV2 is Ownable {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
         require(block.timestamp < series.expiration, "Options can not be opened after expiration");
+        // TODO: calculate value including a buffer
         uint256 collateralAmount = getCollateral(series, amount);
         // mint the option token following the opyn interface
         IController controller = IController(gammaController);
@@ -172,17 +173,13 @@ contract OptionRegistryV2 is Ownable {
         // transfer the oToken back to this account
         SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), amount);
         // burn the oToken tracking the amount of collateral returned
-        uint256 collatReturned = OpynInteractionsV2.burnShort(gammaController, marginPool, _series, amount, vaultId);
+        // TODO: account for fact there might be a buffer
+        uint256 collatReturned = OpynInteractionsV2.burnShort(gammaController, _series, amount, vaultId);
 
         require(writers[_series][msg.sender] >= collatReturned, "Caller did not write sufficient amount");
         writers[_series][msg.sender] -= collatReturned;
         openInterest[_series] -= collatReturned;
-
-        if (series.flavor == Types.Flavor.Call) {
-          transferOutUnderlying(series, collatReturned);
-        } else {
-          transferOutStrike(series, collatReturned);
-        }
+        SafeTransferLib.safeTransfer(ERC20(series.collateral), msg.sender, collatReturned);
         emit OptionsContractClosed(_series, vaultId, amount);
         return true;
     }
@@ -205,6 +202,7 @@ contract OptionRegistryV2 is Ownable {
         openInterest[_series] = 0;
         writers[_series][msg.sender] = 0;
         // transfer the collateral back to the liquidity pool
+
         if (series.flavor == Types.Flavor.Call) {
           transferOutUnderlying(series, collatReturned);
         } else {
@@ -255,31 +253,6 @@ contract OptionRegistryV2 is Ownable {
         // transfer collateral to this contract, collateral will depend on the flavor
         SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
       return collateralAmount;
-    }
-
-    /**
-     * @notice Send collateral funds for a call option to be minted
-     * @param  collateral address of the asset to transfer
-     * @param  amount amount of underlying to transfer
-     * @return amount transferred
-     */
-    function getCallCollateral(address collateral, uint256 amount, uint256 strike) internal returns (uint256) {
-      uint escrow = OptionsCompute.computeEscrow(amount, strike, IERC20(collateral).decimals());
-      SafeTransferLib.safeTransferFrom(collateral, msg.sender, address(this), escrow);
-      return escrow;
-    }
-
-    /**
-     * @notice Send collateral funds for a put option to be minted
-     * @param  collateral address of the asset to transfer
-     * @param  amount amount of underlying to transfer
-     * @param  strike the strike of the option
-     * @return amount transferred
-     */
-    function getPutCollateral(address collateral, uint256 amount, uint256 strike) internal returns (uint256) {
-        uint escrow = OptionsCompute.computeEscrow(amount, strike, IERC20(collateral).decimals());
-        SafeTransferLib.safeTransferFrom(collateral, msg.sender, address(this), escrow);
-        return escrow;
     }
 
     /**
