@@ -3,6 +3,7 @@ pragma solidity >=0.8.0;
 import { Constants } from "./Constants.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
+import "../tokens/ERC20.sol";
 
 error DecimalIsLargerThanScale(uint256 decimals);
 library OptionsCompute {
@@ -28,6 +29,20 @@ library OptionsCompute {
         uint difference = SCALE_DECIMALS - decimals;
         return value * (10**difference);
     }
+    function convertDecimal(
+    address from,
+    address to,
+    uint256 value
+  ) internal view returns (uint)
+  {
+    int8 difference = int8(ERC20(to).decimals()) - int8(ERC20(from).decimals());
+    if(difference >= 0){
+       return value * (10 ** uint8(difference));
+    } else {
+      return value / (10 ** uint8(-difference));
+    }
+  }
+
 
     function computeEscrow(uint amount, uint strike, uint underlyingDecimals)
         internal
