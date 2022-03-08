@@ -31,6 +31,7 @@ import { Volatility } from '../types/Volatility'
 import { WETH } from '../types/WETH'
 import { Protocol } from '../types/Protocol'
 import {
+  ADDRESS_BOOK,
   GAMMA_CONTROLLER,
   MARGIN_POOL,
   OTOKEN_FACTORY,
@@ -139,6 +140,7 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
       GAMMA_CONTROLLER[chainId],
       MARGIN_POOL[chainId],
       senderAddress,
+      ADDRESS_BOOK[chainId]
     )) as OptionRegistry
     optionRegistry = _optionRegistry
     expect(optionRegistry).to.have.property('deployTransaction')
@@ -328,6 +330,7 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
       strike: BigNumber.from(strikePrice),
       strikeAsset: usd.address,
       underlying: weth.address,
+      collateral: usd.address
     }
     const poolBalanceBefore = await usd.balanceOf(liquidityPool.address);
     const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]

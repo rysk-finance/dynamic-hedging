@@ -702,6 +702,7 @@ contract LiquidityPool is
   ) public payable returns (uint optionAmount, address series)
   {
     OptionRegistry optionRegistry = getOptionRegistry();
+    require(optionSeries.collateral == collateralAsset, "!collateral");
     series = optionRegistry.issue(
        optionSeries.underlying,
        optionSeries.strikeAsset,

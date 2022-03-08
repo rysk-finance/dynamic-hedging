@@ -85,7 +85,7 @@ contract OptionRegistryV2 is Ownable {
      * @param collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
-    function issue(address underlying, address strikeAsset, uint expiration, Types.Flavor flavor, uint strike, address collateral) external returns (address) {
+    function issue(address underlying, address strikeAsset, uint256 expiration, Types.Flavor flavor, uint256 strike, address collateral) external returns (address) {
         // deploy an oToken contract address
         require(expiration > block.timestamp, "Already expired");
         // create option storage hash

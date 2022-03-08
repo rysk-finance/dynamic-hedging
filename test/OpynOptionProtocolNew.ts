@@ -25,9 +25,9 @@ import {
     CONTROLLER_OWNER,
     ADDRESS_BOOK,
     GAMMA_ORACLE_NEW,
-	ORACLE_OWNER
 } from "./constants"
 import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
+import { create } from "domain"
 let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
@@ -456,12 +456,7 @@ describe("Options protocol", function () {
 	it("creates a USDC collateralised call option token series", async () => {
 		const [sender] = signers
 		// fast forward expiryPeriod length of time
-		expiration =
-			moment
-				.utc(expiration * 1000)
-				.add(expiryPeriod)
-				.utc(true)
-				.valueOf() / 1000
+		expiration = createValidExpiry(expiration, 14)
 		const issueCall = await optionRegistry.issue(
 			WETH_ADDRESS[chainId],
 			USDC_ADDRESS[chainId],
@@ -481,13 +476,6 @@ describe("Options protocol", function () {
 
 	it("creates a ETH collateralised call option token series", async () => {
 		const [sender] = signers
-		// fast forward expiryPeriod length of time
-		expiration =
-			moment
-				.utc(expiration * 1000)
-				.add(expiryPeriod)
-				.utc(true)
-				.valueOf() / 1000
 		const issueCall = await optionRegistryETH.issue(
 			WETH_ADDRESS[chainId],
 			USDC_ADDRESS[chainId],
@@ -507,8 +495,6 @@ describe("Options protocol", function () {
 
 	it("creates a USDC put option token series", async () => {
 		const [sender] = signers
-		// fast forward expiryPeriod length of time
-		expiration = createValidExpiry(expiration, 14)
 		const issuePut = await optionRegistry.issue(
 			WETH_ADDRESS[chainId],
 			USDC_ADDRESS[chainId],
@@ -528,13 +514,6 @@ describe("Options protocol", function () {
 
 	it("creates a ETH put option token series", async () => {
 		const [sender] = signers
-		// fast forward expiryPeriod length of time
-		expiration =
-			moment
-				.utc(expiration * 1000)
-				.add(expiryPeriod)
-				.utc(true)
-				.valueOf() / 1000
 		const issuePut = await optionRegistryETH.issue(
 			WETH_ADDRESS[chainId],
 			USDC_ADDRESS[chainId],
@@ -570,9 +549,9 @@ describe("Options protocol", function () {
 		await optionRegistry.open(erc20CallOptionUSDC.address, value)
 		const balance = await erc20CallOptionUSDC.balanceOf(senderAddress)
 		expect(balance).to.be.equal(value.div(oTokenDecimalShift18))
-		await wethERC20.approve(optionRegistry.address, value)
-		await optionRegistryETH.open(erc20CallOptionUSDC.address, value)
-		const newBalance = await erc20CallOptionUSDC.balanceOf(senderAddress)
+		await wethERC20.approve(optionRegistryETH.address, value)
+		await optionRegistryETH.open(erc20CallOptionETH.address, value)
+		const newBalance = await erc20CallOptionETH.balanceOf(senderAddress)
 		expect(newBalance).to.be.equal(value.div(oTokenDecimalShift18))
 	})
 
@@ -595,51 +574,6 @@ describe("Options protocol", function () {
 		await optionRegistry.close(erc20CallOptionUSDC.address, value)
 		const balance = await erc20CallOptionUSDC.balanceOf(senderAddress)
 		expect(balanceBef.sub(balance)).to.equal(value)
-	})
-
-	it("settles call when option expires OTM", async () => {
-		// get balance before
-		const balanceWETH = await wethERC20.balanceOf(senderAddress)
-		// get the desired settlement price
-		const settlePrice = strike.sub(toWei("200")).div(oTokenDecimalShift18)
-		// get the oracle
-		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
-		// set the option expiry price, make sure the option has now expired
-		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
-
-		await erc20CallOptionUSDC.approve(
-			optionRegistry.address,
-			await erc20CallOptionUSDC.balanceOf(senderAddress)
-		)
-		// call redeem from the options registry
-		await optionRegistry.settle(erc20CallOptionUSDC.address)
-		// check balances are in order
-		const newBalanceWETH = await wethERC20.balanceOf(senderAddress)
-		const opBalRegistry = await erc20CallOptionUSDC.balanceOf(optionRegistry.address)
-		const ethBalRegistry = await wethERC20.balanceOf(optionRegistry.address)
-		expect(opBalRegistry).to.equal(0)
-		expect(ethBalRegistry).to.equal(0)
-		expect(newBalanceWETH > balanceWETH).to.be.true
-	})
-
-	it("writer redeems call when option expires OTM", async () => {
-		// get balance before
-		const balanceWETH = await wethERC20.balanceOf(senderAddress)
-		await erc20CallOptionUSDC.approve(
-			optionRegistry.address,
-			await erc20CallOptionUSDC.balanceOf(senderAddress)
-		)
-		// call redeem from the options registry
-		await optionRegistry.redeem(erc20CallOptionUSDC.address)
-		// check balances are in order
-		const newBalanceWETH = await wethERC20.balanceOf(senderAddress)
-		const opBalRegistry = await erc20CallOptionUSDC.balanceOf(optionRegistry.address)
-		const opBalSender = await erc20CallOptionUSDC.balanceOf(senderAddress)
-		const ethBalRegistry = await wethERC20.balanceOf(optionRegistry.address)
-		expect(ethBalRegistry).to.equal(0)
-		expect(newBalanceWETH.sub(balanceWETH)).to.equal(0)
-		expect(opBalRegistry).to.equal(0)
-		expect(opBalSender).to.equal(0)
 	})
 
 	it("writer transfers part of put balance to new account", async () => {
@@ -666,7 +600,7 @@ describe("Options protocol", function () {
 		expect(balanceBefore.sub(newBalance)).to.equal(value)
 	})
 
-	it("settles put when option expires ITM", async () => {
+	it("settles call when option expires OTM", async () => {
 		// get balance before
 		const balanceUSD = await usd.balanceOf(senderAddress)
 		// get the desired settlement price
@@ -676,6 +610,46 @@ describe("Options protocol", function () {
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
 
+		await erc20CallOptionUSDC.approve(
+			optionRegistry.address,
+			await erc20CallOptionUSDC.balanceOf(senderAddress)
+		)
+		// call redeem from the options registry
+		await optionRegistry.settle(erc20CallOptionUSDC.address)
+		// check balances are in order
+		const newBalanceUSD = await usd.balanceOf(senderAddress)
+		const opBalRegistry = await erc20CallOptionUSDC.balanceOf(optionRegistry.address)
+		const ethBalRegistry = await usd.balanceOf(optionRegistry.address)
+		expect(opBalRegistry).to.equal(0)
+		expect(ethBalRegistry).to.equal(0)
+		expect(newBalanceUSD).to.be.gt(balanceUSD)
+	})
+
+	it("writer redeems call when option expires OTM", async () => {
+		// get balance before
+		const balanceUSD = await usd.balanceOf(senderAddress)
+		await erc20CallOptionUSDC.approve(
+			optionRegistry.address,
+			await erc20CallOptionUSDC.balanceOf(senderAddress)
+		)
+		// call redeem from the options registry
+		await optionRegistry.redeem(erc20CallOptionUSDC.address)
+		// check balances are in order
+		const newBalanceUSD = await usd.balanceOf(senderAddress)
+		const opBalRegistry = await erc20CallOptionUSDC.balanceOf(optionRegistry.address)
+		const opBalSender = await erc20CallOptionUSDC.balanceOf(senderAddress)
+		const usdBalRegistry = await usd.balanceOf(optionRegistry.address)
+		expect(usdBalRegistry).to.equal(0)
+		expect(newBalanceUSD.sub(balanceUSD)).to.equal(0)
+		expect(opBalRegistry).to.equal(0)
+		expect(opBalSender).to.equal(0)
+	})
+
+	it("settles put when option expires ITM", async () => {
+		// get balance before
+		const balanceUSD = await usd.balanceOf(senderAddress)
+		// get the desired settlement price
+		const settlePrice = strike.sub(toWei("200")).div(oTokenDecimalShift18)
 		await erc20PutOptionUSDC.approve(optionRegistry.address, await erc20PutOptionUSDC.balanceOf(senderAddress))
 		// call settle from the options registry
 		await optionRegistry.settle(erc20PutOptionUSDC.address)
