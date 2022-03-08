@@ -112,7 +112,6 @@ module.exports = {
 	gasReporter: {
 		currency: "USD",
 		gasPrice: 44,
-		enabled: process.env.REPORT_GAS ? true : false,
 		onlyCalledMethods: true
 	},
 	paths: {
