@@ -77,8 +77,8 @@ const liquidityPoolWethWidthdraw = "0.1"
 
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 
-const CALL_FLAVOR = BigNumber.from(call)
-const PUT_FLAVOR = BigNumber.from(put)
+const CALL_FLAVOR = false
+const PUT_FLAVOR = true
 
 describe("Hegic Attack", function () {
 	before(async function () {
@@ -306,7 +306,7 @@ describe("Hegic Attack", function () {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const proposedSeries = {
 			expiration: fmtExpiration(expiration),
-			flavor: BigNumber.from(put),
+			isPut: true,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
 			underlying: weth.address

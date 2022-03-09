@@ -150,7 +150,7 @@ library BlackScholes {
        uint256 expiration,
        uint256 vol,
        uint256 rfr,
-       Types.Flavor flavor
+       bool isPut
     )
       public
       view
@@ -159,7 +159,7 @@ library BlackScholes {
       //TODO consider passing in time instead to reduce gas
       uint256 time = (expiration - getTimeStamp()).div(ONE_YEAR_SECONDS);
       Intermediates memory i = getIntermediates(price, strike, time, vol, rfr);
-      if (flavor == Types.Flavor.Call) {
+      if (!isPut) {
         return callOptionPrice(int256(i.d1), int256(i.d1Denominator), int256(price), int256(strike), i.eToNegRT);
       } else {
         return putOptionPrice(int256(i.d1), int256(i.d1Denominator), int256(price), int256(strike), i.eToNegRT);
@@ -172,7 +172,7 @@ library BlackScholes {
        uint256 expiration,
        uint256 vol,
        uint256 rfr,
-       Types.Flavor flavor
+       bool isPut
     )
         public
         view
@@ -180,7 +180,7 @@ library BlackScholes {
     {
         uint256 time = (expiration - getTimeStamp()).div(ONE_YEAR_SECONDS);
         Intermediates memory i = getIntermediates(price, strike, time, vol, rfr);
-        if (flavor == Types.Flavor.Call) {
+        if (!isPut) {
             return callOptionPriceGreeks(int256(i.d1), int256(i.d1Denominator), int256(price), int256(strike), i.eToNegRT);
         } else {
             return putOptionPriceGreeks(int256(i.d1), int256(i.d1Denominator), int256(price), int256(strike), i.eToNegRT);
@@ -193,7 +193,7 @@ library BlackScholes {
        uint256 expiration,
        uint256 vol,
        uint256 rfr,
-       Types.Flavor flavor
+       bool isPut
     ) public view returns (int) {
         uint256 time = (expiration - getTimeStamp()).div(ONE_YEAR_SECONDS);
         (int256 d1,) = getD1(
@@ -203,7 +203,7 @@ library BlackScholes {
             vol,
             rfr
         );
-        if (flavor == Types.Flavor.Call) {
+        if (!isPut) {
             return NormalDist.cdf(d1);
         } else {
             return -NormalDist.cdf(-d1);
