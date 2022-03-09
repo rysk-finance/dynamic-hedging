@@ -101,21 +101,21 @@ contract OptionRegistryV2 is Ownable {
      * @param  underlying is the address of the underlying asset of the option
      * @param  strikeAsset is the address of the collateral asset of the option
      * @param  expiration is the expiry timestamp of the option
-     * @param  flavor the type of option
+     * @param  isPut the type of option
      * @param  strike is the strike price of the option - 1e18 format
      * @param collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
-    function issue(address underlying, address strikeAsset, uint256 expiration, Types.Flavor flavor, uint256 strike, address collateral) external onlyLiquidityPool returns (address) {
+    function issue(address underlying, address strikeAsset, uint256 expiration, bool isPut, uint256 strike, address collateral) external onlyLiquidityPool returns (address) {
         // deploy an oToken contract address
         require(expiration > block.timestamp, "Already expired");
         uint256 formattedStrike = formatStrikePrice(strike, collateral);
         // create option storage hash
-        bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, collateral, expiration, flavor, formattedStrike);
+        bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, collateral, expiration, isPut, formattedStrike);
         // check for an opyn oToken if it doesn't exist deploy it
-        address series = OpynInteractionsV2.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formattedStrike, expiration, flavor);
+        address series = OpynInteractionsV2.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formattedStrike, expiration, isPut);
         // store the option data as a hash
-        seriesInfo[series] = Types.OptionSeries(expiration, flavor, formattedStrike, underlying, strikeAsset, collateral);
+        seriesInfo[series] = Types.OptionSeries(expiration, isPut, formattedStrike, underlying, strikeAsset, collateral);
         seriesAddress[issuanceHash] = series;
         emit OptionTokenCreated(series);
         return series;
@@ -184,11 +184,12 @@ contract OptionRegistryV2 is Ownable {
         require(block.timestamp < series.expiration, "Option already expired");
         // get the vault id
         uint256 vaultId = vaultIds[_series];
+        uint256 convertedAmount = OptionsCompute.convertToDecimals(amount, IERC20(_series).decimals());
         // transfer the oToken back to this account
-        SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), amount);
+        SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), convertedAmount);
         // burn the oToken tracking the amount of collateral returned
         // TODO: account for fact there might be a buffer
-        uint256 collatReturned = OpynInteractionsV2.burnShort(gammaController, _series, amount, vaultId);
+        uint256 collatReturned = OpynInteractionsV2.burnShort(gammaController, _series, convertedAmount, vaultId);
         SafeTransferLib.safeTransfer(ERC20(series.collateral), msg.sender, collatReturned);
         emit OptionsContractClosed(_series, vaultId, amount);
         return (true, collatReturned);
@@ -251,10 +252,10 @@ contract OptionRegistryV2 is Ownable {
           IOracle(addressBook.getOracle()).getPrice(series.underlying),
           series.expiration,
           IERC20(series.collateral).decimals(),
-          Types.isPut(series.flavor)
+          series.isPut
         );
         // add in logic for increasing the collateral requirement depending on the liquidation health factor here, probably want to default to 100% health factor.
-        // transfer collateral to this contract, collateral will depend on the flavor
+        // transfer collateral to this contract, collateral will depend on the option type
         SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
       return collateralAmount;
     }
@@ -307,19 +308,19 @@ contract OptionRegistryV2 is Ownable {
    }
 
    function getIssuanceHash(Types.OptionSeries memory _series) public pure returns (bytes32) {
-     return getIssuanceHash(_series.underlying, _series.strikeAsset, _series.collateral, _series.expiration, _series.flavor, _series.strike);
+     return getIssuanceHash(_series.underlying, _series.strikeAsset, _series.collateral, _series.expiration, _series.isPut, _series.strike);
    }
 
     /**
      * Helper function for computing the hash of a given issuance.
      */
-    function getIssuanceHash(address underlying, address strikeAsset, address collateral, uint expiration, Types.Flavor flavor, uint strike)
+    function getIssuanceHash(address underlying, address strikeAsset, address collateral, uint expiration, bool isPut, uint strike)
       internal
       pure
       returns(bytes32)
     {
       return keccak256(
-         abi.encodePacked(underlying, strikeAsset, collateral, expiration, flavor, strike)
+         abi.encodePacked(underlying, strikeAsset, collateral, expiration, isPut, strike)
       );
     }
 

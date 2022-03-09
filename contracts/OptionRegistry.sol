@@ -20,14 +20,13 @@ contract OptionRegistry is Ownable {
     address internal usd;
     // address of the opyn oTokenFactory for oToken minting
     address internal oTokenFactory;
-    // address of the opyn addressBook for accessing important opyn modules
-    AddressBookInterface internal addressBook;
     // address of the gammaController for oToken operations
     address internal gammaController;
+    // address of the opyn addressBook for accessing important opyn modules
+    AddressBookInterface internal addressBook;
     // address of the marginPool, contract for storing options collateral
     address internal marginPool;
     // address of the rysk liquidity pools
-    // TODO: have multiple liquidityPools enabled
     address internal liquidityPool;
     // amount of openInterest (assets) held in a specific series
     mapping(address => uint) public openInterest;
@@ -92,7 +91,7 @@ contract OptionRegistry is Ownable {
         // check for an opyn oToken if it doesn't exist deploy it
         address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
         // store the option data as a hash
-        seriesInfo[series] = Types.OptionSeries(expiration, isPut, strike, u, s);
+        seriesInfo[series] = Types.OptionSeries(expiration, isPut, strike, u, s, collateral);
         seriesAddress[issuanceHash] = series;
         emit OptionTokenCreated(series);
         return series;

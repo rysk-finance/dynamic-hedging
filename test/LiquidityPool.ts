@@ -650,7 +650,8 @@ describe("Liquidity Pools", async () => {
 			isPut: false,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+			collateral: weth.address
 		}
 		const callOptionToken = new Contract(callOptionAddress, Otoken.abi, sender) as IOToken
 		const totalInterestBefore = await callOptionToken.totalSupply()

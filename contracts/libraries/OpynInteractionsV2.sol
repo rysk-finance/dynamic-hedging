@@ -25,7 +25,7 @@ library OpynInteractionsV2 {
      * @param strikeAsset is the address of the collateral asset of the option
      * @param strike is the strike price of the option in 1e8 format
      * @param expiration is the expiry timestamp of the option
-     * @param flavor the type of option
+     * @param isPut the type of option
      * @return the address of the option
      */
     function getOrDeployOtoken(
@@ -35,7 +35,7 @@ library OpynInteractionsV2 {
         address strikeAsset,
         uint256 strike,
         uint256 expiration,
-        Types.Flavor flavor
+        bool isPut
     ) external returns (address) {
         IOtokenFactory factory = IOtokenFactory(oTokenFactory);
 
@@ -46,7 +46,7 @@ library OpynInteractionsV2 {
                 collateral,
                 strike,
                 expiration,
-                Types.isPut(flavor)
+                isPut
             );
 
         if (otokenFromFactory != address(0)) {
@@ -60,7 +60,7 @@ library OpynInteractionsV2 {
                 collateral,
                 strike,
                 expiration,
-                Types.isPut(flavor)
+                isPut
             );
 
         return otoken;

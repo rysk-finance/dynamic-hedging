@@ -159,20 +159,20 @@ describe("Options protocol", function () {
 		const [sender, receiver] = signers
 		const optionRegistryReceiver = optionRegistry.connect(receiver)
 		await expect(
-			optionRegistryReceiver.close(optionToken.address, toWei("1").div(oTokenDecimalShift18))
+			optionRegistryReceiver.close(optionToken.address, toWei("1"))
 		).to.be.revertedWith("!liquidityPool")
 	})
 
 	it("liquidityPool close and transaction succeeds", async () => {
 		const [sender, receiver] = signers
-		const value = toWei("1").div(oTokenDecimalShift18)
+		const value = toWei("1")
 		const balanceBef = await optionToken.balanceOf(senderAddress)
 		const optionRegistrySender = optionRegistry.connect(sender)
-		await optionToken.approve(optionRegistry.address, value)
+		await optionToken.approve(optionRegistry.address, value.div(oTokenDecimalShift18))
 		const wethBalanceBefore = await wethERC20.balanceOf(senderAddress)
 		await optionRegistrySender.close(optionToken.address, value)
 		const balance = await optionToken.balanceOf(senderAddress)
-		expect(balanceBef.sub(balance)).to.equal(value)
+		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
 		const wethBalance = await wethERC20.balanceOf(senderAddress)
 		expect(wethBalance.sub(wethBalanceBefore)).to.equal(toWei("1"))
 	})
@@ -187,10 +187,10 @@ describe("Options protocol", function () {
 	})
 
 	it("receiver transfers to liquidityPool and closes option token", async () => {
-		const value = toWei("1").div(oTokenDecimalShift18)
+		const value = toWei("1")
 		const [sender, receiver] = signers
-		await optionToken.connect(receiver).transfer(senderAddress, value)
-		await optionToken.approve(optionRegistry.address, value)
+		await optionToken.connect(receiver).transfer(senderAddress, value.div(oTokenDecimalShift18))
+		await optionToken.approve(optionRegistry.address, value.div(oTokenDecimalShift18))
 		const wethBalanceBefore = await wethERC20.balanceOf(receiverAddress)
 		const senderBalanceBefore = await optionToken.balanceOf(senderAddress)
 		await optionRegistry.close(optionToken.address, value)
@@ -306,11 +306,11 @@ describe("Options protocol", function () {
 	it("writer closes not transfered balance on ERC20 call option", async () => {
 		const [sender] = signers
 		const balanceBef = await erc20CallOption.balanceOf(senderAddress)
-		const value = toWei("1").div(oTokenDecimalShift18)
-		await erc20CallOption.approve(optionRegistry.address, value)
+		const value = toWei("1")
+		await erc20CallOption.approve(optionRegistry.address, value.div(oTokenDecimalShift18))
 		await optionRegistry.close(erc20CallOption.address, value)
 		const balance = await erc20CallOption.balanceOf(senderAddress)
-		expect(balanceBef.sub(balance)).to.equal(value)
+		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
 	})
 	it("writer transfers part of put balance to new account", async () => {
 		const [sender, receiver] = signers
@@ -320,12 +320,12 @@ describe("Options protocol", function () {
 	})
 
 	it("writer closes not transfered balance on put option token", async () => {
-		const value = toWei("1").div(oTokenDecimalShift18)
+		const value = toWei("1")
 		const balanceBef = await putOption.balanceOf(senderAddress)
-		await putOption.approve(optionRegistry.address, value)
+		await putOption.approve(optionRegistry.address, value.div(oTokenDecimalShift18))
 		await optionRegistry.close(putOption.address, value)
 		const balance = await putOption.balanceOf(senderAddress)
-		expect(balanceBef.sub(balance)).to.equal(value)
+		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
 	})
 	it("settles call when option expires OTM", async () => {
 		// get balance before

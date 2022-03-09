@@ -325,11 +325,11 @@ describe("Options protocol", function () {
 		const [sender, receiver] = signers
 		const optionRegistryReceiver = optionRegistry.connect(receiver)
 		await expect(
-			optionRegistryReceiver.close(optionTokenUSDC.address, toWei("1").div(oTokenDecimalShift18))
+			optionRegistryReceiver.close(optionTokenUSDC.address, toWei("1"))
 		).to.be.revertedWith("!liquidityPool")
 		const optionRegistryReceiverETH = optionRegistryETH.connect(receiver)
 		await expect(
-			optionRegistryReceiverETH.close(optionTokenETH.address, toWei("1").div(oTokenDecimalShift18))
+			optionRegistryReceiverETH.close(optionTokenETH.address, toWei("1"))
 		).to.be.revertedWith("!liquidityPool")
 	})
 
@@ -360,17 +360,17 @@ describe("Options protocol", function () {
 
 	it("liquidityPool close and transaction succeeds", async () => {
 		const [sender, receiver] = signers
-		const value = toWei("1").div(oTokenDecimalShift18)
+		const value = toWei("1")
 		const balanceBef = await optionTokenUSDC.balanceOf(senderAddress)
 		const optionRegistrySender = optionRegistry.connect(sender)
-		await optionTokenUSDC.approve(optionRegistry.address, value)
+		await optionTokenUSDC.approve(optionRegistry.address, value.div(oTokenDecimalShift18))
 		const usdBalanceBefore = await usd.balanceOf(senderAddress)
 		const underlyingPrice = (await oracle.getPrice(weth.address))
 		const marginReq = (await newCalculator.getNakedMarginRequired(
 			weth.address,
 			usd.address,
 			usd.address,
-			value,
+			value.div(oTokenDecimalShift18),
 			strike.div(oTokenDecimalShift18),
 			underlyingPrice,
 			expiration,
@@ -379,24 +379,24 @@ describe("Options protocol", function () {
 		))
 		await optionRegistrySender.close(optionTokenUSDC.address, value)
 		const balance = await optionTokenUSDC.balanceOf(senderAddress)
-		expect(balanceBef.sub(balance)).to.equal(value)
+		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
 		const usdBalance = await usd.balanceOf(senderAddress)
 		expect((usdBalance.sub(usdBalanceBefore)).sub(marginReq)).to.be.within(-1,1)
 	})
 
 	it("liquidityPool close and transaction succeeds ETH options", async () => {
 		const [sender, receiver] = signers
-		const value = toWei("1").div(oTokenDecimalShift18)
+		const value = toWei("1")
 		const balanceBef = await optionTokenETH.balanceOf(senderAddress)
 		const optionRegistrySender = optionRegistryETH.connect(sender)
-		await optionTokenETH.approve(optionRegistryETH.address, value)
+		await optionTokenETH.approve(optionRegistryETH.address, value.div(oTokenDecimalShift18))
 		const ethBalanceBefore = await wethERC20.balanceOf(senderAddress)
 		const underlyingPrice = (await oracle.getPrice(weth.address))
 		const marginReq = (await newCalculator.getNakedMarginRequired(
 			weth.address,
 			usd.address,
 			weth.address,
-			value,
+			value.div(oTokenDecimalShift18),
 			strike.div(oTokenDecimalShift18),
 			underlyingPrice,
 			expiration,
@@ -405,7 +405,7 @@ describe("Options protocol", function () {
 		))
 		await optionRegistrySender.close(optionTokenETH.address, value)
 		const balance = await optionTokenETH.balanceOf(senderAddress)
-		expect(balanceBef.sub(balance)).to.equal(value)
+		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
 		const ethBalance = (await wethERC20.balanceOf(senderAddress));
 		const diff = ethBalance.sub(ethBalanceBefore);
 		expect(diff.sub(marginReq)).to.be.within(-1,1);
@@ -607,11 +607,11 @@ describe("Options protocol", function () {
 	it("writer closes not transfered balance on ERC20 call option", async () => {
 		const [sender] = signers
 		const balanceBef = await erc20CallOptionUSDC.balanceOf(senderAddress)
-		const value = toWei("1").div(oTokenDecimalShift18)
+		const value = toWei("1")
 		await erc20CallOptionUSDC.approve(optionRegistry.address, value)
 		await optionRegistry.close(erc20CallOptionUSDC.address, value)
 		const balance = await erc20CallOptionUSDC.balanceOf(senderAddress)
-		expect(balanceBef.sub(balance)).to.equal(value)
+		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
 	})
 
 	it("writer transfers part of put balance to new account", async () => {
@@ -625,17 +625,17 @@ describe("Options protocol", function () {
 	})
 
 	it("writer closes not transfered balance on put option token", async () => {
-		const value = toWei("1").div(oTokenDecimalShift18)
+		const value = toWei("1")
 		const balanceBef = await erc20PutOptionUSDC.balanceOf(senderAddress)
-		await erc20PutOptionUSDC.approve(optionRegistry.address, value)
+		await erc20PutOptionUSDC.approve(optionRegistry.address, value.div(oTokenDecimalShift18))
 		await optionRegistry.close(erc20PutOptionUSDC.address, value)
 		const balance = await erc20PutOptionUSDC.balanceOf(senderAddress)
-		expect(balanceBef.sub(balance)).to.equal(value)
+		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
 		const balanceBefore = await erc20PutOptionETH.balanceOf(senderAddress)
-		await erc20PutOptionETH.approve(optionRegistryETH.address, value)
+		await erc20PutOptionETH.approve(optionRegistryETH.address, value.div(oTokenDecimalShift18))
 		await optionRegistryETH.close(erc20PutOptionETH.address, value)
 		const newBalance = await erc20PutOptionETH.balanceOf(senderAddress)
-		expect(balanceBefore.sub(newBalance)).to.equal(value)
+		expect(balanceBefore.sub(newBalance)).to.equal(value.div(oTokenDecimalShift18))
 	})
 
 	it("settles call when option expires OTM", async () => {
