@@ -5,6 +5,7 @@ import "./tokens/ERC20.sol";
 import "./OptionRegistry.sol";
 import "./OptionsProtocol.sol";
 import "./utils/access/Ownable.sol";
+import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
@@ -23,7 +24,8 @@ error DeltaQuoteError(uint256 quote, int256 delta);
 
 contract LiquidityPool is
   ERC20,
-  Ownable
+  Ownable,
+  ReentrancyGuard
 {
   using PRBMathSD59x18 for int256;
   using PRBMathUD60x18 for uint256;
@@ -71,6 +73,8 @@ contract LiquidityPool is
   mapping(address => uint) public impliedVolatility;
   // value below which delta is not worth dedging due to gas costs
   int256 private dustValue;
+  // addresses that are whitelisted to sell options back to the protocol
+  mapping(address => bool) public buybackWhitelist;
 
   event LiquidityAdded(uint amount);
   event UnderlyingAdded(address underlying);
@@ -78,6 +82,8 @@ contract LiquidityPool is
   event Deposit(address recipient, uint strikeAmount, uint shares);
   event Withdraw(address recipient, uint shares,  uint strikeAmount);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
+  event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
+
 
   constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol, 18) {
     strikeAsset = _strikeAsset;
@@ -91,6 +97,10 @@ contract LiquidityPool is
     maxTotalSupply = type(uint256).max;
     emit UnderlyingAdded(underlyingAddress);
   }
+
+  function addBuybackAddress(address _addressToWhitelist) public onlyOwner {
+    buybackWhitelist[_addressToWhitelist] = true;
+}
 
   /**
    * @notice set a new hedging reactor
@@ -495,6 +505,29 @@ contract LiquidityPool is
   }
 
   /**
+    @notice updated function to convert decimals between tokens
+    @param from address of token that the input is formatted to
+    @param to address of token that output needs to be formatted to
+    @param value value to convert
+    @return value converted to appropriate decimal
+   */
+
+  function convertDecimal(
+    address from,
+    address to,
+    uint256 value
+  ) internal view returns (uint) 
+  {
+    int8 difference = int8(IERC20(to).decimals()) - int8(IERC20(from).decimals());
+    if(difference >= 0){
+       return value * (10 ** uint8(difference));
+    } else {
+      return value / (10 ** uint8(-difference));
+    }
+  }
+
+
+  /**
    * @notice get a price quote for a given optionSeries
    * @param  optionSeries Types.OptionSeries struct for describing the option to price
    * @return Quote price of the option
@@ -667,12 +700,14 @@ contract LiquidityPool is
       uint underlyingPrice = getUnderlyingPrice(optionSeries);
       int portfolioDelta = getPortfolioDelta();
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
-      uint utilization = amount.div(totalSupply);
-      quoteState.utilizationPrice = underlyingPrice.mul(utilization);
-      int distanceFromZero = PRBMathSD59x18.abs(newDelta - int(0));
+      // assumes a single collateral type regardless of call or put
+      //@TODO update quoteValue to use shock value
+      uint quoteValue = amount.mul(optionQuote);
+      uint utilization = quoteValue.div(totalSupply);
       quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
       uint normalizedDelta = uint256(newDelta).div(_getNAV());
       uint maxPrice = optionSeries.flavor == Types.Flavor.Call ? underlyingPrice : optionSeries.strike;
+      quoteState.utilizationPrice = maxPrice.mul(utilization);
       quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
       if (quoteState.isDecreased) {
         uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
@@ -681,8 +716,12 @@ contract LiquidityPool is
         quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       } else {
         uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice) + quoteState.optionPrice;
-        quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice);
-        quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
+        if (quoteState.utilizationPrice < maxPrice) {
+          quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
+          quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
+        } else {
+          quote = maxPrice;
+        }
       }
       delta = deltaQuote;
       //@TODO think about more robust considitions for this check
@@ -768,5 +807,57 @@ contract LiquidityPool is
         collateralAllocated += collateralAmount;
     }
     SafeTransferLib.safeTransfer(ERC20(seriesAddress), msg.sender, toDecimals(amount, seriesAddress));
+  }
+
+  /**
+    @notice buys a number of options back and burns the tokens
+    @param optionSeries the option token series to buyback
+    @param amount the number of options to buyback
+    @return the number of options bought and burned
+  */
+  function buybackOption(
+    Types.OptionSeries memory optionSeries,
+    uint amount
+  ) public nonReentrant returns (uint256){
+     if (!buybackWhitelist[msg.sender]){
+      // address is not on the whitelist
+      //TODO run some checks to determine if we want to buy this option back
+    }
+    OptionRegistry optionRegistry = getOptionRegistry();  
+    address seriesAddress = optionRegistry.issue(
+       optionSeries.underlying,
+       optionSeries.strikeAsset,
+       optionSeries.expiration.toUint(),
+       optionSeries.flavor,
+       optionSeries.strike,
+       collateralAsset
+    );      
+    Types.Flavor flavor = optionSeries.flavor;
+    SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), amount);
+    SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), amount);
+    //TODO create IV skew specifically for buyback 
+    //TODO swap out quotePriceWithUtilization for new buyback pricing func
+    uint256 premium = quotePriceWithUtilization(optionSeries, convertDecimal(seriesAddress, optionSeries.underlying, amount));
+    (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
+    emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
+
+    if (Types.isCall(flavor)) {
+      (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeightsBuyback(
+          amount, optionSeries.strike, optionSeries.expiration, totalAmountCall, weightedStrikeCall, weightedTimeCall);
+      totalAmountCall = newTotal;
+      weightedStrikeCall = newWeight;
+      weightedTimeCall = newTime;
+      // TODO: make sure this is ok with collateral types
+      collateralAllocated -= collateralReturned;
+    } else {
+      (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeightsBuyback(
+          amount, optionSeries.strike, optionSeries.expiration, totalAmountPut, weightedStrikePut, weightedTimePut);
+      totalAmountPut = newTotal;
+      weightedStrikePut = newWeight;
+      weightedTimePut = newTime;
+      collateralAllocated -= collateralReturned;
+    }
+    SafeTransferLib.safeTransfer(ERC20(strikeAsset), msg.sender, toDecimals(premium, strikeAsset));
+    return amount;
   }
 }
