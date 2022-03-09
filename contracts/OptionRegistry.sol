@@ -72,23 +72,23 @@ contract OptionRegistry is Ownable {
      * @param  underlying is the address of the underlying asset of the option
      * @param  strikeAsset is the address of the collateral asset of the option
      * @param  expiration is the expiry timestamp of the option
-     * @param  flavor the type of option
+     * @param  isPut the type of option
      * @param  strike is the strike price of the option - 1e18 format
      * @param collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
-    function issue(address underlying, address strikeAsset, uint expiration, Types.Flavor flavor, uint strike, address collateral) external returns (address) {
+    function issue(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external returns (address) {
         // deploy an oToken contract address
         require(expiration > block.timestamp, "Already expired");
         // create option storage hash
         address u = underlying;
         address s = strikeAsset;
-        bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, expiration, flavor, strike);
+        bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, expiration, isPut, strike);
         //address collateralAsset = collateral == address(0) ? usd : collateral;
         // check for an opyn oToken if it doesn't exist deploy it
-        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, flavor);
+        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
         // store the option data as a hash
-        seriesInfo[series] = Types.OptionSeries(expiration, flavor, strike, u, s);
+        seriesInfo[series] = Types.OptionSeries(expiration, isPut, strike, u, s);
         seriesAddress[issuanceHash] = series;
         emit OptionTokenCreated(series);
         return series;
@@ -127,8 +127,8 @@ contract OptionRegistry is Ownable {
         require(block.timestamp < series.expiration, "Options can not be opened after expiration");
         uint256 collateralAmount;
     
-        // transfer collateral to this contract, collateral will depend on the flavor
-        if (series.flavor == Types.Flavor.Call) {
+        // transfer collateral to this contract, collateral will depend on the option type
+        if (!series.isPut) {
           collateralAmount = getCallCollateral(series.underlying, amount);
         } else {
           collateralAmount = getPutCollateral(series.strikeAsset, amount, series.strike);
@@ -175,7 +175,7 @@ contract OptionRegistry is Ownable {
         writers[_series][msg.sender] -= collatReturned;
         openInterest[_series] -= collatReturned;
 
-        if (series.flavor == Types.Flavor.Call) {
+        if (!series.isPut) {
           transferOutUnderlying(series, collatReturned);
         } else {
           transferOutStrike(series, collatReturned);
@@ -202,7 +202,7 @@ contract OptionRegistry is Ownable {
         openInterest[_series] = 0;
         writers[_series][msg.sender] = 0;
         // transfer the collateral back to the liquidity pool
-        if (series.flavor == Types.Flavor.Call) {
+        if (!series.isPut) {
           transferOutUnderlying(series, collatReturned);
         } else {
           transferOutStrike(series, collatReturned);
@@ -288,19 +288,19 @@ contract OptionRegistry is Ownable {
    }
 
    function getIssuanceHash(Types.OptionSeries memory _series) public pure returns (bytes32) {
-     return getIssuanceHash(_series.underlying, _series.strikeAsset, _series.expiration, _series.flavor, _series.strike);
+     return getIssuanceHash(_series.underlying, _series.strikeAsset, _series.expiration, _series.isPut, _series.strike);
    }
 
     /**
      * Helper function for computing the hash of a given issuance.
      */
-    function getIssuanceHash(address underlying, address strikeAsset, uint expiration, Types.Flavor flavor, uint strike)
+    function getIssuanceHash(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike)
       internal
       pure
       returns(bytes32)
     {
       return keccak256(
-         abi.encodePacked(underlying, strikeAsset, expiration, flavor, strike)
+         abi.encodePacked(underlying, strikeAsset, expiration, isPut, strike)
       );
     }
 
