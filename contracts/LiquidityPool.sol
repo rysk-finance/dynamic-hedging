@@ -69,6 +69,9 @@ contract LiquidityPool is
   int[7] public callsVolatilitySkew;
   // skew parameters for puts
   int[7] public putsVolatilitySkew;
+  // The spread between the bid and ask on the IV skew;
+  // Consider making this it's own volatility skew if more flexibility is needed
+  uint public bidAskIVSpread;
   // Implied volatility for an underlying
   mapping(address => uint) public impliedVolatility;
   // value below which delta is not worth dedging due to gas costs
@@ -154,6 +157,14 @@ contract LiquidityPool is
       } else {
           return putsVolatilitySkew;
       }
+  }
+
+  /**
+   * @notice set the bid ask spread used to price option buying
+   * @param _bidAskSpread the bid ask spread to update to
+   */
+  function setBidAskSpread(uint256 _bidAskSpread) external onlyOwner {
+    bidAskIVSpread = _bidAskSpread;
   }
 
   /**
@@ -562,7 +573,8 @@ contract LiquidityPool is
    * @return underlyingPrice price of the underlyingAsset
    */
   function quotePriceGreeks(
-     Types.OptionSeries memory optionSeries
+     Types.OptionSeries memory optionSeries,
+     bool isBuying
   )
       public
       view
@@ -571,6 +583,9 @@ contract LiquidityPool is
       underlyingPrice = getUnderlyingPrice(optionSeries);
       uint iv = getImpliedVolatility(optionSeries.flavor, underlyingPrice, optionSeries.strike, optionSeries.expiration);
       require(iv > 0, "Implied volatility not found");
+      if (isBuying) {
+        iv = iv - bidAskIVSpread;
+      }
       require(optionSeries.expiration > block.timestamp, "Already expired");
       underlyingPrice = getUnderlyingPrice(optionSeries);
       (quote, delta) = BlackScholes.blackScholesCalcGreeks(
@@ -694,16 +709,14 @@ contract LiquidityPool is
       view
       returns (uint256 quote, int256 delta)
   {
-      (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries);
+      (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries, false);
       UtilizationState memory quoteState;
-      quoteState.optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
+      quoteState.optionPrice = optionQuote.mul(amount);
       uint underlyingPrice = getUnderlyingPrice(optionSeries);
       int portfolioDelta = getPortfolioDelta();
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
       // assumes a single collateral type regardless of call or put
-      //@TODO update quoteValue to use shock value
-      uint quoteValue = amount.mul(optionQuote);
-      uint utilization = quoteValue.div(totalSupply);
+      uint utilization = quoteState.optionPrice.div(totalSupply);
       quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
       uint normalizedDelta = uint256(newDelta).div(_getNAV());
       uint maxPrice = optionSeries.flavor == Types.Flavor.Call ? underlyingPrice : optionSeries.strike;
@@ -723,6 +736,28 @@ contract LiquidityPool is
           quote = maxPrice;
         }
       }
+      delta = deltaQuote;
+      //@TODO think about more robust considitions for this check
+      if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta); }
+  }
+
+  /**
+   * @notice get the quote price and delta for a given option
+   * @param  optionSeries option type to quote
+   * @param  amount the number of options to buy 
+   * @return quote the price of the options
+   * @return delta the delta of the options
+   */
+  function quotePriceBuying(
+    Types.OptionSeries memory optionSeries,
+    uint amount
+  )
+      public
+      view
+      returns (uint256 quote, int256 delta)
+  {
+      (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries, true);
+      quote = optionQuote.mul(amount);
       delta = deltaQuote;
       //@TODO think about more robust considitions for this check
       if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta); }
