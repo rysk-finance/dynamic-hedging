@@ -25,7 +25,7 @@ library OpynInteractions {
      * @param strikeAsset is the address of the collateral asset of the option
      * @param strike is the strike price of the option in 1e8 format
      * @param expiration is the expiry timestamp of the option
-     * @param flavor the type of option
+     * @param isPut the type of option
      * @return the address of the option
      */
     function getOrDeployOtoken(
@@ -35,7 +35,7 @@ library OpynInteractions {
         address strikeAsset,
         uint256 strike,
         uint256 expiration,
-        Types.Flavor flavor
+        bool isPut
     ) external returns (address) {
         IOtokenFactory factory = IOtokenFactory(oTokenFactory);
 
@@ -46,7 +46,7 @@ library OpynInteractions {
                 collateral,
                 strike,
                 expiration,
-                Types.isPut(flavor)
+                isPut
             );
 
         if (otokenFromFactory != address(0)) {
@@ -60,7 +60,7 @@ library OpynInteractions {
                 collateral,
                 strike,
                 expiration,
-                Types.isPut(flavor)
+                isPut
             );
 
         return otoken;
@@ -173,7 +173,7 @@ library OpynInteractions {
      * @param gammaController is the address of the opyn controller contract
      * @param marginPool is the address of the opyn margin contract which holds the collateral
      * @param oTokenAddress is the address of the otoken to burn
-     * @param burnAmount is the amount of options to burn
+     * @param amount is the amount of options to burn expressed in 1e18
      * @param vaultId is the vault id used that holds the short
      * @return the otoken burn amount
      */
@@ -181,7 +181,7 @@ library OpynInteractions {
         address gammaController,
         address marginPool,
         address oTokenAddress,
-        uint256 burnAmount,
+        uint256 amount,
         uint256 vaultId
     ) external returns (uint256) {
         IController controller = IController(gammaController);
@@ -189,6 +189,8 @@ library OpynInteractions {
         // So in the context of performing Opyn short operations we call them collateralAsset
         IOtoken oToken = IOtoken(oTokenAddress);
         IERC20 collateralAsset = IERC20(oToken.collateralAsset());
+        // TODO Consider if safemath division is needed here
+        uint256 burnAmount = amount / SCALE_FROM;
         uint256 startCollatBalance = collateralAsset.balanceOf(address(this));
         GammaTypes.Vault memory vault =
             controller.getVault(address(this), vaultId);

@@ -123,16 +123,16 @@ contract LiquidityPool is
   /**
    * @notice set the volatility skew of the pool
    * @param values the parameters of the skew
-   * @param flavor the option type, put or call?
+   * @param isPut the option type, put or call?
    * @return whether the activation was successful
    * @dev   only governance can call this function
    */
-  function setVolatilitySkew(int[7] calldata values, Types.Flavor flavor)
+  function setVolatilitySkew(int[7] calldata values, bool isPut)
       onlyOwner
       external
       returns (bool)
   {
-      if (Types.isCall(flavor)) {
+      if (!isPut) {
           callsVolatilitySkew = values;
       } else {
           putsVolatilitySkew = values;
@@ -141,15 +141,15 @@ contract LiquidityPool is
 
   /**
    * @notice get the volatility skew of the pool
-   * @param flavor the option type, put or call?
+   * @param isPut the option type, put or call?
    * @return the skew parameters
    */
-  function getVolatilitySkew(Types.Flavor flavor)
+  function getVolatilitySkew(bool isPut)
       external
       view
       returns (int[7] memory)
   {
-      if (Types.isCall(flavor)) {
+      if (!isPut) {
           return callsVolatilitySkew;
       } else {
           return putsVolatilitySkew;
@@ -277,7 +277,7 @@ contract LiquidityPool is
    * @return collateralBalance balance in original decimal format
    * @return _decimals decimals of asset
    */
-  function getNormalizedBalance(
+   function getNormalizedBalance(
     address asset
   )
     internal
@@ -301,14 +301,14 @@ contract LiquidityPool is
       if (weightedStrikePut == 0) return uint(0);
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
       // TODO Consider using VAR (value at risk) approach in the future
-      uint iv = getImpliedVolatility(Types.Flavor.Put, underlyingPrice, weightedStrikePut, weightedTimePut);
+      uint iv = getImpliedVolatility(true, underlyingPrice, weightedStrikePut, weightedTimePut);
       uint optionPrice = BlackScholes.blackScholesCalc(
          underlyingPrice,
          weightedStrikePut,
          weightedTimePut,
          iv,
          riskFreeRate,
-         Types.Flavor.Put
+         true
       );
       return totalAmountPut.mul(optionPrice);      
   }
@@ -324,14 +324,14 @@ contract LiquidityPool is
   {
       if (weightedStrikeCall == 0) return uint(0);
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      uint iv = getImpliedVolatility(Types.Flavor.Call, underlyingPrice, weightedStrikeCall, weightedTimeCall);
+      uint iv = getImpliedVolatility(false, underlyingPrice, weightedStrikeCall, weightedTimeCall);
       uint optionPrice = BlackScholes.blackScholesCalc(
         underlyingPrice,
         weightedStrikePut,
         weightedTimePut,
         iv,
         riskFreeRate,
-        Types.Flavor.Call
+        false
       );     
       uint callsValue = totalAmountCall.mul(uint256(optionPrice));
       return callsValue;
@@ -458,14 +458,14 @@ contract LiquidityPool is
 
   /**
    * @notice get the current implied volatility 
-   * @param flavor Is the option a call or put?
+   * @param isPut Is the option a call or put?
    * @param underlyingPrice The underlying price 
    * @param strikePrice The strike price of the option
    * @param expiration expiration timestamp of option as a PRBMath Float
    * @return Implied volatility adjusted for volatility surface
    */
   function getImpliedVolatility(
-    Types.Flavor flavor,
+    bool isPut,
     uint underlyingPrice,
     uint strikePrice,
     uint expiration
@@ -478,54 +478,9 @@ contract LiquidityPool is
       int underlying = int(underlyingPrice);
       int spot_distance = (int(strikePrice) - int(underlying)).div(underlying);
       int[2] memory points = [spot_distance, int(time)];
-      int[7] memory coef = flavor == Types.Flavor.Call ? callsVolatilitySkew : putsVolatilitySkew;
+      int[7] memory coef = isPut ? putsVolatilitySkew : callsVolatilitySkew;
       return uint(OptionsCompute.computeIVFromSkew(coef, points));
     }
-  
-  /**
-   * @param quote A 10**18 price quote
-   * @return Quote adjusted for the decimals of the strike asset
-   */
-  function toDecimals(
-    uint256 quote,
-    address token
-  ) 
-    internal 
-    view
-    returns (uint)
-  {
-    uint256 _decimals = IERC20(token).decimals();
-    uint difference;
-    if (SCALE_DECIMALS > _decimals) {
-      difference = SCALE_DECIMALS - _decimals;
-      return quote / (10**difference);
-    }
-    difference = _decimals - SCALE_DECIMALS;
-    return quote * (10**difference);
-  }
-
-  /**
-    @notice updated function to convert decimals between tokens
-    @param from address of token that the input is formatted to
-    @param to address of token that output needs to be formatted to
-    @param value value to convert
-    @return value converted to appropriate decimal
-   */
-
-  function convertDecimal(
-    address from,
-    address to,
-    uint256 value
-  ) internal view returns (uint) 
-  {
-    int8 difference = int8(IERC20(to).decimals()) - int8(IERC20(from).decimals());
-    if(difference >= 0){
-       return value * (10 ** uint8(difference));
-    } else {
-      return value / (10 ** uint8(-difference));
-    }
-  }
-
 
   /**
    * @notice get a price quote for a given optionSeries
@@ -540,7 +495,7 @@ contract LiquidityPool is
     returns (uint)
   {
     uint underlyingPrice = getUnderlyingPrice(optionSeries);
-    uint iv = getImpliedVolatility(optionSeries.flavor, underlyingPrice, optionSeries.strike, optionSeries.expiration);
+    uint iv = getImpliedVolatility(optionSeries.isPut, underlyingPrice, optionSeries.strike, optionSeries.expiration);
     require(iv > 0, "Implied volatility not found");
     require(optionSeries.expiration > block.timestamp, "Already expired");
     uint quote = BlackScholes.blackScholesCalc(
@@ -549,7 +504,7 @@ contract LiquidityPool is
        optionSeries.expiration,
        iv,
        riskFreeRate,
-       optionSeries.flavor
+       optionSeries.isPut
     );
     return quote;
   }
@@ -569,7 +524,7 @@ contract LiquidityPool is
       returns (uint256 quote, int256 delta, uint256 underlyingPrice)
   {
       underlyingPrice = getUnderlyingPrice(optionSeries);
-      uint iv = getImpliedVolatility(optionSeries.flavor, underlyingPrice, optionSeries.strike, optionSeries.expiration);
+      uint iv = getImpliedVolatility(optionSeries.isPut, underlyingPrice, optionSeries.strike, optionSeries.expiration);
       require(iv > 0, "Implied volatility not found");
       require(optionSeries.expiration > block.timestamp, "Already expired");
       underlyingPrice = getUnderlyingPrice(optionSeries);
@@ -579,7 +534,7 @@ contract LiquidityPool is
        optionSeries.expiration,
        iv,
        riskFreeRate,
-       optionSeries.flavor
+       optionSeries.isPut
       );
   }
 
@@ -597,26 +552,26 @@ contract LiquidityPool is
       int256 callsDelta;
       int256 putsDelta;
       if (weightedTimeCall != 0) {
-        uint256 callIv = getImpliedVolatility(Types.Flavor.Call, price, weightedStrikeCall, weightedTimeCall);
+        uint256 callIv = getImpliedVolatility(false, price, weightedStrikeCall, weightedTimeCall);
         callsDelta = BlackScholes.getDelta(
           price,
           weightedStrikeCall,
           weightedTimeCall,
           callIv,
           rfr,
-          Types.Flavor.Call
+          false
         );
       }
 
       if (weightedTimePut != 0) {
-        uint256 putIv = getImpliedVolatility(Types.Flavor.Put, price, weightedStrikePut, weightedTimePut);
+        uint256 putIv = getImpliedVolatility(true, price, weightedStrikePut, weightedTimePut);
         putsDelta = BlackScholes.getDelta(
            price,
            weightedStrikePut,
            weightedTimePut,
            putIv,
            rfr,
-           Types.Flavor.Put
+           true
         );
       }
       int256 externalDelta;
@@ -706,7 +661,7 @@ contract LiquidityPool is
       uint utilization = quoteValue.div(totalSupply);
       quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
       uint normalizedDelta = uint256(newDelta).div(_getNAV());
-      uint maxPrice = optionSeries.flavor == Types.Flavor.Call ? underlyingPrice : optionSeries.strike;
+      uint maxPrice = optionSeries.isPut ? optionSeries.strike : underlyingPrice;
       quoteState.utilizationPrice = maxPrice.mul(utilization);
       quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
       if (quoteState.isDecreased) {
@@ -746,7 +701,7 @@ contract LiquidityPool is
        optionSeries.underlying,
        optionSeries.strikeAsset,
        optionSeries.expiration.toUint(),
-       optionSeries.flavor,
+       optionSeries.isPut,
        optionSeries.strike,
        collateralAsset
     );
@@ -756,7 +711,7 @@ contract LiquidityPool is
   /**
    * @notice write a number of options for a given series address
    * @param  seriesAddress the option token series address
-   * @param  amount        the number of options to mint  
+   * @param  amount        the number of options to mint expressed as 1e18  
    * @return number of options minted
    */
   function writeOption(
@@ -772,10 +727,10 @@ contract LiquidityPool is
     // expiration requires conversion back due to option protocol not using PRB floats
     optionSeries.expiration = optionSeries.expiration.fromUint();
     require(optionSeries.strikeAsset == strikeAsset, "incorrect strike asset");
-    Types.Flavor flavor = optionSeries.flavor;
+    bool isPut = optionSeries.isPut;
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
-    SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), toDecimals(premium, strikeAsset));
+    SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(strikeAsset).decimals()));
     uint256 collateralAmount;
     if (underlyingAsset == collateralAsset) {
       collateralAmount = amount;
@@ -790,7 +745,7 @@ contract LiquidityPool is
     emit WriteOption(seriesAddress, amount, premium, collateralAmount, msg.sender);
     
 
-    if (Types.isCall(flavor)) {
+    if (!isPut) {
         (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
             amount, optionSeries.strike, optionSeries.expiration, totalAmountCall, weightedStrikeCall, weightedTimeCall);
         totalAmountCall = newTotal;
@@ -806,13 +761,13 @@ contract LiquidityPool is
         weightedTimePut = newTime;
         collateralAllocated += collateralAmount;
     }
-    SafeTransferLib.safeTransfer(ERC20(seriesAddress), msg.sender, toDecimals(amount, seriesAddress));
+    SafeTransferLib.safeTransfer(ERC20(seriesAddress), msg.sender, OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
   }
 
   /**
     @notice buys a number of options back and burns the tokens
     @param optionSeries the option token series to buyback
-    @param amount the number of options to buyback
+    @param amount the number of options to buyback expressed in 1e18
     @return the number of options bought and burned
   */
   function buybackOption(
@@ -828,20 +783,21 @@ contract LiquidityPool is
        optionSeries.underlying,
        optionSeries.strikeAsset,
        optionSeries.expiration.toUint(),
-       optionSeries.flavor,
+       optionSeries.isPut,
        optionSeries.strike,
        collateralAsset
     );      
-    Types.Flavor flavor = optionSeries.flavor;
-    SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), amount);
-    SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), amount);
+    bool isPut = optionSeries.isPut;
+    SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
+    SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
+  
     //TODO create IV skew specifically for buyback 
     //TODO swap out quotePriceWithUtilization for new buyback pricing func
-    uint256 premium = quotePriceWithUtilization(optionSeries, convertDecimal(seriesAddress, optionSeries.underlying, amount));
+    uint256 premium = quotePriceWithUtilization(optionSeries, amount);
     (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
     emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
 
-    if (Types.isCall(flavor)) {
+    if (!isPut) {
       (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeightsBuyback(
           amount, optionSeries.strike, optionSeries.expiration, totalAmountCall, weightedStrikeCall, weightedTimeCall);
       totalAmountCall = newTotal;
@@ -857,7 +813,7 @@ contract LiquidityPool is
       weightedTimePut = newTime;
       collateralAllocated -= collateralReturned;
     }
-    SafeTransferLib.safeTransfer(ERC20(strikeAsset), msg.sender, toDecimals(premium, strikeAsset));
+    SafeTransferLib.safeTransfer(ERC20(strikeAsset), msg.sender, OptionsCompute.convertToDecimals(premium, IERC20(strikeAsset).decimals()));
     return amount;
   }
 }
