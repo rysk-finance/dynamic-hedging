@@ -81,8 +81,8 @@ const liquidityPoolUsdcWithdraw = '10000'
 
 const expiration = moment(expiryDate).add(8, 'h').valueOf() / 1000
 
-const CALL_FLAVOR = BigNumber.from(call)
-const PUT_FLAVOR = BigNumber.from(put)
+const CALL_FLAVOR = false
+const PUT_FLAVOR = true
 
 describe('Liquidity Pools Deposit Withdraw', async () => {
   before(async function () {
@@ -324,7 +324,7 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
     const strikePrice = priceQuote.sub(toWei(strike))
     const proposedSeries = {
       expiration: fmtExpiration(expiration),
-      flavor: PUT_FLAVOR,
+      isPut: PUT_FLAVOR,
       strike: BigNumber.from(strikePrice),
       strikeAsset: usd.address,
       underlying: weth.address,

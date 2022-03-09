@@ -84,8 +84,8 @@ const liquidityPoolWethWidthdraw = "0.1"
 
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 
-const CALL_FLAVOR = BigNumber.from(call)
-const PUT_FLAVOR = BigNumber.from(put)
+const CALL_FLAVOR = false
+const PUT_FLAVOR = true
 
 describe("Liquidity Pools", async () => {
 	before(async function () {
@@ -293,13 +293,13 @@ describe("Liquidity Pools", async () => {
 		const utilizationPrice = Number(priceNorm) * utilization
 		const optionSeries = {
 			expiration: fmtExpiration(expiration),
-			flavor: PUT_FLAVOR,
+			isPut: PUT_FLAVOR,
 			strike: strikePrice,
 			strikeAsset: usd.address,
 			underlying: weth.address
 		}
 		const iv = await liquidityPool.getImpliedVolatility(
-			optionSeries.flavor,
+			optionSeries.isPut,
 			priceQuote,
 			optionSeries.strike,
 			optionSeries.expiration
@@ -316,7 +316,7 @@ describe("Liquidity Pools", async () => {
 		const quote = await liquidityPool.quotePriceWithUtilization(
 			{
 				expiration: fmtExpiration(expiration),
-				flavor: PUT_FLAVOR,
+				isPut: PUT_FLAVOR,
 				strike: BigNumber.from(strikePrice),
 				strikeAsset: usd.address,
 				underlying: weth.address
@@ -338,7 +338,7 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
 			expiration: fmtExpiration(expiration),
-			flavor: PUT_FLAVOR,
+			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
 			underlying: weth.address
@@ -474,13 +474,13 @@ describe("Liquidity Pools", async () => {
 		const utilizationPrice = Number(priceNorm) * utilization
 		const optionSeries = {
 			expiration: fmtExpiration(expiration),
-			flavor: CALL_FLAVOR,
+			isPut: CALL_FLAVOR,
 			strike: strikePrice,
 			strikeAsset: usd.address,
 			underlying: weth.address
 		}
 		const iv = await liquidityPool.getImpliedVolatility(
-			optionSeries.flavor,
+			optionSeries.isPut,
 			priceQuote,
 			optionSeries.strike,
 			optionSeries.expiration
@@ -497,7 +497,7 @@ describe("Liquidity Pools", async () => {
 		const quote = await liquidityPool.quotePriceWithUtilization(
 			{
 				expiration: fmtExpiration(expiration),
-				flavor: BigNumber.from(call),
+				isPut: false,
 				strike: BigNumber.from(strikePrice),
 				strikeAsset: usd.address,
 				underlying: weth.address
@@ -531,7 +531,7 @@ describe("Liquidity Pools", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(ethLiquidityPool.address)
 		const proposedSeries = {
 			expiration: fmtExpiration(expiration),
-			flavor: BigNumber.from(call),
+			isPut: false,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
 			underlying: weth.address
@@ -639,7 +639,7 @@ describe("Liquidity Pools", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(ethLiquidityPool.address)
 		const proposedSeries = {
 			expiration: fmtExpiration(expiration),
-			flavor: BigNumber.from(call),
+			isPut: false,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
 			underlying: weth.address
