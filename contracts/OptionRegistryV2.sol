@@ -87,8 +87,8 @@ contract OptionRegistryV2 is Ownable {
      * @param  _upper the upper health threshold
      */
     function setHealthThresholds(uint64 _lower, uint64 _upper) external onlyOwner {
-      lower = _lower;
-      upper = _upper;
+      lowerHealthFactor = _lower;
+      upperHealthFactor = _upper;
     }
 
 
@@ -271,7 +271,7 @@ contract OptionRegistryV2 is Ownable {
      * @return the health factor of the vault in e6 decimal
      * @return the amount of collateral required to return the vault back to normal
      */
-    function checkVaultHealth(uint256 vaultId) external view returns (bool, bool, uint256, uint256) {
+    function checkVaultHealth(uint256 vaultId) public view returns (bool, bool, uint256, uint256) {
       // run checks on the vault health
       // if the vault health is above a certain threshold then the vault is above safe margins and needs to lose some collateral
       // if the vault health is below a certain threshold then the vault is below safe margins and needs to gain some collateral
@@ -282,7 +282,7 @@ contract OptionRegistryV2 is Ownable {
      * @param  vaultId the id of the vault to check
      */
     function adjustVault(uint256 vaultId) external {
-      (bool isBelowMin, bool isAboveMax, uint256 collateralAmount,) = checkVaultHealth;
+      (bool isBelowMin, bool isAboveMax, uint256 collateralAmount,) = checkVaultHealth(vaultId);
       require(isBelowMin || isAboveMax, "vault is healthy");
       if (isBelowMin) {
         // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
