@@ -277,7 +277,7 @@ contract LiquidityPool is
    * @return collateralBalance balance in original decimal format
    * @return _decimals decimals of asset
    */
-  function getNormalizedBalance(
+   function getNormalizedBalance(
     address asset
   )
     internal
@@ -481,51 +481,6 @@ contract LiquidityPool is
       int[7] memory coef = flavor == Types.Flavor.Call ? callsVolatilitySkew : putsVolatilitySkew;
       return uint(OptionsCompute.computeIVFromSkew(coef, points));
     }
-  
-  /**
-   * @param quote A 10**18 price quote
-   * @return Quote adjusted for the decimals of the strike asset
-   */
-  function toDecimals(
-    uint256 quote,
-    address token
-  ) 
-    internal 
-    view
-    returns (uint)
-  {
-    uint256 _decimals = IERC20(token).decimals();
-    uint difference;
-    if (SCALE_DECIMALS > _decimals) {
-      difference = SCALE_DECIMALS - _decimals;
-      return quote / (10**difference);
-    }
-    difference = _decimals - SCALE_DECIMALS;
-    return quote * (10**difference);
-  }
-
-  /**
-    @notice updated function to convert decimals between tokens
-    @param from address of token that the input is formatted to
-    @param to address of token that output needs to be formatted to
-    @param value value to convert
-    @return value converted to appropriate decimal
-   */
-
-  function convertDecimal(
-    address from,
-    address to,
-    uint256 value
-  ) internal view returns (uint) 
-  {
-    int8 difference = int8(IERC20(to).decimals()) - int8(IERC20(from).decimals());
-    if(difference >= 0){
-       return value * (10 ** uint8(difference));
-    } else {
-      return value / (10 ** uint8(-difference));
-    }
-  }
-
 
   /**
    * @notice get a price quote for a given optionSeries
@@ -755,7 +710,7 @@ contract LiquidityPool is
   /**
    * @notice write a number of options for a given series address
    * @param  seriesAddress the option token series address
-   * @param  amount        the number of options to mint  
+   * @param  amount        the number of options to mint expressed as 1e18  
    * @return number of options minted
    */
   function writeOption(
@@ -774,7 +729,7 @@ contract LiquidityPool is
     Types.Flavor flavor = optionSeries.flavor;
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
-    SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), toDecimals(premium, strikeAsset));
+    SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(strikeAsset).decimals()));
     uint256 collateralAmount;
     if (underlyingAsset == collateralAsset) {
       collateralAmount = amount;
@@ -805,7 +760,7 @@ contract LiquidityPool is
         weightedTimePut = newTime;
         collateralAllocated += collateralAmount;
     }
-    SafeTransferLib.safeTransfer(ERC20(seriesAddress), msg.sender, toDecimals(amount, seriesAddress));
+    SafeTransferLib.safeTransfer(ERC20(seriesAddress), msg.sender, OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
   }
 
   /**
@@ -836,7 +791,7 @@ contract LiquidityPool is
     SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), amount);
     //TODO create IV skew specifically for buyback 
     //TODO swap out quotePriceWithUtilization for new buyback pricing func
-    uint256 premium = quotePriceWithUtilization(optionSeries, convertDecimal(seriesAddress, optionSeries.underlying, amount));
+    uint256 premium = quotePriceWithUtilization(optionSeries, OptionsCompute.convertDecimal(seriesAddress, optionSeries.underlying, amount));
     (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
     emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
 
@@ -856,7 +811,7 @@ contract LiquidityPool is
       weightedTimePut = newTime;
       collateralAllocated -= collateralReturned;
     }
-    SafeTransferLib.safeTransfer(ERC20(strikeAsset), msg.sender, toDecimals(premium, strikeAsset));
+    SafeTransferLib.safeTransfer(ERC20(strikeAsset), msg.sender, OptionsCompute.convertToDecimals(premium, IERC20(strikeAsset).decimals()));
     return amount;
   }
 }
