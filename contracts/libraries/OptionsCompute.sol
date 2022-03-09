@@ -96,6 +96,9 @@ library OptionsCompute {
        uint weightedTime
     ) internal pure returns (uint, uint, uint) {
         uint weight = PRBMathUD60x18.scale();
+        if(amount == totalAmount) {
+            return (0, 0, 0);
+        }
         if (totalAmount > 0) {
             weight = amount.div(totalAmount - amount);
         }
