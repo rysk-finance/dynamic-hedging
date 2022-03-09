@@ -167,7 +167,7 @@ contract OptionRegistry is Ownable {
         // get the vault id
         uint256 vaultId = vaultIds[_series];
         // transfer the oToken back to this account
-        SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), amount);
+        SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), OptionsCompute.convertToDecimals(amount, IERC20(_series).decimals()));
         // burn the oToken tracking the amount of collateral returned
         uint256 collatReturned = OpynInteractions.burnShort(gammaController, marginPool, _series, amount, vaultId);
 

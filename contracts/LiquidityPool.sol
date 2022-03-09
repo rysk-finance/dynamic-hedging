@@ -766,7 +766,7 @@ contract LiquidityPool is
   /**
     @notice buys a number of options back and burns the tokens
     @param optionSeries the option token series to buyback
-    @param amount the number of options to buyback
+    @param amount the number of options to buyback expressed in 1e18
     @return the number of options bought and burned
   */
   function buybackOption(
@@ -787,11 +787,11 @@ contract LiquidityPool is
        collateralAsset
     );      
     Types.Flavor flavor = optionSeries.flavor;
-    SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), amount);
-    SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), amount);
+    SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
+    SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
     //TODO create IV skew specifically for buyback 
     //TODO swap out quotePriceWithUtilization for new buyback pricing func
-    uint256 premium = quotePriceWithUtilization(optionSeries, OptionsCompute.convertDecimal(seriesAddress, optionSeries.underlying, amount));
+    uint256 premium = quotePriceWithUtilization(optionSeries, amount);
     (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
     emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
 

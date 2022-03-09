@@ -29,20 +29,6 @@ library OptionsCompute {
         uint difference = SCALE_DECIMALS - decimals;
         return value * (10**difference);
     }
-    function convertDecimal(
-    address from,
-    address to,
-    uint256 value
-  ) internal view returns (uint)
-  {
-    int8 difference = int8(ERC20(to).decimals()) - int8(ERC20(from).decimals());
-    if(difference >= 0){
-       return value * (10 ** uint8(difference));
-    } else {
-      return value / (10 ** uint8(-difference));
-    }
-  }
-
 
     function computeEscrow(uint amount, uint strike, uint underlyingDecimals)
         internal

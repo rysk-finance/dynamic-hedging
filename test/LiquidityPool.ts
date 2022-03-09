@@ -626,7 +626,7 @@ describe("Liquidity Pools", async () => {
 
 	it("LP can buy back option to reduce open interest", async () => {
 		const [sender] = signers
-		const amount = utils.parseUnits("1", 8)
+		const amount = utils.parseUnits("1", 18)
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
@@ -662,22 +662,30 @@ describe("Liquidity Pools", async () => {
 		expect(buybackEvent?.args?.series).to.equal(callOptionAddress)
 		expect(buybackEvent?.args?.amount).to.equal(amount)
 		const totalInterest = await callOptionToken.totalSupply()
-		expect(totalInterest).to.equal(totalInterestBefore.sub(amount))
+		expect(totalInterest).to.equal(
+			totalInterestBefore.sub(BigNumber.from(parseInt(utils.formatUnits(amount, 10))))
+		)
 		const sellerOTokenBalance = await callOptionToken.balanceOf(senderAddress)
 		const sellerUsdcBalance = await usd.balanceOf(senderAddress)
 		// div quote by 100 because quote is in 8dp but USDC uses 6
 		// test to ensure option seller's USDC balance increases by quoted amount (1 USDC error allowed)
-		expect(sellerUsdcBalance.sub(sellerUsdcBalanceBefore.add(quote.div(100))).abs()).to.be.below(
-			utils.parseUnits("1", 6)
+		expect(
+			sellerUsdcBalance
+				.sub(sellerUsdcBalanceBefore.add(BigNumber.from(parseInt(utils.formatUnits(quote, 12)))))
+				.abs()
+		).to.be.below(utils.parseUnits("1", 6))
+		expect(sellerOTokenBalance).to.equal(
+			sellerOTokenBalanceBefore.sub(BigNumber.from(parseInt(utils.formatUnits(amount, 10))))
 		)
-		expect(sellerOTokenBalance).to.equal(sellerOTokenBalanceBefore.sub(amount))
 		const writersBalance = await optionRegistry.writers(callOptionAddress, ethLiquidityPool.address)
 		expect(writersBalance).to.equal(writersBalanceBefore.sub(utils.parseEther("1")))
 
 		const lpUSDBalance = await usd.balanceOf(ethLiquidityPool.address)
 		const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance)
 		// test to ensure Liquidity pool balance decreased by quoted amount (1 USDC error allowed)
-		expect(balanceDiff.sub(quote.div(100)).abs()).to.be.below(utils.parseUnits("1", 6))
+		expect(balanceDiff.sub(BigNumber.from(parseInt(utils.formatUnits(quote, 12)))).abs()).to.be.below(
+			utils.parseUnits("1", 6)
+		)
 		expect(parseFloat(fromOpyn(sellerOTokenBalance))).to.eq(0)
 		expect(parseFloat(fromOpyn(totalInterest))).to.eq(0)
 	})
