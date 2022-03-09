@@ -1,5 +1,5 @@
 import hre, { ethers, network } from "hardhat"
-import { Contract, utils, Signer } from "ethers"
+import { Contract, utils, Signer, BigNumber } from "ethers"
 import { toWei, call, put, fromOpyn, scaleNum, createValidExpiry } from "../utils/conversion-helper"
 import { expect } from "chai"
 import moment from "moment"
@@ -33,6 +33,8 @@ let wethERC20: ERC20Interface
 let weth: WETH
 let controller: Controller
 let addressBook: AddressBook
+let newCalculator: NewMarginCalculator
+let oracle: Oracle
 let optionRegistry: OptionRegistryV2
 let optionRegistryETH: OptionRegistryV2
 let optionTokenUSDC: IOToken
@@ -110,12 +112,17 @@ describe("Options protocol", function () {
             "contracts/packages/opyn/core/AddressBook.sol:AddressBook",
             ADDRESS_BOOK[chainId]
         )) as AddressBook
+		// get the oracle
+		oracle = (await ethers.getContractAt(
+			"contracts/packages/opyn/core/Oracle.sol:Oracle",
+			GAMMA_ORACLE_NEW[chainId]
+		)) as Oracle
         // deploy the new calculator
         const newCalculatorInstance = await ethers.getContractFactory("NewMarginCalculator");
-        const newCalculator = (await newCalculatorInstance.deploy(
+        newCalculator = (await newCalculatorInstance.deploy(
             GAMMA_ORACLE_NEW[chainId],
             ADDRESS_BOOK[chainId]
-        ))
+        )) as NewMarginCalculator
         // deploy the new whitelist
         const newWhitelistInstance = await ethers.getContractFactory("NewWhitelist");
         const newWhitelist = (await newWhitelistInstance.deploy(
@@ -250,14 +257,28 @@ describe("Options protocol", function () {
 		// save the option token address
 		optionTokenETH = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 	})
+	let marginReqUSD : BigNumber
     it("opens call option token with USDC", async () => {
 		const value = toWei("4")
 		const USDbalanceBefore = await usd.balanceOf(senderAddress)
+		const underlyingPrice = (await oracle.getPrice(weth.address))
+		marginReqUSD = (await newCalculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			usd.address,
+			value.div(oTokenDecimalShift18),
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			6,
+			false,
+		))
 		await usd.approve(optionRegistry.address, value)
 		await optionRegistry.open(optionTokenUSDC.address, value)
 		const USDbalance = await usd.balanceOf(senderAddress)
 		const balance = await optionTokenUSDC.balanceOf(senderAddress)
 		expect(balance).to.equal(value.div(oTokenDecimalShift18))
+		expect(USDbalanceBefore.sub(USDbalance)).to.equal(marginReqUSD)
 	})
 
 	it("opens call option token with ETH", async () => {
@@ -268,11 +289,25 @@ describe("Options protocol", function () {
 			WETH_ADDRESS[chainId]
 		)) as ERC20Interface
 		const ETHbalanceBefore = await wethERC20.balanceOf(senderAddress)
+		const underlyingPrice = (await oracle.getPrice(weth.address))
+		const marginReq = (await newCalculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			weth.address,
+			value.div(oTokenDecimalShift18),
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			18,
+			false,
+		))
 		await wethERC20.approve(optionRegistryETH.address, value)
 		await optionRegistryETH.open(optionTokenETH.address, value)
 		const ETHbalance = await wethERC20.balanceOf(senderAddress)
 		const balance = await optionTokenETH.balanceOf(senderAddress)
 		expect(balance).to.equal(value.div(oTokenDecimalShift18))
+		expect(ETHbalanceBefore.sub(ETHbalance)).to.equal(marginReq)
+	
 	})
 
 	it("writer transfers part of balance to new account", async () => {
@@ -298,26 +333,40 @@ describe("Options protocol", function () {
 		).to.be.revertedWith("!liquidityPool")
 	})
 
+	it("opens call option again with USDC", async () => {
+		const value = toWei("4")
+		const USDbalanceBefore = await usd.balanceOf(senderAddress)
+		const underlyingPrice = (await oracle.getPrice(weth.address))
+		const oBalanceBef = await optionTokenUSDC.balanceOf(senderAddress)
+		const marginReq = (await newCalculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			usd.address,
+			value.div(oTokenDecimalShift18),
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			6,
+			false,
+		))
+		await usd.approve(optionRegistry.address, value)
+		await optionRegistry.open(optionTokenUSDC.address, value)
+		const USDbalance = await usd.balanceOf(senderAddress)
+		const balance = await optionTokenUSDC.balanceOf(senderAddress)
+		expect(balance).to.equal(oBalanceBef.add(value.div(oTokenDecimalShift18)))
+		expect(USDbalanceBefore.sub(USDbalance)).to.equal(marginReq)
+		expect(marginReqUSD).to.equal(marginReq)
+	})
+
 	it("liquidityPool close and transaction succeeds", async () => {
 		const [sender, receiver] = signers
 		const value = toWei("1").div(oTokenDecimalShift18)
-		const calculatorAddy = (await addressBook.getMarginCalculator())
-		const oracleAddy = (await addressBook.getOracle())
 		const balanceBef = await optionTokenUSDC.balanceOf(senderAddress)
 		const optionRegistrySender = optionRegistry.connect(sender)
 		await optionTokenUSDC.approve(optionRegistry.address, value)
 		const usdBalanceBefore = await usd.balanceOf(senderAddress)
-
-		const calculator = (await ethers.getContractAt(
-            "contracts/packages/opyn/new/NewCalculator.sol:NewMarginCalculator",
-            calculatorAddy
-        )) as NewMarginCalculator
-		const oracle = (await ethers.getContractAt(
-			"contracts/packages/opyn/core/Oracle.sol:Oracle",
-			oracleAddy
-		))
 		const underlyingPrice = (await oracle.getPrice(weth.address))
-		const marginReq = (await calculator.getNakedMarginRequired(
+		const marginReq = (await newCalculator.getNakedMarginRequired(
 			weth.address,
 			usd.address,
 			usd.address,
@@ -338,23 +387,12 @@ describe("Options protocol", function () {
 	it("liquidityPool close and transaction succeeds ETH options", async () => {
 		const [sender, receiver] = signers
 		const value = toWei("1").div(oTokenDecimalShift18)
-		const calculatorAddy = (await addressBook.getMarginCalculator())
-		const oracleAddy = (await addressBook.getOracle())
 		const balanceBef = await optionTokenETH.balanceOf(senderAddress)
 		const optionRegistrySender = optionRegistryETH.connect(sender)
 		await optionTokenETH.approve(optionRegistryETH.address, value)
 		const ethBalanceBefore = await wethERC20.balanceOf(senderAddress)
-
-		const calculator = (await ethers.getContractAt(
-            "contracts/packages/opyn/new/NewCalculator.sol:NewMarginCalculator",
-            calculatorAddy
-        )) as NewMarginCalculator
-		const oracle = (await ethers.getContractAt(
-			"contracts/packages/opyn/core/Oracle.sol:Oracle",
-			oracleAddy
-		))
 		const underlyingPrice = (await oracle.getPrice(weth.address))
-		const marginReq = (await calculator.getNakedMarginRequired(
+		const marginReq = (await newCalculator.getNakedMarginRequired(
 			weth.address,
 			usd.address,
 			weth.address,
@@ -609,7 +647,6 @@ describe("Options protocol", function () {
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
-
 		await erc20CallOptionUSDC.approve(
 			optionRegistry.address,
 			await erc20CallOptionUSDC.balanceOf(senderAddress)

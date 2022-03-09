@@ -8,7 +8,7 @@ import { Types } from "./libraries/Types.sol";
 import "./interfaces/AddressBookInterface.sol";
 import { IController} from "./interfaces/GammaInterface.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
-import {OpynInteractionsV2} from "./libraries/OpynInteractionsV2.sol";
+import { OpynInteractionsV2 } from "./libraries/OpynInteractionsV2.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import "hardhat/console.sol";
 
@@ -29,18 +29,20 @@ contract OptionRegistryV2 is Ownable {
     // address of the marginPool, contract for storing options collateral
     address internal marginPool;
     // address of the rysk liquidity pools
-    // TODO: have multiple liquidityPools enabled
     address internal liquidityPool;
-    // amount of openInterest (assets) held in a specific series
-    mapping(address => uint) public openInterest;
-    // amount of assets held in a series by an address
-    mapping(address => mapping(address => uint)) public writers;
     // information of a series
     mapping(address => Types.OptionSeries) public seriesInfo;
     // vaultId that is responsible for a specific series address
     mapping(address => uint) public vaultIds;
     // issuance hash mapped against the series address
     mapping(bytes32 => address) seriesAddress;
+    // vault counter
+    uint64 public vaultCount;
+    // max health threshold in e6 decimals
+    uint64 public upperHealthFactor = 1000000000;
+    // min health threshold in e6 decimals
+    uint64 public lowerHealthFactor = 800000000;
+  
     // used to convert e18 to e8
     uint256 private constant SCALE_FROM = 10**10;
 
@@ -67,6 +69,10 @@ contract OptionRegistryV2 is Ownable {
       addressBook = AddressBookInterface(_addressBook);
     }
 
+  /*********
+    SETTERS
+   ********/
+
     /**
      * @notice Set the liquidity pool address
      * @param  _newLiquidityPool set the liquidityPool address
@@ -74,6 +80,21 @@ contract OptionRegistryV2 is Ownable {
     function setLiquidityPool(address _newLiquidityPool) external onlyOwner {
       liquidityPool = _newLiquidityPool;
     }
+
+    /**
+     * @notice Set the health thresholds of the pool
+     * @param  _lower the lower health threshold
+     * @param  _upper the upper health threshold
+     */
+    function setHealthThresholds(uint64 _lower, uint64 _upper) external onlyOwner {
+      lower = _lower;
+      upper = _upper;
+    }
+
+
+  /**********************
+    Primary functionality
+   **********************/
 
     /**
      * @notice Either retrieves the option token if it already exists, or deploy it
@@ -85,18 +106,16 @@ contract OptionRegistryV2 is Ownable {
      * @param collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
-    function issue(address underlying, address strikeAsset, uint256 expiration, Types.Flavor flavor, uint256 strike, address collateral) external returns (address) {
+    function issue(address underlying, address strikeAsset, uint256 expiration, Types.Flavor flavor, uint256 strike, address collateral) external onlyLiquidityPool returns (address) {
         // deploy an oToken contract address
         require(expiration > block.timestamp, "Already expired");
+        uint256 formattedStrike = formatStrikePrice(strike, collateral);
         // create option storage hash
-        address u = underlying;
-        address s = strikeAsset;
-        bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, collateral, expiration, flavor, strike);
-        //address collateralAsset = collateral == address(0) ? usd : collateral;
+        bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, collateral, expiration, flavor, formattedStrike);
         // check for an opyn oToken if it doesn't exist deploy it
-        address series = OpynInteractionsV2.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, flavor);
+        address series = OpynInteractionsV2.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formattedStrike, expiration, flavor);
         // store the option data as a hash
-        seriesInfo[series] = Types.OptionSeries(expiration, flavor, strike, u, s, collateral);
+        seriesInfo[series] = Types.OptionSeries(expiration, flavor, formattedStrike, underlying, strikeAsset, collateral);
         seriesAddress[issuanceHash] = series;
         emit OptionTokenCreated(series);
         return series;
@@ -138,19 +157,16 @@ contract OptionRegistryV2 is Ownable {
         // mint the option token following the opyn interface
         IController controller = IController(gammaController);
         // check if a vault for this option already exists
-        uint256 vaultId = vaultIds[_series];
-        if (vaultId == 0) {
-          vaultId = (controller.getAccountVaultCounter(address(this))) + 1;
+        uint256 vaultId_ = vaultIds[_series];
+        if (vaultId_ == 0) {
+          vaultId_ = (controller.getAccountVaultCounter(address(this))) + 1;
+          vaultCount++;
         } 
-        uint256 mintAmount = OpynInteractionsV2.createShort(gammaController, marginPool, _series, collateralAmount, vaultId, amount, 1);
-        emit OptionsContractOpened(_series, vaultId, mintAmount);
+        uint256 mintAmount = OpynInteractionsV2.createShort(gammaController, marginPool, _series, collateralAmount, vaultId_, amount, 1);
+        emit OptionsContractOpened(_series, vaultId_, mintAmount);
         // transfer the option to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(_series), msg.sender, mintAmount);
-        vaultIds[_series] = vaultId;
-        openInterest[_series] += amount;
-        writers[_series][msg.sender] += amount;
-        
-        
+        vaultIds[_series] = vaultId_;
         return (true, collateralAmount);
     }
 
@@ -161,13 +177,11 @@ contract OptionRegistryV2 is Ownable {
      * @dev only callable by the liquidityPool
      * @return if the transaction succeeded
      */
-    function close(address _series, uint amount) external onlyLiquidityPool returns (bool) {
+    function close(address _series, uint amount) external onlyLiquidityPool returns (bool, uint256) {
         // withdraw and burn
         Types.OptionSeries memory series = seriesInfo[_series];
         // make sure the option hasnt expired yet
         require(block.timestamp < series.expiration, "Option already expired");
-        // make sure the option was issued by this account
-        require(openInterest[_series] >= amount);
         // get the vault id
         uint256 vaultId = vaultIds[_series];
         // transfer the oToken back to this account
@@ -175,13 +189,9 @@ contract OptionRegistryV2 is Ownable {
         // burn the oToken tracking the amount of collateral returned
         // TODO: account for fact there might be a buffer
         uint256 collatReturned = OpynInteractionsV2.burnShort(gammaController, _series, amount, vaultId);
-
-        require(writers[_series][msg.sender] >= collatReturned, "Caller did not write sufficient amount");
-        writers[_series][msg.sender] -= collatReturned;
-        openInterest[_series] -= collatReturned;
         SafeTransferLib.safeTransfer(ERC20(series.collateral), msg.sender, collatReturned);
         emit OptionsContractClosed(_series, vaultId, amount);
-        return true;
+        return (true, collatReturned);
     }
 
     /**
@@ -199,8 +209,6 @@ contract OptionRegistryV2 is Ownable {
         uint256 vaultId = vaultIds[_series];
         // settle the vault
         uint256 collatReturned = OpynInteractionsV2.settle(gammaController, vaultId);
-        openInterest[_series] = 0;
-        writers[_series][liquidityPool] = 0;
         // transfer the collateral back to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(series.collateral), liquidityPool, collatReturned);
         emit OptionsContractSettled(_series);
@@ -239,17 +247,50 @@ contract OptionRegistryV2 is Ownable {
           series.strikeAsset,
           series.collateral,
           amount/ SCALE_FROM,
-          formatStrikePrice(series.strike, series.collateral),
+          series.strike,
           IOracle(addressBook.getOracle()).getPrice(series.underlying),
           series.expiration,
           IERC20(series.collateral).decimals(),
           Types.isPut(series.flavor)
         );
+        // add in logic for increasing the collateral requirement depending on the liquidation health factor here, probably want to default to 100% health factor.
         // transfer collateral to this contract, collateral will depend on the flavor
         SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
       return collateralAmount;
     }
 
+  /*********************
+    Vault health checks
+   *********************/
+
+    /**
+     * @notice check the health of a specific vault to see if it requires collateral
+     * @param  vaultId the id of the vault to check
+     * @return bool to determine whether the vault needs topping up
+     * @return bool to determine whether the vault is too overcollateralised
+     * @return the health factor of the vault in e6 decimal
+     * @return the amount of collateral required to return the vault back to normal
+     */
+    function checkVaultHealth(uint256 vaultId) external view returns (bool, bool, uint256, uint256) {
+      // run checks on the vault health
+      // if the vault health is above a certain threshold then the vault is above safe margins and needs to lose some collateral
+      // if the vault health is below a certain threshold then the vault is below safe margins and needs to gain some collateral
+    }
+
+    /**
+     * @notice adjust the collateral held in a specific vault because of health
+     * @param  vaultId the id of the vault to check
+     */
+    function adjustVault(uint256 vaultId) external {
+      (bool isBelowMin, bool isAboveMax, uint256 collateralAmount,) = checkVaultHealth;
+      require(isBelowMin || isAboveMax, "vault is healthy");
+      if (isBelowMin) {
+        // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
+      } else if (isAboveMax) {
+        // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
+      }
+      
+    }
   /*********
     GETTERS
    *********/
