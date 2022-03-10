@@ -196,6 +196,48 @@ contract LiquidityPool is
           return putsVolatilitySkew;
       }
   }
+  /**
+    @notice set a new min strike price for calls
+    @param _newPrice new min strike price - denominatd in 1e18
+  */
+  function setMinCallStrikePrice(uint _newPrice) public onlyOwner {
+    minCallStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new max strike price for calls
+    @param _newPrice new max strike price - denominatd in 1e18
+  */
+  function setMaxCallStrikePrice(uint _newPrice) public onlyOwner {
+    maxCallStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new min strike price for puts
+    @param _newPrice new min strike price - denominatd in 1e18
+  */
+  function setMinPutStrikePrice(uint _newPrice) public onlyOwner {
+    minPutStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new max strike price for puts
+    @param _newPrice new max strike price - denominatd in 1e18
+  */
+  function setMaxPutStrikePrice(uint _newPrice) public onlyOwner {
+    maxPutStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new min expiry period
+    @param _newPeriod new min expiry period - denominatd in seconds * 1e18
+  */
+  function setMinExpiryPeriod(uint _newPeriod) public onlyOwner {
+    minExpiry = _newPeriod;
+  }
+  /**
+    @notice set a new max expiry period
+    @param _newPeriod new max expiry period - denominatd in seconds * 1e18
+  */
+  function setMaxExpiryPeriod(uint _newPeriod) public onlyOwner {
+    maxExpiry = _newPeriod;
+  }
 
   /**
    * @notice set the cached options variables used to estimate portfolio delta
