@@ -331,6 +331,48 @@ describe("Liquidity Pools", async () => {
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.lt(0.01)
 	})
+
+	it("Returns a quote for a ETH/USD put to buy", async () => {
+		const thirtyPercentStr = "0.3"
+		const thirtyPercent = toWei(thirtyPercentStr)
+		await liquidityPool.setBidAskSpread(thirtyPercent)
+		const amount = toWei("1")
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const { timestamp } = block
+		const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration)
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const priceNorm = fromWei(priceQuote)
+		const optionSeries = {
+			expiration: fmtExpiration(expiration),
+			isPut: PUT_FLAVOR,
+			strike: strikePrice,
+			strikeAsset: usd.address,
+			underlying: weth.address
+		}
+		const iv = await liquidityPool.getImpliedVolatility(
+			PUT_FLAVOR,
+			priceQuote,
+			optionSeries.strike,
+			optionSeries.expiration
+		)
+		const localBS = bs.blackScholes(
+			priceNorm,
+			fromWei(strikePrice),
+			timeToExpiration,
+			Number(fromWei(iv)) - Number(thirtyPercentStr),
+			parseFloat(rfr),
+			"put"
+		)
+		const buyQuotes = await liquidityPool.quotePriceBuying(optionSeries, amount)
+		const buyQuote = buyQuotes[0]
+		const truncQuote = truncate(localBS)
+		const chainQuote = tFormatEth(buyQuote.toString())
+		const diff = percentDiff(truncQuote, chainQuote)
+		expect(diff).to.be.lt(0.01)
+	})
+
 	it("LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
 		const amount = toWei("1")
