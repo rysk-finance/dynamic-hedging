@@ -71,10 +71,27 @@ contract LiquidityPool is
   int[7] public putsVolatilitySkew;
   // Implied volatility for an underlying
   mapping(address => uint) public impliedVolatility;
-  // value below which delta is not worth dedging due to gas costs
+  // value below which delta is not worth hedging due to gas costs
   int256 private dustValue;
   // addresses that are whitelisted to sell options back to the protocol
   mapping(address => bool) public buybackWhitelist;
+  
+  /*******
+    OPTION PARAMETERS
+  *******/
+  // min strike price for minted calls - denominated in 1e18
+  uint256 public minCallStrikePrice;
+  // max strike price for minted calls - denominated in 1e18
+  uint256 public maxCallStrikePrice;
+  // min strike price for minted puts - denominated in 1e18
+  uint256 public minPutStrikePrice;
+  // max strike price for minted puts - denominated in 1e18
+  uint256 public maxPutStrikePrice;
+  // min expiry period - denominated in seconds * 1e18
+  uint256 public minExpiry;
+  // max expiry period - denominated in seconds * 1e18
+  uint256 public maxExpiry;
+
 
   event LiquidityAdded(uint amount);
   event UnderlyingAdded(address underlying);
@@ -85,7 +102,25 @@ contract LiquidityPool is
   event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
 
 
-  constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol, 18) {
+  constructor
+  (
+    address _protocol, 
+    address _strikeAsset, 
+    address _underlyingAsset, 
+    address _collateralAsset, 
+    uint rfr, 
+    int[7] memory callSkew, 
+    int[7] memory putSkew, 
+    string memory name, 
+    string memory symbol, 
+    uint _minCallStrikePrice, 
+    uint _maxCallStrikePrice, 
+    uint _minPutStrikePrice, 
+    uint _maxPutStrikePrice, 
+    uint _minExpiry, 
+    uint _maxExpiry
+  ) ERC20(name, symbol, 18) 
+  {
     strikeAsset = _strikeAsset;
     riskFreeRate = rfr;
     address underlyingAddress = _underlyingAsset;
@@ -94,6 +129,12 @@ contract LiquidityPool is
     callsVolatilitySkew = callSkew;
     putsVolatilitySkew = putSkew;
     protocol = _protocol;
+    minCallStrikePrice = _minCallStrikePrice;
+    maxCallStrikePrice = _maxCallStrikePrice;
+    minPutStrikePrice = _minPutStrikePrice;
+    maxPutStrikePrice = _maxPutStrikePrice;
+    minExpiry = _minExpiry;
+    maxExpiry = _maxExpiry;
     maxTotalSupply = type(uint256).max;
     emit UnderlyingAdded(underlyingAddress);
   }
@@ -696,6 +737,7 @@ contract LiquidityPool is
   ) public payable returns (uint optionAmount, address series)
   {
     OptionRegistry optionRegistry = getOptionRegistry();
+    // TODO add parameter checks here
     series = optionRegistry.issue(
        optionSeries.underlying,
        optionSeries.strikeAsset,
@@ -704,6 +746,7 @@ contract LiquidityPool is
        optionSeries.strike,
        collateralAsset
     );
+    console.log("timestamp expiry:", optionSeries.expiration, optionSeries.expiration.toUint());
     optionAmount = writeOption(series, amount);
   }
 
