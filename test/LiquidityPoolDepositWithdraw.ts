@@ -371,7 +371,6 @@ describe('Liquidity Pools Deposit Withdraw', async () => {
     const totalSharesAfter = await liquidityPool.totalSupply();
     //@ts-ignore
     const diff = usdBalanceBefore - usdBalanceAfter;
-    console.log(diff, toUSDC(liquidityPoolUsdcDeposit).toNumber())
     expect(diff - (toUSDC(liquidityPoolUsdcDeposit).toNumber())).to.be.within(0, 20);
     expect(senderUsdcAfter.sub(senderUsdcBefore).sub(toUSDC(liquidityPoolUsdcDeposit))).to.be.within(0, 20)
     expect(senderUsdcAfter.sub(senderUsdcBefore)).to.be.eq(strikeAmount);

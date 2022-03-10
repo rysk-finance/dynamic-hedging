@@ -238,7 +238,7 @@ contract OptionRegistryV2 is Ownable {
     /**
      * @notice Send collateral funds for an option to be minted
      * @param  series details of the option series
-     * @param  amount amount of underlying to transfer
+     * @param  amount amount of options to mint
      * @return amount transferred
      */
     function getCollateral(Types.OptionSeries memory series, uint256 amount) internal returns (uint256) {
