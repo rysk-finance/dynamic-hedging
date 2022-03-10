@@ -343,13 +343,13 @@ describe("Liquidity Pools", async () => {
 		const priceNorm = fromWei(priceQuote)
 		const optionSeries = {
 			expiration: fmtExpiration(expiration),
-			flavor: PUT_FLAVOR,
+			isPut: PUT_FLAVOR,
 			strike: strikePrice,
 			strikeAsset: usd.address,
 			underlying: weth.address
 		}
 		const iv = await liquidityPool.getImpliedVolatility(
-			optionSeries.flavor,
+			PUT_FLAVOR,
 			priceQuote,
 			optionSeries.strike,
 			optionSeries.expiration
