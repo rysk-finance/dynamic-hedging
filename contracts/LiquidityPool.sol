@@ -778,8 +778,14 @@ contract LiquidityPool is
      uint amount
   ) public payable returns (uint optionAmount, address series)
   {
+    // check the strike and expiry are within allowed bounds
+    require(minExpiry <= optionSeries.expiration && optionSeries.expiration <= maxExpiry, "invalid expiry");
+    if(optionSeries.isPut){
+    require(minPutStrikePrice <= optionSeries.strike && optionSeries.strike <= maxPutStrikePrice, "invalid strike price");
+    } else {
+      (minCallStrikePrice <= optionSeries.strike && optionSeries.strike <= maxCallStrikePrice, "invalid strike price");
+    }
     OptionRegistry optionRegistry = getOptionRegistry();
-    // TODO add parameter checks here
     series = optionRegistry.issue(
        optionSeries.underlying,
        optionSeries.strikeAsset,
@@ -788,7 +794,6 @@ contract LiquidityPool is
        optionSeries.strike,
        collateralAsset
     );
-    console.log("timestamp expiry:", optionSeries.expiration, optionSeries.expiration.toUint());
     optionAmount = writeOption(series, amount);
   }
 
