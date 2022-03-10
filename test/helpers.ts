@@ -79,15 +79,14 @@ export async function setupOracle(
     to: ORACLE_OWNER[chainId],
     value: parseEther("0.5"),
   });
-
   await oracle
     .connect(oracleOwnerSigner)
     .setStablePrice(USDC_ADDRESS[chainId], "100000000");
-  
 const pricer = await ethers.getContractAt(
         "ChainLinkPricer",
         chainlinkPricer,
         )
+
 await oracle
     .connect(oracleOwnerSigner)
     .setAssetPricer(await pricer.asset(), chainlinkPricer);

@@ -32,13 +32,14 @@ import { Volatility } from "../types/Volatility"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
 import {
-	GAMMA_CONTROLLER,
-	MARGIN_POOL,
-	OTOKEN_FACTORY,
-	USDC_ADDRESS,
-	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS
-} from "./constants"
+  ADDRESS_BOOK,
+  GAMMA_CONTROLLER,
+  MARGIN_POOL,
+  OTOKEN_FACTORY,
+  USDC_ADDRESS,
+  USDC_OWNER_ADDRESS,
+  WETH_ADDRESS,
+} from './constants'
 let usd: MintableERC20
 let weth: WETH
 let optionRegistry: OptionRegistry
@@ -139,7 +140,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			OTOKEN_FACTORY[chainId],
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
-			senderAddress
+			senderAddress,
+      ADDRESS_BOOK[chainId]
 		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
@@ -318,7 +320,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+      collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]

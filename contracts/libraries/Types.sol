@@ -8,5 +8,6 @@ library Types {
             uint strike;
             address underlying;
             address strikeAsset;
+            address collateral;
         }
 }

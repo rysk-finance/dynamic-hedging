@@ -72,7 +72,6 @@ contract OtokenFactory is OtokenSpawner {
         require(idToAddress[id] == address(0), "OtokenFactory: Option already created");
 
         address whitelist = AddressBookInterface(addressBook).getWhitelist();
-        console.log(_underlyingAsset, _strikeAsset, _collateralAsset);
         require(
             WhitelistInterface(whitelist).isWhitelistedProduct(
                 _underlyingAsset,

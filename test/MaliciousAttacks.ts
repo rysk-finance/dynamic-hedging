@@ -27,6 +27,7 @@ import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
 import {
+	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
 	MARGIN_POOL,
 	OTOKEN_FACTORY,
@@ -127,7 +128,8 @@ describe("Hegic Attack", function () {
 			OTOKEN_FACTORY[chainId],
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
-			liquidityProviderAddress
+			liquidityProviderAddress,
+			ADDRESS_BOOK[chainId]
 		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
@@ -309,7 +311,8 @@ describe("Hegic Attack", function () {
 			isPut: true,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+			collateral: usd.address
 		}
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
 		await usd.connect(attacker).approve(liquidityPool.address, toWei("10000000000"))
