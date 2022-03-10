@@ -298,7 +298,8 @@ describe("Liquidity Pools", async () => {
 			isPut: PUT_FLAVOR,
 			strike: strikePrice,
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+			collateral: usd.address
 		}
 		const iv = await liquidityPool.getImpliedVolatility(
 			optionSeries.isPut,
@@ -349,7 +350,8 @@ describe("Liquidity Pools", async () => {
 			isPut: PUT_FLAVOR,
 			strike: strikePrice,
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+			collateral: usd.address
 		}
 		const iv = await liquidityPool.getImpliedVolatility(
 			PUT_FLAVOR,
