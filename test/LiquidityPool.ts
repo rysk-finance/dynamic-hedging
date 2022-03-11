@@ -64,7 +64,9 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-03-12"
+const expiryDate: string = "2022-03-20"
+
+const invalidExpiryDate: string = "2024-09-03"
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
@@ -74,6 +76,9 @@ const oTokenDecimalShift18 = 10000000000
 // use negative numbers for ITM options
 const strike = "20"
 
+// hardcoded value for strike price that is outside of accepted bounds
+const invalidStrike = utils.parseEther("12500")
+
 // balances to deposit into the LP
 const liquidityPoolUsdcDeposit = "10000"
 const liquidityPoolWethDeposit = "1"
@@ -81,9 +86,19 @@ const liquidityPoolWethDeposit = "1"
 // balance to withdraw after deposit
 const liquidityPoolWethWidthdraw = "0.1"
 
+const minCallStrikePrice = utils.parseEther("500")
+const maxCallStrikePrice = utils.parseEther("10000")
+const minPutStrikePrice = utils.parseEther("500")
+const maxPutStrikePrice = utils.parseEther("10000")
+const minExpiry = moment.utc().add(1, "week").valueOf() / 1000
+const maxExpiry = moment.utc().add(1, "year").valueOf() / 1000
+
+console.log({ minExpiry, maxExpiry })
+
 /* --- end variables to change --- */
 
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
+const invalidExpiration = moment.utc(invalidExpiryDate).add(8, "h").valueOf() / 1000
 
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
@@ -246,7 +261,15 @@ describe("Liquidity Pools", async () => {
 			coefs,
 			coefs,
 			"ETH/USDC",
-			"EDP"
+			"EDP",
+			{
+				minCallStrikePrice,
+				maxCallStrikePrice,
+				minPutStrikePrice,
+				maxPutStrikePrice,
+				minExpiry: fmtExpiration(minExpiry),
+				maxExpiry: fmtExpiration(maxExpiry)
+			}
 		)
 		const lpReceipt = await lp.wait(1)
 		const events = lpReceipt.events
@@ -375,6 +398,46 @@ describe("Liquidity Pools", async () => {
 		expect(diff).to.be.lt(0.01)
 	})
 
+	it("reverts when attempting to write a ETH/USD put with expiry outside of limit", async () => {
+		const [sender] = signers
+		const amount = toWei("1")
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const { timestamp } = block
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const proposedSeries = {
+			expiration: fmtExpiration(invalidExpiration),
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await expect(liquidityPool.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith(
+			"invalid expiry"
+		)
+	})
+	it("reverts when attempting to write a ETH/USD put with strike outside of limit", async () => {
+		const [sender] = signers
+		const amount = toWei("1")
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const { timestamp } = block
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const proposedSeries = {
+			expiration: fmtExpiration(expiration),
+			isPut: PUT_FLAVOR,
+			strike: invalidStrike,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await expect(liquidityPool.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith(
+			"invalid strike price"
+		)
+	})
 	it("LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
 		const amount = toWei("1")
@@ -444,7 +507,15 @@ describe("Liquidity Pools", async () => {
 			coefs,
 			coefs,
 			"weth/usd",
-			"wdp"
+			"wdp",
+			{
+				minCallStrikePrice,
+				maxCallStrikePrice,
+				minPutStrikePrice,
+				maxPutStrikePrice,
+				minExpiry: fmtExpiration(minExpiry),
+				maxExpiry: fmtExpiration(maxExpiry)
+			}
 		)
 		const receipt = await lp.wait(1)
 		const events = receipt.events

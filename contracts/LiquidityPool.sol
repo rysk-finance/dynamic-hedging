@@ -74,10 +74,35 @@ contract LiquidityPool is
   uint public bidAskIVSpread;
   // Implied volatility for an underlying
   mapping(address => uint) public impliedVolatility;
-  // value below which delta is not worth dedging due to gas costs
+  // value below which delta is not worth hedging due to gas costs
   int256 private dustValue;
   // addresses that are whitelisted to sell options back to the protocol
   mapping(address => bool) public buybackWhitelist;
+  
+  /*******
+    OPTION PARAMETERS
+  *******/
+  // min strike price for minted calls - denominated in 1e18
+  uint128 public minCallStrikePrice;
+  // max strike price for minted calls - denominated in 1e18
+  uint128 public maxCallStrikePrice;
+  // min strike price for minted puts - denominated in 1e18
+  uint128 public minPutStrikePrice;
+  // max strike price for minted puts - denominated in 1e18
+  uint128 public maxPutStrikePrice;
+  // min expiry period - denominated in seconds * 1e18
+  uint128 public minExpiry;
+  // max expiry period - denominated in seconds * 1e18
+  uint128 public maxExpiry;
+  struct OptionParams {
+    uint128 minCallStrikePrice;
+    uint128 maxCallStrikePrice;
+    uint128 minPutStrikePrice;
+    uint128 maxPutStrikePrice;
+    uint128 minExpiry;
+    uint128 maxExpiry;
+  }
+  OptionParams public optionParams;
 
   event LiquidityAdded(uint amount);
   event UnderlyingAdded(address underlying);
@@ -88,7 +113,20 @@ contract LiquidityPool is
   event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
 
 
-  constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol, 18) {
+  constructor
+  (
+    address _protocol, 
+    address _strikeAsset, 
+    address _underlyingAsset, 
+    address _collateralAsset, 
+    uint rfr, 
+    int[7] memory callSkew, 
+    int[7] memory putSkew, 
+    string memory name, 
+    string memory symbol, 
+    OptionParams memory _optionParams
+  ) ERC20(name, symbol, 18) 
+  {
     strikeAsset = _strikeAsset;
     riskFreeRate = rfr;
     address underlyingAddress = _underlyingAsset;
@@ -97,6 +135,12 @@ contract LiquidityPool is
     callsVolatilitySkew = callSkew;
     putsVolatilitySkew = putSkew;
     protocol = _protocol;
+    optionParams.minCallStrikePrice = _optionParams.minCallStrikePrice;
+    optionParams.maxCallStrikePrice = _optionParams.maxCallStrikePrice;
+    optionParams.minPutStrikePrice = _optionParams.minPutStrikePrice;
+    optionParams.maxPutStrikePrice = _optionParams.maxPutStrikePrice;
+    optionParams.minExpiry = _optionParams.minExpiry;
+    optionParams.maxExpiry = _optionParams.maxExpiry;
     maxTotalSupply = type(uint256).max;
     emit UnderlyingAdded(underlyingAddress);
   }
@@ -157,6 +201,48 @@ contract LiquidityPool is
       } else {
           return putsVolatilitySkew;
       }
+  }
+  /**
+    @notice set a new min strike price for calls
+    @param _newPrice new min strike price - denominatd in 1e18
+  */
+  function setMinCallStrikePrice(uint128 _newPrice) public onlyOwner {
+    minCallStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new max strike price for calls
+    @param _newPrice new max strike price - denominatd in 1e18
+  */
+  function setMaxCallStrikePrice(uint128 _newPrice) public onlyOwner {
+    maxCallStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new min strike price for puts
+    @param _newPrice new min strike price - denominatd in 1e18
+  */
+  function setMinPutStrikePrice(uint128 _newPrice) public onlyOwner {
+    minPutStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new max strike price for puts
+    @param _newPrice new max strike price - denominatd in 1e18
+  */
+  function setMaxPutStrikePrice(uint128 _newPrice) public onlyOwner {
+    maxPutStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new min expiry period
+    @param _newPeriod new min expiry period - denominatd in seconds * 1e18
+  */
+  function setMinExpiryPeriod(uint128 _newPeriod) public onlyOwner {
+    minExpiry = _newPeriod;
+  }
+  /**
+    @notice set a new max expiry period
+    @param _newPeriod new max expiry period - denominatd in seconds * 1e18
+  */
+  function setMaxExpiryPeriod(uint128 _newPeriod) public onlyOwner {
+    maxExpiry = _newPeriod;
   }
 
   /**
@@ -730,6 +816,13 @@ contract LiquidityPool is
      uint amount
   ) public payable returns (uint optionAmount, address series)
   {
+    // check the strike and expiry are within allowed bounds
+    require(optionParams.minExpiry <= optionSeries.expiration && optionSeries.expiration <= optionParams.maxExpiry, "invalid expiry");
+    if(optionSeries.isPut){
+    require(optionParams.minPutStrikePrice <= optionSeries.strike && optionSeries.strike <= optionParams.maxPutStrikePrice, "invalid strike price");
+    } else {
+      (optionParams.minCallStrikePrice <= optionSeries.strike && optionSeries.strike <= optionParams.maxCallStrikePrice, "invalid strike price");
+    }
     OptionRegistry optionRegistry = getOptionRegistry();
     require(optionSeries.collateral == collateralAsset, "!collateral");
     series = optionRegistry.issue(
