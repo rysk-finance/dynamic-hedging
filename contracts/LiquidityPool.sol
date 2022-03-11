@@ -782,11 +782,11 @@ contract LiquidityPool is
   ) public payable returns (uint optionAmount, address series)
   {
     // check the strike and expiry are within allowed bounds
-    require(minExpiry <= optionSeries.expiration && optionSeries.expiration <= maxExpiry, "invalid expiry");
+    require(optionParams.minExpiry <= optionSeries.expiration && optionSeries.expiration <= optionParams.maxExpiry, "invalid expiry");
     if(optionSeries.isPut){
-    require(minPutStrikePrice <= optionSeries.strike && optionSeries.strike <= maxPutStrikePrice, "invalid strike price");
+    require(optionParams.minPutStrikePrice <= optionSeries.strike && optionSeries.strike <= optionParams.maxPutStrikePrice, "invalid strike price");
     } else {
-      (minCallStrikePrice <= optionSeries.strike && optionSeries.strike <= maxCallStrikePrice, "invalid strike price");
+      (optionParams.minCallStrikePrice <= optionSeries.strike && optionSeries.strike <= optionParams.maxCallStrikePrice, "invalid strike price");
     }
     OptionRegistry optionRegistry = getOptionRegistry();
     series = optionRegistry.issue(
