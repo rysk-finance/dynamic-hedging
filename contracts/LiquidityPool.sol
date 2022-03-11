@@ -74,10 +74,21 @@ contract LiquidityPool is
   uint public bidAskIVSpread;
   // Implied volatility for an underlying
   mapping(address => uint) public impliedVolatility;
-  // value below which delta is not worth dedging due to gas costs
+  // value below which delta is not worth hedging due to gas costs
   int256 private dustValue;
   // addresses that are whitelisted to sell options back to the protocol
   mapping(address => bool) public buybackWhitelist;
+ 
+  // strike and expiry date range for options
+  struct OptionParams {
+    uint128 minCallStrikePrice;
+    uint128 maxCallStrikePrice;
+    uint128 minPutStrikePrice;
+    uint128 maxPutStrikePrice;
+    uint128 minExpiry;
+    uint128 maxExpiry;
+  }
+  OptionParams public optionParams;
 
   event LiquidityAdded(uint amount);
   event UnderlyingAdded(address underlying);
@@ -88,7 +99,20 @@ contract LiquidityPool is
   event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
 
 
-  constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol, 18) {
+  constructor
+  (
+    address _protocol, 
+    address _strikeAsset, 
+    address _underlyingAsset, 
+    address _collateralAsset, 
+    uint rfr, 
+    int[7] memory callSkew, 
+    int[7] memory putSkew, 
+    string memory name, 
+    string memory symbol, 
+    OptionParams memory _optionParams
+  ) ERC20(name, symbol, 18) 
+  {
     strikeAsset = _strikeAsset;
     riskFreeRate = rfr;
     address underlyingAddress = _underlyingAsset;
@@ -97,6 +121,12 @@ contract LiquidityPool is
     callsVolatilitySkew = callSkew;
     putsVolatilitySkew = putSkew;
     protocol = _protocol;
+    optionParams.minCallStrikePrice = _optionParams.minCallStrikePrice;
+    optionParams.maxCallStrikePrice = _optionParams.maxCallStrikePrice;
+    optionParams.minPutStrikePrice = _optionParams.minPutStrikePrice;
+    optionParams.maxPutStrikePrice = _optionParams.maxPutStrikePrice;
+    optionParams.minExpiry = _optionParams.minExpiry;
+    optionParams.maxExpiry = _optionParams.maxExpiry;
     maxTotalSupply = type(uint256).max;
     emit UnderlyingAdded(underlyingAddress);
   }
@@ -157,6 +187,59 @@ contract LiquidityPool is
       } else {
           return putsVolatilitySkew;
       }
+  }
+  /**
+    @notice set a new min strike price for calls
+    @param _newPrice new min strike price - denominated in 1e18
+  */
+  function setMinCallStrikePrice(uint128 _newPrice) public onlyOwner {
+    optionParams.minCallStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new max strike price for calls
+    @param _newPrice new max strike price - denominated in 1e18
+  */
+  function setMaxCallStrikePrice(uint128 _newPrice) public onlyOwner {
+    optionParams.maxCallStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new min strike price for puts
+    @param _newPrice new min strike price - denominated in 1e18
+  */
+  function setMinPutStrikePrice(uint128 _newPrice) public onlyOwner {
+    optionParams.minPutStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new max strike price for puts
+    @param _newPrice new max strike price - denominated in 1e18
+  */
+  function setMaxPutStrikePrice(uint128 _newPrice) public onlyOwner {
+    optionParams.maxPutStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new min expiry period
+    @param _newPeriod new min expiry period - denominated in seconds * 1e18
+  */
+  function setMinExpiryPeriod(uint128 _newPeriod) public onlyOwner {
+    optionParams.minExpiry = _newPeriod;
+  }
+  /**
+    @notice set a new max expiry period
+    @param _newPeriod new max expiry period - denominated in seconds * 1e18
+  */
+  function setMaxExpiryPeriod(uint128 _newPeriod) public onlyOwner {
+    optionParams.maxExpiry = _newPeriod;
+  }
+   /**
+    @notice update all optionParam variables
+  */
+  function setNewOptionParams(uint128 _newMinCallStrike,uint128 _newMaxCallStrike,uint128 _newMinPutStrike,uint128 _newMaxPutStrike,uint128 _newMinExpiry,uint128 _newMaxExpiry) public onlyOwner {
+    optionParams.minCallStrikePrice = _newMinCallStrike;
+    optionParams.maxCallStrikePrice = _newMaxCallStrike;
+    optionParams.minPutStrikePrice = _newMinPutStrike;
+    optionParams.maxPutStrikePrice = _newMaxPutStrike;
+    optionParams.minExpiry = _newMinExpiry;
+    optionParams.maxExpiry = _newMaxExpiry;
   }
 
   /**
@@ -730,6 +813,13 @@ contract LiquidityPool is
      uint amount
   ) public payable returns (uint optionAmount, address series)
   {
+    // check the strike and expiry are within allowed bounds
+    require(optionParams.minExpiry <= optionSeries.expiration && optionSeries.expiration <= optionParams.maxExpiry, "invalid expiry");
+    if(optionSeries.isPut){
+    require(optionParams.minPutStrikePrice <= optionSeries.strike && optionSeries.strike <= optionParams.maxPutStrikePrice, "invalid strike price");
+    } else {
+      (optionParams.minCallStrikePrice <= optionSeries.strike && optionSeries.strike <= optionParams.maxCallStrikePrice, "invalid strike price");
+    }
     OptionRegistry optionRegistry = getOptionRegistry();
     require(optionSeries.collateral == collateralAsset, "!collateral");
     series = optionRegistry.issue(
