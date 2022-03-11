@@ -93,8 +93,6 @@ const maxPutStrikePrice = utils.parseEther("10000")
 const minExpiry = moment.utc().add(1, "week").valueOf() / 1000
 const maxExpiry = moment.utc().add(1, "year").valueOf() / 1000
 
-console.log({ minExpiry, maxExpiry })
-
 /* --- end variables to change --- */
 
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000

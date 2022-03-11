@@ -78,22 +78,8 @@ contract LiquidityPool is
   int256 private dustValue;
   // addresses that are whitelisted to sell options back to the protocol
   mapping(address => bool) public buybackWhitelist;
-  
-  /*******
-    OPTION PARAMETERS
-  *******/
-  // min strike price for minted calls - denominated in 1e18
-  uint128 public minCallStrikePrice;
-  // max strike price for minted calls - denominated in 1e18
-  uint128 public maxCallStrikePrice;
-  // min strike price for minted puts - denominated in 1e18
-  uint128 public minPutStrikePrice;
-  // max strike price for minted puts - denominated in 1e18
-  uint128 public maxPutStrikePrice;
-  // min expiry period - denominated in seconds * 1e18
-  uint128 public minExpiry;
-  // max expiry period - denominated in seconds * 1e18
-  uint128 public maxExpiry;
+ 
+  // strike and expiry date range for options
   struct OptionParams {
     uint128 minCallStrikePrice;
     uint128 maxCallStrikePrice;
@@ -207,42 +193,42 @@ contract LiquidityPool is
     @param _newPrice new min strike price - denominatd in 1e18
   */
   function setMinCallStrikePrice(uint128 _newPrice) public onlyOwner {
-    minCallStrikePrice = _newPrice;
+    optionParams.minCallStrikePrice = _newPrice;
   }
   /**
     @notice set a new max strike price for calls
     @param _newPrice new max strike price - denominatd in 1e18
   */
   function setMaxCallStrikePrice(uint128 _newPrice) public onlyOwner {
-    maxCallStrikePrice = _newPrice;
+    optionParams.maxCallStrikePrice = _newPrice;
   }
   /**
     @notice set a new min strike price for puts
     @param _newPrice new min strike price - denominatd in 1e18
   */
   function setMinPutStrikePrice(uint128 _newPrice) public onlyOwner {
-    minPutStrikePrice = _newPrice;
+    optionParams.minPutStrikePrice = _newPrice;
   }
   /**
     @notice set a new max strike price for puts
     @param _newPrice new max strike price - denominatd in 1e18
   */
   function setMaxPutStrikePrice(uint128 _newPrice) public onlyOwner {
-    maxPutStrikePrice = _newPrice;
+    optionParams.maxPutStrikePrice = _newPrice;
   }
   /**
     @notice set a new min expiry period
     @param _newPeriod new min expiry period - denominatd in seconds * 1e18
   */
   function setMinExpiryPeriod(uint128 _newPeriod) public onlyOwner {
-    minExpiry = _newPeriod;
+    optionParams.minExpiry = _newPeriod;
   }
   /**
     @notice set a new max expiry period
     @param _newPeriod new max expiry period - denominatd in seconds * 1e18
   */
   function setMaxExpiryPeriod(uint128 _newPeriod) public onlyOwner {
-    maxExpiry = _newPeriod;
+    optionParams.maxExpiry = _newPeriod;
   }
 
   /**
