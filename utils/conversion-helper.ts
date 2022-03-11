@@ -8,6 +8,7 @@ export function truncate (num: number, places: number = 3): number {
 export const tFormatEth = (x: BigNumberish): number => truncate(formatEth(x));
 export const toWei = (x: string) => utils.parseEther(x);
 export const call = false, put = true;
+export const MAX_BPS = BigNumber.from(10000);
 export const CALL = false;
 export const PUT = true;
 export const SECONDS_IN_DAY = 86400;

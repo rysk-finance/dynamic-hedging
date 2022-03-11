@@ -171,6 +171,74 @@ library OpynInteractionsV2 {
     }
 
     /**
+     * @notice Deposits Collateral to a specific vault
+     * @param gammaController is the address of the opyn controller contract
+     * @param marginPool is the address of the opyn margin contract which holds the collateral
+     * @param collateralAsset is the address of the collateral asset to deposit
+     * @param depositAmount is the amount of collateral to deposit
+     * @param vaultId is the vault id to access
+     */
+    function depositCollat(
+        address gammaController,
+        address marginPool,
+        address collateralAsset,
+        uint256 depositAmount,
+        uint256 vaultId
+    ) external {
+        IController controller = IController(gammaController);
+        // double approve to fix non-compliant ERC20s
+        ERC20 collateralToken = ERC20(collateralAsset);
+        SafeTransferLib.safeApprove(collateralToken, marginPool, depositAmount);
+        IController.ActionArgs[] memory actions =
+                new IController.ActionArgs[](1);
+
+            actions[1] = IController.ActionArgs(
+                IController.ActionType.DepositCollateral,
+                address(this), // owner
+                address(this), // address to transfer from
+                collateralAsset, // deposited asset
+                vaultId, // vaultId
+                depositAmount, // amount
+                0, //index
+                "" //data
+            );
+
+        controller.operate(actions);
+    }
+
+    /**
+     * @notice Withdraws Collateral from a specific vault
+     * @param gammaController is the address of the opyn controller contract
+     * @param collateralAsset is the address of the collateral asset to withdraw
+     * @param withdrawAmount is the amount of collateral to withdraw
+     * @param vaultId is the vault id to access
+     */
+    function withdrawCollat(
+        address gammaController,
+        address collateralAsset,
+        uint256 withdrawAmount,
+        uint256 vaultId
+    ) external {
+        IController controller = IController(gammaController);
+
+        IController.ActionArgs[] memory actions =
+                new IController.ActionArgs[](1);
+
+            actions[1] = IController.ActionArgs(
+                IController.ActionType.WithdrawCollateral,
+                address(this), // owner
+                address(this), // address to transfer to
+                collateralAsset, // withdrawn asset
+                vaultId, // vaultId
+                withdrawAmount, // amount
+                0, //index
+                "" //data
+            );
+
+        controller.operate(actions);
+    }
+
+    /**
      * @notice Burns an opyn short position
      * @param gammaController is the address of the opyn controller contract
      * @param oTokenAddress is the address of the otoken to burn
