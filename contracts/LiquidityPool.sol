@@ -80,18 +80,26 @@ contract LiquidityPool is
     OPTION PARAMETERS
   *******/
   // min strike price for minted calls - denominated in 1e18
-  uint256 public minCallStrikePrice;
+  uint128 public minCallStrikePrice;
   // max strike price for minted calls - denominated in 1e18
-  uint256 public maxCallStrikePrice;
+  uint128 public maxCallStrikePrice;
   // min strike price for minted puts - denominated in 1e18
-  uint256 public minPutStrikePrice;
+  uint128 public minPutStrikePrice;
   // max strike price for minted puts - denominated in 1e18
-  uint256 public maxPutStrikePrice;
+  uint128 public maxPutStrikePrice;
   // min expiry period - denominated in seconds * 1e18
-  uint256 public minExpiry;
+  uint128 public minExpiry;
   // max expiry period - denominated in seconds * 1e18
-  uint256 public maxExpiry;
-
+  uint128 public maxExpiry;
+  struct OptionParams {
+    uint128 minCallStrikePrice;
+    uint128 maxCallStrikePrice;
+    uint128 minPutStrikePrice;
+    uint128 maxPutStrikePrice;
+    uint128 minExpiry;
+    uint128 maxExpiry;
+  }
+  OptionParams public optionParams;
 
   event LiquidityAdded(uint amount);
   event UnderlyingAdded(address underlying);
@@ -113,12 +121,7 @@ contract LiquidityPool is
     int[7] memory putSkew, 
     string memory name, 
     string memory symbol, 
-    uint _minCallStrikePrice, 
-    uint _maxCallStrikePrice, 
-    uint _minPutStrikePrice, 
-    uint _maxPutStrikePrice, 
-    uint _minExpiry, 
-    uint _maxExpiry
+    OptionParams memory _optionParams
   ) ERC20(name, symbol, 18) 
   {
     strikeAsset = _strikeAsset;
@@ -129,12 +132,12 @@ contract LiquidityPool is
     callsVolatilitySkew = callSkew;
     putsVolatilitySkew = putSkew;
     protocol = _protocol;
-    minCallStrikePrice = _minCallStrikePrice;
-    maxCallStrikePrice = _maxCallStrikePrice;
-    minPutStrikePrice = _minPutStrikePrice;
-    maxPutStrikePrice = _maxPutStrikePrice;
-    minExpiry = _minExpiry;
-    maxExpiry = _maxExpiry;
+    optionParams.minCallStrikePrice = _optionParams.minCallStrikePrice;
+    optionParams.maxCallStrikePrice = _optionParams.maxCallStrikePrice;
+    optionParams.minPutStrikePrice = _optionParams.minPutStrikePrice;
+    optionParams.maxPutStrikePrice = _optionParams.maxPutStrikePrice;
+    optionParams.minExpiry = _optionParams.minExpiry;
+    optionParams.maxExpiry = _optionParams.maxExpiry;
     maxTotalSupply = type(uint256).max;
     emit UnderlyingAdded(underlyingAddress);
   }
@@ -200,42 +203,42 @@ contract LiquidityPool is
     @notice set a new min strike price for calls
     @param _newPrice new min strike price - denominatd in 1e18
   */
-  function setMinCallStrikePrice(uint _newPrice) public onlyOwner {
+  function setMinCallStrikePrice(uint128 _newPrice) public onlyOwner {
     minCallStrikePrice = _newPrice;
   }
   /**
     @notice set a new max strike price for calls
     @param _newPrice new max strike price - denominatd in 1e18
   */
-  function setMaxCallStrikePrice(uint _newPrice) public onlyOwner {
+  function setMaxCallStrikePrice(uint128 _newPrice) public onlyOwner {
     maxCallStrikePrice = _newPrice;
   }
   /**
     @notice set a new min strike price for puts
     @param _newPrice new min strike price - denominatd in 1e18
   */
-  function setMinPutStrikePrice(uint _newPrice) public onlyOwner {
+  function setMinPutStrikePrice(uint128 _newPrice) public onlyOwner {
     minPutStrikePrice = _newPrice;
   }
   /**
     @notice set a new max strike price for puts
     @param _newPrice new max strike price - denominatd in 1e18
   */
-  function setMaxPutStrikePrice(uint _newPrice) public onlyOwner {
+  function setMaxPutStrikePrice(uint128 _newPrice) public onlyOwner {
     maxPutStrikePrice = _newPrice;
   }
   /**
     @notice set a new min expiry period
     @param _newPeriod new min expiry period - denominatd in seconds * 1e18
   */
-  function setMinExpiryPeriod(uint _newPeriod) public onlyOwner {
+  function setMinExpiryPeriod(uint128 _newPeriod) public onlyOwner {
     minExpiry = _newPeriod;
   }
   /**
     @notice set a new max expiry period
     @param _newPeriod new max expiry period - denominatd in seconds * 1e18
   */
-  function setMaxExpiryPeriod(uint _newPeriod) public onlyOwner {
+  function setMaxExpiryPeriod(uint128 _newPeriod) public onlyOwner {
     maxExpiry = _newPeriod;
   }
 

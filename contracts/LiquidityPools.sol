@@ -20,12 +20,7 @@ contract LiquidityPools {
     int[7] memory putSkew, 
     string memory name, 
     string memory symbol,  
-    uint _minCallStrikePrice, 
-    uint _maxCallStrikePrice, 
-    uint _minPutStrikePrice, 
-    uint _maxPutStrikePrice, 
-    uint _minExpiry, 
-    uint _maxExpiry
+    LiquidityPool.OptionParams memory _optionParams
   ) public {
     address lp = strikeAssets[_strikeAsset];
     lp = address(new LiquidityPool(
@@ -38,12 +33,7 @@ contract LiquidityPools {
       putSkew,
       name,
       symbol,
-      _minCallStrikePrice, 
-      _maxCallStrikePrice, 
-      _minPutStrikePrice, 
-      _maxPutStrikePrice, 
-      _minExpiry, 
-      _maxExpiry
+      _optionParams
     ));
     strikeAssets[_strikeAsset] = lp;
     LiquidityPool(lp).transferOwnership(payable(msg.sender));

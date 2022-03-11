@@ -80,6 +80,15 @@ const liquidityPoolWethDeposit = "1"
 // balance to withdraw after deposit
 const liquidityPoolWethWidthdraw = "0.1"
 
+const minCallStrikePrice = utils.parseEther("500")
+const maxCallStrikePrice = utils.parseEther("10000")
+const minPutStrikePrice = utils.parseEther("500")
+const maxPutStrikePrice = utils.parseEther("10000")
+const minExpiry = moment.utc().add(1, "week").valueOf() / 1000
+const maxExpiry = moment.utc().add(1, "year").valueOf() / 1000
+
+console.log({ minExpiry, maxExpiry })
+
 /* --- end variables to change --- */
 
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
@@ -244,7 +253,15 @@ describe("Liquidity Pools", async () => {
 			coefs,
 			coefs,
 			"ETH/USDC",
-			"EDP"
+			"EDP",
+			{
+				minCallStrikePrice,
+				maxCallStrikePrice,
+				minPutStrikePrice,
+				maxPutStrikePrice,
+				minExpiry: fmtExpiration(minExpiry),
+				maxExpiry: fmtExpiration(maxExpiry)
+			}
 		)
 		const lpReceipt = await lp.wait(1)
 		const events = lpReceipt.events
@@ -396,7 +413,15 @@ describe("Liquidity Pools", async () => {
 			coefs,
 			coefs,
 			"weth/usd",
-			"wdp"
+			"wdp",
+			{
+				minCallStrikePrice,
+				maxCallStrikePrice,
+				minPutStrikePrice,
+				maxPutStrikePrice,
+				minExpiry: fmtExpiration(minExpiry),
+				maxExpiry: fmtExpiration(maxExpiry)
+			}
 		)
 		const receipt = await lp.wait(1)
 		const events = receipt.events
