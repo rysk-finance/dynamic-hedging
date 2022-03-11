@@ -231,8 +231,7 @@ contract LiquidityPool is
     optionParams.maxExpiry = _newPeriod;
   }
    /**
-    @notice update all optionParam vairables
-    @param _newPeriod new max expiry period - denominated in seconds * 1e18
+    @notice update all optionParam variables
   */
   function setNewOptionParams(uint128 _newMinCallStrike,uint128 _newMaxCallStrike,uint128 _newMinPutStrike,uint128 _newMaxPutStrike,uint128 _newMinExpiry,uint128 _newMaxExpiry) public onlyOwner {
     optionParams.minCallStrikePrice = _newMinCallStrike;
