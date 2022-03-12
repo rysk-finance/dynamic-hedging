@@ -38,9 +38,9 @@ contract OptionRegistryV2 is Ownable {
     // vault counter
     uint64 public vaultCount;
     // max health threshold in e6 decimals
-    uint64 public upperHealthFactor = 15_000;
+    uint64 public upperHealthFactor = 12_000;
     // min health threshold in e6 decimals
-    uint64 public lowerHealthFactor = 12_000;
+    uint64 public lowerHealthFactor = 11_000;
     // BIPS
     uint256 MAX_BPS = 10_000;
     //
@@ -89,6 +89,14 @@ contract OptionRegistryV2 is Ownable {
      */
     function setLiquidityPool(address _newLiquidityPool) external onlyOwner {
       liquidityPool = _newLiquidityPool;
+    }
+
+    /**
+     * @notice Set the authorised address
+     * @param  _newAuthorised set the authorised address
+     */
+    function setAuthorised(address _newAuthorised) external onlyOwner {
+     authorised = _newAuthorised;
     }
 
     /**
@@ -306,7 +314,7 @@ contract OptionRegistryV2 is Ownable {
       // get the amount held in the vault
       uint256 collatAmount = vault.collateralAmounts[0];
       // divide the amount held in the vault by the margin requirements to get the health factor
-      uint256 healthFactor = (collatAmount * MAX_BPS) / marginReq;
+      healthFactor = (collatAmount * MAX_BPS) / marginReq;
       // if the vault health is above a certain threshold then the vault is above safe margins and collateral can be withdrawn
       if (healthFactor > upperHealthFactor) {
         isAboveMax = true;
@@ -349,7 +357,7 @@ contract OptionRegistryV2 is Ownable {
      * @param  vaultId the id of the vault to check
      * @dev    this is a safety function, if worst comes to worse any caller can collateralise a vault to save it.
      */
-    function adjustCollateralCaller(uint256 vaultId) external{
+    function adjustCollateralCaller(uint256 vaultId) external onlyAuthorised {
       (bool isBelowMin,,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
       require(isBelowMin, "vault is healthy");
       // transfer the needed collateral to this contract from the msg.sender
