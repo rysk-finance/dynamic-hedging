@@ -4,7 +4,7 @@ import "./PriceFeed.sol";
 import "./tokens/ERC20.sol";
 import "./OptionRegistry.sol";
 import "./OptionsProtocol.sol";
-import "./utils/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
 import "./interfaces/IHedgingReactor.sol";

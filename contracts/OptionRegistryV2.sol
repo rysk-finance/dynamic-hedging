@@ -2,7 +2,7 @@ pragma solidity >=0.8.9;
 import "./tokens/ERC20.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IOracle.sol";
-import "./utils/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IMarginCalculator.sol";
 import { Types } from "./libraries/Types.sol";
 import "./interfaces/AddressBookInterface.sol";
