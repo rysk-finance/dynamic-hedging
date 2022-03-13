@@ -190,45 +190,56 @@ contract LiquidityPool is
   }
   /**
     @notice set a new min strike price for calls
-    @param _newPrice new min strike price - denominatd in 1e18
+    @param _newPrice new min strike price - denominated in 1e18
   */
   function setMinCallStrikePrice(uint128 _newPrice) public onlyOwner {
     optionParams.minCallStrikePrice = _newPrice;
   }
   /**
     @notice set a new max strike price for calls
-    @param _newPrice new max strike price - denominatd in 1e18
+    @param _newPrice new max strike price - denominated in 1e18
   */
   function setMaxCallStrikePrice(uint128 _newPrice) public onlyOwner {
     optionParams.maxCallStrikePrice = _newPrice;
   }
   /**
     @notice set a new min strike price for puts
-    @param _newPrice new min strike price - denominatd in 1e18
+    @param _newPrice new min strike price - denominated in 1e18
   */
   function setMinPutStrikePrice(uint128 _newPrice) public onlyOwner {
     optionParams.minPutStrikePrice = _newPrice;
   }
   /**
     @notice set a new max strike price for puts
-    @param _newPrice new max strike price - denominatd in 1e18
+    @param _newPrice new max strike price - denominated in 1e18
   */
   function setMaxPutStrikePrice(uint128 _newPrice) public onlyOwner {
     optionParams.maxPutStrikePrice = _newPrice;
   }
   /**
     @notice set a new min expiry period
-    @param _newPeriod new min expiry period - denominatd in seconds * 1e18
+    @param _newPeriod new min expiry period - denominated in seconds * 1e18
   */
   function setMinExpiryPeriod(uint128 _newPeriod) public onlyOwner {
     optionParams.minExpiry = _newPeriod;
   }
   /**
     @notice set a new max expiry period
-    @param _newPeriod new max expiry period - denominatd in seconds * 1e18
+    @param _newPeriod new max expiry period - denominated in seconds * 1e18
   */
   function setMaxExpiryPeriod(uint128 _newPeriod) public onlyOwner {
     optionParams.maxExpiry = _newPeriod;
+  }
+   /**
+    @notice update all optionParam variables
+  */
+  function setNewOptionParams(uint128 _newMinCallStrike,uint128 _newMaxCallStrike,uint128 _newMinPutStrike,uint128 _newMaxPutStrike,uint128 _newMinExpiry,uint128 _newMaxExpiry) public onlyOwner {
+    optionParams.minCallStrikePrice = _newMinCallStrike;
+    optionParams.maxCallStrikePrice = _newMaxCallStrike;
+    optionParams.minPutStrikePrice = _newMinPutStrike;
+    optionParams.maxPutStrikePrice = _newMaxPutStrike;
+    optionParams.minExpiry = _newMinExpiry;
+    optionParams.maxExpiry = _newMaxExpiry;
   }
 
   /**
