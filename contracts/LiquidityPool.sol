@@ -4,7 +4,6 @@ import "./PriceFeed.sol";
 import "./tokens/ERC20.sol";
 import "./OptionRegistry.sol";
 import "./OptionsProtocol.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
 import "./interfaces/IHedgingReactor.sol";
@@ -13,6 +12,8 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import { Constants } from "./libraries/Constants.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "hardhat/console.sol";
 
@@ -25,10 +26,15 @@ error DeltaQuoteError(uint256 quote, int256 delta);
 contract LiquidityPool is
   ERC20,
   Ownable,
+  AccessControl,
   ReentrancyGuard
 {
   using PRBMathSD59x18 for int256;
   using PRBMathUD60x18 for uint256;
+
+  // Access control role identifier
+  bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
 
   uint256 private constant ONE_YEAR_SECONDS = 31557600000000000000000000;
   // standard expected decimals of ERC20s
@@ -113,6 +119,8 @@ contract LiquidityPool is
     OptionParams memory _optionParams
   ) ERC20(name, symbol, 18) 
   {
+    // Grant admin role to deployer
+    _setupRole(ADMIN_ROLE, msg.sender);
     strikeAsset = _strikeAsset;
     riskFreeRate = rfr;
     address underlyingAddress = _underlyingAsset;
@@ -694,7 +702,7 @@ contract LiquidityPool is
   @param delta the current portfolio delta
    */
   function rebalancePortfolioDelta(int256 delta)
-    public 
+    public onlyRole(ADMIN_ROLE)
   { 
       if(abs(delta) > dustValue) {
       // TODO check to see if we can be paid to open a position using derivatives using funding rate
