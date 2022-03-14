@@ -116,11 +116,12 @@ contract LiquidityPool is
     int[7] memory putSkew, 
     string memory name, 
     string memory symbol, 
-    OptionParams memory _optionParams
+    OptionParams memory _optionParams,
+    address adminAddress
   ) ERC20(name, symbol, 18) 
   {
     // Grant admin role to deployer
-    _setupRole(ADMIN_ROLE, msg.sender);
+    _setupRole(ADMIN_ROLE, adminAddress);
     strikeAsset = _strikeAsset;
     riskFreeRate = rfr;
     address underlyingAddress = _underlyingAsset;
@@ -150,6 +151,8 @@ contract LiquidityPool is
    */
   function setHedgingReactorAddress(address _reactorAddress) onlyOwner public {
     hedgingReactors.push(_reactorAddress);
+    SafeTransferLib.safeApprove(ERC20(strikeAsset), _reactorAddress, maxTotalSupply);
+
   }
 
   /**
