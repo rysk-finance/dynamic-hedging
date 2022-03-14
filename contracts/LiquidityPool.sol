@@ -701,12 +701,12 @@ contract LiquidityPool is
   @notice function for hedging portfolio delta through external means
   @param delta the current portfolio delta
    */
-  function rebalancePortfolioDelta(int256 delta)
+  function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex)
     public onlyRole(ADMIN_ROLE)
   { 
       if(abs(delta) > dustValue) {
       // TODO check to see if we can be paid to open a position using derivatives using funding rate
-        IHedgingReactor(hedgingReactors[0]).hedgeDelta(delta);
+        IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
       }
       // TODO if we dont / not enough - look at derivatives
   }
