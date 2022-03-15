@@ -458,14 +458,13 @@ describe("Options protocol Vault Health", function () {
 	})
 	it("moves the price and changes vault health", async () => {
 		const currentPrice = await oracle.getPrice(weth.address)
-		const settlePrice = currentPrice.add(toWei("200").div(oTokenDecimalShift18))
+		const settlePrice = currentPrice.add(toWei("340").div(oTokenDecimalShift18))
 		await aggregator.setLatestAnswer(settlePrice)
 		console.log(await oracle.getPrice(weth.address))
 		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistryETH.checkVaultHealth(1);
 		console.log(isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset)
 		
 	}) 
-
 
 	it("settles when option expires ITM USD collateral", async () => {
 		const [sender, receiver] = signers
