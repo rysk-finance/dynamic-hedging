@@ -1,27 +1,23 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
-
-name: Hardhat full test suite CI
-
-on:
- push:
- pull_request:
-
-
-jobs:
- test:
-  runs-on: ubuntu-latest
-
-  env:
-   ALCHEMY: ${{ secrets.ALCHEMY }}
-
-  steps:
-   - uses: actions/checkout@v1
-   - name: Use Node.js
-     uses: actions/setup-node@v1
-     with:
-      node-version: "16.3.1"
-   - name: Run npm and tests
-      run: npm install
-      run: npm run compile
-      run: npm run test
+name: "Hardhat full test suite CI"
+true: 
+  pull_request: ~
+  push: ~
+  
+jobs: 
+  test: 
+    env: 
+      ALCHEMY: "${{ secrets.ALCHEMY }}"
+    runs-on: ubuntu-latest
+    steps: 
+      - 
+        uses: actions/checkout@v1
+      - 
+        name: "Use Node.js"
+        uses: actions/setup-node@v1
+        with: 
+          node-version: "16.3.1"
+      - 
+        name: "Run npm and tests"
+        run: "npm install npm run compile npm run test"
