@@ -1,7 +1,7 @@
 pragma solidity >=0.8.9;
 import "./tokens/ERC20.sol";
 import "./interfaces/IERC20.sol";
-import "./utils/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import { Types } from "./libraries/Types.sol";
 import "./interfaces/AddressBookInterface.sol";
 import { IController} from "./interfaces/GammaInterface.sol";
