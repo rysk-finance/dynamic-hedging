@@ -5,11 +5,8 @@ name: Hardhat full test suite CI
 
 on:
  push:
-  branches:
-   - "**" # matches every branch
  pull_request:
-  branches:
-   - "**" # matches every branch
+
 
 jobs:
  test:
