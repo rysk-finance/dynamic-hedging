@@ -5,12 +5,14 @@ name: Hardhat full test suite CI
 
 on:
   push:
-    branches: [ $default-branch ]
+    branches: 
+      - '**'        # matches every branch
   pull_request:
-    branches: [ $default-branch ]
+    branches:
+      - '**'        # matches every branch
 
 jobs:
-  build:
+  test:
 
     runs-on: ubuntu-latest
 
