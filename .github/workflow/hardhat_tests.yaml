@@ -9,7 +9,7 @@ on:
    - "**" # matches every branch
  pull_request:
   branches:
-   - "*" # matches every branch
+   - "**" # matches every branch
 
 jobs:
  test:
