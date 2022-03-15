@@ -4,32 +4,31 @@
 name: Hardhat full test suite CI
 
 on:
-  push:
-    branches: 
-      - '**'        # matches every branch
-  pull_request:
-    branches:
-      - '**'        # matches every branch
+ push:
+  branches:
+   - "**" # matches every branch
+ pull_request:
+  branches:
+   - "*" # matches every branch
 
 jobs:
-  test:
+ test:
+  runs-on: ubuntu-latest
 
-    runs-on: ubuntu-latest
+  env:
+   ALCHEMY: ${{ secrets.ALCHEMY }}
 
-    env:
-      ALCHEMY: ${{ secrets.ALCHEMY }}
+  strategy:
+   matrix:
+    node-version: [16.13.1]
 
-    strategy:
-      matrix:
-        node-version: [16.13.1]
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v2
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm install
-    - run: npm run compile
-    - run: npm run test
+  steps:
+   - uses: actions/checkout@v2
+   - name: Use Node.js ${{ matrix.node-version }}
+     uses: actions/setup-node@v2
+     with:
+      node-version: ${{ matrix.node-version }}
+      cache: "npm"
+   - run: npm install
+   - run: npm run compile
+   - run: npm run test
