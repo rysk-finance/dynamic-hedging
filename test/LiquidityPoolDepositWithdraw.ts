@@ -32,14 +32,14 @@ import { Volatility } from "../types/Volatility"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
 import {
-  ADDRESS_BOOK,
-  GAMMA_CONTROLLER,
-  MARGIN_POOL,
-  OTOKEN_FACTORY,
-  USDC_ADDRESS,
-  USDC_OWNER_ADDRESS,
-  WETH_ADDRESS,
-} from './constants'
+	ADDRESS_BOOK,
+	GAMMA_CONTROLLER,
+	MARGIN_POOL,
+	OTOKEN_FACTORY,
+	USDC_ADDRESS,
+	USDC_OWNER_ADDRESS,
+	WETH_ADDRESS
+} from "./constants"
 let usd: MintableERC20
 let weth: WETH
 let optionRegistry: OptionRegistry
@@ -61,7 +61,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-03-12"
+const expiryDate: string = "2022-04-30"
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
@@ -78,6 +78,13 @@ const liquidityPoolWethDeposit = "1"
 // balance to withdraw after deposit
 const liquidityPoolWethWithdraw = "0.1"
 const liquidityPoolUsdcWithdraw = "10000"
+
+const minCallStrikePrice = utils.parseEther("500")
+const maxCallStrikePrice = utils.parseEther("10000")
+const minPutStrikePrice = utils.parseEther("500")
+const maxPutStrikePrice = utils.parseEther("10000")
+const minExpiry = moment.utc().add(1, "week").valueOf() / 1000
+const maxExpiry = moment.utc().add(1, "year").valueOf() / 1000
 
 /* --- end variables to change --- */
 
@@ -141,7 +148,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
 			senderAddress,
-      ADDRESS_BOOK[chainId]
+			ADDRESS_BOOK[chainId]
 		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
@@ -244,7 +251,16 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			coefs,
 			coefs,
 			"ETH/USDC",
-			"EDP"
+			"EDP",
+			{
+				minCallStrikePrice,
+				maxCallStrikePrice,
+				minPutStrikePrice,
+				maxPutStrikePrice,
+				minExpiry: fmtExpiration(minExpiry),
+				maxExpiry: fmtExpiration(maxExpiry)
+			},
+			await signers[0].getAddress()
 		)
 		const lpReceipt = await lp.wait(1)
 		const events = lpReceipt.events
@@ -321,7 +337,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
 			underlying: weth.address,
-      collateral: usd.address
+			collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
