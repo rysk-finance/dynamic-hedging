@@ -38,7 +38,7 @@ contract OptionRegistryV2 is Ownable {
     // vault counter
     uint64 public vaultCount;
     // max health threshold in e6 decimals
-    uint64 public upperHealthFactor = 12_000;
+    uint64 public upperHealthFactor = 13_000;
     // min health threshold in e6 decimals
     uint64 public lowerHealthFactor = 11_000;
     // BIPS
