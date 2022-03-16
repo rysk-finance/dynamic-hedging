@@ -122,23 +122,17 @@ describe("Liquidity Pools", async () => {
 			]
 		})
 	})
-	//   after(async function () {
-	//     await network.provider.request({
-	//       method: 'hardhat_reset',
-	//       params: [],
-	//     })
-	//   })
 	it("Deploys the Option Registry", async () => {
-		signers = await ethers.getSigners()
+		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
-		const constantsFactory = await ethers.getContractFactory("Constants")
-		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
+		const constantsFactory = await hre.ethers.getContractFactory("Constants")
+		const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
+		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {
 			libraries: {
 				OpynInteractions: interactions.address
 			}
