@@ -274,6 +274,7 @@ describe("Liquidity Pools", async () => {
 				minExpiry: fmtExpiration(minExpiry),
 				maxExpiry: fmtExpiration(maxExpiry)
 			},
+			//@ts-ignore
 			await signers[0].getAddress()
 		)
 		const lpReceipt = await lp.wait(1)
@@ -537,10 +538,12 @@ describe("Liquidity Pools", async () => {
 
 	it("reverts when non-admin calls rebalance function", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
+		//@ts-ignore
 		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
 	})
 	it("hedges delta using the uniswap reactor", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
+		//@ts-ignore
 		await liquidityPool.rebalancePortfolioDelta(delta, 0)
 		const newDelta = await liquidityPool.getPortfolioDelta()
 		expect(parseFloat(utils.formatEther(newDelta))).to.be.lt(0.001)
@@ -586,6 +589,7 @@ describe("Liquidity Pools", async () => {
 				minExpiry: fmtExpiration(minExpiry),
 				maxExpiry: fmtExpiration(maxExpiry)
 			},
+			//@ts-ignore
 			await signers[0].getAddress()
 		)
 		const receipt = await lp.wait(1)
