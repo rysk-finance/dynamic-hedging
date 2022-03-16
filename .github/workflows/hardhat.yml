@@ -11,13 +11,13 @@ on:
     branches:
       - '**'        # matches every branch
 
+env:
+  ALCHEMY: ${{ secrets.ALCHEMY }}
+
 jobs:
   test:
 
     runs-on: ubuntu-latest
-
-    env:
-      ALCHEMY: ${{ secrets.ALCHEMY }}
 
     strategy:
       matrix:
