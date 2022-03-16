@@ -361,12 +361,16 @@ contract LiquidityPool is
     uint collateralAmount = _shareValue(_shares);
     // determine if there is enough in the pool to withdraw
     // Calculate liquidity that can be withdrawn
+    console.log("shares:", collateralAmount);
     (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);               
     if (collateralAmount > normalizedCollateralBalance) {
       uint256 amountNeeded = collateralAmount - normalizedCollateralBalance;
-
+      console.log("fired1");
       for (uint8 i=0; i < hedgingReactors.length; i++) {
+        console.log("fired2");
+        console.log("before", amountNeeded);
         amountNeeded -= IHedgingReactor(hedgingReactors[i]).withdraw(amountNeeded, collateralAsset);
+        console.log("after", amountNeeded);
         if (amountNeeded == 0) {
           break;
         }
@@ -374,10 +378,12 @@ contract LiquidityPool is
       // Calculate liquidity that can be withdrawn again after an attempt has been made to free funds
       (normalizedCollateralBalance,, _decimals) = getNormalizedBalance(collateralAsset);
       if (collateralAmount > normalizedCollateralBalance) {
+        console.log("fired3");
         // if there still arent enough funds then revert or TODO: return partial amount
         revert("Insufficient funds for a full withdrawal");
       }
     }
+    console.log("fired4");
     transferCollateralAmount = OptionsCompute.convertToDecimals(collateralAmount, _decimals);
     // burn the shares
     _burn(msg.sender, _shares);

@@ -132,6 +132,7 @@ describe("Liquidity Pools", async () => {
 		signers = await ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
+		console.log("balance:", await signers[1].getBalance())
 		// deploy libraries
 		const constantsFactory = await ethers.getContractFactory("Constants")
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
@@ -919,6 +920,7 @@ describe("Liquidity Pools", async () => {
 
 	it("LP can not redeems shares when in excess of liquidity", async () => {
 		const [sender, receiver] = signers
+		console.log("balance:", await signers[1].getBalance())
 
 		const shares = await liquidityPool.balanceOf(receiverAddress)
 		const liquidityPoolReceiver = liquidityPool.connect(receiver)
