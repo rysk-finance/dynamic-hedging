@@ -23,6 +23,7 @@ import bs from "black-scholes"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
+import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
@@ -39,7 +40,8 @@ import {
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS,
-	ADDRESS_BOOK
+	ADDRESS_BOOK,
+	UNISWAP_V3_SWAP_ROUTER
 } from "./constants"
 let usd: MintableERC20
 let weth: WETH
@@ -54,6 +56,7 @@ let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
+let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
 
 const IMPLIED_VOL = "60"
@@ -64,10 +67,10 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-03-20"
+const expiryDate: string = "2022-03-27"
 
 const invalidExpiryDateLong: string = "2024-09-03"
-const invalidExpiryDateShort: string = "2022-03-12"
+const invalidExpiryDateShort: string = "2022-03-14"
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
@@ -270,7 +273,8 @@ describe("Liquidity Pools", async () => {
 				maxPutStrikePrice,
 				minExpiry: fmtExpiration(minExpiry),
 				maxExpiry: fmtExpiration(maxExpiry)
-			}
+			},
+			await signers[0].getAddress()
 		)
 		const lpReceipt = await lp.wait(1)
 		const events = lpReceipt.events
@@ -501,8 +505,46 @@ describe("Liquidity Pools", async () => {
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote[0]))
 	})
+	it("deploys the hedging reactor", async () => {
+		const uniswapV3HedgingReactorFactory = await ethers.getContractFactory(
+			"UniswapV3HedgingReactor",
+			{
+				signer: signers[0]
+			}
+		)
+
+		uniswapV3HedgingReactor = (await uniswapV3HedgingReactorFactory.deploy(
+			UNISWAP_V3_SWAP_ROUTER[chainId],
+			[USDC_ADDRESS[chainId]],
+			WETH_ADDRESS[chainId],
+			liquidityPool.address,
+			3000,
+			priceFeed.address
+		)) as UniswapV3HedgingReactor
+
+		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")
+	})
+	it("sets reactor address on LP contract", async () => {
+		const reactorAddress = uniswapV3HedgingReactor.address
+
+		await liquidityPool.setHedgingReactorAddress(reactorAddress)
+
+		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
+	})
 	it("can compute portfolio delta", async function () {
 		const res = await liquidityPool.getPortfolioDelta()
+	})
+
+	it("reverts when non-admin calls rebalance function", async () => {
+		const delta = await liquidityPool.getPortfolioDelta()
+		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
+	})
+	it("hedges delta using the uniswap reactor", async () => {
+		const delta = await liquidityPool.getPortfolioDelta()
+		await liquidityPool.rebalancePortfolioDelta(delta, 0)
+		const newDelta = await liquidityPool.getPortfolioDelta()
+		expect(parseFloat(utils.formatEther(newDelta))).to.be.lt(0.001)
+		expect(parseFloat(utils.formatEther(newDelta))).to.be.gt(-0.001)
 	})
 
 	it("Creates a liquidity pool with ETH as collateralAsset", async () => {
@@ -543,7 +585,8 @@ describe("Liquidity Pools", async () => {
 				maxPutStrikePrice,
 				minExpiry: fmtExpiration(minExpiry),
 				maxExpiry: fmtExpiration(maxExpiry)
-			}
+			},
+			await signers[0].getAddress()
 		)
 		const receipt = await lp.wait(1)
 		const events = receipt.events

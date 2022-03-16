@@ -1,7 +1,7 @@
 pragma solidity >=0.8.9;
 
 import "../PriceFeed.sol";
-import "../utils/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IERC20.sol";
 import "../libraries/OptionsCompute.sol";
 import '../libraries/SafeTransferLib.sol';
@@ -151,7 +151,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         @param _sellToken the stablecoin to sell
     */
     function _swapExactOutputSingle(uint256 _amountOut, uint256 _amountInMaximum, address _sellToken) internal returns (int256, uint256) {
-        SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), 100000000000);
+        SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), 1000000000);//1,000 USDC
 
         ISwapRouter.ExactOutputSingleParams memory params =
             ISwapRouter.ExactOutputSingleParams({

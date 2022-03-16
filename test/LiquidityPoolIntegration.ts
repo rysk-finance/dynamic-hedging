@@ -66,7 +66,7 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-03-12"
+const expiryDate: string = "2022-04-30"
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
@@ -82,6 +82,13 @@ const liquidityPoolWethDeposit = "1"
 
 // balance to withdraw after deposit
 const liquidityPoolWethWidthdraw = "0.1"
+
+const minCallStrikePrice = utils.parseEther("500")
+const maxCallStrikePrice = utils.parseEther("10000")
+const minPutStrikePrice = utils.parseEther("500")
+const maxPutStrikePrice = utils.parseEther("10000")
+const minExpiry = moment.utc().add(1, "week").valueOf() / 1000
+const maxExpiry = moment.utc().add(1, "year").valueOf() / 1000
 
 /* --- end variables to change --- */
 
@@ -243,7 +250,16 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			coefs,
 			coefs,
 			"ETH/USDC",
-			"EDP"
+			"EDP",
+			{
+				minCallStrikePrice,
+				maxCallStrikePrice,
+				minPutStrikePrice,
+				maxPutStrikePrice,
+				minExpiry: fmtExpiration(minExpiry),
+				maxExpiry: fmtExpiration(maxExpiry)
+			},
+			await signers[0].getAddress()
 		)
 		const lpReceipt = await lp.wait(1)
 		const events = lpReceipt.events
