@@ -189,51 +189,13 @@ describe("Liquidity Pools", async () => {
 		await ethUSDAggregator.mock.decimals.returns("8")
 	})
 
-	it("Should deploy liquidity pools", async () => {
-		const normDistFactory = await ethers.getContractFactory("NormalDist", {
-			libraries: {}
-		})
-		const normDist = await normDistFactory.deploy()
-		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
-			libraries: {
-				NormalDist: normDist.address
-			}
-		})
-		const blackScholesDeploy = await blackScholesFactory.deploy()
-		const constFactory = await ethers.getContractFactory(
-			"contracts/libraries/Constants.sol:Constants"
-		)
-		const constants = await constFactory.deploy()
-		const optComputeFactory = await ethers.getContractFactory(
-			"contracts/libraries/OptionsCompute.sol:OptionsCompute",
-			{
-				libraries: {}
-			}
-		)
-		await optComputeFactory.deploy()
-		const volFactory = await ethers.getContractFactory("Volatility", {
-			libraries: {}
-		})
-		volatility = (await volFactory.deploy()) as Volatility
-		const liquidityPoolsFactory = await ethers.getContractFactory("LiquidityPools", {
-			libraries: {
-				BlackScholes: blackScholesDeploy.address
-			}
-		})
-		const _liquidityPools: LiquidityPools = (await liquidityPoolsFactory.deploy()) as LiquidityPools
-		liquidityPools = _liquidityPools
-	})
-
-	it("Should deploy option protocol and link to liquidity pools", async () => {
+	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
-			liquidityPools.address,
 			priceFeed.address
 		)) as Protocol
-		await liquidityPools.setup(optionProtocol.address)
-		const lpProtocol = await liquidityPools.protocol()
-		expect(optionProtocol.address).to.eq(lpProtocol)
+		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
@@ -258,7 +220,29 @@ describe("Liquidity Pools", async () => {
 		]
 		//@ts-ignore
 		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		const lp = await liquidityPools.createLiquidityPool(
+
+		const normDistFactory = await ethers.getContractFactory("NormalDist", {
+			libraries: {}
+		})
+		const normDist = await normDistFactory.deploy()
+		const volFactory = await ethers.getContractFactory("Volatility", {
+			libraries: {}
+		})
+		volatility = (await volFactory.deploy()) as Volatility
+		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+			libraries: {
+				NormalDist: normDist.address
+			}
+		})
+		const blackScholesDeploy = await blackScholesFactory.deploy()
+
+		const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
+			libraries: {
+				BlackScholes: blackScholesDeploy.address
+			}
+		})
+		const lp = (await liquidityPoolFactory.deploy(
+			optionProtocol.address,
 			usd.address,
 			weth.address,
 			usd.address,
@@ -276,14 +260,9 @@ describe("Liquidity Pools", async () => {
 				maxExpiry: fmtExpiration(maxExpiry)
 			},
 			await signers[0].getAddress()
-		)
-		const lpReceipt = await lp.wait(1)
-		const events = lpReceipt.events
-		const createEvent = events?.find(x => x.event == "LiquidityPoolCreated")
-		const strikeAsset = createEvent?.args?.strikeAsset
-		const lpAddress = createEvent?.args?.lp
-		expect(createEvent?.event).to.eq("LiquidityPoolCreated")
-		expect(strikeAsset).to.eq(usd.address)
+		)) as LiquidityPool
+
+		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
 	})
@@ -570,7 +549,25 @@ describe("Liquidity Pools", async () => {
 		]
 		//@ts-ignore
 		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		const lp = await liquidityPools.createLiquidityPool(
+
+		const normDistFactory = await ethers.getContractFactory("NormalDist", {
+			libraries: {}
+		})
+		const normDist = await normDistFactory.deploy()
+		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+			libraries: {
+				NormalDist: normDist.address
+			}
+		})
+		const blackScholesDeploy = await blackScholesFactory.deploy()
+
+		const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
+			libraries: {
+				BlackScholes: blackScholesDeploy.address
+			}
+		})
+		const lp = await liquidityPoolFactory.deploy(
+			optionProtocol.address,
 			usd.address,
 			weth.address,
 			weth.address,
@@ -589,14 +586,7 @@ describe("Liquidity Pools", async () => {
 			},
 			await signers[0].getAddress()
 		)
-		const receipt = await lp.wait(1)
-		const events = receipt.events
-		const createEvent = events?.find(x => x.event == "LiquidityPoolCreated")
-		const strikeAsset = createEvent?.args?.strikeAsset
-		const lpAddress = createEvent?.args?.lp
-
-		expect(createEvent?.event).to.eq("LiquidityPoolCreated")
-
+		const lpAddress = lp.address
 		ethLiquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		const collateralAsset = await ethLiquidityPool.collateralAsset()
 		expect(collateralAsset).to.eq(weth.address)

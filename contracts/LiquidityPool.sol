@@ -380,10 +380,12 @@ contract LiquidityPool is
       if (collateralAmount > normalizedCollateralBalance) {
         console.log("fired3");
         // if there still arent enough funds then revert or TODO: return partial amount
+        // return 1;
         revert("Insufficient funds for a full withdrawal");
+        console.log("fired4");
       }
     }
-    console.log("fired4");
+    console.log("fired5");
     transferCollateralAmount = OptionsCompute.convertToDecimals(collateralAmount, _decimals);
     // burn the shares
     _burn(msg.sender, _shares);
