@@ -39,11 +39,6 @@ describe("Price Feed", async () => {
 			WETH_ADDRESS[chainId]
 		)) as WETH
 		usd = (await ethers.getContractAt("ERC20", USDC_ADDRESS[chainId])) as MintableERC20
-		//const Weth = await ethers.getContractFactory(
-		//  'contracts/tokens/WETH.sol:WETH',
-		// )
-		//const wethContract = (await Weth.deploy()) as WETH
-		//weth = wethContract
 		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
 
 		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")

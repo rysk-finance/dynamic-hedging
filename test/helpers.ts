@@ -7,12 +7,14 @@ import {
   ORACLE_LOCKING_PERIOD,
   ORACLE_OWNER,
   USDC_ADDRESS,
+  WETH_ADDRESS,
 } from "./constants";
 import { BigNumber,Contract } from "ethers";
-
 const { provider } = ethers;
 const { parseEther } = ethers.utils;
 const chainId = 1;
+import {MockChainlinkAggregator} from "../types/MockChainlinkAggregator";
+import {ChainLinkPricer} from "../types/ChainLinkPricer";
 
 export async function whitelistProduct(
   underlying: string,
@@ -93,20 +95,70 @@ await oracle
   return oracle;
 }
 
+export async function setupTestOracle(
+  signerAddress: string,
+) {
+  const signer = await provider.getSigner(signerAddress);
+
+  await hre.network.provider.request({
+    method: "hardhat_impersonateAccount",
+    params: [ORACLE_OWNER[chainId]],
+  });
+
+  const oracle = await ethers.getContractAt(
+    "Oracle",
+    GAMMA_ORACLE[chainId],
+  );
+
+  const oracleOwnerSigner = await provider.getSigner(ORACLE_OWNER[chainId]);
+
+  await signer.sendTransaction({
+    to: ORACLE_OWNER[chainId],
+    value: parseEther("0.5"),
+  });
+  await oracle
+    .connect(oracleOwnerSigner)
+    .setStablePrice(USDC_ADDRESS[chainId], "100000000");
+  const newAggInstance = await ethers.getContractFactory("MockChainlinkAggregator");
+  const aggregator = (await newAggInstance.deploy()) as MockChainlinkAggregator
+  const newPricerInstance = await ethers.getContractFactory("ChainLinkPricer");
+  const pricer = (await newPricerInstance.deploy(
+        signerAddress,
+        WETH_ADDRESS[chainId],
+        aggregator.address,
+        oracle.address
+    )) as ChainLinkPricer
+const price = await oracle.getPrice(WETH_ADDRESS[chainId])
+await oracle
+    .connect(oracleOwnerSigner)
+    .setAssetPricer(await pricer.asset(), pricer.address);
+const forceSendContract = await ethers.getContractFactory("ForceSend");
+const forceSend = await forceSendContract.deploy(); // force Send is a contract that forces the sending of Ether to WBTC minter (which is a contract with no receive() function)
+await forceSend
+      .connect(signer)
+      .go(pricer.address, { value: parseEther("0.5") });
+await aggregator.setLatestAnswer(price)
+  return [oracle, aggregator, pricer.address];
+}
+
 export async function setOpynOracleExpiryPrice(
   asset: string,
   oracle: Contract,
   expiry: number,
-  settlePrice: BigNumber
+  settlePrice: BigNumber,
+  pricer?: string
 ) {
   await increaseTo(expiry + ORACLE_LOCKING_PERIOD + 100);
-  const oracleOwner = CHAINLINK_WETH_PRICER[chainId];
+  if (pricer == undefined) [
+    pricer = CHAINLINK_WETH_PRICER[chainId]
+  ]
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
-    params: [oracleOwner],
+    params: [pricer],
   });
-  const oracleOwnerSigner = await provider.getSigner(oracleOwner);
-  const res = await oracle.connect(oracleOwnerSigner).setExpiryPrice(asset, expiry, settlePrice);
+  const pricerSigner = await provider.getSigner(pricer);
+  const res = await oracle.connect(pricerSigner).setExpiryPrice(asset, expiry, settlePrice);
+
   const receipt = await res.wait();
   const timestamp = (await provider.getBlock(receipt.blockNumber)).timestamp;
 

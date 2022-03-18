@@ -6,10 +6,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IMarginCalculator.sol";
 import { Types } from "./libraries/Types.sol";
 import "./interfaces/AddressBookInterface.sol";
-import { IController} from "./interfaces/GammaInterface.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
-import { OpynInteractionsV2 } from "./libraries/OpynInteractionsV2.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
+import { OpynInteractionsV2 } from "./libraries/OpynInteractionsV2.sol";
+import { IController, GammaTypes} from "./interfaces/GammaInterface.sol";
 import "hardhat/console.sol";
 
 contract OptionRegistryV2 is Ownable {
@@ -17,15 +17,14 @@ contract OptionRegistryV2 is Ownable {
     // public versioning of the contract for external use
     string public constant VERSION = "1.0";
     uint8 private constant OPYN_DECIMALS = 8;
-    // address of the usd asset used
-    // TODO: maybe make into flexible usd
-    address internal usd;
     // address of the opyn oTokenFactory for oToken minting
     address internal oTokenFactory;
     // address of the gammaController for oToken operations
     address internal gammaController;
+    // address of the collateralAsset
+    address public immutable collateralAsset;
     // address of the opyn addressBook for accessing important opyn modules
-    AddressBookInterface internal addressBook;
+    AddressBookInterface internal immutable addressBook;
     // address of the marginPool, contract for storing options collateral
     address internal marginPool;
     // address of the rysk liquidity pools
@@ -39,10 +38,13 @@ contract OptionRegistryV2 is Ownable {
     // vault counter
     uint64 public vaultCount;
     // max health threshold in e6 decimals
-    uint64 public upperHealthFactor = 1000000000;
+    uint64 public upperHealthFactor = 13_000;
     // min health threshold in e6 decimals
-    uint64 public lowerHealthFactor = 800000000;
-  
+    uint64 public lowerHealthFactor = 11_000;
+    // BIPS
+    uint256 MAX_BPS = 10_000;
+    //
+    address public authorised;
     // used to convert e18 to e8
     uint256 private constant SCALE_FROM = 10**10;
 
@@ -60,8 +62,16 @@ contract OptionRegistryV2 is Ownable {
         _;
     }
 
-    constructor(address usdToken, address _oTokenFactory, address _gammaController, address _marginPool, address _liquidityPool, address _addressBook) {
-      usd = usdToken;
+    /**
+     * @dev Throws if called by any account other than authorised.
+     */
+    modifier onlyAuthorised() {
+        require(msg.sender == owner() || msg.sender == authorised, "!authorised" );
+        _;
+    }
+
+    constructor(address _collateralAsset, address _oTokenFactory, address _gammaController, address _marginPool, address _liquidityPool, address _addressBook) {
+      collateralAsset = _collateralAsset;
       oTokenFactory = _oTokenFactory;
       gammaController = _gammaController;
       marginPool = _marginPool;
@@ -79,6 +89,14 @@ contract OptionRegistryV2 is Ownable {
      */
     function setLiquidityPool(address _newLiquidityPool) external onlyOwner {
       liquidityPool = _newLiquidityPool;
+    }
+
+    /**
+     * @notice Set the authorised address
+     * @param  _newAuthorised set the authorised address
+     */
+    function setAuthorised(address _newAuthorised) external onlyOwner {
+     authorised = _newAuthorised;
     }
 
     /**
@@ -254,7 +272,8 @@ contract OptionRegistryV2 is Ownable {
           IERC20(series.collateral).decimals(),
           series.isPut
         );
-        // add in logic for increasing the collateral requirement depending on the liquidation health factor here, probably want to default to 100% health factor.
+        // based on this collateral requirement and the health factor get the amount to deposit
+        collateralAmount = ((collateralAmount * upperHealthFactor) / MAX_BPS);
         // transfer collateral to this contract, collateral will depend on the option type
         SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
       return collateralAmount;
@@ -267,30 +286,98 @@ contract OptionRegistryV2 is Ownable {
     /**
      * @notice check the health of a specific vault to see if it requires collateral
      * @param  vaultId the id of the vault to check
-     * @return bool to determine whether the vault needs topping up
-     * @return bool to determine whether the vault is too overcollateralised
-     * @return the health factor of the vault in e6 decimal
-     * @return the amount of collateral required to return the vault back to normal
+     * @return isBelowMin bool to determine whether the vault needs topping up
+     * @return isAboveMax bool to determine whether the vault is too overcollateralised
+     * @return healthFactor the health factor of the vault in MAX_BPS format
+     * @return collatRequired the amount of collateral required to return the vault back to normal
+     * @return collatAsset the address of the collateral asset
      */
-    function checkVaultHealth(uint256 vaultId) public view returns (bool, bool, uint256, uint256) {
+    function checkVaultHealth(uint256 vaultId) public view returns (bool isBelowMin, bool isAboveMax, uint256 healthFactor, uint256 collatRequired, address collatAsset) {
       // run checks on the vault health
-      // if the vault health is above a certain threshold then the vault is above safe margins and needs to lose some collateral
-      // if the vault health is below a certain threshold then the vault is below safe margins and needs to gain some collateral
+      // get the vault details from the vaultId
+      GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
+      // get the series
+      Types.OptionSeries memory series = seriesInfo[vault.shortOtokens[0]];
+      // get the MarginRequired
+      IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
+      uint256 marginReq = marginCalc.getNakedMarginRequired(
+          series.underlying,
+          series.strikeAsset,
+          series.collateral,
+          vault.shortAmounts[0],
+          series.strike,
+          IOracle(addressBook.getOracle()).getPrice(series.underlying),
+          series.expiration,
+          IERC20(series.collateral).decimals(),
+          series.isPut
+        );
+      // get the amount held in the vault
+      uint256 collatAmount = vault.collateralAmounts[0];
+      // divide the amount held in the vault by the margin requirements to get the health factor
+      healthFactor = (collatAmount * MAX_BPS) / marginReq;
+      // if the vault health is above a certain threshold then the vault is above safe margins and collateral can be withdrawn
+      if (healthFactor > upperHealthFactor) {
+        isAboveMax = true;
+        // calculate the margin to remove from the vault
+        collatRequired = collatAmount - ((marginReq * upperHealthFactor) / MAX_BPS);
+      } else if (healthFactor < lowerHealthFactor) {
+        isBelowMin = true;
+        // calculate the margin to add to the vault
+        collatRequired = ((marginReq * upperHealthFactor) / MAX_BPS) - collatAmount;
+      }
+      collatAsset = series.collateral;
     }
 
     /**
      * @notice adjust the collateral held in a specific vault because of health
      * @param  vaultId the id of the vault to check
      */
-    function adjustVault(uint256 vaultId) external {
-      (bool isBelowMin, bool isAboveMax, uint256 collateralAmount,) = checkVaultHealth(vaultId);
+    function adjustCollateral(uint256 vaultId) external onlyAuthorised {
+      (bool isBelowMin, bool isAboveMax,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
       require(isBelowMin || isAboveMax, "vault is healthy");
       if (isBelowMin) {
+        // transfer the needed collateral to this contract from the liquidityPool
+        SafeTransferLib.safeTransferFrom(collateralAsset, liquidityPool, address(this), collateralAmount);
         // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
+        OpynInteractionsV2.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
       } else if (isAboveMax) {
         // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
+        OpynInteractionsV2.withdrawCollat(gammaController, collateralAsset, collateralAmount, vaultId);
+        // transfer the excess collateral to the liquidityPool from this address
+        SafeTransferLib.safeTransfer(ERC20(collateralAsset), liquidityPool, collateralAmount);
       }
-      
+    }
+
+    /**
+     * @notice adjust the collateral held in a specific vault because of health, using collateral from the caller. Only takes 
+     *         from msg.sender, doesnt give them if vault is above the max.
+     * @param  vaultId the id of the vault to check
+     * @dev    this is a safety function, if worst comes to worse any caller can collateralise a vault to save it.
+     */
+    function adjustCollateralCaller(uint256 vaultId) external onlyAuthorised {
+      (bool isBelowMin,,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
+      require(isBelowMin, "vault is healthy");
+      // transfer the needed collateral to this contract from the msg.sender
+      SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collateralAmount);
+      // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
+      OpynInteractionsV2.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
+    }
+
+    /**
+     * @notice withdraw collateral from a fully liquidated vault
+     * @param  vaultId the id of the vault to check
+     * @dev    this is a safety function, if a vault is liquidated.
+     */
+    function wCollatLiquidatedVault(uint256 vaultId) external onlyAuthorised {
+      // get the vault details from the vaultId
+      GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
+      require(vault.shortAmounts[0] == 0, "Vault has short positions [amount]");
+      require(vault.shortOtokens[0] == address(0), "Vault has short positions [token]");
+      require(vault.collateralAmounts[0] > 0, "Vault has no collateral");
+      // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
+      OpynInteractionsV2.withdrawCollat(gammaController, vault.collateralAssets[0], vault.collateralAmounts[0], vaultId);
+      // transfer the excess collateral to the liquidityPool from this address
+      SafeTransferLib.safeTransfer(ERC20(vault.collateralAssets[0]), liquidityPool, vault.collateralAmounts[0]);
     }
   /*********
     GETTERS
