@@ -18,7 +18,7 @@ import {OracleInterface} from "../interfaces/OracleInterface.sol";
 import {WhitelistInterface} from "../interfaces/WhitelistInterface.sol";
 import {MarginPoolInterface} from "../interfaces/MarginPoolInterface.sol";
 import {CalleeInterface} from "../interfaces/CalleeInterface.sol";
-
+import "hardhat/console.sol";
 /**
  * Controller Error Codes
  * C1: sender is not full pauser
@@ -994,13 +994,12 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
 
         // amount of collateral to offer to liquidator
         uint256 collateralToSell = _args.amount.mul(price).div(1e8);
-
+        console.log(collateralToSell);
         // if vault is partially liquidated (amount of short otoken is still greater than zero)
         // make sure remaining collateral amount is greater than dust amount
         if (vault.shortAmounts[0].sub(_args.amount) > 0) {
             require(vault.collateralAmounts[0].sub(collateralToSell) >= collateralDust, "C34");
         }
-
         // burn short otoken from liquidator address, index of short otoken hardcoded at 0
         // this should always work, if vault have no short otoken, it will not reach this step
         OtokenInterface(vault.shortOtokens[0]).burnOtoken(msg.sender, _args.amount);

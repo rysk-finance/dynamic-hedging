@@ -192,7 +192,7 @@ library OpynInteractionsV2 {
         IController.ActionArgs[] memory actions =
                 new IController.ActionArgs[](1);
 
-            actions[1] = IController.ActionArgs(
+            actions[0] = IController.ActionArgs(
                 IController.ActionType.DepositCollateral,
                 address(this), // owner
                 address(this), // address to transfer from
@@ -224,7 +224,7 @@ library OpynInteractionsV2 {
         IController.ActionArgs[] memory actions =
                 new IController.ActionArgs[](1);
 
-            actions[1] = IController.ActionArgs(
+            actions[0] = IController.ActionArgs(
                 IController.ActionType.WithdrawCollateral,
                 address(this), // owner
                 address(this), // address to transfer to

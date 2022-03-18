@@ -328,9 +328,6 @@ contract OptionRegistryV2 is Ownable {
       collatAsset = series.collateral;
     }
 
-     // TODO: think of more elegant way for managing this function (ideally should be an open function but potential attack vectors havent been completely explored)
-     //       so it is a "keeper" based function for now
-     // TODO: in tests make sure to check scenarios where vaults might not exist
     /**
      * @notice adjust the collateral held in a specific vault because of health
      * @param  vaultId the id of the vault to check
@@ -347,7 +344,7 @@ contract OptionRegistryV2 is Ownable {
         // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
         OpynInteractionsV2.withdrawCollat(gammaController, collateralAsset, collateralAmount, vaultId);
         // transfer the excess collateral to the liquidityPool from this address
-        SafeTransferLib.safeTransferFrom(collateralAsset, address(this), liquidityPool, collateralAmount);
+        SafeTransferLib.safeTransfer(ERC20(collateralAsset), liquidityPool, collateralAmount);
       }
     }
 
@@ -364,6 +361,23 @@ contract OptionRegistryV2 is Ownable {
       SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collateralAmount);
       // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
       OpynInteractionsV2.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
+    }
+
+    /**
+     * @notice withdraw collateral from a fully liquidated vault
+     * @param  vaultId the id of the vault to check
+     * @dev    this is a safety function, if a vault is liquidated.
+     */
+    function wCollatLiquidatedVault(uint256 vaultId) external onlyAuthorised {
+      // get the vault details from the vaultId
+      GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
+      require(vault.shortAmounts[0] == 0, "Vault has short positions [amount]");
+      require(vault.shortOtokens[0] == address(0), "Vault has short positions [token]");
+      require(vault.collateralAmounts[0] > 0, "Vault has no collateral");
+      // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
+      OpynInteractionsV2.withdrawCollat(gammaController, vault.collateralAssets[0], vault.collateralAmounts[0], vaultId);
+      // transfer the excess collateral to the liquidityPool from this address
+      SafeTransferLib.safeTransfer(ERC20(vault.collateralAssets[0]), liquidityPool, vault.collateralAmounts[0]);
     }
   /*********
     GETTERS
