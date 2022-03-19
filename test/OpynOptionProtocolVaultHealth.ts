@@ -427,11 +427,18 @@ describe("Options protocol Vault Health", function () {
 			false,
 		))
 		marginReq = ((await optionRegistry.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		let [isBelowMin0, isAboveMax0, healthFactor0, collateralAmount0, collateralAsset0 ] = await optionRegistry.checkVaultHealth(1);
 		await optionRegistrySender.close(optionTokenUSDC.address, value)
+
+		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(1);
 		const balance = await optionTokenUSDC.balanceOf(senderAddress)
 		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
 		const usdBalance = await usd.balanceOf(senderAddress)
 		expect((usdBalance.sub(usdBalanceBefore)).sub(marginReq)).to.be.within(-1,1)
+		expect(isBelowMin).to.eq(isBelowMin0)
+		expect(isAboveMax).to.eq(isAboveMax0)
+		expect(healthFactor).to.eq(healthFactor0)
+		expect(collateralAmount).to.eq(collateralAmount0)
 	})
 	it("liquidityPool close and transaction succeeds ETH options", async () => {
 		const [sender, receiver] = signers
@@ -489,6 +496,46 @@ describe("Options protocol Vault Health", function () {
 		expect(healthFactor).to.not.equal(healthFBefore)
 		expect(healthF).to.equal(healthFactor)
 	}) 
+	it("liquidityPool close and transaction succeeds", async () => {
+		const [sender, receiver] = signers
+		const value = toWei("1")
+		const balanceBef = await optionTokenUSDC.balanceOf(senderAddress)
+		const optionRegistrySender = optionRegistry.connect(sender)
+		await optionTokenUSDC.approve(optionRegistry.address, value.div(oTokenDecimalShift18))
+		const usdBalanceBefore = await usd.balanceOf(senderAddress)
+		const underlyingPrice = (await oracle.getPrice(weth.address))
+		let [isBelowMin0, isAboveMax0, healthFactor0, collateralAmount0, collateralAsset0 ] = await optionRegistry.checkVaultHealth(1);
+		let marginReq = (await newCalculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			usd.address,
+			value.div(oTokenDecimalShift18),
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			6,
+			false,
+		))
+		// health factor is different here because the health factor of the vault has moved
+		marginReq = (healthFactor0.mul(marginReq)).div(MAX_BPS)
+		const vaultDetails = await controller.getVault(optionRegistry.address, 1)
+		const valueTot = vaultDetails.shortAmounts[0]
+		const collatAmounts = vaultDetails.collateralAmounts[0]
+		const valAdapt = value.div(oTokenDecimalShift18)
+		const redeem = (collatAmounts.mul(valAdapt)).div(valueTot)
+		await optionRegistrySender.close(optionTokenUSDC.address, value)
+
+		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(1);
+
+		const balance = await optionTokenUSDC.balanceOf(senderAddress)
+		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
+		const usdBalance = await usd.balanceOf(senderAddress)
+		expect((usdBalance.sub(usdBalanceBefore)).sub(redeem)).to.be.within(-1,1)
+		expect(isBelowMin).to.eq(isBelowMin0)
+		expect(isAboveMax).to.eq(isAboveMax0)
+		expect(healthFactor).to.eq(healthFactor0)
+		expect(collateralAmount).to.eq(collateralAmount0)
+	})
 	it("moves the price and changes vault health ETH", async () => {
 		const currentPrice = await oracle.getPrice(weth.address)
 		const arr = await optionRegistryETH.checkVaultHealth(1)
