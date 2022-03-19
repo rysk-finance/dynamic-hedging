@@ -25,7 +25,7 @@ import {
     ADDRESS_BOOK,
     GAMMA_ORACLE_NEW,
 } from "./constants"
-import { setupOracle, setOpynOracleExpiryPrice, setupTestOracle } from "./helpers"
+import { setupOracle, setOpynOracleExpiryPrice, setupTestOracle, increase } from "./helpers"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { AbiCoder } from "ethers/lib/utils"
 import { Z_RLE } from "zlib"
@@ -210,6 +210,7 @@ describe("Options protocol Vault Health", function () {
 		})
 		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
 		await usd.connect(signer).transfer(senderAddress, toWei("1000000").div(oTokenDecimalShift18))
+		await usd.connect(signer).transfer(receiverAddress, toWei("1000000").div(oTokenDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
@@ -1177,6 +1178,9 @@ describe("Options protocol Vault Health", function () {
 		)
 		const currentPrice = await oracle.getPrice(weth.address)
 		const settlePrice = currentPrice.sub(toWei("500").div(oTokenDecimalShift18))
+		await aggregator.setLatestAnswer(settlePrice)
+		await aggregator.setRoundAnswer(6, settlePrice)
+		await aggregator.setRoundTimestamp(6)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
 		const events = receipt.events
@@ -1193,7 +1197,7 @@ describe("Options protocol Vault Health", function () {
 		const currentPrice = await oracle.getPrice(weth.address)
 		const arr = await optionRegistry.checkVaultHealth(4)
 		const healthFBefore = arr[2]
-		const settlePrice = currentPrice.add(toWei("500").div(oTokenDecimalShift18))
+		const settlePrice = currentPrice.add(toWei("800").div(oTokenDecimalShift18))
 		await aggregator.setLatestAnswer(settlePrice)
 		await aggregator.setRoundAnswer(6, settlePrice)
 		await aggregator.setRoundTimestamp(6)
@@ -1232,9 +1236,9 @@ describe("Options protocol Vault Health", function () {
 		const [sender, receiver] = signers
 		const vaultDetails = await controller.getVault(optionRegistry.address, 4)
 		const value = vaultDetails.shortAmounts[0]
-		const liqBalBef = await usd.balanceOf(senderAddress)
+		const liqBalBef = await usd.balanceOf(receiverAddress)
 		const collatAmountsBef = vaultDetails.collateralAmounts[0]
-		const liqOpBalBef = await optionTokenUSDC.balanceOf(senderAddress)
+		const liqOpBalBef = await optionTokenUSDC.balanceOf(receiverAddress)
 		const abiCode = new AbiCoder
 		const currentPrice = await oracle.getPrice(weth.address)
 		let marginReq = (await newCalculator.getNakedMarginRequired(
@@ -1248,6 +1252,8 @@ describe("Options protocol Vault Health", function () {
 			6,
 			false,
 		))
+		increase(1500)
+		await usd.connect(receiver).approve(MARGIN_POOL[chainId], marginReq.add(1))
 		const mintLiquidateArgs = [
 			{
 			  actionType: 0,
@@ -1260,7 +1266,7 @@ describe("Options protocol Vault Health", function () {
 			  data: abiCode.encode(['uint256'], ['1']),
 			},
 			{
-				actionType: 6,
+				actionType: 5,
 				owner: receiverAddress,
 				secondAddress: receiverAddress,
 				asset: usd.address,
@@ -1270,35 +1276,35 @@ describe("Options protocol Vault Health", function () {
 				data: ZERO_ADDRESS,
 			},
 			{
-			  actionType: 1,
-			  owner: receiverAddress,
-			  secondAddress: receiverAddress,
-			  asset: optionTokenUSDC.address,
-			  vaultId: 1,
-			  amount: value,
-			  index: 0,
-			  data: ZERO_ADDRESS,
-			},
-			{
-			  actionType: 10,
-			  owner: optionRegistry.address,
-			  secondAddress: receiverAddress,
-			  asset: ZERO_ADDRESS,
-			  vaultId: 4,
-			  amount: value,
-			  index: 0,
-			  data: abiCode.encode(['uint256'], ['6']),
-			},
-
+				actionType: 1,
+				owner: receiverAddress,
+				secondAddress: receiverAddress,
+				asset: optionTokenUSDC.address,
+				vaultId: 1,
+				amount: value,
+				index: 0,
+				data: ZERO_ADDRESS,
+			  },
+			  {
+				actionType: 10,
+				owner: optionRegistry.address,
+				secondAddress: receiverAddress,
+				asset: optionTokenUSDC.address,
+				vaultId: 4,
+				amount: value,
+				index: 0,
+				data: abiCode.encode(['uint256'], ['6'])
+			  },
 		  ]
 		await controller.connect(receiver).operate(mintLiquidateArgs)
 		const vaultDetailsNew = await controller.getVault(optionRegistry.address, 4)
 		const valueNew = vaultDetailsNew.shortAmounts[0]
 		const collatAmountsNew = vaultDetailsNew.collateralAmounts[0]
-		const liqBalAf = await usd.balanceOf(senderAddress)
-		const liqOpBalAf = await optionTokenUSDC.balanceOf(senderAddress)
-		expect(liqBalBef).to.be.lt(liqBalAf)
-		expect(liqOpBalBef).to.be.gt(liqOpBalAf)
+		const liqBalAf = await usd.balanceOf(receiverAddress)
+		const liqBalAft = await usd.balanceOf(senderAddress)
+		const liqOpBalAf = await optionTokenUSDC.balanceOf(receiverAddress)
+		expect(liqBalBef).to.be.gt(liqBalAf)
+		expect(liqOpBalBef).to.equal(liqOpBalAf)
 		expect(liqOpBalAf).to.eq(0)
 		expect(value).to.be.gt(valueNew)
 		expect(valueNew).to.eq(0)
@@ -1308,6 +1314,6 @@ describe("Options protocol Vault Health", function () {
 		const collatAmounts3 = vaultDetails3.collateralAmounts[0]
 		expect(collatAmounts3).to.eq(0)
 		const usdBalAft = await usd.balanceOf(senderAddress)
-		expect(usdBalAft.sub(liqBalAf)).to.eq(collatAmountsNew)
+		expect(usdBalAft.sub(liqBalAft)).to.eq(collatAmountsNew)
 	})
 })

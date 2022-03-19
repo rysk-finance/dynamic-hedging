@@ -796,7 +796,6 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
 
             require(nakedPoolBalance[_args.asset] <= nakedCap[_args.asset], "C37");
         }
-
         vaults[_args.owner][_args.vaultId].addCollateral(_args.asset, _args.amount, _args.index);
 
         pool.transferToPool(_args.asset, _args.from, _args.amount);
@@ -994,7 +993,6 @@ contract Controller is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrade
 
         // amount of collateral to offer to liquidator
         uint256 collateralToSell = _args.amount.mul(price).div(1e8);
-        console.log(collateralToSell);
         // if vault is partially liquidated (amount of short otoken is still greater than zero)
         // make sure remaining collateral amount is greater than dust amount
         if (vault.shortAmounts[0].sub(_args.amount) > 0) {
