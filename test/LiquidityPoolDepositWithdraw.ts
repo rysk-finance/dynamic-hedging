@@ -372,6 +372,6 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const shares = await liquidityPool.balanceOf(receiverAddress)
 		const liquidityPoolReceiver = liquidityPool.connect(receiver)
 		const withdraw = liquidityPoolReceiver.withdraw(shares, receiverAddress)
-		await expect(withdraw).to.be.revertedWith("Insufficient funds for a full withdrawal")
+		await expect(withdraw).to.be.revertedWith("WithdrawExceedsLiquidity()")
 	})
 })

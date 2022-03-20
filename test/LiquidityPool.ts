@@ -67,7 +67,7 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-03-27"
+const expiryDate: string = "2022-04-30"
 
 const invalidExpiryDateLong: string = "2024-09-03"
 const invalidExpiryDateShort: string = "2022-03-14"
@@ -132,7 +132,6 @@ describe("Liquidity Pools", async () => {
 		signers = await ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
-		console.log("balance:", await signers[1].getBalance())
 		// deploy libraries
 		const constantsFactory = await ethers.getContractFactory("Constants")
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
@@ -910,11 +909,10 @@ describe("Liquidity Pools", async () => {
 
 	it("LP can not redeems shares when in excess of liquidity", async () => {
 		const [sender, receiver] = signers
-		console.log("balance:", await signers[1].getBalance())
 
 		const shares = await liquidityPool.balanceOf(receiverAddress)
 		const liquidityPoolReceiver = liquidityPool.connect(receiver)
 		const withdraw = liquidityPoolReceiver.withdraw(shares, receiverAddress)
-		await expect(withdraw).to.be.revertedWith("Insufficient funds for a full withdrawal")
+		await expect(withdraw).to.be.revertedWith("WithdrawExceedsLiquidity()")
 	})
 })
