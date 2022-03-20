@@ -9,11 +9,12 @@ import "./libraries/BlackScholes.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import { Constants } from "./libraries/Constants.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "hardhat/console.sol";
 
@@ -22,12 +23,14 @@ error MinUnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 unde
 error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
 error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
 error DeltaQuoteError(uint256 quote, int256 delta);
+error WithdrawExceedsLiquidity();
 
 contract LiquidityPool is
   ERC20,
   Ownable,
   AccessControl,
-  ReentrancyGuard
+  ReentrancyGuard,
+  Pausable
 {
   using PRBMathSD59x18 for int256;
   using PRBMathUD60x18 for uint256;
@@ -138,6 +141,14 @@ contract LiquidityPool is
     optionParams.maxExpiry = _optionParams.maxExpiry;
     maxTotalSupply = type(uint256).max;
     emit UnderlyingAdded(underlyingAddress);
+  }
+
+  function pauseContract() public onlyOwner{
+    _pause();
+  }
+
+  function unpause() public onlyOwner{
+    _unpause();
   }
 
   function addBuybackAddress(address _addressToWhitelist) public onlyOwner {
@@ -316,6 +327,7 @@ contract LiquidityPool is
     address _recipient
     )
     external
+    whenNotPaused()
     returns(uint shares)
   {
     require(_amount > 0, "!_amount");
@@ -342,6 +354,7 @@ contract LiquidityPool is
     address _recipient
   )
     external
+    whenNotPaused()
     returns(uint transferCollateralAmount)
   {
     require(_shares > 0, "!shares");
@@ -352,7 +365,6 @@ contract LiquidityPool is
     (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);               
     if (collateralAmount > normalizedCollateralBalance) {
       uint256 amountNeeded = collateralAmount - normalizedCollateralBalance;
-
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         amountNeeded -= IHedgingReactor(hedgingReactors[i]).withdraw(amountNeeded, collateralAsset);
         if (amountNeeded == 0) {
@@ -363,7 +375,7 @@ contract LiquidityPool is
       (normalizedCollateralBalance,, _decimals) = getNormalizedBalance(collateralAsset);
       if (collateralAmount > normalizedCollateralBalance) {
         // if there still arent enough funds then revert or TODO: return partial amount
-        revert("Insufficient funds for a full withdrawal");
+        revert WithdrawExceedsLiquidity();
       }
     }
     transferCollateralAmount = OptionsCompute.convertToDecimals(collateralAmount, _decimals);
@@ -705,7 +717,7 @@ contract LiquidityPool is
   @param delta the current portfolio delta
    */
   function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex)
-    public onlyRole(ADMIN_ROLE)
+    public onlyRole(ADMIN_ROLE) whenNotPaused()
   { 
       if(abs(delta) > dustValue) {
       // TODO check to see if we can be paid to open a position using derivatives using funding rate
@@ -822,7 +834,7 @@ contract LiquidityPool is
   function issueAndWriteOption(
      Types.OptionSeries memory optionSeries,
      uint amount
-  ) public payable returns (uint optionAmount, address series)
+  ) public payable whenNotPaused() returns (uint optionAmount, address series)
   {
     // check the strike and expiry are within allowed bounds
     require(optionParams.minExpiry <= optionSeries.expiration && optionSeries.expiration <= optionParams.maxExpiry, "invalid expiry");
@@ -856,6 +868,7 @@ contract LiquidityPool is
   )
     public
     payable
+    whenNotPaused()
     returns (uint256)
   {
     OptionRegistry optionRegistry = getOptionRegistry();
@@ -909,7 +922,7 @@ contract LiquidityPool is
   function buybackOption(
     Types.OptionSeries memory optionSeries,
     uint amount
-  ) public nonReentrant returns (uint256){
+  ) public nonReentrant whenNotPaused() returns (uint256){
      if (!buybackWhitelist[msg.sender]){
       // address is not on the whitelist
       //TODO run some checks to determine if we want to buy this option back
