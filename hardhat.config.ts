@@ -110,7 +110,7 @@ module.exports = {
 	},
 	gasReporter: {
 		currency: "USD",
-		gasPrice: 44,
+		gasPrice: 44
 	},
 	paths: {
 		sources: path.join(__dirname, "contracts"),
