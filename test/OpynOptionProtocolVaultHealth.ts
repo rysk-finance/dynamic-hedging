@@ -683,7 +683,7 @@ describe("Options protocol Vault Health", function () {
 		const currentPrice = await oracle.getPrice(weth.address)
 		const arr = await optionRegistryETH.checkVaultHealth(1)
 		const healthFBefore = arr[2]
-		const settlePrice = currentPrice.add(toWei("100").div(oTokenDecimalShift18))
+		const settlePrice = currentPrice.add(toWei("300").div(oTokenDecimalShift18))
 		await aggregator.setLatestAnswer(settlePrice)
 		await aggregator.setRoundAnswer(4, settlePrice)
 		await aggregator.setRoundTimestamp(4)
