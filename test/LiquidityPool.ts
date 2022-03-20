@@ -395,7 +395,7 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await expect(liquidityPool.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
-			"invalid expiry"
+			"OptionExpiryInvalid()"
 		)
 		// series with expiry too short
 		const proposedSeries2 = {
@@ -407,7 +407,7 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await expect(liquidityPool.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
-			"invalid expiry"
+			"OptionExpiryInvalid()"
 		)
 	})
 	it("reverts when attempting to write a ETH/USD put with strike outside of limit", async () => {
@@ -428,7 +428,7 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await expect(liquidityPool.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
-			"invalid strike price"
+			"OptionStrikeInvalid()"
 		)
 		// Series with strike price too low
 
@@ -441,7 +441,7 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await expect(liquidityPool.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
-			"invalid strike price"
+			"OptionStrikeInvalid()"
 		)
 	})
 	it("LP Writes a ETH/USD put for premium", async () => {

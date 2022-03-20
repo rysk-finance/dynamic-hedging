@@ -18,12 +18,21 @@ import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 
 import "hardhat/console.sol";
 
-error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
-error MinUnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingAmountMin);
-error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
-error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
-error DeltaQuoteError(uint256 quote, int256 delta);
+error IVNotFound();
+error InvalidAmount();
+error InvalidShareAmount();
+error TotalSupplyReached();
+error StrikeAssetInvalid();
+error OptionStrikeInvalid();
+error OptionExpiryInvalid();
+error CollateralAssetInvalid();
+error CollateralAmountInvalid();
 error WithdrawExceedsLiquidity();
+error DeltaQuoteError(uint256 quote, int256 delta);
+error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
+error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
+error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
+error MinUnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingAmountMin);
 
 contract LiquidityPool is
   ERC20,
@@ -330,16 +339,16 @@ contract LiquidityPool is
     whenNotPaused()
     returns(uint shares)
   {
-    require(_amount > 0, "!_amount");
+    if (_amount == 0) {revert InvalidAmount();}
     // Calculate shares to mint based on the amount provided
     (shares) = _sharesForAmount(_amount);
-    require(shares > 0, "!shares");
+    if (shares == 0) {revert InvalidShareAmount();}
     // Pull in tokens from sender
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _amount);
     // mint lp token to recipient
     _mint(_recipient, shares);
     emit Deposit(_recipient, _amount, shares);
-    require(totalSupply <= maxTotalSupply, "maxTotalSupply");
+    if (totalSupply > maxTotalSupply) {revert TotalSupplyReached();}
   }
 
   /**
@@ -357,7 +366,7 @@ contract LiquidityPool is
     whenNotPaused()
     returns(uint transferCollateralAmount)
   {
-    require(_shares > 0, "!shares");
+    if (_shares == 0) {revert InvalidShareAmount();}
     // get the value of amount for the shares
     uint collateralAmount = _shareValue(_shares);
     // determine if there is enough in the pool to withdraw
@@ -613,8 +622,9 @@ contract LiquidityPool is
   {
     uint underlyingPrice = getUnderlyingPrice(optionSeries);
     uint iv = getImpliedVolatility(optionSeries.isPut, underlyingPrice, optionSeries.strike, optionSeries.expiration);
-    require(iv > 0, "Implied volatility not found");
-    require(optionSeries.expiration > block.timestamp, "Already expired");
+    if (iv == 0) {revert IVNotFound();}
+    // revert if the expiry is in the past
+    if (optionSeries.expiration <= block.timestamp) {revert OptionExpiryInvalid();}
     uint quote = BlackScholes.blackScholesCalc(
        underlyingPrice,
        optionSeries.strike,
@@ -643,11 +653,12 @@ contract LiquidityPool is
   {
       underlyingPrice = getUnderlyingPrice(optionSeries);
       uint iv = getImpliedVolatility(optionSeries.isPut, underlyingPrice, optionSeries.strike, optionSeries.expiration);
-      require(iv > 0, "Implied volatility not found");
+      if (iv == 0) {revert IVNotFound();}
       if (isBuying) {
         iv = iv - bidAskIVSpread;
       }
-      require(optionSeries.expiration > block.timestamp, "Already expired");
+      // revert if the expiry is in the past
+      if (optionSeries.expiration <= block.timestamp) {revert OptionExpiryInvalid();}
       underlyingPrice = getUnderlyingPrice(optionSeries);
       (quote, delta) = BlackScholes.blackScholesCalcGreeks(
        underlyingPrice,
@@ -799,7 +810,7 @@ contract LiquidityPool is
       }
       delta = deltaQuote;
       //@TODO think about more robust considitions for this check
-      if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta); }
+      if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta);}
   }
 
   /**
@@ -837,14 +848,14 @@ contract LiquidityPool is
   ) public payable whenNotPaused() returns (uint optionAmount, address series)
   {
     // check the strike and expiry are within allowed bounds
-    require(optionParams.minExpiry <= optionSeries.expiration && optionSeries.expiration <= optionParams.maxExpiry, "invalid expiry");
+    if (optionParams.minExpiry > optionSeries.expiration || optionSeries.expiration > optionParams.maxExpiry) {revert OptionExpiryInvalid();}
     if(optionSeries.isPut){
-    require(optionParams.minPutStrikePrice <= optionSeries.strike && optionSeries.strike <= optionParams.maxPutStrikePrice, "invalid strike price");
+      if (optionParams.minPutStrikePrice > optionSeries.strike || optionSeries.strike > optionParams.maxPutStrikePrice) {revert OptionStrikeInvalid();}
     } else {
-      (optionParams.minCallStrikePrice <= optionSeries.strike && optionSeries.strike <= optionParams.maxCallStrikePrice, "invalid strike price");
+      if (optionParams.minCallStrikePrice > optionSeries.strike || optionSeries.strike > optionParams.maxCallStrikePrice) {revert OptionStrikeInvalid();}
     }
     OptionRegistry optionRegistry = getOptionRegistry();
-    require(optionSeries.collateral == collateralAsset, "!collateral");
+    if (optionSeries.collateral != collateralAsset) {revert CollateralAssetInvalid();}
     series = optionRegistry.issue(
        optionSeries.underlying,
        optionSeries.strikeAsset,
@@ -875,7 +886,7 @@ contract LiquidityPool is
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // expiration requires conversion back due to option protocol not using PRB floats
     optionSeries.expiration = optionSeries.expiration.fromUint();
-    require(optionSeries.strikeAsset == strikeAsset, "incorrect strike asset");
+    if (optionSeries.strikeAsset != strikeAsset) {revert StrikeAssetInvalid();}
     bool isPut = optionSeries.isPut;
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
@@ -886,8 +897,7 @@ contract LiquidityPool is
     } else if (strikeAsset == collateralAsset) {
       collateralAmount = OptionsCompute.computeEscrow(amount, optionSeries.strike, IERC20(collateralAsset).decimals());
     }
-    
-    require(IERC20(collateralAsset).balanceOf(address(this)) >= collateralAmount, "Insufficient balance for collateral");
+    if (IERC20(collateralAsset).balanceOf(address(this)) < collateralAmount) {revert CollateralAmountInvalid();}
 
     IERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);
     (, collateralAmount) = optionRegistry.open(seriesAddress, amount);
