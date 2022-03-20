@@ -17,6 +17,7 @@ import {
 	PUT,
 	fromUSDC
 } from "../utils/conversion-helper"
+import { computeNewWeights } from "../utils/OptionsCompute"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
@@ -321,7 +322,9 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const amount = toWei(rawAmount.toString())
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
-		const { timestamp } = block
+		const totalAmountPutBefore = await liquidityPool.totalAmountPut()
+		const weightedStrikeBefore = await liquidityPool.weightedStrikePut()
+		const weightedTimeBefore = await liquidityPool.weightedTimePut()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
@@ -349,6 +352,17 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const opynAmount = toOpyn(fromWei(amount))
 		// convert to numeric
 		const escrow = Number(fromWei(strikePrice))
+		const totalAmountPutAfter = await liquidityPool.totalAmountPut()
+		const weightedStrikeAfter = await liquidityPool.weightedStrikePut()
+		const weightedTimeAfter = await liquidityPool.weightedTimePut()
+		const newWeights = computeNewWeights(
+			amount,
+			proposedSeries.strike,
+			proposedSeries.expiration,
+			totalAmountPutBefore,
+			weightedStrikeBefore,
+			weightedTimeBefore
+		)
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote[0]))
@@ -356,6 +370,9 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			Number(fromUSDC(poolBalanceBefore)) + Number(fromWei(quote[0])) - escrow
 		)
 		expect(expectedPoolBalance).to.eq(truncate(Number(fromUSDC(poolBalanceAfter))))
+		expect(totalAmountPutAfter.sub(totalAmountPutBefore)).to.eq(amount)
+		expect(weightedStrikeAfter).to.eq(newWeights.newWeightedStrike)
+		expect(weightedTimeAfter).to.eq(newWeights.newWeightedTime)
 		//@TODO add assertion checking if other state variables are properly updated such as weighted variables
 	})
 })

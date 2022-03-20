@@ -84,8 +84,7 @@ module.exports = {
 			chainId: 1,
 			url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
 			forking: {
-				blockNumber: 12821000,
-				gasLimit: 8e6
+				blockNumber: 12821000
 			}
 		},
 		hardhat: {

@@ -11,25 +11,33 @@ on:
     branches:
       - '**'        # matches every branch
 
+env:
+  ALCHEMY: ${{ secrets.ALCHEMY }}
+  TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
+
 jobs:
   test:
-
     runs-on: ubuntu-latest
-
-    env:
-      ALCHEMY: ${{ secrets.ALCHEMY }}
-
     strategy:
       matrix:
         node-version: [16.13.1]
 
     steps:
     - uses: actions/checkout@v2
+      env:
+        ALCHEMY: ${{ secrets.ALCHEMY }}
+        TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
+    - name: create env file
+      run: |
+        touch .env
+        echo ALCHEMY=${{ secrets.ALCHEMY }} >> .env
+        echo TEST_MNEMONIC=${{ secrets.TEST_MNEMONIC }} >> .env
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
     - run: npm install
     - run: npm run compile
-    - run: npm run test
+    - run: npx hardhat test ./test/BlackScholes.ts
+      # We are currently not running integration tests due to a hardhat prvider error
+      # the error only occurs in GitHub Actions VMs
