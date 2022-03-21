@@ -28,7 +28,6 @@ import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPools } from "../types/LiquidityPools"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
@@ -50,7 +49,6 @@ let optionProtocol: Protocol
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
-let liquidityPools: LiquidityPools
 let liquidityPool: LiquidityPool
 let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
@@ -252,7 +250,6 @@ describe("Liquidity Pools", async () => {
 				minExpiry: fmtExpiration(minExpiry),
 				maxExpiry: fmtExpiration(maxExpiry)
 			},
-			//@ts-ignore
 			await signers[0].getAddress()
 		)) as LiquidityPool
 
@@ -511,12 +508,10 @@ describe("Liquidity Pools", async () => {
 
 	it("reverts when non-admin calls rebalance function", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
-		//@ts-ignore
 		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
 	})
 	it("hedges delta using the uniswap reactor", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
-		//@ts-ignore
 		await liquidityPool.rebalancePortfolioDelta(delta, 0)
 		const newDelta = await liquidityPool.getPortfolioDelta()
 		expect(parseFloat(utils.formatEther(newDelta))).to.be.lt(0.001)
@@ -580,7 +575,6 @@ describe("Liquidity Pools", async () => {
 				minExpiry: fmtExpiration(minExpiry),
 				maxExpiry: fmtExpiration(maxExpiry)
 			},
-			//@ts-ignore
 			await signers[0].getAddress()
 		)
 		const lpAddress = lp.address
@@ -727,7 +721,6 @@ describe("Liquidity Pools", async () => {
 		const callOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		lpCallOption = callOptionToken
 		const buyerOptionBalance = await callOptionToken.balanceOf(senderAddress)
-		//@ts-ignore
 		const totalInterest = await callOptionToken.totalSupply()
 		const writersBalance = await optionRegistry.writers(seriesAddress, ethLiquidityPool.address)
 		const lpUSDBalance = await usd.balanceOf(ethLiquidityPool.address)
