@@ -975,4 +975,29 @@ contract LiquidityPool is
     SafeTransferLib.safeTransfer(ERC20(strikeAsset), msg.sender, OptionsCompute.convertToDecimals(premium, IERC20(strikeAsset).decimals()));
     return amount;
   }
+
+  /**
+    @notice sells a number of options from the pool to a specified user. The function
+            is intended to be used to issue options to market makers/ OTC market participants
+            in order to have flexibility and customisability on option issuance and market 
+            participant UX.
+    @param _optionSeries the option token series to issue
+    @param _amount the number of options to issue
+    @param _price the price per unit to issue at
+    @param _buyerAddress the agreed upon buyer address
+    @return the number of options sold
+  */
+  function manuallyIssue(
+    Types.OptionSeries _optionSeries, 
+    uint256 _amount, 
+    uint256 _price, 
+    address _buyerAddress
+  ) external onlyRole(ADMIN_ROLE) returns (uint256) 
+  {
+    // validate the option params
+    // issue the option type
+    // take premiums
+    // open the option
+    // adjust parameters
+  }
 }
