@@ -20,12 +20,14 @@ import "hardhat/console.sol";
 
 error IVNotFound();
 error InvalidAmount();
+error IssuanceFailed();
 error InvalidShareAmount();
 error TotalSupplyReached();
 error StrikeAssetInvalid();
 error OptionStrikeInvalid();
 error OptionExpiryInvalid();
 error CollateralAssetInvalid();
+error UnderlyingAssetInvalid();
 error CollateralAmountInvalid();
 error WithdrawExceedsLiquidity();
 error DeltaQuoteError(uint256 quote, int256 delta);
@@ -845,26 +847,12 @@ contract LiquidityPool is
   function issueAndWriteOption(
      Types.OptionSeries memory optionSeries,
      uint amount
-  ) public payable whenNotPaused() returns (uint optionAmount, address series)
+  ) public whenNotPaused() returns (uint optionAmount, address series)
   {
-    // check the strike and expiry are within allowed bounds
-    if (optionParams.minExpiry > optionSeries.expiration || optionSeries.expiration > optionParams.maxExpiry) {revert OptionExpiryInvalid();}
-    if(optionSeries.isPut){
-      if (optionParams.minPutStrikePrice > optionSeries.strike || optionSeries.strike > optionParams.maxPutStrikePrice) {revert OptionStrikeInvalid();}
-    } else {
-      if (optionParams.minCallStrikePrice > optionSeries.strike || optionSeries.strike > optionParams.maxCallStrikePrice) {revert OptionStrikeInvalid();}
-    }
     OptionRegistry optionRegistry = getOptionRegistry();
-    if (optionSeries.collateral != collateralAsset) {revert CollateralAssetInvalid();}
-    series = optionRegistry.issue(
-       optionSeries.underlying,
-       optionSeries.strikeAsset,
-       optionSeries.expiration.toUint(),
-       optionSeries.isPut,
-       optionSeries.strike,
-       collateralAsset
-    );
-    optionAmount = writeOption(series, amount);
+    series = _issue(optionSeries, optionRegistry);
+    //write the option
+    optionAmount = _writeOption(optionSeries, series, amount, optionRegistry);
   }
 
   /**
@@ -878,16 +866,60 @@ contract LiquidityPool is
     uint amount
   )
     public
-    payable
     whenNotPaused()
     returns (uint256)
   {
     OptionRegistry optionRegistry = getOptionRegistry();
+    // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // expiration requires conversion back due to option protocol not using PRB floats
     optionSeries.expiration = optionSeries.expiration.fromUint();
+    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry);
+  }
+
+  /**
+   * @notice create the option contract in the options registry
+   * @param  optionSeries option type to mint
+   * @param  optionRegistry interface for the options issuer
+   * @return series       the address of the option series minted
+   */
+  function _issue(Types.OptionSeries memory optionSeries, OptionRegistry optionRegistry) internal returns (address series) {
+    // check the expiry is within the allowed bounds
+    if (optionParams.minExpiry > optionSeries.expiration || optionSeries.expiration > optionParams.maxExpiry) {revert OptionExpiryInvalid();}
+    // check that the option strike is within the range of the min and max acceptable strikes of calls and puts
+    if(optionSeries.isPut){
+      if (optionParams.minPutStrikePrice > optionSeries.strike || optionSeries.strike > optionParams.maxPutStrikePrice) {revert OptionStrikeInvalid();}
+    } else {
+      if (optionParams.minCallStrikePrice > optionSeries.strike || optionSeries.strike > optionParams.maxCallStrikePrice) {revert OptionStrikeInvalid();}
+    }
+    // make sure the collateral of the option is the same as the collateral asset of the pool
+    if (optionSeries.collateral != collateralAsset) {revert CollateralAssetInvalid();}
+    // make sure the strike asset of the option is the same as the strike asset of the pool
     if (optionSeries.strikeAsset != strikeAsset) {revert StrikeAssetInvalid();}
-    bool isPut = optionSeries.isPut;
+    // make sure the underlying of the option is the same as the underlying of the pool
+    if (optionSeries.underlying != underlyingAsset) {revert UnderlyingAssetInvalid();}
+    // issue the option from the option registry (its characteristics will be stored in the optionsRegistry)
+    series = optionRegistry.issue(
+       optionSeries.underlying,
+       optionSeries.strikeAsset,
+       optionSeries.expiration.toUint(),
+       optionSeries.isPut,
+       optionSeries.strike,
+       collateralAsset
+    );
+    if (series == address(0)) {revert IssuanceFailed();}
+  }
+
+  /**
+   * @notice write a number of options for a given OptionSeries
+   * @param  optionSeries option type to mint
+   * @param  seriesAddress the address of the options series
+   * @param  amount the amount to be written
+   * @param  optionRegistry the option registry of the pool
+   * @return amount_ the amount that was written
+   */
+  function _writeOption(Types.OptionSeries memory optionSeries, address seriesAddress, uint256 amount, OptionRegistry optionRegistry) internal returns (uint256 amount_) {
+    // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
     SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(strikeAsset).decimals()));
@@ -904,7 +936,7 @@ contract LiquidityPool is
     emit WriteOption(seriesAddress, amount, premium, collateralAmount, msg.sender);
     
 
-    if (!isPut) {
+    if (!optionSeries.isPut) {
         (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
             amount, optionSeries.strike, optionSeries.expiration, totalAmountCall, weightedStrikeCall, weightedTimeCall);
         totalAmountCall = newTotal;
@@ -921,8 +953,8 @@ contract LiquidityPool is
         collateralAllocated += collateralAmount;
     }
     SafeTransferLib.safeTransfer(ERC20(seriesAddress), msg.sender, OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
+    amount_ = amount;
   }
-
   /**
     @notice buys a number of options back and burns the tokens
     @param optionSeries the option token series to buyback
@@ -985,17 +1017,19 @@ contract LiquidityPool is
     @param _amount the number of options to issue
     @param _price the price per unit to issue at
     @param _buyerAddress the agreed upon buyer address
-    @return the number of options sold
+    @return amount the number of options sold
+    @return series the address of the options contract
   */
   function manuallyIssue(
-    Types.OptionSeries _optionSeries, 
+    Types.OptionSeries memory _optionSeries, 
     uint256 _amount, 
     uint256 _price, 
     address _buyerAddress
-  ) external onlyRole(ADMIN_ROLE) returns (uint256) 
+  ) external onlyRole(ADMIN_ROLE) returns (uint256 amount, address series) 
   {
-    // validate the option params
+    OptionRegistry optionRegistry = getOptionRegistry();
     // issue the option type
+    series = _issue(_optionSeries, optionRegistry);
     // take premiums
     // open the option
     // adjust parameters

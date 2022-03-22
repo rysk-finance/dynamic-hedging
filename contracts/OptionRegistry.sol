@@ -80,7 +80,7 @@ contract OptionRegistry is Ownable {
      * @param collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
-    function issue(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external returns (address) {
+    function issue(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external onlyLiquidityPool returns (address) {
         // deploy an oToken contract address
         require(expiration > block.timestamp, "Already expired");
         // create option storage hash
