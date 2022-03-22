@@ -988,7 +988,7 @@ contract LiquidityPool is
     @return the number of options sold
   */
   function manuallyIssue(
-    Types.OptionSeries _optionSeries, 
+    Types.OptionSeries memory _optionSeries, 
     uint256 _amount, 
     uint256 _price, 
     address _buyerAddress
