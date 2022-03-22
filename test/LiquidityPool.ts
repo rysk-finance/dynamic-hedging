@@ -250,6 +250,7 @@ describe("Liquidity Pools", async () => {
 				minExpiry: fmtExpiration(minExpiry),
 				maxExpiry: fmtExpiration(maxExpiry)
 			},
+			//@ts-ignore
 			await signers[0].getAddress()
 		)) as LiquidityPool
 
@@ -392,7 +393,7 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await expect(liquidityPool.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
-			"invalid expiry"
+			"OptionExpiryInvalid()"
 		)
 		// series with expiry too short
 		const proposedSeries2 = {
@@ -404,7 +405,7 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await expect(liquidityPool.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
-			"invalid expiry"
+			"OptionExpiryInvalid()"
 		)
 	})
 	it("reverts when attempting to write a ETH/USD put with strike outside of limit", async () => {
@@ -425,7 +426,7 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await expect(liquidityPool.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
-			"invalid strike price"
+			"OptionStrikeInvalid()"
 		)
 		// Series with strike price too low
 
@@ -438,7 +439,7 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await expect(liquidityPool.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
-			"invalid strike price"
+			"OptionStrikeInvalid()"
 		)
 	})
 	it("LP Writes a ETH/USD put for premium", async () => {
@@ -508,10 +509,12 @@ describe("Liquidity Pools", async () => {
 
 	it("reverts when non-admin calls rebalance function", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
+		//@ts-ignore
 		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
 	})
 	it("hedges delta using the uniswap reactor", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
+		//@ts-ignore
 		await liquidityPool.rebalancePortfolioDelta(delta, 0)
 		const newDelta = await liquidityPool.getPortfolioDelta()
 		expect(parseFloat(utils.formatEther(newDelta))).to.be.lt(0.001)
@@ -575,6 +578,7 @@ describe("Liquidity Pools", async () => {
 				minExpiry: fmtExpiration(minExpiry),
 				maxExpiry: fmtExpiration(maxExpiry)
 			},
+			//@ts-ignore
 			await signers[0].getAddress()
 		)
 		const lpAddress = lp.address
