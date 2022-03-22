@@ -37,10 +37,14 @@ contract OptionRegistryV2 is Ownable {
     mapping(bytes32 => address) seriesAddress;
     // vault counter
     uint64 public vaultCount;
-    // max health threshold in e6 decimals
-    uint64 public upperHealthFactor = 13_000;
-    // min health threshold in e6 decimals
-    uint64 public lowerHealthFactor = 11_000;
+    // max health threshold for calls
+    uint64 public callUpperHealthFactor = 13_000;
+    // min health threshold for calls
+    uint64 public callLowerHealthFactor = 11_000;
+    // max health threshold for puts
+    uint64 public putUpperHealthFactor = 12_000;
+    // min health threshold for puts
+    uint64 public putLowerHealthFactor = 11_000;
     // BIPS
     uint256 MAX_BPS = 10_000;
     //
@@ -101,12 +105,16 @@ contract OptionRegistryV2 is Ownable {
 
     /**
      * @notice Set the health thresholds of the pool
-     * @param  _lower the lower health threshold
-     * @param  _upper the upper health threshold
+     * @param  _putLower the lower health threshold for puts
+     * @param  _putUpper the upper health threshold for puts
+     * @param  _callLower the lower health threshold for calls
+     * @param  _callUpper the upper health threshold for calls
      */
-    function setHealthThresholds(uint64 _lower, uint64 _upper) external onlyOwner {
-      lowerHealthFactor = _lower;
-      upperHealthFactor = _upper;
+    function setHealthThresholds(uint64 _putLower, uint64 _putUpper, uint64 _callLower, uint64 _callUpper) external onlyOwner {
+      putLowerHealthFactor = _putLower;
+      putUpperHealthFactor = _putUpper;
+      callLowerHealthFactor = _callLower;
+      callUpperHealthFactor = _callUpper;
     }
 
 
@@ -273,6 +281,7 @@ contract OptionRegistryV2 is Ownable {
           series.isPut
         );
         // based on this collateral requirement and the health factor get the amount to deposit
+        uint256 upperHealthFactor = series.isPut ? putUpperHealthFactor : callUpperHealthFactor;
         collateralAmount = ((collateralAmount * upperHealthFactor) / MAX_BPS);
         // transfer collateral to this contract, collateral will depend on the option type
         SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
@@ -315,6 +324,9 @@ contract OptionRegistryV2 is Ownable {
       uint256 collatAmount = vault.collateralAmounts[0];
       // divide the amount held in the vault by the margin requirements to get the health factor
       healthFactor = (collatAmount * MAX_BPS) / marginReq;
+      // set the upper and lower health factor depending on if the series is a put or a call
+      uint256 upperHealthFactor = series.isPut ? putUpperHealthFactor : callUpperHealthFactor;
+      uint256 lowerHealthFactor = series.isPut ? putLowerHealthFactor : callLowerHealthFactor;
       // if the vault health is above a certain threshold then the vault is above safe margins and collateral can be withdrawn
       if (healthFactor > upperHealthFactor) {
         isAboveMax = true;

@@ -274,7 +274,7 @@ describe("Options protocol", function () {
 			6,
 			false,
 		))
-		marginReqUSD = ((await optionRegistry.upperHealthFactor()).mul(marginReqUSD)).div(MAX_BPS)  
+		marginReqUSD = ((await optionRegistry.callUpperHealthFactor()).mul(marginReqUSD)).div(MAX_BPS)  
 		await usd.approve(optionRegistry.address, value)
 		await optionRegistry.open(optionTokenUSDC.address, value)
 		const USDbalance = await usd.balanceOf(senderAddress)
@@ -303,7 +303,7 @@ describe("Options protocol", function () {
 			18,
 			false,
 		))
-		marginReqETH = ((await optionRegistry.upperHealthFactor()).mul(marginReqETH)).div(MAX_BPS)
+		marginReqETH = ((await optionRegistry.callUpperHealthFactor()).mul(marginReqETH)).div(MAX_BPS)
 		await wethERC20.approve(optionRegistryETH.address, value)
 		await optionRegistryETH.open(optionTokenETH.address, value)
 		const ETHbalance = await wethERC20.balanceOf(senderAddress)
@@ -352,7 +352,7 @@ describe("Options protocol", function () {
 			6,
 			false,
 		))
-		marginReq = ((await optionRegistry.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)  
+		marginReq = ((await optionRegistry.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)  
 		await usd.approve(optionRegistry.address, value)
 		await optionRegistry.open(optionTokenUSDC.address, value)
 		const USDbalance = await usd.balanceOf(senderAddress)
@@ -378,7 +378,7 @@ describe("Options protocol", function () {
 			18,
 			false,
 		))
-		marginReq = ((await optionRegistryETH.upperHealthFactor()).mul(marginReq)).div(MAX_BPS) 
+		marginReq = ((await optionRegistryETH.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS) 
 		await wethERC20.approve(optionRegistryETH.address, value)
 		await optionRegistryETH.open(optionTokenETH.address, value)
 		const ETHbalance = await wethERC20.balanceOf(senderAddress)
@@ -407,7 +407,7 @@ describe("Options protocol", function () {
 			6,
 			false,
 		))
-		marginReq = ((await optionRegistryETH.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistryETH.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		await optionRegistrySender.close(optionTokenUSDC.address, value)
 		const balance = await optionTokenUSDC.balanceOf(senderAddress)
 		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
@@ -434,7 +434,7 @@ describe("Options protocol", function () {
 			18,
 			false,
 		))
-		marginReq = ((await optionRegistryETH.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistryETH.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		await optionRegistrySender.close(optionTokenETH.address, value)
 		const balance = await optionTokenETH.balanceOf(senderAddress)
 		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
