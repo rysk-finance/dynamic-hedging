@@ -52,6 +52,11 @@ Run tests
 ```sh
 npx hardhat test
 ```
+## Contract Architecture
+
+![Rysk Architecture](./images/RyskArchitecture.png)
+![Diagram C](./images/DiagramC.png)
+![Diagram F](./images/DiagramF.png)
 
 ## Contract layout
 ```
