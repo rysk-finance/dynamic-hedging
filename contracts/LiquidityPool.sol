@@ -21,6 +21,7 @@ import "hardhat/console.sol";
 error IVNotFound();
 error InvalidAmount();
 error IssuanceFailed();
+error NonExistentOtoken();
 error InvalidShareAmount();
 error TotalSupplyReached();
 error StrikeAssetInvalid();
@@ -970,15 +971,15 @@ contract LiquidityPool is
       //TODO run some checks to determine if we want to buy this option back
     }
     OptionRegistry optionRegistry = getOptionRegistry();  
-    address seriesAddress = optionRegistry.issue(
+    address seriesAddress = optionRegistry.getOtoken(
        optionSeries.underlying,
        optionSeries.strikeAsset,
        optionSeries.expiration.toUint(),
        optionSeries.isPut,
        optionSeries.strike,
        collateralAsset
-    );      
-    bool isPut = optionSeries.isPut;
+    );     
+    if (seriesAddress == address(0)) {revert NonExistentOtoken();} 
     SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
     SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
   
@@ -988,7 +989,7 @@ contract LiquidityPool is
     (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
     emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
 
-    if (!isPut) {
+    if (!optionSeries.isPut) {
       (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeightsBuyback(
           amount, optionSeries.strike, optionSeries.expiration, totalAmountCall, weightedStrikeCall, weightedTimeCall);
       totalAmountCall = newTotal;
