@@ -54,7 +54,7 @@ npx hardhat test
 ```
 
 ## Contract layout
-
+```
 contracts
 ├── hedging
 │   └── UniswapV3HedgingReactor.sol
@@ -84,3 +84,4 @@ contracts
 ├── OptionRegistryV2.sol 
 ├── OptionsProtocol.sol 
 └── PriceFeed.sol
+```
