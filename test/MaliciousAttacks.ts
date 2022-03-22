@@ -10,7 +10,8 @@ import {
 	fmtExpiration,
 	fromOpyn
 } from "../utils/conversion-helper"
-import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
+import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
+import { Oracle } from "../types/Oracle"
 import moment from "moment"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 //@ts-ignore
@@ -26,6 +27,7 @@ import { LiquidityPools } from "../types/LiquidityPools"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
+import { setupOracle, setOpynOracleExpiryPrice, setupTestOracle, increase } from "./helpers"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -45,7 +47,7 @@ let attackerAddress: string
 let liquidityPools: LiquidityPools
 let liquidityPool: LiquidityPool
 let priceFeed: PriceFeed
-let ethUSDAggregator: MockContract
+let ethUSDAggregator: MockChainlinkAggregator
 let rate: string
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -143,7 +145,13 @@ describe("Hegic Attack", function () {
 	})
 
 	it("Should deploy price feed", async () => {
-		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
+		const res = await setupTestOracle(await signers[0].getAddress())
+		//@ts-ignore
+		oracle = res[0]
+		//@ts-ignore
+		ethUSDAggregator = res[1]
+		//@ts-ignore
+		pricer = res[2]
 
 		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
 		const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
