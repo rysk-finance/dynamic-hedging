@@ -1,6 +1,6 @@
 import hre, { ethers, network } from "hardhat"
 import { Contract, utils, Signer, BigNumber } from "ethers"
-import { toWei, call, put, fromOpyn, scaleNum, createValidExpiry } from "../utils/conversion-helper"
+import { toWei, call, put, fromOpyn, scaleNum, createValidExpiry, MAX_BPS } from "../utils/conversion-helper"
 import { expect } from "chai"
 import moment from "moment"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
@@ -258,6 +258,7 @@ describe("Options protocol", function () {
 		optionTokenETH = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 	})
 	let marginReqUSD : BigNumber
+	let marginReqETH : BigNumber
     it("opens call option token with USDC", async () => {
 		const value = toWei("4")
 		const USDbalanceBefore = await usd.balanceOf(senderAddress)
@@ -273,6 +274,7 @@ describe("Options protocol", function () {
 			6,
 			false,
 		))
+		marginReqUSD = ((await optionRegistry.callUpperHealthFactor()).mul(marginReqUSD)).div(MAX_BPS)  
 		await usd.approve(optionRegistry.address, value)
 		await optionRegistry.open(optionTokenUSDC.address, value)
 		const USDbalance = await usd.balanceOf(senderAddress)
@@ -290,7 +292,7 @@ describe("Options protocol", function () {
 		)) as ERC20Interface
 		const ETHbalanceBefore = await wethERC20.balanceOf(senderAddress)
 		const underlyingPrice = (await oracle.getPrice(weth.address))
-		const marginReq = (await newCalculator.getNakedMarginRequired(
+		marginReqETH = (await newCalculator.getNakedMarginRequired(
 			weth.address,
 			usd.address,
 			weth.address,
@@ -301,12 +303,13 @@ describe("Options protocol", function () {
 			18,
 			false,
 		))
+		marginReqETH = ((await optionRegistry.callUpperHealthFactor()).mul(marginReqETH)).div(MAX_BPS)
 		await wethERC20.approve(optionRegistryETH.address, value)
 		await optionRegistryETH.open(optionTokenETH.address, value)
 		const ETHbalance = await wethERC20.balanceOf(senderAddress)
 		const balance = await optionTokenETH.balanceOf(senderAddress)
 		expect(balance).to.equal(value.div(oTokenDecimalShift18))
-		expect(ETHbalanceBefore.sub(ETHbalance)).to.equal(marginReq)
+		expect(ETHbalanceBefore.sub(ETHbalance)).to.equal(marginReqETH)
 	
 	})
 
@@ -338,7 +341,7 @@ describe("Options protocol", function () {
 		const USDbalanceBefore = await usd.balanceOf(senderAddress)
 		const underlyingPrice = (await oracle.getPrice(weth.address))
 		const oBalanceBef = await optionTokenUSDC.balanceOf(senderAddress)
-		const marginReq = (await newCalculator.getNakedMarginRequired(
+		let marginReq = (await newCalculator.getNakedMarginRequired(
 			weth.address,
 			usd.address,
 			usd.address,
@@ -349,6 +352,7 @@ describe("Options protocol", function () {
 			6,
 			false,
 		))
+		marginReq = ((await optionRegistry.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)  
 		await usd.approve(optionRegistry.address, value)
 		await optionRegistry.open(optionTokenUSDC.address, value)
 		const USDbalance = await usd.balanceOf(senderAddress)
@@ -356,6 +360,32 @@ describe("Options protocol", function () {
 		expect(balance).to.equal(oBalanceBef.add(value.div(oTokenDecimalShift18)))
 		expect(USDbalanceBefore.sub(USDbalance)).to.equal(marginReq)
 		expect(marginReqUSD).to.equal(marginReq)
+	})
+
+	it("opens call option again with ETH", async () => {
+		const value = toWei("4")
+		const ETHbalanceBefore = await wethERC20.balanceOf(senderAddress)
+		const underlyingPrice = (await oracle.getPrice(weth.address))
+		const oBalanceBef = await optionTokenETH.balanceOf(senderAddress)
+		let marginReq = (await newCalculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			weth.address,
+			value.div(oTokenDecimalShift18),
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			18,
+			false,
+		))
+		marginReq = ((await optionRegistryETH.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS) 
+		await wethERC20.approve(optionRegistryETH.address, value)
+		await optionRegistryETH.open(optionTokenETH.address, value)
+		const ETHbalance = await wethERC20.balanceOf(senderAddress)
+		const balance = await optionTokenETH.balanceOf(senderAddress)
+		expect(balance).to.equal(oBalanceBef.add(value.div(oTokenDecimalShift18)))
+		expect(ETHbalanceBefore.sub(ETHbalance)).to.equal(marginReq)
+		expect(marginReqETH).to.equal(marginReq)
 	})
 
 	it("liquidityPool close and transaction succeeds", async () => {
@@ -366,7 +396,7 @@ describe("Options protocol", function () {
 		await optionTokenUSDC.approve(optionRegistry.address, value.div(oTokenDecimalShift18))
 		const usdBalanceBefore = await usd.balanceOf(senderAddress)
 		const underlyingPrice = (await oracle.getPrice(weth.address))
-		const marginReq = (await newCalculator.getNakedMarginRequired(
+		let marginReq = (await newCalculator.getNakedMarginRequired(
 			weth.address,
 			usd.address,
 			usd.address,
@@ -377,6 +407,7 @@ describe("Options protocol", function () {
 			6,
 			false,
 		))
+		marginReq = ((await optionRegistryETH.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		await optionRegistrySender.close(optionTokenUSDC.address, value)
 		const balance = await optionTokenUSDC.balanceOf(senderAddress)
 		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
@@ -392,7 +423,7 @@ describe("Options protocol", function () {
 		await optionTokenETH.approve(optionRegistryETH.address, value.div(oTokenDecimalShift18))
 		const ethBalanceBefore = await wethERC20.balanceOf(senderAddress)
 		const underlyingPrice = (await oracle.getPrice(weth.address))
-		const marginReq = (await newCalculator.getNakedMarginRequired(
+		let marginReq = (await newCalculator.getNakedMarginRequired(
 			weth.address,
 			usd.address,
 			weth.address,
@@ -403,6 +434,7 @@ describe("Options protocol", function () {
 			18,
 			false,
 		))
+		marginReq = ((await optionRegistryETH.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		await optionRegistrySender.close(optionTokenETH.address, value)
 		const balance = await optionTokenETH.balanceOf(senderAddress)
 		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))

@@ -47,8 +47,8 @@ contract MockChainlinkAggregator {
     }
 
     /// @dev function to mock setting round timestamp
-    function setRoundTimestamp(uint256 _roundId, uint256 _timestamp) external {
-        roundTimestamp[_roundId] = _timestamp;
+    function setRoundTimestamp(uint256 _roundId) external {
+        roundTimestamp[_roundId] = block.timestamp;
     }
 
     /// @dev function to mock setting round timestamp
