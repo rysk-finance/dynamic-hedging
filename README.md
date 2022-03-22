@@ -52,3 +52,35 @@ Run tests
 ```sh
 npx hardhat test
 ```
+
+## Contract layout
+
+contracts
+├── hedging
+│   └── UniswapV3HedgingReactor.sol
+├── interfaces
+│   ├── AddressBookInterface.sol
+│   ├── AggregatorV3Interface.sol
+│   ├── GammaInterface.sol
+│   ├── IERC20.sol
+│   ├── IHedgingReactor.sol
+│   ├── IMarginCalculator.sol
+│   └── IOracle.sol 
+├── libraries
+│   ├── BlackScholes.sol
+│   ├── NormalDist.sol
+│   ├── OptionsCompute.sol
+│   ├── OpynInteractions.sol
+│   ├── OpynInteractionsV2.sol
+│   ├── PRBMath.sol
+│   ├── PRBMathSD59x18.sol 
+│   ├── PRBMathUD60x18.sol 
+│   ├── SafeTransferLib.sol 
+│   └── Types.sol
+├── tokens
+│   └── ERC20.sol
+├── LiquidityPool.sol
+├── OptionRegistry.sol 
+├── OptionRegistryV2.sol 
+├── OptionsProtocol.sol 
+└── PriceFeed.sol
