@@ -33,7 +33,8 @@ let receiverAddress: string
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-05-12"
+// First mined block will be timestamped 2021-07-13 20:44 UTC
+const expiryDate: string = "2021-08-05"
 
 // time travel period between each expiry
 const expiryPeriod = {
@@ -96,9 +97,9 @@ describe("Options protocol", function () {
 		})
 		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
 		await sender.sendTransaction({
-            to: signer.address,
-            value: ethers.utils.parseEther("1.0"), // Sends exactly 1.0 ether
-          });
+			to: signer.address,
+			value: ethers.utils.parseEther("1.0") // Sends exactly 1.0 ether
+		})
 		await usd.connect(signer).transfer(senderAddress, toWei("1000").div(oTokenDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
 		const _optionRegistry = (await optionRegistryFactory.deploy(
@@ -107,7 +108,7 @@ describe("Options protocol", function () {
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
 			senderAddress,
-			ADDRESS_BOOK[chainId],
+			ADDRESS_BOOK[chainId]
 		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
@@ -158,9 +159,9 @@ describe("Options protocol", function () {
 	it("receiver attempts to close and transaction should revert", async () => {
 		const [sender, receiver] = signers
 		const optionRegistryReceiver = optionRegistry.connect(receiver)
-		await expect(
-			optionRegistryReceiver.close(optionToken.address, toWei("1"))
-		).to.be.revertedWith("!liquidityPool")
+		await expect(optionRegistryReceiver.close(optionToken.address, toWei("1"))).to.be.revertedWith(
+			"!liquidityPool"
+		)
 	})
 
 	it("liquidityPool close and transaction succeeds", async () => {
@@ -278,7 +279,6 @@ describe("Options protocol", function () {
 		const address = removeEvent?.args?.token
 		putOption = new Contract(address, Otoken.abi, sender) as IOToken
 	})
-
 
 	it("opens an ERC20 call option", async () => {
 		const value = toWei("4")
