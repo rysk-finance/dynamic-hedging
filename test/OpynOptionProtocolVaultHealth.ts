@@ -25,10 +25,9 @@ import {
     ADDRESS_BOOK,
     GAMMA_ORACLE_NEW,
 } from "./constants"
-import { setupOracle, setOpynOracleExpiryPrice, setupTestOracle } from "./helpers"
+import { setupOracle, setOpynOracleExpiryPrice, setupTestOracle, increase } from "./helpers"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { AbiCoder } from "ethers/lib/utils"
-import { Z_RLE } from "zlib"
 
 let usd: MintableERC20
 let wethERC20: ERC20Interface
@@ -188,9 +187,7 @@ describe("Options protocol Vault Health", function () {
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
-		const constantsFactory = await ethers.getContractFactory("Constants")
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractionsV2")
-		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistryV2", {
@@ -210,6 +207,7 @@ describe("Options protocol Vault Health", function () {
 		})
 		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
 		await usd.connect(signer).transfer(senderAddress, toWei("1000000").div(oTokenDecimalShift18))
+		await usd.connect(signer).transfer(receiverAddress, toWei("1000000").div(oTokenDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
@@ -286,7 +284,7 @@ describe("Options protocol Vault Health", function () {
 			6,
 			false,
 		))
-        const uhf = (await optionRegistry.upperHealthFactor())
+        const uhf = (await optionRegistry.callUpperHealthFactor())
 		marginReqUSD = (uhf.mul(marginReqUSD)).div(MAX_BPS)  
 		await usd.approve(optionRegistry.address, value)
 		await optionRegistry.open(optionTokenUSDC.address, value)
@@ -323,7 +321,7 @@ describe("Options protocol Vault Health", function () {
 			18,
 			false,
 		))
-        const uhf = (await optionRegistryETH.upperHealthFactor())
+        const uhf = (await optionRegistryETH.callUpperHealthFactor())
 		marginReqETH = uhf.mul(marginReqETH).div(MAX_BPS)
 		await wethERC20.approve(optionRegistryETH.address, value)
 		await optionRegistryETH.open(optionTokenETH.address, value)
@@ -356,7 +354,7 @@ describe("Options protocol Vault Health", function () {
 			6,
 			false,
 		))
-        const uhf = (await optionRegistry.upperHealthFactor())
+        const uhf = (await optionRegistry.callUpperHealthFactor())
 		marginReq = uhf.mul(marginReq).div(MAX_BPS)  
 		await usd.approve(optionRegistry.address, value)
 		await optionRegistry.open(optionTokenUSDC.address, value)
@@ -389,7 +387,7 @@ describe("Options protocol Vault Health", function () {
 			18,
 			false,
 		))
-        const uhf = (await optionRegistryETH.upperHealthFactor())
+        const uhf = (await optionRegistryETH.callUpperHealthFactor())
 		marginReq = uhf.mul(marginReq).div(MAX_BPS) 
 		await wethERC20.approve(optionRegistryETH.address, value)
 		await optionRegistryETH.open(optionTokenETH.address, value)
@@ -425,12 +423,19 @@ describe("Options protocol Vault Health", function () {
 			6,
 			false,
 		))
-		marginReq = ((await optionRegistry.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistry.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		let [isBelowMin0, isAboveMax0, healthFactor0, collateralAmount0, collateralAsset0 ] = await optionRegistry.checkVaultHealth(1);
 		await optionRegistrySender.close(optionTokenUSDC.address, value)
+
+		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(1);
 		const balance = await optionTokenUSDC.balanceOf(senderAddress)
 		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
 		const usdBalance = await usd.balanceOf(senderAddress)
 		expect((usdBalance.sub(usdBalanceBefore)).sub(marginReq)).to.be.within(-1,1)
+		expect(isBelowMin).to.eq(isBelowMin0)
+		expect(isAboveMax).to.eq(isAboveMax0)
+		expect(healthFactor).to.eq(healthFactor0)
+		expect(collateralAmount).to.eq(collateralAmount0)
 	})
 	it("liquidityPool close and transaction succeeds ETH options", async () => {
 		const [sender, receiver] = signers
@@ -451,7 +456,7 @@ describe("Options protocol Vault Health", function () {
 			18,
 			false,
 		))
-		marginReq = ((await optionRegistryETH.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistryETH.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		await optionRegistrySender.close(optionTokenETH.address, value)
 		const balance = await optionTokenETH.balanceOf(senderAddress)
 		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
@@ -488,6 +493,46 @@ describe("Options protocol Vault Health", function () {
 		expect(healthFactor).to.not.equal(healthFBefore)
 		expect(healthF).to.equal(healthFactor)
 	}) 
+	it("liquidityPool close and transaction succeeds", async () => {
+		const [sender, receiver] = signers
+		const value = toWei("1")
+		const balanceBef = await optionTokenUSDC.balanceOf(senderAddress)
+		const optionRegistrySender = optionRegistry.connect(sender)
+		await optionTokenUSDC.approve(optionRegistry.address, value.div(oTokenDecimalShift18))
+		const usdBalanceBefore = await usd.balanceOf(senderAddress)
+		const underlyingPrice = (await oracle.getPrice(weth.address))
+		let [isBelowMin0, isAboveMax0, healthFactor0, collateralAmount0, collateralAsset0 ] = await optionRegistry.checkVaultHealth(1);
+		let marginReq = (await newCalculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			usd.address,
+			value.div(oTokenDecimalShift18),
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			6,
+			false,
+		))
+		// health factor is different here because the health factor of the vault has moved
+		marginReq = (healthFactor0.mul(marginReq)).div(MAX_BPS)
+		const vaultDetails = await controller.getVault(optionRegistry.address, 1)
+		const valueTot = vaultDetails.shortAmounts[0]
+		const collatAmounts = vaultDetails.collateralAmounts[0]
+		const valAdapt = value.div(oTokenDecimalShift18)
+		const redeem = (collatAmounts.mul(valAdapt)).div(valueTot)
+		await optionRegistrySender.close(optionTokenUSDC.address, value)
+
+		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(1);
+
+		const balance = await optionTokenUSDC.balanceOf(senderAddress)
+		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
+		const usdBalance = await usd.balanceOf(senderAddress)
+		expect((usdBalance.sub(usdBalanceBefore)).sub(redeem)).to.be.within(-1,1)
+		expect(isBelowMin).to.eq(isBelowMin0)
+		expect(isAboveMax).to.eq(isAboveMax0)
+		expect(healthFactor).to.eq(healthFactor0)
+		expect(collateralAmount).to.eq(collateralAmount0)
+	})
 	it("moves the price and changes vault health ETH", async () => {
 		const currentPrice = await oracle.getPrice(weth.address)
 		const arr = await optionRegistryETH.checkVaultHealth(1)
@@ -541,7 +586,7 @@ describe("Options protocol Vault Health", function () {
 			false,
 		))
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq) 
-		marginReq = ((await optionRegistry.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistry.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
 		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(1);
 
@@ -582,7 +627,7 @@ describe("Options protocol Vault Health", function () {
 		))
 
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq) 
-		marginReq = ((await optionRegistry.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistry.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
 		
 		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(1);
@@ -620,7 +665,7 @@ describe("Options protocol Vault Health", function () {
 		))
 
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq) 
-		marginReq = ((await optionRegistry.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistry.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
 		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(1);
 		expect(isBelowMin).to.be.false
@@ -635,7 +680,7 @@ describe("Options protocol Vault Health", function () {
 		const currentPrice = await oracle.getPrice(weth.address)
 		const arr = await optionRegistryETH.checkVaultHealth(1)
 		const healthFBefore = arr[2]
-		const settlePrice = currentPrice.add(toWei("100").div(oTokenDecimalShift18))
+		const settlePrice = currentPrice.add(toWei("300").div(oTokenDecimalShift18))
 		await aggregator.setLatestAnswer(settlePrice)
 		await aggregator.setRoundAnswer(4, settlePrice)
 		await aggregator.setRoundTimestamp(4)
@@ -655,7 +700,7 @@ describe("Options protocol Vault Health", function () {
 			false,
 		))
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq) 
-		marginReq = ((await optionRegistryETH.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistryETH.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
 		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistryETH.checkVaultHealth(1);
 		expect(isBelowMin).to.be.true
@@ -691,7 +736,7 @@ describe("Options protocol Vault Health", function () {
 		))
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq) 
 
-		marginReq = ((await optionRegistry.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistry.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		const neededCollat = collatAmounts.sub(marginReq)
 		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(1);
 		expect(isBelowMin).to.be.false
@@ -727,7 +772,7 @@ describe("Options protocol Vault Health", function () {
 		))
 
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq) 
-		marginReq = ((await optionRegistry.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistry.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
 		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(1);
 		expect(isBelowMin).to.be.false
@@ -762,7 +807,7 @@ describe("Options protocol Vault Health", function () {
 			false,
 		))
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq) 
-		marginReq = ((await optionRegistryETH.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistryETH.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		const neededCollat = collatAmounts.sub(marginReq)
 		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistryETH.checkVaultHealth(1);
 		expect(isBelowMin).to.be.false
@@ -895,7 +940,7 @@ describe("Options protocol Vault Health", function () {
 		await optionRegistryETH.open(erc20PutOptionETH.address, toWei("4"))
 		const newBalance = await erc20PutOptionETH.balanceOf(senderAddress)
 		expect(newBalance).to.be.equal(toWei("4").div(oTokenDecimalShift18))
-        const uhf = await optionRegistry.upperHealthFactor();
+        const uhf = await optionRegistry.putUpperHealthFactor();
         let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(2);
         expect(isBelowMin).to.be.false
         expect(isAboveMax).to.be.false
@@ -960,7 +1005,7 @@ describe("Options protocol Vault Health", function () {
 		))
 
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq) 
-		marginReq = ((await optionRegistry.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistry.putUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
 		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(2);
 
@@ -995,7 +1040,7 @@ describe("Options protocol Vault Health", function () {
 		))
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq) 
 
-		marginReq = ((await optionRegistry.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistry.putUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		const neededCollat = collatAmounts.sub(marginReq)
 		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(2);
 		expect(isBelowMin).to.be.false
@@ -1108,7 +1153,7 @@ describe("Options protocol Vault Health", function () {
 			false,
 		))
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq) 
-		marginReq = ((await optionRegistry.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistry.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
 		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(3);
 
@@ -1177,6 +1222,9 @@ describe("Options protocol Vault Health", function () {
 		)
 		const currentPrice = await oracle.getPrice(weth.address)
 		const settlePrice = currentPrice.sub(toWei("500").div(oTokenDecimalShift18))
+		await aggregator.setLatestAnswer(settlePrice)
+		await aggregator.setRoundAnswer(6, settlePrice)
+		await aggregator.setRoundTimestamp(6)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
 		const events = receipt.events
@@ -1193,7 +1241,7 @@ describe("Options protocol Vault Health", function () {
 		const currentPrice = await oracle.getPrice(weth.address)
 		const arr = await optionRegistry.checkVaultHealth(4)
 		const healthFBefore = arr[2]
-		const settlePrice = currentPrice.add(toWei("500").div(oTokenDecimalShift18))
+		const settlePrice = currentPrice.add(toWei("800").div(oTokenDecimalShift18))
 		await aggregator.setLatestAnswer(settlePrice)
 		await aggregator.setRoundAnswer(6, settlePrice)
 		await aggregator.setRoundTimestamp(6)
@@ -1213,7 +1261,7 @@ describe("Options protocol Vault Health", function () {
 			false,
 		))
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq) 
-		marginReq = ((await optionRegistry.upperHealthFactor()).mul(marginReq)).div(MAX_BPS)
+		marginReq = ((await optionRegistry.callUpperHealthFactor()).mul(marginReq)).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
 		let [isBelowMin, isAboveMax, healthFactor, collateralAmount, collateralAsset ] = await optionRegistry.checkVaultHealth(4);
 
@@ -1232,9 +1280,9 @@ describe("Options protocol Vault Health", function () {
 		const [sender, receiver] = signers
 		const vaultDetails = await controller.getVault(optionRegistry.address, 4)
 		const value = vaultDetails.shortAmounts[0]
-		const liqBalBef = await usd.balanceOf(senderAddress)
+		const liqBalBef = await usd.balanceOf(receiverAddress)
 		const collatAmountsBef = vaultDetails.collateralAmounts[0]
-		const liqOpBalBef = await optionTokenUSDC.balanceOf(senderAddress)
+		const liqOpBalBef = await optionTokenUSDC.balanceOf(receiverAddress)
 		const abiCode = new AbiCoder
 		const currentPrice = await oracle.getPrice(weth.address)
 		let marginReq = (await newCalculator.getNakedMarginRequired(
@@ -1248,6 +1296,8 @@ describe("Options protocol Vault Health", function () {
 			6,
 			false,
 		))
+		increase(1500)
+		await usd.connect(receiver).approve(MARGIN_POOL[chainId], marginReq.add(1))
 		const mintLiquidateArgs = [
 			{
 			  actionType: 0,
@@ -1260,7 +1310,7 @@ describe("Options protocol Vault Health", function () {
 			  data: abiCode.encode(['uint256'], ['1']),
 			},
 			{
-				actionType: 6,
+				actionType: 5,
 				owner: receiverAddress,
 				secondAddress: receiverAddress,
 				asset: usd.address,
@@ -1270,35 +1320,35 @@ describe("Options protocol Vault Health", function () {
 				data: ZERO_ADDRESS,
 			},
 			{
-			  actionType: 1,
-			  owner: receiverAddress,
-			  secondAddress: receiverAddress,
-			  asset: optionTokenUSDC.address,
-			  vaultId: 1,
-			  amount: value,
-			  index: 0,
-			  data: ZERO_ADDRESS,
-			},
-			{
-			  actionType: 10,
-			  owner: optionRegistry.address,
-			  secondAddress: receiverAddress,
-			  asset: ZERO_ADDRESS,
-			  vaultId: 4,
-			  amount: value,
-			  index: 0,
-			  data: abiCode.encode(['uint256'], ['6']),
-			},
-
+				actionType: 1,
+				owner: receiverAddress,
+				secondAddress: receiverAddress,
+				asset: optionTokenUSDC.address,
+				vaultId: 1,
+				amount: value,
+				index: 0,
+				data: ZERO_ADDRESS,
+			  },
+			  {
+				actionType: 10,
+				owner: optionRegistry.address,
+				secondAddress: receiverAddress,
+				asset: optionTokenUSDC.address,
+				vaultId: 4,
+				amount: value,
+				index: 0,
+				data: abiCode.encode(['uint256'], ['6'])
+			  },
 		  ]
 		await controller.connect(receiver).operate(mintLiquidateArgs)
 		const vaultDetailsNew = await controller.getVault(optionRegistry.address, 4)
 		const valueNew = vaultDetailsNew.shortAmounts[0]
 		const collatAmountsNew = vaultDetailsNew.collateralAmounts[0]
-		const liqBalAf = await usd.balanceOf(senderAddress)
-		const liqOpBalAf = await optionTokenUSDC.balanceOf(senderAddress)
-		expect(liqBalBef).to.be.lt(liqBalAf)
-		expect(liqOpBalBef).to.be.gt(liqOpBalAf)
+		const liqBalAf = await usd.balanceOf(receiverAddress)
+		const liqBalAft = await usd.balanceOf(senderAddress)
+		const liqOpBalAf = await optionTokenUSDC.balanceOf(receiverAddress)
+		expect(liqBalBef).to.be.gt(liqBalAf)
+		expect(liqOpBalBef).to.equal(liqOpBalAf)
 		expect(liqOpBalAf).to.eq(0)
 		expect(value).to.be.gt(valueNew)
 		expect(valueNew).to.eq(0)
@@ -1308,6 +1358,6 @@ describe("Options protocol Vault Health", function () {
 		const collatAmounts3 = vaultDetails3.collateralAmounts[0]
 		expect(collatAmounts3).to.eq(0)
 		const usdBalAft = await usd.balanceOf(senderAddress)
-		expect(usdBalAft.sub(liqBalAf)).to.eq(collatAmountsNew)
+		expect(usdBalAft.sub(liqBalAft)).to.eq(collatAmountsNew)
 	})
 })

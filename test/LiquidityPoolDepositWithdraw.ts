@@ -26,7 +26,6 @@ import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPools } from "../types/LiquidityPools"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { Volatility } from "../types/Volatility"
 import { WETH } from "../types/WETH"
@@ -48,7 +47,6 @@ let signers: Signer[]
 let volatility: Volatility
 let senderAddress: string
 let receiverAddress: string
-let liquidityPools: LiquidityPools
 let liquidityPool: LiquidityPool
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
@@ -61,7 +59,8 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-04-30"
+// First mined block will be timestamped 2021-07-13 20:44 UTC
+const expiryDate: string = "2021-08-05"
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
@@ -83,8 +82,10 @@ const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("10000")
 const minPutStrikePrice = utils.parseEther("500")
 const maxPutStrikePrice = utils.parseEther("10000")
-const minExpiry = moment.utc().add(1, "week").valueOf() / 1000
-const maxExpiry = moment.utc().add(1, "year").valueOf() / 1000
+// one week in seconds
+const minExpiry = 86400 * 7
+// 365 days in seconds
+const maxExpiry = 86400 * 365
 
 /* --- end variables to change --- */
 
@@ -174,51 +175,13 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		await ethUSDAggregator.mock.decimals.returns("8")
 	})
 
-	it("Should deploy liquidity pools", async () => {
-		const normDistFactory = await ethers.getContractFactory("NormalDist", {
-			libraries: {}
-		})
-		const normDist = await normDistFactory.deploy()
-		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
-			libraries: {
-				NormalDist: normDist.address
-			}
-		})
-		const blackScholesDeploy = await blackScholesFactory.deploy()
-		const constFactory = await ethers.getContractFactory(
-			"contracts/libraries/Constants.sol:Constants"
-		)
-		const constants = await constFactory.deploy()
-		const optComputeFactory = await ethers.getContractFactory(
-			"contracts/libraries/OptionsCompute.sol:OptionsCompute",
-			{
-				libraries: {}
-			}
-		)
-		await optComputeFactory.deploy()
-		const volFactory = await ethers.getContractFactory("Volatility", {
-			libraries: {}
-		})
-		volatility = (await volFactory.deploy()) as Volatility
-		const liquidityPoolsFactory = await ethers.getContractFactory("LiquidityPools", {
-			libraries: {
-				BlackScholes: blackScholesDeploy.address
-			}
-		})
-		const _liquidityPools: LiquidityPools = (await liquidityPoolsFactory.deploy()) as LiquidityPools
-		liquidityPools = _liquidityPools
-	})
-
-	it("Should deploy option protocol and link to liquidity pools", async () => {
+	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
-			liquidityPools.address,
 			priceFeed.address
 		)) as Protocol
-		await liquidityPools.setup(optionProtocol.address)
-		const lpProtocol = await liquidityPools.protocol()
-		expect(optionProtocol.address).to.eq(lpProtocol)
+		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
@@ -243,7 +206,29 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		]
 		//@ts-ignore
 		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		const lp = await liquidityPools.createLiquidityPool(
+
+		const normDistFactory = await ethers.getContractFactory("NormalDist", {
+			libraries: {}
+		})
+		const normDist = await normDistFactory.deploy()
+		const volFactory = await ethers.getContractFactory("Volatility", {
+			libraries: {}
+		})
+		volatility = (await volFactory.deploy()) as Volatility
+		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+			libraries: {
+				NormalDist: normDist.address
+			}
+		})
+		const blackScholesDeploy = await blackScholesFactory.deploy()
+
+		const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
+			libraries: {
+				BlackScholes: blackScholesDeploy.address
+			}
+		})
+		const lp = (await liquidityPoolFactory.deploy(
+			optionProtocol.address,
 			usd.address,
 			weth.address,
 			usd.address,
@@ -261,16 +246,11 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 				maxExpiry: fmtExpiration(maxExpiry)
 			},
 			await signers[0].getAddress()
-		)
-		const lpReceipt = await lp.wait(1)
-		const events = lpReceipt.events
-		const createEvent = events?.find(x => x.event == "LiquidityPoolCreated")
-		const strikeAsset = createEvent?.args?.strikeAsset
-		const lpAddress = createEvent?.args?.lp
-		expect(createEvent?.event).to.eq("LiquidityPoolCreated")
-		expect(strikeAsset).to.eq(usd.address)
+		)) as LiquidityPool
+
+		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
-		await optionRegistry.setLiquidityPool(liquidityPool.address)
+		optionRegistry.setLiquidityPool(liquidityPool.address)
 	})
 
 	it("Deposit to the liquidityPool", async () => {
@@ -393,6 +373,6 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const shares = await liquidityPool.balanceOf(receiverAddress)
 		const liquidityPoolReceiver = liquidityPool.connect(receiver)
 		const withdraw = liquidityPoolReceiver.withdraw(shares, receiverAddress)
-		await expect(withdraw).to.be.revertedWith("Insufficient funds for a full withdrawal")
+		await expect(withdraw).to.be.revertedWith("WithdrawExceedsLiquidity()")
 	})
 })
