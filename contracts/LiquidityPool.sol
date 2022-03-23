@@ -1010,7 +1010,7 @@ contract LiquidityPool is
   }
 
   /**
-    @notice sells a number of options from the pool to a specified user. The function
+    @notice creates an order for a number of options from the pool to a specified user. The function
             is intended to be used to issue options to market makers/ OTC market participants
             in order to have flexibility and customisability on option issuance and market 
             participant UX.
@@ -1021,7 +1021,7 @@ contract LiquidityPool is
     @return amount the number of options sold
     @return series the address of the options contract
   */
-  function manuallyIssue(
+  function createManualIssue(
     Types.OptionSeries memory _optionSeries, 
     uint256 _amount, 
     uint256 _price, 
@@ -1029,10 +1029,26 @@ contract LiquidityPool is
   ) external onlyRole(ADMIN_ROLE) returns (uint256 amount, address series) 
   {
     OptionRegistry optionRegistry = getOptionRegistry();
-    // issue the option type
+    // issue the option type, all checks of the option validity should happen in _issue
     series = _issue(_optionSeries, optionRegistry);
-    // take premiums
+    // set the required premiums
+    // set the buyer address
+    // set and create the order id
+
     // open the option
     // adjust parameters
+  }
+
+  /**
+    @notice fulfills an order for a number of options from the pool to a specified user. The function
+            is intended to be used to issue options to market makers/ OTC market participants
+            in order to have flexibility and customisability on option issuance and market 
+            participant UX.
+    @param  orderId the id of the order for options purchase
+    @return amount the number of options sold
+    @return series the address of the options contract
+  */
+  function buyManualIssue(uint256 orderId) external {
+
   }
 }
