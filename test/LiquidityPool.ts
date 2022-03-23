@@ -93,8 +93,10 @@ const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("10000")
 const minPutStrikePrice = utils.parseEther("500")
 const maxPutStrikePrice = utils.parseEther("10000")
-const minExpiry = moment.utc().add(1, "week").valueOf() / 1000
-const maxExpiry = moment.utc().add(1, "year").valueOf() / 1000
+// one week in seconds
+const minExpiry = 86400 * 7
+// 365 days in seconds
+const maxExpiry = 86400 * 365
 
 /* --- end variables to change --- */
 
