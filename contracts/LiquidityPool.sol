@@ -21,6 +21,7 @@ import "hardhat/console.sol";
 error IVNotFound();
 error InvalidAmount();
 error IssuanceFailed();
+error DeltaNotDecreased();
 error NonExistentOtoken();
 error InvalidShareAmount();
 error TotalSupplyReached();
@@ -32,7 +33,6 @@ error UnderlyingAssetInvalid();
 error CollateralAmountInvalid();
 error WithdrawExceedsLiquidity();
 error DeltaQuoteError(uint256 quote, int256 delta);
-error DeltaNotDecreased();
 error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
 error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
 error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
@@ -1049,7 +1049,6 @@ contract LiquidityPool is
     uint256 premiums = _amount * _price;
     // set the buyer address
     // set and create the order id
-
     // open the option
     // adjust parameters
   }
