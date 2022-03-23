@@ -6,6 +6,8 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import { NormalDist } from "./NormalDist.sol";
 import { Types } from "./Types.sol";
 
+import "hardhat/console.sol";
+
 library BlackScholes {
     using PRBMathSD59x18 for int256;
     using PRBMathSD59x18 for int8;
@@ -157,7 +159,8 @@ library BlackScholes {
       returns (uint256)
     {
       //TODO consider passing in time instead to reduce gas
-      uint256 time = (expiration - getTimeStamp()).div(ONE_YEAR_SECONDS);
+      console.log("BS:", expiration, getTimeStamp());
+      uint256 time = expiration > block.timestamp.fromUint() ? (expiration - block.timestamp.fromUint()).div(ONE_YEAR_SECONDS) : 0;
       Intermediates memory i = getIntermediates(price, strike, time, vol, rfr);
       if (!isPut) {
         return callOptionPrice(int256(i.d1), int256(i.d1Denominator), int256(price), int256(strike), i.eToNegRT);

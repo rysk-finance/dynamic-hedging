@@ -309,6 +309,8 @@ describe("Expiry attack", function () {
 			toUSDC(liquidityPoolUsdcDeposit),
 			liquidityProviderAddress
 		)
+		const shares = await liquidityPool.balanceOf(liquidityProviderAddress)
+		console.log("L provider shares:", utils.formatEther(shares))
 		const liquidityPoolBalanceUSDC = await usd.balanceOf(liquidityPool.address)
 		const receipt = await deposit.wait(1)
 		const event = receipt?.events?.find(x => x.event == "Deposit")
@@ -391,18 +393,21 @@ describe("Expiry attack", function () {
 		await ethers.provider.send("evm_mine", [expiration - 10])
 		await usd.connect(attacker).approve(liquidityPool.address, toUSDC("10000000"))
 		const oraclePrice = await oracle.getPrice(weth.address)
-		console.log("old price:", oraclePrice)
+		// console.log("old price:", oraclePrice)
 		// add $5000 to ETH value to make puts expire OTM
 		await opynAggregator.setLatestAnswer(oraclePrice.add(utils.parseUnits("5000", 8)))
 		await opynAggregator.setRoundAnswer(0, oraclePrice.add(utils.parseUnits("5000", 8)))
 		// pricefeed returns price denominated in 1e18
 		const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		console.log({ oraclePrice, priceFeedPrice })
+		// console.log({ oraclePrice, priceFeedPrice })
+		const attackerBalanceBefore = await usd.balanceOf(attackerAddress)
 		const deposit = await liquidityPool.connect(attacker).deposit(toUSDC("10000000"), attackerAddress)
 		const tx = await deposit.wait()
+		const attackerBalanceAfter = await usd.balanceOf(attackerAddress)
 		const block = await ethers.provider.getBlock(tx.blockNumber)
-		console.log(block.timestamp)
+		// console.log(block.timestamp)
 		expect(block.timestamp).to.be.lt(expiration)
+		expect(attackerBalanceAfter).to.equal(attackerBalanceBefore.sub(toUSDC("10000000")))
 	})
 
 	it("options expire worthless and attacker withdraws liquidity", async () => {
@@ -412,6 +417,7 @@ describe("Expiry attack", function () {
 		expect(writersBalance).to.eq(toWei("10"))
 		await ethers.provider.send("evm_mine", [expiration])
 		const shares = await liquidityPool.balanceOf(attackerAddress)
+		console.log("attacker shares:", utils.formatEther(shares))
 		await liquidityPool.connect(attacker).withdraw(shares, attackerAddress)
 		const attackerBalanceAfter = await usd.balanceOf(attackerAddress)
 

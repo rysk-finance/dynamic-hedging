@@ -426,6 +426,7 @@ contract LiquidityPool is
       if (weightedStrikePut == 0) return uint(0);
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
       // TODO Consider using VAR (value at risk) approach in the future
+      console.log(false, underlyingPrice, weightedStrikePut, weightedTimePut);
       uint iv = getImpliedVolatility(true, underlyingPrice, weightedStrikePut, weightedTimePut);
       uint optionPrice = BlackScholes.blackScholesCalc(
          underlyingPrice,
@@ -599,7 +600,7 @@ contract LiquidityPool is
     view
     returns (uint) 
     {
-      uint256 time = (expiration - block.timestamp.fromUint()).div(ONE_YEAR_SECONDS);
+      uint256 time = expiration >block.timestamp.fromUint() ? (expiration - block.timestamp.fromUint()).div(ONE_YEAR_SECONDS) : 0;
       int underlying = int(underlyingPrice);
       int spot_distance = (int(strikePrice) - int(underlying)).div(underlying);
       int[2] memory points = [spot_distance, int(time)];
