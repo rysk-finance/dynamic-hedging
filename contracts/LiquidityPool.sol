@@ -933,9 +933,12 @@ contract LiquidityPool is
     Types.OptionSeries memory optionSeries,
     uint amount
   ) public nonReentrant whenNotPaused() returns (uint256){
-     if (!buybackWhitelist[msg.sender]){
-      // address is not on the whitelist
-      //TODO run some checks to determine if we want to buy this option back
+    (uint256 premium, int256 delta) = quotePriceBuying(optionSeries, amount);
+    if (!buybackWhitelist[msg.sender]){
+      int portfolioDelta = getPortfolioDelta();
+      int newDelta = PRBMathSD59x18.abs(portfolioDelta + delta);
+      bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
+      if (!isDecreased) return uint256(0);
     }
     OptionRegistry optionRegistry = getOptionRegistry();  
     address seriesAddress = optionRegistry.issue(
@@ -950,9 +953,6 @@ contract LiquidityPool is
     SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
     SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
   
-    //TODO create IV skew specifically for buyback 
-    //TODO swap out quotePriceWithUtilization for new buyback pricing func
-    uint256 premium = quotePriceWithUtilization(optionSeries, amount);
     (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
     emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
 
