@@ -29,6 +29,7 @@ error CollateralAssetInvalid();
 error CollateralAmountInvalid();
 error WithdrawExceedsLiquidity();
 error DeltaQuoteError(uint256 quote, int256 delta);
+error DeltaNotDecreased();
 error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
 error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
 error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
@@ -951,7 +952,7 @@ contract LiquidityPool is
       int portfolioDelta = getPortfolioDelta();
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + delta);
       bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
-      if (!isDecreased) return uint256(0);
+      if (!isDecreased) {revert DeltaNotDecreased();}
     }
     OptionRegistry optionRegistry = getOptionRegistry();  
     address seriesAddress = optionRegistry.issue(
