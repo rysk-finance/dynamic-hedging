@@ -65,10 +65,11 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-04-30"
+// First mined block will be timestamped 2021-07-13 20:44 UTC
+const expiryDate: string = "2021-08-05"
 
 const invalidExpiryDateLong: string = "2024-09-03"
-const invalidExpiryDateShort: string = "2022-03-14"
+const invalidExpiryDateShort: string = "2022-07-16"
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
