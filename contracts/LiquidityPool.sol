@@ -100,6 +100,8 @@ contract LiquidityPool is
   int256 private dustValue;
   // addresses that are whitelisted to sell options back to the protocol
   mapping(address => bool) public buybackWhitelist;
+  // custom option orders
+  mapping(uint256 => Types.Order) public orderStores;
  
   // strike and expiry date range for options
   struct OptionParams {
