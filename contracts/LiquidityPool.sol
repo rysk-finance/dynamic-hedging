@@ -782,26 +782,39 @@ contract LiquidityPool is
       returns (uint256 quote, int256 delta)
   {
       (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries, false);
+      // using a struct to get around stack too deep issues
       UtilizationState memory quoteState;
+      // price of acquiring those options
       quoteState.optionPrice = optionQuote.mul(amount);
       uint underlyingPrice = getUnderlyingPrice(optionSeries);
       int portfolioDelta = getPortfolioDelta();
+      // portfolio delta upon writing option
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
       // assumes a single collateral type regardless of call or put
+      // @TODO change this to use collateral lockup required / available liquidity
       uint utilization = quoteState.optionPrice.div(totalSupply);
+      // Is delta decreased?
       quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
+      // delta in non-nominal terms
       uint normalizedDelta = uint256(newDelta).div(_getNAV());
+      // max theoretical price of the option
       uint maxPrice = optionSeries.isPut ? optionSeries.strike : underlyingPrice;
       quoteState.utilizationPrice = maxPrice.mul(utilization);
+      // layered on to BlackScholes price when delta is moved away from target
       quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
       if (quoteState.isDecreased) {
+        // provide discount for moving towards delta zero
         uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
+        // discounted BS option price
         uint newOptionPrice = quoteState.optionPrice - discount.mul(quoteState.optionPrice);
+        // discounted utilization priced option
         quoteState.utilizationPrice = quoteState.utilizationPrice - discount.mul(quoteState.utilizationPrice);
+        // quote the greater of discounted utilization or discounted BS
         quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       } else {
         uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice) + quoteState.optionPrice;
         if (quoteState.utilizationPrice < maxPrice) {
+          // increase utilization by delta tilt factor for moving delta away from zero
           quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
           quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
         } else {
