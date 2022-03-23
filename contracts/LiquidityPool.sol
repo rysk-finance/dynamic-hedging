@@ -32,6 +32,7 @@ error UnderlyingAssetInvalid();
 error CollateralAmountInvalid();
 error WithdrawExceedsLiquidity();
 error DeltaQuoteError(uint256 quote, int256 delta);
+error DeltaNotDecreased();
 error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
 error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
 error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
@@ -785,26 +786,39 @@ contract LiquidityPool is
       returns (uint256 quote, int256 delta)
   {
       (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries, false);
+      // using a struct to get around stack too deep issues
       UtilizationState memory quoteState;
+      // price of acquiring those options
       quoteState.optionPrice = optionQuote.mul(amount);
       uint underlyingPrice = getUnderlyingPrice(optionSeries);
       int portfolioDelta = getPortfolioDelta();
+      // portfolio delta upon writing option
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
       // assumes a single collateral type regardless of call or put
+      // @TODO change this to use collateral lockup required / available liquidity
       uint utilization = quoteState.optionPrice.div(totalSupply);
+      // Is delta decreased?
       quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
+      // delta in non-nominal terms
       uint normalizedDelta = uint256(newDelta).div(_getNAV());
+      // max theoretical price of the option
       uint maxPrice = optionSeries.isPut ? optionSeries.strike : underlyingPrice;
       quoteState.utilizationPrice = maxPrice.mul(utilization);
+      // layered on to BlackScholes price when delta is moved away from target
       quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
       if (quoteState.isDecreased) {
+        // provide discount for moving towards delta zero
         uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
+        // discounted BS option price
         uint newOptionPrice = quoteState.optionPrice - discount.mul(quoteState.optionPrice);
+        // discounted utilization priced option
         quoteState.utilizationPrice = quoteState.utilizationPrice - discount.mul(quoteState.utilizationPrice);
+        // quote the greater of discounted utilization or discounted BS
         quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       } else {
         uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice) + quoteState.optionPrice;
         if (quoteState.utilizationPrice < maxPrice) {
+          // increase utilization by delta tilt factor for moving delta away from zero
           quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
           quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
         } else {
@@ -966,9 +980,12 @@ contract LiquidityPool is
     Types.OptionSeries memory optionSeries,
     uint amount
   ) public nonReentrant whenNotPaused() returns (uint256){
-     if (!buybackWhitelist[msg.sender]){
-      // address is not on the whitelist
-      //TODO run some checks to determine if we want to buy this option back
+    (uint256 premium, int256 delta) = quotePriceBuying(optionSeries, amount);
+    if (!buybackWhitelist[msg.sender]){
+      int portfolioDelta = getPortfolioDelta();
+      int newDelta = PRBMathSD59x18.abs(portfolioDelta + delta);
+      bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
+      if (!isDecreased) {revert DeltaNotDecreased();}
     }
     OptionRegistry optionRegistry = getOptionRegistry();  
     address seriesAddress = optionRegistry.getOtoken(
@@ -983,9 +1000,6 @@ contract LiquidityPool is
     SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
     SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
   
-    //TODO create IV skew specifically for buyback 
-    //TODO swap out quotePriceWithUtilization for new buyback pricing func
-    uint256 premium = quotePriceWithUtilization(optionSeries, amount);
     (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
     emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
 

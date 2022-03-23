@@ -30,7 +30,6 @@ import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPools } from "../types/LiquidityPools"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
@@ -51,7 +50,6 @@ let optionProtocol: Protocol
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
-let liquidityPools: LiquidityPools
 let liquidityPool: LiquidityPool
 let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
