@@ -65,7 +65,8 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-04-30"
+// First mined block will be timestamped 2021-07-13 20:44 UTC
+const expiryDate: string = "2021-12-05"
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
@@ -86,8 +87,10 @@ const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("10000")
 const minPutStrikePrice = utils.parseEther("500")
 const maxPutStrikePrice = utils.parseEther("10000")
-const minExpiry = moment.utc().add(1, "week").valueOf() / 1000
-const maxExpiry = moment.utc().add(1, "year").valueOf() / 1000
+// one week in seconds
+const minExpiry = 86400 * 7
+// 365 days in seconds
+const maxExpiry = 86400 * 365
 
 /* --- end variables to change --- */
 
@@ -279,7 +282,8 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const priceNorm = fromWei(priceQuote)
-
+		const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity))
+		const utilizationPrice = Number(priceNorm) * utilization
 		const optionSeries = {
 			expiration: fmtExpiration(expiration),
 			isPut: PUT_FLAVOR,
@@ -302,15 +306,20 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			parseFloat(rfr),
 			"put"
 		)
-		const maxPrice =
-			optionSeries.isPut == CALL_FLAVOR ? Number(fromWei(priceQuote)) : Number(fromWei(strikePrice))
-		const dollarAmount = Number(fromWei(amount)) * localBS
-		const utilization = dollarAmount / Number(fromWei(totalLiqidity))
-		const utilizationPrice = maxPrice * utilization
-		const localQuote = utilizationPrice > localBS ? utilizationPrice : localBS
-		const quote = await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount)
-		const truncQuote = truncate(localQuote)
-		const chainQuote = tFormatEth(quote[0].toString())
+		const finalQuote = utilizationPrice > localBS ? utilizationPrice : localBS
+		const quote = await liquidityPool.quotePriceWithUtilization(
+			{
+				expiration: fmtExpiration(expiration),
+				isPut: PUT_FLAVOR,
+				strike: BigNumber.from(strikePrice),
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			},
+			amount
+		)
+		const truncQuote = truncate(finalQuote)
+		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.lt(0.01)
 	})

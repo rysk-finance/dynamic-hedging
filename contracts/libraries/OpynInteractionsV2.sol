@@ -67,6 +67,41 @@ library OpynInteractionsV2 {
     }
 
     /**
+     * @notice Retrieves the option token if it already exists
+     * @param oTokenFactory is the address of the opyn oTokenFactory
+     * @param collateral asset that is held as collateral against short/written options
+     * @param underlying is the address of the underlying asset of the option
+     * @param strikeAsset is the address of the collateral asset of the option
+     * @param strike is the strike price of the option in 1e8 format
+     * @param expiration is the expiry timestamp of the option
+     * @param isPut the type of option
+     * @return the address of the option
+     */
+    function getOtoken(
+        address oTokenFactory,
+        address collateral,
+        address underlying,
+        address strikeAsset,
+        uint256 strike,
+        uint256 expiration,
+        bool isPut
+    ) external returns (address) {
+        IOtokenFactory factory = IOtokenFactory(oTokenFactory);
+        address otokenFromFactory =
+            factory.getOtoken(
+                underlying,
+                strikeAsset,
+                collateral,
+                strike,
+                expiration,
+                isPut
+            );
+
+        if (otokenFromFactory != address(0)) {
+            return otokenFromFactory;
+        }
+    }
+    /**
      * @notice Creates the actual Opyn short position by depositing collateral and minting otokens
      * @param gammaController is the address of the opyn controller contract
      * @param marginPool is the address of the opyn margin contract which holds the collateral
