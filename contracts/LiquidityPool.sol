@@ -1015,7 +1015,7 @@ contract LiquidityPool is
             in order to have flexibility and customisability on option issuance and market 
             participant UX.
     @param _optionSeries the option token series to issue
-    @param _amount the number of options to issue
+    @param _amount the number of options to issue 
     @param _price the price per unit to issue at
     @param _buyerAddress the agreed upon buyer address
     @return amount the number of options sold
@@ -1032,6 +1032,7 @@ contract LiquidityPool is
     // issue the option type, all checks of the option validity should happen in _issue
     series = _issue(_optionSeries, optionRegistry);
     // set the required premiums
+    uint256 premiums = _amount * _price;
     // set the buyer address
     // set and create the order id
 
@@ -1045,8 +1046,6 @@ contract LiquidityPool is
             in order to have flexibility and customisability on option issuance and market 
             participant UX.
     @param  orderId the id of the order for options purchase
-    @return amount the number of options sold
-    @return series the address of the options contract
   */
   function buyManualIssue(uint256 orderId) external {
 
