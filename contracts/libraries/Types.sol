@@ -13,7 +13,8 @@ library Types {
 
         struct Order {
             OptionSeries optionSeries;
-            uint128 premiums;
+            uint128 amount;
+            uint128 price;
             uint128 orderExpiry;
             address buyer;
         }

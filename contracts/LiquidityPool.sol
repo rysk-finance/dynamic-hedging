@@ -19,6 +19,7 @@ import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import "hardhat/console.sol";
 
 error IVNotFound();
+error InvalidBuyer();
 error InvalidAmount();
 error IssuanceFailed();
 error DeltaNotDecreased();
@@ -102,6 +103,8 @@ contract LiquidityPool is
   mapping(address => bool) public buybackWhitelist;
   // custom option orders
   mapping(uint256 => Types.Order) public orderStores;
+  // order id counter
+  uint256 public orderIdCounter;
  
   // strike and expiry date range for options
   struct OptionParams {
@@ -114,6 +117,7 @@ contract LiquidityPool is
   }
   OptionParams public optionParams;
 
+  event OrderCreated(uint orderId);
   event LiquidityAdded(uint amount);
   event UnderlyingAdded(address underlying);
   event ImpliedVolatilityUpdated(address underlying, uint iv);
@@ -939,7 +943,7 @@ contract LiquidityPool is
     // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
-    SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(strikeAsset).decimals()));
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     uint256 collateralAmount;
     if (underlyingAsset == collateralAsset) {
       collateralAmount = amount;
@@ -1021,7 +1025,7 @@ contract LiquidityPool is
       weightedTimePut = newTime;
       collateralAllocated -= collateralReturned;
     }
-    SafeTransferLib.safeTransfer(ERC20(strikeAsset), msg.sender, OptionsCompute.convertToDecimals(premium, IERC20(strikeAsset).decimals()));
+    SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     return amount;
   }
 
@@ -1033,26 +1037,32 @@ contract LiquidityPool is
     @param _optionSeries the option token series to issue
     @param _amount the number of options to issue 
     @param _price the price per unit to issue at
+    @param _orderExpiry the expiry of the order (if past the order is redundant)
     @param _buyerAddress the agreed upon buyer address
-    @return amount the number of options sold
     @return series the address of the options contract
   */
-  function createManualIssue(
+  function createOrder(
     Types.OptionSeries memory _optionSeries, 
-    uint256 _amount, 
-    uint256 _price, 
+    uint128 _amount, 
+    uint128 _price, 
+    uint128 _orderExpiry,
     address _buyerAddress
-  ) external onlyRole(ADMIN_ROLE) returns (uint256 amount, address series) 
+  ) external onlyRole(ADMIN_ROLE) returns (address series) 
   {
     OptionRegistry optionRegistry = getOptionRegistry();
     // issue the option type, all checks of the option validity should happen in _issue
     series = _issue(_optionSeries, optionRegistry);
-    // set the required premiums
-    uint256 premiums = _amount * _price;
-    // set the buyer address
-    // set and create the order id
-    // open the option
-    // adjust parameters
+    // create the order struct, setting the series, amount, price, order expiry and buyer address
+    Types.Order memory order = Types.Order(
+      _optionSeries,
+      _amount,
+      _price,
+      uint128(block.timestamp) + _orderExpiry,
+      _buyerAddress
+    );
+    // increment the orderId and store the order
+    orderStores[orderIdCounter++] = order;
+    emit OrderCreated(orderIdCounter);
   }
 
   /**
@@ -1060,9 +1070,24 @@ contract LiquidityPool is
             is intended to be used to issue options to market makers/ OTC market participants
             in order to have flexibility and customisability on option issuance and market 
             participant UX.
-    @param  orderId the id of the order for options purchase
+    @param  _orderId the id of the order for options purchase
   */
-  function buyManualIssue(uint256 orderId) external {
+  function executeOrder(uint256 _orderId) external nonReentrant {
+    // get the order
+    Types.Order memory order = orderStores[_orderId];
+    // check that the sender is the authorised buyer of the order
+    if(msg.sender != order.buyer) {revert InvalidBuyer();}
+    // calculate and send the premium
+    uint256 premium = (order.amount * order.price) / 1e18;
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
+    // write the option contract
 
+    // adjust the weighted variables
+
+    // invalidate the order
+    delete orderStores[_orderId];
+    // emit the event
+
+    // send the oTokens to the caller
   }
 }
