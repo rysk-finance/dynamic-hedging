@@ -17,5 +17,6 @@ library Types {
             uint128 price;
             uint128 orderExpiry;
             address buyer;
+            address seriesAddress;
         }
 }
