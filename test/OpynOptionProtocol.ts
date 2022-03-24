@@ -142,7 +142,8 @@ describe("Options protocol", function () {
 		)) as ERC20Interface
 		const ETHbalanceBefore = await wethERC20.balanceOf(senderAddress)
 		await wethERC20.approve(optionRegistry.address, value)
-		await optionRegistry.open(optionToken.address, value)
+		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(optionToken.address)), value)
+		await optionRegistry.open(optionToken.address, value, collatAmount)
 		const ETHbalance = await wethERC20.balanceOf(senderAddress)
 		const balance = await optionToken.balanceOf(senderAddress)
 		expect(balance).to.equal(value.div(oTokenDecimalShift18))
@@ -182,8 +183,9 @@ describe("Options protocol", function () {
 		const value = toWei("2")
 		const [sender, receiver] = signers
 		await wethERC20.connect(receiver).approve(optionRegistry.address, value)
+		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(optionToken.address)), value)
 		await expect(
-			optionRegistry.connect(receiver).open(optionToken.address, value)
+			optionRegistry.connect(receiver).open(optionToken.address, value, collatAmount)
 		).to.be.revertedWith("!liquidityPool")
 	})
 
@@ -283,7 +285,8 @@ describe("Options protocol", function () {
 	it("opens an ERC20 call option", async () => {
 		const value = toWei("4")
 		await wethERC20.approve(optionRegistry.address, value)
-		await optionRegistry.open(erc20CallOption.address, value)
+		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(erc20CallOption.address)), value)
+		await optionRegistry.open(erc20CallOption.address, value, collatAmount)
 		const balance = await erc20CallOption.balanceOf(senderAddress)
 		expect(balance).to.be.equal(value.div(oTokenDecimalShift18))
 	})
@@ -291,7 +294,8 @@ describe("Options protocol", function () {
 		const [sender] = signers
 		const amount = strike.mul(4)
 		await usd.approve(optionRegistry.address, toWei(amount.toString()))
-		await optionRegistry.open(putOption.address, toWei("4"))
+		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(putOption.address)), toWei("4"))
+		await optionRegistry.open(putOption.address, toWei("4"), collatAmount)
 		const balance = await putOption.balanceOf(senderAddress)
 		expect(balance).to.be.equal(toWei("4").div(oTokenDecimalShift18))
 	})

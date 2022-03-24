@@ -188,16 +188,17 @@ contract OptionRegistryV2 is Ownable {
      * @notice Open an options contract using collateral from the liquidity pool
      * @param  _series the address of the option token to be created
      * @param  amount the amount of options to deploy
+     * @param  collateralAmount the collateral required for the option
      * @dev only callable by the liquidityPool
      * @return if the transaction succeeded
      * @return the amount of collateral taken from the liquidityPool
      */
-    function open(address _series, uint256 amount) external onlyLiquidityPool returns (bool, uint256) {
+    function open(address _series, uint256 amount, uint256 collateralAmount) external onlyLiquidityPool returns (bool, uint256) {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
         require(block.timestamp < series.expiration, "Options can not be opened after expiration");
-        // TODO: calculate value including a buffer
-        uint256 collateralAmount = getCollateral(series, amount);
+        // transfer collateral to this contract, collateral will depend on the option type
+        SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
         // mint the option token following the opyn interface
         IController controller = IController(gammaController);
         // check if a vault for this option already exists
@@ -285,7 +286,7 @@ contract OptionRegistryV2 is Ownable {
      * @param  amount amount of options to mint
      * @return amount transferred
      */
-    function getCollateral(Types.OptionSeries memory series, uint256 amount) internal returns (uint256) {
+    function getCollateral(Types.OptionSeries memory series, uint256 amount) external view returns (uint256) {
         IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
         uint256 collateralAmount = marginCalc.getNakedMarginRequired(
           series.underlying,
@@ -301,8 +302,6 @@ contract OptionRegistryV2 is Ownable {
         // based on this collateral requirement and the health factor get the amount to deposit
         uint256 upperHealthFactor = series.isPut ? putUpperHealthFactor : callUpperHealthFactor;
         collateralAmount = ((collateralAmount * upperHealthFactor) / MAX_BPS);
-        // transfer collateral to this contract, collateral will depend on the option type
-        SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
       return collateralAmount;
     }
 

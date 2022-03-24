@@ -287,7 +287,8 @@ describe("Options protocol Vault Health", function () {
         const uhf = (await optionRegistry.callUpperHealthFactor())
 		marginReqUSD = (uhf.mul(marginReqUSD)).div(MAX_BPS)  
 		await usd.approve(optionRegistry.address, value)
-		await optionRegistry.open(optionTokenUSDC.address, value)
+		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(optionTokenUSDC.address)), value)
+		await optionRegistry.open(optionTokenUSDC.address, value, collatAmount)
 		const USDbalance = await usd.balanceOf(senderAddress)
 		const balance = await optionTokenUSDC.balanceOf(senderAddress)
 		expect(balance).to.equal(value.div(oTokenDecimalShift18))
@@ -324,7 +325,8 @@ describe("Options protocol Vault Health", function () {
         const uhf = (await optionRegistryETH.callUpperHealthFactor())
 		marginReqETH = uhf.mul(marginReqETH).div(MAX_BPS)
 		await wethERC20.approve(optionRegistryETH.address, value)
-		await optionRegistryETH.open(optionTokenETH.address, value)
+		const collatAmount = await optionRegistryETH.getCollateral((await optionRegistryETH.seriesInfo(optionTokenETH.address)), value)
+		await optionRegistryETH.open(optionTokenETH.address, value, collatAmount)
 		const ETHbalance = await wethERC20.balanceOf(senderAddress)
 		const balance = await optionTokenETH.balanceOf(senderAddress)
 		expect(balance).to.equal(value.div(oTokenDecimalShift18))
@@ -357,7 +359,8 @@ describe("Options protocol Vault Health", function () {
         const uhf = (await optionRegistry.callUpperHealthFactor())
 		marginReq = uhf.mul(marginReq).div(MAX_BPS)  
 		await usd.approve(optionRegistry.address, value)
-		await optionRegistry.open(optionTokenUSDC.address, value)
+		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(optionTokenUSDC.address)), value)
+		await optionRegistry.open(optionTokenUSDC.address, value, collatAmount)
 		const USDbalance = await usd.balanceOf(senderAddress)
 		const balance = await optionTokenUSDC.balanceOf(senderAddress)
 		expect(balance).to.equal(oBalanceBef.add(value.div(oTokenDecimalShift18)))
@@ -390,7 +393,8 @@ describe("Options protocol Vault Health", function () {
         const uhf = (await optionRegistryETH.callUpperHealthFactor())
 		marginReq = uhf.mul(marginReq).div(MAX_BPS) 
 		await wethERC20.approve(optionRegistryETH.address, value)
-		await optionRegistryETH.open(optionTokenETH.address, value)
+		const collatAmount = await optionRegistryETH.getCollateral((await optionRegistryETH.seriesInfo(optionTokenETH.address)), value)
+		await optionRegistryETH.open(optionTokenETH.address, value, collatAmount)
 		const ETHbalance = await wethERC20.balanceOf(senderAddress)
 		const balance = await optionTokenETH.balanceOf(senderAddress)
 		expect(balance).to.equal(oBalanceBef.add(value.div(oTokenDecimalShift18)))
@@ -933,11 +937,13 @@ describe("Options protocol Vault Health", function () {
 		const [sender] = signers
 		const amount = strike.mul(4)
 		await usd.approve(optionRegistry.address, toWei(amount.toString()))
-		await optionRegistry.open(erc20PutOptionUSDC.address, toWei("4"))
+		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(erc20PutOptionUSDC.address)), toWei("4"))
+		await optionRegistry.open(erc20PutOptionUSDC.address, toWei("4"), collatAmount)
 		const balance = await erc20PutOptionUSDC.balanceOf(senderAddress)
 		expect(balance).to.be.equal(toWei("4").div(oTokenDecimalShift18))
 		await weth.approve(optionRegistryETH.address, toWei(amount.toString()))
-		await optionRegistryETH.open(erc20PutOptionETH.address, toWei("4"))
+		const collatAmountETH = await optionRegistryETH.getCollateral((await optionRegistryETH.seriesInfo(erc20PutOptionETH.address)), toWei("4"))
+		await optionRegistryETH.open(erc20PutOptionETH.address, toWei("4"), collatAmountETH)
 		const newBalance = await erc20PutOptionETH.balanceOf(senderAddress)
 		expect(newBalance).to.be.equal(toWei("4").div(oTokenDecimalShift18))
         const uhf = await optionRegistry.putUpperHealthFactor();
@@ -1126,7 +1132,8 @@ describe("Options protocol Vault Health", function () {
 		optionTokenUSDC = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const value = toWei("4")
 		await usd.approve(optionRegistry.address, value)
-		await optionRegistry.open(optionTokenUSDC.address, value)
+		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(optionTokenUSDC.address)), value)
+		await optionRegistry.open(optionTokenUSDC.address, value, collatAmount)
 		})
 
 	it("moves the price and changes vault health USD to negative rebalance stage", async () => {
@@ -1234,7 +1241,8 @@ describe("Options protocol Vault Health", function () {
 		optionTokenUSDC = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const value = toWei("4")
 		await usd.approve(optionRegistry.address, value)
-		await optionRegistry.open(optionTokenUSDC.address, value)
+		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(optionTokenUSDC.address)), value)
+		await optionRegistry.open(optionTokenUSDC.address, value, collatAmount)
 		})
 
 	it("moves the price and changes vault health USD to negative rebalance stage", async () => {
