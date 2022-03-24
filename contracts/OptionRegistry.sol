@@ -146,7 +146,6 @@ contract OptionRegistry is Ownable {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
         require(block.timestamp < series.expiration, "Options can not be opened after expiration");
-      console.log(collateralAmount);
         // transfer collateral to this contract, collateral will depend on the option type
       if (!series.isPut) {
           SafeTransferLib.safeTransferFrom(series.underlying, msg.sender, address(this), collateralAmount);
