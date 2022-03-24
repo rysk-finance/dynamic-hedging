@@ -22,7 +22,6 @@ import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPools } from "../types/LiquidityPools"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
@@ -42,7 +41,6 @@ let optionProtocol: Protocol
 let signers: Signer[]
 let liquidityProviderAddress: string
 let attackerAddress: string
-let liquidityPools: LiquidityPools
 let liquidityPool: LiquidityPool
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
@@ -55,7 +53,8 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-04-30"
+// First mined block will be timestamped 2021-07-13 20:44 UTC
+const expiryDate: string = "2022-04-05"
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
@@ -78,8 +77,10 @@ const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("20000")
 const minPutStrikePrice = utils.parseEther("500")
 const maxPutStrikePrice = utils.parseEther("20000")
-const minExpiry = moment.utc().add(1, "week").valueOf() / 1000
-const maxExpiry = moment.utc().add(1, "year").valueOf() / 1000
+// one week in seconds
+const minExpiry = 86400 * 7
+// 365 days in seconds
+const maxExpiry = 86400 * 365
 
 /* --- end variables to change --- */
 

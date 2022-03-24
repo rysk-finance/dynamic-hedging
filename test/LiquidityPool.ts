@@ -65,10 +65,11 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-04-30"
+// First mined block will be timestamped 2021-07-13 20:44 UTC
+const expiryDate: string = "2021-08-05"
 
 const invalidExpiryDateLong: string = "2024-09-03"
-const invalidExpiryDateShort: string = "2022-03-14"
+const invalidExpiryDateShort: string = "2022-07-16"
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
@@ -93,8 +94,10 @@ const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("10000")
 const minPutStrikePrice = utils.parseEther("500")
 const maxPutStrikePrice = utils.parseEther("10000")
-const minExpiry = moment.utc().add(1, "week").valueOf() / 1000
-const maxExpiry = moment.utc().add(1, "year").valueOf() / 1000
+// one week in seconds
+const minExpiry = 86400 * 7
+// 365 days in seconds
+const maxExpiry = 86400 * 365
 
 /* --- end variables to change --- */
 

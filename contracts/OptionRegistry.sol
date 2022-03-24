@@ -1,9 +1,9 @@
 pragma solidity >=0.8.9;
 import "./tokens/ERC20.sol";
 import "./interfaces/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import { Types } from "./libraries/Types.sol";
 import "./interfaces/AddressBookInterface.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import { IController} from "./interfaces/GammaInterface.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import {OpynInteractions} from "./libraries/OpynInteractions.sol";
@@ -80,7 +80,7 @@ contract OptionRegistry is Ownable {
      * @param collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
-    function issue(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external returns (address) {
+    function issue(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external onlyLiquidityPool returns (address) {
         // deploy an oToken contract address
         require(expiration > block.timestamp, "Already expired");
         // create option storage hash
@@ -96,7 +96,24 @@ contract OptionRegistry is Ownable {
         emit OptionTokenCreated(series);
         return series;
     }
-    
+
+    /**
+     * @notice Retrieves the option token if it exists
+     * @param  underlying is the address of the underlying asset of the option
+     * @param  strikeAsset is the address of the collateral asset of the option
+     * @param  expiration is the expiry timestamp of the option
+     * @param  isPut the type of option
+     * @param  strike is the strike price of the option - 1e18 format
+     * @param collateral is the address of the asset to collateralize the option with
+     * @return the address of the option
+     */
+    function getOtoken(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external onlyLiquidityPool returns (address) {
+        // deploy an oToken contract address
+        require(expiration > block.timestamp, "Already expired");
+        // check for an opyn oToken
+        address series = OpynInteractions.getOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
+        return series;
+    }
     /**
      * @notice Converts strike price to 1e8 format and floors least significant digits if needed
      * @param  strikePrice strikePrice in 1e18 format
