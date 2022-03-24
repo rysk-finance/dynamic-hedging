@@ -938,16 +938,12 @@ contract LiquidityPool is
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
     SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(strikeAsset).decimals()));
-    uint256 collateralAmount;
-    if (underlyingAsset == collateralAsset) {
-      collateralAmount = amount;
-    } else if (strikeAsset == collateralAsset) {
-      collateralAmount = OptionsCompute.computeEscrow(amount, optionSeries.strike, IERC20(collateralAsset).decimals());
-    }
+    uint256 collateralAmount = optionRegistry.getCollateral(optionSeries, amount);
+
     if (IERC20(collateralAsset).balanceOf(address(this)) < collateralAmount) {revert CollateralAmountInvalid();}
 
     IERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);
-    (, collateralAmount) = optionRegistry.open(seriesAddress, amount);
+    (, collateralAmount) = optionRegistry.open(seriesAddress, amount, collateralAmount);
     emit WriteOption(seriesAddress, amount, premium, collateralAmount, msg.sender);
     
 

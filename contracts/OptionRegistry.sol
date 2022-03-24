@@ -137,22 +137,22 @@ contract OptionRegistry is Ownable {
      * @notice Open an options contract using collateral from the liquidity pool
      * @param  _series the address of the option token to be created
      * @param  amount the amount of options to deploy
+     * @param  collateralAmount the amount of collateral for the option
      * @dev only callable by the liquidityPool
      * @return if the transaction succeeded
      * @return the amount of collateral taken from the liquidityPool
      */
-    function open(address _series, uint amount) external onlyLiquidityPool returns (bool, uint256) {
+    function open(address _series, uint amount, uint collateralAmount) external onlyLiquidityPool returns (bool, uint256) {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
         require(block.timestamp < series.expiration, "Options can not be opened after expiration");
-        uint256 collateralAmount;
-    
+      console.log(collateralAmount);
         // transfer collateral to this contract, collateral will depend on the option type
-        if (!series.isPut) {
-          collateralAmount = getCallCollateral(series.underlying, amount);
-        } else {
-          collateralAmount = getPutCollateral(series.strikeAsset, amount, series.strike);
-        }
+      if (!series.isPut) {
+          SafeTransferLib.safeTransferFrom(series.underlying, msg.sender, address(this), collateralAmount);
+      } else {
+          SafeTransferLib.safeTransferFrom(series.strikeAsset, msg.sender, address(this), collateralAmount);
+      }
         // mint the option token following the opyn interface
         IController controller = IController(gammaController);
         // check if a vault for this option already exists
@@ -251,29 +251,20 @@ contract OptionRegistry is Ownable {
     }
 
     /**
-     * @notice Send collateral funds for a call option to be minted
-     * @param  underlying address of the asset to transfer
-     * @param  amount amount of underlying to transfer
+     * @notice Send collateral funds for an option to be minted
+     * @param  series details of the option series
+     * @param  amount amount of options to mint
      * @return amount transferred
      */
-    function getCallCollateral(address underlying, uint amount) internal returns (uint256) {
-      SafeTransferLib.safeTransferFrom(underlying, msg.sender, address(this), amount);
-      return amount;
+    function getCollateral(Types.OptionSeries memory series, uint256 amount) external view returns (uint256) {
+      uint256 collateralAmount;
+      if (!series.isPut) {
+          collateralAmount = amount;
+      } else {
+          collateralAmount = OptionsCompute.computeEscrow(amount, series.strike, IERC20(series.strikeAsset).decimals());
+      }
+      return collateralAmount;
     }
-
-    /**
-     * @notice Send collateral funds for a put option to be minted
-     * @param  strikeAsset address of the asset to transfer
-     * @param  amount amount of underlying to transfer
-     * @param  strike the strike of the option
-     * @return amount transferred
-     */
-    function getPutCollateral(address strikeAsset, uint amount, uint strike) internal returns (uint256) {
-        uint escrow = OptionsCompute.computeEscrow(amount, strike, IERC20(strikeAsset).decimals());
-        SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), escrow);
-        return escrow;
-    }
-
     /**
      * @notice Send collateral funds to the liquidityPool
      * @param  _series address of the oToken
