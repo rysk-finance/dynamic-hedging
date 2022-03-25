@@ -21,6 +21,7 @@ export const fmtExpiration = (x: number) => toWei(x.toString())
 export const toUSDC = (x: string) => utils.parseUnits(x, 6);
 export const toOpyn = (x: string) => utils.parseUnits(x, 8);
 export const toWeiFromUSDC = (x: string) => utils.parseUnits(x, 12);
+export const fromWeiToUSDC = (x: string) => utils.parseUnits(utils.formatEther(x), 6);
 export const fromOpyn = (x: BigNumberish) => utils.formatUnits(x, 8);
 export const getDiffSeconds = (now: moment.Moment, future: moment.Moment) => (future.unix() - now.unix());
 export const convertRounded = (x: BigNumberish): number => Math.round(Number(x.toString()));

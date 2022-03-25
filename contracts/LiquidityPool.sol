@@ -1046,15 +1046,15 @@ contract LiquidityPool is
   */
   function createOrder(
     Types.OptionSeries memory _optionSeries, 
-    uint128 _amount, 
-    uint128 _price, 
-    uint128 _orderExpiry,
+    uint256 _amount, 
+    uint256 _price, 
+    uint256 _orderExpiry,
     address _buyerAddress
   ) external onlyRole(ADMIN_ROLE) returns (address series) 
   {
     OptionRegistry optionRegistry = getOptionRegistry();
     if (_price == 0) {revert InvalidPrice();}
-    if (uint128(block.timestamp) + _orderExpiry < block.timestamp) {revert OrderExpired();}
+    if (block.timestamp + _orderExpiry < block.timestamp) {revert OrderExpired();}
     // issue the option type, all checks of the option validity should happen in _issue
     series = _issue(_optionSeries, optionRegistry);
     // create the order struct, setting the series, amount, price, order expiry and buyer address
@@ -1062,7 +1062,7 @@ contract LiquidityPool is
       _optionSeries,
       _amount,
       _price,
-      uint128(block.timestamp) + _orderExpiry,
+      block.timestamp + _orderExpiry,
       _buyerAddress,
       series
     );
@@ -1092,7 +1092,5 @@ contract LiquidityPool is
     uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, getOptionRegistry(), premium);
     // invalidate the order
     delete orderStores[_orderId];
-    // send the oTokens to the caller
-    SafeTransferLib.safeTransfer(ERC20(order.seriesAddress), msg.sender, OptionsCompute.convertToDecimals(order.amount, IERC20(order.seriesAddress).decimals()));
   }
 }
