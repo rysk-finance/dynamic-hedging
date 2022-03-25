@@ -4,50 +4,40 @@
 name: Hardhat full test suite CI
 
 on:
-  push:
-    branches: 
-      - '**'        # matches every branch
-  pull_request:
-    branches:
-      - '**'        # matches every branch
+ push:
+  branches:
+   - "**" # matches every branch
+ pull_request:
+  branches:
+   - "**" # matches every branch
 
 env:
-  ALCHEMY: ${{ secrets.ALCHEMY }}
-  TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
+ ALCHEMY: ${{ secrets.ALCHEMY }}
+ TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [16.13.1]
+ test:
+  runs-on: ubuntu-latest
+  strategy:
+   matrix:
+    node-version: [16.13.1]
 
-    steps:
-    - uses: actions/checkout@v2
-      env:
-        ALCHEMY: ${{ secrets.ALCHEMY }}
-        TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
-    - name: create env file
-      run: |
-        touch .env
-        echo ALCHEMY=${{ secrets.ALCHEMY }} >> .env
-        echo TEST_MNEMONIC=${{ secrets.TEST_MNEMONIC }} >> .env
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v2
-      with:
-        node-version: ${{ matrix.node-version }}
-    - run: npm install
-    - run: npm run compile
-    - run: npx hardhat test ./test/BlackScholes.ts
-      # We are currently not running integration tests due to a hardhat prvider error
-      # the error only occurs in GitHub Actions VMs
-    steps:
-    - uses: actions/checkout@master
-    - uses: codecov/codecov-action@v2
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-        files: ./coverage1.xml,./coverage2.xml # optional
-        flags: unittests # optional
-        name: codecov-umbrella # optional
-        fail_ci_if_error: true # optional (default = false)
-        verbose: true # optional (default = false)
+  steps:
+   - uses: actions/checkout@v2
+     env:
+      ALCHEMY: ${{ secrets.ALCHEMY }}
+      TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
+   - name: create env file
+     run: |
+      touch .env
+      echo ALCHEMY=${{ secrets.ALCHEMY }} >> .env
+      echo TEST_MNEMONIC=${{ secrets.TEST_MNEMONIC }} >> .env
+   - name: Use Node.js ${{ matrix.node-version }}
+     uses: actions/setup-node@v2
+     with:
+      node-version: ${{ matrix.node-version }}
+   - run: npm install
+   - run: npm run compile
+   - run: npx hardhat test ./test/BlackScholes.ts
+     # We are currently not running integration tests due to a hardhat prvider error
+     # the error only occurs in GitHub Actions VMs
