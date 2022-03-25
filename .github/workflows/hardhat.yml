@@ -41,10 +41,9 @@ jobs:
    - run: npx hardhat test ./test/BlackScholes.ts
      # We are currently not running integration tests due to a hardhat prvider error
      # the error only occurs in GitHub Actions VMs
-  steps:
-  - uses: actions/checkout@master
-  - uses: codecov/codecov-action@v2
-    with:
+   - uses: actions/checkout@master
+   - uses: codecov/codecov-action@v2
+     with:
       token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
       # files: ./coverage1.xml,./coverage2.xml # optional
       # flags: unittests # optional
