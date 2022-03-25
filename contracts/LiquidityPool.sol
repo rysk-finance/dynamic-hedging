@@ -19,6 +19,7 @@ import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import "hardhat/console.sol";
 
 error IVNotFound();
+error InvalidPrice();
 error InvalidBuyer();
 error OrderExpired();
 error InvalidAmount();
@@ -1052,6 +1053,8 @@ contract LiquidityPool is
   ) external onlyRole(ADMIN_ROLE) returns (address series) 
   {
     OptionRegistry optionRegistry = getOptionRegistry();
+    if (_price == 0) {revert InvalidPrice();}
+    if (uint128(block.timestamp) + _orderExpiry < block.timestamp) {revert OrderExpired();}
     // issue the option type, all checks of the option validity should happen in _issue
     series = _issue(_optionSeries, optionRegistry);
     // create the order struct, setting the series, amount, price, order expiry and buyer address
@@ -1063,8 +1066,9 @@ contract LiquidityPool is
       _buyerAddress,
       series
     );
+    orderIdCounter++;
     // increment the orderId and store the order
-    orderStores[orderIdCounter++] = order;
+    orderStores[orderIdCounter] = order;
     emit OrderCreated(orderIdCounter);
   }
 

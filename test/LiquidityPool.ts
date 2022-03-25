@@ -42,6 +42,7 @@ import {
 	ADDRESS_BOOK,
 	UNISWAP_V3_SWAP_ROUTER
 } from "./constants"
+import { time } from "console"
 let usd: MintableERC20
 let weth: WETH
 let optionRegistry: OptionRegistry
@@ -689,7 +690,43 @@ describe("Liquidity Pools", async () => {
 		const formatEthQuote = Math.round(tFormatEth(quote.toString()))
 		expect(truncFinalQuote).to.be.eq(formatEthQuote)
 	})
-
+	it("Creates a buy order", async () => {
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike).add(100))
+		const amount = toWei("1")
+		const pricePer = toWei('1000')
+		const orderExpiry = 10
+		const proposedSeries = {
+			expiration: fmtExpiration(expiration),
+			isPut: true,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		const series = await liquidityPool.createOrder(
+			proposedSeries,
+			amount,
+			pricePer,
+			orderExpiry,
+			receiverAddress
+			)
+		const order = await liquidityPool.orderStores(1)
+		expect(order.optionSeries.expiration).to.eq(proposedSeries.expiration)
+		expect(order.optionSeries.isPut).to.eq(proposedSeries.isPut)
+		expect(order.optionSeries.strike).to.eq(proposedSeries.strike)
+		expect(order.optionSeries.underlying).to.eq(proposedSeries.underlying)
+		expect(order.optionSeries.strikeAsset).to.eq(proposedSeries.strikeAsset)
+		expect(order.optionSeries.collateral).to.eq(proposedSeries.collateral)
+		expect(order.amount).to.eq(amount)
+		expect(order.price).to.eq(pricePer)
+		expect(order.buyer).to.eq(receiverAddress)
+		expect(await liquidityPool.orderIdCounter()).to.eq(1)
+		
+	})
+	// it(cant exercise order if not buyer)
+	// it(cant make order from non admin)
+	// it(cant exercise order after expiry)
 	let lpCallOption: IOToken
 	it("LP Writes a WETH/USD call collateralized by WETH for premium", async () => {
 		// registry requires liquidity pool to be owner

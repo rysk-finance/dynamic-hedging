@@ -380,6 +380,65 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		expect(totalAmountPutAfter.sub(totalAmountPutBefore)).to.eq(amount)
 		expect(weightedStrikeAfter).to.eq(newWeights.newWeightedStrike)
 		expect(weightedTimeAfter).to.eq(newWeights.newWeightedTime)
-		//@TODO add assertion checking if other state variables are properly updated such as weighted variables
 	})
+
+	it("LP Writes a ETH/USD put for premium under utilization", async () => {
+		const [sender] = signers
+		const rawAmount = 1
+		const amount = toWei(rawAmount.toString())
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const totalAmountPutBefore = await liquidityPool.totalAmountPut()
+		const weightedStrikeBefore = await liquidityPool.weightedStrikePut()
+		const weightedTimeBefore = await liquidityPool.weightedTimePut()
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const proposedSeries = {
+			expiration: fmtExpiration(expiration),
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const quote = await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
+		await usd.approve(liquidityPool.address, quote[0])
+		const balance = await usd.balanceOf(senderAddress)
+		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
+		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const receipt = await write.wait(1)
+		const events = receipt.events
+		const writeEvent = events?.find(x => x.event == "WriteOption")
+		const seriesAddress = writeEvent?.args?.series
+		const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+		const putBalance = await putOptionToken.balanceOf(senderAddress)
+		const registryUsdBalance = await liquidityPool.collateralAllocated()
+		const balanceNew = await usd.balanceOf(senderAddress)
+		const opynAmount = toOpyn(fromWei(amount))
+		// convert to numeric
+		const escrow = Number(fromWei(strikePrice))
+		const totalAmountPutAfter = await liquidityPool.totalAmountPut()
+		const weightedStrikeAfter = await liquidityPool.weightedStrikePut()
+		const weightedTimeAfter = await liquidityPool.weightedTimePut()
+		const newWeights = computeNewWeights(
+			amount,
+			proposedSeries.strike,
+			proposedSeries.expiration,
+			totalAmountPutBefore,
+			weightedStrikeBefore,
+			weightedTimeBefore
+		)
+		expect(putBalance).to.eq(opynAmount)
+		// ensure funds are being transfered
+		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote[0]))
+		const expectedPoolBalance = truncate(
+			Number(fromUSDC(poolBalanceBefore)) + Number(fromWei(quote[0])) - escrow
+		)
+		expect(expectedPoolBalance).to.eq(truncate(Number(fromUSDC(poolBalanceAfter))))
+		expect(totalAmountPutAfter.sub(totalAmountPutBefore)).to.eq(amount)
+		expect(weightedStrikeAfter).to.eq(newWeights.newWeightedStrike)
+		expect(weightedTimeAfter).to.eq(newWeights.newWeightedTime)
+	})
+	
 })
