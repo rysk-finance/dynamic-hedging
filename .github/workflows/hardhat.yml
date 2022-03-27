@@ -14,6 +14,7 @@ on:
 env:
  ALCHEMY: ${{ secrets.ALCHEMY }}
  TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
+ CODECOV_TOKEN: ${{ secrets.CODECOV.TOKEN }}
 
 jobs:
  test:
@@ -44,7 +45,7 @@ jobs:
    - uses: actions/checkout@master
    - uses: codecov/codecov-action@v2
      with:
-      token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+      token: ${{ secrets.CODECOV_TOKEN }} >> .env # not required for public repos
       # files: ./coverage1.xml,./coverage2.xml # optional
       # flags: unittests # optional
       # name: codecov-umbrella # optional
