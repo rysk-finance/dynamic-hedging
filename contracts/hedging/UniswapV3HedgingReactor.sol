@@ -40,7 +40,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     int256 public internalDelta;
 
     // @notice limit to ensure we arent doing inefficient computation for dust amounts
-    uint256 private minAmount = 1e16;
+    uint256 public minAmount = 1e16;
 
 
     constructor (ISwapRouter _swapRouter, address[] memory _stableAddresses, address _wethAddress, address _parentLiquidityPool, uint24 _poolFee, address _priceFeed) {

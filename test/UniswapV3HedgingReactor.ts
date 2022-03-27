@@ -110,6 +110,13 @@ describe("UniswapV3HedgingReactor", () => {
 		)) as UniswapV3HedgingReactor
 
 		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")
+		const minAmount = await uniswapV3HedgingReactor.minAmount()
+		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 16))
+	})
+	it("updates minAmount parameter", async () => {
+		await uniswapV3HedgingReactor.setMinAmount(1e10)
+		const minAmount = await uniswapV3HedgingReactor.minAmount()
+		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 10))
 	})
 
 	it("sets reactor address on LP contract", async () => {
