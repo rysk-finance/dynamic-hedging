@@ -72,7 +72,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             return deltaChange;
         } else { // sell wETH
             uint256 ethBalance = IERC20(wETH).balanceOf(address(this));
-            if(ethBalance == minAmount){
+            if(ethBalance < minAmount){
                 return 0;
             }
             if(_delta > int256(ethBalance)){ // not enough ETH to sell to offset delta so sell all ETH available.
