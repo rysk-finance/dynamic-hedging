@@ -39,6 +39,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
 
     int256 public internalDelta;
 
+    // @notice limit to ensure we arent doing inefficient computation for dust amounts
+    uint256 public minAmount = 1e16;
+
 
     constructor (ISwapRouter _swapRouter, address[] memory _stableAddresses, address _wethAddress, address _parentLiquidityPool, uint24 _poolFee, address _priceFeed) {
         swapRouter = _swapRouter;
@@ -69,7 +72,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             return deltaChange;
         } else { // sell wETH
             uint256 ethBalance = IERC20(wETH).balanceOf(address(this));
-            if(ethBalance == 0){
+            if(ethBalance < minAmount){
                 return 0;
             }
             if(_delta > int256(ethBalance)){ // not enough ETH to sell to offset delta so sell all ETH available.
@@ -131,6 +134,11 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     /// @notice update the uniswap v3 pool fee
     function changePoolFee(uint24 _poolFee) public onlyOwner {
         poolFee = _poolFee;
+    }
+
+    /// @notice update the minAmount parameter
+    function setMinAmount(uint _minAmount) public onlyOwner {
+        minAmount = _minAmount;
     }
 
 
