@@ -729,11 +729,9 @@ describe("Liquidity Pools", async () => {
 		lpCallOption = callOptionToken
 		const buyerOptionBalance = await callOptionToken.balanceOf(senderAddress)
 		const totalInterest = await callOptionToken.totalSupply()
-		const writersBalance = await optionRegistryV2.writers(seriesAddress, ethLiquidityPool.address)
 		const lpUSDBalance = await usd.balanceOf(ethLiquidityPool.address)
 		const senderEthBalance = await sender.getBalance()
 		const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance)
-		expect(writersBalance).to.eq(amount)
 		expect(fromOpyn(buyerOptionBalance)).to.eq(fromWei(amount))
 		expect(fromOpyn(totalInterest)).to.eq(fromWei(amount))
 	})
@@ -830,10 +828,6 @@ describe("Liquidity Pools", async () => {
 		const totalInterestBefore = await callOptionToken.totalSupply()
 		const sellerOTokenBalanceBefore = await callOptionToken.balanceOf(senderAddress)
 		const sellerUsdcBalanceBefore = await usd.balanceOf(senderAddress)
-		const writersBalanceBefore = await optionRegistryV2.writers(
-			callOptionAddress,
-			ethLiquidityPool.address
-		)
 		await callOptionToken.approve(ethLiquidityPool.address, amount)
 		const quote = await ethLiquidityPool.quotePriceWithUtilization(proposedSeries, amount)
 		await usd.approve(ethLiquidityPool.address, quote.toString())
@@ -859,8 +853,6 @@ describe("Liquidity Pools", async () => {
 		expect(sellerOTokenBalance).to.equal(
 			sellerOTokenBalanceBefore.sub(BigNumber.from(parseInt(utils.formatUnits(amount, 10))))
 		)
-		const writersBalance = await optionRegistryV2.writers(callOptionAddress, ethLiquidityPool.address)
-		expect(writersBalance).to.equal(writersBalanceBefore.sub(utils.parseEther("1")))
 
 		const lpUSDBalance = await usd.balanceOf(ethLiquidityPool.address)
 		const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance)
