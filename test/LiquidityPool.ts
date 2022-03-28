@@ -133,7 +133,7 @@ describe("Liquidity Pools", async () => {
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {
+		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistryV2", {
 			libraries: {
 				OpynInteractions: interactions.address
 			}

@@ -545,7 +545,7 @@ contract LiquidityPool is
    * @return the option registry contract interface
    */
   function getOptionRegistry() internal view returns (OptionRegistry) {
-    address registryAddress = Protocol(protocol).optionRegistry();
+    address registryAddress = Protocol(protocol).optionRegistryV2();
     return OptionRegistry(registryAddress);
   }
 
