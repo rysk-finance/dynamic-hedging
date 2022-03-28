@@ -274,12 +274,12 @@ library OpynInteractionsV2 {
     }
 
     /**
-     * @notice Burns an opyn short position
+     * @notice Burns an opyn short position and returns collateral back to OptionRegistry
      * @param gammaController is the address of the opyn controller contract
      * @param oTokenAddress is the address of the otoken to burn
      * @param burnAmount is the amount of options to burn
      * @param vaultId is the vault id used that holds the short
-     * @return the otoken burn amount
+     * @return the collateral returned amount  
      */
     function burnShort(
         address gammaController,
