@@ -129,13 +129,13 @@ describe("Liquidity Pools", async () => {
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
 		const constantsFactory = await hre.ethers.getContractFactory("Constants")
-		const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
+		const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractionsV2")
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
 		const optionRegistryV2Factory = await hre.ethers.getContractFactory("OptionRegistryV2", {
 			libraries: {
-				OpynInteractions: interactions.address
+				OpynInteractionsV2: interactions.address
 			}
 		})
 		// get and transfer weth
