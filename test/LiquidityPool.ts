@@ -25,7 +25,7 @@ import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry } from "../types/OptionRegistry"
+import { OptionRegistryV2 } from "../types/OptionRegistryV2"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
@@ -44,7 +44,7 @@ import {
 } from "./constants"
 let usd: MintableERC20
 let weth: WETH
-let optionRegistry: OptionRegistry
+let optionRegistryV2: OptionRegistryV2
 let optionProtocol: Protocol
 let signers: Signer[]
 let senderAddress: string
@@ -133,7 +133,7 @@ describe("Liquidity Pools", async () => {
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistryV2", {
+		const optionRegistryV2Factory = await hre.ethers.getContractFactory("OptionRegistryV2", {
 			libraries: {
 				OpynInteractions: interactions.address
 			}
@@ -151,16 +151,16 @@ describe("Liquidity Pools", async () => {
 		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
 		await usd.connect(signer).transfer(senderAddress, toWei("1000").div(oTokenDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
-		const _optionRegistry = (await optionRegistryFactory.deploy(
+		const _optionRegistryV2 = (await optionRegistryV2Factory.deploy(
 			USDC_ADDRESS[chainId],
 			OTOKEN_FACTORY[chainId],
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId]
-		)) as OptionRegistry
-		optionRegistry = _optionRegistry
-		expect(optionRegistry).to.have.property("deployTransaction")
+		)) as OptionRegistryV2
+		optionRegistryV2 = _optionRegistryV2
+		expect(optionRegistryV2).to.have.property("deployTransaction")
 	})
 	it("Should deploy price feed", async () => {
 		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
@@ -186,10 +186,10 @@ describe("Liquidity Pools", async () => {
 	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("Protocol")
 		optionProtocol = (await protocolFactory.deploy(
-			optionRegistry.address,
+			optionRegistryV2.address,
 			priceFeed.address
 		)) as Protocol
-		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
+		expect(await optionProtocol.optionRegistryV2()).to.equal(optionRegistryV2.address)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
@@ -259,7 +259,7 @@ describe("Liquidity Pools", async () => {
 
 		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
-		optionRegistry.setLiquidityPool(liquidityPool.address)
+		optionRegistryV2.setLiquidityPool(liquidityPool.address)
 	})
 
 	it("Deposit to the liquidityPool", async () => {
@@ -693,7 +693,7 @@ describe("Liquidity Pools", async () => {
 	let lpCallOption: IOToken
 	it("LP Writes a WETH/USD call collateralized by WETH for premium", async () => {
 		// registry requires liquidity pool to be owner
-		optionRegistry.setLiquidityPool(ethLiquidityPool.address)
+		optionRegistryV2.setLiquidityPool(ethLiquidityPool.address)
 		const [sender] = signers
 		const amount = toWei("1")
 		const blockNum = await ethers.provider.getBlockNumber()
@@ -729,7 +729,7 @@ describe("Liquidity Pools", async () => {
 		lpCallOption = callOptionToken
 		const buyerOptionBalance = await callOptionToken.balanceOf(senderAddress)
 		const totalInterest = await callOptionToken.totalSupply()
-		const writersBalance = await optionRegistry.writers(seriesAddress, ethLiquidityPool.address)
+		const writersBalance = await optionRegistryV2.writers(seriesAddress, ethLiquidityPool.address)
 		const lpUSDBalance = await usd.balanceOf(ethLiquidityPool.address)
 		const senderEthBalance = await sender.getBalance()
 		const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance)
@@ -830,7 +830,7 @@ describe("Liquidity Pools", async () => {
 		const totalInterestBefore = await callOptionToken.totalSupply()
 		const sellerOTokenBalanceBefore = await callOptionToken.balanceOf(senderAddress)
 		const sellerUsdcBalanceBefore = await usd.balanceOf(senderAddress)
-		const writersBalanceBefore = await optionRegistry.writers(
+		const writersBalanceBefore = await optionRegistryV2.writers(
 			callOptionAddress,
 			ethLiquidityPool.address
 		)
@@ -859,7 +859,7 @@ describe("Liquidity Pools", async () => {
 		expect(sellerOTokenBalance).to.equal(
 			sellerOTokenBalanceBefore.sub(BigNumber.from(parseInt(utils.formatUnits(amount, 10))))
 		)
-		const writersBalance = await optionRegistry.writers(callOptionAddress, ethLiquidityPool.address)
+		const writersBalance = await optionRegistryV2.writers(callOptionAddress, ethLiquidityPool.address)
 		expect(writersBalance).to.equal(writersBalanceBefore.sub(utils.parseEther("1")))
 
 		const lpUSDBalance = await usd.balanceOf(ethLiquidityPool.address)
