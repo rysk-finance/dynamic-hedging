@@ -37,6 +37,7 @@
 	"dependencies": {
 		"@openzeppelin/contracts": "^4.4.2",
 		"@uniswap/v3-periphery": "^1.4.0",
+		"@rage/core": "https://github.com/rage-trade/core.git#dac2f9b2b7703fd99eb81ea0ca1836917d5b0765",
 		"black-scholes": "^1.1.0",
 		"bn.js": "^5.2.0",
 		"dotenv": "^8.2.0",

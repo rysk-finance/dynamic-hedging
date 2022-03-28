@@ -143,7 +143,7 @@ describe("Liquidity Pools", async () => {
 			"contracts/interfaces/WETH.sol:WETH",
 			WETH_ADDRESS[chainId]
 		)) as WETH
-		usd = (await ethers.getContractAt("ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usd = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
 		await network.provider.request({
 			method: "hardhat_impersonateAccount",
 			params: [USDC_OWNER_ADDRESS[chainId]]

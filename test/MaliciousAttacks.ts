@@ -129,7 +129,7 @@ describe("Hegic Attack", function () {
 			"ERC20Interface",
 			WETH_ADDRESS[chainId]
 		)) as ERC20Interface
-		usd = (await ethers.getContractAt("ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usd = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
 		await weth.deposit({ value: utils.parseEther("99") })
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
