@@ -2,7 +2,7 @@ pragma solidity >=0.8.0;
 
 import "./PriceFeed.sol";
 import "./tokens/ERC20.sol";
-import "./OptionRegistry.sol";
+import "./OptionRegistryV2.sol";
 import "./OptionsProtocol.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
@@ -479,7 +479,7 @@ contract LiquidityPool is
     (uint shares)
   {
     // equities = assets - liabilities
-    // assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff
+    // assets: Any token such as eth usd, collateral sent to OptionRegistryV2, hedging reactor stuff
     // liabilities: Options that we wrote 
     uint256 convertedAmount = OptionsCompute.convertFromDecimals(_amount, IERC20(collateralAsset).decimals());
     if (totalSupply == 0) {
@@ -544,9 +544,9 @@ contract LiquidityPool is
    * @notice get the option registry used for storing and managing the options
    * @return the option registry contract interface
    */
-  function getOptionRegistry() internal view returns (OptionRegistry) {
+  function getOptionRegistry() internal view returns (OptionRegistryV2) {
     address registryAddress = Protocol(protocol).optionRegistryV2();
-    return OptionRegistry(registryAddress);
+    return OptionRegistryV2(registryAddress);
   }
 
   /**
@@ -864,7 +864,7 @@ contract LiquidityPool is
      uint amount
   ) public whenNotPaused() returns (uint optionAmount, address series)
   {
-    OptionRegistry optionRegistry = getOptionRegistry();
+    OptionRegistryV2 optionRegistry = getOptionRegistry();
     series = _issue(optionSeries, optionRegistry);
     //write the option
     optionAmount = _writeOption(optionSeries, series, amount, optionRegistry);
@@ -884,7 +884,7 @@ contract LiquidityPool is
     whenNotPaused()
     returns (uint256)
   {
-    OptionRegistry optionRegistry = getOptionRegistry();
+    OptionRegistryV2 optionRegistry = getOptionRegistry();
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // expiration requires conversion back due to option protocol not using PRB floats
@@ -898,7 +898,7 @@ contract LiquidityPool is
    * @param  optionRegistry interface for the options issuer
    * @return series       the address of the option series minted
    */
-  function _issue(Types.OptionSeries memory optionSeries, OptionRegistry optionRegistry) internal returns (address series) {
+  function _issue(Types.OptionSeries memory optionSeries, OptionRegistryV2 optionRegistry) internal returns (address series) {
     // check the expiry is within the allowed bounds
     if (block.timestamp.fromUint() + optionParams.minExpiry > optionSeries.expiration || optionSeries.expiration > block.timestamp.fromUint() + optionParams.maxExpiry) {revert OptionExpiryInvalid();}
     // check that the option strike is within the range of the min and max acceptable strikes of calls and puts
@@ -933,7 +933,7 @@ contract LiquidityPool is
    * @param  optionRegistry the option registry of the pool
    * @return amount_ the amount that was written
    */
-  function _writeOption(Types.OptionSeries memory optionSeries, address seriesAddress, uint256 amount, OptionRegistry optionRegistry) internal returns (uint256 amount_) {
+  function _writeOption(Types.OptionSeries memory optionSeries, address seriesAddress, uint256 amount, OptionRegistryV2 optionRegistry) internal returns (uint256 amount_) {
     // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
@@ -983,7 +983,7 @@ contract LiquidityPool is
       bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
       if (!isDecreased) {revert DeltaNotDecreased();}
     }
-    OptionRegistry optionRegistry = getOptionRegistry();  
+    OptionRegistryV2 optionRegistry = getOptionRegistry();  
     address seriesAddress = optionRegistry.getOtoken(
        optionSeries.underlying,
        optionSeries.strikeAsset,
@@ -1038,7 +1038,7 @@ contract LiquidityPool is
     address _buyerAddress
   ) external onlyRole(ADMIN_ROLE) returns (uint256 amount, address series) 
   {
-    OptionRegistry optionRegistry = getOptionRegistry();
+    OptionRegistryV2 optionRegistry = getOptionRegistry();
     // issue the option type, all checks of the option validity should happen in _issue
     series = _issue(_optionSeries, optionRegistry);
     // set the required premiums
