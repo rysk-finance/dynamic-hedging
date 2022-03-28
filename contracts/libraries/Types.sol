@@ -8,5 +8,13 @@ library Types {
             uint strike;
             address underlying;
             address strikeAsset;
+            address collateral;
+        }
+
+        struct Order {
+            OptionSeries optionSeries;
+            uint128 premiums;
+            uint128 orderExpiry;
+            address buyer;
         }
 }

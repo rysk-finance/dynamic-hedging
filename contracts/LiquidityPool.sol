@@ -4,31 +4,53 @@ import "./PriceFeed.sol";
 import "./tokens/ERC20.sol";
 import "./OptionRegistry.sol";
 import "./OptionsProtocol.sol";
-import "./utils/access/Ownable.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import { Constants } from "./libraries/Constants.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 
 import "hardhat/console.sol";
 
-error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
-error MinUnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingAmountMin);
-error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
-error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
+error IVNotFound();
+error InvalidAmount();
+error IssuanceFailed();
+error NonExistentOtoken();
+error InvalidShareAmount();
+error TotalSupplyReached();
+error StrikeAssetInvalid();
+error OptionStrikeInvalid();
+error OptionExpiryInvalid();
+error CollateralAssetInvalid();
+error UnderlyingAssetInvalid();
+error CollateralAmountInvalid();
+error WithdrawExceedsLiquidity();
 error DeltaQuoteError(uint256 quote, int256 delta);
+error DeltaNotDecreased();
+error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
+error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
+error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
+error MinUnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingAmountMin);
 
 contract LiquidityPool is
   ERC20,
   Ownable,
-  ReentrancyGuard
+  AccessControl,
+  ReentrancyGuard,
+  Pausable
 {
   using PRBMathSD59x18 for int256;
   using PRBMathUD60x18 for uint256;
+
+  // Access control role identifier
+  bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
 
   uint256 private constant ONE_YEAR_SECONDS = 31557600000000000000000000;
   // standard expected decimals of ERC20s
@@ -69,12 +91,26 @@ contract LiquidityPool is
   int[7] public callsVolatilitySkew;
   // skew parameters for puts
   int[7] public putsVolatilitySkew;
+  // The spread between the bid and ask on the IV skew;
+  // Consider making this it's own volatility skew if more flexibility is needed
+  uint public bidAskIVSpread;
   // Implied volatility for an underlying
   mapping(address => uint) public impliedVolatility;
-  // value below which delta is not worth dedging due to gas costs
+  // value below which delta is not worth hedging due to gas costs
   int256 private dustValue;
   // addresses that are whitelisted to sell options back to the protocol
   mapping(address => bool) public buybackWhitelist;
+ 
+  // strike and expiry date range for options
+  struct OptionParams {
+    uint128 minCallStrikePrice;
+    uint128 maxCallStrikePrice;
+    uint128 minPutStrikePrice;
+    uint128 maxPutStrikePrice;
+    uint128 minExpiry;
+    uint128 maxExpiry;
+  }
+  OptionParams public optionParams;
 
   event LiquidityAdded(uint amount);
   event UnderlyingAdded(address underlying);
@@ -85,7 +121,23 @@ contract LiquidityPool is
   event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
 
 
-  constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint rfr, int[7] memory callSkew, int[7] memory putSkew, string memory name, string memory symbol) ERC20(name, symbol, 18) {
+  constructor
+  (
+    address _protocol, 
+    address _strikeAsset, 
+    address _underlyingAsset, 
+    address _collateralAsset, 
+    uint rfr, 
+    int[7] memory callSkew, 
+    int[7] memory putSkew, 
+    string memory name, 
+    string memory symbol, 
+    OptionParams memory _optionParams,
+    address adminAddress
+  ) ERC20(name, symbol, 18) 
+  {
+    // Grant admin role to deployer
+    _setupRole(ADMIN_ROLE, adminAddress);
     strikeAsset = _strikeAsset;
     riskFreeRate = rfr;
     address underlyingAddress = _underlyingAsset;
@@ -94,8 +146,22 @@ contract LiquidityPool is
     callsVolatilitySkew = callSkew;
     putsVolatilitySkew = putSkew;
     protocol = _protocol;
+    optionParams.minCallStrikePrice = _optionParams.minCallStrikePrice;
+    optionParams.maxCallStrikePrice = _optionParams.maxCallStrikePrice;
+    optionParams.minPutStrikePrice = _optionParams.minPutStrikePrice;
+    optionParams.maxPutStrikePrice = _optionParams.maxPutStrikePrice;
+    optionParams.minExpiry = _optionParams.minExpiry;
+    optionParams.maxExpiry = _optionParams.maxExpiry;
     maxTotalSupply = type(uint256).max;
     emit UnderlyingAdded(underlyingAddress);
+  }
+
+  function pauseContract() public onlyOwner{
+    _pause();
+  }
+
+  function unpause() public onlyOwner{
+    _unpause();
   }
 
   function addBuybackAddress(address _addressToWhitelist) public onlyOwner {
@@ -109,6 +175,8 @@ contract LiquidityPool is
    */
   function setHedgingReactorAddress(address _reactorAddress) onlyOwner public {
     hedgingReactors.push(_reactorAddress);
+    SafeTransferLib.safeApprove(ERC20(strikeAsset), _reactorAddress, maxTotalSupply);
+
   }
 
   /**
@@ -154,6 +222,67 @@ contract LiquidityPool is
       } else {
           return putsVolatilitySkew;
       }
+  }
+  /**
+    @notice set a new min strike price for calls
+    @param _newPrice new min strike price - denominated in 1e18
+  */
+  function setMinCallStrikePrice(uint128 _newPrice) public onlyOwner {
+    optionParams.minCallStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new max strike price for calls
+    @param _newPrice new max strike price - denominated in 1e18
+  */
+  function setMaxCallStrikePrice(uint128 _newPrice) public onlyOwner {
+    optionParams.maxCallStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new min strike price for puts
+    @param _newPrice new min strike price - denominated in 1e18
+  */
+  function setMinPutStrikePrice(uint128 _newPrice) public onlyOwner {
+    optionParams.minPutStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new max strike price for puts
+    @param _newPrice new max strike price - denominated in 1e18
+  */
+  function setMaxPutStrikePrice(uint128 _newPrice) public onlyOwner {
+    optionParams.maxPutStrikePrice = _newPrice;
+  }
+  /**
+    @notice set a new min expiry period
+    @param _newPeriod new min expiry period - denominated in seconds * 1e18
+  */
+  function setMinExpiryPeriod(uint128 _newPeriod) public onlyOwner {
+    optionParams.minExpiry = _newPeriod;
+  }
+  /**
+    @notice set a new max expiry period
+    @param _newPeriod new max expiry period - denominated in seconds * 1e18
+  */
+  function setMaxExpiryPeriod(uint128 _newPeriod) public onlyOwner {
+    optionParams.maxExpiry = _newPeriod;
+  }
+   /**
+    @notice update all optionParam variables
+  */
+  function setNewOptionParams(uint128 _newMinCallStrike,uint128 _newMaxCallStrike,uint128 _newMinPutStrike,uint128 _newMaxPutStrike,uint128 _newMinExpiry,uint128 _newMaxExpiry) public onlyOwner {
+    optionParams.minCallStrikePrice = _newMinCallStrike;
+    optionParams.maxCallStrikePrice = _newMaxCallStrike;
+    optionParams.minPutStrikePrice = _newMinPutStrike;
+    optionParams.maxPutStrikePrice = _newMaxPutStrike;
+    optionParams.minExpiry = _newMinExpiry;
+    optionParams.maxExpiry = _newMaxExpiry;
+  }
+
+  /**
+   * @notice set the bid ask spread used to price option buying
+   * @param _bidAskSpread the bid ask spread to update to
+   */
+  function setBidAskSpread(uint256 _bidAskSpread) external onlyOwner {
+    bidAskIVSpread = _bidAskSpread;
   }
 
   /**
@@ -211,18 +340,19 @@ contract LiquidityPool is
     address _recipient
     )
     external
+    whenNotPaused()
     returns(uint shares)
   {
-    require(_amount > 0, "!_amount");
+    if (_amount == 0) {revert InvalidAmount();}
     // Calculate shares to mint based on the amount provided
     (shares) = _sharesForAmount(_amount);
-    require(shares > 0, "!shares");
+    if (shares == 0) {revert InvalidShareAmount();}
     // Pull in tokens from sender
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _amount);
     // mint lp token to recipient
     _mint(_recipient, shares);
     emit Deposit(_recipient, _amount, shares);
-    require(totalSupply <= maxTotalSupply, "maxTotalSupply");
+    if (totalSupply > maxTotalSupply) {revert TotalSupplyReached();}
   }
 
   /**
@@ -237,9 +367,10 @@ contract LiquidityPool is
     address _recipient
   )
     external
+    whenNotPaused()
     returns(uint transferCollateralAmount)
   {
-    require(_shares > 0, "!shares");
+    if (_shares == 0) {revert InvalidShareAmount();}
     // get the value of amount for the shares
     uint collateralAmount = _shareValue(_shares);
     // determine if there is enough in the pool to withdraw
@@ -247,7 +378,6 @@ contract LiquidityPool is
     (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);               
     if (collateralAmount > normalizedCollateralBalance) {
       uint256 amountNeeded = collateralAmount - normalizedCollateralBalance;
-
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         amountNeeded -= IHedgingReactor(hedgingReactors[i]).withdraw(amountNeeded, collateralAsset);
         if (amountNeeded == 0) {
@@ -258,7 +388,7 @@ contract LiquidityPool is
       (normalizedCollateralBalance,, _decimals) = getNormalizedBalance(collateralAsset);
       if (collateralAmount > normalizedCollateralBalance) {
         // if there still arent enough funds then revert or TODO: return partial amount
-        revert("Insufficient funds for a full withdrawal");
+        revert WithdrawExceedsLiquidity();
       }
     }
     transferCollateralAmount = OptionsCompute.convertToDecimals(collateralAmount, _decimals);
@@ -277,7 +407,7 @@ contract LiquidityPool is
    * @return collateralBalance balance in original decimal format
    * @return _decimals decimals of asset
    */
-  function getNormalizedBalance(
+   function getNormalizedBalance(
     address asset
   )
     internal
@@ -481,51 +611,6 @@ contract LiquidityPool is
       int[7] memory coef = isPut ? putsVolatilitySkew : callsVolatilitySkew;
       return uint(OptionsCompute.computeIVFromSkew(coef, points));
     }
-  
-  /**
-   * @param quote A 10**18 price quote
-   * @return Quote adjusted for the decimals of the strike asset
-   */
-  function toDecimals(
-    uint256 quote,
-    address token
-  ) 
-    internal 
-    view
-    returns (uint)
-  {
-    uint256 _decimals = IERC20(token).decimals();
-    uint difference;
-    if (SCALE_DECIMALS > _decimals) {
-      difference = SCALE_DECIMALS - _decimals;
-      return quote / (10**difference);
-    }
-    difference = _decimals - SCALE_DECIMALS;
-    return quote * (10**difference);
-  }
-
-  /**
-    @notice updated function to convert decimals between tokens
-    @param from address of token that the input is formatted to
-    @param to address of token that output needs to be formatted to
-    @param value value to convert
-    @return value converted to appropriate decimal
-   */
-
-  function convertDecimal(
-    address from,
-    address to,
-    uint256 value
-  ) internal view returns (uint) 
-  {
-    int8 difference = int8(IERC20(to).decimals()) - int8(IERC20(from).decimals());
-    if(difference >= 0){
-       return value * (10 ** uint8(difference));
-    } else {
-      return value / (10 ** uint8(-difference));
-    }
-  }
-
 
   /**
    * @notice get a price quote for a given optionSeries
@@ -541,8 +626,9 @@ contract LiquidityPool is
   {
     uint underlyingPrice = getUnderlyingPrice(optionSeries);
     uint iv = getImpliedVolatility(optionSeries.isPut, underlyingPrice, optionSeries.strike, optionSeries.expiration);
-    require(iv > 0, "Implied volatility not found");
-    require(optionSeries.expiration > block.timestamp, "Already expired");
+    if (iv == 0) {revert IVNotFound();}
+    // revert if the expiry is in the past
+    if (optionSeries.expiration <= block.timestamp) {revert OptionExpiryInvalid();}
     uint quote = BlackScholes.blackScholesCalc(
        underlyingPrice,
        optionSeries.strike,
@@ -562,7 +648,8 @@ contract LiquidityPool is
    * @return underlyingPrice price of the underlyingAsset
    */
   function quotePriceGreeks(
-     Types.OptionSeries memory optionSeries
+     Types.OptionSeries memory optionSeries,
+     bool isBuying
   )
       public
       view
@@ -570,8 +657,12 @@ contract LiquidityPool is
   {
       underlyingPrice = getUnderlyingPrice(optionSeries);
       uint iv = getImpliedVolatility(optionSeries.isPut, underlyingPrice, optionSeries.strike, optionSeries.expiration);
-      require(iv > 0, "Implied volatility not found");
-      require(optionSeries.expiration > block.timestamp, "Already expired");
+      if (iv == 0) {revert IVNotFound();}
+      if (isBuying) {
+        iv = iv - bidAskIVSpread;
+      }
+      // revert if the expiry is in the past
+      if (optionSeries.expiration <= block.timestamp) {revert OptionExpiryInvalid();}
       underlyingPrice = getUnderlyingPrice(optionSeries);
       (quote, delta) = BlackScholes.blackScholesCalcGreeks(
        underlyingPrice,
@@ -640,12 +731,12 @@ contract LiquidityPool is
   @notice function for hedging portfolio delta through external means
   @param delta the current portfolio delta
    */
-  function rebalancePortfolioDelta(int256 delta)
-    public 
+  function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex)
+    public onlyRole(ADMIN_ROLE) whenNotPaused()
   { 
       if(abs(delta) > dustValue) {
       // TODO check to see if we can be paid to open a position using derivatives using funding rate
-        IHedgingReactor(hedgingReactors[0]).hedgeDelta(delta);
+        IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
       }
       // TODO if we dont / not enough - look at derivatives
   }
@@ -694,35 +785,68 @@ contract LiquidityPool is
       view
       returns (uint256 quote, int256 delta)
   {
-      (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries);
+      (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries, false);
+      // using a struct to get around stack too deep issues
       UtilizationState memory quoteState;
-      quoteState.optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
+      // price of acquiring those options
+      quoteState.optionPrice = optionQuote.mul(amount);
       uint underlyingPrice = getUnderlyingPrice(optionSeries);
       int portfolioDelta = getPortfolioDelta();
+      // portfolio delta upon writing option
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
       // assumes a single collateral type regardless of call or put
-      //@TODO update quoteValue to use shock value
-      uint quoteValue = amount.mul(optionQuote);
-      uint utilization = quoteValue.div(totalSupply);
+      // @TODO change this to use collateral lockup required / available liquidity
+      uint utilization = quoteState.optionPrice.div(totalSupply);
+      // Is delta decreased?
       quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
+      // delta in non-nominal terms
       uint normalizedDelta = uint256(newDelta).div(_getNAV());
+      // max theoretical price of the option
       uint maxPrice = optionSeries.isPut ? optionSeries.strike : underlyingPrice;
       quoteState.utilizationPrice = maxPrice.mul(utilization);
+      // layered on to BlackScholes price when delta is moved away from target
       quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
       if (quoteState.isDecreased) {
+        // provide discount for moving towards delta zero
         uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
+        // discounted BS option price
         uint newOptionPrice = quoteState.optionPrice - discount.mul(quoteState.optionPrice);
+        // discounted utilization priced option
         quoteState.utilizationPrice = quoteState.utilizationPrice - discount.mul(quoteState.utilizationPrice);
+        // quote the greater of discounted utilization or discounted BS
         quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       } else {
         uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice) + quoteState.optionPrice;
         if (quoteState.utilizationPrice < maxPrice) {
+          // increase utilization by delta tilt factor for moving delta away from zero
           quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
           quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
         } else {
           quote = maxPrice;
         }
       }
+      delta = deltaQuote;
+      //@TODO think about more robust considitions for this check
+      if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta);}
+  }
+
+  /**
+   * @notice get the quote price and delta for a given option
+   * @param  optionSeries option type to quote
+   * @param  amount the number of options to buy 
+   * @return quote the price of the options
+   * @return delta the delta of the options
+   */
+  function quotePriceBuying(
+    Types.OptionSeries memory optionSeries,
+    uint amount
+  )
+      public
+      view
+      returns (uint256 quote, int256 delta)
+  {
+      (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries, true);
+      quote = optionQuote.mul(amount);
       delta = deltaQuote;
       //@TODO think about more robust considitions for this check
       if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta); }
@@ -738,9 +862,58 @@ contract LiquidityPool is
   function issueAndWriteOption(
      Types.OptionSeries memory optionSeries,
      uint amount
-  ) public payable returns (uint optionAmount, address series)
+  ) public whenNotPaused() returns (uint optionAmount, address series)
   {
     OptionRegistry optionRegistry = getOptionRegistry();
+    series = _issue(optionSeries, optionRegistry);
+    //write the option
+    optionAmount = _writeOption(optionSeries, series, amount, optionRegistry);
+  }
+
+  /**
+   * @notice write a number of options for a given series address
+   * @param  seriesAddress the option token series address
+   * @param  amount        the number of options to mint expressed as 1e18  
+   * @return number of options minted
+   */
+  function writeOption(
+    address seriesAddress,
+    uint amount
+  )
+    public
+    whenNotPaused()
+    returns (uint256)
+  {
+    OptionRegistry optionRegistry = getOptionRegistry();
+    // get the option series from the pool
+    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+    // expiration requires conversion back due to option protocol not using PRB floats
+    optionSeries.expiration = optionSeries.expiration.fromUint();
+    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry);
+  }
+
+  /**
+   * @notice create the option contract in the options registry
+   * @param  optionSeries option type to mint
+   * @param  optionRegistry interface for the options issuer
+   * @return series       the address of the option series minted
+   */
+  function _issue(Types.OptionSeries memory optionSeries, OptionRegistry optionRegistry) internal returns (address series) {
+    // check the expiry is within the allowed bounds
+    if (block.timestamp.fromUint() + optionParams.minExpiry > optionSeries.expiration || optionSeries.expiration > block.timestamp.fromUint() + optionParams.maxExpiry) {revert OptionExpiryInvalid();}
+    // check that the option strike is within the range of the min and max acceptable strikes of calls and puts
+    if(optionSeries.isPut){
+      if (optionParams.minPutStrikePrice > optionSeries.strike || optionSeries.strike > optionParams.maxPutStrikePrice) {revert OptionStrikeInvalid();}
+    } else {
+      if (optionParams.minCallStrikePrice > optionSeries.strike || optionSeries.strike > optionParams.maxCallStrikePrice) {revert OptionStrikeInvalid();}
+    }
+    // make sure the collateral of the option is the same as the collateral asset of the pool
+    if (optionSeries.collateral != collateralAsset) {revert CollateralAssetInvalid();}
+    // make sure the strike asset of the option is the same as the strike asset of the pool
+    if (optionSeries.strikeAsset != strikeAsset) {revert StrikeAssetInvalid();}
+    // make sure the underlying of the option is the same as the underlying of the pool
+    if (optionSeries.underlying != underlyingAsset) {revert UnderlyingAssetInvalid();}
+    // issue the option from the option registry (its characteristics will be stored in the optionsRegistry)
     series = optionRegistry.issue(
        optionSeries.underlying,
        optionSeries.strikeAsset,
@@ -749,47 +922,32 @@ contract LiquidityPool is
        optionSeries.strike,
        collateralAsset
     );
-    optionAmount = writeOption(series, amount);
+    if (series == address(0)) {revert IssuanceFailed();}
   }
 
   /**
-   * @notice write a number of options for a given series address
-   * @param  seriesAddress the option token series address
-   * @param  amount        the number of options to mint  
-   * @return number of options minted
+   * @notice write a number of options for a given OptionSeries
+   * @param  optionSeries option type to mint
+   * @param  seriesAddress the address of the options series
+   * @param  amount the amount to be written
+   * @param  optionRegistry the option registry of the pool
+   * @return amount_ the amount that was written
    */
-  function writeOption(
-    address seriesAddress,
-    uint amount
-  )
-    public
-    payable
-    returns (uint256)
-  {
-    OptionRegistry optionRegistry = getOptionRegistry();
-    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
-    // expiration requires conversion back due to option protocol not using PRB floats
-    optionSeries.expiration = optionSeries.expiration.fromUint();
-    require(optionSeries.strikeAsset == strikeAsset, "incorrect strike asset");
-    bool isPut = optionSeries.isPut;
+  function _writeOption(Types.OptionSeries memory optionSeries, address seriesAddress, uint256 amount, OptionRegistry optionRegistry) internal returns (uint256 amount_) {
+    // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
-    SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), toDecimals(premium, strikeAsset));
-    uint256 collateralAmount;
-    if (underlyingAsset == collateralAsset) {
-      collateralAmount = amount;
-    } else if (strikeAsset == collateralAsset) {
-      collateralAmount = OptionsCompute.computeEscrow(amount, optionSeries.strike, IERC20(collateralAsset).decimals());
-    }
-    
-    require(IERC20(collateralAsset).balanceOf(address(this)) >= collateralAmount, "Insufficient balance for collateral");
+    SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(strikeAsset).decimals()));
+    uint256 collateralAmount = optionRegistry.getCollateral(optionSeries, amount);
+
+    if (IERC20(collateralAsset).balanceOf(address(this)) < collateralAmount) {revert CollateralAmountInvalid();}
 
     IERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);
-    (, collateralAmount) = optionRegistry.open(seriesAddress, amount);
+    (, collateralAmount) = optionRegistry.open(seriesAddress, amount, collateralAmount);
     emit WriteOption(seriesAddress, amount, premium, collateralAmount, msg.sender);
     
 
-    if (!isPut) {
+    if (!optionSeries.isPut) {
         (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
             amount, optionSeries.strike, optionSeries.expiration, totalAmountCall, weightedStrikeCall, weightedTimeCall);
         totalAmountCall = newTotal;
@@ -805,42 +963,43 @@ contract LiquidityPool is
         weightedTimePut = newTime;
         collateralAllocated += collateralAmount;
     }
-    SafeTransferLib.safeTransfer(ERC20(seriesAddress), msg.sender, toDecimals(amount, seriesAddress));
+    SafeTransferLib.safeTransfer(ERC20(seriesAddress), msg.sender, OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
+    amount_ = amount;
   }
-
   /**
     @notice buys a number of options back and burns the tokens
     @param optionSeries the option token series to buyback
-    @param amount the number of options to buyback
+    @param amount the number of options to buyback expressed in 1e18
     @return the number of options bought and burned
   */
   function buybackOption(
     Types.OptionSeries memory optionSeries,
     uint amount
-  ) public nonReentrant returns (uint256){
-     if (!buybackWhitelist[msg.sender]){
-      // address is not on the whitelist
-      //TODO run some checks to determine if we want to buy this option back
+  ) public nonReentrant whenNotPaused() returns (uint256){
+    (uint256 premium, int256 delta) = quotePriceBuying(optionSeries, amount);
+    if (!buybackWhitelist[msg.sender]){
+      int portfolioDelta = getPortfolioDelta();
+      int newDelta = PRBMathSD59x18.abs(portfolioDelta + delta);
+      bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
+      if (!isDecreased) {revert DeltaNotDecreased();}
     }
     OptionRegistry optionRegistry = getOptionRegistry();  
-    address seriesAddress = optionRegistry.issue(
+    address seriesAddress = optionRegistry.getOtoken(
        optionSeries.underlying,
        optionSeries.strikeAsset,
        optionSeries.expiration.toUint(),
        optionSeries.isPut,
        optionSeries.strike,
        collateralAsset
-    );      
-    bool isPut = optionSeries.isPut;
-    SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), amount);
-    SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), amount);
-    //TODO create IV skew specifically for buyback 
-    //TODO swap out quotePriceWithUtilization for new buyback pricing func
-    uint256 premium = quotePriceWithUtilization(optionSeries, convertDecimal(seriesAddress, optionSeries.underlying, amount));
+    );     
+    if (seriesAddress == address(0)) {revert NonExistentOtoken();} 
+    SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
+    SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
+  
     (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
     emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
 
-    if (!isPut) {
+    if (!optionSeries.isPut) {
       (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeightsBuyback(
           amount, optionSeries.strike, optionSeries.expiration, totalAmountCall, weightedStrikeCall, weightedTimeCall);
       totalAmountCall = newTotal;
@@ -856,7 +1015,49 @@ contract LiquidityPool is
       weightedTimePut = newTime;
       collateralAllocated -= collateralReturned;
     }
-    SafeTransferLib.safeTransfer(ERC20(strikeAsset), msg.sender, toDecimals(premium, strikeAsset));
+    SafeTransferLib.safeTransfer(ERC20(strikeAsset), msg.sender, OptionsCompute.convertToDecimals(premium, IERC20(strikeAsset).decimals()));
     return amount;
+  }
+
+  /**
+    @notice creates an order for a number of options from the pool to a specified user. The function
+            is intended to be used to issue options to market makers/ OTC market participants
+            in order to have flexibility and customisability on option issuance and market 
+            participant UX.
+    @param _optionSeries the option token series to issue
+    @param _amount the number of options to issue 
+    @param _price the price per unit to issue at
+    @param _buyerAddress the agreed upon buyer address
+    @return amount the number of options sold
+    @return series the address of the options contract
+  */
+  function createManualIssue(
+    Types.OptionSeries memory _optionSeries, 
+    uint256 _amount, 
+    uint256 _price, 
+    address _buyerAddress
+  ) external onlyRole(ADMIN_ROLE) returns (uint256 amount, address series) 
+  {
+    OptionRegistry optionRegistry = getOptionRegistry();
+    // issue the option type, all checks of the option validity should happen in _issue
+    series = _issue(_optionSeries, optionRegistry);
+    // set the required premiums
+    uint256 premiums = _amount * _price;
+    // set the buyer address
+    // set and create the order id
+
+    // open the option
+    // adjust parameters
+  }
+
+  /**
+    @notice fulfills an order for a number of options from the pool to a specified user. The function
+            is intended to be used to issue options to market makers/ OTC market participants
+            in order to have flexibility and customisability on option issuance and market 
+            participant UX.
+    @param  orderId the id of the order for options purchase
+  */
+  function buyManualIssue(uint256 orderId) external {
+
   }
 }

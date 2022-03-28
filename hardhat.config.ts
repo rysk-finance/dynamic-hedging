@@ -51,7 +51,7 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 1
+						runs: 200
 					}
 				}
 			},
@@ -69,7 +69,7 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 1
+						runs: 200
 					}
 				}
 			}
@@ -84,8 +84,7 @@ module.exports = {
 			chainId: 1,
 			url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
 			forking: {
-				blockNumber: 12821000,
-				gasLimit: 8e6
+				blockNumber: 12821000
 			}
 		},
 		hardhat: {
@@ -111,9 +110,7 @@ module.exports = {
 	},
 	gasReporter: {
 		currency: "USD",
-		gasPrice: 44,
-		enabled: process.env.REPORT_GAS ? true : false,
-		onlyCalledMethods: true
+		gasPrice: 44
 	},
 	paths: {
 		sources: path.join(__dirname, "contracts"),

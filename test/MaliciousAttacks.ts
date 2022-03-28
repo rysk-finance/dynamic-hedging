@@ -22,11 +22,11 @@ import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPools } from "../types/LiquidityPools"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
 import {
+	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
 	MARGIN_POOL,
 	OTOKEN_FACTORY,
@@ -41,7 +41,6 @@ let optionProtocol: Protocol
 let signers: Signer[]
 let liquidityProviderAddress: string
 let attackerAddress: string
-let liquidityPools: LiquidityPools
 let liquidityPool: LiquidityPool
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
@@ -54,7 +53,8 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-03-12"
+// First mined block will be timestamped 2021-07-13 20:44 UTC
+const expiryDate: string = "2022-04-05"
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
@@ -72,6 +72,15 @@ const attackerUsdcDeposit = "1000"
 
 // balance to withdraw after deposit
 const liquidityPoolWethWidthdraw = "0.1"
+
+const minCallStrikePrice = utils.parseEther("500")
+const maxCallStrikePrice = utils.parseEther("20000")
+const minPutStrikePrice = utils.parseEther("500")
+const maxPutStrikePrice = utils.parseEther("20000")
+// one week in seconds
+const minExpiry = 86400 * 7
+// 365 days in seconds
+const maxExpiry = 86400 * 365
 
 /* --- end variables to change --- */
 
@@ -127,7 +136,8 @@ describe("Hegic Attack", function () {
 			OTOKEN_FACTORY[chainId],
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
-			liquidityProviderAddress
+			liquidityProviderAddress,
+			ADDRESS_BOOK[chainId]
 		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
@@ -153,47 +163,13 @@ describe("Hegic Attack", function () {
 		)
 		await ethUSDAggregator.mock.decimals.returns("8")
 	})
-
-	it("Should deploy liquidity pools", async () => {
-		const normDistFactory = await ethers.getContractFactory("NormalDist", {
-			libraries: {}
-		})
-		const normDist = await normDistFactory.deploy()
-		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
-			libraries: {
-				NormalDist: normDist.address
-			}
-		})
-		const blackScholesDeploy = await blackScholesFactory.deploy()
-		const constFactory = await ethers.getContractFactory(
-			"contracts/libraries/Constants.sol:Constants"
-		)
-		const constants = await constFactory.deploy()
-		const optComputeFactory = await ethers.getContractFactory(
-			"contracts/libraries/OptionsCompute.sol:OptionsCompute",
-			{
-				libraries: {}
-			}
-		)
-		await optComputeFactory.deploy()
-		const liquidityPoolsFactory = await ethers.getContractFactory("LiquidityPools", {
-			libraries: {
-				BlackScholes: blackScholesDeploy.address
-			}
-		})
-		const _liquidityPools: LiquidityPools = (await liquidityPoolsFactory.deploy()) as LiquidityPools
-		liquidityPools = _liquidityPools
-	})
-	it("Should deploy option protocol and link to liquidity pools", async () => {
+	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
-			liquidityPools.address,
 			priceFeed.address
 		)) as Protocol
-		await liquidityPools.setup(optionProtocol.address)
-		const lpProtocol = await liquidityPools.protocol()
-		expect(optionProtocol.address).to.eq(lpProtocol)
+		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
@@ -218,7 +194,26 @@ describe("Hegic Attack", function () {
 		]
 		//@ts-ignore
 		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		const lp = await liquidityPools.createLiquidityPool(
+
+		const normDistFactory = await ethers.getContractFactory("NormalDist", {
+			libraries: {}
+		})
+		const normDist = await normDistFactory.deploy()
+
+		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+			libraries: {
+				NormalDist: normDist.address
+			}
+		})
+		const blackScholesDeploy = await blackScholesFactory.deploy()
+
+		const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
+			libraries: {
+				BlackScholes: blackScholesDeploy.address
+			}
+		})
+		const lp = (await liquidityPoolFactory.deploy(
+			optionProtocol.address,
 			usd.address,
 			weth.address,
 			usd.address,
@@ -226,15 +221,19 @@ describe("Hegic Attack", function () {
 			coefs,
 			coefs,
 			"ETH/USDC",
-			"EDP"
-		)
-		const lpReceipt = await lp.wait(1)
-		const events = lpReceipt.events
-		const createEvent = events?.find(x => x.event == "LiquidityPoolCreated")
-		const strikeAsset = createEvent?.args?.strikeAsset
-		const lpAddress = createEvent?.args?.lp
-		expect(createEvent?.event).to.eq("LiquidityPoolCreated")
-		expect(strikeAsset).to.eq(usd.address)
+			"EDP",
+			{
+				minCallStrikePrice,
+				maxCallStrikePrice,
+				minPutStrikePrice,
+				maxPutStrikePrice,
+				minExpiry: fmtExpiration(minExpiry),
+				maxExpiry: fmtExpiration(maxExpiry)
+			},
+			await signers[0].getAddress()
+		)) as LiquidityPool
+
+		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
 	})
@@ -309,7 +308,8 @@ describe("Hegic Attack", function () {
 			isPut: true,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+			collateral: usd.address
 		}
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
 		await usd.connect(attacker).approve(liquidityPool.address, toWei("10000000000"))
@@ -342,7 +342,11 @@ describe("Hegic Attack", function () {
 		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const usdcBalanceAfter = await usd.balanceOf(attackerAddress)
 		const wethBalanceAfter = await wethERC20.balanceOf(attackerAddress)
-		expect(lpBalanceAfter.sub(lpBalanceBefore.sub(utils.parseUnits(attackerUsdcDeposit, 6)))).to.be.within(-10, 10)
-		expect(usdcBalanceAfter.sub(usdcBalanceBefore.add(utils.parseUnits(attackerUsdcDeposit, 6)))).to.be.within(-10, 10)
+		expect(
+			lpBalanceAfter.sub(lpBalanceBefore.sub(utils.parseUnits(attackerUsdcDeposit, 6)))
+		).to.be.within(-10, 10)
+		expect(
+			usdcBalanceAfter.sub(usdcBalanceBefore.add(utils.parseUnits(attackerUsdcDeposit, 6)))
+		).to.be.within(-10, 10)
 	})
 })

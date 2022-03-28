@@ -6,7 +6,6 @@ pragma solidity =0.6.10;
 pragma experimental ABIEncoderV2;
 
 import {SafeMath} from "../packages/oz/SafeMath.sol";
-
 /**
  * MarginVault Error Codes
  * V1: invalid short otoken amount

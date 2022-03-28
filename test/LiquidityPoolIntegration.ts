@@ -17,6 +17,7 @@ import {
 	PUT,
 	fromUSDC
 } from "../utils/conversion-helper"
+import { computeNewWeights } from "../utils/OptionsCompute"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
@@ -29,7 +30,6 @@ import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPools } from "../types/LiquidityPools"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
@@ -40,7 +40,8 @@ import {
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS
+	WETH_ADDRESS,
+	ADDRESS_BOOK
 } from "./constants"
 let usd: MintableERC20
 let weth: WETH
@@ -49,7 +50,6 @@ let optionProtocol: Protocol
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
-let liquidityPools: LiquidityPools
 let liquidityPool: LiquidityPool
 let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
@@ -65,7 +65,8 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-03-12"
+// First mined block will be timestamped 2021-07-13 20:44 UTC
+const expiryDate: string = "2021-12-05"
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
@@ -81,6 +82,15 @@ const liquidityPoolWethDeposit = "1"
 
 // balance to withdraw after deposit
 const liquidityPoolWethWidthdraw = "0.1"
+
+const minCallStrikePrice = utils.parseEther("500")
+const maxCallStrikePrice = utils.parseEther("10000")
+const minPutStrikePrice = utils.parseEther("500")
+const maxPutStrikePrice = utils.parseEther("10000")
+// one week in seconds
+const minExpiry = 86400 * 7
+// 365 days in seconds
+const maxExpiry = 86400 * 365
 
 /* --- end variables to change --- */
 
@@ -138,7 +148,8 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			OTOKEN_FACTORY[chainId],
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
-			senderAddress
+			senderAddress,
+			ADDRESS_BOOK[chainId]
 		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
@@ -164,51 +175,13 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		await ethUSDAggregator.mock.decimals.returns("8")
 	})
 
-	it("Should deploy liquidity pools", async () => {
-		const normDistFactory = await ethers.getContractFactory("NormalDist", {
-			libraries: {}
-		})
-		const normDist = await normDistFactory.deploy()
-		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
-			libraries: {
-				NormalDist: normDist.address
-			}
-		})
-		const blackScholesDeploy = await blackScholesFactory.deploy()
-		const constFactory = await ethers.getContractFactory(
-			"contracts/libraries/Constants.sol:Constants"
-		)
-		const constants = await constFactory.deploy()
-		const optComputeFactory = await ethers.getContractFactory(
-			"contracts/libraries/OptionsCompute.sol:OptionsCompute",
-			{
-				libraries: {}
-			}
-		)
-		await optComputeFactory.deploy()
-		const volFactory = await ethers.getContractFactory("Volatility", {
-			libraries: {}
-		})
-		volatility = (await volFactory.deploy()) as Volatility
-		const liquidityPoolsFactory = await ethers.getContractFactory("LiquidityPools", {
-			libraries: {
-				BlackScholes: blackScholesDeploy.address
-			}
-		})
-		const _liquidityPools: LiquidityPools = (await liquidityPoolsFactory.deploy()) as LiquidityPools
-		liquidityPools = _liquidityPools
-	})
-
-	it("Should deploy option protocol and link to liquidity pools", async () => {
+	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
-			liquidityPools.address,
 			priceFeed.address
 		)) as Protocol
-		await liquidityPools.setup(optionProtocol.address)
-		const lpProtocol = await liquidityPools.protocol()
-		expect(optionProtocol.address).to.eq(lpProtocol)
+		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
@@ -233,7 +206,26 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		]
 		//@ts-ignore
 		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		const lp = await liquidityPools.createLiquidityPool(
+
+		const normDistFactory = await ethers.getContractFactory("NormalDist", {
+			libraries: {}
+		})
+		const normDist = await normDistFactory.deploy()
+
+		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+			libraries: {
+				NormalDist: normDist.address
+			}
+		})
+		const blackScholesDeploy = await blackScholesFactory.deploy()
+
+		const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
+			libraries: {
+				BlackScholes: blackScholesDeploy.address
+			}
+		})
+		const lp = (await liquidityPoolFactory.deploy(
+			optionProtocol.address,
 			usd.address,
 			weth.address,
 			usd.address,
@@ -241,15 +233,19 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			coefs,
 			coefs,
 			"ETH/USDC",
-			"EDP"
-		)
-		const lpReceipt = await lp.wait(1)
-		const events = lpReceipt.events
-		const createEvent = events?.find(x => x.event == "LiquidityPoolCreated")
-		const strikeAsset = createEvent?.args?.strikeAsset
-		const lpAddress = createEvent?.args?.lp
-		expect(createEvent?.event).to.eq("LiquidityPoolCreated")
-		expect(strikeAsset).to.eq(usd.address)
+			"EDP",
+			{
+				minCallStrikePrice,
+				maxCallStrikePrice,
+				minPutStrikePrice,
+				maxPutStrikePrice,
+				minExpiry: fmtExpiration(minExpiry),
+				maxExpiry: fmtExpiration(maxExpiry)
+			},
+			await signers[0].getAddress()
+		)) as LiquidityPool
+
+		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
 	})
@@ -286,13 +282,15 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const priceNorm = fromWei(priceQuote)
-
+		const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity))
+		const utilizationPrice = Number(priceNorm) * utilization
 		const optionSeries = {
 			expiration: fmtExpiration(expiration),
 			isPut: PUT_FLAVOR,
 			strike: strikePrice,
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+			collateral: usd.address
 		}
 		const iv = await liquidityPool.getImpliedVolatility(
 			optionSeries.isPut,
@@ -308,15 +306,20 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			parseFloat(rfr),
 			"put"
 		)
-		const maxPrice =
-			optionSeries.isPut == CALL_FLAVOR ? Number(fromWei(priceQuote)) : Number(fromWei(strikePrice))
-		const dollarAmount = Number(fromWei(amount)) * localBS
-		const utilization = dollarAmount / Number(fromWei(totalLiqidity))
-		const utilizationPrice = maxPrice * utilization
-		const localQuote = utilizationPrice > localBS ? utilizationPrice : localBS
-		const quote = await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount)
-		const truncQuote = truncate(localQuote)
-		const chainQuote = tFormatEth(quote[0].toString())
+		const finalQuote = utilizationPrice > localBS ? utilizationPrice : localBS
+		const quote = await liquidityPool.quotePriceWithUtilization(
+			{
+				expiration: fmtExpiration(expiration),
+				isPut: PUT_FLAVOR,
+				strike: BigNumber.from(strikePrice),
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			},
+			amount
+		)
+		const truncQuote = truncate(finalQuote)
+		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.lt(0.01)
 	})
@@ -326,7 +329,9 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const amount = toWei(rawAmount.toString())
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
-		const { timestamp } = block
+		const totalAmountPutBefore = await liquidityPool.totalAmountPut()
+		const weightedStrikeBefore = await liquidityPool.weightedStrikePut()
+		const weightedTimeBefore = await liquidityPool.weightedTimePut()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
@@ -334,7 +339,8 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+			collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const quote = await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
@@ -353,6 +359,17 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const opynAmount = toOpyn(fromWei(amount))
 		// convert to numeric
 		const escrow = Number(fromWei(strikePrice))
+		const totalAmountPutAfter = await liquidityPool.totalAmountPut()
+		const weightedStrikeAfter = await liquidityPool.weightedStrikePut()
+		const weightedTimeAfter = await liquidityPool.weightedTimePut()
+		const newWeights = computeNewWeights(
+			amount,
+			proposedSeries.strike,
+			proposedSeries.expiration,
+			totalAmountPutBefore,
+			weightedStrikeBefore,
+			weightedTimeBefore
+		)
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote[0]))
@@ -360,6 +377,9 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			Number(fromUSDC(poolBalanceBefore)) + Number(fromWei(quote[0])) - escrow
 		)
 		expect(expectedPoolBalance).to.eq(truncate(Number(fromUSDC(poolBalanceAfter))))
+		expect(totalAmountPutAfter.sub(totalAmountPutBefore)).to.eq(amount)
+		expect(weightedStrikeAfter).to.eq(newWeights.newWeightedStrike)
+		expect(weightedTimeAfter).to.eq(newWeights.newWeightedTime)
 		//@TODO add assertion checking if other state variables are properly updated such as weighted variables
 	})
 })

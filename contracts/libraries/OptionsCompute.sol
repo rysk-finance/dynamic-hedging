@@ -3,6 +3,7 @@ pragma solidity >=0.8.0;
 import { Constants } from "./Constants.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
+import "../tokens/ERC20.sol";
 
 error DecimalIsLargerThanScale(uint256 decimals);
 library OptionsCompute {
@@ -81,6 +82,9 @@ library OptionsCompute {
        uint weightedTime
     ) internal pure returns (uint, uint, uint) {
         uint weight = PRBMathUD60x18.scale();
+        if(amount == totalAmount) {
+            return (0, 0, 0);
+        }
         if (totalAmount > 0) {
             weight = amount.div(totalAmount - amount);
         }

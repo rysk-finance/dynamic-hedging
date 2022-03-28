@@ -1,6 +1,6 @@
 pragma solidity >=0.8.9;
 import "./interfaces/IERC20.sol";
-import "./utils/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "./interfaces/AggregatorV3Interface.sol";

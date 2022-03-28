@@ -1,8 +1,9 @@
 pragma solidity >=0.8.9;
 import "./tokens/ERC20.sol";
 import "./interfaces/IERC20.sol";
-import "./utils/access/Ownable.sol";
 import { Types } from "./libraries/Types.sol";
+import "./interfaces/AddressBookInterface.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import { IController} from "./interfaces/GammaInterface.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import {OpynInteractions} from "./libraries/OpynInteractions.sol";
@@ -21,10 +22,11 @@ contract OptionRegistry is Ownable {
     address internal oTokenFactory;
     // address of the gammaController for oToken operations
     address internal gammaController;
+    // address of the opyn addressBook for accessing important opyn modules
+    AddressBookInterface internal addressBook;
     // address of the marginPool, contract for storing options collateral
     address internal marginPool;
     // address of the rysk liquidity pools
-    // TODO: have multiple liquidityPools enabled
     address internal liquidityPool;
     // amount of openInterest (assets) held in a specific series
     mapping(address => uint) public openInterest;
@@ -51,12 +53,13 @@ contract OptionRegistry is Ownable {
         _;
     }
 
-    constructor(address usdToken, address _oTokenFactory, address _gammaController, address _marginPool, address _liquidityPool) {
+    constructor(address usdToken, address _oTokenFactory, address _gammaController, address _marginPool, address _liquidityPool, address _addressBook) {
       usd = usdToken;
       oTokenFactory = _oTokenFactory;
       gammaController = _gammaController;
       marginPool = _marginPool;
       liquidityPool = _liquidityPool;
+      addressBook = AddressBookInterface(_addressBook);
     }
 
     /**
@@ -77,7 +80,7 @@ contract OptionRegistry is Ownable {
      * @param collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
-    function issue(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external returns (address) {
+    function issue(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external onlyLiquidityPool returns (address) {
         // deploy an oToken contract address
         require(expiration > block.timestamp, "Already expired");
         // create option storage hash
@@ -88,12 +91,29 @@ contract OptionRegistry is Ownable {
         // check for an opyn oToken if it doesn't exist deploy it
         address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
         // store the option data as a hash
-        seriesInfo[series] = Types.OptionSeries(expiration, isPut, strike, u, s);
+        seriesInfo[series] = Types.OptionSeries(expiration, isPut, strike, u, s, collateral);
         seriesAddress[issuanceHash] = series;
         emit OptionTokenCreated(series);
         return series;
     }
-    
+
+    /**
+     * @notice Retrieves the option token if it exists
+     * @param  underlying is the address of the underlying asset of the option
+     * @param  strikeAsset is the address of the collateral asset of the option
+     * @param  expiration is the expiry timestamp of the option
+     * @param  isPut the type of option
+     * @param  strike is the strike price of the option - 1e18 format
+     * @param collateral is the address of the asset to collateralize the option with
+     * @return the address of the option
+     */
+    function getOtoken(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external onlyLiquidityPool returns (address) {
+        // deploy an oToken contract address
+        require(expiration > block.timestamp, "Already expired");
+        // check for an opyn oToken
+        address series = OpynInteractions.getOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
+        return series;
+    }
     /**
      * @notice Converts strike price to 1e8 format and floors least significant digits if needed
      * @param  strikePrice strikePrice in 1e18 format
@@ -117,22 +137,21 @@ contract OptionRegistry is Ownable {
      * @notice Open an options contract using collateral from the liquidity pool
      * @param  _series the address of the option token to be created
      * @param  amount the amount of options to deploy
+     * @param  collateralAmount the amount of collateral for the option
      * @dev only callable by the liquidityPool
      * @return if the transaction succeeded
      * @return the amount of collateral taken from the liquidityPool
      */
-    function open(address _series, uint amount) external onlyLiquidityPool returns (bool, uint256) {
+    function open(address _series, uint amount, uint collateralAmount) external onlyLiquidityPool returns (bool, uint256) {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
         require(block.timestamp < series.expiration, "Options can not be opened after expiration");
-        uint256 collateralAmount;
-    
         // transfer collateral to this contract, collateral will depend on the option type
-        if (!series.isPut) {
-          collateralAmount = getCallCollateral(series.underlying, amount);
-        } else {
-          collateralAmount = getPutCollateral(series.strikeAsset, amount, series.strike);
-        }
+      if (!series.isPut) {
+          SafeTransferLib.safeTransferFrom(series.underlying, msg.sender, address(this), collateralAmount);
+      } else {
+          SafeTransferLib.safeTransferFrom(series.strikeAsset, msg.sender, address(this), collateralAmount);
+      }
         // mint the option token following the opyn interface
         IController controller = IController(gammaController);
         // check if a vault for this option already exists
@@ -167,7 +186,7 @@ contract OptionRegistry is Ownable {
         // get the vault id
         uint256 vaultId = vaultIds[_series];
         // transfer the oToken back to this account
-        SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), amount);
+        SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), OptionsCompute.convertToDecimals(amount, IERC20(_series).decimals()));
         // burn the oToken tracking the amount of collateral returned
         uint256 collatReturned = OpynInteractions.burnShort(gammaController, marginPool, _series, amount, vaultId);
 
@@ -231,29 +250,20 @@ contract OptionRegistry is Ownable {
     }
 
     /**
-     * @notice Send collateral funds for a call option to be minted
-     * @param  underlying address of the asset to transfer
-     * @param  amount amount of underlying to transfer
+     * @notice Send collateral funds for an option to be minted
+     * @param  series details of the option series
+     * @param  amount amount of options to mint
      * @return amount transferred
      */
-    function getCallCollateral(address underlying, uint amount) internal returns (uint256) {
-      SafeTransferLib.safeTransferFrom(underlying, msg.sender, address(this), amount);
-      return amount;
+    function getCollateral(Types.OptionSeries memory series, uint256 amount) external view returns (uint256) {
+      uint256 collateralAmount;
+      if (!series.isPut) {
+          collateralAmount = amount;
+      } else {
+          collateralAmount = OptionsCompute.computeEscrow(amount, series.strike, IERC20(series.strikeAsset).decimals());
+      }
+      return collateralAmount;
     }
-
-    /**
-     * @notice Send collateral funds for a put option to be minted
-     * @param  strikeAsset address of the asset to transfer
-     * @param  amount amount of underlying to transfer
-     * @param  strike the strike of the option
-     * @return amount transferred
-     */
-    function getPutCollateral(address strikeAsset, uint amount, uint strike) internal returns (uint256) {
-        uint escrow = OptionsCompute.computeEscrow(amount, strike, IERC20(strikeAsset).decimals());
-        SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), escrow);
-        return escrow;
-    }
-
     /**
      * @notice Send collateral funds to the liquidityPool
      * @param  _series address of the oToken

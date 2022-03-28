@@ -23,11 +23,11 @@ import bs from "black-scholes"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
+import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPools } from "../types/LiquidityPools"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
@@ -38,7 +38,9 @@ import {
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS
+	WETH_ADDRESS,
+	ADDRESS_BOOK,
+	UNISWAP_V3_SWAP_ROUTER
 } from "./constants"
 let usd: MintableERC20
 let weth: WETH
@@ -47,12 +49,12 @@ let optionProtocol: Protocol
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
-let liquidityPools: LiquidityPools
 let liquidityPool: LiquidityPool
 let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
+let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
 
 const IMPLIED_VOL = "60"
@@ -63,7 +65,11 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-const expiryDate: string = "2022-03-12"
+// First mined block will be timestamped 2021-07-13 20:44 UTC
+const expiryDate: string = "2021-08-05"
+
+const invalidExpiryDateLong: string = "2024-09-03"
+const invalidExpiryDateShort: string = "2022-07-16"
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
@@ -73,6 +79,10 @@ const oTokenDecimalShift18 = 10000000000
 // use negative numbers for ITM options
 const strike = "20"
 
+// hardcoded value for strike price that is outside of accepted bounds
+const invalidStrikeHigh = utils.parseEther("12500")
+const invalidStrikeLow = utils.parseEther("200")
+
 // balances to deposit into the LP
 const liquidityPoolUsdcDeposit = "10000"
 const liquidityPoolWethDeposit = "1"
@@ -80,9 +90,20 @@ const liquidityPoolWethDeposit = "1"
 // balance to withdraw after deposit
 const liquidityPoolWethWidthdraw = "0.1"
 
+const minCallStrikePrice = utils.parseEther("500")
+const maxCallStrikePrice = utils.parseEther("10000")
+const minPutStrikePrice = utils.parseEther("500")
+const maxPutStrikePrice = utils.parseEther("10000")
+// one week in seconds
+const minExpiry = 86400 * 7
+// 365 days in seconds
+const maxExpiry = 86400 * 365
+
 /* --- end variables to change --- */
 
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
+const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
+const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
 
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
@@ -102,23 +123,17 @@ describe("Liquidity Pools", async () => {
 			]
 		})
 	})
-	//   after(async function () {
-	//     await network.provider.request({
-	//       method: 'hardhat_reset',
-	//       params: [],
-	//     })
-	//   })
 	it("Deploys the Option Registry", async () => {
-		signers = await ethers.getSigners()
+		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
-		const constantsFactory = await ethers.getContractFactory("Constants")
-		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
+		const constantsFactory = await hre.ethers.getContractFactory("Constants")
+		const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
+		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {
 			libraries: {
 				OpynInteractions: interactions.address
 			}
@@ -141,7 +156,8 @@ describe("Liquidity Pools", async () => {
 			OTOKEN_FACTORY[chainId],
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
-			senderAddress
+			senderAddress,
+			ADDRESS_BOOK[chainId]
 		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
@@ -167,51 +183,13 @@ describe("Liquidity Pools", async () => {
 		await ethUSDAggregator.mock.decimals.returns("8")
 	})
 
-	it("Should deploy liquidity pools", async () => {
-		const normDistFactory = await ethers.getContractFactory("NormalDist", {
-			libraries: {}
-		})
-		const normDist = await normDistFactory.deploy()
-		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
-			libraries: {
-				NormalDist: normDist.address
-			}
-		})
-		const blackScholesDeploy = await blackScholesFactory.deploy()
-		const constFactory = await ethers.getContractFactory(
-			"contracts/libraries/Constants.sol:Constants"
-		)
-		const constants = await constFactory.deploy()
-		const optComputeFactory = await ethers.getContractFactory(
-			"contracts/libraries/OptionsCompute.sol:OptionsCompute",
-			{
-				libraries: {}
-			}
-		)
-		await optComputeFactory.deploy()
-		const volFactory = await ethers.getContractFactory("Volatility", {
-			libraries: {}
-		})
-		volatility = (await volFactory.deploy()) as Volatility
-		const liquidityPoolsFactory = await ethers.getContractFactory("LiquidityPools", {
-			libraries: {
-				BlackScholes: blackScholesDeploy.address
-			}
-		})
-		const _liquidityPools: LiquidityPools = (await liquidityPoolsFactory.deploy()) as LiquidityPools
-		liquidityPools = _liquidityPools
-	})
-
-	it("Should deploy option protocol and link to liquidity pools", async () => {
+	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
-			liquidityPools.address,
 			priceFeed.address
 		)) as Protocol
-		await liquidityPools.setup(optionProtocol.address)
-		const lpProtocol = await liquidityPools.protocol()
-		expect(optionProtocol.address).to.eq(lpProtocol)
+		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
@@ -236,7 +214,29 @@ describe("Liquidity Pools", async () => {
 		]
 		//@ts-ignore
 		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		const lp = await liquidityPools.createLiquidityPool(
+
+		const normDistFactory = await ethers.getContractFactory("NormalDist", {
+			libraries: {}
+		})
+		const normDist = await normDistFactory.deploy()
+		const volFactory = await ethers.getContractFactory("Volatility", {
+			libraries: {}
+		})
+		volatility = (await volFactory.deploy()) as Volatility
+		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+			libraries: {
+				NormalDist: normDist.address
+			}
+		})
+		const blackScholesDeploy = await blackScholesFactory.deploy()
+
+		const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
+			libraries: {
+				BlackScholes: blackScholesDeploy.address
+			}
+		})
+		const lp = (await liquidityPoolFactory.deploy(
+			optionProtocol.address,
 			usd.address,
 			weth.address,
 			usd.address,
@@ -244,15 +244,20 @@ describe("Liquidity Pools", async () => {
 			coefs,
 			coefs,
 			"ETH/USDC",
-			"EDP"
-		)
-		const lpReceipt = await lp.wait(1)
-		const events = lpReceipt.events
-		const createEvent = events?.find(x => x.event == "LiquidityPoolCreated")
-		const strikeAsset = createEvent?.args?.strikeAsset
-		const lpAddress = createEvent?.args?.lp
-		expect(createEvent?.event).to.eq("LiquidityPoolCreated")
-		expect(strikeAsset).to.eq(usd.address)
+			"EDP",
+			{
+				minCallStrikePrice,
+				maxCallStrikePrice,
+				minPutStrikePrice,
+				maxPutStrikePrice,
+				minExpiry: fmtExpiration(minExpiry),
+				maxExpiry: fmtExpiration(maxExpiry)
+			},
+			//@ts-ignore
+			await signers[0].getAddress()
+		)) as LiquidityPool
+
+		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
 	})
@@ -296,7 +301,8 @@ describe("Liquidity Pools", async () => {
 			isPut: PUT_FLAVOR,
 			strike: strikePrice,
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+			collateral: usd.address
 		}
 		const iv = await liquidityPool.getImpliedVolatility(
 			optionSeries.isPut,
@@ -319,7 +325,8 @@ describe("Liquidity Pools", async () => {
 				isPut: PUT_FLAVOR,
 				strike: BigNumber.from(strikePrice),
 				strikeAsset: usd.address,
-				underlying: weth.address
+				underlying: weth.address,
+				collateral: usd.address
 			},
 			amount
 		)
@@ -327,6 +334,116 @@ describe("Liquidity Pools", async () => {
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.lt(0.01)
+	})
+
+	it("Returns a quote for a ETH/USD put to buy", async () => {
+		const thirtyPercentStr = "0.3"
+		const thirtyPercent = toWei(thirtyPercentStr)
+		await liquidityPool.setBidAskSpread(thirtyPercent)
+		const amount = toWei("1")
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const { timestamp } = block
+		const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration)
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const priceNorm = fromWei(priceQuote)
+		const optionSeries = {
+			expiration: fmtExpiration(expiration),
+			isPut: PUT_FLAVOR,
+			strike: strikePrice,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		const iv = await liquidityPool.getImpliedVolatility(
+			PUT_FLAVOR,
+			priceQuote,
+			optionSeries.strike,
+			optionSeries.expiration
+		)
+		const localBS = bs.blackScholes(
+			priceNorm,
+			fromWei(strikePrice),
+			timeToExpiration,
+			Number(fromWei(iv)) - Number(thirtyPercentStr),
+			parseFloat(rfr),
+			"put"
+		)
+		const buyQuotes = await liquidityPool.quotePriceBuying(optionSeries, amount)
+		const buyQuote = buyQuotes[0]
+		const truncQuote = truncate(localBS)
+		const chainQuote = tFormatEth(buyQuote.toString())
+		const diff = percentDiff(truncQuote, chainQuote)
+		expect(diff).to.be.lt(0.01)
+	})
+
+	it("reverts when attempting to write ETH/USD puts with expiry outside of limit", async () => {
+		const [sender] = signers
+		const amount = toWei("1")
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const { timestamp } = block
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		// series with expiry too long
+		const proposedSeries1 = {
+			expiration: fmtExpiration(invalidExpirationLong),
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await expect(liquidityPool.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
+			"OptionExpiryInvalid()"
+		)
+		// series with expiry too short
+		const proposedSeries2 = {
+			expiration: fmtExpiration(invalidExpirationShort),
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await expect(liquidityPool.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
+			"OptionExpiryInvalid()"
+		)
+	})
+	it("reverts when attempting to write a ETH/USD put with strike outside of limit", async () => {
+		const [sender] = signers
+		const amount = toWei("1")
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const { timestamp } = block
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		// Series with strike price too high
+		const proposedSeries1 = {
+			expiration: fmtExpiration(expiration),
+			isPut: PUT_FLAVOR,
+			strike: invalidStrikeHigh,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await expect(liquidityPool.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
+			"OptionStrikeInvalid()"
+		)
+		// Series with strike price too low
+
+		const proposedSeries2 = {
+			expiration: fmtExpiration(expiration),
+			isPut: PUT_FLAVOR,
+			strike: invalidStrikeLow,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await expect(liquidityPool.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
+			"OptionStrikeInvalid()"
+		)
 	})
 	it("LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
@@ -341,7 +458,8 @@ describe("Liquidity Pools", async () => {
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+			collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const quote = await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
@@ -362,8 +480,48 @@ describe("Liquidity Pools", async () => {
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote[0]))
 	})
+	it("deploys the hedging reactor", async () => {
+		const uniswapV3HedgingReactorFactory = await ethers.getContractFactory(
+			"UniswapV3HedgingReactor",
+			{
+				signer: signers[0]
+			}
+		)
+
+		uniswapV3HedgingReactor = (await uniswapV3HedgingReactorFactory.deploy(
+			UNISWAP_V3_SWAP_ROUTER[chainId],
+			[USDC_ADDRESS[chainId]],
+			WETH_ADDRESS[chainId],
+			liquidityPool.address,
+			3000,
+			priceFeed.address
+		)) as UniswapV3HedgingReactor
+
+		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")
+	})
+	it("sets reactor address on LP contract", async () => {
+		const reactorAddress = uniswapV3HedgingReactor.address
+
+		await liquidityPool.setHedgingReactorAddress(reactorAddress)
+
+		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
+	})
 	it("can compute portfolio delta", async function () {
 		const res = await liquidityPool.getPortfolioDelta()
+	})
+
+	it("reverts when non-admin calls rebalance function", async () => {
+		const delta = await liquidityPool.getPortfolioDelta()
+		//@ts-ignore
+		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
+	})
+	it("hedges delta using the uniswap reactor", async () => {
+		const delta = await liquidityPool.getPortfolioDelta()
+		//@ts-ignore
+		await liquidityPool.rebalancePortfolioDelta(delta, 0)
+		const newDelta = await liquidityPool.getPortfolioDelta()
+		expect(parseFloat(utils.formatEther(newDelta))).to.be.lt(0.001)
+		expect(parseFloat(utils.formatEther(newDelta))).to.be.gt(-0.001)
 	})
 
 	it("Creates a liquidity pool with ETH as collateralAsset", async () => {
@@ -388,7 +546,25 @@ describe("Liquidity Pools", async () => {
 		]
 		//@ts-ignore
 		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		const lp = await liquidityPools.createLiquidityPool(
+
+		const normDistFactory = await ethers.getContractFactory("NormalDist", {
+			libraries: {}
+		})
+		const normDist = await normDistFactory.deploy()
+		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+			libraries: {
+				NormalDist: normDist.address
+			}
+		})
+		const blackScholesDeploy = await blackScholesFactory.deploy()
+
+		const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
+			libraries: {
+				BlackScholes: blackScholesDeploy.address
+			}
+		})
+		const lp = await liquidityPoolFactory.deploy(
+			optionProtocol.address,
 			usd.address,
 			weth.address,
 			weth.address,
@@ -396,16 +572,19 @@ describe("Liquidity Pools", async () => {
 			coefs,
 			coefs,
 			"weth/usd",
-			"wdp"
+			"wdp",
+			{
+				minCallStrikePrice,
+				maxCallStrikePrice,
+				minPutStrikePrice,
+				maxPutStrikePrice,
+				minExpiry: fmtExpiration(minExpiry),
+				maxExpiry: fmtExpiration(maxExpiry)
+			},
+			//@ts-ignore
+			await signers[0].getAddress()
 		)
-		const receipt = await lp.wait(1)
-		const events = receipt.events
-		const createEvent = events?.find(x => x.event == "LiquidityPoolCreated")
-		const strikeAsset = createEvent?.args?.strikeAsset
-		const lpAddress = createEvent?.args?.lp
-
-		expect(createEvent?.event).to.eq("LiquidityPoolCreated")
-
+		const lpAddress = lp.address
 		ethLiquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		const collateralAsset = await ethLiquidityPool.collateralAsset()
 		expect(collateralAsset).to.eq(weth.address)
@@ -477,7 +656,8 @@ describe("Liquidity Pools", async () => {
 			isPut: CALL_FLAVOR,
 			strike: strikePrice,
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+			collateral: usd.address
 		}
 		const iv = await liquidityPool.getImpliedVolatility(
 			optionSeries.isPut,
@@ -500,7 +680,8 @@ describe("Liquidity Pools", async () => {
 				isPut: false,
 				strike: BigNumber.from(strikePrice),
 				strikeAsset: usd.address,
-				underlying: weth.address
+				underlying: weth.address,
+				collateral: usd.address
 			},
 			amount
 		)
@@ -534,7 +715,8 @@ describe("Liquidity Pools", async () => {
 			isPut: false,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+			collateral: weth.address
 		}
 		const quote = await ethLiquidityPool.quotePriceWithUtilization(proposedSeries, amount)
 		await usd.approve(ethLiquidityPool.address, quote.toString())
@@ -546,7 +728,6 @@ describe("Liquidity Pools", async () => {
 		const callOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		lpCallOption = callOptionToken
 		const buyerOptionBalance = await callOptionToken.balanceOf(senderAddress)
-		//@ts-ignore
 		const totalInterest = await callOptionToken.totalSupply()
 		const writersBalance = await optionRegistry.writers(seriesAddress, ethLiquidityPool.address)
 		const lpUSDBalance = await usd.balanceOf(ethLiquidityPool.address)
@@ -626,7 +807,7 @@ describe("Liquidity Pools", async () => {
 
 	it("LP can buy back option to reduce open interest", async () => {
 		const [sender] = signers
-		const amount = utils.parseUnits("1", 8)
+		const amount = utils.parseUnits("1", 18)
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
@@ -642,7 +823,8 @@ describe("Liquidity Pools", async () => {
 			isPut: false,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
-			underlying: weth.address
+			underlying: weth.address,
+			collateral: weth.address
 		}
 		const callOptionToken = new Contract(callOptionAddress, Otoken.abi, sender) as IOToken
 		const totalInterestBefore = await callOptionToken.totalSupply()
@@ -662,22 +844,30 @@ describe("Liquidity Pools", async () => {
 		expect(buybackEvent?.args?.series).to.equal(callOptionAddress)
 		expect(buybackEvent?.args?.amount).to.equal(amount)
 		const totalInterest = await callOptionToken.totalSupply()
-		expect(totalInterest).to.equal(totalInterestBefore.sub(amount))
+		expect(totalInterest).to.equal(
+			totalInterestBefore.sub(BigNumber.from(parseInt(utils.formatUnits(amount, 10))))
+		)
 		const sellerOTokenBalance = await callOptionToken.balanceOf(senderAddress)
 		const sellerUsdcBalance = await usd.balanceOf(senderAddress)
 		// div quote by 100 because quote is in 8dp but USDC uses 6
 		// test to ensure option seller's USDC balance increases by quoted amount (1 USDC error allowed)
-		expect(sellerUsdcBalance.sub(sellerUsdcBalanceBefore.add(quote.div(100))).abs()).to.be.below(
-			utils.parseUnits("1", 6)
+		expect(
+			sellerUsdcBalance
+				.sub(sellerUsdcBalanceBefore.add(BigNumber.from(parseInt(utils.formatUnits(quote, 12)))))
+				.abs()
+		).to.be.below(utils.parseUnits("1", 6))
+		expect(sellerOTokenBalance).to.equal(
+			sellerOTokenBalanceBefore.sub(BigNumber.from(parseInt(utils.formatUnits(amount, 10))))
 		)
-		expect(sellerOTokenBalance).to.equal(sellerOTokenBalanceBefore.sub(amount))
 		const writersBalance = await optionRegistry.writers(callOptionAddress, ethLiquidityPool.address)
 		expect(writersBalance).to.equal(writersBalanceBefore.sub(utils.parseEther("1")))
 
 		const lpUSDBalance = await usd.balanceOf(ethLiquidityPool.address)
 		const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance)
 		// test to ensure Liquidity pool balance decreased by quoted amount (1 USDC error allowed)
-		expect(balanceDiff.sub(quote.div(100)).abs()).to.be.below(utils.parseUnits("1", 6))
+		expect(balanceDiff.sub(BigNumber.from(parseInt(utils.formatUnits(quote, 12)))).abs()).to.be.below(
+			utils.parseUnits("1", 6)
+		)
 		expect(parseFloat(fromOpyn(sellerOTokenBalance))).to.eq(0)
 		expect(parseFloat(fromOpyn(totalInterest))).to.eq(0)
 	})
@@ -721,6 +911,6 @@ describe("Liquidity Pools", async () => {
 		const shares = await liquidityPool.balanceOf(receiverAddress)
 		const liquidityPoolReceiver = liquidityPool.connect(receiver)
 		const withdraw = liquidityPoolReceiver.withdraw(shares, receiverAddress)
-		await expect(withdraw).to.be.revertedWith("Insufficient funds for a full withdrawal")
+		await expect(withdraw).to.be.revertedWith("WithdrawExceedsLiquidity()")
 	})
 })

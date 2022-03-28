@@ -1,7 +1,7 @@
 pragma solidity >=0.8.9;
 
 import "../PriceFeed.sol";
-import "../utils/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IERC20.sol";
 import "../libraries/OptionsCompute.sol";
 import '../libraries/SafeTransferLib.sol';
@@ -39,6 +39,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
 
     int256 public internalDelta;
 
+    // @notice limit to ensure we arent doing inefficient computation for dust amounts
+    uint256 public minAmount = 1e16;
+
 
     constructor (ISwapRouter _swapRouter, address[] memory _stableAddresses, address _wethAddress, address _parentLiquidityPool, uint24 _poolFee, address _priceFeed) {
         swapRouter = _swapRouter;
@@ -69,7 +72,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             return deltaChange;
         } else { // sell wETH
             uint256 ethBalance = IERC20(wETH).balanceOf(address(this));
-            if(ethBalance == 0){
+            if(ethBalance < minAmount){
                 return 0;
             }
             if(_delta > int256(ethBalance)){ // not enough ETH to sell to offset delta so sell all ETH available.
@@ -133,6 +136,11 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         poolFee = _poolFee;
     }
 
+    /// @notice update the minAmount parameter
+    function setMinAmount(uint _minAmount) public onlyOwner {
+        minAmount = _minAmount;
+    }
+
 
     /**
         @notice convert between standand 10e18 decimals and custom decimals for different tokens
@@ -151,7 +159,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         @param _sellToken the stablecoin to sell
     */
     function _swapExactOutputSingle(uint256 _amountOut, uint256 _amountInMaximum, address _sellToken) internal returns (int256, uint256) {
-        SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), 100000000000);
+        SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), 1000000000);//1,000 USDC
 
         ISwapRouter.ExactOutputSingleParams memory params =
             ISwapRouter.ExactOutputSingleParams({
