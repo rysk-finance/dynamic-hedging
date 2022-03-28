@@ -38,9 +38,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     /// @notice instance of the clearing house interface
     IClearingHouse public clearingHouse;
 
-    /// @notice uniswap v3 pool fee expressed at 10e6
-    uint24 public poolFee;
-
+    /// @notice delta of the pool
     int256 public internalDelta;
 
     // @notice limit to ensure we arent doing inefficient computation for dust amounts
@@ -53,7 +51,6 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         collateralAsset = _collateralAsset;
         wETH = _wethAddress;
         parentLiquidityPool = _parentLiquidityPool;
-        poolFee = _poolFee;
         priceFeed = _priceFeed;
     }
 
@@ -72,8 +69,14 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     function hedgeDelta(int256 _delta) external returns (int256 deltaChange) {
         // make sure the caller is the vault
         require(msg.sender == parentLiquidityPool, "!vault");
-        // if the delta to hedge is positive call _openShort()
-        // if the delta to hedge is negative call _closeShort()
+        int256 deltaChange;
+        if (_delta > 0) {
+        // if the delta to hedge is positive call _goShort()
+        deltaChange = _goShort(-_delta);
+        } else if (_delta < 0) {
+        // if the delta to hedge is negative call _goLong()
+        deltaChange = _goLong(_delta);
+        }
         // record the delta change internally
         internalDelta += deltaChange;
     }
@@ -121,10 +124,10 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         @param _amount the amount to open
         @return deltaChange The resulting difference in delta exposure
     */
-    function _openShort(uint256 _amount) internal returns (uint256) {
+    function _goShort(int256 _amount) internal returns (int256) {
         // check for a long position, if there is then close it
         // open the perp position using the various variables of the pool
-        uint256 amountIn;
+        int256 amountIn;
         return amountIn;
     }
 
@@ -132,10 +135,10 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         @param _amount the amount to open
         @return deltaChange The resulting difference in delta exposure
     */
-    function _openLong(uint256 _amount) internal returns (uint256) {
+    function _goLong(int256 _amount) internal returns (int256) {
         // check for a short position, if there is then close it
         // open a perp position using the various variables of the pool
-        uint256 amountOut;
+        int256 amountOut;
         return _amount;
     }
 
