@@ -938,7 +938,13 @@ contract LiquidityPool is
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of base strike asset
     SafeTransferLib.safeTransferFrom(strikeAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(strikeAsset).decimals()));
-    uint256 collateralAmount = optionRegistry.getCollateral(optionSeries, amount);
+    uint256 collateralAmount = optionRegistry.getCollateral(Types.OptionSeries( 
+       optionSeries.expiration,
+       optionSeries.isPut,
+       optionSeries.strike/(10**10), // convert from 1e18 to 1e8 notation for getCollateral()
+       optionSeries.underlying,
+       optionSeries.strikeAsset,
+       collateralAsset), amount);
 
     if (IERC20(collateralAsset).balanceOf(address(this)) < collateralAmount) {revert CollateralAmountInvalid();}
 
@@ -987,7 +993,7 @@ contract LiquidityPool is
     address seriesAddress = optionRegistry.getOtoken(
        optionSeries.underlying,
        optionSeries.strikeAsset,
-       optionSeries.expiration.toUint(),
+       optionSeries.expiration,
        optionSeries.isPut,
        optionSeries.strike,
        collateralAsset
