@@ -462,6 +462,32 @@ describe("Liquidity Pools", async () => {
 		expect(balance.sub(newBalance)).to.eq(toUSDC(liquidityPoolUsdcDeposit))
 		expect(liquidityPoolBalance.toString()).to.eq(toWei(liquidityPoolUsdcDeposit))
 	})
+	it("deploys the hedging reactor", async () => {
+		const uniswapV3HedgingReactorFactory = await ethers.getContractFactory(
+			"UniswapV3HedgingReactor",
+			{
+				signer: signers[0]
+			}
+		)
+
+		uniswapV3HedgingReactor = (await uniswapV3HedgingReactorFactory.deploy(
+			UNISWAP_V3_SWAP_ROUTER[chainId],
+			[USDC_ADDRESS[chainId]],
+			WETH_ADDRESS[chainId],
+			liquidityPool.address,
+			3000,
+			priceFeed.address
+		)) as UniswapV3HedgingReactor
+
+		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")
+	})
+	it("sets reactor address on LP contract", async () => {
+		const reactorAddress = uniswapV3HedgingReactor.address
+
+		await liquidityPool.setHedgingReactorAddress(reactorAddress)
+
+		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
+	})
 	it("Returns a quote for a ETH/USD put with utilization", async () => {
 		const totalLiqidity = await liquidityPool.totalSupply()
 		const amount = toWei("5")
@@ -562,7 +588,6 @@ describe("Liquidity Pools", async () => {
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
-		console.log({ timestamp })
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		// series with expiry too long
@@ -624,6 +649,10 @@ describe("Liquidity Pools", async () => {
 			"OptionStrikeInvalid()"
 		)
 	})
+	it("can compute portfolio delta", async function () {
+		const delta = await liquidityPool.getPortfolioDelta()
+		expect(delta).to.equal(0)
+	})
 	it("LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
 		const amount = toWei("1")
@@ -641,8 +670,6 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		const EthPrice = await oracle.getPrice(weth.address)
-		console.log({ EthPrice, priceQuote })
-		// console.log(proposedSeries)
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const quote = await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
 		await usd.approve(liquidityPool.address, quote[0])
@@ -651,48 +678,21 @@ describe("Liquidity Pools", async () => {
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const receipt = await write.wait(1)
 		const events = receipt.events
-		// const writeEvent = events?.find(x => x.event == "WriteOption")
-		const outputEvent = events?.find(x => x.event == "Output")
-		const output = outputEvent?.args?.optionSeries
-		console.log({ output })
-		// const seriesAddress = writeEvent?.args?.series
-		// const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
-		// const putBalance = await putOptionToken.balanceOf(senderAddress)
-		// const registryUsdBalance = await liquidityPool.collateralAllocated()
-		// const balanceNew = await usd.balanceOf(senderAddress)
-		// const opynAmount = toOpyn(fromWei(amount))
-		// expect(putBalance).to.eq(opynAmount)
-		// // ensure funds are being transfered
-		// expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote[0]))
+		const writeEvent = events?.find(x => x.event == "WriteOption")
+		const seriesAddress = writeEvent?.args?.series
+		const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+		const putBalance = await putOptionToken.balanceOf(senderAddress)
+		const registryUsdBalance = await liquidityPool.collateralAllocated()
+		const balanceNew = await usd.balanceOf(senderAddress)
+		const opynAmount = toOpyn(fromWei(amount))
+		expect(putBalance).to.eq(opynAmount)
+		// ensure funds are being transfered
+		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote[0]))
 	})
-	it("deploys the hedging reactor", async () => {
-		const uniswapV3HedgingReactorFactory = await ethers.getContractFactory(
-			"UniswapV3HedgingReactor",
-			{
-				signer: signers[0]
-			}
-		)
 
-		uniswapV3HedgingReactor = (await uniswapV3HedgingReactorFactory.deploy(
-			UNISWAP_V3_SWAP_ROUTER[chainId],
-			[USDC_ADDRESS[chainId]],
-			WETH_ADDRESS[chainId],
-			liquidityPool.address,
-			3000,
-			priceFeed.address
-		)) as UniswapV3HedgingReactor
-
-		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")
-	})
-	it("sets reactor address on LP contract", async () => {
-		const reactorAddress = uniswapV3HedgingReactor.address
-
-		await liquidityPool.setHedgingReactorAddress(reactorAddress)
-
-		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
-	})
 	it("can compute portfolio delta", async function () {
-		const res = await liquidityPool.getPortfolioDelta()
+		const delta = await liquidityPool.getPortfolioDelta()
+		expect(delta).to.be.gt(0)
 	})
 
 	it("reverts when non-admin calls rebalance function", async () => {
