@@ -52,7 +52,7 @@ contract LiquidityPool is
   bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
 
-  uint256 private constant ONE_YEAR_SECONDS = 31557600000000000000000000;
+  uint256 private constant ONE_YEAR_SECONDS = 31557600;
   // standard expected decimals of ERC20s
   uint8 private constant SCALE_DECIMALS = 18;
   // list of addresses for hedging reactors
@@ -604,7 +604,7 @@ contract LiquidityPool is
     view
     returns (uint) 
     {
-      uint256 time = (expiration - block.timestamp.fromUint()).div(ONE_YEAR_SECONDS);
+      uint256 time = (expiration - block.timestamp).div(ONE_YEAR_SECONDS);
       int underlying = int(underlyingPrice);
       int spot_distance = (int(strikePrice) - int(underlying)).div(underlying);
       int[2] memory points = [spot_distance, int(time)];
@@ -888,7 +888,7 @@ contract LiquidityPool is
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // expiration requires conversion back due to option protocol not using PRB floats
-    optionSeries.expiration = optionSeries.expiration.fromUint();
+    optionSeries.expiration = optionSeries.expiration;
     return _writeOption(optionSeries, seriesAddress, amount, optionRegistry);
   }
 
@@ -900,7 +900,7 @@ contract LiquidityPool is
    */
   function _issue(Types.OptionSeries memory optionSeries, OptionRegistryV2 optionRegistry) internal returns (address series) {
     // check the expiry is within the allowed bounds
-    if (block.timestamp.fromUint() + optionParams.minExpiry > optionSeries.expiration || optionSeries.expiration > block.timestamp.fromUint() + optionParams.maxExpiry) {revert OptionExpiryInvalid();}
+    if (block.timestamp + optionParams.minExpiry > optionSeries.expiration || optionSeries.expiration > block.timestamp + optionParams.maxExpiry) {revert OptionExpiryInvalid();}
     // check that the option strike is within the range of the min and max acceptable strikes of calls and puts
     if(optionSeries.isPut){
       if (optionParams.minPutStrikePrice > optionSeries.strike || optionSeries.strike > optionParams.maxPutStrikePrice) {revert OptionStrikeInvalid();}
@@ -917,7 +917,7 @@ contract LiquidityPool is
     series = optionRegistry.issue(
        optionSeries.underlying,
        optionSeries.strikeAsset,
-       optionSeries.expiration.toUint(),
+       optionSeries.expiration,
        optionSeries.isPut,
        optionSeries.strike,
        collateralAsset
