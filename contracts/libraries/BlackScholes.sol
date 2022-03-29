@@ -11,7 +11,7 @@ library BlackScholes {
     using PRBMathSD59x18 for int8;
     using PRBMathUD60x18 for uint256;
 
-    uint256 private constant ONE_YEAR_SECONDS = 31557600000000000000000000;
+    uint256 private constant ONE_YEAR_SECONDS = 31557600;
     uint256 private constant ONE = 1000000000000000000;
     uint256 private constant TWO = 2000000000000000000;
 
@@ -104,7 +104,7 @@ library BlackScholes {
         view 
         returns(uint256) 
     {
-        return block.timestamp.fromUint();
+        return block.timestamp;
     }
 
     function getD1(
