@@ -282,6 +282,7 @@ contract OptionRegistryV2 is Ownable {
 
     /**
      * @notice Send collateral funds for an option to be minted
+     * @dev series.strike should be scaled by 1e8.
      * @param  series details of the option series
      * @param  amount amount of options to mint
      * @return amount transferred
