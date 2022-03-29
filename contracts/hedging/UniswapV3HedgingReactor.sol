@@ -110,7 +110,6 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             //TODO change amountInMaximum
             uint256 ethBalance = IERC20(wETH).balanceOf(address(this));
             if(ethBalance == 0) {
-                console.log("laalala");
                 return 0;
             }
             uint256 stablesReceived = _liquidateETH(convertedAmount - balance, ethBalance, _token);         
