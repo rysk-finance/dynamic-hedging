@@ -356,7 +356,7 @@ describe("UniswapV3HedgingReactor", () => {
 				6
 			)
 		)
-		const withdrawAmount = "1000"
+		const withdrawAmount = "9000"
 
 		expect(reactorWethBalanceBefore).to.equal(0.5)
 		expect(parseFloat(withdrawAmount)).to.be.above(reactorUsdcBalanceBefore)

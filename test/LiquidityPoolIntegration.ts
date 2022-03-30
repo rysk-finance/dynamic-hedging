@@ -534,7 +534,6 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const quote = await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
-		console.log({ quote: utils.formatEther(quote.quote), strikePrice })
 		await usd.approve(liquidityPool.address, quote[0])
 		const balance = await usd.balanceOf(senderAddress)
 		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
