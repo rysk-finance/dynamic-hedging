@@ -13,7 +13,7 @@ export function computeNewWeights(
 ) {
 	let weight: BigNumber = one
 	if (totalAmount.gt(zero)) {
-		weight = amount.div(totalAmount)
+		weight = amount.div(totalAmount.add(amount))
 	}
 	const exWeight = one.sub(weight)
 	const newTotalAmount = totalAmount.add(amount)
