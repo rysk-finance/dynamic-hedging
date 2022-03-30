@@ -7,13 +7,10 @@ import {
 	fromWei,
 	convertRounded,
 	toUSDC,
-	fmtExpiration,
 	fromOpyn,
 	scaleNum
 } from "../utils/conversion-helper"
-import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
-import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 //@ts-ignore
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
@@ -55,8 +52,6 @@ let liquidityProviderAddress: string
 let attackerAddress: string
 let liquidityPool: LiquidityPool
 let priceFeed: PriceFeed
-let ethUSDAggregator: MockContract
-let rate: string
 let volatility: Volatility
 let controller: Controller
 let addressBook: AddressBook
@@ -64,9 +59,7 @@ let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 
-const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 /* --- variables to change --- */
 
