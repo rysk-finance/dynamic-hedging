@@ -14,7 +14,6 @@ import {
 	scaleNum
 } from "../utils/conversion-helper"
 import moment from "moment"
-//@ts-ignore
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
@@ -51,6 +50,7 @@ let weth: WETH
 let optionRegistryV2: OptionRegistryV2
 let optionProtocol: Protocol
 let signers: Signer[]
+let volatility: Volatility
 let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
@@ -471,7 +471,6 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const { timestamp } = block
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		console.log({ strikePrice: utils.formatEther(strikePrice) })
 		const proposedSeries = {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
