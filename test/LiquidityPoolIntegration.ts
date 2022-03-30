@@ -534,6 +534,7 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const quote = await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
+		console.log({ quote: utils.formatEther(quote.quote), strikePrice })
 		await usd.approve(liquidityPool.address, quote[0])
 		const balance = await usd.balanceOf(senderAddress)
 		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
@@ -544,11 +545,10 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const seriesAddress = writeEvent?.args?.series
 		const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await putOptionToken.balanceOf(senderAddress)
-		const registryUsdBalance = await liquidityPool.collateralAllocated()
 		const balanceNew = await usd.balanceOf(senderAddress)
 		const opynAmount = toOpyn(fromWei(amount))
 		// convert to numeric
-		const escrow = Number(fromWei(strikePrice))
+		const escrow = Number(fromUSDC(await liquidityPool.collateralAllocated()))
 		const totalAmountPutAfter = await liquidityPool.totalAmountPut()
 		const weightedStrikeAfter = await liquidityPool.weightedStrikePut()
 		const weightedTimeAfter = await liquidityPool.weightedTimePut()
