@@ -13,15 +13,11 @@ import {
 	tFormatUSDC,
 	scaleNum
 } from "../utils/conversion-helper"
-import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
-import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 //@ts-ignore
-import bs from "black-scholes"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { ERC20 } from "../types/ERC20"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
@@ -55,23 +51,16 @@ let weth: WETH
 let optionRegistryV2: OptionRegistryV2
 let optionProtocol: Protocol
 let signers: Signer[]
-let volatility: Volatility
 let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
 let priceFeed: PriceFeed
-let ethUSDAggregator: MockContract
-let rate: string
-
-let ethLiquidityPool: LiquidityPool
-let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let controller: Controller
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 
-const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 /* --- variables to change --- */
