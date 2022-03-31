@@ -29,7 +29,7 @@ contract UniswapV3HedgingTest {
         return IHedgingReactor(uniswapV3HedgingReactor).withdraw(_amount, _token);
     }
 
-    function update() public returns(int256){
+    function update() public returns(uint256){
         return IHedgingReactor(uniswapV3HedgingReactor).update();
     }
 

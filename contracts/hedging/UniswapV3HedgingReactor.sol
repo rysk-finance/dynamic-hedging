@@ -127,7 +127,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     }
 
     /// @inheritdoc IHedgingReactor
-    function update() external view returns (int256) {
+    function update() external view returns (uint256) {
         return 69420;
     }
 

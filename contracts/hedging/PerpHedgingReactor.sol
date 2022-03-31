@@ -120,14 +120,39 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     }
 
     /// @inheritdoc IHedgingReactor
-    function update() external view returns (int256) {
+    function update() external returns (uint256) {
         if (msg.sender != keeper){revert InvalidSender();}
+        int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
+        (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+        // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
+        if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
+        uint256 collat = collatDeposits[0].balance;
+        // get the current price of the underlying asset from chainlink to be used to calculate position sizing
+        uint256 currentPrice = PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset);
         // check the collateral health of positions
+        // get the amount of collateral that should be expected for a given amount
+        uint256 collatRequired = (((uint256(netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS;
         // if there is not enough collateral then request more
         // if there is too much collateral then return some to the pool
-        // change the internal holdings around
-        // return the collateral spent
-        return 69420;
+        if (collatRequired > collat) {
+            // transfer assets from the liquidityPool to here to collateralise the pool
+            // TODO: track this transfer either in LiquidityPool or here
+            SafeTransferLib.safeTransferFrom(collateralAsset, parentLiquidityPool, address(this), collatRequired - collat);
+            // deposit the collateral into the margin account
+            clearingHouse.updateMargin(accountId, collateralId, int256(collatRequired - collat));
+            // TODO: change the internal holdings around
+            return collatRequired - collat;
+        } else if (collatRequired < collat) {
+            // withdraw excess collateral from the margin account
+            clearingHouse.updateMargin(accountId, collateralId, -int256(collat - collatRequired));
+            // transfer assets back to the liquidityPool 
+            // TODO: track this transfer either in LiquidityPool or here
+            SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, collat - collatRequired);
+            // TODO: change the internal holdings around
+            return collat - collatRequired;
+        } else {
+            return 0;
+        }   
     }
     /**
         @notice convert between standand 10e18 decimals and custom decimals for different tokens
