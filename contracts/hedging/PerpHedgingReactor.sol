@@ -174,7 +174,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         uint256 collatToWithdraw;
         // check the net position of the margin account
         int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
-        // get the new net position with the amount of the swap added, net position will always decrease
+        // get the new net position with the amount of the swap added
         int256 newPosition = netPosition + _amount;
         // access the collateral held in the account
         (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
