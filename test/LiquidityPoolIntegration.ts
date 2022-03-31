@@ -29,7 +29,7 @@ import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistryV2 } from "../types/OptionRegistryV2"
+import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
@@ -56,7 +56,7 @@ import {
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 let usd: MintableERC20
 let weth: WETH
-let optionRegistryV2: OptionRegistryV2
+let optionRegistryV2: OptionRegistry
 let optionProtocol: Protocol
 let signers: Signer[]
 let senderAddress: string
@@ -321,7 +321,7 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryV2Factory = await ethers.getContractFactory("OptionRegistryV2", {
+		const optionRegistryV2Factory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
 				OpynInteractionsV2: interactions.address
 			}
@@ -346,7 +346,7 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId]
-		)) as OptionRegistryV2
+		)) as OptionRegistry
 		optionRegistryV2 = _optionRegistryV2
 		expect(optionRegistryV2).to.have.property("deployTransaction")
 	})

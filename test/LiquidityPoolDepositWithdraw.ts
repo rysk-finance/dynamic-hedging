@@ -20,7 +20,7 @@ import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/Liquidity
 import { ERC20 } from "../types/ERC20"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistryV2 } from "../types/OptionRegistryV2"
+import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
@@ -47,7 +47,7 @@ import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 
 let usd: MintableERC20
 let weth: WETH
-let optionRegistryV2: OptionRegistryV2
+let optionRegistryV2: OptionRegistry
 let optionProtocol: Protocol
 let signers: Signer[]
 let volatility: Volatility
@@ -293,7 +293,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryV2Factory = await hre.ethers.getContractFactory("OptionRegistryV2", {
+		const optionRegistryV2Factory = await hre.ethers.getContractFactory("OptionRegistry", {
 			libraries: {
 				OpynInteractionsV2: interactions.address
 			}
@@ -318,7 +318,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId]
-		)) as OptionRegistryV2
+		)) as OptionRegistry
 		optionRegistryV2 = _optionRegistryV2
 		expect(optionRegistryV2).to.have.property("deployTransaction")
 	})

@@ -14,13 +14,15 @@
 </p>
 
 <!-- GETTING STARTED -->
+
 ## Getting Started
 
 To get a local copy up and running follow these simple steps.
 
 ### Prerequisites
 
-* npm
+- npm
+
 ```sh
 npm install npm@latest -g
 ```
@@ -28,37 +30,46 @@ npm install npm@latest -g
 ### Installation
 
 1. Clone the repo
+
 ```sh
-git clone 
+git clone
 ```
+
 2. Install NPM packages
+
 ```sh
 npm install
 ```
+
 or
+
 ```sh
-yarn 
+yarn
 ```
 
 <!-- USAGE EXAMPLES -->
+
 ## Usage
 
 List of options
+
 ```sh
-npx hardhat 
+npx hardhat
 ```
 
 Run tests
+
 ```sh
 npx hardhat test
 ```
+
 ## Contract Architecture
 
-![Rysk Architecture](./images/RyskArchitecture.png)
-![Diagram C](./images/DiagramC.png)
+![Rysk Architecture](./images/RyskArchitecture.png) ![Diagram C](./images/DiagramC.png)
 ![Diagram F](./images/DiagramF.png)
 
 ## Contract layout
+
 ```
 contracts
 ├── hedging
@@ -70,7 +81,7 @@ contracts
 │   ├── IERC20.sol
 │   ├── IHedgingReactor.sol
 │   ├── IMarginCalculator.sol
-│   └── IOracle.sol 
+│   └── IOracle.sol
 ├── libraries
 │   ├── BlackScholes.sol
 │   ├── NormalDist.sol
@@ -78,15 +89,15 @@ contracts
 │   ├── OpynInteractions.sol
 │   ├── OpynInteractionsV2.sol
 │   ├── PRBMath.sol
-│   ├── PRBMathSD59x18.sol 
-│   ├── PRBMathUD60x18.sol 
-│   ├── SafeTransferLib.sol 
+│   ├── PRBMathSD59x18.sol
+│   ├── PRBMathUD60x18.sol
+│   ├── SafeTransferLib.sol
 │   └── Types.sol
 ├── tokens
 │   └── ERC20.sol
 ├── LiquidityPool.sol
-├── OptionRegistry.sol 
-├── OptionRegistryV2.sol 
-├── OptionsProtocol.sol 
+├── OptionRegistryV0.sol
+├── OptionRegistry.sol
+├── OptionsProtocol.sol
 └── PriceFeed.sol
 ```
