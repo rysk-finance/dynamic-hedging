@@ -162,7 +162,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         @param _sellToken the stablecoin to sell
     */
     function _swapExactOutputSingle(uint256 _amountOut, uint256 _amountInMaximum, address _sellToken) internal returns (int256, uint256) {
-        SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), 5000000000);//5,000 USDC
+        /// @TODO get live uniswap price data to establish _amountInMaximum value and change tempTransferAmount to that value
+        uint tempTransferAmount =  5000000000; // 5,000 USDC
+        SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), tempTransferAmount);
 
         ISwapRouter.ExactOutputSingleParams memory params =
             ISwapRouter.ExactOutputSingleParams({
