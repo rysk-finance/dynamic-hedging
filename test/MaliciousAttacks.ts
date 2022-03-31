@@ -45,7 +45,7 @@ import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
-let optionRegistryV2: OptionRegistry
+let optionRegistry: OptionRegistry
 let optionProtocol: Protocol
 let signers: Signer[]
 let liquidityProviderAddress: string
@@ -291,7 +291,7 @@ describe("Hegic Attack", function () {
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryV2Factory = await hre.ethers.getContractFactory("OptionRegistry", {
+		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {
 			libraries: {
 				OpynInteractionsV2: interactions.address
 			}
@@ -315,7 +315,7 @@ describe("Hegic Attack", function () {
 			.connect(signer)
 			.transfer(liquidityProviderAddress, toWei("1000").div(oTokenDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
-		const _optionRegistryV2 = (await optionRegistryV2Factory.deploy(
+		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
 			OTOKEN_FACTORY[chainId],
 			GAMMA_CONTROLLER[chainId],
@@ -323,8 +323,8 @@ describe("Hegic Attack", function () {
 			liquidityProviderAddress,
 			ADDRESS_BOOK[chainId]
 		)) as OptionRegistry
-		optionRegistryV2 = _optionRegistryV2
-		expect(optionRegistryV2).to.have.property("deployTransaction")
+		optionRegistry = _optionRegistry
+		expect(optionRegistry).to.have.property("deployTransaction")
 	})
 
 	it("Should deploy price feed", async () => {
@@ -342,10 +342,10 @@ describe("Hegic Attack", function () {
 	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("Protocol")
 		optionProtocol = (await protocolFactory.deploy(
-			optionRegistryV2.address,
+			optionRegistry.address,
 			priceFeed.address
 		)) as Protocol
-		expect(await optionProtocol.optionRegistryV2()).to.equal(optionRegistryV2.address)
+		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
@@ -415,7 +415,7 @@ describe("Hegic Attack", function () {
 
 		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
-		optionRegistryV2.setLiquidityPool(liquidityPool.address)
+		optionRegistry.setLiquidityPool(liquidityPool.address)
 	})
 
 	it("Adds liquidity to the liquidityPool", async () => {
@@ -468,7 +468,7 @@ describe("Hegic Attack", function () {
 	it("LP Writes a WETH/USD put collateralized by WETH for premium to the attacker", async () => {
 		const [liquidityProvider, attacker] = signers
 		// registry requires liquidity pool to be owner
-		optionRegistryV2.setLiquidityPool(liquidityPool.address)
+		optionRegistry.setLiquidityPool(liquidityPool.address)
 		const amount = toWei("1")
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)

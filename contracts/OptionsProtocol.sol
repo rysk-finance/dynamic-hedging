@@ -2,14 +2,14 @@ pragma solidity >=0.8.0;
 
 contract Protocol {
 
-    address public optionRegistryV2;
+    address public optionRegistry;
     address public priceFeed;
 
     constructor(
-       address _optionRegistryV2,
+       address _optionRegistry,
        address _priceFeed
     ) public {
-        optionRegistryV2 = _optionRegistryV2;
+        optionRegistry = _optionRegistry;
         priceFeed = _priceFeed;
     }
 }

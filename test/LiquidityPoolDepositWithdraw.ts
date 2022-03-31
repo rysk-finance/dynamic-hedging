@@ -47,7 +47,7 @@ import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 
 let usd: MintableERC20
 let weth: WETH
-let optionRegistryV2: OptionRegistry
+let optionRegistry: OptionRegistry
 let optionProtocol: Protocol
 let signers: Signer[]
 let volatility: Volatility
@@ -293,7 +293,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryV2Factory = await hre.ethers.getContractFactory("OptionRegistry", {
+		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {
 			libraries: {
 				OpynInteractionsV2: interactions.address
 			}
@@ -311,7 +311,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
 		await usd.connect(signer).transfer(senderAddress, toWei("1000").div(oTokenDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
-		const _optionRegistryV2 = (await optionRegistryV2Factory.deploy(
+		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
 			OTOKEN_FACTORY[chainId],
 			GAMMA_CONTROLLER[chainId],
@@ -319,8 +319,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			senderAddress,
 			ADDRESS_BOOK[chainId]
 		)) as OptionRegistry
-		optionRegistryV2 = _optionRegistryV2
-		expect(optionRegistryV2).to.have.property("deployTransaction")
+		optionRegistry = _optionRegistry
+		expect(optionRegistry).to.have.property("deployTransaction")
 	})
 	it("Should deploy price feed", async () => {
 		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
@@ -338,10 +338,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("Protocol")
 		optionProtocol = (await protocolFactory.deploy(
-			optionRegistryV2.address,
+			optionRegistry.address,
 			priceFeed.address
 		)) as Protocol
-		expect(await optionProtocol.optionRegistryV2()).to.equal(optionRegistryV2.address)
+		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
@@ -410,7 +410,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 
 		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
-		optionRegistryV2.setLiquidityPool(liquidityPool.address)
+		optionRegistry.setLiquidityPool(liquidityPool.address)
 	})
 
 	it("Deposit to the liquidityPool", async () => {
