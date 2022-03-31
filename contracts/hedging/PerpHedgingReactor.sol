@@ -84,15 +84,13 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
 
     /// @inheritdoc IHedgingReactor
     function hedgeDelta(int256 _delta) external returns (int256 deltaChange) {
+        // delta is passed in as the delta that the pool has so this function must hedge the opposite
+        // if delta comes in negative then the pool must go long
+        // if delta comes in positive then the pool must go short
+        // the signs must be flipped when going into _changePosition
         // make sure the caller is the vault
         require(msg.sender == parentLiquidityPool, "!vault");
-        if (_delta > 0) {
-        // if the delta to hedge is positive call _goShort()
-        deltaChange = _goShort(_delta);
-        } else if (_delta < 0) {
-        // if the delta to hedge is negative call _goLong()
-        deltaChange = _goLong(_delta);
-        }
+        deltaChange = _changePosition(-_delta);
         // record the delta change internally
         internalDelta += deltaChange;
     }
@@ -105,6 +103,11 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     /// @inheritdoc IHedgingReactor
     function getPoolDenominatedValue() external view returns(uint256 value){
         // calculate the value of the pools holdings (including any funding)
+        // access the collateral held in the account
+        (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+        // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
+        if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
+        value = collatDeposits[0].balance;
     }
 
     /// @inheritdoc IHedgingReactor
@@ -112,6 +115,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         require(msg.sender == parentLiquidityPool, "!vault");
         // check the holdings if enough just lying around then transfer it
         // get the difference then call liquidatePosition()
+        uint256 collatReturned = _liquidatePosition(_amount);
         // adjust the internal delta in accordance with the change that liquidatePosition made
     }
 
@@ -136,29 +140,33 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     }
 
 
-    /** @notice function to open a short perp position
-        @param _amount the amount to open
+    /** @notice function to change the perp position
+        @param _amount the amount of position to open or close
         @return deltaChange The resulting difference in delta exposure
     */
-    function _goShort(int256 _amount) internal returns (int256 ) {
+    function _changePosition(int256 _amount) internal returns (int256 ) {
         uint256 collatToDeposit;
         uint256 collatToWithdraw;
-        // check for long positions
+        // check the net position of the margin account
         int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
-        // get the new net position with the amount of the swap added
+        // get the new net position with the amount of the swap added, net position will always decrease
         int256 newPosition = netPosition + _amount;
+        // access the collateral held in the account
         (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+        // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
         if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
         uint256 collat = collatDeposits[0].balance;
+        // get the current price of the underlying asset from chainlink to be used to calculate position sizing
         uint256 currentPrice = PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset);
-        // calculate the margin requirement for newPosition
+        // calculate the margin requirement for newPosition making sure to account for the health factor of the pool 
+        // as we want the position to be overcollateralised
         uint256 totalCollatNeeded = newPosition >= 0 
                                 ? 
                                 (((uint256(newPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS 
                                 : 
                                 (((uint256(-newPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS;
-        // if there is not enough collateral then increase the margin collateral
-        // if there is too much collateral then decrease the margin collateral
+        // if there is not enough collateral then increase the margin collateral balance
+        // if there is too much collateral then decrease the margin collateral balance
         if (totalCollatNeeded > collat) {
             collatToDeposit = totalCollatNeeded - collat;
         } else if(totalCollatNeeded < collat) {
@@ -169,7 +177,10 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         // if the current margin held is larger than the new margin required then swap tokens out and 
         // withdraw the excess margin
         if (collatToDeposit > 0) {
+            // transfer assets from the liquidityPool to here to collateralise the pool
+            // TODO: track this transfer either in LiquidityPool or here
             SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collatToDeposit);
+            // deposit the collateral into the margin account
             clearingHouse.updateMargin(accountId, collateralId, int256(collatToDeposit));
             // make the swapParams
             IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
@@ -181,9 +192,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
             // execute the swap
             clearingHouse.swapToken(accountId, poolId, swapParams);
         } else if (collatToWithdraw > 0) {
-            clearingHouse.updateMargin(accountId, collateralId, -int256(collatToWithdraw));
-            SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, uint256(collatToWithdraw));
-            // make the swapParams
+            // make the swapParams to close the position
             IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
                 _amount,
                 0,
@@ -192,18 +201,12 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
             ); 
             // execute the swap
             clearingHouse.swapToken(accountId, poolId, swapParams);
+            // withdraw excess collateral from the margin account
+            clearingHouse.updateMargin(accountId, collateralId, -int256(collatToWithdraw));
+            // transfer assets back to the liquidityPool 
+            // TODO: track this transfer either in LiquidityPool or here
+            SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, uint256(collatToWithdraw));
         }
-        return _amount;
-    }
-
-    /** @notice function to sell exact amount of wETH to decrease delta
-        @param _amount the amount to open
-        @return deltaChange The resulting difference in delta exposure
-    */
-    function _goLong(int256 _amount) internal returns (int256) {
-        // check for a short position, if there is then close it
-        // open a perp position using the various variables of the pool
-        int256 amountOut;
         return _amount;
     }
 
