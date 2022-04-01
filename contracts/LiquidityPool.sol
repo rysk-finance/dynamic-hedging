@@ -932,7 +932,7 @@ contract LiquidityPool is
 
     if (!optionSeries.isPut) {
         (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
-            amount, optionSeries.strike, optionSeries.expiration, totalAmountCall, weightedStrikeCall, weightedTimeCall);
+            amount, optionSeries.strike, optionSeries.expiration, totalAmountCall, weightedStrikeCall, weightedTimeCall, isSale );
         totalAmountCall = newTotal;
         weightedStrikeCall = newWeight;
         weightedTimeCall = newTime;
@@ -944,7 +944,7 @@ contract LiquidityPool is
         }
     } else {
         (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
-            amount, optionSeries.strike, optionSeries.expiration, totalAmountPut, weightedStrikePut, weightedTimePut);
+            amount, optionSeries.strike, optionSeries.expiration, totalAmountPut, weightedStrikePut, weightedTimePut, isSale);
         totalAmountPut = newTotal;
         weightedStrikePut = newWeight;
         weightedTimePut = newTime;

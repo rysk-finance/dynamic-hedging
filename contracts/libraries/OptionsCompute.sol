@@ -59,17 +59,32 @@ library OptionsCompute {
        uint expiration,
        uint totalAmount,
        uint weightedStrike,
-       uint weightedTime
+       uint weightedTime, 
+       bool isSale
     ) internal pure returns (uint, uint, uint) {
         uint weight = PRBMathUD60x18.scale();
-        if (totalAmount > 0) {
-            weight = amount.div(totalAmount + amount);
+        if (!isSale) {
+            if(amount == totalAmount) {
+                return (0, 0, 0);
+            }
+            if (totalAmount > 0) {
+                weight = amount.div(totalAmount - amount);
+            }
+            uint exWeight = PRBMathUD60x18.scale() + weight;
+            uint newTotalAmount = totalAmount - amount;
+            uint newWeightedStrike = (exWeight.mul(weightedStrike)) - (weight.mul(strike));
+            uint newWeightedTime = (exWeight.mul(weightedTime)) - (weight.mul(expiration));
+            return (newTotalAmount, newWeightedStrike, newWeightedTime);
+        } else {
+            if (totalAmount > 0) {
+                weight = amount.div(totalAmount + amount);
+            }
+            uint exWeight = PRBMathUD60x18.scale() - weight;
+            uint newTotalAmount = totalAmount + amount;
+            uint newWeightedStrike = (exWeight.mul(weightedStrike)) + (weight.mul(strike));
+            uint newWeightedTime = (exWeight.mul(weightedTime)) + (weight.mul(expiration));
+            return (newTotalAmount, newWeightedStrike, newWeightedTime);      
         }
-        uint exWeight = PRBMathUD60x18.scale() - weight;
-        uint newTotalAmount = totalAmount + amount;
-        uint newWeightedStrike = (exWeight.mul(weightedStrike)) + (weight.mul(strike));
-        uint newWeightedTime = (exWeight.mul(weightedTime)) + (weight.mul(expiration));
-        return (newTotalAmount, newWeightedStrike, newWeightedTime);
     }
     
 

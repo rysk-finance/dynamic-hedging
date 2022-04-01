@@ -557,7 +557,8 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			BigNumber.from(proposedSeries.expiration),
 			totalAmountPutBefore,
 			weightedStrikeBefore,
-			weightedTimeBefore
+			weightedTimeBefore,
+			true
 		)
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
