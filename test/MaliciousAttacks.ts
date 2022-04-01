@@ -153,10 +153,8 @@ describe("Hegic Attack", function () {
 		)) as AddressBook
 		// get the oracle
 		const res = await setupTestOracle(await signers[0].getAddress())
-		//@ts-ignore
-		oracle = res[0]
-		//@ts-ignore
-		opynAggregator = res[1]
+		oracle = res[0] as Oracle
+		opynAggregator = res[1] as MockChainlinkAggregator
 		// deploy the new calculator
 		const newCalculatorInstance = await ethers.getContractFactory("NewMarginCalculator")
 		newCalculator = (await newCalculatorInstance.deploy(

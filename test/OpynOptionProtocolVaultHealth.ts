@@ -36,6 +36,7 @@ import {
 import { setupOracle, setOpynOracleExpiryPrice, setupTestOracle, increase } from "./helpers"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { AbiCoder } from "ethers/lib/utils"
+import { ChainLinkPricer } from "../types/ChainLinkPricer"
 
 let usd: MintableERC20
 let wethERC20: ERC20Interface
@@ -251,12 +252,9 @@ describe("Options protocol Vault Health", function () {
 		)
 		// get the oracle
 		const res = await setupTestOracle(await signers[0].getAddress())
-		//@ts-ignore
-		oracle = res[0]
-		//@ts-ignore
-		aggregator = res[1]
-		//@ts-ignore
-		pricer = res[2]
+		oracle = res[0] as Oracle
+		aggregator = res[1] as MockChainlinkAggregator
+		pricer = res[2] as string
 	})
 
 	it("Deploys the Option Registry", async () => {
