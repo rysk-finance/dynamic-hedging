@@ -282,6 +282,8 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
                 false,
                 false
             ); 
+            // execute the swap
+            clearingHouse.swapToken(accountId, poolId, swapParams); 
             // withdraw all collateral from the margin account
             clearingHouse.updateMargin(accountId, collateralId, -int256(collat));
             return (collat, -netPosition);
