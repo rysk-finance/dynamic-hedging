@@ -621,34 +621,6 @@ contract LiquidityPool is
     }
 
   /**
-   * @notice get a price quote for a given optionSeries
-   * @param  optionSeries Types.OptionSeries struct for describing the option to price
-   * @return Quote price of the option
-   */
-  function quotePrice(
-    Types.OptionSeries memory optionSeries
-  )
-    public
-    view
-    returns (uint)
-  {
-    uint underlyingPrice = getUnderlyingPrice(optionSeries);
-    uint iv = getImpliedVolatility(optionSeries.isPut, underlyingPrice, optionSeries.strike, optionSeries.expiration);
-    if (iv == 0) {revert IVNotFound();}
-    // revert if the expiry is in the past
-    if (optionSeries.expiration <= block.timestamp) {revert OptionExpiryInvalid();}
-    uint quote = BlackScholes.blackScholesCalc(
-       underlyingPrice,
-       optionSeries.strike,
-       optionSeries.expiration,
-       iv,
-       riskFreeRate,
-       optionSeries.isPut
-    );
-    return quote;
-  }
-
-  /**
    * @notice get the greeks of a quotePrice for a given optionSeries
    * @param  optionSeries Types.OptionSeries struct for describing the option to price greeks
    * @return quote           Quote price of the option
@@ -659,7 +631,7 @@ contract LiquidityPool is
      Types.OptionSeries memory optionSeries,
      bool isBuying
   )
-      public
+      internal
       view
       returns (uint256 quote, int256 delta, uint256 underlyingPrice)
   {
@@ -671,7 +643,6 @@ contract LiquidityPool is
       }
       // revert if the expiry is in the past
       if (optionSeries.expiration <= block.timestamp) {revert OptionExpiryInvalid();}
-      underlyingPrice = getUnderlyingPrice(optionSeries);
       (quote, delta) = BlackScholes.blackScholesCalcGreeks(
        underlyingPrice,
        optionSeries.strike,
@@ -749,28 +720,6 @@ contract LiquidityPool is
       }
       // TODO if we dont / not enough - look at derivatives
   }
-    
-  /**
-   * @notice get the quote price for a given option
-   * @param  optionSeries option type to quote
-   * @param  amount       the number of options to mint 
-   * @return quote the price of the options
-   */
-  function quotePriceWithUtilization(
-    Types.OptionSeries memory optionSeries,
-    uint amount
-  )
-    public
-    view
-    returns (uint)
-  {
-    uint optionQuote = quotePrice(optionSeries);
-    uint optionPrice = amount < PRBMathUD60x18.scale() ? optionQuote.mul(amount) : optionQuote;
-    uint underlyingPrice = getUnderlyingPrice(optionSeries);
-    uint utilization = amount.div(totalSupply);
-    uint utilizationPrice = underlyingPrice.mul(utilization);
-    return utilizationPrice > optionPrice ? utilizationPrice : optionPrice;
-  }
 
   struct UtilizationState {
     uint optionPrice;
@@ -794,12 +743,11 @@ contract LiquidityPool is
       view
       returns (uint256 quote, int256 delta)
   {
-      (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries, false);
+      (uint256 optionQuote,  int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, false);
       // using a struct to get around stack too deep issues
       UtilizationState memory quoteState;
       // price of acquiring those options
       quoteState.optionPrice = optionQuote.mul(amount);
-      uint underlyingPrice = getUnderlyingPrice(optionSeries);
       int portfolioDelta = getPortfolioDelta();
       // portfolio delta upon writing option
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
@@ -834,6 +782,11 @@ contract LiquidityPool is
           quote = maxPrice;
         }
       }
+      ///@TODO modularise this in a library
+      if(optionSeries.strikeAsset != optionSeries.collateral){
+        // convert value from strike asset to collateral asset
+        quote = quote * 1e18 / underlyingPrice;
+      }
       delta = deltaQuote;
       //@TODO think about more robust considitions for this check
       if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta);}
@@ -854,9 +807,13 @@ contract LiquidityPool is
       view
       returns (uint256 quote, int256 delta)
   {
-      (uint256 optionQuote,  int256 deltaQuote,) = quotePriceGreeks(optionSeries, true);
+      (uint256 optionQuote,  int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, true);
       quote = optionQuote.mul(amount);
       delta = deltaQuote;
+      if(optionSeries.strikeAsset != optionSeries.collateral){
+        // convert value from strike asset to collateral asset
+        quote = quote * 1e18 / underlyingPrice;
+      }
       //@TODO think about more robust considitions for this check
       if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta); }
   }

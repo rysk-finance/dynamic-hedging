@@ -37,7 +37,7 @@ import { Controller } from "../types/Controller"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle } from "./helpers"
+import { setupTestOracle, calculateOptionQuoteLocally } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
 	MARGIN_POOL,
@@ -489,17 +489,9 @@ describe("Liquidity Pools", async () => {
 		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
 	})
 	it("Returns a quote for a ETH/USD put with utilization", async () => {
-		const totalLiqidity = await liquidityPool.totalSupply()
 		const amount = toWei("5")
-		const blockNum = await ethers.provider.getBlockNumber()
-		const block = await ethers.provider.getBlock(blockNum)
-		const { timestamp } = block
-		const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration)
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const priceNorm = fromWei(priceQuote)
-		const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity))
-		const utilizationPrice = Number(priceNorm) * utilization
 		const optionSeries = {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
@@ -508,33 +500,28 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const iv = await liquidityPool.getImpliedVolatility(
-			optionSeries.isPut,
-			priceQuote,
-			optionSeries.strike,
-			optionSeries.expiration
-		)
-		const localBS = bs.blackScholes(
-			priceNorm,
-			fromWei(strikePrice),
-			timeToExpiration,
-			fromWei(iv),
-			parseFloat(rfr),
-			"put"
-		)
-		const finalQuote = utilizationPrice > localBS ? utilizationPrice : localBS
-		const quote = await liquidityPool.quotePriceWithUtilization(
-			{
-				expiration: expiration,
-				isPut: PUT_FLAVOR,
-				strike: BigNumber.from(strikePrice),
-				strikeAsset: usd.address,
-				underlying: weth.address,
-				collateral: usd.address
-			},
+
+		const localQuote = await calculateOptionQuoteLocally(
+			liquidityPool,
+			priceFeed,
+			optionSeries,
 			amount
 		)
-		const truncQuote = truncate(finalQuote)
+
+		const quote = (
+			await liquidityPool.quotePriceWithUtilizationGreeks(
+				{
+					expiration: expiration,
+					isPut: PUT_FLAVOR,
+					strike: BigNumber.from(strikePrice),
+					strikeAsset: usd.address,
+					underlying: weth.address,
+					collateral: usd.address
+				},
+				amount
+			)
+		)[0]
+		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.lt(0.01)
@@ -545,13 +532,8 @@ describe("Liquidity Pools", async () => {
 		const thirtyPercent = toWei(thirtyPercentStr)
 		await liquidityPool.setBidAskSpread(thirtyPercent)
 		const amount = toWei("1")
-		const blockNum = await ethers.provider.getBlockNumber()
-		const block = await ethers.provider.getBlock(blockNum)
-		const { timestamp } = block
-		const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration)
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const priceNorm = fromWei(priceQuote)
 		const optionSeries = {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
@@ -560,23 +542,18 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const iv = await liquidityPool.getImpliedVolatility(
-			PUT_FLAVOR,
-			priceQuote,
-			optionSeries.strike,
-			optionSeries.expiration
+
+		const localQuote = await calculateOptionQuoteLocally(
+			liquidityPool,
+			priceFeed,
+			optionSeries,
+			amount,
+			true
 		)
-		const localBS = bs.blackScholes(
-			priceNorm,
-			fromWei(strikePrice),
-			timeToExpiration,
-			Number(fromWei(iv)) - Number(thirtyPercentStr),
-			parseFloat(rfr),
-			"put"
-		)
+
 		const buyQuotes = await liquidityPool.quotePriceBuying(optionSeries, amount)
 		const buyQuote = buyQuotes[0]
-		const truncQuote = truncate(localBS)
+		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(buyQuote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.lt(0.01)
@@ -671,8 +648,8 @@ describe("Liquidity Pools", async () => {
 		}
 		const EthPrice = await oracle.getPrice(weth.address)
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		const quote = await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
-		await usd.approve(liquidityPool.address, quote[0])
+		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		await usd.approve(liquidityPool.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
@@ -687,7 +664,7 @@ describe("Liquidity Pools", async () => {
 		const opynAmount = toOpyn(fromWei(amount))
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote[0]))
+		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
 	})
 
 	it("can compute portfolio delta", async function () {
@@ -824,18 +801,9 @@ describe("Liquidity Pools", async () => {
 	})
 
 	it("Returns a quote for ETH/USD call with utilization", async () => {
-		const totalLiqidity = await liquidityPool.totalSupply()
 		const amount = toWei("5")
-		const blockNum = await ethers.provider.getBlockNumber()
-		const block = await ethers.provider.getBlock(blockNum)
-		const { timestamp } = block
-		const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration)
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.add(toWei(strike))
-		const priceNorm = fromWei(priceQuote)
-		const volatility = Number(IMPLIED_VOL) / 100
-		const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity))
-		const utilizationPrice = Number(priceNorm) * utilization
 		const optionSeries = {
 			expiration: expiration,
 			isPut: CALL_FLAVOR,
@@ -844,35 +812,30 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const iv = await liquidityPool.getImpliedVolatility(
-			optionSeries.isPut,
-			priceQuote,
-			optionSeries.strike,
-			optionSeries.expiration
-		)
-		const localBS = bs.blackScholes(
-			priceNorm,
-			fromWei(strikePrice),
-			timeToExpiration,
-			fromWei(iv),
-			parseFloat(rfr),
-			"call"
-		)
-		const finalQuote = utilizationPrice > localBS ? utilizationPrice : localBS
-		const quote = await liquidityPool.quotePriceWithUtilization(
-			{
-				expiration: expiration,
-				isPut: false,
-				strike: BigNumber.from(strikePrice),
-				strikeAsset: usd.address,
-				underlying: weth.address,
-				collateral: usd.address
-			},
+		const localQuote = await calculateOptionQuoteLocally(
+			liquidityPool,
+			priceFeed,
+			optionSeries,
 			amount
 		)
-		const truncFinalQuote = Math.round(truncate(finalQuote))
-		const formatEthQuote = Math.round(tFormatEth(quote.toString()))
-		expect(truncFinalQuote).to.be.eq(formatEthQuote)
+
+		const quote = (
+			await liquidityPool.quotePriceWithUtilizationGreeks(
+				{
+					expiration: expiration,
+					isPut: CALL_FLAVOR,
+					strike: BigNumber.from(strikePrice),
+					strikeAsset: usd.address,
+					underlying: weth.address,
+					collateral: usd.address
+				},
+				amount
+			)
+		)[0]
+		const truncQuote = truncate(localQuote)
+		const chainQuote = tFormatEth(quote.toString())
+		const diff = percentDiff(truncQuote, chainQuote)
+		expect(diff).to.be.lt(0.01)
 	})
 
 	let lpCallOption: IOToken
@@ -903,7 +866,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: weth.address
 		}
-		const quote = await ethLiquidityPool.quotePriceWithUtilization(proposedSeries, amount)
+		const quote = (await ethLiquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
 		await usd.approve(ethLiquidityPool.address, quote.toString())
 		const write = await ethLiquidityPool.issueAndWriteOption(proposedSeries, amount)
 		const receipt = await write.wait(1)
@@ -1014,7 +977,7 @@ describe("Liquidity Pools", async () => {
 		const sellerOTokenBalanceBefore = await callOptionToken.balanceOf(senderAddress)
 		const sellerUsdcBalanceBefore = await usd.balanceOf(senderAddress)
 		await callOptionToken.approve(ethLiquidityPool.address, amount)
-		const quote = await ethLiquidityPool.quotePriceWithUtilization(proposedSeries, amount)
+		const quote = (await ethLiquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
 		await usd.approve(ethLiquidityPool.address, quote.toString())
 		const write = await ethLiquidityPool.buybackOption(proposedSeries, amount)
 		const receipt = await write.wait(1)

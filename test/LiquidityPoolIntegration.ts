@@ -497,17 +497,19 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			"put"
 		)
 		const finalQuote = utilizationPrice > localBS ? utilizationPrice : localBS
-		const quote = await liquidityPool.quotePriceWithUtilization(
-			{
-				expiration: expiration,
-				isPut: PUT_FLAVOR,
-				strike: BigNumber.from(strikePrice),
-				strikeAsset: usd.address,
-				underlying: weth.address,
-				collateral: usd.address
-			},
-			amount
-		)
+		const quote = (
+			await liquidityPool.quotePriceWithUtilizationGreeks(
+				{
+					expiration: expiration,
+					isPut: PUT_FLAVOR,
+					strike: BigNumber.from(strikePrice),
+					strikeAsset: usd.address,
+					underlying: weth.address,
+					collateral: usd.address
+				},
+				amount
+			)
+		)[0]
 		const truncQuote = truncate(finalQuote)
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
@@ -533,8 +535,8 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		const quote = await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount)
-		await usd.approve(liquidityPool.address, quote[0])
+		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		await usd.approve(liquidityPool.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
@@ -561,9 +563,9 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		)
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote[0]))
+		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
 		const expectedPoolBalance = truncate(
-			Number(fromUSDC(poolBalanceBefore)) + Number(fromWei(quote[0])) - escrow
+			Number(fromUSDC(poolBalanceBefore)) + Number(fromWei(quote)) - escrow
 		)
 		expect(expectedPoolBalance).to.eq(truncate(Number(fromUSDC(poolBalanceAfter))))
 		expect(totalAmountPutAfter.sub(totalAmountPutBefore)).to.eq(amount)
