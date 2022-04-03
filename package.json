@@ -20,6 +20,7 @@
 		"@types/chai": "^4.3.0",
 		"@types/mocha": "^8.2.3",
 		"@types/node": "^14.18.10",
+		"@uniswap/v3-sdk": "^3.8.2",
 		"bip39": "^3.0.2",
 		"chai": "^4.3.6",
 		"cross-env": "^7.0.3",
@@ -36,12 +37,14 @@
 	},
 	"dependencies": {
 		"@openzeppelin/contracts": "^4.4.2",
+		"@rage/core": "https://github.com/kjr217/core.git",
 		"@uniswap/v3-periphery": "^1.4.0",
-		"@rage/core": "https://github.com/rage-trade/core.git#dac2f9b2b7703fd99eb81ea0ca1836917d5b0765",
 		"black-scholes": "^1.1.0",
 		"bn.js": "^5.2.0",
 		"dotenv": "^8.2.0",
 		"greeks": "^1.0.0",
+		"hardhat-dependency-compiler": "^1.1.2",
+		"jsbi": "^4.2.0",
 		"moment": "^2.29.1",
 		"prb-math": "^2.4.1",
 		"ts-generator": "^0.1.1"

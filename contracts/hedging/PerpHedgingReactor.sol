@@ -44,20 +44,21 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     /// @notice desired healthFactor of the pool
     uint256 public healthFactor = 12_000;
     /// @notice max bips
-    uint256 public MAX_BIPS = 10_0000;
+    uint256 public MAX_BIPS = 10_000;
 
     error InvalidSender();
+    error InvalidHealthFactor();
     error IncorrectCollateral();
 
     constructor (
-        IClearingHouse _clearingHouse, 
+        address _clearingHouse, 
         address _collateralAsset, 
         address _wethAddress, 
         address _parentLiquidityPool, 
         uint32 _collateralId, 
         address _priceFeed
         ) {
-        clearingHouse = _clearingHouse;
+        clearingHouse = IClearingHouse(_clearingHouse);
         collateralAsset = _collateralAsset;
         wETH = _wethAddress;
         parentLiquidityPool = _parentLiquidityPool;
@@ -73,6 +74,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     }
     /// @notice update the health factor parameter
     function setHealthFactor(uint _healthFactor) public onlyOwner {
+        if (_healthFactor < MAX_BIPS) {revert InvalidHealthFactor();}
         healthFactor = _healthFactor;
     }
     /// @notice update the keeper
@@ -104,9 +106,14 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         // calculate the value of the pools holdings (including any funding)
         // access the collateral held in the account
         (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
-        // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
-        if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
-        value = collatDeposits[0].balance;
+        // just make sure the collateral at index 0 exists and is correct (this is unlikely to ever fail, but should be checked)
+        if (collatDeposits.length != 0) {
+            if (address(collatDeposits[0].collateral) == collateralAsset) {
+                value += collatDeposits[0].balance;
+            } 
+        }
+        // increment any loose balance held by the pool
+        value += ERC20(collateralAsset).balanceOf(address(this));
     }
 
     /// @inheritdoc IHedgingReactor
