@@ -782,11 +782,7 @@ contract LiquidityPool is
           quote = maxPrice;
         }
       }
-      ///@TODO modularise this in a library
-      if(optionSeries.strikeAsset != optionSeries.collateral){
-        // convert value from strike asset to collateral asset
-        quote = quote * 1e18 / underlyingPrice;
-      }
+      quote =  OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
       delta = deltaQuote;
       //@TODO think about more robust considitions for this check
       if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta);}
@@ -810,10 +806,7 @@ contract LiquidityPool is
       (uint256 optionQuote,  int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, true);
       quote = optionQuote.mul(amount);
       delta = deltaQuote;
-      if(optionSeries.strikeAsset != optionSeries.collateral){
-        // convert value from strike asset to collateral asset
-        quote = quote * 1e18 / underlyingPrice;
-      }
+      quote =  OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
       //@TODO think about more robust considitions for this check
       if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta); }
   }

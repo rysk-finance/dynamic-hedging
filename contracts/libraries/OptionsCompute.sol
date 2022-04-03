@@ -3,6 +3,7 @@ pragma solidity >=0.8.0;
 import { Constants } from "./Constants.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
+import "./Types.sol";
 import "../tokens/ERC20.sol";
 
 error DecimalIsLargerThanScale(uint256 decimals);
@@ -87,27 +88,13 @@ library OptionsCompute {
         }
     }
     
-
-     function computeNewWeightsBuyback(
-       uint amount,
-       uint strike,
-       uint expiration,
-       uint totalAmount,
-       uint weightedStrike,
-       uint weightedTime
-    ) internal pure returns (uint, uint, uint) {
-        uint weight = PRBMathUD60x18.scale();
-        if(amount == totalAmount) {
-            return (0, 0, 0);
+    function convertToCollateralDenominated(uint quote, uint underlyingPrice, Types.OptionSeries memory optionSeries) internal pure returns(uint convertedQuote){
+        if(optionSeries.strikeAsset != optionSeries.collateral){
+            // convert value from strike asset to collateral asset
+            return quote * 1e18 / underlyingPrice;
+        } else {
+            return quote;
         }
-        if (totalAmount > 0) {
-            weight = amount.div(totalAmount - amount);
-        }
-        uint exWeight = PRBMathUD60x18.scale() + weight;
-        uint newTotalAmount = totalAmount - amount;
-        uint newWeightedStrike = (exWeight.mul(weightedStrike)) - (weight.mul(strike));
-        uint newWeightedTime = (exWeight.mul(weightedTime)) - (weight.mul(expiration));
-        return (newTotalAmount, newWeightedStrike, newWeightedTime);
     }
 
     // @param points[0] spot distance
