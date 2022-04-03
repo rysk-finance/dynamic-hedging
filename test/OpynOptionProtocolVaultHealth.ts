@@ -57,6 +57,11 @@ let receiverAddress: string
 let aggregator: MockChainlinkAggregator
 let pricer: string
 
+// Date for option to expire on format yyyy-mm-dd
+// Will automatically convert to 08:00 UTC timestamp
+// First mined block will be timestamped 2022-02-27 19:05 UTC
+const expiryDate: string = "2022-04-05"
+
 // time travel period between each expiry
 const expiryPeriod = {
 	days: 0,
@@ -84,7 +89,7 @@ let strike = toWei("3500")
 
 // handles the conversion of expiryDate to a unix timestamp
 const now = moment().utc().unix()
-let expiration = createValidExpiry(now, 21)
+let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 
 describe("Options protocol Vault Health", function () {
 	before(async function () {
