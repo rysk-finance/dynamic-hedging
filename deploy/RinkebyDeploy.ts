@@ -18,7 +18,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	const signers: Signer[] = await ethers.getSigners()
 	const [signer] = signers
 	const signerAddress = await signer.getAddress()
-	console.log({ signerAddress, deployer })
 
 	let abdkMathDeploy: DeployResult = await deploy("ABDKMathQuad", {
 		from: deployer,
