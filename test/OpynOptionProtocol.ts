@@ -6,7 +6,7 @@ import moment from "moment"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry } from "../types/OptionRegistry"
+import { OptionRegistryV0 } from "../types/OptionRegistryV0"
 import { Otoken as IOToken } from "../types/Otoken"
 import { WETH } from "../types/WETH"
 import {
@@ -23,7 +23,7 @@ import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
 let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
-let optionRegistry: OptionRegistry
+let optionRegistry: OptionRegistryV0
 let optionToken: IOToken
 let putOption: IOToken
 let erc20CallOption: IOToken
@@ -80,7 +80,7 @@ describe("Options protocol", function () {
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
+		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistryV0", {
 			libraries: {
 				OpynInteractions: interactions.address
 			}
@@ -109,7 +109,7 @@ describe("Options protocol", function () {
 			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId]
-		)) as OptionRegistry
+		)) as OptionRegistryV0
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
 	})
@@ -142,7 +142,10 @@ describe("Options protocol", function () {
 		)) as ERC20Interface
 		const ETHbalanceBefore = await wethERC20.balanceOf(senderAddress)
 		await wethERC20.approve(optionRegistry.address, value)
-		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(optionToken.address)), value)
+		const collatAmount = await optionRegistry.getCollateral(
+			await optionRegistry.seriesInfo(optionToken.address),
+			value
+		)
 		await optionRegistry.open(optionToken.address, value, collatAmount)
 		const ETHbalance = await wethERC20.balanceOf(senderAddress)
 		const balance = await optionToken.balanceOf(senderAddress)
@@ -183,7 +186,10 @@ describe("Options protocol", function () {
 		const value = toWei("2")
 		const [sender, receiver] = signers
 		await wethERC20.connect(receiver).approve(optionRegistry.address, value)
-		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(optionToken.address)), value)
+		const collatAmount = await optionRegistry.getCollateral(
+			await optionRegistry.seriesInfo(optionToken.address),
+			value
+		)
 		await expect(
 			optionRegistry.connect(receiver).open(optionToken.address, value, collatAmount)
 		).to.be.revertedWith("!liquidityPool")
@@ -285,7 +291,10 @@ describe("Options protocol", function () {
 	it("opens an ERC20 call option", async () => {
 		const value = toWei("4")
 		await wethERC20.approve(optionRegistry.address, value)
-		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(erc20CallOption.address)), value)
+		const collatAmount = await optionRegistry.getCollateral(
+			await optionRegistry.seriesInfo(erc20CallOption.address),
+			value
+		)
 		await optionRegistry.open(erc20CallOption.address, value, collatAmount)
 		const balance = await erc20CallOption.balanceOf(senderAddress)
 		expect(balance).to.be.equal(value.div(oTokenDecimalShift18))
@@ -294,7 +303,10 @@ describe("Options protocol", function () {
 		const [sender] = signers
 		const amount = strike.mul(4)
 		await usd.approve(optionRegistry.address, toWei(amount.toString()))
-		const collatAmount = await optionRegistry.getCollateral((await optionRegistry.seriesInfo(putOption.address)), toWei("4"))
+		const collatAmount = await optionRegistry.getCollateral(
+			await optionRegistry.seriesInfo(putOption.address),
+			toWei("4")
+		)
 		await optionRegistry.open(putOption.address, toWei("4"), collatAmount)
 		const balance = await putOption.balanceOf(senderAddress)
 		expect(balance).to.be.equal(toWei("4").div(oTokenDecimalShift18))
