@@ -11,7 +11,7 @@ async function getDecimals(contractOrValue: ERC20Decimals) {
   if (typeof contractOrValue === 'number') {
     return contractOrValue;
   } else if (typeof contractOrValue === 'string') {
-    return (await hre.ethers.getContractAt('ERC20', contractOrValue)).decimals();
+    return (await hre.ethers.getContractAt('contracts/tokens/ERC20.sol:ERC20', contractOrValue)).decimals();
   } else {
     return await contractOrValue.decimals();
   }

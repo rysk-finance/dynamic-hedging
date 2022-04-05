@@ -3,7 +3,7 @@ import { Signer, BigNumber, BigNumberish } from "ethers"
 import { expect } from "chai"
 import { truncate } from "@ragetrade/sdk"
 import {
-	parseTokenAmount,
+	parseTokenAmount, toUSDC, toWei,
 } from "../utils/conversion-helper"
 import { MintableERC20 } from "../types/MintableERC20"
 import { PerpHedgingReactor } from "../types/PerpHedgingReactor"
@@ -12,17 +12,22 @@ import { PerpHedgingTest } from "../types/PerpHedgingTest"
 //@ts-ignore
 import { IUniswapV3Pool } from "../artifacts/@uniswap/v3-core-0.8-support/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json"
 import { ClearingHouse } from "../types/ClearingHouse"
+import {OracleMock} from "../types/OracleMock"
 import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_SWAP_ROUTER } from "./constants"
 import { PriceFeed } from "../types/PriceFeed"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
-import { priceToSqrtPriceX96, sqrtPriceX96ToTick } from '../utils/price-tick';
+import { priceToSqrtPriceX96, sqrtPriceX96ToPrice, sqrtPriceX96ToTick } from '../utils/price-tick';
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { clear } from "console"
+import { Oracle } from "../types/Oracle"
+import { ConsoleLogger } from "ts-generator/dist/logger"
 let signers: Signer[]
 let usdcWhale: Signer
 let clearingHouse: ClearingHouse
 let usdcWhaleAddress: string
 let poolId: string
+let settlementTokenOracle: OracleMock
 let collateralId: string
 let liquidityPoolDummy: PerpHedgingTest
 let liquidityPoolDummyAddress: string
@@ -37,6 +42,7 @@ const UNISWAP_V3_FACTORY_ADDRESS = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
 const UNISWAP_V3_DEFAULT_FEE_TIER = 500;
 // edit depending on the chain id to be tested on
 const chainId = 1
+const USDC_SCALE = '1000000000000'
 
 async function initializePool(
     rageTradeFactory: RageTradeFactory,
@@ -170,7 +176,7 @@ describe("PerpHedgingReactor", () => {
 
 		await usdcContract
 			.connect(usdcWhale)
-			.transfer(liquidityPoolDummyAddress, ethers.utils.parseUnits("1000000", 6))
+			.transfer(liquidityPoolDummyAddress, (ethers.utils.parseUnits("1000000", 6)))
 		await usdcContract
 			.connect(usdcWhale)
 			.transfer(await signers[0].getAddress(), ethers.utils.parseUnits("1000000", 6))
@@ -180,8 +186,6 @@ describe("PerpHedgingReactor", () => {
 		const LPContractBalance = parseFloat(
 			ethers.utils.formatUnits(await usdcContract.balanceOf(liquidityPoolDummyAddress), 6)
 		)
-
-		expect(LPContractBalance).to.equal(1000000)
 	})
 	it("#deploy price feed", async () => {
 		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
@@ -197,7 +201,7 @@ describe("PerpHedgingReactor", () => {
 		)
 		const feedAddress = await priceFeed.priceFeeds(ZERO_ADDRESS, USDC_ADDRESS[chainId])
 		expect(feedAddress).to.eq(ethUSDAggregator.address)
-		rate = "2890000000"
+		rate = "2000000000"
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			rate,
@@ -206,9 +210,11 @@ describe("PerpHedgingReactor", () => {
 			"55340232221128660932"
 		)
 		await ethUSDAggregator.mock.decimals.returns("6")
+		
 	})
 	let vTokenAddress : string
 	let vQuoteAddress : string
+	let rageOracle : OracleMock
 	it("#deploys rage", async () => {
 		let accountLib = (await (await hre.ethers.getContractFactory('Account')).deploy());
 		const clearingHouseLogic = await (
@@ -246,12 +252,12 @@ describe("PerpHedgingReactor", () => {
 		  2000,
 		  1000,
 		  1,
-		  await priceToSqrtPriceX96(4000, 6, 18),
+		  await priceToSqrtPriceX96(2000, 6, 18),
 		  // .div(60 * 10 ** 6),
 		);
 	
 		vTokenAddress = out.vTokenAddress;
-		const rageOracle = out.oracle;
+		rageOracle = out.oracle as OracleMock;
 		const realToken = out.realToken;
 		const vPool = (await hre.ethers.getContractAt(
 		  '@uniswap/v3-core-0.8-support/contracts/interfaces/IUniswapV3Pool.sol:IUniswapV3Pool',
@@ -267,14 +273,12 @@ describe("PerpHedgingReactor", () => {
 		// console.log(await vQuote.decimals());
 	
 		// constants = await VPoolFactory.constants();
-		const settlementTokenOracle = await (await hre.ethers.getContractFactory('OracleMock')).deploy();
-	
+		settlementTokenOracle = await (await hre.ethers.getContractFactory('OracleMock')).deploy() as OracleMock;
 		await clearingHouse.updateCollateralSettings(USDC_ADDRESS[chainId], {
 		  oracle: settlementTokenOracle.address,
 		  twapDuration: 300,
 		  isAllowedForDeposit: true,
 		});
-	
 	  const liquidationParams = {
         rangeLiquidationFeeFraction: 1500,
         tokenLiquidationFeeFraction: 3000,
@@ -376,46 +380,36 @@ describe("PerpHedgingReactor", () => {
 		expect(await liquidityPoolDummy.perpHedgingReactor()).to.equal(reactorAddress)
 	})
 
-	it("changes nothing if no ETH balance and hedging positive delta", async () => {
-		wethContract = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", WETH_ADDRESS[chainId])) as MintableERC20
-		const reactorWethBalanceBefore = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(perpHedgingReactor.address))
-			)
-		)
+	it("hedges a positive delta when position is zero", async () => {
+		const delta = ethers.utils.parseEther("20")
+		const deltaHedge = ethers.utils.parseEther("-20")
 
+		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const realSqrtPrice = await priceToSqrtPriceX96(2500, 6, 18);
+
+		await ethUSDAggregator.mock.latestRoundData.returns(
+			"55340232221128660932",
+			"2500000000",
+			"1607534965",
+			"1607535064",
+			"55340232221128660932"
+		)
+		await rageOracle.setSqrtPriceX96(realSqrtPrice);
+		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
+		const reactorCollatBalanceBefore =  (await clearingHouse.getAccountInfo(0)).collateralDeposits[0].balance
 		expect(reactorWethBalanceBefore).to.equal(0)
-
-		const reactorDeltaBefore = parseFloat(
-			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
-		)
-		const LpUsdcBalanceBefore = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		
-		await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther("20"))
-
-		const reactorWethBalanceAfter = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(perpHedgingReactor.address))
-			)
-		)
-		const reactorDeltaAfter = parseFloat(
-			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
-		)
-		const LpUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-
-		expect(reactorDeltaBefore).to.equal(reactorDeltaAfter)
-		expect(reactorWethBalanceBefore).to.equal(reactorWethBalanceAfter)
-		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter)
+		const collatRequired = ((price.mul(delta).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE).sub(1)
+		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
+		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
+		await liquidityPoolDummy.hedgeDelta(delta)
+		const reactorCollatBalanceAfter =  (await clearingHouse.getAccountInfo(0)).collateralDeposits[0].balance
+		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
+		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
+		expect(deltaHedge).to.equal(reactorDeltaAfter)
+		expect(reactorWethBalanceBefore.add(deltaHedge)).to.equal(reactorWethBalanceAfter)
+		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter.add(collatRequired))
+		expect(reactorCollatBalanceAfter).to.eq(reactorCollatBalanceBefore.add(collatRequired))
 	})
 
 	it("hedges a negative delta", async () => {
