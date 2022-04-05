@@ -413,39 +413,30 @@ describe("PerpHedgingReactor", () => {
 	})
 
 	it("hedges a negative delta", async () => {
-		const LpUsdcBalanceBefore = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther("-0.5"))
+		const delta = ethers.utils.parseEther("-0.5")
+		const deltaHedge = ethers.utils.parseEther("0.5")
+		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
+		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
+		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorCollatBalanceBefore =  (await clearingHouse.getAccountInfo(0)).collateralDeposits[0].balance
+		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
+		const collatRequired = ((price.mul(delta).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
+		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(delta)
 		await hedgeDeltaTx.wait()
-		const reactorWethBalance = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(perpHedgingReactor.address))
-			)
-		)
-
-		const LpUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-
-		const reactorDelta = parseFloat(
-			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
-		)
-		expect(reactorDelta).to.equal(0.5)
-		expect(reactorWethBalance).to.equal(0.5)
-		expect(LpUsdcBalanceBefore).to.be.above(LpUsdcBalanceAfter)
+		const reactorCollatBalanceAfter =  (await clearingHouse.getAccountInfo(0)).collateralDeposits[0].balance
+		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
+		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
+		expect(reactorDeltaAfter).to.equal(reactorDeltaBefore.sub(delta))
+		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore.sub(delta))
+		expect(LpUsdcBalanceAfter).to.be.above(LpUsdcBalanceBefore)
+		expect(reactorCollatBalanceAfter).to.equal(reactorCollatBalanceBefore.add(collatRequired))
 	})
 	it("getDelta returns correct value", async () => {
 		const reactorDelta = parseFloat(
 			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
 		)
-		expect(reactorDelta).to.equal(0.5)
+		expect(reactorDelta).to.equal(-19.5)
 	})
 	it("gets the portfolio value", async () => {
 		const usdBalance = await usdcContract.balanceOf(perpHedgingReactor.address)
