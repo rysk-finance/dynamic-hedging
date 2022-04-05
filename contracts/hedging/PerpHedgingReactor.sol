@@ -55,6 +55,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         address _collateralAsset, 
         address _wethAddress, 
         address _parentLiquidityPool, 
+        uint32 _poolId,
         uint32 _collateralId, 
         address _priceFeed
         ) {
@@ -63,6 +64,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         wETH = _wethAddress;
         parentLiquidityPool = _parentLiquidityPool;
         priceFeed = _priceFeed;
+        poolId = _poolId;
         collateralId = _collateralId;
         // make a perp account
         accountId = clearingHouse.createAccount();
@@ -82,6 +84,13 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         keeper = _keeper;
     }
 
+    function initialiseReactor() external onlyOwner {
+        (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+        if (collatDeposits.length != 0) {revert();}
+        SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), 1);
+        SafeTransferLib.safeApprove(ERC20(collateralAsset), address(clearingHouse), MAX_UINT);
+        clearingHouse.updateMargin(accountId, collateralId, 1);
+    }
 
     /// @inheritdoc IHedgingReactor
     function hedgeDelta(int256 _delta) external returns (int256 deltaChange) {
@@ -202,6 +211,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     function _changePosition(int256 _amount) internal returns (int256 ) {
         uint256 collatToDeposit;
         uint256 collatToWithdraw;
+        // getAccountNetProfit and updateProfit 
         // check the net position of the margin account
         int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
         // get the new net position with the amount of the swap added
@@ -209,10 +219,11 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         // access the collateral held in the account
         (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
         // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
+        if (collatDeposits.length == 0) {revert IncorrectCollateral();}
         if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
         uint256 collat = collatDeposits[0].balance;
         // get the current price of the underlying asset from chainlink to be used to calculate position sizing
-        uint256 currentPrice = PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset);
+        uint256 currentPrice = OptionsCompute.convertToDecimals(PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset), ERC20(collateralAsset).decimals());
         // calculate the margin requirement for newPosition making sure to account for the health factor of the pool 
         // as we want the position to be overcollateralised
         uint256 totalCollatNeeded = newPosition >= 0 

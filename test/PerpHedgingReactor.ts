@@ -1,6 +1,7 @@
 import hre, { ethers, network } from "hardhat"
 import { Signer, BigNumber, BigNumberish } from "ethers"
 import { expect } from "chai"
+import { truncate } from "@ragetrade/sdk"
 import {
 	parseTokenAmount,
 } from "../utils/conversion-helper"
@@ -16,10 +17,13 @@ import { PriceFeed } from "../types/PriceFeed"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import { priceToSqrtPriceX96, sqrtPriceX96ToTick } from '../utils/price-tick';
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 let signers: Signer[]
 let usdcWhale: Signer
 let clearingHouse: ClearingHouse
 let usdcWhaleAddress: string
+let poolId: string
+let collateralId: string
 let liquidityPoolDummy: PerpHedgingTest
 let liquidityPoolDummyAddress: string
 let perpHedgingReactor: PerpHedgingReactor
@@ -29,7 +33,8 @@ let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
 let rate: string
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-
+const UNISWAP_V3_FACTORY_ADDRESS = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
+const UNISWAP_V3_DEFAULT_FEE_TIER = 500;
 // edit depending on the chain id to be tested on
 const chainId = 1
 
@@ -57,7 +62,7 @@ async function initializePool(
         maintainanceMarginRatioBps,
         maxVirtualPriceDeviationRatioBps: 10000,
         twapDuration,
-        isAllowedForTrade: false,
+        isAllowedForTrade: true,
         isCrossMargined: false,
         oracle: oracle.address,
       },
@@ -74,7 +79,61 @@ async function initializePool(
 
     return { vTokenAddress, realToken, oracle, vPool };
   }
+async function updateRangeOrder(
+    user: Signer,
+    userAccountNo: BigNumberish,
+    tokenAddress: string,
+    tickLower: BigNumberish,
+    tickUpper: BigNumberish,
+    liquidityDelta: BigNumberish,
+    closeTokenPosition: boolean,
+    limitOrderType: number,
+  ) {
+    const truncatedAddress = truncate(tokenAddress);
 
+    let liquidityChangeParams = {
+      tickLower: tickLower,
+      tickUpper: tickUpper,
+      liquidityDelta: liquidityDelta,
+      sqrtPriceCurrent: 0,
+      slippageToleranceBps: 0,
+      closeTokenPosition: closeTokenPosition,
+      limitOrderType: limitOrderType,
+    };
+
+    await clearingHouse.connect(user).updateRangeOrder(userAccountNo, truncatedAddress, liquidityChangeParams);
+  }
+  async function updateRangeOrderAndCheck(
+    user: Signer,
+    userAccountNo: BigNumberish,
+    tokenAddress: string,
+    vQuoteAddress: string,
+    tickLower: BigNumberish,
+    tickUpper: BigNumberish,
+    liquidityDelta: BigNumberish,
+    closeTokenPosition: boolean,
+    limitOrderType: number,
+    liquidityPositionNum: BigNumberish,
+    expectedEndLiquidityPositionNum: BigNumberish,
+    expectedEndVTokenBalance: BigNumberish,
+    expectedEndVQuoteBalance: BigNumberish,
+    checkApproximateVTokenBalance: Boolean,
+    expectedSumALast?: BigNumberish,
+    expectedSumBLast?: BigNumberish,
+    expectedSumFpLast?: BigNumberish,
+    expectedSumFeeLast?: BigNumberish,
+  ) {
+    await updateRangeOrder(
+      user,
+      userAccountNo,
+      tokenAddress,
+      tickLower,
+      tickUpper,
+      liquidityDelta,
+      closeTokenPosition,
+      limitOrderType,
+    );
+  }
 describe("PerpHedgingReactor", () => {
 	before(async function () {
 		await network.provider.request({
@@ -112,7 +171,12 @@ describe("PerpHedgingReactor", () => {
 		await usdcContract
 			.connect(usdcWhale)
 			.transfer(liquidityPoolDummyAddress, ethers.utils.parseUnits("1000000", 6))
-
+		await usdcContract
+			.connect(usdcWhale)
+			.transfer(await signers[0].getAddress(), ethers.utils.parseUnits("1000000", 6))
+			await usdcContract
+			.connect(usdcWhale)
+			.transfer(await signers[1].getAddress(), ethers.utils.parseUnits("10000000", 6))
 		const LPContractBalance = parseFloat(
 			ethers.utils.formatUnits(await usdcContract.balanceOf(liquidityPoolDummyAddress), 6)
 		)
@@ -143,6 +207,8 @@ describe("PerpHedgingReactor", () => {
 		)
 		await ethUSDAggregator.mock.decimals.returns("6")
 	})
+	let vTokenAddress : string
+	let vQuoteAddress : string
 	it("#deploys rage", async () => {
 		let accountLib = (await (await hre.ethers.getContractFactory('Account')).deploy());
 		const clearingHouseLogic = await (
@@ -152,9 +218,7 @@ describe("PerpHedgingReactor", () => {
 			},
 		  })
 		).deploy();
-	
 		let vPoolWrapperLogic = await (await hre.ethers.getContractFactory('VPoolWrapper')).deploy();
-	
 		const insuranceFundLogic = await (await hre.ethers.getContractFactory('InsuranceFund')).deploy();
 	
 		const rageTradeFactory = await (
@@ -171,7 +235,7 @@ describe("PerpHedgingReactor", () => {
 		const insuranceFund = await hre.ethers.getContractAt('InsuranceFund', await clearingHouse.insuranceFund());
 	
 		const vQuote = await hre.ethers.getContractAt('VQuote', await rageTradeFactory.vQuote());
-		const vQuoteAddress = vQuote.address;
+		vQuoteAddress = vQuote.address;
 	
 		// await vQuote.transferOwnership(VPoolFactory.address);
 		// const realTokenFactory = await hre.ethers.getContractFactory('RealTokenMock');
@@ -186,23 +250,14 @@ describe("PerpHedgingReactor", () => {
 		  // .div(60 * 10 ** 6),
 		);
 	
-		const vTokenAddress = out.vTokenAddress;
+		vTokenAddress = out.vTokenAddress;
 		const rageOracle = out.oracle;
 		const realToken = out.realToken;
 		const vPool = (await hre.ethers.getContractAt(
 		  '@uniswap/v3-core-0.8-support/contracts/interfaces/IUniswapV3Pool.sol:IUniswapV3Pool',
 		  out.vPool,
 		)) as IUniswapV3Pool;
-	
-		let out1 = await initializePool(
-		  rageTradeFactory,
-		  2000,
-		  1000,
-		  1,
-		  await priceToSqrtPriceX96(4000, 6, 18),
-		  // .div(60 * 10 ** 6),
-		);
-		const vTokenAddress1 = out1.vTokenAddress;
+		
 	
 		// console.log('### Is VToken 0 ? ###');
 		// console.log(BigNumber.from(vTokenAddress).lt(vQuoteAddress));
@@ -214,19 +269,12 @@ describe("PerpHedgingReactor", () => {
 		// constants = await VPoolFactory.constants();
 		const settlementTokenOracle = await (await hre.ethers.getContractFactory('OracleMock')).deploy();
 	
-		const settlementToken1 = await hre.ethers.getContractAt('contracts/tokens/ERC20.sol:ERC20', USDC_ADDRESS[chainId]);
-		const settlementToken1Oracle = await (await hre.ethers.getContractFactory('OracleMock')).deploy();
 		await clearingHouse.updateCollateralSettings(USDC_ADDRESS[chainId], {
 		  oracle: settlementTokenOracle.address,
 		  twapDuration: 300,
-		  isAllowedForDeposit: false,
+		  isAllowedForDeposit: true,
 		});
 	
-		await clearingHouse.updateCollateralSettings(settlementToken1.address, {
-		  oracle: settlementToken1Oracle.address,
-		  twapDuration: 300,
-		  isAllowedForDeposit: false,
-		});
 	  const liquidationParams = {
         rangeLiquidationFeeFraction: 1500,
         tokenLiquidationFeeFraction: 3000,
@@ -248,6 +296,8 @@ describe("PerpHedgingReactor", () => {
         minimumOrderNotional,
         minRequiredMargin,
       );
+	  poolId = truncate(vTokenAddress)
+	  collateralId = truncate(USDC_ADDRESS[chainId])
 	})
 	it("deploys the hedging reactor", async () => {
 		const perpHedgingReactorFactory = await ethers.getContractFactory(
@@ -256,20 +306,62 @@ describe("PerpHedgingReactor", () => {
 				signer: signers[0]
 			}
 		)
-
 		perpHedgingReactor = (await perpHedgingReactorFactory.deploy(
 			clearingHouse.address,
 			USDC_ADDRESS[chainId],
 			WETH_ADDRESS[chainId],
 			liquidityPoolDummyAddress,
-			0,
+			poolId,
+			collateralId,
 			priceFeed.address
 		)) as PerpHedgingReactor
 
 		expect(perpHedgingReactor).to.have.property("hedgeDelta")
 		const minAmount = await perpHedgingReactor.minAmount()
 		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 16))
+		await usdcContract.approve(perpHedgingReactor.address, 1)
+		await perpHedgingReactor.initialiseReactor()
 	})
+
+	it('Acct[0] Adds Liq b/w ticks (-200820 to -199360) @ tickCurrent = -199590', async () => {
+		const user0 = signers[1]
+		await clearingHouse.connect(user0).createAccount();
+		const user0AccountNo = 1;
+		await usdcContract.connect(user0).approve(clearingHouse.address, parseTokenAmount(10 ** 5, 6))
+		await clearingHouse.connect(user0).updateMargin(user0AccountNo, collateralId, parseTokenAmount(10 ** 5, 6))
+		const tickLower = -200820;
+		const tickUpper = -199360;
+		const liquidityDelta = "75407230733517400";
+		const limitOrderType = 0;
+		const expectedVTokenBalance = "-18595999999997900000";
+		const expectedVQuoteBalance = '-208523902880';
+  
+		const expectedSumALast = 0;
+		const expectedSumBLast = 0;
+		const expectedSumFpLast = 0;
+		const expectedSumFeeLast = 0;
+  
+		await updateRangeOrderAndCheck(
+		  user0,
+		  user0AccountNo,
+		  vTokenAddress,
+		  vQuoteAddress,
+		  tickLower,
+		  tickUpper,
+		  liquidityDelta,
+		  false,
+		  limitOrderType,
+		  0,
+		  1,
+		  expectedVTokenBalance,
+		  expectedVQuoteBalance,
+		  true,
+		  expectedSumALast,
+		  expectedSumBLast,
+		  expectedSumFpLast,
+		  expectedSumFeeLast,
+		);
+	  });
 	it("updates minAmount parameter", async () => {
 		await perpHedgingReactor.setMinAmount(1e10)
 		const minAmount = await perpHedgingReactor.minAmount()
@@ -303,7 +395,7 @@ describe("PerpHedgingReactor", () => {
 				6
 			)
 		)
-
+		
 		await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther("20"))
 
 		const reactorWethBalanceAfter = parseFloat(

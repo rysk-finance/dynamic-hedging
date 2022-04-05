@@ -12,6 +12,7 @@ library OptionsCompute {
 
     uint8 private constant SCALE_DECIMALS = 18;
 
+    /// @dev assumes decimals are coming in as e18
     function convertToDecimals(
         uint value,
         uint decimals
