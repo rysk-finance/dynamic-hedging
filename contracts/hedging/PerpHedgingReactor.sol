@@ -167,10 +167,14 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
         uint256 collat = collatDeposits[0].balance;
         // get the current price of the underlying asset from chainlink to be used to calculate position sizing
-        uint256 currentPrice = PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset);
+        uint256 currentPrice = OptionsCompute.convertToDecimals(PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset), ERC20(collateralAsset).decimals());
         // check the collateral health of positions
         // get the amount of collateral that should be expected for a given amount
-        uint256 collatRequired = (((uint256(netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS;
+        uint256 collatRequired = netPosition >= 0 
+                        ? 
+                        (((uint256(netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS 
+                        : 
+                        (((uint256(-netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS;
         // if there is not enough collateral then request more
         // if there is too much collateral then return some to the pool
         if (collatRequired > collat) {
