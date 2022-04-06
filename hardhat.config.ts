@@ -1,5 +1,6 @@
 import * as dotenv from "dotenv"
 import { Wallet } from "@ethersproject/wallet"
+import "solidity-coverage"
 import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-etherscan"
 import "hardhat-deploy"

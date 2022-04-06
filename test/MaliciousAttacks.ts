@@ -1,4 +1,4 @@
-import hre, { ethers } from "hardhat"
+import hre, { ethers, network } from "hardhat"
 import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
 import {
 	toWei,
@@ -7,12 +7,10 @@ import {
 	fromWei,
 	convertRounded,
 	toUSDC,
-	fmtExpiration,
-	fromOpyn
+	fromOpyn,
+	scaleNum
 } from "../utils/conversion-helper"
-import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
-import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 //@ts-ignore
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
@@ -25,14 +23,25 @@ import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
+import { Volatility } from "../types/Volatility"
+import { Controller } from "../types/Controller"
+import { AddressBook } from "../types/AddressBook"
+import { Oracle } from "../types/Oracle"
+import { NewMarginCalculator } from "../types/NewMarginCalculator"
+import { setupTestOracle } from "./helpers"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
 	MARGIN_POOL,
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
-	WETH_ADDRESS
+	WETH_ADDRESS,
+	CONTROLLER_OWNER,
+	GAMMA_ORACLE_NEW,
+	USDC_OWNER_ADDRESS
 } from "./constants"
+import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
+
 let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
@@ -43,17 +52,20 @@ let liquidityProviderAddress: string
 let attackerAddress: string
 let liquidityPool: LiquidityPool
 let priceFeed: PriceFeed
-let ethUSDAggregator: MockContract
-let rate: string
-const IMPLIED_VOL = "60"
+let volatility: Volatility
+let controller: Controller
+let addressBook: AddressBook
+let newCalculator: NewMarginCalculator
+let oracle: Oracle
+let opynAggregator: MockChainlinkAggregator
+
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 /* --- variables to change --- */
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-// First mined block will be timestamped 2021-07-13 20:44 UTC
+// First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
 // decimal representation of a percentage
 const rfr: string = "0.03"
@@ -82,6 +94,19 @@ const minExpiry = 86400 * 7
 // 365 days in seconds
 const maxExpiry = 86400 * 365
 
+const productSpotShockValue = scaleNum("0.6", 27)
+// array of time to expiry
+const day = 60 * 60 * 24
+const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56]
+// array of upper bound value correspond to time to expiry
+const expiryToValue = [
+	scaleNum("0.1678", 27),
+	scaleNum("0.237", 27),
+	scaleNum("0.3326", 27),
+	scaleNum("0.4032", 27),
+	scaleNum("0.4603", 27)
+]
+
 /* --- end variables to change --- */
 
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
@@ -98,26 +123,175 @@ describe("Hegic Attack", function () {
 					forking: {
 						chainId: 1,
 						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
-						blockNumber: 12821000
+						blockNumber: 14290000
 					}
 				}
 			]
 		})
+		// impersonate the opyn controller owner
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [CONTROLLER_OWNER[chainId]]
+		})
+		signers = await ethers.getSigners()
+		const [sender] = signers
+
+		const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
+		await sender.sendTransaction({
+			to: signer.address,
+			value: ethers.utils.parseEther("1.0") // Sends exactly 1.0 ether
+		})
+		// get an instance of the controller
+		controller = (await ethers.getContractAt(
+			"contracts/packages/opyn/core/Controller.sol:Controller",
+			GAMMA_CONTROLLER[chainId]
+		)) as Controller
+		// get an instance of the addressbook
+		addressBook = (await ethers.getContractAt(
+			"contracts/packages/opyn/core/AddressBook.sol:AddressBook",
+			ADDRESS_BOOK[chainId]
+		)) as AddressBook
+		// get the oracle
+		const res = await setupTestOracle(await signers[0].getAddress())
+		oracle = res[0] as Oracle
+		opynAggregator = res[1] as MockChainlinkAggregator
+		// deploy the new calculator
+		const newCalculatorInstance = await ethers.getContractFactory("NewMarginCalculator")
+		newCalculator = (await newCalculatorInstance.deploy(
+			GAMMA_ORACLE_NEW[chainId],
+			ADDRESS_BOOK[chainId]
+		)) as NewMarginCalculator
+		// deploy the new whitelist
+		const newWhitelistInstance = await ethers.getContractFactory("NewWhitelist")
+		const newWhitelist = await newWhitelistInstance.deploy(ADDRESS_BOOK[chainId])
+		// update the addressbook with the new calculator and whitelist addresses
+		await addressBook.connect(signer).setMarginCalculator(newCalculator.address)
+		await addressBook.connect(signer).setWhitelist(newWhitelist.address)
+		// update the whitelist and calculator in the controller
+		await controller.connect(signer).refreshConfiguration()
+		// whitelist collateral
+		await newWhitelist.whitelistCollateral(WETH_ADDRESS[chainId])
+		await newWhitelist.whitelistCollateral(USDC_ADDRESS[chainId])
+		// whitelist products
+		// normal calls
+		await newWhitelist.whitelistProduct(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			WETH_ADDRESS[chainId],
+			false
+		)
+		// normal puts
+		await newWhitelist.whitelistProduct(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			true
+		)
+		// usd collateralised calls
+		await newWhitelist.whitelistProduct(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			false
+		)
+		// eth collateralised puts
+		await newWhitelist.whitelistProduct(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			WETH_ADDRESS[chainId],
+			true
+		)
+		// whitelist vault type 0 collateral
+		await newWhitelist.whitelistCoveredCollateral(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId], false)
+		await newWhitelist.whitelistCoveredCollateral(USDC_ADDRESS[chainId], WETH_ADDRESS[chainId], true)
+		// whitelist vault type 1 collateral
+		await newWhitelist.whitelistNakedCollateral(USDC_ADDRESS[chainId], WETH_ADDRESS[chainId], false)
+		await newWhitelist.whitelistNakedCollateral(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId], true)
+		// set product spot shock values
+		// usd collateralised calls
+		await newCalculator.setSpotShock(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			false,
+			productSpotShockValue
+		)
+		// usd collateralised puts
+		await newCalculator.setSpotShock(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			true,
+			productSpotShockValue
+		)
+		// eth collateralised calls
+		await newCalculator.setSpotShock(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			WETH_ADDRESS[chainId],
+			false,
+			productSpotShockValue
+		)
+		// eth collateralised puts
+		await newCalculator.setSpotShock(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			WETH_ADDRESS[chainId],
+			true,
+			productSpotShockValue
+		)
+		// set expiry to value values
+		// usd collateralised calls
+		await newCalculator.setUpperBoundValues(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			false,
+			timeToExpiry,
+			expiryToValue
+		)
+		// usd collateralised puts
+		await newCalculator.setUpperBoundValues(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			true,
+			timeToExpiry,
+			expiryToValue
+		)
+		// eth collateralised calls
+		await newCalculator.setUpperBoundValues(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			WETH_ADDRESS[chainId],
+			false,
+			timeToExpiry,
+			expiryToValue
+		)
+		// eth collateralised puts
+		await newCalculator.setUpperBoundValues(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			WETH_ADDRESS[chainId],
+			true,
+			timeToExpiry,
+			expiryToValue
+		)
 	})
 
 	it("Deploys the Option Registry", async () => {
-		signers = await ethers.getSigners()
+		signers = await hre.ethers.getSigners()
 		liquidityProviderAddress = await signers[0].getAddress()
 		attackerAddress = await signers[1].getAddress()
 		// deploy libraries
-		const constantsFactory = await ethers.getContractFactory("Constants")
-		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
+		const constantsFactory = await hre.ethers.getContractFactory("Constants")
+		const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractionsV2")
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
+		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {
 			libraries: {
-				OpynInteractions: interactions.address
+				OpynInteractionsV2: interactions.address
 			}
 		})
 		// get and transfer weth
@@ -130,6 +304,14 @@ describe("Hegic Attack", function () {
 			WETH_ADDRESS[chainId]
 		)) as ERC20Interface
 		usd = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [USDC_OWNER_ADDRESS[chainId]]
+		})
+		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
+		await usd
+			.connect(signer)
+			.transfer(liquidityProviderAddress, toWei("1000").div(oTokenDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
@@ -144,24 +326,16 @@ describe("Hegic Attack", function () {
 	})
 
 	it("Should deploy price feed", async () => {
-		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
-
 		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
 		const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
 		priceFeed = _priceFeed
-		await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, ethUSDAggregator.address)
-		await priceFeed.addPriceFeed(weth.address, usd.address, ethUSDAggregator.address)
-		const feedAddress = await priceFeed.priceFeeds(ZERO_ADDRESS, usd.address)
-		expect(feedAddress).to.eq(ethUSDAggregator.address)
-		rate = "1280000000000" //12800
-		await ethUSDAggregator.mock.latestRoundData.returns(
-			"55340232221128660932",
-			rate,
-			"1607534965",
-			"1607535064",
-			"55340232221128660932"
-		)
-		await ethUSDAggregator.mock.decimals.returns("8")
+		await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
+		await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
+		// oracle returns price denominated in 1e8
+		const oraclePrice = await oracle.getPrice(weth.address)
+		// pricefeed returns price denominated in 1e18
+		const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		expect(oraclePrice.mul(10_000_000_000)).to.equal(priceFeedPrice)
 	})
 	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("Protocol")
@@ -199,7 +373,10 @@ describe("Hegic Attack", function () {
 			libraries: {}
 		})
 		const normDist = await normDistFactory.deploy()
-
+		const volFactory = await ethers.getContractFactory("Volatility", {
+			libraries: {}
+		})
+		volatility = (await volFactory.deploy()) as Volatility
 		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
 			libraries: {
 				NormalDist: normDist.address
@@ -227,9 +404,10 @@ describe("Hegic Attack", function () {
 				maxCallStrikePrice,
 				minPutStrikePrice,
 				maxPutStrikePrice,
-				minExpiry: fmtExpiration(minExpiry),
-				maxExpiry: fmtExpiration(maxExpiry)
+				minExpiry: minExpiry,
+				maxExpiry: maxExpiry
 			},
+			//@ts-ignore
 			await signers[0].getAddress()
 		)) as LiquidityPool
 
@@ -304,7 +482,7 @@ describe("Hegic Attack", function () {
 		// await liquidityPool.addLiquidity(toUSDC("6000"), amount.mul("4"), 0, 0)
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const proposedSeries = {
-			expiration: fmtExpiration(expiration),
+			expiration: expiration,
 			isPut: true,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
@@ -323,11 +501,9 @@ describe("Hegic Attack", function () {
 		const buyerOptionBalance = await callOptionToken.balanceOf(attackerAddress)
 		//@ts-ignore
 		const totalInterest = await callOptionToken.totalSupply()
-		const writersBalance = await optionRegistry.writers(seriesAddress, liquidityPool.address)
 		const lpUSDBalance = await usd.balanceOf(liquidityPool.address)
 		const attackerEthBalance = await attacker.getBalance()
 		const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance)
-		expect(writersBalance).to.eq(amount)
 		expect(fromOpyn(buyerOptionBalance)).to.eq(fromWei(amount))
 		expect(fromOpyn(totalInterest)).to.eq(fromWei(amount))
 	})

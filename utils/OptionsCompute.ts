@@ -9,15 +9,28 @@ export function computeNewWeights(
 	expiration: BigNumber,
 	totalAmount: BigNumber,
 	weightedStrike: BigNumber,
-	weightedTime: BigNumber
+	weightedTime: BigNumber,
+	isSale: boolean
 ) {
-	let weight: BigNumber = one
-	if (totalAmount.gt(zero)) {
-		weight = amount.div(totalAmount)
+	if (!isSale) {
+		let weight: BigNumber = one
+		if (totalAmount.gt(zero)) {
+			weight = amount.div(totalAmount.sub(amount))
+		}
+		const exWeight = one.add(weight)
+		const newTotalAmount = totalAmount.add(amount)
+		const newWeightedStrike = exWeight.mul(weightedStrike).sub(weight.mul(strike)).div(one)
+		const newWeightedTime = exWeight.mul(weightedTime).sub(weight.mul(expiration)).div(one)
+		return { newWeightedTime, newWeightedStrike, newTotalAmount }
+	} else {
+		let weight: BigNumber = one
+		if (totalAmount.gt(zero)) {
+			weight = amount.div(totalAmount.add(amount))
+		}
+		const exWeight = one.sub(weight)
+		const newTotalAmount = totalAmount.add(amount)
+		const newWeightedStrike = exWeight.mul(weightedStrike).add(weight.mul(strike)).div(one)
+		const newWeightedTime = exWeight.mul(weightedTime).add(weight.mul(expiration)).div(one)
+		return { newWeightedTime, newWeightedStrike, newTotalAmount }
 	}
-	const exWeight = one.sub(weight)
-	const newTotalAmount = totalAmount.add(amount)
-	const newWeightedStrike = exWeight.mul(weightedStrike).add(weight.mul(strike)).div(one)
-	const newWeightedTime = exWeight.mul(weightedTime).add(weight.mul(expiration)).div(one)
-	return { newWeightedTime, newWeightedStrike, newTotalAmount }
 }
