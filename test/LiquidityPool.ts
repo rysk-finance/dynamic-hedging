@@ -1076,20 +1076,17 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = await putOptionToken.strikePrice()
 		// set price to $80 ITM for put
 		const settlePrice = strikePrice.sub(toWei("80").div(oTokenDecimalShift18))
-
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
-
 		// settle the vault
 		const settleVault = await liquidityPool.settleVault(putOptionToken.address)
 		let receipt = await settleVault.wait()
 		const events = receipt.events
 		const settleEvent = events?.find(x => x.event == "SettleVault")
 		const collateralReturned = settleEvent?.args?.collateralReturned
-		// puts expired ITM, so
+		// puts expired ITM, so the amount ITM will be subtracted and used to pay out option holders
 		const optionITMamount = strikePrice.sub(settlePrice)
 		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
-
 		expect(collateralReturned).to.equal(collateralAllocated.sub(optionITMamount.div(100)).mul(amount)) // format from e8 oracle price to e6 USDC decimals
 	})
 })
