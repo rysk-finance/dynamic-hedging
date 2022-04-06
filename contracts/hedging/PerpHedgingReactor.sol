@@ -46,6 +46,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     /// @notice max bips
     uint256 public MAX_BIPS = 10_000;
 
+    error ValueFailure();
     error InvalidSender();
     error InvalidHealthFactor();
     error IncorrectCollateral();
@@ -123,6 +124,16 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         }
         // increment any loose balance held by the pool
         value += ERC20(collateralAsset).balanceOf(address(this));
+        // get the net profit of the account position
+        int256 netProfit = clearingHouse.getAccountNetProfit(accountId);
+        if (netProfit > 0) {
+            value += uint256(netProfit);
+        } else if (netProfit < 0) {
+            // if there is ever a case where value is negative then something has gone very wrong and this should be dealt with 
+            // by the reactor manager so the transaction should revert here
+            if( value < uint256(-netProfit) ) {revert ValueFailure();}
+            value -= uint256(-netProfit);
+        }
     }
 
     /// @inheritdoc IHedgingReactor
