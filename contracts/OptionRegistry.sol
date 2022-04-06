@@ -243,10 +243,11 @@ contract OptionRegistry is Ownable {
     /**
      * @notice Settle an options vault
      * @param  _series the address of the option token to be burnt
-     * @return if the transaction succeeded
+     * @return success if the transaction succeeded
+     * @return collatReturned the amount of collateral returned from the vault
      * @dev callable by anyone but returns funds to the liquidityPool
      */
-    function settle(address _series) external returns (bool) {
+    function settle(address _series) external returns (bool success, uint256 collatReturned) {
         Types.OptionSeries memory series = seriesInfo[_series];
         require(series.expiration != 0, "non-existent series");
         // check that the option has expired
@@ -258,7 +259,7 @@ contract OptionRegistry is Ownable {
         // transfer the collateral back to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(series.collateral), liquidityPool, collatReturned);
         emit OptionsContractSettled(_series);
-        return true;
+        return (true, collatReturned);
     }
 
     /**
@@ -327,6 +328,7 @@ contract OptionRegistry is Ownable {
       Types.OptionSeries memory series = seriesInfo[vault.shortOtokens[0]];
       // get the MarginRequired
       IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
+    
       uint256 marginReq = marginCalc.getNakedMarginRequired(
           series.underlying,
           series.strikeAsset,
