@@ -816,6 +816,13 @@ describe("Options protocol Vault Health", function () {
 		)
 		expect(isUnderCollat).to.be.true
 	})
+	it("reverts if unauthorised party tries to adjust collateral", async () => {
+		const unauthorisedSigner = (await ethers.getSigners())[1]
+		const unauthorisedOptionRegistry = await optionRegistry.connect(unauthorisedSigner)
+		const arr = await unauthorisedOptionRegistry.checkVaultHealth(1)
+		const healthFBefore = arr[2]
+		await expect(unauthorisedOptionRegistry.adjustCollateral(1)).to.be.reverted
+	})
 	it("adjusts collateral to get back to positive", async () => {
 		const arr = await optionRegistry.checkVaultHealth(1)
 		const healthFBefore = arr[2]
