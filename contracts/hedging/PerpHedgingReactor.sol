@@ -152,7 +152,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         // previous check will have eliminated these cases)
         uint256 collatNeeded = convertedAmount - balance;
         // liquidate the correct amount
-        (uint256 collatReturned, int256 deltaChange) = _liquidatePosition(_amount);
+        (uint256 collatReturned, int256 deltaChange) = _liquidatePosition(convertedAmount);
         // adjust the internal delta in accordance with the change that liquidatePosition made
         internalDelta += deltaChange;
         // get the actual returned value to send back to the user
@@ -304,7 +304,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
         uint256 collat = collatDeposits[0].balance;
         // get the current price of the underlying asset from chainlink to be used to calculate position sizing
-        uint256 currentPrice = PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset);
+        uint256 currentPrice = OptionsCompute.convertToDecimals(PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset), ERC20(collateralAsset).decimals());
         if (collat <= _amount) {
             // if the amount needed is greater than or equal to the collateral then close all positions and withdraw
             // all collateral
@@ -317,9 +317,14 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
             ); 
             // execute the swap
             clearingHouse.swapToken(accountId, poolId, swapParams); 
-            // withdraw all collateral from the margin account
-            clearingHouse.updateMargin(accountId, collateralId, -int256(collat));
-            return (collat, -netPosition);
+            int256 netProfit = clearingHouse.getAccountNetProfit(accountId);
+            clearingHouse.updateMargin(accountId, collateralId, netProfit);
+            clearingHouse.updateProfit(accountId, -netProfit);
+            (,,collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+            collat = collatDeposits[0].balance;
+            // withdraw all collateral from the margin account, leave 1 wei to make sure the collateral index stays
+            clearingHouse.updateMargin(accountId, collateralId, -int256(collat) + 1);
+            return (collat - 1, -netPosition);
         }
         // reduce the collateral by amount
         uint256 newCollat = collat - _amount;
