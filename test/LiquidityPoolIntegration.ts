@@ -362,7 +362,7 @@ describe("Liquidity Pool Integration Simulation", async () => {
 	})
 
 	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("Protocol")
+		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address

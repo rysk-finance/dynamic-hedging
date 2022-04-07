@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/packages/opyn/mocks/MockAddressBook.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../../prettify.css" />
+    <link rel="stylesheet" href="../../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../../index.html">all files</a> / <a href="index.html">contracts/packages/opyn/mocks/</a> MockAddressBook.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>0/14</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/0</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/14</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>0/14</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.6.10;
+&nbsp;
+contract MockAddressBook {
+    address private _otokenImpl;
+    address private _whitelist;
+    address private _otokenFactoryImpl;
+    address private _oracle;
+    address private _controllerImpl;
+    address private _oracleImpl;
+    address private _calculatorImpl;
+    address private _marginPool;
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function setOtokenImpl(address _newImpl) external {</span>
+<span class="cstat-no" title="statement not covered" >        _otokenImpl = _newImpl</span>;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function setWhitelist(address _newImpl) external {</span>
+<span class="cstat-no" title="statement not covered" >        _whitelist = _newImpl</span>;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function setOtokenFactory(address _otokenFactory) external {</span>
+<span class="cstat-no" title="statement not covered" >        _otokenFactoryImpl = _otokenFactory</span>;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function setController(address _controller) external {</span>
+<span class="cstat-no" title="statement not covered" >        _controllerImpl = _controller</span>;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function setOracle(address _oracleAddr) external {</span>
+<span class="cstat-no" title="statement not covered" >        _oracleImpl = _oracleAddr</span>;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function setMarginCalculator(address _calculator) external {</span>
+<span class="cstat-no" title="statement not covered" >        _calculatorImpl = _calculator</span>;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function setMarginPool(address _pool) external {</span>
+<span class="cstat-no" title="statement not covered" >        _marginPool = _pool</span>;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getOtokenImpl() external view returns (address) {</span>
+<span class="cstat-no" title="statement not covered" >        return _otokenImpl;</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getWhitelist() external view returns (address) {</span>
+<span class="cstat-no" title="statement not covered" >        return _whitelist;</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getOtokenFactory() external view returns (address) {</span>
+<span class="cstat-no" title="statement not covered" >        return _otokenFactoryImpl;</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getOracle() external view returns (address) {</span>
+<span class="cstat-no" title="statement not covered" >        return _oracleImpl;</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getController() external view returns (address) {</span>
+<span class="cstat-no" title="statement not covered" >        return _controllerImpl;</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getMarginCalculator() external view returns (address) {</span>
+<span class="cstat-no" title="statement not covered" >        return _calculatorImpl;</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getMarginPool() external view returns (address) {</span>
+<span class="cstat-no" title="statement not covered" >        return _marginPool;</span>
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Apr 07 2022 23:34:57 GMT+0100 (Western European Summer Time)
+</div>
+</div>
+<script src="../../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../../sorter.js"></script>
+</body>
+</html>

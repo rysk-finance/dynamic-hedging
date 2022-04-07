@@ -1,0 +1,1082 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/hedging/PerpHedgingReactor.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">contracts/hedging/</a> PerpHedgingReactor.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">98.25% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>112/114</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">80.77% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>42/52</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>12/12</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">98.17% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>107/109</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">pragma solidity &gt;=0.8.9;
+&nbsp;
+import "../PriceFeed.sol";
+import "../interfaces/IERC20.sol";
+import "../libraries/OptionsCompute.sol";
+import '../libraries/SafeTransferLib.sol';
+import "../interfaces/IHedgingReactor.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@rage/core/contracts/interfaces/IClearingHouse.sol";
+&nbsp;
+import "hardhat/console.sol";
+&nbsp;
+&nbsp;
+/**
+    @title A hedging reactor that will manage delta by opening or closing short or long perp positions
+ */
+&nbsp;
+contract PerpHedgingReactor is IHedgingReactor, Ownable {
+&nbsp;
+    /// @notice used for unlimited token approval 
+    uint256 private constant MAX_UINT = 2**256 - 1;
+    /// @notice address of the parent liquidity pool contract
+    address public parentLiquidityPool;
+    /// @notice address of the keeper of this pool
+    address public keeper;
+    /// @notice address of the price feed used for getting asset prices
+    address public priceFeed;
+    /// @notice collateralAsset used for collateralising the pool
+    address public collateralAsset;
+    /// @notice address of the wETH contract 
+    address public immutable wETH;
+    /// @notice instance of the clearing house interface
+    IClearingHouse public clearingHouse;
+    /// @notice delta of the pool
+    int256 public internalDelta;
+    /// @notice limit to ensure we arent doing inefficient computation for dust amounts
+    uint256 public minAmount = 1e16;
+    /// @notice accountId for the perp pool
+    uint256 public accountId;
+    /// @notice collateralId to be used in the perp pool
+    uint32 public collateralId;
+    /// @notice poolId to be used in the perp pool
+    uint32 public poolId;
+    /// @notice desired healthFactor of the pool
+    uint256 public healthFactor = 12_000;
+    /// @notice max bips
+    uint256 public MAX_BIPS = 10_000;
+&nbsp;
+    error ValueFailure();
+    error InvalidSender();
+    error InvalidHealthFactor();
+    error IncorrectCollateral();
+&nbsp;
+    constructor (
+        address _clearingHouse, 
+        address _collateralAsset, 
+        address _wethAddress, 
+        address _parentLiquidityPool, 
+        uint32 _poolId,
+        uint32 _collateralId, 
+        address _priceFeed
+        ) {
+        clearingHouse = IClearingHouse(_clearingHouse);
+        collateralAsset = _collateralAsset;
+        wETH = _wethAddress;
+        parentLiquidityPool = _parentLiquidityPool;
+        priceFeed = _priceFeed;
+        poolId = _poolId;
+        collateralId = _collateralId;
+        // make a perp account
+        accountId = clearingHouse.createAccount();
+    }
+&nbsp;
+    /// @notice update the minAmount parameter
+    function setMinAmount(uint _minAmount) public onlyOwner {
+        minAmount = _minAmount;
+    }
+    /// @notice update the health factor parameter
+    function setHealthFactor(uint _healthFactor) public onlyOwner {
+        if (_healthFactor &lt; MAX_BIPS) {revert InvalidHealthFactor();}
+        healthFactor = _healthFactor;
+    }
+    /// @notice update the keeper
+    function setKeeper(address _keeper) public onlyOwner {
+        keeper = _keeper;
+    }
+&nbsp;
+    function initialiseReactor() external onlyOwner {
+        (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+        if (collatDeposits.length != 0) {revert();}
+        SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), 1);
+        SafeTransferLib.safeApprove(ERC20(collateralAsset), address(clearingHouse), MAX_UINT);
+        clearingHouse.updateMargin(accountId, collateralId, 1);
+    }
+&nbsp;
+    /// @inheritdoc IHedgingReactor
+    function hedgeDelta(int256 _delta) external returns (int256 deltaChange) {
+        // delta is passed in as the delta that the pool has so this function must hedge the opposite
+        // if delta comes in negative then the pool must go long
+        // if delta comes in positive then the pool must go short
+        // the signs must be flipped when going into _changePosition
+        // make sure the caller is the vault
+        require(msg.sender == parentLiquidityPool, "!vault");
+        deltaChange = _changePosition(-_delta);
+        // record the delta change internally
+        internalDelta += deltaChange;
+    }
+&nbsp;
+    /// @inheritdoc IHedgingReactor
+    function getDelta() external view returns(int256 delta){
+        return internalDelta;
+    }
+&nbsp;
+    /// @inheritdoc IHedgingReactor
+    function getPoolDenominatedValue() external view returns(uint256 value){
+        // calculate the value of the pools holdings (including any funding)
+        // access the collateral held in the account
+        (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+        // just make sure the collateral at index 0 exists and is correct (this is unlikely to ever fail, but should be checked)
+        if (collatDeposits.length != 0) {
+            <span class="missing-if-branch" title="else path not taken" >E</span>if (address(collatDeposits[0].collateral) == collateralAsset) {
+                value += collatDeposits[0].balance;
+            } 
+        }
+        // increment any loose balance held by the pool
+        value += ERC20(collateralAsset).balanceOf(address(this));
+        // get the net profit of the account position
+        int256 netProfit = clearingHouse.getAccountNetProfit(accountId);
+        if (netProfit &gt; 0) {
+            value += uint256(netProfit);
+        } else <span class="missing-if-branch" title="if path not taken" >I</span>if (netProfit &lt; 0) {
+            // if there is ever a case where value is negative then something has gone very wrong and this should be dealt with 
+            // by the reactor manager so the transaction should revert here
+<span class="cstat-no" title="statement not covered" >            if( value &lt; uint256(-netProfit) ) {revert ValueFailure();}</span>
+<span class="cstat-no" title="statement not covered" >            value -= uint256(-netProfit)</span>;
+        }
+    }
+&nbsp;
+    /// @inheritdoc IHedgingReactor
+    function withdraw(uint256 _amount, address _token) external returns (uint256) {
+        require(msg.sender == parentLiquidityPool, "!vault");
+        if (_token != collateralAsset) {revert IncorrectCollateral();}
+        // check the holdings if enough just lying around then transfer it
+        // assume amount is passed in as e18
+        uint256 convertedAmount = OptionsCompute.convertToDecimals(_amount, IERC20(_token).decimals());
+        uint256 balance = IERC20(_token).balanceOf(address(this));
+        if (convertedAmount &lt;= balance) {
+            SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, convertedAmount);
+            return _amount;
+        }
+        // get the collatNeeded (this should not underflow as the 
+        // previous check will have eliminated these cases)
+        uint256 collatNeeded = convertedAmount - balance;
+        // liquidate the correct amount
+        (uint256 collatReturned, int256 deltaChange) = _liquidatePosition(convertedAmount);
+        // adjust the internal delta in accordance with the change that liquidatePosition made
+        internalDelta += deltaChange;
+        // get the actual returned value to send back to the user
+        if (collatReturned &lt; collatNeeded) {
+            // transfer assets back to the liquidityPool 
+            // TODO: track this transfer either in LiquidityPool or here
+            SafeTransferLib.safeTransfer(ERC20(_token), parentLiquidityPool, collatReturned + balance);
+            return collatReturned + balance;
+        } else {
+            // transfer assets back to the liquidityPool 
+            // TODO: track this transfer either in LiquidityPool or here
+            SafeTransferLib.safeTransfer(ERC20(_token), parentLiquidityPool, convertedAmount);
+            return convertedAmount;
+        }
+    }
+&nbsp;
+    /// @inheritdoc IHedgingReactor
+    function update() external returns (uint256) {
+        if (msg.sender != keeper){revert InvalidSender();}
+        int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
+        (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+        // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
+        if (collatDeposits.length == 0) {revert IncorrectCollateral();}
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
+        uint256 collat = collatDeposits[0].balance;
+        // get the current price of the underlying asset from chainlink to be used to calculate position sizing
+        uint256 currentPrice = OptionsCompute.convertToDecimals(PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset), ERC20(collateralAsset).decimals());
+        // check the collateral health of positions
+        // get the amount of collateral that should be expected for a given amount
+        uint256 collatRequired = netPosition &gt;= 0 
+                        ? 
+                        (((uint256(netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS 
+                        : 
+                        (((uint256(-netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS;
+        // if there is not enough collateral then request more
+        // if there is too much collateral then return some to the pool
+        if (collatRequired &gt; collat) {
+            // transfer assets from the liquidityPool to here to collateralise the pool
+            // TODO: track this transfer either in LiquidityPool or here
+            SafeTransferLib.safeTransferFrom(collateralAsset, parentLiquidityPool, address(this), collatRequired - collat);
+            // deposit the collateral into the margin account
+            clearingHouse.updateMargin(accountId, collateralId, int256(collatRequired - collat));
+            // TODO: change the internal holdings around
+            return collatRequired - collat;
+        } else if (collatRequired &lt; collat) {
+            // withdraw excess collateral from the margin account
+            clearingHouse.updateMargin(accountId, collateralId, -int256(collat - collatRequired));
+            // transfer assets back to the liquidityPool 
+            // TODO: track this transfer either in LiquidityPool or here
+            SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, collat - collatRequired);
+            // TODO: change the internal holdings around
+            return collat - collatRequired;
+        } else {
+            return 0;
+        }   
+    }
+&nbsp;
+&nbsp;
+    /** @notice function to change the perp position
+        @param _amount the amount of position to open or close
+        @return deltaChange The resulting difference in delta exposure
+    */
+    function _changePosition(int256 _amount) internal returns (int256 ) {
+        uint256 collatToDeposit;
+        uint256 collatToWithdraw;
+        // access the collateral held in the account
+        (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+        // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
+        if (collatDeposits.length == 0) {revert IncorrectCollateral();}
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
+        uint256 collat = collatDeposits[0].balance;
+        // getAccountNetProfit and updateProfit 
+        // check the net position of the margin account
+        int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
+        // get the new net position with the amount of the swap added
+        int256 newPosition = netPosition + _amount;
+        // get the current price of the underlying asset from chainlink to be used to calculate position sizing
+        uint256 currentPrice = OptionsCompute.convertToDecimals(PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset), ERC20(collateralAsset).decimals());
+        // calculate the margin requirement for newPosition making sure to account for the health factor of the pool 
+        // as we want the position to be overcollateralised
+        uint256 totalCollatNeeded = newPosition &gt;= 0 
+                                ? 
+                                (((uint256(newPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS 
+                                : 
+                                (((uint256(-newPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS;
+        // if there is not enough collateral then increase the margin collateral balance
+        // if there is too much collateral then decrease the margin collateral balance
+        if (totalCollatNeeded &gt; collat) {
+            collatToDeposit = totalCollatNeeded - collat;
+        } else <span class="missing-if-branch" title="else path not taken" >E</span>if(totalCollatNeeded &lt; collat) {
+            collatToWithdraw = collat - totalCollatNeeded;
+        }
+        // if the current margin held is smaller than the new margin required then deposit more collateral
+        // and open more positions
+        // if the current margin held is larger than the new margin required then swap tokens out and 
+        // withdraw the excess margin
+        if (collatToDeposit &gt; 0) {
+            // transfer assets from the liquidityPool to here to collateralise the pool
+            // TODO: track this transfer either in LiquidityPool or here
+            SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collatToDeposit);
+            // deposit the collateral into the margin account
+            clearingHouse.updateMargin(accountId, collateralId, int256(collatToDeposit));
+            // make the swapParams
+            IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
+                _amount,
+                0,
+                false,
+                false
+            ); 
+            // execute the swap
+            clearingHouse.swapToken(accountId, poolId, swapParams);
+        } else <span class="missing-if-branch" title="else path not taken" >E</span>if (collatToWithdraw &gt; 0) {
+            // make the swapParams to close the position
+            IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
+                _amount,
+                0,
+                false,
+                false
+            ); 
+            // execute the swap
+            clearingHouse.swapToken(accountId, poolId, swapParams);
+            // withdraw excess collateral from the margin account
+            clearingHouse.updateMargin(accountId, collateralId, -int256(collatToWithdraw));
+            // transfer assets back to the liquidityPool 
+            // TODO: track this transfer either in LiquidityPool or here
+            SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, uint256(collatToWithdraw));
+        }
+        return _amount;
+    }
+&nbsp;
+    /**
+        @notice function to close positions if stable collateral is needed in the liquidity pool.
+        @param _amount the amount to liquidate
+     */
+    function _liquidatePosition(uint256 _amount) internal returns (uint256 stableBalanceReceived, int256 deltaChange){
+        // look at the net pool holdings
+        int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
+        // access the collateral held in the account
+        (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+        // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (collatDeposits.length == 0) {revert IncorrectCollateral();}
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
+        uint256 collat = collatDeposits[0].balance;
+        // get the current price of the underlying asset from chainlink to be used to calculate position sizing
+        uint256 currentPrice = OptionsCompute.convertToDecimals(PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset), ERC20(collateralAsset).decimals());
+        if (collat &lt;= _amount) {
+            // if the amount needed is greater than or equal to the collateral then close all positions and withdraw
+            // all collateral
+            // make the swapParams to close the position
+            IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
+                -netPosition,
+                0,
+                false,
+                false
+            ); 
+            // execute the swap
+            clearingHouse.swapToken(accountId, poolId, swapParams); 
+            int256 netProfit = clearingHouse.getAccountNetProfit(accountId);
+            clearingHouse.updateMargin(accountId, collateralId, netProfit);
+            clearingHouse.updateProfit(accountId, -netProfit);
+            (,,collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+            collat = collatDeposits[0].balance;
+            // withdraw all collateral from the margin account, leave 1 wei to make sure the collateral index stays
+            clearingHouse.updateMargin(accountId, collateralId, -int256(collat) + 1);
+            return (collat - 1, -netPosition);
+        }
+        // reduce the collateral by amount
+        uint256 newCollat = collat - _amount;
+        // calculate what the position should be if the collat is changed to newCollat
+        int256 newPosition = int256((newCollat * MAX_BIPS * 1e18) / (healthFactor * currentPrice)); 
+        newPosition = newPosition &gt; 0 ? newPosition : -newPosition;
+        int256 diff = newPosition - netPosition;
+        IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
+            diff,
+            0,
+            false,
+            false
+        ); 
+        // execute the swap
+        clearingHouse.swapToken(accountId, poolId, swapParams);   
+        // withdraw excess collateral from the margin account
+        clearingHouse.updateMargin(accountId, collateralId, -int256(_amount));
+        return (_amount, diff);
+    }
+}</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Apr 07 2022 23:34:57 GMT+0100 (Western European Summer Time)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

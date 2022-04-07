@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/packages/opyn/pricers/YearnPricer.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../../prettify.css" />
+    <link rel="stylesheet" href="../../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../../index.html">all files</a> / <a href="index.html">contracts/packages/opyn/pricers/</a> YearnPricer.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>0/17</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/10</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/5</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>0/17</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.6.10;
+&nbsp;
+import {OracleInterface} from "../interfaces/OracleInterface.sol";
+import {OpynPricerInterface} from "../interfaces/OpynPricerInterface.sol";
+import {YearnVaultInterface} from "../interfaces/YearnVaultInterface.sol";
+import {ERC20Interface} from "../interfaces/ERC20Interface.sol";
+import {SafeMath} from "../packages/oz/SafeMath.sol";
+&nbsp;
+/**
+ * @notice A Pricer contract for a Yearn yToken
+ */
+contract YearnPricer is OpynPricerInterface {
+    using SafeMath for uint256;
+&nbsp;
+    /// @notice opyn oracle address
+    OracleInterface public oracle;
+&nbsp;
+    /// @notice yToken that this pricer will a get price for
+    YearnVaultInterface public yToken;
+&nbsp;
+    /// @notice underlying asset for this yToken
+    ERC20Interface public underlying;
+&nbsp;
+    /**
+     * @param _yToken yToken asset
+     * @param _underlying underlying asset for this yToken
+     * @param _oracle Opyn Oracle contract address
+     */
+<span class="fstat-no" title="function not covered" >    constructor(</span>
+        address _yToken,
+        address _underlying,
+        address _oracle
+    ) public {
+<span class="cstat-no" title="statement not covered" >        require(_yToken != address(0), "YearnPricer: yToken address can not be 0")</span>;
+<span class="cstat-no" title="statement not covered" >        require(_underlying != address(0), "YearnPricer: underlying address can not be 0")</span>;
+<span class="cstat-no" title="statement not covered" >        require(_oracle != address(0), "YearnPricer: oracle address can not be 0")</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        yToken = YearnVaultInterface(_yToken)</span>;
+<span class="cstat-no" title="statement not covered" >        underlying = ERC20Interface(_underlying)</span>;
+<span class="cstat-no" title="statement not covered" >        oracle = OracleInterface(_oracle)</span>;
+    }
+&nbsp;
+    /**
+     * @notice get the live price for the asset
+     * @dev overrides the getPrice function in OpynPricerInterface
+     * @return price of 1e8 yToken in USD, scaled by 1e8
+     */
+<span class="fstat-no" title="function not covered" >    function getPrice() external view override returns (uint256) {</span>
+<span class="cstat-no" title="statement not covered" >        uint256 underlyingPrice = oracle.getPrice(address(underlying));</span>
+<span class="cstat-no" title="statement not covered" >        require(underlyingPrice &gt; 0, "YearnPricer: underlying price is 0")</span>;
+<span class="cstat-no" title="statement not covered" >        return _underlyingPriceToYtokenPrice(underlyingPrice);</span>
+    }
+&nbsp;
+    /**
+     * @notice set the expiry price in the oracle
+     * @dev requires that the underlying price has been set before setting a yToken price
+     * @param _expiryTimestamp expiry to set a price for
+     */
+<span class="fstat-no" title="function not covered" >    function setExpiryPriceInOracle(uint256 _expiryTimestamp) external {</span>
+<span class="cstat-no" title="statement not covered" >        (uint256 underlyingPriceExpiry, ) = oracle.getExpiryPrice(address(underlying), _expiryTimestamp);</span>
+<span class="cstat-no" title="statement not covered" >        require(underlyingPriceExpiry &gt; 0, "YearnPricer: underlying price not set yet")</span>;
+<span class="cstat-no" title="statement not covered" >        uint256 yTokenPrice = _underlyingPriceToYtokenPrice(underlyingPriceExpiry);</span>
+<span class="cstat-no" title="statement not covered" >        oracle.setExpiryPrice(address(yToken), _expiryTimestamp, yTokenPrice)</span>;
+    }
+&nbsp;
+    /**
+     * @dev convert underlying price to yToken price with the yToken to underlying exchange rate
+     * @param _underlyingPrice price of 1 underlying token (ie 1e6 USDC, 1e18 WETH) in USD, scaled by 1e8
+     * @return price of 1e8 yToken in USD, scaled by 1e8
+     */
+<span class="fstat-no" title="function not covered" >    function _underlyingPriceToYtokenPrice(uint256 _underlyingPrice) private view returns (uint256) {</span>
+<span class="cstat-no" title="statement not covered" >        uint256 pricePerShare = yToken.pricePerShare();</span>
+<span class="cstat-no" title="statement not covered" >        uint8 underlyingDecimals = underlying.decimals();</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        return pricePerShare.mul(_underlyingPrice).div(10**uint256(underlyingDecimals));</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function getHistoricalPrice(uint80 _roundId) external view override returns (uint256, uint256) {</span>
+<span class="cstat-no" title="statement not covered" >        revert("YearnPricer: Deprecated")</span>;
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Apr 07 2022 23:34:57 GMT+0100 (Western European Summer Time)
+</div>
+</div>
+<script src="../../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../../sorter.js"></script>
+</body>
+</html>

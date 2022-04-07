@@ -22,9 +22,6 @@ types
 # Cache
 cache
 
-# Coverage reports
-coverage
-
 # API keys and secrets
 .env
 

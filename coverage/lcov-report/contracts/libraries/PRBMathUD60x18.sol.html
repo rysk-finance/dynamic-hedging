@@ -1,0 +1,1571 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/libraries/PRBMathUD60x18.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">contracts/libraries/</a> PRBMathUD60x18.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>0/21</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/18</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/21</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>0/41</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: Unlicense
+pragma solidity &gt;=0.8.4;
+&nbsp;
+import "./PRBMath.sol";
+&nbsp;
+/// @title PRBMathUD60x18
+/// @author Paul Razvan Berg
+/// @notice Smart contract library for advanced fixed-point math that works with uint256 numbers considered to have 18
+/// trailing decimals. We call this number representation unsigned 60.18-decimal fixed-point, since there can be up to 60
+/// digits in the integer part and up to 18 decimals in the fractional part. The numbers are bound by the minimum and the
+/// maximum values permitted by the Solidity type uint256.
+library PRBMathUint {
+    /// @dev Half the SCALE number.
+    uint256 internal constant HALF_SCALE = 5e17;
+&nbsp;
+    /// @dev log2(e) as an unsigned 60.18-decimal fixed-point number.
+    uint256 internal constant LOG2_E = 1_442695040888963407;
+&nbsp;
+    /// @dev The maximum value an unsigned 60.18-decimal fixed-point number can have.
+    uint256 internal constant MAX_UD60x18 =
+        115792089237316195423570985008687907853269984665640564039457_584007913129639935;
+&nbsp;
+    /// @dev The maximum whole value an unsigned 60.18-decimal fixed-point number can have.
+    uint256 internal constant MAX_WHOLE_UD60x18 =
+        115792089237316195423570985008687907853269984665640564039457_000000000000000000;
+&nbsp;
+    /// @dev How many trailing decimals can be represented.
+    uint256 internal constant SCALE = 1e18;
+&nbsp;
+    /// @notice Calculates the arithmetic average of x and y, rounding down.
+    /// @param x The first operand as an unsigned 60.18-decimal fixed-point number.
+    /// @param y The second operand as an unsigned 60.18-decimal fixed-point number.
+    /// @return result The arithmetic average as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function avg(uint256 x, uint256 y) public pure returns (uint256 result) {</span>
+        // The operations can never overflow.
+        unchecked {
+            // The last operand checks if both x and y are odd and if that is the case, we add 1 to the result. We need
+            // to do this because if both numbers are odd, the 0.5 remainder gets truncated twice.
+            result = (x &gt;&gt; 1) + (y &gt;&gt; 1) + (x &amp; y &amp; 1);
+        }
+    }
+&nbsp;
+    /// @notice Yields the least unsigned 60.18 decimal fixed-point number greater than or equal to x.
+    ///
+    /// @dev Optimized for fractional value inputs, because for every whole value there are (1e18 - 1) fractional counterparts.
+    /// See https://en.wikipedia.org/wiki/Floor_and_ceiling_functions.
+    ///
+    /// Requirements:
+    /// - x must be less than or equal to MAX_WHOLE_UD60x18.
+    ///
+    /// @param x The unsigned 60.18-decimal fixed-point number to ceil.
+    /// @param result The least integer greater than or equal to x, as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function ceil(uint256 x) public pure returns (uint256 result) {</span>
+<span class="cstat-no" title="statement not covered" >        if (x &gt; MAX_WHOLE_UD60x18) {</span>
+            revert PRBMathUD60x18__CeilOverflow(x);
+        }
+        assembly {
+            // Equivalent to "x % SCALE" but faster.
+            let remainder := mod(x, SCALE)
+&nbsp;
+            // Equivalent to "SCALE - remainder" but faster.
+            let delta := sub(SCALE, remainder)
+&nbsp;
+            // Equivalent to "x + delta * (remainder &gt; 0 ? 1 : 0)" but faster.
+            result := add(x, mul(delta, gt(remainder, 0)))
+        }
+    }
+&nbsp;
+    /// @notice Divides two unsigned 60.18-decimal fixed-point numbers, returning a new unsigned 60.18-decimal fixed-point number.
+    ///
+    /// @dev Uses mulDiv to enable overflow-safe multiplication and division.
+    ///
+    /// Requirements:
+    /// - The denominator cannot be zero.
+    ///
+    /// @param x The numerator as an unsigned 60.18-decimal fixed-point number.
+    /// @param y The denominator as an unsigned 60.18-decimal fixed-point number.
+    /// @param result The quotient as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function div(uint256 x, uint256 y) public pure returns (uint256 result) {</span>
+<span class="cstat-no" title="statement not covered" >        result = PRBMath.mulDiv(x, SCALE, y)</span>;
+    }
+&nbsp;
+    /// @notice Returns Euler's number as an unsigned 60.18-decimal fixed-point number.
+    /// @dev See https://en.wikipedia.org/wiki/E_(mathematical_constant).
+<span class="fstat-no" title="function not covered" >    function e() public pure returns (uint256 result) {</span>
+<span class="cstat-no" title="statement not covered" >        result = 2_718281828459045235</span>;
+    }
+&nbsp;
+    /// @notice Calculates the natural exponent of x.
+    ///
+    /// @dev Based on the insight that e^x = 2^(x * log2(e)).
+    ///
+    /// Requirements:
+    /// - All from "log2".
+    /// - x must be less than 133.084258667509499441.
+    ///
+    /// @param x The exponent as an unsigned 60.18-decimal fixed-point number.
+    /// @return result The result as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function exp(uint256 x) public pure returns (uint256 result) {</span>
+        // Without this check, the value passed to "exp2" would be greater than 192.
+<span class="cstat-no" title="statement not covered" >        if (x &gt;= 133_084258667509499441) {</span>
+            revert PRBMathUD60x18__ExpInputTooBig(x);
+        }
+&nbsp;
+        // Do the fixed-point multiplication inline to save gas.
+        unchecked {
+            uint256 doubleScaleProduct = x * LOG2_E;
+            result = exp2((doubleScaleProduct + HALF_SCALE) / SCALE);
+        }
+    }
+&nbsp;
+    /// @notice Calculates the binary exponent of x using the binary fraction method.
+    ///
+    /// @dev See https://ethereum.stackexchange.com/q/79903/24693.
+    ///
+    /// Requirements:
+    /// - x must be 192 or less.
+    /// - The result must fit within MAX_UD60x18.
+    ///
+    /// @param x The exponent as an unsigned 60.18-decimal fixed-point number.
+    /// @return result The result as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function exp2(uint256 x) public pure returns (uint256 result) {</span>
+        // 2^192 doesn't fit within the 192.64-bit format used publicly in this function.
+<span class="cstat-no" title="statement not covered" >        if (x &gt;= 192e18) {</span>
+            revert PRBMathUD60x18__Exp2InputTooBig(x);
+        }
+&nbsp;
+        unchecked {
+            // Convert x to the 192.64-bit fixed-point format.
+            uint256 x192x64 = (x &lt;&lt; 64) / SCALE;
+&nbsp;
+            // Pass x to the PRBMath.exp2 function, which uses the 192.64-bit fixed-point number representation.
+            result = PRBMath.exp2(x192x64);
+        }
+    }
+&nbsp;
+    /// @notice Yields the greatest unsigned 60.18 decimal fixed-point number less than or equal to x.
+    /// @dev Optimized for fractional value inputs, because for every whole value there are (1e18 - 1) fractional counterparts.
+    /// See https://en.wikipedia.org/wiki/Floor_and_ceiling_functions.
+    /// @param x The unsigned 60.18-decimal fixed-point number to floor.
+    /// @param result The greatest integer less than or equal to x, as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function floor(uint256 x) public pure returns (uint256 result) {</span>
+        assembly {
+            // Equivalent to "x % SCALE" but faster.
+            let remainder := mod(x, SCALE)
+&nbsp;
+            // Equivalent to "x - remainder * (remainder &gt; 0 ? 1 : 0)" but faster.
+            result := sub(x, mul(remainder, gt(remainder, 0)))
+        }
+    }
+&nbsp;
+    /// @notice Yields the excess beyond the floor of x.
+    /// @dev Based on the odd function definition https://en.wikipedia.org/wiki/Fractional_part.
+    /// @param x The unsigned 60.18-decimal fixed-point number to get the fractional part of.
+    /// @param result The fractional part of x as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function frac(uint256 x) public pure returns (uint256 result) {</span>
+        assembly {
+            result := mod(x, SCALE)
+        }
+    }
+&nbsp;
+    /// @notice Converts a number from basic integer form to unsigned 60.18-decimal fixed-point representation.
+    ///
+    /// @dev Requirements:
+    /// - x must be less than or equal to MAX_UD60x18 divided by SCALE.
+    ///
+    /// @param x The basic integer to convert.
+    /// @param result The same number in unsigned 60.18-decimal fixed-point representation.
+<span class="fstat-no" title="function not covered" >    function fromUint(uint256 x) public pure returns (uint256 result) {</span>
+        unchecked {
+            if (x &gt; MAX_UD60x18 / SCALE) {
+                revert PRBMathUD60x18__FromUintOverflow(x);
+            }
+            result = x * SCALE;
+        }
+    }
+&nbsp;
+    /// @notice Calculates geometric mean of x and y, i.e. sqrt(x * y), rounding down.
+    ///
+    /// @dev Requirements:
+    /// - x * y must fit within MAX_UD60x18, lest it overflows.
+    ///
+    /// @param x The first operand as an unsigned 60.18-decimal fixed-point number.
+    /// @param y The second operand as an unsigned 60.18-decimal fixed-point number.
+    /// @return result The result as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function gm(uint256 x, uint256 y) public pure returns (uint256 result) {</span>
+<span class="cstat-no" title="statement not covered" >        if (x == 0) {</span>
+<span class="cstat-no" title="statement not covered" >            return 0;</span>
+        }
+&nbsp;
+        unchecked {
+            // Checking for overflow this way is faster than letting Solidity do it.
+            uint256 xy = x * y;
+            if (xy / x != y) {
+                revert PRBMathUD60x18__GmOverflow(x, y);
+            }
+&nbsp;
+            // We don't need to multiply by the SCALE here because the x*y product had already picked up a factor of SCALE
+            // during multiplication. See the comments within the "sqrt" function.
+            result = PRBMath.sqrt(xy);
+        }
+    }
+&nbsp;
+    /// @notice Calculates 1 / x, rounding toward zero.
+    ///
+    /// @dev Requirements:
+    /// - x cannot be zero.
+    ///
+    /// @param x The unsigned 60.18-decimal fixed-point number for which to calculate the inverse.
+    /// @return result The inverse as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function inv(uint256 x) public pure returns (uint256 result) {</span>
+        unchecked {
+            // 1e36 is SCALE * SCALE.
+            result = 1e36 / x;
+        }
+    }
+&nbsp;
+    /// @notice Calculates the natural logarithm of x.
+    ///
+    /// @dev Based on the insight that ln(x) = log2(x) / log2(e).
+    ///
+    /// Requirements:
+    /// - All from "log2".
+    ///
+    /// Caveats:
+    /// - All from "log2".
+    /// - This doesn't return exactly 1 for 2.718281828459045235, for that we would need more fine-grained precision.
+    ///
+    /// @param x The unsigned 60.18-decimal fixed-point number for which to calculate the natural logarithm.
+    /// @return result The natural logarithm as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function ln(uint256 x) public pure returns (uint256 result) {</span>
+        // Do the fixed-point multiplication inline to save gas. This is overflow-safe because the maximum value that log2(x)
+        // can return is 196205294292027477728.
+        unchecked {
+            result = (log2(x) * SCALE) / LOG2_E;
+        }
+    }
+&nbsp;
+    /// @notice Calculates the common logarithm of x.
+    ///
+    /// @dev First checks if x is an exact power of ten and it stops if yes. If it's not, calculates the common
+    /// logarithm based on the insight that log10(x) = log2(x) / log2(10).
+    ///
+    /// Requirements:
+    /// - All from "log2".
+    ///
+    /// Caveats:
+    /// - All from "log2".
+    ///
+    /// @param x The unsigned 60.18-decimal fixed-point number for which to calculate the common logarithm.
+    /// @return result The common logarithm as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function log10(uint256 x) public pure returns (uint256 result) {</span>
+<span class="cstat-no" title="statement not covered" >        if (x &lt; SCALE) {</span>
+            revert PRBMathUD60x18__LogInputTooSmall(x);
+        }
+&nbsp;
+        // Note that the "mul" in this block is the assembly multiplication operation, not the "mul" function defined
+        // in this contract.
+        // prettier-ignore
+        assembly {
+            switch x
+            case 1 { result := mul(SCALE, sub(0, 18)) }
+            case 10 { result := mul(SCALE, sub(1, 18)) }
+            case 100 { result := mul(SCALE, sub(2, 18)) }
+            case 1000 { result := mul(SCALE, sub(3, 18)) }
+            case 10000 { result := mul(SCALE, sub(4, 18)) }
+            case 100000 { result := mul(SCALE, sub(5, 18)) }
+            case 1000000 { result := mul(SCALE, sub(6, 18)) }
+            case 10000000 { result := mul(SCALE, sub(7, 18)) }
+            case 100000000 { result := mul(SCALE, sub(8, 18)) }
+            case 1000000000 { result := mul(SCALE, sub(9, 18)) }
+            case 10000000000 { result := mul(SCALE, sub(10, 18)) }
+            case 100000000000 { result := mul(SCALE, sub(11, 18)) }
+            case 1000000000000 { result := mul(SCALE, sub(12, 18)) }
+            case 10000000000000 { result := mul(SCALE, sub(13, 18)) }
+            case 100000000000000 { result := mul(SCALE, sub(14, 18)) }
+            case 1000000000000000 { result := mul(SCALE, sub(15, 18)) }
+            case 10000000000000000 { result := mul(SCALE, sub(16, 18)) }
+            case 100000000000000000 { result := mul(SCALE, sub(17, 18)) }
+            case 1000000000000000000 { result := 0 }
+            case 10000000000000000000 { result := SCALE }
+            case 100000000000000000000 { result := mul(SCALE, 2) }
+            case 1000000000000000000000 { result := mul(SCALE, 3) }
+            case 10000000000000000000000 { result := mul(SCALE, 4) }
+            case 100000000000000000000000 { result := mul(SCALE, 5) }
+            case 1000000000000000000000000 { result := mul(SCALE, 6) }
+            case 10000000000000000000000000 { result := mul(SCALE, 7) }
+            case 100000000000000000000000000 { result := mul(SCALE, 8) }
+            case 1000000000000000000000000000 { result := mul(SCALE, 9) }
+            case 10000000000000000000000000000 { result := mul(SCALE, 10) }
+            case 100000000000000000000000000000 { result := mul(SCALE, 11) }
+            case 1000000000000000000000000000000 { result := mul(SCALE, 12) }
+            case 10000000000000000000000000000000 { result := mul(SCALE, 13) }
+            case 100000000000000000000000000000000 { result := mul(SCALE, 14) }
+            case 1000000000000000000000000000000000 { result := mul(SCALE, 15) }
+            case 10000000000000000000000000000000000 { result := mul(SCALE, 16) }
+            case 100000000000000000000000000000000000 { result := mul(SCALE, 17) }
+            case 1000000000000000000000000000000000000 { result := mul(SCALE, 18) }
+            case 10000000000000000000000000000000000000 { result := mul(SCALE, 19) }
+            case 100000000000000000000000000000000000000 { result := mul(SCALE, 20) }
+            case 1000000000000000000000000000000000000000 { result := mul(SCALE, 21) }
+            case 10000000000000000000000000000000000000000 { result := mul(SCALE, 22) }
+            case 100000000000000000000000000000000000000000 { result := mul(SCALE, 23) }
+            case 1000000000000000000000000000000000000000000 { result := mul(SCALE, 24) }
+            case 10000000000000000000000000000000000000000000 { result := mul(SCALE, 25) }
+            case 100000000000000000000000000000000000000000000 { result := mul(SCALE, 26) }
+            case 1000000000000000000000000000000000000000000000 { result := mul(SCALE, 27) }
+            case 10000000000000000000000000000000000000000000000 { result := mul(SCALE, 28) }
+            case 100000000000000000000000000000000000000000000000 { result := mul(SCALE, 29) }
+            case 1000000000000000000000000000000000000000000000000 { result := mul(SCALE, 30) }
+            case 10000000000000000000000000000000000000000000000000 { result := mul(SCALE, 31) }
+            case 100000000000000000000000000000000000000000000000000 { result := mul(SCALE, 32) }
+            case 1000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 33) }
+            case 10000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 34) }
+            case 100000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 35) }
+            case 1000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 36) }
+            case 10000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 37) }
+            case 100000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 38) }
+            case 1000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 39) }
+            case 10000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 40) }
+            case 100000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 41) }
+            case 1000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 42) }
+            case 10000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 43) }
+            case 100000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 44) }
+            case 1000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 45) }
+            case 10000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 46) }
+            case 100000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 47) }
+            case 1000000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 48) }
+            case 10000000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 49) }
+            case 100000000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 50) }
+            case 1000000000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 51) }
+            case 10000000000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 52) }
+            case 100000000000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 53) }
+            case 1000000000000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 54) }
+            case 10000000000000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 55) }
+            case 100000000000000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 56) }
+            case 1000000000000000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 57) }
+            case 10000000000000000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 58) }
+            case 100000000000000000000000000000000000000000000000000000000000000000000000000000 { result := mul(SCALE, 59) }
+            default {
+                result := MAX_UD60x18
+            }
+        }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        if (result == MAX_UD60x18) {</span>
+            // Do the fixed-point division inline to save gas. The denominator is log2(10).
+            unchecked {
+                result = (log2(x) * SCALE) / 3_321928094887362347;
+            }
+        }
+    }
+&nbsp;
+    /// @notice Calculates the binary logarithm of x.
+    ///
+    /// @dev Based on the iterative approximation algorithm.
+    /// https://en.wikipedia.org/wiki/Binary_logarithm#Iterative_approximation
+    ///
+    /// Requirements:
+    /// - x must be greater than or equal to SCALE, otherwise the result would be negative.
+    ///
+    /// Caveats:
+    /// - The results are nor perfectly accurate to the last decimal, due to the lossy precision of the iterative approximation.
+    ///
+    /// @param x The unsigned 60.18-decimal fixed-point number for which to calculate the binary logarithm.
+    /// @return result The binary logarithm as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function log2(uint256 x) public pure returns (uint256 result) {</span>
+<span class="cstat-no" title="statement not covered" >        if (x &lt; SCALE) {</span>
+            revert PRBMathUD60x18__LogInputTooSmall(x);
+        }
+        unchecked {
+            // Calculate the integer part of the logarithm and add it to the result and finally calculate y = x * 2^(-n).
+            uint256 n = PRBMath.mostSignificantBit(x / SCALE);
+&nbsp;
+            // The integer part of the logarithm as an unsigned 60.18-decimal fixed-point number. The operation can't overflow
+            // because n is maximum 255 and SCALE is 1e18.
+            result = n * SCALE;
+&nbsp;
+            // This is y = x * 2^(-n).
+            uint256 y = x &gt;&gt; n;
+&nbsp;
+            // If y = 1, the fractional part is zero.
+            if (y == SCALE) {
+                return result;
+            }
+&nbsp;
+            // Calculate the fractional part via the iterative approximation.
+            // The "delta &gt;&gt;= 1" part is equivalent to "delta /= 2", but shifting bits is faster.
+            for (uint256 delta = HALF_SCALE; delta &gt; 0; delta &gt;&gt;= 1) {
+                y = (y * y) / SCALE;
+&nbsp;
+                // Is y^2 &gt; 2 and so in the range [2,4)?
+                if (y &gt;= 2 * SCALE) {
+                    // Add the 2^(-m) factor to the logarithm.
+                    result += delta;
+&nbsp;
+                    // Corresponds to z/2 on Wikipedia.
+                    y &gt;&gt;= 1;
+                }
+            }
+        }
+    }
+&nbsp;
+    /// @notice Multiplies two unsigned 60.18-decimal fixed-point numbers together, returning a new unsigned 60.18-decimal
+    /// fixed-point number.
+    /// @dev See the documentation for the "PRBMath.mulDivFixedPoint" function.
+    /// @param x The multiplicand as an unsigned 60.18-decimal fixed-point number.
+    /// @param y The multiplier as an unsigned 60.18-decimal fixed-point number.
+    /// @return result The product as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function mul(uint256 x, uint256 y) public pure returns (uint256 result) {</span>
+<span class="cstat-no" title="statement not covered" >        result = PRBMath.mulDivFixedPoint(x, y)</span>;
+    }
+&nbsp;
+    /// @notice Returns PI as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function pi() public pure returns (uint256 result) {</span>
+<span class="cstat-no" title="statement not covered" >        result = 3_141592653589793238</span>;
+    }
+&nbsp;
+    /// @notice Raises x to the power of y.
+    ///
+    /// @dev Based on the insight that x^y = 2^(log2(x) * y).
+    ///
+    /// Requirements:
+    /// - All from "exp2", "log2" and "mul".
+    ///
+    /// Caveats:
+    /// - All from "exp2", "log2" and "mul".
+    /// - Assumes 0^0 is 1.
+    ///
+    /// @param x Number to raise to given power y, as an unsigned 60.18-decimal fixed-point number.
+    /// @param y Exponent to raise x to, as an unsigned 60.18-decimal fixed-point number.
+    /// @return result x raised to power y, as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function pow(uint256 x, uint256 y) public pure returns (uint256 result) {</span>
+<span class="cstat-no" title="statement not covered" >        if (x == 0) {</span>
+<span class="cstat-no" title="statement not covered" >            result = y == 0 ? SCALE : uint256(0)</span>;
+        } else {
+<span class="cstat-no" title="statement not covered" >            result = exp2(mul(log2(x), y))</span>;
+        }
+    }
+&nbsp;
+    /// @notice Raises x (unsigned 60.18-decimal fixed-point number) to the power of y (basic unsigned integer) using the
+    /// famous algorithm "exponentiation by squaring".
+    ///
+    /// @dev See https://en.wikipedia.org/wiki/Exponentiation_by_squaring
+    ///
+    /// Requirements:
+    /// - The result must fit within MAX_UD60x18.
+    ///
+    /// Caveats:
+    /// - All from "mul".
+    /// - Assumes 0^0 is 1.
+    ///
+    /// @param x The base as an unsigned 60.18-decimal fixed-point number.
+    /// @param y The exponent as an uint256.
+    /// @return result The result as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function powu(uint256 x, uint256 y) public pure returns (uint256 result) {</span>
+        // Calculate the first iteration of the loop in advance.
+<span class="cstat-no" title="statement not covered" >        result = y &amp; 1 &gt; 0 ? x : SCALE</span>;
+&nbsp;
+        // Equivalent to "for(y /= 2; y &gt; 0; y /= 2)" but faster.
+<span class="cstat-no" title="statement not covered" >        for (y &gt;&gt;= 1; y &gt; 0; y &gt;&gt;= 1) {</span>
+<span class="cstat-no" title="statement not covered" >            x = PRBMath.mulDivFixedPoint(x, x)</span>;
+&nbsp;
+            // Equivalent to "y % 2 == 1" but faster.
+<span class="cstat-no" title="statement not covered" >            if (y &amp; 1 &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >                result = PRBMath.mulDivFixedPoint(result, x)</span>;
+            }
+        }
+    }
+&nbsp;
+    /// @notice Returns 1 as an unsigned 60.18-decimal fixed-point number.
+<span class="fstat-no" title="function not covered" >    function scale() public pure returns (uint256 result) {</span>
+<span class="cstat-no" title="statement not covered" >        result = SCALE</span>;
+    }
+&nbsp;
+    /// @notice Calculates the square root of x, rounding down.
+    /// @dev Uses the Babylonian method https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method.
+    ///
+    /// Requirements:
+    /// - x must be less than MAX_UD60x18 / SCALE.
+    ///
+    /// @param x The unsigned 60.18-decimal fixed-point number for which to calculate the square root.
+    /// @return result The result as an unsigned 60.18-decimal fixed-point .
+<span class="fstat-no" title="function not covered" >    function sqrt(uint256 x) public pure returns (uint256 result) {</span>
+        unchecked {
+            if (x &gt; MAX_UD60x18 / SCALE) {
+                revert PRBMathUD60x18__SqrtOverflow(x);
+            }
+            // Multiply x by the SCALE to account for the factor of SCALE that is picked up when multiplying two unsigned
+            // 60.18-decimal fixed-point numbers together (in this case, those two numbers are both the square root).
+            result = PRBMath.sqrt(x * SCALE);
+        }
+    }
+&nbsp;
+    /// @notice Converts a unsigned 60.18-decimal fixed-point number to basic integer form, rounding down in the process.
+    /// @param x The unsigned 60.18-decimal fixed-point number to convert.
+    /// @return result The same number in basic integer form.
+<span class="fstat-no" title="function not covered" >    function toUint(uint256 x) public pure returns (uint256 result) {</span>
+        unchecked {
+            result = x / SCALE;
+        }
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Apr 07 2022 23:34:57 GMT+0100 (Western European Summer Time)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

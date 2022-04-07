@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/packages/opyn/external/proxies/PayableProxyController.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../../../prettify.css" />
+    <link rel="stylesheet" href="../../../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../../../index.html">all files</a> / <a href="index.html">contracts/packages/opyn/external/proxies/</a> PayableProxyController.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>0/18</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/14</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/3</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>0/18</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
+ * SPDX-License-Identifier: UNLICENSED
+ */
+pragma solidity =0.6.10;
+&nbsp;
+pragma experimental ABIEncoderV2;
+&nbsp;
+import {WETH9} from "../canonical-weth/WETH9.sol";
+import {ReentrancyGuard} from "../../packages/oz/ReentrancyGuard.sol";
+import {SafeERC20} from "../../packages/oz/SafeERC20.sol";
+import {ERC20Interface} from "../../interfaces/ERC20Interface.sol";
+import {Actions} from "../../libs/Actions.sol";
+import {Controller} from "../../core/Controller.sol";
+import {Address} from "../../packages/oz/Address.sol";
+&nbsp;
+/**
+ * @title PayableProxyController
+ * @author Opyn Team
+ * @dev Contract for wrapping/unwrapping ETH before/after interacting with the Gamma Protocol
+ */
+contract PayableProxyController is ReentrancyGuard {
+    using SafeERC20 for ERC20Interface;
+    using Address for address payable;
+&nbsp;
+    WETH9 public weth;
+    Controller public controller;
+&nbsp;
+<span class="fstat-no" title="function not covered" >    constructor(</span>
+        address _controller,
+        address _marginPool,
+        address payable _weth
+    ) public {
+<span class="cstat-no" title="statement not covered" >        controller = Controller(_controller)</span>;
+<span class="cstat-no" title="statement not covered" >        weth = WETH9(_weth)</span>;
+<span class="cstat-no" title="statement not covered" >        ERC20Interface(address(weth)).safeApprove(_marginPool, uint256(-1))</span>;
+    }
+&nbsp;
+    /**
+     * @notice fallback function which disallows ETH to be sent to this contract without data except when unwrapping WETH
+     */
+<span class="fstat-no" title="function not covered" >    fallback() external payable {</span>
+<span class="cstat-no" title="statement not covered" >        require(msg.sender == address(weth), "PayableProxyController: Cannot receive ETH")</span>;
+    }
+&nbsp;
+    /**
+     * @notice execute a number of actions
+     * @dev a wrapper for the Controller operate function, to wrap WETH and the beginning and unwrap WETH at the end of the execution
+     * @param _actions array of actions arguments
+     * @param _sendEthTo address to send the remaining eth to
+     */
+<span class="fstat-no" title="function not covered" >    function operate(Actions.ActionArgs[] memory _actions, address payable _sendEthTo) external payable nonReentrant {</span>
+        // create WETH from ETH
+<span class="cstat-no" title="statement not covered" >        if (msg.value != 0) {</span>
+<span class="cstat-no" title="statement not covered" >            weth.deposit{value: msg.value}()</span>;
+        }
+&nbsp;
+        // verify sender
+<span class="cstat-no" title="statement not covered" >        for (uint256 i = 0; i &lt; _actions.length; i++) {</span>
+<span class="cstat-no" title="statement not covered" >            Actions.ActionArgs memory action = _actions[i];</span>
+&nbsp;
+            // check that msg.sender is an owner or operator
+<span class="cstat-no" title="statement not covered" >            if (action.owner != address(0)) {</span>
+<span class="cstat-no" title="statement not covered" >                require(</span>
+                    (msg.sender == action.owner) || (controller.isOperator(action.owner, msg.sender)),
+                    "PayableProxyController: cannot execute action "
+                );
+            }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >            if (action.actionType == Actions.ActionType.Call) {</span>
+                // our PayableProxy could ends up approving amount &gt; total eth received.
+<span class="cstat-no" title="statement not covered" >                ERC20Interface(address(weth)).safeIncreaseAllowance(action.secondAddress, msg.value)</span>;
+            }
+        }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        controller.operate(_actions)</span>;
+&nbsp;
+        // return all remaining WETH to the sendEthTo address as ETH
+<span class="cstat-no" title="statement not covered" >        uint256 remainingWeth = weth.balanceOf(address(this));</span>
+<span class="cstat-no" title="statement not covered" >        if (remainingWeth != 0) {</span>
+<span class="cstat-no" title="statement not covered" >            require(_sendEthTo != address(0), "PayableProxyController: cannot send ETH to address zero")</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >            weth.withdraw(remainingWeth)</span>;
+<span class="cstat-no" title="statement not covered" >            _sendEthTo.sendValue(remainingWeth)</span>;
+        }
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Apr 07 2022 23:34:57 GMT+0100 (Western European Summer Time)
+</div>
+</div>
+<script src="../../../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../../../sorter.js"></script>
+</body>
+</html>

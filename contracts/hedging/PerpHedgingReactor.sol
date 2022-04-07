@@ -175,6 +175,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
         (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
         // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
+        if (collatDeposits.length == 0) {revert IncorrectCollateral();}
         if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
         uint256 collat = collatDeposits[0].balance;
         // get the current price of the underlying asset from chainlink to be used to calculate position sizing
@@ -208,15 +209,6 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
             return 0;
         }   
     }
-    /**
-        @notice convert between standand 10e18 decimals and custom decimals for different tokens
-        @param _token token to format the output to
-        @param _amount imput amount denoted in 10e18
-        @return _convertedAmount amount converted to correct decimal format
-     */
-    function decimalHelper(address _token, uint _amount) internal pure returns(uint _convertedAmount) {
-        return _amount;
-    }
 
 
     /** @notice function to change the perp position
@@ -226,17 +218,17 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     function _changePosition(int256 _amount) internal returns (int256 ) {
         uint256 collatToDeposit;
         uint256 collatToWithdraw;
-        // getAccountNetProfit and updateProfit 
-        // check the net position of the margin account
-        int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
-        // get the new net position with the amount of the swap added
-        int256 newPosition = netPosition + _amount;
         // access the collateral held in the account
         (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
         // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
         if (collatDeposits.length == 0) {revert IncorrectCollateral();}
         if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
         uint256 collat = collatDeposits[0].balance;
+        // getAccountNetProfit and updateProfit 
+        // check the net position of the margin account
+        int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
+        // get the new net position with the amount of the swap added
+        int256 newPosition = netPosition + _amount;
         // get the current price of the underlying asset from chainlink to be used to calculate position sizing
         uint256 currentPrice = OptionsCompute.convertToDecimals(PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset), ERC20(collateralAsset).decimals());
         // calculate the margin requirement for newPosition making sure to account for the health factor of the pool 
@@ -252,6 +244,21 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
             collatToDeposit = totalCollatNeeded - collat;
         } else if(totalCollatNeeded < collat) {
             collatToWithdraw = collat - totalCollatNeeded;
+        } else if(totalCollatNeeded == collat && _amount != 0) {
+            // highly improbable but if collateral is exactly equal if the amount to hedge is exactly opposite of the current
+            // hedge then just swap without changing the margin
+            // make the swapParams
+            IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
+                _amount,
+                0,
+                false,
+                false
+            ); 
+            // execute the swap
+            clearingHouse.swapToken(accountId, poolId, swapParams);
+        } else {
+            // this will happen if amount is 0
+            return 0;
         }
         // if the current margin held is smaller than the new margin required then deposit more collateral
         // and open more positions
@@ -301,6 +308,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         // access the collateral held in the account
         (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
         // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
+        if (collatDeposits.length == 0) {revert IncorrectCollateral();}
         if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
         uint256 collat = collatDeposits[0].balance;
         // get the current price of the underlying asset from chainlink to be used to calculate position sizing

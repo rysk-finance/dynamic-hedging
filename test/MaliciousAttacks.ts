@@ -338,7 +338,7 @@ describe("Hegic Attack", function () {
 		expect(oraclePrice.mul(10_000_000_000)).to.equal(priceFeedPrice)
 	})
 	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("Protocol")
+		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address
