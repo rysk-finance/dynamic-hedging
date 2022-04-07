@@ -299,6 +299,9 @@ describe("Options protocol Vault Health", function () {
 		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
+		// ensure deployer was granted admin role correctly
+		expect(await optionRegistry.hasRole(utils.id("ADMIN_ROLE"), senderAddress)).to.be.true
+		expect(await optionRegistry.hasRole(utils.id("ADMIN_ROLE"), receiverAddress)).to.be.false
 		const _optionRegistryETH = (await optionRegistryFactory.deploy(
 			WETH_ADDRESS[chainId],
 			OTOKEN_FACTORY[chainId],
