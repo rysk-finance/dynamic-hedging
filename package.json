@@ -5,6 +5,7 @@
 	"main": "index.js",
 	"scripts": {
 		"test": "hardhat test",
+		"test-coverage": "export NODE_OPTIONS='--max-old-space-size=8192' && hardhat coverage --testfiles 'test/*.ts'",
 		"deploy:rinkeby": "hardhat deploy --network rinkeby --tags testnet --deploy-scripts deploy",
 		"compile": "hardhat clean && hardhat compile && hardhat typechain"
 	},
@@ -30,6 +31,7 @@
 		"hardhat-deploy": "^0.7.0-beta.30",
 		"hardhat-gas-reporter": "^1.0.3",
 		"path": "^0.12.7",
+		"solidity-coverage": "^0.7.20",
 		"ts-node": "^9.0.0",
 		"typechain": "^6.1.0",
 		"typescript": "^4.0.2"
