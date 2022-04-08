@@ -1046,4 +1046,19 @@ contract LiquidityPool is
     collateralAllocated -= collatLost;
 
    }
+
+    /**
+     * @notice adjust the collateral held in a specific vault because of health
+     * @param  vaultId the id of the vault to check
+     */
+    function adjustCollateral(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
+      OptionRegistry optionRegistry = getOptionRegistry();  
+      (uint256 collateralDifference, bool addToLpBalance ) = optionRegistry.adjustCollateral(vaultId);
+      if(addToLpBalance){
+        collateralAllocated -= collateralDifference;
+      } else {
+        collateralAllocated += collateralDifference;
+      }
+
+    }
 }
