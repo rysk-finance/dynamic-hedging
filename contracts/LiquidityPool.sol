@@ -127,7 +127,7 @@ contract LiquidityPool is
   event Withdraw(address recipient, uint shares,  uint strikeAmount);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
   event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
-  event SettleVault(address series, uint collateralReturned, address closer);
+  event SettleVault(address series, uint collateralReturned, uint collateralLost, address closer);
 
 
   constructor
@@ -1035,11 +1035,11 @@ contract LiquidityPool is
     @param seriesAddress the address of the oToken vault to close
     @return collatReturned the amount of collateral returned to the liquidity pool.
   */
-  function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256 collatReturned) {
+  function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256 collatReturned,) {
     OptionRegistry optionRegistry = getOptionRegistry();  
     // get number of options in vault and collateral returned to recalculate our position without these options
     (, uint256 collatReturned, uint256 collatLost, uint256 oTokensAmount) = optionRegistry.settle(seriesAddress);
-    emit SettleVault(seriesAddress, collatReturned, msg.sender);
+    emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // recalculate liquidity pool's position
     _adjustWeightedVariables(optionSeries, oTokensAmount, collatReturned, false);
