@@ -1035,7 +1035,7 @@ contract LiquidityPool is
     @param seriesAddress the address of the oToken vault to close
     @return collatReturned the amount of collateral returned to the liquidity pool.
   */
-  function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256 collatReturned,) {
+  function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256 collatReturned) {
     OptionRegistry optionRegistry = getOptionRegistry();  
     // get number of options in vault and collateral returned to recalculate our position without these options
     (, uint256 collatReturned, uint256 collatLost, uint256 oTokensAmount) = optionRegistry.settle(seriesAddress);
