@@ -10,7 +10,6 @@ import {
 	fromWei,
 	percentDiff,
 	toUSDC,
-	fmtExpiration,
 	fromOpyn,
 	toOpyn,
 	tFormatUSDC,
@@ -1088,5 +1087,6 @@ describe("Liquidity Pools", async () => {
 		const optionITMamount = strikePrice.sub(settlePrice)
 		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
 		expect(collateralReturned).to.equal(collateralAllocated.sub(optionITMamount.div(100)).mul(amount)) // format from e8 oracle price to e6 USDC decimals
+		expect(await liquidityPool.collateralAllocated()).to.equal(0)
 	})
 })

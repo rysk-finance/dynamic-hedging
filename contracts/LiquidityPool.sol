@@ -1037,13 +1037,13 @@ contract LiquidityPool is
   */
   function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256 collatReturned) {
     OptionRegistry optionRegistry = getOptionRegistry();  
-    (, uint256 collatReturned) = optionRegistry.settle(seriesAddress);
+    // get number of options in vault and collateral returned to recalculate our position without these options
+    (, uint256 collatReturned, uint256 collatLost, uint256 oTokensAmount) = optionRegistry.settle(seriesAddress);
     emit SettleVault(seriesAddress, collatReturned, msg.sender);
-    // get number of options in vault to recalculate our position without these options
-    uint oTokensAmount = ERC20(seriesAddress).totalSupply();
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // recalculate liquidity pool's position
     _adjustWeightedVariables(optionSeries, oTokensAmount, collatReturned, false);
+    collateralAllocated -= collatLost;
 
    }
 }

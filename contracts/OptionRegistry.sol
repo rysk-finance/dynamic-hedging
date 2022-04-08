@@ -245,9 +245,11 @@ contract OptionRegistry is Ownable {
      * @param  _series the address of the option token to be burnt
      * @return success if the transaction succeeded
      * @return collatReturned the amount of collateral returned from the vault
+     * @return collatLost the amount of collateral used to pay ITM options on vault settle
+     * @return amountShort number of oTokens that the vault was short
      * @dev callable by anyone but returns funds to the liquidityPool
      */
-    function settle(address _series) external returns (bool success, uint256 collatReturned) {
+    function settle(address _series) external returns (bool success, uint256 collatReturned, uint256 collatLost, uint256 amountShort) {
         Types.OptionSeries memory series = seriesInfo[_series];
         require(series.expiration != 0, "non-existent series");
         // check that the option has expired
@@ -255,11 +257,11 @@ contract OptionRegistry is Ownable {
         // get the vault
         uint256 vaultId = vaultIds[_series];
         // settle the vault
-        uint256 collatReturned = OpynInteractionsV2.settle(gammaController, vaultId);
+        (uint256 collatReturned, uint256 collatLost, uint amountShort) = OpynInteractionsV2.settle(gammaController, vaultId);
         // transfer the collateral back to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(series.collateral), liquidityPool, collatReturned);
         emit OptionsContractSettled(_series);
-        return (true, collatReturned);
+        return (true, collatReturned, collatLost, amountShort);
     }
 
     /**
