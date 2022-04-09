@@ -50,6 +50,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     error InvalidSender();
     error InvalidHealthFactor();
     error IncorrectCollateral();
+    error InvalidTransactionNotEnoughMargin(int256 accountMarketValue, int256 totalRequiredMargin);
 
     constructor (
         address _clearingHouse, 
@@ -194,6 +195,10 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         if (collatDeposits.length == 0) {revert IncorrectCollateral();}
         if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
         uint256 collat = collatDeposits[0].balance;
+        // we want 1 wei at all times, so if there is only 1 wei of collat and the net position is 0 then just return
+        if (collat == 1 && netPosition == 0) {
+            return 0;
+        }
         // get the current price of the underlying asset from chainlink to be used to calculate position sizing
         uint256 currentPrice = OptionsCompute.convertToDecimals(PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset), ERC20(collateralAsset).decimals());
         // check the collateral health of positions
@@ -306,10 +311,26 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
                 false,
                 false
             ); 
-            // execute the swap
+            // execute the swap, since this is a withdrawal and we may withdraw all we want to make sure the account is properly settled
+            // so we update the margin, if it fails then we settle any profits and update
             clearingHouse.swapToken(accountId, poolId, swapParams);
-            // withdraw excess collateral from the margin account
-            clearingHouse.updateMargin(accountId, collateralId, -int256(collatToWithdraw));
+            try clearingHouse.updateMargin(accountId, collateralId, -int256(collatToWithdraw)) {} 
+            catch (bytes memory reason) {
+                // way of catching custom errors referenced here: https://ethereum.stackexchange.com/questions/125238/catching-custom-error
+                bytes4 expectedSelector = InvalidTransactionNotEnoughMargin.selector;
+                bytes4 receivedSelector = bytes4(reason);
+                assert(expectedSelector == receivedSelector);
+                // settle the profits to make sure the collateral is covered
+                clearingHouse.settleProfit(accountId);
+                // get the new collat
+                (,,collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+                collat = collatDeposits[0].balance;
+                // if the collat value is smaller than collatToWithdraw then withdraw all colalt
+                if (collat <= collatToWithdraw && collat != 0) {
+                  collatToWithdraw = collat - 1;  
+                } 
+                clearingHouse.updateMargin(accountId, collateralId, -int256(collatToWithdraw));
+            }
             // transfer assets back to the liquidityPool 
             // TODO: track this transfer either in LiquidityPool or here
             SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, uint256(collatToWithdraw));

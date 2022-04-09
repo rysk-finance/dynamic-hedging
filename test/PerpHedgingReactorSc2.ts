@@ -586,7 +586,7 @@ describe("PerpHedgingReactor", () => {
 		const collatRequired = ((price.mul(reactorDeltaBefore).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
 		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
 		console.log(await clearingHouse.getAccountNetProfit(0))
-		const tx = await liquidityPoolDummy.syncAndUpdate()
+		const tx = await liquidityPoolDummy.update()
 		const reactorCollatBalanceAfter =  (await clearingHouse.getAccountInfo(0)).collateralDeposits[0].balance
 		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
