@@ -1,6 +1,7 @@
 pragma solidity >=0.8.9;
 
 import { IHedgingReactor } from "../interfaces/IHedgingReactor.sol";
+import {PerpHedgingReactor} from "../hedging/PerpHedgingReactor.sol";
 import {ERC20} from '../tokens/ERC20.sol';
 import "../libraries/SafeTransferLib.sol";
 
@@ -31,6 +32,14 @@ contract PerpHedgingTest {
 
     function update() public returns(uint256){
         return IHedgingReactor(perpHedgingReactor).update();
+    }
+
+    function sync() public {
+        return PerpHedgingReactor(perpHedgingReactor).sync();
+    }
+
+    function syncAndUpdate() public {
+        return PerpHedgingReactor(perpHedgingReactor).syncAndUpdate();
     }
 
 }

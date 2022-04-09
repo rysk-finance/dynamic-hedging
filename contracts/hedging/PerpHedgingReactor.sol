@@ -169,10 +169,26 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         }
     }
 
-    /// @inheritdoc IHedgingReactor
-    function update() external returns (uint256) {
+    /// @notice function to poke the margin account to update the profits of the vault and also manage
+    ///         the collateral to safe bounds.
+    /// @dev    only callable by a keeper
+    function syncAndUpdate() public {
+        sync();
+        update();
+    }
+
+    /// @notice function to poke the margin account to update the profits of the vault
+    /// @dev    only callable by a keeper
+    function sync() public {
         if (msg.sender != keeper){revert InvalidSender();}
-        int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
+        clearingHouse.settleProfit(accountId);
+    }
+
+    /// @inheritdoc IHedgingReactor
+    function update() public returns (uint256) {
+        if (msg.sender != keeper){revert InvalidSender();}
+
+        int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);    
         (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
         // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
         if (collatDeposits.length == 0) {revert IncorrectCollateral();}
@@ -252,6 +268,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
                 _amount,
                 0,
                 false,
+                false,
                 false
             ); 
             // execute the swap
@@ -275,6 +292,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
                 _amount,
                 0,
                 false,
+                false,
                 false
             ); 
             // execute the swap
@@ -284,6 +302,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
             IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
                 _amount,
                 0,
+                false,
                 false,
                 false
             ); 
@@ -321,13 +340,11 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
                 -netPosition,
                 0,
                 false,
-                false
+                false,
+                true
             ); 
             // execute the swap
             clearingHouse.swapToken(accountId, poolId, swapParams); 
-            int256 netProfit = clearingHouse.getAccountNetProfit(accountId);
-            clearingHouse.updateMargin(accountId, collateralId, netProfit);
-            clearingHouse.updateProfit(accountId, -netProfit);
             (,,collatDeposits,) = clearingHouse.getAccountInfo(accountId);
             collat = collatDeposits[0].balance;
             // withdraw all collateral from the margin account, leave 1 wei to make sure the collateral index stays
@@ -343,6 +360,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
             diff,
             0,
+            false,
             false,
             false
         ); 

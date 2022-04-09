@@ -154,7 +154,6 @@ module.exports = {
 		  '@rage/core/contracts/protocol/tokens/VQuote.sol',
 		  '@rage/core/contracts/protocol/RageTradeFactory.sol',
 		  '@rage/core/contracts/protocol/wrapper/VPoolWrapper.sol',
-		  '@rage/core/contracts/test/mocks/OracleMock.sol'
 		],
 	}
 }

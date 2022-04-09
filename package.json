@@ -40,7 +40,7 @@
 	},
 	"dependencies": {
 		"@openzeppelin/contracts": "^4.4.2",
-		"@rage/core": "https://github.com/kjr217/core.git",
+		"@rage/core": "https://github.com/RageTrade/core.git",
 		"@uniswap/v3-periphery": "^1.4.0",
 		"black-scholes": "^1.1.0",
 		"bn.js": "^5.2.0",
