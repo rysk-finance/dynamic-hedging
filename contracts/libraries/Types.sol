@@ -5,7 +5,7 @@ library Types {
         struct OptionSeries {
             uint expiration;
             bool isPut;
-            uint strike;
+            uint strike; // in 1e8 format
             address underlying;
             address strikeAsset;
             address collateral;
