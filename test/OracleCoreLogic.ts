@@ -77,6 +77,9 @@ let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+const expected_put_delta = 0.39679640941831507
+const expected_call_delta = -0.5856527252094983
+const expected_portfolio_delta = expected_put_delta + expected_call_delta
 
 /* --- variables to change --- */
 
@@ -473,11 +476,11 @@ describe("Oracle core logic", async () => {
 
 		// LP writes a ETH/USD put for premium
 		const amount = toWei("1")
-		const blockNum = await ethers.provider.getBlockNumber()
-		const block = await ethers.provider.getBlock(blockNum)
-		const { timestamp } = block
+		let blockNum = await ethers.provider.getBlockNumber()
+		let block = await ethers.provider.getBlock(blockNum)
+		let { timestamp } = block
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike))
+		let strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
@@ -487,10 +490,10 @@ describe("Oracle core logic", async () => {
 			collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		let quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
 		await usd.approve(liquidityPool.address, quote)
 		balance = await usd.balanceOf(senderAddress)
-		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
+		let write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		receipt = await write.wait(1)
 		const events = receipt.events
@@ -504,8 +507,29 @@ describe("Oracle core logic", async () => {
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
+
+		// LP writes a ETH/USD call for premium
+		blockNum = await ethers.provider.getBlockNumber()
+		block = await ethers.provider.getBlock(blockNum)
+		timestamp = block.timestamp
+		strikePrice = priceQuote.add(toWei(strike)).add(toWei(strike))
+		const proposedCallSeries = {
+			expiration: expiration,
+			isPut: CALL_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedCallSeries, amount))[0]
+		//await usd.approve(liquidityPool.address, quote)
+		//balance = await usd.balanceOf(senderAddress)
+		write = await liquidityPool.issueAndWriteOption(proposedCallSeries, amount)
+		//const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		receipt = await write.wait(1)
 	})
 
+	// encompasses primary logic to be used by external adapter to fetch and compute delta
 	it("Fetches deposit events and computes delta", async () => {
 		const events = liquidityPool.filters.WriteOption()
 		const writeOption = await liquidityPool.queryFilter(events)
@@ -543,16 +567,6 @@ describe("Oracle core logic", async () => {
 					parseFloat(rfr),
 					optionType
 				)
-				console.log("series strike", seriesInfo.strike)
-				console.log(
-					"delta parameters",
-					priceNorm,
-					fromOpyn(seriesInfo.strike),
-					timeToExpiration,
-					fromWei(iv),
-					parseFloat(rfr),
-					optionType
-				)
 				// invert sign due to writing rather than buying
 				y.delta = delta * -1
 				return y
@@ -560,6 +574,7 @@ describe("Oracle core logic", async () => {
 		)
 		const resolved = await Promise.all(enrichedWriteOptions)
 		const delta = resolved.reduce((total, num) => total + (num.delta || 0), 0)
-		console.log({ events, writeOption, resolved, delta }, resolved[0]["decoded"])
+		expect(resolved.length).to.eq(2)
+		expect(delta).to.eq(expected_portfolio_delta)
 	})
 })
