@@ -10,15 +10,12 @@ import {
 	fromWei,
 	percentDiff,
 	toUSDC,
-	fmtExpiration,
 	fromOpyn,
 	toOpyn,
 	tFormatUSDC,
 	scaleNum
 } from "../utils/conversion-helper"
-import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
-import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 //@ts-ignore
 import bs from "black-scholes"
 import { expect } from "chai"
@@ -37,7 +34,13 @@ import { Controller } from "../types/Controller"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle, calculateOptionQuoteLocally } from "./helpers"
+import {
+	setupTestOracle,
+	setupOracle,
+	calculateOptionQuoteLocally,
+	increase,
+	setOpynOracleExpiryPrice
+} from "./helpers"
 import {
 	GAMMA_CONTROLLER,
 	MARGIN_POOL,
@@ -48,7 +51,8 @@ import {
 	ADDRESS_BOOK,
 	UNISWAP_V3_SWAP_ROUTER,
 	CONTROLLER_OWNER,
-	GAMMA_ORACLE_NEW
+	GAMMA_ORACLE_NEW,
+	CHAINLINK_WETH_PRICER
 } from "./constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 let usd: MintableERC20
@@ -62,7 +66,6 @@ let liquidityPool: LiquidityPool
 let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
 let priceFeed: PriceFeed
-let ethUSDAggregator: MockContract
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
 let controller: Controller
@@ -70,6 +73,9 @@ let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
+let putOptionToken: IOToken
+let putOptionToken2: IOToken
+let collateralAllocatedToVault1: BigNumber
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -136,6 +142,7 @@ const expiryToValue = [
 /* --- end variables to change --- */
 
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
+const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
 const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
 const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
 
@@ -161,14 +168,25 @@ describe("Liquidity Pools", async () => {
 			method: "hardhat_impersonateAccount",
 			params: [CONTROLLER_OWNER[chainId]]
 		})
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [CHAINLINK_WETH_PRICER[chainId]]
+		})
 		signers = await ethers.getSigners()
 		const [sender] = signers
 
 		const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
 		await sender.sendTransaction({
 			to: signer.address,
-			value: ethers.utils.parseEther("1.0") // Sends exactly 1.0 ether
+			value: ethers.utils.parseEther("10.0") // Sends exactly 10.0 ether
 		})
+
+		const forceSendContract = await ethers.getContractFactory("ForceSend")
+		const forceSend = await forceSendContract.deploy() // force Send is a contract that forces the sending of Ether to WBTC minter (which is a contract with no receive() function)
+		await forceSend
+			.connect(signer)
+			.go(CHAINLINK_WETH_PRICER[chainId], { value: utils.parseEther("0.5") })
+
 		// get an instance of the controller
 		controller = (await ethers.getContractAt(
 			"contracts/packages/opyn/core/Controller.sol:Controller",
@@ -180,7 +198,7 @@ describe("Liquidity Pools", async () => {
 			ADDRESS_BOOK[chainId]
 		)) as AddressBook
 		// get the oracle
-		const res = await setupTestOracle(await signers[0].getAddress())
+		const res = await setupTestOracle(await sender.getAddress())
 		oracle = res[0] as Oracle
 		opynAggregator = res[1] as MockChainlinkAggregator
 		// deploy the new calculator
@@ -655,14 +673,56 @@ describe("Liquidity Pools", async () => {
 		const events = receipt.events
 		const writeEvent = events?.find(x => x.event == "WriteOption")
 		const seriesAddress = writeEvent?.args?.series
-		const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+		putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await putOptionToken.balanceOf(senderAddress)
-		const registryUsdBalance = await liquidityPool.collateralAllocated()
+		collateralAllocatedToVault1 = await liquidityPool.collateralAllocated()
 		const balanceNew = await usd.balanceOf(senderAddress)
 		const opynAmount = toOpyn(fromWei(amount))
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
+		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
+	})
+	it("LP writes another ETH/USD put that expires later", async () => {
+		const [sender] = signers
+		const amount = toWei("3")
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const { timestamp } = block
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const proposedSeries = {
+			expiration: expiration2,
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const lpAllocatedBefore = await liquidityPool.collateralAllocated()
+		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		await usd.approve(liquidityPool.address, quote)
+		const balance = await usd.balanceOf(senderAddress)
+		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
+		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const receipt = await write.wait(1)
+		const events = receipt.events
+		const writeEvent = events?.find(x => x.event == "WriteOption")
+		const seriesAddress = writeEvent?.args?.series
+		putOptionToken2 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+		const putBalance = await putOptionToken2.balanceOf(senderAddress)
+		const lpAllocatedAfter = await liquidityPool.collateralAllocated()
+		const balanceNew = await usd.balanceOf(senderAddress)
+		const opynAmount = toOpyn(fromWei(amount))
+		expect(putBalance).to.eq(opynAmount)
+		// ensure funds are being transfered
+		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.lt(0.1)
+		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
+		const lpAllocatedDiff = lpAllocatedAfter.sub(lpAllocatedBefore)
+		expect(tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.lt(
+			0.1
+		)
 	})
 
 	it("can compute portfolio delta", async function () {
@@ -1050,5 +1110,53 @@ describe("Liquidity Pools", async () => {
 		const liquidityPoolReceiver = liquidityPool.connect(receiver)
 		const withdraw = liquidityPoolReceiver.withdraw(shares, receiverAddress)
 		await expect(withdraw).to.be.revertedWith("WithdrawExceedsLiquidity()")
+	})
+	it("settles an expired ITM vault", async () => {
+		const totalCollateralAllocated = await liquidityPool.collateralAllocated()
+		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
+		const strikePrice = await putOptionToken.strikePrice()
+		// set price to $80 ITM for put
+		const settlePrice = strikePrice.sub(toWei("80").div(oTokenDecimalShift18))
+		// set the option expiry price, make sure the option has now expired
+		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
+		// settle the vault
+		const settleVault = await liquidityPool.settleVault(putOptionToken.address)
+		let receipt = await settleVault.wait()
+		const events = receipt.events
+		const settleEvent = events?.find(x => x.event == "SettleVault")
+		const collateralReturned = settleEvent?.args?.collateralReturned
+		const collateralLost = settleEvent?.args?.collateralLost
+		// puts expired ITM, so the amount ITM will be subtracted and used to pay out option holders
+		const optionITMamount = strikePrice.sub(settlePrice)
+		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
+		// format from e8 oracle price to e6 USDC decimals
+		expect(collateralReturned).to.equal(
+			collateralAllocatedToVault1.sub(optionITMamount.div(100)).mul(amount)
+		)
+		expect(await liquidityPool.collateralAllocated()).to.equal(
+			totalCollateralAllocated.sub(collateralReturned).sub(collateralLost)
+		)
+	})
+
+	it("settles an expired OTM vault", async () => {
+		const totalCollateralAllocated = await liquidityPool.collateralAllocated()
+		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
+		const strikePrice = await putOptionToken.strikePrice()
+		// set price to $100 OTM for put
+		const settlePrice = strikePrice.add(toWei("100").div(oTokenDecimalShift18))
+		// set the option expiry price, make sure the option has now expired
+		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration2, settlePrice)
+		// settle the vault
+		const settleVault = await liquidityPool.settleVault(putOptionToken2.address)
+		let receipt = await settleVault.wait()
+		const events = receipt.events
+		const settleEvent = events?.find(x => x.event == "SettleVault")
+		const collateralReturned = settleEvent?.args?.collateralReturned
+		const collateralLost = settleEvent?.args?.collateralLost
+		// puts expired OTM, so all collateral should be returned
+		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
+		expect(collateralReturned).to.equal(totalCollateralAllocated) // format from e8 oracle price to e6 USDC decimals
+		expect(await liquidityPool.collateralAllocated()).to.equal(0)
+		expect(collateralLost).to.equal(0)
 	})
 })
