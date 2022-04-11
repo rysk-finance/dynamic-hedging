@@ -59,7 +59,7 @@ contract OptionRegistry is Ownable, AccessControl {
     event SeriesRedeemed(address series, uint underlyingAmount, uint strikeAmount);
     event OptionsContractOpened(address indexed series, uint256 vaultId, uint256 optionsAmount);
     event OptionsContractClosed(address indexed series, uint256 vaultId, uint256 closedAmount);
-    event OptionsContractSettled(address indexed series);
+    event OptionsContractSettled(address indexed series, uint256 collateralReturned, uint256 collateralLost, uint256 amountLost);
 
     /**
      * @dev Throws if called by any account other than the liquidity pool.
@@ -257,7 +257,7 @@ contract OptionRegistry is Ownable, AccessControl {
         (uint256 collatReturned, uint256 collatLost, uint amountShort) = OpynInteractionsV2.settle(gammaController, vaultId);
         // transfer the collateral back to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(series.collateral), liquidityPool, collatReturned);
-        emit OptionsContractSettled(_series);
+        emit OptionsContractSettled(_series, collatReturned, collatLost, amountShort);
         return (true, collatReturned, collatLost, amountShort);
     }
 
