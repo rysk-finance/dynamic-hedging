@@ -19,6 +19,7 @@ artifacts
 deployments
 types
 coverage
+coverage.json
 
 # Cache
 cache
