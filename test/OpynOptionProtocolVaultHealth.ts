@@ -1,5 +1,5 @@
 import hre, { ethers, network } from "hardhat"
-import { Contract, utils, Signer, BigNumber } from "ethers"
+import { Contract, utils, Signer, BigNumber, BigNumberish } from "ethers"
 import {
 	toWei,
 	call,
@@ -12,6 +12,7 @@ import {
 import { expect } from "chai"
 import moment from "moment"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
+import { LiquidityPoolAdjustCollateralTest } from "../types/LiquidityPoolAdjustCollateralTest"
 import { Controller } from "../types/Controller"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
@@ -41,6 +42,7 @@ import { ChainLinkPricer } from "../types/ChainLinkPricer"
 let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
+let liquidityPool: LiquidityPoolAdjustCollateralTest
 let controller: Controller
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
@@ -312,6 +314,17 @@ describe("Options protocol Vault Health", function () {
 		)) as OptionRegistry
 		optionRegistryETH = _optionRegistryETH
 		expect(optionRegistryETH).to.have.property("deployTransaction")
+	})
+	it("Creates a liquidity pool", async () => {
+		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
+		const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPoolAdjustCollateralTest")
+		liquidityPool = (await liquidityPoolFactory.deploy(
+			optionRegistry.address,
+			USDC_ADDRESS[chainId]
+		)) as LiquidityPoolAdjustCollateralTest
+		await usd
+			.connect(signer)
+			.transfer(liquidityPool.address, toWei("1000000").div(oTokenDecimalShift18))
 	})
 
 	it("Creates a USDC collataralised call option token series", async () => {
@@ -827,9 +840,13 @@ describe("Options protocol Vault Health", function () {
 		await expect(unauthorisedOptionRegistry.adjustCollateral(1)).to.be.reverted
 	})
 	it("adjusts collateral to get back to positive", async () => {
+		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		const arr = await optionRegistry.checkVaultHealth(1)
 		const healthFBefore = arr[2]
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		await optionRegistry.adjustCollateral(1)
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		expect(collateralAllocatedAfter).to.be.gt(collateralAllocatedBefore)
 		const roundId = 3
 		await expect(controller.isLiquidatable(optionRegistry.address, 1, roundId)).to.be.revertedWith(
 			"MarginCalculator: auction timestamp should be post vault latest update"
@@ -1036,24 +1053,24 @@ describe("Options protocol Vault Health", function () {
 	it("settles when option expires ITM USD collateral", async () => {
 		const [sender, receiver] = signers
 		// get balance before
-		const balanceUSD = await usd.balanceOf(senderAddress)
+		const balanceUSD = await usd.balanceOf(liquidityPool.address)
 		// get the desired settlement price
 		const settlePrice = strike.add(toWei("200")).div(oTokenDecimalShift18)
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice, pricer)
 		await optionTokenUSDC.approve(
 			optionRegistry.address,
-			await optionTokenUSDC.balanceOf(senderAddress)
+			await optionTokenUSDC.balanceOf(liquidityPool.address)
 		)
 		// call redeem from the options registry
 		await optionRegistry.settle(optionTokenUSDC.address)
 		// check balances are in order
-		const newBalanceUSD = await usd.balanceOf(senderAddress)
+		const newBalanceUSD = await usd.balanceOf(liquidityPool.address)
 		const opBalRegistry = await optionTokenUSDC.balanceOf(optionRegistry.address)
 		const usdBalRegistry = await usd.balanceOf(optionRegistry.address)
 		expect(opBalRegistry).to.equal(0)
 		expect(usdBalRegistry).to.equal(0)
-		expect(newBalanceUSD > balanceUSD).to.be.true
+		expect(newBalanceUSD).to.be.gt(balanceUSD)
 	})
 
 	it("settles when option expires ITM ETH collateral", async () => {
@@ -1116,6 +1133,7 @@ describe("Options protocol Vault Health", function () {
 	})
 
 	it("creates a USDC put option token series", async () => {
+		await optionRegistry.setLiquidityPool(senderAddress)
 		const [sender] = signers
 		// fast forward expiryPeriod length of time
 		expiration = createValidExpiry(expiration, 14)

@@ -127,7 +127,7 @@ contract LiquidityPool is
   event Withdraw(address recipient, uint shares,  uint strikeAmount);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
   event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
-  event SettleVault(address series, uint collateralReturned, address closer);
+  event SettleVault(address series, uint collateralReturned, uint collateralLost, address closer);
 
 
   constructor
@@ -1037,13 +1037,29 @@ contract LiquidityPool is
   */
   function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256 collatReturned) {
     OptionRegistry optionRegistry = getOptionRegistry();  
-    (, uint256 collatReturned) = optionRegistry.settle(seriesAddress);
-    emit SettleVault(seriesAddress, collatReturned, msg.sender);
-    // get number of options in vault to recalculate our position without these options
-    uint oTokensAmount = ERC20(seriesAddress).totalSupply();
+    // get number of options in vault and collateral returned to recalculate our position without these options
+    (, uint256 collatReturned, uint256 collatLost, uint256 oTokensAmount) = optionRegistry.settle(seriesAddress);
+    emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // recalculate liquidity pool's position
     _adjustWeightedVariables(optionSeries, oTokensAmount, collatReturned, false);
+    collateralAllocated -= collatLost;
 
    }
+
+  /**
+    @notice adjust the collateral held in a specific vault because of health
+    @param lpCollateralDifference amount of collateral taken from or given to the liquidity pool
+    @param addToLpBalance true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool
+  */
+  function adjustCollateral(uint256 lpCollateralDifference, bool addToLpBalance) external  {
+    OptionRegistry optionRegistry = getOptionRegistry();
+    require(msg.sender == address(optionRegistry));
+    if(addToLpBalance){
+      collateralAllocated -= lpCollateralDifference;
+    } else {
+      SafeTransferLib.safeApprove(ERC20(collateralAsset), address(optionRegistry), lpCollateralDifference);
+      collateralAllocated += lpCollateralDifference;
+    }
+  }
 }
