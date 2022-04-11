@@ -844,18 +844,12 @@ describe("Options protocol Vault Health", function () {
 		const arr = await optionRegistry.checkVaultHealth(1)
 		const healthFBefore = arr[2]
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
-<<<<<<< HEAD
-		await optionRegistry.adjustCollateral(1)
-		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
-		expect(collateralAllocatedAfter).to.be.gt(collateralAllocatedBefore)
-=======
 		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		await optionRegistry.adjustCollateral(1)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const lpBalanceDiff = lpBalanceAfter.sub(lpBalanceBefore)
 		expect(collateralAllocatedAfter).to.equal(collateralAllocatedBefore.sub(lpBalanceDiff))
->>>>>>> main
 		const roundId = 3
 		await expect(controller.isLiquidatable(optionRegistry.address, 1, roundId)).to.be.revertedWith(
 			"MarginCalculator: auction timestamp should be post vault latest update"
