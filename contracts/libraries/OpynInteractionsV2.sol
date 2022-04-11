@@ -329,15 +329,18 @@ library OpynInteractionsV2 {
      * @notice Close the existing short otoken position.
      * @param gammaController is the address of the opyn controller contract
      * @param vaultId is the id of the vault to be settled
-     * @return amount of collateral redeemed from the vault
+     * @return collateralRedeemed collateral redeemed from the vault
+     * @return collateralLost collateral left behind in vault used to pay ITM expired options
+     * @return shortAmount number of options that were written
      */
-    function settle(address gammaController, uint256 vaultId) external returns (uint256) {
+    function settle(address gammaController, uint256 vaultId) external returns (uint256 collateralRedeemed, uint256 collateralLost, uint256 shortAmount) {
         IController controller = IController(gammaController);
 
         GammaTypes.Vault memory vault =
             controller.getVault(address(this), vaultId);
 
         require(vault.shortOtokens.length > 0, "No short");
+
 
         // An otoken's collateralAsset is the vault's `asset`
         // So in the context of performing Opyn short operations we call them collateralAsset
@@ -346,7 +349,7 @@ library OpynInteractionsV2 {
         // The short position has been previously closed, or all the otokens have been burned.
         // So we return early.
         if (address(collateralToken) == address(0)) {
-            return 0;
+            return (0,0,0);
         }
 
         // This is equivalent to doing IERC20(vault.asset).balanceOf(address(this))
@@ -372,8 +375,9 @@ library OpynInteractionsV2 {
         controller.operate(actions);
 
         uint256 endCollateralBalance = collateralToken.balanceOf(address(this));
-
-        return endCollateralBalance - startCollateralBalance;
+        // calulate collateral redeemed and lost for collateral management in liquidity pool
+        collateralRedeemed = endCollateralBalance - startCollateralBalance;
+        return (collateralRedeemed, vault.collateralAmounts[0] - collateralRedeemed ,vault.shortAmounts[0]);
     }
 
 
