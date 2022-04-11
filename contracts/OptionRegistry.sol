@@ -10,6 +10,7 @@ import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import { OpynInteractionsV2 } from "./libraries/OpynInteractionsV2.sol";
 import { IController, GammaTypes} from "./interfaces/GammaInterface.sol";
+import { LiquidityPool } from "./LiquidityPool.sol";
 import "hardhat/console.sol";
 
 contract OptionRegistry is Ownable {
@@ -365,24 +366,22 @@ contract OptionRegistry is Ownable {
     /**
      * @notice adjust the collateral held in a specific vault because of health
      * @param  vaultId the id of the vault to check
-     * @return lpCollateralDifference amount of collateral taken from or given to the liquidity pool
-     * @return addToLpBalance true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool
      */
-    function adjustCollateral(uint256 vaultId) external onlyLiquidityPool returns (uint256 lpCollateralDifference, bool addToLpBalance ){
+    function adjustCollateral(uint256 vaultId) external onlyAuthorised {
       (bool isBelowMin, bool isAboveMax,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
       require(isBelowMin || isAboveMax, "vault is healthy");
       if (isBelowMin) {
+        LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, false);
         // transfer the needed collateral to this contract from the liquidityPool
         SafeTransferLib.safeTransferFrom(collateralAsset, liquidityPool, address(this), collateralAmount);
         // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
         OpynInteractionsV2.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
-        return (collateralAmount, false);
       } else if (isAboveMax) {
+        LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, true);
         // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
         OpynInteractionsV2.withdrawCollat(gammaController, collateralAsset, collateralAmount, vaultId);
         // transfer the excess collateral to the liquidityPool from this address
         SafeTransferLib.safeTransfer(ERC20(collateralAsset), liquidityPool, collateralAmount);
-        return (collateralAmount, true);
       }
     }
 

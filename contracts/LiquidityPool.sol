@@ -1047,18 +1047,19 @@ contract LiquidityPool is
 
    }
 
-    /**
-     * @notice adjust the collateral held in a specific vault because of health
-     * @param  vaultId the id of the vault to check
-     */
-    function adjustCollateral(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
-      OptionRegistry optionRegistry = getOptionRegistry();  
-      (uint256 collateralDifference, bool addToLpBalance ) = optionRegistry.adjustCollateral(vaultId);
-      if(addToLpBalance){
-        collateralAllocated -= collateralDifference;
-      } else {
-        collateralAllocated += collateralDifference;
-      }
-
+  /**
+    @notice adjust the collateral held in a specific vault because of health
+    @param lpCollateralDifference amount of collateral taken from or given to the liquidity pool
+    @param addToLpBalance true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool
+  */
+  function adjustCollateral(uint256 lpCollateralDifference, bool addToLpBalance) external  {
+    OptionRegistry optionRegistry = getOptionRegistry();
+    require(msg.sender == address(optionRegistry));
+    if(addToLpBalance){
+      collateralAllocated -= lpCollateralDifference;
+    } else {
+      SafeTransferLib.safeApprove(ERC20(collateralAsset), address(optionRegistry), lpCollateralDifference);
+      collateralAllocated += lpCollateralDifference;
     }
+  }
 }

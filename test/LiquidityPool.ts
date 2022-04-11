@@ -720,7 +720,9 @@ describe("Liquidity Pools", async () => {
 		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.lt(0.1)
 		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
 		const lpAllocatedDiff = lpAllocatedAfter.sub(lpAllocatedBefore)
-		expect(tFormatUSDC(poolBalanceDiff) + tFormatEth(quote)).to.equal(tFormatUSDC(lpAllocatedDiff))
+		expect(tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.lt(
+			0.1
+		)
 	})
 
 	it("can compute portfolio delta", async function () {
@@ -1135,6 +1137,7 @@ describe("Liquidity Pools", async () => {
 			totalCollateralAllocated.sub(collateralReturned).sub(collateralLost)
 		)
 	})
+
 	it("settles an expired OTM vault", async () => {
 		const totalCollateralAllocated = await liquidityPool.collateralAllocated()
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
