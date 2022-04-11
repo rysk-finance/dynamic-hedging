@@ -834,9 +834,12 @@ describe("Options protocol Vault Health", function () {
 		const arr = await optionRegistry.checkVaultHealth(1)
 		const healthFBefore = arr[2]
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		await optionRegistry.adjustCollateral(1)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
-		expect(collateralAllocatedAfter).to.be.gt(collateralAllocatedBefore)
+		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const lpBalanceDiff = lpBalanceAfter.sub(lpBalanceBefore)
+		expect(collateralAllocatedAfter).to.equal(collateralAllocatedBefore.sub(lpBalanceDiff))
 		const roundId = 3
 		await expect(controller.isLiquidatable(optionRegistry.address, 1, roundId)).to.be.revertedWith(
 			"MarginCalculator: auction timestamp should be post vault latest update"
@@ -1053,14 +1056,18 @@ describe("Options protocol Vault Health", function () {
 			await optionTokenUSDC.balanceOf(liquidityPool.address)
 		)
 		// call redeem from the options registry
-		await optionRegistry.settle(optionTokenUSDC.address)
+		const settleTx = await optionRegistry.settle(optionTokenUSDC.address)
+		const receipt = await settleTx.wait()
+		const events = receipt.events
+		const removeEvent = events?.find(x => x.event == "OptionsContractSettled")
+		const collateralReturned = removeEvent?.args?.collateralReturned
 		// check balances are in order
 		const newBalanceUSD = await usd.balanceOf(liquidityPool.address)
 		const opBalRegistry = await optionTokenUSDC.balanceOf(optionRegistry.address)
 		const usdBalRegistry = await usd.balanceOf(optionRegistry.address)
 		expect(opBalRegistry).to.equal(0)
 		expect(usdBalRegistry).to.equal(0)
-		expect(newBalanceUSD).to.be.gt(balanceUSD)
+		expect(newBalanceUSD).to.equal(balanceUSD.add(collateralReturned))
 	})
 
 	it("settles when option expires ITM ETH collateral", async () => {
