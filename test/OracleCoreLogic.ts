@@ -58,6 +58,7 @@ interface EnrichedWriteEvent extends WriteEvent {
 	decoded?: DecodedData
 	series?: string
 	delta?: number
+	expiration?: number
 }
 
 let usd: MintableERC20
@@ -522,10 +523,7 @@ describe("Oracle core logic", async () => {
 			collateral: usd.address
 		}
 		quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedCallSeries, amount))[0]
-		//await usd.approve(liquidityPool.address, quote)
-		//balance = await usd.balanceOf(senderAddress)
 		write = await liquidityPool.issueAndWriteOption(proposedCallSeries, amount)
-		//const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		receipt = await write.wait(1)
 	})
 
@@ -536,7 +534,6 @@ describe("Oracle core logic", async () => {
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
-		const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration)
 		const enrichedWriteOptions: Promise<EnrichedWriteEvent>[] = writeOption.map(
 			async (x: WriteOptionEvent): Promise<EnrichedWriteEvent> => {
 				const y: EnrichedWriteEvent = x
@@ -547,6 +544,7 @@ describe("Oracle core logic", async () => {
 				//@TODO consider batching these as a multicall or using an indexing service
 				if (!y.series) return x
 				const seriesInfo = await optionRegistry.seriesInfo(y.series)
+				y.expiration = seriesInfo.expiration.toNumber()
 				const priceQuote = await priceFeed.getNormalizedRate(
 					seriesInfo.underlying,
 					seriesInfo.strikeAsset
@@ -559,10 +557,14 @@ describe("Oracle core logic", async () => {
 					seriesInfo.expiration
 				)
 				const optionType = seriesInfo.isPut ? "put" : "call"
+				const timeToExpiration = genOptionTimeFromUnix(
+					Number(timestamp),
+					seriesInfo.expiration.toNumber()
+				)
 				const delta = greeks.getDelta(
 					priceNorm,
 					fromOpyn(seriesInfo.strike),
-					timeToExpiration,
+					timeToExpiration, // don't use this
 					fromWei(iv),
 					parseFloat(rfr),
 					optionType
@@ -573,7 +575,10 @@ describe("Oracle core logic", async () => {
 			}
 		)
 		const resolved = await Promise.all(enrichedWriteOptions)
-		const delta = resolved.reduce((total, num) => total + (num.delta || 0), 0)
+		const filtered = resolved.filter(x => {
+			return expiration > timestamp
+		})
+		const delta = filtered.reduce((total, num) => total + (num.delta || 0), 0)
 		expect(resolved.length).to.eq(2)
 		expect(delta).to.eq(expected_portfolio_delta)
 	})
