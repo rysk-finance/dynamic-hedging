@@ -35,6 +35,7 @@ error CollateralAssetInvalid();
 error UnderlyingAssetInvalid();
 error CollateralAmountInvalid();
 error WithdrawExceedsLiquidity();
+error MaxLiquidityBufferReached();
 error DeltaQuoteError(uint256 quote, int256 delta);
 error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
 error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
@@ -74,6 +75,8 @@ contract LiquidityPool is
   uint public collateralAllocated;
   // amount of underlyingAsset allocated as collateral
   uint public underlyingAllocated;
+  // buffer of funds to not be used to write new options in case of margin requirements (as percentage)
+  uint public bufferPercentage = 20;
   // max total supply of the lp shares
   uint public maxTotalSupply = type(uint256).max;
   // Maximum discount that an option tilting factor can discount an option price
@@ -140,7 +143,7 @@ contract LiquidityPool is
     int[7] memory callSkew, 
     int[7] memory putSkew, 
     string memory name, 
-    string memory symbol, 
+    string memory symbol,
     OptionParams memory _optionParams,
     address adminAddress
   ) ERC20(name, symbol, 18) 
@@ -175,7 +178,7 @@ contract LiquidityPool is
 
   function addBuybackAddress(address _addressToWhitelist) public onlyOwner {
     buybackWhitelist[_addressToWhitelist] = true;
-}
+  }
 
   /**
    * @notice set a new hedging reactor
@@ -335,6 +338,14 @@ contract LiquidityPool is
    */
   function setMaxTotalSupply(uint256 _maxTotalSupply) external onlyOwner {
       maxTotalSupply = _maxTotalSupply;
+  }
+
+  /**
+   * @notice update the liquidity pool buffer limit
+   * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of total NAV. (for 20% enter 20)
+  */
+  function setBufferPercentage(uint _bufferPercentage) external onlyOwner {
+    bufferPercentage = _bufferPercentage;
   }
 
   /**
@@ -518,6 +529,14 @@ contract LiquidityPool is
     uint256 liabilities = _valueCallsWritten() + _valuePutsWritten();
     uint256 NAV = assets - liabilities;
     return NAV;
+  }
+
+  /**
+  @notice returns balance of this liquidity pool in e18 decimal format
+  @return balance of this liquidity pool in e18 decimal format
+  */
+  function _lpConvertedBalance() internal view returns (uint){
+    return OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals());
   }
 
   /**
@@ -822,14 +841,21 @@ contract LiquidityPool is
   function issueAndWriteOption(
      Types.OptionSeries memory optionSeries,
      uint amount
-  ) public whenNotPaused() returns (uint optionAmount, address series)
+  ) 
+    public
+    whenNotPaused()
+    returns (uint optionAmount, address series)
   {
+    // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
+    int256 bufferRemaining = int256(_lpConvertedBalance() - _getNAV() * bufferPercentage/100);
+    // revert if buffer allowance already hit
+    if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
     OptionRegistry optionRegistry = getOptionRegistry();
     series = _issue(optionSeries, optionRegistry);
     // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     //write the option
-    optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium);
+    optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium, bufferRemaining);
   }
 
   /**
@@ -846,12 +872,16 @@ contract LiquidityPool is
     whenNotPaused()
     returns (uint256)
   {
+    // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
+    int256 bufferRemaining = int256(_lpConvertedBalance() - _getNAV() * bufferPercentage/100);
+    // revert if buffer allowance already hit
+    if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
     OptionRegistry optionRegistry = getOptionRegistry();
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
-    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium);
+    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium, bufferRemaining);
   }
 
   /**
@@ -896,7 +926,7 @@ contract LiquidityPool is
    * @param  premium the premium to charge the user
    * @return the amount that was written
    */
-  function _writeOption(Types.OptionSeries memory optionSeries, address seriesAddress, uint256 amount, OptionRegistry optionRegistry, uint256 premium) internal returns (uint256) {
+  function _writeOption(Types.OptionSeries memory optionSeries, address seriesAddress, uint256 amount, OptionRegistry optionRegistry, uint256 premium, int256 bufferRemaining) internal returns (uint256) {
     // premium needs to adjusted for decimals of base strike asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     uint256 collateralAmount = optionRegistry.getCollateral(Types.OptionSeries( 
@@ -907,7 +937,7 @@ contract LiquidityPool is
        optionSeries.strikeAsset,
        collateralAsset), amount);
 
-    if (IERC20(collateralAsset).balanceOf(address(this)) < collateralAmount) {revert CollateralAmountInvalid();}
+    if (uint(bufferRemaining) < collateralAmount) {revert MaxLiquidityBufferReached();}
 
     IERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);
     (, collateralAmount) = optionRegistry.open(seriesAddress, amount, collateralAmount);
