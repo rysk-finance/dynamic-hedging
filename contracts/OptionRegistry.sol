@@ -6,6 +6,7 @@ import "./interfaces/IMarginCalculator.sol";
 import { Types } from "./libraries/Types.sol";
 import "./interfaces/AddressBookInterface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import { OpynInteractionsV2 } from "./libraries/OpynInteractionsV2.sol";
@@ -13,8 +14,9 @@ import { IController, GammaTypes} from "./interfaces/GammaInterface.sol";
 import { LiquidityPool } from "./LiquidityPool.sol";
 import "hardhat/console.sol";
 
-contract OptionRegistry is Ownable {
-
+contract OptionRegistry is Ownable, AccessControl {
+    // Access control role identifier
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     // public versioning of the contract for external use
     string public constant VERSION = "1.0";
     uint8 private constant OPYN_DECIMALS = 8;
@@ -67,14 +69,6 @@ contract OptionRegistry is Ownable {
         _;
     }
 
-    /**
-     * @dev Throws if called by any account other than authorised.
-     */
-    modifier onlyAuthorised() {
-        require(msg.sender == owner() || msg.sender == authorised, "!authorised" );
-        _;
-    }
-
     constructor(address _collateralAsset, address _oTokenFactory, address _gammaController, address _marginPool, address _liquidityPool, address _addressBook) {
       collateralAsset = _collateralAsset;
       oTokenFactory = _oTokenFactory;
@@ -82,6 +76,8 @@ contract OptionRegistry is Ownable {
       marginPool = _marginPool;
       liquidityPool = _liquidityPool;
       addressBook = AddressBookInterface(_addressBook);
+      // Grant admin role to deployer
+      _setupRole(ADMIN_ROLE, msg.sender);
     }
 
   /*********
@@ -367,7 +363,7 @@ contract OptionRegistry is Ownable {
      * @notice adjust the collateral held in a specific vault because of health
      * @param  vaultId the id of the vault to check
      */
-    function adjustCollateral(uint256 vaultId) external onlyAuthorised {
+    function adjustCollateral(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
       (bool isBelowMin, bool isAboveMax,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
       require(isBelowMin || isAboveMax, "vault is healthy");
       if (isBelowMin) {
@@ -391,7 +387,7 @@ contract OptionRegistry is Ownable {
      * @param  vaultId the id of the vault to check
      * @dev    this is a safety function, if worst comes to worse any caller can collateralise a vault to save it.
      */
-    function adjustCollateralCaller(uint256 vaultId) external onlyAuthorised {
+    function adjustCollateralCaller(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
       (bool isBelowMin,,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
       require(isBelowMin, "vault is healthy");
       // transfer the needed collateral to this contract from the msg.sender
@@ -405,7 +401,7 @@ contract OptionRegistry is Ownable {
      * @param  vaultId the id of the vault to check
      * @dev    this is a safety function, if a vault is liquidated.
      */
-    function wCollatLiquidatedVault(uint256 vaultId) external onlyAuthorised {
+    function wCollatLiquidatedVault(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
       // get the vault details from the vaultId
       GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
       require(vault.shortAmounts[0] == 0, "Vault has short positions [amount]");

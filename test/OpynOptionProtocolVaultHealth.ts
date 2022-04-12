@@ -301,6 +301,9 @@ describe("Options protocol Vault Health", function () {
 		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
+		// ensure deployer was granted admin role correctly
+		expect(await optionRegistry.hasRole(utils.id("ADMIN_ROLE"), senderAddress)).to.be.true
+		expect(await optionRegistry.hasRole(utils.id("ADMIN_ROLE"), receiverAddress)).to.be.false
 		const _optionRegistryETH = (await optionRegistryFactory.deploy(
 			WETH_ADDRESS[chainId],
 			OTOKEN_FACTORY[chainId],
@@ -828,6 +831,13 @@ describe("Options protocol Vault Health", function () {
 			roundId
 		)
 		expect(isUnderCollat).to.be.true
+	})
+	it("reverts if unauthorised party tries to adjust collateral", async () => {
+		const unauthorisedSigner = (await ethers.getSigners())[1]
+		const unauthorisedOptionRegistry = await optionRegistry.connect(unauthorisedSigner)
+		const arr = await unauthorisedOptionRegistry.checkVaultHealth(1)
+		const healthFBefore = arr[2]
+		await expect(unauthorisedOptionRegistry.adjustCollateral(1)).to.be.reverted
 	})
 	it("adjusts collateral to get back to positive", async () => {
 		await optionRegistry.setLiquidityPool(liquidityPool.address)
