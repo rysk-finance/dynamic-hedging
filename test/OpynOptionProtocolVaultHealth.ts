@@ -1077,7 +1077,11 @@ describe("Options protocol Vault Health", function () {
 		const usdBalRegistry = await usd.balanceOf(optionRegistry.address)
 		expect(opBalRegistry).to.equal(0)
 		expect(usdBalRegistry).to.equal(0)
+<<<<<<< HEAD
+		expect(newBalanceUSD).to.be.gt(balanceUSD)
+=======
 		expect(newBalanceUSD).to.equal(balanceUSD.add(collateralReturned))
+>>>>>>> main
 	})
 
 	it("settles when option expires ITM ETH collateral", async () => {
