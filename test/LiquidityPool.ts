@@ -104,7 +104,7 @@ const invalidStrikeHigh = utils.parseEther("12500")
 const invalidStrikeLow = utils.parseEther("200")
 
 // balances to deposit into the LP
-const liquidityPoolUsdcDeposit = "10000"
+const liquidityPoolUsdcDeposit = "11000"
 const liquidityPoolWethDeposit = "1"
 
 // balance to withdraw after deposit
@@ -143,6 +143,7 @@ const expiryToValue = [
 
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
+const expiration3 = moment.utc(expiryDate).add(2, "w").add(8, "h").valueOf() / 1000
 const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
 const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
 
@@ -680,7 +681,7 @@ describe("Liquidity Pools", async () => {
 		const opynAmount = toOpyn(fromWei(amount))
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
+		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.lt(0.1)
 		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
@@ -722,6 +723,24 @@ describe("Liquidity Pools", async () => {
 		const lpAllocatedDiff = lpAllocatedAfter.sub(lpAllocatedBefore)
 		expect(tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.lt(
 			0.1
+		)
+	})
+	it("reverts if option colaterral exceeds buffer limit", async () => {
+		const lpBalance = await usd.balanceOf(liquidityPool.address)
+		const amount = toWei("5")
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const proposedSeries = {
+			expiration: expiration3,
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		await expect(liquidityPool.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith(
+			"MaxLiquidityBufferReached"
 		)
 	})
 

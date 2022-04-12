@@ -512,7 +512,7 @@ contract LiquidityPool is
 
   /**
    * @notice get the Net Asset Value
-   * @return Net Asset Value
+   * @return Net Asset Value in e18 decimal format
    */
   function _getNAV()
     internal
@@ -937,8 +937,7 @@ contract LiquidityPool is
        optionSeries.strikeAsset,
        collateralAsset), amount);
 
-    if (uint(bufferRemaining) < collateralAmount) {revert MaxLiquidityBufferReached();}
-
+    if (uint(bufferRemaining) < OptionsCompute.convertFromDecimals(collateralAmount, IERC20(collateralAsset).decimals())) {revert MaxLiquidityBufferReached();}
     IERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);
     (, collateralAmount) = optionRegistry.open(seriesAddress, amount, collateralAmount);
     emit WriteOption(seriesAddress, amount, premium, collateralAmount, msg.sender);
