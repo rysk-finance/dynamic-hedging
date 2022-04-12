@@ -152,8 +152,8 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         // get the collatNeeded (this should not underflow as the 
         // previous check will have eliminated these cases)
         uint256 collatNeeded = convertedAmount - balance;
-        // liquidate the correct amount
-        (uint256 collatReturned, int256 deltaChange) = _liquidatePosition(convertedAmount);
+        // liquidate the collateral needed
+        (uint256 collatReturned, int256 deltaChange) = _liquidatePosition(collatNeeded);
         // adjust the internal delta in accordance with the change that liquidatePosition made
         internalDelta += deltaChange;
         // get the actual returned value to send back to the user
