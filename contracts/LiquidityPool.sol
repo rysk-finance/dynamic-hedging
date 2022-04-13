@@ -393,11 +393,13 @@ contract LiquidityPool is
     if (_shares == 0) {revert InvalidShareAmount();}
     // get the value of amount for the shares
     uint collateralAmount = _shareValue(_shares);
+    // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
+    (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);
+    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/100);
     // determine if there is enough in the pool to withdraw
     // Calculate liquidity that can be withdrawn
-    (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);               
-    if (collateralAmount > normalizedCollateralBalance) {
-      uint256 amountNeeded = collateralAmount - normalizedCollateralBalance;
+    if (collateralAmount > uint(bufferRemaining)) {
+      uint256 amountNeeded = collateralAmount - uint(bufferRemaining);
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         amountNeeded -= IHedgingReactor(hedgingReactors[i]).withdraw(amountNeeded, collateralAsset);
         if (amountNeeded == 0) {
@@ -405,8 +407,9 @@ contract LiquidityPool is
         }
       }
       // Calculate liquidity that can be withdrawn again after an attempt has been made to free funds
-      (normalizedCollateralBalance,, _decimals) = getNormalizedBalance(collateralAsset);
-      if (collateralAmount > normalizedCollateralBalance) {
+      (normalizedCollateralBalance,, ) = getNormalizedBalance(collateralAsset);
+      bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/100);
+      if (bufferRemaining > 0 && collateralAmount > uint(bufferRemaining)) {
         // if there still arent enough funds then revert or TODO: return partial amount
         revert WithdrawExceedsLiquidity();
       }
@@ -529,14 +532,6 @@ contract LiquidityPool is
     uint256 liabilities = _valueCallsWritten() + _valuePutsWritten();
     uint256 NAV = assets - liabilities;
     return NAV;
-  }
-
-  /**
-  @notice returns balance of this liquidity pool in e18 decimal format
-  @return balance of this liquidity pool in e18 decimal format
-  */
-  function _lpConvertedBalance() internal view returns (uint){
-    return OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals());
   }
 
   /**
@@ -847,7 +842,8 @@ contract LiquidityPool is
     returns (uint optionAmount, address series)
   {
     // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
-    int256 bufferRemaining = int256(_lpConvertedBalance() - _getNAV() * bufferPercentage/100);
+    (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
+    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/100);
     // revert if buffer allowance already hit
     if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
     OptionRegistry optionRegistry = getOptionRegistry();
@@ -873,7 +869,8 @@ contract LiquidityPool is
     returns (uint256)
   {
     // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
-    int256 bufferRemaining = int256(_lpConvertedBalance() - _getNAV() * bufferPercentage/100);
+   (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
+    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/100);
     // revert if buffer allowance already hit
     if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
     OptionRegistry optionRegistry = getOptionRegistry();
