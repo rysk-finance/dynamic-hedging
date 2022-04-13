@@ -75,8 +75,8 @@ contract LiquidityPool is
   uint public collateralAllocated;
   // amount of underlyingAsset allocated as collateral
   uint public underlyingAllocated;
-  // buffer of funds to not be used to write new options in case of margin requirements (as percentage)
-  uint public bufferPercentage = 20;
+  // buffer of funds to not be used to write new options in case of margin requirements (as percentage - for 20% enter 2000)
+  uint public bufferPercentage = 2000;
   // max total supply of the lp shares
   uint public maxTotalSupply = type(uint256).max;
   // Maximum discount that an option tilting factor can discount an option price
@@ -342,7 +342,7 @@ contract LiquidityPool is
 
   /**
    * @notice update the liquidity pool buffer limit
-   * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of total NAV. (for 20% enter 20)
+   * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of total NAV. (for 20% enter 2000)
   */
   function setBufferPercentage(uint _bufferPercentage) external onlyOwner {
     bufferPercentage = _bufferPercentage;
@@ -395,7 +395,7 @@ contract LiquidityPool is
     uint collateralAmount = _shareValue(_shares);
     // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
     (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);
-    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/100);
+    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/10000);
     // determine if there is enough in the pool to withdraw
     // Calculate liquidity that can be withdrawn
     if (collateralAmount > uint(bufferRemaining)) {
@@ -408,7 +408,7 @@ contract LiquidityPool is
       }
       // Calculate liquidity that can be withdrawn again after an attempt has been made to free funds
       (normalizedCollateralBalance,, ) = getNormalizedBalance(collateralAsset);
-      bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/100);
+      bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/10000);
       if (bufferRemaining > 0 && collateralAmount > uint(bufferRemaining)) {
         // if there still arent enough funds then revert or TODO: return partial amount
         revert WithdrawExceedsLiquidity();
@@ -843,7 +843,7 @@ contract LiquidityPool is
   {
     // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
     (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
-    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/100);
+    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/10000);
     // revert if buffer allowance already hit
     if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
     OptionRegistry optionRegistry = getOptionRegistry();
@@ -870,7 +870,7 @@ contract LiquidityPool is
   {
     // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
    (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
-    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/100);
+    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/10000);
     // revert if buffer allowance already hit
     if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
     OptionRegistry optionRegistry = getOptionRegistry();
