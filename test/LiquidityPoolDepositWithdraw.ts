@@ -85,7 +85,7 @@ const liquidityPoolWethDeposit = "1"
 
 // balance to withdraw after deposit
 const liquidityPoolWethWithdraw = "0.1"
-const liquidityPoolUsdcWithdraw = "10000"
+const liquidityPoolUsdcWithdraw = "8000"
 
 const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("10000")
@@ -435,14 +435,15 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	})
 
 	it("Removes from liquidityPool with no options written", async () => {
-		const liquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
-		await liquidityPool.withdraw(liquidityPoolBalance, senderAddress)
-		const newLiquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
+		const lpSharesBalance = await liquidityPool.balanceOf(senderAddress)
+		console.log({ lpSharesBalance: lpSharesBalance.mul(4).div(5) })
+		await liquidityPool.withdraw(toWei(liquidityPoolUsdcWithdraw), senderAddress)
+		const newLpSharesBalance = await liquidityPool.balanceOf(senderAddress)
 		const expectedBalance = (
 			parseFloat(liquidityPoolUsdcDeposit) - parseFloat(liquidityPoolUsdcWithdraw)
 		).toString()
-		expect(newLiquidityPoolBalance).to.eq(toWei(expectedBalance))
-		expect(liquidityPoolBalance.sub(newLiquidityPoolBalance)).to.eq(toWei(liquidityPoolUsdcWithdraw))
+		expect(newLpSharesBalance).to.eq(toWei(expectedBalance))
+		expect(lpSharesBalance.sub(newLpSharesBalance)).to.eq(toWei(liquidityPoolUsdcWithdraw))
 	})
 
 	it("Adds additional liquidity from new account", async () => {
@@ -498,6 +499,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	})
 	it("LP can redeem shares", async () => {
 		const senderSharesBefore = await liquidityPool.balanceOf(senderAddress)
+		console.log({ senderSharesBefore })
 		expect(senderSharesBefore).to.be.gt(0)
 		const senderUsdcBefore = await usd.balanceOf(senderAddress)
 		const receiverSharesBefore = await liquidityPool.balanceOf(receiverAddress)
@@ -514,11 +516,31 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const senderUsdcAfter = await usd.balanceOf(senderAddress)
 		const senderSharesAfter = await liquidityPool.balanceOf(senderAddress)
 		const totalSharesAfter = await liquidityPool.totalSupply()
+		console.log({ usdBalanceBefore, usdBalanceAfter })
 		//@ts-ignore
 		const diff = usdBalanceBefore - usdBalanceAfter
-		expect(Number(fromUSDC(diff - toUSDC(liquidityPoolUsdcDeposit).toNumber()))).to.be.within(0, 20)
 		expect(
-			Number(fromUSDC(senderUsdcAfter.sub(senderUsdcBefore).sub(toUSDC(liquidityPoolUsdcDeposit))))
+			Number(
+				fromUSDC(
+					diff -
+						toUSDC(
+							(parseInt(liquidityPoolUsdcDeposit) * 2 - parseInt(liquidityPoolUsdcWithdraw)).toString()
+						).toNumber()
+				)
+			)
+		).to.be.within(0, 20)
+		expect(
+			Number(
+				fromUSDC(
+					senderUsdcAfter
+						.sub(senderUsdcBefore)
+						.sub(
+							toUSDC(
+								(parseInt(liquidityPoolUsdcDeposit) * 2 - parseInt(liquidityPoolUsdcWithdraw)).toString()
+							)
+						)
+				)
+			)
 		).to.be.within(0, 20)
 		expect(senderUsdcAfter.sub(senderUsdcBefore)).to.be.eq(strikeAmount)
 		expect(senderSharesAfter).to.eq(0)
