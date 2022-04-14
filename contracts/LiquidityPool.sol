@@ -396,13 +396,13 @@ contract LiquidityPool is
     // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
     (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);
     // Calculate liquidity that can be withdrawn without hiting buffer
-    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/10000);
+    int256 bufferRemaining = int256(normalizedCollateralBalance) - int(_getNAV() * bufferPercentage/10000);
     // determine if any extra liquidity is needed. If this value is 0 or less, withdrawal can happen with no further action
     int256 amountNeeded = int(collateralAmount) - bufferRemaining;
     if (amountNeeded > 0) {
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         amountNeeded -= int(IHedgingReactor(hedgingReactors[i]).withdraw(uint(amountNeeded), collateralAsset));
-        if (amountNeeded == 0) {
+        if (amountNeeded <= 0) {
           break;
         }
       }
