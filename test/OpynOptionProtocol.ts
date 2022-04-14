@@ -35,7 +35,7 @@ import {
 	GAMMA_ORACLE_NEW
 } from "./constants"
 import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
-import {deployOpyn} from "../utils/opyn-deployer"
+import { deployOpyn } from "../utils/opyn-deployer"
 let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
@@ -116,13 +116,13 @@ describe("Options protocol", function () {
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
 		const constantsFactory = await ethers.getContractFactory("Constants")
-		const interactionsFactory = await ethers.getContractFactory("OpynInteractionsV2")
+		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
-				OpynInteractionsV2: interactions.address
+				OpynInteractions: interactions.address
 			}
 		})
 		// get and transfer weth
@@ -130,7 +130,10 @@ describe("Options protocol", function () {
 			"contracts/interfaces/WETH.sol:WETH",
 			WETH_ADDRESS[chainId]
 		)) as WETH
-		usd = (await ethers.getContractAt("ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usd = (await ethers.getContractAt(
+			"contracts/tokens/ERC20.sol:ERC20",
+			USDC_ADDRESS[chainId]
+		)) as MintableERC20
 		await network.provider.request({
 			method: "hardhat_impersonateAccount",
 			params: [USDC_OWNER_ADDRESS[chainId]]

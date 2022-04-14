@@ -87,7 +87,7 @@ contracts
 │   ├── NormalDist.sol
 │   ├── OptionsCompute.sol
 │   ├── OpynInteractions.sol
-│   ├── OpynInteractionsV2.sol
+│   ├── OpynInteractions.sol
 │   ├── PRBMath.sol
 │   ├── PRBMathSD59x18.sol
 │   ├── PRBMathUD60x18.sol

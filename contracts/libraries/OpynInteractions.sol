@@ -13,7 +13,7 @@ import {Constants} from "./Constants.sol";
 import "./SafeTransferLib.sol";
 import "hardhat/console.sol";
 
-library OpynInteractionsV2 {
+library OpynInteractions {
 
     uint256 private constant SCALE_FROM = 10**10;
     
