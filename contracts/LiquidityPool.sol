@@ -35,6 +35,7 @@ error CollateralAssetInvalid();
 error UnderlyingAssetInvalid();
 error CollateralAmountInvalid();
 error WithdrawExceedsLiquidity();
+error MaxLiquidityBufferReached();
 error DeltaQuoteError(uint256 quote, int256 delta);
 error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
 error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
@@ -58,6 +59,10 @@ contract LiquidityPool is
   uint256 private constant ONE_YEAR_SECONDS = 31557600;
   // standard expected decimals of ERC20s
   uint8 private constant SCALE_DECIMALS = 18;
+  // BIPS
+  uint256 MAX_BPS = 10_000;
+  // buffer of funds to not be used to write new options in case of margin requirements (as percentage - for 20% enter 2000)
+  uint public bufferPercentage = 2000;
   // list of addresses for hedging reactors
   address[] public hedgingReactors;
   // Protocol management contract
@@ -140,7 +145,7 @@ contract LiquidityPool is
     int[7] memory callSkew, 
     int[7] memory putSkew, 
     string memory name, 
-    string memory symbol, 
+    string memory symbol,
     OptionParams memory _optionParams,
     address adminAddress
   ) ERC20(name, symbol, 18) 
@@ -175,7 +180,7 @@ contract LiquidityPool is
 
   function addBuybackAddress(address _addressToWhitelist) public onlyOwner {
     buybackWhitelist[_addressToWhitelist] = true;
-}
+  }
 
   /**
    * @notice set a new hedging reactor
@@ -338,6 +343,14 @@ contract LiquidityPool is
   }
 
   /**
+   * @notice update the liquidity pool buffer limit
+   * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of total NAV. (for 20% enter 2000)
+  */
+  function setBufferPercentage(uint _bufferPercentage) external onlyOwner {
+    bufferPercentage = _bufferPercentage;
+  }
+
+  /**
    * @notice function for adding liquidity to the options liquidity pool
    * @param _amount    amount of the strike asset to deposit
    * @param _recipient the recipient of the shares
@@ -382,23 +395,23 @@ contract LiquidityPool is
     if (_shares == 0) {revert InvalidShareAmount();}
     // get the value of amount for the shares
     uint collateralAmount = _shareValue(_shares);
-    // determine if there is enough in the pool to withdraw
-    // Calculate liquidity that can be withdrawn
-    (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);               
-    if (collateralAmount > normalizedCollateralBalance) {
-      uint256 amountNeeded = collateralAmount - normalizedCollateralBalance;
+    // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
+    (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);
+    // Calculate liquidity that can be withdrawn without hitting buffer
+    int256 bufferRemaining = int256(normalizedCollateralBalance) - int(_getNAV() * bufferPercentage/MAX_BPS);
+    // determine if any extra liquidity is needed. If this value is 0 or less, withdrawal can happen with no further action
+    int256 amountNeeded = int(collateralAmount) - bufferRemaining;
+    if (amountNeeded > 0) {
+      // if above zero, we need to withdraw funds from hedging reactors
+      ///TODO create some kind of hierachical preference for which reactor to withdraw from first? (close positions that are costing us first)
       for (uint8 i=0; i < hedgingReactors.length; i++) {
-        amountNeeded -= IHedgingReactor(hedgingReactors[i]).withdraw(amountNeeded, collateralAsset);
-        if (amountNeeded == 0) {
+        amountNeeded -= int(IHedgingReactor(hedgingReactors[i]).withdraw(uint(amountNeeded), collateralAsset));
+        if (amountNeeded <= 0) {
           break;
         }
       }
-      // Calculate liquidity that can be withdrawn again after an attempt has been made to free funds
-      (normalizedCollateralBalance,, _decimals) = getNormalizedBalance(collateralAsset);
-      if (collateralAmount > normalizedCollateralBalance) {
-        // if there still arent enough funds then revert or TODO: return partial amount
-        revert WithdrawExceedsLiquidity();
-      }
+      // if still above zero after withdrawing from hedging reactors, we do not have enough liquidity
+      if (amountNeeded > 0) { revert WithdrawExceedsLiquidity();}
     }
     transferCollateralAmount = OptionsCompute.convertToDecimals(collateralAmount, _decimals);
     // burn the shares
@@ -501,7 +514,7 @@ contract LiquidityPool is
 
   /**
    * @notice get the Net Asset Value
-   * @return Net Asset Value
+   * @return Net Asset Value in e18 decimal format
    */
   function _getNAV()
     internal
@@ -813,6 +826,19 @@ contract LiquidityPool is
   }
 
   /**
+   * @notice calculates amount of liquidity that can be used before hitting buffer
+   * @return bufferRemaining the amount of liquidity available before reaching buffer
+  */
+  function _checkBuffer() view internal returns( int256 bufferRemaining){ 
+      // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
+    (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
+    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/MAX_BPS);
+    // revert if buffer allowance already hit
+    if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
+    return bufferRemaining;
+  }
+
+  /**
    * @notice write a number of options for a given series addres
    * @param  optionSeries option type to mint
    * @param  amount       the number of options to mint 
@@ -822,14 +848,18 @@ contract LiquidityPool is
   function issueAndWriteOption(
      Types.OptionSeries memory optionSeries,
      uint amount
-  ) public whenNotPaused() returns (uint optionAmount, address series)
+  ) 
+    public
+    whenNotPaused()
+    returns (uint optionAmount, address series)
   {
+    int256 bufferRemaining = _checkBuffer();
     OptionRegistry optionRegistry = getOptionRegistry();
     series = _issue(optionSeries, optionRegistry);
     // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     //write the option
-    optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium);
+    optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium, bufferRemaining);
   }
 
   /**
@@ -846,12 +876,13 @@ contract LiquidityPool is
     whenNotPaused()
     returns (uint256)
   {
+    int256 bufferRemaining = _checkBuffer();
     OptionRegistry optionRegistry = getOptionRegistry();
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
-    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium);
+    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium, bufferRemaining);
   }
 
   /**
@@ -896,7 +927,7 @@ contract LiquidityPool is
    * @param  premium the premium to charge the user
    * @return the amount that was written
    */
-  function _writeOption(Types.OptionSeries memory optionSeries, address seriesAddress, uint256 amount, OptionRegistry optionRegistry, uint256 premium) internal returns (uint256) {
+  function _writeOption(Types.OptionSeries memory optionSeries, address seriesAddress, uint256 amount, OptionRegistry optionRegistry, uint256 premium, int256 bufferRemaining) internal returns (uint256) {
     // premium needs to adjusted for decimals of base strike asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     uint256 collateralAmount = optionRegistry.getCollateral(Types.OptionSeries( 
@@ -907,8 +938,7 @@ contract LiquidityPool is
        optionSeries.strikeAsset,
        collateralAsset), amount);
 
-    if (IERC20(collateralAsset).balanceOf(address(this)) < collateralAmount) {revert CollateralAmountInvalid();}
-
+    if (uint(bufferRemaining) < OptionsCompute.convertFromDecimals(collateralAmount, IERC20(collateralAsset).decimals())) {revert MaxLiquidityBufferReached();}
     IERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);
     (, collateralAmount) = optionRegistry.open(seriesAddress, amount, collateralAmount);
     emit WriteOption(seriesAddress, amount, premium, collateralAmount, msg.sender);
