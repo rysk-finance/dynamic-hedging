@@ -18,6 +18,7 @@ import {
 import moment from "moment"
 //@ts-ignore
 import bs from "black-scholes"
+import {deployOpyn} from ".,/utils/opyn-deployer"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
