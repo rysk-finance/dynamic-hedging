@@ -395,24 +395,21 @@ contract LiquidityPool is
     uint collateralAmount = _shareValue(_shares);
     // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
     (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);
-    // Calculate liquidity that can be withdrawn without hiting buffer
+    // Calculate liquidity that can be withdrawn without hitting buffer
     int256 bufferRemaining = int256(normalizedCollateralBalance) - int(_getNAV() * bufferPercentage/10000);
     // determine if any extra liquidity is needed. If this value is 0 or less, withdrawal can happen with no further action
     int256 amountNeeded = int(collateralAmount) - bufferRemaining;
     if (amountNeeded > 0) {
+      // if above zero, we need to withdraw funds from hedging reactors
+      ///TODO create some kind of hierachical preference for which reactor to withdraw from first? (close positions that are costing us first)
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         amountNeeded -= int(IHedgingReactor(hedgingReactors[i]).withdraw(uint(amountNeeded), collateralAsset));
         if (amountNeeded <= 0) {
           break;
         }
       }
-      // Calculate liquidity that can be withdrawn again after an attempt has been made to free funds
-      (normalizedCollateralBalance,, ) = getNormalizedBalance(collateralAsset);
-      bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/10000);
-      if (bufferRemaining > 0 && collateralAmount > uint(bufferRemaining)) {
-        // if there still arent enough funds then revert or TODO: return partial amount
-        revert WithdrawExceedsLiquidity();
-      }
+      // if still above zero after withdrawing from hedging reactors, we do not have enough liquidity
+      if (amountNeeded > 0) { revert WithdrawExceedsLiquidity();}
     }
     transferCollateralAmount = OptionsCompute.convertToDecimals(collateralAmount, _decimals);
     // burn the shares
