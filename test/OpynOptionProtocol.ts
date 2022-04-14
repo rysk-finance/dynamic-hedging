@@ -35,7 +35,7 @@ import {
 	GAMMA_ORACLE_NEW
 } from "./constants"
 import { setupOracle, setOpynOracleExpiryPrice } from "./helpers"
-import { create } from "domain"
+import {deployOpyn} from "../utils/opyn-deployer"
 let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
