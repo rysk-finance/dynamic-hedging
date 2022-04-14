@@ -112,6 +112,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             // not enough in balance. Liquidate ETH.
             //TODO change amountInMaximum
             uint256 ethBalance = IERC20(wETH).balanceOf(address(this));
+            if(ethBalance < minAmount) {
+                return 0;
+            }
             uint256 stablesReceived = _liquidateETH(convertedAmount - balance, ethBalance, _token);         
             balance = IERC20(_token).balanceOf(address(this));
             if(balance < convertedAmount){
@@ -159,7 +162,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         @param _sellToken the stablecoin to sell
     */
     function _swapExactOutputSingle(uint256 _amountOut, uint256 _amountInMaximum, address _sellToken) internal returns (int256, uint256) {
-        SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), 1000000000);//1,000 USDC
+        /// @TODO get live uniswap price data to establish _amountInMaximum value and change tempTransferAmount to that value
+        uint tempTransferAmount =  5000000000; // 5,000 USDC
+        SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), tempTransferAmount);
 
         ISwapRouter.ExactOutputSingleParams memory params =
             ISwapRouter.ExactOutputSingleParams({
