@@ -1,6 +1,7 @@
 pragma solidity >=0.8.0;
 
 import "./PriceFeed.sol";
+import "./DeltaFeed.sol";
 import "./tokens/ERC20.sol";
 import "./OptionRegistry.sol";
 import "./OptionsProtocol.sol";
@@ -551,7 +552,14 @@ contract LiquidityPool is
     }
 
   }
-
+  /**
+   * @notice get the delta feed used by the liquidity pool
+   * @return the delta feed contract interface
+   */
+  function getDeltaFeed() internal view returns (DeltaFeed) {
+    address feedAddress = Protocol(protocol).deltaFeed();
+    return deltaFeed(feedAddress);
+  }
 
   /**
    * @notice get the price feed used by the liquidity pool
@@ -676,40 +684,18 @@ contract LiquidityPool is
       view
       returns (int256)
   {
-      uint256 price = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      uint256 rfr = riskFreeRate;
-      int256 callsDelta;
-      int256 putsDelta;
-      if (weightedTimeCall != 0) {
-        uint256 callIv = getImpliedVolatility(false, price, weightedStrikeCall, weightedTimeCall);
-        callsDelta = BlackScholes.getDelta(
-          price,
-          weightedStrikeCall,
-          weightedTimeCall,
-          callIv,
-          rfr,
-          false
-        );
-      }
+      DeltaFeed deltaFeed = getDeltaFeed();
+      int256 poolDelta = deltaFeed.getDelta(
+        underlying,
+        strikeAsset
+     );
 
-      if (weightedTimePut != 0) {
-        uint256 putIv = getImpliedVolatility(true, price, weightedStrikePut, weightedTimePut);
-        putsDelta = BlackScholes.getDelta(
-           price,
-           weightedStrikePut,
-           weightedTimePut,
-           putIv,
-           rfr,
-           true
-        );
-      }
       int256 externalDelta;
       // TODO fix hedging reactor address to be dynamic
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
       }
-      // return the negative sum of open option because we are the counterparty
-      return -(callsDelta + putsDelta) + externalDelta;
+      return poolDelta + externalDelta;
   }
     
   /**
@@ -942,7 +928,11 @@ contract LiquidityPool is
     IERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);
     (, collateralAmount) = optionRegistry.open(seriesAddress, amount, collateralAmount);
     emit WriteOption(seriesAddress, amount, premium, collateralAmount, msg.sender);
-    _adjustWeightedVariables(optionSeries, amount, collateralAmount, true);
+    DeltaFeed deltaFeed = getDeltaFeed();
+    deltaFeed.requestUpdate(
+      underlying,
+      strikeAsset
+    );
     SafeTransferLib.safeTransfer(ERC20(seriesAddress), msg.sender, OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
     return amount;
   }
@@ -1013,7 +1003,11 @@ contract LiquidityPool is
   
     (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
     emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
-    _adjustWeightedVariables(optionSeries, amount, collateralReturned, false);
+    DeltaFeed deltaFeed = getDeltaFeed();
+    deltaFeed.requestUpdate(
+      underlying,
+      strikeAsset
+    );
     SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     return amount;
   }
@@ -1072,7 +1066,11 @@ contract LiquidityPool is
     emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // recalculate liquidity pool's position
-    _adjustWeightedVariables(optionSeries, oTokensAmount, collatReturned, false);
+    DeltaFeed deltaFeed = getDeltaFeed();
+    deltaFeed.requestUpdate(
+      underlying,
+      strikeAsset
+    );
     collateralAllocated -= collatLost;
 
    }
