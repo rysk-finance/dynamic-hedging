@@ -234,7 +234,7 @@ export async function calculateOptionQuoteLocally(
 		"contracts/interfaces/WETH.sol:WETH",
 		WETH_ADDRESS[chainId]
 	)) as WETH
-	const usd = (await ethers.getContractAt("ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+	const usd = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
 
 	const totalLiqidity = await liquidityPool.totalSupply()
 	const blockNum = await ethers.provider.getBlockNumber()

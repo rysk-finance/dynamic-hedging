@@ -87,7 +87,6 @@ contracts
 │   ├── NormalDist.sol
 │   ├── OptionsCompute.sol
 │   ├── OpynInteractions.sol
-│   ├── OpynInteractionsV2.sol
 │   ├── PRBMath.sol
 │   ├── PRBMathSD59x18.sol
 │   ├── PRBMathUD60x18.sol
@@ -96,7 +95,6 @@ contracts
 ├── tokens
 │   └── ERC20.sol
 ├── LiquidityPool.sol
-├── OptionRegistryV0.sol
 ├── OptionRegistry.sol
 ├── OptionsProtocol.sol
 └── PriceFeed.sol

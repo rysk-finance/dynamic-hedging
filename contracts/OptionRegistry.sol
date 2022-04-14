@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
-import { OpynInteractionsV2 } from "./libraries/OpynInteractionsV2.sol";
+import { OpynInteractions } from "./libraries/OpynInteractions.sol";
 import { IController, GammaTypes} from "./interfaces/GammaInterface.sol";
 import { LiquidityPool } from "./LiquidityPool.sol";
 import "hardhat/console.sol";
@@ -136,7 +136,7 @@ contract OptionRegistry is Ownable, AccessControl {
         // create option storage hash
         bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, collateral, expiration, isPut, formattedStrike);
         // check for an opyn oToken if it doesn't exist deploy it
-        address series = OpynInteractionsV2.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formattedStrike, expiration, isPut);
+        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formattedStrike, expiration, isPut);
         // store the option data as a hash
         seriesInfo[series] = Types.OptionSeries(expiration, isPut, formattedStrike, underlying, strikeAsset, collateral);
         seriesAddress[issuanceHash] = series;
@@ -159,23 +159,6 @@ contract OptionRegistry is Ownable, AccessControl {
         require(expiration > block.timestamp, "Already expired");
         // check for an opyn oToken
         address series = OpynInteractions.getOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
-        return series;
-    }
-    /**
-     * @notice Retrieves the option token if it exists
-     * @param  underlying is the address of the underlying asset of the option
-     * @param  strikeAsset is the address of the collateral asset of the option
-     * @param  expiration is the expiry timestamp of the option
-     * @param  isPut the type of option
-     * @param  strike is the strike price of the option - 1e18 format
-     * @param collateral is the address of the asset to collateralize the option with
-     * @return the address of the option
-     */
-    function getOtoken(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external onlyLiquidityPool returns (address) {
-        // deploy an oToken contract address
-        require(expiration > block.timestamp, "Already expired");
-        // check for an opyn oToken
-        address series = OpynInteractionsV2.getOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
         return series;
     }
 
@@ -221,7 +204,7 @@ contract OptionRegistry is Ownable, AccessControl {
           vaultId_ = (controller.getAccountVaultCounter(address(this))) + 1;
           vaultCount++;
         } 
-        uint256 mintAmount = OpynInteractionsV2.createShort(gammaController, marginPool, _series, collateralAmount, vaultId_, amount, 1);
+        uint256 mintAmount = OpynInteractions.createShort(gammaController, marginPool, _series, collateralAmount, vaultId_, amount, 1);
         emit OptionsContractOpened(_series, vaultId_, mintAmount);
         // transfer the option to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(_series), msg.sender, mintAmount);
@@ -248,7 +231,7 @@ contract OptionRegistry is Ownable, AccessControl {
         SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), convertedAmount);
         // burn the oToken tracking the amount of collateral returned
         // TODO: account for fact there might be a buffer
-        uint256 collatReturned = OpynInteractionsV2.burnShort(gammaController, _series, convertedAmount, vaultId);
+        uint256 collatReturned = OpynInteractions.burnShort(gammaController, _series, convertedAmount, vaultId);
         SafeTransferLib.safeTransfer(ERC20(series.collateral), msg.sender, collatReturned);
         emit OptionsContractClosed(_series, vaultId, amount);
         return (true, collatReturned);
@@ -271,7 +254,7 @@ contract OptionRegistry is Ownable, AccessControl {
         // get the vault
         uint256 vaultId = vaultIds[_series];
         // settle the vault
-        (uint256 collatReturned, uint256 collatLost, uint amountShort) = OpynInteractionsV2.settle(gammaController, vaultId);
+        (uint256 collatReturned, uint256 collatLost, uint amountShort) = OpynInteractions.settle(gammaController, vaultId);
         // transfer the collateral back to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(series.collateral), liquidityPool, collatReturned);
         emit OptionsContractSettled(_series, collatReturned, collatLost, amountShort);
@@ -293,7 +276,7 @@ contract OptionRegistry is Ownable, AccessControl {
         // transfer the oToken back to this account
         SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), IERC20(_series).balanceOf(msg.sender));
         // redeem
-        uint256 collatReturned = OpynInteractionsV2.redeem(gammaController, marginPool, _series, seriesBalance);
+        uint256 collatReturned = OpynInteractions.redeem(gammaController, marginPool, _series, seriesBalance);
         return collatReturned;
     }
 
@@ -388,11 +371,11 @@ contract OptionRegistry is Ownable, AccessControl {
         // transfer the needed collateral to this contract from the liquidityPool
         SafeTransferLib.safeTransferFrom(collateralAsset, liquidityPool, address(this), collateralAmount);
         // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-        OpynInteractionsV2.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
+        OpynInteractions.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
       } else if (isAboveMax) {
         LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, true);
         // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-        OpynInteractionsV2.withdrawCollat(gammaController, collateralAsset, collateralAmount, vaultId);
+        OpynInteractions.withdrawCollat(gammaController, collateralAsset, collateralAmount, vaultId);
         // transfer the excess collateral to the liquidityPool from this address
         SafeTransferLib.safeTransfer(ERC20(collateralAsset), liquidityPool, collateralAmount);
       }
@@ -410,7 +393,7 @@ contract OptionRegistry is Ownable, AccessControl {
       // transfer the needed collateral to this contract from the msg.sender
       SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collateralAmount);
       // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-      OpynInteractionsV2.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
+      OpynInteractions.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
     }
 
     /**
@@ -425,7 +408,7 @@ contract OptionRegistry is Ownable, AccessControl {
       require(vault.shortOtokens[0] == address(0), "Vault has short positions [token]");
       require(vault.collateralAmounts[0] > 0, "Vault has no collateral");
       // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-      OpynInteractionsV2.withdrawCollat(gammaController, vault.collateralAssets[0], vault.collateralAmounts[0], vaultId);
+      OpynInteractions.withdrawCollat(gammaController, vault.collateralAssets[0], vault.collateralAmounts[0], vaultId);
       // transfer the excess collateral to the liquidityPool from this address
       SafeTransferLib.safeTransfer(ERC20(vault.collateralAssets[0]), liquidityPool, vault.collateralAmounts[0]);
     }
