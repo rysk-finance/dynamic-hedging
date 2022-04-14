@@ -762,21 +762,6 @@ describe("Liquidity Pools", async () => {
 		expect(res.toNumber()).to.equal(0)
 		expect(reactorDelta).to.equal(newReactorDelta).to.equal(0)
 	})
-
-	it("reverts when non-admin calls rebalance function", async () => {
-		const delta = await liquidityPool.getPortfolioDelta()
-		//@ts-ignore
-		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
-	})
-	it("hedges delta using the uniswap reactor", async () => {
-		const delta = await liquidityPool.getPortfolioDelta()
-		//@ts-ignore
-		await liquidityPool.rebalancePortfolioDelta(delta, 0)
-		const newDelta = await liquidityPool.getPortfolioDelta()
-		expect(parseFloat(utils.formatEther(newDelta))).to.be.lt(0.001)
-		expect(parseFloat(utils.formatEther(newDelta))).to.be.gt(-0.001)
-	})
-
 	it("Creates a liquidity pool with ETH as collateralAsset", async () => {
 		type int7 = [
 			BigNumberish,
