@@ -59,6 +59,10 @@ contract LiquidityPool is
   uint256 private constant ONE_YEAR_SECONDS = 31557600;
   // standard expected decimals of ERC20s
   uint8 private constant SCALE_DECIMALS = 18;
+  // BIPS
+  uint256 MAX_BPS = 10_000;
+  // buffer of funds to not be used to write new options in case of margin requirements (as percentage - for 20% enter 2000)
+  uint public bufferPercentage = 2000;
   // list of addresses for hedging reactors
   address[] public hedgingReactors;
   // Protocol management contract
@@ -75,8 +79,6 @@ contract LiquidityPool is
   uint public collateralAllocated;
   // amount of underlyingAsset allocated as collateral
   uint public underlyingAllocated;
-  // buffer of funds to not be used to write new options in case of margin requirements (as percentage - for 20% enter 2000)
-  uint public bufferPercentage = 2000;
   // max total supply of the lp shares
   uint public maxTotalSupply = type(uint256).max;
   // Maximum discount that an option tilting factor can discount an option price
@@ -396,7 +398,7 @@ contract LiquidityPool is
     // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
     (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);
     // Calculate liquidity that can be withdrawn without hitting buffer
-    int256 bufferRemaining = int256(normalizedCollateralBalance) - int(_getNAV() * bufferPercentage/10000);
+    int256 bufferRemaining = int256(normalizedCollateralBalance) - int(_getNAV() * bufferPercentage/MAX_BPS);
     // determine if any extra liquidity is needed. If this value is 0 or less, withdrawal can happen with no further action
     int256 amountNeeded = int(collateralAmount) - bufferRemaining;
     if (amountNeeded > 0) {
@@ -824,6 +826,19 @@ contract LiquidityPool is
   }
 
   /**
+   * @notice calculates amount of liquidity that can be used before hitting buffer
+   * @return bufferRemaining the amount of liquidity available before reaching buffer
+  */
+  function _checkBuffer() view internal returns( int256 bufferRemaining){ 
+      // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
+    (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
+    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/MAX_BPS);
+    // revert if buffer allowance already hit
+    if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
+    return bufferRemaining;
+  }
+
+  /**
    * @notice write a number of options for a given series addres
    * @param  optionSeries option type to mint
    * @param  amount       the number of options to mint 
@@ -838,11 +853,7 @@ contract LiquidityPool is
     whenNotPaused()
     returns (uint optionAmount, address series)
   {
-    // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
-    (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
-    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/10000);
-    // revert if buffer allowance already hit
-    if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
+    int256 bufferRemaining = _checkBuffer();
     OptionRegistry optionRegistry = getOptionRegistry();
     series = _issue(optionSeries, optionRegistry);
     // calculate premium
@@ -865,11 +876,7 @@ contract LiquidityPool is
     whenNotPaused()
     returns (uint256)
   {
-    // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
-   (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
-    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/10000);
-    // revert if buffer allowance already hit
-    if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
+    int256 bufferRemaining = _checkBuffer();
     OptionRegistry optionRegistry = getOptionRegistry();
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);

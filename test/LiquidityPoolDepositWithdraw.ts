@@ -436,7 +436,6 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 
 	it("Removes from liquidityPool with no options written", async () => {
 		const lpSharesBalance = await liquidityPool.balanceOf(senderAddress)
-		console.log({ lpSharesBalance: lpSharesBalance.mul(4).div(5) })
 		await liquidityPool.withdraw(toWei(liquidityPoolUsdcWithdraw), senderAddress)
 		const newLpSharesBalance = await liquidityPool.balanceOf(senderAddress)
 		const expectedBalance = (
@@ -499,7 +498,6 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	})
 	it("LP can redeem shares", async () => {
 		const senderSharesBefore = await liquidityPool.balanceOf(senderAddress)
-		console.log({ senderSharesBefore })
 		expect(senderSharesBefore).to.be.gt(0)
 		const senderUsdcBefore = await usd.balanceOf(senderAddress)
 		const receiverSharesBefore = await liquidityPool.balanceOf(receiverAddress)
@@ -516,7 +514,6 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const senderUsdcAfter = await usd.balanceOf(senderAddress)
 		const senderSharesAfter = await liquidityPool.balanceOf(senderAddress)
 		const totalSharesAfter = await liquidityPool.totalSupply()
-		console.log({ usdBalanceBefore, usdBalanceAfter })
 		//@ts-ignore
 		const diff = usdBalanceBefore - usdBalanceAfter
 		expect(
