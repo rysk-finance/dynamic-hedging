@@ -12,7 +12,7 @@ import {
 import { expect } from "chai"
 import moment from "moment"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import { Controller } from "../types/Controller"
+import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
@@ -39,7 +39,7 @@ import { deployOpyn } from "../utils/opyn-deployer"
 let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
-let controller: Controller
+let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
@@ -144,7 +144,7 @@ describe("Options protocol", function () {
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
 			OTOKEN_FACTORY[chainId],
-			GAMMA_CONTROLLER[chainId],
+			controller.address,
 			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId]
@@ -154,7 +154,7 @@ describe("Options protocol", function () {
 		const _optionRegistryETH = (await optionRegistryFactory.deploy(
 			WETH_ADDRESS[chainId],
 			OTOKEN_FACTORY[chainId],
-			GAMMA_CONTROLLER[chainId],
+			controller.address,
 			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId]

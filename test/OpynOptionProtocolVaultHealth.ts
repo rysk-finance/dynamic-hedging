@@ -13,7 +13,7 @@ import { expect } from "chai"
 import moment from "moment"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import { LiquidityPoolAdjustCollateralTest } from "../types/LiquidityPoolAdjustCollateralTest"
-import { Controller } from "../types/Controller"
+import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
@@ -44,7 +44,7 @@ let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
 let liquidityPool: LiquidityPoolAdjustCollateralTest
-let controller: Controller
+let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Contract
@@ -637,8 +637,7 @@ describe("Options protocol Vault Health", function () {
 		const roundId = 2
 		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
 			optionRegistry.address,
-			1,
-			roundId
+			1
 		)
 		expect(isUnderCollat).to.be.false
 	})
@@ -687,8 +686,7 @@ describe("Options protocol Vault Health", function () {
 		const roundId = 3
 		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
 			optionRegistry.address,
-			1,
-			roundId
+			1
 		)
 		expect(isUnderCollat).to.be.true
 	})
@@ -711,9 +709,6 @@ describe("Options protocol Vault Health", function () {
 		const lpBalanceDiff = lpBalanceAfter.sub(lpBalanceBefore)
 		expect(collateralAllocatedAfter).to.equal(collateralAllocatedBefore.sub(lpBalanceDiff))
 		const roundId = 3
-		await expect(controller.isLiquidatable(optionRegistry.address, 1, roundId)).to.be.revertedWith(
-			"MarginCalculator: auction timestamp should be post vault latest update"
-		)
 		const vaultDetails = await controller.getVault(optionRegistry.address, 1)
 		const value = vaultDetails.shortAmounts[0]
 		const collatAmounts = vaultDetails.collateralAmounts[0]
@@ -1333,8 +1328,7 @@ describe("Options protocol Vault Health", function () {
 		const roundId = 6
 		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
 			optionRegistry.address,
-			3,
-			roundId
+			3
 		)
 		expect(isUnderCollat).to.be.true
 	})
@@ -1454,8 +1448,7 @@ describe("Options protocol Vault Health", function () {
 		const roundId = 6
 		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
 			optionRegistry.address,
-			4,
-			roundId
+			4
 		)
 		expect(isUnderCollat).to.be.true
 	})
@@ -1542,5 +1535,9 @@ describe("Options protocol Vault Health", function () {
 		expect(collatAmounts3).to.eq(0)
 		const usdBalAft = await usd.balanceOf(senderAddress)
 		expect(usdBalAft.sub(liqBalAft)).to.eq(collatAmountsNew)
+		const vaultLiqDetails = await controller.getVaultLiquidationDetails(optionRegistry.address, 4)
+		expect(vaultLiqDetails[0]).to.equal(optionTokenUSDC.address)
+		expect(vaultLiqDetails[1]).to.equal(value)
+		expect(vaultLiqDetails[2]).to.equal(collatAmountsBef.sub(collatAmountsNew))
 	})
 })

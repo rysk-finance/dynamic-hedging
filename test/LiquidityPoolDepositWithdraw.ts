@@ -27,7 +27,7 @@ import { LiquidityPool } from "../types/LiquidityPool"
 import { Volatility } from "../types/Volatility"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
-import { Controller } from "../types/Controller"
+import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
@@ -56,7 +56,7 @@ let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
 let priceFeed: PriceFeed
-let controller: Controller
+let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle

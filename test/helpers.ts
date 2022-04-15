@@ -121,52 +121,6 @@ export async function setupTestOracle(signerAddress: string) {
 	return [oracle, aggregator, pricer.address]
 }
 
-export async function setupTestOracle(
-  signerAddress: string,
-) {
-  const signer = await provider.getSigner(signerAddress);
-
-  await hre.network.provider.request({
-    method: "hardhat_impersonateAccount",
-    params: [ORACLE_OWNER[chainId]],
-  });
-
-  const oracle = await ethers.getContractAt(
-    "Oracle",
-    GAMMA_ORACLE[chainId],
-  );
-
-  const oracleOwnerSigner = await provider.getSigner(ORACLE_OWNER[chainId]);
-
-  await signer.sendTransaction({
-    to: ORACLE_OWNER[chainId],
-    value: parseEther("0.5"),
-  });
-  await oracle
-    .connect(oracleOwnerSigner)
-    .setStablePrice(USDC_ADDRESS[chainId], "100000000");
-  const newAggInstance = await ethers.getContractFactory("MockChainlinkAggregator");
-  const aggregator = (await newAggInstance.deploy()) as MockChainlinkAggregator
-  const newPricerInstance = await ethers.getContractFactory("ChainLinkPricer");
-  const pricer = (await newPricerInstance.deploy(
-        signerAddress,
-        WETH_ADDRESS[chainId],
-        aggregator.address,
-        oracle.address
-    )) as ChainLinkPricer
-const price = await oracle.getPrice(WETH_ADDRESS[chainId])
-await oracle
-    .connect(oracleOwnerSigner)
-    .setAssetPricer(await pricer.asset(), pricer.address);
-const forceSendContract = await ethers.getContractFactory("ForceSend");
-const forceSend = await forceSendContract.deploy(); // force Send is a contract that forces the sending of Ether to WBTC minter (which is a contract with no receive() function)
-await forceSend
-      .connect(signer)
-      .go(pricer.address, { value: parseEther("0.5") });
-await aggregator.setLatestAnswer(price)
-  return [oracle, aggregator, pricer.address];
-}
-
 export async function setOpynOracleExpiryPrice(
 	asset: string,
 	oracle: Contract,
