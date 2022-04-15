@@ -13,7 +13,7 @@ import { expect } from "chai"
 import moment from "moment"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import { LiquidityPoolAdjustCollateralTest } from "../types/LiquidityPoolAdjustCollateralTest"
-import { Controller } from "../types/Controller"
+import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
@@ -34,6 +34,7 @@ import {
 	ADDRESS_BOOK,
 	GAMMA_ORACLE_NEW
 } from "./constants"
+import { deployOpyn } from "../utils/opyn-deployer"
 import { setupOracle, setOpynOracleExpiryPrice, setupTestOracle, increase } from "./helpers"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { AbiCoder } from "ethers/lib/utils"
@@ -43,7 +44,7 @@ let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
 let liquidityPool: LiquidityPoolAdjustCollateralTest
-let controller: Controller
+let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Contract
@@ -107,156 +108,12 @@ describe("Options protocol Vault Health", function () {
 				}
 			]
 		})
-		// impersonate the opyn controller owner
-		await network.provider.request({
-			method: "hardhat_impersonateAccount",
-			params: [CONTROLLER_OWNER[chainId]]
-		})
 		signers = await ethers.getSigners()
-		const [sender] = signers
-
-		const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
-		await sender.sendTransaction({
-			to: signer.address,
-			value: ethers.utils.parseEther("1.0") // Sends exactly 1.0 ether
-		})
-		// get an instance of the controller
-		controller = (await ethers.getContractAt(
-			"contracts/packages/opyn/core/Controller.sol:Controller",
-			GAMMA_CONTROLLER[chainId]
-		)) as Controller
-		// get an instance of the addressbook
-		addressBook = (await ethers.getContractAt(
-			"contracts/packages/opyn/core/AddressBook.sol:AddressBook",
-			ADDRESS_BOOK[chainId]
-		)) as AddressBook
-		// get the oracle
-		oracle = (await ethers.getContractAt(
-			"contracts/packages/opyn/core/Oracle.sol:Oracle",
-			GAMMA_ORACLE_NEW[chainId]
-		)) as Oracle
-		// deploy the new calculator
-		const newCalculatorInstance = await ethers.getContractFactory("NewMarginCalculator")
-		newCalculator = (await newCalculatorInstance.deploy(
-			GAMMA_ORACLE_NEW[chainId],
-			ADDRESS_BOOK[chainId]
-		)) as NewMarginCalculator
-		// deploy the new whitelist
-		const newWhitelistInstance = await ethers.getContractFactory("NewWhitelist")
-		const newWhitelist = await newWhitelistInstance.deploy(ADDRESS_BOOK[chainId])
-		// update the addressbook with the new calculator and whitelist addresses
-		await addressBook.connect(signer).setMarginCalculator(newCalculator.address)
-		await addressBook.connect(signer).setWhitelist(newWhitelist.address)
-		// update the whitelist and calculator in the controller
-		await controller.connect(signer).refreshConfiguration()
-		// whitelist collateral
-		await newWhitelist.whitelistCollateral(WETH_ADDRESS[chainId])
-		await newWhitelist.whitelistCollateral(USDC_ADDRESS[chainId])
-		// whitelist products
-		// normal calls
-		await newWhitelist.whitelistProduct(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			false
-		)
-		// normal puts
-		await newWhitelist.whitelistProduct(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			true
-		)
-		// usd collateralised calls
-		await newWhitelist.whitelistProduct(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			false
-		)
-		// eth collateralised puts
-		await newWhitelist.whitelistProduct(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			true
-		)
-		// whitelist vault type 0 collateral
-		await newWhitelist.whitelistCoveredCollateral(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId], false)
-		await newWhitelist.whitelistCoveredCollateral(USDC_ADDRESS[chainId], WETH_ADDRESS[chainId], true)
-		// whitelist vault type 1 collateral
-		await newWhitelist.whitelistNakedCollateral(USDC_ADDRESS[chainId], WETH_ADDRESS[chainId], false)
-		await newWhitelist.whitelistNakedCollateral(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId], true)
-		// set product spot shock values
-		// usd collateralised calls
-		await newCalculator.setSpotShock(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			false,
-			productSpotShockValue
-		)
-		// usd collateralised puts
-		await newCalculator.setSpotShock(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			true,
-			productSpotShockValue
-		)
-		// eth collateralised calls
-		await newCalculator.setSpotShock(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			false,
-			productSpotShockValue
-		)
-		// eth collateralised puts
-		await newCalculator.setSpotShock(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			true,
-			productSpotShockValue
-		)
-		// set expiry to value values
-		// usd collateralised calls
-		await newCalculator.setUpperBoundValues(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			false,
-			timeToExpiry,
-			expiryToValue
-		)
-		// usd collateralised puts
-		await newCalculator.setUpperBoundValues(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			true,
-			timeToExpiry,
-			expiryToValue
-		)
-		// eth collateralised calls
-		await newCalculator.setUpperBoundValues(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			false,
-			timeToExpiry,
-			expiryToValue
-		)
-		// eth collateralised puts
-		await newCalculator.setUpperBoundValues(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			true,
-			timeToExpiry,
-			expiryToValue
-		)
+		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
+		controller = opynParams.controller
+		addressBook = opynParams.addressBook
+		oracle = opynParams.oracle
+		newCalculator = opynParams.newCalculator
 		// get the oracle
 		const res = await setupTestOracle(await signers[0].getAddress())
 		oracle = res[0] as Oracle
@@ -269,12 +126,12 @@ describe("Options protocol Vault Health", function () {
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
-		const interactionsFactory = await ethers.getContractFactory("OpynInteractionsV2")
+		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
-				OpynInteractionsV2: interactions.address
+				OpynInteractions: interactions.address
 			}
 		})
 		// get and transfer weth
@@ -282,7 +139,10 @@ describe("Options protocol Vault Health", function () {
 			"contracts/interfaces/WETH.sol:WETH",
 			WETH_ADDRESS[chainId]
 		)) as WETH
-		usd = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usd = (await ethers.getContractAt(
+			"contracts/tokens/ERC20.sol:ERC20",
+			USDC_ADDRESS[chainId]
+		)) as MintableERC20
 		await network.provider.request({
 			method: "hardhat_impersonateAccount",
 			params: [USDC_OWNER_ADDRESS[chainId]]
@@ -777,8 +637,7 @@ describe("Options protocol Vault Health", function () {
 		const roundId = 2
 		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
 			optionRegistry.address,
-			1,
-			roundId
+			1
 		)
 		expect(isUnderCollat).to.be.false
 	})
@@ -827,8 +686,7 @@ describe("Options protocol Vault Health", function () {
 		const roundId = 3
 		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
 			optionRegistry.address,
-			1,
-			roundId
+			1
 		)
 		expect(isUnderCollat).to.be.true
 	})
@@ -851,9 +709,6 @@ describe("Options protocol Vault Health", function () {
 		const lpBalanceDiff = lpBalanceAfter.sub(lpBalanceBefore)
 		expect(collateralAllocatedAfter).to.equal(collateralAllocatedBefore.sub(lpBalanceDiff))
 		const roundId = 3
-		await expect(controller.isLiquidatable(optionRegistry.address, 1, roundId)).to.be.revertedWith(
-			"MarginCalculator: auction timestamp should be post vault latest update"
-		)
 		const vaultDetails = await controller.getVault(optionRegistry.address, 1)
 		const value = vaultDetails.shortAmounts[0]
 		const collatAmounts = vaultDetails.collateralAmounts[0]
@@ -1473,8 +1328,7 @@ describe("Options protocol Vault Health", function () {
 		const roundId = 6
 		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
 			optionRegistry.address,
-			3,
-			roundId
+			3
 		)
 		expect(isUnderCollat).to.be.true
 	})
@@ -1594,8 +1448,7 @@ describe("Options protocol Vault Health", function () {
 		const roundId = 6
 		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
 			optionRegistry.address,
-			4,
-			roundId
+			4
 		)
 		expect(isUnderCollat).to.be.true
 	})
@@ -1682,5 +1535,9 @@ describe("Options protocol Vault Health", function () {
 		expect(collatAmounts3).to.eq(0)
 		const usdBalAft = await usd.balanceOf(senderAddress)
 		expect(usdBalAft.sub(liqBalAft)).to.eq(collatAmountsNew)
+		const vaultLiqDetails = await controller.getVaultLiquidationDetails(optionRegistry.address, 4)
+		expect(vaultLiqDetails[0]).to.equal(optionTokenUSDC.address)
+		expect(vaultLiqDetails[1]).to.equal(value)
+		expect(vaultLiqDetails[2]).to.equal(collatAmountsBef.sub(collatAmountsNew))
 	})
 })
