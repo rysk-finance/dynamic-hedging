@@ -263,7 +263,7 @@ describe("PerpHedgingReactor", () => {
 		const usdBalance = await usdcContract.balanceOf(perpHedgingReactor.address)
 		const netProfit = await clearingHouse.getAccountNetProfit(0)
 		const reactorCollatBalance =  (await clearingHouse.getAccountInfo(0)).collateralDeposits[0].balance
-		const val = await perpHedgingReactor.getPoolDenominatedValue()
+		const val = (await perpHedgingReactor.getPoolDenominatedValue()).div(USDC_SCALE)
 		expect(usdBalance.add(netProfit).add(reactorCollatBalance)).to.eq(val)
 	})
 	it("hedges a negative delta with sufficient funds", async () => {

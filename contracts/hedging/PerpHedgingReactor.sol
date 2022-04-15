@@ -135,6 +135,8 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
             if( value < uint256(-netProfit) ) {revert ValueFailure();}
             value -= uint256(-netProfit);
         }
+        // value to be returned in e18
+        value = OptionsCompute.convertFromDecimals(value, IERC20(collateralAsset).decimals());
     }
 
     /// @inheritdoc IHedgingReactor
@@ -147,6 +149,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         uint256 balance = IERC20(_token).balanceOf(address(this));
         if (convertedAmount <= balance) {
             SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, convertedAmount);
+            // return in e18 format
             return _amount;
         }
         // get the collatNeeded (this should not underflow as the 
@@ -161,12 +164,14 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
             // transfer assets back to the liquidityPool 
             // TODO: track this transfer either in LiquidityPool or here
             SafeTransferLib.safeTransfer(ERC20(_token), parentLiquidityPool, collatReturned + balance);
-            return collatReturned + balance;
+            // return in e18 format
+            return OptionsCompute.convertFromDecimals(collatReturned + balance, IERC20(_token).decimals());
         } else {
             // transfer assets back to the liquidityPool 
             // TODO: track this transfer either in LiquidityPool or here
             SafeTransferLib.safeTransfer(ERC20(_token), parentLiquidityPool, convertedAmount);
-            return convertedAmount;
+            // return in e18 format
+            return _amount;
         }
     }
 
@@ -325,7 +330,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
                 // get the new collat
                 (,,collatDeposits,) = clearingHouse.getAccountInfo(accountId);
                 collat = collatDeposits[0].balance;
-                // if the collat value is smaller than collatToWithdraw then withdraw all colalt
+                // if the collat value is smaller than collatToWithdraw then withdraw all collat
                 if (collat <= collatToWithdraw && collat != 0) {
                   collatToWithdraw = collat - 1;  
                 } 
@@ -376,7 +381,9 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         uint256 newCollat = collat - _amount;
         // calculate what the position should be if the collat is changed to newCollat
         int256 newPosition = int256((newCollat * MAX_BIPS * 1e18) / (healthFactor * currentPrice)); 
-        newPosition = newPosition > 0 ? newPosition : -newPosition;
+        // get the correct sign for the newPosition
+        newPosition = netPosition > 0 ? newPosition : -newPosition;
+        // calculate the difference between the old and new position
         int256 diff = newPosition - netPosition;
         IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
             diff,
