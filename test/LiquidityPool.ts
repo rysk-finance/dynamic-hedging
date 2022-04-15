@@ -31,7 +31,7 @@ import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
 import { Volatility } from "../types/Volatility"
-import { Controller } from "../types/Controller"
+import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
@@ -69,7 +69,7 @@ let volatility: Volatility
 let priceFeed: PriceFeed
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
-let controller: Controller
+let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
