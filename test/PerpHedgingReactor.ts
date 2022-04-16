@@ -144,8 +144,7 @@ describe("PerpHedgingReactor", () => {
 		)) as PerpHedgingReactor
 
 		expect(perpHedgingReactor).to.have.property("hedgeDelta")
-		const minAmount = await perpHedgingReactor.minAmount()
-		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 16))
+
 	})
 
 	it('#deploy range order', async () => {
@@ -183,12 +182,6 @@ describe("PerpHedgingReactor", () => {
 		await usdcContract.approve(perpHedgingReactor.address, 1)
 		await perpHedgingReactor.initialiseReactor()
 		await expect(perpHedgingReactor.initialiseReactor()).to.be.reverted
-	})
-
-	it("updates minAmount parameter", async () => {
-		await perpHedgingReactor.setMinAmount(1e10)
-		const minAmount = await perpHedgingReactor.minAmount()
-		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 10))
 	})
 
 	it("hedges a positive delta when position is zero", async () => {

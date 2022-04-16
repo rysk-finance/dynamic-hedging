@@ -144,8 +144,7 @@ describe("PerpHedgingReactor", () => {
 		)) as PerpHedgingReactor
 
 		expect(perpHedgingReactor).to.have.property("hedgeDelta")
-		const minAmount = await perpHedgingReactor.minAmount()
-		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 16))
+
 	})
 
 	it('#deploy range order', async () => {

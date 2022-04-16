@@ -7,6 +7,7 @@ import '../libraries/SafeTransferLib.sol';
 import "../interfaces/IHedgingReactor.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@rage/core/contracts/interfaces/IClearingHouse.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "hardhat/console.sol";
 
@@ -19,6 +20,8 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
 
     /// @notice used for unlimited token approval 
     uint256 private constant MAX_UINT = 2**256 - 1;
+    /// @notice max bips
+    uint256 private constant MAX_BIPS = 10_000;
     /// @notice address of the parent liquidity pool contract
     address public parentLiquidityPool;
     /// @notice address of the keeper of this pool
@@ -33,8 +36,6 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     IClearingHouse public clearingHouse;
     /// @notice delta of the pool
     int256 public internalDelta;
-    /// @notice limit to ensure we arent doing inefficient computation for dust amounts
-    uint256 public minAmount = 1e16;
     /// @notice accountId for the perp pool
     uint256 public accountId;
     /// @notice collateralId to be used in the perp pool
@@ -43,8 +44,6 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     uint32 public poolId;
     /// @notice desired healthFactor of the pool
     uint256 public healthFactor = 12_000;
-    /// @notice max bips
-    uint256 public MAX_BIPS = 10_000;
 
     error ValueFailure();
     error InvalidSender();
@@ -72,10 +71,6 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         accountId = clearingHouse.createAccount();
     }
 
-    /// @notice update the minAmount parameter
-    function setMinAmount(uint _minAmount) public onlyOwner {
-        minAmount = _minAmount;
-    }
     /// @notice update the health factor parameter
     function setHealthFactor(uint _healthFactor) public onlyOwner {
         if (_healthFactor < MAX_BIPS) {revert InvalidHealthFactor();}
@@ -186,7 +181,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     /// @notice function to poke the margin account to update the profits of the vault
     /// @dev    only callable by a keeper
     function sync() public {
-        if (msg.sender != keeper){revert InvalidSender();}
+        if (msg.sender != keeper || msg.sender != parentLiquidityPool){revert InvalidSender();}
         clearingHouse.settleProfit(accountId);
     }
 
@@ -269,7 +264,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         if (totalCollatNeeded > collat) {
             collatToDeposit = totalCollatNeeded - collat;
         } else if(totalCollatNeeded < collat) {
-            collatToWithdraw = collat - totalCollatNeeded;
+            collatToWithdraw = collat - Math.max(totalCollatNeeded, 1);
         } else if(totalCollatNeeded == collat && _amount != 0) {
             // highly improbable but if collateral is exactly equal if the amount to hedge is exactly opposite of the current
             // hedge then just swap without changing the margin
