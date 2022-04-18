@@ -82,6 +82,7 @@ const expiryToValue = [
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
+const usdDecimalShift18 = 1000000000000
 const strike = toWei("3500")
 
 // handles the conversion of expiryDate to a unix timestamp
@@ -139,7 +140,7 @@ describe("Options protocol", function () {
 			params: [USDC_OWNER_ADDRESS[chainId]]
 		})
 		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
-		await usd.connect(signer).transfer(senderAddress, toWei("1000000").div(oTokenDecimalShift18))
+		await usd.connect(signer).transfer(senderAddress, toWei("1000000").div(usdDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
@@ -416,16 +417,15 @@ describe("Options protocol", function () {
 		const [sender, receiver] = signers
 		// get balance before
 		const balanceUSD = await usd.balanceOf(senderAddress)
+		const diff = 200
 		// get the desired settlement price
-		const settlePrice = strike.add(toWei("200")).div(oTokenDecimalShift18)
+		const settlePrice = strike.add(toWei(diff.toString())).div(oTokenDecimalShift18)
 		// get the oracle
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
-		await optionTokenUSDC.approve(
-			optionRegistry.address,
-			await optionTokenUSDC.balanceOf(senderAddress)
-		)
+		const opUSDbal = (await controller.getVault(optionRegistry.address, await optionRegistry.vaultCount())).shortAmounts[0]
+		const collatBal = (await controller.getVault(optionRegistry.address, await optionRegistry.vaultCount())).collateralAmounts[0]
 		// call redeem from the options registry
 		await optionRegistry.settle(optionTokenUSDC.address)
 		// check balances are in order
@@ -434,7 +434,7 @@ describe("Options protocol", function () {
 		const usdBalRegistry = await usd.balanceOf(optionRegistry.address)
 		expect(opBalRegistry).to.equal(0)
 		expect(usdBalRegistry).to.equal(0)
-		expect(newBalanceUSD > balanceUSD).to.be.true
+		expect(newBalanceUSD.sub(balanceUSD)).to.equal(collatBal.sub(opUSDbal.mul(diff).div(100)))
 	})
 
 	it("settles when option expires ITM ETH collateral", async () => {
@@ -459,6 +459,8 @@ describe("Options protocol", function () {
 	it("writer redeems when option expires ITM USD collateral", async () => {
 		// get balance before
 		const balanceUSD = await usd.balanceOf(senderAddress)
+		const opUSDbal = await optionTokenUSDC.balanceOf(senderAddress)
+		const diff = 200
 		await optionTokenUSDC.approve(
 			optionRegistry.address,
 			await optionTokenUSDC.balanceOf(senderAddress)
@@ -471,7 +473,7 @@ describe("Options protocol", function () {
 		const opBalSender = await optionTokenUSDC.balanceOf(senderAddress)
 		const usdBalRegistry = await usd.balanceOf(optionRegistry.address)
 		expect(usdBalRegistry).to.equal(0)
-		expect(newBalanceUSD.toNumber()).to.be.greaterThan(balanceUSD.toNumber())
+		expect(newBalanceUSD.sub(balanceUSD)).to.equal(opUSDbal.mul(diff).div(100))
 		expect(opBalRegistry).to.equal(0)
 		expect(opBalSender).to.equal(0)
 	})
@@ -664,15 +666,13 @@ describe("Options protocol", function () {
 		const balanceUSD = await usd.balanceOf(senderAddress)
 		// get the desired settlement price
 		const settlePrice = strike.sub(toWei("200")).div(oTokenDecimalShift18)
+		// collateralBalance
+		const collatBalance = (await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()))).collateralAmounts[0]
 		// get the oracle
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
-		await erc20CallOptionUSDC.approve(
-			optionRegistry.address,
-			await erc20CallOptionUSDC.balanceOf(senderAddress)
-		)
-		// call redeem from the options registry
+		// call settle from the options registry
 		await optionRegistry.settle(erc20CallOptionUSDC.address)
 		// check balances are in order
 		const newBalanceUSD = await usd.balanceOf(senderAddress)
@@ -680,7 +680,7 @@ describe("Options protocol", function () {
 		const ethBalRegistry = await usd.balanceOf(optionRegistry.address)
 		expect(opBalRegistry).to.equal(0)
 		expect(ethBalRegistry).to.equal(0)
-		expect(newBalanceUSD).to.be.gt(balanceUSD)
+		expect(newBalanceUSD.sub(balanceUSD)).to.equal(collatBalance)
 	})
 
 	it("writer redeems call when option expires OTM", async () => {
@@ -706,12 +706,11 @@ describe("Options protocol", function () {
 	it("settles put when option expires ITM", async () => {
 		// get balance before
 		const balanceUSD = await usd.balanceOf(senderAddress)
+		const diff = 200
 		// get the desired settlement price
-		const settlePrice = strike.sub(toWei("200")).div(oTokenDecimalShift18)
-		await erc20PutOptionUSDC.approve(
-			optionRegistry.address,
-			await erc20PutOptionUSDC.balanceOf(senderAddress)
-		)
+		const settlePrice = strike.sub(toWei(diff.toString())).div(oTokenDecimalShift18)
+		const opUSDbal = (await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()).sub(1))).shortAmounts[0]
+		const collatBal = (await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()).sub(1))).collateralAmounts[0]
 		// call settle from the options registry
 		await optionRegistry.settle(erc20PutOptionUSDC.address)
 		// check balances are in order
@@ -720,16 +719,20 @@ describe("Options protocol", function () {
 		const ethBalRegistry = await usd.balanceOf(optionRegistry.address)
 		expect(opBalRegistry).to.equal(0)
 		expect(ethBalRegistry).to.equal(0)
-		expect(newBalanceUSD > balanceUSD).to.be.true
+		expect(newBalanceUSD.sub(balanceUSD)).to.equal(collatBal.sub(opUSDbal.mul(diff).div(100)))
 	})
 
 	it("writer redeems put when option expires ITM", async () => {
 		// get balance before
 		const balanceUSD = await usd.balanceOf(senderAddress)
+		const diff = 200
+		// get the desired settlement price
+		const settlePrice = strike.sub(toWei(diff.toString())).div(oTokenDecimalShift18)
 		await erc20PutOptionUSDC.approve(
 			optionRegistry.address,
 			await erc20PutOptionUSDC.balanceOf(senderAddress)
 		)
+		const opUSDbal = await erc20PutOptionUSDC.balanceOf(senderAddress)
 		// call redeem from the options registry
 		await optionRegistry.redeem(erc20PutOptionUSDC.address)
 		// check balances are in order
@@ -738,7 +741,7 @@ describe("Options protocol", function () {
 		const opBalSender = await erc20PutOptionUSDC.balanceOf(senderAddress)
 		const usdBalRegistry = await usd.balanceOf(optionRegistry.address)
 		expect(usdBalRegistry).to.equal(0)
-		expect(newBalanceUSD > balanceUSD).to.be.true
+		expect(newBalanceUSD.sub(balanceUSD)).to.equal(opUSDbal.mul(diff).div(100))
 		expect(opBalRegistry).to.equal(0)
 		expect(opBalSender).to.equal(0)
 	})

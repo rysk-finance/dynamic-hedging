@@ -691,7 +691,6 @@ contract LiquidityPool is
           false
         );
       }
-
       if (weightedTimePut != 0) {
         uint256 putIv = getImpliedVolatility(true, price, weightedStrikePut, weightedTimePut);
         putsDelta = BlackScholes.getDelta(
@@ -709,7 +708,7 @@ contract LiquidityPool is
         externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
       }
       // return the negative sum of open option because we are the counterparty
-      return -(callsDelta + putsDelta) + externalDelta;
+      return -(callsDelta*int256(totalAmountCall)/1e18 + putsDelta*int256(totalAmountPut)/1e18) + externalDelta;
   }
     
   /**
