@@ -116,18 +116,18 @@ contract LiquidityPool is
   uint256 public orderIdCounter;
   // delta and price boundaries for custom orders
   struct CustomOrderBounds {
-    uint32 callMinDelta;
-    uint32 callMaxDelta;
-    int32 putMinDelta;
-    int32 putMaxDelta;
+    uint128 callMinDelta;
+    uint128 callMaxDelta;
+    int128 putMinDelta;
+    int128 putMaxDelta;
     uint32 maxPriceRange;
   }
 
   CustomOrderBounds public customOrderBounds = CustomOrderBounds(
     0,
-    2500,
-    0, 
-    -2500,
+    25 * 10 ** 16,
+    -25 * 10 ** 16,
+    0,
     1000
   );
   // strike and expiry date range for options
@@ -1104,7 +1104,14 @@ contract LiquidityPool is
     // calculate the total premium
     uint256 premium = (order.amount * order.price) / 1e18;
     // check the agreed upon premium is within acceptable range of pool's own pricing model
-    if (poolCalulatedPremium - (poolCalulatedPremium *  customOrderBounds.maxPriceRange / MAX_BPS) > premium) { revert CustomOrderInsufficientPrice(); }
+    if (poolCalculatedPremium - (poolCalculatedPremium *  customOrderBounds.maxPriceRange / MAX_BPS) > premium) { revert CustomOrderInsufficientPrice(); }
+    // check that the delta values of the options are within acceptable ranges
+    if(optionSeries.isPut){
+      if (customOrderBounds.putMinDelta > delta || delta > customOrderBounds.putMaxDelta) { revert CustomOrderInvalidDeltaValue(); }
+    }
+    if(!optionSeries.isPut){
+       if (customOrderBounds.callMinDelta > uint(delta) || uint(delta) > customOrderBounds.callMaxDelta) { revert CustomOrderInvalidDeltaValue(); }
+    }
     // write the option contract, includes sending the premium from the user to the pool
     uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, bufferRemaining);
     // invalidate the order
