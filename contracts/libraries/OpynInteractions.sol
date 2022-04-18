@@ -16,7 +16,7 @@ import "hardhat/console.sol";
 library OpynInteractions {
 
     uint256 private constant SCALE_FROM = 10**10;
-    
+    error NoShort();
     /**
      * @notice Either retrieves the option token if it already exists, or deploy it
      * @param oTokenFactory is the address of the opyn oTokenFactory
@@ -85,7 +85,7 @@ library OpynInteractions {
         uint256 strike,
         uint256 expiration,
         bool isPut
-    ) external returns (address) {
+    ) external view returns (address) {
         IOtokenFactory factory = IOtokenFactory(oTokenFactory);
         address otokenFromFactory =
             factory.getOtoken(
@@ -338,18 +338,11 @@ library OpynInteractions {
 
         GammaTypes.Vault memory vault =
             controller.getVault(address(this), vaultId);
-
-        require(vault.shortOtokens.length > 0, "No short");
+        if (vault.shortOtokens.length == 0) { revert NoShort();}
 
         // An otoken's collateralAsset is the vault's `asset`
         // So in the context of performing Opyn short operations we call them collateralAsset
         IERC20 collateralToken = IERC20(vault.collateralAssets[0]);
-
-        // The short position has been previously closed, or all the otokens have been burned.
-        // So we return early.
-        if (address(collateralToken) == address(0)) {
-            return (0,0,0);
-        }
 
         // This is equivalent to doing IERC20(vault.asset).balanceOf(address(this))
         uint256 startCollateralBalance =

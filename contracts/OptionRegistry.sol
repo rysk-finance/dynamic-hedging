@@ -61,11 +61,18 @@ contract OptionRegistry is Ownable, AccessControl {
     event OptionsContractClosed(address indexed series, uint256 vaultId, uint256 closedAmount);
     event OptionsContractSettled(address indexed series, uint256 collateralReturned, uint256 collateralLost, uint256 amountLost);
 
+    error NotExpired();
+    error HealthyVault();
+    error AlreadyExpired();
+    error NotLiquidityPool();
+    error NonExistentSeries();
+    error InsufficientBalance();
+
     /**
      * @dev Throws if called by any account other than the liquidity pool.
      */
     modifier onlyLiquidityPool() {
-        require(msg.sender == liquidityPool, "!liquidityPool");
+        if (msg.sender != liquidityPool) {revert NotLiquidityPool();}
         _;
     }
 
@@ -131,7 +138,7 @@ contract OptionRegistry is Ownable, AccessControl {
      */
     function issue(address underlying, address strikeAsset, uint256 expiration, bool isPut, uint256 strike, address collateral) external onlyLiquidityPool returns (address) {
         // deploy an oToken contract address
-        require(expiration > block.timestamp, "Already expired");
+        if(expiration <= block.timestamp) {revert AlreadyExpired();}
         uint256 formattedStrike = formatStrikePrice(strike, collateral);
         // create option storage hash
         bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, collateral, expiration, isPut, formattedStrike);
@@ -151,12 +158,12 @@ contract OptionRegistry is Ownable, AccessControl {
      * @param  expiration is the expiry timestamp of the option
      * @param  isPut the type of option
      * @param  strike is the strike price of the option - 1e18 format
-     * @param collateral is the address of the asset to collateralize the option with
+     * @param  collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
-    function getOtoken(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external onlyLiquidityPool returns (address) {
+    function getOtoken(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external view returns (address) {
         // deploy an oToken contract address
-        require(expiration > block.timestamp, "Already expired");
+        if(expiration <= block.timestamp) {revert AlreadyExpired();}
         // check for an opyn oToken
         address series = OpynInteractions.getOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
         return series;
@@ -193,7 +200,7 @@ contract OptionRegistry is Ownable, AccessControl {
     function open(address _series, uint256 amount, uint256 collateralAmount) external onlyLiquidityPool returns (bool, uint256) {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
-        require(block.timestamp < series.expiration, "Options can not be opened after expiration");
+        if(series.expiration <= block.timestamp) {revert AlreadyExpired();}
         // transfer collateral to this contract, collateral will depend on the option type
         SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
         // mint the option token following the opyn interface
@@ -223,7 +230,7 @@ contract OptionRegistry is Ownable, AccessControl {
         // withdraw and burn
         Types.OptionSeries memory series = seriesInfo[_series];
         // make sure the option hasnt expired yet
-        require(block.timestamp < series.expiration, "Option already expired");
+        if(series.expiration <= block.timestamp) {revert AlreadyExpired();}
         // get the vault id
         uint256 vaultId = vaultIds[_series];
         uint256 convertedAmount = OptionsCompute.convertToDecimals(amount, IERC20(_series).decimals());
@@ -248,9 +255,9 @@ contract OptionRegistry is Ownable, AccessControl {
      */
     function settle(address _series) external returns (bool success, uint256 collatReturned, uint256 collatLost, uint256 amountShort) {
         Types.OptionSeries memory series = seriesInfo[_series];
-        require(series.expiration != 0, "non-existent series");
+        if (series.expiration == 0) {revert NonExistentSeries();}
         // check that the option has expired
-        require(block.timestamp > series.expiration, "option not past expiry");
+        if (series.expiration >= block.timestamp) {revert NotExpired();}
         // get the vault
         uint256 vaultId = vaultIds[_series];
         // settle the vault
@@ -268,10 +275,10 @@ contract OptionRegistry is Ownable, AccessControl {
      */
     function redeem(address _series) external returns (uint256) {
         Types.OptionSeries memory series = seriesInfo[_series];
-        require(series.expiration != 0, "non-existent series");
+        if (series.expiration == 0) {revert NonExistentSeries();}
         // check that the option has expired
-        require(block.timestamp > series.expiration, "option not past expiry");
-        require(IERC20(_series).balanceOf(msg.sender) > 0, "insufficient option tokens");
+        if (series.expiration >= block.timestamp) {revert NotExpired();}
+        if (IERC20(_series).balanceOf(msg.sender) == 0) {revert InsufficientBalance();}
         uint256 seriesBalance = IERC20(_series).balanceOf(msg.sender);
         // transfer the oToken back to this account
         SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), IERC20(_series).balanceOf(msg.sender));
@@ -365,7 +372,7 @@ contract OptionRegistry is Ownable, AccessControl {
      */
     function adjustCollateral(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
       (bool isBelowMin, bool isAboveMax,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
-      require(isBelowMin || isAboveMax, "vault is healthy");
+      if (!isBelowMin && !isAboveMax) {revert HealthyVault();}
       if (isBelowMin) {
         LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, false);
         // transfer the needed collateral to this contract from the liquidityPool
@@ -389,7 +396,7 @@ contract OptionRegistry is Ownable, AccessControl {
      */
     function adjustCollateralCaller(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
       (bool isBelowMin,,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
-      require(isBelowMin, "vault is healthy");
+      if (!isBelowMin) {revert HealthyVault();}
       // transfer the needed collateral to this contract from the msg.sender
       SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collateralAmount);
       // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)

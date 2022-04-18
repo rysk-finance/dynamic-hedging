@@ -59,7 +59,7 @@ let receiverAddress: string
 // Will automatically convert to 08:00 UTC timestamp
 // First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
-
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 // time travel period between each expiry
 const expiryPeriod = {
 	days: 0,
@@ -182,6 +182,47 @@ describe("Options protocol", function () {
 		// save the option token address
 		optionTokenUSDC = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 	})
+	it("Returns correct oToken when calling getOrDeployOtoken", async () => {
+		const [sender] = signers
+		const issue = await optionRegistry.issue(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			expiration,
+			call,
+			strike,
+			USDC_ADDRESS[chainId]
+		)
+		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
+		const receipt = await issue.wait(1)
+		const events = receipt.events
+		const removeEvent = events?.find(x => x.event == "OptionTokenCreated")
+		const seriesAddress = removeEvent?.args?.token
+		expect(seriesAddress).to.equal(optionTokenUSDC.address)
+	})
+	it("Returns correct oToken when calling getOToken", async () => {
+		const [sender] = signers
+		const issue = await optionRegistry.getOtoken(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			expiration,
+			call,
+			strike,
+			USDC_ADDRESS[chainId]
+		)
+		expect(issue).to.equal(optionTokenUSDC.address)
+	})	
+	it("Returns zero addy if option doesnt exist", async () => {
+		const [sender] = signers
+		const issue = await optionRegistry.getOtoken(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId],
+			expiration,
+			put,
+			strike,
+			USDC_ADDRESS[chainId]
+		)
+		expect(issue).to.equal(ZERO_ADDRESS)
+	})		
 	it("Creates a ETH collataralised call option token series", async () => {
 		const [sender] = signers
 		const issue = await optionRegistryETH.issue(
@@ -279,11 +320,11 @@ describe("Options protocol", function () {
 		const optionRegistryReceiver = optionRegistry.connect(receiver)
 		await expect(
 			optionRegistryReceiver.close(optionTokenUSDC.address, toWei("1"))
-		).to.be.revertedWith("!liquidityPool")
+		).to.be.revertedWith("NotLiquidityPool()")
 		const optionRegistryReceiverETH = optionRegistryETH.connect(receiver)
 		await expect(
 			optionRegistryReceiverETH.close(optionTokenETH.address, toWei("1"))
-		).to.be.revertedWith("!liquidityPool")
+		).to.be.revertedWith("NotLiquidityPool()")
 	})
 
 	it("opens call option again with USDC", async () => {
@@ -410,7 +451,7 @@ describe("Options protocol", function () {
 		)
 		await expect(
 			optionRegistry.connect(receiver).open(optionTokenUSDC.address, value, collatAmount)
-		).to.be.revertedWith("!liquidityPool")
+		).to.be.revertedWith("NotLiquidityPool()")
 	})
 
 	it("settles when option expires ITM USD collateral", async () => {
@@ -436,7 +477,9 @@ describe("Options protocol", function () {
 		expect(usdBalRegistry).to.equal(0)
 		expect(newBalanceUSD.sub(balanceUSD)).to.equal(collatBal.sub(opUSDbal.mul(diff).div(100)))
 	})
-
+	it("reverts when attempt to settle again", async () => {
+		await expect(optionRegistry.settle(optionTokenUSDC.address)).to.be.revertedWith("NoShort()")
+	})
 	it("settles when option expires ITM ETH collateral", async () => {
 		const [sender, receiver] = signers
 		// get balance before
