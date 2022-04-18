@@ -708,7 +708,7 @@ contract LiquidityPool is
         externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
       }
       // return the negative sum of open option because we are the counterparty
-      return -(callsDelta*int256(totalAmountCall)/1e18 + putsDelta*int256(totalAmountPut)/1e18) + externalDelta;
+      return -(callsDelta*int256(totalAmountCall)/int256(PRBMath.SCALE) + putsDelta*int256(totalAmountPut)/int256(PRBMath.SCALE)) + externalDelta;
   }
     
   /**
