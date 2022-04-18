@@ -145,6 +145,7 @@ const expiryToValue = [
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
 const expiration3 = moment.utc(expiryDate).add(2, "w").add(8, "h").valueOf() / 1000
+const expiration4 = moment.utc(expiryDate).add(3, "w").add(8, "h").valueOf() / 1000
 const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
 const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
 
@@ -925,13 +926,14 @@ describe("Liquidity Pools", async () => {
 		const pricePer = toWei("10")
 		const orderExpiry = 10
 		const proposedSeries = {
-			expiration: expiration,
+			expiration: expiration4,
 			isPut: true,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
 		}
+		console.log("strike input", proposedSeries.strike)
 		const series = await liquidityPool.createOrder(
 			proposedSeries,
 			amount,
@@ -992,15 +994,7 @@ describe("Liquidity Pools", async () => {
 		const lpOTokenBalBef = await optionToken.balanceOf(liquidityPool.address)
 		const lpBalBef = await usd.balanceOf(liquidityPool.address)
 		const receiverBalBef = await usd.balanceOf(receiverAddress)
-		const proposedSeries = {
-			expiration: expiration,
-			isPut: true,
-			strike: BigNumber.from(strikePrice),
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-		const seriesStrike = await optionToken.strikePrice()
+
 		await usd.connect(receiver).approve(liquidityPool.address, 10000000)
 		await liquidityPool.connect(receiver).executeOrder(1)
 		const receiverOTokenBalAft = await optionToken.balanceOf(receiverAddress)

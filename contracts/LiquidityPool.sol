@@ -36,6 +36,8 @@ error UnderlyingAssetInvalid();
 error CollateralAmountInvalid();
 error WithdrawExceedsLiquidity();
 error MaxLiquidityBufferReached();
+error CustomOrderInsufficientPrice();
+error CustomOrderInvalidDeltaValue();
 error DeltaQuoteError(uint256 quote, int256 delta);
 error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
 error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
@@ -112,7 +114,22 @@ contract LiquidityPool is
   mapping(uint256 => Types.Order) public orderStores;
   // order id counter
   uint256 public orderIdCounter;
- 
+  // delta and price boundaries for custom orders
+  struct CustomOrderBounds {
+    uint32 callMinDelta;
+    uint32 callMaxDelta;
+    int32 putMinDelta;
+    int32 putMaxDelta;
+    uint32 maxPriceRange;
+  }
+
+  CustomOrderBounds public customOrderBounds = CustomOrderBounds(
+    0,
+    2500,
+    0, 
+    -2500,
+    1000
+  );
   // strike and expiry date range for options
   struct OptionParams {
     uint128 minCallStrikePrice;
@@ -122,6 +139,7 @@ contract LiquidityPool is
     uint128 minExpiry;
     uint128 maxExpiry;
   }
+
   OptionParams public optionParams;
 
   event OrderCreated(uint orderId);
@@ -1073,10 +1091,22 @@ contract LiquidityPool is
     if(msg.sender != order.buyer) {revert InvalidBuyer();}
     // check that the order is still valid
     if(block.timestamp > order.orderExpiry) {revert OrderExpired();}
-    // calculate and send the premium
+    OptionRegistry optionRegistry = getOptionRegistry();  
+    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(order.seriesAddress);
+    (uint poolCalculatedPremium, int delta) = quotePriceWithUtilizationGreeks(Types.OptionSeries( 
+       optionSeries.expiration,
+       optionSeries.isPut,
+       optionSeries.strike*(10**10), // convert from 1e8 to 1e18 notation for quotePrice
+       optionSeries.underlying,
+       optionSeries.strikeAsset,
+       collateralAsset), order.amount);
+    
+    // calculate the total premium
     uint256 premium = (order.amount * order.price) / 1e18;
+    // check the agreed upon premium is within acceptable range of pool's own pricing model
+    if (poolCalulatedPremium - (poolCalulatedPremium *  customOrderBounds.maxPriceRange / MAX_BPS) > premium) { revert CustomOrderInsufficientPrice(); }
     // write the option contract, includes sending the premium from the user to the pool
-    uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, getOptionRegistry(), premium, bufferRemaining);
+    uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, bufferRemaining);
     // invalidate the order
     delete orderStores[_orderId];
   }
