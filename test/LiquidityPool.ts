@@ -688,7 +688,7 @@ describe("Liquidity Pools", async () => {
 		const newReactorDelta = await uniswapV3HedgingReactor.internalDelta()
 		const newDelta = await liquidityPool.getPortfolioDelta()
 		expect(reactorDelta).to.equal(newReactorDelta).to.equal(0)
-		expect(newDelta.sub(delta)).to.be.within(0, 100000000000)
+		expect(newDelta.sub(delta)).to.be.within(0, 1e13)
 	})
 	it("Creates a liquidity pool with ETH as collateralAsset", async () => {
 		type int7 = [

@@ -115,7 +115,7 @@ const invalidStrikeHigh = utils.parseEther("12500")
 const invalidStrikeLow = utils.parseEther("200")
 
 // balances to deposit into the LP
-const liquidityPoolUsdcDeposit = "11000"
+const liquidityPoolUsdcDeposit = "20000"
 const liquidityPoolWethDeposit = "1"
 
 // balance to withdraw after deposit
@@ -641,13 +641,13 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
 	})
-	it("returns zero when hedging positive delta in perp hedging reactor", async () => {
+	it("hedges positive delta in perp hedging reactor", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		const reactorDelta = await perpHedgingReactor.internalDelta()
 		await liquidityPool.rebalancePortfolioDelta(delta, 0)
 		const newReactorDelta = await perpHedgingReactor.internalDelta()
 		const newDelta = await liquidityPool.getPortfolioDelta()
-		expect(newDelta).to.be.within(0, 100000000000)
+		expect(newDelta).to.be.within(0, 1e13)
 		expect(reactorDelta.sub(newReactorDelta)).to.equal(delta)
 	})
 
