@@ -376,7 +376,7 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const truncQuote = truncate(finalQuote)
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.lt(0.01)
+		expect(diff).to.be.within(0, 0.01)
 	})
 	it("LP Writes a ETH/USD put for premium under utilization", async () => {
 		const [sender] = signers
