@@ -18,11 +18,13 @@ public/css/main.css
 artifacts
 deployments
 types
-coverage
-coverage.json
 
 # Cache
 cache
+
+# Coverage reports
+coverage
+coverage.json
 
 # API keys and secrets
 .env

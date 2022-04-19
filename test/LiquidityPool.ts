@@ -39,6 +39,7 @@ import {
 	setupTestOracle,
 	setupOracle,
 	calculateOptionQuoteLocally,
+	calculateOptionDeltaLocally,
 	increase,
 	setOpynOracleExpiryPrice
 } from "./helpers"
@@ -77,6 +78,7 @@ let opynAggregator: MockChainlinkAggregator
 let putOptionToken: IOToken
 let putOptionToken2: IOToken
 let collateralAllocatedToVault1: BigNumber
+let proposedSeries: any
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -413,7 +415,7 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.lt(0.01)
+		expect(diff).to.be.within(0, 0.01)
 	})
 
 	it("Returns a quote for a ETH/USD put to buy", async () => {
@@ -445,7 +447,7 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(buyQuote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.lt(0.01)
+		expect(diff).to.be.within(0, 0.01)
 	})
 
 	it("reverts when attempting to write ETH/USD puts with expiry outside of limit", async () => {
@@ -527,7 +529,7 @@ describe("Liquidity Pools", async () => {
 		const { timestamp } = block
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const proposedSeries = {
+		proposedSeries = {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
@@ -553,8 +555,19 @@ describe("Liquidity Pools", async () => {
 		const opynAmount = toOpyn(fromWei(amount))
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.lt(0.1)
+		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(0, 0.1)
 		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
+	})
+	it("can compute portfolio delta", async function () {
+		const delta = await liquidityPool.getPortfolioDelta()
+		const localDelta = await calculateOptionDeltaLocally(
+			liquidityPool, 
+			priceFeed,
+			proposedSeries,
+			toWei('1'),
+			true
+			)
+		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
 		const [sender] = signers
@@ -590,14 +603,63 @@ describe("Liquidity Pools", async () => {
 		const opynAmount = toOpyn(fromWei(amount))
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.lt(0.1)
+		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(-0.1, 0.1)
 		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
 		const lpAllocatedDiff = lpAllocatedAfter.sub(lpAllocatedBefore)
-		expect(tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.lt(
-			0.1
+		expect(tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.within(
+			0, 0.1
 		)
 	})
-	it("reverts if option colaterral exceeds buffer limit", async () => {
+	it("can compute portfolio delta", async function () {
+		const delta = await liquidityPool.getPortfolioDelta()
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const { timestamp } = block
+		const wTPuts = await liquidityPool.weightedTimePut()
+		const wSPuts = await liquidityPool.weightedStrikePut()
+		const wPuts = await liquidityPool.totalAmountPut()
+	
+		const localDelta = await calculateOptionDeltaLocally(
+			liquidityPool, 
+			priceFeed,
+			proposedSeries,
+			toWei('1'),
+			true
+			)
+		const localDeltaActual = await calculateOptionDeltaLocally(
+			liquidityPool, 
+			priceFeed,
+			{expiration: wTPuts.toNumber(), 
+			 isPut: PUT_FLAVOR, 
+			 strike: wSPuts, 
+			 strikeAsset: usd.address, 
+			 underlying: weth.address, 
+			 collateral: usd.address 
+			},
+			wPuts,
+			true
+			)
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const proposedSeries2 = {
+			expiration: expiration2,
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		const localDelta2 = await calculateOptionDeltaLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeries2,
+			toWei('3'),
+			true
+		)
+		expect(delta.sub(localDelta.add(localDelta2))).to.be.within(-1e15, 1e15)
+		expect(delta.sub(localDeltaActual)).to.be.within(-1e13, 1e13)
+	})
+	it("reverts if option collaterral exceeds buffer limit", async () => {
 		const lpBalance = await usd.balanceOf(liquidityPool.address)
 		const amount = toWei("5")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -615,12 +677,6 @@ describe("Liquidity Pools", async () => {
 			"MaxLiquidityBufferReached"
 		)
 	})
-
-	it("can compute portfolio delta", async function () {
-		const delta = await liquidityPool.getPortfolioDelta()
-		expect(delta).to.be.gt(0)
-	})
-
 	it("reverts when non-admin calls rebalance function", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
@@ -783,7 +839,7 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.lt(0.01)
+		expect(diff).to.be.within(0, 0.01)
 	})
 
 	let lpCallOption: IOToken
@@ -986,7 +1042,7 @@ describe("Liquidity Pools", async () => {
 		const usdBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		//@ts-ignore
 		const diff = fromWei(usdBalance) * ratio
-		expect(diff).to.be.lt(1)
+		expect(diff).to.be.within(0, 1)
 		expect(strikeAmount).to.be.eq(usdBalance.sub(usdBalanceAfter))
 	})
 
