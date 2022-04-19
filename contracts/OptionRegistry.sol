@@ -15,13 +15,10 @@ import { LiquidityPool } from "./LiquidityPool.sol";
 import "hardhat/console.sol";
 
 contract OptionRegistry is Ownable, AccessControl {
-    // Access control role identifier
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    // public versioning of the contract for external use
-    string public constant VERSION = "1.0";
-    uint8 private constant OPYN_DECIMALS = 8;
     // address of the opyn oTokenFactory for oToken minting
     address internal oTokenFactory;
+    // authorised entry address
+    address public authorised;
     // address of the gammaController for oToken operations
     address internal gammaController;
     // address of the collateralAsset
@@ -49,11 +46,12 @@ contract OptionRegistry is Ownable, AccessControl {
     // min health threshold for puts
     uint64 public putLowerHealthFactor = 11_000;
     // BIPS
-    uint256 MAX_BPS = 10_000;
-    //
-    address public authorised;
+    uint256 private constant MAX_BPS = 10_000;
     // used to convert e18 to e8
     uint256 private constant SCALE_FROM = 10**10;
+    // Access control role identifier
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    uint8 private constant OPYN_DECIMALS = 8;
 
     event OptionTokenCreated(address token);
     event SeriesRedeemed(address series, uint underlyingAmount, uint strikeAmount);
@@ -162,8 +160,6 @@ contract OptionRegistry is Ownable, AccessControl {
      * @return the address of the option
      */
     function getOtoken(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external view returns (address) {
-        // deploy an oToken contract address
-        if(expiration <= block.timestamp) {revert AlreadyExpired();}
         // check for an opyn oToken
         address series = OpynInteractions.getOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
         return series;

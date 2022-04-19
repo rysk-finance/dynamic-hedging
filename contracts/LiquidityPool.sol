@@ -990,6 +990,8 @@ contract LiquidityPool is
     Types.OptionSeries memory optionSeries,
     uint amount
   ) public nonReentrant whenNotPaused() returns (uint256){
+    // revert if the expiry is in the past
+    if (optionSeries.expiration <= block.timestamp) {revert OptionExpiryInvalid();}
     (uint256 premium, int256 delta) = quotePriceBuying(optionSeries, amount);
     if (!buybackWhitelist[msg.sender]){
       int portfolioDelta = getPortfolioDelta();

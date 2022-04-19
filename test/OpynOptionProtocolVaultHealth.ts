@@ -743,6 +743,106 @@ describe("Options protocol Vault Health", function () {
 		expect(healthFactor).to.not.equal(healthFBefore)
 		expect(healthF).to.equal(healthFactor)
 	})
+	it("readjusts to negative and checks liquidate for caller adjust", async () => {
+		const currentPrice = await oracle.getPrice(weth.address)
+		const arr = await optionRegistry.checkVaultHealth(1)
+		const healthFBefore = arr[2]
+		const settlePrice = currentPrice.add(toWei("800").div(oTokenDecimalShift18))
+		await aggregator.setLatestAnswer(settlePrice)
+		await aggregator.setRoundAnswer(3, settlePrice)
+		await aggregator.setRoundTimestamp(3)
+		const vaultDetails = await controller.getVault(optionRegistry.address, 1)
+		const value = vaultDetails.shortAmounts[0]
+		const collatAmounts = vaultDetails.collateralAmounts[0]
+		const underlyingPrice = await oracle.getPrice(weth.address)
+		let marginReq = await newCalculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			usd.address,
+			value,
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			6,
+			false
+		)
+
+		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
+		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
+		const neededCollat = marginReq.sub(collatAmounts)
+
+		let [
+			isBelowMin,
+			isAboveMax,
+			healthFactor,
+			collateralAmount,
+			collateralAsset
+		] = await optionRegistry.checkVaultHealth(1)
+		expect(isBelowMin).to.be.true
+		expect(isAboveMax).to.be.false
+		expect(neededCollat).to.equal(collateralAmount)
+		expect(collateralAmount).to.be.gt(0)
+		expect(healthF).to.not.equal(healthFBefore)
+		expect(healthFactor).to.not.equal(healthFBefore)
+		expect(healthF).to.equal(healthFactor)
+		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
+			optionRegistry.address,
+			1
+		)
+		expect(isUnderCollat).to.be.true
+	})
+	it("adjusts collateral caller to get back to positive", async () => {
+		await optionRegistry.setLiquidityPool(liquidityPool.address)
+		const arr = await optionRegistry.checkVaultHealth(1)
+		const healthFBefore = arr[2]
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		await optionRegistry.adjustCollateralCaller(1)
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const lpBalanceDiff = lpBalanceAfter.sub(lpBalanceBefore)
+		expect(collateralAllocatedAfter).to.equal(collateralAllocatedBefore.sub(lpBalanceDiff))
+		const roundId = 3
+		const vaultDetails = await controller.getVault(optionRegistry.address, 1)
+		const value = vaultDetails.shortAmounts[0]
+		const collatAmounts = vaultDetails.collateralAmounts[0]
+		const underlyingPrice = await oracle.getPrice(weth.address)
+		let marginReq = await newCalculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			usd.address,
+			value,
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			6,
+			false
+		)
+
+		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
+		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
+		const neededCollat = marginReq.sub(collatAmounts)
+		let [
+			isBelowMin,
+			isAboveMax,
+			healthFactor,
+			collateralAmount,
+			collateralAsset
+		] = await optionRegistry.checkVaultHealth(1)
+		expect(isBelowMin).to.be.false
+		expect(isAboveMax).to.be.false
+		expect(neededCollat).to.equal(collateralAmount)
+		expect(collateralAmount).to.equal(0)
+		expect(healthF).to.not.equal(healthFBefore)
+		expect(healthFactor).to.not.equal(healthFBefore)
+		expect(healthF).to.equal(healthFactor)
+	})
+	it("reverts when trying to adjust a healthy vault", async () => {
+		await expect(optionRegistry.adjustCollateral(1)).to.be.revertedWith("HealthyVault()")
+	})	
+	it("reverts adjustCollateralCaller when trying to adjust a healthy vault", async () => {
+		await expect(optionRegistry.adjustCollateralCaller(1)).to.be.revertedWith("HealthyVault()")
+	})	
 	it("moves the price and changes vault health ETH to negative rebalance stage", async () => {
 		const currentPrice = await oracle.getPrice(weth.address)
 		const arr = await optionRegistryETH.checkVaultHealth(1)
