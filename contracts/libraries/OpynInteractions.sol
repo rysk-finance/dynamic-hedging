@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
+import "./SafeTransferLib.sol";
 import "../interfaces/IERC20.sol";
+import { Types } from "./Types.sol";
 import {
     IOtokenFactory,
     IOtoken,
     IController,
     GammaTypes
 } from "../interfaces/GammaInterface.sol";
-import { Types } from "./Types.sol";
 import {Constants} from "./Constants.sol";
-import "./SafeTransferLib.sol";
-import "hardhat/console.sol";
 
 library OpynInteractions {
 
