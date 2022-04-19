@@ -6,19 +6,16 @@ import "./interfaces/IMarginCalculator.sol";
 import { Types } from "./libraries/Types.sol";
 import "./interfaces/AddressBookInterface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import { LiquidityPool } from "./LiquidityPool.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import { OpynInteractions } from "./libraries/OpynInteractions.sol";
 import { IController, GammaTypes} from "./interfaces/GammaInterface.sol";
-import { LiquidityPool } from "./LiquidityPool.sol";
-import "hardhat/console.sol";
 
 contract OptionRegistry is Ownable, AccessControl {
     // address of the opyn oTokenFactory for oToken minting
     address internal oTokenFactory;
-    // authorised entry address
-    address public authorised;
     // address of the gammaController for oToken operations
     address internal gammaController;
     // address of the collateralAsset
@@ -98,14 +95,6 @@ contract OptionRegistry is Ownable, AccessControl {
     }
 
     /**
-     * @notice Set the authorised address
-     * @param  _newAuthorised set the authorised address
-     */
-    function setAuthorised(address _newAuthorised) external onlyOwner {
-     authorised = _newAuthorised;
-    }
-
-    /**
      * @notice Set the health thresholds of the pool
      * @param  _putLower the lower health threshold for puts
      * @param  _putUpper the upper health threshold for puts
@@ -147,41 +136,6 @@ contract OptionRegistry is Ownable, AccessControl {
         seriesAddress[issuanceHash] = series;
         emit OptionTokenCreated(series);
         return series;
-    }
-
-    /**
-     * @notice Retrieves the option token if it exists
-     * @param  underlying is the address of the underlying asset of the option
-     * @param  strikeAsset is the address of the collateral asset of the option
-     * @param  expiration is the expiry timestamp of the option
-     * @param  isPut the type of option
-     * @param  strike is the strike price of the option - 1e18 format
-     * @param  collateral is the address of the asset to collateralize the option with
-     * @return the address of the option
-     */
-    function getOtoken(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external view returns (address) {
-        // check for an opyn oToken
-        address series = OpynInteractions.getOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
-        return series;
-    }
-
-    /**
-     * @notice Converts strike price to 1e8 format and floors least significant digits if needed
-     * @param  strikePrice strikePrice in 1e18 format
-     * @param  collateral address of collateral asset
-     * @return if the transaction succeeded
-     */
-    function formatStrikePrice(
-        uint256 strikePrice,
-        address collateral
-    ) internal view returns (uint) {
-        // convert strike to 1e8 format
-        uint price = strikePrice / (10**10);
-        uint collateralDecimals = IERC20(collateral).decimals();
-        if (collateralDecimals >= OPYN_DECIMALS) return price;
-        uint difference = OPYN_DECIMALS - collateralDecimals;
-        // round floor strike to prevent errors in Gamma protocol
-        return price / (10**difference) * (10**difference);
     }
 
     /**
@@ -233,7 +187,6 @@ contract OptionRegistry is Ownable, AccessControl {
         // transfer the oToken back to this account
         SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), convertedAmount);
         // burn the oToken tracking the amount of collateral returned
-        // TODO: account for fact there might be a buffer
         uint256 collatReturned = OpynInteractions.burnShort(gammaController, _series, convertedAmount, vaultId);
         SafeTransferLib.safeTransfer(ERC20(series.collateral), msg.sender, collatReturned);
         emit OptionsContractClosed(_series, vaultId, amount);
@@ -307,6 +260,22 @@ contract OptionRegistry is Ownable, AccessControl {
         uint256 upperHealthFactor = series.isPut ? putUpperHealthFactor : callUpperHealthFactor;
         collateralAmount = ((collateralAmount * upperHealthFactor) / MAX_BPS);
       return collateralAmount;
+    }
+
+    /**
+     * @notice Retrieves the option token if it exists
+     * @param  underlying is the address of the underlying asset of the option
+     * @param  strikeAsset is the address of the collateral asset of the option
+     * @param  expiration is the expiry timestamp of the option
+     * @param  isPut the type of option
+     * @param  strike is the strike price of the option - 1e18 format
+     * @param  collateral is the address of the asset to collateralize the option with
+     * @return the address of the option
+     */
+    function getOtoken(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external view returns (address) {
+        // check for an opyn oToken
+        address series = OpynInteractions.getOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
+        return series;
     }
 
   /*********************
@@ -415,6 +384,7 @@ contract OptionRegistry is Ownable, AccessControl {
       // transfer the excess collateral to the liquidityPool from this address
       SafeTransferLib.safeTransfer(ERC20(vault.collateralAssets[0]), liquidityPool, vault.collateralAmounts[0]);
     }
+    
   /*********
     GETTERS
    *********/
@@ -445,6 +415,25 @@ contract OptionRegistry is Ownable, AccessControl {
       return keccak256(
          abi.encodePacked(underlying, strikeAsset, collateral, expiration, isPut, strike)
       );
+    }
+
+    /**
+     * @notice Converts strike price to 1e8 format and floors least significant digits if needed
+     * @param  strikePrice strikePrice in 1e18 format
+     * @param  collateral address of collateral asset
+     * @return if the transaction succeeded
+     */
+    function formatStrikePrice(
+        uint256 strikePrice,
+        address collateral
+    ) internal view returns (uint) {
+        // convert strike to 1e8 format
+        uint price = strikePrice / (10**10);
+        uint collateralDecimals = IERC20(collateral).decimals();
+        if (collateralDecimals >= OPYN_DECIMALS) return price;
+        uint difference = OPYN_DECIMALS - collateralDecimals;
+        // round floor strike to prevent errors in Gamma protocol
+        return price / (10**difference) * (10**difference);
     }
 
 }

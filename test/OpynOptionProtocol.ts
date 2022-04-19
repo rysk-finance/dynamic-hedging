@@ -830,12 +830,7 @@ describe("Options protocol", function () {
 		expect(opBalRegistry).to.equal(0)
 		expect(opBalSender).to.equal(0)
 	})
-	it("sets the authorised party", async () => {
-		await optionRegistry.setAuthorised(receiverAddress)
-		expect(await optionRegistry.authorised()).to.equal(receiverAddress)
-		await expect(optionRegistry.connect(receiverAddress).setAuthorised(senderAddress)).to.be.reverted
-	})
-	it("sets the authorised party", async () => {
+	it("sets the health threshold", async () => {
 		await optionRegistry.setHealthThresholds(1000,1000,1000,1000)
 		expect(await optionRegistry.putLowerHealthFactor()).to.equal(1000)
 		expect(await optionRegistry.putUpperHealthFactor()).to.equal(1000)
@@ -849,3 +844,4 @@ describe("Options protocol", function () {
 		expect(series).to.equal(optionTokenUSDC.address)
 	})
 })
+set
