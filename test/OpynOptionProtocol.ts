@@ -844,4 +844,3 @@ describe("Options protocol", function () {
 		expect(series).to.equal(optionTokenUSDC.address)
 	})
 })
-set
