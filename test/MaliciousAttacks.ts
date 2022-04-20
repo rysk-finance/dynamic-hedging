@@ -42,6 +42,7 @@ import {
 } from "./constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { deployOpyn } from "../utils/opyn-deployer"
+import { VolatilityFeed } from "../types/VolatilityFeed"
 
 let usd: MintableERC20
 let wethERC20: ERC20Interface
@@ -54,6 +55,7 @@ let attackerAddress: string
 let liquidityPool: LiquidityPool
 let priceFeed: PriceFeed
 let volatility: Volatility
+let volFeed: VolatilityFeed
 let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
@@ -202,16 +204,9 @@ describe("Hegic Attack", function () {
 		const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		expect(oraclePrice.mul(10_000_000_000)).to.equal(priceFeedPrice)
 	})
-	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
-		optionProtocol = (await protocolFactory.deploy(
-			optionRegistry.address,
-			priceFeed.address
-		)) as Protocol
-		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
-	})
-
-	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
+	it("#Should deploy volatility feed", async () => {
+		const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
+		volFeed = (await volFeedFactory.deploy()) as VolatilityFeed
 		type int7 = [
 			BigNumberish,
 			BigNumberish,
@@ -233,6 +228,21 @@ describe("Hegic Attack", function () {
 		]
 		//@ts-ignore
 		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
+		await volFeed.setVolatilitySkew(coefs, true)
+		await volFeed.setVolatilitySkew(coefs, false)
+	})
+
+	it("Should deploy option protocol and link to registry/price feed", async () => {
+		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
+		optionProtocol = (await protocolFactory.deploy(
+			optionRegistry.address,
+			priceFeed.address,
+			volFeed.address
+		)) as Protocol
+		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
+	})
+
+	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
 
 		const normDistFactory = await ethers.getContractFactory("NormalDist", {
 			libraries: {}
@@ -260,8 +270,6 @@ describe("Hegic Attack", function () {
 			weth.address,
 			usd.address,
 			toWei(rfr),
-			coefs,
-			coefs,
 			"ETH/USDC",
 			"EDP",
 			{
