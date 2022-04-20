@@ -368,7 +368,7 @@ describe("Liquidity Pools", async () => {
 
 		uniswapV3HedgingReactor = (await uniswapV3HedgingReactorFactory.deploy(
 			UNISWAP_V3_SWAP_ROUTER[chainId],
-			[USDC_ADDRESS[chainId]],
+			USDC_ADDRESS[chainId],
 			WETH_ADDRESS[chainId],
 			liquidityPool.address,
 			3000,

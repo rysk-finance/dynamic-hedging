@@ -31,17 +31,6 @@ library OptionsCompute {
         return value * (10**difference);
     }
 
-    function computeEscrow(uint amount, uint strike, uint underlyingDecimals)
-        internal
-        pure
-        returns (uint)
-    {
-        //uint decimalShift = 18 - underlyingDecimals;
-        //return strike.mul(amount).div(10**(8 + decimalShift));
-        uint escrow = strike.mul(amount);
-        return convertToDecimals(escrow, underlyingDecimals);
-    }
-
     /**
         @dev computes new portfolio options position on a given side (put or call). Reduces and represents this position as a single option.
         @param amount the number number of newly written options

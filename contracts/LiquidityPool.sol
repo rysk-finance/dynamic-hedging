@@ -7,16 +7,14 @@ import "./VolatilityFeed.sol";
 import "./OptionsProtocol.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
+import "./libraries/OptionsCompute.sol";
+import "./libraries/SafeTransferLib.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import { Constants } from "./libraries/Constants.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import { OptionsCompute } from "./libraries/OptionsCompute.sol";
-import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
-
 import "hardhat/console.sol";
 
 error IVNotFound();
@@ -55,10 +53,8 @@ contract LiquidityPool is
 
   // Access control role identifier
   bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-  // standard expected decimals of ERC20s
-  uint8 private constant SCALE_DECIMALS = 18;
   // BIPS
-  uint256 MAX_BPS = 10_000;
+  uint256 private constant MAX_BPS = 10_000;
   // buffer of funds to not be used to write new options in case of margin requirements (as percentage - for 20% enter 2000)
   uint public bufferPercentage = 2000;
   // list of addresses for hedging reactors
@@ -75,8 +71,6 @@ contract LiquidityPool is
   uint public riskFreeRate;
   // amount of strikeAsset allocated as collateral
   uint public collateralAllocated;
-  // amount of underlyingAsset allocated as collateral
-  uint public underlyingAllocated;
   // max total supply of the lp shares
   uint public maxTotalSupply = type(uint256).max;
   // Maximum discount that an option tilting factor can discount an option price
@@ -104,8 +98,10 @@ contract LiquidityPool is
   mapping(uint256 => Types.Order) public orderStores;
   // order id counter
   uint256 public orderIdCounter;
- 
+  // option issuance parameters
+  OptionParams public optionParams;
   // strike and expiry date range for options
+
   struct OptionParams {
     uint128 minCallStrikePrice;
     uint128 maxCallStrikePrice;
@@ -114,7 +110,13 @@ contract LiquidityPool is
     uint128 minExpiry;
     uint128 maxExpiry;
   }
-  OptionParams public optionParams;
+
+  struct UtilizationState {
+    uint optionPrice;
+    uint utilizationPrice;
+    bool isDecreased;
+    uint deltaTiltFactor;
+  }
 
   event OrderCreated(uint orderId);
   event LiquidityAdded(uint amount);
@@ -124,7 +126,6 @@ contract LiquidityPool is
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
   event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
   event SettleVault(address series, uint collateralReturned, uint collateralLost, address closer);
-
 
   constructor
   (
@@ -687,13 +688,6 @@ contract LiquidityPool is
         IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
       }
       // TODO if we dont / not enough - look at derivatives
-  }
-
-  struct UtilizationState {
-    uint optionPrice;
-    uint utilizationPrice;
-    bool isDecreased;
-    uint deltaTiltFactor;
   }
 
   /**

@@ -6,16 +6,51 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 
 contract VolatilityFeed is Ownable {
-
     using PRBMathSD59x18 for int256;
     using PRBMathUD60x18 for uint256;
-    
-    uint256 private constant ONE_YEAR_SECONDS = 31557600;
+
+    /////////////////////////////////////
+    /// governance settable variables ///
+    /////////////////////////////////////
+
     // skew parameters for calls
     int[7] public callsVolatilitySkew;
     // skew parameters for puts
     int[7] public putsVolatilitySkew;
+
+    //////////////////////////
+    /// constant variables ///
+    //////////////////////////
+    
+    // number of seconds in a year used for calculations
+    uint256 private constant ONE_YEAR_SECONDS = 31557600;
     constructor() public {}
+
+   ///////////////
+   /// setters ///
+   ///////////////
+
+  /**
+   * @notice set the volatility skew of the pool
+   * @param values the parameters of the skew
+   * @param isPut the option type, put or call?
+   * @dev   only governance can call this function
+   */
+  function setVolatilitySkew(int[7] calldata values, bool isPut)
+      onlyOwner
+      external
+  {
+      if (!isPut) {
+          callsVolatilitySkew = values;
+      } else {
+          putsVolatilitySkew = values;
+      }
+  }
+
+    
+  ///////////////////////
+  /// complex getters ///
+  ///////////////////////
 
   /**
    * @notice get the current implied volatility from the feed
@@ -38,24 +73,6 @@ contract VolatilityFeed is Ownable {
       int[7] memory coef = isPut ? putsVolatilitySkew : callsVolatilitySkew;
       return uint(OptionsCompute.computeIVFromSkew(coef, points));
     }
-
- /**
-   * @notice set the volatility skew of the pool
-   * @param values the parameters of the skew
-   * @param isPut the option type, put or call?
-   * @dev   only governance can call this function
-   */
-  function setVolatilitySkew(int[7] calldata values, bool isPut)
-      onlyOwner
-      external
-  {
-      if (!isPut) {
-          callsVolatilitySkew = values;
-      } else {
-          putsVolatilitySkew = values;
-      }
-  }
-
   /**
    * @notice get the volatility skew of the pool
    * @param isPut the option type, put or call?
