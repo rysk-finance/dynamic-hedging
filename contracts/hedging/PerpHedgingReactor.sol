@@ -44,6 +44,9 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     uint32 public poolId;
     /// @notice desired healthFactor of the pool
     uint256 public healthFactor = 12_000;
+    /// @notice should change position also sync state
+    bool public syncOnChange;
+
 
     error ValueFailure();
     error InvalidSender();
@@ -79,6 +82,11 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     /// @notice update the keeper
     function setKeeper(address _keeper) public onlyOwner {
         keeper = _keeper;
+    }
+
+    /// @notice update the keeper
+    function setSyncOnChange(bool _syncOnChange) public onlyOwner {
+        syncOnChange = _syncOnChange;
     }
 
     function initialiseReactor() external onlyOwner {
@@ -237,6 +245,9 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         @return deltaChange The resulting difference in delta exposure
     */
     function _changePosition(int256 _amount) internal returns (int256 ) {
+        if (syncOnChange) {
+            sync();
+        }
         uint256 collatToDeposit;
         uint256 collatToWithdraw;
         // access the collateral held in the account
