@@ -691,7 +691,6 @@ contract LiquidityPool is
           false
         );
       }
-
       if (weightedTimePut != 0) {
         uint256 putIv = getImpliedVolatility(true, price, weightedStrikePut, weightedTimePut);
         putsDelta = BlackScholes.getDelta(
@@ -709,7 +708,7 @@ contract LiquidityPool is
         externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
       }
       // return the negative sum of open option because we are the counterparty
-      return -(callsDelta + putsDelta) + externalDelta;
+      return -(callsDelta*int256(totalAmountCall)/int256(PRBMath.SCALE) + putsDelta*int256(totalAmountPut)/int256(PRBMath.SCALE)) + externalDelta;
   }
     
   /**
@@ -991,6 +990,8 @@ contract LiquidityPool is
     Types.OptionSeries memory optionSeries,
     uint amount
   ) public nonReentrant whenNotPaused() returns (uint256){
+    // revert if the expiry is in the past
+    if (optionSeries.expiration <= block.timestamp) {revert OptionExpiryInvalid();}
     (uint256 premium, int256 delta) = quotePriceBuying(optionSeries, amount);
     if (!buybackWhitelist[msg.sender]){
       int portfolioDelta = getPortfolioDelta();
