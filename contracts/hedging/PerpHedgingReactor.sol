@@ -18,35 +18,57 @@ import "hardhat/console.sol";
 
 contract PerpHedgingReactor is IHedgingReactor, Ownable {
 
-    /// @notice used for unlimited token approval 
-    uint256 private constant MAX_UINT = 2**256 - 1;
-    /// @notice max bips
-    uint256 private constant MAX_BIPS = 10_000;
+    /////////////////////////////////
+    /// immutable state variables ///
+    /////////////////////////////////
+
     /// @notice address of the parent liquidity pool contract
-    address public parentLiquidityPool;
-    /// @notice address of the keeper of this pool
-    address public keeper;
+    address public immutable parentLiquidityPool;
     /// @notice address of the price feed used for getting asset prices
-    address public priceFeed;
+    address public immutable priceFeed;
     /// @notice collateralAsset used for collateralising the pool
-    address public collateralAsset;
+    address public immutable collateralAsset;
     /// @notice address of the wETH contract 
     address public immutable wETH;
     /// @notice instance of the clearing house interface
     IClearingHouse public clearingHouse;
-    /// @notice delta of the pool
-    int256 public internalDelta;
+
+    /////////////////////////
+    /// dynamic variables ///
+    /////////////////////////
+
     /// @notice accountId for the perp pool
     uint256 public accountId;
+    /// @notice delta of the pool
+    int256 public internalDelta;
     /// @notice collateralId to be used in the perp pool
     uint32 public collateralId;
     /// @notice poolId to be used in the perp pool
     uint32 public poolId;
+
+    /////////////////////////////////////
+    /// governance settable variables ///
+    /////////////////////////////////////
+
+    /// @notice address of the keeper of this pool
+    address public keeper;
     /// @notice desired healthFactor of the pool
     uint256 public healthFactor = 12_000;
     /// @notice should change position also sync state
     bool public syncOnChange;
 
+    //////////////////////////
+    /// constant variables ///
+    //////////////////////////
+
+    /// @notice used for unlimited token approval 
+    uint256 private constant MAX_UINT = 2**256 - 1;
+    /// @notice max bips
+    uint256 private constant MAX_BIPS = 10_000;
+
+    //////////////
+    /// errors ///
+    //////////////
 
     error ValueFailure();
     error InvalidSender();
@@ -74,6 +96,10 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         accountId = clearingHouse.createAccount();
     }
 
+    ///////////////
+    /// setters ///
+    ///////////////
+
     /// @notice update the health factor parameter
     function setHealthFactor(uint _healthFactor) public onlyOwner {
         if (_healthFactor < MAX_BIPS) {revert InvalidHealthFactor();}
@@ -83,11 +109,14 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     function setKeeper(address _keeper) public onlyOwner {
         keeper = _keeper;
     }
-
     /// @notice update the keeper
     function setSyncOnChange(bool _syncOnChange) public onlyOwner {
         syncOnChange = _syncOnChange;
     }
+
+    ////////////////////////////////////////////
+    /// access-controlled external functions ///
+    ////////////////////////////////////////////
 
     function initialiseReactor() external onlyOwner {
         (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
@@ -108,38 +137,6 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         deltaChange = _changePosition(-_delta);
         // record the delta change internally
         internalDelta += deltaChange;
-    }
-
-    /// @inheritdoc IHedgingReactor
-    function getDelta() external view returns(int256 delta){
-        return internalDelta;
-    }
-
-    /// @inheritdoc IHedgingReactor
-    function getPoolDenominatedValue() external view returns(uint256 value){
-        // calculate the value of the pools holdings (including any funding)
-        // access the collateral held in the account
-        (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
-        // just make sure the collateral at index 0 exists and is correct (this is unlikely to ever fail, but should be checked)
-        if (collatDeposits.length != 0) {
-            if (address(collatDeposits[0].collateral) == collateralAsset) {
-                value += collatDeposits[0].balance;
-            } 
-        }
-        // increment any loose balance held by the pool
-        value += ERC20(collateralAsset).balanceOf(address(this));
-        // get the net profit of the account position
-        int256 netProfit = clearingHouse.getAccountNetProfit(accountId);
-        if (netProfit > 0) {
-            value += uint256(netProfit);
-        } else if (netProfit < 0) {
-            // if there is ever a case where value is negative then something has gone very wrong and this should be dealt with 
-            // by the reactor manager so the transaction should revert here
-            if( value < uint256(-netProfit) ) {revert ValueFailure();}
-            value -= uint256(-netProfit);
-        }
-        // value to be returned in e18
-        value = OptionsCompute.convertFromDecimals(value, IERC20(collateralAsset).decimals());
     }
 
     /// @inheritdoc IHedgingReactor
@@ -239,6 +236,45 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         }   
     }
 
+    ///////////////////////
+    /// complex getters ///
+    ///////////////////////
+
+    /// @inheritdoc IHedgingReactor
+    function getDelta() external view returns(int256 delta){
+        return internalDelta;
+    }
+
+    /// @inheritdoc IHedgingReactor
+    function getPoolDenominatedValue() external view returns(uint256 value){
+        // calculate the value of the pools holdings (including any funding)
+        // access the collateral held in the account
+        (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
+        // just make sure the collateral at index 0 exists and is correct (this is unlikely to ever fail, but should be checked)
+        if (collatDeposits.length != 0) {
+            if (address(collatDeposits[0].collateral) == collateralAsset) {
+                value += collatDeposits[0].balance;
+            } 
+        }
+        // increment any loose balance held by the pool
+        value += ERC20(collateralAsset).balanceOf(address(this));
+        // get the net profit of the account position
+        int256 netProfit = clearingHouse.getAccountNetProfit(accountId);
+        if (netProfit > 0) {
+            value += uint256(netProfit);
+        } else if (netProfit < 0) {
+            // if there is ever a case where value is negative then something has gone very wrong and this should be dealt with 
+            // by the reactor manager so the transaction should revert here
+            if( value < uint256(-netProfit) ) {revert ValueFailure();}
+            value -= uint256(-netProfit);
+        }
+        // value to be returned in e18
+        value = OptionsCompute.convertFromDecimals(value, IERC20(collateralAsset).decimals());
+    }
+
+    //////////////////////////
+    /// internal utilities ///
+    //////////////////////////
 
     /** @notice function to change the perp position
         @param _amount the amount of position to open or close
