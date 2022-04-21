@@ -10,13 +10,10 @@ import {
 	fromUSDC,
 	fmtExpiration,
 	toOpyn,
-	tFormatUSDC
+	tFormatUSDC,
+	scaleNum
 } from "../utils/conversion-helper"
-import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
-import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
-//@ts-ignore
-import bs from "black-scholes"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
@@ -30,6 +27,11 @@ import { LiquidityPool } from "../types/LiquidityPool"
 import { Volatility } from "../types/Volatility"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
+import { NewController } from "../types/NewController"
+import { AddressBook } from "../types/AddressBook"
+import { Oracle } from "../types/Oracle"
+import { NewMarginCalculator } from "../types/NewMarginCalculator"
+import { setupTestOracle } from "./helpers"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -37,8 +39,13 @@ import {
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS
+	WETH_ADDRESS,
+	CONTROLLER_OWNER,
+	GAMMA_ORACLE_NEW
 } from "./constants"
+import { deployOpyn } from "../utils/opyn-deployer"
+import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
+
 let usd: MintableERC20
 let weth: WETH
 let optionRegistry: OptionRegistry
@@ -49,18 +56,21 @@ let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
 let priceFeed: PriceFeed
-let ethUSDAggregator: MockContract
-let rate: string
+let controller: NewController
+let addressBook: AddressBook
+let newCalculator: NewMarginCalculator
+let oracle: Oracle
+let opynAggregator: MockChainlinkAggregator
 
-const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 /* --- variables to change --- */
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
-// First mined block will be timestamped 2021-07-13 20:44 UTC
-const expiryDate: string = "2021-08-05"
+// First mined block will be timestamped 2022-02-27 19:05 UTC
+const expiryDate: string = "2022-04-05"
+
 // decimal representation of a percentage
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
@@ -76,7 +86,7 @@ const liquidityPoolWethDeposit = "1"
 
 // balance to withdraw after deposit
 const liquidityPoolWethWithdraw = "0.1"
-const liquidityPoolUsdcWithdraw = "10000"
+const liquidityPoolUsdcWithdraw = "8000"
 
 const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("10000")
@@ -86,6 +96,19 @@ const maxPutStrikePrice = utils.parseEther("10000")
 const minExpiry = 86400 * 7
 // 365 days in seconds
 const maxExpiry = 86400 * 365
+
+const productSpotShockValue = scaleNum("0.6", 27)
+// array of time to expiry
+const day = 60 * 60 * 24
+const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56]
+// array of upper bound value correspond to time to expiry
+const expiryToValue = [
+	scaleNum("0.1678", 27),
+	scaleNum("0.237", 27),
+	scaleNum("0.3326", 27),
+	scaleNum("0.4032", 27),
+	scaleNum("0.4603", 27)
+]
 
 /* --- end variables to change --- */
 
@@ -103,29 +126,34 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 					forking: {
 						chainId: 1,
 						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
-						blockNumber: 12821000
+						blockNumber: 14290000
 					}
 				}
 			]
 		})
-	})
-	//   after(async function () {
-	//     await network.provider.request({
-	//       method: 'hardhat_reset',
-	//       params: [],
-	//     })
-	//   })
-	it("Deploys the Option Registry", async () => {
 		signers = await ethers.getSigners()
+		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
+		controller = opynParams.controller
+		addressBook = opynParams.addressBook
+		oracle = opynParams.oracle
+		newCalculator = opynParams.newCalculator
+		// get the oracle
+		const res = await setupTestOracle(await signers[0].getAddress())
+		oracle = res[0] as Oracle
+		opynAggregator = res[1] as MockChainlinkAggregator
+	})
+
+	it("Deploys the Option Registry", async () => {
+		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
-		const constantsFactory = await ethers.getContractFactory("Constants")
-		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
+		const constantsFactory = await hre.ethers.getContractFactory("Constants")
+		const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
+		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {
 			libraries: {
 				OpynInteractions: interactions.address
 			}
@@ -135,7 +163,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			"contracts/interfaces/WETH.sol:WETH",
 			WETH_ADDRESS[chainId]
 		)) as WETH
-		usd = (await ethers.getContractAt("ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usd = (await ethers.getContractAt(
+			"contracts/tokens/ERC20.sol:ERC20",
+			USDC_ADDRESS[chainId]
+		)) as MintableERC20
 		await network.provider.request({
 			method: "hardhat_impersonateAccount",
 			params: [USDC_OWNER_ADDRESS[chainId]]
@@ -155,28 +186,20 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(optionRegistry).to.have.property("deployTransaction")
 	})
 	it("Should deploy price feed", async () => {
-		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
-
 		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
 		const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
 		priceFeed = _priceFeed
-		await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, ethUSDAggregator.address)
-		await priceFeed.addPriceFeed(weth.address, usd.address, ethUSDAggregator.address)
-		const feedAddress = await priceFeed.priceFeeds(ZERO_ADDRESS, usd.address)
-		expect(feedAddress).to.eq(ethUSDAggregator.address)
-		rate = "56770839675"
-		await ethUSDAggregator.mock.latestRoundData.returns(
-			"55340232221128660932",
-			rate,
-			"1607534965",
-			"1607535064",
-			"55340232221128660932"
-		)
-		await ethUSDAggregator.mock.decimals.returns("8")
+		await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
+		await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
+		// oracle returns price denominated in 1e8
+		const oraclePrice = await oracle.getPrice(weth.address)
+		// pricefeed returns price denominated in 1e18
+		const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		expect(oraclePrice.mul(10_000_000_000)).to.equal(priceFeedPrice)
 	})
 
 	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("Protocol")
+		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address
@@ -242,8 +265,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 				maxCallStrikePrice,
 				minPutStrikePrice,
 				maxPutStrikePrice,
-				minExpiry: fmtExpiration(minExpiry),
-				maxExpiry: fmtExpiration(maxExpiry)
+				minExpiry: minExpiry,
+				maxExpiry: maxExpiry
 			},
 			await signers[0].getAddress()
 		)) as LiquidityPool
@@ -277,21 +300,21 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	})
 
 	it("Removes from liquidityPool with no options written", async () => {
-		const liquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
-		await liquidityPool.withdraw(liquidityPoolBalance, senderAddress)
-		const newLiquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
+		const lpSharesBalance = await liquidityPool.balanceOf(senderAddress)
+		await liquidityPool.withdraw(toWei(liquidityPoolUsdcWithdraw), senderAddress)
+		const newLpSharesBalance = await liquidityPool.balanceOf(senderAddress)
 		const expectedBalance = (
 			parseFloat(liquidityPoolUsdcDeposit) - parseFloat(liquidityPoolUsdcWithdraw)
 		).toString()
-		expect(newLiquidityPoolBalance).to.eq(toWei(expectedBalance))
-		expect(liquidityPoolBalance.sub(newLiquidityPoolBalance)).to.eq(toWei(liquidityPoolUsdcWithdraw))
+		expect(newLpSharesBalance).to.eq(toWei(expectedBalance))
+		expect(lpSharesBalance.sub(newLpSharesBalance)).to.eq(toWei(liquidityPoolUsdcWithdraw))
 	})
 
 	it("Adds additional liquidity from new account", async () => {
 		const [sender, receiver] = signers
 		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
 		await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit), senderAddress)
-		const sendAmount = toUSDC("1000")
+		const sendAmount = toUSDC("10000")
 		const usdReceiver = usd.connect(receiver)
 		await usdReceiver.approve(liquidityPool.address, sendAmount)
 		const lpReceiver = liquidityPool.connect(receiver)
@@ -312,7 +335,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
-			expiration: fmtExpiration(expiration),
+			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
@@ -358,9 +381,28 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const totalSharesAfter = await liquidityPool.totalSupply()
 		//@ts-ignore
 		const diff = usdBalanceBefore - usdBalanceAfter
-		expect(Number(fromUSDC(diff - toUSDC(liquidityPoolUsdcDeposit).toNumber()))).to.be.within(0, 20)
 		expect(
-			Number(fromUSDC(senderUsdcAfter.sub(senderUsdcBefore).sub(toUSDC(liquidityPoolUsdcDeposit))))
+			Number(
+				fromUSDC(
+					diff -
+						toUSDC(
+							(parseInt(liquidityPoolUsdcDeposit) * 2 - parseInt(liquidityPoolUsdcWithdraw)).toString()
+						).toNumber()
+				)
+			)
+		).to.be.within(0, 20)
+		expect(
+			Number(
+				fromUSDC(
+					senderUsdcAfter
+						.sub(senderUsdcBefore)
+						.sub(
+							toUSDC(
+								(parseInt(liquidityPoolUsdcDeposit) * 2 - parseInt(liquidityPoolUsdcWithdraw)).toString()
+							)
+						)
+				)
+			)
 		).to.be.within(0, 20)
 		expect(senderUsdcAfter.sub(senderUsdcBefore)).to.be.eq(strikeAmount)
 		expect(senderSharesAfter).to.eq(0)

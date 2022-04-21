@@ -56,7 +56,7 @@ describe("UniswapV3HedgingReactor", () => {
 		})
 		usdcWhale = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
 		usdcWhaleAddress = await usdcWhale.getAddress()
-		usdcContract = (await ethers.getContractAt("ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usdcContract = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
 
 		await usdcContract
 			.connect(usdcWhale)
@@ -110,6 +110,13 @@ describe("UniswapV3HedgingReactor", () => {
 		)) as UniswapV3HedgingReactor
 
 		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")
+		const minAmount = await uniswapV3HedgingReactor.minAmount()
+		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 16))
+	})
+	it("updates minAmount parameter", async () => {
+		await uniswapV3HedgingReactor.setMinAmount(1e10)
+		const minAmount = await uniswapV3HedgingReactor.minAmount()
+		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 10))
 	})
 
 	it("sets reactor address on LP contract", async () => {
@@ -121,7 +128,7 @@ describe("UniswapV3HedgingReactor", () => {
 	})
 
 	it("changes nothing if no ETH balance and hedging positive delta", async () => {
-		wethContract = (await ethers.getContractAt("ERC20", WETH_ADDRESS[chainId])) as MintableERC20
+		wethContract = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", WETH_ADDRESS[chainId])) as MintableERC20
 		const reactorWethBalanceBefore = parseFloat(
 			ethers.utils.formatEther(
 				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
@@ -356,7 +363,7 @@ describe("UniswapV3HedgingReactor", () => {
 				6
 			)
 		)
-		const withdrawAmount = "1000"
+		const withdrawAmount = "9000"
 
 		expect(reactorWethBalanceBefore).to.equal(0.5)
 		expect(parseFloat(withdrawAmount)).to.be.above(reactorUsdcBalanceBefore)

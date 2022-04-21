@@ -24,6 +24,7 @@ cache
 
 # Coverage reports
 coverage
+coverage.json
 
 # API keys and secrets
 .env

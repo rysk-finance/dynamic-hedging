@@ -1,22 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
+import "./SafeTransferLib.sol";
 import "../interfaces/IERC20.sol";
+import { Types } from "./Types.sol";
 import {
     IOtokenFactory,
     IOtoken,
     IController,
     GammaTypes
 } from "../interfaces/GammaInterface.sol";
-import { Types } from "./Types.sol";
 import {Constants} from "./Constants.sol";
-import "./SafeTransferLib.sol";
-import "hardhat/console.sol";
 
 library OpynInteractions {
 
     uint256 private constant SCALE_FROM = 10**10;
-    
+    error NoShort();
     /**
      * @notice Either retrieves the option token if it already exists, or deploy it
      * @param oTokenFactory is the address of the opyn oTokenFactory
@@ -66,7 +65,7 @@ library OpynInteractions {
         return otoken;
     }
 
-        /**
+    /**
      * @notice Retrieves the option token if it already exists
      * @param oTokenFactory is the address of the opyn oTokenFactory
      * @param collateral asset that is held as collateral against short/written options
@@ -85,7 +84,7 @@ library OpynInteractions {
         uint256 strike,
         uint256 expiration,
         bool isPut
-    ) external returns (address) {
+    ) external view returns (address) {
         IOtokenFactory factory = IOtokenFactory(oTokenFactory);
         address otokenFromFactory =
             factory.getOtoken(
@@ -101,7 +100,6 @@ library OpynInteractions {
             return otokenFromFactory;
         }
     }
-
     /**
      * @notice Creates the actual Opyn short position by depositing collateral and minting otokens
      * @param gammaController is the address of the opyn controller contract
@@ -110,6 +108,7 @@ library OpynInteractions {
      * @param depositAmount is the amount of collateral to deposit
      * @param vaultId is the vault id to use for creating this short 
      * @param amount is the mint amount in 1e18 format
+     * @param vaultType is the type of vault to be created
      * @return the otoken mint amount
      */
     function createShort(
@@ -118,7 +117,8 @@ library OpynInteractions {
         address oTokenAddress,
         uint256 depositAmount,
         uint256 vaultId,
-        uint256 amount
+        uint256 amount,
+        uint256 vaultType
     ) external returns (uint256) {
         IController controller = IController(gammaController);
 
@@ -149,7 +149,7 @@ library OpynInteractions {
                 vaultId, // vaultId
                 0, // amount
                 0, //index
-                "" //data
+                abi.encode(vaultType) //data
             );
 
             actions[1] = IController.ActionArgs(
@@ -205,19 +205,85 @@ library OpynInteractions {
     }
 
     /**
-     * @notice Burns an opyn short position
+     * @notice Deposits Collateral to a specific vault
      * @param gammaController is the address of the opyn controller contract
      * @param marginPool is the address of the opyn margin contract which holds the collateral
+     * @param collateralAsset is the address of the collateral asset to deposit
+     * @param depositAmount is the amount of collateral to deposit
+     * @param vaultId is the vault id to access
+     */
+    function depositCollat(
+        address gammaController,
+        address marginPool,
+        address collateralAsset,
+        uint256 depositAmount,
+        uint256 vaultId
+    ) external {
+        IController controller = IController(gammaController);
+        // double approve to fix non-compliant ERC20s
+        ERC20 collateralToken = ERC20(collateralAsset);
+        SafeTransferLib.safeApprove(collateralToken, marginPool, depositAmount);
+        IController.ActionArgs[] memory actions =
+                new IController.ActionArgs[](1);
+
+            actions[0] = IController.ActionArgs(
+                IController.ActionType.DepositCollateral,
+                address(this), // owner
+                address(this), // address to transfer from
+                collateralAsset, // deposited asset
+                vaultId, // vaultId
+                depositAmount, // amount
+                0, //index
+                "" //data
+            );
+
+        controller.operate(actions);
+    }
+
+    /**
+     * @notice Withdraws Collateral from a specific vault
+     * @param gammaController is the address of the opyn controller contract
+     * @param collateralAsset is the address of the collateral asset to withdraw
+     * @param withdrawAmount is the amount of collateral to withdraw
+     * @param vaultId is the vault id to access
+     */
+    function withdrawCollat(
+        address gammaController,
+        address collateralAsset,
+        uint256 withdrawAmount,
+        uint256 vaultId
+    ) external {
+        IController controller = IController(gammaController);
+
+        IController.ActionArgs[] memory actions =
+                new IController.ActionArgs[](1);
+
+            actions[0] = IController.ActionArgs(
+                IController.ActionType.WithdrawCollateral,
+                address(this), // owner
+                address(this), // address to transfer to
+                collateralAsset, // withdrawn asset
+                vaultId, // vaultId
+                withdrawAmount, // amount
+                0, //index
+                "" //data
+            );
+
+        controller.operate(actions);
+    }
+
+    /**
+     * @notice Burns an opyn short position and returns collateral back to OptionRegistry
+     * @param gammaController is the address of the opyn controller contract
      * @param oTokenAddress is the address of the otoken to burn
-     * @param amount is the amount of options to burn expressed in 1e18
+     * @param burnAmount is the amount of options to burn
      * @param vaultId is the vault id used that holds the short
-     * @return the otoken burn amount
+     * @return the collateral returned amount  
      */
     function burnShort(
         address gammaController,
-        address marginPool,
         address oTokenAddress,
-        uint256 amount,
+        uint256 burnAmount,
         uint256 vaultId
     ) external returns (uint256) {
         IController controller = IController(gammaController);
@@ -225,8 +291,6 @@ library OpynInteractions {
         // So in the context of performing Opyn short operations we call them collateralAsset
         IOtoken oToken = IOtoken(oTokenAddress);
         IERC20 collateralAsset = IERC20(oToken.collateralAsset());
-        // TODO Consider if safemath division is needed here
-        uint256 burnAmount = amount / SCALE_FROM;
         uint256 startCollatBalance = collateralAsset.balanceOf(address(this));
         GammaTypes.Vault memory vault =
             controller.getVault(address(this), vaultId);
@@ -238,9 +302,9 @@ library OpynInteractions {
             IController.ActionType.BurnShortOption,
             address(this), // owner
             address(this), // address to transfer from
-            oTokenAddress, // oToken address
-            vaultId,       // vaultId
-            burnAmount,    // amount to burn
+            oTokenAddress,// oToken address
+            vaultId,      // vaultId
+            burnAmount,   // amount to burn
             0,             //index
             ""             //data
         );
@@ -257,8 +321,6 @@ library OpynInteractions {
         );
 
         controller.operate(actions);
-
-
         return collateralAsset.balanceOf(address(this)) - startCollatBalance;
     }
 
@@ -266,25 +328,20 @@ library OpynInteractions {
      * @notice Close the existing short otoken position.
      * @param gammaController is the address of the opyn controller contract
      * @param vaultId is the id of the vault to be settled
-     * @return amount of collateral redeemed from the vault
+     * @return collateralRedeemed collateral redeemed from the vault
+     * @return collateralLost collateral left behind in vault used to pay ITM expired options
+     * @return shortAmount number of options that were written
      */
-    function settle(address gammaController, uint256 vaultId) external returns (uint256) {
+    function settle(address gammaController, uint256 vaultId) external returns (uint256 collateralRedeemed, uint256 collateralLost, uint256 shortAmount) {
         IController controller = IController(gammaController);
 
         GammaTypes.Vault memory vault =
             controller.getVault(address(this), vaultId);
-
-        require(vault.shortOtokens.length > 0, "No short");
+        if (vault.shortOtokens.length == 0) { revert NoShort();}
 
         // An otoken's collateralAsset is the vault's `asset`
         // So in the context of performing Opyn short operations we call them collateralAsset
         IERC20 collateralToken = IERC20(vault.collateralAssets[0]);
-
-        // The short position has been previously closed, or all the otokens have been burned.
-        // So we return early.
-        if (address(collateralToken) == address(0)) {
-            return 0;
-        }
 
         // This is equivalent to doing IERC20(vault.asset).balanceOf(address(this))
         uint256 startCollateralBalance =
@@ -309,8 +366,9 @@ library OpynInteractions {
         controller.operate(actions);
 
         uint256 endCollateralBalance = collateralToken.balanceOf(address(this));
-
-        return endCollateralBalance - startCollateralBalance;
+        // calulate collateral redeemed and lost for collateral management in liquidity pool
+        collateralRedeemed = endCollateralBalance - startCollateralBalance;
+        return (collateralRedeemed, vault.collateralAmounts[0] - collateralRedeemed ,vault.shortAmounts[0]);
     }
 
 
