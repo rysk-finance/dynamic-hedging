@@ -114,6 +114,10 @@ contract LiquidityPool is
   mapping(uint256 => Types.Order) public orderStores;
   // order id counter
   uint256 public orderIdCounter;
+  // strangle order pairings. Each strangle id maps to 2 custom order indices
+  mapping(uint256 => uint256[2]) public strangleOrderPairs;
+  // strangle id counter
+  uint256 public strangleIdCounter;
   // delta and price boundaries for custom orders
   struct CustomOrderBounds {
     uint128 callMinDelta;
@@ -1046,7 +1050,7 @@ contract LiquidityPool is
     @param _price the price per unit to issue at
     @param _orderExpiry the expiry of the order (if past the order is redundant)
     @param _buyerAddress the agreed upon buyer address
-    @return series the address of the options contract
+    @return orderIdCounter the unique id of the order
   */
   function createOrder(
     Types.OptionSeries memory _optionSeries, 
@@ -1054,13 +1058,13 @@ contract LiquidityPool is
     uint256 _price, 
     uint256 _orderExpiry,
     address _buyerAddress
-  ) external onlyRole(ADMIN_ROLE) returns (address series) 
+  ) public onlyRole(ADMIN_ROLE) returns (uint orderIdCounter) 
   {
     OptionRegistry optionRegistry = getOptionRegistry();
     if (_price == 0) {revert InvalidPrice();}
     if (_orderExpiry < 0) {revert OrderExpired();}
     // issue the option type, all checks of the option validity should happen in _issue
-    series = _issue(_optionSeries, optionRegistry);
+    address series = _issue(_optionSeries, optionRegistry);
     // create the order struct, setting the series, amount, price, order expiry and buyer address
     Types.Order memory order = Types.Order(
       _optionSeries,
@@ -1076,6 +1080,34 @@ contract LiquidityPool is
     emit OrderCreated(orderIdCounter);
   }
 
+  /** 
+    @notice creates a strangle order. One custom put and one custom call order to be executed simultaneously.
+    @param _optionSeriesCall the option token series to issue for the call part of the strangle
+    @param _optionSeriesPut the option token series to issue for the put part of the strangle
+    @param _amount the number of options to issue 
+    @param _price the price per unit to issue at
+    @param _orderExpiry the expiry of the order (if past the order is redundant)
+    @param _buyerAddress the agreed upon buyer address
+    @return strangleIdCounter the unique id of the strangle
+  */
+  function createStrangle(
+    Types.OptionSeries memory _optionSeriesCall, 
+    Types.OptionSeries memory _optionSeriesPut, 
+    uint256 _amount, 
+    uint256 _price, 
+    uint256 _orderExpiry,
+    address _buyerAddress
+  ) external onlyRole(ADMIN_ROLE) returns (uint strangleIdCounter) 
+  {
+    // increment strangleId to store strangle order pair
+    strangleIdCounter++;
+    // issue the call order part of the strangle
+    uint callOrderId = createOrder(_optionSeriesCall, _amount, _price, _orderExpiry, _buyerAddress);
+    strangleOrderPairs[strangleIdCounter][0] = callOrderId;
+    uint putOrderId = createOrder(_optionSeriesPut, _amount, _price, _orderExpiry, _buyerAddress);
+    strangleOrderPairs[strangleIdCounter][0] = putOrderId;
+  }
+
   /**
     @notice fulfills an order for a number of options from the pool to a specified user. The function
             is intended to be used to issue options to market makers/ OTC market participants
@@ -1083,7 +1115,7 @@ contract LiquidityPool is
             participant UX.
     @param  _orderId the id of the order for options purchase
   */
-  function executeOrder(uint256 _orderId) external nonReentrant {
+  function executeOrder(uint256 _orderId) public nonReentrant {
     int256 bufferRemaining = _checkBuffer();
     // get the order
     Types.Order memory order = orderStores[_orderId];
@@ -1116,6 +1148,16 @@ contract LiquidityPool is
     uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, bufferRemaining);
     // invalidate the order
     delete orderStores[_orderId];
+  }
+
+  /**
+    @notice fulfills a stored strangle order consisting of a stores call and a stored put.
+    This is intended to be called by market makers/OTC market participants.
+    @param _strangleId the id of the strangle order to fulfil 
+  */
+  function executeStrangle(uint256 _strangleId) external {
+    executeOrder(strangleOrderPairs[_strangleId][0]);
+    executeOrder(strangleOrderPairs[_strangleId][1]);
   }
 
   /**
