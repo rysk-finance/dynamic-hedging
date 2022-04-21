@@ -86,6 +86,7 @@ contract OptionRegistry is Ownable, AccessControl {
     error AlreadyExpired();
     error NotLiquidityPool();
     error NonExistentSeries();
+    error VaultNotLiquidated();
     error InsufficientBalance();
 
     /**
@@ -267,10 +268,27 @@ contract OptionRegistry is Ownable, AccessControl {
       require(vault.collateralAmounts[0] > 0, "Vault has no collateral");
       // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
       OpynInteractions.withdrawCollat(gammaController, vault.collateralAssets[0], vault.collateralAmounts[0], vaultId);
+      // adjust the collateral in the liquidityPool
+      LiquidityPool(liquidityPool).adjustCollateral(vault.collateralAmounts[0], true);
       // transfer the excess collateral to the liquidityPool from this address
       SafeTransferLib.safeTransfer(ERC20(vault.collateralAssets[0]), liquidityPool, vault.collateralAmounts[0]);
     }
-    
+
+    /**
+     * @notice register a liquidated vault so the collateral allocated is managed
+     * @param  vaultId the id of the vault to register liquidation for
+     * @dev    this is a safety function, if a vault is liquidated to update the collateral assets in the pool
+     */
+    function registerLiquidatedVault(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
+      // get the vault liquidation details from the vaultId
+      (address series,, uint256 collateralLiquidated) = IController(gammaController).getVaultLiquidationDetails(address(this), vaultId);
+      if( series == address(0)) {revert VaultNotLiquidated();}
+      // adjust the collateral in the liquidity pool to reflect the loss
+      LiquidityPool(liquidityPool).adjustCollateral(collateralLiquidated, true);
+      // clear the liquidation record from gamma controller so as not to double count the liquidation
+      IController(gammaController).clearVaultLiquidationDetails(vaultId);
+    }  
+
     /////////////////////////////////////////////
     /// external state changing functionality ///
     /////////////////////////////////////////////
