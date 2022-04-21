@@ -1050,7 +1050,7 @@ contract LiquidityPool is
     @param _price the price per unit to issue at
     @param _orderExpiry the expiry of the order (if past the order is redundant)
     @param _buyerAddress the agreed upon buyer address
-    @return orderIdCounter the unique id of the order
+    @return orderId the unique id of the order
   */
   function createOrder(
     Types.OptionSeries memory _optionSeries, 
@@ -1058,7 +1058,7 @@ contract LiquidityPool is
     uint256 _price, 
     uint256 _orderExpiry,
     address _buyerAddress
-  ) public onlyRole(ADMIN_ROLE) returns (uint orderIdCounter) 
+  ) public onlyRole(ADMIN_ROLE) returns (uint) 
   {
     OptionRegistry optionRegistry = getOptionRegistry();
     if (_price == 0) {revert InvalidPrice();}
@@ -1077,6 +1077,7 @@ contract LiquidityPool is
     orderIdCounter++;
     // increment the orderId and store the order
     orderStores[orderIdCounter] = order;
+    return orderIdCounter;
     emit OrderCreated(orderIdCounter);
   }
 
