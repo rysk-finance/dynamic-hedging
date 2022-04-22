@@ -1013,7 +1013,6 @@ describe("Liquidity Pools", async () => {
 		customOrderPriceCall = localQuoteCall * customOrderPriceMultiplier
 		customOrderPricePut = localQuotePut * customOrderPriceMultiplier
 		customStranglePrice = customOrderPriceCall + customOrderPricePut
-		console.log({ customOrderPriceCall, customOrderPricePut, customStranglePrice })
 		const createStrangle = await liquidityPool.createStrangle(
 			proposedSeriesCall,
 			proposedSeriesPut,
@@ -1127,7 +1126,6 @@ describe("Liquidity Pools", async () => {
 				.sub(receiverBalAft)
 				.sub(BigNumber.from(Math.floor(customStranglePrice * 10 ** 6).toString()))
 		).to.be.within(-1, 1)
-		console.log({ receiverOTokenBalBef, receiverOTokenBalAft })
 		expect(fromOpyn(receiverOTokenBalAft.sub(receiverOTokenBalBef).toString())).to.equal(
 			fromWei(amount.mul(2).toString())
 		)
@@ -1353,6 +1351,7 @@ describe("Liquidity Pools", async () => {
 	})
 
 	it("Adds additional liquidity from new account", async () => {
+		optionRegistry.setLiquidityPool(liquidityPool.address)
 		const [sender, receiver] = signers
 		const sendAmount = toUSDC("20000")
 		const usdReceiver = usd.connect(receiver)
@@ -1426,9 +1425,9 @@ describe("Liquidity Pools", async () => {
 	})
 
 	it("settles an expired OTM vault", async () => {
-		const totalCollateralAllocated = await liquidityPool.collateralAllocated()
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
-		const strikePrice = await putOptionToken.strikePrice()
+		const strikePrice = await putOptionToken2.strikePrice()
 		// set price to $100 OTM for put
 		const settlePrice = strikePrice.add(toWei("100").div(oTokenDecimalShift18))
 		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
@@ -1442,11 +1441,12 @@ describe("Liquidity Pools", async () => {
 		const collateralReturned = settleEvent?.args?.collateralReturned
 		const collateralLost = settleEvent?.args?.collateralLost
 		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		console.log({ lpBalanceBefore, lpBalanceAfter })
 		// puts expired OTM, so all collateral should be returned
 		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
 		expect(lpBalanceAfter.sub(lpBalanceBefore)).to.equal(collateralReturned) // format from e8 oracle price to e6 USDC decimals
-		expect(await liquidityPool.collateralAllocated()).to.equal(0)
+		expect(collateralAllocatedBefore.sub(collateralAllocatedAfter)).to.equal(collateralReturned)
 		expect(collateralLost).to.equal(0)
 	})
 })
