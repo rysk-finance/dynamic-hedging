@@ -1,6 +1,6 @@
 import Onboard, { EIP1193Provider } from "@web3-onboard/core";
 import { EthersAppContext } from "eth-hooks/context";
-import React, { useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import "./App.css";
 import { Header } from "./components/Header";
 import { toHex } from "./utils";
@@ -51,13 +51,37 @@ const onboard = Onboard({
   },
 });
 
+type WalletContext = {
+  connectWallet: (() => Promise<void>) | null;
+  switchNetwork: (() => Promise<void>) | null;
+  disconnect: (() => Promise<void>) | null;
+  provider: EIP1193Provider | null;
+  account: string | null;
+  error: any | null;
+  chainId: string | null;
+  isLoading: boolean | null;
+};
+
+const WalletContext = createContext<WalletContext>({
+  connectWallet: null,
+  switchNetwork: null,
+  disconnect: null,
+  provider: null,
+  account: null,
+  error: null,
+  chainId: null,
+  isLoading: null,
+});
+
+export const useWalletContext = () => useContext(WalletContext);
+
 function App() {
-  const [_, setProvider] = useState<EIP1193Provider | null>(null);
+  const [provider, setProvider] = useState<EIP1193Provider | null>(null);
   const [account, setAccount] = useState<string | null>(null);
   const [error, setError] = useState<any>(null);
   const [chainId, setChainId] = useState<string | null>(null);
   const [network, setNetwork] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const connectWallet = async () => {
     try {
@@ -80,11 +104,6 @@ function App() {
     }
   };
 
-  const handleNetwork = (e: any) => {
-    const id = e.target.value;
-    setNetwork(Number(id));
-  };
-
   const disconnect = async () => {
     const [primaryWallet] = await onboard.state.get().wallets;
     if (!primaryWallet) return;
@@ -99,17 +118,24 @@ function App() {
   };
 
   return (
-    <EthersAppContext>
-      <div className="App min-h-full">
-        <Header />
-        <button className="mt-24" onClick={connectWallet}>
-          Connect wallet
-        </button>
-        <button className="mt-28" onClick={disconnect}>
-          Disconnect wallet
-        </button>
-      </div>
-    </EthersAppContext>
+    <WalletContext.Provider
+      value={{
+        connectWallet,
+        switchNetwork,
+        disconnect,
+        provider,
+        account,
+        error,
+        chainId,
+        isLoading,
+      }}
+    >
+      <EthersAppContext>
+        <div className="App min-h-full">
+          <Header />
+        </div>
+      </EthersAppContext>
+    </WalletContext.Provider>
   );
 }
 
