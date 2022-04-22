@@ -19,6 +19,7 @@ import {
 import moment from "moment"
 //@ts-ignore
 import bs from "black-scholes"
+import { deployOpyn } from "../utils/opyn-deployer"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
@@ -31,7 +32,7 @@ import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
 import { Volatility } from "../types/Volatility"
-import { Controller } from "../types/Controller"
+import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
@@ -39,6 +40,7 @@ import {
 	setupTestOracle,
 	setupOracle,
 	calculateOptionQuoteLocally,
+	calculateOptionDeltaLocally,
 	increase,
 	setOpynOracleExpiryPrice
 } from "./helpers"
@@ -69,7 +71,7 @@ let volatility: Volatility
 let priceFeed: PriceFeed
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
-let controller: Controller
+let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
@@ -77,6 +79,7 @@ let opynAggregator: MockChainlinkAggregator
 let putOptionToken: IOToken
 let putOptionToken2: IOToken
 let collateralAllocatedToVault1: BigNumber
+let proposedSeries: any
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -166,16 +169,17 @@ describe("Liquidity Pools", async () => {
 				}
 			]
 		})
-		// impersonate the opyn controller owner
-		await network.provider.request({
-			method: "hardhat_impersonateAccount",
-			params: [CONTROLLER_OWNER[chainId]]
-		})
+
 		await network.provider.request({
 			method: "hardhat_impersonateAccount",
 			params: [CHAINLINK_WETH_PRICER[chainId]]
 		})
 		signers = await ethers.getSigners()
+		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
+		controller = opynParams.controller
+		addressBook = opynParams.addressBook
+		oracle = opynParams.oracle
+		newCalculator = opynParams.newCalculator
 		const [sender] = signers
 
 		const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
@@ -190,157 +194,24 @@ describe("Liquidity Pools", async () => {
 			.connect(signer)
 			.go(CHAINLINK_WETH_PRICER[chainId], { value: utils.parseEther("0.5") })
 
-		// get an instance of the controller
-		controller = (await ethers.getContractAt(
-			"contracts/packages/opyn/core/Controller.sol:Controller",
-			GAMMA_CONTROLLER[chainId]
-		)) as Controller
-		// get an instance of the addressbook
-		addressBook = (await ethers.getContractAt(
-			"contracts/packages/opyn/core/AddressBook.sol:AddressBook",
-			ADDRESS_BOOK[chainId]
-		)) as AddressBook
 		// get the oracle
 		const res = await setupTestOracle(await sender.getAddress())
 		oracle = res[0] as Oracle
 		opynAggregator = res[1] as MockChainlinkAggregator
-		// deploy the new calculator
-		const newCalculatorInstance = await ethers.getContractFactory("NewMarginCalculator")
-		newCalculator = (await newCalculatorInstance.deploy(
-			GAMMA_ORACLE_NEW[chainId],
-			ADDRESS_BOOK[chainId]
-		)) as NewMarginCalculator
-		// deploy the new whitelist
-		const newWhitelistInstance = await ethers.getContractFactory("NewWhitelist")
-		const newWhitelist = await newWhitelistInstance.deploy(ADDRESS_BOOK[chainId])
-		// update the addressbook with the new calculator and whitelist addresses
-		await addressBook.connect(signer).setMarginCalculator(newCalculator.address)
-		await addressBook.connect(signer).setWhitelist(newWhitelist.address)
-		// update the whitelist and calculator in the controller
-		await controller.connect(signer).refreshConfiguration()
-		// whitelist collateral
-		await newWhitelist.whitelistCollateral(WETH_ADDRESS[chainId])
-		await newWhitelist.whitelistCollateral(USDC_ADDRESS[chainId])
-		// whitelist products
-		// normal calls
-		await newWhitelist.whitelistProduct(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			false
-		)
-		// normal puts
-		await newWhitelist.whitelistProduct(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			true
-		)
-		// usd collateralised calls
-		await newWhitelist.whitelistProduct(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			false
-		)
-		// eth collateralised puts
-		await newWhitelist.whitelistProduct(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			true
-		)
-		// whitelist vault type 0 collateral
-		await newWhitelist.whitelistCoveredCollateral(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId], false)
-		await newWhitelist.whitelistCoveredCollateral(USDC_ADDRESS[chainId], WETH_ADDRESS[chainId], true)
-		// whitelist vault type 1 collateral
-		await newWhitelist.whitelistNakedCollateral(USDC_ADDRESS[chainId], WETH_ADDRESS[chainId], false)
-		await newWhitelist.whitelistNakedCollateral(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId], true)
-		// set product spot shock values
-		// usd collateralised calls
-		await newCalculator.setSpotShock(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			false,
-			productSpotShockValue
-		)
-		// usd collateralised puts
-		await newCalculator.setSpotShock(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			true,
-			productSpotShockValue
-		)
-		// eth collateralised calls
-		await newCalculator.setSpotShock(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			false,
-			productSpotShockValue
-		)
-		// eth collateralised puts
-		await newCalculator.setSpotShock(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			true,
-			productSpotShockValue
-		)
-		// set expiry to value values
-		// usd collateralised calls
-		await newCalculator.setUpperBoundValues(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			false,
-			timeToExpiry,
-			expiryToValue
-		)
-		// usd collateralised puts
-		await newCalculator.setUpperBoundValues(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			true,
-			timeToExpiry,
-			expiryToValue
-		)
-		// eth collateralised calls
-		await newCalculator.setUpperBoundValues(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			false,
-			timeToExpiry,
-			expiryToValue
-		)
-		// eth collateralised puts
-		await newCalculator.setUpperBoundValues(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			true,
-			timeToExpiry,
-			expiryToValue
-		)
 	})
-
 	it("Deploys the Option Registry", async () => {
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
 		const constantsFactory = await hre.ethers.getContractFactory("Constants")
-		const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractionsV2")
+		const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {
 			libraries: {
-				OpynInteractionsV2: interactions.address
+				OpynInteractions: interactions.address
 			}
 		})
 		// get and transfer weth
@@ -348,7 +219,10 @@ describe("Liquidity Pools", async () => {
 			"contracts/interfaces/WETH.sol:WETH",
 			WETH_ADDRESS[chainId]
 		)) as WETH
-		usd = (await ethers.getContractAt("ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usd = (await ethers.getContractAt(
+			"contracts/tokens/ERC20.sol:ERC20",
+			USDC_ADDRESS[chainId]
+		)) as MintableERC20
 		await network.provider.request({
 			method: "hardhat_impersonateAccount",
 			params: [USDC_OWNER_ADDRESS[chainId]]
@@ -381,7 +255,7 @@ describe("Liquidity Pools", async () => {
 	})
 
 	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("Protocol")
+		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address
@@ -543,7 +417,7 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.lt(0.01)
+		expect(diff).to.be.within(0, 0.01)
 	})
 
 	it("Returns a quote for a ETH/USD put to buy", async () => {
@@ -575,7 +449,7 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(buyQuote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.lt(0.01)
+		expect(diff).to.be.within(0, 0.01)
 	})
 
 	it("reverts when attempting to write ETH/USD puts with expiry outside of limit", async () => {
@@ -657,7 +531,7 @@ describe("Liquidity Pools", async () => {
 		const { timestamp } = block
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const proposedSeries = {
+		proposedSeries = {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
@@ -683,8 +557,19 @@ describe("Liquidity Pools", async () => {
 		const opynAmount = toOpyn(fromWei(amount))
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.lt(0.1)
+		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(0, 0.1)
 		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
+	})
+	it("can compute portfolio delta", async function () {
+		const delta = await liquidityPool.getPortfolioDelta()
+		const localDelta = await calculateOptionDeltaLocally(
+			liquidityPool, 
+			priceFeed,
+			proposedSeries,
+			toWei('1'),
+			true
+			)
+		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
 		const [sender] = signers
@@ -720,14 +605,63 @@ describe("Liquidity Pools", async () => {
 		const opynAmount = toOpyn(fromWei(amount))
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.lt(0.1)
+		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(-0.1, 0.1)
 		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
 		const lpAllocatedDiff = lpAllocatedAfter.sub(lpAllocatedBefore)
-		expect(tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.lt(
-			0.1
+		expect(tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.within(
+			0, 0.1
 		)
 	})
-	it("reverts if option colaterral exceeds buffer limit", async () => {
+	it("can compute portfolio delta", async function () {
+		const delta = await liquidityPool.getPortfolioDelta()
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const { timestamp } = block
+		const wTPuts = await liquidityPool.weightedTimePut()
+		const wSPuts = await liquidityPool.weightedStrikePut()
+		const wPuts = await liquidityPool.totalAmountPut()
+	
+		const localDelta = await calculateOptionDeltaLocally(
+			liquidityPool, 
+			priceFeed,
+			proposedSeries,
+			toWei('1'),
+			true
+			)
+		const localDeltaActual = await calculateOptionDeltaLocally(
+			liquidityPool, 
+			priceFeed,
+			{expiration: wTPuts.toNumber(), 
+			 isPut: PUT_FLAVOR, 
+			 strike: wSPuts, 
+			 strikeAsset: usd.address, 
+			 underlying: weth.address, 
+			 collateral: usd.address 
+			},
+			wPuts,
+			true
+			)
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const proposedSeries2 = {
+			expiration: expiration2,
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		const localDelta2 = await calculateOptionDeltaLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeries2,
+			toWei('3'),
+			true
+		)
+		expect(delta.sub(localDelta.add(localDelta2))).to.be.within(-1e15, 1e15)
+		expect(delta.sub(localDeltaActual)).to.be.within(-1e13, 1e13)
+	})
+	it("reverts if option collaterral exceeds buffer limit", async () => {
 		const lpBalance = await usd.balanceOf(liquidityPool.address)
 		const amount = toWei("5")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -745,12 +679,6 @@ describe("Liquidity Pools", async () => {
 			"MaxLiquidityBufferReached"
 		)
 	})
-
-	it("can compute portfolio delta", async function () {
-		const delta = await liquidityPool.getPortfolioDelta()
-		expect(delta).to.be.gt(0)
-	})
-
 	it("reverts when non-admin calls rebalance function", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
@@ -764,7 +692,6 @@ describe("Liquidity Pools", async () => {
 		expect(res.toNumber()).to.equal(0)
 		expect(reactorDelta).to.equal(newReactorDelta).to.equal(0)
 	})
-
 	it("Creates a liquidity pool with ETH as collateralAsset", async () => {
 		type int7 = [
 			BigNumberish,
@@ -914,7 +841,7 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.lt(0.01)
+		expect(diff).to.be.within(0, 0.01)
 	})
 
 	let optionToken: IOToken
@@ -1380,7 +1307,7 @@ describe("Liquidity Pools", async () => {
 		const usdBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		//@ts-ignore
 		const diff = fromWei(usdBalance) * ratio
-		expect(diff).to.be.lt(1)
+		expect(diff).to.be.within(0, 1)
 		expect(strikeAmount).to.be.eq(usdBalance.sub(usdBalanceAfter))
 	})
 

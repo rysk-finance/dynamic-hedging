@@ -56,7 +56,7 @@ describe("UniswapV3HedgingReactor", () => {
 		})
 		usdcWhale = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
 		usdcWhaleAddress = await usdcWhale.getAddress()
-		usdcContract = (await ethers.getContractAt("ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usdcContract = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
 
 		await usdcContract
 			.connect(usdcWhale)
@@ -128,7 +128,7 @@ describe("UniswapV3HedgingReactor", () => {
 	})
 
 	it("changes nothing if no ETH balance and hedging positive delta", async () => {
-		wethContract = (await ethers.getContractAt("ERC20", WETH_ADDRESS[chainId])) as MintableERC20
+		wethContract = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", WETH_ADDRESS[chainId])) as MintableERC20
 		const reactorWethBalanceBefore = parseFloat(
 			ethers.utils.formatEther(
 				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))

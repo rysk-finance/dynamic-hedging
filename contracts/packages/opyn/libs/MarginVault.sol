@@ -6,6 +6,7 @@ pragma solidity =0.6.10;
 pragma experimental ABIEncoderV2;
 
 import {SafeMath} from "../packages/oz/SafeMath.sol";
+
 /**
  * MarginVault Error Codes
  * V1: invalid short otoken amount
@@ -44,6 +45,14 @@ library MarginVault {
         uint256[] longAmounts;
         // quantity of ERC-20 deposited as collateral in the vault for each ERC-20 address in collateralAssets
         uint256[] collateralAmounts;
+    }
+
+    // vaultLiquidationDetails is a struct of 3 variables that store the series address, short amount liquidated and collateral transferred for
+    // a given liquidation
+    struct VaultLiquidationDetails {
+        address series;
+        uint128 shortAmount;
+        uint128 collateralAmount;
     }
 
     /**

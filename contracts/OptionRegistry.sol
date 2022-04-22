@@ -6,20 +6,14 @@ import "./interfaces/IMarginCalculator.sol";
 import { Types } from "./libraries/Types.sol";
 import "./interfaces/AddressBookInterface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import { LiquidityPool } from "./LiquidityPool.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
-import { OpynInteractionsV2 } from "./libraries/OpynInteractionsV2.sol";
+import { OpynInteractions } from "./libraries/OpynInteractions.sol";
 import { IController, GammaTypes} from "./interfaces/GammaInterface.sol";
-import { LiquidityPool } from "./LiquidityPool.sol";
-import "hardhat/console.sol";
 
 contract OptionRegistry is Ownable, AccessControl {
-    // Access control role identifier
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    // public versioning of the contract for external use
-    string public constant VERSION = "1.0";
-    uint8 private constant OPYN_DECIMALS = 8;
     // address of the opyn oTokenFactory for oToken minting
     address internal oTokenFactory;
     // address of the gammaController for oToken operations
@@ -49,11 +43,12 @@ contract OptionRegistry is Ownable, AccessControl {
     // min health threshold for puts
     uint64 public putLowerHealthFactor = 11_000;
     // BIPS
-    uint256 MAX_BPS = 10_000;
-    //
-    address public authorised;
+    uint256 private constant MAX_BPS = 10_000;
     // used to convert e18 to e8
     uint256 private constant SCALE_FROM = 10**10;
+    // Access control role identifier
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    uint8 private constant OPYN_DECIMALS = 8;
 
     event OptionTokenCreated(address token);
     event SeriesRedeemed(address series, uint underlyingAmount, uint strikeAmount);
@@ -61,11 +56,18 @@ contract OptionRegistry is Ownable, AccessControl {
     event OptionsContractClosed(address indexed series, uint256 vaultId, uint256 closedAmount);
     event OptionsContractSettled(address indexed series, uint256 collateralReturned, uint256 collateralLost, uint256 amountLost);
 
+    error NotExpired();
+    error HealthyVault();
+    error AlreadyExpired();
+    error NotLiquidityPool();
+    error NonExistentSeries();
+    error InsufficientBalance();
+
     /**
      * @dev Throws if called by any account other than the liquidity pool.
      */
     modifier onlyLiquidityPool() {
-        require(msg.sender == liquidityPool, "!liquidityPool");
+        if (msg.sender != liquidityPool) {revert NotLiquidityPool();}
         _;
     }
 
@@ -90,14 +92,6 @@ contract OptionRegistry is Ownable, AccessControl {
      */
     function setLiquidityPool(address _newLiquidityPool) external onlyOwner {
       liquidityPool = _newLiquidityPool;
-    }
-
-    /**
-     * @notice Set the authorised address
-     * @param  _newAuthorised set the authorised address
-     */
-    function setAuthorised(address _newAuthorised) external onlyOwner {
-     authorised = _newAuthorised;
     }
 
     /**
@@ -131,54 +125,17 @@ contract OptionRegistry is Ownable, AccessControl {
      */
     function issue(address underlying, address strikeAsset, uint256 expiration, bool isPut, uint256 strike, address collateral) external onlyLiquidityPool returns (address) {
         // deploy an oToken contract address
-        require(expiration > block.timestamp, "Already expired");
+        if(expiration <= block.timestamp) {revert AlreadyExpired();}
         uint256 formattedStrike = formatStrikePrice(strike, collateral);
         // create option storage hash
         bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, collateral, expiration, isPut, formattedStrike);
         // check for an opyn oToken if it doesn't exist deploy it
-        address series = OpynInteractionsV2.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formattedStrike, expiration, isPut);
+        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formattedStrike, expiration, isPut);
         // store the option data as a hash
         seriesInfo[series] = Types.OptionSeries(expiration, isPut, formattedStrike, underlying, strikeAsset, collateral);
         seriesAddress[issuanceHash] = series;
         emit OptionTokenCreated(series);
         return series;
-    }
-    
-    /**
-     * @notice Retrieves the option token if it exists
-     * @param  underlying is the address of the underlying asset of the option
-     * @param  strikeAsset is the address of the collateral asset of the option
-     * @param  expiration is the expiry timestamp of the option
-     * @param  isPut the type of option
-     * @param  strike is the strike price of the option - 1e18 format
-     * @param collateral is the address of the asset to collateralize the option with
-     * @return the address of the option
-     */
-    function getOtoken(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external onlyLiquidityPool returns (address) {
-        // deploy an oToken contract address
-        require(expiration > block.timestamp, "Already expired");
-        // check for an opyn oToken
-        address series = OpynInteractionsV2.getOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
-        return series;
-    }
-
-    /**
-     * @notice Converts strike price to 1e8 format and floors least significant digits if needed
-     * @param  strikePrice strikePrice in 1e18 format
-     * @param  collateral address of collateral asset
-     * @return if the transaction succeeded
-     */
-    function formatStrikePrice(
-        uint256 strikePrice,
-        address collateral
-    ) internal view returns (uint) {
-        // convert strike to 1e8 format
-        uint price = strikePrice / (10**10);
-        uint collateralDecimals = IERC20(collateral).decimals();
-        if (collateralDecimals >= OPYN_DECIMALS) return price;
-        uint difference = OPYN_DECIMALS - collateralDecimals;
-        // round floor strike to prevent errors in Gamma protocol
-        return price / (10**difference) * (10**difference);
     }
 
     /**
@@ -193,7 +150,7 @@ contract OptionRegistry is Ownable, AccessControl {
     function open(address _series, uint256 amount, uint256 collateralAmount) external onlyLiquidityPool returns (bool, uint256) {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
-        require(block.timestamp < series.expiration, "Options can not be opened after expiration");
+        if(series.expiration <= block.timestamp) {revert AlreadyExpired();}
         // transfer collateral to this contract, collateral will depend on the option type
         SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
         // mint the option token following the opyn interface
@@ -204,7 +161,7 @@ contract OptionRegistry is Ownable, AccessControl {
           vaultId_ = (controller.getAccountVaultCounter(address(this))) + 1;
           vaultCount++;
         } 
-        uint256 mintAmount = OpynInteractionsV2.createShort(gammaController, marginPool, _series, collateralAmount, vaultId_, amount, 1);
+        uint256 mintAmount = OpynInteractions.createShort(gammaController, marginPool, _series, collateralAmount, vaultId_, amount, 1);
         emit OptionsContractOpened(_series, vaultId_, mintAmount);
         // transfer the option to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(_series), msg.sender, mintAmount);
@@ -223,15 +180,14 @@ contract OptionRegistry is Ownable, AccessControl {
         // withdraw and burn
         Types.OptionSeries memory series = seriesInfo[_series];
         // make sure the option hasnt expired yet
-        require(block.timestamp < series.expiration, "Option already expired");
+        if(series.expiration <= block.timestamp) {revert AlreadyExpired();}
         // get the vault id
         uint256 vaultId = vaultIds[_series];
         uint256 convertedAmount = OptionsCompute.convertToDecimals(amount, IERC20(_series).decimals());
         // transfer the oToken back to this account
         SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), convertedAmount);
         // burn the oToken tracking the amount of collateral returned
-        // TODO: account for fact there might be a buffer
-        uint256 collatReturned = OpynInteractionsV2.burnShort(gammaController, _series, convertedAmount, vaultId);
+        uint256 collatReturned = OpynInteractions.burnShort(gammaController, _series, convertedAmount, vaultId);
         SafeTransferLib.safeTransfer(ERC20(series.collateral), msg.sender, collatReturned);
         emit OptionsContractClosed(_series, vaultId, amount);
         return (true, collatReturned);
@@ -248,13 +204,13 @@ contract OptionRegistry is Ownable, AccessControl {
      */
     function settle(address _series) external returns (bool success, uint256 collatReturned, uint256 collatLost, uint256 amountShort) {
         Types.OptionSeries memory series = seriesInfo[_series];
-        require(series.expiration != 0, "non-existent series");
+        if (series.expiration == 0) {revert NonExistentSeries();}
         // check that the option has expired
-        require(block.timestamp > series.expiration, "option not past expiry");
+        if (series.expiration >= block.timestamp) {revert NotExpired();}
         // get the vault
         uint256 vaultId = vaultIds[_series];
         // settle the vault
-        (uint256 collatReturned, uint256 collatLost, uint amountShort) = OpynInteractionsV2.settle(gammaController, vaultId);
+        (uint256 collatReturned, uint256 collatLost, uint amountShort) = OpynInteractions.settle(gammaController, vaultId);
         // transfer the collateral back to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(series.collateral), liquidityPool, collatReturned);
         emit OptionsContractSettled(_series, collatReturned, collatLost, amountShort);
@@ -268,15 +224,15 @@ contract OptionRegistry is Ownable, AccessControl {
      */
     function redeem(address _series) external returns (uint256) {
         Types.OptionSeries memory series = seriesInfo[_series];
-        require(series.expiration != 0, "non-existent series");
+        if (series.expiration == 0) {revert NonExistentSeries();}
         // check that the option has expired
-        require(block.timestamp > series.expiration, "option not past expiry");
-        require(IERC20(_series).balanceOf(msg.sender) > 0, "insufficient option tokens");
+        if (series.expiration >= block.timestamp) {revert NotExpired();}
+        if (IERC20(_series).balanceOf(msg.sender) == 0) {revert InsufficientBalance();}
         uint256 seriesBalance = IERC20(_series).balanceOf(msg.sender);
         // transfer the oToken back to this account
         SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), IERC20(_series).balanceOf(msg.sender));
         // redeem
-        uint256 collatReturned = OpynInteractionsV2.redeem(gammaController, marginPool, _series, seriesBalance);
+        uint256 collatReturned = OpynInteractions.redeem(gammaController, marginPool, _series, seriesBalance);
         return collatReturned;
     }
 
@@ -304,6 +260,22 @@ contract OptionRegistry is Ownable, AccessControl {
         uint256 upperHealthFactor = series.isPut ? putUpperHealthFactor : callUpperHealthFactor;
         collateralAmount = ((collateralAmount * upperHealthFactor) / MAX_BPS);
       return collateralAmount;
+    }
+
+    /**
+     * @notice Retrieves the option token if it exists
+     * @param  underlying is the address of the underlying asset of the option
+     * @param  strikeAsset is the address of the collateral asset of the option
+     * @param  expiration is the expiry timestamp of the option
+     * @param  isPut the type of option
+     * @param  strike is the strike price of the option - 1e18 format
+     * @param  collateral is the address of the asset to collateralize the option with
+     * @return the address of the option
+     */
+    function getOtoken(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external view returns (address) {
+        // check for an opyn oToken
+        address series = OpynInteractions.getOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
+        return series;
     }
 
   /*********************
@@ -365,17 +337,17 @@ contract OptionRegistry is Ownable, AccessControl {
      */
     function adjustCollateral(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
       (bool isBelowMin, bool isAboveMax,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
-      require(isBelowMin || isAboveMax, "vault is healthy");
+      if (!isBelowMin && !isAboveMax) {revert HealthyVault();}
       if (isBelowMin) {
         LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, false);
         // transfer the needed collateral to this contract from the liquidityPool
         SafeTransferLib.safeTransferFrom(collateralAsset, liquidityPool, address(this), collateralAmount);
         // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-        OpynInteractionsV2.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
+        OpynInteractions.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
       } else if (isAboveMax) {
         LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, true);
         // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-        OpynInteractionsV2.withdrawCollat(gammaController, collateralAsset, collateralAmount, vaultId);
+        OpynInteractions.withdrawCollat(gammaController, collateralAsset, collateralAmount, vaultId);
         // transfer the excess collateral to the liquidityPool from this address
         SafeTransferLib.safeTransfer(ERC20(collateralAsset), liquidityPool, collateralAmount);
       }
@@ -389,11 +361,11 @@ contract OptionRegistry is Ownable, AccessControl {
      */
     function adjustCollateralCaller(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
       (bool isBelowMin,,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
-      require(isBelowMin, "vault is healthy");
+      if (!isBelowMin) {revert HealthyVault();}
       // transfer the needed collateral to this contract from the msg.sender
       SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collateralAmount);
       // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-      OpynInteractionsV2.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
+      OpynInteractions.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
     }
 
     /**
@@ -408,10 +380,11 @@ contract OptionRegistry is Ownable, AccessControl {
       require(vault.shortOtokens[0] == address(0), "Vault has short positions [token]");
       require(vault.collateralAmounts[0] > 0, "Vault has no collateral");
       // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-      OpynInteractionsV2.withdrawCollat(gammaController, vault.collateralAssets[0], vault.collateralAmounts[0], vaultId);
+      OpynInteractions.withdrawCollat(gammaController, vault.collateralAssets[0], vault.collateralAmounts[0], vaultId);
       // transfer the excess collateral to the liquidityPool from this address
       SafeTransferLib.safeTransfer(ERC20(vault.collateralAssets[0]), liquidityPool, vault.collateralAmounts[0]);
     }
+    
   /*********
     GETTERS
    *********/
@@ -442,6 +415,25 @@ contract OptionRegistry is Ownable, AccessControl {
       return keccak256(
          abi.encodePacked(underlying, strikeAsset, collateral, expiration, isPut, strike)
       );
+    }
+
+    /**
+     * @notice Converts strike price to 1e8 format and floors least significant digits if needed
+     * @param  strikePrice strikePrice in 1e18 format
+     * @param  collateral address of collateral asset
+     * @return if the transaction succeeded
+     */
+    function formatStrikePrice(
+        uint256 strikePrice,
+        address collateral
+    ) internal view returns (uint) {
+        // convert strike to 1e8 format
+        uint price = strikePrice / (10**10);
+        uint collateralDecimals = IERC20(collateral).decimals();
+        if (collateralDecimals >= OPYN_DECIMALS) return price;
+        uint difference = OPYN_DECIMALS - collateralDecimals;
+        // round floor strike to prevent errors in Gamma protocol
+        return price / (10**difference) * (10**difference);
     }
 
 }
