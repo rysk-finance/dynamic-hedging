@@ -1,11 +1,12 @@
-import Onboard, { EIP1193Provider } from "@web3-onboard/core";
+import { EIP1193Provider, OnboardAPI } from "@web3-onboard/core";
+import injectedModule from "@web3-onboard/injected-wallets";
+import { init } from "@web3-onboard/react";
+import walletConnectModule from "@web3-onboard/walletconnect";
 import { EthersAppContext } from "eth-hooks/context";
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import "./App.css";
 import { Header } from "./components/Header";
 import { toHex } from "./utils";
-import walletConnectModule from "@web3-onboard/walletconnect";
-import injectedModule from "@web3-onboard/injected-wallets";
 
 const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/8f8c6eb36eb84321a9a1194ec822e8d6`;
 const ROPSTEN_RPC_URL = `https://ropsten.infura.io/v3/8f8c6eb36eb84321a9a1194ec822e8d6`;
@@ -14,7 +15,7 @@ const RINKEBY_RPC_URL = `https://rinkeby.infura.io/v3/8f8c6eb36eb84321a9a1194ec8
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();
 
-const onboard = Onboard({
+const onboard = init({
   wallets: [injectedWallets, walletConnect],
   chains: [
     {
@@ -76,12 +77,17 @@ const WalletContext = createContext<WalletContext>({
 export const useWalletContext = () => useContext(WalletContext);
 
 function App() {
+  const [web3Onboard, setWeb3Onboard] = useState<OnboardAPI | null>(null);
   const [provider, setProvider] = useState<EIP1193Provider | null>(null);
   const [account, setAccount] = useState<string | null>(null);
   const [error, setError] = useState<any>(null);
   const [chainId, setChainId] = useState<string | null>(null);
   const [network, setNetwork] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    setWeb3Onboard(onboard);
+  }, []);
 
   const connectWallet = async () => {
     try {
@@ -131,7 +137,7 @@ function App() {
       }}
     >
       <EthersAppContext>
-        <div className="App min-h-full">
+        <div className="App min-h-screen bg-bone font-dm-mono">
           <Header />
         </div>
       </EthersAppContext>
