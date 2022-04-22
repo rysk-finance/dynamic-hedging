@@ -439,6 +439,10 @@ contract OptionRegistry is Ownable, AccessControl {
      return seriesAddress[issuanceHash];
    }
 
+   function getSeries(Types.OptionSeries memory _series) public view returns (address) {
+     return seriesAddress[getIssuanceHash(_series.underlying, _series.strikeAsset, _series.collateral, _series.expiration, _series.isPut, _series.strike)];
+   }
+
    function getSeriesInfo(address series)
      public
      view
@@ -485,5 +489,4 @@ contract OptionRegistry is Ownable, AccessControl {
         // round floor strike to prevent errors in Gamma protocol
         return price / (10**difference) * (10**difference);
     }
-
 }
