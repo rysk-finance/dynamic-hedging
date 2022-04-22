@@ -147,6 +147,7 @@ contract LiquidityPool is
   OptionParams public optionParams;
 
   event OrderCreated(uint orderId);
+  event StrangleCreated(uint strangleId);
   event LiquidityAdded(uint amount);
   event UnderlyingAdded(address underlying);
   event ImpliedVolatilityUpdated(address underlying, uint iv);
@@ -880,6 +881,8 @@ contract LiquidityPool is
     series = _issue(optionSeries, optionRegistry);
     // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
+    // premium needs to adjusted for decimals of base strike asset
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     //write the option
     optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium, bufferRemaining);
   }
@@ -904,6 +907,8 @@ contract LiquidityPool is
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
+    // premium needs to adjusted for decimals of base strike asset
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium, bufferRemaining);
   }
 
@@ -950,8 +955,6 @@ contract LiquidityPool is
    * @return the amount that was written
    */
   function _writeOption(Types.OptionSeries memory optionSeries, address seriesAddress, uint256 amount, OptionRegistry optionRegistry, uint256 premium, int256 bufferRemaining) internal returns (uint256) {
-    // premium needs to adjusted for decimals of base strike asset
-    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     uint256 collateralAmount = optionRegistry.getCollateral(Types.OptionSeries( 
        optionSeries.expiration,
        optionSeries.isPut,
@@ -1085,8 +1088,10 @@ contract LiquidityPool is
     @notice creates a strangle order. One custom put and one custom call order to be executed simultaneously.
     @param _optionSeriesCall the option token series to issue for the call part of the strangle
     @param _optionSeriesPut the option token series to issue for the put part of the strangle
-    @param _amount the number of options to issue 
-    @param _price the price per unit to issue at
+    @param _amountCall the number of call options to issue 
+    @param _amountPut the number of put options to issue 
+    @param _priceCall the price per unit to issue calls at
+    @param _pricePut the price per unit to issue puts at
     @param _orderExpiry the expiry of the order (if past the order is redundant)
     @param _buyerAddress the agreed upon buyer address
     @return strangleIdCounter the unique id of the strangle
@@ -1094,19 +1099,23 @@ contract LiquidityPool is
   function createStrangle(
     Types.OptionSeries memory _optionSeriesCall, 
     Types.OptionSeries memory _optionSeriesPut, 
-    uint256 _amount, 
-    uint256 _price, 
+    uint256 _amountCall,
+    uint256 _amountPut, 
+    uint256 _priceCall,
+    uint256 _pricePut,
     uint256 _orderExpiry,
     address _buyerAddress
-  ) external onlyRole(ADMIN_ROLE) returns (uint strangleIdCounter) 
+  ) external onlyRole(ADMIN_ROLE) returns (uint) 
   {
     // increment strangleId to store strangle order pair
     strangleIdCounter++;
     // issue the call order part of the strangle
-    uint callOrderId = createOrder(_optionSeriesCall, _amount, _price, _orderExpiry, _buyerAddress);
+    uint callOrderId = createOrder(_optionSeriesCall, _amountCall, _priceCall, _orderExpiry, _buyerAddress);
     strangleOrderPairs[strangleIdCounter][0] = callOrderId;
-    uint putOrderId = createOrder(_optionSeriesPut, _amount, _price, _orderExpiry, _buyerAddress);
-    strangleOrderPairs[strangleIdCounter][0] = putOrderId;
+    uint putOrderId = createOrder(_optionSeriesPut, _amountPut, _pricePut, _orderExpiry, _buyerAddress);
+    strangleOrderPairs[strangleIdCounter][1] = putOrderId;
+    emit StrangleCreated(strangleIdCounter);
+    return strangleIdCounter;
   }
 
   /**
@@ -1115,8 +1124,9 @@ contract LiquidityPool is
             in order to have flexibility and customisability on option issuance and market 
             participant UX.
     @param  _orderId the id of the order for options purchase
+    @param  _isStrangle if this order is part of a strangle order 
   */
-  function executeOrder(uint256 _orderId) public nonReentrant {
+  function executeOrder(uint256 _orderId, bool _isStrangle) public nonReentrant {
     int256 bufferRemaining = _checkBuffer();
     // get the order
     Types.Order memory order = orderStores[_orderId];
@@ -1145,6 +1155,8 @@ contract LiquidityPool is
     if(!optionSeries.isPut){
        if (customOrderBounds.callMinDelta > uint(delta) || uint(delta) > customOrderBounds.callMaxDelta) { revert CustomOrderInvalidDeltaValue(); }
     }
+    // premium needs to adjusted for decimals of base strike asset
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     // write the option contract, includes sending the premium from the user to the pool
     uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, bufferRemaining);
     // invalidate the order
@@ -1157,8 +1169,9 @@ contract LiquidityPool is
     @param _strangleId the id of the strangle order to fulfil 
   */
   function executeStrangle(uint256 _strangleId) external {
-    executeOrder(strangleOrderPairs[_strangleId][0]);
-    executeOrder(strangleOrderPairs[_strangleId][1]);
+
+    executeOrder(strangleOrderPairs[_strangleId][0], true);
+    executeOrder(strangleOrderPairs[_strangleId][1], true);
   }
 
   /**

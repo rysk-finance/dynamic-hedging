@@ -970,17 +970,20 @@ describe("Liquidity Pools", async () => {
 	})
 	let customOrderPriceCall: number
 	let customOrderPricePut: number
-
+	let customStranglePrice: number
+	let strangleId: number
+	let strangleCallToken: IOToken
+	let stranglePutToken: IOToken
 	it("creates a custom strangle order", async () => {
 		let customOrderPriceMultiplier = 0.93
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePriceCall = priceQuote.add(toWei("700"))
+		const strikePriceCall = priceQuote.add(toWei("1500"))
 		const strikePricePut = priceQuote.sub(toWei("700"))
 		const amount = toWei("1")
-		const orderExpiry = 10
+		const orderExpiry = 600 // 10 minutes
 		const proposedSeriesCall = {
-			expiration: expiration2,
+			expiration: expiration,
 			isPut: false,
 			strike: BigNumber.from(strikePriceCall),
 			strikeAsset: usd.address,
@@ -988,7 +991,7 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		const proposedSeriesPut = {
-			expiration: expiration2,
+			expiration: expiration,
 			isPut: true,
 			strike: BigNumber.from(strikePricePut),
 			strikeAsset: usd.address,
@@ -1009,11 +1012,15 @@ describe("Liquidity Pools", async () => {
 		)
 		customOrderPriceCall = localQuoteCall * customOrderPriceMultiplier
 		customOrderPricePut = localQuotePut * customOrderPriceMultiplier
+		customStranglePrice = customOrderPriceCall + customOrderPricePut
+		console.log({ customOrderPriceCall, customOrderPricePut, customStranglePrice })
 		const createStrangle = await liquidityPool.createStrangle(
 			proposedSeriesCall,
 			proposedSeriesPut,
 			amount,
-			toWei(customOrderPrice.toString()),
+			amount,
+			toWei(customOrderPriceCall.toString()),
+			toWei(customOrderPricePut.toString()),
 			orderExpiry,
 			receiverAddress
 		)
@@ -1021,12 +1028,15 @@ describe("Liquidity Pools", async () => {
 		const receipt = await createStrangle.wait()
 		const events = receipt.events
 		const createOrderEvents = events?.filter(x => x.event == "OrderCreated") as any
-		console.log(createOrderEvents)
 		expect(createOrderEvents?.length).to.eq(2)
 		expect(parseInt(createOrderEvents[0].args?.orderId) + 1).to.eq(createOrderEvents[1].args?.orderId)
+		const createStrangleEvent = events?.find(x => x.event == "StrangleCreated")
+		strangleId = createStrangleEvent?.args?.strangleId
 		const callOrder = await liquidityPool.orderStores(createOrderEvents[0].args?.orderId)
 		const putOrder = await liquidityPool.orderStores(createOrderEvents[1].args?.orderId)
-		console.log({ callOrder, putOrder })
+		strangleCallToken = new Contract(callOrder.seriesAddress, Otoken.abi, sender) as IOToken
+		stranglePutToken = new Contract(putOrder.seriesAddress, Otoken.abi, sender) as IOToken
+
 		expect(callOrder.optionSeries.isPut).to.be.false
 		expect(putOrder.optionSeries.isPut).to.be.true
 		expect(callOrder.optionSeries.expiration).to.eq(proposedSeriesCall.expiration)
@@ -1062,7 +1072,7 @@ describe("Liquidity Pools", async () => {
 		).to.be.reverted
 	})
 	it("cant exercise order if not buyer", async () => {
-		await expect(liquidityPool.executeOrder(1)).to.be.revertedWith("InvalidBuyer()")
+		await expect(liquidityPool.executeOrder(1, false)).to.be.revertedWith("InvalidBuyer()")
 	})
 	it("Executes a buy order", async () => {
 		const [sender, receiver] = signers
@@ -1077,7 +1087,7 @@ describe("Liquidity Pools", async () => {
 		const receiverBalBef = await usd.balanceOf(receiverAddress)
 
 		await usd.connect(receiver).approve(liquidityPool.address, 1000000000)
-		await liquidityPool.connect(receiver).executeOrder(1)
+		await liquidityPool.connect(receiver).executeOrder(1, false)
 		const receiverOTokenBalAft = await optionToken.balanceOf(receiverAddress)
 		const lpOTokenBalAft = await optionToken.balanceOf(liquidityPool.address)
 		const lpBalAft = await usd.balanceOf(liquidityPool.address)
@@ -1091,6 +1101,37 @@ describe("Liquidity Pools", async () => {
 		expect(receiverBalBef.sub(receiverBalAft)).to.eq(
 			BigNumber.from(Math.floor(customOrderPrice * 10 ** 6).toString())
 		)
+	})
+	it("executes a strangle", async () => {
+		const [sender, receiver] = signers
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const amount = toWei("1")
+		const receiverOTokenBalBef = (await strangleCallToken.balanceOf(receiverAddress)).add(
+			await stranglePutToken.balanceOf(receiverAddress)
+		)
+		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
+		await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit), senderAddress)
+		const receiverBalBef = await usd.balanceOf(receiverAddress)
+
+		await usd.connect(receiver).approve(liquidityPool.address, 1000000000)
+		await liquidityPool.connect(receiver).executeStrangle(strangleId)
+		const receiverBalAft = await usd.balanceOf(receiverAddress)
+		const receiverOTokenBalAft = (await strangleCallToken.balanceOf(receiverAddress)).add(
+			await stranglePutToken.balanceOf(receiverAddress)
+		)
+		const lpOTokenBalAft = (await strangleCallToken.balanceOf(liquidityPool.address)).add(
+			await stranglePutToken.balanceOf(liquidityPool.address)
+		)
+		expect(
+			receiverBalBef
+				.sub(receiverBalAft)
+				.sub(BigNumber.from(Math.floor(customStranglePrice * 10 ** 6).toString()))
+		).to.be.within(-1, 1)
+		console.log({ receiverOTokenBalBef, receiverOTokenBalAft })
+		expect(fromOpyn(receiverOTokenBalAft.sub(receiverOTokenBalBef).toString())).to.equal(
+			fromWei(amount.mul(2).toString())
+		)
+		expect(lpOTokenBalAft).to.eq(0)
 	})
 	it("Cannot complete buy order after expiry", async () => {
 		const [sender, receiver] = signers
@@ -1135,8 +1176,10 @@ describe("Liquidity Pools", async () => {
 		// expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 		expect(await liquidityPool.orderIdCounter()).to.eq(orderId)
 		optionToken = new Contract(order.seriesAddress, Otoken.abi, sender) as IOToken
-		increase(10)
-		await expect(liquidityPool.connect(receiver).executeOrder(2)).to.be.revertedWith("OrderExpired()")
+		increase(3601)
+		await expect(liquidityPool.connect(receiver).executeOrder(orderId, false)).to.be.revertedWith(
+			"OrderExpired()"
+		)
 	})
 	let lpCallOption: IOToken
 	it("LP Writes a WETH/USD call collateralized by WETH for premium", async () => {
@@ -1358,6 +1401,8 @@ describe("Liquidity Pools", async () => {
 		const settlePrice = strikePrice.sub(toWei("80").div(oTokenDecimalShift18))
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
+		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
+
 		// settle the vault
 		const settleVault = await liquidityPool.settleVault(putOptionToken.address)
 		let receipt = await settleVault.wait()
@@ -1365,6 +1410,9 @@ describe("Liquidity Pools", async () => {
 		const settleEvent = events?.find(x => x.event == "SettleVault")
 		const collateralReturned = settleEvent?.args?.collateralReturned
 		const collateralLost = settleEvent?.args?.collateralLost
+		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpBalanceBefore, lpBalanceAfter })
+
 		// puts expired ITM, so the amount ITM will be subtracted and used to pay out option holders
 		const optionITMamount = strikePrice.sub(settlePrice)
 		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
@@ -1383,6 +1431,7 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = await putOptionToken.strikePrice()
 		// set price to $100 OTM for put
 		const settlePrice = strikePrice.add(toWei("100").div(oTokenDecimalShift18))
+		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration2, settlePrice)
 		// settle the vault
@@ -1392,9 +1441,11 @@ describe("Liquidity Pools", async () => {
 		const settleEvent = events?.find(x => x.event == "SettleVault")
 		const collateralReturned = settleEvent?.args?.collateralReturned
 		const collateralLost = settleEvent?.args?.collateralLost
+		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpBalanceBefore, lpBalanceAfter })
 		// puts expired OTM, so all collateral should be returned
 		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
-		expect(collateralReturned).to.equal(totalCollateralAllocated) // format from e8 oracle price to e6 USDC decimals
+		expect(lpBalanceAfter.sub(lpBalanceBefore)).to.equal(collateralReturned) // format from e8 oracle price to e6 USDC decimals
 		expect(await liquidityPool.collateralAllocated()).to.equal(0)
 		expect(collateralLost).to.equal(0)
 	})
