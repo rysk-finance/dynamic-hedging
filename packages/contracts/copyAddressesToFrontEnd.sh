@@ -1,0 +1,1 @@
+cp ./deploy/contracts.json ../front-end/src/
