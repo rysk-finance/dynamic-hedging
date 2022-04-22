@@ -30,7 +30,7 @@
 		"ethers": "^5.0.13",
 		"hardhat": "^2.6.7",
 		"hardhat-contract-sizer": "^2.5.0",
-		"hardhat-deploy": "^0.7.0-beta.30",
+		"hardhat-deploy": "^0.7.11",
 		"hardhat-gas-reporter": "^1.0.3",
 		"path": "^0.12.7",
 		"solidity-coverage": "^0.7.20",
