@@ -12,10 +12,10 @@ library Types {
         }
 
         struct PortfolioValues {
-            uint256 delta;
-            uint256 gamma;
-            uint256 vega;
-            uint256 theta;
+            int256 delta;
+            int256 gamma;
+            int256 vega;
+            int256 theta;
             uint256 callPutsValue;
             uint256 timestamp;
             uint256 spotPrice;

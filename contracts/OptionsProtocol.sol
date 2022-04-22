@@ -9,6 +9,7 @@ contract Protocol is Ownable {
 
     address public optionRegistry;
     address public priceFeed;
+    address public portfolioValuesFeed;
 
     /////////////////////////////////////
     /// governance settable variables ///
@@ -19,11 +20,13 @@ contract Protocol is Ownable {
     constructor(
        address _optionRegistry,
        address _priceFeed,
-       address _volatilityFeed
-    ) {
+       address _volatilityFeed,
+       address _portfolioValuesFeed
+    ) public {
         optionRegistry = _optionRegistry;
         priceFeed = _priceFeed;
         volatilityFeed = _volatilityFeed;
+        portfolioValuesFeed = _portfolioValuesFeed;
     }
 
     ///////////////

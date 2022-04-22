@@ -5,6 +5,7 @@ import "./tokens/ERC20.sol";
 import "./OptionRegistry.sol";
 import "./VolatilityFeed.sol";
 import "./OptionsProtocol.sol";
+import "./PortfolioValuesFeed.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
 import "./libraries/OptionsCompute.sol";
@@ -36,6 +37,8 @@ error CollateralAmountInvalid();
 error WithdrawExceedsLiquidity();
 error MaxLiquidityBufferReached();
 error DeltaQuoteError(uint256 quote, int256 delta);
+error TimeDeltaExceedsThreshold(uint256 timeDelta);
+error PriceDeltaExceedsThreshold(uint256 priceDelta);
 error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
 error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
 error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
@@ -100,6 +103,10 @@ contract LiquidityPool is
   uint256 public orderIdCounter;
   // option issuance parameters
   OptionParams public optionParams;
+  // max time to allow between oracle updates
+  uint256 public maxTimeDeviationThreshold;
+  // max price difference to allow between oracle updates
+  uint256 public maxPriceDeviationThreshold;
   // strike and expiry date range for options
 
   struct OptionParams {
@@ -507,7 +514,7 @@ contract LiquidityPool is
 
   /**
    * @notice get the price feed used by the liquidity pool
-   * @return the price feed contract interface
+   * @return the price feed contract
    */
   function getPriceFeed() internal view returns (PriceFeed) {
     address feedAddress = Protocol(protocol).priceFeed();
@@ -521,10 +528,27 @@ contract LiquidityPool is
   function getVolatilityFeed() internal view returns (VolatilityFeed) {
     address feedAddress = Protocol(protocol).volatilityFeed();
     return VolatilityFeed(feedAddress);
+  /**
+   * @notice get the portfolio values feed used by the liquidity pool
+   * @return the portfolio values feed contract
+   */
+  function getPortfolioValuesFeed() internal view returns (PortfolioValuesFeed) {
+    address feedAddress = Protocol(protocol).portfolioValuesFeed();
+    return PortfolioValuesFeed(feedAddress);
   }
+
+  /**
+   * @notice get the portfolio values feed used by the liquidity pool
+   * @return the portfolio values feed contract
+   */
+  function getPortfolioValues() internal view returns (Types.PortfolioValues memory) {
+    PortfolioValuesFeed feed = getPortfolioValuesFeed();
+    return feed.getPortfolioValues(underlyingAsset, strikeAsset);
+  }
+
   /**
    * @notice get the option registry used for storing and managing the options
-   * @return the option registry contract interface
+   * @return the option registry contract
    */
   function getOptionRegistry() internal view returns (OptionRegistry) {
     address registryAddress = Protocol(protocol).optionRegistry();
@@ -632,39 +656,20 @@ contract LiquidityPool is
       view
       returns (int256)
   {
+      Types.PortfolioValues memory portfolioValues = getPortfolioValues(); 
+      uint256 timeDelta = block.timestamp - portfolioValues.timestamp;
+      // If too much time has passed we want to prevent a possible oracle attack
+      if (maxTimeDeviationThreshold > timeDelta) { revert TimeDeltaExceedsThreshold(timeDelta); }
       uint256 price = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      uint256 rfr = riskFreeRate;
-      int256 callsDelta;
-      int256 putsDelta;
-      if (weightedTimeCall != 0) {
-        uint256 callIv = getImpliedVolatility(false, price, weightedStrikeCall, weightedTimeCall);
-        callsDelta = BlackScholes.getDelta(
-          price,
-          weightedStrikeCall,
-          weightedTimeCall,
-          callIv,
-          rfr,
-          false
-        );
-      }
-      if (weightedTimePut != 0) {
-        uint256 putIv = getImpliedVolatility(true, price, weightedStrikePut, weightedTimePut);
-        putsDelta = BlackScholes.getDelta(
-           price,
-           weightedStrikePut,
-           weightedTimePut,
-           putIv,
-           rfr,
-           true
-        );
-      }
+      uint256 priceDelta = OptionsCompute.calculatePercentageDifference(price, portfolioValues.spotPrice);
+      // If price has deviated too much we want to prevent a possible oracle attack
+      if (priceDelta > maxPriceDeviationThreshold) { revert PriceDeltaExceedsThreshold(priceDelta); }
       int256 externalDelta;
       // TODO fix hedging reactor address to be dynamic
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
       }
-      // return the negative sum of open option because we are the counterparty
-      return -(callsDelta*int256(totalAmountCall)/int256(PRBMath.SCALE) + putsDelta*int256(totalAmountPut)/int256(PRBMath.SCALE)) + externalDelta;
+      return portfolioValues.delta + externalDelta;
   }
     
   /**

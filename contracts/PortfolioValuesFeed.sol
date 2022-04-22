@@ -11,12 +11,12 @@ import "./libraries/Types.sol";
 contract PortfolioValuesFeed is ChainlinkClient {
   using Chainlink for Chainlink.Request;
 
-  mapping(address => mapping(address => Types.PortfolioValues)) public portfolioValues;
+  mapping(address => mapping(address => Types.PortfolioValues)) private portfolioValues;
   address private immutable oracle;
   bytes32 private immutable jobId;
   uint256 private immutable fee;
 
-  event DataFullfilled(address indexed underlying, address indexed strike, uint256 delta, uint256 gamma, uint256 vega, uint256 theta, uint256 callPutsValue);
+  event DataFullfilled(address indexed underlying, address indexed strike, int256 delta, int256 gamma, int256 vega, int256 theta, uint256 callPutsValue);
 
   /**
    * @notice Executes once when a contract is created to initialize state variables
@@ -40,6 +40,15 @@ contract PortfolioValuesFeed is ChainlinkClient {
     oracle = _oracle;
     jobId = _jobId;
     fee = _fee;
+  }
+
+  function getPortfolioValues(
+    address underlying,
+    address strike
+  ) external 
+    view
+    returns (Types.PortfolioValues memory) {
+        return portfolioValues[underlying][strike];
   }
 
   /**
@@ -84,10 +93,10 @@ function fulfill(
     bytes32 _requestId,
     address _underlying,
     address _strike,
-    uint256 _delta,
-    uint256 _gamma,
-    uint256 _vega,
-    uint256 _theta,
+    int256 _delta,
+    int256 _gamma,
+    int256 _vega,
+    int256 _theta,
     uint256 _callPutsValue,
     uint256 _spotPrice
 )
