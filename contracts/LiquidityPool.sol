@@ -1077,8 +1077,8 @@ contract LiquidityPool is
     orderIdCounter++;
     // increment the orderId and store the order
     orderStores[orderIdCounter] = order;
-    return orderIdCounter;
     emit OrderCreated(orderIdCounter);
+    return orderIdCounter;
   }
 
   /** 
