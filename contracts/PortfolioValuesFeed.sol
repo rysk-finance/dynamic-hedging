@@ -2,6 +2,7 @@
 pragma solidity ^0.8.9;
 
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "./libraries/Types.sol";
 
 /**
  * @title The PortfolioValuesFeed contract
@@ -9,15 +10,8 @@ import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
  */
 contract PortfolioValuesFeed is ChainlinkClient {
   using Chainlink for Chainlink.Request;
-  struct PortfolioValues {
-    uint256 delta;
-    uint256 gamma;
-    uint256 vega;
-    uint256 theta;
-    uint256 callPutsValue;
-    uint256 timestamp;
-  }
-  mapping(address => mapping(address => PortfolioValues)) public portfolioValues;
+
+  mapping(address => mapping(address => Types.PortfolioValues)) public portfolioValues;
   address private immutable oracle;
   bytes32 private immutable jobId;
   uint256 private immutable fee;
@@ -84,6 +78,7 @@ contract PortfolioValuesFeed is ChainlinkClient {
    * @param _vega - response; portfolio vega
    * @param _theta - response; portfolio theta
    * @param _callPutsValue - response; combined value of calls and puts written
+   * @param _spotPrice - response; spot price at the time of update
    */
 function fulfill(
     bytes32 _requestId,
@@ -93,17 +88,19 @@ function fulfill(
     uint256 _gamma,
     uint256 _vega,
     uint256 _theta,
-    uint256 _callPutsValue
+    uint256 _callPutsValue,
+    uint256 _spotPrice
 )
     public
     recordChainlinkFulfillment(_requestId)
   {
-    PortfolioValues memory portfolioValue = PortfolioValues({
+    Types.PortfolioValues memory portfolioValue = Types.PortfolioValues({
         delta: _delta,
         gamma: _gamma,
         vega: _vega,
         theta: _theta,
         callPutsValue: _callPutsValue,
+        spotPrice: _spotPrice,
         timestamp: block.timestamp
     });
     portfolioValues[_underlying][_strike] = portfolioValue;
