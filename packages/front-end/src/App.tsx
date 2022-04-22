@@ -141,7 +141,19 @@ function App() {
         <div className="App min-h-screen bg-bone font-dm-mono">
           <Header />
           <div className="pt-16 px-16">
-            <div className="root-grid py-24"></div>
+            <div className="root-grid py-24">
+              <div className="col-start-1 col-end-8">
+                <h2 className="mb-8">Earn Uncorrelated Returns</h2>
+                <p>
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
+                  ut justo luctus, vehicula nibh id, egestas magna. Sed egestas
+                  massa justo, sit amet sagittis nunc efficitur ac.{" "}
+                </p>
+              </div>
+              <div className="col-start-9 col-end-17 border-black border-2 p-8">
+                <VaultDepositWithdraw />
+              </div>
+            </div>
           </div>
         </div>
       </EthersAppContext>
