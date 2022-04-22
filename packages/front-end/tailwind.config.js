@@ -1,5 +1,11 @@
 module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
+  screens: {
+    sm: "480px",
+    md: "768px",
+    lg: "976px",
+    xl: "1440px",
+  },
   theme: {
     extend: {
       colors: {
@@ -19,6 +25,20 @@ module.exports = {
       },
       fontFamily: {
         "dm-mono": ["DM Mono"],
+      },
+      gridColumnStart: {
+        13: "13",
+        14: "14",
+        15: "15",
+        16: "16",
+        17: "17",
+      },
+      gridColumnEnd: {
+        13: "13",
+        14: "14",
+        15: "15",
+        16: "16",
+        17: "17",
       },
     },
   },

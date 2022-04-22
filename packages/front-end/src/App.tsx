@@ -6,6 +6,7 @@ import { EthersAppContext } from "eth-hooks/context";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import "./App.css";
 import { Header } from "./components/Header";
+import { VaultDepositWithdraw } from "./components/VaultDepositWithdraw";
 import { toHex } from "./utils";
 
 const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/8f8c6eb36eb84321a9a1194ec822e8d6`;
@@ -139,6 +140,9 @@ function App() {
       <EthersAppContext>
         <div className="App min-h-screen bg-bone font-dm-mono">
           <Header />
+          <div className="pt-16 px-16">
+            <div className="root-grid py-24"></div>
+          </div>
         </div>
       </EthersAppContext>
     </WalletContext.Provider>
