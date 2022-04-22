@@ -27,6 +27,7 @@ import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
+import { PortfolioValuesFeed } from "../types/PortfolioValuesFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
@@ -70,6 +71,7 @@ let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
 let volFeed : VolatilityFeed
 let priceFeed: PriceFeed
+let portfolioValuesFeed: PortfolioValuesFeed
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
 let controller: NewController
@@ -255,6 +257,29 @@ describe("Liquidity Pools", async () => {
 	it("#Should deploy volatility feed", async () => {
 		const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
 		volFeed = (await volFeedFactory.deploy()) as VolatilityFeed
+
+	it("#Should deploy portfolio values feed", async () => {
+		const portfolioValuesFactory = await ethers.getContractFactory("PortfolioValuesFeed")
+		portfolioValuesFeed = (await portfolioValuesFactory.deploy(
+			ZERO_ADDRESS,
+			utils.formatBytes32String("jobId"),
+			toWei("1"),
+			ZERO_ADDRESS
+		)) as PortfolioValuesFeed
+	})
+
+	it("Should deploy option protocol and link to registry/price feed", async () => {
+		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
+		optionProtocol = (await protocolFactory.deploy(
+			optionRegistry.address,
+			priceFeed.address,
+      volFeed.address,
+			portfolioValuesFeed.address
+		)) as Protocol
+		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
+	})
+
+	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
 		type int7 = [
 			BigNumberish,
 			BigNumberish,
@@ -566,12 +591,12 @@ describe("Liquidity Pools", async () => {
 	it("can compute portfolio delta", async function () {
 		const delta = await liquidityPool.getPortfolioDelta()
 		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool, 
+			liquidityPool,
 			priceFeed,
 			proposedSeries,
-			toWei('1'),
+			toWei("1"),
 			true
-			)
+		)
 		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
@@ -611,9 +636,9 @@ describe("Liquidity Pools", async () => {
 		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(-0.1, 0.1)
 		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
 		const lpAllocatedDiff = lpAllocatedAfter.sub(lpAllocatedBefore)
-		expect(tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.within(
-			0, 0.1
-		)
+		expect(
+			tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)
+		).to.be.within(0, 0.1)
 	})
 	it("can compute portfolio delta", async function () {
 		const delta = await liquidityPool.getPortfolioDelta()
@@ -623,27 +648,28 @@ describe("Liquidity Pools", async () => {
 		const wTPuts = await liquidityPool.weightedTimePut()
 		const wSPuts = await liquidityPool.weightedStrikePut()
 		const wPuts = await liquidityPool.totalAmountPut()
-	
+
 		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool, 
+			liquidityPool,
 			priceFeed,
 			proposedSeries,
-			toWei('1'),
+			toWei("1"),
 			true
-			)
+		)
 		const localDeltaActual = await calculateOptionDeltaLocally(
-			liquidityPool, 
+			liquidityPool,
 			priceFeed,
-			{expiration: wTPuts.toNumber(), 
-			 isPut: PUT_FLAVOR, 
-			 strike: wSPuts, 
-			 strikeAsset: usd.address, 
-			 underlying: weth.address, 
-			 collateral: usd.address 
+			{
+				expiration: wTPuts.toNumber(),
+				isPut: PUT_FLAVOR,
+				strike: wSPuts,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
 			},
 			wPuts,
 			true
-			)
+		)
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries2 = {
@@ -658,7 +684,7 @@ describe("Liquidity Pools", async () => {
 			liquidityPool,
 			priceFeed,
 			proposedSeries2,
-			toWei('3'),
+			toWei("3"),
 			true
 		)
 		expect(delta.sub(localDelta.add(localDelta2))).to.be.within(-1e15, 1e15)
