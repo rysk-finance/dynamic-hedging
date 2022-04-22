@@ -7,7 +7,7 @@
 		"test": "hardhat test",
 		"test-coverage": "export NODE_OPTIONS='--max-old-space-size=8192' && hardhat coverage --testfiles 'test/*.ts'",
 		"deploy:rinkeby": "hardhat deploy --network rinkeby --tags testnet --deploy-scripts deploy",
-		"compile": "hardhat clean && hardhat compile && hardhat typechain"
+		"compile": "hardhat clean && hardhat compile && hardhat typechain && ./copyToFrontend.sh"
 	},
 	"keywords": [],
 	"author": "",
