@@ -85,4 +85,20 @@ library OptionsCompute {
             return quote;
         }
     }
+
+    /** 
+     @dev computes the percentage difference between two integers
+     @param a the smaller integer
+     @param b the larger integer
+     @return uint256 the percentage differnce
+    */
+    function calculatePercentageDifference(
+        uint256 a,
+        uint256 b
+    ) internal pure returns (uint256) {
+        if (a > b) {
+            return b.div(a);
+        }
+        return a.div(b);
+    }
 }

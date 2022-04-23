@@ -528,6 +528,8 @@ contract LiquidityPool is
   function getVolatilityFeed() internal view returns (VolatilityFeed) {
     address feedAddress = Protocol(protocol).volatilityFeed();
     return VolatilityFeed(feedAddress);
+  }
+  
   /**
    * @notice get the portfolio values feed used by the liquidity pool
    * @return the portfolio values feed contract

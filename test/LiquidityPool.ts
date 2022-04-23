@@ -23,7 +23,6 @@ import { deployOpyn } from "../utils/opyn-deployer"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import MockPortfolioValuesArtifact from "../artifacts/contracts/mocks/MockPortfolioValuesFeed.sol/MockPortfolioValuesFeed.json"
 import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
@@ -71,7 +70,7 @@ let receiverAddress: string
 let liquidityPool: LiquidityPool
 let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
-let volFeed : VolatilityFeed
+let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
 let portfolioValuesFeed: MockPortfolioValuesFeed
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
@@ -259,10 +258,10 @@ describe("Liquidity Pools", async () => {
 	it("#Should deploy volatility feed", async () => {
 		const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
 		volFeed = (await volFeedFactory.deploy()) as VolatilityFeed
+	})
 
 	it("should deploy portfolio values feed", async () => {
 		const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
-		const signer = await signers[0].getAddress()
 		portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
 			await signers[0].getAddress(),
 			utils.formatBytes32String("jobId"),
@@ -287,7 +286,7 @@ describe("Liquidity Pools", async () => {
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address,
-      volFeed.address,
+			volFeed.address,
 			portfolioValuesFeed.address
 		)) as Protocol
 		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
@@ -317,16 +316,6 @@ describe("Liquidity Pools", async () => {
 		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
 		await volFeed.setVolatilitySkew(coefs, true)
 		await volFeed.setVolatilitySkew(coefs, false)
-	})
-
-	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
-		optionProtocol = (await protocolFactory.deploy(
-			optionRegistry.address,
-			priceFeed.address,
-			volFeed.address
-		)) as Protocol
-		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {

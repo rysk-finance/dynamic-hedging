@@ -18,6 +18,7 @@ import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/Liquidity
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
+import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
@@ -61,6 +62,7 @@ let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
+let portfolioValuesFeed: MockPortfolioValuesFeed
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -232,18 +234,65 @@ describe("Hegic Attack", function () {
 		await volFeed.setVolatilitySkew(coefs, false)
 	})
 
+	it("should deploy portfolio values feed", async () => {
+		const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
+		portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
+			await signers[0].getAddress(),
+			utils.formatBytes32String("jobId"),
+			toWei("1"),
+			ZERO_ADDRESS
+		)) as MockPortfolioValuesFeed
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("1"),
+			weth.address,
+			usd.address,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
+	})
+
 	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address,
-			volFeed.address
+			volFeed.address,
+			portfolioValuesFeed.address
 		)) as Protocol
 		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
+		type int7 = [
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish
+		]
+		type number7 = [number, number, number, number, number, number, number]
+		const coefInts: number7 = [
+			1.42180236,
+			0,
+			-0.08626792,
+			0.07873822,
+			0.00650549,
+			0.02160918,
+			-0.1393287
+		]
+		//@ts-ignore
+		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
+		await volFeed.setVolatilitySkew(coefs, true)
+		await volFeed.setVolatilitySkew(coefs, false)
+	})
 
+	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
 		const normDistFactory = await ethers.getContractFactory("NormalDist", {
 			libraries: {}
 		})

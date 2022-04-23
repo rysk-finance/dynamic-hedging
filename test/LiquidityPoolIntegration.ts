@@ -27,7 +27,7 @@ import bs from "black-scholes"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
+import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
@@ -35,11 +35,11 @@ import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
-import { Volatility } from "../types/Volatility"
 import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
-import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
+import { Volatility } from "../types/Volatility"
+import { Oracle } from "../types/Oracle"
 import { setupTestOracle } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
@@ -48,10 +48,7 @@ import {
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS,
-	ADDRESS_BOOK,
-	UNISWAP_V3_SWAP_ROUTER,
-	CONTROLLER_OWNER,
-	GAMMA_ORACLE_NEW
+	ADDRESS_BOOK
 } from "./constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { deployOpyn } from "../utils/opyn-deployer"
@@ -65,12 +62,10 @@ let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
 let ethLiquidityPool: LiquidityPool
-let volatility: Volatility
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
-let ethUSDAggregator: MockContract
-let uniswapV3HedgingReactor: UniswapV3HedgingReactor
-let rate: string
+let volatility: Volatility
+let portfolioValuesFeed: MockPortfolioValuesFeed
 let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
@@ -173,21 +168,8 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		opynAggregator = res[1] as MockChainlinkAggregator
 	})
 
-	it("Deploys the Option Registry", async () => {
-		signers = await ethers.getSigners()
+	it("Sets up weth and usdc for funding", async () => {
 		senderAddress = await signers[0].getAddress()
-		receiverAddress = await signers[1].getAddress()
-		// deploy libraries
-		const constantsFactory = await ethers.getContractFactory("Constants")
-		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
-		const constants = await constantsFactory.deploy()
-		const interactions = await interactionsFactory.deploy()
-		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
-			libraries: {
-				OpynInteractions: interactions.address
-			}
-		})
 		// get and transfer weth
 		weth = (await ethers.getContractAt(
 			"contracts/interfaces/WETH.sol:WETH",
@@ -204,6 +186,44 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
 		await usd.connect(signer).transfer(senderAddress, toWei("1000").div(oTokenDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
+	})
+
+	it("should deploy portfolio values feed", async () => {
+		const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
+		portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
+			await signers[0].getAddress(),
+			utils.formatBytes32String("jobId"),
+			toWei("1"),
+			ZERO_ADDRESS
+		)) as MockPortfolioValuesFeed
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("1"),
+			weth.address,
+			usd.address,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
+	})
+
+	it("Deploys the Option Registry", async () => {
+		signers = await ethers.getSigners()
+		senderAddress = await signers[0].getAddress()
+		receiverAddress = await signers[1].getAddress()
+		// deploy libraries
+		const constantsFactory = await ethers.getContractFactory("Constants")
+		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
+		const constants = await constantsFactory.deploy()
+		const interactions = await interactionsFactory.deploy()
+		// deploy options registry
+		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
+			libraries: {
+				OpynInteractions: interactions.address
+			}
+		})
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
 			OTOKEN_FACTORY[chainId],
@@ -255,18 +275,43 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		await volFeed.setVolatilitySkew(coefs, true)
 		await volFeed.setVolatilitySkew(coefs, false)
 	})
-
 	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address,
-			volFeed.address
+			volFeed.address,
+			portfolioValuesFeed.address
 		)) as Protocol
 		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
+		type int7 = [
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish
+		]
+		type number7 = [number, number, number, number, number, number, number]
+		const coefInts: number7 = [
+			1.42180236,
+			0,
+			-0.08626792,
+			0.07873822,
+			0.00650549,
+			0.02160918,
+			-0.1393287
+		]
+		//@ts-ignore
+		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
+		await volFeed.setVolatilitySkew(coefs, true)
+		await volFeed.setVolatilitySkew(coefs, false)
+	})
 
+	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
 		const normDistFactory = await ethers.getContractFactory("NormalDist", {
 			libraries: {}
 		})
@@ -435,9 +480,10 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		)
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
+		expect(tFormatUSDC(balance.sub(balanceNew), 2)).to.eq(tFormatEth(quote, 2))
 		const expectedPoolBalance = truncate(
-			Number(fromUSDC(poolBalanceBefore)) + Number(fromWei(quote)) - escrow
+			Number(fromUSDC(poolBalanceBefore)) + Number(fromWei(quote)) - escrow,
+			2
 		)
 		expect(expectedPoolBalance).to.eq(truncate(Number(fromUSDC(poolBalanceAfter))))
 		expect(totalAmountPutAfter.sub(totalAmountPutBefore)).to.eq(amount)

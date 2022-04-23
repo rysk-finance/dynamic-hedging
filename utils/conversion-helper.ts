@@ -5,7 +5,8 @@ export const formatEth = (x: BigNumberish) => Number(utils.formatEther(x))
 export function truncate(num: number, places: number = 3): number {
 	return Math.trunc(num * Math.pow(10, places)) / Math.pow(10, places)
 }
-export const tFormatEth = (x: BigNumberish): number => truncate(formatEth(x))
+export const tFormatEth = (x: BigNumberish, places: number = 3): number =>
+	truncate(formatEth(x), places)
 export const toWei = (x: string) => utils.parseEther(x)
 export const call = false,
 	put = true
@@ -18,7 +19,8 @@ export const genOptionTime = (now: moment.Moment, future: moment.Moment) =>
 	(future.unix() - now.unix()) / SECONDS_IN_YEAR
 export const fromWei = (x: BigNumberish) => utils.formatEther(x)
 export const fromUSDC = (x: BigNumberish) => utils.formatUnits(x, 6)
-export const tFormatUSDC = (x: BigNumberish) => truncate(Number(fromUSDC(x)))
+export const tFormatUSDC = (x: BigNumberish, places: number = 3) =>
+	truncate(Number(fromUSDC(x)), places)
 export const fmtExpiration = (x: number) => toWei(x.toString())
 export const toUSDC = (x: string) => utils.parseUnits(x, 6)
 export const toOpyn = (x: string) => utils.parseUnits(x, 8)
