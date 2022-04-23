@@ -91,7 +91,8 @@ module.exports = {
 		hardhat: {
 			gas: 12000000,
 			blockGasLimit: 0x1fffffffffffff,
-			allowUnlimitedContractSize: true
+			allowUnlimitedContractSize: true,
+			chainId: 1337
 		},
 		ropsten: {
 			url: ropsten,
