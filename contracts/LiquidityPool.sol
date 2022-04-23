@@ -119,6 +119,10 @@ contract LiquidityPool is
   // strangle id counter
   uint256 public strangleIdCounter;
   // delta and price boundaries for custom orders
+  // call delta will always be between 0 and 1 (e18)
+  // put delta will always be between 0 and -1 (e18)
+  // maxPriceRange is the maximum percentage below the LP calculated price, measured in BPS, that the order may be sold for.
+  // 10% would mean maxPriceRange = 1000
   struct CustomOrderBounds {
     uint128 callMinDelta;
     uint128 callMaxDelta;
@@ -129,8 +133,8 @@ contract LiquidityPool is
 
   CustomOrderBounds public customOrderBounds = CustomOrderBounds(
     0,
-    25 * 10 ** 16,
-    -25 * 10 ** 16,
+    25e16,
+    -25e16,
     0,
     1000
   );
@@ -147,8 +151,8 @@ contract LiquidityPool is
   OptionParams public optionParams;
 
   event OrderCreated(uint orderId);
-  event StrangleCreated(uint strangleId);
   event LiquidityAdded(uint amount);
+  event StrangleCreated(uint strangleId);
   event UnderlyingAdded(address underlying);
   event ImpliedVolatilityUpdated(address underlying, uint iv);
   event Deposit(address recipient, uint strikeAmount, uint shares);
@@ -217,6 +221,28 @@ contract LiquidityPool is
   }
 
   /**
+   * @notice set new custom order parameters
+   * @param _callMinDelta the minimum delta value a sold custom call option can have (e18 format - for 0.05 enter 5e16). Must be positive or 0.
+   * @param _callMaxDelta the maximum delta value a sold custom call option can have. Must be positive and have greater magnitude than _callMinDelta.
+   * @param _putMinDelta the minimum delta value a sold custom put option can have. Must be negative and have greater magnitude than _putMaxDelta
+   * @param _putMaxDelta the maximum delta value a sold custom put option can have. Must be negative or 0.
+   * @param _maxPriceRange the max percentage below the LP calculated premium that the order may be sold for. Measured in BPS - for 10% enter 1000
+   */
+  function setCustomOrderBounds (   
+    uint128 _callMinDelta,
+    uint128 _callMaxDelta,
+    int128 _putMinDelta,
+    int128 _putMaxDelta,
+    uint32 _maxPriceRange
+  ) onlyOwner public {
+    customOrderBounds.callMinDelta = _callMinDelta;
+    customOrderBounds.callMaxDelta = _callMaxDelta;
+    customOrderBounds.putMinDelta = _putMinDelta;
+    customOrderBounds.putMaxDelta = _putMaxDelta;
+    customOrderBounds.maxPriceRange = _maxPriceRange;
+  }
+
+ /**
    * @notice remove a new hedging reactor by index
    * @param _index remove a hedging reactor 
    * @dev   only governance can call this function
@@ -851,10 +877,10 @@ contract LiquidityPool is
    * @notice calculates amount of liquidity that can be used before hitting buffer
    * @return bufferRemaining the amount of liquidity available before reaching buffer
   */
-  function _checkBuffer() view internal returns( int256 bufferRemaining){ 
+  function _checkBuffer() view internal returns(int256 bufferRemaining){ 
       // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
     (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
-    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/MAX_BPS);
+    bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/MAX_BPS);
     // revert if buffer allowance already hit
     if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
     return bufferRemaining;
@@ -880,7 +906,7 @@ contract LiquidityPool is
     series = _issue(optionSeries, optionRegistry);
     // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
-    // premium needs to adjusted for decimals of base strike asset
+    // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     //write the option
     optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium, bufferRemaining);
@@ -906,7 +932,7 @@ contract LiquidityPool is
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
-    // premium needs to adjusted for decimals of base strike asset
+    // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium, bufferRemaining);
   }
@@ -1066,7 +1092,7 @@ contract LiquidityPool is
   {
     OptionRegistry optionRegistry = getOptionRegistry();
     if (_price == 0) {revert InvalidPrice();}
-    if (_orderExpiry < 0) {revert OrderExpired();}
+    if (_orderExpiry == 0) {revert OrderExpired();}
     // issue the option type, all checks of the option validity should happen in _issue
     address series = _issue(_optionSeries, optionRegistry);
     // create the order struct, setting the series, amount, price, order expiry and buyer address
@@ -1078,11 +1104,12 @@ contract LiquidityPool is
       _buyerAddress,
       series
     );
-    orderIdCounter++;
+    uint orderIdCounter__ = orderIdCounter + 1;
     // increment the orderId and store the order
-    orderStores[orderIdCounter] = order;
-    emit OrderCreated(orderIdCounter);
-    return orderIdCounter;
+    orderStores[orderIdCounter__] = order;
+    emit OrderCreated(orderIdCounter__);
+    orderIdCounter = orderIdCounter__;
+    return orderIdCounter__;
   }
 
   /** 
@@ -1109,14 +1136,15 @@ contract LiquidityPool is
   ) external onlyRole(ADMIN_ROLE) returns (uint) 
   {
     // increment strangleId to store strangle order pair
-    strangleIdCounter++;
+    uint strangleIdCounter__ = strangleIdCounter + 1;
     // issue the call order part of the strangle
     uint callOrderId = createOrder(_optionSeriesCall, _amountCall, _priceCall, _orderExpiry, _buyerAddress);
-    strangleOrderPairs[strangleIdCounter][0] = callOrderId;
+    strangleOrderPairs[strangleIdCounter__][0] = callOrderId;
     uint putOrderId = createOrder(_optionSeriesPut, _amountPut, _pricePut, _orderExpiry, _buyerAddress);
-    strangleOrderPairs[strangleIdCounter][1] = putOrderId;
-    emit StrangleCreated(strangleIdCounter);
-    return strangleIdCounter;
+    strangleOrderPairs[strangleIdCounter__][1] = putOrderId;
+    emit StrangleCreated(strangleIdCounter__);
+    strangleIdCounter = strangleIdCounter__;
+    return strangleIdCounter__;
   }
 
   /**
@@ -1140,7 +1168,7 @@ contract LiquidityPool is
     (uint poolCalculatedPremium, int delta) = quotePriceWithUtilizationGreeks(Types.OptionSeries( 
        optionSeries.expiration,
        optionSeries.isPut,
-       optionSeries.strike*(10**10), // convert from 1e8 to 1e18 notation for quotePrice
+       OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(order.seriesAddress).decimals()), // convert from 1e8 to 1e18 notation for quotePrice
        optionSeries.underlying,
        optionSeries.strikeAsset,
        collateralAsset), order.amount);
@@ -1150,13 +1178,15 @@ contract LiquidityPool is
     // check the agreed upon premium is within acceptable range of pool's own pricing model
     if (poolCalculatedPremium - (poolCalculatedPremium *  customOrderBounds.maxPriceRange / MAX_BPS) > premium) { revert CustomOrderInsufficientPrice(); }
     // check that the delta values of the options are within acceptable ranges
+    // if isPut, delta will always be between 0 and -1e18
     if(optionSeries.isPut){
       if (customOrderBounds.putMinDelta > delta || delta > customOrderBounds.putMaxDelta) { revert CustomOrderInvalidDeltaValue(); }
     }
+    // if call, delta will always be between 0 and 1e18
     if(!optionSeries.isPut){
        if (customOrderBounds.callMinDelta > uint(delta) || uint(delta) > customOrderBounds.callMaxDelta) { revert CustomOrderInvalidDeltaValue(); }
     }
-    // premium needs to adjusted for decimals of base strike asset
+    // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     // write the option contract, includes sending the premium from the user to the pool
     uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, bufferRemaining);

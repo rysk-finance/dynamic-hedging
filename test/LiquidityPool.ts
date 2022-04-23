@@ -563,12 +563,12 @@ describe("Liquidity Pools", async () => {
 	it("can compute portfolio delta", async function () {
 		const delta = await liquidityPool.getPortfolioDelta()
 		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool, 
+			liquidityPool,
 			priceFeed,
 			proposedSeries,
-			toWei('1'),
+			toWei("1"),
 			true
-			)
+		)
 		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
@@ -608,9 +608,9 @@ describe("Liquidity Pools", async () => {
 		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(-0.1, 0.1)
 		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
 		const lpAllocatedDiff = lpAllocatedAfter.sub(lpAllocatedBefore)
-		expect(tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.within(
-			0, 0.1
-		)
+		expect(
+			tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)
+		).to.be.within(0, 0.1)
 	})
 	it("can compute portfolio delta", async function () {
 		const delta = await liquidityPool.getPortfolioDelta()
@@ -620,27 +620,28 @@ describe("Liquidity Pools", async () => {
 		const wTPuts = await liquidityPool.weightedTimePut()
 		const wSPuts = await liquidityPool.weightedStrikePut()
 		const wPuts = await liquidityPool.totalAmountPut()
-	
+
 		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool, 
+			liquidityPool,
 			priceFeed,
 			proposedSeries,
-			toWei('1'),
+			toWei("1"),
 			true
-			)
+		)
 		const localDeltaActual = await calculateOptionDeltaLocally(
-			liquidityPool, 
+			liquidityPool,
 			priceFeed,
-			{expiration: wTPuts.toNumber(), 
-			 isPut: PUT_FLAVOR, 
-			 strike: wSPuts, 
-			 strikeAsset: usd.address, 
-			 underlying: weth.address, 
-			 collateral: usd.address 
+			{
+				expiration: wTPuts.toNumber(),
+				isPut: PUT_FLAVOR,
+				strike: wSPuts,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
 			},
 			wPuts,
 			true
-			)
+		)
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries2 = {
@@ -655,7 +656,7 @@ describe("Liquidity Pools", async () => {
 			liquidityPool,
 			priceFeed,
 			proposedSeries2,
-			toWei('3'),
+			toWei("3"),
 			true
 		)
 		expect(delta.sub(localDelta.add(localDelta2))).to.be.within(-1e15, 1e15)
@@ -1337,7 +1338,6 @@ describe("Liquidity Pools", async () => {
 		const collateralReturned = settleEvent?.args?.collateralReturned
 		const collateralLost = settleEvent?.args?.collateralLost
 		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpBalanceBefore, lpBalanceAfter })
 
 		// puts expired ITM, so the amount ITM will be subtracted and used to pay out option holders
 		const optionITMamount = strikePrice.sub(settlePrice)
@@ -1369,7 +1369,6 @@ describe("Liquidity Pools", async () => {
 		const collateralLost = settleEvent?.args?.collateralLost
 		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
-		console.log({ lpBalanceBefore, lpBalanceAfter })
 		// puts expired OTM, so all collateral should be returned
 		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
 		expect(lpBalanceAfter.sub(lpBalanceBefore)).to.equal(collateralReturned) // format from e8 oracle price to e6 USDC decimals
