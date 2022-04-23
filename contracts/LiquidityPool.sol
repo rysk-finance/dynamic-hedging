@@ -51,56 +51,79 @@ contract LiquidityPool is
   using PRBMathSD59x18 for int256;
   using PRBMathUD60x18 for uint256;
 
-  // Access control role identifier
-  bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-  // BIPS
-  uint256 private constant MAX_BPS = 10_000;
-  // buffer of funds to not be used to write new options in case of margin requirements (as percentage - for 20% enter 2000)
-  uint public bufferPercentage = 2000;
-  // list of addresses for hedging reactors
-  address[] public hedgingReactors;
+  ///////////////////////////
+  /// immutable variables ///
+  ///////////////////////////
+
   // Protocol management contract
-  address public protocol;
+  address public immutable protocol;
   // asset that denominates the strike price
-  address public strikeAsset;
+  address public immutable strikeAsset;
   // asset that is used as the reference asset
-  address public underlyingAsset;
+  address public immutable underlyingAsset;
   // asset that is used for collateral asset
-  address public collateralAsset;
-  // riskFreeRate as a percentage PRBMath Float. IE: 3% -> 0.03 * 10**18
-  uint public riskFreeRate;
-  // amount of strikeAsset allocated as collateral
+  address public immutable collateralAsset;
+
+  /////////////////////////
+  /// dynamic variables ///
+  /////////////////////////
+
+  // amount of collateralAsset allocated as collateral
   uint public collateralAllocated;
-  // max total supply of the lp shares
-  uint public maxTotalSupply = type(uint256).max;
-  // Maximum discount that an option tilting factor can discount an option price
-  uint public maxDiscount = PRBMathUD60x18.SCALE.div(10); // As a percentage. Init at 10%
-  // total number of calls active
-  uint public totalAmountCall;
-  // total number of puts active
-  uint public totalAmountPut;
-  // the weighted strike price of all active calls
-  uint public weightedStrikeCall;
-  // the weighted time to expiry of all active calls
-  uint public weightedTimeCall;
-  // the weighted strike of all active puts
-  uint public weightedStrikePut;
-  // the weighted time to expiry of all active puts
-  uint public weightedTimePut;
-  // The spread between the bid and ask on the IV skew;
-  // Consider making this it's own volatility skew if more flexibility is needed
-  uint public bidAskIVSpread;
-  // value below which delta is not worth hedging due to gas costs
-  int256 private dustValue;
-  // addresses that are whitelisted to sell options back to the protocol
-  mapping(address => bool) public buybackWhitelist;
   // custom option orders
   mapping(uint256 => Types.Order) public orderStores;
   // order id counter
   uint256 public orderIdCounter;
+  // total number of calls active
+  uint public totalAmountCall;
+  // total number of puts active
+  uint public totalAmountPut;
+  // the weighted strike price of all active calls - emergency settable by governance
+  uint public weightedStrikeCall;
+  // the weighted time to expiry of all active calls - emergency settable by governance
+  uint public weightedTimeCall;
+  // the weighted strike of all active puts - emergency settable by governance
+  uint public weightedStrikePut;
+  // the weighted time to expiry of all active puts - emergency settable by governance
+  uint public weightedTimePut;
+
+  /////////////////////////////////////
+  /// governance settable variables ///
+  /////////////////////////////////////
+
+  // buffer of funds to not be used to write new options in case of margin 
+  // requirements (as percentage - for 20% enter 2000)
+  uint public bufferPercentage = 2000;
+  // list of addresses for hedging reactors
+  address[] public hedgingReactors;
+  // riskFreeRate as a percentage PRBMath Float. IE: 3% -> 0.03 * 10**18
+  uint public riskFreeRate;
+  // max total supply of the lp shares
+  uint public maxTotalSupply = type(uint256).max;
+  // Maximum discount that an option tilting factor can discount an option price
+  uint public maxDiscount = PRBMathUD60x18.SCALE.div(10); // As a percentage. Init at 10%
+  // The spread between the bid and ask on the IV skew;
+  // Consider making this it's own volatility skew if more flexibility is needed
+  uint public bidAskIVSpread;
+  // addresses that are whitelisted to sell options back to the protocol
+  mapping(address => bool) public buybackWhitelist;
   // option issuance parameters
   OptionParams public optionParams;
-  // strike and expiry date range for options
+
+  //////////////////////////
+  /// constant variables ///
+  //////////////////////////
+
+  // Access control role identifier
+  bytes32 private constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+  // BIPS
+  uint256 private constant MAX_BPS = 10_000;
+  // value below which delta is not worth hedging due to gas costs
+  int256 private constant dustValue = 1e15;
+
+  /////////////////////////
+  /// structs && events ///
+  /////////////////////////
 
   struct OptionParams {
     uint128 minCallStrikePrice;
@@ -120,12 +143,11 @@ contract LiquidityPool is
 
   event OrderCreated(uint orderId);
   event LiquidityAdded(uint amount);
-  event UnderlyingAdded(address underlying);
   event Deposit(address recipient, uint strikeAmount, uint shares);
   event Withdraw(address recipient, uint shares,  uint strikeAmount);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
+    event SettleVault(address series, uint collateralReturned, uint collateralLost, address closer);
   event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
-  event SettleVault(address series, uint collateralReturned, uint collateralLost, address closer);
 
   constructor
   (
@@ -155,21 +177,33 @@ contract LiquidityPool is
     optionParams.minExpiry = _optionParams.minExpiry;
     optionParams.maxExpiry = _optionParams.maxExpiry;
     maxTotalSupply = type(uint256).max;
-    emit UnderlyingAdded(underlyingAddress);
   }
 
+  ///////////////
+  /// setters ///
+  ///////////////
+
+  /**
+   * @notice pause deposits/withdraws/options buying and options buybacks
+   * @dev    only governance can call this function
+   */
   function pauseContract() public onlyOwner{
     _pause();
   }
-
+  /**
+   * @notice unpause deposits/withdraws/options buying and options buybacks
+   * @dev    only governance can call this function
+   */
   function unpause() public onlyOwner{
     _unpause();
   }
-
+  /**
+   * @notice add an address to the buyback whitelist
+   * @dev    only governance can call this function
+   */
   function addBuybackAddress(address _addressToWhitelist) public onlyOwner {
     buybackWhitelist[_addressToWhitelist] = true;
   }
-
   /**
    * @notice set a new hedging reactor
    * @param _reactorAddress append a new hedging reactor 
@@ -177,62 +211,20 @@ contract LiquidityPool is
    */
   function setHedgingReactorAddress(address _reactorAddress) onlyOwner public {
     hedgingReactors.push(_reactorAddress);
-    SafeTransferLib.safeApprove(ERC20(strikeAsset), _reactorAddress, maxTotalSupply);
-
+    SafeTransferLib.safeApprove(ERC20(collateralAsset), _reactorAddress, 2**256 - 1);
   }
-
   /**
    * @notice remove a new hedging reactor by index
    * @param _index remove a hedging reactor 
    * @dev   only governance can call this function
    */
   function removeHedgingReactorAddress(uint256 _index) onlyOwner public {
+    SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors[_index], 0);
     delete hedgingReactors[_index];
   }
-  /**
-    @notice set a new min strike price for calls
-    @param _newPrice new min strike price - denominated in 1e18
-  */
-  function setMinCallStrikePrice(uint128 _newPrice) public onlyOwner {
-    optionParams.minCallStrikePrice = _newPrice;
-  }
-  /**
-    @notice set a new max strike price for calls
-    @param _newPrice new max strike price - denominated in 1e18
-  */
-  function setMaxCallStrikePrice(uint128 _newPrice) public onlyOwner {
-    optionParams.maxCallStrikePrice = _newPrice;
-  }
-  /**
-    @notice set a new min strike price for puts
-    @param _newPrice new min strike price - denominated in 1e18
-  */
-  function setMinPutStrikePrice(uint128 _newPrice) public onlyOwner {
-    optionParams.minPutStrikePrice = _newPrice;
-  }
-  /**
-    @notice set a new max strike price for puts
-    @param _newPrice new max strike price - denominated in 1e18
-  */
-  function setMaxPutStrikePrice(uint128 _newPrice) public onlyOwner {
-    optionParams.maxPutStrikePrice = _newPrice;
-  }
-  /**
-    @notice set a new min expiry period
-    @param _newPeriod new min expiry period - denominated in seconds * 1e18
-  */
-  function setMinExpiryPeriod(uint128 _newPeriod) public onlyOwner {
-    optionParams.minExpiry = _newPeriod;
-  }
-  /**
-    @notice set a new max expiry period
-    @param _newPeriod new max expiry period - denominated in seconds * 1e18
-  */
-  function setMaxExpiryPeriod(uint128 _newPeriod) public onlyOwner {
-    optionParams.maxExpiry = _newPeriod;
-  }
+
    /**
-    @notice update all optionParam variables
+    @notice update all optionParam variables, used for setting bounds on the kind of options that can be issued by the pool
   */
   function setNewOptionParams(uint128 _newMinCallStrike,uint128 _newMaxCallStrike,uint128 _newMinPutStrike,uint128 _newMaxPutStrike,uint128 _newMinExpiry,uint128 _newMaxExpiry) public onlyOwner {
     optionParams.minCallStrikePrice = _newMinCallStrike;
@@ -297,10 +289,75 @@ contract LiquidityPool is
   /**
    * @notice update the liquidity pool buffer limit
    * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of total NAV. (for 20% enter 2000)
+   * @dev   only governance can call this function
   */
   function setBufferPercentage(uint _bufferPercentage) external onlyOwner {
     bufferPercentage = _bufferPercentage;
   }
+
+  /**
+   * @notice update the risk free rate of the options
+   * @param _riskFreeRate the risk free rate of the market
+   * @dev   only governance can call this function
+   */
+  function setRiskFreeRate(uint _riskFreeRate) external onlyOwner {
+    riskFreeRate = _riskFreeRate;
+  }
+
+  //////////////////////////////////////////////////////
+  /// access-controlled state changing functionality ///
+  //////////////////////////////////////////////////////
+
+  /**
+    @notice function for hedging portfolio delta through external means
+    @param delta the current portfolio delta
+   */
+  function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex)
+    public onlyRole(ADMIN_ROLE) whenNotPaused()
+  { 
+      if(abs(delta) > dustValue) {
+      // TODO check to see if we can be paid to open a position using derivatives using funding rate
+        IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
+      }
+      // TODO if we dont / not enough - look at derivatives
+  }
+
+  /**
+    @notice closes an oToken vault, returning collateral (minus ITM option expiry value) back to the pool
+    @param seriesAddress the address of the oToken vault to close
+    @return collatReturned the amount of collateral returned to the liquidity pool.
+  */
+  function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256 collatReturned) {
+    OptionRegistry optionRegistry = getOptionRegistry();  
+    // get number of options in vault and collateral returned to recalculate our position without these options
+    (, uint256 collatReturned, uint256 collatLost, uint256 oTokensAmount) = optionRegistry.settle(seriesAddress);
+    emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
+    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+    // recalculate liquidity pool's position
+    _adjustWeightedVariables(optionSeries, oTokensAmount, collatReturned, false);
+    collateralAllocated -= collatLost;
+
+   }
+
+  /**
+    @notice adjust the collateral held in a specific vault because of health
+    @param lpCollateralDifference amount of collateral taken from or given to the liquidity pool
+    @param addToLpBalance true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool
+  */
+  function adjustCollateral(uint256 lpCollateralDifference, bool addToLpBalance) external  {
+    OptionRegistry optionRegistry = getOptionRegistry();
+    require(msg.sender == address(optionRegistry));
+    if(addToLpBalance){
+      collateralAllocated -= lpCollateralDifference;
+    } else {
+      SafeTransferLib.safeApprove(ERC20(collateralAsset), address(optionRegistry), lpCollateralDifference);
+      collateralAllocated += lpCollateralDifference;
+    }
+  }
+
+  /////////////////////////////////////////////
+  /// external state changing functionality ///
+  /////////////////////////////////////////////
 
   /**
    * @notice function for adding liquidity to the options liquidity pool
@@ -319,7 +376,7 @@ contract LiquidityPool is
   {
     if (_amount == 0) {revert InvalidAmount();}
     // Calculate shares to mint based on the amount provided
-    (shares) = _sharesForAmount(_amount);
+    (shares) = sharesForAmount(_amount);
     if (shares == 0) {revert InvalidShareAmount();}
     // Pull in tokens from sender
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _amount);
@@ -346,11 +403,11 @@ contract LiquidityPool is
   {
     if (_shares == 0) {revert InvalidShareAmount();}
     // get the value of amount for the shares
-    uint collateralAmount = _shareValue(_shares);
+    uint collateralAmount = shareValue(_shares);
     // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
     (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);
     // Calculate liquidity that can be withdrawn without hitting buffer
-    int256 bufferRemaining = int256(normalizedCollateralBalance) - int(_getNAV() * bufferPercentage/MAX_BPS);
+    int256 bufferRemaining = int256(normalizedCollateralBalance) - int(getNAV() * bufferPercentage/MAX_BPS);
     // determine if any extra liquidity is needed. If this value is 0 or less, withdrawal can happen with no further action
     int256 amountNeeded = int(collateralAmount) - bufferRemaining;
     if (amountNeeded > 0) {
@@ -375,70 +432,137 @@ contract LiquidityPool is
   }
 
   /**
-   * @notice Returning balance in 1e18 format
-   * @param asset address of the asset to get balance and normalize
-   * @return normalizedBalance balance in 1e18 format
-   * @return collateralBalance balance in original decimal format
-   * @return _decimals decimals of asset
+   * @notice write a number of options for a given series addres
+   * @param  optionSeries option type to mint
+   * @param  amount       the number of options to mint 
+   * @return optionAmount the number of options minted
+   * @return series       the address of the option series minted
    */
-   function getNormalizedBalance(
-    address asset
+  function issueAndWriteOption(
+     Types.OptionSeries memory optionSeries,
+     uint amount
+  ) 
+    public
+    whenNotPaused()
+    returns (uint optionAmount, address series)
+  {
+    int256 bufferRemaining = checkBuffer();
+    OptionRegistry optionRegistry = getOptionRegistry();
+    series = _issue(optionSeries, optionRegistry);
+    // calculate premium
+    (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
+    //write the option
+    optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium, bufferRemaining);
+  }
+
+  /**
+   * @notice write a number of options for a given series address
+   * @param  seriesAddress the option token series address
+   * @param  amount        the number of options to mint expressed as 1e18  
+   * @return number of options minted
+   */
+  function writeOption(
+    address seriesAddress,
+    uint amount
   )
-    internal
-    view
-    returns (uint256 normalizedBalance, uint256 collateralBalance, uint256 _decimals) 
+    public
+    whenNotPaused()
+    returns (uint256)
   {
-    collateralBalance = IERC20(asset).balanceOf(address(this));
-    _decimals = IERC20(asset).decimals();
-    normalizedBalance = OptionsCompute.convertFromDecimals(collateralBalance, _decimals);
+    int256 bufferRemaining = checkBuffer();
+    OptionRegistry optionRegistry = getOptionRegistry();
+    // get the option series from the pool
+    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+    // calculate premium
+    (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
+    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium, bufferRemaining);
   }
 
   /**
-   * @notice value of all puts written by the pool
-   * @return value of all puts denominated in the collateralAsset
-   */
-  function _valuePutsWritten()
-      internal
-      view
-      returns (uint)
-  {
-      if (weightedStrikePut == 0) return uint(0);
-      uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      // TODO Consider using VAR (value at risk) approach in the future
-      uint iv = getImpliedVolatility(true, underlyingPrice, weightedStrikePut, weightedTimePut);
-      uint optionPrice = BlackScholes.blackScholesCalc(
-         underlyingPrice,
-         weightedStrikePut,
-         weightedTimePut,
-         iv,
-         riskFreeRate,
-         true
-      );
-      return totalAmountPut.mul(optionPrice);      
+    @notice buys a number of options back and burns the tokens
+    @param optionSeries the option token series to buyback
+    @param amount the number of options to buyback expressed in 1e18
+    @return the number of options bought and burned
+  */
+  function buybackOption(
+    Types.OptionSeries memory optionSeries,
+    uint amount
+  ) public nonReentrant whenNotPaused() returns (uint256){
+    // revert if the expiry is in the past
+    if (optionSeries.expiration <= block.timestamp) {revert OptionExpiryInvalid();}
+    (uint256 premium, int256 delta) = quotePriceBuying(optionSeries, amount);
+    if (!buybackWhitelist[msg.sender]){
+      int portfolioDelta = getPortfolioDelta();
+      int newDelta = PRBMathSD59x18.abs(portfolioDelta + delta);
+      bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
+      if (!isDecreased) {revert DeltaNotDecreased();}
+    }
+    OptionRegistry optionRegistry = getOptionRegistry();  
+    address seriesAddress = optionRegistry.getOtoken(
+       optionSeries.underlying,
+       optionSeries.strikeAsset,
+       optionSeries.expiration,
+       optionSeries.isPut,
+       optionSeries.strike,
+       collateralAsset
+    );     
+    if (seriesAddress == address(0)) {revert NonExistentOtoken();} 
+    SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
+    SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
+  
+    (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
+    emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
+    _adjustWeightedVariables(optionSeries, amount, collateralReturned, false);
+    SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
+    return amount;
   }
 
+  ///////////////////////
+  /// complex getters ///
+  ///////////////////////
+
   /**
-   * @notice value of all calls written by the pool
-   * @return value of all calls denominated in the underlying
+   * @notice get the delta of the portfolio
+   * @return portfolio delta
    */
-  function _valueCallsWritten()
-      internal
+  function getPortfolioDelta()
+      public
       view
-      returns (uint)
+      returns (int256)
   {
-      if (weightedStrikeCall == 0) return uint(0);
-      uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      uint iv = getImpliedVolatility(false, underlyingPrice, weightedStrikeCall, weightedTimeCall);
-      uint optionPrice = BlackScholes.blackScholesCalc(
-        underlyingPrice,
-        weightedStrikePut,
-        weightedTimePut,
-        iv,
-        riskFreeRate,
-        false
-      );     
-      uint callsValue = totalAmountCall.mul(uint256(optionPrice));
-      return callsValue;
+      uint256 price = getUnderlyingPrice(underlyingAsset, strikeAsset);
+      uint256 rfr = riskFreeRate;
+      int256 callsDelta;
+      int256 putsDelta;
+      if (weightedTimeCall != 0) {
+        uint256 callIv = getImpliedVolatility(false, price, weightedStrikeCall, weightedTimeCall);
+        callsDelta = BlackScholes.getDelta(
+          price,
+          weightedStrikeCall,
+          weightedTimeCall,
+          callIv,
+          rfr,
+          false
+        );
+      }
+      if (weightedTimePut != 0) {
+        uint256 putIv = getImpliedVolatility(true, price, weightedStrikePut, weightedTimePut);
+        putsDelta = BlackScholes.getDelta(
+           price,
+           weightedStrikePut,
+           weightedTimePut,
+           putIv,
+           rfr,
+           true
+        );
+      }
+      int256 externalDelta;
+      // TODO fix hedging reactor address to be dynamic
+      for (uint8 i=0; i < hedgingReactors.length; i++) {
+        externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
+      }
+      // return the negative sum of open option because we are the counterparty
+      return -(callsDelta*int256(totalAmountCall)/int256(PRBMath.SCALE) + putsDelta*int256(totalAmountPut)/int256(PRBMath.SCALE)) + externalDelta;
   }
 
   /**
@@ -446,8 +570,8 @@ contract LiquidityPool is
    * @param _amount  the amount to convert to shares
    * @return shares the number of shares based on the amount
    */
-  function _sharesForAmount(uint _amount)
-    internal
+  function sharesForAmount(uint _amount)
+    public
     view
     returns
     (uint shares)
@@ -459,7 +583,7 @@ contract LiquidityPool is
     if (totalSupply == 0) {
       shares = convertedAmount;
     } else {
-      uint NAV = _getNAV();
+      uint NAV = getNAV();
       shares = convertedAmount.mul(totalSupply).div(NAV);
     }
   }
@@ -468,8 +592,8 @@ contract LiquidityPool is
    * @notice get the Net Asset Value
    * @return Net Asset Value in e18 decimal format
    */
-  function _getNAV()
-    internal
+  function getNAV()
+    public
     view
     returns (uint)
   {
@@ -490,26 +614,124 @@ contract LiquidityPool is
    * @param _shares  the shares to convert to amount
    * @return amount the number of amount based on shares
    */
-  function _shareValue(uint _shares)
-    internal
+  function shareValue(uint _shares)
+    public
     view
     returns (uint amount)
   {
     if (totalSupply == 0) {
       amount = _shares;
     } else {
-      uint256 NAV = _getNAV();
+      uint256 NAV = getNAV();
       amount = _shares.mul(NAV).div(totalSupply);
     }
-
   }
 
+ /**
+   * @notice get the quote price and delta for a given option
+   * @param  optionSeries option type to quote
+   * @param  amount the number of options to mint 
+   * @return quote the price of the options
+   * @return delta the delta of the options
+   */
+  function quotePriceWithUtilizationGreeks(
+    Types.OptionSeries memory optionSeries,
+    uint amount
+  )
+      public
+      view
+      returns (uint256 quote, int256 delta)
+  {
+      (uint256 optionQuote,  int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, false);
+      // using a struct to get around stack too deep issues
+      UtilizationState memory quoteState;
+      // price of acquiring those options
+      quoteState.optionPrice = optionQuote.mul(amount);
+      int portfolioDelta = getPortfolioDelta();
+      // portfolio delta upon writing option
+      int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
+      // assumes a single collateral type regardless of call or put
+      // @TODO change this to use collateral lockup required / available liquidity
+      uint utilization = quoteState.optionPrice.div(totalSupply);
+      // Is delta decreased?
+      quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
+      // delta in non-nominal terms
+      uint normalizedDelta = uint256(newDelta).div(getNAV());
+      // max theoretical price of the option
+      uint maxPrice = optionSeries.isPut ? optionSeries.strike : underlyingPrice;
+      quoteState.utilizationPrice = maxPrice.mul(utilization);
+      // layered on to BlackScholes price when delta is moved away from target
+      quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
+      if (quoteState.isDecreased) {
+        // provide discount for moving towards delta zero
+        uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
+        // discounted BS option price
+        uint newOptionPrice = quoteState.optionPrice - discount.mul(quoteState.optionPrice);
+        // discounted utilization priced option
+        quoteState.utilizationPrice = quoteState.utilizationPrice - discount.mul(quoteState.utilizationPrice);
+        // quote the greater of discounted utilization or discounted BS
+        quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
+      } else {
+        uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice) + quoteState.optionPrice;
+        if (quoteState.utilizationPrice < maxPrice) {
+          // increase utilization by delta tilt factor for moving delta away from zero
+          quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
+          quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
+        } else {
+          quote = maxPrice;
+        }
+      }
+      quote =  OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
+      delta = deltaQuote;
+      //@TODO think about more robust considitions for this check
+      if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta);}
+  }
+
+  /**
+   * @notice get the quote price and delta for a given option
+   * @param  optionSeries option type to quote
+   * @param  amount the number of options to buy 
+   * @return quote the price of the options
+   * @return delta the delta of the options
+   */
+  function quotePriceBuying(
+    Types.OptionSeries memory optionSeries,
+    uint amount
+  )
+      public
+      view
+      returns (uint256 quote, int256 delta)
+  {
+      (uint256 optionQuote,  int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, true);
+      quote = optionQuote.mul(amount);
+      delta = deltaQuote;
+      quote =  OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
+      //@TODO think about more robust considitions for this check
+      if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta); }
+  }
+
+  /**
+   * @notice calculates amount of liquidity that can be used before hitting buffer
+   * @return bufferRemaining the amount of liquidity available before reaching buffer
+  */
+  function checkBuffer() public view returns( int256 bufferRemaining){ 
+      // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
+    (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
+    int256 bufferRemaining = int256(normalizedCollateralBalance - getNAV() * bufferPercentage/MAX_BPS);
+    // revert if buffer allowance already hit
+    if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
+    return bufferRemaining;
+  }
+
+  ///////////////////////////
+  /// non-complex getters ///
+  ///////////////////////////
 
   /**
    * @notice get the price feed used by the liquidity pool
    * @return the price feed contract interface
    */
-  function getPriceFeed() internal view returns (PriceFeed) {
+  function getPriceFeed() public view returns (PriceFeed) {
     address feedAddress = Protocol(protocol).priceFeed();
     return PriceFeed(feedAddress);
   }
@@ -518,7 +740,7 @@ contract LiquidityPool is
    * @notice get the volatility feed used by the liquidity pool
    * @return the volatility feed contract interface
    */
-  function getVolatilityFeed() internal view returns (VolatilityFeed) {
+  function getVolatilityFeed() public view returns (VolatilityFeed) {
     address feedAddress = Protocol(protocol).volatilityFeed();
     return VolatilityFeed(feedAddress);
   }
@@ -526,7 +748,7 @@ contract LiquidityPool is
    * @notice get the option registry used for storing and managing the options
    * @return the option registry contract interface
    */
-  function getOptionRegistry() internal view returns (OptionRegistry) {
+  function getOptionRegistry() public view returns (OptionRegistry) {
     address registryAddress = Protocol(protocol).optionRegistry();
     return OptionRegistry(registryAddress);
   }
@@ -591,6 +813,77 @@ contract LiquidityPool is
     }
 
   /**
+   * @notice Returning balance in 1e18 format
+   * @param asset address of the asset to get balance and normalize
+   * @return normalizedBalance balance in 1e18 format
+   * @return collateralBalance balance in original decimal format
+   * @return _decimals decimals of asset
+   */
+   function getNormalizedBalance(
+    address asset
+  )
+    internal
+    view
+    returns (uint256 normalizedBalance, uint256 collateralBalance, uint256 _decimals) 
+  {
+    collateralBalance = IERC20(asset).balanceOf(address(this));
+    _decimals = IERC20(asset).decimals();
+    normalizedBalance = OptionsCompute.convertFromDecimals(collateralBalance, _decimals);
+  }
+
+  //////////////////////////
+  /// internal utilities ///
+  //////////////////////////
+
+  /**
+   * @notice value of all puts written by the pool
+   * @return value of all puts denominated in the collateralAsset
+   */
+  function _valuePutsWritten()
+      internal
+      view
+      returns (uint)
+  {
+      if (weightedStrikePut == 0) return uint(0);
+      uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
+      // TODO Consider using VAR (value at risk) approach in the future
+      uint iv = getImpliedVolatility(true, underlyingPrice, weightedStrikePut, weightedTimePut);
+      uint optionPrice = BlackScholes.blackScholesCalc(
+         underlyingPrice,
+         weightedStrikePut,
+         weightedTimePut,
+         iv,
+         riskFreeRate,
+         true
+      );
+      return totalAmountPut.mul(optionPrice);      
+  }
+
+  /**
+   * @notice value of all calls written by the pool
+   * @return value of all calls denominated in the underlying
+   */
+  function _valueCallsWritten()
+      internal
+      view
+      returns (uint)
+  {
+      if (weightedStrikeCall == 0) return uint(0);
+      uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
+      uint iv = getImpliedVolatility(false, underlyingPrice, weightedStrikeCall, weightedTimeCall);
+      uint optionPrice = BlackScholes.blackScholesCalc(
+        underlyingPrice,
+        weightedStrikePut,
+        weightedTimePut,
+        iv,
+        riskFreeRate,
+        false
+      );     
+      uint callsValue = totalAmountCall.mul(uint256(optionPrice));
+      return callsValue;
+  }
+
+  /**
    * @notice get the greeks of a quotePrice for a given optionSeries
    * @param  optionSeries Types.OptionSeries struct for describing the option to price greeks
    * @return quote           Quote price of the option
@@ -624,220 +917,10 @@ contract LiquidityPool is
   }
 
   /**
-   * @notice get the delta of the portfolio
-   * @return portfolio delta
-   */
-  function getPortfolioDelta()
-      public
-      view
-      returns (int256)
-  {
-      uint256 price = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      uint256 rfr = riskFreeRate;
-      int256 callsDelta;
-      int256 putsDelta;
-      if (weightedTimeCall != 0) {
-        uint256 callIv = getImpliedVolatility(false, price, weightedStrikeCall, weightedTimeCall);
-        callsDelta = BlackScholes.getDelta(
-          price,
-          weightedStrikeCall,
-          weightedTimeCall,
-          callIv,
-          rfr,
-          false
-        );
-      }
-      if (weightedTimePut != 0) {
-        uint256 putIv = getImpliedVolatility(true, price, weightedStrikePut, weightedTimePut);
-        putsDelta = BlackScholes.getDelta(
-           price,
-           weightedStrikePut,
-           weightedTimePut,
-           putIv,
-           rfr,
-           true
-        );
-      }
-      int256 externalDelta;
-      // TODO fix hedging reactor address to be dynamic
-      for (uint8 i=0; i < hedgingReactors.length; i++) {
-        externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
-      }
-      // return the negative sum of open option because we are the counterparty
-      return -(callsDelta*int256(totalAmountCall)/int256(PRBMath.SCALE) + putsDelta*int256(totalAmountPut)/int256(PRBMath.SCALE)) + externalDelta;
-  }
-    
-  /**
-   * @notice function to return absolute value of an input
-   * @param  x value to check
-   * @return absolute value to return
-   */
-  function abs(int256 x) private pure returns (int256) {
-    return x >= 0 ? x : -x;
-}
-
-  /**
-  @notice function for hedging portfolio delta through external means
-  @param delta the current portfolio delta
-   */
-  function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex)
-    public onlyRole(ADMIN_ROLE) whenNotPaused()
-  { 
-      if(abs(delta) > dustValue) {
-      // TODO check to see if we can be paid to open a position using derivatives using funding rate
-        IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
-      }
-      // TODO if we dont / not enough - look at derivatives
-  }
-
-  /**
-   * @notice get the quote price and delta for a given option
-   * @param  optionSeries option type to quote
-   * @param  amount the number of options to mint 
-   * @return quote the price of the options
-   * @return delta the delta of the options
-   */
-  function quotePriceWithUtilizationGreeks(
-    Types.OptionSeries memory optionSeries,
-    uint amount
-  )
-      public
-      view
-      returns (uint256 quote, int256 delta)
-  {
-      (uint256 optionQuote,  int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, false);
-      // using a struct to get around stack too deep issues
-      UtilizationState memory quoteState;
-      // price of acquiring those options
-      quoteState.optionPrice = optionQuote.mul(amount);
-      int portfolioDelta = getPortfolioDelta();
-      // portfolio delta upon writing option
-      int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
-      // assumes a single collateral type regardless of call or put
-      // @TODO change this to use collateral lockup required / available liquidity
-      uint utilization = quoteState.optionPrice.div(totalSupply);
-      // Is delta decreased?
-      quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
-      // delta in non-nominal terms
-      uint normalizedDelta = uint256(newDelta).div(_getNAV());
-      // max theoretical price of the option
-      uint maxPrice = optionSeries.isPut ? optionSeries.strike : underlyingPrice;
-      quoteState.utilizationPrice = maxPrice.mul(utilization);
-      // layered on to BlackScholes price when delta is moved away from target
-      quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
-      if (quoteState.isDecreased) {
-        // provide discount for moving towards delta zero
-        uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
-        // discounted BS option price
-        uint newOptionPrice = quoteState.optionPrice - discount.mul(quoteState.optionPrice);
-        // discounted utilization priced option
-        quoteState.utilizationPrice = quoteState.utilizationPrice - discount.mul(quoteState.utilizationPrice);
-        // quote the greater of discounted utilization or discounted BS
-        quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
-      } else {
-        uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice) + quoteState.optionPrice;
-        if (quoteState.utilizationPrice < maxPrice) {
-          // increase utilization by delta tilt factor for moving delta away from zero
-          quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
-          quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
-        } else {
-          quote = maxPrice;
-        }
-      }
-      quote =  OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
-      delta = deltaQuote;
-      //@TODO think about more robust considitions for this check
-      if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta);}
-  }
-
-  /**
-   * @notice get the quote price and delta for a given option
-   * @param  optionSeries option type to quote
-   * @param  amount the number of options to buy 
-   * @return quote the price of the options
-   * @return delta the delta of the options
-   */
-  function quotePriceBuying(
-    Types.OptionSeries memory optionSeries,
-    uint amount
-  )
-      public
-      view
-      returns (uint256 quote, int256 delta)
-  {
-      (uint256 optionQuote,  int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, true);
-      quote = optionQuote.mul(amount);
-      delta = deltaQuote;
-      quote =  OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
-      //@TODO think about more robust considitions for this check
-      if (quote == 0 || delta == int(0)) { revert DeltaQuoteError(quote, delta); }
-  }
-
-  /**
-   * @notice calculates amount of liquidity that can be used before hitting buffer
-   * @return bufferRemaining the amount of liquidity available before reaching buffer
-  */
-  function _checkBuffer() view internal returns( int256 bufferRemaining){ 
-      // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
-    (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
-    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/MAX_BPS);
-    // revert if buffer allowance already hit
-    if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
-    return bufferRemaining;
-  }
-
-  /**
-   * @notice write a number of options for a given series addres
-   * @param  optionSeries option type to mint
-   * @param  amount       the number of options to mint 
-   * @return optionAmount the number of options minted
-   * @return series       the address of the option series minted
-   */
-  function issueAndWriteOption(
-     Types.OptionSeries memory optionSeries,
-     uint amount
-  ) 
-    public
-    whenNotPaused()
-    returns (uint optionAmount, address series)
-  {
-    int256 bufferRemaining = _checkBuffer();
-    OptionRegistry optionRegistry = getOptionRegistry();
-    series = _issue(optionSeries, optionRegistry);
-    // calculate premium
-    (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
-    //write the option
-    optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium, bufferRemaining);
-  }
-
-  /**
-   * @notice write a number of options for a given series address
-   * @param  seriesAddress the option token series address
-   * @param  amount        the number of options to mint expressed as 1e18  
-   * @return number of options minted
-   */
-  function writeOption(
-    address seriesAddress,
-    uint amount
-  )
-    public
-    whenNotPaused()
-    returns (uint256)
-  {
-    int256 bufferRemaining = _checkBuffer();
-    OptionRegistry optionRegistry = getOptionRegistry();
-    // get the option series from the pool
-    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
-    // calculate premium
-    (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
-    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium, bufferRemaining);
-  }
-
-  /**
    * @notice create the option contract in the options registry
-   * @param  optionSeries option type to mint
+   * @param  optionSeries   option type to mint
    * @param  optionRegistry interface for the options issuer
-   * @return series       the address of the option series minted
+   * @return series         the address of the option series minted
    */
   function _issue(Types.OptionSeries memory optionSeries, OptionRegistry optionRegistry) internal returns (address series) {
     // check the expiry is within the allowed bounds
@@ -928,118 +1011,13 @@ contract LiquidityPool is
         }
     }
   }
-  
-  /**
-    @notice buys a number of options back and burns the tokens
-    @param optionSeries the option token series to buyback
-    @param amount the number of options to buyback expressed in 1e18
-    @return the number of options bought and burned
-  */
-  function buybackOption(
-    Types.OptionSeries memory optionSeries,
-    uint amount
-  ) public nonReentrant whenNotPaused() returns (uint256){
-    // revert if the expiry is in the past
-    if (optionSeries.expiration <= block.timestamp) {revert OptionExpiryInvalid();}
-    (uint256 premium, int256 delta) = quotePriceBuying(optionSeries, amount);
-    if (!buybackWhitelist[msg.sender]){
-      int portfolioDelta = getPortfolioDelta();
-      int newDelta = PRBMathSD59x18.abs(portfolioDelta + delta);
-      bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
-      if (!isDecreased) {revert DeltaNotDecreased();}
-    }
-    OptionRegistry optionRegistry = getOptionRegistry();  
-    address seriesAddress = optionRegistry.getOtoken(
-       optionSeries.underlying,
-       optionSeries.strikeAsset,
-       optionSeries.expiration,
-       optionSeries.isPut,
-       optionSeries.strike,
-       collateralAsset
-    );     
-    if (seriesAddress == address(0)) {revert NonExistentOtoken();} 
-    SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
-    SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(this), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
-  
-    (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
-    emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
-    _adjustWeightedVariables(optionSeries, amount, collateralReturned, false);
-    SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
-    return amount;
-  }
 
   /**
-    @notice creates an order for a number of options from the pool to a specified user. The function
-            is intended to be used to issue options to market makers/ OTC market participants
-            in order to have flexibility and customisability on option issuance and market 
-            participant UX.
-    @param _optionSeries the option token series to issue
-    @param _amount the number of options to issue 
-    @param _price the price per unit to issue at
-    @param _buyerAddress the agreed upon buyer address
-    @return amount the number of options sold
-    @return series the address of the options contract
-  */
-  function createManualIssue(
-    Types.OptionSeries memory _optionSeries, 
-    uint256 _amount, 
-    uint256 _price, 
-    address _buyerAddress
-  ) external onlyRole(ADMIN_ROLE) returns (uint256 amount, address series) 
-  {
-    OptionRegistry optionRegistry = getOptionRegistry();
-    // issue the option type, all checks of the option validity should happen in _issue
-    series = _issue(_optionSeries, optionRegistry);
-    // set the required premiums
-    uint256 premiums = _amount * _price;
-    // set the buyer address
-    // set and create the order id
-
-    // open the option
-    // adjust parameters
-  }
-
-  /**
-    @notice fulfills an order for a number of options from the pool to a specified user. The function
-            is intended to be used to issue options to market makers/ OTC market participants
-            in order to have flexibility and customisability on option issuance and market 
-            participant UX.
-    @param  orderId the id of the order for options purchase
-  */
-  function buyManualIssue(uint256 orderId) external {
-
-  }
-
-  /**
-    @notice closes an oToken vault, returning collateral (minus ITM option expiry value) back to the pool
-    @param seriesAddress the address of the oToken vault to close
-    @return collatReturned the amount of collateral returned to the liquidity pool.
-  */
-  function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256 collatReturned) {
-    OptionRegistry optionRegistry = getOptionRegistry();  
-    // get number of options in vault and collateral returned to recalculate our position without these options
-    (, uint256 collatReturned, uint256 collatLost, uint256 oTokensAmount) = optionRegistry.settle(seriesAddress);
-    emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
-    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
-    // recalculate liquidity pool's position
-    _adjustWeightedVariables(optionSeries, oTokensAmount, collatReturned, false);
-    collateralAllocated -= collatLost;
-
-   }
-
-  /**
-    @notice adjust the collateral held in a specific vault because of health
-    @param lpCollateralDifference amount of collateral taken from or given to the liquidity pool
-    @param addToLpBalance true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool
-  */
-  function adjustCollateral(uint256 lpCollateralDifference, bool addToLpBalance) external  {
-    OptionRegistry optionRegistry = getOptionRegistry();
-    require(msg.sender == address(optionRegistry));
-    if(addToLpBalance){
-      collateralAllocated -= lpCollateralDifference;
-    } else {
-      SafeTransferLib.safeApprove(ERC20(collateralAsset), address(optionRegistry), lpCollateralDifference);
-      collateralAllocated += lpCollateralDifference;
-    }
+   * @notice function to return absolute value of an input
+   * @param  x value to check
+   * @return absolute value to return
+   */
+  function abs(int256 x) private pure returns (int256) {
+    return x >= 0 ? x : -x;
   }
 }
