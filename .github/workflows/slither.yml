@@ -11,8 +11,9 @@ jobs:
   analyze:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       security-events: write
+      id-token: write
+      contents: write              # This is required for actions/checkout@v1
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
