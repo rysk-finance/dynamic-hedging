@@ -25,6 +25,7 @@ error InvalidAmount();
 error IssuanceFailed();
 error DeltaNotDecreased();
 error NonExistentOtoken();
+error OrderExpiryTooLong();
 error InvalidShareAmount();
 error TotalSupplyReached();
 error StrikeAssetInvalid();
@@ -932,7 +933,7 @@ contract LiquidityPool is
     uint256 collateralAmount = optionRegistry.getCollateral(Types.OptionSeries( 
        optionSeries.expiration,
        optionSeries.isPut,
-       optionSeries.strike/(10**10), // convert from 1e18 to 1e8 notation for getCollateral()
+       OptionsCompute.convertToDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()), // convert from 1e18 to 1e8 notation for getCollateral()
        optionSeries.underlying,
        optionSeries.strikeAsset,
        collateralAsset), amount);
@@ -1042,6 +1043,8 @@ contract LiquidityPool is
     OptionRegistry optionRegistry = getOptionRegistry();
     if (_price == 0) {revert InvalidPrice();}
     if (_orderExpiry == 0) {revert OrderExpired();}
+    if (_orderExpiry > 1800) {revert OrderExpiryTooLong();}
+
     // issue the option type, all checks of the option validity should happen in _issue
     address series = _issue(_optionSeries, optionRegistry);
     // create the order struct, setting the series, amount, price, order expiry and buyer address
