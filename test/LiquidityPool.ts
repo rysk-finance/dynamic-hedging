@@ -1,5 +1,6 @@
 import hre, { ethers, network } from "hardhat"
 import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
+import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import {
 	toWei,
 	truncate,
@@ -22,12 +23,13 @@ import { deployOpyn } from "../utils/opyn-deployer"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
+import MockPortfolioValuesArtifact from "../artifacts/contracts/mocks/MockPortfolioValuesFeed.sol/MockPortfolioValuesFeed.json"
 import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
-import { PortfolioValuesFeed } from "../types/PortfolioValuesFeed"
+import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
@@ -71,7 +73,7 @@ let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
 let volFeed : VolatilityFeed
 let priceFeed: PriceFeed
-let portfolioValuesFeed: PortfolioValuesFeed
+let portfolioValuesFeed: MockPortfolioValuesFeed
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
 let controller: NewController
@@ -258,14 +260,26 @@ describe("Liquidity Pools", async () => {
 		const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
 		volFeed = (await volFeedFactory.deploy()) as VolatilityFeed
 
-	it("#Should deploy portfolio values feed", async () => {
-		const portfolioValuesFactory = await ethers.getContractFactory("PortfolioValuesFeed")
-		portfolioValuesFeed = (await portfolioValuesFactory.deploy(
-			ZERO_ADDRESS,
+	it("should deploy portfolio values feed", async () => {
+		const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
+		const signer = await signers[0].getAddress()
+		portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
+			await signers[0].getAddress(),
 			utils.formatBytes32String("jobId"),
 			toWei("1"),
 			ZERO_ADDRESS
-		)) as PortfolioValuesFeed
+		)) as MockPortfolioValuesFeed
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("1"),
+			weth.address,
+			usd.address,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
 	})
 
 	it("Should deploy option protocol and link to registry/price feed", async () => {
@@ -589,7 +603,6 @@ describe("Liquidity Pools", async () => {
 		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
 	})
 	it("can compute portfolio delta", async function () {
-		const delta = await liquidityPool.getPortfolioDelta()
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
@@ -597,6 +610,19 @@ describe("Liquidity Pools", async () => {
 			toWei("1"),
 			true
 		)
+		// mock external adapter delta calculation
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("2"),
+			weth.address,
+			usd.address,
+			localDelta,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
+		const delta = await liquidityPool.getPortfolioDelta()
 		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
@@ -641,7 +667,6 @@ describe("Liquidity Pools", async () => {
 		).to.be.within(0, 0.1)
 	})
 	it("can compute portfolio delta", async function () {
-		const delta = await liquidityPool.getPortfolioDelta()
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
@@ -671,6 +696,18 @@ describe("Liquidity Pools", async () => {
 			true
 		)
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("1"),
+			weth.address,
+			usd.address,
+			localDeltaActual,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
+		const delta = await liquidityPool.getPortfolioDelta()
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries2 = {
 			expiration: expiration2,
