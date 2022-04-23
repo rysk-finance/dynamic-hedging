@@ -11,8 +11,37 @@ module.exports = {
       colors: {
         black: "#000000",
         white: "#ffffff",
-        bone: "#e6e4d8",
+        bone: "#EDE9DD",
+        "bone-dark": "#EDE9DD",
         cyan: "#05f7e7",
+        "cyan-dark": "#00DBFF",
+        red: {
+          100: "#FFF0EF",
+          300: "#FF9991",
+          500: "#FF3425",
+          600: "#E40F00",
+          900: "#A60B00",
+        },
+        yellow: {
+          100: "#FFFAC8",
+          300: "#F9DA75",
+          500: "#FFEA01",
+          600: "#EDD900",
+          900: "#C8B800",
+        },
+        green: {
+          100: "#E9FECC",
+          300: "#B5FD55",
+          500: "#78D202",
+          600: "#6ABD00",
+          900: "#417301",
+        },
+        gray: {
+          100: "#F5F5F5",
+          300: "#EBEBEB",
+          500: "#BBBBBB",
+          600: "#989898",
+        },
       },
       keyframes: {
         "border-round": {
