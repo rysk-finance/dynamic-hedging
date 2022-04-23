@@ -146,6 +146,7 @@ contract LiquidityPool is
   }
 
   event OrderCreated(uint orderId);
+  event OrderExecuted(uint orderId);
   event LiquidityAdded(uint amount);
   event StrangleCreated(uint strangleId);
   event UnderlyingAdded(address underlying);
@@ -1142,6 +1143,7 @@ contract LiquidityPool is
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     // write the option contract, includes sending the premium from the user to the pool
     uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, bufferRemaining);
+    emit OrderExecuted(_orderId);
     // invalidate the order
     delete orderStores[_orderId];
   }
