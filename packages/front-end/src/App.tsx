@@ -1,15 +1,14 @@
-import { EIP1193Provider, OnboardAPI } from "@web3-onboard/core";
+import { OnboardAPI } from "@web3-onboard/core";
 import injectedModule from "@web3-onboard/injected-wallets";
 import { init } from "@web3-onboard/react";
 import walletConnectModule from "@web3-onboard/walletconnect";
 import { EthersAppContext } from "eth-hooks/context";
+import * as ethers from "ethers";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import "./App.css";
 import { Header } from "./components/Header";
 import { VaultDepositWithdraw } from "./components/VaultDepositWithdraw";
 import { toHex } from "./utils";
-import * as ethers from "ethers";
-import { useOnboard } from "use-onboard";
 
 const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/8f8c6eb36eb84321a9a1194ec822e8d6`;
 const ROPSTEN_RPC_URL = `https://ropsten.infura.io/v3/8f8c6eb36eb84321a9a1194ec822e8d6`;
@@ -89,26 +88,19 @@ function App() {
   const [network, setNetwork] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const { selectWallet } = useOnboard();
-
   useEffect(() => {
-    // setWeb3Onboard(onboard);
+    setWeb3Onboard(onboard);
   }, []);
-
-  const connectToWallet = async () => {
-    debugger;
-  };
 
   const connectWallet = async () => {
     try {
-      // const wallets = await onboard.connectWallet();
+      const wallets = await onboard.connectWallet();
       setIsLoading(true);
-      connectToWallet();
-      // const { accounts, chains, provider } = wallets[0];
-      // const ethersProvider = new ethers.providers.Web3Provider(provider);
-      // setProvider(ethersProvider);
-      // setAccount(accounts[0].address);
-      // setChainId(chains[0].id);
+      const { accounts, chains, provider } = wallets[0];
+      const ethersProvider = new ethers.providers.Web3Provider(provider);
+      setProvider(ethersProvider);
+      setAccount(accounts[0].address);
+      setChainId(chains[0].id);
       setIsLoading(false);
     } catch (error) {
       setError(error);
@@ -133,10 +125,6 @@ function App() {
     setChainId("");
     setProvider(null);
   };
-
-  useEffect(() => {
-    console.log(provider);
-  }, [provider]);
 
   return (
     <WalletContext.Provider
