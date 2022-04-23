@@ -59,6 +59,7 @@ import {
 	CHAINLINK_WETH_PRICER
 } from "./constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
+import exp from "constants"
 let usd: MintableERC20
 let weth: WETH
 let optionRegistry: OptionRegistry
@@ -69,7 +70,7 @@ let receiverAddress: string
 let liquidityPool: LiquidityPool
 let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
-let volFeed : VolatilityFeed
+let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
@@ -1008,10 +1009,7 @@ describe("Liquidity Pools", async () => {
 	it("Executes a buy order", async () => {
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike).add(100))
 		const amount = toWei("1")
-		const pricePer = toWei("10")
-		const orderExpiry = 10
 		const receiverOTokenBalBef = await optionToken.balanceOf(receiverAddress)
 		const lpOTokenBalBef = await optionToken.balanceOf(liquidityPool.address)
 		const lpBalBef = await usd.balanceOf(liquidityPool.address)
@@ -1069,7 +1067,7 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.sub(toWei(strike).add(100))
 		const amount = toWei("1")
 		const pricePer = toWei("10")
-		const orderExpiry = 3600 // order valid for one hour
+		const orderExpiry = 1200 // order valid for 20 minutes
 		const proposedSeries = {
 			expiration: expiration,
 			isPut: true,
@@ -1106,10 +1104,84 @@ describe("Liquidity Pools", async () => {
 		// expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 		expect(await liquidityPool.orderIdCounter()).to.eq(orderId)
 		optionToken = new Contract(order.seriesAddress, Otoken.abi, sender) as IOToken
-		increase(3601)
+		increase(1201)
 		await expect(liquidityPool.connect(receiver).executeOrder(orderId, false)).to.be.revertedWith(
 			"OrderExpired()"
 		)
+	})
+	it("fails to execute invalid custom orders", async () => {
+		let customOrderPriceMultiplier = 0.93
+		let customOrderPriceMultiplierInvalid = 0.89 // below 10% buffer
+		const [sender, receiver] = signers
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePriceInvalidDelta = priceQuote.add(toWei("10")) // delta will be too high
+		const strikePriceInvalidPrice = priceQuote.add(toWei("1500"))
+		const amount = toWei("1")
+		const orderExpiry = 600 // 10 minutes
+		const proposedSeriesInvalidDelta = {
+			expiration: expiration,
+			isPut: false,
+			strike: BigNumber.from(strikePriceInvalidDelta),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		const proposedSeriesInvalidPrice = {
+			expiration: expiration,
+			isPut: false,
+			strike: BigNumber.from(strikePriceInvalidPrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		const localQuoteInvalidDelta = await calculateOptionQuoteLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeriesInvalidDelta,
+			amount
+		)
+		const localQuoteInvalidPrice = await calculateOptionQuoteLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeriesInvalidPrice,
+			amount
+		)
+		const customOrderPriceInvalidDelta = localQuoteInvalidDelta * customOrderPriceMultiplier
+		const customOrderPriceInvalidPrice = localQuoteInvalidPrice * customOrderPriceMultiplierInvalid
+
+		const createOrderInvalidDelta = await liquidityPool.createOrder(
+			proposedSeriesInvalidDelta,
+			amount,
+			toWei(customOrderPriceInvalidDelta.toString()),
+			orderExpiry,
+			receiverAddress
+		)
+
+		const receipt = await createOrderInvalidDelta.wait(1)
+		const events = receipt.events
+		const createOrderEvent = events?.find(x => x.event == "OrderCreated")
+		const invalidDeltaOrderId = createOrderEvent?.args?.orderId
+
+		const createOrderInvalidPrice = await liquidityPool.createOrder(
+			proposedSeriesInvalidPrice,
+			amount,
+			toWei(customOrderPriceInvalidPrice.toString()),
+			orderExpiry,
+			receiverAddress
+		)
+
+		const receipt2 = await createOrderInvalidPrice.wait(1)
+		const events2 = receipt2.events
+		const createOrderEvent2 = events2?.find(x => x.event == "OrderCreated")
+		const invalidPriceOrderId = createOrderEvent2?.args?.orderId
+
+		await expect(
+			liquidityPool.connect(receiver).executeOrder(invalidDeltaOrderId, false)
+		).to.be.revertedWith("CustomOrderInvalidDeltaValue()")
+
+		await expect(
+			liquidityPool.connect(receiver).executeOrder(invalidPriceOrderId, false)
+		).to.be.revertedWith("CustomOrderInsufficientPrice()")
 	})
 	let lpCallOption: IOToken
 	it("LP Writes a WETH/USD call collateralized by WETH for premium", async () => {
