@@ -5,6 +5,8 @@ import { HardhatRuntimeEnvironment } from "hardhat/types"
 import fs from "fs"
 import path from "path"
 
+const addressPath = path.join(__dirname, "..", "..", "contracts.json")
+
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	const { deploy, execute, read, log } = deployments
 	const { deployer } = await getNamedAccounts()
@@ -17,15 +19,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	})
 
 	// @ts-ignore
-	const contractAddresses = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "contracts.json")))
+	const contractAddresses = JSON.parse(fs.readFileSync(addressPath))
 
 	// @ts-ignore
 	contractAddresses["localhost"]["DummyVault"] = dummyVaultDeploy.address
 
-	fs.writeFileSync(
-		path.join(__dirname, "..", "contracts.json"),
-		JSON.stringify(contractAddresses, null, 4)
-	)
+	fs.writeFileSync(addressPath, JSON.stringify(contractAddresses, null, 4))
 }
 
 func.tags = ["localhost"]

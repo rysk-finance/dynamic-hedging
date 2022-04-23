@@ -1,1 +1,1 @@
-cp ./deploy/contracts.json ../front-end/src/
+cp ./contracts.json ../front-end/src/
