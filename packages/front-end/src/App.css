@@ -3,22 +3,22 @@
   grid-template-columns: repeat(16, 1fr);
 }
 
-h1 {
+#root h1 {
   font-size: 64px;
   line-height: 64px;
 }
 
-h2 {
+#root h2 {
   font-size: 48px;
   line-height: 52px;
 }
 
-h3 {
+#root h3 {
   font-size: 36px;
   font-size: 40px;
 }
 
-h4 {
+#root h4 {
   font-size: 24px;
   font-size: 26px;
 }
