@@ -1,17 +1,12 @@
 
 name: Static Analysis
 on:
-  push:
-    branches: [ main ]
-    paths:
-      - 'contracts/**'
-      - '.github/workflows/slither.yaml'
-      - "**.py"
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'contracts/**'
-      - '.github/workflows/slither.yaml'
+ push:
+  branches:
+   - "**" # matches every branch
+ pull_request:
+  branches:
+   - "**" # matches every branch
 
 jobs:
   build:
