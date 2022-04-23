@@ -3,19 +3,18 @@ pragma solidity >=0.8.0;
 import "./PriceFeed.sol";
 import "./tokens/ERC20.sol";
 import "./OptionRegistry.sol";
+import "./VolatilityFeed.sol";
 import "./OptionsProtocol.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
+import "./libraries/OptionsCompute.sol";
+import "./libraries/SafeTransferLib.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import { Constants } from "./libraries/Constants.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import { OptionsCompute } from "./libraries/OptionsCompute.sol";
-import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
-
 import "hardhat/console.sol";
 
 error IVNotFound();
@@ -54,13 +53,8 @@ contract LiquidityPool is
 
   // Access control role identifier
   bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-
-
-  uint256 private constant ONE_YEAR_SECONDS = 31557600;
-  // standard expected decimals of ERC20s
-  uint8 private constant SCALE_DECIMALS = 18;
   // BIPS
-  uint256 MAX_BPS = 10_000;
+  uint256 private constant MAX_BPS = 10_000;
   // buffer of funds to not be used to write new options in case of margin requirements (as percentage - for 20% enter 2000)
   uint public bufferPercentage = 2000;
   // list of addresses for hedging reactors
@@ -77,8 +71,6 @@ contract LiquidityPool is
   uint public riskFreeRate;
   // amount of strikeAsset allocated as collateral
   uint public collateralAllocated;
-  // amount of underlyingAsset allocated as collateral
-  uint public underlyingAllocated;
   // max total supply of the lp shares
   uint public maxTotalSupply = type(uint256).max;
   // Maximum discount that an option tilting factor can discount an option price
@@ -95,15 +87,9 @@ contract LiquidityPool is
   uint public weightedStrikePut;
   // the weighted time to expiry of all active puts
   uint public weightedTimePut;
-  // skew parameters for calls
-  int[7] public callsVolatilitySkew;
-  // skew parameters for puts
-  int[7] public putsVolatilitySkew;
   // The spread between the bid and ask on the IV skew;
   // Consider making this it's own volatility skew if more flexibility is needed
   uint public bidAskIVSpread;
-  // Implied volatility for an underlying
-  mapping(address => uint) public impliedVolatility;
   // value below which delta is not worth hedging due to gas costs
   int256 private dustValue;
   // addresses that are whitelisted to sell options back to the protocol
@@ -112,8 +98,10 @@ contract LiquidityPool is
   mapping(uint256 => Types.Order) public orderStores;
   // order id counter
   uint256 public orderIdCounter;
- 
+  // option issuance parameters
+  OptionParams public optionParams;
   // strike and expiry date range for options
+
   struct OptionParams {
     uint128 minCallStrikePrice;
     uint128 maxCallStrikePrice;
@@ -122,18 +110,22 @@ contract LiquidityPool is
     uint128 minExpiry;
     uint128 maxExpiry;
   }
-  OptionParams public optionParams;
+
+  struct UtilizationState {
+    uint optionPrice;
+    uint utilizationPrice;
+    bool isDecreased;
+    uint deltaTiltFactor;
+  }
 
   event OrderCreated(uint orderId);
   event LiquidityAdded(uint amount);
   event UnderlyingAdded(address underlying);
-  event ImpliedVolatilityUpdated(address underlying, uint iv);
   event Deposit(address recipient, uint strikeAmount, uint shares);
   event Withdraw(address recipient, uint shares,  uint strikeAmount);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
   event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
   event SettleVault(address series, uint collateralReturned, uint collateralLost, address closer);
-
 
   constructor
   (
@@ -142,8 +134,6 @@ contract LiquidityPool is
     address _underlyingAsset, 
     address _collateralAsset, 
     uint rfr, 
-    int[7] memory callSkew, 
-    int[7] memory putSkew, 
     string memory name, 
     string memory symbol,
     OptionParams memory _optionParams,
@@ -157,8 +147,6 @@ contract LiquidityPool is
     address underlyingAddress = _underlyingAsset;
     underlyingAsset = underlyingAddress;
     collateralAsset = _collateralAsset;
-    callsVolatilitySkew = callSkew;
-    putsVolatilitySkew = putSkew;
     protocol = _protocol;
     optionParams.minCallStrikePrice = _optionParams.minCallStrikePrice;
     optionParams.maxCallStrikePrice = _optionParams.maxCallStrikePrice;
@@ -200,42 +188,6 @@ contract LiquidityPool is
    */
   function removeHedgingReactorAddress(uint256 _index) onlyOwner public {
     delete hedgingReactors[_index];
-  }
-
-  /**
-   * @notice set the volatility skew of the pool
-   * @param values the parameters of the skew
-   * @param isPut the option type, put or call?
-   * @return whether the activation was successful
-   * @dev   only governance can call this function
-   */
-  function setVolatilitySkew(int[7] calldata values, bool isPut)
-      onlyOwner
-      external
-      returns (bool)
-  {
-      if (!isPut) {
-          callsVolatilitySkew = values;
-      } else {
-          putsVolatilitySkew = values;
-      }
-  }
-
-  /**
-   * @notice get the volatility skew of the pool
-   * @param isPut the option type, put or call?
-   * @return the skew parameters
-   */
-  function getVolatilitySkew(bool isPut)
-      external
-      view
-      returns (int[7] memory)
-  {
-      if (!isPut) {
-          return callsVolatilitySkew;
-      } else {
-          return putsVolatilitySkew;
-      }
   }
   /**
     @notice set a new min strike price for calls
@@ -563,6 +515,14 @@ contract LiquidityPool is
   }
 
   /**
+   * @notice get the volatility feed used by the liquidity pool
+   * @return the volatility feed contract interface
+   */
+  function getVolatilityFeed() internal view returns (VolatilityFeed) {
+    address feedAddress = Protocol(protocol).volatilityFeed();
+    return VolatilityFeed(feedAddress);
+  }
+  /**
    * @notice get the option registry used for storing and managing the options
    * @return the option registry contract interface
    */
@@ -609,7 +569,7 @@ contract LiquidityPool is
   }
 
   /**
-   * @notice get the current implied volatility 
+   * @notice get the current implied volatility from the feed
    * @param isPut Is the option a call or put?
    * @param underlyingPrice The underlying price 
    * @param strikePrice The strike price of the option
@@ -626,12 +586,8 @@ contract LiquidityPool is
     view
     returns (uint) 
     {
-      uint256 time = (expiration - block.timestamp).div(ONE_YEAR_SECONDS);
-      int underlying = int(underlyingPrice);
-      int spot_distance = (int(strikePrice) - int(underlying)).div(underlying);
-      int[2] memory points = [spot_distance, int(time)];
-      int[7] memory coef = isPut ? putsVolatilitySkew : callsVolatilitySkew;
-      return uint(OptionsCompute.computeIVFromSkew(coef, points));
+      VolatilityFeed volFeed = getVolatilityFeed();
+      return volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
     }
 
   /**
@@ -732,13 +688,6 @@ contract LiquidityPool is
         IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
       }
       // TODO if we dont / not enough - look at derivatives
-  }
-
-  struct UtilizationState {
-    uint optionPrice;
-    uint utilizationPrice;
-    bool isDecreased;
-    uint deltaTiltFactor;
   }
 
   /**
