@@ -32,6 +32,7 @@ import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
 import { Volatility } from "../types/Volatility"
+import { VolatilityFeed } from "../types/VolatilityFeed"
 import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
@@ -68,6 +69,7 @@ let receiverAddress: string
 let liquidityPool: LiquidityPool
 let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
+let volFeed : VolatilityFeed
 let priceFeed: PriceFeed
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
@@ -199,7 +201,7 @@ describe("Liquidity Pools", async () => {
 		oracle = res[0] as Oracle
 		opynAggregator = res[1] as MockChainlinkAggregator
 	})
-	it("Deploys the Option Registry", async () => {
+	it("#Deploys the Option Registry", async () => {
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
@@ -241,10 +243,9 @@ describe("Liquidity Pools", async () => {
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
 	})
-	it("Should deploy price feed", async () => {
+	it("#Should deploy price feed", async () => {
 		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-		const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
-		priceFeed = _priceFeed
+		priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
 		await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
 		await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
 		// oracle returns price denominated in 1e8
@@ -253,17 +254,9 @@ describe("Liquidity Pools", async () => {
 		const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		expect(oraclePrice.mul(10_000_000_000)).to.equal(priceFeedPrice)
 	})
-
-	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
-		optionProtocol = (await protocolFactory.deploy(
-			optionRegistry.address,
-			priceFeed.address
-		)) as Protocol
-		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
-	})
-
-	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
+	it("#Should deploy volatility feed", async () => {
+		const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
+		volFeed = (await volFeedFactory.deploy()) as VolatilityFeed
 		type int7 = [
 			BigNumberish,
 			BigNumberish,
@@ -285,7 +278,21 @@ describe("Liquidity Pools", async () => {
 		]
 		//@ts-ignore
 		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
+		await volFeed.setVolatilitySkew(coefs, true)
+		await volFeed.setVolatilitySkew(coefs, false)
+	})
 
+	it("Should deploy option protocol and link to registry/price feed", async () => {
+		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
+		optionProtocol = (await protocolFactory.deploy(
+			optionRegistry.address,
+			priceFeed.address,
+			volFeed.address
+		)) as Protocol
+		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
+	})
+
+	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
 		const normDistFactory = await ethers.getContractFactory("NormalDist", {
 			libraries: {}
 		})
@@ -312,8 +319,6 @@ describe("Liquidity Pools", async () => {
 			weth.address,
 			usd.address,
 			toWei(rfr),
-			coefs,
-			coefs,
 			"ETH/USDC",
 			"EDP",
 			{
@@ -365,7 +370,7 @@ describe("Liquidity Pools", async () => {
 
 		uniswapV3HedgingReactor = (await uniswapV3HedgingReactorFactory.deploy(
 			UNISWAP_V3_SWAP_ROUTER[chainId],
-			[USDC_ADDRESS[chainId]],
+			USDC_ADDRESS[chainId],
 			WETH_ADDRESS[chainId],
 			liquidityPool.address,
 			3000,
@@ -715,7 +720,8 @@ describe("Liquidity Pools", async () => {
 		]
 		//@ts-ignore
 		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-
+		await volFeed.setVolatilitySkew(coefs, true)
+		await volFeed.setVolatilitySkew(coefs, false)
 		const normDistFactory = await ethers.getContractFactory("NormalDist", {
 			libraries: {}
 		})
@@ -738,8 +744,6 @@ describe("Liquidity Pools", async () => {
 			weth.address,
 			weth.address,
 			toWei(rfr),
-			coefs,
-			coefs,
 			"weth/usd",
 			"wdp",
 			{

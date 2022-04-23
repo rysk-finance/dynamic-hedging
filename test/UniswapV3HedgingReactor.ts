@@ -102,7 +102,7 @@ describe("UniswapV3HedgingReactor", () => {
 
 		uniswapV3HedgingReactor = (await uniswapV3HedgingReactorFactory.deploy(
 			UNISWAP_V3_SWAP_ROUTER[chainId],
-			[USDC_ADDRESS[chainId]],
+			USDC_ADDRESS[chainId],
 			WETH_ADDRESS[chainId],
 			liquidityPoolDummyAddress,
 			3000,

@@ -6,14 +6,27 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import "./interfaces/AggregatorV3Interface.sol";
 
 contract PriceFeed is Ownable {
-
-    mapping(address => mapping(address => address)) public priceFeeds;
     using PRBMathUD60x18 for uint8;
     using PRBMathSD59x18 for int256;
     using PRBMathUD60x18 for uint256;
+
+    /////////////////////////////////////
+    /// governance settable variables ///
+    /////////////////////////////////////
+
+    mapping(address => mapping(address => address)) public priceFeeds;
+
+    //////////////////////////
+    /// constant variables ///
+    //////////////////////////
+    
     uint8 private constant SCALE_DECIMALS = 18;
 
     constructor() public {}
+
+   ///////////////
+   /// setters ///
+   ///////////////
 
     function addPriceFeed(
         address underlying,
@@ -22,6 +35,10 @@ contract PriceFeed is Ownable {
     ) public onlyOwner {
         priceFeeds[underlying][strike] = feed;
     }
+
+  ///////////////////////
+  /// complex getters ///
+  ///////////////////////
 
     function getRate(
         address underlying,
