@@ -15,7 +15,9 @@ export const Header: React.FC = () => {
             <Button className="mr-2 border-none bg-transparent">Vault</Button>
           </Link>
           <Link to="/options">
-            <Button className="mr-2 border-none bg-transparent">Options</Button>
+            <Button className="mr-2 border-none bg-transparent">
+              Trade Options
+            </Button>
           </Link>
           <Link to="/dashboard">
             <Button className="mr-2 border-none bg-transparent">

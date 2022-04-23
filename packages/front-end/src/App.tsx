@@ -7,8 +7,11 @@ import * as ethers from "ethers";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import "./App.css";
 import { Header } from "./components/Header";
-import { VaultDepositWithdraw } from "./components/VaultDepositWithdraw";
 import { toHex } from "./utils";
+import { Routes, Route } from "react-router-dom";
+import { Vault } from "./pages/Vault";
+import { OptionsTrading } from "./pages/OptionsTrading";
+import { Dashboard } from "./pages/Dashboard";
 
 const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/8f8c6eb36eb84321a9a1194ec822e8d6`;
 const ROPSTEN_RPC_URL = `https://ropsten.infura.io/v3/8f8c6eb36eb84321a9a1194ec822e8d6`;
@@ -144,17 +147,11 @@ function App() {
           <Header />
           <div className="pt-16 px-16">
             <div className="root-grid py-24">
-              <div className="col-start-1 col-end-8">
-                <h2 className="mb-8">Earn Uncorrelated Returns</h2>
-                <p>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
-                  ut justo luctus, vehicula nibh id, egestas magna. Sed egestas
-                  massa justo, sit amet sagittis nunc efficitur ac.{" "}
-                </p>
-              </div>
-              <div className="col-start-9 col-end-17 border-black border-2 p-8">
-                <VaultDepositWithdraw />
-              </div>
+              <Routes>
+                <Route path="/" element={<Vault />} />
+                <Route path="options" element={<OptionsTrading />} />
+                <Route path="dashboard" element={<Dashboard />} />
+              </Routes>
             </div>
           </div>
         </div>
