@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
-import { OptionType } from "../../state/types";
+import {
+  Option,
+  OptionsTradingActionType,
+  OptionType,
+} from "../../state/types";
 
 const suggestedCallOptionPriceDiff = [-200, 0, 200, 400, 600, 800, 1000];
 const suggestedPutOptionPriceDiff = [-1000, -800, -600, -400, -200, 0, 200];
@@ -21,20 +25,33 @@ export const OptionsChart: React.FC = () => {
 
   const {
     state: { optionType },
+    dispatch,
   } = useOptionsTradingContext();
 
-  const [prices, setPrices] = useState<number[] | null>(null);
+  const [suggestions, setSuggestions] = useState<Option[] | null>(null);
 
   useEffect(() => {
     if (cachedEthPrice) {
-      setPrices(
-        (optionType === OptionType.CALL
+      const suggestions: Option[] = (
+        optionType === OptionType.CALL
           ? suggestedCallOptionPriceDiff
           : suggestedPutOptionPriceDiff
-        ).map((diff) => Number((cachedEthPrice + diff).toFixed(0)))
-      );
+      ).map<Option>((diff) => {
+        return {
+          strike: Number((cachedEthPrice + diff).toFixed(0)),
+          IV: 100,
+          delta: 0.5,
+          price: 100,
+          type: optionType,
+        };
+      });
+      setSuggestions(suggestions);
     }
-  }, [cachedEthPrice, prices, optionType]);
+  }, [cachedEthPrice, suggestions, optionType]);
+
+  const setSelectedOption = (option: Option) => {
+    dispatch({ type: OptionsTradingActionType.SET_SELECTED_OPTION, option });
+  };
 
   return (
     <table className="w-full">
@@ -44,16 +61,23 @@ export const OptionsChart: React.FC = () => {
         <th>Delta</th>
         <th className="pr-4">Price ($)</th>
       </tr>
-      {prices?.map((price, index) => (
+      {suggestions?.map((option, index) => (
         <tr
           className={`h-12 ${
             index % 2 === 0 ? "bg-gray-300" : ""
           } cursor-pointer`}
+          onClick={() => setSelectedOption(option)}
         >
-          <td className="pl-4">{price}</td>
-          <td>90{"%"}</td>
-          <td>50{"%"}</td>
-          <td className="pr-4">100</td>
+          <td className="pl-4">{option.strike}</td>
+          <td>
+            {option.IV}
+            {"%"}
+          </td>
+          <td>
+            {option.delta}
+            {"%"}
+          </td>
+          <td className="pr-4">{option.price}</td>
         </tr>
       ))}
     </table>
