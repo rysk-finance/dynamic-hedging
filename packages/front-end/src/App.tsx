@@ -11,6 +11,7 @@ import { Routes, Route } from "react-router-dom";
 import { Vault } from "./pages/Vault";
 import { OptionsTrading } from "./pages/OptionsTrading";
 import { Dashboard } from "./pages/Dashboard";
+import { GlobalContextProvider } from "./state/GlobalContext";
 
 // TODO(HC): Move infura key to env variable
 const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/8f8c6eb36eb84321a9a1194ec822e8d6`;
@@ -142,18 +143,20 @@ function App() {
         isLoading,
       }}
     >
-      <div className="App min-h-screen bg-bone font-dm-mono">
-        <Header />
-        <div className="pt-16 px-16">
-          <div className="root-grid py-24">
-            <Routes>
-              <Route path="/" element={<Vault />} />
-              <Route path="options" element={<OptionsTrading />} />
-              <Route path="dashboard" element={<Dashboard />} />
-            </Routes>
+      <GlobalContextProvider>
+        <div className="App min-h-screen bg-bone font-dm-mono">
+          <Header />
+          <div className="pt-16 px-16">
+            <div className="root-grid py-24">
+              <Routes>
+                <Route path="/" element={<Vault />} />
+                <Route path="options" element={<OptionsTrading />} />
+                <Route path="dashboard" element={<Dashboard />} />
+              </Routes>
+            </div>
           </div>
         </div>
-      </div>
+      </GlobalContextProvider>
     </WalletContext.Provider>
   );
 }
