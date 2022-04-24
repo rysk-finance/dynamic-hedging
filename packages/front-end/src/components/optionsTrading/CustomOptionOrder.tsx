@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { OptionsTradingActionType, OptionType } from "../../state/types";
 import { RadioButtonList } from "../shared/RadioButtonList";
@@ -17,6 +17,8 @@ export const CustomOptionOrder: React.FC = () => {
     state: { optionType },
     dispatch,
   } = useOptionsTradingContext();
+
+  const [uiStrikePrice, setUIStrikePrice] = useState("");
 
   const setOptionType = (optionType: OptionType) => {
     dispatch({ type: OptionsTradingActionType.SET_OPTION_TYPE, optionType });
@@ -38,12 +40,15 @@ export const CustomOptionOrder: React.FC = () => {
         <h5 className="mb-2">Custom Strike</h5>
         <div className="flex">
           <TextInput
+            value={uiStrikePrice}
+            setValue={setUIStrikePrice}
             className="text-right"
             iconLeft={
               <div className="px-2 flex items-center h-full">
                 <p className="text-gray-600">$</p>
               </div>
             }
+            numericOnly
           />
           <Button className="ml-8 px-8">Add</Button>
         </div>
