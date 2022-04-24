@@ -15,10 +15,15 @@
 
 #root h3 {
   font-size: 36px;
-  font-size: 40px;
+  line-height: 40px;
 }
 
 #root h4 {
   font-size: 24px;
-  font-size: 26px;
+  line-height: 26px;
+}
+
+#root h5 {
+  font-size: 18px;
+  line-height: 20px;
 }
