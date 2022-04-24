@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useWalletContext } from "../App";
-import { Button } from "./Button";
+import { Button } from "./shared/Button";
 
 export const Header: React.FC = () => {
   const { connectWallet, provider } = useWalletContext();
