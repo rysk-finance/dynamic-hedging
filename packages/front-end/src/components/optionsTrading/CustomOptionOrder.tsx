@@ -3,6 +3,7 @@ import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { OptionsTradingActionType, OptionType } from "../../state/types";
 import { RadioButtonList } from "../shared/RadioButtonList";
 import { Option } from "../../types";
+import { ExpiryDatePicker } from "./ExpiryDatePicker";
 
 const optionTypeOptions: Option<OptionType>[] = [
   { label: "Calls", value: OptionType.CALL },
@@ -21,11 +22,16 @@ export const CustomOptionOrder: React.FC = () => {
 
   return (
     <div className="w-full">
-      <RadioButtonList
-        options={optionTypeOptions}
-        selected={optionType}
-        setSelected={setOptionType}
-      />
+      <div className="mb-4">
+        <RadioButtonList
+          options={optionTypeOptions}
+          selected={optionType}
+          setSelected={setOptionType}
+        />
+      </div>
+      <div className="">
+        <ExpiryDatePicker />
+      </div>
     </div>
   );
 };

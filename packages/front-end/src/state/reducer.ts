@@ -29,5 +29,7 @@ export const optionsTradingReducer: Reducer<
   switch (action.type) {
     case OptionsTradingActionType.SET_OPTION_TYPE:
       return { ...state, optionType: action.optionType };
+    case OptionsTradingActionType.SET_EXPIRY_DATE:
+      return { ...state, expiryDate: action.date };
   }
 };
