@@ -266,7 +266,6 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
-
 		const normDistFactory = await ethers.getContractFactory("NormalDist", {
 			libraries: {}
 		})
@@ -435,11 +434,14 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		)
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
+		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(-1, 1)
 		const expectedPoolBalance = truncate(
 			Number(fromUSDC(poolBalanceBefore)) + Number(fromWei(quote)) - escrow
 		)
-		expect(expectedPoolBalance).to.eq(truncate(Number(fromUSDC(poolBalanceAfter))))
+		expect(expectedPoolBalance - truncate(Number(fromUSDC(poolBalanceAfter)))).to.be.within(
+			-0.01,
+			0.01
+		)
 		expect(totalAmountPutAfter.sub(totalAmountPutBefore)).to.eq(amount)
 		expect(weightedStrikeAfter).to.eq(newWeights.newWeightedStrike)
 		expect(weightedTimeAfter).to.eq(newWeights.newWeightedTime)

@@ -68,7 +68,7 @@ let receiverAddress: string
 let liquidityPool: LiquidityPool
 let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
-let volFeed : VolatilityFeed
+let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
@@ -566,12 +566,12 @@ describe("Liquidity Pools", async () => {
 	it("can compute portfolio delta", async function () {
 		const delta = await liquidityPool.getPortfolioDelta()
 		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool, 
+			liquidityPool,
 			priceFeed,
 			proposedSeries,
-			toWei('1'),
+			toWei("1"),
 			true
-			)
+		)
 		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
@@ -611,9 +611,9 @@ describe("Liquidity Pools", async () => {
 		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(-0.1, 0.1)
 		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
 		const lpAllocatedDiff = lpAllocatedAfter.sub(lpAllocatedBefore)
-		expect(tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.within(
-			0, 0.1
-		)
+		expect(
+			tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)
+		).to.be.within(0, 0.1)
 	})
 	it("can compute portfolio delta", async function () {
 		const delta = await liquidityPool.getPortfolioDelta()
@@ -623,27 +623,28 @@ describe("Liquidity Pools", async () => {
 		const wTPuts = await liquidityPool.weightedTimePut()
 		const wSPuts = await liquidityPool.weightedStrikePut()
 		const wPuts = await liquidityPool.totalAmountPut()
-	
+
 		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool, 
+			liquidityPool,
 			priceFeed,
 			proposedSeries,
-			toWei('1'),
+			toWei("1"),
 			true
-			)
+		)
 		const localDeltaActual = await calculateOptionDeltaLocally(
-			liquidityPool, 
+			liquidityPool,
 			priceFeed,
-			{expiration: wTPuts.toNumber(), 
-			 isPut: PUT_FLAVOR, 
-			 strike: wSPuts, 
-			 strikeAsset: usd.address, 
-			 underlying: weth.address, 
-			 collateral: usd.address 
+			{
+				expiration: wTPuts.toNumber(),
+				isPut: PUT_FLAVOR,
+				strike: wSPuts,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
 			},
 			wPuts,
 			true
-			)
+		)
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries2 = {
@@ -658,7 +659,7 @@ describe("Liquidity Pools", async () => {
 			liquidityPool,
 			priceFeed,
 			proposedSeries2,
-			toWei('3'),
+			toWei("3"),
 			true
 		)
 		expect(delta.sub(localDelta.add(localDelta2))).to.be.within(-1e15, 1e15)
@@ -1105,5 +1106,37 @@ describe("Liquidity Pools", async () => {
 		expect(collateralReturned).to.equal(totalCollateralAllocated) // format from e8 oracle price to e6 USDC decimals
 		expect(await liquidityPool.collateralAllocated()).to.equal(0)
 		expect(collateralLost).to.equal(0)
+	})
+	it("updates option params with setter", async () => {
+		await liquidityPool.setNewOptionParams(
+			utils.parseEther("700"),
+			utils.parseEther("12000"),
+			utils.parseEther("200"),
+			utils.parseEther("6000"),
+			86400 * 3,
+			86400 * 365
+		)
+
+		const minCallStrikePrice = (await liquidityPool.optionParams()).minCallStrikePrice
+		const maxCallStrikePrice = (await liquidityPool.optionParams()).maxCallStrikePrice
+		const minPutStrikePrice = (await liquidityPool.optionParams()).minPutStrikePrice
+		const maxPutStrikePrice = (await liquidityPool.optionParams()).maxPutStrikePrice
+		const minExpiry = (await liquidityPool.optionParams()).minExpiry
+		const maxExpiry = (await liquidityPool.optionParams()).maxExpiry
+
+		expect(minCallStrikePrice).to.equal(utils.parseEther("700"))
+		expect(maxCallStrikePrice).to.equal(utils.parseEther("12000"))
+		expect(minPutStrikePrice).to.equal(utils.parseEther("200"))
+		expect(maxPutStrikePrice).to.equal(utils.parseEther("6000"))
+		expect(minExpiry).to.equal(86400 * 3)
+		expect(maxExpiry).to.equal(86400 * 365)
+	})
+	it("deletes a hedging reactor address", async () => {
+		const hedgingReactorBefore = await liquidityPool.hedgingReactors(0)
+		expect(parseInt(hedgingReactorBefore, 16)).to.not.eq(0x0)
+		await liquidityPool.removeHedgingReactorAddress(0)
+
+		const hedgingReactor = await liquidityPool.hedgingReactors(0)
+		expect(parseInt(hedgingReactor, 16)).to.eq(0x0)
 	})
 })
