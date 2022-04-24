@@ -15,7 +15,7 @@ export const OptionsChart: React.FC = () => {
 
   useEffect(() => {
     if (!cachedEthPrice && ethPrice) {
-      setCachedEthPrice(ethPrice);
+      setCachedEthPrice(Number((ethPrice / 100).toFixed(0)) * 100);
     }
   }, [ethPrice, cachedEthPrice]);
 
