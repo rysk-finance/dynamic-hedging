@@ -59,11 +59,10 @@ export const VaultDepositWithdraw = () => {
       <h3>Balance: {balance}</h3>
       <TextInput
         placeholder="Amount"
-        onChange={(e) => {
-          setInputValue(e.target.value);
-        }}
+        setValue={setInputValue}
         value={inputValue}
         className="mb-4"
+        numericOnly
       />
       <Button onClick={() => handleSubmit()} className="w-full">
         Submit
