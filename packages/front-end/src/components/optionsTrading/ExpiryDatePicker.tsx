@@ -4,6 +4,7 @@ import { OptionsTradingActionType } from "../../state/types";
 import { Option } from "../../types";
 import { formatShortDate } from "../../utils/formatShortDate";
 import { getSuggestedExpiryDates } from "../../utils/getSuggestedExpiryDates";
+import { getTimeDifferenceString } from "../../utils/getTimeDifferenceString";
 import { RadioButtonList } from "../shared/RadioButtonList";
 
 export const ExpiryDatePicker: React.FC = () => {
@@ -28,9 +29,18 @@ export const ExpiryDatePicker: React.FC = () => {
     }));
   }, [setExpiryDate]);
 
+  const expiryTime = expiryDate && expiryDate.getTime() - new Date().getTime();
+
   return (
     <div className="w-full">
-      <h5 className="mb-2">Expiration date</h5>
+      <div className="flex justify-between items-center mb-2">
+        <h5>Expiration date</h5>
+        {expiryTime && (
+          <p>
+            expiry in: <b>{getTimeDifferenceString(expiryTime)}</b>
+          </p>
+        )}
+      </div>
       <div className="w-[70%]">
         <RadioButtonList
           options={expiryDateOptions}
