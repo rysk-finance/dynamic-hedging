@@ -134,6 +134,10 @@ function fulfill(
    */
   function withdrawLink() external {}
 
+  ///////////////////////////
+  /// non-complex getters ///
+  ///////////////////////////
+
   function getPortfolioValues(
     address underlying,
     address strike
