@@ -36,5 +36,9 @@ contract Protocol is Ownable {
     function changeVolatilityFeed(address _volFeed) external onlyOwner {
         volatilityFeed = _volFeed;
     }
+
+    function changePortfolioValuesFeed(address _portfolioValuesFeed) external onlyOwner {
+        portfolioValuesFeed = _portfolioValuesFeed;
+    }
 }
 

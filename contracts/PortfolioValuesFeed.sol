@@ -11,10 +11,23 @@ import "./libraries/Types.sol";
 contract PortfolioValuesFeed is ChainlinkClient {
   using Chainlink for Chainlink.Request;
 
-  mapping(address => mapping(address => Types.PortfolioValues)) private portfolioValues;
+  ///////////////////////////
+  /// immutable variables ///
+  ///////////////////////////
+
   address private immutable oracle;
   bytes32 private immutable jobId;
   uint256 private immutable fee;
+
+  /////////////////////////////////
+  /// oracle settable variables ///
+  /////////////////////////////////
+
+  mapping(address => mapping(address => Types.PortfolioValues)) private portfolioValues;
+
+  //////////////
+  /// events ///
+  //////////////
 
   event DataFullfilled(address indexed underlying, address indexed strike, int256 delta, int256 gamma, int256 vega, int256 theta, uint256 callPutsValue);
 
@@ -42,40 +55,10 @@ contract PortfolioValuesFeed is ChainlinkClient {
     fee = _fee;
   }
 
-  function getPortfolioValues(
-    address underlying,
-    address strike
-  ) external 
-    view
-    returns (Types.PortfolioValues memory) {
-        return portfolioValues[underlying][strike];
-  }
-
-  /**
-   * @notice Creates a Chainlink request to update portfolio values
-   * data, then multiply by 1000000000000000000 (to remove decimal places from data).
-   *
-   * @return requestId - id of the request
-   */
-  function requestPortfolioData(string memory _underlying, string memory _strike) public returns (bytes32 requestId) {
-    Chainlink.Request memory request = buildChainlinkRequest(
-      jobId,
-      address(this),
-      this.fulfill.selector
-    );
-
-    request.add("endpoint", "portfolio-values");
-    request.add("underlying", _underlying);
-    request.add("strike", _strike);
-
-    // Multiply the result by 1000000000000000000 to remove decimals
-    int256 timesAmount = 10**18;
-    request.addInt("times", timesAmount);
-
-    // Sends the request
-    return sendChainlinkRequestTo(oracle, request, fee);
-  }
-
+  //////////////////////////////////////////////////////
+  /// access-controlled state changing functionality ///
+  //////////////////////////////////////////////////////
+  
   /**
    * @notice Receives the response
    *
@@ -116,9 +99,47 @@ function fulfill(
     emit DataFullfilled(_underlying, _strike, _delta, _gamma, _vega, _theta, _callPutsValue);
   }
 
+  /////////////////////////////////////////////
+  /// external state changing functionality ///
+  /////////////////////////////////////////////
+
+  /**
+   * @notice Creates a Chainlink request to update portfolio values
+   * data, then multiply by 1000000000000000000 (to remove decimal places from data).
+   *
+   * @return requestId - id of the request
+   */
+  function requestPortfolioData(string memory _underlying, string memory _strike) public returns (bytes32 requestId) {
+    Chainlink.Request memory request = buildChainlinkRequest(
+      jobId,
+      address(this),
+      this.fulfill.selector
+    );
+
+    request.add("endpoint", "portfolio-values");
+    request.add("underlying", _underlying);
+    request.add("strike", _strike);
+
+    // Multiply the result by 1000000000000000000 to remove decimals
+    int256 timesAmount = 10**18;
+    request.addInt("times", timesAmount);
+
+    // Sends the request
+    return sendChainlinkRequestTo(oracle, request, fee);
+  }
+
   /**
    * @notice Witdraws LINK from the contract
    * @dev Implement a withdraw function to avoid locking your LINK in the contract
    */
   function withdrawLink() external {}
+
+  function getPortfolioValues(
+    address underlying,
+    address strike
+  ) external 
+    view
+    returns (Types.PortfolioValues memory) {
+        return portfolioValues[underlying][strike];
+  }
 }
