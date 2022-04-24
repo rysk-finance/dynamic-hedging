@@ -1651,7 +1651,7 @@ describe("Options protocol Vault Health", function () {
 		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 4)
 		await optionRegistry.wCollatLiquidatedVault(4)
 		const collatAlloc = await liquidityPool.collateralAllocated();
-				const vaultLiqDetails = await controller.getVaultLiquidationDetails(optionRegistry.address, 4)
+		const vaultLiqDetails = await controller.getVaultLiquidationDetails(optionRegistry.address, 4)
 		expect(vaultLiqDetails[0]).to.equal(optionTokenUSDC.address)
 		expect(vaultLiqDetails[1]).to.equal(value)
 		expect(vaultLiqDetails[2]).to.equal(collatAmountsBef.sub(collatAmountsNew))
