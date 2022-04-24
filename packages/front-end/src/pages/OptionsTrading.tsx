@@ -13,7 +13,7 @@ export const OptionsTrading = () => {
         </div>
       </div>
       <div className="col-start-1 col-end-6 p-4">
-        <div className="bg-white border-black border-2 p-2">
+        <div className="bg-white border-black border-2 p-4">
           <CustomOptionOrder />
         </div>
       </div>

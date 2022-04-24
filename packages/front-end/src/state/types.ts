@@ -24,6 +24,7 @@ export type GlobalContext = {
 // Options trading context
 export type OptionsTradingState = {
   optionType: OptionType;
+  expiryDate: Date | null;
 };
 
 export type OptionsTradingContext = {
@@ -38,9 +39,15 @@ export enum OptionType {
 
 export enum OptionsTradingActionType {
   SET_OPTION_TYPE,
+  SET_EXPIRY_DATE,
 }
 
-export type OptionsTradingAction = {
-  type: OptionsTradingActionType.SET_OPTION_TYPE;
-  optionType: OptionType;
-};
+export type OptionsTradingAction =
+  | {
+      type: OptionsTradingActionType.SET_OPTION_TYPE;
+      optionType: OptionType;
+    }
+  | {
+      type: OptionsTradingActionType.SET_EXPIRY_DATE;
+      date: Date;
+    };

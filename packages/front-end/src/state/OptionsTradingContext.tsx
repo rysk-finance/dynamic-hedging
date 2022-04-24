@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer } from "react";
+import { getSuggestedExpiryDates } from "../utils/getSuggestedExpiryDates";
 import { optionsTradingReducer } from "./reducer";
 import {
   OptionsTradingContext,
@@ -8,6 +9,7 @@ import {
 
 export const defaultOptionTradingState: OptionsTradingState = {
   optionType: OptionType.CALL,
+  expiryDate: null,
 };
 
 export const OptionsTradingReactContext = createContext<OptionsTradingContext>({
