@@ -7,6 +7,10 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
 ) => {
   switch (action.type) {
     case ActionType.SET_ETH_PRICE:
-      return { ...state, ethPrice: action.price };
+      return {
+        ...state,
+        ethPrice: action.price,
+        eth24hChange: action.change ?? state.eth24hChange,
+      };
   }
 };

@@ -4,6 +4,7 @@ import { GlobalContext, GlobalState } from "./types";
 
 const defaultGlobalState: GlobalState = {
   ethPrice: null,
+  eth24hChange: null,
 };
 
 export const GlobalReactContext = createContext<GlobalContext>({
