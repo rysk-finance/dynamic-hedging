@@ -2,7 +2,6 @@ import { OnboardAPI } from "@web3-onboard/core";
 import injectedModule from "@web3-onboard/injected-wallets";
 import { init } from "@web3-onboard/react";
 import walletConnectModule from "@web3-onboard/walletconnect";
-import { EthersAppContext } from "eth-hooks/context";
 import * as ethers from "ethers";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import "./App.css";
@@ -143,20 +142,18 @@ function App() {
         isLoading,
       }}
     >
-      <EthersAppContext>
-        <div className="App min-h-screen bg-bone font-dm-mono">
-          <Header />
-          <div className="pt-16 px-16">
-            <div className="root-grid py-24">
-              <Routes>
-                <Route path="/" element={<Vault />} />
-                <Route path="options" element={<OptionsTrading />} />
-                <Route path="dashboard" element={<Dashboard />} />
-              </Routes>
-            </div>
+      <div className="App min-h-screen bg-bone font-dm-mono">
+        <Header />
+        <div className="pt-16 px-16">
+          <div className="root-grid py-24">
+            <Routes>
+              <Route path="/" element={<Vault />} />
+              <Route path="options" element={<OptionsTrading />} />
+              <Route path="dashboard" element={<Dashboard />} />
+            </Routes>
           </div>
         </div>
-      </EthersAppContext>
+      </div>
     </WalletContext.Provider>
   );
 }
