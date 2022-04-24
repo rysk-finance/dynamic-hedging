@@ -12,17 +12,19 @@ export const Header: React.FC = () => {
       <div className="flex">
         <div className="mr-4">
           <Link to="/">
-            <Button className="mr-2 border-none bg-transparent">Vault</Button>
+            <button className="mr-2 border-none bg-transparent p-2">
+              Vault
+            </button>
           </Link>
           <Link to="/options">
-            <Button className="mr-2 border-none bg-transparent">
+            <button className="mr-2 border-none bg-transparent p-2">
               Trade Options
-            </Button>
+            </button>
           </Link>
           <Link to="/dashboard">
-            <Button className="mr-2 border-none bg-transparent">
+            <button className="mr-2 border-none bg-transparent p-2">
               Dashboard
-            </Button>
+            </button>
           </Link>
         </div>
         {!provider ? (
