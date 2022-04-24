@@ -13,6 +13,7 @@
     "@web3-onboard/injected-wallets": "^2.0.5",
     "@web3-onboard/react": "^2.1.5",
     "@web3-onboard/walletconnect": "^2.0.1",
+    "axios": "^0.26.1",
     "dotenv": "^16.0.0",
     "ethers": "^5.6.4",
     "react": "^17.0.2",
