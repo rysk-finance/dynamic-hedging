@@ -24,6 +24,14 @@ export const CustomOptionOrder: React.FC = () => {
     dispatch({ type: OptionsTradingActionType.SET_OPTION_TYPE, optionType });
   };
 
+  const handleSubmit = () => {
+    dispatch({
+      type: OptionsTradingActionType.ADD_CUSTOM_STRIKE,
+      strike: Number(uiStrikePrice),
+    });
+    setUIStrikePrice("");
+  };
+
   return (
     <div className="w-full">
       <div className="mb-4">
@@ -50,7 +58,9 @@ export const CustomOptionOrder: React.FC = () => {
             }
             numericOnly
           />
-          <Button className="ml-8 px-8">Add</Button>
+          <Button className="ml-8 px-8" onClick={handleSubmit}>
+            Add
+          </Button>
         </div>
       </div>
     </div>

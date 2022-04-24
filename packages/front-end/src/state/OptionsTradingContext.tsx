@@ -9,6 +9,7 @@ import {
 export const defaultOptionTradingState: OptionsTradingState = {
   optionType: OptionType.CALL,
   expiryDate: null,
+  customOptionStrikes: [],
   selectedOption: null,
 };
 
