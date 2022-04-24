@@ -68,6 +68,7 @@ let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
+let proposedSeries: any
 let ethUSDAggregator: MockContract
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
@@ -397,7 +398,7 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const weightedTimeBefore = await liquidityPool.weightedTimePut()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const proposedSeries = {
+		proposedSeries = {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),

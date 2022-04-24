@@ -185,6 +185,7 @@ describe("Options protocol Vault Health", function () {
 		await usd
 			.connect(signer)
 			.transfer(liquidityPool.address, toWei("1000000").div(oTokenDecimalShift18))
+		await liquidityPool.setCollateralAllocated(toWei("1000000").div(oTokenDecimalShift18))
 	})
 
 	it("Creates a USDC collataralised call option token series", async () => {
@@ -927,11 +928,18 @@ describe("Options protocol Vault Health", function () {
 		expect(healthF).to.equal(healthFactor)
 	})
 	it("adjusts overcollateralised position", async () => {
+		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		const currentPrice = await oracle.getPrice(weth.address)
 		const arr = await optionRegistry.checkVaultHealth(1)
 		const healthFBefore = arr[2]
 
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		await optionRegistry.adjustCollateral(1)
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const lpBalanceDiff = lpBalanceAfter.sub(lpBalanceBefore)
+		expect(collateralAllocatedAfter).to.equal(collateralAllocatedBefore.sub(lpBalanceDiff))
 		const roundId = 5
 		const vaultDetails = await controller.getVault(optionRegistry.address, 1)
 		const value = vaultDetails.shortAmounts[0]
@@ -1463,14 +1471,25 @@ describe("Options protocol Vault Health", function () {
 		expect(liqOpBalAf).to.eq(0)
 		expect(valueNew).to.eq(0)
 		expect(collatAmountsNew).to.be.within(-3,3)
+		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		await optionRegistry.wCollatLiquidatedVault(3)
+		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
+		const collatAlloc = await liquidityPool.collateralAllocated();
+		await optionRegistry.registerLiquidatedVault(3)
+		const vldAfter = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
+		expect(vldAfter[0]).to.equal(ZERO_ADDRESS)
+		expect(vldAfter[1]).to.equal(0)
+		expect(vldAfter[2]).to.equal(0)
+		const collatAllocAft = await liquidityPool.collateralAllocated()
+		expect(vld[2]).to.equal(collatAlloc.sub(collatAllocAft))
 		const vaultDetails3 = await controller.getVault(optionRegistry.address, 3)
 		const collatAmounts3 = vaultDetails3.collateralAmounts[0]
 		expect(collatAmounts3).to.eq(0)
 		const usdBalAft = await usd.balanceOf(senderAddress)
-		expect(usdBalAft.sub(liqBalAf)).to.eq(collatAmountsNew)
+		expect(usdBalAft.sub(liqBalAf)).to.eq(0)
 	})
 	it("Creates a USD collataralised call option token series", async () => {
+		await optionRegistry.setLiquidityPool(senderAddress)
 		const [sender] = signers
 		// fast forward expiryPeriod length of time
 		expiration = createValidExpiry(expiration, 14)
@@ -1628,15 +1647,25 @@ describe("Options protocol Vault Health", function () {
 		expect(liqOpBalAf).to.eq(0)
 		expect(valueNew).to.eq(0)
 		expect(collatAmountsNew).to.be.within(-3,3)
+		await optionRegistry.setLiquidityPool(liquidityPool.address)
+		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 4)
 		await optionRegistry.wCollatLiquidatedVault(4)
-		const vaultDetails3 = await controller.getVault(optionRegistry.address, 4)
-		const collatAmounts3 = vaultDetails3.collateralAmounts[0]
-		expect(collatAmounts3).to.eq(0)
-		const usdBalAft = await usd.balanceOf(senderAddress)
-		expect(usdBalAft.sub(liqBalAft)).to.eq(collatAmountsNew)
+		const collatAlloc = await liquidityPool.collateralAllocated();
 		const vaultLiqDetails = await controller.getVaultLiquidationDetails(optionRegistry.address, 4)
 		expect(vaultLiqDetails[0]).to.equal(optionTokenUSDC.address)
 		expect(vaultLiqDetails[1]).to.equal(value)
 		expect(vaultLiqDetails[2]).to.equal(collatAmountsBef.sub(collatAmountsNew))
+		await optionRegistry.registerLiquidatedVault(4)
+		const vldAfter = await controller.getVaultLiquidationDetails(optionRegistry.address, 4)
+		expect(vldAfter[0]).to.equal(ZERO_ADDRESS)
+		expect(vldAfter[1]).to.equal(0)
+		expect(vldAfter[2]).to.equal(0)
+		const collatAllocAft = await liquidityPool.collateralAllocated()
+		expect(vld[2]).to.equal(collatAlloc.sub(collatAllocAft))
+		const vaultDetails3 = await controller.getVault(optionRegistry.address, 4)
+		const collatAmounts3 = vaultDetails3.collateralAmounts[0]
+		expect(collatAmounts3).to.eq(0)
+		const usdBalAft = await usd.balanceOf(senderAddress)
+		expect(usdBalAft.sub(liqBalAft)).to.eq(0)
 	})
 })
