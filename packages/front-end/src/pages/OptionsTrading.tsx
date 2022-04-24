@@ -1,4 +1,5 @@
 import React from "react";
+import { CustomOptionOrder } from "../components/optionsTrading/CustomOptionOrder";
 import { ETHPriceIndicator } from "../components/shared/ETHPriceIndicator";
 import { OptionsTradingProvider } from "../state/OptionsTradingContext";
 
@@ -12,7 +13,9 @@ export const OptionsTrading = () => {
         </div>
       </div>
       <div className="col-start-1 col-end-6 p-4">
-        <div className="bg-white border-black border-2"></div>
+        <div className="bg-white border-black border-2 p-2">
+          <CustomOptionOrder />
+        </div>
       </div>
       <div className="col-start-6 col-end-12 p-4">
         <div className="bg-white border-black border-2"></div>
