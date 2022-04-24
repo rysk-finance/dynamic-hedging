@@ -31,5 +31,7 @@ export const optionsTradingReducer: Reducer<
       return { ...state, optionType: action.optionType };
     case OptionsTradingActionType.SET_EXPIRY_DATE:
       return { ...state, expiryDate: action.date };
+    case OptionsTradingActionType.SET_SELECTED_OPTION:
+      return { ...state, selectedOption: action.option };
   }
 };
