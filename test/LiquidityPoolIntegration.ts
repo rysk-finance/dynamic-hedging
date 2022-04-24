@@ -53,6 +53,7 @@ import {
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { VolatilityFeed } from "../types/VolatilityFeed"
+import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 let usd: MintableERC20
 let weth: WETH
 let optionRegistry: OptionRegistry
@@ -66,6 +67,10 @@ let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
 let volatility: Volatility
 let portfolioValuesFeed: MockPortfolioValuesFeed
+let proposedSeries: any
+let ethUSDAggregator: MockContract
+let uniswapV3HedgingReactor: UniswapV3HedgingReactor
+let rate: string
 let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
@@ -442,7 +447,7 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const weightedTimeBefore = await liquidityPool.weightedTimePut()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const proposedSeries = {
+		proposedSeries = {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
