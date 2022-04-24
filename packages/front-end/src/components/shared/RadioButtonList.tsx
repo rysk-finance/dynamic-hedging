@@ -25,7 +25,9 @@ export const RadioButtonList: RadioButtonListType = ({
           : option.value === selected;
         return (
           <Button
-            className={`${isSelected ? "" : "bg-gray-500"}  basis-0 grow`}
+            className={`${
+              isSelected ? "" : "bg-gray-500"
+            }  basis-0 grow mr-[-2px]`}
             onClick={() => setSelected(option.value)}
           >
             {option.label}
