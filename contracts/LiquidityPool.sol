@@ -165,6 +165,13 @@ contract LiquidityPool is
     buybackWhitelist[_addressToWhitelist] = true;
   }
 
+  function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external onlyOwner {
+    maxTimeDeviationThreshold = _maxTimeDeviationThreshold;
+  }
+
+  function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold) external onlyOwner {
+    maxPriceDeviationThreshold = _maxPriceDeviationThreshold;
+  }
   /**
    * @notice set a new hedging reactor
    * @param _reactorAddress append a new hedging reactor 
@@ -413,7 +420,7 @@ contract LiquidityPool is
   function _validatePortfolioValues(Types.PortfolioValues memory portfolioValues) internal view {
       uint256 timeDelta = block.timestamp - portfolioValues.timestamp;
       // If too much time has passed we want to prevent a possible oracle attack
-      if (maxTimeDeviationThreshold > timeDelta) { revert TimeDeltaExceedsThreshold(timeDelta); }
+      if (timeDelta > maxTimeDeviationThreshold) { revert TimeDeltaExceedsThreshold(timeDelta); }
       uint256 price = getUnderlyingPrice(underlyingAsset, strikeAsset);
       uint256 priceDelta = OptionsCompute.calculatePercentageDifference(price, portfolioValues.spotPrice);
       // If price has deviated too much we want to prevent a possible oracle attack

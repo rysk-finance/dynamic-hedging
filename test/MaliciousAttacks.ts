@@ -29,7 +29,7 @@ import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle } from "./helpers"
+import { setupTestOracle, calculateOptionDeltaLocally } from "./helpers"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -336,6 +336,8 @@ describe("Hegic Attack", function () {
 		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
+		await liquidityPool.setMaxTimeDeviationThreshold(600)
+		await liquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
 	})
 
 	it("Adds liquidity to the liquidityPool", async () => {
@@ -411,6 +413,13 @@ describe("Hegic Attack", function () {
 			underlying: weth.address,
 			collateral: usd.address
 		}
+		const localDelta = await calculateOptionDeltaLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeries,
+			amount,
+			true
+		)
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
 		await usd.connect(attacker).approve(liquidityPool.address, toWei("10000000000"))
 		const write = await liquidityPool.connect(attacker).issueAndWriteOption(proposedSeries, amount)
@@ -421,6 +430,17 @@ describe("Hegic Attack", function () {
 		const callOptionToken = new Contract(seriesAddress, Otoken.abi, attacker) as IOToken
 		lpCallOption = callOptionToken
 		const buyerOptionBalance = await callOptionToken.balanceOf(attackerAddress)
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("2"),
+			weth.address,
+			usd.address,
+			localDelta,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(quote),
+			BigNumber.from(priceQuote)
+		)
 		//@ts-ignore
 		const totalInterest = await callOptionToken.totalSupply()
 		const lpUSDBalance = await usd.balanceOf(liquidityPool.address)
