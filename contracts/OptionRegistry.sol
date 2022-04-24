@@ -14,18 +14,26 @@ import { OpynInteractions } from "./libraries/OpynInteractions.sol";
 import { IController, GammaTypes} from "./interfaces/GammaInterface.sol";
 
 contract OptionRegistry is Ownable, AccessControl {
+
+    ///////////////////////////
+    /// immutable variables ///
+    ///////////////////////////
+
     // address of the opyn oTokenFactory for oToken minting
-    address internal oTokenFactory;
+    address internal immutable oTokenFactory;
     // address of the gammaController for oToken operations
-    address internal gammaController;
+    address internal immutable gammaController;
     // address of the collateralAsset
     address public immutable collateralAsset;
     // address of the opyn addressBook for accessing important opyn modules
     AddressBookInterface internal immutable addressBook;
     // address of the marginPool, contract for storing options collateral
-    address internal marginPool;
-    // address of the rysk liquidity pools
-    address internal liquidityPool;
+    address internal immutable marginPool;
+
+    /////////////////////////
+    /// dynamic variables ///
+    /////////////////////////
+
     // information of a series
     mapping(address => Types.OptionSeries) public seriesInfo;
     // vaultId that is responsible for a specific series address
@@ -34,6 +42,13 @@ contract OptionRegistry is Ownable, AccessControl {
     mapping(bytes32 => address) seriesAddress;
     // vault counter
     uint64 public vaultCount;
+
+    /////////////////////////////////////
+    /// governance settable variables ///
+    /////////////////////////////////////
+
+    // address of the rysk liquidity pools
+    address internal liquidityPool;
     // max health threshold for calls
     uint64 public callUpperHealthFactor = 13_000;
     // min health threshold for calls
@@ -42,13 +57,23 @@ contract OptionRegistry is Ownable, AccessControl {
     uint64 public putUpperHealthFactor = 12_000;
     // min health threshold for puts
     uint64 public putLowerHealthFactor = 11_000;
+
+    //////////////////////////
+    /// constant variables ///
+    //////////////////////////
+
     // BIPS
     uint256 private constant MAX_BPS = 10_000;
     // used to convert e18 to e8
     uint256 private constant SCALE_FROM = 10**10;
     // Access control role identifier
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    // oToken decimals
     uint8 private constant OPYN_DECIMALS = 8;
+
+    /////////////////////////////////////
+    /// events && errors && modifiers ///
+    /////////////////////////////////////
 
     event OptionTokenCreated(address token);
     event SeriesRedeemed(address series, uint underlyingAmount, uint strikeAmount);
@@ -61,6 +86,7 @@ contract OptionRegistry is Ownable, AccessControl {
     error AlreadyExpired();
     error NotLiquidityPool();
     error NonExistentSeries();
+    error VaultNotLiquidated();
     error InsufficientBalance();
 
     /**
@@ -82,9 +108,9 @@ contract OptionRegistry is Ownable, AccessControl {
       _setupRole(ADMIN_ROLE, msg.sender);
     }
 
-  /*********
-    SETTERS
-   ********/
+    ///////////////
+    /// setters ///
+    ///////////////
 
     /**
      * @notice Set the liquidity pool address
@@ -108,10 +134,9 @@ contract OptionRegistry is Ownable, AccessControl {
       callUpperHealthFactor = _callUpper;
     }
 
-
-  /**********************
-    Primary functionality
-   **********************/
+    //////////////////////////////////////////////////////
+    /// access-controlled state changing functionality ///
+    //////////////////////////////////////////////////////
 
     /**
      * @notice Either retrieves the option token if it already exists, or deploy it
@@ -194,144 +219,6 @@ contract OptionRegistry is Ownable, AccessControl {
     }
 
     /**
-     * @notice Settle an options vault
-     * @param  _series the address of the option token to be burnt
-     * @return success if the transaction succeeded
-     * @return collatReturned the amount of collateral returned from the vault
-     * @return collatLost the amount of collateral used to pay ITM options on vault settle
-     * @return amountShort number of oTokens that the vault was short
-     * @dev callable by anyone but returns funds to the liquidityPool
-     */
-    function settle(address _series) external returns (bool success, uint256 collatReturned, uint256 collatLost, uint256 amountShort) {
-        Types.OptionSeries memory series = seriesInfo[_series];
-        if (series.expiration == 0) {revert NonExistentSeries();}
-        // check that the option has expired
-        if (series.expiration >= block.timestamp) {revert NotExpired();}
-        // get the vault
-        uint256 vaultId = vaultIds[_series];
-        // settle the vault
-        (uint256 collatReturned, uint256 collatLost, uint amountShort) = OpynInteractions.settle(gammaController, vaultId);
-        // transfer the collateral back to the liquidity pool
-        SafeTransferLib.safeTransfer(ERC20(series.collateral), liquidityPool, collatReturned);
-        emit OptionsContractSettled(_series, collatReturned, collatLost, amountShort);
-        return (true, collatReturned, collatLost, amountShort);
-    }
-
-    /**
-     * @notice Redeem oTokens for the locked collateral
-     * @param  _series the address of the option token to be burnt and redeemed
-     * @return amount returned
-     */
-    function redeem(address _series) external returns (uint256) {
-        Types.OptionSeries memory series = seriesInfo[_series];
-        if (series.expiration == 0) {revert NonExistentSeries();}
-        // check that the option has expired
-        if (series.expiration >= block.timestamp) {revert NotExpired();}
-        if (IERC20(_series).balanceOf(msg.sender) == 0) {revert InsufficientBalance();}
-        uint256 seriesBalance = IERC20(_series).balanceOf(msg.sender);
-        // transfer the oToken back to this account
-        SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), IERC20(_series).balanceOf(msg.sender));
-        // redeem
-        uint256 collatReturned = OpynInteractions.redeem(gammaController, marginPool, _series, seriesBalance);
-        return collatReturned;
-    }
-
-    /**
-     * @notice Send collateral funds for an option to be minted
-     * @dev series.strike should be scaled by 1e8.
-     * @param  series details of the option series
-     * @param  amount amount of options to mint
-     * @return amount transferred
-     */
-    function getCollateral(Types.OptionSeries memory series, uint256 amount) external view returns (uint256) {
-        IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
-        uint256 collateralAmount = marginCalc.getNakedMarginRequired(
-          series.underlying,
-          series.strikeAsset,
-          series.collateral,
-          amount/ SCALE_FROM,
-          series.strike,
-          IOracle(addressBook.getOracle()).getPrice(series.underlying),
-          series.expiration,
-          IERC20(series.collateral).decimals(),
-          series.isPut
-        );
-        // based on this collateral requirement and the health factor get the amount to deposit
-        uint256 upperHealthFactor = series.isPut ? putUpperHealthFactor : callUpperHealthFactor;
-        collateralAmount = ((collateralAmount * upperHealthFactor) / MAX_BPS);
-      return collateralAmount;
-    }
-
-    /**
-     * @notice Retrieves the option token if it exists
-     * @param  underlying is the address of the underlying asset of the option
-     * @param  strikeAsset is the address of the collateral asset of the option
-     * @param  expiration is the expiry timestamp of the option
-     * @param  isPut the type of option
-     * @param  strike is the strike price of the option - 1e18 format
-     * @param  collateral is the address of the asset to collateralize the option with
-     * @return the address of the option
-     */
-    function getOtoken(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external view returns (address) {
-        // check for an opyn oToken
-        address series = OpynInteractions.getOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
-        return series;
-    }
-
-  /*********************
-    Vault health checks
-   *********************/
-
-    /**
-     * @notice check the health of a specific vault to see if it requires collateral
-     * @param  vaultId the id of the vault to check
-     * @return isBelowMin bool to determine whether the vault needs topping up
-     * @return isAboveMax bool to determine whether the vault is too overcollateralised
-     * @return healthFactor the health factor of the vault in MAX_BPS format
-     * @return collatRequired the amount of collateral required to return the vault back to normal
-     * @return collatAsset the address of the collateral asset
-     */
-    function checkVaultHealth(uint256 vaultId) public view returns (bool isBelowMin, bool isAboveMax, uint256 healthFactor, uint256 collatRequired, address collatAsset) {
-      // run checks on the vault health
-      // get the vault details from the vaultId
-      GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
-      // get the series
-      Types.OptionSeries memory series = seriesInfo[vault.shortOtokens[0]];
-      // get the MarginRequired
-      IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
-    
-      uint256 marginReq = marginCalc.getNakedMarginRequired(
-          series.underlying,
-          series.strikeAsset,
-          series.collateral,
-          vault.shortAmounts[0],
-          series.strike,
-          IOracle(addressBook.getOracle()).getPrice(series.underlying),
-          series.expiration,
-          IERC20(series.collateral).decimals(),
-          series.isPut
-        );
-      // get the amount held in the vault
-      uint256 collatAmount = vault.collateralAmounts[0];
-      // divide the amount held in the vault by the margin requirements to get the health factor
-      healthFactor = (collatAmount * MAX_BPS) / marginReq;
-      // set the upper and lower health factor depending on if the series is a put or a call
-      uint256 upperHealthFactor = series.isPut ? putUpperHealthFactor : callUpperHealthFactor;
-      uint256 lowerHealthFactor = series.isPut ? putLowerHealthFactor : callLowerHealthFactor;
-      // if the vault health is above a certain threshold then the vault is above safe margins and collateral can be withdrawn
-      if (healthFactor > upperHealthFactor) {
-        isAboveMax = true;
-        // calculate the margin to remove from the vault
-        collatRequired = collatAmount - ((marginReq * upperHealthFactor) / MAX_BPS);
-      } else if (healthFactor < lowerHealthFactor) {
-        isBelowMin = true;
-        // calculate the margin to add to the vault
-        collatRequired = ((marginReq * upperHealthFactor) / MAX_BPS) - collatAmount;
-      }
-      collatAsset = series.collateral;
-    }
-
-    /**
      * @notice adjust the collateral held in a specific vault because of health
      * @param  vaultId the id of the vault to check
      */
@@ -381,16 +268,179 @@ contract OptionRegistry is Ownable, AccessControl {
       require(vault.collateralAmounts[0] > 0, "Vault has no collateral");
       // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
       OpynInteractions.withdrawCollat(gammaController, vault.collateralAssets[0], vault.collateralAmounts[0], vaultId);
+      // adjust the collateral in the liquidityPool
+      LiquidityPool(liquidityPool).adjustCollateral(vault.collateralAmounts[0], true);
       // transfer the excess collateral to the liquidityPool from this address
       SafeTransferLib.safeTransfer(ERC20(vault.collateralAssets[0]), liquidityPool, vault.collateralAmounts[0]);
     }
+
+    /**
+     * @notice register a liquidated vault so the collateral allocated is managed
+     * @param  vaultId the id of the vault to register liquidation for
+     * @dev    this is a safety function, if a vault is liquidated to update the collateral assets in the pool
+     */
+    function registerLiquidatedVault(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
+      // get the vault liquidation details from the vaultId
+      (address series,, uint256 collateralLiquidated) = IController(gammaController).getVaultLiquidationDetails(address(this), vaultId);
+      if( series == address(0)) {revert VaultNotLiquidated();}
+      // adjust the collateral in the liquidity pool to reflect the loss
+      LiquidityPool(liquidityPool).adjustCollateral(collateralLiquidated, true);
+      // clear the liquidation record from gamma controller so as not to double count the liquidation
+      IController(gammaController).clearVaultLiquidationDetails(vaultId);
+    }  
+
+    /////////////////////////////////////////////
+    /// external state changing functionality ///
+    /////////////////////////////////////////////
+
+    /**
+     * @notice Settle an options vault
+     * @param  _series the address of the option token to be burnt
+     * @return success if the transaction succeeded
+     * @return collatReturned the amount of collateral returned from the vault
+     * @return collatLost the amount of collateral used to pay ITM options on vault settle
+     * @return amountShort number of oTokens that the vault was short
+     * @dev callable by anyone but returns funds to the liquidityPool
+     */
+    function settle(address _series) external returns (bool success, uint256 collatReturned, uint256 collatLost, uint256 amountShort) {
+        Types.OptionSeries memory series = seriesInfo[_series];
+        if (series.expiration == 0) {revert NonExistentSeries();}
+        // check that the option has expired
+        if (series.expiration >= block.timestamp) {revert NotExpired();}
+        // get the vault
+        uint256 vaultId = vaultIds[_series];
+        // settle the vault
+        (uint256 collatReturned, uint256 collatLost, uint amountShort) = OpynInteractions.settle(gammaController, vaultId);
+        // transfer the collateral back to the liquidity pool
+        SafeTransferLib.safeTransfer(ERC20(series.collateral), liquidityPool, collatReturned);
+        emit OptionsContractSettled(_series, collatReturned, collatLost, amountShort);
+        return (true, collatReturned, collatLost, amountShort);
+    }
+
+    /**
+     * @notice Redeem oTokens for the locked collateral
+     * @param  _series the address of the option token to be burnt and redeemed
+     * @return amount returned
+     */
+    function redeem(address _series) external returns (uint256) {
+        Types.OptionSeries memory series = seriesInfo[_series];
+        if (series.expiration == 0) {revert NonExistentSeries();}
+        // check that the option has expired
+        if (series.expiration >= block.timestamp) {revert NotExpired();}
+        if (IERC20(_series).balanceOf(msg.sender) == 0) {revert InsufficientBalance();}
+        uint256 seriesBalance = IERC20(_series).balanceOf(msg.sender);
+        // transfer the oToken back to this account
+        SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), IERC20(_series).balanceOf(msg.sender));
+        // redeem
+        uint256 collatReturned = OpynInteractions.redeem(gammaController, marginPool, _series, seriesBalance);
+        return collatReturned;
+    }
+
+    ///////////////////////
+    /// complex getters ///
+    ///////////////////////
+
+    /**
+     * @notice Send collateral funds for an option to be minted
+     * @dev series.strike should be scaled by 1e8.
+     * @param  series details of the option series
+     * @param  amount amount of options to mint
+     * @return amount transferred
+     */
+    function getCollateral(Types.OptionSeries memory series, uint256 amount) external view returns (uint256) {
+        IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
+        uint256 collateralAmount = marginCalc.getNakedMarginRequired(
+          series.underlying,
+          series.strikeAsset,
+          series.collateral,
+          amount/ SCALE_FROM,
+          series.strike,
+          IOracle(addressBook.getOracle()).getPrice(series.underlying),
+          series.expiration,
+          IERC20(series.collateral).decimals(),
+          series.isPut
+        );
+        // based on this collateral requirement and the health factor get the amount to deposit
+        uint256 upperHealthFactor = series.isPut ? putUpperHealthFactor : callUpperHealthFactor;
+        collateralAmount = ((collateralAmount * upperHealthFactor) / MAX_BPS);
+      return collateralAmount;
+    }
+
+    /**
+     * @notice Retrieves the option token if it exists
+     * @param  underlying is the address of the underlying asset of the option
+     * @param  strikeAsset is the address of the collateral asset of the option
+     * @param  expiration is the expiry timestamp of the option
+     * @param  isPut the type of option
+     * @param  strike is the strike price of the option - 1e18 format
+     * @param  collateral is the address of the asset to collateralize the option with
+     * @return the address of the option
+     */
+    function getOtoken(address underlying, address strikeAsset, uint expiration, bool isPut, uint strike, address collateral) external view returns (address) {
+        // check for an opyn oToken
+        address series = OpynInteractions.getOtoken(oTokenFactory, collateral, underlying, strikeAsset, formatStrikePrice(strike, collateral), expiration, isPut);
+        return series;
+    }
+
+    /**
+     * @notice check the health of a specific vault to see if it requires collateral
+     * @param  vaultId the id of the vault to check
+     * @return isBelowMin bool to determine whether the vault needs topping up
+     * @return isAboveMax bool to determine whether the vault is too overcollateralised
+     * @return healthFactor the health factor of the vault in MAX_BPS format
+     * @return collatRequired the amount of collateral required to return the vault back to normal
+     * @return collatAsset the address of the collateral asset
+     */
+    function checkVaultHealth(uint256 vaultId) public view returns (bool isBelowMin, bool isAboveMax, uint256 healthFactor, uint256 collatRequired, address collatAsset) {
+      // run checks on the vault health
+      // get the vault details from the vaultId
+      GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
+      // get the series
+      Types.OptionSeries memory series = seriesInfo[vault.shortOtokens[0]];
+      // get the MarginRequired
+      IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
     
-  /*********
-    GETTERS
-   *********/
+      uint256 marginReq = marginCalc.getNakedMarginRequired(
+          series.underlying,
+          series.strikeAsset,
+          series.collateral,
+          vault.shortAmounts[0],
+          series.strike,
+          IOracle(addressBook.getOracle()).getPrice(series.underlying),
+          series.expiration,
+          IERC20(series.collateral).decimals(),
+          series.isPut
+        );
+      // get the amount held in the vault
+      uint256 collatAmount = vault.collateralAmounts[0];
+      // divide the amount held in the vault by the margin requirements to get the health factor
+      healthFactor = (collatAmount * MAX_BPS) / marginReq;
+      // set the upper and lower health factor depending on if the series is a put or a call
+      uint256 upperHealthFactor = series.isPut ? putUpperHealthFactor : callUpperHealthFactor;
+      uint256 lowerHealthFactor = series.isPut ? putLowerHealthFactor : callLowerHealthFactor;
+      // if the vault health is above a certain threshold then the vault is above safe margins and collateral can be withdrawn
+      if (healthFactor > upperHealthFactor) {
+        isAboveMax = true;
+        // calculate the margin to remove from the vault
+        collatRequired = collatAmount - ((marginReq * upperHealthFactor) / MAX_BPS);
+      } else if (healthFactor < lowerHealthFactor) {
+        isBelowMin = true;
+        // calculate the margin to add to the vault
+        collatRequired = ((marginReq * upperHealthFactor) / MAX_BPS) - collatAmount;
+      }
+      collatAsset = series.collateral;
+    }
+    
+    ///////////////////////////
+    /// non-complex getters ///
+    ///////////////////////////
 
    function getSeriesAddress(bytes32 issuanceHash) public view returns (address) {
      return seriesAddress[issuanceHash];
+   }
+
+   function getSeries(Types.OptionSeries memory _series) public view returns (address) {
+     return seriesAddress[getIssuanceHash(_series.underlying, _series.strikeAsset, _series.collateral, _series.expiration, _series.isPut, _series.strike)];
    }
 
    function getSeriesInfo(address series)
@@ -417,6 +467,10 @@ contract OptionRegistry is Ownable, AccessControl {
       );
     }
 
+    //////////////////////////
+    /// internal utilities ///
+    //////////////////////////
+
     /**
      * @notice Converts strike price to 1e8 format and floors least significant digits if needed
      * @param  strikePrice strikePrice in 1e18 format
@@ -435,5 +489,4 @@ contract OptionRegistry is Ownable, AccessControl {
         // round floor strike to prevent errors in Gamma protocol
         return price / (10**difference) * (10**difference);
     }
-
 }

@@ -16,48 +16,74 @@ import "hardhat/console.sol";
 
 contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
 
-    /// @notice used for unlimited token approval 
-    uint256 private constant MAX_UINT = 2**256 - 1;
+    ///////////////////////////
+    /// immutable variables ///
+    ///////////////////////////
 
     /// @notice address of the parent liquidity pool contract
-    address public parentLiquidityPool;
-
+    address public immutable parentLiquidityPool;
     /// @notice address of the price feed used for getting asset prices
-    address public priceFeed;
-
+    address public immutable priceFeed;
     /// @notice generalised list of stablecoin addresses to trade against wETH
-    address[] public stablecoinAddresses; // we should try not to use unfixed length array
-    
+    address public immutable collateral;
     /// @notice address of the wETH contract 
     address public immutable wETH;
-
     /// @notice instance of the uniswap V3 router interface
     ISwapRouter public immutable swapRouter;
 
-    /// @notice uniswap v3 pool fee expressed at 10e6
-    uint24 public poolFee;
+    /////////////////////////
+    /// dynamic variables ///
+    /////////////////////////
 
+    /// @notice delta exposure of this reactor
     int256 public internalDelta;
+
+    /////////////////////////////////////
+    /// governance settable variables ///
+    /////////////////////////////////////
 
     // @notice limit to ensure we arent doing inefficient computation for dust amounts
     uint256 public minAmount = 1e16;
+    /// @notice uniswap v3 pool fee expressed at 10e6
+    uint24 public poolFee;
 
+    //////////////////////////
+    /// constant variables ///
+    //////////////////////////
 
-    constructor (ISwapRouter _swapRouter, address[] memory _stableAddresses, address _wethAddress, address _parentLiquidityPool, uint24 _poolFee, address _priceFeed) {
+    /// @notice used for unlimited token approval 
+    uint256 private constant MAX_UINT = 2**256 - 1;
+
+    constructor (ISwapRouter _swapRouter, address _collateral, address _wethAddress, address _parentLiquidityPool, uint24 _poolFee, address _priceFeed) {
         swapRouter = _swapRouter;
-        stablecoinAddresses = _stableAddresses;
+        collateral = _collateral;
         wETH = _wethAddress;
         parentLiquidityPool = _parentLiquidityPool;
         poolFee = _poolFee;
         priceFeed = _priceFeed;
 
-        for (uint i=0; i < _stableAddresses.length; i++) {
-            SafeTransferLib.safeApprove( ERC20(_stableAddresses[i]), address(swapRouter), MAX_UINT );
-        }
+        SafeTransferLib.safeApprove( ERC20(collateral), address(swapRouter), MAX_UINT );
         SafeTransferLib.safeApprove( ERC20(_wethAddress), address(swapRouter), MAX_UINT );
     }
 
-    
+    ///////////////
+    /// setters ///
+    ///////////////
+
+    /// @notice update the uniswap v3 pool fee
+    function changePoolFee(uint24 _poolFee) public onlyOwner {
+        poolFee = _poolFee;
+    }
+
+    /// @notice update the minAmount parameter
+    function setMinAmount(uint _minAmount) public onlyOwner {
+        minAmount = _minAmount;
+    }
+
+    //////////////////////////////////////////////////////
+    /// access-controlled state changing functionality ///
+    //////////////////////////////////////////////////////
+
     /// @inheritdoc IHedgingReactor
     function hedgeDelta(int256 _delta) external returns (int256 deltaChange) {
         
@@ -67,7 +93,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         if (_delta < 0) { // buy wETH
         //TODO calculate amountInMaximum using live oracle data
         //TODO set stablecoin and amountin/out variables
-            (int256 deltaChange, uint256 amountPaid) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, stablecoinAddresses[0]);
+            (int256 deltaChange, uint256 amountPaid) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateral);
             internalDelta += deltaChange;
             return deltaChange;
         } else { // sell wETH
@@ -77,26 +103,15 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             }
             if(_delta > int256(ethBalance)){ // not enough ETH to sell to offset delta so sell all ETH available.
                 //TODO calculate amountOutMinmmum using live oracle data
-                (int256 deltaChange, uint256 amountReceived) = _swapExactInputSingle(ethBalance, amountOutMinimum, stablecoinAddresses[0]);
+                (int256 deltaChange, uint256 amountReceived) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateral);
                   internalDelta += deltaChange;
                 return deltaChange;
             } else {
-                 (int256 deltaChange, uint256 amountReceived) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, stablecoinAddresses[0]);
+                 (int256 deltaChange, uint256 amountReceived) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateral);
                   internalDelta += deltaChange;
                 return deltaChange;
             }
         }
-    }
-
-    /// @inheritdoc IHedgingReactor
-    function getDelta() external view returns(int256 delta){
-        return internalDelta;
-    }
-
-    /// @inheritdoc IHedgingReactor
-    function getPoolDenominatedValue() external view returns(uint256 value){
-        return OptionsCompute.convertFromDecimals(IERC20(stablecoinAddresses[0]).balanceOf(address(this)), IERC20(stablecoinAddresses[0]).decimals()) +
-                (PriceFeed(priceFeed).getNormalizedRate(wETH, stablecoinAddresses[0]) * IERC20(wETH).balanceOf(address(this))) / 10**IERC20(wETH).decimals();
     }
 
     /// @inheritdoc IHedgingReactor
@@ -129,31 +144,33 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         }
     }
 
+    /////////////////////////////////////////////
+    /// external state changing functionality ///
+    /////////////////////////////////////////////
+
     /// @inheritdoc IHedgingReactor
-    function update() external view returns (uint256) {
-        return 69420;
+    function update() external returns (int256) {
+        return 0;
     }
 
-    /// @notice update the uniswap v3 pool fee
-    function changePoolFee(uint24 _poolFee) public onlyOwner {
-        poolFee = _poolFee;
+    ///////////////////////
+    /// complex getters ///
+    ///////////////////////
+
+    /// @inheritdoc IHedgingReactor
+    function getDelta() external view returns(int256 delta){
+        return internalDelta;
     }
 
-    /// @notice update the minAmount parameter
-    function setMinAmount(uint _minAmount) public onlyOwner {
-        minAmount = _minAmount;
+    /// @inheritdoc IHedgingReactor
+    function getPoolDenominatedValue() external view returns(uint256 value){
+        return OptionsCompute.convertFromDecimals(IERC20(collateral).balanceOf(address(this)), IERC20(collateral).decimals()) +
+                (PriceFeed(priceFeed).getNormalizedRate(wETH, collateral) * IERC20(wETH).balanceOf(address(this))) / 10**IERC20(wETH).decimals();
     }
 
-
-    /**
-        @notice convert between standand 10e18 decimals and custom decimals for different tokens
-        @param _token token to format the output to
-        @param _amount imput amount denoted in 10e18
-        @return _convertedAmount amount converted to correct decimal format
-     */
-    function decimalHelper(address _token, uint _amount) internal pure returns(uint _convertedAmount) {
-        return _amount;
-    }
+    //////////////////////////
+    /// internal utilities ///
+    //////////////////////////
 
 
     /** @notice function to sell stablecoins for exact amount of wETH to increase delta
@@ -174,7 +191,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
                 recipient: address(this),
                 deadline: block.timestamp,
                 amountOut: _amountOut,
-                amountInMaximum: decimalHelper(_sellToken, _amountInMaximum),
+                amountInMaximum: _amountInMaximum,
                 sqrtPriceLimitX96: 0
             });
 
@@ -199,7 +216,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
                 recipient: address(this),
                 deadline: block.timestamp,
                 amountIn: _amountIn,
-                amountOutMinimum: decimalHelper(_buyToken, _amountOutMinimum),
+                amountOutMinimum: _amountOutMinimum,
                 sqrtPriceLimitX96: 0
             });
 
@@ -226,7 +243,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
                 fee: poolFee,
                 recipient: address(this),
                 deadline: block.timestamp,
-                amountOut: decimalHelper(_buyToken,_amountOut),
+                amountOut: _amountOut,
                 amountInMaximum: _amountInMaximum,
                 sqrtPriceLimitX96: 0
             });
@@ -245,7 +262,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
                 recipient: address(this),
                 deadline: block.timestamp,
                 amountIn: uint256(internalDelta), // amount of ETH this reactor has
-                amountOutMinimum: decimalHelper(_buyToken, 0),
+                amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             });
             uint256 amountOut = swapRouter.exactInputSingle(params);

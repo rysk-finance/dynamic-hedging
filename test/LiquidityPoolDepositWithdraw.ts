@@ -45,6 +45,7 @@ import {
 } from "./constants"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
+import { VolatilityFeed } from "../types/VolatilityFeed"
 
 let usd: MintableERC20
 let weth: WETH
@@ -52,6 +53,7 @@ let optionRegistry: OptionRegistry
 let optionProtocol: Protocol
 let signers: Signer[]
 let volatility: Volatility
+let volFeed: VolatilityFeed
 let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
@@ -195,16 +197,9 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(oraclePrice.mul(10_000_000_000)).to.equal(priceFeedPrice)
 	})
 
-	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
-		optionProtocol = (await protocolFactory.deploy(
-			optionRegistry.address,
-			priceFeed.address
-		)) as Protocol
-		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
-	})
-
-	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
+	it("#Should deploy volatility feed", async () => {
+		const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
+		volFeed = (await volFeedFactory.deploy()) as VolatilityFeed
 		type int7 = [
 			BigNumberish,
 			BigNumberish,
@@ -226,6 +221,21 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		]
 		//@ts-ignore
 		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
+		await volFeed.setVolatilitySkew(coefs, true)
+		await volFeed.setVolatilitySkew(coefs, false)
+	})
+
+	it("Should deploy option protocol and link to registry/price feed", async () => {
+		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
+		optionProtocol = (await protocolFactory.deploy(
+			optionRegistry.address,
+			priceFeed.address,
+			volFeed.address
+		)) as Protocol
+		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
+	})
+
+	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
 
 		const normDistFactory = await ethers.getContractFactory("NormalDist", {
 			libraries: {}
@@ -253,8 +263,6 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			weth.address,
 			usd.address,
 			toWei(rfr),
-			coefs,
-			coefs,
 			"ETH/USDC",
 			"EDP",
 			{

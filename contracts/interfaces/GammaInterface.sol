@@ -20,6 +20,14 @@ library GammaTypes {
         // quantity of ERC-20 deposited as collateral in the vault for each ERC-20 address in collateralAssets
         uint256[] collateralAmounts;
     }
+
+    // vaultLiquidationDetails is a struct of 3 variables that store the series address, short amount liquidated and collateral transferred for
+    // a given liquidation
+    struct VaultLiquidationDetails {
+        address series;
+        uint128 shortAmount;
+        uint128 collateralAmount;
+    }
 }
 
 interface IOtoken {
@@ -152,4 +160,12 @@ interface IController {
         address _collateral,
         uint256 _expiry
     ) external view returns (bool);
+
+    function clearVaultLiquidationDetails(uint256 _vaultId) external; 
+
+    function getVaultLiquidationDetails(address _owner, uint256 _vaultId) external view returns (
+            address,
+            uint256,
+            uint256
+        );
 }
