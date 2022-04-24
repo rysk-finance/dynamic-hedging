@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import DummyVaultABI from "../artifacts/contracts/DummyVault.sol/DummyVault.json";
 import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
-import { Button } from "./Button";
-import { TextInput } from "./TextInput";
+import { Button } from "./shared/Button";
+import { TextInput } from "./shared/TextInput";
 
 enum Mode {
   DEPOSIT,
