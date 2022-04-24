@@ -24,7 +24,7 @@ export const OptionsChart: React.FC = () => {
   }, [ethPrice, cachedEthPrice]);
 
   const {
-    state: { optionType },
+    state: { optionType, customOptionStrikes },
     dispatch,
   } = useOptionsTradingContext();
 
@@ -32,13 +32,20 @@ export const OptionsChart: React.FC = () => {
 
   useEffect(() => {
     if (cachedEthPrice) {
-      const suggestions: Option[] = (
+      const diffs =
         optionType === OptionType.CALL
           ? suggestedCallOptionPriceDiff
-          : suggestedPutOptionPriceDiff
-      ).map<Option>((diff) => {
+          : suggestedPutOptionPriceDiff;
+
+      const strikes = [
+        ...diffs.map<number>((diff) =>
+          Number((cachedEthPrice + diff).toFixed(0))
+        ),
+        ...customOptionStrikes,
+      ].sort((a, b) => a - b);
+      const suggestions: Option[] = strikes.map<Option>((strike) => {
         return {
-          strike: Number((cachedEthPrice + diff).toFixed(0)),
+          strike: strike,
           IV: 100,
           delta: 0.5,
           price: 100,
@@ -47,7 +54,7 @@ export const OptionsChart: React.FC = () => {
       });
       setSuggestions(suggestions);
     }
-  }, [cachedEthPrice, suggestions, optionType]);
+  }, [cachedEthPrice, suggestions, optionType, customOptionStrikes]);
 
   const setSelectedOption = (option: Option) => {
     dispatch({ type: OptionsTradingActionType.SET_SELECTED_OPTION, option });

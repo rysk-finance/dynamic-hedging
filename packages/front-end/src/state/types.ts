@@ -25,6 +25,7 @@ export type GlobalContext = {
 export type OptionsTradingState = {
   optionType: OptionType;
   expiryDate: Date | null;
+  customOptionStrikes: number[];
   selectedOption: Option | null;
 };
 
@@ -50,6 +51,7 @@ export enum OptionsTradingActionType {
   SET_OPTION_TYPE,
   SET_EXPIRY_DATE,
   SET_SELECTED_OPTION,
+  ADD_CUSTOM_STRIKE,
 }
 
 export type OptionsTradingAction =
@@ -60,6 +62,10 @@ export type OptionsTradingAction =
   | {
       type: OptionsTradingActionType.SET_EXPIRY_DATE;
       date: Date;
+    }
+  | {
+      type: OptionsTradingActionType.ADD_CUSTOM_STRIKE;
+      strike: number;
     }
   | {
       type: OptionsTradingActionType.SET_SELECTED_OPTION;
