@@ -18,6 +18,7 @@ import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/Liquidity
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
+import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
@@ -28,7 +29,7 @@ import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle } from "./helpers"
+import { setupTestOracle, calculateOptionDeltaLocally } from "./helpers"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -61,6 +62,7 @@ let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
+let portfolioValuesFeed: MockPortfolioValuesFeed
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -232,18 +234,65 @@ describe("Hegic Attack", function () {
 		await volFeed.setVolatilitySkew(coefs, false)
 	})
 
+	it("should deploy portfolio values feed", async () => {
+		const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
+		portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
+			await signers[0].getAddress(),
+			utils.formatBytes32String("jobId"),
+			toWei("1"),
+			ZERO_ADDRESS
+		)) as MockPortfolioValuesFeed
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("1"),
+			weth.address,
+			usd.address,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
+	})
+
 	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address,
-			volFeed.address
+			volFeed.address,
+			portfolioValuesFeed.address
 		)) as Protocol
 		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
+		type int7 = [
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish
+		]
+		type number7 = [number, number, number, number, number, number, number]
+		const coefInts: number7 = [
+			1.42180236,
+			0,
+			-0.08626792,
+			0.07873822,
+			0.00650549,
+			0.02160918,
+			-0.1393287
+		]
+		//@ts-ignore
+		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
+		await volFeed.setVolatilitySkew(coefs, true)
+		await volFeed.setVolatilitySkew(coefs, false)
+	})
 
+	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
 		const normDistFactory = await ethers.getContractFactory("NormalDist", {
 			libraries: {}
 		})
@@ -287,6 +336,8 @@ describe("Hegic Attack", function () {
 		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
+		await liquidityPool.setMaxTimeDeviationThreshold(600)
+		await liquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
 	})
 
 	it("Adds liquidity to the liquidityPool", async () => {
@@ -362,6 +413,13 @@ describe("Hegic Attack", function () {
 			underlying: weth.address,
 			collateral: usd.address
 		}
+		const localDelta = await calculateOptionDeltaLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeries,
+			amount,
+			true
+		)
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
 		await usd.connect(attacker).approve(liquidityPool.address, toWei("10000000000"))
 		const write = await liquidityPool.connect(attacker).issueAndWriteOption(proposedSeries, amount)
@@ -372,6 +430,17 @@ describe("Hegic Attack", function () {
 		const callOptionToken = new Contract(seriesAddress, Otoken.abi, attacker) as IOToken
 		lpCallOption = callOptionToken
 		const buyerOptionBalance = await callOptionToken.balanceOf(attackerAddress)
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("2"),
+			weth.address,
+			usd.address,
+			localDelta,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(quote),
+			BigNumber.from(priceQuote)
+		)
 		//@ts-ignore
 		const totalInterest = await callOptionToken.totalSupply()
 		const lpUSDBalance = await usd.balanceOf(liquidityPool.address)

@@ -11,6 +11,16 @@ library Types {
             address collateral;
         }
 
+        struct PortfolioValues {
+            int256 delta;
+            int256 gamma;
+            int256 vega;
+            int256 theta;
+            uint256 callPutsValue;
+            uint256 timestamp;
+            uint256 spotPrice;
+        }
+
         struct Order {
             OptionSeries optionSeries;
             uint128 premiums;
