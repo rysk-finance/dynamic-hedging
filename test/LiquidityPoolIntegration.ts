@@ -18,7 +18,6 @@ import {
 	fromUSDC,
 	scaleNum
 } from "../utils/conversion-helper"
-import { computeNewWeights } from "../utils/OptionsCompute"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
@@ -27,7 +26,7 @@ import bs from "black-scholes"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
+import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
@@ -35,11 +34,11 @@ import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
-import { Volatility } from "../types/Volatility"
 import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
-import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
+import { Volatility } from "../types/Volatility"
+import { Oracle } from "../types/Oracle"
 import { setupTestOracle } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
@@ -48,14 +47,12 @@ import {
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS,
-	ADDRESS_BOOK,
-	UNISWAP_V3_SWAP_ROUTER,
-	CONTROLLER_OWNER,
-	GAMMA_ORACLE_NEW
+	ADDRESS_BOOK
 } from "./constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { VolatilityFeed } from "../types/VolatilityFeed"
+import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 let usd: MintableERC20
 let weth: WETH
 let optionRegistry: OptionRegistry
@@ -65,9 +62,11 @@ let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
 let ethLiquidityPool: LiquidityPool
-let volatility: Volatility
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
+let volatility: Volatility
+let portfolioValuesFeed: MockPortfolioValuesFeed
+let proposedSeries: any
 let ethUSDAggregator: MockContract
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
@@ -173,21 +172,8 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		opynAggregator = res[1] as MockChainlinkAggregator
 	})
 
-	it("Deploys the Option Registry", async () => {
-		signers = await ethers.getSigners()
+	it("Sets up weth and usdc for funding", async () => {
 		senderAddress = await signers[0].getAddress()
-		receiverAddress = await signers[1].getAddress()
-		// deploy libraries
-		const constantsFactory = await ethers.getContractFactory("Constants")
-		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
-		const constants = await constantsFactory.deploy()
-		const interactions = await interactionsFactory.deploy()
-		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
-			libraries: {
-				OpynInteractions: interactions.address
-			}
-		})
 		// get and transfer weth
 		weth = (await ethers.getContractAt(
 			"contracts/interfaces/WETH.sol:WETH",
@@ -204,6 +190,44 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
 		await usd.connect(signer).transfer(senderAddress, toWei("1000").div(oTokenDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
+	})
+
+	it("should deploy portfolio values feed", async () => {
+		const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
+		portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
+			await signers[0].getAddress(),
+			utils.formatBytes32String("jobId"),
+			toWei("1"),
+			ZERO_ADDRESS
+		)) as MockPortfolioValuesFeed
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("1"),
+			weth.address,
+			usd.address,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
+	})
+
+	it("Deploys the Option Registry", async () => {
+		signers = await ethers.getSigners()
+		senderAddress = await signers[0].getAddress()
+		receiverAddress = await signers[1].getAddress()
+		// deploy libraries
+		const constantsFactory = await ethers.getContractFactory("Constants")
+		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
+		const constants = await constantsFactory.deploy()
+		const interactions = await interactionsFactory.deploy()
+		// deploy options registry
+		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
+			libraries: {
+				OpynInteractions: interactions.address
+			}
+		})
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
 			OTOKEN_FACTORY[chainId],
@@ -255,18 +279,43 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		await volFeed.setVolatilitySkew(coefs, true)
 		await volFeed.setVolatilitySkew(coefs, false)
 	})
-
 	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address,
-			volFeed.address
+			volFeed.address,
+			portfolioValuesFeed.address
 		)) as Protocol
 		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
+		type int7 = [
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish
+		]
+		type number7 = [number, number, number, number, number, number, number]
+		const coefInts: number7 = [
+			1.42180236,
+			0,
+			-0.08626792,
+			0.07873822,
+			0.00650549,
+			0.02160918,
+			-0.1393287
+		]
+		//@ts-ignore
+		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
+		await volFeed.setVolatilitySkew(coefs, true)
+		await volFeed.setVolatilitySkew(coefs, false)
+	})
 
+	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
 		const normDistFactory = await ethers.getContractFactory("NormalDist", {
 			libraries: {}
 		})
@@ -309,6 +358,8 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
+		await liquidityPool.setMaxTimeDeviationThreshold(600)
+		await liquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
 	})
 
 	it("Deposit to the liquidityPool", async () => {
@@ -385,64 +436,5 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.within(0, 0.01)
-	})
-	it("LP Writes a ETH/USD put for premium under utilization", async () => {
-		const [sender] = signers
-		const rawAmount = 1
-		const amount = toWei(rawAmount.toString())
-		const blockNum = await ethers.provider.getBlockNumber()
-		const block = await ethers.provider.getBlock(blockNum)
-		const totalAmountPutBefore = await liquidityPool.totalAmountPut()
-		const weightedStrikeBefore = await liquidityPool.weightedStrikePut()
-		const weightedTimeBefore = await liquidityPool.weightedTimePut()
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike))
-		const proposedSeries = {
-			expiration: expiration,
-			isPut: PUT_FLAVOR,
-			strike: BigNumber.from(strikePrice),
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
-		await usd.approve(liquidityPool.address, quote)
-		const balance = await usd.balanceOf(senderAddress)
-		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
-		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		const receipt = await write.wait(1)
-		const events = receipt.events
-		const writeEvent = events?.find(x => x.event == "WriteOption")
-		const seriesAddress = writeEvent?.args?.series
-		const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
-		const putBalance = await putOptionToken.balanceOf(senderAddress)
-		const balanceNew = await usd.balanceOf(senderAddress)
-		const opynAmount = toOpyn(fromWei(amount))
-		// convert to numeric
-		const escrow = Number(fromUSDC(await liquidityPool.collateralAllocated()))
-		const totalAmountPutAfter = await liquidityPool.totalAmountPut()
-		const weightedStrikeAfter = await liquidityPool.weightedStrikePut()
-		const weightedTimeAfter = await liquidityPool.weightedTimePut()
-		const newWeights = computeNewWeights(
-			amount,
-			proposedSeries.strike,
-			BigNumber.from(proposedSeries.expiration),
-			totalAmountPutBefore,
-			weightedStrikeBefore,
-			weightedTimeBefore,
-			true
-		)
-		expect(putBalance).to.eq(opynAmount)
-		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
-		const expectedPoolBalance = truncate(
-			Number(fromUSDC(poolBalanceBefore)) + Number(fromWei(quote)) - escrow
-		)
-		expect(expectedPoolBalance).to.eq(truncate(Number(fromUSDC(poolBalanceAfter))))
-		expect(totalAmountPutAfter.sub(totalAmountPutBefore)).to.eq(amount)
-		expect(weightedStrikeAfter).to.eq(newWeights.newWeightedStrike)
-		expect(weightedTimeAfter).to.eq(newWeights.newWeightedTime)
-		//@TODO add assertion checking if other state variables are properly updated such as weighted variables
 	})
 })

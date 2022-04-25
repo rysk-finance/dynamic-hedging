@@ -1,5 +1,6 @@
 import hre, { ethers, network } from "hardhat"
 import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
+import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import {
 	toWei,
 	truncate,
@@ -28,6 +29,7 @@ import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
+import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
 import { Protocol } from "../types/Protocol"
@@ -72,6 +74,7 @@ let ethLiquidityPool: LiquidityPool
 let volatility: Volatility
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
+let portfolioValuesFeed: MockPortfolioValuesFeed
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let rate: string
 let controller: NewController
@@ -283,12 +286,34 @@ describe("Liquidity Pools", async () => {
 		await volFeed.setVolatilitySkew(coefs, false)
 	})
 
+	it("should deploy portfolio values feed", async () => {
+		const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
+		portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
+			await signers[0].getAddress(),
+			utils.formatBytes32String("jobId"),
+			toWei("1"),
+			ZERO_ADDRESS
+		)) as MockPortfolioValuesFeed
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("1"),
+			weth.address,
+			usd.address,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
+	})
+
 	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address,
-			volFeed.address
+			volFeed.address,
+			portfolioValuesFeed.address
 		)) as Protocol
 		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
@@ -337,6 +362,8 @@ describe("Liquidity Pools", async () => {
 		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
+		await liquidityPool.setMaxTimeDeviationThreshold(600)
+		await liquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
 	})
 
 	it("Deposit to the liquidityPool", async () => {
@@ -563,11 +590,10 @@ describe("Liquidity Pools", async () => {
 		const opynAmount = toOpyn(fromWei(amount))
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(0, 0.1)
+		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(-0.1, 0.1)
 		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
 	})
 	it("can compute portfolio delta", async function () {
-		const delta = await liquidityPool.getPortfolioDelta()
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
@@ -575,6 +601,19 @@ describe("Liquidity Pools", async () => {
 			toWei("1"),
 			true
 		)
+		// mock external adapter delta calculation
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("2"),
+			weth.address,
+			usd.address,
+			localDelta,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
+		const delta = await liquidityPool.getPortfolioDelta()
 		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
@@ -619,13 +658,9 @@ describe("Liquidity Pools", async () => {
 		).to.be.within(0, 0.1)
 	})
 	it("can compute portfolio delta", async function () {
-		const delta = await liquidityPool.getPortfolioDelta()
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
-		const wTPuts = await liquidityPool.weightedTimePut()
-		const wSPuts = await liquidityPool.weightedStrikePut()
-		const wPuts = await liquidityPool.totalAmountPut()
 
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
@@ -634,21 +669,19 @@ describe("Liquidity Pools", async () => {
 			toWei("1"),
 			true
 		)
-		const localDeltaActual = await calculateOptionDeltaLocally(
-			liquidityPool,
-			priceFeed,
-			{
-				expiration: wTPuts.toNumber(),
-				isPut: PUT_FLAVOR,
-				strike: wSPuts,
-				strikeAsset: usd.address,
-				underlying: weth.address,
-				collateral: usd.address
-			},
-			wPuts,
-			true
-		)
+
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("1"),
+			weth.address,
+			usd.address,
+			localDelta,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries2 = {
 			expiration: expiration2,
@@ -665,8 +698,21 @@ describe("Liquidity Pools", async () => {
 			toWei("3"),
 			true
 		)
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("1"),
+			weth.address,
+			usd.address,
+			localDelta.add(localDelta2),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
+		const delta = await liquidityPool.getPortfolioDelta()
+		const oracleDelta = (await portfolioValuesFeed.getPortfolioValues(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])).delta
+		expect(oracleDelta.sub(localDelta.add(localDelta2))).to.be.within(-5,5)
 		expect(delta.sub(localDelta.add(localDelta2))).to.be.within(-1e15, 1e15)
-		expect(delta.sub(localDeltaActual)).to.be.within(-1e13, 1e13)
 	})
 	it("reverts if option collaterral exceeds buffer limit", async () => {
 		const lpBalance = await usd.balanceOf(liquidityPool.address)
@@ -762,6 +808,8 @@ describe("Liquidity Pools", async () => {
 		ethLiquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		const collateralAsset = await ethLiquidityPool.collateralAsset()
 		expect(collateralAsset).to.eq(weth.address)
+		await ethLiquidityPool.setMaxTimeDeviationThreshold(600)
+		await ethLiquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
 	})
 
 	//TODO change to weth deposit contract
