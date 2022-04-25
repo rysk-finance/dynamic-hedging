@@ -18,7 +18,6 @@ import {
 	fromUSDC,
 	scaleNum
 } from "../utils/conversion-helper"
-import { computeNewWeights } from "../utils/OptionsCompute"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import moment from "moment"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
@@ -359,6 +358,8 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
+		await liquidityPool.setMaxTimeDeviationThreshold(600)
+		await liquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
 	})
 
 	it("Deposit to the liquidityPool", async () => {
@@ -435,65 +436,5 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.within(0, 0.01)
-	})
-	it("LP Writes a ETH/USD put for premium under utilization", async () => {
-		const [sender] = signers
-		const rawAmount = 1
-		const amount = toWei(rawAmount.toString())
-		const blockNum = await ethers.provider.getBlockNumber()
-		const block = await ethers.provider.getBlock(blockNum)
-		const totalAmountPutBefore = await liquidityPool.totalAmountPut()
-		const weightedStrikeBefore = await liquidityPool.weightedStrikePut()
-		const weightedTimeBefore = await liquidityPool.weightedTimePut()
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike))
-		proposedSeries = {
-			expiration: expiration,
-			isPut: PUT_FLAVOR,
-			strike: BigNumber.from(strikePrice),
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
-		await usd.approve(liquidityPool.address, quote)
-		const balance = await usd.balanceOf(senderAddress)
-		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
-		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		const receipt = await write.wait(1)
-		const events = receipt.events
-		const writeEvent = events?.find(x => x.event == "WriteOption")
-		const seriesAddress = writeEvent?.args?.series
-		const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
-		const putBalance = await putOptionToken.balanceOf(senderAddress)
-		const balanceNew = await usd.balanceOf(senderAddress)
-		const opynAmount = toOpyn(fromWei(amount))
-		// convert to numeric
-		const escrow = Number(fromUSDC(await liquidityPool.collateralAllocated()))
-		const totalAmountPutAfter = await liquidityPool.totalAmountPut()
-		const weightedStrikeAfter = await liquidityPool.weightedStrikePut()
-		const weightedTimeAfter = await liquidityPool.weightedTimePut()
-		const newWeights = computeNewWeights(
-			amount,
-			proposedSeries.strike,
-			BigNumber.from(proposedSeries.expiration),
-			totalAmountPutBefore,
-			weightedStrikeBefore,
-			weightedTimeBefore,
-			true
-		)
-		expect(putBalance).to.eq(opynAmount)
-		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew), 2)).to.eq(tFormatEth(quote, 2))
-		const expectedPoolBalance = truncate(
-			Number(fromUSDC(poolBalanceBefore)) + Number(fromWei(quote)) - escrow,
-			2
-		)
-		expect(expectedPoolBalance).to.eq(truncate(Number(fromUSDC(poolBalanceAfter))))
-		expect(totalAmountPutAfter.sub(totalAmountPutBefore)).to.eq(amount)
-		expect(weightedStrikeAfter).to.eq(newWeights.newWeightedStrike)
-		expect(weightedTimeAfter).to.eq(newWeights.newWeightedTime)
-		//@TODO add assertion checking if other state variables are properly updated such as weighted variables
 	})
 })

@@ -258,6 +258,29 @@ describe("Liquidity Pools", async () => {
 	it("#Should deploy volatility feed", async () => {
 		const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
 		volFeed = (await volFeedFactory.deploy()) as VolatilityFeed
+		type int7 = [
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish
+		]
+		type number7 = [number, number, number, number, number, number, number]
+		const coefInts: number7 = [
+			1.42180236,
+			0,
+			-0.08626792,
+			0.07873822,
+			0.00650549,
+			0.02160918,
+			-0.1393287
+		]
+		//@ts-ignore
+		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
+		await volFeed.setVolatilitySkew(coefs, true)
+		await volFeed.setVolatilitySkew(coefs, false)
 	})
 
 	it("should deploy portfolio values feed", async () => {
@@ -290,32 +313,6 @@ describe("Liquidity Pools", async () => {
 			portfolioValuesFeed.address
 		)) as Protocol
 		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
-	})
-
-	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
-		type int7 = [
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish
-		]
-		type number7 = [number, number, number, number, number, number, number]
-		const coefInts: number7 = [
-			1.42180236,
-			0,
-			-0.08626792,
-			0.07873822,
-			0.00650549,
-			0.02160918,
-			-0.1393287
-		]
-		//@ts-ignore
-		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		await volFeed.setVolatilitySkew(coefs, true)
-		await volFeed.setVolatilitySkew(coefs, false)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
@@ -362,6 +359,8 @@ describe("Liquidity Pools", async () => {
 		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
+		await liquidityPool.setMaxTimeDeviationThreshold(600)
+		await liquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
 	})
 
 	it("Deposit to the liquidityPool", async () => {
@@ -588,7 +587,7 @@ describe("Liquidity Pools", async () => {
 		const opynAmount = toOpyn(fromWei(amount))
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(0, 0.1)
+		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(-0.1, 0.1)
 		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
 	})
 	it("can compute portfolio delta", async function () {
@@ -659,9 +658,6 @@ describe("Liquidity Pools", async () => {
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
-		const wTPuts = await liquidityPool.weightedTimePut()
-		const wSPuts = await liquidityPool.weightedStrikePut()
-		const wPuts = await liquidityPool.totalAmountPut()
 
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
@@ -670,33 +666,19 @@ describe("Liquidity Pools", async () => {
 			toWei("1"),
 			true
 		)
-		const localDeltaActual = await calculateOptionDeltaLocally(
-			liquidityPool,
-			priceFeed,
-			{
-				expiration: wTPuts.toNumber(),
-				isPut: PUT_FLAVOR,
-				strike: wSPuts,
-				strikeAsset: usd.address,
-				underlying: weth.address,
-				collateral: usd.address
-			},
-			wPuts,
-			true
-		)
+
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		await portfolioValuesFeed.fulfill(
 			utils.formatBytes32String("1"),
 			weth.address,
 			usd.address,
-			localDeltaActual,
+			localDelta,
 			BigNumber.from(0),
 			BigNumber.from(0),
 			BigNumber.from(0),
 			BigNumber.from(0),
 			BigNumber.from(0)
 		)
-		const delta = await liquidityPool.getPortfolioDelta()
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries2 = {
 			expiration: expiration2,
@@ -713,8 +695,21 @@ describe("Liquidity Pools", async () => {
 			toWei("3"),
 			true
 		)
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("1"),
+			weth.address,
+			usd.address,
+			localDelta.add(localDelta2),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
+		const delta = await liquidityPool.getPortfolioDelta()
+		const oracleDelta = (await portfolioValuesFeed.getPortfolioValues(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])).delta
+		expect(oracleDelta.sub(localDelta.add(localDelta2))).to.be.within(-5,5)
 		expect(delta.sub(localDelta.add(localDelta2))).to.be.within(-1e15, 1e15)
-		expect(delta.sub(localDeltaActual)).to.be.within(-1e13, 1e13)
 	})
 	it("reverts if option collaterral exceeds buffer limit", async () => {
 		const lpBalance = await usd.balanceOf(liquidityPool.address)
@@ -810,6 +805,8 @@ describe("Liquidity Pools", async () => {
 		ethLiquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		const collateralAsset = await ethLiquidityPool.collateralAsset()
 		expect(collateralAsset).to.eq(weth.address)
+		await ethLiquidityPool.setMaxTimeDeviationThreshold(600)
+		await ethLiquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
 	})
 
 	//TODO change to weth deposit contract

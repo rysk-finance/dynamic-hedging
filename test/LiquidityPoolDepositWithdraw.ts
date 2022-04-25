@@ -32,7 +32,7 @@ import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle } from "./helpers"
+import { setupTestOracle, calculateOptionDeltaLocally, } from "./helpers"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -263,32 +263,6 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
-		type int7 = [
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish
-		]
-		type number7 = [number, number, number, number, number, number, number]
-		const coefInts: number7 = [
-			1.42180236,
-			0,
-			-0.08626792,
-			0.07873822,
-			0.00650549,
-			0.02160918,
-			-0.1393287
-		]
-		//@ts-ignore
-		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		await volFeed.setVolatilitySkew(coefs, true)
-		await volFeed.setVolatilitySkew(coefs, false)
-	})
-
-	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
 		const normDistFactory = await ethers.getContractFactory("NormalDist", {
 			libraries: {}
 		})
@@ -331,6 +305,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
+		await liquidityPool.setMaxTimeDeviationThreshold(600)
+		await liquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
 	})
 
 	it("Deposit to the liquidityPool", async () => {
@@ -414,6 +390,24 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const registryUsdBalance = await liquidityPool.collateralAllocated()
 		const balanceNew = await usd.balanceOf(senderAddress)
 		const opynAmount = toOpyn(fromWei(amount))
+		const localDelta = await calculateOptionDeltaLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeries,
+			amount,
+			true
+		)
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("2"),
+			weth.address,
+			usd.address,
+			localDelta,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(quote),
+			BigNumber.from(priceQuote)
+		)
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew), 2)).to.eq(tFormatEth(quote, 2))
@@ -447,7 +441,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 						).toNumber()
 				)
 			)
-		).to.be.within(0, 20)
+		).to.be.within(-20, 20)
 		expect(
 			Number(
 				fromUSDC(
@@ -460,7 +454,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 						)
 				)
 			)
-		).to.be.within(0, 20)
+		).to.be.within(-20, 20)
 		expect(senderUsdcAfter.sub(senderUsdcBefore)).to.be.eq(strikeAmount)
 		expect(senderSharesAfter).to.eq(0)
 		expect(totalSharesBefore.sub(totalSharesAfter)).to.be.eq(senderSharesBefore)
