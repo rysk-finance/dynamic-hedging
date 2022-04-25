@@ -10,7 +10,7 @@ import {
 const suggestedCallOptionPriceDiff = [-200, 0, 200, 400, 600, 800, 1000];
 const suggestedPutOptionPriceDiff = [-1000, -800, -600, -400, -200, 0, 200];
 
-export const OptionsChart: React.FC = () => {
+export const OptionsTable: React.FC = () => {
   const {
     state: { ethPrice },
   } = useGlobalContext();
