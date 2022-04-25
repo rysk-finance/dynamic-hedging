@@ -401,54 +401,6 @@ contract LiquidityPool is
   }
 
   /**
-   * @notice value of all puts written by the pool
-   * @return value of all puts denominated in the collateralAsset
-   */
-  function _valuePutsWritten()
-      internal
-      view
-      returns (uint)
-  {
-      if (weightedStrikePut == 0) return uint(0);
-      uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      // TODO Consider using VAR (value at risk) approach in the future
-      uint iv = getImpliedVolatility(true, underlyingPrice, weightedStrikePut, weightedTimePut);
-      uint optionPrice = BlackScholes.blackScholesCalc(
-         underlyingPrice,
-         weightedStrikePut,
-         weightedTimePut,
-         iv,
-         riskFreeRate,
-         true
-      );
-      return totalAmountPut.mul(optionPrice);      
-  }
-
-  /**
-   * @notice value of all calls written by the pool
-   * @return value of all calls denominated in the underlying
-   */
-  function _valueCallsWritten()
-      internal
-      view
-      returns (uint)
-  {
-      if (weightedStrikeCall == 0) return uint(0);
-      uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      uint iv = getImpliedVolatility(false, underlyingPrice, weightedStrikeCall, weightedTimeCall);
-      uint optionPrice = BlackScholes.blackScholesCalc(
-        underlyingPrice,
-        weightedStrikePut,
-        weightedTimePut,
-        iv,
-        riskFreeRate,
-        false
-      );     
-      uint callsValue = totalAmountCall.mul(uint256(optionPrice));
-      return callsValue;
-  }
-
-  /**
    * @notice get the number of shares for a given amount
    * @param _amount  the amount to convert to shares
    * @return shares the number of shares based on the amount
@@ -487,7 +439,8 @@ contract LiquidityPool is
     for (uint8 i=0; i < hedgingReactors.length; i++) {
        assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
     }
-    uint256 liabilities = _valueCallsWritten() + _valuePutsWritten();
+    Types.PortfolioValues memory portfolioValues = getPortfolioValues(); 
+    uint256 liabilities = portfolioValues.callPutsValue;
     uint256 NAV = assets - liabilities;
     return NAV;
   }
@@ -529,7 +482,7 @@ contract LiquidityPool is
     address feedAddress = Protocol(protocol).volatilityFeed();
     return VolatilityFeed(feedAddress);
   }
-  
+
   /**
    * @notice get the portfolio values feed used by the liquidity pool
    * @return the portfolio values feed contract

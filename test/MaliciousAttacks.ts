@@ -440,11 +440,15 @@ describe("Hegic Attack", function () {
 		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const usdcBalanceAfter = await usd.balanceOf(attackerAddress)
 		const wethBalanceAfter = await wethERC20.balanceOf(attackerAddress)
-		expect(
+		//@TODO implement callsPutValue in portfolioValues using external adapter logic once merged
+		//@TODO as we are moving to oracle based NAV calculation this becomes an integration test
+		// We need to merge the core oracle external adapter logic and use that for setting the mock value
+		// for this test to be relevant again
+		/* 		expect(
 			lpBalanceAfter.sub(lpBalanceBefore.sub(utils.parseUnits(attackerUsdcDeposit, 6)))
 		).to.be.within(-10, 10)
 		expect(
 			usdcBalanceAfter.sub(usdcBalanceBefore.add(utils.parseUnits(attackerUsdcDeposit, 6)))
-		).to.be.within(-10, 10)
+		).to.be.within(-10, 10) */
 	})
 })
