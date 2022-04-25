@@ -1106,9 +1106,8 @@ contract LiquidityPool is
             in order to have flexibility and customisability on option issuance and market 
             participant UX.
     @param  _orderId the id of the order for options purchase
-    @param  _isStrangle if this order is part of a strangle order 
   */
-  function executeOrder(uint256 _orderId, bool _isStrangle) public nonReentrant {
+  function executeOrder(uint256 _orderId) public nonReentrant {
     int256 bufferRemaining = _checkBuffer();
     // get the order
     Types.Order memory order = orderStores[_orderId];
@@ -1155,8 +1154,8 @@ contract LiquidityPool is
   */
   function executeStrangle(uint256 _strangleId) external {
 
-    executeOrder(strangleOrderPairs[_strangleId][0], true);
-    executeOrder(strangleOrderPairs[_strangleId][1], true);
+    executeOrder(strangleOrderPairs[_strangleId][0]);
+    executeOrder(strangleOrderPairs[_strangleId][1]);
   }
 
   /**

@@ -1004,7 +1004,7 @@ describe("Liquidity Pools", async () => {
 		).to.be.reverted
 	})
 	it("cant exercise order if not buyer", async () => {
-		await expect(liquidityPool.executeOrder(1, false)).to.be.revertedWith("InvalidBuyer()")
+		await expect(liquidityPool.executeOrder(1)).to.be.revertedWith("InvalidBuyer()")
 	})
 	it("Executes a buy order", async () => {
 		const [sender, receiver] = signers
@@ -1016,7 +1016,7 @@ describe("Liquidity Pools", async () => {
 		const receiverBalBef = await usd.balanceOf(receiverAddress)
 
 		await usd.connect(receiver).approve(liquidityPool.address, 1000000000)
-		await liquidityPool.connect(receiver).executeOrder(1, false)
+		await liquidityPool.connect(receiver).executeOrder(1)
 		const receiverOTokenBalAft = await optionToken.balanceOf(receiverAddress)
 		const lpOTokenBalAft = await optionToken.balanceOf(liquidityPool.address)
 		const lpBalAft = await usd.balanceOf(liquidityPool.address)
@@ -1105,7 +1105,7 @@ describe("Liquidity Pools", async () => {
 		expect(await liquidityPool.orderIdCounter()).to.eq(orderId)
 		optionToken = new Contract(order.seriesAddress, Otoken.abi, sender) as IOToken
 		increase(1201)
-		await expect(liquidityPool.connect(receiver).executeOrder(orderId, false)).to.be.revertedWith(
+		await expect(liquidityPool.connect(receiver).executeOrder(orderId)).to.be.revertedWith(
 			"OrderExpired()"
 		)
 	})
@@ -1176,11 +1176,11 @@ describe("Liquidity Pools", async () => {
 		const invalidPriceOrderId = createOrderEvent2?.args?.orderId
 
 		await expect(
-			liquidityPool.connect(receiver).executeOrder(invalidDeltaOrderId, false)
+			liquidityPool.connect(receiver).executeOrder(invalidDeltaOrderId)
 		).to.be.revertedWith("CustomOrderInvalidDeltaValue()")
 
 		await expect(
-			liquidityPool.connect(receiver).executeOrder(invalidPriceOrderId, false)
+			liquidityPool.connect(receiver).executeOrder(invalidPriceOrderId)
 		).to.be.revertedWith("CustomOrderInsufficientPrice()")
 	})
 	let lpCallOption: IOToken
