@@ -438,11 +438,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const totalSharesAfter = await liquidityPool.totalSupply()
 		//@ts-ignore
 		const diff = usdBalanceBefore - usdBalanceAfter
-		//@TODO implement callsPutValue in portfolioValues using external adapter logic once merged
-		//@TODO as we are moving to oracle based NAV calculation this becomes an integration test
-		// We need to merge the core oracle external adapter logic and use that for setting the mock value
-		// for this test to be relevant again
-		/* 		expect(
+		expect(
 			Number(
 				fromUSDC(
 					diff -
@@ -468,7 +464,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(senderUsdcAfter.sub(senderUsdcBefore)).to.be.eq(strikeAmount)
 		expect(senderSharesAfter).to.eq(0)
 		expect(totalSharesBefore.sub(totalSharesAfter)).to.be.eq(senderSharesBefore)
-		expect(totalSharesAfter).to.be.eq(receiverSharesBefore) */
+		expect(totalSharesAfter).to.be.eq(receiverSharesBefore)
 	})
 	it("LP can not redeems shares when in excess of liquidity", async () => {
 		const [sender, receiver] = signers
