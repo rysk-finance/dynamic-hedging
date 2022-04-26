@@ -47,6 +47,29 @@ or
 yarn
 ```
 
+3. Start a hardhat node as mainnet fork
+
+```sh
+cd packages/contracts
+npm run mainnet-fork
+```
+
+From a new terminal window
+
+4. Deploy contracts and update ABIs + address
+
+```sh
+cd packages/contracts
+npm run deploy:localhost
+```
+
+5. Run the front-end
+
+```sh
+cd packages/front-end
+npm run start
+```
+
 <!-- USAGE EXAMPLES -->
 
 ## Usage
