@@ -443,7 +443,6 @@ contract LiquidityPool is
       shares = convertedAmount.mul(totalSupply).div(NAV);
     }
   }
-
   /**
    * @notice get the Net Asset Value
    * @return Net Asset Value in e18 decimal format
