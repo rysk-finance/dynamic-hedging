@@ -1,5 +1,12 @@
 {
     "localhost": {
-        "DummyVault": "0x70e0bA845a1A0F2DA3359C97E0285013525FFC49"
+        "OpynController": "0x4ccc2339F87F6c59c6893E1A678c2266cA58dC72",
+        "OpynAddressBook": "0x1E31F2DCBad4dc572004Eae6355fB18F9615cBe4",
+        "OpynOracle": "0x789cD7AB3742e23Ce0952F6Bc3Eb3A73A0E08833",
+        "OpynNewCalculator": "0x8f86403A4DE0BB5791fa46B8e795C547942fE4Cf",
+        "OpynOptionRegistry": "0x1fA02b2d6A771842690194Cf62D91bdd92BfE28d",
+        "priceFeed": "0xdbC43Ba45381e02825b14322cDdd15eC4B3164E6",
+        "optionProtocol": "0x04C89607413713Ec9775E14b954286519d836FEf",
+        "liquidityPool": "0xD8a5a9b31c3C0232E196d518E89Fd8bF83AcAd43"
     }
 }
