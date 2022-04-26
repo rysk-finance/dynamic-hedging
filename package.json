@@ -39,6 +39,7 @@
 		"typescript": "^4.0.2"
 	},
 	"dependencies": {
+		"@chainlink/contracts": "^0.4.0",
 		"@openzeppelin/contracts": "^4.4.2",
 		"@rage/core": "https://github.com/RageTrade/core.git",
 		"@uniswap/v3-periphery": "^1.4.0",
