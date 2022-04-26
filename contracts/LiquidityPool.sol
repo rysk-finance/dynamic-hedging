@@ -26,6 +26,7 @@ error InvalidAmount();
 error IssuanceFailed();
 error DeltaNotDecreased();
 error NonExistentOtoken();
+error OrderExpiryTooLong();
 error InvalidShareAmount();
 error TotalSupplyReached();
 error StrikeAssetInvalid();
@@ -36,6 +37,8 @@ error UnderlyingAssetInvalid();
 error CollateralAmountInvalid();
 error WithdrawExceedsLiquidity();
 error MaxLiquidityBufferReached();
+error CustomOrderInsufficientPrice();
+error CustomOrderInvalidDeltaValue();
 error DeltaQuoteError(uint256 quote, int256 delta);
 error TimeDeltaExceedsThreshold(uint256 timeDelta);
 error PriceDeltaExceedsThreshold(uint256 priceDelta);
@@ -89,6 +92,30 @@ contract LiquidityPool is
   mapping(uint256 => Types.Order) public orderStores;
   // order id counter
   uint256 public orderIdCounter;
+  // strangle order pairings. Each strangle id maps to 2 custom order indices
+  mapping(uint256 => uint256[2]) public strangleOrderPairs;
+  // strangle id counter
+  uint256 public strangleIdCounter;
+  // delta and price boundaries for custom orders
+  // call delta will always be between 0 and 1 (e18)
+  // put delta will always be between 0 and -1 (e18)
+  // maxPriceRange is the maximum percentage below the LP calculated price, measured in BPS, that the order may be sold for.
+  // 10% would mean maxPriceRange = 1000
+  struct CustomOrderBounds {
+    uint128 callMinDelta;
+    uint128 callMaxDelta;
+    int128 putMinDelta;
+    int128 putMaxDelta;
+    uint32 maxPriceRange;
+  }
+
+  CustomOrderBounds public customOrderBounds = CustomOrderBounds(
+    0,
+    25e16,
+    -25e16,
+    0,
+    1000
+  );
   // option issuance parameters
   OptionParams public optionParams;
   // max time to allow between oracle updates
@@ -114,7 +141,9 @@ contract LiquidityPool is
   }
 
   event OrderCreated(uint orderId);
+  event OrderExecuted(uint orderId);
   event LiquidityAdded(uint amount);
+  event StrangleCreated(uint strangleId);
   event UnderlyingAdded(address underlying);
   event Deposit(address recipient, uint strikeAmount, uint shares);
   event Withdraw(address recipient, uint shares,  uint strikeAmount);
@@ -184,6 +213,28 @@ contract LiquidityPool is
   }
 
   /**
+   * @notice set new custom order parameters
+   * @param _callMinDelta the minimum delta value a sold custom call option can have (e18 format - for 0.05 enter 5e16). Must be positive or 0.
+   * @param _callMaxDelta the maximum delta value a sold custom call option can have. Must be positive and have greater magnitude than _callMinDelta.
+   * @param _putMinDelta the minimum delta value a sold custom put option can have. Must be negative and have greater magnitude than _putMaxDelta
+   * @param _putMaxDelta the maximum delta value a sold custom put option can have. Must be negative or 0.
+   * @param _maxPriceRange the max percentage below the LP calculated premium that the order may be sold for. Measured in BPS - for 10% enter 1000
+   */
+  function setCustomOrderBounds (   
+    uint128 _callMinDelta,
+    uint128 _callMaxDelta,
+    int128 _putMinDelta,
+    int128 _putMaxDelta,
+    uint32 _maxPriceRange
+  ) onlyOwner public {
+    customOrderBounds.callMinDelta = _callMinDelta;
+    customOrderBounds.callMaxDelta = _callMaxDelta;
+    customOrderBounds.putMinDelta = _putMinDelta;
+    customOrderBounds.putMaxDelta = _putMaxDelta;
+    customOrderBounds.maxPriceRange = _maxPriceRange;
+  }
+
+ /**
    * @notice remove a new hedging reactor by index
    * @param _index remove a hedging reactor 
    * @dev   only governance can call this function
@@ -392,7 +443,6 @@ contract LiquidityPool is
       shares = convertedAmount.mul(totalSupply).div(NAV);
     }
   }
-
   /**
    * @notice get the Net Asset Value
    * @return Net Asset Value in e18 decimal format
@@ -713,10 +763,10 @@ contract LiquidityPool is
    * @notice calculates amount of liquidity that can be used before hitting buffer
    * @return bufferRemaining the amount of liquidity available before reaching buffer
   */
-  function _checkBuffer() view internal returns( int256 bufferRemaining){ 
+  function _checkBuffer() view internal returns(int256 bufferRemaining){ 
       // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
     (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
-    int256 bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/MAX_BPS);
+    bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/MAX_BPS);
     // revert if buffer allowance already hit
     if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
     return bufferRemaining;
@@ -742,6 +792,8 @@ contract LiquidityPool is
     series = _issue(optionSeries, optionRegistry);
     // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
+    // premium needs to adjusted for decimals of collateral asset
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     //write the option
     optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium, bufferRemaining);
   }
@@ -766,6 +818,8 @@ contract LiquidityPool is
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // calculate premium
     (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
+    // premium needs to adjusted for decimals of collateral asset
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium, bufferRemaining);
   }
 
@@ -812,12 +866,10 @@ contract LiquidityPool is
    * @return the amount that was written
    */
   function _writeOption(Types.OptionSeries memory optionSeries, address seriesAddress, uint256 amount, OptionRegistry optionRegistry, uint256 premium, int256 bufferRemaining) internal returns (uint256) {
-    // premium needs to adjusted for decimals of base strike asset
-    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     uint256 collateralAmount = optionRegistry.getCollateral(Types.OptionSeries( 
        optionSeries.expiration,
        optionSeries.isPut,
-       optionSeries.strike/(10**10), // convert from 1e18 to 1e8 notation for getCollateral()
+       OptionsCompute.convertToDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()), // convert from 1e18 to 1e8 notation for getCollateral()
        optionSeries.underlying,
        optionSeries.strikeAsset,
        collateralAsset), amount);
@@ -892,6 +944,143 @@ contract LiquidityPool is
     _adjustVariables(optionSeries, amount, collateralReturned, false);
     SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     return amount;
+  }
+
+  /**
+    @notice creates an order for a number of options from the pool to a specified user. The function
+            is intended to be used to issue options to market makers/ OTC market participants
+            in order to have flexibility and customisability on option issuance and market 
+            participant UX.
+    @param _optionSeries the option token series to issue
+    @param _amount the number of options to issue 
+    @param _price the price per unit to issue at
+    @param _orderExpiry the expiry of the order (if past the order is redundant)
+    @param _buyerAddress the agreed upon buyer address
+    @return orderId the unique id of the order
+  */
+  function createOrder(
+    Types.OptionSeries memory _optionSeries, 
+    uint256 _amount, 
+    uint256 _price, 
+    uint256 _orderExpiry,
+    address _buyerAddress
+  ) public onlyRole(ADMIN_ROLE) returns (uint) 
+  {
+    OptionRegistry optionRegistry = getOptionRegistry();
+    if (_price == 0) {revert InvalidPrice();}
+    if (_orderExpiry == 0) {revert OrderExpired();}
+    if (_orderExpiry > 1800) {revert OrderExpiryTooLong();}
+
+    // issue the option type, all checks of the option validity should happen in _issue
+    address series = _issue(_optionSeries, optionRegistry);
+    // create the order struct, setting the series, amount, price, order expiry and buyer address
+    Types.Order memory order = Types.Order(
+      _optionSeries,
+      _amount,
+      _price,
+      block.timestamp + _orderExpiry,
+      _buyerAddress,
+      series
+    );
+    uint orderIdCounter__ = orderIdCounter + 1;
+    // increment the orderId and store the order
+    orderStores[orderIdCounter__] = order;
+    emit OrderCreated(orderIdCounter__);
+    orderIdCounter = orderIdCounter__;
+    return orderIdCounter__;
+  }
+
+  /** 
+    @notice creates a strangle order. One custom put and one custom call order to be executed simultaneously.
+    @param _optionSeriesCall the option token series to issue for the call part of the strangle
+    @param _optionSeriesPut the option token series to issue for the put part of the strangle
+    @param _amountCall the number of call options to issue 
+    @param _amountPut the number of put options to issue 
+    @param _priceCall the price per unit to issue calls at
+    @param _pricePut the price per unit to issue puts at
+    @param _orderExpiry the expiry of the order (if past the order is redundant)
+    @param _buyerAddress the agreed upon buyer address
+    @return strangleIdCounter the unique id of the strangle
+  */
+  function createStrangle(
+    Types.OptionSeries memory _optionSeriesCall, 
+    Types.OptionSeries memory _optionSeriesPut, 
+    uint256 _amountCall,
+    uint256 _amountPut, 
+    uint256 _priceCall,
+    uint256 _pricePut,
+    uint256 _orderExpiry,
+    address _buyerAddress
+  ) external onlyRole(ADMIN_ROLE) returns (uint) 
+  {
+    // increment strangleId to store strangle order pair
+    uint strangleIdCounter__ = strangleIdCounter + 1;
+    // issue the call order part of the strangle
+    uint callOrderId = createOrder(_optionSeriesCall, _amountCall, _priceCall, _orderExpiry, _buyerAddress);
+    strangleOrderPairs[strangleIdCounter__][0] = callOrderId;
+    uint putOrderId = createOrder(_optionSeriesPut, _amountPut, _pricePut, _orderExpiry, _buyerAddress);
+    strangleOrderPairs[strangleIdCounter__][1] = putOrderId;
+    emit StrangleCreated(strangleIdCounter__);
+    strangleIdCounter = strangleIdCounter__;
+    return strangleIdCounter__;
+  }
+
+  /**
+    @notice fulfills an order for a number of options from the pool to a specified user. The function
+            is intended to be used to issue options to market makers/ OTC market participants
+            in order to have flexibility and customisability on option issuance and market 
+            participant UX.
+    @param  _orderId the id of the order for options purchase
+  */
+  function executeOrder(uint256 _orderId) public nonReentrant {
+    int256 bufferRemaining = _checkBuffer();
+    // get the order
+    Types.Order memory order = orderStores[_orderId];
+    // check that the sender is the authorised buyer of the order
+    if(msg.sender != order.buyer) {revert InvalidBuyer();}
+    // check that the order is still valid
+    if(block.timestamp > order.orderExpiry) {revert OrderExpired();}
+    OptionRegistry optionRegistry = getOptionRegistry();  
+    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(order.seriesAddress);
+    (uint poolCalculatedPremium, int delta) = quotePriceWithUtilizationGreeks(Types.OptionSeries( 
+       optionSeries.expiration,
+       optionSeries.isPut,
+       OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(order.seriesAddress).decimals()), // convert from 1e8 to 1e18 notation for quotePrice
+       optionSeries.underlying,
+       optionSeries.strikeAsset,
+       collateralAsset), order.amount);
+    
+    // calculate the total premium
+    uint256 premium = (order.amount * order.price) / 1e18;
+    // check the agreed upon premium is within acceptable range of pool's own pricing model
+    if (poolCalculatedPremium - (poolCalculatedPremium *  customOrderBounds.maxPriceRange / MAX_BPS) > premium) { revert CustomOrderInsufficientPrice(); }
+    // check that the delta values of the options are within acceptable ranges
+    // if isPut, delta will always be between 0 and -1e18
+    if(optionSeries.isPut){
+      if (customOrderBounds.putMinDelta > delta || delta > customOrderBounds.putMaxDelta) { revert CustomOrderInvalidDeltaValue(); }
+    }
+    // if call, delta will always be between 0 and 1e18
+    if(!optionSeries.isPut){
+       if (customOrderBounds.callMinDelta > uint(delta) || uint(delta) > customOrderBounds.callMaxDelta) { revert CustomOrderInvalidDeltaValue(); }
+    }
+    // premium needs to adjusted for decimals of collateral asset
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
+    // write the option contract, includes sending the premium from the user to the pool
+    uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, bufferRemaining);
+    emit OrderExecuted(_orderId);
+    // invalidate the order
+    delete orderStores[_orderId];
+  }
+
+  /**
+    @notice fulfills a stored strangle order consisting of a stores call and a stored put.
+    This is intended to be called by market makers/OTC market participants.
+    @param _strangleId the id of the strangle order to fulfil 
+  */
+  function executeStrangle(uint256 _strangleId) external {
+
+    executeOrder(strangleOrderPairs[_strangleId][0]);
+    executeOrder(strangleOrderPairs[_strangleId][1]);
   }
 
   /**
