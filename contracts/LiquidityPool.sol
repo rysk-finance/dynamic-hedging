@@ -304,7 +304,7 @@ contract LiquidityPool is
 
   /**
    * @notice function for adding liquidity to the options liquidity pool
-   * @param _amount    amount of the strike asset to deposit
+   * @param _amount    amount of the collateral asset to deposit
    * @param _recipient the recipient of the shares
    * @return shares amount of shares minted to the recipient
    * @dev    entry point to provide liquidity to dynamic hedging vault 

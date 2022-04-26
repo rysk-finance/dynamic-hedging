@@ -1059,6 +1059,14 @@ describe("Liquidity Pools", async () => {
 		const withdraw = liquidityPoolReceiver.withdraw(shares, receiverAddress)
 		await expect(withdraw).to.be.revertedWith("WithdrawExceedsLiquidity()")
 	})
+	it("pauses and unpauses contract", async () => {
+		await liquidityPool.deposit(toUSDC("100"), senderAddress)
+		await liquidityPool.pauseContract()
+		await expect(liquidityPool.deposit(toUSDC("100"), senderAddress)).to.be.revertedWith(
+			"Pausable: paused"
+		)
+		await liquidityPool.unpause()
+	})
 	it("settles an expired ITM vault", async () => {
 		const totalCollateralAllocated = await liquidityPool.collateralAllocated()
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
