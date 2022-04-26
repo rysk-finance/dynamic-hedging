@@ -17,6 +17,7 @@ import moment from "moment"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
+import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
 import { ERC20 } from "../types/ERC20"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
@@ -31,7 +32,7 @@ import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle } from "./helpers"
+import { setupTestOracle, calculateOptionDeltaLocally, } from "./helpers"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -63,6 +64,7 @@ let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
+let portfolioValuesFeed: MockPortfolioValuesFeed
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -228,18 +230,39 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		await volFeed.setVolatilitySkew(coefs, false)
 	})
 
+	it("should deploy portfolio values feed", async () => {
+		const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
+		portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
+			await signers[0].getAddress(),
+			utils.formatBytes32String("jobId"),
+			toWei("1"),
+			ZERO_ADDRESS
+		)) as MockPortfolioValuesFeed
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("1"),
+			weth.address,
+			usd.address,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
+	})
+
 	it("Should deploy option protocol and link to registry/price feed", async () => {
 		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address,
-			volFeed.address
+			volFeed.address,
+			portfolioValuesFeed.address
 		)) as Protocol
 		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 	})
 
 	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
-
 		const normDistFactory = await ethers.getContractFactory("NormalDist", {
 			libraries: {}
 		})
@@ -282,6 +305,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const lpAddress = lp.address
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
+		await liquidityPool.setMaxTimeDeviationThreshold(600)
+		await liquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
 	})
 
 	it("Deposit to the liquidityPool", async () => {
@@ -365,9 +390,27 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const registryUsdBalance = await liquidityPool.collateralAllocated()
 		const balanceNew = await usd.balanceOf(senderAddress)
 		const opynAmount = toOpyn(fromWei(amount))
+		const localDelta = await calculateOptionDeltaLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeries,
+			amount,
+			true
+		)
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("2"),
+			weth.address,
+			usd.address,
+			localDelta,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(quote),
+			BigNumber.from(priceQuote)
+		)
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew))).to.eq(tFormatEth(quote))
+		expect(tFormatUSDC(balance.sub(balanceNew), 2)).to.eq(tFormatEth(quote, 2))
 	})
 	it("LP can redeem shares", async () => {
 		const senderSharesBefore = await liquidityPool.balanceOf(senderAddress)
@@ -398,7 +441,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 						).toNumber()
 				)
 			)
-		).to.be.within(0, 20)
+		).to.be.within(-20, 20)
 		expect(
 			Number(
 				fromUSDC(
@@ -411,7 +454,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 						)
 				)
 			)
-		).to.be.within(0, 20)
+		).to.be.within(-20, 20)
 		expect(senderUsdcAfter.sub(senderUsdcBefore)).to.be.eq(strikeAmount)
 		expect(senderSharesAfter).to.eq(0)
 		expect(totalSharesBefore.sub(totalSharesAfter)).to.be.eq(senderSharesBefore)

@@ -25,7 +25,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     /// @notice address of the price feed used for getting asset prices
     address public immutable priceFeed;
     /// @notice generalised list of stablecoin addresses to trade against wETH
-    address public immutable collateral; // we should try not to use unfixed length array
+    address public immutable collateral;
     /// @notice address of the wETH contract 
     address public immutable wETH;
     /// @notice instance of the uniswap V3 router interface
