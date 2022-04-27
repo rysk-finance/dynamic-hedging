@@ -56,4 +56,13 @@ library OptionsCompute {
         }
         return a.div(b);
     }
+
+ /**
+   * @notice function to return absolute value of an input
+   * @param  x value to check
+   * @return absolute value to return
+   */
+  function abs(int256 x) private pure returns (int256) {
+    return x >= 0 ? x : -x;
+  }
 }
