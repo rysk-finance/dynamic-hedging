@@ -41,9 +41,7 @@ export async function deploySystem(
 	const sender = signers[0]
 	const senderAddress = await sender.getAddress()
 	// deploy libraries
-	const constantsFactory = await hre.ethers.getContractFactory("Constants")
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
-	const constants = await constantsFactory.deploy()
 	const interactions = await interactionsFactory.deploy()
 	// deploy options registry
 	const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {

@@ -203,9 +203,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
-		const constantsFactory = await hre.ethers.getContractFactory("Constants")
 		const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
-		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {

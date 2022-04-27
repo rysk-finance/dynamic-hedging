@@ -218,9 +218,7 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
-		const constantsFactory = await ethers.getContractFactory("Constants")
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
-		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
