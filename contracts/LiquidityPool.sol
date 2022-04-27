@@ -203,7 +203,7 @@ contract LiquidityPool is
   function unpause() public onlyOwner{
     _unpause();
   }
-  function addorRemoveBuybackAddress(address _addressToWhitelist, bool toAdd) public onlyOwner {
+  function addOrRemoveBuybackAddress(address _addressToWhitelist, bool toAdd) public onlyOwner {
     buybackWhitelist[_addressToWhitelist] = toAdd;
   }
   function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external onlyOwner {
