@@ -4,15 +4,17 @@ import { deployments, ethers, getNamedAccounts, network } from "hardhat"
 import { DeployFunction } from "hardhat-deploy/types"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import path from "path"
-import { ADDRESS_BOOK, GAMMA_CONTROLLER, GAMMA_ORACLE_NEW, MARGIN_POOL, OTOKEN_FACTORY } from "../../test/constants"
+import {
+	ADDRESS_BOOK,
+	GAMMA_CONTROLLER,
+	GAMMA_ORACLE_NEW,
+	MARGIN_POOL,
+	OTOKEN_FACTORY
+} from "../../test/constants"
 import { toWei, scaleNum } from "../../utils/conversion-helper"
 import LiquidityPoolSol from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 
-import {
-	USDC_ADDRESS,
-	WETH_ADDRESS,
-	CONTROLLER_OWNER
-} from "../../test/constants"
+import { USDC_ADDRESS, WETH_ADDRESS, CONTROLLER_OWNER } from "../../test/constants"
 import { deployOpyn } from "../../utils/opyn-deployer"
 import { OptionRegistry } from "../../types/OptionRegistry"
 import { PriceFeed } from "../../types/PriceFeed"
@@ -48,9 +50,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 	const opynController = opynParams.controller
 	const opynAddressBook = opynParams.addressBook
-	const	opynOracle = opynParams.oracle
+	const opynOracle = opynParams.oracle
 	const opynNewCalculator = opynParams.newCalculator
-	
+
 	const [sender] = signers
 	const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
 	const senderAddress = await signers[0].getAddress()
@@ -67,8 +69,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 		}
 	})
 
-	
-
 	const _optionRegistry = (await optionRegistryFactory.deploy(
 		USDC_ADDRESS[chainId],
 		OTOKEN_FACTORY[chainId],
@@ -80,14 +80,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 	let optionRegistry = _optionRegistry
 
-
 	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
 	const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
 	let priceFeed = _priceFeed
 
 	// deploy option protocol and link to registry/price feed
 	const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
-	const	optionProtocol = (await protocolFactory.deploy(
+	const optionProtocol = (await protocolFactory.deploy(
 		optionRegistry.address,
 		priceFeed.address
 	)) as Protocol
@@ -136,15 +135,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 		}
 	})
 
-	let	usd = (await ethers.getContractAt(
+	let usd = (await ethers.getContractAt(
 		"contracts/tokens/ERC20.sol:ERC20",
 		USDC_ADDRESS[chainId]
 	)) as MintableERC20
 
-	let	weth = (await ethers.getContractAt(
-			"contracts/interfaces/WETH.sol:WETH",
-			WETH_ADDRESS[chainId]
-		)) as WETH
+	let weth = (await ethers.getContractAt(
+		"contracts/interfaces/WETH.sol:WETH",
+		WETH_ADDRESS[chainId]
+	)) as WETH
 
 	const rfr: string = "0.03"
 	const minCallStrikePrice = utils.parseEther("500")
@@ -182,11 +181,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	let liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 	optionRegistry.setLiquidityPool(liquidityPool.address)
 
-	// @ts-ignore
-	const contractAddresses = JSON.parse(fs.readFileSync(addressPath))
+	let contractAddresses
+
+	try {
+		// @ts-ignore
+		contractAddresses = JSON.parse(fs.readFileSync(addressPath))
+	} catch {
+		contractAddresses = { localhost: {} }
+	}
 
 	// @ts-ignore
-	// contractAddresses["localhost"]["DummyVault"] = dummyVaultDeploy.address
 	contractAddresses["localhost"]["OpynController"] = opynController.address
 	contractAddresses["localhost"]["OpynAddressBook"] = opynAddressBook.address
 	contractAddresses["localhost"]["OpynOracle"] = opynOracle.address
@@ -195,7 +199,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	contractAddresses["localhost"]["priceFeed"] = priceFeed.address
 	contractAddresses["localhost"]["optionProtocol"] = optionProtocol.address
 	contractAddresses["localhost"]["liquidityPool"] = liquidityPool.address
-	
+
 	fs.writeFileSync(addressPath, JSON.stringify(contractAddresses, null, 4))
 }
 

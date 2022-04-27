@@ -49,4 +49,5 @@ dist/**/*
 yarn.lock
 
 # ignore local contract addresses
-**/contracts.json
+/packages/front-end/src/contracts.json
+/packages/contracts/contracts.json
