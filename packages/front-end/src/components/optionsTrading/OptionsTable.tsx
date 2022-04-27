@@ -54,7 +54,7 @@ export const OptionsTable: React.FC = () => {
       });
       setSuggestions(suggestions);
     }
-  }, [cachedEthPrice, suggestions, optionType, customOptionStrikes]);
+  }, [cachedEthPrice, optionType, customOptionStrikes]);
 
   const setSelectedOption = (option: Option) => {
     dispatch({ type: OptionsTradingActionType.SET_SELECTED_OPTION, option });
