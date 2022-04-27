@@ -1,6 +1,4 @@
 import React, { useCallback, useEffect, useState } from "react";
-import DummyVaultABI from "../artifacts/contracts/DummyVault.sol/DummyVault.json";
-import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
 import { Button } from "./shared/Button";
 import { TextInput } from "./shared/TextInput";
@@ -10,27 +8,18 @@ enum Mode {
   WITHDRAW,
 }
 
-const vaultAddress = addresses.localhost.DummyVault;
-
 export const VaultDepositWithdraw = () => {
   const [mode, setMode] = useState<Mode>(Mode.DEPOSIT);
-
-  const [vaultContract] = useContract({
-    address: vaultAddress,
-    ABI: DummyVaultABI.abi,
-    readOnly: false,
-  });
 
   const [balance, setBalance] = useState<string | null>(null);
 
   const [inputValue, setInputValue] = useState("");
 
+  // TODO(HC): use useContract hook here to get LP contract object.
+
   const getBalance = useCallback(async () => {
-    if (vaultContract) {
-      const balance = await vaultContract.getBalance();
-      setBalance(balance.toString());
-    }
-  }, [vaultContract]);
+    // TODO(HC): Call balance method on contract here.
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -39,15 +28,8 @@ export const VaultDepositWithdraw = () => {
   }, [getBalance]);
 
   const handleSubmit = async () => {
-    const value = Number(inputValue);
-    if (vaultContract) {
-      if (mode === Mode.DEPOSIT) {
-        await vaultContract.deposit(value);
-      } else if (mode === Mode.WITHDRAW) {
-        await vaultContract.withdraw(value);
-      }
-    }
-    await getBalance();
+    // TODO(HC): Call deposit and withdraw methods on contract
+    // + fetch latest balance.
   };
 
   return (
