@@ -6,8 +6,10 @@
 	"scripts": {
 		"test": "hardhat test",
 		"test-coverage": "export NODE_OPTIONS='--max-old-space-size=8192' && hardhat coverage --testfiles 'test/*.ts'",
-		"deploy:rinkeby": "hardhat deploy --network rinkeby --tags testnet --deploy-scripts deploy",
-		"compile": "hardhat clean && hardhat compile && hardhat typechain"
+		"deploy:rinkeby": "hardhat deploy --network rinkeby --tags testnet --deploy-scripts deploy/rinkeby",
+		"deploy:localhost": "npx hardhat deploy --network localhost --tags localhost && ./copyAddressesToFrontEnd.sh --deploy-scripts deploy/localhost",
+		"compile": "hardhat clean && hardhat compile && hardhat typechain && ./copyABIsToFrontend.sh",
+		"mainnet-fork": "source .env && npx hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/$ALCHEMY_KEY --fork-block-number 12821000"
 	},
 	"keywords": [],
 	"author": "",
@@ -30,7 +32,7 @@
 		"ethers": "^5.0.13",
 		"hardhat": "^2.6.7",
 		"hardhat-contract-sizer": "^2.5.0",
-		"hardhat-deploy": "^0.7.0-beta.30",
+		"hardhat-deploy": "^0.7.11",
 		"hardhat-gas-reporter": "^1.0.3",
 		"path": "^0.12.7",
 		"solidity-coverage": "^0.7.20",
