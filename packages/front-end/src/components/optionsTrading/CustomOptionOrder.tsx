@@ -8,8 +8,8 @@ import { TextInput } from "../shared/TextInput";
 import { Button } from "../shared/Button";
 
 const optionTypeOptions: Option<OptionType>[] = [
-  { label: "Calls", value: OptionType.CALL },
-  { label: "Puts", value: OptionType.PUT },
+  { key: OptionType.CALL, label: "Calls", value: OptionType.CALL },
+  { key: OptionType.PUT, label: "Puts", value: OptionType.PUT },
 ];
 
 export const CustomOptionOrder: React.FC = () => {

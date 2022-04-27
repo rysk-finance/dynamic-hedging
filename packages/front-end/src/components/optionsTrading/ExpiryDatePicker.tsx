@@ -26,6 +26,7 @@ export const ExpiryDatePicker: React.FC = () => {
     return dates.map<Option<Date>>((date) => ({
       value: date,
       label: formatShortDate(date),
+      key: date.toISOString(),
     }));
   }, [setExpiryDate]);
 

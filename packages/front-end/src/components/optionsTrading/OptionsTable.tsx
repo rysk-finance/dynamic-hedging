@@ -74,6 +74,7 @@ export const OptionsTable: React.FC = () => {
             index % 2 === 0 ? "bg-gray-300" : ""
           } cursor-pointer`}
           onClick={() => setSelectedOption(option)}
+          key={option.strike}
         >
           <td className="pl-4">{option.strike}</td>
           <td>
