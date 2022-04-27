@@ -69,8 +69,6 @@ contract LiquidityPool is
   address public immutable underlyingAsset;
   // asset that is used for collateral asset
   address public immutable collateralAsset;
-  // riskFreeRate as a percentage PRBMath Float. IE: 3% -> 0.03 * 10**18
-  uint public immutable riskFreeRate;
 
   /////////////////////////
   /// dynamic variables ///
@@ -112,6 +110,9 @@ contract LiquidityPool is
   uint256 public maxTimeDeviationThreshold;
   // max price difference to allow between oracle updates
   uint256 public maxPriceDeviationThreshold;
+    // riskFreeRate as a percentage PRBMath Float. IE: 3% -> 0.03 * 10**18
+  uint public riskFreeRate;
+
 
   //////////////////////////
   /// constant variables ///
@@ -292,7 +293,13 @@ contract LiquidityPool is
   function setBufferPercentage(uint _bufferPercentage) external onlyOwner {
     bufferPercentage = _bufferPercentage;
   }
-
+  /**
+   * @notice update the liquidity pool risk free rate
+   * @param _riskFreeRate the risk free rate of the market
+  */
+  function setRiskFreeRate(uint _riskFreeRate) external onlyOwner {
+    riskFreeRate = _riskFreeRate;
+  }
   //////////////////////////////////////////////////////
   /// access-controlled state changing functionality ///
   //////////////////////////////////////////////////////
