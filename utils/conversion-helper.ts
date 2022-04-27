@@ -76,3 +76,5 @@ export const median = function (array: [number]) {
 		return array[(array.length - 1) / 2] // array with odd number elements
 	}
 }
+export const parseTokenAmount = (value: BigNumberish, decimals: number) =>
+  BigNumber.from(value).mul(BigNumber.from(10).pow(BigNumber.from(decimals)));

@@ -738,11 +738,11 @@ describe("Liquidity Pools", async () => {
 	it("returns zero when hedging positive delta when reactor has no funds", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		const reactorDelta = await uniswapV3HedgingReactor.internalDelta()
-		const res = (await liquidityPool.rebalancePortfolioDelta(delta, 0)).value
+		await liquidityPool.rebalancePortfolioDelta(delta, 0)
 		const newReactorDelta = await uniswapV3HedgingReactor.internalDelta()
-
-		expect(res.toNumber()).to.equal(0)
+		const newDelta = await liquidityPool.getPortfolioDelta()
 		expect(reactorDelta).to.equal(newReactorDelta).to.equal(0)
+		expect(newDelta.sub(delta)).to.be.within(0, 1e13)
 	})
 
 	it("Returns a quote for a single ETH/USD call option", async () => {

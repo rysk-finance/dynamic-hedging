@@ -25,6 +25,6 @@ interface IHedgingReactor {
     function withdraw(uint256 amount, address token) external returns (uint256);
 
     /// @notice Handle events such as collateralisation rebalancing
-    function update() external returns (int256);
+    function update() external returns (uint256);
 
 }

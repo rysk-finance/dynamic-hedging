@@ -7,7 +7,9 @@ import "hardhat-deploy"
 import "@typechain/hardhat"
 import "@nomiclabs/hardhat-ethers"
 import "hardhat-gas-reporter"
+import "hardhat-tracer"
 import "hardhat-contract-sizer"
+import "hardhat-dependency-compiler"
 import path from "path"
 
 const ethers = require("ethers")
@@ -73,6 +75,24 @@ module.exports = {
 						runs: 200
 					}
 				}
+			},
+			{
+				version: "0.8.10",
+				settings: {
+					optimizer: {
+						enabled: true,
+						runs: 200
+					}
+				}
+			},
+			{
+				version: "0.8.12",
+				settings: {
+					optimizer: {
+						enabled: true,
+						runs: 200
+					}
+				}
 			}
 		]
 	},
@@ -123,5 +143,17 @@ module.exports = {
 	},
 	mocha: {
 		timeout: 100000
+	},
+	dependencyCompiler: {
+		paths: [
+		  '@rage/core/contracts/protocol/RageTradeFactory.sol',
+		  '@rage/core/contracts/protocol/clearinghouse/ClearingHouse.sol',
+		  '@rage/core/contracts/protocol/insurancefund/InsuranceFund.sol',
+		  '@rage/core/contracts/protocol/RageTradeFactory.sol',
+		  '@rage/core/contracts/protocol/tokens/VToken.sol',
+		  '@rage/core/contracts/protocol/tokens/VQuote.sol',
+		  '@rage/core/contracts/protocol/RageTradeFactory.sol',
+		  '@rage/core/contracts/protocol/wrapper/VPoolWrapper.sol',
+		],
 	}
 }
