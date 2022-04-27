@@ -10,7 +10,6 @@ import {
     IController,
     GammaTypes
 } from "../interfaces/GammaInterface.sol";
-import {Constants} from "./Constants.sol";
 
 library OpynInteractions {
 

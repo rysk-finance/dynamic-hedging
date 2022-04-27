@@ -32,7 +32,7 @@ import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle, calculateOptionDeltaLocally, } from "./helpers"
+import { setupTestOracle, calculateOptionDeltaLocally } from "./helpers"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -167,7 +167,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			"contracts/interfaces/WETH.sol:WETH",
 			WETH_ADDRESS[chainId]
 		)) as WETH
-		usd = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usd = (await ethers.getContractAt(
+			"contracts/tokens/ERC20.sol:ERC20",
+			USDC_ADDRESS[chainId]
+		)) as MintableERC20
 		await network.provider.request({
 			method: "hardhat_impersonateAccount",
 			params: [USDC_OWNER_ADDRESS[chainId]]
@@ -249,7 +252,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	})
 
 	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
+		const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address,
@@ -303,7 +306,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
 		await liquidityPool.setMaxTimeDeviationThreshold(600)
-		await liquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
+		await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
 	})
 
 	it("Deposit to the liquidityPool", async () => {

@@ -1,10 +1,10 @@
 pragma solidity >=0.8.0;
 
+import "./Protocol.sol";
 import "./PriceFeed.sol";
 import "./tokens/ERC20.sol";
 import "./OptionRegistry.sol";
 import "./VolatilityFeed.sol";
-import "./OptionsProtocol.sol";
 import "./PortfolioValuesFeed.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
@@ -847,6 +847,7 @@ contract LiquidityPool is
     // liabilities: Options that we wrote 
     uint256 assets = OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
     for (uint8 i=0; i < hedgingReactors.length; i++) {
+      // should always return value in e18 decimals
        assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
     }
     Types.PortfolioValues memory portfolioValues = getPortfolioValues(); 

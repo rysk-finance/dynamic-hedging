@@ -280,7 +280,7 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		await volFeed.setVolatilitySkew(coefs, false)
 	})
 	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
+		const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address,
@@ -359,7 +359,7 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
 		await liquidityPool.setMaxTimeDeviationThreshold(600)
-		await liquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
+		await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
 	})
 
 	it("Deposit to the liquidityPool", async () => {

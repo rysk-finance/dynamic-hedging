@@ -97,6 +97,8 @@ contracts
 │   └── ERC20.sol
 ├── LiquidityPool.sol
 ├── OptionRegistry.sol
-├── OptionsProtocol.sol
+├── Protocol.sol
+├── PortfolioValuesFeed.sol
+├── VolatilityFeed.sol
 └── PriceFeed.sol
 ```

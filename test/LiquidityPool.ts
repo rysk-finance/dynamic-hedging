@@ -307,7 +307,7 @@ describe("Liquidity Pools", async () => {
 	})
 
 	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
+		const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address,
@@ -362,7 +362,7 @@ describe("Liquidity Pools", async () => {
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
 		await liquidityPool.setMaxTimeDeviationThreshold(600)
-		await liquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
+		await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
 	})
 
 	it("Deposit to the liquidityPool", async () => {
@@ -709,8 +709,10 @@ describe("Liquidity Pools", async () => {
 			BigNumber.from(0)
 		)
 		const delta = await liquidityPool.getPortfolioDelta()
-		const oracleDelta = (await portfolioValuesFeed.getPortfolioValues(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])).delta
-		expect(oracleDelta.sub(localDelta.add(localDelta2))).to.be.within(-5,5)
+		const oracleDelta = (
+			await portfolioValuesFeed.getPortfolioValues(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
+		).delta
+		expect(oracleDelta.sub(localDelta.add(localDelta2))).to.be.within(-5, 5)
 		expect(delta.sub(localDelta.add(localDelta2))).to.be.within(-1e15, 1e15)
 	})
 	it("reverts if option collaterral exceeds buffer limit", async () => {
@@ -743,40 +745,6 @@ describe("Liquidity Pools", async () => {
 		const newDelta = await liquidityPool.getPortfolioDelta()
 		expect(reactorDelta).to.equal(newReactorDelta).to.equal(0)
 		expect(newDelta.sub(delta)).to.be.within(0, 1e13)
-	})
-
-	it("Returns a quote for a single ETH/USD call option", async () => {
-		const blockNum = await ethers.provider.getBlockNumber()
-		const block = await ethers.provider.getBlock(blockNum)
-		const { timestamp } = block
-
-		const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), expiration)
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		// const strikePrice = priceQuote.add(toWei(strike))
-		// const optionSeries = {
-		//   expiration: fmtExpiration(expiration.unix()),
-		//   flavor: CALL_FLAVOR,
-		//   strike: strikePrice,
-		//   strikeAsset: usd.address,
-		//   underlying: weth.address,
-		// }
-		// const iv = await liquidityPool.getImpliedVolatility(
-		//   optionSeries.flavor,
-		//   priceQuote,
-		//   optionSeries.strike,
-		//   optionSeries.expiration,
-		// )
-		// const localBS = bs.blackScholes(
-		//   fromWei(priceQuote),
-		//   fromWei(strikePrice),
-		//   timeToExpiration,
-		//   fromWei(iv),
-		//   parseFloat(rfr),
-		//   'call',
-		// )
-		// await priceFeed.addPriceFeed(ETH_ADDRESS, usd.address, ethUSDAggregator.address)
-		// const quote = await liquidityPool.quotePrice(optionSeries)
-		// expect(Math.round(truncate(localBS))).to.eq(Math.round(tFormatEth(quote.toString())))
 	})
 
 	it("Returns a quote for ETH/USD call with utilization", async () => {
@@ -984,31 +952,33 @@ describe("Liquidity Pools", async () => {
 		const orderDeets = await liquidityPool.orderStores(1)
 		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
 		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool, 
-			priceFeed, 
-			{expiration: orderDeets.optionSeries.expiration.toNumber(), 
-			 isPut: orderDeets.optionSeries.isPut, 
-			 strike: orderDeets.optionSeries.strike, 
-			 underlying: orderDeets.optionSeries.underlying,
-			 strikeAsset: orderDeets.optionSeries.strikeAsset, 
-			 collateral: orderDeets.optionSeries.collateral
+			liquidityPool,
+			priceFeed,
+			{
+				expiration: orderDeets.optionSeries.expiration.toNumber(),
+				isPut: orderDeets.optionSeries.isPut,
+				strike: orderDeets.optionSeries.strike,
+				underlying: orderDeets.optionSeries.underlying,
+				strikeAsset: orderDeets.optionSeries.strikeAsset,
+				collateral: orderDeets.optionSeries.collateral
 			},
-			amount, 
+			amount,
 			true
-			)
+		)
 		const localQuote = await calculateOptionQuoteLocally(
-			liquidityPool, 
-			priceFeed, 			
-			{expiration: orderDeets.optionSeries.expiration.toNumber(), 
-			isPut: orderDeets.optionSeries.isPut, 
-			strike: orderDeets.optionSeries.strike, 
-			underlying: orderDeets.optionSeries.underlying,
-			strikeAsset: orderDeets.optionSeries.strikeAsset, 
-			collateral: orderDeets.optionSeries.collateral
-		   },
-		    amount, 
+			liquidityPool,
+			priceFeed,
+			{
+				expiration: orderDeets.optionSeries.expiration.toNumber(),
+				isPut: orderDeets.optionSeries.isPut,
+				strike: orderDeets.optionSeries.strike,
+				underlying: orderDeets.optionSeries.underlying,
+				strikeAsset: orderDeets.optionSeries.strikeAsset,
+				collateral: orderDeets.optionSeries.collateral
+			},
+			amount,
 			false
-			)
+		)
 		await usd.connect(receiver).approve(liquidityPool.address, 1000000000)
 		await liquidityPool.connect(receiver).executeOrder(1)
 		await portfolioValuesFeed.fulfill(
@@ -1049,58 +1019,62 @@ describe("Liquidity Pools", async () => {
 		const orderDeets1 = await liquidityPool.orderStores(2)
 		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
 		const localDelta1 = await calculateOptionDeltaLocally(
-			liquidityPool, 
-			priceFeed, 
-			{expiration: orderDeets1.optionSeries.expiration.toNumber(), 
-			 isPut: orderDeets1.optionSeries.isPut, 
-			 strike: orderDeets1.optionSeries.strike, 
-			 underlying: orderDeets1.optionSeries.underlying,
-			 strikeAsset: orderDeets1.optionSeries.strikeAsset, 
-			 collateral: orderDeets1.optionSeries.collateral
+			liquidityPool,
+			priceFeed,
+			{
+				expiration: orderDeets1.optionSeries.expiration.toNumber(),
+				isPut: orderDeets1.optionSeries.isPut,
+				strike: orderDeets1.optionSeries.strike,
+				underlying: orderDeets1.optionSeries.underlying,
+				strikeAsset: orderDeets1.optionSeries.strikeAsset,
+				collateral: orderDeets1.optionSeries.collateral
 			},
-			amount, 
+			amount,
 			true
-			)
+		)
 		const localQuote1 = await calculateOptionQuoteLocally(
-			liquidityPool, 
-			priceFeed, 			
-			{expiration: orderDeets1.optionSeries.expiration.toNumber(), 
-			isPut: orderDeets1.optionSeries.isPut, 
-			strike: orderDeets1.optionSeries.strike, 
-			underlying: orderDeets1.optionSeries.underlying,
-			strikeAsset: orderDeets1.optionSeries.strikeAsset, 
-			collateral: orderDeets1.optionSeries.collateral
-		   },
-		    amount, 
+			liquidityPool,
+			priceFeed,
+			{
+				expiration: orderDeets1.optionSeries.expiration.toNumber(),
+				isPut: orderDeets1.optionSeries.isPut,
+				strike: orderDeets1.optionSeries.strike,
+				underlying: orderDeets1.optionSeries.underlying,
+				strikeAsset: orderDeets1.optionSeries.strikeAsset,
+				collateral: orderDeets1.optionSeries.collateral
+			},
+			amount,
 			false
-			)
+		)
 		const orderDeets2 = await liquidityPool.orderStores(3)
 		const localDelta2 = await calculateOptionDeltaLocally(
-			liquidityPool, 
-			priceFeed, 
-			{expiration: orderDeets2.optionSeries.expiration.toNumber(), 
-			 isPut: orderDeets2.optionSeries.isPut, 
-			 strike: orderDeets2.optionSeries.strike, 
-			 underlying: orderDeets2.optionSeries.underlying,
-			 strikeAsset: orderDeets2.optionSeries.strikeAsset, 
-			 collateral: orderDeets2.optionSeries.collateral
+			liquidityPool,
+			priceFeed,
+			{
+				expiration: orderDeets2.optionSeries.expiration.toNumber(),
+				isPut: orderDeets2.optionSeries.isPut,
+				strike: orderDeets2.optionSeries.strike,
+				underlying: orderDeets2.optionSeries.underlying,
+				strikeAsset: orderDeets2.optionSeries.strikeAsset,
+				collateral: orderDeets2.optionSeries.collateral
 			},
-			amount, 
+			amount,
 			true
-			)
+		)
 		const localQuote2 = await calculateOptionQuoteLocally(
-			liquidityPool, 
-			priceFeed, 			
-			{expiration: orderDeets2.optionSeries.expiration.toNumber(), 
-			isPut: orderDeets2.optionSeries.isPut, 
-			strike: orderDeets2.optionSeries.strike, 
-			underlying: orderDeets2.optionSeries.underlying,
-			strikeAsset: orderDeets2.optionSeries.strikeAsset, 
-			collateral: orderDeets2.optionSeries.collateral
-		   },
-		    amount, 
+			liquidityPool,
+			priceFeed,
+			{
+				expiration: orderDeets2.optionSeries.expiration.toNumber(),
+				isPut: orderDeets2.optionSeries.isPut,
+				strike: orderDeets2.optionSeries.strike,
+				underlying: orderDeets2.optionSeries.underlying,
+				strikeAsset: orderDeets2.optionSeries.strikeAsset,
+				collateral: orderDeets2.optionSeries.collateral
+			},
+			amount,
 			false
-			)
+		)
 		await usd.connect(receiver).approve(liquidityPool.address, 1000000000)
 		await liquidityPool.connect(receiver).executeStrangle(strangleId)
 		const receiverBalAft = await usd.balanceOf(receiverAddress)
@@ -1283,28 +1257,6 @@ describe("Liquidity Pools", async () => {
 		expect(tFormatEth(res)).to.eq(truncate(expected_iv))
 	})
 
-	// it('Can set the calls volatility skew', async () => {
-	//   const coefInts: number[] = [
-	//     1.42180236,
-	//     0,
-	//     -0.08626792,
-	//     0.07873822,
-	//     0.00650549,
-	//     0.02160918,
-	//     -0.1393287,
-	//   ]
-	//   const coefs: BigNumberish[] = coefInts.map((x) => toWei(x.toString()))
-	//   //@ts-ignore
-	//   const res = await liquidityPool.setVolatilitySkew(
-	//     coefs,
-	//     BigNumber.from(call),
-	//   )
-	//   const vs = await liquidityPool.getVolatilitySkew(BigNumber.from(call))
-	//   const converted = vs.map((n: BigNumber) => fromWei(n))
-	//   const diff = percentDiffArr(converted, coefInts)
-	//   // allow for small float inprecision
-	//   expect(diff).to.eq(0)
-	// })
 	it("Adds additional liquidity from new account", async () => {
 		optionRegistry.setLiquidityPool(liquidityPool.address)
 		const [sender, receiver] = signers

@@ -20,11 +20,11 @@ import moment from "moment"
 import bs from "black-scholes"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import {deployRage, deployRangeOrder} from "../utils/rage-deployer"
+import { deployRage, deployRangeOrder } from "../utils/rage-deployer"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 import { PerpHedgingReactor } from "../types/PerpHedgingReactor"
-import {OracleMock} from "../types/OracleMock"
-import {ClearingHouse} from "../types/ClearingHouse"
+import { OracleMock } from "../types/OracleMock"
+import { ClearingHouse } from "../types/ClearingHouse"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
@@ -60,7 +60,7 @@ import {
 	CHAINLINK_WETH_PRICER
 } from "./constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import {deployOpyn} from "../utils/opyn-deployer"
+import { deployOpyn } from "../utils/opyn-deployer"
 import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
 let usd: MintableERC20
 let weth: WETH
@@ -84,14 +84,13 @@ let putOptionToken: IOToken
 let putOptionToken2: IOToken
 let collateralAllocatedToVault1: BigNumber
 let perpHedgingReactor: PerpHedgingReactor
-let vTokenAddress : string
-let vQuoteAddress : string
-let rageOracle : OracleMock
+let vTokenAddress: string
+let vQuoteAddress: string
+let rageOracle: OracleMock
 let clearingHouse: ClearingHouse
 let poolId: string
 let settlementTokenOracle: OracleMock
 let collateralId: string
-
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -197,7 +196,6 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		const res = await setupTestOracle(await sender.getAddress())
 		oracle = res[0] as Oracle
 		opynAggregator = res[1] as MockChainlinkAggregator
-
 	})
 
 	it("#Deploys the Option Registry", async () => {
@@ -220,7 +218,10 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 			"contracts/interfaces/WETH.sol:WETH",
 			WETH_ADDRESS[chainId]
 		)) as WETH
-		usd = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usd = (await ethers.getContractAt(
+			"contracts/tokens/ERC20.sol:ERC20",
+			USDC_ADDRESS[chainId]
+		)) as MintableERC20
 		await network.provider.request({
 			method: "hardhat_impersonateAccount",
 			params: [USDC_OWNER_ADDRESS[chainId]]
@@ -302,7 +303,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 	})
 
 	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
+		const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
 		optionProtocol = (await protocolFactory.deploy(
 			optionRegistry.address,
 			priceFeed.address,
@@ -357,7 +358,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 		optionRegistry.setLiquidityPool(liquidityPool.address)
 		await liquidityPool.setMaxTimeDeviationThreshold(600)
-		await liquidityPool.setMaxPriceDeviationThreshold(toWei('1'))
+		await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
 	})
 
 	it("Deposit to the liquidityPool", async () => {
@@ -394,12 +395,9 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		settlementTokenOracle = rageParams.settlementTokenOracle
 	})
 	it("#deploys the hedging reactor", async () => {
-		const perpHedgingReactorFactory = await ethers.getContractFactory(
-			"PerpHedgingReactor",
-			{
-				signer: signers[0]
-			}
-		)
+		const perpHedgingReactorFactory = await ethers.getContractFactory("PerpHedgingReactor", {
+			signer: signers[0]
+		})
 		perpHedgingReactor = (await perpHedgingReactorFactory.deploy(
 			clearingHouse.address,
 			USDC_ADDRESS[chainId],
@@ -411,15 +409,14 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		)) as PerpHedgingReactor
 
 		expect(perpHedgingReactor).to.have.property("hedgeDelta")
-
 	})
 	it("#initialises the reactor", async () => {
 		await usd.approve(perpHedgingReactor.address, 1)
 		await perpHedgingReactor.initialiseReactor()
 	})
-	it('#deploy range order', async () => {
+	it("#deploy range order", async () => {
 		await deployRangeOrder(signers, clearingHouse, usd, collateralId, vTokenAddress, vQuoteAddress)
-	  });
+	})
 	it("#sets reactor address on LP contract", async () => {
 		const reactorAddress = perpHedgingReactor.address
 
