@@ -14,9 +14,9 @@ import { Dashboard } from "./pages/Dashboard";
 import { GlobalContextProvider } from "./state/GlobalContext";
 
 // TODO(HC): Move infura key to env variable
-const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/8f8c6eb36eb84321a9a1194ec822e8d6`;
-const ROPSTEN_RPC_URL = `https://ropsten.infura.io/v3/8f8c6eb36eb84321a9a1194ec822e8d6`;
-const RINKEBY_RPC_URL = `https://rinkeby.infura.io/v3/8f8c6eb36eb84321a9a1194ec822e8d6`;
+const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
+const ROPSTEN_RPC_URL = `https://ropsten.infura.io/v3/${process.env.REACT_APP_INFURA_URL}`;
+const RINKEBY_RPC_URL = `https://rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_URL}`;
 
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();
