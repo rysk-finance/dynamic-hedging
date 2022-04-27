@@ -62,32 +62,36 @@ export const OptionsTable: React.FC = () => {
 
   return (
     <table className="w-full">
-      <tr className="text-left">
-        <th className="pl-4">Strike ($)</th>
-        <th>IV</th>
-        <th>Delta</th>
-        <th className="pr-4">Price ($)</th>
-      </tr>
-      {suggestions?.map((option, index) => (
-        <tr
-          className={`h-12 ${
-            index % 2 === 0 ? "bg-gray-300" : ""
-          } cursor-pointer`}
-          onClick={() => setSelectedOption(option)}
-          key={option.strike}
-        >
-          <td className="pl-4">{option.strike}</td>
-          <td>
-            {option.IV}
-            {"%"}
-          </td>
-          <td>
-            {option.delta}
-            {"%"}
-          </td>
-          <td className="pr-4">{option.price}</td>
+      <thead className="text-left">
+        <tr>
+          <th className="pl-4">Strike ($)</th>
+          <th>IV</th>
+          <th>Delta</th>
+          <th className="pr-4">Price ($)</th>
         </tr>
-      ))}
+      </thead>
+      <tbody>
+        {suggestions?.map((option, index) => (
+          <tr
+            className={`h-12 ${
+              index % 2 === 0 ? "bg-gray-300" : ""
+            } cursor-pointer`}
+            onClick={() => setSelectedOption(option)}
+            key={option.strike}
+          >
+            <td className="pl-4">{option.strike}</td>
+            <td>
+              {option.IV}
+              {"%"}
+            </td>
+            <td>
+              {option.delta}
+              {"%"}
+            </td>
+            <td className="pr-4">{option.price}</td>
+          </tr>
+        ))}
+      </tbody>
     </table>
   );
 };
