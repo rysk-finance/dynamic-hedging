@@ -47,10 +47,11 @@ const onboard = init({
     },
   ],
   appMetadata: {
-    name: "My App",
+    // TODO(HC): Update icon
+    name: "Rysk",
     icon: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg",
     logo: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg",
-    description: "My app using Onboard",
+    description: "Uncorrelated returns",
     recommendedInjectedWallets: [
       { name: "Coinbase", url: "https://wallet.coinbase.com/" },
       { name: "MetaMask", url: "https://metamask.io" },
