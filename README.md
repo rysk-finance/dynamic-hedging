@@ -47,6 +47,52 @@ or
 yarn
 ```
 
+3. Add environment variables
+
+Create free API keys for alchemy and infura
+
+a. Create /packages/contracts/.env with:
+
+```sh
+ALCHEMY_KEY=<your-alchemy-key>
+```
+
+b. Create /packages/front-end/.env with:
+
+```sh
+REACT_APP_INFURA_KEY=<your-infura-key>
+```
+
+4. Start a hardhat node as mainnet fork
+
+```sh
+cd packages/contracts
+npm run mainnet-fork
+```
+
+From a new terminal window
+
+5. Compile contracts
+
+```sh
+cd packages/contracts
+npm run compile
+```
+
+6. Deploy contracts and update ABIs + address
+
+```sh
+cd packages/contracts
+npm run deploy:localhost
+```
+
+7. Start the React app
+
+```sh
+cd packages/front-end
+npm run start
+```
+
 <!-- USAGE EXAMPLES -->
 
 ## Usage
@@ -73,6 +119,7 @@ npx hardhat test
 ```
 contracts
 ├── hedging
+│   ├── PerpHedgingReactor.sol
 │   └── UniswapV3HedgingReactor.sol
 ├── interfaces
 │   ├── AddressBookInterface.sol
