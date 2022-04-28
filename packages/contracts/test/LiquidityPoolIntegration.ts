@@ -200,17 +200,6 @@ describe("Liquidity Pool Integration Simulation", async () => {
 			toWei("1"),
 			ZERO_ADDRESS
 		)) as MockPortfolioValuesFeed
-		await portfolioValuesFeed.fulfill(
-			utils.formatBytes32String("1"),
-			weth.address,
-			usd.address,
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0)
-		)
 	})
 
 	it("Deploys the Option Registry", async () => {
@@ -358,6 +347,18 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		optionRegistry.setLiquidityPool(liquidityPool.address)
 		await liquidityPool.setMaxTimeDeviationThreshold(600)
 		await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
+		await portfolioValuesFeed.setLiquidityPool(liquidityPool.address)
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("1"),
+			weth.address,
+			usd.address,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0)
+		)
 	})
 
 	it("Deposit to the liquidityPool", async () => {

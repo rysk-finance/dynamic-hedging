@@ -84,6 +84,10 @@ contract LiquidityPool is
   mapping(uint256 => uint256[2]) public strangleOrderPairs;
   // custom option orders
   mapping(uint256 => Types.Order) public orderStores;
+  // temporary value of all options between oracle updates within the window
+  int public tempOptionsValue;
+  // temporary delta of all options between oracle updates within the window
+  int public tempDeltaValue;
 
   /////////////////////////////////////
   /// governance settable variables ///
@@ -333,6 +337,17 @@ contract LiquidityPool is
   }
 
   /**
+    @notice reset the temporary portfolio and delta values that have been changed since the last oracle update
+    @dev    only callable by the portfolio values feed oracle contract
+  */
+  function resetTempValues() external {
+    address portfolioValuesFeed = Protocol(protocol).portfolioValuesFeed();
+    require(msg.sender == address(portfolioValuesFeed));
+    delete tempDeltaValue;
+    delete tempOptionsValue;
+  }
+
+  /**
     @notice creates an order for a number of options from the pool to a specified user. The function
             is intended to be used to issue options to market makers/ OTC market participants
             in order to have flexibility and customisability on option issuance and market 
@@ -452,7 +467,7 @@ contract LiquidityPool is
     // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     // write the option contract, includes sending the premium from the user to the pool
-    uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, bufferRemaining);
+    uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, bufferRemaining, delta);
     emit OrderExecuted(_orderId);
     // invalidate the order
     delete orderStores[_orderId];
@@ -480,7 +495,7 @@ contract LiquidityPool is
     emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // recalculate liquidity pool's position
-    _adjustVariables(optionSeries, oTokensAmount, collatReturned, false);
+    _adjustVariables(optionSeries, oTokensAmount, collatReturned, false, 0, 0);
     collateralAllocated -= collatLost;
   }
 
@@ -579,11 +594,11 @@ contract LiquidityPool is
     OptionRegistry optionRegistry = getOptionRegistry();
     series = _issue(optionSeries, optionRegistry);
     // calculate premium
-    (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
+    (uint256 premium, int256 delta) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     //write the option
-    optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium, bufferRemaining);
+    optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium, bufferRemaining, delta);
   }
 
   /**
@@ -605,10 +620,10 @@ contract LiquidityPool is
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // calculate premium
-    (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
+    (uint256 premium, int256 delta) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
-    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium, bufferRemaining);
+    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium, bufferRemaining, delta);
   }
 
   /**
@@ -645,7 +660,7 @@ contract LiquidityPool is
   
     (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
     emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
-    _adjustVariables(optionSeries, amount, collateralReturned, false);
+    _adjustVariables(optionSeries, amount, collateralReturned, false, premium, delta);
     SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     return amount;
   }
@@ -685,11 +700,10 @@ contract LiquidityPool is
       Types.PortfolioValues memory portfolioValues = getPortfolioValues(); 
       _validatePortfolioValues(portfolioValues);
       int256 externalDelta;
-      // TODO fix hedging reactor address to be dynamic
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
       }
-      return portfolioValues.delta + externalDelta;
+      return portfolioValues.delta + externalDelta + tempDeltaValue;
   }
 
   /**
@@ -853,7 +867,9 @@ contract LiquidityPool is
     Types.PortfolioValues memory portfolioValues = getPortfolioValues(); 
     // check that the portfolio values are acceptable
     _validatePortfolioValues(portfolioValues);
-    uint256 liabilities = portfolioValues.callPutsValue;
+    // tempOptionsValue can be -ve but portfolioValues will not
+    // when converting liabilities it should never be -ve, if it is then the NAV calc will fail
+    uint256 liabilities = uint256(int256(portfolioValues.callPutsValue) + tempOptionsValue);
     uint256 NAV = assets - liabilities;
     return NAV;
   }
@@ -977,7 +993,15 @@ contract LiquidityPool is
    * @param  premium the premium to charge the user
    * @return the amount that was written
    */
-  function _writeOption(Types.OptionSeries memory optionSeries, address seriesAddress, uint256 amount, OptionRegistry optionRegistry, uint256 premium, int256 bufferRemaining) internal returns (uint256) {
+  function _writeOption(
+    Types.OptionSeries memory optionSeries, 
+    address seriesAddress, 
+    uint256 amount, 
+    OptionRegistry optionRegistry, 
+    uint256 premium, 
+    int256 bufferRemaining,
+    int256 delta
+    ) internal returns (uint256) {
     uint256 collateralAmount = optionRegistry.getCollateral(Types.OptionSeries( 
        optionSeries.expiration,
        optionSeries.isPut,
@@ -990,7 +1014,7 @@ contract LiquidityPool is
     IERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);
     (, collateralAmount) = optionRegistry.open(seriesAddress, amount, collateralAmount);
     emit WriteOption(seriesAddress, amount, premium, collateralAmount, msg.sender);
-    _adjustVariables(optionSeries, amount, collateralAmount, true);
+    _adjustVariables(optionSeries, amount, collateralAmount, true, premium, delta);
     SafeTransferLib.safeTransfer(ERC20(seriesAddress), msg.sender, OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
     return amount;
   }
@@ -1000,20 +1024,22 @@ contract LiquidityPool is
    * @param  optionSeries option type to mint
    * @param  amount the amount to be written
    */
-  function _adjustVariables(Types.OptionSeries memory optionSeries, uint256 amount, uint256 collateralAmount, bool isSale) internal {
-
-    if (!optionSeries.isPut) {
-        if (isSale) {
-          collateralAllocated += collateralAmount;
-        } else {
-          collateralAllocated -= collateralAmount;
-        }
+  function _adjustVariables(
+    Types.OptionSeries memory optionSeries, 
+    uint256 amount, 
+    uint256 collateralAmount, 
+    bool isSale,
+    uint256 optionsValue,
+    int256 delta
+    ) internal {
+    // flip the delta value as the options are short
+    tempDeltaValue -= delta;
+    if (isSale) {
+      collateralAllocated += collateralAmount;
+      tempOptionsValue += int256(optionsValue);
     } else {
-        if (isSale) {
-          collateralAllocated += collateralAmount;
-        } else {
-          collateralAllocated -= collateralAmount;
-        }
+      collateralAllocated -= collateralAmount;
+      tempOptionsValue -= int256(optionsValue);
     }
   }
 

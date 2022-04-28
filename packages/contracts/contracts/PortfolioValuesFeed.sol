@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "./interfaces/ILiquidityPool.sol";
 import "./libraries/Types.sol";
 
 /**
  * @title The PortfolioValuesFeed contract
  * @notice An external adapter Consumer contract that makes requests to obtain portfolio values for different pools
  */
-contract PortfolioValuesFeed is ChainlinkClient {
+contract PortfolioValuesFeed is Ownable, ChainlinkClient {
   using Chainlink for Chainlink.Request;
 
   ///////////////////////////
@@ -24,6 +26,12 @@ contract PortfolioValuesFeed is ChainlinkClient {
   /////////////////////////////////
 
   mapping(address => mapping(address => Types.PortfolioValues)) private portfolioValues;
+
+  /////////////////////////////////
+  /// govern settable variables ///
+  /////////////////////////////////
+
+  ILiquidityPool public liquidityPool;
 
   //////////////
   /// events ///
@@ -53,6 +61,14 @@ contract PortfolioValuesFeed is ChainlinkClient {
     oracle = _oracle;
     jobId = _jobId;
     fee = _fee;
+  }
+
+  ///////////////
+  /// setters ///
+  ///////////////
+
+  function setLiquidityPool(address _liquidityPool) external onlyOwner {
+    liquidityPool = ILiquidityPool(_liquidityPool);
   }
 
   //////////////////////////////////////////////////////
@@ -96,6 +112,7 @@ function fulfill(
         timestamp: block.timestamp
     });
     portfolioValues[_underlying][_strike] = portfolioValue;
+    liquidityPool.resetTempValues();
     emit DataFullfilled(_underlying, _strike, _delta, _gamma, _vega, _theta, _callPutsValue);
   }
 

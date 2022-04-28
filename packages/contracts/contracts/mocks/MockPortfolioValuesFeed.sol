@@ -2,18 +2,19 @@
 pragma solidity ^0.8.9;
 
 import "../libraries/Types.sol";
-
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "../interfaces/ILiquidityPool.sol";
 /**
  * @title The Mock PortfolioValuesFeed contract - NEVER USE THIS IN PRODUCTION! FOR TESTING ONLY!
  * @notice An external adapter Consumer contract that makes requests to obtain portfolio values for different pools
  */
-contract MockPortfolioValuesFeed {
+contract MockPortfolioValuesFeed is Ownable {
 
   mapping(address => mapping(address => Types.PortfolioValues)) private portfolioValues;
   address private immutable oracle;
   bytes32 private immutable jobId;
   uint256 private immutable fee;
-
+  ILiquidityPool public liquidityPool;
   event DataFullfilled(address indexed underlying, address indexed strike, int256 delta, int256 gamma, int256 vega, int256 theta, uint256 callPutsValue);
 
   /**
@@ -34,6 +35,10 @@ contract MockPortfolioValuesFeed {
     oracle = _oracle;
     jobId = _jobId;
     fee = _fee;
+  }
+
+  function setLiquidityPool(address _liquidityPool) external onlyOwner {
+    liquidityPool = ILiquidityPool(_liquidityPool);
   }
 
   function getPortfolioValues(
@@ -100,6 +105,7 @@ function fulfill(
         timestamp: block.timestamp
     });
     portfolioValues[_underlying][_strike] = portfolioValue;
+    liquidityPool.resetTempValues();
     emit DataFullfilled(_underlying, _strike, _delta, _gamma, _vega, _theta, _callPutsValue);
   }
 

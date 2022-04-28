@@ -6,7 +6,7 @@ import { expect } from "chai"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
-import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
+import { MockPortfolioValuesFeed, PortfolioValuesStruct } from "../types/MockPortfolioValuesFeed"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
@@ -122,17 +122,6 @@ export async function deploySystem(
 		toWei("1"),
 		ZERO_ADDRESS
 	)) as MockPortfolioValuesFeed
-	await portfolioValuesFeed.fulfill(
-		utils.formatBytes32String("1"),
-		weth.address,
-		usd.address,
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0)
-	)
 
 	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
 	const optionProtocol = (await protocolFactory.deploy(
@@ -167,7 +156,8 @@ export async function deployLiquidityPool(
 	maxPutStrikePrice: any,
 	minExpiry: any,
 	maxExpiry: any,
-	optionRegistry: OptionRegistry
+	optionRegistry: OptionRegistry,
+	pvFeed: MockPortfolioValuesFeed
 ) {
 	const normDistFactory = await ethers.getContractFactory("NormalDist", {
 		libraries: {}
@@ -211,9 +201,21 @@ export async function deployLiquidityPool(
 
 	const lpAddress = lp.address
 	const liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
-	optionRegistry.setLiquidityPool(liquidityPool.address)
+	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
 	await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
+	await pvFeed.setLiquidityPool(liquidityPool.address)
+	await pvFeed.fulfill(
+		utils.formatBytes32String("1"),
+		weth.address,
+		usd.address,
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0)
+	)
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool
