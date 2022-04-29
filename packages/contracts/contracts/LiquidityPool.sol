@@ -605,10 +605,22 @@ contract LiquidityPool is
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // calculate premium
-    (uint256 premium,) = quotePriceWithUtilizationGreeks(optionSeries, amount);
+    (uint256 premium,) = quotePriceWithUtilizationGreeks(Types.OptionSeries( 
+       optionSeries.expiration,
+       optionSeries.isPut,
+       OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()), // convert from 1e8 to 1e18 notation for _writeOption()
+       optionSeries.underlying,
+       optionSeries.strikeAsset,
+       collateralAsset), amount);
     // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
-    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium, bufferRemaining);
+    return _writeOption(Types.OptionSeries( 
+       optionSeries.expiration,
+       optionSeries.isPut,
+       OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()), // convert from 1e8 to 1e18 notation for _writeOption()
+       optionSeries.underlying,
+       optionSeries.strikeAsset,
+       collateralAsset), seriesAddress, amount, optionRegistry, premium, bufferRemaining);
   }
 
   /**

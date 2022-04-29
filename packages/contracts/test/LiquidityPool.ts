@@ -615,6 +615,9 @@ describe("Liquidity Pools", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
 	})
+	it("writes more options for an existing series", async () => {
+		const writeOption = await liquidityPool.writeOption(putOptionToken.address, toWei("1"))
+	})
 	it("LP writes another ETH/USD put that expires later", async () => {
 		const [sender] = signers
 		const amount = toWei("3")
@@ -1383,9 +1386,9 @@ describe("Liquidity Pools", async () => {
 		const optionITMamount = strikePrice.sub(settlePrice)
 		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
 		// format from e8 oracle price to e6 USDC decimals
-		expect(collateralReturned).to.equal(
-			collateralAllocatedToVault1.sub(optionITMamount.div(100)).mul(amount)
-		)
+		expect(
+			collateralReturned.sub(collateralAllocatedToVault1.sub(optionITMamount.div(100)).mul(amount))
+		).to.be.within(-1, 1)
 		expect(await liquidityPool.collateralAllocated()).to.equal(
 			totalCollateralAllocated.sub(collateralReturned).sub(collateralLost)
 		)
@@ -1439,6 +1442,7 @@ describe("Liquidity Pools", async () => {
 		expect(minExpiry).to.equal(86400 * 3)
 		expect(maxExpiry).to.equal(86400 * 365)
 	})
+
 	it("deletes a hedging reactor address", async () => {
 		const hedgingReactorBefore = await liquidityPool.hedgingReactors(0)
 		expect(parseInt(hedgingReactorBefore, 16)).to.not.eq(0x0)
