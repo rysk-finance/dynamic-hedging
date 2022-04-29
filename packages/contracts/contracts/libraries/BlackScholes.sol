@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import { NormalDist } from "./NormalDist.sol";
-import { Types } from "./Types.sol";
 
 library BlackScholes {
     using PRBMathSD59x18 for int256;
@@ -100,7 +99,7 @@ library BlackScholes {
     }
 
     function getTimeStamp() 
-        internal 
+        private
         view 
         returns(uint256) 
     {
@@ -114,7 +113,7 @@ library BlackScholes {
        uint256 vol,
        uint256 rfr
     )
-        public
+        private
         pure
         returns (int256 d1, uint256 d1Denominator)
     {
@@ -132,7 +131,7 @@ library BlackScholes {
        uint256 vol,
        uint256 rfr
     )
-      public
+      private
       pure
       returns (Intermediates memory)
     {
@@ -156,7 +155,6 @@ library BlackScholes {
       view
       returns (uint256)
     {
-      //TODO consider passing in time instead to reduce gas
       uint256 time = (expiration - getTimeStamp()).div(ONE_YEAR_SECONDS);
       Intermediates memory i = getIntermediates(price, strike, time, vol, rfr);
       if (!isPut) {
