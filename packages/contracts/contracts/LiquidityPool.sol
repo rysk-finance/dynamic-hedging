@@ -1,10 +1,9 @@
 pragma solidity >=0.8.0;
 
-
+import "./Protocol.sol";
 import "./PriceFeed.sol";
 import "./tokens/ERC20.sol";
 import "./VolatilityFeed.sol";
-import "./interfaces/IProtocol.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
 import "./libraries/OptionsCompute.sol";
@@ -59,7 +58,7 @@ contract LiquidityPool is
   ///////////////////////////
 
   // Protocol management contract
-  IProtocol public immutable protocol;
+  Protocol public immutable protocol;
   // asset that denominates the strike price
   address public immutable strikeAsset;
   // asset that is used as the reference asset
@@ -78,14 +77,35 @@ contract LiquidityPool is
   // custom option orders
   mapping(uint256 => Types.Order) public orderStores;
   // temporary weighted option variables
-  Types.WeightedOptionValues public weightedOptionValues;
+  WeightedOptionValues public weightedOptionValues;
 
   /////////////////////////////////////
   /// governance settable variables ///
   /////////////////////////////////////
 
+  // buffer of funds to not be used to write new options in case of margin requirements (as percentage - for 20% enter 2000)
+  uint public bufferPercentage = 2000;
   // list of addresses for hedging reactors
   address[] public hedgingReactors;
+  // max total supply of the lp shares
+  uint public maxTotalSupply = type(uint256).max;
+  // Maximum discount that an option tilting factor can discount an option price
+  uint public maxDiscount = PRBMathUD60x18.SCALE.div(10); // As a percentage. Init at 10%
+  // The spread between the bid and ask on the IV skew;
+  // Consider making this it's own volatility skew if more flexibility is needed
+  uint public bidAskIVSpread;
+  // addresses that are whitelisted to sell options back to the protocol
+  mapping(address => bool) public buybackWhitelist;
+  // settings for the limits of a custom order
+  CustomOrderBounds public customOrderBounds = CustomOrderBounds(0, 25e16, -25e16, 0, 1000);
+  // option issuance parameters
+  OptionParams public optionParams;
+  // max time to allow between oracle updates
+  uint256 public maxTimeDeviationThreshold;
+  // max price difference to allow between oracle updates
+  uint256 public maxPriceDeviationThreshold;
+    // riskFreeRate as a percentage PRBMath Float. IE: 3% -> 0.03 * 10**18
+  uint public riskFreeRate;
 
   //////////////////////////
   /// constant variables ///
@@ -98,9 +118,43 @@ contract LiquidityPool is
   // value below which delta is not worth hedging due to gas costs
   int256 private constant dustValue = 1e15;
 
-  //////////////
-  /// events ///
-  //////////////
+  /////////////////////////
+  /// structs && events ///
+  /////////////////////////
+
+  // delta and price boundaries for custom orders
+  struct CustomOrderBounds {
+    uint128 callMinDelta;     // call delta will always be between 0 and 1 (e18)
+    uint128 callMaxDelta;     // call delta will always be between 0 and 1 (e18)
+    int128 putMinDelta;       // put delta will always be between 0 and -1 (e18)
+    int128 putMaxDelta;       // put delta will always be between 0 and -1 (e18)
+    // maxPriceRange is the maximum percentage below the LP calculated price,
+    // measured in BPS, that the order may be sold for. 10% would mean maxPriceRange = 1000
+    uint32 maxPriceRange;
+  }
+  // strike and expiry date range for options
+  struct OptionParams {
+    uint128 minCallStrikePrice;
+    uint128 maxCallStrikePrice;
+    uint128 minPutStrikePrice;
+    uint128 maxPutStrikePrice;
+    uint128 minExpiry;
+    uint128 maxExpiry;
+  }
+  struct UtilizationState {
+    uint optionPrice;
+    uint utilizationPrice;
+    bool isDecreased;
+    uint deltaTiltFactor;
+  }
+  struct WeightedOptionValues {
+    uint totalAmountCall;
+    uint totalAmountPut;
+    uint weightedStrikeCall;
+    uint weightedStrikePut;
+    uint weightedTimeCall;
+    uint weightedTimePut;
+  }
 
   event OrderCreated(uint orderId);
   event OrderExecuted(uint orderId);
@@ -118,17 +172,21 @@ contract LiquidityPool is
     address _strikeAsset, 
     address _underlyingAsset, 
     address _collateralAsset, 
+    uint rfr, 
     string memory name, 
     string memory symbol,
+    OptionParams memory _optionParams,
     address adminAddress
   ) ERC20(name, symbol, 18) 
   {
     // Grant admin role to deployer
     _setupRole(ADMIN_ROLE, adminAddress);
     strikeAsset = _strikeAsset;
+    riskFreeRate = rfr;
     underlyingAsset = _underlyingAsset;
     collateralAsset = _collateralAsset;
-    protocol = IProtocol(_protocol);
+    protocol = Protocol(_protocol);
+    optionParams = _optionParams;
   }
 
   ///////////////
@@ -141,24 +199,101 @@ contract LiquidityPool is
   function unpause() external onlyOwner{
     _unpause();
   }
-
-  /**
-  * @notice set a new hedging reactor
-  * @param _reactorAddress append a new hedging reactor 
-  * @dev   only governance can call this function
-  */
-  function setHedgingReactorAddress(address _reactorAddress) onlyOwner external {
-      hedgingReactors.push(_reactorAddress);
-      SafeTransferLib.safeApprove(ERC20(collateralAsset), _reactorAddress, type(uint256).max);
+  function addOrRemoveBuybackAddress(address _addressToWhitelist, bool toAdd) external onlyOwner {
+    buybackWhitelist[_addressToWhitelist] = toAdd;
+  }
+  function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external onlyOwner {
+    maxTimeDeviationThreshold = _maxTimeDeviationThreshold;
+  }
+  function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold) external onlyOwner {
+    maxPriceDeviationThreshold = _maxPriceDeviationThreshold;
   }
   /**
-  * @notice remove a new hedging reactor by index
-  * @param _index remove a hedging reactor 
-  * @dev   only governance can call this function
-  */
+   * @notice set a new hedging reactor
+   * @param _reactorAddress append a new hedging reactor 
+   * @dev   only governance can call this function
+   */
+  function setHedgingReactorAddress(address _reactorAddress) onlyOwner external {
+    hedgingReactors.push(_reactorAddress);
+    SafeTransferLib.safeApprove(ERC20(collateralAsset), _reactorAddress, type(uint256).max);
+  }
+  /**
+   * @notice remove a new hedging reactor by index
+   * @param _index remove a hedging reactor 
+   * @dev   only governance can call this function
+   */
   function removeHedgingReactorAddress(uint256 _index) onlyOwner external {
-      SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors[_index], 0);
-      delete hedgingReactors[_index];
+    SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors[_index], 0);
+    delete hedgingReactors[_index];
+  }
+  /**
+   * @notice set new custom order parameters
+   * @param _callMinDelta the minimum delta value a sold custom call option can have (e18 format - for 0.05 enter 5e16). Must be positive or 0.
+   * @param _callMaxDelta the maximum delta value a sold custom call option can have. Must be positive and have greater magnitude than _callMinDelta.
+   * @param _putMinDelta the minimum delta value a sold custom put option can have. Must be negative and have greater magnitude than _putMaxDelta
+   * @param _putMaxDelta the maximum delta value a sold custom put option can have. Must be negative or 0.
+   * @param _maxPriceRange the max percentage below the LP calculated premium that the order may be sold for. Measured in BPS - for 10% enter 1000
+   */
+  function setCustomOrderBounds (   
+    uint128 _callMinDelta,
+    uint128 _callMaxDelta,
+    int128 _putMinDelta,
+    int128 _putMaxDelta,
+    uint32 _maxPriceRange
+  ) onlyOwner external {
+    customOrderBounds.callMinDelta = _callMinDelta;
+    customOrderBounds.callMaxDelta = _callMaxDelta;
+    customOrderBounds.putMinDelta = _putMinDelta;
+    customOrderBounds.putMaxDelta = _putMaxDelta;
+    customOrderBounds.maxPriceRange = _maxPriceRange;
+  }
+  /**
+    * @notice update all optionParam variables
+    */
+  function setNewOptionParams(uint128 _newMinCallStrike,uint128 _newMaxCallStrike,uint128 _newMinPutStrike,uint128 _newMaxPutStrike,uint128 _newMinExpiry,uint128 _newMaxExpiry) external onlyOwner {
+    optionParams.minCallStrikePrice = _newMinCallStrike;
+    optionParams.maxCallStrikePrice = _newMaxCallStrike;
+    optionParams.minPutStrikePrice = _newMinPutStrike;
+    optionParams.maxPutStrikePrice = _newMaxPutStrike;
+    optionParams.minExpiry = _newMinExpiry;
+    optionParams.maxExpiry = _newMaxExpiry;
+  }
+  /**
+   * @notice set the bid ask spread used to price option buying
+   * @param _bidAskSpread the bid ask spread to update to
+   */
+  function setBidAskSpread(uint256 _bidAskSpread) external onlyOwner {
+    bidAskIVSpread = _bidAskSpread;
+  }
+  /**
+   * @notice set the maximum percentage discount for an option
+   * @param _maxDiscount of the option as a percentage in 1e18 format. ie: 1*e18 == 1%
+   * @dev   only governance can call this function
+   */
+  function setMaxDiscount(uint256 _maxDiscount) external onlyOwner {
+      maxDiscount = _maxDiscount;
+  }
+  /**
+   * @notice set the maximum share supply of the pool
+   * @param _maxTotalSupply of the shares
+   * @dev   only governance can call this function
+   */
+  function setMaxTotalSupply(uint256 _maxTotalSupply) external onlyOwner {
+      maxTotalSupply = _maxTotalSupply;
+  }
+  /**
+   * @notice update the liquidity pool buffer limit
+   * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of total NAV. (for 20% enter 2000)
+  */
+  function setBufferPercentage(uint _bufferPercentage) external onlyOwner {
+    bufferPercentage = _bufferPercentage;
+  }
+  /**
+   * @notice update the liquidity pool risk free rate
+   * @param _riskFreeRate the risk free rate of the market
+  */
+  function setRiskFreeRate(uint _riskFreeRate) external onlyOwner {
+    riskFreeRate = _riskFreeRate;
   }
   //////////////////////////////////////////////////////
   /// access-controlled state changing functionality ///
@@ -171,7 +306,7 @@ contract LiquidityPool is
   function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex)
     public onlyRole(ADMIN_ROLE) whenNotPaused()
   { 
-      if(OptionsCompute.abs(delta) > dustValue) {
+      if(BlackScholes.abs(delta) > dustValue) {
         IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
       }
   }
@@ -197,7 +332,7 @@ contract LiquidityPool is
     @dev    only callable by the portfolio values feed oracle contract
   */
   function resetTempValues() external {
-    require(msg.sender == address(getPortfolioValuesFeed()));
+    require(msg.sender == address(Protocol(protocol).portfolioValuesFeed()));
     delete weightedOptionValues;
   }
 
@@ -280,7 +415,6 @@ contract LiquidityPool is
   */
   function executeOrder(uint256 _orderId) public nonReentrant {
     int256 bufferRemaining = _checkBuffer();
-    Types.CustomOrderBounds memory customOrderBounds = protocol.getCustomOrderBounds();
     // get the order
     Types.Order memory order = orderStores[_orderId];
     // check that the sender is the authorised buyer of the order
@@ -311,7 +445,7 @@ contract LiquidityPool is
     // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     // write the option contract, includes sending the premium from the user to the pool
-    uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, bufferRemaining);
+    uint256 written = _writeOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, bufferRemaining, delta);
     emit OrderExecuted(_orderId);
     // invalidate the order
     delete orderStores[_orderId];
@@ -369,7 +503,7 @@ contract LiquidityPool is
     // mint lp token to recipient
     _mint(_recipient, shares);
     emit Deposit(_recipient, _amount, shares);
-    if (totalSupply > protocol.maxTotalSupply()) {revert TotalSupplyReached();}
+    if (totalSupply > maxTotalSupply) {revert TotalSupplyReached();}
   }
 
   /**
@@ -393,7 +527,7 @@ contract LiquidityPool is
     // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
     (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);
     // Calculate liquidity that can be withdrawn without hitting buffer
-    int256 bufferRemaining = int256(normalizedCollateralBalance) - int(_getNAV() * protocol.bufferPercentage()/MAX_BPS);
+    int256 bufferRemaining = int256(normalizedCollateralBalance) - int(_getNAV() * bufferPercentage/MAX_BPS);
     // determine if any extra liquidity is needed. If this value is 0 or less, withdrawal can happen with no further action
     int256 amountNeeded = int(collateralAmount) - bufferRemaining;
     if (amountNeeded > 0) {
@@ -439,7 +573,7 @@ contract LiquidityPool is
     // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     //write the option
-    optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium, bufferRemaining);
+    optionAmount = _writeOption(optionSeries, series, amount, optionRegistry, premium, bufferRemaining, delta);
   }
 
   /**
@@ -464,7 +598,7 @@ contract LiquidityPool is
     (uint256 premium, int256 delta) = quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
-    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium, bufferRemaining);
+    return _writeOption(optionSeries, seriesAddress, amount, optionRegistry, premium, bufferRemaining, delta);
   }
 
   /**
@@ -480,7 +614,7 @@ contract LiquidityPool is
     // revert if the expiry is in the past
     if (optionSeries.expiration <= block.timestamp) {revert OptionExpiryInvalid();}
     (uint256 premium, int256 delta) = quotePriceBuying(optionSeries, amount);
-    if (!protocol.buybackWhitelist(msg.sender)){
+    if (!buybackWhitelist[msg.sender]){
       int portfolioDelta = getPortfolioDelta();
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + delta);
       bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
@@ -538,7 +672,7 @@ contract LiquidityPool is
       view
       returns (int256)
   {
-      Types.WeightedOptionValues memory wov = weightedOptionValues;
+      WeightedOptionValues memory wov = weightedOptionValues;
       uint256 price = getUnderlyingPrice(underlyingAsset, strikeAsset);
       int256 callsDelta;
       int256 putsDelta;
@@ -549,7 +683,7 @@ contract LiquidityPool is
           wov.weightedStrikeCall,
           wov.weightedTimeCall,
           callIv,
-          protocol.riskFreeRate(),
+          riskFreeRate,
           false
         );
       }
@@ -560,7 +694,7 @@ contract LiquidityPool is
            wov.weightedStrikePut,
            wov.weightedTimePut,
            putIv,
-           protocol.riskFreeRate(),
+           riskFreeRate,
            true
         );
       }
@@ -590,7 +724,7 @@ contract LiquidityPool is
   {
       (uint256 optionQuote,  int256 delta, uint underlyingPrice) = quotePriceGreeks(optionSeries, false);
       // using a struct to get around stack too deep issues
-      Types.UtilizationState memory quoteState;
+      UtilizationState memory quoteState;
       // price of acquiring those options
       quoteState.optionPrice = optionQuote.mul(amount);
       int portfolioDelta = getPortfolioDelta();
@@ -608,7 +742,7 @@ contract LiquidityPool is
       quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
       if (quoteState.isDecreased) {
         // provide discount for moving towards delta zero
-        uint discount = quoteState.deltaTiltFactor > protocol.maxDiscount() ? protocol.maxDiscount() : quoteState.deltaTiltFactor;
+        uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
         // discounted BS option price
         uint newOptionPrice = quoteState.optionPrice - discount.mul(quoteState.optionPrice);
         // discounted utilization priced option
@@ -678,9 +812,6 @@ contract LiquidityPool is
   function getNAV() external view returns (uint) {
     return _getNAV();
   }
-  function pricePerShare() external view returns (uint) {
-    return _shareValue(1e18);
-  }
   //////////////////////////
   /// internal utilities ///
   //////////////////////////
@@ -737,10 +868,10 @@ contract LiquidityPool is
   function _validatePortfolioValues(Types.PortfolioValues memory portfolioValues) internal view {
       uint256 timeDelta = block.timestamp - portfolioValues.timestamp;
       // If too much time has passed we want to prevent a possible oracle attack
-      if (timeDelta > protocol.maxTimeDeviationThreshold()) { revert TimeDeltaExceedsThreshold(timeDelta); }
+      if (timeDelta > maxTimeDeviationThreshold) { revert TimeDeltaExceedsThreshold(timeDelta); }
       uint256 priceDelta = OptionsCompute.calculatePercentageDifference(getUnderlyingPrice(underlyingAsset, strikeAsset), portfolioValues.spotPrice);
       // If price has deviated too much we want to prevent a possible oracle attack
-      if (priceDelta > protocol.maxPriceDeviationThreshold()) { revert PriceDeltaExceedsThreshold(priceDelta); }
+      if (priceDelta > maxPriceDeviationThreshold) { revert PriceDeltaExceedsThreshold(priceDelta); }
   }
 
   /**
@@ -779,7 +910,7 @@ contract LiquidityPool is
       uint iv = getImpliedVolatility(optionSeries.isPut, underlyingPrice, optionSeries.strike, optionSeries.expiration);
       if (iv == 0) {revert IVNotFound();}
       if (isBuying) {
-        iv = iv - protocol.bidAskIVSpread();
+        iv = iv - bidAskIVSpread;
       }
       // revert if the expiry is in the past
       if (optionSeries.expiration <= block.timestamp) {revert OptionExpiryInvalid();}
@@ -788,7 +919,7 @@ contract LiquidityPool is
        optionSeries.strike,
        optionSeries.expiration,
        iv,
-       protocol.riskFreeRate(),
+       riskFreeRate,
        optionSeries.isPut
       );
   }
@@ -800,7 +931,7 @@ contract LiquidityPool is
   function _checkBuffer() view internal returns(int256 bufferRemaining){ 
       // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
     (uint256 normalizedCollateralBalance,,) = getNormalizedBalance(collateralAsset);
-    bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * protocol.bufferPercentage()/MAX_BPS);
+    bufferRemaining = int256(normalizedCollateralBalance - _getNAV() * bufferPercentage/MAX_BPS);
     // revert if buffer allowance already hit
     if(bufferRemaining <= 0) {revert MaxLiquidityBufferReached();}
   }
@@ -812,7 +943,6 @@ contract LiquidityPool is
    * @return series the address of the option series minted
    */
   function _issue(Types.OptionSeries memory optionSeries, IOptionRegistry optionRegistry) internal returns (address series) {
-    Types.OptionParams memory optionParams = protocol.getOptionParams();
     // check the expiry is within the allowed bounds
     if (block.timestamp + optionParams.minExpiry > optionSeries.expiration || optionSeries.expiration > block.timestamp + optionParams.maxExpiry) {revert OptionExpiryInvalid();}
     // check that the option strike is within the range of the min and max acceptable strikes of calls and puts
@@ -854,7 +984,8 @@ contract LiquidityPool is
     uint256 amount, 
     IOptionRegistry optionRegistry, 
     uint256 premium, 
-    int256 bufferRemaining
+    int256 bufferRemaining,
+    int256 delta
     ) internal returns (uint256) {
     uint256 collateralAmount = optionRegistry.getCollateral(Types.OptionSeries( 
        optionSeries.expiration,
@@ -884,7 +1015,7 @@ contract LiquidityPool is
    uint256 collateralAmount, 
    bool isSale
    ) internal {
-    Types.WeightedOptionValues memory wov = weightedOptionValues;
+    WeightedOptionValues memory wov = weightedOptionValues;
     if (isSale) {
         collateralAllocated += collateralAmount;
     } else {
@@ -914,7 +1045,7 @@ contract LiquidityPool is
       view
       returns (uint)
   {
-      Types.WeightedOptionValues memory wov = weightedOptionValues;
+      WeightedOptionValues memory wov = weightedOptionValues;
       if (wov.weightedStrikePut == 0) return uint(0);
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
       uint optionPrice = BlackScholes.blackScholesCalc(
@@ -922,7 +1053,7 @@ contract LiquidityPool is
          wov.weightedStrikePut,
          wov.weightedTimePut,
          getImpliedVolatility(true, underlyingPrice, wov.weightedStrikePut, wov.weightedTimePut),
-         protocol.riskFreeRate(),
+         riskFreeRate,
          true
       );
       return wov.totalAmountPut.mul(optionPrice);      
@@ -937,7 +1068,7 @@ contract LiquidityPool is
       view
       returns (uint)
   {
-      Types.WeightedOptionValues memory wov = weightedOptionValues;
+      WeightedOptionValues memory wov = weightedOptionValues;
       if (wov.weightedStrikeCall == 0) return uint(0);
       uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
       uint optionPrice = BlackScholes.blackScholesCalc(
@@ -945,7 +1076,7 @@ contract LiquidityPool is
         wov.weightedStrikePut,
         wov.weightedTimePut,
         getImpliedVolatility(false, underlyingPrice, wov.weightedStrikeCall, wov.weightedTimeCall),
-        protocol.riskFreeRate(),
+        riskFreeRate,
         false
       );     
       return wov.totalAmountCall.mul(optionPrice);
@@ -955,7 +1086,7 @@ contract LiquidityPool is
    * @return the price feed contract
    */
   function getPriceFeed() internal view returns (PriceFeed) {
-    return PriceFeed(protocol.getCore().priceFeed);
+    return PriceFeed(protocol.priceFeed());
   }
 
   /**
@@ -963,7 +1094,7 @@ contract LiquidityPool is
    * @return the volatility feed contract interface
    */
   function getVolatilityFeed() internal view returns (VolatilityFeed) {
-    return VolatilityFeed(protocol.getCore().volatilityFeed);
+    return VolatilityFeed(protocol.volatilityFeed());
   }
   
   /**
@@ -971,7 +1102,7 @@ contract LiquidityPool is
    * @return the portfolio values feed contract
    */
   function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
-    return IPortfolioValuesFeed(protocol.getCore().portfolioValuesFeed);
+    return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
   }
 
   /**
@@ -987,7 +1118,7 @@ contract LiquidityPool is
    * @return the option registry contract
    */
   function getOptionRegistry() internal view returns (IOptionRegistry) {
-    return IOptionRegistry(protocol.getCore().optionRegistry);
+    return IOptionRegistry(protocol.optionRegistry());
   }
 
   /**
@@ -1004,7 +1135,7 @@ contract LiquidityPool is
       view
       returns (uint)
   {
-      return getPriceFeed().getNormalizedRate(
+      return PriceFeed(protocol.priceFeed()).getNormalizedRate(
                             underlying,
                             _strikeAsset
                             );

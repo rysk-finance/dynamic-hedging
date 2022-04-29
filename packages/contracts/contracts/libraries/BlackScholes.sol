@@ -207,4 +207,12 @@ library BlackScholes {
             return -NormalDist.cdf(-d1);
         }
     }
+
+    function abs(int256 x)
+    public 
+    pure 
+    returns (int256) 
+    {
+        return x >= 0 ? x : -x;
+    }
 }
