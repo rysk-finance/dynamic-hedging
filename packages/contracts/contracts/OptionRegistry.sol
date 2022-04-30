@@ -198,7 +198,6 @@ contract OptionRegistry is Ownable, AccessControl {
     function open(address _series, uint256 amount, uint256 collateralAmount) external onlyLiquidityPool returns (bool, uint256) {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
-        console.log("open Registry:", series.expiration);
         if(series.expiration <= block.timestamp) {revert AlreadyExpired();}
         // transfer collateral to this contract, collateral will depend on the option type
         SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);

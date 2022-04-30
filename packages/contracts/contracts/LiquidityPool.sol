@@ -478,7 +478,6 @@ contract LiquidityPool is
       returns (uint256 quote, int256 delta)
   {
       (uint256 optionQuote, int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, false);
-      console.log("quote price utilization:", optionQuote, uint(deltaQuote), amount);
       // using a struct to get around stack too deep issues
       UtilizationState memory quoteState;
       // price of acquiring those options
@@ -672,8 +671,6 @@ contract LiquidityPool is
         iv = iv - bidAskIVSpread;
       }
       // revert CustomErrors.if the expiry is in the past
-      console.log("Greeks:",optionSeries.strike, optionSeries.expiration, iv);
-      console.log("Greeks2:", underlyingPrice, riskFreeRate);
       if (optionSeries.expiration <= block.timestamp) {revert CustomErrors.OptionExpiryInvalid();}
       (quote, delta) = BlackScholes.blackScholesCalcGreeks(
        underlyingPrice,
@@ -683,7 +680,6 @@ contract LiquidityPool is
        riskFreeRate,
        optionSeries.isPut
       );
-    console.log("Greeks:", quote, uint(delta));
   }
 
   /**
