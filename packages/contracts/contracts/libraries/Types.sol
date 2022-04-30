@@ -27,4 +27,13 @@ library Types {
             address buyer;
             address seriesAddress;
         }
+        // strike and expiry date range for options
+        struct OptionParams {
+            uint128 minCallStrikePrice;
+            uint128 maxCallStrikePrice;
+            uint128 minPutStrikePrice;
+            uint128 maxPutStrikePrice;
+            uint128 minExpiry;
+            uint128 maxExpiry;
+        }
 }

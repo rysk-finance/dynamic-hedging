@@ -8,6 +8,7 @@ import "./interfaces/AddressBookInterface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import { LiquidityPool } from "./LiquidityPool.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import { CustomErrors } from "./libraries/CustomErrors.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import { OpynInteractions } from "./libraries/OpynInteractions.sol";
@@ -148,7 +149,27 @@ contract OptionRegistry is Ownable, AccessControl {
      * @param collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
-    function issue(address underlying, address strikeAsset, uint256 expiration, bool isPut, uint256 strike, address collateral) external onlyLiquidityPool returns (address) {
+    function issue(
+       address underlying,
+       address strikeAsset, 
+       uint256 expiration, 
+       bool isPut, 
+       uint256 strike, 
+       address collateral,
+       Types.OptionParams memory optionParams
+       ) 
+       external 
+       onlyLiquidityPool 
+       returns (address) 
+       {
+        // check the expiry is within the allowed bounds
+        if (block.timestamp + optionParams.minExpiry > expiration || expiration > block.timestamp + optionParams.maxExpiry) {revert CustomErrors.OptionExpiryInvalid();}
+        // check that the option strike is within the range of the min and max acceptable strikes of calls and puts
+        if(isPut){
+          if (optionParams.minPutStrikePrice > strike || strike > optionParams.maxPutStrikePrice) {revert CustomErrors.OptionStrikeInvalid();}
+        } else {
+          if (optionParams.minCallStrikePrice > strike || strike > optionParams.maxCallStrikePrice) {revert CustomErrors.OptionStrikeInvalid();}
+        }
         // deploy an oToken contract address
         if(expiration <= block.timestamp) {revert AlreadyExpired();}
         uint256 formattedStrike = formatStrikePrice(strike, collateral);

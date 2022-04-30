@@ -131,6 +131,7 @@ contracts
 │   └── IOracle.sol
 ├── libraries
 │   ├── BlackScholes.sol
+│   ├── CustomErrors.sol
 │   ├── NormalDist.sol
 │   ├── OptionsCompute.sol
 │   ├── OpynInteractions.sol
@@ -140,6 +141,7 @@ contracts
 │   └── ERC20.sol
 ├── LiquidityPool.sol
 ├── OptionRegistry.sol
+├── OptionHandler.sol
 ├── Protocol.sol
 ├── PortfolioValuesFeed.sol
 ├── VolatilityFeed.sol

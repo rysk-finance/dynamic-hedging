@@ -93,6 +93,14 @@ let strike = toWei("3500")
 // handles the conversion of expiryDate to a unix timestamp
 const now = moment().utc().unix()
 let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
+const optionParams = {
+	minCallStrikePrice: 0,
+	maxCallStrikePrice: toWei("100000000000"),
+	minPutStrikePrice: 0,
+	maxPutStrikePrice: toWei("1000000000000"),
+	minExpiry:0,
+	maxExpiry:99999999999,
+}
 
 describe("Options protocol Vault Health", function () {
 	before(async function () {
@@ -196,7 +204,8 @@ describe("Options protocol Vault Health", function () {
 			expiration,
 			call,
 			strike,
-			USDC_ADDRESS[chainId]
+			USDC_ADDRESS[chainId],
+			optionParams
 		)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
@@ -214,7 +223,8 @@ describe("Options protocol Vault Health", function () {
 			expiration,
 			call,
 			strike,
-			WETH_ADDRESS[chainId]
+			WETH_ADDRESS[chainId],
+			optionParams
 		)
 		await expect(issue).to.emit(optionRegistryETH, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
@@ -1116,7 +1126,8 @@ describe("Options protocol Vault Health", function () {
 			expiration,
 			put,
 			strike,
-			USDC_ADDRESS[chainId]
+			USDC_ADDRESS[chainId],
+			optionParams
 		)
 		await expect(issuePut).to.emit(optionRegistry, "OptionTokenCreated")
 		let receipt = await (await issuePut).wait(1)
@@ -1135,7 +1146,8 @@ describe("Options protocol Vault Health", function () {
 			expiration,
 			put,
 			strike,
-			WETH_ADDRESS[chainId]
+			WETH_ADDRESS[chainId],
+			optionParams
 		)
 		await expect(issuePut).to.emit(optionRegistryETH, "OptionTokenCreated")
 		let receipt = await (await issuePut).wait(1)
@@ -1375,7 +1387,8 @@ describe("Options protocol Vault Health", function () {
 			expiration,
 			call,
 			strike,
-			USDC_ADDRESS[chainId]
+			USDC_ADDRESS[chainId],
+			optionParams
 		)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
@@ -1500,7 +1513,8 @@ describe("Options protocol Vault Health", function () {
 			expiration,
 			call,
 			strike,
-			USDC_ADDRESS[chainId]
+			USDC_ADDRESS[chainId],
+			optionParams
 		)
 		const currentPrice = await oracle.getPrice(weth.address)
 		const settlePrice = currentPrice.sub(toWei("500").div(oTokenDecimalShift18))

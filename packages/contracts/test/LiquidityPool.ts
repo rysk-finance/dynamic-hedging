@@ -62,8 +62,12 @@ import {
 } from "./constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import exp from "constants"
+import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
+import { ERC20Interface } from "../types/ERC20Interface"
+import { OptionHandler } from "../types/OptionHandler"
 let usd: MintableERC20
 let weth: WETH
+let wethERC20: ERC20Interface
 let optionRegistry: OptionRegistry
 let optionProtocol: Protocol
 let signers: Signer[]
@@ -85,6 +89,7 @@ let putOptionToken: IOToken
 let putOptionToken2: IOToken
 let collateralAllocatedToVault1: BigNumber
 let proposedSeries: any
+let handler: OptionHandler
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -203,167 +208,37 @@ describe("Liquidity Pools", async () => {
 		const res = await setupTestOracle(await sender.getAddress())
 		oracle = res[0] as Oracle
 		opynAggregator = res[1] as MockChainlinkAggregator
-	})
-	it("#Deploys the Option Registry", async () => {
+		let deployParams = await deploySystem(signers, oracle, opynAggregator)
+		weth = deployParams.weth
+		wethERC20 = deployParams.wethERC20
+		usd = deployParams.usd
+		optionRegistry = deployParams.optionRegistry
+		priceFeed = deployParams.priceFeed
+		volFeed = deployParams.volFeed
+		portfolioValuesFeed = deployParams.portfolioValuesFeed
+		optionProtocol = deployParams.optionProtocol
+		let lpParams = await deployLiquidityPool(
+			signers, 
+			optionProtocol, 
+			usd, 
+			wethERC20, 
+			rfr, 
+			minCallStrikePrice, 
+			minPutStrikePrice, 
+			maxCallStrikePrice, 
+			maxPutStrikePrice, 
+			minExpiry, 
+			maxExpiry, 
+			optionRegistry,
+			portfolioValuesFeed
+			)
+		volatility = lpParams.volatility
+		liquidityPool = lpParams.liquidityPool
+		handler = lpParams.handler
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
-		// deploy libraries
-		const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
-		const interactions = await interactionsFactory.deploy()
-		// deploy options registry
-		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {
-			libraries: {
-				OpynInteractions: interactions.address
-			}
-		})
-		// get and transfer weth
-		weth = (await ethers.getContractAt(
-			"contracts/interfaces/WETH.sol:WETH",
-			WETH_ADDRESS[chainId]
-		)) as WETH
-		usd = (await ethers.getContractAt(
-			"contracts/tokens/ERC20.sol:ERC20",
-			USDC_ADDRESS[chainId]
-		)) as MintableERC20
-		await network.provider.request({
-			method: "hardhat_impersonateAccount",
-			params: [USDC_OWNER_ADDRESS[chainId]]
-		})
-		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
-		await usd.connect(signer).transfer(senderAddress, toWei("1000").div(oTokenDecimalShift18))
-		await weth.deposit({ value: utils.parseEther("99") })
-		const _optionRegistry = (await optionRegistryFactory.deploy(
-			USDC_ADDRESS[chainId],
-			OTOKEN_FACTORY[chainId],
-			GAMMA_CONTROLLER[chainId],
-			MARGIN_POOL[chainId],
-			senderAddress,
-			ADDRESS_BOOK[chainId]
-		)) as OptionRegistry
-		optionRegistry = _optionRegistry
-		expect(optionRegistry).to.have.property("deployTransaction")
 	})
-	it("#Should deploy price feed", async () => {
-		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-		priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
-		await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
-		await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
-		// oracle returns price denominated in 1e8
-		const oraclePrice = await oracle.getPrice(weth.address)
-		// pricefeed returns price denominated in 1e18
-		const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		expect(oraclePrice.mul(10_000_000_000)).to.equal(priceFeedPrice)
-	})
-	it("#Should deploy volatility feed", async () => {
-		const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
-		volFeed = (await volFeedFactory.deploy()) as VolatilityFeed
-		type int7 = [
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish
-		]
-		type number7 = [number, number, number, number, number, number, number]
-		const coefInts: number7 = [
-			1.42180236,
-			0,
-			-0.08626792,
-			0.07873822,
-			0.00650549,
-			0.02160918,
-			-0.1393287
-		]
-		//@ts-ignore
-		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		await volFeed.setVolatilitySkew(coefs, true)
-		await volFeed.setVolatilitySkew(coefs, false)
-	})
-
-	it("should deploy portfolio values feed", async () => {
-		const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
-		portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
-			await signers[0].getAddress(),
-			utils.formatBytes32String("jobId"),
-			toWei("1"),
-			ZERO_ADDRESS
-		)) as MockPortfolioValuesFeed
-	})
-
-	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
-		optionProtocol = (await protocolFactory.deploy(
-			optionRegistry.address,
-			priceFeed.address,
-			volFeed.address,
-			portfolioValuesFeed.address
-		)) as Protocol
-		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
-	})
-
-	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
-		const normDistFactory = await ethers.getContractFactory("NormalDist", {
-			libraries: {}
-		})
-		const normDist = await normDistFactory.deploy()
-		const volFactory = await ethers.getContractFactory("Volatility", {
-			libraries: {}
-		})
-		volatility = (await volFactory.deploy()) as Volatility
-		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
-			libraries: {
-				NormalDist: normDist.address
-			}
-		})
-		const blackScholesDeploy = await blackScholesFactory.deploy()
-
-		const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
-			libraries: {
-				BlackScholes: blackScholesDeploy.address
-			}
-		})
-		const lp = (await liquidityPoolFactory.deploy(
-			optionProtocol.address,
-			usd.address,
-			weth.address,
-			usd.address,
-			toWei(rfr),
-			"ETH/USDC",
-			"EDP",
-			{
-				minCallStrikePrice,
-				maxCallStrikePrice,
-				minPutStrikePrice,
-				maxPutStrikePrice,
-				minExpiry: minExpiry,
-				maxExpiry: maxExpiry
-			},
-			//@ts-ignore
-			await signers[0].getAddress()
-		)) as LiquidityPool
-
-		const lpAddress = lp.address
-		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
-		optionRegistry.setLiquidityPool(liquidityPool.address)
-		await liquidityPool.setMaxTimeDeviationThreshold(600)
-		await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
-		await portfolioValuesFeed.setLiquidityPool(liquidityPool.address)
-		await portfolioValuesFeed.fulfill(
-			utils.formatBytes32String("1"),
-			weth.address,
-			usd.address,
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0)
-		)
-	})
-
 	it("Deposit to the liquidityPool", async () => {
 		const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
 		await hre.network.provider.request({
@@ -500,7 +375,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await expect(liquidityPool.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
+		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 		// series with expiry too short
@@ -512,7 +387,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await expect(liquidityPool.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
+		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 	})
@@ -533,7 +408,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await expect(liquidityPool.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
+		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
 		// Series with strike price too low
@@ -546,7 +421,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await expect(liquidityPool.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
+		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
 	})
@@ -573,14 +448,11 @@ describe("Liquidity Pools", async () => {
 		const EthPrice = await oracle.getPrice(weth.address)
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
-		await usd.approve(liquidityPool.address, quote)
+		await usd.approve(handler.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
-		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
+		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount)).series
+		const write = await handler.issueAndWriteOption(proposedSeries, amount)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		const receipt = await write.wait(1)
-		const events = receipt.events
-		const writeEvent = events?.find(x => x.event == "WriteOption")
-		const seriesAddress = writeEvent?.args?.series
 		putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await putOptionToken.balanceOf(senderAddress)
 		collateralAllocatedToVault1 = await liquidityPool.collateralAllocated()
@@ -633,14 +505,11 @@ describe("Liquidity Pools", async () => {
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const lpAllocatedBefore = await liquidityPool.collateralAllocated()
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
-		await usd.approve(liquidityPool.address, quote)
+		await usd.approve(handler.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
-		const write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
+		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount)).series
+		const write = await handler.issueAndWriteOption(proposedSeries, amount)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		const receipt = await write.wait(1)
-		const events = receipt.events
-		const writeEvent = events?.find(x => x.event == "WriteOption")
-		const seriesAddress = writeEvent?.args?.series
 		putOptionToken2 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await putOptionToken2.balanceOf(senderAddress)
 		const lpAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -728,7 +597,7 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
-		await expect(liquidityPool.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith(
+		await expect(handler.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith(
 			"MaxLiquidityBufferReached"
 		)
 	})
@@ -808,7 +677,7 @@ describe("Liquidity Pools", async () => {
 			amount
 		)
 		customOrderPrice = localQuote * customOrderPriceMultiplier
-		await liquidityPool.createOrder(
+		await handler.createOrder(
 			proposedSeries,
 			amount,
 			toWei(customOrderPrice.toString()),
@@ -817,7 +686,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
-		const order = await liquidityPool.orderStores(1)
+		const order = await handler.orderStores(1)
 		expect(order.optionSeries.expiration).to.eq(proposedSeries.expiration)
 		expect(order.optionSeries.isPut).to.eq(proposedSeries.isPut)
 		expect(order.optionSeries.strike).to.eq(proposedSeries.strike)
@@ -832,7 +701,7 @@ describe("Liquidity Pools", async () => {
 		expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
 		// TODO: line below has a rounding error. Why is this?
 		// expect(order.optionSeries.strike).to.eq(utils.parseUnits(seriesInfo.strike.toString(), 10))
-		expect(await liquidityPool.orderIdCounter()).to.eq(1)
+		expect(await handler.orderIdCounter()).to.eq(1)
 		optionToken = new Contract(order.seriesAddress, Otoken.abi, sender) as IOToken
 	})
 	let customOrderPriceCall: number
@@ -880,7 +749,7 @@ describe("Liquidity Pools", async () => {
 		customOrderPriceCall = localQuoteCall * customOrderPriceMultiplier
 		customOrderPricePut = localQuotePut * customOrderPriceMultiplier
 		customStranglePrice = customOrderPriceCall + customOrderPricePut
-		const createStrangle = await liquidityPool.createStrangle(
+		const createStrangle = await handler.createStrangle(
 			proposedSeriesCall,
 			proposedSeriesPut,
 			amount,
@@ -898,8 +767,8 @@ describe("Liquidity Pools", async () => {
 		expect(parseInt(createOrderEvents[0].args?.orderId) + 1).to.eq(createOrderEvents[1].args?.orderId)
 		const createStrangleEvent = events?.find(x => x.event == "StrangleCreated")
 		strangleId = createStrangleEvent?.args?.strangleId
-		const callOrder = await liquidityPool.orderStores(createOrderEvents[0].args?.orderId)
-		const putOrder = await liquidityPool.orderStores(createOrderEvents[1].args?.orderId)
+		const callOrder = await handler.orderStores(createOrderEvents[0].args?.orderId)
+		const putOrder = await handler.orderStores(createOrderEvents[1].args?.orderId)
 		strangleCallToken = new Contract(callOrder.seriesAddress, Otoken.abi, sender) as IOToken
 		stranglePutToken = new Contract(putOrder.seriesAddress, Otoken.abi, sender) as IOToken
 
@@ -932,13 +801,13 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await expect(
-			liquidityPool
+			handler
 				.connect(receiver)
 				.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress)
 		).to.be.reverted
 	})
 	it("cant exercise order if not buyer", async () => {
-		await expect(liquidityPool.executeOrder(1)).to.be.revertedWith("InvalidBuyer()")
+		await expect(handler.executeOrder(1)).to.be.revertedWith("InvalidBuyer()")
 	})
 	it("Executes a buy order", async () => {
 		const [sender, receiver] = signers
@@ -948,7 +817,7 @@ describe("Liquidity Pools", async () => {
 		const lpOTokenBalBef = await optionToken.balanceOf(liquidityPool.address)
 		const lpBalBef = await usd.balanceOf(liquidityPool.address)
 		const receiverBalBef = await usd.balanceOf(receiverAddress)
-		const orderDeets = await liquidityPool.orderStores(1)
+		const orderDeets = await handler.orderStores(1)
 		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
@@ -978,8 +847,8 @@ describe("Liquidity Pools", async () => {
 			amount,
 			false
 		)
-		await usd.connect(receiver).approve(liquidityPool.address, 1000000000)
-		await liquidityPool.connect(receiver).executeOrder(1)
+		await usd.connect(receiver).approve(handler.address, 1000000000)
+		await handler.connect(receiver).executeOrder(1)
 		await portfolioValuesFeed.fulfill(
 			utils.formatBytes32String("1"),
 			weth.address,
@@ -995,7 +864,7 @@ describe("Liquidity Pools", async () => {
 		const lpOTokenBalAft = await optionToken.balanceOf(liquidityPool.address)
 		const lpBalAft = await usd.balanceOf(liquidityPool.address)
 		const receiverBalAft = await usd.balanceOf(receiverAddress)
-		const order = await liquidityPool.orderStores(1)
+		const order = await handler.orderStores(1)
 		expect(order.buyer).to.eq(ZERO_ADDRESS)
 		expect(fromOpyn(receiverOTokenBalAft.toString())).to.eq(fromWei(amount.toString()))
 		expect(lpOTokenBalAft).to.eq(0)
@@ -1015,7 +884,7 @@ describe("Liquidity Pools", async () => {
 		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
 		await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit), senderAddress)
 		const receiverBalBef = await usd.balanceOf(receiverAddress)
-		const orderDeets1 = await liquidityPool.orderStores(2)
+		const orderDeets1 = await handler.orderStores(2)
 		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
 		const localDelta1 = await calculateOptionDeltaLocally(
 			liquidityPool,
@@ -1045,7 +914,7 @@ describe("Liquidity Pools", async () => {
 			amount,
 			false
 		)
-		const orderDeets2 = await liquidityPool.orderStores(3)
+		const orderDeets2 = await handler.orderStores(3)
 		const localDelta2 = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
@@ -1075,7 +944,7 @@ describe("Liquidity Pools", async () => {
 			false
 		)
 		await usd.connect(receiver).approve(liquidityPool.address, 1000000000)
-		await liquidityPool.connect(receiver).executeStrangle(strangleId)
+		await handler.connect(receiver).executeStrangle(2,3)
 		const receiverBalAft = await usd.balanceOf(receiverAddress)
 		const receiverOTokenBalAft = (await strangleCallToken.balanceOf(receiverAddress)).add(
 			await stranglePutToken.balanceOf(receiverAddress)
@@ -1119,7 +988,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const createOrdertx = await liquidityPool.createOrder(
+		const createOrdertx = await handler.createOrder(
 			proposedSeries,
 			amount,
 			pricePer,
@@ -1130,7 +999,7 @@ describe("Liquidity Pools", async () => {
 		const events = receipt.events
 		const createOrderEvent = events?.find(x => x.event == "OrderCreated")
 		const orderId = createOrderEvent?.args?.orderId
-		const order = await liquidityPool.orderStores(orderId)
+		const order = await handler.orderStores(orderId)
 		expect(order.optionSeries.expiration).to.eq(proposedSeries.expiration)
 		expect(order.optionSeries.isPut).to.eq(proposedSeries.isPut)
 		expect(order.optionSeries.strike).to.eq(proposedSeries.strike)
@@ -1145,7 +1014,7 @@ describe("Liquidity Pools", async () => {
 		expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
 		// TODO: another tiny rounding error below. why?
 		// expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
-		expect(await liquidityPool.orderIdCounter()).to.eq(orderId)
+		expect(await handler.orderIdCounter()).to.eq(orderId)
 		optionToken = new Contract(order.seriesAddress, Otoken.abi, sender) as IOToken
 		increase(1201)
 		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
@@ -1160,7 +1029,7 @@ describe("Liquidity Pools", async () => {
 			prevalues.callPutsValue,
 			priceQuote
 		)
-		await expect(liquidityPool.connect(receiver).executeOrder(orderId)).to.be.revertedWith(
+		await expect(handler.connect(receiver).executeOrder(orderId)).to.be.revertedWith(
 			"OrderExpired()"
 		)
 	})
@@ -1204,7 +1073,7 @@ describe("Liquidity Pools", async () => {
 		const customOrderPriceInvalidDelta = localQuoteInvalidDelta * customOrderPriceMultiplier
 		const customOrderPriceInvalidPrice = localQuoteInvalidPrice * customOrderPriceMultiplierInvalid
 
-		const createOrderInvalidDelta = await liquidityPool.createOrder(
+		const createOrderInvalidDelta = await handler.createOrder(
 			proposedSeriesInvalidDelta,
 			amount,
 			toWei(customOrderPriceInvalidDelta.toString()),
@@ -1217,7 +1086,7 @@ describe("Liquidity Pools", async () => {
 		const createOrderEvent = events?.find(x => x.event == "OrderCreated")
 		const invalidDeltaOrderId = createOrderEvent?.args?.orderId
 
-		const createOrderInvalidPrice = await liquidityPool.createOrder(
+		const createOrderInvalidPrice = await handler.createOrder(
 			proposedSeriesInvalidPrice,
 			amount,
 			toWei(customOrderPriceInvalidPrice.toString()),
@@ -1231,11 +1100,11 @@ describe("Liquidity Pools", async () => {
 		const invalidPriceOrderId = createOrderEvent2?.args?.orderId
 
 		await expect(
-			liquidityPool.connect(receiver).executeOrder(invalidDeltaOrderId)
+			handler.connect(receiver).executeOrder(invalidDeltaOrderId)
 		).to.be.revertedWith("CustomOrderInvalidDeltaValue()")
 
 		await expect(
-			liquidityPool.connect(receiver).executeOrder(invalidPriceOrderId)
+			handler.connect(receiver).executeOrder(invalidPriceOrderId)
 		).to.be.revertedWith("CustomOrderInsufficientPrice()")
 	})
 

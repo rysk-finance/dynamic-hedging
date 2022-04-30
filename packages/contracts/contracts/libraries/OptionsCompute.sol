@@ -15,7 +15,7 @@ library OptionsCompute {
         uint value,
         uint decimals
     ) 
-    public
+    internal
     pure 
     returns (uint) 
     {
@@ -28,7 +28,7 @@ library OptionsCompute {
         uint value,
         uint decimals
     ) 
-    public 
+    internal 
     pure 
     returns (uint) 
     {
@@ -42,7 +42,7 @@ library OptionsCompute {
         uint underlyingPrice, 
         Types.OptionSeries memory optionSeries
     ) 
-    public 
+    internal 
     pure 
     returns (uint convertedQuote)
     {
@@ -64,7 +64,7 @@ library OptionsCompute {
         uint256 a,
         uint256 b
     ) 
-    public
+    internal
     pure 
     returns (uint256) 
     {
@@ -95,7 +95,7 @@ library OptionsCompute {
        uint weightedTime, 
        bool isSale
     ) 
-    public
+    internal
     pure 
     returns (uint, uint, uint) 
     {

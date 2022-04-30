@@ -18,7 +18,17 @@ interface IOptionRegistry {
      * @param collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
-    function issue(address underlying, address strikeAsset, uint256 expiration, bool isPut, uint256 strike, address collateral) external returns (address);
+    function issue(
+        address underlying, 
+        address strikeAsset, 
+        uint256 expiration, 
+        bool isPut, 
+        uint256 strike, 
+        address collateral,
+        Types.OptionParams memory optionParams
+        ) 
+        external 
+        returns (address);
 
     /**
      * @notice Open an options contract using collateral from the liquidity pool

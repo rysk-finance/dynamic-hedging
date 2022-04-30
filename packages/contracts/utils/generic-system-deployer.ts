@@ -27,6 +27,7 @@ import {
 } from "../test/constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { VolatilityFeed } from "../types/VolatilityFeed"
+import { OptionHandler } from "../types/OptionHandler"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 // edit depending on the chain id to be tested on
@@ -216,8 +217,16 @@ export async function deployLiquidityPool(
 		BigNumber.from(0),
 		BigNumber.from(0)
 	)
+	const handlerFactory = await ethers.getContractFactory("OptionHandler")
+	const handler = await handlerFactory.deploy(
+		await signers[0].getAddress(),
+		optionProtocol.address,
+		liquidityPool.address,
+	) as OptionHandler
+	await optionProtocol.changeHandler(handler.address, true)
 	return {
 		volatility: volatility,
-		liquidityPool: liquidityPool
+		liquidityPool: liquidityPool,
+		handler: handler
 	}
 }

@@ -53,6 +53,8 @@ import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { VolatilityFeed } from "../types/VolatilityFeed"
 import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
+import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
+import { OptionHandler } from "../types/OptionHandler"
 let usd: MintableERC20
 let weth: WETH
 let optionRegistry: OptionRegistry
@@ -75,6 +77,7 @@ let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
+let handler: OptionHandler
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -170,197 +173,37 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		const res = await setupTestOracle(await signers[0].getAddress())
 		oracle = res[0] as Oracle
 		opynAggregator = res[1] as MockChainlinkAggregator
-	})
-
-	it("Sets up weth and usdc for funding", async () => {
-		senderAddress = await signers[0].getAddress()
-		// get and transfer weth
-		weth = (await ethers.getContractAt(
-			"contracts/interfaces/WETH.sol:WETH",
-			WETH_ADDRESS[chainId]
-		)) as WETH
-		usd = (await ethers.getContractAt(
-			"contracts/tokens/ERC20.sol:ERC20",
-			USDC_ADDRESS[chainId]
-		)) as MintableERC20
-		await network.provider.request({
-			method: "hardhat_impersonateAccount",
-			params: [USDC_OWNER_ADDRESS[chainId]]
-		})
-		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
-		await usd.connect(signer).transfer(senderAddress, toWei("1000").div(oTokenDecimalShift18))
-		await weth.deposit({ value: utils.parseEther("99") })
-	})
-
-	it("should deploy portfolio values feed", async () => {
-		const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
-		portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
-			await signers[0].getAddress(),
-			utils.formatBytes32String("jobId"),
-			toWei("1"),
-			ZERO_ADDRESS
-		)) as MockPortfolioValuesFeed
-	})
-
-	it("Deploys the Option Registry", async () => {
-		signers = await ethers.getSigners()
+		let deployParams = await deploySystem(signers, oracle, opynAggregator)
+		weth = deployParams.weth
+		const wethERC20 = deployParams.wethERC20
+		usd = deployParams.usd
+		optionRegistry = deployParams.optionRegistry
+		priceFeed = deployParams.priceFeed
+		volFeed = deployParams.volFeed
+		portfolioValuesFeed = deployParams.portfolioValuesFeed
+		optionProtocol = deployParams.optionProtocol
+		let lpParams = await deployLiquidityPool(
+			signers, 
+			optionProtocol, 
+			usd, 
+			wethERC20, 
+			rfr, 
+			minCallStrikePrice, 
+			minPutStrikePrice, 
+			maxCallStrikePrice, 
+			maxPutStrikePrice, 
+			minExpiry, 
+			maxExpiry, 
+			optionRegistry,
+			portfolioValuesFeed
+			)
+		volatility = lpParams.volatility
+		liquidityPool = lpParams.liquidityPool
+		handler = lpParams.handler
+		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
-		// deploy libraries
-		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
-		const interactions = await interactionsFactory.deploy()
-		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
-			libraries: {
-				OpynInteractions: interactions.address
-			}
-		})
-		const _optionRegistry = (await optionRegistryFactory.deploy(
-			USDC_ADDRESS[chainId],
-			OTOKEN_FACTORY[chainId],
-			GAMMA_CONTROLLER[chainId],
-			MARGIN_POOL[chainId],
-			senderAddress,
-			ADDRESS_BOOK[chainId]
-		)) as OptionRegistry
-		optionRegistry = _optionRegistry
-		expect(optionRegistry).to.have.property("deployTransaction")
 	})
-	it("Should deploy price feed", async () => {
-		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-		const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
-		priceFeed = _priceFeed
-		await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
-		await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
-		// oracle returns price denominated in 1e8
-		const oraclePrice = await oracle.getPrice(weth.address)
-		// pricefeed returns price denominated in 1e18
-		const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		expect(oraclePrice.mul(10_000_000_000)).to.equal(priceFeedPrice)
-	})
-
-	it("#Should deploy volatility feed", async () => {
-		const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
-		volFeed = (await volFeedFactory.deploy()) as VolatilityFeed
-		type int7 = [
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish
-		]
-		type number7 = [number, number, number, number, number, number, number]
-		const coefInts: number7 = [
-			1.42180236,
-			0,
-			-0.08626792,
-			0.07873822,
-			0.00650549,
-			0.02160918,
-			-0.1393287
-		]
-		//@ts-ignore
-		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		await volFeed.setVolatilitySkew(coefs, true)
-		await volFeed.setVolatilitySkew(coefs, false)
-	})
-	it("Should deploy option protocol and link to registry/price feed", async () => {
-		const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
-		optionProtocol = (await protocolFactory.deploy(
-			optionRegistry.address,
-			priceFeed.address,
-			volFeed.address,
-			portfolioValuesFeed.address
-		)) as Protocol
-		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
-	})
-	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
-		type int7 = [
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish
-		]
-		type number7 = [number, number, number, number, number, number, number]
-		const coefInts: number7 = [
-			1.42180236,
-			0,
-			-0.08626792,
-			0.07873822,
-			0.00650549,
-			0.02160918,
-			-0.1393287
-		]
-		//@ts-ignore
-		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		await volFeed.setVolatilitySkew(coefs, true)
-		await volFeed.setVolatilitySkew(coefs, false)
-	})
-
-	it("Creates a liquidity pool with USDC (erc20) as strikeAsset", async () => {
-		const normDistFactory = await ethers.getContractFactory("NormalDist", {
-			libraries: {}
-		})
-		const normDist = await normDistFactory.deploy()
-		const volFactory = await ethers.getContractFactory("Volatility", {
-			libraries: {}
-		})
-		volatility = (await volFactory.deploy()) as Volatility
-		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
-			libraries: {
-				NormalDist: normDist.address
-			}
-		})
-		const blackScholesDeploy = await blackScholesFactory.deploy()
-
-		const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
-			libraries: {
-				BlackScholes: blackScholesDeploy.address
-			}
-		})
-		const lp = (await liquidityPoolFactory.deploy(
-			optionProtocol.address,
-			usd.address,
-			weth.address,
-			usd.address,
-			toWei(rfr),
-			"ETH/USDC",
-			"EDP",
-			{
-				minCallStrikePrice,
-				maxCallStrikePrice,
-				minPutStrikePrice,
-				maxPutStrikePrice,
-				minExpiry: minExpiry,
-				maxExpiry: maxExpiry
-			},
-			await signers[0].getAddress()
-		)) as LiquidityPool
-
-		const lpAddress = lp.address
-		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
-		optionRegistry.setLiquidityPool(liquidityPool.address)
-		await liquidityPool.setMaxTimeDeviationThreshold(600)
-		await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
-		await portfolioValuesFeed.setLiquidityPool(liquidityPool.address)
-		await portfolioValuesFeed.fulfill(
-			utils.formatBytes32String("1"),
-			weth.address,
-			usd.address,
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0)
-		)
-	})
-
 	it("Deposit to the liquidityPool", async () => {
 		const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
 		await hre.network.provider.request({

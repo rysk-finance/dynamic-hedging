@@ -1,6 +1,7 @@
 
 import "../OptionRegistry.sol";
 import "../tokens/ERC20.sol";
+import { Types } from "../libraries/Types.sol";
 import { SafeTransferLib } from "../libraries/SafeTransferLib.sol";
 
 
@@ -32,7 +33,8 @@ contract LiquidityPoolAdjustCollateralTest {
      * @return the address of the option
      */
     function issue(address underlying, address strikeAsset, uint256 expiration, bool isPut, uint256 strike, address collateral) external returns (address) {
-        return OptionRegistry(optionRegistry).issue(underlying, strikeAsset, expiration, isPut, strike, collateral);
+        Types.OptionParams memory optionParams;
+        return OptionRegistry(optionRegistry).issue(underlying, strikeAsset, expiration, isPut, strike, collateral, optionParams);
     }
 
     /**
