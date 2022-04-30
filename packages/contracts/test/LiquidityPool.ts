@@ -250,15 +250,15 @@ describe("Liquidity Pools", async () => {
 		await weth.deposit({ value: toWei(liquidityPoolWethDeposit) })
 		await usdWhaleConnect.transfer(senderAddress, toUSDC("1000000"))
 		await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
-		const balance = await usd.balanceOf(senderAddress)
+		const senderBalance = await usd.balanceOf(senderAddress)
 		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
 		const deposit = await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit), senderAddress)
 		const liquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
 		const receipt = await deposit.wait(1)
 		const event = receipt?.events?.find(x => x.event == "Deposit")
-		const newBalance = await usd.balanceOf(senderAddress)
+		const newSenderBalance = await usd.balanceOf(senderAddress)
 		expect(event?.event).to.eq("Deposit")
-		expect(balance.sub(newBalance)).to.eq(toUSDC(liquidityPoolUsdcDeposit))
+		expect(senderBalance.sub(newSenderBalance)).to.eq(toUSDC(liquidityPoolUsdcDeposit))
 		expect(liquidityPoolBalance.toString()).to.eq(toWei(liquidityPoolUsdcDeposit))
 	})
 	it("deploys the hedging reactor", async () => {
@@ -432,9 +432,6 @@ describe("Liquidity Pools", async () => {
 	it("LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
 		const amount = toWei("1")
-		const blockNum = await ethers.provider.getBlockNumber()
-		const block = await ethers.provider.getBlock(blockNum)
-		const { timestamp } = block
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		proposedSeries = {
@@ -445,24 +442,47 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const EthPrice = await oracle.getPrice(weth.address)
-		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const expectedCollateralAllocated = await optionRegistry.getCollateral(
+			{
+				expiration: expiration,
+				isPut: PUT_FLAVOR,
+				strike: strikePrice.div(10 ** 10), // convert to 1e8 for getCollateral
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			},
+			amount
+		)
+
 		await usd.approve(handler.address, quote)
-		const balance = await usd.balanceOf(senderAddress)
 		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
 			.series
-		const write = await handler.issueAndWriteOption(proposedSeries, amount)
-		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
-		const putBalance = await putOptionToken.balanceOf(senderAddress)
-		collateralAllocatedToVault1 = await liquidityPool.collateralAllocated()
-		const balanceNew = await usd.balanceOf(senderAddress)
+		await handler.issueAndWriteOption(proposedSeries, amount)
+
+		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const senderPutBalance = await putOptionToken.balanceOf(senderAddress)
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		const collateralAllocatedDiff = collateralAllocatedAfter.sub(collateralAllocatedBefore)
+		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
 		const opynAmount = toOpyn(fromWei(amount))
-		expect(putBalance).to.eq(opynAmount)
-		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatEth(quote)).to.be.within(-0.1, 0.1)
-		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
+		// check buyer's OToken balance is correct
+		expect(senderPutBalance).to.eq(opynAmount)
+		// ensure correct amount of USDC has been taken from buyer
+		expect(
+			tFormatUSDC(senderUSDBalanceBefore.sub(senderUSDBalanceAfter)) - tFormatEth(quote)
+		).to.be.within(-0.1, 0.1)
+
+		const poolUSDBalanceDiff = tFormatUSDC(poolBalanceAfter.sub(poolBalanceBefore))
+		const expectedUSDBalanceDiff = tFormatEth(quote) - tFormatUSDC(collateralAllocatedDiff)
+		// check LP USDC balance is changed
+		expect(poolUSDBalanceDiff - expectedUSDBalanceDiff).to.be.within(-0.001, 0.001)
+		// check collateral allocated is increased
+		expect(collateralAllocatedDiff).to.eq(expectedCollateralAllocated)
 	})
 	it("can compute portfolio delta", async function () {
 		const localDelta = await calculateOptionDeltaLocally(
