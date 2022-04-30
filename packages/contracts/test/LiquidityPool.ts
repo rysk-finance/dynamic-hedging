@@ -546,6 +546,16 @@ describe("Liquidity Pools", async () => {
 		// check number of OTokens minted increases
 		expect(numberOTokensMintedAfter).to.eq(numberOTokensMintedBefore.add(amount.div(1e10)))
 	})
+	it("pauses and unpauses handler contract", async () => {
+		await handler.pauseContract()
+		const amount = toWei("1")
+
+		await expect(handler.writeOption(putOptionToken.address, amount)).to.be.revertedWith(
+			"Pausable: paused"
+		)
+
+		await handler.unpause()
+	})
 	it("LP writes another ETH/USD put that expires later", async () => {
 		const [sender] = signers
 		const amount = toWei("3")
@@ -583,7 +593,7 @@ describe("Liquidity Pools", async () => {
 		const lpAllocatedDiff = lpAllocatedAfter.sub(lpAllocatedBefore)
 		expect(
 			tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)
-		).to.be.within(0, 0.1)
+		).to.be.within(-0.1, 0.1)
 	})
 	it("can compute portfolio delta", async function () {
 		const blockNum = await ethers.provider.getBlockNumber()
@@ -845,6 +855,7 @@ describe("Liquidity Pools", async () => {
 		expect(callOrder.amount).to.eq(amount)
 		expect(putOrder.amount).to.eq(amount)
 	})
+
 	it("Cant make a buy order if not admin", async () => {
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -1222,7 +1233,7 @@ describe("Liquidity Pools", async () => {
 		const withdraw = liquidityPool.withdraw(shares, senderAddress)
 		await expect(withdraw).to.be.revertedWith("WithdrawExceedsLiquidity()")
 	})
-	it("pauses and unpauses contract", async () => {
+	it("pauses and unpauses LP contract", async () => {
 		await usd.approve(liquidityPool.address, toUSDC("200"))
 		await liquidityPool.deposit(toUSDC("100"), senderAddress)
 		await liquidityPool.pauseContract()
@@ -1231,6 +1242,7 @@ describe("Liquidity Pools", async () => {
 		)
 		await liquidityPool.unpause()
 	})
+
 	it("settles an expired ITM vault", async () => {
 		const totalCollateralAllocated = await liquidityPool.collateralAllocated()
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
