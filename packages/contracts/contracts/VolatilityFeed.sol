@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
@@ -24,7 +25,7 @@ contract VolatilityFeed is Ownable {
     
     // number of seconds in a year used for calculations
     uint256 private constant ONE_YEAR_SECONDS = 31557600;
-    constructor() public {}
+    constructor() {}
 
    ///////////////
    /// setters ///

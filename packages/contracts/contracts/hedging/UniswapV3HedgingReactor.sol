@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
 import "../PriceFeed.sol";
@@ -85,7 +86,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     //////////////////////////////////////////////////////
 
     /// @inheritdoc IHedgingReactor
-    function hedgeDelta(int256 _delta) external returns (int256 deltaChange) {
+    function hedgeDelta(int256 _delta) external returns (int256) {
         
         require(msg.sender == parentLiquidityPool, "!vault");
         uint amountOutMinimum = 0;
@@ -93,7 +94,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         if (_delta < 0) { // buy wETH
         //TODO calculate amountInMaximum using live oracle data
         //TODO set stablecoin and amountin/out variables
-            (int256 deltaChange, uint256 amountPaid) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateral);
+            (int256 deltaChange,) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateral);
             internalDelta += deltaChange;
             return deltaChange;
         } else { // sell wETH
@@ -103,11 +104,11 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             }
             if(_delta > int256(ethBalance)){ // not enough ETH to sell to offset delta so sell all ETH available.
                 //TODO calculate amountOutMinmmum using live oracle data
-                (int256 deltaChange, uint256 amountReceived) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateral);
+                (int256 deltaChange,) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateral);
                   internalDelta += deltaChange;
                 return deltaChange;
             } else {
-                 (int256 deltaChange, uint256 amountReceived) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateral);
+                 (int256 deltaChange,) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateral);
                   internalDelta += deltaChange;
                 return deltaChange;
             }
@@ -130,7 +131,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             if(ethBalance < minAmount) {
                 return 0;
             }
-            uint256 stablesReceived = _liquidateETH(convertedAmount - balance, ethBalance, _token);         
+            _liquidateETH(convertedAmount - balance, ethBalance, _token);         
             balance = IERC20(_token).balanceOf(address(this));
             if(balance < convertedAmount){
                 SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, balance);
@@ -149,7 +150,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     /////////////////////////////////////////////
 
     /// @inheritdoc IHedgingReactor
-    function update() external returns (uint256) {
+    function update() external pure returns (uint256) {
         return 0;
     }
 
@@ -249,12 +250,12 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             });
 
         // Tries to execute the swap and return output 
-        try swapRouter.exactOutputSingle(params) returns (uint256 amountIn) {
+        try swapRouter.exactOutputSingle(params){
             return (_amountOut);
         // Transaction will fail if not enough ETH to fund the output needed
         // So in this case, liquidate all ETH and return output
         } catch {
-            ISwapRouter.ExactInputSingleParams memory params =
+            ISwapRouter.ExactInputSingleParams memory catchParams =
             ISwapRouter.ExactInputSingleParams({
                 tokenIn: wETH,
                 tokenOut: _buyToken,
@@ -265,7 +266,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             });
-            uint256 amountOut = swapRouter.exactInputSingle(params);
+            uint256 amountOut = swapRouter.exactInputSingle(catchParams);
 
             return (amountOut);
 

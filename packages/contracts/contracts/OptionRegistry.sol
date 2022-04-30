@@ -1,4 +1,6 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
+
 import "./tokens/ERC20.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IOracle.sol";
@@ -320,13 +322,13 @@ contract OptionRegistry is Ownable, AccessControl {
     /**
      * @notice Settle an options vault
      * @param  _series the address of the option token to be burnt
-     * @return success if the transaction succeeded
-     * @return collatReturned the amount of collateral returned from the vault
-     * @return collatLost the amount of collateral used to pay ITM options on vault settle
-     * @return amountShort number of oTokens that the vault was short
+     * @return  if the transaction succeeded
+     * @return  the amount of collateral returned from the vault
+     * @return  the amount of collateral used to pay ITM options on vault settle
+     * @return  number of oTokens that the vault was short
      * @dev callable by anyone but returns funds to the liquidityPool
      */
-    function settle(address _series) external returns (bool success, uint256 collatReturned, uint256 collatLost, uint256 amountShort) {
+    function settle(address _series) external returns (bool, uint256, uint256, uint256) {
         Types.OptionSeries memory series = seriesInfo[_series];
         if (series.expiration == 0) {revert NonExistentSeries();}
         // check that the option has expired

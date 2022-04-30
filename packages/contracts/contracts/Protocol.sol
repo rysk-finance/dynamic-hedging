@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -23,7 +24,7 @@ contract Protocol is Ownable {
        address _priceFeed,
        address _volatilityFeed,
        address _portfolioValuesFeed
-    ) public {
+    ) {
         optionRegistry = _optionRegistry;
         priceFeed = _priceFeed;
         volatilityFeed = _volatilityFeed;
