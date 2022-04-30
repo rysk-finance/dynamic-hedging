@@ -370,7 +370,7 @@ contract OptionRegistry is Ownable, AccessControl {
      * @notice Send collateral funds for an option to be minted
      * @dev series.strike should be scaled by 1e8.
      * @param  series details of the option series
-     * @param  amount amount of options to mint
+     * @param  amount amount of options to mint always in e18
      * @return amount transferred
      */
     function getCollateral(Types.OptionSeries memory series, uint256 amount) external view returns (uint256) {
@@ -379,7 +379,7 @@ contract OptionRegistry is Ownable, AccessControl {
           series.underlying,
           series.strikeAsset,
           series.collateral,
-          amount/ SCALE_FROM,
+          amount/ SCALE_FROM,         // assumes that amount is always in e18
           series.strike,
           IOracle(addressBook.getOracle()).getPrice(series.underlying),
           series.expiration,
