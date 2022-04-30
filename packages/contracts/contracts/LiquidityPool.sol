@@ -14,6 +14,9 @@ import "./interfaces/IPortfolioValuesFeed.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
+import "hardhat/console.sol";
+
+
 contract LiquidityPool is
   ERC20,
   Ownable,
@@ -471,14 +474,14 @@ contract LiquidityPool is
       view
       returns (uint256 quote, int256 delta)
   {
-      (uint256 optionQuote,  int256 delta, uint underlyingPrice) = quotePriceGreeks(optionSeries, false);
+      (uint256 optionQuote, int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, false);
       // using a struct to get around stack too deep issues
       UtilizationState memory quoteState;
       // price of acquiring those options
       quoteState.optionPrice = optionQuote.mul(amount);
       int portfolioDelta = getPortfolioDelta();
       // portfolio delta upon writing option
-      int newDelta = PRBMathSD59x18.abs(portfolioDelta + delta);
+      int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
       // assumes a single collateral type regardless of call or put
       // Is delta decreased?
       quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
@@ -509,6 +512,7 @@ contract LiquidityPool is
         }
       }
       quote =  OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
+      delta = deltaQuote;
       //@TODO think about more robust considitions for this check
       if (quote == 0 || delta == int(0)) { revert CustomErrors.DeltaQuoteError(quote, delta);}
   }

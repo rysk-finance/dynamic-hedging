@@ -14,6 +14,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 
+import "hardhat/console.sol";
 
 contract OptionHandler is
   Pausable,

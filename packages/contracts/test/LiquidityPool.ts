@@ -218,20 +218,20 @@ describe("Liquidity Pools", async () => {
 		portfolioValuesFeed = deployParams.portfolioValuesFeed
 		optionProtocol = deployParams.optionProtocol
 		let lpParams = await deployLiquidityPool(
-			signers, 
-			optionProtocol, 
-			usd, 
-			wethERC20, 
-			rfr, 
-			minCallStrikePrice, 
-			minPutStrikePrice, 
-			maxCallStrikePrice, 
-			maxPutStrikePrice, 
-			minExpiry, 
-			maxExpiry, 
+			signers,
+			optionProtocol,
+			usd,
+			wethERC20,
+			rfr,
+			minCallStrikePrice,
+			minPutStrikePrice,
+			maxCallStrikePrice,
+			maxPutStrikePrice,
+			minExpiry,
+			maxExpiry,
 			optionRegistry,
 			portfolioValuesFeed
-			)
+		)
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		handler = lpParams.handler
@@ -450,7 +450,8 @@ describe("Liquidity Pools", async () => {
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
 		await usd.approve(handler.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
-		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount)).series
+		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
+			.series
 		const write = await handler.issueAndWriteOption(proposedSeries, amount)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
@@ -507,7 +508,8 @@ describe("Liquidity Pools", async () => {
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
 		await usd.approve(handler.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
-		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount)).series
+		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
+			.series
 		const write = await handler.issueAndWriteOption(proposedSeries, amount)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		putOptionToken2 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
@@ -944,7 +946,7 @@ describe("Liquidity Pools", async () => {
 			false
 		)
 		await usd.connect(receiver).approve(liquidityPool.address, 1000000000)
-		await handler.connect(receiver).executeStrangle(2,3)
+		await handler.connect(receiver).executeStrangle(2, 3)
 		const receiverBalAft = await usd.balanceOf(receiverAddress)
 		const receiverOTokenBalAft = (await strangleCallToken.balanceOf(receiverAddress)).add(
 			await stranglePutToken.balanceOf(receiverAddress)
@@ -1029,9 +1031,7 @@ describe("Liquidity Pools", async () => {
 			prevalues.callPutsValue,
 			priceQuote
 		)
-		await expect(handler.connect(receiver).executeOrder(orderId)).to.be.revertedWith(
-			"OrderExpired()"
-		)
+		await expect(handler.connect(receiver).executeOrder(orderId)).to.be.revertedWith("OrderExpired()")
 	})
 	it("fails to execute invalid custom orders", async () => {
 		let customOrderPriceMultiplier = 0.93
@@ -1099,13 +1099,13 @@ describe("Liquidity Pools", async () => {
 		const createOrderEvent2 = events2?.find(x => x.event == "OrderCreated")
 		const invalidPriceOrderId = createOrderEvent2?.args?.orderId
 
-		await expect(
-			handler.connect(receiver).executeOrder(invalidDeltaOrderId)
-		).to.be.revertedWith("CustomOrderInvalidDeltaValue()")
+		await expect(handler.connect(receiver).executeOrder(invalidDeltaOrderId)).to.be.revertedWith(
+			"CustomOrderInvalidDeltaValue()"
+		)
 
-		await expect(
-			handler.connect(receiver).executeOrder(invalidPriceOrderId)
-		).to.be.revertedWith("CustomOrderInsufficientPrice()")
+		await expect(handler.connect(receiver).executeOrder(invalidPriceOrderId)).to.be.revertedWith(
+			"CustomOrderInsufficientPrice()"
+		)
 	})
 
 	it("Can compute IV from volatility skew coefs", async () => {
