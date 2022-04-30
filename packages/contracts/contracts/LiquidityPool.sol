@@ -229,7 +229,10 @@ contract LiquidityPool is
    */
   function removeHedgingReactorAddress(uint256 _index) onlyOwner public {
     SafeTransferLib.safeApprove(ERC20(strikeAsset), hedgingReactors[_index], 0);
-    delete hedgingReactors[_index];
+     for(uint i = _index; i < hedgingReactors.length-1; i++){
+      hedgingReactors[i] = hedgingReactors[i+1];      
+    }
+    hedgingReactors.pop();
   }
   /**
    * @notice set new custom order parameters

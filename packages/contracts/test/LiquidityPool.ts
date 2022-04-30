@@ -616,7 +616,43 @@ describe("Liquidity Pools", async () => {
 		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
 	})
 	it("writes more options for an existing series", async () => {
-		const writeOption = await liquidityPool.writeOption(putOptionToken.address, toWei("1"))
+		const amount = toWei("1")
+		const putBalance = await putOptionToken.balanceOf(senderAddress)
+		const LpBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const numberOTokensMintedBefore = await putOptionToken.totalSupply()
+
+		const seriesInfo = await optionRegistry.getSeriesInfo(putOptionToken.address)
+		const seriesInfoDecimalCorrected = {
+			expiration: seriesInfo.expiration,
+			isPut: seriesInfo.isPut,
+			strike: seriesInfo.strike.mul(1e10),
+			strikeAsset: seriesInfo.strikeAsset,
+			underlying: seriesInfo.underlying,
+			collateral: seriesInfo.collateral
+		}
+		const quote = utils.formatUnits(
+			(await liquidityPool.quotePriceWithUtilizationGreeks(seriesInfoDecimalCorrected, amount))[0],
+			12
+		)
+		await liquidityPool.writeOption(putOptionToken.address, amount)
+
+		const putBalanceAfter = await putOptionToken.balanceOf(senderAddress)
+		const LpBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const numberOTokensMintedAfter = await putOptionToken.totalSupply()
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		const collateralAllocatedDiff = collateralAllocatedAfter.sub(collateralAllocatedBefore)
+		// check option buyer's OToken balance increases by correct amount
+		expect(putBalanceAfter).to.eq(putBalance.add(utils.parseUnits("1", 8)))
+		// LP USDC balance after should equal balanceBefore, minus collateral allocated, plus premium quote.
+		// This does have a small rounding discrepency that might need looking into
+		expect(
+			LpBalanceAfter.sub(
+				LpBalanceBefore.add(BigNumber.from(parseInt(quote))).sub(collateralAllocatedDiff)
+			)
+		).to.be.within(-1000, 1000)
+		// check number of OTokens minted increases
+		expect(numberOTokensMintedAfter).to.eq(numberOTokensMintedBefore.add(amount.div(1e10)))
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
 		const [sender] = signers
@@ -1444,11 +1480,34 @@ describe("Liquidity Pools", async () => {
 	})
 
 	it("deletes a hedging reactor address", async () => {
+		const reactorAddress = uniswapV3HedgingReactor.address
+
 		const hedgingReactorBefore = await liquidityPool.hedgingReactors(0)
 		expect(parseInt(hedgingReactorBefore, 16)).to.not.eq(0x0)
 		await liquidityPool.removeHedgingReactorAddress(0)
 
-		const hedgingReactor = await liquidityPool.hedgingReactors(0)
-		expect(parseInt(hedgingReactor, 16)).to.eq(0x0)
+		await expect(liquidityPool.hedgingReactors(0)).to.be.reverted
+
+		await liquidityPool.setHedgingReactorAddress(reactorAddress)
+		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
+	})
+	it("sets new custom order bounds", async () => {
+		const customOrderBoundsBefore = await liquidityPool.customOrderBounds()
+
+		await liquidityPool.setCustomOrderBounds(
+			BigNumber.from(0),
+			utils.parseEther("0.3"),
+			utils.parseEther("-0.3"),
+			utils.parseEther("-0.05"),
+			BigNumber.from(800)
+		)
+
+		const customOrderBoundsAfter = await liquidityPool.customOrderBounds()
+
+		expect(customOrderBoundsAfter).to.not.eq(customOrderBoundsBefore)
+		expect(customOrderBoundsAfter.callMaxDelta).to.equal(utils.parseEther("0.3"))
+		expect(customOrderBoundsAfter.putMinDelta).to.equal(utils.parseEther("-0.3"))
+		expect(customOrderBoundsAfter.putMaxDelta).to.equal(utils.parseEther("-0.05"))
+		expect(customOrderBoundsAfter.maxPriceRange).to.equal(800)
 	})
 })
