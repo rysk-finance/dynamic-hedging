@@ -563,7 +563,7 @@ describe("Liquidity Pools", async () => {
 		const lpAllocatedDiff = lpAllocatedAfter.sub(lpAllocatedBefore)
 		expect(
 			tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)
-		).to.be.within(0, 0.1)
+		).to.be.within(-0.1, 0.1)
 	})
 	it("can compute portfolio delta", async function () {
 		const blockNum = await ethers.provider.getBlockNumber()
