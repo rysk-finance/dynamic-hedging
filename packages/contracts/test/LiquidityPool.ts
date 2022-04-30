@@ -1311,17 +1311,31 @@ describe("Liquidity Pools", async () => {
 		expect(maxExpiry).to.equal(86400 * 365)
 	})
 
-	it("deletes a hedging reactor address", async () => {
+	it("adds and deletes a hedging reactor address", async () => {
 		const reactorAddress = uniswapV3HedgingReactor.address
 
 		const hedgingReactorBefore = await liquidityPool.hedgingReactors(0)
+		// check hedging reactor exists in array
 		expect(parseInt(hedgingReactorBefore, 16)).to.not.eq(0x0)
 		await liquidityPool.removeHedgingReactorAddress(0)
-
+		// check no hedging reactors exist
 		await expect(liquidityPool.hedgingReactors(0)).to.be.reverted
-
+		// restore hedging reactor
 		await liquidityPool.setHedgingReactorAddress(reactorAddress)
 		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
+
+		await liquidityPool.setHedgingReactorAddress(ETH_ADDRESS)
+		await liquidityPool.setHedgingReactorAddress(ETH_ADDRESS)
+
+		// check added addresses show
+		expect(await liquidityPool.hedgingReactors(2)).to.equal(ETH_ADDRESS)
+		// delete two added reactors
+		// should remove middle element (element 1)
+		await liquidityPool.removeHedgingReactorAddress(1)
+		// should remove last element (elements 1)
+		await liquidityPool.removeHedgingReactorAddress(1)
+		expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
+		await expect(liquidityPool.hedgingReactors(1)).to.be.reverted
 	})
 	it("sets new custom order bounds", async () => {
 		const customOrderBoundsBefore = await handler.customOrderBounds()
@@ -1341,5 +1355,39 @@ describe("Liquidity Pools", async () => {
 		expect(customOrderBoundsAfter.putMinDelta).to.equal(utils.parseEther("-0.3"))
 		expect(customOrderBoundsAfter.putMaxDelta).to.equal(utils.parseEther("-0.05"))
 		expect(customOrderBoundsAfter.maxPriceRange).to.equal(800)
+	})
+	it("updates maxTotalSupply variable", async () => {
+		const beforeValue = await liquidityPool.maxTotalSupply()
+		const expectedValue = toWei("1000000000000000")
+		await liquidityPool.setMaxTotalSupply(expectedValue)
+		const afterValue = await liquidityPool.maxTotalSupply()
+		expect(afterValue).to.eq(expectedValue)
+		expect(afterValue).to.not.eq(beforeValue)
+	})
+	it("updates maxDiscount variable", async () => {
+		const beforeValue = await liquidityPool.maxDiscount()
+		const expectedValue = toWei("2")
+		await liquidityPool.setMaxDiscount(expectedValue)
+		const afterValue = await liquidityPool.maxDiscount()
+		expect(afterValue).to.eq(expectedValue)
+		expect(afterValue).to.not.eq(beforeValue)
+	})
+	it("updates bufferPercentage variable", async () => {
+		const beforeValue = await liquidityPool.bufferPercentage()
+		expect(beforeValue).to.equal(2000)
+		const expectedValue = 1500
+		await liquidityPool.setBufferPercentage(expectedValue)
+		const afterValue = await liquidityPool.bufferPercentage()
+		expect(afterValue).to.eq(expectedValue)
+		expect(afterValue).to.not.eq(beforeValue)
+	})
+	it("updates riskFreeRate variable", async () => {
+		const beforeValue = await liquidityPool.riskFreeRate()
+		expect(beforeValue).to.equal(toWei("0.03"))
+		const expectedValue = toWei("0.06")
+		await liquidityPool.setRiskFreeRate(expectedValue)
+		const afterValue = await liquidityPool.riskFreeRate()
+		expect(afterValue).to.eq(expectedValue)
+		expect(afterValue).to.not.eq(beforeValue)
 	})
 })
