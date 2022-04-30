@@ -13,6 +13,8 @@ import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import { OpynInteractions } from "./libraries/OpynInteractions.sol";
 import { IController, GammaTypes} from "./interfaces/GammaInterface.sol";
+import "hardhat/console.sol";
+
 
 contract OptionRegistry is Ownable, AccessControl {
 
@@ -196,6 +198,7 @@ contract OptionRegistry is Ownable, AccessControl {
     function open(address _series, uint256 amount, uint256 collateralAmount) external onlyLiquidityPool returns (bool, uint256) {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
+        console.log("open Registry:", series.expiration);
         if(series.expiration <= block.timestamp) {revert AlreadyExpired();}
         // transfer collateral to this contract, collateral will depend on the option type
         SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
@@ -227,7 +230,7 @@ contract OptionRegistry is Ownable, AccessControl {
         Types.OptionSeries memory series = seriesInfo[_series];
         // make sure the option hasnt expired yet
         if(series.expiration <= block.timestamp) {revert AlreadyExpired();}
-        if(series.exipation == 0) { revert NonExistentSeries(); }
+        if(series.expiration == 0) { revert NonExistentSeries(); }
         // get the vault id
         uint256 vaultId = vaultIds[_series];
         uint256 convertedAmount = OptionsCompute.convertToDecimals(amount, IERC20(_series).decimals());

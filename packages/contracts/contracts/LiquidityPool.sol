@@ -166,9 +166,12 @@ contract LiquidityPool is
    * @param _index remove a hedging reactor 
    * @dev   only governance can call this function
    */
-  function removeHedgingReactorAddress(uint256 _index) onlyOwner external {
-    SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors[_index], 0);
-    delete hedgingReactors[_index];
+  function removeHedgingReactorAddress(uint256 _index) onlyOwner public {
+    SafeTransferLib.safeApprove(ERC20(strikeAsset), hedgingReactors[_index], 0);
+     for(uint i = _index; i < hedgingReactors.length-1; i++){
+      hedgingReactors[i] = hedgingReactors[i+1];      
+    }
+    hedgingReactors.pop();
   }
 
   /**
@@ -286,20 +289,20 @@ contract LiquidityPool is
     IOptionRegistry optionRegistry, 
     uint256 premium,
     address recipient
-    ) 
+  ) 
     external 
     returns(uint256) 
     {
-    require(protocol.handler(msg.sender));
-    return _writeOption(
-                optionSeries, 
-                seriesAddress, 
-                amount, 
-                optionRegistry, 
-                premium, 
-                _checkBuffer(),
-                recipient
-                );
+      require(protocol.handler(msg.sender));
+      return _writeOption(
+        optionSeries, 
+        seriesAddress, 
+        amount, 
+        optionRegistry, 
+        premium, 
+        _checkBuffer(),
+        recipient
+        );
     }
 
   function handlerBuybackOption(
@@ -475,6 +478,7 @@ contract LiquidityPool is
       returns (uint256 quote, int256 delta)
   {
       (uint256 optionQuote, int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, false);
+      console.log("quote price utilization:", optionQuote, uint(deltaQuote), amount);
       // using a struct to get around stack too deep issues
       UtilizationState memory quoteState;
       // price of acquiring those options
@@ -668,6 +672,8 @@ contract LiquidityPool is
         iv = iv - bidAskIVSpread;
       }
       // revert CustomErrors.if the expiry is in the past
+      console.log("Greeks:",optionSeries.strike, optionSeries.expiration, iv);
+      console.log("Greeks2:", underlyingPrice, riskFreeRate);
       if (optionSeries.expiration <= block.timestamp) {revert CustomErrors.OptionExpiryInvalid();}
       (quote, delta) = BlackScholes.blackScholesCalcGreeks(
        underlyingPrice,
@@ -677,6 +683,7 @@ contract LiquidityPool is
        riskFreeRate,
        optionSeries.isPut
       );
+    console.log("Greeks:", quote, uint(delta));
   }
 
   /**
@@ -898,14 +905,14 @@ contract LiquidityPool is
     address underlying,
     address _strikeAsset
   )
-      internal
-      view
-      returns (uint)
+    internal
+    view
+    returns (uint)
   {
-      return PriceFeed(protocol.priceFeed()).getNormalizedRate(
-                            underlying,
-                            _strikeAsset
-                            );
+    return PriceFeed(protocol.priceFeed()).getNormalizedRate(
+      underlying,
+      _strikeAsset
+    );
   }
 
 }

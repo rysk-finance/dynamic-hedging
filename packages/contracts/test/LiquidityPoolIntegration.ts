@@ -183,20 +183,20 @@ describe("Liquidity Pool Integration Simulation", async () => {
 		portfolioValuesFeed = deployParams.portfolioValuesFeed
 		optionProtocol = deployParams.optionProtocol
 		let lpParams = await deployLiquidityPool(
-			signers, 
-			optionProtocol, 
-			usd, 
-			wethERC20, 
-			rfr, 
-			minCallStrikePrice, 
-			minPutStrikePrice, 
-			maxCallStrikePrice, 
-			maxPutStrikePrice, 
-			minExpiry, 
-			maxExpiry, 
+			signers,
+			optionProtocol,
+			usd,
+			wethERC20,
+			rfr,
+			minCallStrikePrice,
+			minPutStrikePrice,
+			maxCallStrikePrice,
+			maxPutStrikePrice,
+			minExpiry,
+			maxExpiry,
 			optionRegistry,
 			portfolioValuesFeed
-			)
+		)
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		handler = lpParams.handler
