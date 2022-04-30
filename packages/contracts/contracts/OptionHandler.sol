@@ -304,11 +304,14 @@ contract OptionHandler is
     IOptionRegistry optionRegistry = getOptionRegistry();
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+    
+    uint strikeDecimalConverted = OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals());
+
     // calculate premium
     (uint256 premium, int256 delta) = liquidityPool.quotePriceWithUtilizationGreeks(Types.OptionSeries( 
        optionSeries.expiration,
        optionSeries.isPut,
-       OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()), // convert from 1e8 to 1e18 notation for quotePrice
+       strikeDecimalConverted, // convert from 1e8 to 1e18 notation for quotePrice
        optionSeries.underlying,
        optionSeries.strikeAsset,
        collateralAsset), amount);
@@ -317,7 +320,7 @@ contract OptionHandler is
     return liquidityPool.handlerWriteOption(Types.OptionSeries( 
        optionSeries.expiration,
        optionSeries.isPut,
-       OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()), // convert from 1e8 to 1e18 notation for quotePrice
+       strikeDecimalConverted, // convert from 1e8 to 1e18 notation for quotePrice
        optionSeries.underlying,
        optionSeries.strikeAsset,
        collateralAsset), seriesAddress, amount, optionRegistry, premium, msg.sender);
