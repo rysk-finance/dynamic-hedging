@@ -1,4 +1,6 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
+
 import "./tokens/ERC20.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IOracle.sol";
@@ -320,13 +322,13 @@ contract OptionRegistry is Ownable, AccessControl {
     /**
      * @notice Settle an options vault
      * @param  _series the address of the option token to be burnt
-     * @return success if the transaction succeeded
-     * @return collatReturned the amount of collateral returned from the vault
-     * @return collatLost the amount of collateral used to pay ITM options on vault settle
-     * @return amountShort number of oTokens that the vault was short
+     * @return  if the transaction succeeded
+     * @return  the amount of collateral returned from the vault
+     * @return  the amount of collateral used to pay ITM options on vault settle
+     * @return  number of oTokens that the vault was short
      * @dev callable by anyone but returns funds to the liquidityPool
      */
-    function settle(address _series) external returns (bool success, uint256 collatReturned, uint256 collatLost, uint256 amountShort) {
+    function settle(address _series) external returns (bool, uint256, uint256, uint256) {
         Types.OptionSeries memory series = seriesInfo[_series];
         if (series.expiration == 0) {revert NonExistentSeries();}
         // check that the option has expired
@@ -368,7 +370,7 @@ contract OptionRegistry is Ownable, AccessControl {
      * @notice Send collateral funds for an option to be minted
      * @dev series.strike should be scaled by 1e8.
      * @param  series details of the option series
-     * @param  amount amount of options to mint
+     * @param  amount amount of options to mint always in e18
      * @return amount transferred
      */
     function getCollateral(Types.OptionSeries memory series, uint256 amount) external view returns (uint256) {
@@ -377,7 +379,7 @@ contract OptionRegistry is Ownable, AccessControl {
           series.underlying,
           series.strikeAsset,
           series.collateral,
-          amount/ SCALE_FROM,
+          amount/ SCALE_FROM,         // assumes that amount is always in e18
           series.strike,
           IOracle(addressBook.getOracle()).getPrice(series.underlying),
           series.expiration,

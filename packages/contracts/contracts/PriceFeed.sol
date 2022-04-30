@@ -1,4 +1,6 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
+
 import "./interfaces/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
@@ -22,7 +24,7 @@ contract PriceFeed is Ownable {
     
     uint8 private constant SCALE_DECIMALS = 18;
 
-    constructor() public {}
+    constructor() {}
 
    ///////////////
    /// setters ///

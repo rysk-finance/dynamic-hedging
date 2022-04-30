@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
 import "./Protocol.sol";
@@ -13,7 +14,6 @@ import "./interfaces/IHedgingReactor.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-
 import "hardhat/console.sol";
 
 
@@ -267,7 +267,7 @@ contract LiquidityPool is
     @param seriesAddress the address of the oToken vault to close
     @return collatReturned the amount of collateral returned to the liquidity pool.
   */
-  function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256 collatReturned) {
+  function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256) {
     IOptionRegistry optionRegistry = getOptionRegistry();  
     // get number of options in vault and collateral returned to recalculate our position without these options
     (, uint256 collatReturned, uint256 collatLost, uint256 oTokensAmount) = optionRegistry.settle(seriesAddress);
@@ -275,6 +275,7 @@ contract LiquidityPool is
     // recalculate liquidity pool's position
     _adjustVariables(optionRegistry.getSeriesInfo(seriesAddress), oTokensAmount, collatReturned, false);
     collateralAllocated -= collatLost;
+    return collatReturned;
   }
 
   function handlerIssue(Types.OptionSeries memory optionSeries, IOptionRegistry optionRegistry) external returns(address) {
@@ -324,7 +325,7 @@ contract LiquidityPool is
   /// external state changing functionality ///
   /////////////////////////////////////////////
 
-  /**
+  /** 
    * @notice function for adding liquidity to the options liquidity pool
    * @param _amount    amount of the strike asset to deposit
    * @param _recipient the recipient of the shares
@@ -535,8 +536,9 @@ contract LiquidityPool is
       view
       returns (uint256 quote, int256 delta)
   {
-      (uint256 optionQuote,  int256 delta, uint underlyingPrice) = quotePriceGreeks(optionSeries, true);
+      (uint256 optionQuote,  int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, true);
       quote =  OptionsCompute.convertToCollateralDenominated(optionQuote.mul(amount), underlyingPrice, optionSeries);
+      delta = deltaQuote;
       //@TODO think about more robust considitions for this check
       if (quote == 0 || delta == int(0)) { revert CustomErrors.DeltaQuoteError(quote, delta); }
   }
@@ -768,9 +770,9 @@ contract LiquidityPool is
   ) internal returns (uint256) {
     SafeTransferLib.safeApprove(ERC20(seriesAddress), address(optionRegistry), OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
     (, uint collateralReturned) = optionRegistry.close(seriesAddress, amount);
-    emit BuybackOption(seriesAddress, amount, premium, collateralReturned, msg.sender);
+    emit BuybackOption(seriesAddress, amount, premium, collateralReturned, seller);
     _adjustVariables(optionSeries, amount, collateralReturned, false);
-    SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
+    SafeTransferLib.safeTransfer(ERC20(collateralAsset), seller, OptionsCompute.convertToDecimals(premium, IERC20(collateralAsset).decimals()));
     return amount;
   }
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
 import "../PriceFeed.sol";
@@ -400,11 +401,12 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         uint256 collat = collatDeposits[0].balance;
         // get the current price of the underlying asset from chainlink to be used to calculate position sizing
         uint256 currentPrice = OptionsCompute.convertToDecimals(PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset), ERC20(collateralAsset).decimals());
+        IClearingHouseStructures.SwapParams memory swapParams;
         if (collat <= _amount) {
             // if the amount needed is greater than or equal to the collateral then close all positions and withdraw
             // all collateral
             // make the swapParams to close the position
-            IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
+            swapParams = IClearingHouseStructures.SwapParams(
                 -netPosition,
                 0,
                 false,
@@ -427,7 +429,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         newPosition = netPosition > 0 ? newPosition : -newPosition;
         // calculate the difference between the old and new position
         int256 diff = newPosition - netPosition;
-        IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
+        swapParams = IClearingHouseStructures.SwapParams(
             diff,
             0,
             false,
