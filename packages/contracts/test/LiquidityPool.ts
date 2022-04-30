@@ -877,6 +877,44 @@ describe("Liquidity Pools", async () => {
 				.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress)
 		).to.be.reverted
 	})
+	it("Create buy order reverts if price is zero", async () => {
+		const [sender, receiver] = signers
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike).add(100))
+		const amount = toWei("1")
+		const pricePer = 0
+		const orderExpiry = 10
+		const proposedSeries = {
+			expiration: expiration,
+			isPut: true,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await expect(
+			handler.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress)
+		).to.be.revertedWith("InvalidPrice()")
+	})
+	it("Create buy order reverts if order expiry too long", async () => {
+		const [sender, receiver] = signers
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike).add(100))
+		const amount = toWei("1")
+		const pricePer = toWei("1000")
+		const orderExpiry = 2000 // 1800 is max
+		const proposedSeries = {
+			expiration: expiration,
+			isPut: true,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await expect(
+			handler.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress)
+		).to.be.revertedWith("OrderExpiryTooLong()")
+	})
 	it("cant exercise order if not buyer", async () => {
 		await expect(handler.executeOrder(1)).to.be.revertedWith("InvalidBuyer()")
 	})
