@@ -91,6 +91,7 @@ contract OptionRegistry is Ownable, AccessControl {
     error AlreadyExpired();
     error NotLiquidityPool();
     error NonExistentSeries();
+    error InvalidCollateral();
     error VaultNotLiquidated();
     error InsufficientBalance();
 
@@ -249,20 +250,21 @@ contract OptionRegistry is Ownable, AccessControl {
      * @param  vaultId the id of the vault to check
      */
     function adjustCollateral(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
-      (bool isBelowMin, bool isAboveMax,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
+      (bool isBelowMin, bool isAboveMax,,uint256 collateralAmount, address _collateralAsset) = checkVaultHealth(vaultId);
+      if (collateralAsset != _collateralAsset) {revert InvalidCollateral(); }
       if (!isBelowMin && !isAboveMax) {revert HealthyVault();}
       if (isBelowMin) {
         LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, false);
         // transfer the needed collateral to this contract from the liquidityPool
-        SafeTransferLib.safeTransferFrom(collateralAsset, liquidityPool, address(this), collateralAmount);
+        SafeTransferLib.safeTransferFrom(_collateralAsset, liquidityPool, address(this), collateralAmount);
         // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-        OpynInteractions.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
+        OpynInteractions.depositCollat(gammaController, marginPool, _collateralAsset, collateralAmount, vaultId);
       } else if (isAboveMax) {
         LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, true);
         // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-        OpynInteractions.withdrawCollat(gammaController, collateralAsset, collateralAmount, vaultId);
+        OpynInteractions.withdrawCollat(gammaController, _collateralAsset, collateralAmount, vaultId);
         // transfer the excess collateral to the liquidityPool from this address
-        SafeTransferLib.safeTransfer(ERC20(collateralAsset), liquidityPool, collateralAmount);
+        SafeTransferLib.safeTransfer(ERC20(_collateralAsset), liquidityPool, collateralAmount);
       }
     }
 
@@ -273,12 +275,13 @@ contract OptionRegistry is Ownable, AccessControl {
      * @dev    this is a safety function, if worst comes to worse any caller can collateralise a vault to save it.
      */
     function adjustCollateralCaller(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
-      (bool isBelowMin,,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
+      (bool isBelowMin,,,uint256 collateralAmount, address _collateralAsset) = checkVaultHealth(vaultId);
+      if (collateralAsset != _collateralAsset) {revert InvalidCollateral(); }
       if (!isBelowMin) {revert HealthyVault();}
       // transfer the needed collateral to this contract from the msg.sender
-      SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collateralAmount);
+      SafeTransferLib.safeTransferFrom(_collateralAsset, msg.sender, address(this), collateralAmount);
       // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-      OpynInteractions.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
+      OpynInteractions.depositCollat(gammaController, marginPool, _collateralAsset, collateralAmount, vaultId);
     }
 
     /**
