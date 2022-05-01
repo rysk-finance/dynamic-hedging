@@ -54,7 +54,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     /// @notice address of the keeper of this pool
     address public keeper;
     /// @notice desired healthFactor of the pool
-    uint256 public healthFactor = 12_000;
+    uint256 public healthFactor = 12_500;
     /// @notice should change position also sync state
     bool public syncOnChange;
 
