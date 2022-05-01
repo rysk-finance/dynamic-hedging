@@ -140,10 +140,10 @@ contract LiquidityPool is
   /// setters ///
   ///////////////
 
-  function pauseContract() external onlyOwner{
+  function pauseContract() external onlyOwner {
     _pause();
   }
-  function unpause() external onlyOwner{
+  function unpause() external onlyOwner {
     _unpause();
   }
   function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external onlyOwner {
@@ -255,14 +255,6 @@ contract LiquidityPool is
   }
 
   /**
-    @notice reset the temporary portfolio and delta values that have been changed since the last oracle update
-    @dev    only callable by the portfolio values feed oracle contract
-  */
-  function resetTempValues() external {
-    require(msg.sender == address(Protocol(protocol).portfolioValuesFeed()));
-    delete weightedOptionValues;
-  }
-  /**
     @notice closes an oToken vault, returning collateral (minus ITM option expiry value) back to the pool
     @param seriesAddress the address of the oToken vault to close
     @return collatReturned the amount of collateral returned to the liquidity pool.
@@ -276,6 +268,15 @@ contract LiquidityPool is
     _adjustVariables(optionRegistry.getSeriesInfo(seriesAddress), oTokensAmount, collatReturned, false);
     collateralAllocated -= collatLost;
     return collatReturned;
+  }
+
+  /**
+    @notice reset the temporary portfolio and delta values that have been changed since the last oracle update
+    @dev    only callable by the portfolio values feed oracle contract
+  */
+  function resetTempValues() external {
+    require(msg.sender == address(Protocol(protocol).portfolioValuesFeed()));
+    delete weightedOptionValues;
   }
 
   function handlerIssue(Types.OptionSeries memory optionSeries, IOptionRegistry optionRegistry) external returns(address) {
