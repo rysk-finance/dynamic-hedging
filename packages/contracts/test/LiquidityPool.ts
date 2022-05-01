@@ -1265,14 +1265,23 @@ describe("Liquidity Pools", async () => {
 		let customOrderPriceMultiplierInvalid = 0.89 // below 10% buffer
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePriceInvalidDelta = priceQuote.add(toWei("10")) // delta will be too high
+		const strikePriceInvalidDeltaCall = priceQuote.add(toWei("10")) // delta will be too high
+		const strikePriceInvalidDeltaPut = priceQuote.sub(toWei("10")) // delta will be too high
 		const strikePriceInvalidPrice = priceQuote.add(toWei("1500"))
 		const amount = toWei("1")
 		const orderExpiry = 600 // 10 minutes
-		const proposedSeriesInvalidDelta = {
+		const proposedSeriesInvalidDeltaCall = {
 			expiration: expiration,
 			isPut: false,
-			strike: BigNumber.from(strikePriceInvalidDelta),
+			strike: BigNumber.from(strikePriceInvalidDeltaCall),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		const proposedSeriesInvalidDeltaPut = {
+			expiration: expiration,
+			isPut: false,
+			strike: BigNumber.from(strikePriceInvalidDeltaPut),
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -1285,10 +1294,16 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const localQuoteInvalidDelta = await calculateOptionQuoteLocally(
+		const localQuoteInvalidDeltaCall = await calculateOptionQuoteLocally(
 			liquidityPool,
 			priceFeed,
-			proposedSeriesInvalidDelta,
+			proposedSeriesInvalidDeltaCall,
+			amount
+		)
+		const localQuoteInvalidDeltaPut = await calculateOptionQuoteLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeriesInvalidDeltaPut,
 			amount
 		)
 		const localQuoteInvalidPrice = await calculateOptionQuoteLocally(
@@ -1297,22 +1312,39 @@ describe("Liquidity Pools", async () => {
 			proposedSeriesInvalidPrice,
 			amount
 		)
-		const customOrderPriceInvalidDelta = localQuoteInvalidDelta * customOrderPriceMultiplier
-		const customOrderPriceInvalidPrice = localQuoteInvalidPrice * customOrderPriceMultiplierInvalid
+		const customOrderPriceInvalidDeltaCall = localQuoteInvalidDeltaCall * customOrderPriceMultiplier
+		const customOrderPriceInvalidDeltaPut = localQuoteInvalidDeltaPut * customOrderPriceMultiplier
 
-		const createOrderInvalidDelta = await handler.createOrder(
-			proposedSeriesInvalidDelta,
+		const customOrderPriceInvalidPrice = localQuoteInvalidPrice * customOrderPriceMultiplierInvalid
+		// create invalid delta call option order
+		const createOrderInvalidDeltaCall = await handler.createOrder(
+			proposedSeriesInvalidDeltaCall,
 			amount,
-			toWei(customOrderPriceInvalidDelta.toString()),
+			toWei(customOrderPriceInvalidDeltaCall.toString()),
 			orderExpiry,
 			receiverAddress
 		)
 
-		const receipt = await createOrderInvalidDelta.wait(1)
+		const receipt = await createOrderInvalidDeltaCall.wait(1)
 		const events = receipt.events
 		const createOrderEvent = events?.find(x => x.event == "OrderCreated")
-		const invalidDeltaOrderId = createOrderEvent?.args?.orderId
+		const invalidDeltaCallOrderId = createOrderEvent?.args?.orderId
 
+		// create invalid delta put order
+		const createOrderInvalidDeltaPut = await handler.createOrder(
+			proposedSeriesInvalidDeltaPut,
+			amount,
+			toWei(customOrderPriceInvalidDeltaPut.toString()),
+			orderExpiry,
+			receiverAddress
+		)
+
+		const receipt3 = await createOrderInvalidDeltaPut.wait(1)
+		const events3 = receipt.events
+		const createOrderEven3t = events?.find(x => x.event == "OrderCreated")
+		const invalidDeltaPutOrderId = createOrderEvent?.args?.orderId
+
+		// create invalid price option series
 		const createOrderInvalidPrice = await handler.createOrder(
 			proposedSeriesInvalidPrice,
 			amount,
@@ -1326,7 +1358,10 @@ describe("Liquidity Pools", async () => {
 		const createOrderEvent2 = events2?.find(x => x.event == "OrderCreated")
 		const invalidPriceOrderId = createOrderEvent2?.args?.orderId
 
-		await expect(handler.connect(receiver).executeOrder(invalidDeltaOrderId)).to.be.revertedWith(
+		await expect(handler.connect(receiver).executeOrder(invalidDeltaCallOrderId)).to.be.revertedWith(
+			"CustomOrderInvalidDeltaValue()"
+		)
+		await expect(handler.connect(receiver).executeOrder(invalidDeltaPutOrderId)).to.be.revertedWith(
 			"CustomOrderInvalidDeltaValue()"
 		)
 
