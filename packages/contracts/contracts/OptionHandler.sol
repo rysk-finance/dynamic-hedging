@@ -328,12 +328,12 @@ contract OptionHandler is
 
   /**
     @notice buys a number of options back and burns the tokens
-    @param optionSeries the option token series to buyback
+    @param seriesAddress the option token series address to buyback
     @param amount the number of options to buyback expressed in 1e18
     @return the number of options bought and burned
   */
   function buybackOption(
-    Types.OptionSeries memory optionSeries,
+    address seriesAddress,
     uint amount
   ) 
   public 
@@ -341,27 +341,37 @@ contract OptionHandler is
   whenNotPaused() 
   returns (uint256)
   {
+    IOptionRegistry optionRegistry = getOptionRegistry();
+    // get the option series from the pool
+    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // revert if the expiry is in the past
     if (optionSeries.expiration <= block.timestamp) {revert CustomErrors.OptionExpiryInvalid();}
-    (uint256 premium, int256 delta) = liquidityPool.quotePriceBuying(optionSeries, amount);
+    uint strikeDecimalConverted = OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals());
+    // get Liquidity pool quote on the option to buy back
+    (uint256 premium, int256 delta) = liquidityPool.quotePriceBuying(Types.OptionSeries( 
+       optionSeries.expiration,
+       optionSeries.isPut,
+       strikeDecimalConverted, // convert from 1e8 to 1e18 notation for quotePrice
+       optionSeries.underlying,
+       optionSeries.strikeAsset,
+       collateralAsset), amount);
+    // if option seller is not on our whitelist, run some extra checks
     if (!buybackWhitelist[msg.sender]){
       int portfolioDelta = liquidityPool.getPortfolioDelta();
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + delta);
       bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
       if (!isDecreased) {revert CustomErrors.DeltaNotDecreased();}
     }
-    IOptionRegistry optionRegistry = getOptionRegistry();  
-    address seriesAddress = optionRegistry.getOtoken(
-       optionSeries.underlying,
-       optionSeries.strikeAsset,
-       optionSeries.expiration,
-       optionSeries.isPut,
-       optionSeries.strike,
-       collateralAsset
-    );     
+   
     if (seriesAddress == address(0)) {revert CustomErrors.NonExistentOtoken();} 
     SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(liquidityPool), OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals()));
-    return liquidityPool.handlerBuybackOption(optionSeries, amount, optionRegistry, seriesAddress, premium, msg.sender);
+    return liquidityPool.handlerBuybackOption(Types.OptionSeries( 
+       optionSeries.expiration,
+       optionSeries.isPut,
+       strikeDecimalConverted, // convert from 1e8 to 1e18 notation for handlerBuybackOption
+       optionSeries.underlying,
+       optionSeries.strikeAsset,
+       collateralAsset), amount, optionRegistry, seriesAddress, premium, msg.sender);
   }
 
   ///////////////////////////

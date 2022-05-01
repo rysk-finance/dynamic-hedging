@@ -434,6 +434,7 @@ describe("Liquidity Pools", async () => {
 		const amount = toWei("1")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
+		console.log("strikeprice initial series:", strikePrice)
 		proposedSeries = {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
@@ -523,6 +524,7 @@ describe("Liquidity Pools", async () => {
 			underlying: seriesInfo.underlying,
 			collateral: seriesInfo.collateral
 		}
+		console.log({ seriesInfo })
 		const quote = utils.formatUnits(
 			(await liquidityPool.quotePriceWithUtilizationGreeks(seriesInfoDecimalCorrected, amount))[0],
 			12
@@ -572,6 +574,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
+
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const lpAllocatedBefore = await liquidityPool.collateralAllocated()
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
@@ -594,6 +597,65 @@ describe("Liquidity Pools", async () => {
 		expect(
 			tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)
 		).to.be.within(-0.1, 0.1)
+	})
+	it("adds address to the buyback whitelist", async () => {
+		await expect(await handler.buybackWhitelist(senderAddress)).to.be.false
+		await handler.addOrRemoveBuybackAddress(senderAddress, true)
+		await expect(await handler.buybackWhitelist(senderAddress)).to.be.true
+	})
+
+	it("LP can buy back option to reduce open interest", async () => {
+		const [sender] = signers
+		const amount = toWei("1")
+		const putOptionAddress = putOptionToken.address
+		const seriesInfo = await optionRegistry.getSeriesInfo(putOptionToken.address)
+
+		const seriesInfoDecimalCorrected = {
+			expiration: seriesInfo.expiration,
+			isPut: seriesInfo.isPut,
+			strike: seriesInfo.strike.mul(1e10),
+			strikeAsset: seriesInfo.strikeAsset,
+			underlying: seriesInfo.underlying,
+			collateral: seriesInfo.collateral
+		}
+
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+
+		const totalInterestBefore = await putOptionToken.totalSupply()
+		const sellerOTokenBalanceBefore = await putOptionToken.balanceOf(senderAddress)
+		const sellerUsdcBalanceBefore = await usd.balanceOf(senderAddress)
+		// const writersBalanceBefore = await optionRegistry.writers(putOptionAddress, liquidityPool.address)
+		await putOptionToken.approve(liquidityPool.address, amount)
+		const quote = (
+			await liquidityPool.quotePriceWithUtilizationGreeks(seriesInfoDecimalCorrected, amount)
+		)[0]
+		console.log({ quote })
+		await usd.approve(liquidityPool.address, quote.toString())
+		const write = await handler.buybackOption(putOptionAddress, amount)
+		const receipt = await write.wait(1)
+		const events = receipt.events
+		const buybackEvent = events?.find(x => x.event == "BuybackOption")
+		expect(buybackEvent?.args?.series).to.equal(putOptionAddress)
+		expect(buybackEvent?.args?.amount).to.equal(amount)
+		const totalInterest = await putOptionToken.totalSupply()
+		expect(totalInterest).to.equal(totalInterestBefore.sub(amount))
+		const sellerOTokenBalance = await putOptionToken.balanceOf(senderAddress)
+		const sellerUsdcBalance = await usd.balanceOf(senderAddress)
+		// div quote by 100 because quote is in 8dp but USDC uses 6
+		// test to ensure option seller's USDC balance increases by quoted amount (1 USDC error allowed)
+		// expect(sellerUsdcBalance.sub(sellerUsdcBalanceBefore.add(quote.div(100))).abs()).to.be.below(
+		// 	utils.parseUnits("1", 6)
+		// )
+		// expect(sellerOTokenBalance).to.equal(sellerOTokenBalanceBefore.sub(amount))
+		// // const writersBalance = await optionRegistry.writers(callOptionAddress, ethLiquidityPool.address)
+		// // expect(writersBalance).to.equal(writersBalanceBefore.sub(utils.parseEther("1")))
+
+		// const lpUSDBalance = await usd.balanceOf(liquidityPool.address)
+		// const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance)
+		// // test to ensure Liquidity pool balance decreased by quoted amount (1 USDC error allowed)
+		// expect(balanceDiff.sub(quote.div(100)).abs()).to.be.below(utils.parseUnits("1", 6))
+		// expect(parseFloat(fromOpyn(sellerOTokenBalance))).to.eq(0)
+		// expect(parseFloat(fromOpyn(totalInterest))).to.eq(0)
 	})
 	it("can compute portfolio delta", async function () {
 		const blockNum = await ethers.provider.getBlockNumber()
