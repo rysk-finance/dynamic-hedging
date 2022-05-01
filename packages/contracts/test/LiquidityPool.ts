@@ -597,6 +597,7 @@ describe("Liquidity Pools", async () => {
 			tFormatUSDC(poolBalanceDiff) + tFormatEth(quote) - tFormatUSDC(lpAllocatedDiff)
 		).to.be.within(-0.1, 0.1)
 	})
+
 	it("adds address to the buyback whitelist", async () => {
 		await expect(await handler.buybackWhitelist(senderAddress)).to.be.false
 		await handler.addOrRemoveBuybackAddress(senderAddress, true)
@@ -654,6 +655,45 @@ describe("Liquidity Pools", async () => {
 			-0.001,
 			0.001
 		)
+	})
+	it("fails if buyback token address is invalid", async () => {
+		const amount = toWei("1")
+		// ETH_ADDRESS is not a valid OToken address
+		await expect(handler.buybackOption(ETH_ADDRESS, amount)).to.be.revertedWith("NonExistentOtoken()")
+	})
+	it("buys back an option from a non-whitelisted address if it moves delta closer to zero", async () => {
+		const amount = toWei("2")
+
+		await handler.addOrRemoveBuybackAddress(senderAddress, false)
+		await expect(await handler.buybackWhitelist(senderAddress)).to.be.false
+
+		const seriesInfo = await optionRegistry.getSeriesInfo(putOptionToken2.address)
+
+		const seriesInfoDecimalCorrected = {
+			expiration: seriesInfo.expiration,
+			isPut: seriesInfo.isPut,
+			strike: seriesInfo.strike.mul(1e10),
+			strikeAsset: seriesInfo.strikeAsset,
+			underlying: seriesInfo.underlying,
+			collateral: seriesInfo.collateral
+		}
+
+		const deltaBefore = await liquidityPool.getPortfolioDelta()
+		const sellerOTokenBalanceBefore = await putOptionToken2.balanceOf(senderAddress)
+
+		const expectedDeltaChange = (
+			await liquidityPool.quotePriceBuying(seriesInfoDecimalCorrected, amount)
+		)[1]
+
+		await putOptionToken2.approve(handler.address, toOpyn(fromWei(amount)))
+		await handler.buybackOption(putOptionToken2.address, amount)
+
+		const deltaAfter = await liquidityPool.getPortfolioDelta()
+		const sellerOTokenBalanceAfter = await putOptionToken2.balanceOf(senderAddress)
+		expect(Math.abs(tFormatEth(deltaAfter))).to.be.lt(Math.abs(tFormatEth(deltaBefore)))
+		expect(sellerOTokenBalanceAfter).to.equal(sellerOTokenBalanceBefore.sub(toOpyn(fromWei(amount))))
+		// Believe this line is failing due to the discrepancy of weighting vars
+		expect(deltaAfter).to.equal(deltaBefore.add(expectedDeltaChange.mul(tFormatEth(amount))))
 	})
 	it("can compute portfolio delta", async function () {
 		const blockNum = await ethers.provider.getBlockNumber()
@@ -789,12 +829,12 @@ describe("Liquidity Pools", async () => {
 		let customOrderPriceMultiplier = 0.93
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei("700"))
-		const amount = toWei("1")
+		const strikePrice = priceQuote.add(toWei("1500"))
+		const amount = toWei("10")
 		const orderExpiry = 10
 		const proposedSeries = {
-			expiration: expiration2,
-			isPut: true,
+			expiration: expiration,
+			isPut: false,
 			strike: BigNumber.from(strikePrice),
 			strikeAsset: usd.address,
 			underlying: weth.address,
@@ -832,7 +872,7 @@ describe("Liquidity Pools", async () => {
 		// TODO: line below has a rounding error. Why is this?
 		// expect(order.optionSeries.strike).to.eq(utils.parseUnits(seriesInfo.strike.toString(), 10))
 		expect(await handler.orderIdCounter()).to.eq(1)
-		optionToken = new Contract(order.seriesAddress, Otoken.abi, sender) as IOToken
+		optionToken = new Contract(order.seriesAddress, Otoken.abi, receiver) as IOToken
 	})
 	let customOrderPriceCall: number
 	let customOrderPricePut: number
@@ -981,7 +1021,7 @@ describe("Liquidity Pools", async () => {
 	it("Executes a buy order", async () => {
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const amount = toWei("1")
+		const amount = toWei("10")
 		const receiverOTokenBalBef = await optionToken.balanceOf(receiverAddress)
 		const lpOTokenBalBef = await optionToken.balanceOf(liquidityPool.address)
 		const lpBalBef = await usd.balanceOf(liquidityPool.address)
@@ -1002,6 +1042,7 @@ describe("Liquidity Pools", async () => {
 			amount,
 			true
 		)
+		const deltaBefore = await liquidityPool.getPortfolioDelta()
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
 			priceFeed,
@@ -1016,8 +1057,10 @@ describe("Liquidity Pools", async () => {
 			amount,
 			false
 		)
-		await usd.connect(receiver).approve(handler.address, 1000000000)
+		await usd.connect(receiver).approve(handler.address, 100000000000)
+		await optionToken.approve(handler.address, toOpyn(fromWei(amount)))
 		await handler.connect(receiver).executeOrder(1)
+		const deltaAfter = await liquidityPool.getPortfolioDelta()
 		await portfolioValuesFeed.fulfill(
 			utils.formatBytes32String("1"),
 			weth.address,
@@ -1039,9 +1082,13 @@ describe("Liquidity Pools", async () => {
 		expect(lpOTokenBalAft).to.eq(0)
 		const usdDiff = lpBalBef.sub(lpBalAft)
 		// expect(usdDiff).to.eq(seriesStrike.div(100).sub(fromWeiToUSDC(pricePer.toString())))
-		expect(receiverBalBef.sub(receiverBalAft)).to.eq(
-			BigNumber.from(Math.floor(customOrderPrice * 10 ** 6).toString())
-		)
+		expect(
+			receiverBalBef
+				.sub(receiverBalAft)
+				.sub(
+					BigNumber.from(Math.floor(customOrderPrice * parseFloat(fromWei(amount)) * 10 ** 6).toString())
+				)
+		).to.be.within(-1, 1)
 	})
 	it("executes a strangle", async () => {
 		const [sender, receiver] = signers
@@ -1141,6 +1188,19 @@ describe("Liquidity Pools", async () => {
 			fromWei(amount.mul(2).toString())
 		)
 		expect(lpOTokenBalAft).to.eq(0)
+	})
+	it("does not buy back an option from a non-whitelisted address if it moves delta away to zero", async () => {
+		const [sender, receiver] = signers
+		const amount = toWei("1")
+
+		await handler.addOrRemoveBuybackAddress(receiverAddress, false)
+		await expect(await handler.buybackWhitelist(receiverAddress)).to.be.false
+		const deltaBefore = await liquidityPool.getPortfolioDelta()
+		const buybackToken = tFormatEth(deltaBefore) < 0 ? stranglePutToken : strangleCallToken
+
+		await expect(
+			handler.connect(receiver).buybackOption(buybackToken.address, amount)
+		).to.be.revertedWith("DeltaNotDecreased()")
 	})
 	it("Cannot complete buy order after expiry", async () => {
 		const [sender, receiver] = signers

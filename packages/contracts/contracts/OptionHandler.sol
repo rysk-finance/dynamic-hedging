@@ -345,6 +345,7 @@ contract OptionHandler is
     IOptionRegistry optionRegistry = getOptionRegistry();
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+    if(optionSeries.expiration == 0){revert CustomErrors.NonExistentOtoken();} 
     // revert if the expiry is in the past
     if (optionSeries.expiration <= block.timestamp) {revert CustomErrors.OptionExpiryInvalid();}
     uint strikeDecimalConverted = OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals());
@@ -364,7 +365,6 @@ contract OptionHandler is
       if (!isDecreased) {revert CustomErrors.DeltaNotDecreased();}
     }
    
-    if (seriesAddress == address(0)) {revert CustomErrors.NonExistentOtoken();} 
     SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(liquidityPool), OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals()));
     return liquidityPool.handlerBuybackOption(Types.OptionSeries( 
        optionSeries.expiration,
