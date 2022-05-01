@@ -560,9 +560,6 @@ describe("Liquidity Pools", async () => {
 	it("LP writes another ETH/USD put that expires later", async () => {
 		const [sender] = signers
 		const amount = toWei("3")
-		const blockNum = await ethers.provider.getBlockNumber()
-		const block = await ethers.provider.getBlock(blockNum)
-		const { timestamp } = block
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
@@ -753,7 +750,7 @@ describe("Liquidity Pools", async () => {
 		expect(oracleDelta.sub(localDelta.add(localDelta2))).to.be.within(-5, 5)
 		expect(delta.sub(localDelta.add(localDelta2))).to.be.within(-1e15, 1e15)
 	})
-	it("reverts if option collaterral exceeds buffer limit", async () => {
+	it("reverts if option collateral exceeds buffer limit", async () => {
 		const lpBalance = await usd.balanceOf(liquidityPool.address)
 		const amount = toWei("200")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -1280,7 +1277,7 @@ describe("Liquidity Pools", async () => {
 		}
 		const proposedSeriesInvalidDeltaPut = {
 			expiration: expiration,
-			isPut: false,
+			isPut: true,
 			strike: BigNumber.from(strikePriceInvalidDeltaPut),
 			strikeAsset: usd.address,
 			underlying: weth.address,
@@ -1594,5 +1591,13 @@ describe("Liquidity Pools", async () => {
 		const afterValue = await liquidityPool.riskFreeRate()
 		expect(afterValue).to.eq(expectedValue)
 		expect(afterValue).to.not.eq(beforeValue)
+	})
+	it("handler-only functions in Liquidity pool revert if not called by handler", async () => {
+		await expect(liquidityPool.resetTempValues()).to.be.reverted
+		// how to target handlerWriteOption, handlerBuybackOption, handlerIssue
+	})
+	it("reverts when trying to deposit/withdraw 0", async () => {
+		await expect(liquidityPool.deposit(0, senderAddress)).to.be.revertedWith("InvalidAmount()")
+		await expect(liquidityPool.withdraw(0, senderAddress)).to.be.revertedWith("InvalidShareAmount()")
 	})
 })
