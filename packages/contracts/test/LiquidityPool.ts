@@ -65,6 +65,7 @@ import exp from "constants"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { OptionHandler } from "../types/OptionHandler"
+import { Console } from "console"
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: ERC20Interface
@@ -434,7 +435,6 @@ describe("Liquidity Pools", async () => {
 		const amount = toWei("1")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		console.log("strikeprice initial series:", strikePrice)
 		proposedSeries = {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
@@ -524,7 +524,6 @@ describe("Liquidity Pools", async () => {
 			underlying: seriesInfo.underlying,
 			collateral: seriesInfo.collateral
 		}
-		console.log({ seriesInfo })
 		const quote = utils.formatUnits(
 			(await liquidityPool.quotePriceWithUtilizationGreeks(seriesInfoDecimalCorrected, amount))[0],
 			12
@@ -620,42 +619,41 @@ describe("Liquidity Pools", async () => {
 		}
 
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-
-		const totalInterestBefore = await putOptionToken.totalSupply()
+		const totalSupplyBefore = await putOptionToken.totalSupply()
 		const sellerOTokenBalanceBefore = await putOptionToken.balanceOf(senderAddress)
 		const sellerUsdcBalanceBefore = await usd.balanceOf(senderAddress)
-		// const writersBalanceBefore = await optionRegistry.writers(putOptionAddress, liquidityPool.address)
-		await putOptionToken.approve(liquidityPool.address, amount)
-		const quote = (
-			await liquidityPool.quotePriceWithUtilizationGreeks(seriesInfoDecimalCorrected, amount)
-		)[0]
-		console.log({ quote })
-		await usd.approve(liquidityPool.address, quote.toString())
-		const write = await handler.buybackOption(putOptionAddress, amount)
-		const receipt = await write.wait(1)
-		const events = receipt.events
-		const buybackEvent = events?.find(x => x.event == "BuybackOption")
-		expect(buybackEvent?.args?.series).to.equal(putOptionAddress)
-		expect(buybackEvent?.args?.amount).to.equal(amount)
-		const totalInterest = await putOptionToken.totalSupply()
-		expect(totalInterest).to.equal(totalInterestBefore.sub(amount))
-		const sellerOTokenBalance = await putOptionToken.balanceOf(senderAddress)
-		const sellerUsdcBalance = await usd.balanceOf(senderAddress)
-		// div quote by 100 because quote is in 8dp but USDC uses 6
-		// test to ensure option seller's USDC balance increases by quoted amount (1 USDC error allowed)
-		// expect(sellerUsdcBalance.sub(sellerUsdcBalanceBefore.add(quote.div(100))).abs()).to.be.below(
-		// 	utils.parseUnits("1", 6)
-		// )
-		// expect(sellerOTokenBalance).to.equal(sellerOTokenBalanceBefore.sub(amount))
-		// // const writersBalance = await optionRegistry.writers(callOptionAddress, ethLiquidityPool.address)
-		// // expect(writersBalance).to.equal(writersBalanceBefore.sub(utils.parseEther("1")))
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 
-		// const lpUSDBalance = await usd.balanceOf(liquidityPool.address)
-		// const balanceDiff = lpUSDBalanceBefore.sub(lpUSDBalance)
-		// // test to ensure Liquidity pool balance decreased by quoted amount (1 USDC error allowed)
-		// expect(balanceDiff.sub(quote.div(100)).abs()).to.be.below(utils.parseUnits("1", 6))
-		// expect(parseFloat(fromOpyn(sellerOTokenBalance))).to.eq(0)
-		// expect(parseFloat(fromOpyn(totalInterest))).to.eq(0)
+		await putOptionToken.approve(handler.address, toOpyn(fromWei(amount)))
+		const quote = (await liquidityPool.quotePriceBuying(seriesInfoDecimalCorrected, amount))[0]
+		const write = await handler.buybackOption(putOptionAddress, amount)
+		await write.wait(1)
+		const logs = await liquidityPool.queryFilter(liquidityPool.filters.BuybackOption(), 0)
+		const buybackEvent = logs[0].args
+
+		const totalSupplyAfter = await putOptionToken.totalSupply()
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		const collateralAllocatedDiff = tFormatUSDC(
+			collateralAllocatedBefore.sub(collateralAllocatedAfter)
+		)
+		const sellerOTokenBalanceAfter = await putOptionToken.balanceOf(senderAddress)
+		const sellerUsdcBalanceAfter = await usd.balanceOf(senderAddress)
+		const lpUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const lpUSDBalanceDiff = tFormatUSDC(lpUSDBalanceBefore) - tFormatUSDC(lpUSDBalanceAfter)
+
+		expect(buybackEvent.amount).to.equal(amount)
+		expect(tFormatEth(buybackEvent.premium) - tFormatEth(quote)).to.be.within(-0.001, 0.001)
+		expect(tFormatUSDC(buybackEvent.escrowReturned)).to.equal(collateralAllocatedDiff)
+		expect(buybackEvent.seller).to.equal(senderAddress)
+		expect(totalSupplyAfter).to.equal(totalSupplyBefore.sub(toOpyn(fromWei(amount))))
+		expect(sellerOTokenBalanceAfter).to.equal(sellerOTokenBalanceBefore.sub(toOpyn(fromWei(amount))))
+		expect(tFormatUSDC(sellerUsdcBalanceAfter)).to.equal(
+			tFormatUSDC(sellerUsdcBalanceBefore) + tFormatEth(quote)
+		)
+		expect(lpUSDBalanceDiff - (tFormatEth(quote) - collateralAllocatedDiff)).to.be.within(
+			-0.001,
+			0.001
+		)
 	})
 	it("can compute portfolio delta", async function () {
 		const blockNum = await ethers.provider.getBlockNumber()
