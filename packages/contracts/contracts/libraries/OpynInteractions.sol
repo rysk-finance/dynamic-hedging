@@ -73,7 +73,7 @@ library OpynInteractions {
      * @param strike is the strike price of the option in 1e8 format
      * @param expiration is the expiry timestamp of the option
      * @param isPut the type of option
-     * @return the address of the option
+     * @return otokenFromFactory the address of the option
      */
     function getOtoken(
         address oTokenFactory,
@@ -83,21 +83,16 @@ library OpynInteractions {
         uint256 strike,
         uint256 expiration,
         bool isPut
-    ) external view returns (address) {
+    ) external view returns (address otokenFromFactory) {
         IOtokenFactory factory = IOtokenFactory(oTokenFactory);
-        address otokenFromFactory =
-            factory.getOtoken(
-                underlying,
-                strikeAsset,
-                collateral,
-                strike,
-                expiration,
-                isPut
-            );
-
-        if (otokenFromFactory != address(0)) {
-            return otokenFromFactory;
-        }
+        otokenFromFactory = factory.getOtoken(
+                                                underlying,
+                                                strikeAsset,
+                                                collateral,
+                                                strike,
+                                                expiration,
+                                                isPut
+                                              );
     }
     /**
      * @notice Creates the actual Opyn short position by depositing collateral and minting otokens

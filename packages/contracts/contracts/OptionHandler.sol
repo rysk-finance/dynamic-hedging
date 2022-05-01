@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
 import "./Protocol.sol";
@@ -241,7 +242,7 @@ contract OptionHandler is
     // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals()));
     // write the option contract, includes sending the premium from the user to the pool
-    uint256 written = liquidityPool.handlerWriteOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, msg.sender);
+    liquidityPool.handlerWriteOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, msg.sender);
     emit OrderExecuted(_orderId);
     // invalidate the order
     delete orderStores[_orderId];
@@ -279,10 +280,10 @@ contract OptionHandler is
     IOptionRegistry optionRegistry = getOptionRegistry();
     series = liquidityPool.handlerIssue(optionSeries, optionRegistry);
     // calculate premium
-    (uint256 premium, int256 delta) = liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount);
+    (uint256 premium,) = liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals()));
-    //write the option
+    // write the option
     optionAmount = liquidityPool.handlerWriteOption(optionSeries, series, amount, optionRegistry, premium, msg.sender);
   }
 
@@ -308,7 +309,7 @@ contract OptionHandler is
     uint strikeDecimalConverted = OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals());
 
     // calculate premium
-    (uint256 premium, int256 delta) = liquidityPool.quotePriceWithUtilizationGreeks(Types.OptionSeries( 
+    (uint256 premium,) = liquidityPool.quotePriceWithUtilizationGreeks(Types.OptionSeries( 
        optionSeries.expiration,
        optionSeries.isPut,
        strikeDecimalConverted, // convert from 1e8 to 1e18 notation for quotePrice

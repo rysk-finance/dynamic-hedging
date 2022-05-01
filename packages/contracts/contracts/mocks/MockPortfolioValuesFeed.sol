@@ -14,7 +14,9 @@ contract MockPortfolioValuesFeed is Ownable {
   address private immutable oracle;
   bytes32 private immutable jobId;
   uint256 private immutable fee;
+  address private immutable link;
   ILiquidityPool public liquidityPool;
+  bytes32 private latestId;
   event DataFullfilled(address indexed underlying, address indexed strike, int256 delta, int256 gamma, int256 vega, int256 theta, uint256 callPutsValue);
 
   /**
@@ -35,6 +37,7 @@ contract MockPortfolioValuesFeed is Ownable {
     oracle = _oracle;
     jobId = _jobId;
     fee = _fee;
+    link = _link;
   }
 
   function setLiquidityPool(address _liquidityPool) external onlyOwner {
@@ -104,6 +107,7 @@ function fulfill(
         spotPrice: _spotPrice,
         timestamp: block.timestamp
     });
+    latestId = _requestId;
     portfolioValues[_underlying][_strike] = portfolioValue;
     liquidityPool.resetTempValues();
     emit DataFullfilled(_underlying, _strike, _delta, _gamma, _vega, _theta, _callPutsValue);
