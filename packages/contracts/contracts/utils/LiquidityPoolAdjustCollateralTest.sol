@@ -33,9 +33,8 @@ contract LiquidityPoolAdjustCollateralTest {
      * @param collateral is the address of the asset to collateralize the option with
      * @return the address of the option
      */
-    function issue(address underlying, address strikeAsset, uint256 expiration, bool isPut, uint256 strike, address collateral) external returns (address) {
-        Types.OptionParams memory optionParams;
-        return OptionRegistry(optionRegistry).issue(underlying, strikeAsset, expiration, isPut, strike, collateral, optionParams);
+    function issue(address underlying, address strikeAsset, uint64 expiration, bool isPut, uint128 strike, address collateral) external returns (address) {
+        return OptionRegistry(optionRegistry).issue(Types.OptionSeries(expiration, strike, isPut, underlying, strikeAsset, collateral));
     }
 
     /**

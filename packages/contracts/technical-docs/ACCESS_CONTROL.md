@@ -21,6 +21,7 @@ All contracts below inherit Ownable so all contracts have an OWNER
     - maxTimeDeviationThreshold [time window after which a portfolio feed update gets stale]: OWNER
     - maxPriceDeviationThreshold [price window after which a portfolio feed update gets stale]: OWNER
     - riskFreeRate [rate used for options calculation]: OWNER
+    - handler [authorised parties that can interact with liquidityPool options writing capabilities]: OWNER
 - LiquidityPool rebalancePortfolioDelta: OWNER, MANAGER
 - LiquidityPool settleVault: OWNER, MANAGER, KEEPER 
 
@@ -71,7 +72,6 @@ All contracts below inherit Ownable so all contracts have an OWNER
 - Protocol setters: OWNER
     - volatilityFeed [the volatility feed used for the liquidityPool]: OWNER
     - portfolioValuesFeed [the portfolio values feed used for the liquidityPool]: OWNER
-    - handler [authorised parties that can interact with liquidityPool options writing capabilities]: OWNER
 
 ## PerpHedgingReactor
 ### (OWNER, GUARDIAN, KEEPER)
