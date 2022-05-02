@@ -338,7 +338,7 @@ contract OptionHandler is
 
   /**
     @notice buys a number of options back and burns the tokens
-    @param seriesAddress the option token series to buyback
+    @param seriesAddress the option token series address to buyback
     @param amount the number of options to buyback expressed in 1e18
     @return the number of options bought and burned
   */
@@ -354,20 +354,19 @@ contract OptionHandler is
     IOptionRegistry optionRegistry = getOptionRegistry();
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+    if(optionSeries.expiration == 0){revert CustomErrors.NonExistentOtoken();} 
     // revert if the expiry is in the past
     if (optionSeries.expiration <= block.timestamp) {revert CustomErrors.OptionExpiryInvalid();}
-    // strike needs to be in e18
-    (uint256 premium, int256 delta) = liquidityPool.quotePriceBuying(
-      Types.OptionSeries({
-        expiration: optionSeries.expiration,
-        strike: uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals())),
-        isPut: optionSeries.isPut,
-        underlying: optionSeries.underlying,
-        strikeAsset: optionSeries.strikeAsset,
-        collateral: optionSeries.collateral
-      }),
-      amount
-      );
+    uint strikeDecimalConverted = OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals());
+    // get Liquidity pool quote on the option to buy back
+    (uint256 premium, int256 delta) = liquidityPool.quotePriceBuying(Types.OptionSeries( 
+       optionSeries.expiration,
+       optionSeries.isPut,
+       strikeDecimalConverted, // convert from 1e8 to 1e18 notation for quotePrice
+       optionSeries.underlying,
+       optionSeries.strikeAsset,
+       collateralAsset), amount);
+    // if option seller is not on our whitelist, run some extra checks
     if (!buybackWhitelist[msg.sender]){
       int portfolioDelta = liquidityPool.getPortfolioDelta();
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + delta);
