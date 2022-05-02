@@ -925,13 +925,6 @@ contract LiquidityPool is
       );     
       return wov.totalAmountCall.mul(optionPrice);
   }
-  /**
-   * @notice get the price feed used by the liquidity pool
-   * @return the price feed contract
-   */
-  function getPriceFeed() internal view returns (PriceFeed) {
-    return PriceFeed(protocol.priceFeed());
-  }
 
   /**
    * @notice get the volatility feed used by the liquidity pool
