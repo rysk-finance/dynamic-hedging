@@ -11,22 +11,11 @@ interface IOptionRegistry {
 
     /**
      * @notice Either retrieves the option token if it already exists, or deploy it
-     * @param  underlying is the address of the underlying asset of the option
-     * @param  strikeAsset is the address of the collateral asset of the option
-     * @param  expiration is the expiry timestamp of the option
-     * @param  isPut the type of option
-     * @param  strike is the strike price of the option - 1e18 format
-     * @param collateral is the address of the asset to collateralize the option with
+     * @param  optionSeries option series to issue
      * @return the address of the option
      */
     function issue(
-        address underlying, 
-        address strikeAsset, 
-        uint256 expiration, 
-        bool isPut, 
-        uint256 strike, 
-        address collateral,
-        Types.OptionParams memory optionParams
+        Types.OptionSeries memory optionSeries
         ) 
         external 
         returns (address);

@@ -4,9 +4,9 @@ pragma solidity >=0.8.0;
 
 library Types {
         struct OptionSeries {
-            uint expiration;
+            uint64 expiration;
+            uint128 strike;
             bool isPut;
-            uint strike;
             address underlying;
             address strikeAsset;
             address collateral;
