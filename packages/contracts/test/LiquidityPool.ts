@@ -839,7 +839,6 @@ describe("Liquidity Pools", async () => {
 		const orderExpiry = 10
 		const proposedSeries = {
 			expiration: expiration,
-			isPut: false,
 			strike: BigNumber.from(strikePrice),
 			isPut: true,
 			strikeAsset: usd.address,

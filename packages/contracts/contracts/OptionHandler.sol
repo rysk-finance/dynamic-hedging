@@ -357,12 +357,12 @@ contract OptionHandler is
     if(optionSeries.expiration == 0){revert CustomErrors.NonExistentOtoken();} 
     // revert if the expiry is in the past
     if (optionSeries.expiration <= block.timestamp) {revert CustomErrors.OptionExpiryInvalid();}
-    uint strikeDecimalConverted = OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals());
+    uint128 strikeDecimalConverted = uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()));
     // get Liquidity pool quote on the option to buy back
     (uint256 premium, int256 delta) = liquidityPool.quotePriceBuying(Types.OptionSeries( 
        optionSeries.expiration,
-       optionSeries.isPut,
        strikeDecimalConverted, // convert from 1e8 to 1e18 notation for quotePrice
+       optionSeries.isPut,
        optionSeries.underlying,
        optionSeries.strikeAsset,
        collateralAsset), amount);
