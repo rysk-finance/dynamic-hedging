@@ -223,7 +223,7 @@ export async function deployLiquidityPool(
 		optionProtocol.address,
 		liquidityPool.address,
 	) as OptionHandler
-	await optionProtocol.changeHandler(handler.address, true)
+	await liquidityPool.changeHandler(handler.address, true)
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,

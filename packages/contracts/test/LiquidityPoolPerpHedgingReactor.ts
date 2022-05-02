@@ -308,8 +308,8 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
 			expiration: expiration,
-			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
+			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -360,8 +360,8 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
 			expiration: expiration2,
-			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
+			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address

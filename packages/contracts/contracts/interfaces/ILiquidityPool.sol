@@ -6,7 +6,7 @@ import "../interfaces/IOptionRegistry.sol";
 interface ILiquidityPool {
   function collateralAsset() external view returns (address);
   function resetTempValues() external;
-  function handlerIssue(Types.OptionSeries memory optionSeries, IOptionRegistry optionRegistry) external returns (address);
+  function handlerIssue(Types.OptionSeries memory optionSeries) external returns (address);
   function handlerWriteOption(
     Types.OptionSeries memory optionSeries, 
     address seriesAddress, 
@@ -16,6 +16,7 @@ interface ILiquidityPool {
     address recipient
   ) external returns (uint256);
   function handlerBuybackOption(Types.OptionSeries memory optionSeries, uint256 amount, IOptionRegistry optionRegistry, address seriesAddress, uint256 premium, address seller) external returns (uint256);
+  function handlerIssueAndWriteOption(Types.OptionSeries memory optionSeries, uint256 amount, uint256 premium, address recipient) external returns (uint256, address);
   function getPortfolioDelta() external view returns (int256);
   function quotePriceWithUtilizationGreeks(
     Types.OptionSeries memory optionSeries,

@@ -13,6 +13,8 @@ import {
 } from "../../test/constants"
 import { toWei, scaleNum } from "../../utils/conversion-helper"
 import LiquidityPoolSol from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
+import OptionHandlerSol from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json"
+import { deployLiquidityPool, deploySystem } from "../../utils/generic-system-deployer"
 
 import { USDC_ADDRESS, WETH_ADDRESS, CONTROLLER_OWNER } from "../../test/constants"
 import { deployOpyn } from "../../utils/opyn-deployer"
@@ -23,6 +25,7 @@ import { Volatility } from "../../types/Volatility"
 import { MintableERC20 } from "../../types/MintableERC20"
 import { WETH } from "../../types/WETH"
 import { LiquidityPool } from "../../types/LiquidityPool"
+import { OptionHandler } from "../../types/OptionHandler"
 import { VolatilityFeed } from "../../types/VolatilityFeed"
 import { MockPortfolioValuesFeed } from "../../types/MockPortfolioValuesFeed"
 import { MockChainlinkAggregator } from "../../types/MockChainlinkAggregator"
@@ -56,24 +59,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 		params: [CHAINLINK_WETH_PRICER[chainId]]
 	})
 
-	const signers: Signer[] = await ethers.getSigners()
+	let signers: Signer[] = await ethers.getSigners()
 	const [sender] = signers
 	const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
 	const senderAddress = await signers[0].getAddress()
 
 	const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-	
-	let opynAggregator: MockChainlinkAggregator
-	
-	let usd = (await ethers.getContractAt(
-		"contracts/tokens/ERC20.sol:ERC20",
-		USDC_ADDRESS[chainId]
-	)) as MintableERC20
-
-	let weth = (await ethers.getContractAt(
-		"contracts/interfaces/WETH.sol:WETH",
-		WETH_ADDRESS[chainId]
-	)) as WETH
 
 	// Set params for Opyn Contracts
 	const productSpotShockValue = scaleNum("0.6", 27)
@@ -97,105 +88,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 	// deploy libraries
 	const constantsFactory = await hre.ethers.getContractFactory("Constants")
-	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const constants = await constantsFactory.deploy()
-	const interactions = await interactionsFactory.deploy()
-	// deploy options registry
-	const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {
-		libraries: {
-			OpynInteractions: interactions.address
-		}
-	})
-
-	const _optionRegistry = (await optionRegistryFactory.deploy(
-		USDC_ADDRESS[chainId],
-		OTOKEN_FACTORY[chainId],
-		GAMMA_CONTROLLER[chainId],
-		MARGIN_POOL[chainId],
-		senderAddress,
-		ADDRESS_BOOK[chainId]
-	)) as OptionRegistry
-
-	let optionRegistry = _optionRegistry
 
 	// deploy oracle
 	const res = await setupTestOracle(await sender.getAddress())
 	const oracle = res[0] as Oracle
-	opynAggregator = res[1] as MockChainlinkAggregator
+	const opynAggregator = res[1] as MockChainlinkAggregator
 
-	// deploy price feed
-	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-	const priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
-	await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
-	await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
-
-	// deploy volatility feed
-	const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
-	const	volFeed = (await volFeedFactory.deploy()) as VolatilityFeed
-	type int7 = [
-		BigNumberish,
-		BigNumberish,
-		BigNumberish,
-		BigNumberish,
-		BigNumberish,
-		BigNumberish,
-		BigNumberish
-	]
-	type number7 = [number, number, number, number, number, number, number]
-	const coefInts: number7 = [
-		1.42180236,
-		0,
-		-0.08626792,
-		0.07873822,
-		0.00650549,
-		0.02160918,
-		-0.1393287
-	]
-	//@ts-ignore
-	const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-	await volFeed.setVolatilitySkew(coefs, true)
-	await volFeed.setVolatilitySkew(coefs, false)
-
-	// deploy portfolio feed
-	const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
-	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
-		await signers[0].getAddress(),
-		utils.formatBytes32String("jobId"),
-		toWei("1"),
-		ZERO_ADDRESS
-	)) as MockPortfolioValuesFeed
-
-
-	// deploy option protocol and link to registry/price feed
-	const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
-	const optionProtocol = (await protocolFactory.deploy(
-			optionRegistry.address,
-			priceFeed.address,
-			volFeed.address,
-			portfolioValuesFeed.address
-	)) as Protocol
-
-	// deploy Liquidity Pool
-	const normDistFactory = await ethers.getContractFactory("NormalDist", {
-		libraries: {}
-	})
-	const normDist = await normDistFactory.deploy()
-	const volFactory = await ethers.getContractFactory("Volatility", {
-		libraries: {}
-	})
-	const volatility = (await volFactory.deploy()) as Volatility
-	const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
-		libraries: {
-			NormalDist: normDist.address
-		}
-	})
-	const blackScholesDeploy = await blackScholesFactory.deploy()
-
-	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
-		libraries: {
-			BlackScholes: blackScholesDeploy.address
-		}
-	})
+	// deploy system
+	let deployParams = await deploySystem(signers, oracle, opynAggregator)
+	const weth = deployParams.weth
+	const wethERC20 = deployParams.wethERC20
+	const usd = deployParams.usd
+	const optionRegistry = deployParams.optionRegistry
+	const priceFeed = deployParams.priceFeed
+	const volFeed = deployParams.volFeed
+	const portfolioValuesFeed = deployParams.portfolioValuesFeed
+	const optionProtocol = deployParams.optionProtocol
 
 	const rfr: string = "0.03"
 	const minCallStrikePrice = utils.parseEther("500")
@@ -207,29 +116,25 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	// 365 days in seconds
 	const maxExpiry = 86400 * 365
 
-	const lp = (await liquidityPoolFactory.deploy(
-		optionProtocol.address,
-		usd.address,
-		weth.address,
-		usd.address,
-		toWei(rfr),
-		"ETH/USDC",
-		"EDP",
-		{
-			minCallStrikePrice,
-			maxCallStrikePrice,
-			minPutStrikePrice,
-			maxPutStrikePrice,
-			minExpiry: minExpiry,
-			maxExpiry: maxExpiry
-		},
-		//@ts-ignore
-		await signers[0].getAddress()
-	)) as LiquidityPool
-
-	const lpAddress = lp.address
-	let liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
-	optionRegistry.setLiquidityPool(liquidityPool.address)
+	let lpParams = await deployLiquidityPool(
+		signers,
+		optionProtocol,
+		usd,
+		wethERC20,
+		rfr,
+		minCallStrikePrice,
+		minPutStrikePrice,
+		maxCallStrikePrice,
+		maxPutStrikePrice,
+		minExpiry,
+		maxExpiry,
+		optionRegistry,
+		portfolioValuesFeed
+	)
+	const volatility = lpParams.volatility
+	const liquidityPool = lpParams.liquidityPool
+	const handler = lpParams.handler
+	const receiverAddress = await signers[1].getAddress()
 
 	let contractAddresses
 
@@ -245,7 +150,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	contractAddresses["localhost"]["OpynAddressBook"] = opynAddressBook.address
 	contractAddresses["localhost"]["OpynOracle"] = opynOracle.address
 	contractAddresses["localhost"]["OpynNewCalculator"] = opynNewCalculator.address
-	contractAddresses["localhost"]["OpynOptionRegistry"] = _optionRegistry.address
+	contractAddresses["localhost"]["OpynOptionRegistry"] = optionRegistry.address
 	contractAddresses["localhost"]["priceFeed"] = priceFeed.address
 	contractAddresses["localhost"]["volFeed"] = volFeed.address
 	contractAddresses["localhost"]["optionProtocol"] = optionProtocol.address
@@ -259,4 +164,3 @@ export default func
 function ZERO_ADDRESS(arg0: string, arg1: string, arg2: BigNumber, ZERO_ADDRESS: any): any {
 	throw new Error("Function not implemented.")
 }
-
