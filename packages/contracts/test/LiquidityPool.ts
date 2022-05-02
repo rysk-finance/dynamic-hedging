@@ -1123,14 +1123,11 @@ describe("Liquidity Pools", async () => {
 		expect(
 			receiverBalBef
 				.sub(receiverBalAft)
-				.sub(
-					BigNumber.from(Math.floor(customOrderPrice * parseFloat(fromWei(amount)) * 10 ** 6).toString())
-				)
+				.sub(BigNumber.from(Math.floor(customOrderPrice * 10 ** 6).toString()))
 		).to.be.within(-1, 1)
 	})
 	it("executes a strangle", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore })
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const amount = toWei("2")
@@ -1140,7 +1137,6 @@ describe("Liquidity Pools", async () => {
 		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit).mul(2))
 		await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit).mul(2), senderAddress)
 		const lpUSDBalanceBefore1 = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore1 })
 		const receiverBalBef = await usd.balanceOf(receiverAddress)
 		const orderDeets1 = await handler.orderStores(2)
 		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
@@ -1221,7 +1217,6 @@ describe("Liquidity Pools", async () => {
 		const lpOTokenBalAft = (await strangleCallToken.balanceOf(liquidityPool.address)).add(
 			await stranglePutToken.balanceOf(liquidityPool.address)
 		)
-		console.log(receiverBalBef, receiverBalAft, receiverBalBef.sub(receiverBalAft), customStranglePrice)
 		expect(
 			receiverBalBef
 				.sub(receiverBalAft)
