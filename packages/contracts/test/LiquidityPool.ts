@@ -1639,4 +1639,43 @@ describe("Liquidity Pools", async () => {
 		await expect(liquidityPool.deposit(0, senderAddress)).to.be.revertedWith("InvalidAmount()")
 		await expect(liquidityPool.withdraw(0, senderAddress)).to.be.revertedWith("InvalidShareAmount()")
 	})
+	it("returns a volatility skew", async () => {
+		type int7 = [
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish
+		]
+		type number7 = [number, number, number, number, number, number, number]
+		const coefInts: number7 = [
+			1.42180236,
+			0,
+			-0.08626792,
+			0.07873822,
+			0.00650549,
+			0.02160918,
+			-0.1393287
+		]
+		//@ts-ignore
+		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
+		const putVol = await volFeed.getVolatilitySkew(true)
+		const callVol = await volFeed.getVolatilitySkew(false)
+		expect(putVol[0]).to.eq(coefs[0])
+		expect(putVol[1]).to.eq(coefs[1])
+		expect(putVol[2]).to.eq(coefs[2])
+		expect(putVol[3]).to.eq(coefs[3])
+		expect(putVol[4]).to.eq(coefs[4])
+		expect(putVol[5]).to.eq(coefs[5])
+		expect(putVol[6]).to.eq(coefs[6])
+		expect(callVol[1]).to.eq(coefs[1])
+		expect(callVol[2]).to.eq(coefs[2])
+		expect(callVol[3]).to.eq(coefs[3])
+		expect(callVol[4]).to.eq(coefs[4])
+		expect(callVol[5]).to.eq(coefs[5])
+		expect(callVol[6]).to.eq(coefs[6])
+
+	})
 })
