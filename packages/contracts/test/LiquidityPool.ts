@@ -584,10 +584,6 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const blockNum = await ethers.provider.getBlockNumber()
-		const block = await ethers.provider.getBlock(blockNum)
-		const { timestamp } = block
-		const expiryLength = expiration2 - timestamp
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
 			priceFeed,

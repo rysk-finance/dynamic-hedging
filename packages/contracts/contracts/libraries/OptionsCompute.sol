@@ -38,6 +38,7 @@ library OptionsCompute {
         return value * (10**difference);
     }
     
+    // doesnt allow for interest bearing collateral
     function convertToCollateralDenominated(
         uint quote, 
         uint underlyingPrice, 

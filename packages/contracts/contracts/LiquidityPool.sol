@@ -518,7 +518,7 @@ contract LiquidityPool is
    * @notice get the quote price and delta for a given option
    * @param  optionSeries option type to quote - strike assumed in e18
    * @param  amount the number of options to mint  - assumed in e18
-   * @return quote the price of the options - returns in collateral asset
+   * @return quote the price of the options - returns in e18
    * @return delta the delta of the options - returns in e18
    */
   function quotePriceWithUtilizationGreeks(
@@ -538,7 +538,7 @@ contract LiquidityPool is
       quoteState.totalDelta = deltaQuote.mul(int(amount));
       int portfolioDelta = getPortfolioDelta();
       // portfolio delta upon writing option
-      // subtract deltaQuote because the pool is taking on the negative of the option's delta
+      // subtract totalDelta because the pool is taking on the negative of the option's delta
       int newDelta = PRBMathSD59x18.abs(portfolioDelta - quoteState.totalDelta);
       // assumes a single collateral type regardless of call or put
       // Is delta decreased?
@@ -764,9 +764,9 @@ contract LiquidityPool is
    */
   function _issue(Types.OptionSeries memory optionSeries, IOptionRegistry optionRegistry) internal returns (address series) {
     // make sure option is being issued with correct assets
-    optionSeries.collateral = collateralAsset;
-    optionSeries.underlying = underlyingAsset;
-    optionSeries.strikeAsset = strikeAsset;
+    if(optionSeries.collateral != collateralAsset) { revert CustomErrors.CollateralAssetInvalid();}
+    if(optionSeries.underlying != underlyingAsset) { revert CustomErrors.UnderlyingAssetInvalid();}
+    if(optionSeries.strikeAsset != strikeAsset) { revert CustomErrors.StrikeAssetInvalid();}
     // check the expiry is within the allowed bounds
     if (block.timestamp + optionParams.minExpiry > optionSeries.expiration || optionSeries.expiration > block.timestamp + optionParams.maxExpiry) {revert CustomErrors.OptionExpiryInvalid();}
     // check that the option strike is within the range of the min and max acceptable strikes of calls and puts
