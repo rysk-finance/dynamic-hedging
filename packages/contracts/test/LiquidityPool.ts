@@ -119,7 +119,7 @@ const invalidStrikeHigh = utils.parseEther("12500")
 const invalidStrikeLow = utils.parseEther("200")
 
 // balances to deposit into the LP
-const liquidityPoolUsdcDeposit = "100000"
+const liquidityPoolUsdcDeposit = "60000"
 const liquidityPoolWethDeposit = "1"
 
 // balance to withdraw after deposit
@@ -397,7 +397,7 @@ describe("Liquidity Pools", async () => {
 	})
 	it("reverts when attempting to write a ETH/USD put with strike outside of limit", async () => {
 		const [sender] = signers
-		const amount = toWei("1")
+		const amount = toWei("7")
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
@@ -438,8 +438,10 @@ describe("Liquidity Pools", async () => {
 		expect(delta).to.equal(0)
 	})
 	it("LP Writes a ETH/USD put for premium", async () => {
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore })
 		const [sender] = signers
-		const amount = toWei("1")
+		const amount = toWei("5")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		proposedSeries = {
@@ -495,6 +497,8 @@ describe("Liquidity Pools", async () => {
 		).to.be.within(-0.001, 0.001)
 	})
 	it("can compute portfolio delta", async function () {
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore })
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
@@ -518,7 +522,9 @@ describe("Liquidity Pools", async () => {
 		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
 	})
 	it("writes more options for an existing series", async () => {
-		const amount = toWei("1")
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore })
+		const amount = toWei("12")
 		const putBalance = await putOptionToken.balanceOf(senderAddress)
 		const LpBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
@@ -545,7 +551,7 @@ describe("Liquidity Pools", async () => {
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const collateralAllocatedDiff = collateralAllocatedAfter.sub(collateralAllocatedBefore)
 		// check option buyer's OToken balance increases by correct amount
-		expect(putBalanceAfter).to.eq(putBalance.add(utils.parseUnits("1", 8)))
+		expect(putBalanceAfter).to.eq(putBalance.add(utils.parseUnits(fromWei(amount), 8)))
 		// LP USDC balance after should equal balanceBefore, minus collateral allocated, plus premium quote.
 		// This does have a small rounding discrepency that might need looking into
 		expect(
@@ -557,6 +563,8 @@ describe("Liquidity Pools", async () => {
 		expect(numberOTokensMintedAfter).to.eq(numberOTokensMintedBefore.add(amount.div(1e10)))
 	})
 	it("pauses and unpauses handler contract", async () => {
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore })
 		await handler.pauseContract()
 		const amount = toWei("1")
 
@@ -567,8 +575,10 @@ describe("Liquidity Pools", async () => {
 		await handler.unpause()
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore })
 		const [sender] = signers
-		const amount = toWei("3")
+		const amount = toWei("8")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
@@ -614,6 +624,8 @@ describe("Liquidity Pools", async () => {
 	})
 
 	it("adds address to the buyback whitelist", async () => {
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore })
 		await expect(await handler.buybackWhitelist(senderAddress)).to.be.false
 		await handler.addOrRemoveBuybackAddress(senderAddress, true)
 		await expect(await handler.buybackWhitelist(senderAddress)).to.be.true
@@ -621,7 +633,7 @@ describe("Liquidity Pools", async () => {
 
 	it("LP can buy back option to reduce open interest", async () => {
 		const [sender] = signers
-		const amount = toWei("1")
+		const amount = toWei("2")
 		const putOptionAddress = putOptionToken.address
 		const seriesInfo = await optionRegistry.getSeriesInfo(putOptionToken.address)
 
@@ -635,6 +647,7 @@ describe("Liquidity Pools", async () => {
 		}
 
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore })
 		const totalSupplyBefore = await putOptionToken.totalSupply()
 		const sellerOTokenBalanceBefore = await putOptionToken.balanceOf(senderAddress)
 		const sellerUsdcBalanceBefore = await usd.balanceOf(senderAddress)
@@ -671,11 +684,15 @@ describe("Liquidity Pools", async () => {
 		)
 	})
 	it("fails if buyback token address is invalid", async () => {
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore })
 		const amount = toWei("1")
 		// ETH_ADDRESS is not a valid OToken address
 		await expect(handler.buybackOption(ETH_ADDRESS, amount)).to.be.revertedWith("NonExistentOtoken()")
 	})
 	it("buys back an option from a non-whitelisted address if it moves delta closer to zero", async () => {
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore })
 		const amount = toWei("2")
 
 		await handler.addOrRemoveBuybackAddress(senderAddress, false)
@@ -706,10 +723,15 @@ describe("Liquidity Pools", async () => {
 		const sellerOTokenBalanceAfter = await putOptionToken2.balanceOf(senderAddress)
 		expect(Math.abs(tFormatEth(deltaAfter))).to.be.lt(Math.abs(tFormatEth(deltaBefore)))
 		expect(sellerOTokenBalanceAfter).to.equal(sellerOTokenBalanceBefore.sub(toOpyn(fromWei(amount))))
-		// Believe this line is failing due to the discrepancy of weighting vars
+
+		// *************************************************************************
+		// Believe this line is failing due to the discrepancy of weighting vars ***
+		// *************************************************************************
 		expect(deltaAfter).to.equal(deltaBefore.add(expectedDeltaChange.mul(tFormatEth(amount))))
 	})
 	it("can compute portfolio delta", async function () {
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore })
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
@@ -768,6 +790,8 @@ describe("Liquidity Pools", async () => {
 		expect(delta.sub(localDelta.add(localDelta2))).to.be.within(-1e15, 1e15)
 	})
 	it("reverts if option collateral exceeds buffer limit", async () => {
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore })
 		const lpBalance = await usd.balanceOf(liquidityPool.address)
 		const collateralAllocated = await liquidityPool.collateralAllocated()
 		const amount = toWei("20")

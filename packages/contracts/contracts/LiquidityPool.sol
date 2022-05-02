@@ -595,8 +595,8 @@ contract LiquidityPool is
       returns (uint256 quote, int256 delta)
   {
       (uint256 optionQuote,  int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, true);
-      quote =  OptionsCompute.convertToCollateralDenominated(optionQuote.mul(amount).div(PRBMath.SCALE), underlyingPrice, optionSeries);
-      delta = deltaQuote;
+      quote =  OptionsCompute.convertToCollateralDenominated(optionQuote.mul(amount), underlyingPrice, optionSeries);
+      delta = deltaQuote.mul(int(amount));
       //@TODO think about more robust considitions for this check
       if (quote == 0 || delta == int(0)) { revert CustomErrors.DeltaQuoteError(quote, delta); }
   }
