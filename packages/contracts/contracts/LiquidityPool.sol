@@ -167,7 +167,7 @@ contract LiquidityPool is
    * @dev   only governance can call this function
    */
   function removeHedgingReactorAddress(uint256 _index) onlyOwner public {
-    SafeTransferLib.safeApprove(ERC20(strikeAsset), hedgingReactors[_index], 0);
+    SafeTransferLib.safeApprove(ERC20(underlyingAsset), hedgingReactors[_index], 0);
      for(uint i = _index; i < hedgingReactors.length-1; i++){
       hedgingReactors[i] = hedgingReactors[i+1];      
     }
