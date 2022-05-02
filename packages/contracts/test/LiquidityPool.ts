@@ -323,7 +323,7 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 1)
+		expect(diff).to.be.within(0, 0.1)
 	})
 
 	it("Returns a quote for a ETH/USD put to buy", async () => {
