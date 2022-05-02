@@ -422,7 +422,28 @@ describe("Options protocol", function () {
 		const usdBalance = await usd.balanceOf(senderAddress)
 		expect(usdBalance.sub(usdBalanceBefore).sub(marginReq)).to.be.within(-1, 1)
 	})
-
+	it("reverts liquidityPool because of non-existent series", async () => {
+		const [sender, receiver] = signers
+		const value = toWei("1")
+		const balanceBef = await optionTokenUSDC.balanceOf(senderAddress)
+		const optionRegistrySender = optionRegistry.connect(sender)
+		await optionTokenUSDC.approve(optionRegistry.address, value.div(oTokenDecimalShift18))
+		const usdBalanceBefore = await usd.balanceOf(senderAddress)
+		const underlyingPrice = await oracle.getPrice(weth.address)
+		let marginReq = await newCalculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			usd.address,
+			value.div(oTokenDecimalShift18),
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			6,
+			false
+		)
+		marginReq = (await optionRegistryETH.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
+		await expect(optionRegistrySender.close(weth.address, value)).to.be.revertedWith("NonExistentSeries()")
+	})
 	it("liquidityPool close and transaction succeeds ETH options", async () => {
 		const [sender, receiver] = signers
 		const value = toWei("1")
@@ -857,6 +878,10 @@ describe("Options protocol", function () {
 	it("gets the series via issuance hash", async () => {
 		const issuance = await optionRegistry.getIssuanceHash(await optionRegistry.getSeriesInfo(optionTokenUSDC.address))
 		const series = await optionRegistry.getSeriesAddress(issuance)
+		expect(series).to.equal(optionTokenUSDC.address)
+	})
+	it("gets the series via series", async () => {
+		const series = await optionRegistry.getSeries(await optionRegistry.getSeriesInfo(optionTokenUSDC.address))
 		expect(series).to.equal(optionTokenUSDC.address)
 	})
 })
