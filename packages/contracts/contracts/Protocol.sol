@@ -17,7 +17,6 @@ contract Protocol is Ownable {
 
     address public volatilityFeed;
     address public portfolioValuesFeed;
-    mapping(address => bool) public handler;
 
     constructor(
        address _optionRegistry,
@@ -42,8 +41,6 @@ contract Protocol is Ownable {
     function changePortfolioValuesFeed(address _portfolioValuesFeed) external onlyOwner {
         portfolioValuesFeed = _portfolioValuesFeed;
     }
-    function changeHandler(address _handler, bool auth) external onlyOwner {
-        handler[_handler] = auth;
-    }
+
 }
 

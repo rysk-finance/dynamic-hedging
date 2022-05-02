@@ -293,8 +293,8 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const optionSeries = {
 			expiration: expiration,
-			isPut: PUT_FLAVOR,
 			strike: strikePrice,
+			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -311,8 +311,8 @@ describe("Liquidity Pools", async () => {
 			await liquidityPool.quotePriceWithUtilizationGreeks(
 				{
 					expiration: expiration,
-					isPut: PUT_FLAVOR,
 					strike: BigNumber.from(strikePrice),
+					isPut: PUT_FLAVOR,
 					strikeAsset: usd.address,
 					underlying: weth.address,
 					collateral: usd.address
@@ -323,7 +323,7 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 0.01)
+		expect(diff).to.be.within(0, 1)
 	})
 
 	it("Returns a quote for a ETH/USD put to buy", async () => {
@@ -335,8 +335,8 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const optionSeries = {
 			expiration: expiration,
-			isPut: PUT_FLAVOR,
 			strike: strikePrice,
+			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -355,7 +355,7 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(buyQuote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 0.01)
+		expect(diff).to.be.within(0, 0.1)
 	})
 
 	it("reverts when attempting to write ETH/USD puts with expiry outside of limit", async () => {
@@ -369,24 +369,28 @@ describe("Liquidity Pools", async () => {
 		// series with expiry too long
 		const proposedSeries1 = {
 			expiration: invalidExpirationLong,
-			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
+			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
 		}
+		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount))[0]
+		await usd.approve(handler.address, quote)
 		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 		// series with expiry too short
 		const proposedSeries2 = {
 			expiration: invalidExpirationShort,
-			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
+			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
 		}
+		const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount))[0]
+		await usd.approve(handler.address, quote2)
 		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
@@ -402,12 +406,14 @@ describe("Liquidity Pools", async () => {
 		// Series with strike price too high
 		const proposedSeries1 = {
 			expiration: expiration,
-			isPut: PUT_FLAVOR,
 			strike: invalidStrikeHigh,
+			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
 		}
+		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount))[0]
+		await usd.approve(handler.address, quote)
 		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
@@ -415,12 +421,14 @@ describe("Liquidity Pools", async () => {
 
 		const proposedSeries2 = {
 			expiration: expiration,
-			isPut: PUT_FLAVOR,
 			strike: invalidStrikeLow,
+			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
 		}
+		const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount))[0]
+		await usd.approve(handler.address, quote2)
 		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
@@ -439,8 +447,8 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.sub(toWei(strike))
 		proposedSeries = {
 			expiration: expiration,
-			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
+			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -497,8 +505,8 @@ describe("Liquidity Pools", async () => {
 		const seriesInfo = await optionRegistry.getSeriesInfo(putOptionToken.address)
 		const seriesInfoDecimalCorrected = {
 			expiration: seriesInfo.expiration,
-			isPut: seriesInfo.isPut,
 			strike: seriesInfo.strike.mul(1e10),
+			isPut: seriesInfo.isPut,
 			strikeAsset: seriesInfo.strikeAsset,
 			underlying: seriesInfo.underlying,
 			collateral: seriesInfo.collateral
@@ -536,8 +544,8 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
 			expiration: expiration2,
-			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
+			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -625,13 +633,13 @@ describe("Liquidity Pools", async () => {
 	})
 	it("reverts if option collaterral exceeds buffer limit", async () => {
 		const lpBalance = await usd.balanceOf(liquidityPool.address)
-		const amount = toWei("200")
+		const amount = toWei("20")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
 			expiration: expiration3,
-			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
+			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -661,8 +669,8 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.add(toWei(strike))
 		const optionSeries = {
 			expiration: expiration,
-			isPut: CALL_FLAVOR,
 			strike: strikePrice,
+			isPut: CALL_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -690,7 +698,7 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 0.01)
+		expect(diff).to.be.within(0, 1)
 	})
 
 	let optionToken: IOToken
@@ -704,8 +712,8 @@ describe("Liquidity Pools", async () => {
 		const orderExpiry = 10
 		const proposedSeries = {
 			expiration: expiration2,
-			isPut: true,
 			strike: BigNumber.from(strikePrice),
+			isPut: true,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -729,7 +737,7 @@ describe("Liquidity Pools", async () => {
 		const order = await handler.orderStores(1)
 		expect(order.optionSeries.expiration).to.eq(proposedSeries.expiration)
 		expect(order.optionSeries.isPut).to.eq(proposedSeries.isPut)
-		expect(order.optionSeries.strike).to.eq(proposedSeries.strike)
+		expect(order.optionSeries.strike.sub(proposedSeries.strike.div(oTokenDecimalShift18))).to.be.within(-100, 0)
 		expect(order.optionSeries.underlying).to.eq(proposedSeries.underlying)
 		expect(order.optionSeries.strikeAsset).to.eq(proposedSeries.strikeAsset)
 		expect(order.optionSeries.collateral).to.eq(proposedSeries.collateral)
@@ -760,16 +768,16 @@ describe("Liquidity Pools", async () => {
 		const orderExpiry = 600 // 10 minutes
 		const proposedSeriesCall = {
 			expiration: expiration,
-			isPut: false,
 			strike: BigNumber.from(strikePriceCall),
+			isPut: false,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
 		}
 		const proposedSeriesPut = {
 			expiration: expiration,
-			isPut: true,
 			strike: BigNumber.from(strikePricePut),
+			isPut: true,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -816,8 +824,8 @@ describe("Liquidity Pools", async () => {
 		expect(putOrder.optionSeries.isPut).to.be.true
 		expect(callOrder.optionSeries.expiration).to.eq(proposedSeriesCall.expiration)
 		expect(callOrder.optionSeries.expiration).to.eq(putOrder.optionSeries.expiration)
-		expect(callOrder.optionSeries.strike).to.eq(proposedSeriesCall.strike)
-		expect(putOrder.optionSeries.strike).to.eq(proposedSeriesPut.strike)
+		expect(callOrder.optionSeries.strike.sub(proposedSeriesCall.strike.div(oTokenDecimalShift18))).to.be.within(-100, 0)
+		expect(putOrder.optionSeries.strike.sub(proposedSeriesPut.strike.div(oTokenDecimalShift18))).to.be.within(-100, 0)
 		expect(callOrder.optionSeries.strikeAsset).to.eq(proposedSeriesCall.strikeAsset)
 		expect(putOrder.optionSeries.strikeAsset).to.eq(proposedSeriesPut.strikeAsset)
 		expect(callOrder.optionSeries.collateral).to.eq(proposedSeriesCall.collateral)
@@ -834,8 +842,8 @@ describe("Liquidity Pools", async () => {
 		const orderExpiry = 10
 		const proposedSeries = {
 			expiration: expiration,
-			isPut: true,
 			strike: BigNumber.from(strikePrice),
+			isPut: true,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -856,6 +864,8 @@ describe("Liquidity Pools", async () => {
 		const receiverOTokenBalBef = await optionToken.balanceOf(receiverAddress)
 		const lpOTokenBalBef = await optionToken.balanceOf(liquidityPool.address)
 		const lpBalBef = await usd.balanceOf(liquidityPool.address)
+		console.log(lpBalBef)
+		console.log(await liquidityPool.collateralAllocated())
 		const receiverBalBef = await usd.balanceOf(receiverAddress)
 		const orderDeets = await handler.orderStores(1)
 		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
@@ -864,8 +874,8 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			{
 				expiration: orderDeets.optionSeries.expiration.toNumber(),
-				isPut: orderDeets.optionSeries.isPut,
 				strike: orderDeets.optionSeries.strike,
+				isPut: orderDeets.optionSeries.isPut,
 				underlying: orderDeets.optionSeries.underlying,
 				strikeAsset: orderDeets.optionSeries.strikeAsset,
 				collateral: orderDeets.optionSeries.collateral
@@ -878,8 +888,8 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			{
 				expiration: orderDeets.optionSeries.expiration.toNumber(),
-				isPut: orderDeets.optionSeries.isPut,
 				strike: orderDeets.optionSeries.strike,
+				isPut: orderDeets.optionSeries.isPut,
 				underlying: orderDeets.optionSeries.underlying,
 				strikeAsset: orderDeets.optionSeries.strikeAsset,
 				collateral: orderDeets.optionSeries.collateral
@@ -931,8 +941,8 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			{
 				expiration: orderDeets1.optionSeries.expiration.toNumber(),
-				isPut: orderDeets1.optionSeries.isPut,
 				strike: orderDeets1.optionSeries.strike,
+				isPut: orderDeets1.optionSeries.isPut,
 				underlying: orderDeets1.optionSeries.underlying,
 				strikeAsset: orderDeets1.optionSeries.strikeAsset,
 				collateral: orderDeets1.optionSeries.collateral
@@ -945,8 +955,8 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			{
 				expiration: orderDeets1.optionSeries.expiration.toNumber(),
-				isPut: orderDeets1.optionSeries.isPut,
 				strike: orderDeets1.optionSeries.strike,
+				isPut: orderDeets1.optionSeries.isPut,
 				underlying: orderDeets1.optionSeries.underlying,
 				strikeAsset: orderDeets1.optionSeries.strikeAsset,
 				collateral: orderDeets1.optionSeries.collateral
@@ -960,8 +970,8 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			{
 				expiration: orderDeets2.optionSeries.expiration.toNumber(),
-				isPut: orderDeets2.optionSeries.isPut,
 				strike: orderDeets2.optionSeries.strike,
+				isPut: orderDeets2.optionSeries.isPut,
 				underlying: orderDeets2.optionSeries.underlying,
 				strikeAsset: orderDeets2.optionSeries.strikeAsset,
 				collateral: orderDeets2.optionSeries.collateral
@@ -974,8 +984,8 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			{
 				expiration: orderDeets2.optionSeries.expiration.toNumber(),
-				isPut: orderDeets2.optionSeries.isPut,
 				strike: orderDeets2.optionSeries.strike,
+				isPut: orderDeets2.optionSeries.isPut,
 				underlying: orderDeets2.optionSeries.underlying,
 				strikeAsset: orderDeets2.optionSeries.strikeAsset,
 				collateral: orderDeets2.optionSeries.collateral
@@ -1022,8 +1032,8 @@ describe("Liquidity Pools", async () => {
 		const orderExpiry = 1200 // order valid for 20 minutes
 		const proposedSeries = {
 			expiration: expiration,
-			isPut: true,
 			strike: BigNumber.from(strikePrice),
+			isPut: true,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -1042,7 +1052,7 @@ describe("Liquidity Pools", async () => {
 		const order = await handler.orderStores(orderId)
 		expect(order.optionSeries.expiration).to.eq(proposedSeries.expiration)
 		expect(order.optionSeries.isPut).to.eq(proposedSeries.isPut)
-		expect(order.optionSeries.strike).to.eq(proposedSeries.strike)
+		expect(order.optionSeries.strike.sub(proposedSeries.strike.div(oTokenDecimalShift18))).to.be.within(-100, 0)
 		expect(order.optionSeries.underlying).to.eq(proposedSeries.underlying)
 		expect(order.optionSeries.strikeAsset).to.eq(proposedSeries.strikeAsset)
 		expect(order.optionSeries.collateral).to.eq(proposedSeries.collateral)
@@ -1082,16 +1092,16 @@ describe("Liquidity Pools", async () => {
 		const orderExpiry = 600 // 10 minutes
 		const proposedSeriesInvalidDelta = {
 			expiration: expiration,
-			isPut: false,
 			strike: BigNumber.from(strikePriceInvalidDelta),
+			isPut: false,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
 		}
 		const proposedSeriesInvalidPrice = {
 			expiration: expiration,
-			isPut: false,
 			strike: BigNumber.from(strikePriceInvalidPrice),
+			isPut: false,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address

@@ -139,9 +139,9 @@ contract OptionHandler is
             is intended to be used to issue options to market makers/ OTC market participants
             in order to have flexibility and customisability on option issuance and market 
             participant UX.
-    @param _optionSeries the option token series to issue
-    @param _amount the number of options to issue 
-    @param _price the price per unit to issue at
+    @param _optionSeries the option token series to issue - strike in e18
+    @param _amount the number of options to issue - e18
+    @param _price the price per unit to issue at - in e18
     @param _orderExpiry the expiry of the order (if past the order is redundant)
     @param _buyerAddress the agreed upon buyer address
     @return orderId the unique id of the order
@@ -156,14 +156,14 @@ contract OptionHandler is
   {
     if (_price == 0) {revert CustomErrors.InvalidPrice();}
     if (_orderExpiry > 1800) {revert CustomErrors.OrderExpiryTooLong();}
-
+    IOptionRegistry optionRegistry = getOptionRegistry();
     // issue the option type, all checks of the option validity should happen in _issue
-    address series = liquidityPool.handlerIssue(_optionSeries, getOptionRegistry());
+    address series = liquidityPool.handlerIssue(_optionSeries);
     // create the order struct, setting the series, amount, price, order expiry and buyer address
     Types.Order memory order = Types.Order(
-      _optionSeries,
-      _amount,
-      _price,
+      optionRegistry.getSeriesInfo(series),          // strike in e8
+      _amount,                // amount in e18
+      _price,                 // in e18
       block.timestamp + _orderExpiry,
       _buyerAddress,
       series
@@ -178,8 +178,8 @@ contract OptionHandler is
 
   /** 
     @notice creates a strangle order. One custom put and one custom call order to be executed simultaneously.
-    @param _optionSeriesCall the option token series to issue for the call part of the strangle
-    @param _optionSeriesPut the option token series to issue for the put part of the strangle
+    @param _optionSeriesCall the option token series to issue for the call part of the strangle - strike in e18
+    @param _optionSeriesPut the option token series to issue for the put part of the strangle - strike in e18
     @param _amountCall the number of call options to issue 
     @param _amountPut the number of put options to issue 
     @param _priceCall the price per unit to issue calls at
@@ -218,16 +218,11 @@ contract OptionHandler is
     if(msg.sender != order.buyer) {revert CustomErrors.InvalidBuyer();}
     // check that the order is still valid
     if(block.timestamp > order.orderExpiry) {revert CustomErrors.OrderExpired();}
-    IOptionRegistry optionRegistry = getOptionRegistry();  
-    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(order.seriesAddress);
-    (uint poolCalculatedPremium, int delta) = liquidityPool.quotePriceWithUtilizationGreeks(Types.OptionSeries( 
-       optionSeries.expiration,
-       optionSeries.isPut,
-       OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(order.seriesAddress).decimals()), // convert from 1e8 to 1e18 notation for quotePrice
-       optionSeries.underlying,
-       optionSeries.strikeAsset,
-       collateralAsset), order.amount);
-    
+    // strike in e8
+    Types.OptionSeries memory optionSeries = order.optionSeries;
+    // convert strike to e18
+    optionSeries.strike = uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(order.seriesAddress).decimals()));
+    (uint poolCalculatedPremium, int delta) = liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, order.amount);
     // calculate the total premium
     uint256 premium = (order.amount * order.price) / 1e18;
     // check the agreed upon premium is within acceptable range of pool's own pricing model
@@ -239,10 +234,11 @@ contract OptionHandler is
     } else {
       if (customOrderBounds.callMinDelta > uint(delta) || uint(delta) > customOrderBounds.callMaxDelta) { revert CustomErrors.CustomOrderInvalidDeltaValue(); }
     }
+    uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
     // premium needs to adjusted for decimals of collateral asset
-    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals()));
-    // write the option contract, includes sending the premium from the user to the pool
-    liquidityPool.handlerWriteOption(order.optionSeries, order.seriesAddress, order.amount, optionRegistry, premium, msg.sender);
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), convertedPrem);
+    // write the option contract, includes sending the premium from the user to the pool, option series should be in e8
+    liquidityPool.handlerWriteOption(order.optionSeries, order.seriesAddress, order.amount, getOptionRegistry(), convertedPrem, msg.sender);
     emit OrderExecuted(_orderId);
     // invalidate the order
     delete orderStores[_orderId];
@@ -263,9 +259,9 @@ contract OptionHandler is
 
  /**
    * @notice write a number of options for a given series addres
-   * @param  optionSeries option type to mint
-   * @param  amount       the number of options to mint 
-   * @return optionAmount the number of options minted
+   * @param  optionSeries option type to mint - strike in e18
+   * @param  amount       the number of options to mint in e18
+   * @return optionAmount the number of options minted in 2
    * @return series       the address of the option series minted
    */
   function issueAndWriteOption(
@@ -277,14 +273,30 @@ contract OptionHandler is
     nonReentrant
     returns (uint optionAmount, address series)
   {
-    IOptionRegistry optionRegistry = getOptionRegistry();
-    series = liquidityPool.handlerIssue(optionSeries, optionRegistry);
     // calculate premium
     (uint256 premium,) = liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of collateral asset
-    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals()));
-    // write the option
-    optionAmount = liquidityPool.handlerWriteOption(optionSeries, series, amount, optionRegistry, premium, msg.sender);
+    uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), convertedPrem);
+    // write the option, optionAmount in e18
+    (optionAmount, series) = liquidityPool.handlerIssueAndWriteOption(optionSeries, amount, convertedPrem, msg.sender);
+  }
+
+ /**
+   * @notice issue a series
+   * @param  optionSeries option type to mint - strike in e18
+   * @return series       the address of the option series minted
+   */
+  function issue(
+     Types.OptionSeries memory optionSeries
+  ) 
+    public
+    whenNotPaused()
+    nonReentrant
+    returns (address series)
+  {
+    // issue the option
+    series = liquidityPool.handlerIssue(optionSeries);
   }
 
   /**
@@ -305,36 +317,33 @@ contract OptionHandler is
     IOptionRegistry optionRegistry = getOptionRegistry();
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
-    
-    uint strikeDecimalConverted = OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals());
-
-    // calculate premium
-    (uint256 premium,) = liquidityPool.quotePriceWithUtilizationGreeks(Types.OptionSeries( 
-       optionSeries.expiration,
-       optionSeries.isPut,
-       strikeDecimalConverted, // convert from 1e8 to 1e18 notation for quotePrice
-       optionSeries.underlying,
-       optionSeries.strikeAsset,
-       collateralAsset), amount);
+    // calculate premium, strike needs to be in e18
+    (uint256 premium,) = liquidityPool.quotePriceWithUtilizationGreeks(
+        Types.OptionSeries({
+        expiration: optionSeries.expiration,
+        strike: uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals())),
+        isPut: optionSeries.isPut,
+        underlying: optionSeries.underlying,
+        strikeAsset: optionSeries.strikeAsset,
+        collateral: optionSeries.collateral
+      }),
+      amount
+      );
     // premium needs to adjusted for decimals of collateral asset
-    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals()));
-    return liquidityPool.handlerWriteOption(Types.OptionSeries( 
-       optionSeries.expiration,
-       optionSeries.isPut,
-       strikeDecimalConverted, // convert from 1e8 to 1e18 notation for quotePrice
-       optionSeries.underlying,
-       optionSeries.strikeAsset,
-       collateralAsset), seriesAddress, amount, optionRegistry, premium, msg.sender);
+    uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), convertedPrem);
+    return liquidityPool.handlerWriteOption(
+      optionSeries, seriesAddress, amount, optionRegistry, convertedPrem, msg.sender);
   }
 
   /**
     @notice buys a number of options back and burns the tokens
-    @param optionSeries the option token series to buyback
+    @param seriesAddress the option token series to buyback
     @param amount the number of options to buyback expressed in 1e18
     @return the number of options bought and burned
   */
   function buybackOption(
-    Types.OptionSeries memory optionSeries,
+    address seriesAddress,
     uint amount
   ) 
   public 
@@ -342,27 +351,33 @@ contract OptionHandler is
   whenNotPaused() 
   returns (uint256)
   {
+    IOptionRegistry optionRegistry = getOptionRegistry();
+    // get the option series from the pool
+    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // revert if the expiry is in the past
     if (optionSeries.expiration <= block.timestamp) {revert CustomErrors.OptionExpiryInvalid();}
-    (uint256 premium, int256 delta) = liquidityPool.quotePriceBuying(optionSeries, amount);
+    // strike needs to be in e18
+    (uint256 premium, int256 delta) = liquidityPool.quotePriceBuying(
+      Types.OptionSeries({
+        expiration: optionSeries.expiration,
+        strike: uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals())),
+        isPut: optionSeries.isPut,
+        underlying: optionSeries.underlying,
+        strikeAsset: optionSeries.strikeAsset,
+        collateral: optionSeries.collateral
+      }),
+      amount
+      );
     if (!buybackWhitelist[msg.sender]){
       int portfolioDelta = liquidityPool.getPortfolioDelta();
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + delta);
       bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
       if (!isDecreased) {revert CustomErrors.DeltaNotDecreased();}
-    }
-    IOptionRegistry optionRegistry = getOptionRegistry();  
-    address seriesAddress = optionRegistry.getOtoken(
-       optionSeries.underlying,
-       optionSeries.strikeAsset,
-       optionSeries.expiration,
-       optionSeries.isPut,
-       optionSeries.strike,
-       collateralAsset
-    );     
-    if (seriesAddress == address(0)) {revert CustomErrors.NonExistentOtoken();} 
+    }     
+    // premium needs to adjusted for decimals of collateral asset
+    uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
     SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(liquidityPool), OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals()));
-    return liquidityPool.handlerBuybackOption(optionSeries, amount, optionRegistry, seriesAddress, premium, msg.sender);
+    return liquidityPool.handlerBuybackOption(optionSeries, amount, optionRegistry, seriesAddress, convertedPrem, msg.sender);
   }
 
   ///////////////////////////

@@ -77,14 +77,14 @@ library OptionsCompute {
 
    /**
         @dev computes new portfolio options position on a given side (put or call). Reduces and represents this position as a single option.
-        @param amount the number number of newly written options
-        @param strike the strike of the newly written option
+        @param amount the number number of newly written options in e18
+        @param strike the strike of the newly written option in e18
         @param expiration expiration date of the new option
-        @param totalAmount total amount of active calls/puts
-        @param weightedStrike weighted strike price of active calls/puts
+        @param totalAmount total amount of active calls/puts in e18
+        @param weightedStrike weighted strike price of active calls/puts in e18
         @param weightedTime weighted time to expiry of active calls/puts
-        @return newTotalAmount the new total amount of active calls/puts
-        @return newWeightedStrike new weighted strike price of active calls/puts
+        @return newTotalAmount the new total amount of active calls/puts in e18
+        @return newWeightedStrike new weighted strike price of active calls/puts in e18
         @return newWeightedTime new weighted time to expiry of active calls/puts
      */
     function computeNewWeights(
