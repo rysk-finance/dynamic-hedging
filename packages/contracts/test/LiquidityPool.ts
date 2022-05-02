@@ -489,9 +489,11 @@ describe("Liquidity Pools", async () => {
 		const poolUSDBalanceDiff = tFormatUSDC(poolBalanceAfter.sub(poolBalanceBefore))
 		const expectedUSDBalanceDiff = tFormatEth(quote) - tFormatUSDC(collateralAllocatedDiff)
 		// check LP USDC balance is changed
-		expect(poolUSDBalanceDiff - expectedUSDBalanceDiff).to.be.within(-0.001, 0.001)
+		expect(poolUSDBalanceDiff - expectedUSDBalanceDiff).to.be.within(-0.0015, 0.0015)
 		// check collateral allocated is increased
-		expect(collateralAllocatedDiff).to.eq(expectedCollateralAllocated)
+		expect(
+			tFormatUSDC(collateralAllocatedDiff) - tFormatUSDC(expectedCollateralAllocated)
+		).to.be.within(-0.001, 0.001)
 	})
 	it("can compute portfolio delta", async function () {
 		const localDelta = await calculateOptionDeltaLocally(
@@ -636,7 +638,6 @@ describe("Liquidity Pools", async () => {
 		await write.wait(1)
 		const logs = await liquidityPool.queryFilter(liquidityPool.filters.BuybackOption(), 0)
 		const buybackEvent = logs[0].args
-
 		const totalSupplyAfter = await putOptionToken.totalSupply()
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const collateralAllocatedDiff = tFormatUSDC(
@@ -648,14 +649,14 @@ describe("Liquidity Pools", async () => {
 		const lpUSDBalanceDiff = tFormatUSDC(lpUSDBalanceBefore) - tFormatUSDC(lpUSDBalanceAfter)
 
 		expect(buybackEvent.amount).to.equal(amount)
-		expect(tFormatEth(buybackEvent.premium) - tFormatEth(quote)).to.be.within(-0.001, 0.001)
+		expect(tFormatUSDC(buybackEvent.premium) - tFormatEth(quote)).to.be.within(-0.001, 0.001)
 		expect(tFormatUSDC(buybackEvent.escrowReturned)).to.equal(collateralAllocatedDiff)
 		expect(buybackEvent.seller).to.equal(senderAddress)
 		expect(totalSupplyAfter).to.equal(totalSupplyBefore.sub(toOpyn(fromWei(amount))))
 		expect(sellerOTokenBalanceAfter).to.equal(sellerOTokenBalanceBefore.sub(toOpyn(fromWei(amount))))
-		expect(tFormatUSDC(sellerUsdcBalanceAfter)).to.equal(
-			tFormatUSDC(sellerUsdcBalanceBefore) + tFormatEth(quote)
-		)
+		expect(
+			tFormatUSDC(sellerUsdcBalanceAfter) - (tFormatUSDC(sellerUsdcBalanceBefore) + tFormatEth(quote))
+		).to.be.within(-0.002, 0.002)
 		expect(lpUSDBalanceDiff - (tFormatEth(quote) - collateralAllocatedDiff)).to.be.within(
 			-0.001,
 			0.001
@@ -864,7 +865,9 @@ describe("Liquidity Pools", async () => {
 		const order = await handler.orderStores(1)
 		expect(order.optionSeries.expiration).to.eq(proposedSeries.expiration)
 		expect(order.optionSeries.isPut).to.eq(proposedSeries.isPut)
-		expect(order.optionSeries.strike.sub(proposedSeries.strike.div(oTokenDecimalShift18))).to.be.within(-100, 0)
+		expect(
+			order.optionSeries.strike.sub(proposedSeries.strike.div(oTokenDecimalShift18))
+		).to.be.within(-100, 0)
 		expect(order.optionSeries.underlying).to.eq(proposedSeries.underlying)
 		expect(order.optionSeries.strikeAsset).to.eq(proposedSeries.strikeAsset)
 		expect(order.optionSeries.collateral).to.eq(proposedSeries.collateral)
@@ -951,8 +954,12 @@ describe("Liquidity Pools", async () => {
 		expect(putOrder.optionSeries.isPut).to.be.true
 		expect(callOrder.optionSeries.expiration).to.eq(proposedSeriesCall.expiration)
 		expect(callOrder.optionSeries.expiration).to.eq(putOrder.optionSeries.expiration)
-		expect(callOrder.optionSeries.strike.sub(proposedSeriesCall.strike.div(oTokenDecimalShift18))).to.be.within(-100, 0)
-		expect(putOrder.optionSeries.strike.sub(proposedSeriesPut.strike.div(oTokenDecimalShift18))).to.be.within(-100, 0)
+		expect(
+			callOrder.optionSeries.strike.sub(proposedSeriesCall.strike.div(oTokenDecimalShift18))
+		).to.be.within(-100, 0)
+		expect(
+			putOrder.optionSeries.strike.sub(proposedSeriesPut.strike.div(oTokenDecimalShift18))
+		).to.be.within(-100, 0)
 		expect(callOrder.optionSeries.strikeAsset).to.eq(proposedSeriesCall.strikeAsset)
 		expect(putOrder.optionSeries.strikeAsset).to.eq(proposedSeriesPut.strikeAsset)
 		expect(callOrder.optionSeries.collateral).to.eq(proposedSeriesCall.collateral)
@@ -1238,7 +1245,9 @@ describe("Liquidity Pools", async () => {
 		const order = await handler.orderStores(orderId)
 		expect(order.optionSeries.expiration).to.eq(proposedSeries.expiration)
 		expect(order.optionSeries.isPut).to.eq(proposedSeries.isPut)
-		expect(order.optionSeries.strike.sub(proposedSeries.strike.div(oTokenDecimalShift18))).to.be.within(-100, 0)
+		expect(
+			order.optionSeries.strike.sub(proposedSeries.strike.div(oTokenDecimalShift18))
+		).to.be.within(-100, 0)
 		expect(order.optionSeries.underlying).to.eq(proposedSeries.underlying)
 		expect(order.optionSeries.strikeAsset).to.eq(proposedSeries.strikeAsset)
 		expect(order.optionSeries.collateral).to.eq(proposedSeries.collateral)
