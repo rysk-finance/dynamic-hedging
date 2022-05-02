@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer } from "react";
 import { globalReducer } from "./reducer";
 import { GlobalContext, GlobalState } from "./types";
+import React from "react";
 
 const defaultGlobalState: GlobalState = {
   ethPrice: null,
