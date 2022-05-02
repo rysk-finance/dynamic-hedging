@@ -1,5 +1,5 @@
 import hre, { ethers, network } from "hardhat"
-import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
+import { BigNumberish, Contract, utils, Signer, BigNumber, providers } from "ethers"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import {
 	toWei,
@@ -248,7 +248,6 @@ describe("Liquidity Pools", async () => {
 		})
 		const usdcWhale = await ethers.getSigner(USDC_WHALE)
 		const usdWhaleConnect = await usd.connect(usdcWhale)
-		await weth.deposit({ value: toWei(liquidityPoolWethDeposit) })
 		await usdWhaleConnect.transfer(senderAddress, toUSDC("1000000"))
 		await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
 		const senderBalance = await usd.balanceOf(senderAddress)
@@ -580,7 +579,16 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const { timestamp } = block
+		const expiryLength = expiration2 - timestamp
+		const localQuote = await calculateOptionQuoteLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeries,
+			amount
+		)
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const lpAllocatedBefore = await liquidityPool.collateralAllocated()
 		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
@@ -761,6 +769,7 @@ describe("Liquidity Pools", async () => {
 	})
 	it("reverts if option collateral exceeds buffer limit", async () => {
 		const lpBalance = await usd.balanceOf(liquidityPool.address)
+		const collateralAllocated = await liquidityPool.collateralAllocated()
 		const amount = toWei("20")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
@@ -1037,8 +1046,6 @@ describe("Liquidity Pools", async () => {
 		const receiverOTokenBalBef = await optionToken.balanceOf(receiverAddress)
 		const lpOTokenBalBef = await optionToken.balanceOf(liquidityPool.address)
 		const lpBalBef = await usd.balanceOf(liquidityPool.address)
-		console.log(lpBalBef)
-		console.log(await liquidityPool.collateralAllocated())
 		const receiverBalBef = await usd.balanceOf(receiverAddress)
 		const orderDeets = await handler.orderStores(1)
 		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)

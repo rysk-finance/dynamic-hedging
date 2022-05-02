@@ -60,7 +60,7 @@ contract LiquidityPool is
   // max total supply of the lp shares
   uint public maxTotalSupply = type(uint256).max;
   // Maximum discount that an option tilting factor can discount an option price
-  uint public maxDiscount = PRBMathUD60x18.SCALE.div(10); // As a percentage. Init at 10%
+  uint public maxDiscount = PRBMathUD60x18.SCALE * 10 / 100; // As a percentage. Init at 10%
   // The spread between the bid and ask on the IV skew;
   // Consider making this it's own volatility skew if more flexibility is needed
   uint public bidAskIVSpread;
@@ -91,10 +91,11 @@ contract LiquidityPool is
   /////////////////////////
 
   struct UtilizationState {
-    uint optionPrice;
-    uint utilizationPrice;
+    uint totalOptionPrice; //e18
+    int totalDelta; // e18
+    uint utilizationPrice; //e18
     bool isDecreased;
-    uint deltaTiltFactor;
+    uint deltaTiltFactor; //e18
   }
   struct WeightedOptionValues {
     uint totalAmountCall;
@@ -528,35 +529,42 @@ contract LiquidityPool is
       view
       returns (uint256 quote, int256 delta)
   {
+      // returns quotes for a single option. All denominated in 1e18
       (uint256 optionQuote, int256 deltaQuote, uint underlyingPrice) = quotePriceGreeks(optionSeries, false);
       // using a struct to get around stack too deep issues
       UtilizationState memory quoteState;
-      // price of acquiring those options
-      quoteState.optionPrice = optionQuote.mul(amount);
+      // price of acquiring total amount of options (remains e18 due to PRBMath)
+      quoteState.totalOptionPrice = optionQuote.mul(amount);
+      quoteState.totalDelta = deltaQuote.mul(int(amount));
       int portfolioDelta = getPortfolioDelta();
       // portfolio delta upon writing option
-      int newDelta = PRBMathSD59x18.abs(portfolioDelta + deltaQuote);
+      // subtract deltaQuote because the pool is taking on the negative of the option's delta
+      int newDelta = PRBMathSD59x18.abs(portfolioDelta - quoteState.totalDelta);
       // assumes a single collateral type regardless of call or put
       // Is delta decreased?
       quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
       // delta in non-nominal terms
-      uint normalizedDelta = uint256(newDelta).div(_getNAV());
+      uint normalizedDelta = uint256(newDelta < 0 ? -newDelta : newDelta).div(_getNAV());
       // max theoretical price of the option
-      uint maxPrice = optionSeries.isPut ? optionSeries.strike : underlyingPrice;
-      quoteState.utilizationPrice = maxPrice.mul(quoteState.optionPrice.div(totalSupply));
+      uint maxPrice = (optionSeries.isPut ? optionSeries.strike : underlyingPrice).mul(amount);
+
+      // ******                                           *******
+      // ******   What is this line trying to achieve?    *******
+      quoteState.utilizationPrice = maxPrice.mul(quoteState.totalOptionPrice.div(totalSupply));
       // layered on to BlackScholes price when delta is moved away from target
-      quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.optionPrice);
+      quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.totalOptionPrice);
       if (quoteState.isDecreased) {
         // provide discount for moving towards delta zero
         uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
+
         // discounted BS option price
-        uint newOptionPrice = quoteState.optionPrice - discount.mul(quoteState.optionPrice);
+        uint newOptionPrice = quoteState.totalOptionPrice - discount.mul(quoteState.totalOptionPrice);
         // discounted utilization priced option
         quoteState.utilizationPrice = quoteState.utilizationPrice - discount.mul(quoteState.utilizationPrice);
         // quote the greater of discounted utilization or discounted BS
         quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       } else {
-        uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.optionPrice) + quoteState.optionPrice;
+        uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.totalOptionPrice) + quoteState.totalOptionPrice;
         if (quoteState.utilizationPrice < maxPrice) {
           // increase utilization by delta tilt factor for moving delta away from zero
           quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
@@ -565,8 +573,8 @@ contract LiquidityPool is
           quote = maxPrice;
         }
       }
-      quote =  OptionsCompute.convertToCollateralDenominated(quote.mul(amount).div(PRBMath.SCALE), underlyingPrice, optionSeries);
-      delta = deltaQuote;
+      quote =  OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
+      delta = quoteState.totalDelta;
       //@TODO think about more robust considitions for this check
       if (quote == 0 || delta == int(0)) { revert CustomErrors.DeltaQuoteError(quote, delta);}
   }
