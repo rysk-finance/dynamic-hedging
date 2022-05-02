@@ -218,21 +218,28 @@ contract OptionHandler is
     if(msg.sender != order.buyer) {revert CustomErrors.InvalidBuyer();}
     // check that the order is still valid
     if(block.timestamp > order.orderExpiry) {revert CustomErrors.OrderExpired();}
-    // strike in e8
-    Types.OptionSeries memory optionSeries = order.optionSeries;
-    // convert strike to e18
-    optionSeries.strike = uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(order.seriesAddress).decimals()));
-    (uint poolCalculatedPremium, int delta) = liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, order.amount);
+    (uint poolCalculatedPremium, int delta) = liquidityPool.quotePriceWithUtilizationGreeks(
+        Types.OptionSeries({
+        expiration: order.optionSeries.expiration,
+        strike: uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, ERC20(order.seriesAddress).decimals())),
+        isPut: order.optionSeries.isPut,
+        underlying: order.optionSeries.underlying,
+        strikeAsset: order.optionSeries.strikeAsset,
+        collateral: order.optionSeries.collateral
+      }),
+      order.amount
+      );
     // calculate the total premium
     uint256 premium = (order.amount * order.price) / 1e18;
     // check the agreed upon premium is within acceptable range of pool's own pricing model
     if (poolCalculatedPremium - (poolCalculatedPremium *  customOrderBounds.maxPriceRange / MAX_BPS) > premium) { revert CustomErrors.CustomOrderInsufficientPrice(); }
     // check that the delta values of the options are within acceptable ranges
     // if isPut, delta will always be between 0 and -1e18
-    if(optionSeries.isPut){
-      if (customOrderBounds.putMinDelta > delta || delta > customOrderBounds.putMaxDelta) { revert CustomErrors.CustomOrderInvalidDeltaValue(); }
+    int unitDelta = delta.div(int(order.amount));
+    if(order.optionSeries.isPut){
+      if (customOrderBounds.putMinDelta > unitDelta || unitDelta > customOrderBounds.putMaxDelta) { revert CustomErrors.CustomOrderInvalidDeltaValue(); }
     } else {
-      if (customOrderBounds.callMinDelta > uint(delta) || uint(delta) > customOrderBounds.callMaxDelta) { revert CustomErrors.CustomOrderInvalidDeltaValue(); }
+      if (customOrderBounds.callMinDelta > uint(unitDelta) || uint(unitDelta) > customOrderBounds.callMaxDelta) { revert CustomErrors.CustomOrderInvalidDeltaValue(); }
     }
     uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
     // premium needs to adjusted for decimals of collateral asset
@@ -358,7 +365,7 @@ contract OptionHandler is
     // revert if the expiry is in the past
     if (optionSeries.expiration <= block.timestamp) {revert CustomErrors.OptionExpiryInvalid();}
     uint128 strikeDecimalConverted = uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()));
-    // get Liquidity pool quote on the option to buy back
+    // get Liquidity pool quote on the option to buy back, always return the total values
     (uint256 premium, int256 delta) = liquidityPool.quotePriceBuying(Types.OptionSeries( 
        optionSeries.expiration,
        strikeDecimalConverted, // convert from 1e8 to 1e18 notation for quotePrice
@@ -369,6 +376,7 @@ contract OptionHandler is
     // if option seller is not on our whitelist, run some extra checks
     if (!buybackWhitelist[msg.sender]){
       int portfolioDelta = liquidityPool.getPortfolioDelta();
+      // the delta is returned as the option delta so add the delta of the option
       int newDelta = PRBMathSD59x18.abs(portfolioDelta + delta);
       bool isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
       if (!isDecreased) {revert CustomErrors.DeltaNotDecreased();}

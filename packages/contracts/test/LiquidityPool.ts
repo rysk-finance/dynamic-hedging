@@ -439,7 +439,6 @@ describe("Liquidity Pools", async () => {
 	})
 	it("LP Writes a ETH/USD put for premium", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore })
 		const [sender] = signers
 		const amount = toWei("5")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -498,7 +497,6 @@ describe("Liquidity Pools", async () => {
 	})
 	it("can compute portfolio delta", async function () {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore })
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
@@ -523,7 +521,6 @@ describe("Liquidity Pools", async () => {
 	})
 	it("writes more options for an existing series", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore })
 		const amount = toWei("12")
 		const putBalance = await putOptionToken.balanceOf(senderAddress)
 		const LpBalanceBefore = await usd.balanceOf(liquidityPool.address)
@@ -564,7 +561,6 @@ describe("Liquidity Pools", async () => {
 	})
 	it("pauses and unpauses handler contract", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore })
 		await handler.pauseContract()
 		const amount = toWei("1")
 
@@ -576,7 +572,6 @@ describe("Liquidity Pools", async () => {
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore })
 		const [sender] = signers
 		const amount = toWei("8")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -625,7 +620,6 @@ describe("Liquidity Pools", async () => {
 
 	it("adds address to the buyback whitelist", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore })
 		await expect(await handler.buybackWhitelist(senderAddress)).to.be.false
 		await handler.addOrRemoveBuybackAddress(senderAddress, true)
 		await expect(await handler.buybackWhitelist(senderAddress)).to.be.true
@@ -647,7 +641,6 @@ describe("Liquidity Pools", async () => {
 		}
 
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore })
 		const totalSupplyBefore = await putOptionToken.totalSupply()
 		const sellerOTokenBalanceBefore = await putOptionToken.balanceOf(senderAddress)
 		const sellerUsdcBalanceBefore = await usd.balanceOf(senderAddress)
@@ -685,14 +678,12 @@ describe("Liquidity Pools", async () => {
 	})
 	it("fails if buyback token address is invalid", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore })
 		const amount = toWei("1")
 		// ETH_ADDRESS is not a valid OToken address
 		await expect(handler.buybackOption(ETH_ADDRESS, amount)).to.be.revertedWith("NonExistentOtoken()")
 	})
 	it("buys back an option from a non-whitelisted address if it moves delta closer to zero", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore })
 		const amount = toWei("2")
 
 		await handler.addOrRemoveBuybackAddress(senderAddress, false)
@@ -731,7 +722,6 @@ describe("Liquidity Pools", async () => {
 	})
 	it("can compute portfolio delta", async function () {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore })
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
@@ -791,7 +781,6 @@ describe("Liquidity Pools", async () => {
 	})
 	it("reverts if option collateral exceeds buffer limit", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		console.log({ lpUSDBalanceBefore })
 		const lpBalance = await usd.balanceOf(liquidityPool.address)
 		const collateralAllocated = await liquidityPool.collateralAllocated()
 		const amount = toWei("20")
@@ -868,7 +857,7 @@ describe("Liquidity Pools", async () => {
 		let customOrderPriceMultiplier = 0.93
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.add(toWei("1500"))
+		const strikePrice = priceQuote.sub(toWei("600"))
 		const amount = toWei("10")
 		const orderExpiry = 10
 		const proposedSeries = {
@@ -925,9 +914,12 @@ describe("Liquidity Pools", async () => {
 		let customOrderPriceMultiplier = 0.93
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePriceCall = priceQuote.add(toWei("1500"))
-		const strikePricePut = priceQuote.sub(toWei("700"))
-		const amount = toWei("1")
+		const strikePriceCall = priceQuote.add(toWei("1400"))
+		const strikePricePut = priceQuote.sub(toWei("900"))
+		const blockNum = await ethers.provider.getBlockNumber()
+		const block = await ethers.provider.getBlock(blockNum)
+		const { timestamp } = block
+		const amount = toWei("2")
 		const orderExpiry = 600 // 10 minutes
 		const proposedSeriesCall = {
 			expiration: expiration,
@@ -1064,6 +1056,7 @@ describe("Liquidity Pools", async () => {
 		await expect(handler.executeOrder(1)).to.be.revertedWith("InvalidBuyer()")
 	})
 	it("Executes a buy order", async () => {
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const amount = toWei("10")
@@ -1136,6 +1129,8 @@ describe("Liquidity Pools", async () => {
 		).to.be.within(-1, 1)
 	})
 	it("executes a strangle", async () => {
+		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore })
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const amount = toWei("1")
@@ -1144,6 +1139,8 @@ describe("Liquidity Pools", async () => {
 		)
 		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
 		await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit), senderAddress)
+		const lpUSDBalanceBefore1 = await usd.balanceOf(liquidityPool.address)
+		console.log({ lpUSDBalanceBefore1 })
 		const receiverBalBef = await usd.balanceOf(receiverAddress)
 		const orderDeets1 = await handler.orderStores(2)
 		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
@@ -1224,6 +1221,7 @@ describe("Liquidity Pools", async () => {
 		const lpOTokenBalAft = (await strangleCallToken.balanceOf(liquidityPool.address)).add(
 			await stranglePutToken.balanceOf(liquidityPool.address)
 		)
+		console.log(receiverBalBef, receiverBalAft, receiverBalBef.sub(receiverBalAft), customStranglePrice)
 		expect(
 			receiverBalBef
 				.sub(receiverBalAft)
