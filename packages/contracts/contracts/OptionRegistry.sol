@@ -508,7 +508,7 @@ contract OptionRegistry is Ownable, AccessControl {
     function formatStrikePrice(
         uint256 strikePrice,
         address collateral
-    ) private view returns (uint) {
+    ) public view returns (uint) {
         // convert strike to 1e8 format
         uint price = strikePrice / (10**10);
         uint collateralDecimals = IERC20(collateral).decimals();
