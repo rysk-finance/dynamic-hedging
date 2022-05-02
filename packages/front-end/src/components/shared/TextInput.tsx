@@ -19,7 +19,7 @@ export const TextInput: React.FC<TextInputProps> = ({
 }) => {
   const setter = (value: string) => {
     if (numericOnly) {
-      if (value === "" || Number(value)) {
+      if (value === "" || !isNaN(Number(value))) {
         setValue(value);
       }
     } else {
