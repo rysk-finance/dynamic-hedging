@@ -858,7 +858,7 @@ describe("Liquidity Pools", async () => {
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei("600"))
-		const amount = toWei("10")
+		const amount = toWei("5")
 		const orderExpiry = 10
 		const proposedSeries = {
 			expiration: expiration,
@@ -878,7 +878,7 @@ describe("Liquidity Pools", async () => {
 		await handler.createOrder(
 			proposedSeries,
 			amount,
-			toWei(customOrderPrice.toString()),
+			toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
 			orderExpiry,
 			receiverAddress
 		)
@@ -894,7 +894,7 @@ describe("Liquidity Pools", async () => {
 		expect(order.optionSeries.strikeAsset).to.eq(proposedSeries.strikeAsset)
 		expect(order.optionSeries.collateral).to.eq(proposedSeries.collateral)
 		expect(order.amount).to.eq(amount)
-		expect(order.price).to.eq(toWei(customOrderPrice.toString()))
+		expect(order.price).to.eq(toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount))
 		expect(order.buyer).to.eq(receiverAddress)
 		const seriesInfo = await optionRegistry.getSeriesInfo(order.seriesAddress)
 		expect(order.optionSeries.expiration).to.eq(seriesInfo.expiration.toString())
@@ -957,8 +957,8 @@ describe("Liquidity Pools", async () => {
 			proposedSeriesPut,
 			amount,
 			amount,
-			toWei(customOrderPriceCall.toString()),
-			toWei(customOrderPricePut.toString()),
+			toWei(customOrderPriceCall.toString()).mul(toWei("1")).div(amount),
+			toWei(customOrderPricePut.toString()).mul(toWei("1")).div(amount),
 			orderExpiry,
 			receiverAddress
 		)
@@ -1059,7 +1059,7 @@ describe("Liquidity Pools", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const amount = toWei("10")
+		const amount = toWei("5")
 		const receiverOTokenBalBef = await optionToken.balanceOf(receiverAddress)
 		const lpOTokenBalBef = await optionToken.balanceOf(liquidityPool.address)
 		const lpBalBef = await usd.balanceOf(liquidityPool.address)
@@ -1133,12 +1133,12 @@ describe("Liquidity Pools", async () => {
 		console.log({ lpUSDBalanceBefore })
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const amount = toWei("1")
+		const amount = toWei("2")
 		const receiverOTokenBalBef = (await strangleCallToken.balanceOf(receiverAddress)).add(
 			await stranglePutToken.balanceOf(receiverAddress)
 		)
-		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
-		await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit), senderAddress)
+		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit).mul(2))
+		await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit).mul(2), senderAddress)
 		const lpUSDBalanceBefore1 = await usd.balanceOf(liquidityPool.address)
 		console.log({ lpUSDBalanceBefore1 })
 		const receiverBalBef = await usd.balanceOf(receiverAddress)
