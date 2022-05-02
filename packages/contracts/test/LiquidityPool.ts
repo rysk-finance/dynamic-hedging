@@ -858,11 +858,12 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 1)
+		expect(diff).to.be.within(0, 0.1)
 	})
 
 	let optionToken: IOToken
 	let customOrderPrice: number
+	let customOrderId: number
 	it("Creates a buy order", async () => {
 		let customOrderPriceMultiplier = 0.93
 		const [sender, receiver] = signers
@@ -885,16 +886,21 @@ describe("Liquidity Pools", async () => {
 			amount
 		)
 		customOrderPrice = localQuote * customOrderPriceMultiplier
-		await handler.createOrder(
+		const createOrder = await handler.createOrder(
 			proposedSeries,
 			amount,
 			toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
 			orderExpiry,
 			receiverAddress
 		)
+
+		const receipt = await createOrder.wait()
+		const events = receipt.events
+		const createOrderEvents = events?.find(x => x.event == "OrderCreated")
+		customOrderId = createOrderEvents?.args?.orderId
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
-		const order = await handler.orderStores(1)
+		const order = await handler.orderStores(customOrderId)
 		expect(order.optionSeries.expiration).to.eq(proposedSeries.expiration)
 		expect(order.optionSeries.isPut).to.eq(proposedSeries.isPut)
 		expect(
@@ -917,7 +923,8 @@ describe("Liquidity Pools", async () => {
 	let customOrderPriceCall: number
 	let customOrderPricePut: number
 	let customStranglePrice: number
-	let strangleId: number
+	let strangleCallId: number
+	let stranglePutId: number
 	let strangleCallToken: IOToken
 	let stranglePutToken: IOToken
 	it("creates a custom strangle order", async () => {
@@ -978,10 +985,10 @@ describe("Liquidity Pools", async () => {
 		const createOrderEvents = events?.filter(x => x.event == "OrderCreated") as any
 		expect(createOrderEvents?.length).to.eq(2)
 		expect(parseInt(createOrderEvents[0].args?.orderId) + 1).to.eq(createOrderEvents[1].args?.orderId)
-		const createStrangleEvent = events?.find(x => x.event == "StrangleCreated")
-		strangleId = createStrangleEvent?.args?.strangleId
-		const callOrder = await handler.orderStores(createOrderEvents[0].args?.orderId)
-		const putOrder = await handler.orderStores(createOrderEvents[1].args?.orderId)
+		strangleCallId = createOrderEvents[0].args?.orderId
+		stranglePutId = createOrderEvents[1].args?.orderId
+		const callOrder = await handler.orderStores(strangleCallId)
+		const putOrder = await handler.orderStores(stranglePutId)
 		strangleCallToken = new Contract(callOrder.seriesAddress, Otoken.abi, sender) as IOToken
 		stranglePutToken = new Contract(putOrder.seriesAddress, Otoken.abi, sender) as IOToken
 
@@ -1107,7 +1114,7 @@ describe("Liquidity Pools", async () => {
 		)
 		await usd.connect(receiver).approve(handler.address, 100000000000)
 		await optionToken.approve(handler.address, toOpyn(fromWei(amount)))
-		await handler.connect(receiver).executeOrder(1)
+		await handler.connect(receiver).executeOrder(customOrderId)
 		const deltaAfter = await liquidityPool.getPortfolioDelta()
 		await portfolioValuesFeed.fulfill(
 			utils.formatBytes32String("1"),
@@ -1148,7 +1155,7 @@ describe("Liquidity Pools", async () => {
 		await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit).mul(2), senderAddress)
 		const lpUSDBalanceBefore1 = await usd.balanceOf(liquidityPool.address)
 		const receiverBalBef = await usd.balanceOf(receiverAddress)
-		const orderDeets1 = await handler.orderStores(2)
+		const orderDeets1 = await handler.orderStores(strangleCallId)
 		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
 		const localDelta1 = await calculateOptionDeltaLocally(
 			liquidityPool,
@@ -1178,7 +1185,7 @@ describe("Liquidity Pools", async () => {
 			amount,
 			false
 		)
-		const orderDeets2 = await handler.orderStores(3)
+		const orderDeets2 = await handler.orderStores(stranglePutId)
 		const localDelta2 = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
@@ -1208,7 +1215,7 @@ describe("Liquidity Pools", async () => {
 			false
 		)
 		await usd.connect(receiver).approve(liquidityPool.address, 1000000000)
-		await handler.connect(receiver).executeStrangle(2, 3)
+		await handler.connect(receiver).executeStrangle(strangleCallId, stranglePutId)
 		const receiverBalAft = await usd.balanceOf(receiverAddress)
 		const receiverOTokenBalAft = (await strangleCallToken.balanceOf(receiverAddress)).add(
 			await stranglePutToken.balanceOf(receiverAddress)
@@ -1390,9 +1397,9 @@ describe("Liquidity Pools", async () => {
 		)
 
 		const receipt3 = await createOrderInvalidDeltaPut.wait(1)
-		const events3 = receipt.events
-		const createOrderEven3t = events?.find(x => x.event == "OrderCreated")
-		const invalidDeltaPutOrderId = createOrderEvent?.args?.orderId
+		const events3 = receipt3.events
+		const createOrderEvent3 = events3?.find(x => x.event == "OrderCreated")
+		const invalidDeltaPutOrderId = createOrderEvent3?.args?.orderId
 
 		// create invalid price option series
 		const createOrderInvalidPrice = await handler.createOrder(
