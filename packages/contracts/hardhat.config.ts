@@ -1,16 +1,18 @@
-import * as dotenv from "dotenv"
 import { Wallet } from "@ethersproject/wallet"
-import "solidity-coverage"
-import "@nomiclabs/hardhat-waffle"
-import "@nomiclabs/hardhat-etherscan"
-import "hardhat-deploy"
-import "@typechain/hardhat"
 import "@nomiclabs/hardhat-ethers"
-import "hardhat-gas-reporter"
-import "hardhat-tracer"
+import "@nomiclabs/hardhat-etherscan"
+import "@nomiclabs/hardhat-waffle"
+import "@typechain/hardhat"
+import * as dotenv from "dotenv"
 import "hardhat-contract-sizer"
 import "hardhat-dependency-compiler"
+import "hardhat-deploy"
+import "hardhat-gas-reporter"
+import "hardhat-tracer"
 import path from "path"
+import "solidity-coverage"
+// Task imports
+import "./tasks/seedUSDC"
 
 const ethers = require("ethers")
 const bip39 = require("bip39")
