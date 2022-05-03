@@ -386,6 +386,7 @@ contract LiquidityPool is
     )
     external
     whenNotPaused()
+    nonReentrant
     returns(uint shares)
   {
     if (_amount == 0) {revert CustomErrors.InvalidAmount();}
@@ -413,6 +414,7 @@ contract LiquidityPool is
   )
     external
     whenNotPaused()
+    nonReentrant
     returns(uint transferCollateralAmount)
   {
     if (_shares == 0) {revert CustomErrors.InvalidShareAmount();}
