@@ -99,7 +99,7 @@ function fulfill(
     uint256 _callPutsValue,
     uint256 _spotPrice
 )
-    public
+    external
     recordChainlinkFulfillment(_requestId)
   {
     Types.PortfolioValues memory portfolioValue = Types.PortfolioValues({
@@ -126,7 +126,7 @@ function fulfill(
    *
    * @return requestId - id of the request
    */
-  function requestPortfolioData(string memory _underlying, string memory _strike) public returns (bytes32 requestId) {
+  function requestPortfolioData(string memory _underlying, string memory _strike) external returns (bytes32 requestId) {
     Chainlink.Request memory request = buildChainlinkRequest(
       jobId,
       address(this),

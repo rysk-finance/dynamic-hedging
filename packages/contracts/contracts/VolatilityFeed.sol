@@ -66,7 +66,7 @@ contract VolatilityFeed is Ownable {
     uint underlyingPrice,
     uint strikePrice,
     uint expiration
-  ) public view returns(uint) {
+  ) external view returns(uint) {
       uint256 time = (expiration - block.timestamp).div(ONE_YEAR_SECONDS);
       int underlying = int(underlyingPrice);
       int spot_distance = (int(strikePrice) - int(underlying)).div(underlying);

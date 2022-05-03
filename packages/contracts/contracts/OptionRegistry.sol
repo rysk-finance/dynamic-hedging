@@ -463,16 +463,16 @@ contract OptionRegistry is Ownable, AccessControl {
     /// non-complex getters ///
     ///////////////////////////
 
-   function getSeriesAddress(bytes32 issuanceHash) public view returns (address) {
+   function getSeriesAddress(bytes32 issuanceHash) external view returns (address) {
      return seriesAddress[issuanceHash];
    }
 
-   function getSeries(Types.OptionSeries memory _series) public view returns (address) {
+   function getSeries(Types.OptionSeries memory _series) external view returns (address) {
      return seriesAddress[getIssuanceHash(_series.underlying, _series.strikeAsset, _series.collateral, _series.expiration, _series.isPut, _series.strike)];
    }
 
    function getSeriesInfo(address series)
-     public
+     external
      view
      returns (Types.OptionSeries memory) {
      return seriesInfo[series];

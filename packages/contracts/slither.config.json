@@ -1,0 +1,8 @@
+{
+    "detectors_to_exclude": "dead-code,reentrancy-unlimited-gas,reentrancy-events,reentrancy-benign,reentrancy-no-eth,reentrancy-eth,divide-before-multiply",
+    "exclude_informational": false,
+    "exclude_low": false,
+    "exclude_medium": false,
+    "exclude_high": false,
+    "filter_paths": "opyn,Controller.sol,AddressBook.sol"
+}

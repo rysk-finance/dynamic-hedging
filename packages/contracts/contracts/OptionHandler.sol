@@ -275,7 +275,7 @@ contract OptionHandler is
      Types.OptionSeries memory optionSeries,
      uint amount
   ) 
-    public
+    external
     whenNotPaused()
     nonReentrant
     returns (uint optionAmount, address series)
@@ -297,7 +297,7 @@ contract OptionHandler is
   function issue(
      Types.OptionSeries memory optionSeries
   ) 
-    public
+    external
     whenNotPaused()
     nonReentrant
     returns (address series)
@@ -316,7 +316,7 @@ contract OptionHandler is
     address seriesAddress,
     uint amount
   )
-    public
+    external
     whenNotPaused()
     nonReentrant
     returns (uint256)
@@ -353,7 +353,7 @@ contract OptionHandler is
     address seriesAddress,
     uint amount
   ) 
-  public 
+  external 
   nonReentrant 
   whenNotPaused() 
   returns (uint256)

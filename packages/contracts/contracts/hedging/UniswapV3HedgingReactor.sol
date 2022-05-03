@@ -72,12 +72,12 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     ///////////////
 
     /// @notice update the uniswap v3 pool fee
-    function changePoolFee(uint24 _poolFee) public onlyOwner {
+    function changePoolFee(uint24 _poolFee) external onlyOwner {
         poolFee = _poolFee;
     }
 
     /// @notice update the minAmount parameter
-    function setMinAmount(uint _minAmount) public onlyOwner {
+    function setMinAmount(uint _minAmount) external onlyOwner {
         minAmount = _minAmount;
     }
 

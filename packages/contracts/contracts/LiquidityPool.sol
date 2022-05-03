@@ -169,7 +169,7 @@ contract LiquidityPool is
    * @param _index remove a hedging reactor 
    * @dev   only governance can call this function
    */
-  function removeHedgingReactorAddress(uint256 _index) onlyOwner public {
+  function removeHedgingReactorAddress(uint256 _index) onlyOwner external {
     SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors[_index], 0);
      for(uint i = _index; i < hedgingReactors.length-1; i++){
       hedgingReactors[i] = hedgingReactors[i+1];      
@@ -240,7 +240,7 @@ contract LiquidityPool is
    * @param delta the current portfolio delta
    */
   function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex)
-    public onlyRole(ADMIN_ROLE) whenNotPaused()
+    external onlyRole(ADMIN_ROLE) whenNotPaused()
   { 
       if(BlackScholes.abs(delta) > dustValue) {
         IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
