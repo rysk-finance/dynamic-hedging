@@ -12,6 +12,7 @@ import "./libraries/SafeTransferLib.sol";
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
+import "./interfaces/IEphemeralPortfolioValues.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "hardhat/console.sol";
@@ -46,8 +47,6 @@ contract LiquidityPool is
 
   // amount of collateralAsset allocated as collateral
   uint public collateralAllocated;
-  // temporary weighted option variables
-  WeightedOptionValues public weightedOptionValues;
 
   /////////////////////////////////////
   /// governance settable variables ///
@@ -96,14 +95,6 @@ contract LiquidityPool is
     uint utilizationPrice; //e18
     bool isDecreased;
     uint deltaTiltFactor; //e18
-  }
-  struct WeightedOptionValues {
-    uint totalAmountCall;
-    uint totalAmountPut;
-    uint weightedStrikeCall;
-    uint weightedStrikePut;
-    uint weightedTimeCall;
-    uint weightedTimePut;
   }
 
   event OrderCreated(uint orderId);
@@ -290,15 +281,6 @@ contract LiquidityPool is
     return collatReturned;
   }
 
-  /**
-    @notice reset the temporary portfolio and delta values that have been changed since the last oracle update
-    @dev    only callable by the portfolio values feed oracle contract
-  */
-  function resetTempValues() external {
-    require(msg.sender == address(Protocol(protocol).portfolioValuesFeed()));
-    delete weightedOptionValues;
-  }
-
   function handlerIssue(Types.OptionSeries memory optionSeries) external returns(address) {
     require(handler[msg.sender]);
     // series strike in e18
@@ -311,6 +293,7 @@ contract LiquidityPool is
     uint256 amount, 
     IOptionRegistry optionRegistry, 
     uint256 premium,
+    int256 delta,
     address recipient
   ) 
     external 
@@ -323,6 +306,7 @@ contract LiquidityPool is
         amount,           // in e18
         optionRegistry,   
         premium,          // in collat decimals
+        delta,
         _checkBuffer(),    // in e18
         recipient
         );
@@ -332,6 +316,7 @@ contract LiquidityPool is
     Types.OptionSeries memory optionSeries, 
     uint256 amount, 
     uint256 premium,
+    int256 delta,
     address recipient
     ) 
     external 
@@ -349,6 +334,7 @@ contract LiquidityPool is
         amount,           // in e18
         optionRegistry, 
         premium,          // in collat decimals
+        delta,
         _checkBuffer(),    // in e18
         recipient
         ), seriesAddress);
@@ -359,6 +345,7 @@ contract LiquidityPool is
     IOptionRegistry optionRegistry, 
     address seriesAddress,
     uint256 premium, 
+    int256 delta,
     address seller
     ) 
     external 
@@ -366,7 +353,7 @@ contract LiquidityPool is
     {
     require(handler[msg.sender]);
     // strike passed in as e8
-    return _buybackOption(optionSeries, amount, optionRegistry, seriesAddress, premium, seller);
+    return _buybackOption(optionSeries, amount, optionRegistry, seriesAddress, premium, delta, seller);
   }
 
   /////////////////////////////////////////////
@@ -478,33 +465,8 @@ contract LiquidityPool is
       view
       returns (int256)
   {
-      WeightedOptionValues memory wov = weightedOptionValues;
       // assumes in e18
       uint256 price = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      int256 callsDelta;
-      int256 putsDelta;
-      if (wov.weightedTimeCall != 0) {
-        uint256 callIv = getImpliedVolatility(false, price, wov.weightedStrikeCall, wov.weightedTimeCall);
-        callsDelta = BlackScholes.getDelta(
-          price,
-          wov.weightedStrikeCall,
-          wov.weightedTimeCall,
-          callIv,
-          riskFreeRate,
-          false
-        );
-      }
-      if (wov.weightedTimePut != 0) {
-        uint256 putIv = getImpliedVolatility(true, price, wov.weightedStrikePut, wov.weightedTimePut);
-        putsDelta = BlackScholes.getDelta(
-           price,
-           wov.weightedStrikePut,
-           wov.weightedTimePut,
-           putIv,
-           riskFreeRate,
-           true
-        );
-      }
       // assumes in e18
       Types.PortfolioValues memory portfolioValues = getPortfolioValues(); 
       _validatePortfolioValues(portfolioValues);
@@ -513,7 +475,7 @@ contract LiquidityPool is
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
       }
-      return portfolioValues.delta + externalDelta -(callsDelta*int256(wov.totalAmountCall)/int256(PRBMath.SCALE) + putsDelta*int256(wov.totalAmountPut)/int256(PRBMath.SCALE));
+      return portfolioValues.delta + externalDelta + getEphemeralPortfolioValues.ephemeralDelta();
   }
 
   /**
@@ -680,7 +642,7 @@ contract LiquidityPool is
     // check that the portfolio values are acceptable
     _validatePortfolioValues(portfolioValues);
     // assumed in e18, e18, e18
-    uint256 liabilities = portfolioValues.callPutsValue + _valueCallsWritten() + _valuePutsWritten();
+    uint256 liabilities = portfolioValues.callPutsValue + getEphemeralPortfolioValues().ephemeralLiabilities();
     return assets - liabilities;
   }
 
@@ -791,6 +753,7 @@ contract LiquidityPool is
    * @param  amount the amount to be written - in e18
    * @param  optionRegistry the option registry of the pool
    * @param  premium the premium to charge the user - in collateral decimals
+   * @param  delta the delta of the option position - in e18
    * @param  bufferRemaining the amount of buffer that can be used - in e18
    * @return the amount that was written
    */
@@ -799,7 +762,7 @@ contract LiquidityPool is
     address seriesAddress, 
     uint256 amount, 
     IOptionRegistry optionRegistry, 
-    uint256 premium, 
+    uint256 premium,
     int256 bufferRemaining,
     address recipient
     ) internal returns (uint256) {
@@ -824,6 +787,7 @@ contract LiquidityPool is
     @param optionRegistry the registry
     @param seriesAddress the series being sold
     @param premium the premium to be sent back to the owner (in collat decimals)
+    @param delta the delta of the option
     @param seller the address 
     @return the number of options burned in e18
   */
@@ -861,7 +825,6 @@ contract LiquidityPool is
    uint256 collateralAmount, 
    bool isSale
    ) internal {
-    WeightedOptionValues memory wov = weightedOptionValues;
     if (isSale) {
         collateralAllocated += collateralAmount;
     } else {
@@ -880,52 +843,6 @@ contract LiquidityPool is
         weightedOptionValues.weightedStrikePut = newWeight;
         weightedOptionValues.weightedTimePut = newTime;
     }
-  }
-
-  /**
-   * @notice value of all puts written by the pool
-   * @return value of all puts denominated in e18
-   */
-  function _valuePutsWritten()
-      internal
-      view
-      returns (uint)
-  {
-      WeightedOptionValues memory wov = weightedOptionValues;
-      if (wov.weightedStrikePut == 0) return uint(0);
-      uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      uint optionPrice = BlackScholes.blackScholesCalc(
-         underlyingPrice,
-         wov.weightedStrikePut,
-         wov.weightedTimePut,
-         getImpliedVolatility(true, underlyingPrice, wov.weightedStrikePut, wov.weightedTimePut),
-         riskFreeRate,
-         true
-      );
-      return wov.totalAmountPut.mul(optionPrice);      
-  }
-
-  /**
-   * @notice value of all calls written by the pool
-   * @return value of all calls denominated in e18
-   */
-  function _valueCallsWritten()
-      internal
-      view
-      returns (uint)
-  {
-      WeightedOptionValues memory wov = weightedOptionValues;
-      if (wov.weightedStrikeCall == 0) return uint(0);
-      uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      uint optionPrice = BlackScholes.blackScholesCalc(
-        underlyingPrice,
-        wov.weightedStrikeCall,
-        wov.weightedTimeCall,
-        getImpliedVolatility(false, underlyingPrice, wov.weightedStrikeCall, wov.weightedTimeCall),
-        riskFreeRate,
-        false
-      );     
-      return wov.totalAmountCall.mul(optionPrice);
   }
 
   /**
@@ -958,6 +875,14 @@ contract LiquidityPool is
    */
   function getOptionRegistry() internal view returns (IOptionRegistry) {
     return IOptionRegistry(protocol.optionRegistry());
+  }
+
+  /**
+   * @notice get the ephemeral portfolio values feed
+   * @return the ephemeral portfolio values feed
+   */
+  function getEphemeralPortfolioValues() internal view returns (IEphemeralPortfolioValues) {
+    return IEphemeralPortfolioValues(protocol.ephemeralPortfolioValues());
   }
 
   /**
