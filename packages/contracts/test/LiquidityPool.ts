@@ -495,6 +495,20 @@ describe("Liquidity Pools", async () => {
 			tFormatUSDC(collateralAllocatedDiff) - tFormatUSDC(expectedCollateralAllocated)
 		).to.be.within(-0.001, 0.001)
 	})
+	it ("can issue a series", async function() {
+		const series = await handler.callStatic.issue(proposedSeries)
+		await handler.issue(proposedSeries)
+		const structSeries = await optionRegistry.getSeriesInfo(series)
+		expect(structSeries.expiration).to.equal(proposedSeries.expiration)
+		expect(structSeries.isPut).to.equal(proposedSeries.isPut)
+		expect(structSeries.collateral).to.equal(proposedSeries.collateral)
+		expect(structSeries.strikeAsset).to.equal(proposedSeries.strikeAsset)
+		expect(structSeries.underlying).to.equal(proposedSeries.underlying)
+		expect(structSeries.strike).to.equal(await optionRegistry.formatStrikePrice(proposedSeries.strike, proposedSeries.collateral))
+		const issuance = await optionRegistry.getIssuanceHash(await optionRegistry.getSeriesInfo(series))
+		const seriesAddy = await optionRegistry.getSeriesAddress(issuance)
+		expect(seriesAddy).to.equal(series)
+	})
 	it("can compute portfolio delta", async function () {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -1640,10 +1654,58 @@ describe("Liquidity Pools", async () => {
 	})
 	it("handler-only functions in Liquidity pool revert if not called by handler", async () => {
 		await expect(liquidityPool.resetTempValues()).to.be.reverted
-		// how to target handlerWriteOption, handlerBuybackOption, handlerIssue
+		await expect(liquidityPool.handlerBuybackOption(proposedSeries, toWei('1'), optionRegistry.address, optionToken.address, toWei('1'), senderAddress)).to.be.reverted
+		await expect(liquidityPool.handlerIssue(proposedSeries)).to.be.reverted
+		await expect(liquidityPool.handlerWriteOption(proposedSeries, optionToken.address, toWei('1'), optionRegistry.address, toWei('1'), senderAddress)).to.be.reverted
+		await expect(liquidityPool.handlerIssueAndWriteOption(proposedSeries, toWei('1'), toWei('1'), senderAddress)).to.be.reverted
 	})
 	it("reverts when trying to deposit/withdraw 0", async () => {
 		await expect(liquidityPool.deposit(0, senderAddress)).to.be.revertedWith("InvalidAmount()")
 		await expect(liquidityPool.withdraw(0, senderAddress)).to.be.revertedWith("InvalidShareAmount()")
+	})
+	it("returns a volatility skew", async () => {
+		type int7 = [
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish,
+			BigNumberish
+		]
+		type number7 = [number, number, number, number, number, number, number]
+		const coefInts: number7 = [
+			1.42180236,
+			0,
+			-0.08626792,
+			0.07873822,
+			0.00650549,
+			0.02160918,
+			-0.1393287
+		]
+		//@ts-ignore
+		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
+		const putVol = await volFeed.getVolatilitySkew(true)
+		const callVol = await volFeed.getVolatilitySkew(false)
+		expect(putVol[0]).to.eq(coefs[0])
+		expect(putVol[1]).to.eq(coefs[1])
+		expect(putVol[2]).to.eq(coefs[2])
+		expect(putVol[3]).to.eq(coefs[3])
+		expect(putVol[4]).to.eq(coefs[4])
+		expect(putVol[5]).to.eq(coefs[5])
+		expect(putVol[6]).to.eq(coefs[6])
+		expect(callVol[1]).to.eq(coefs[1])
+		expect(callVol[2]).to.eq(coefs[2])
+		expect(callVol[3]).to.eq(coefs[3])
+		expect(callVol[4]).to.eq(coefs[4])
+		expect(callVol[5]).to.eq(coefs[5])
+		expect(callVol[6]).to.eq(coefs[6])
+	})
+	// have as final test as this just sets things wrong
+	it("protocol changes feeds", async () => {
+		await optionProtocol.changePortfolioValuesFeed(priceFeed.address)
+		await optionProtocol.changeVolatilityFeed(priceFeed.address)
+		expect(await optionProtocol.portfolioValuesFeed()).to.eq(priceFeed.address)
+		expect(await optionProtocol.volatilityFeed()).to.eq(priceFeed.address)
 	})
 })

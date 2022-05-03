@@ -1695,5 +1695,6 @@ describe("Options protocol Vault Health", function () {
 		expect(collatAmounts3).to.eq(0)
 		const usdBalAft = await usd.balanceOf(senderAddress)
 		expect(usdBalAft.sub(liqBalAft)).to.eq(0)
+		await expect(optionRegistry.registerLiquidatedVault(4)).to.be.revertedWith("VaultNotLiquidated()")
 	})
 })

@@ -224,8 +224,8 @@ contract OptionRegistry is Ownable, AccessControl {
         Types.OptionSeries memory series = seriesInfo[_series];
         // assumes strike in e8
         // make sure the option hasnt expired yet
-        if(series.expiration <= block.timestamp) {revert AlreadyExpired();}
         if(series.expiration == 0) { revert NonExistentSeries(); }
+        if(series.expiration <= block.timestamp) {revert AlreadyExpired();}
         // get the vault id
         uint256 vaultId = vaultIds[_series];
         uint256 convertedAmount = OptionsCompute.convertToDecimals(amount, IERC20(_series).decimals());
@@ -508,7 +508,7 @@ contract OptionRegistry is Ownable, AccessControl {
     function formatStrikePrice(
         uint256 strikePrice,
         address collateral
-    ) private view returns (uint) {
+    ) public view returns (uint) {
         // convert strike to 1e8 format
         uint price = strikePrice / (10**10);
         uint collateralDecimals = IERC20(collateral).decimals();
