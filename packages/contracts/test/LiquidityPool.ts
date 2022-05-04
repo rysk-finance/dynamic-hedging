@@ -1502,7 +1502,6 @@ describe("Liquidity Pools", async () => {
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
 		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
-
 		// settle the vault
 		const settleVault = await liquidityPool.settleVault(putOptionToken.address)
 		let receipt = await settleVault.wait()
@@ -1653,11 +1652,11 @@ describe("Liquidity Pools", async () => {
 		expect(afterValue).to.not.eq(beforeValue)
 	})
 	it("handler-only functions in Liquidity pool revert if not called by handler", async () => {
-		await expect(liquidityPool.resetTempValues()).to.be.reverted
-		await expect(liquidityPool.handlerBuybackOption(proposedSeries, toWei('1'), optionRegistry.address, optionToken.address, toWei('1'), senderAddress)).to.be.reverted
+		await expect(liquidityPool.resetEphemeralValues()).to.be.reverted
+		await expect(liquidityPool.handlerBuybackOption(proposedSeries, toWei('1'), optionRegistry.address, optionToken.address, toWei('1'), toWei('1'), senderAddress)).to.be.reverted
 		await expect(liquidityPool.handlerIssue(proposedSeries)).to.be.reverted
-		await expect(liquidityPool.handlerWriteOption(proposedSeries, optionToken.address, toWei('1'), optionRegistry.address, toWei('1'), senderAddress)).to.be.reverted
-		await expect(liquidityPool.handlerIssueAndWriteOption(proposedSeries, toWei('1'), toWei('1'), senderAddress)).to.be.reverted
+		await expect(liquidityPool.handlerWriteOption(proposedSeries, optionToken.address, toWei('1'), optionRegistry.address, toWei('1'), toWei('1'), senderAddress)).to.be.reverted
+		await expect(liquidityPool.handlerIssueAndWriteOption(proposedSeries, toWei('1'), toWei('1'), toWei('1'), senderAddress)).to.be.reverted
 	})
 	it("reverts when trying to deposit/withdraw 0", async () => {
 		await expect(liquidityPool.deposit(0, senderAddress)).to.be.revertedWith("InvalidAmount()")

@@ -12,7 +12,6 @@ import "./libraries/SafeTransferLib.sol";
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
-import "./interfaces/IEphemeralPortfolioValues.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "hardhat/console.sol";
@@ -47,6 +46,10 @@ contract LiquidityPool is
 
   // amount of collateralAsset allocated as collateral
   uint public collateralAllocated;
+  // ephemeral liabilities of the pool
+  int256 public ephemeralLiabilities;
+  // ephemeral delta of the pool
+  int256 public ephemeralDelta;
 
   /////////////////////////////////////
   /// governance settable variables ///
@@ -266,16 +269,7 @@ contract LiquidityPool is
     // returns in collat decimals, collat decimals and e8
     (, uint256 collatReturned, uint256 collatLost, uint256 oTokensAmount) = optionRegistry.settle(seriesAddress);
     emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
-    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
-    // assumes strike comes in as e8, so convert to e18
-    optionSeries.strike = uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()));
-    // recalculate liquidity pool's position, oToken amount needs to convert to e18
-    _adjustVariables(
-       optionSeries, 
-       OptionsCompute.convertFromDecimals(oTokensAmount, ERC20(seriesAddress).decimals()), // assumed was in e8 so convert to e18 
-       collatReturned, 
-       false
-       );
+    _adjustVariables(collatReturned, 0, 0, false);
     collateralAllocated -= collatLost;
     // assumes in collateral decimals
     return collatReturned;
@@ -356,6 +350,15 @@ contract LiquidityPool is
     return _buybackOption(optionSeries, amount, optionRegistry, seriesAddress, premium, delta, seller);
   }
 
+/**
+    @notice reset the temporary portfolio and delta values that have been changed since the last oracle update
+    @dev    only callable by the portfolio values feed oracle contract
+  */
+function resetEphemeralValues() external {
+    require(msg.sender == address(getPortfolioValuesFeed()));
+    delete ephemeralLiabilities;
+    delete ephemeralDelta;
+}
   /////////////////////////////////////////////
   /// external state changing functionality ///
   /////////////////////////////////////////////
@@ -466,8 +469,6 @@ contract LiquidityPool is
       returns (int256)
   {
       // assumes in e18
-      uint256 price = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      // assumes in e18
       Types.PortfolioValues memory portfolioValues = getPortfolioValues(); 
       _validatePortfolioValues(portfolioValues);
       // assumes in e18
@@ -475,7 +476,7 @@ contract LiquidityPool is
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
       }
-      return portfolioValues.delta + externalDelta + getEphemeralPortfolioValues.ephemeralDelta();
+      return portfolioValues.delta + externalDelta + ephemeralDelta;
   }
 
   /**
@@ -641,8 +642,10 @@ contract LiquidityPool is
     Types.PortfolioValues memory portfolioValues = getPortfolioValues();
     // check that the portfolio values are acceptable
     _validatePortfolioValues(portfolioValues);
-    // assumed in e18, e18, e18
-    uint256 liabilities = portfolioValues.callPutsValue + getEphemeralPortfolioValues().ephemeralLiabilities();
+    int256 ephemeralLiabilities_ = ephemeralLiabilities;
+    // ephemeralLiabilities can be -ve but portfolioValues will not
+    // when converting liabilities it should never be -ve, if it is then the NAV calc will fail
+    uint256 liabilities = portfolioValues.callPutsValue + (ephemeralLiabilities_ > 0 ? uint256(ephemeralLiabilities_) : uint256(-ephemeralLiabilities_));
     return assets - liabilities;
   }
 
@@ -763,6 +766,7 @@ contract LiquidityPool is
     uint256 amount, 
     IOptionRegistry optionRegistry, 
     uint256 premium,
+    int256 delta,
     int256 bufferRemaining,
     address recipient
     ) internal returns (uint256) {
@@ -774,7 +778,7 @@ contract LiquidityPool is
     emit WriteOption(seriesAddress, amount, premium, collateralAmount, recipient);
     // convert e8 strike to e18 strike
     optionSeries.strike = uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()));
-    _adjustVariables(optionSeries, amount, collateralAmount, true);
+    _adjustVariables(collateralAmount, premium, delta, true);
     SafeTransferLib.safeTransfer(ERC20(seriesAddress), recipient, OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
     // returns in e18
     return amount;
@@ -797,6 +801,7 @@ contract LiquidityPool is
     IOptionRegistry optionRegistry,
     address seriesAddress,
     uint premium,
+    int256 delta,
     address seller
   )
   internal 
@@ -807,41 +812,30 @@ contract LiquidityPool is
     emit BuybackOption(seriesAddress, amount, premium, collateralReturned, seller);
     // convert e8 strike to e18 strike
     optionSeries.strike = uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()));
-    _adjustVariables(optionSeries, amount, collateralReturned, false);
+    _adjustVariables(collateralReturned, premium, delta, false);
     SafeTransferLib.safeTransfer(ERC20(collateralAsset), seller, premium);
     return amount;
   }
 
   /**
    * @notice adjust the variables of the pool
-   * @param  optionSeries option type to mint - assumes strike passed in as e18
-   * @param  amount the amount to be written in e18
    * @param  collateralAmount the amount of collateral transferred to change on collateral allocated in collateral decimals
    * @param  isSale whether the action was an option sale or not
    */
  function _adjustVariables(
-   Types.OptionSeries memory optionSeries, 
-   uint256 amount, 
    uint256 collateralAmount, 
+   uint256 optionsValue,
+   int256 delta,
    bool isSale
    ) internal {
     if (isSale) {
         collateralAllocated += collateralAmount;
+        ephemeralLiabilities += int256(OptionsCompute.convertFromDecimals(optionsValue, ERC20(collateralAsset).decimals()));
+        ephemeralDelta -= delta;
     } else {
         collateralAllocated -= collateralAmount;
-    }
-    if (!optionSeries.isPut) {
-        (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
-            amount, optionSeries.strike, optionSeries.expiration, wov.totalAmountCall, wov.weightedStrikeCall, wov.weightedTimeCall, isSale );
-        weightedOptionValues.totalAmountCall = newTotal;
-        weightedOptionValues.weightedStrikeCall = newWeight;
-        weightedOptionValues.weightedTimeCall = newTime;
-    } else {
-        (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
-            amount, optionSeries.strike, optionSeries.expiration, wov.totalAmountPut, wov.weightedStrikePut, wov.weightedTimePut, isSale);
-        weightedOptionValues.totalAmountPut = newTotal;
-        weightedOptionValues.weightedStrikePut = newWeight;
-        weightedOptionValues.weightedTimePut = newTime;
+        ephemeralLiabilities -= int256(OptionsCompute.convertFromDecimals(optionsValue, ERC20(collateralAsset).decimals()));
+        ephemeralDelta += delta;
     }
   }
 
@@ -875,14 +869,6 @@ contract LiquidityPool is
    */
   function getOptionRegistry() internal view returns (IOptionRegistry) {
     return IOptionRegistry(protocol.optionRegistry());
-  }
-
-  /**
-   * @notice get the ephemeral portfolio values feed
-   * @return the ephemeral portfolio values feed
-   */
-  function getEphemeralPortfolioValues() internal view returns (IEphemeralPortfolioValues) {
-    return IEphemeralPortfolioValues(protocol.ephemeralPortfolioValues());
   }
 
   /**

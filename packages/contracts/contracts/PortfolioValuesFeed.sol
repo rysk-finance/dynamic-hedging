@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
-import "./EphemeralPortfolioValuesFeed.sol";
+import "./interfaces/ILiquidityPool.sol";
 import "./libraries/Types.sol";
 
 /**
@@ -31,7 +31,7 @@ contract PortfolioValuesFeed is Ownable, ChainlinkClient {
   /// govern settable variables ///
   /////////////////////////////////
 
-  address public ephemeralPortfolioValuesFeed;
+  ILiquidityPool public liquidityPool;
 
   //////////////
   /// events ///
@@ -67,8 +67,8 @@ contract PortfolioValuesFeed is Ownable, ChainlinkClient {
   /// setters ///
   ///////////////
 
-  function setEphemeralPortfolioValuesFeed(address _ephemeralPortfolioValues) external onlyOwner {
-    ephemeralPortfolioValues = EphemeralPortfolioValues(_ephemeralPortfolioValues);
+  function setLiquidityPool(address _liquidityPool) external onlyOwner {
+    liquidityPool = ILiquidityPool(_liquidityPool);
   }
 
   //////////////////////////////////////////////////////
@@ -112,7 +112,7 @@ function fulfill(
         timestamp: block.timestamp
     });
     portfolioValues[_underlying][_strike] = portfolioValue;
-    ephemeralPortfolioValues.resetEphemeralValues();
+    liquidityPool.resetEphemeralValues();
     emit DataFullfilled(_underlying, _strike, _delta, _gamma, _vega, _theta, _callPutsValue);
   }
 
