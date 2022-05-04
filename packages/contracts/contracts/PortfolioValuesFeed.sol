@@ -20,6 +20,7 @@ contract PortfolioValuesFeed is Ownable, ChainlinkClient {
   address private immutable oracle;
   bytes32 private immutable jobId;
   uint256 private immutable fee;
+  address private immutable link;
 
   /////////////////////////////////
   /// oracle settable variables ///
@@ -61,6 +62,7 @@ contract PortfolioValuesFeed is Ownable, ChainlinkClient {
     oracle = _oracle;
     jobId = _jobId;
     fee = _fee;
+    link = _link;
   }
 
   ///////////////
@@ -116,6 +118,14 @@ function fulfill(
     emit DataFullfilled(_underlying, _strike, _delta, _gamma, _vega, _theta, _callPutsValue);
   }
 
+/**
+ * @notice Witdraws LINK from the contract
+ * @dev Implement a withdraw function to avoid locking your LINK in the contract
+ */
+function withdrawLink(uint256 _amount) external onlyOwner {
+  LinkTokenInterface(link).transfer(msg.sender, _amount);
+}
+
   /////////////////////////////////////////////
   /// external state changing functionality ///
   /////////////////////////////////////////////
@@ -144,12 +154,6 @@ function fulfill(
     // Sends the request
     return sendChainlinkRequestTo(oracle, request, fee);
   }
-
-  /**
-   * @notice Witdraws LINK from the contract
-   * @dev Implement a withdraw function to avoid locking your LINK in the contract
-   */
-  function withdrawLink() external {}
 
   ///////////////////////////
   /// non-complex getters ///
