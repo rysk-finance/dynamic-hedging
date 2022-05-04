@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from "react";
 
 const LINE_WIDTH = 2;
-const MAIN_BORDER_RADIUS = 10;
+const MAIN_BORDER_RADIUS = 12;
 const MINOR_BORDER_RADIUS = 5;
 const TAB_HEIGHT = 20;
 const TAB_WIDTH = 100;
