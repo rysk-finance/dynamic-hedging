@@ -54,31 +54,27 @@ export const VaultDepositWithdraw = () => {
 
   const handleSubmit = async () => {
     try {
-      const amount = ethers.utils.parseUnits(inputValue, 6);
-      if (account && amount && lpContract && usdcContract) {
-        // USDC is 6 decimals
-        const approvalTransaction = await usdcContract.approve(
-          addresses.localhost.liquidityPool,
-          amount
-        );
-        console.log(approvalTransaction);
-        await approvalTransaction.wait();
-        console.log("done!");
+      if (account && lpContract && usdcContract) {
         if (mode === Mode.DEPOSIT) {
+          const amount = ethers.utils.parseUnits(inputValue, 6);
+          // USDC is 6 decimals
+          const approvalTransaction = await usdcContract.approve(
+            addresses.localhost.liquidityPool,
+            amount
+          );
+          await approvalTransaction.wait();
           const depositTransaction = await lpContract.deposit(amount, account);
-          console.log("started deposit transaction");
           await depositTransaction.wait();
-          console.log("deposit complete!");
         } else if (mode === Mode.WITHDRAW) {
+          const amount = ethers.utils.parseUnits(inputValue, 18);
           const withdrawTransaction = await lpContract.withdraw(
             amount,
             account
           );
-          console.log("started withdraw transaction");
           await withdrawTransaction.wait();
-          console.log("withdraw complete!");
         }
         await getBalance(account);
+        setInputValue("");
       }
     } catch (err) {
       console.error(err);
