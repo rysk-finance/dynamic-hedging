@@ -27,7 +27,7 @@ export const Card: React.FC = ({ children }) => {
 
   return (
     <div className="w-full h-full relative">
-      <div className="w-full h-full absolute">
+      <div className="w-full h-full absolute pointer-events-none">
         {
           <svg
             width="100%"
