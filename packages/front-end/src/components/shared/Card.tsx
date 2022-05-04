@@ -71,7 +71,9 @@ export const Card: React.FC = ({ children }) => {
           </svg>
         }
       </div>
-      <div className={`w-full h-full pt-[${TAB_HEIGHT}px]`}>{children}</div>
+      <div className="w-full h-full" style={{ paddingTop: TAB_HEIGHT }}>
+        {children}
+      </div>
     </div>
   );
 };
