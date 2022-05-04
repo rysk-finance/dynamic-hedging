@@ -1700,7 +1700,10 @@ describe("Liquidity Pools", async () => {
 	})
 
 	it("settles an expired ITM vault", async () => {
-		const totalCollateralAllocated = await liquidityPool.collateralAllocated()
+		const totalCollateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const vaultId = await optionRegistry.vaultIds(putOptionToken.address)
+		const collateralAllocatedToVault = (await controller.getVault(optionRegistry.address, vaultId))
+			.collateralAmounts[0]
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
 		const strikePrice = await putOptionToken.strikePrice()
 		// set price to $80 ITM for put
@@ -1716,16 +1719,22 @@ describe("Liquidity Pools", async () => {
 		const collateralReturned = settleEvent?.args?.collateralReturned
 		const collateralLost = settleEvent?.args?.collateralLost
 		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const lpBalanceDiff = tFormatUSDC(lpBalanceAfter.sub(lpBalanceBefore))
 
 		// puts expired ITM, so the amount ITM will be subtracted and used to pay out option holders
 		const optionITMamount = strikePrice.sub(settlePrice)
 		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
 		// format from e8 oracle price to e6 USDC decimals
+		// check collateral returned to LP is correct
 		expect(
-			collateralReturned.sub(collateralAllocatedToVault1.sub(optionITMamount.div(100)).mul(amount))
-		).to.be.within(-1, 1)
+			tFormatUSDC(collateralReturned) -
+				tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
+		).to.be.within(-0.001, 0.001)
+		// check LP USDC balance increases by correct amount
+		expect(lpBalanceDiff).to.eq(tFormatUSDC(collateralReturned))
+		// check collateralAllocated updates to correct amount
 		expect(await liquidityPool.collateralAllocated()).to.equal(
-			totalCollateralAllocated.sub(collateralReturned).sub(collateralLost)
+			totalCollateralAllocatedBefore.sub(collateralReturned).sub(collateralLost)
 		)
 	})
 
