@@ -26,7 +26,7 @@ export const Card: React.FC = ({ children }) => {
   );
 
   return (
-    <div className="relative">
+    <div className="w-full h-full relative">
       <div className="w-full h-full absolute">
         {
           <svg
