@@ -27,7 +27,7 @@ export const RadioButtonSlider: RadioButtonSliderType = ({
           // selected buttons.
           <button
             key={option.key}
-            className={`px-4 py-2 rounded-full border-2 ${
+            className={`px-4 py-2 rounded-full border-2 outline-none ${
               isSelected ? "bg-white border-black box-border my-[-2px]" : ""
             }`}
             onClick={() => setSelected(option.value)}
