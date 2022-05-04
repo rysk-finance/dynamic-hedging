@@ -9,7 +9,7 @@ export const Header: React.FC = () => {
   const { pathname } = useLocation();
 
   return (
-    <div className="fixed w-full h-24 t-0 flex items-center px-16 justify-between border-b-2 border-black bg-bone">
+    <div className="fixed w-full h-24 t-0 flex items-center px-16 justify-between border-b-2 border-black bg-bone z-10">
       <img src={"/logo.png"} alt="logo" className="h-[50%]" />
       <div className="flex">
         <div className="mr-4">
