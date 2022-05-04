@@ -15,12 +15,15 @@ export const Card: React.FC = ({ children }) => {
     setRect(boundingRect);
   }, []);
 
-  const svgRef = useCallback((element: SVGSVGElement | null) => {
-    if (element) {
-      window.addEventListener("resize", () => getSVGRect(element));
-      getSVGRect(element);
-    }
-  }, []);
+  const svgRef = useCallback(
+    (element: SVGSVGElement | null) => {
+      if (element) {
+        window.addEventListener("resize", () => getSVGRect(element));
+        getSVGRect(element);
+      }
+    },
+    [getSVGRect]
+  );
 
   return (
     <div className="relative">
