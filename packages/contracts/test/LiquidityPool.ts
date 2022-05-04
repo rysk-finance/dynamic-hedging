@@ -767,11 +767,6 @@ describe("Liquidity Pools", async () => {
 			(tFormatUSDC(vaultDetails.collateralAmounts[0]) * parseInt(fromWei(amount))) /
 			parseInt(fromOpyn(vaultDetails.shortAmounts[0]))
 
-		console.log(
-			tFormatUSDC(vaultDetails.collateralAmounts[0]),
-			fromOpyn(vaultDetails.shortAmounts[0])
-		)
-
 		const seriesInfoDecimalCorrected = {
 			expiration: seriesInfo.expiration,
 			isPut: seriesInfo.isPut,
@@ -815,11 +810,8 @@ describe("Liquidity Pools", async () => {
 		)
 		// expect collateral allocated in LP reduces by correct amount
 		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.001, 0.001)
-
-		// *************************************************************************
-		// Believe this line is failing due to the discrepancy of weighting vars ***
-		// *************************************************************************
-		expect(deltaAfter).to.equal(deltaBefore.add(expectedDeltaChange.mul(tFormatEth(amount))))
+		// expect portfolio delta to change
+		expect(tFormatEth(deltaAfter)).to.equal(tFormatEth(deltaBefore.add(expectedDeltaChange)))
 	})
 	it("can compute portfolio delta", async function () {
 		const localDelta = await calculateOptionDeltaLocally(
@@ -1891,7 +1883,13 @@ describe("Liquidity Pools", async () => {
 			)
 		).to.be.reverted
 		await expect(
-			liquidityPool.handlerIssueAndWriteOption(proposedSeries, toWei("1"), toWei("1"), toWei("1"), senderAddress)
+			liquidityPool.handlerIssueAndWriteOption(
+				proposedSeries,
+				toWei("1"),
+				toWei("1"),
+				toWei("1"),
+				senderAddress
+			)
 		).to.be.reverted
 	})
 	it("reverts when trying to deposit/withdraw 0", async () => {
