@@ -1,3 +1,11 @@
+::selection {
+  background-color: #B5FD55;
+}
+
+::-moz-selection {
+  background-color: #B5FD55;
+}
+
 .root-grid {
   display: grid;
   grid-template-columns: repeat(16, 1fr);
