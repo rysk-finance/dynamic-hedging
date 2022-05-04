@@ -576,8 +576,11 @@ describe("Oracle core logic", async () => {
 		)
 		const resolved = await Promise.all(enrichedWriteOptions)
 		const filtered = resolved.filter(x => {
-			return expiration > timestamp
+      if (!x.expiration) return
+			return x.expiration > timestamp
 		})
+    // closed due to buyback - subtract the amount of the buyback
+    // closed due to liquidation - get all liquidated events
 		const delta = filtered.reduce((total, num) => total + (num.delta || 0), 0)
 		expect(resolved.length).to.eq(2)
 		expect(delta).to.eq(expected_portfolio_delta)
