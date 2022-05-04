@@ -10,10 +10,15 @@ const TAB_SLOPE_WIDTH = 30;
 export const Card: React.FC = ({ children }) => {
   const [rect, setRect] = useState<DOMRect | null>(null);
 
-  const getSVGRect = useCallback((element: SVGSVGElement | null) => {
-    const boundingRect = element?.getBoundingClientRect();
-    if (boundingRect) {
-      setRect(boundingRect);
+  const getSVGRect = useCallback((element: SVGSVGElement) => {
+    const boundingRect = element.getBoundingClientRect();
+    setRect(boundingRect);
+  }, []);
+
+  const svgRef = useCallback((element: SVGSVGElement | null) => {
+    if (element) {
+      window.addEventListener("resize", () => getSVGRect(element));
+      getSVGRect(element);
     }
   }, []);
 
@@ -25,7 +30,7 @@ export const Card: React.FC = ({ children }) => {
             width="100%"
             height="100%"
             strokeWidth={`${LINE_WIDTH}px`}
-            ref={getSVGRect}
+            ref={svgRef}
           >
             {rect && (
               <path
