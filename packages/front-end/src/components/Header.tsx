@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useWalletContext } from "../App";
+import { AppPaths } from "../config/appPaths";
 import { Button } from "./shared/Button";
 
 export const Header: React.FC = () => {
@@ -11,17 +12,17 @@ export const Header: React.FC = () => {
       <img src={"/logo.png"} alt="logo" className="h-[50%]" />
       <div className="flex">
         <div className="mr-4">
-          <Link to="/">
+          <Link to={AppPaths.VAULT}>
             <button className="mr-2 border-none bg-transparent p-2">
               Vault
             </button>
           </Link>
-          <Link to="/options">
+          <Link to={AppPaths.TRADE}>
             <button className="mr-2 border-none bg-transparent p-2">
               Trade Options
             </button>
           </Link>
-          <Link to="/dashboard">
+          <Link to={AppPaths.DASHBOARD}>
             <button className="mr-2 border-none bg-transparent p-2">
               Dashboard
             </button>
