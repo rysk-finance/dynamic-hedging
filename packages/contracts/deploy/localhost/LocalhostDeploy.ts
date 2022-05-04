@@ -1,45 +1,22 @@
-import { BigNumber, BigNumberish, Contract, Signer, utils } from "ethers"
+import { BigNumber, Signer, utils } from "ethers"
 import fs from "fs"
 import { deployments, ethers, getNamedAccounts, network } from "hardhat"
 import { DeployFunction } from "hardhat-deploy/types"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import path from "path"
-import {
-	ADDRESS_BOOK,
-	CHAINLINK_WETH_PRICER,
-	GAMMA_CONTROLLER,
-	MARGIN_POOL,
-	OTOKEN_FACTORY
-} from "../../test/constants"
-import { toWei, scaleNum } from "../../utils/conversion-helper"
-import LiquidityPoolSol from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import OptionHandlerSol from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json"
-import { deployLiquidityPool, deploySystem } from "../../utils/generic-system-deployer"
-
-import { USDC_ADDRESS, WETH_ADDRESS, CONTROLLER_OWNER } from "../../test/constants"
-import { deployOpyn } from "../../utils/opyn-deployer"
-import { OptionRegistry } from "../../types/OptionRegistry"
-import { PriceFeed } from "../../types/PriceFeed"
-import { Protocol } from "../../types/Protocol"
-import { Volatility } from "../../types/Volatility"
-import { MintableERC20 } from "../../types/MintableERC20"
-import { WETH } from "../../types/WETH"
-import { LiquidityPool } from "../../types/LiquidityPool"
-import { OptionHandler } from "../../types/OptionHandler"
-import { VolatilityFeed } from "../../types/VolatilityFeed"
-import { MockPortfolioValuesFeed } from "../../types/MockPortfolioValuesFeed"
+import { CHAINLINK_WETH_PRICER, CONTROLLER_OWNER } from "../../test/constants"
+import { setupTestOracle } from "../../test/helpers"
 import { MockChainlinkAggregator } from "../../types/MockChainlinkAggregator"
 import { Oracle } from "../../types/Oracle"
-import { setupTestOracle } from "../../test/helpers"
+import { scaleNum } from "../../utils/conversion-helper"
+import { deployLiquidityPool, deploySystem } from "../../utils/generic-system-deployer"
+import { deployOpyn } from "../../utils/opyn-deployer"
 
 const chainId = 1
 
 const addressPath = path.join(__dirname, "..", "..", "contracts.json")
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-	const { deploy, execute, read, log } = deployments
-	const { deployer } = await getNamedAccounts()
-
 	// reset hardat and impersonate account for ownership
 	await hre.network.provider.request({
 		method: "hardhat_reset",
@@ -61,10 +38,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 	let signers: Signer[] = await ethers.getSigners()
 	const [sender] = signers
-	const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
-	const senderAddress = await signers[0].getAddress()
-
-	const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 	// Set params for Opyn Contracts
 	const productSpotShockValue = scaleNum("0.6", 27)
@@ -97,7 +70,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 	// deploy system
 	let deployParams = await deploySystem(signers, oracle, opynAggregator)
-	const weth = deployParams.weth
 	const wethERC20 = deployParams.wethERC20
 	const usd = deployParams.usd
 	const optionRegistry = deployParams.optionRegistry
@@ -131,10 +103,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 		optionRegistry,
 		portfolioValuesFeed
 	)
-	const volatility = lpParams.volatility
 	const liquidityPool = lpParams.liquidityPool
-	const handler = lpParams.handler
-	const receiverAddress = await signers[1].getAddress()
 
 	let contractAddresses
 
