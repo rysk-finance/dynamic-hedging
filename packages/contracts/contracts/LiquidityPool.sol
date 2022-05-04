@@ -46,8 +46,10 @@ contract LiquidityPool is
 
   // amount of collateralAsset allocated as collateral
   uint public collateralAllocated;
-  // temporary weighted option variables
-  WeightedOptionValues public weightedOptionValues;
+  // ephemeral liabilities of the pool
+  int256 public ephemeralLiabilities;
+  // ephemeral delta of the pool
+  int256 public ephemeralDelta;
 
   /////////////////////////////////////
   /// governance settable variables ///
@@ -96,14 +98,6 @@ contract LiquidityPool is
     uint utilizationPrice; //e18
     bool isDecreased;
     uint deltaTiltFactor; //e18
-  }
-  struct WeightedOptionValues {
-    uint totalAmountCall;
-    uint totalAmountPut;
-    uint weightedStrikeCall;
-    uint weightedStrikePut;
-    uint weightedTimeCall;
-    uint weightedTimePut;
   }
 
   event OrderCreated(uint orderId);
@@ -275,28 +269,10 @@ contract LiquidityPool is
     // returns in collat decimals, collat decimals and e8
     (, uint256 collatReturned, uint256 collatLost, uint256 oTokensAmount) = optionRegistry.settle(seriesAddress);
     emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
-    Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
-    // assumes strike comes in as e8, so convert to e18
-    optionSeries.strike = uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()));
-    // recalculate liquidity pool's position, oToken amount needs to convert to e18
-    _adjustVariables(
-       optionSeries, 
-       OptionsCompute.convertFromDecimals(oTokensAmount, ERC20(seriesAddress).decimals()), // assumed was in e8 so convert to e18 
-       collatReturned, 
-       false
-       );
+    _adjustVariables(collatReturned, 0, 0, false);
     collateralAllocated -= collatLost;
     // assumes in collateral decimals
     return collatReturned;
-  }
-
-  /**
-    @notice reset the temporary portfolio and delta values that have been changed since the last oracle update
-    @dev    only callable by the portfolio values feed oracle contract
-  */
-  function resetTempValues() external {
-    require(msg.sender == address(Protocol(protocol).portfolioValuesFeed()));
-    delete weightedOptionValues;
   }
 
   function handlerIssue(Types.OptionSeries memory optionSeries) external returns(address) {
@@ -311,6 +287,7 @@ contract LiquidityPool is
     uint256 amount, 
     IOptionRegistry optionRegistry, 
     uint256 premium,
+    int256 delta,
     address recipient
   ) 
     external 
@@ -323,6 +300,7 @@ contract LiquidityPool is
         amount,           // in e18
         optionRegistry,   
         premium,          // in collat decimals
+        delta,
         _checkBuffer(),    // in e18
         recipient
         );
@@ -332,6 +310,7 @@ contract LiquidityPool is
     Types.OptionSeries memory optionSeries, 
     uint256 amount, 
     uint256 premium,
+    int256 delta,
     address recipient
     ) 
     external 
@@ -349,6 +328,7 @@ contract LiquidityPool is
         amount,           // in e18
         optionRegistry, 
         premium,          // in collat decimals
+        delta,
         _checkBuffer(),    // in e18
         recipient
         ), seriesAddress);
@@ -359,6 +339,7 @@ contract LiquidityPool is
     IOptionRegistry optionRegistry, 
     address seriesAddress,
     uint256 premium, 
+    int256 delta,
     address seller
     ) 
     external 
@@ -366,9 +347,18 @@ contract LiquidityPool is
     {
     require(handler[msg.sender]);
     // strike passed in as e8
-    return _buybackOption(optionSeries, amount, optionRegistry, seriesAddress, premium, seller);
+    return _buybackOption(optionSeries, amount, optionRegistry, seriesAddress, premium, delta, seller);
   }
 
+/**
+    @notice reset the temporary portfolio and delta values that have been changed since the last oracle update
+    @dev    only callable by the portfolio values feed oracle contract
+  */
+function resetEphemeralValues() external {
+    require(msg.sender == address(getPortfolioValuesFeed()));
+    delete ephemeralLiabilities;
+    delete ephemeralDelta;
+}
   /////////////////////////////////////////////
   /// external state changing functionality ///
   /////////////////////////////////////////////
@@ -478,33 +468,6 @@ contract LiquidityPool is
       view
       returns (int256)
   {
-      WeightedOptionValues memory wov = weightedOptionValues;
-      // assumes in e18
-      uint256 price = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      int256 callsDelta;
-      int256 putsDelta;
-      if (wov.weightedTimeCall != 0) {
-        uint256 callIv = getImpliedVolatility(false, price, wov.weightedStrikeCall, wov.weightedTimeCall);
-        callsDelta = BlackScholes.getDelta(
-          price,
-          wov.weightedStrikeCall,
-          wov.weightedTimeCall,
-          callIv,
-          riskFreeRate,
-          false
-        );
-      }
-      if (wov.weightedTimePut != 0) {
-        uint256 putIv = getImpliedVolatility(true, price, wov.weightedStrikePut, wov.weightedTimePut);
-        putsDelta = BlackScholes.getDelta(
-           price,
-           wov.weightedStrikePut,
-           wov.weightedTimePut,
-           putIv,
-           riskFreeRate,
-           true
-        );
-      }
       // assumes in e18
       Types.PortfolioValues memory portfolioValues = getPortfolioValues(); 
       _validatePortfolioValues(portfolioValues);
@@ -513,7 +476,7 @@ contract LiquidityPool is
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
       }
-      return portfolioValues.delta + externalDelta -(callsDelta*int256(wov.totalAmountCall)/int256(PRBMath.SCALE) + putsDelta*int256(wov.totalAmountPut)/int256(PRBMath.SCALE));
+      return portfolioValues.delta + externalDelta + ephemeralDelta;
   }
 
   /**
@@ -679,8 +642,10 @@ contract LiquidityPool is
     Types.PortfolioValues memory portfolioValues = getPortfolioValues();
     // check that the portfolio values are acceptable
     _validatePortfolioValues(portfolioValues);
-    // assumed in e18, e18, e18
-    uint256 liabilities = portfolioValues.callPutsValue + _valueCallsWritten() + _valuePutsWritten();
+    int256 ephemeralLiabilities_ = ephemeralLiabilities;
+    // ephemeralLiabilities can be -ve but portfolioValues will not
+    // when converting liabilities it should never be -ve, if it is then the NAV calc will fail
+    uint256 liabilities = portfolioValues.callPutsValue + (ephemeralLiabilities_ > 0 ? uint256(ephemeralLiabilities_) : uint256(-ephemeralLiabilities_));
     return assets - liabilities;
   }
 
@@ -791,6 +756,7 @@ contract LiquidityPool is
    * @param  amount the amount to be written - in e18
    * @param  optionRegistry the option registry of the pool
    * @param  premium the premium to charge the user - in collateral decimals
+   * @param  delta the delta of the option position - in e18
    * @param  bufferRemaining the amount of buffer that can be used - in e18
    * @return the amount that was written
    */
@@ -799,7 +765,8 @@ contract LiquidityPool is
     address seriesAddress, 
     uint256 amount, 
     IOptionRegistry optionRegistry, 
-    uint256 premium, 
+    uint256 premium,
+    int256 delta,
     int256 bufferRemaining,
     address recipient
     ) internal returns (uint256) {
@@ -811,7 +778,7 @@ contract LiquidityPool is
     emit WriteOption(seriesAddress, amount, premium, collateralAmount, recipient);
     // convert e8 strike to e18 strike
     optionSeries.strike = uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()));
-    _adjustVariables(optionSeries, amount, collateralAmount, true);
+    _adjustVariables(collateralAmount, premium, delta, true);
     SafeTransferLib.safeTransfer(ERC20(seriesAddress), recipient, OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals()));
     // returns in e18
     return amount;
@@ -824,6 +791,7 @@ contract LiquidityPool is
     @param optionRegistry the registry
     @param seriesAddress the series being sold
     @param premium the premium to be sent back to the owner (in collat decimals)
+    @param delta the delta of the option
     @param seller the address 
     @return the number of options burned in e18
   */
@@ -833,6 +801,7 @@ contract LiquidityPool is
     IOptionRegistry optionRegistry,
     address seriesAddress,
     uint premium,
+    int256 delta,
     address seller
   )
   internal 
@@ -843,89 +812,31 @@ contract LiquidityPool is
     emit BuybackOption(seriesAddress, amount, premium, collateralReturned, seller);
     // convert e8 strike to e18 strike
     optionSeries.strike = uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals()));
-    _adjustVariables(optionSeries, amount, collateralReturned, false);
+    _adjustVariables(collateralReturned, premium, delta, false);
     SafeTransferLib.safeTransfer(ERC20(collateralAsset), seller, premium);
     return amount;
   }
 
   /**
    * @notice adjust the variables of the pool
-   * @param  optionSeries option type to mint - assumes strike passed in as e18
-   * @param  amount the amount to be written in e18
    * @param  collateralAmount the amount of collateral transferred to change on collateral allocated in collateral decimals
    * @param  isSale whether the action was an option sale or not
    */
  function _adjustVariables(
-   Types.OptionSeries memory optionSeries, 
-   uint256 amount, 
    uint256 collateralAmount, 
+   uint256 optionsValue,
+   int256 delta,
    bool isSale
    ) internal {
-    WeightedOptionValues memory wov = weightedOptionValues;
     if (isSale) {
         collateralAllocated += collateralAmount;
+        ephemeralLiabilities += int256(OptionsCompute.convertFromDecimals(optionsValue, ERC20(collateralAsset).decimals()));
+        ephemeralDelta -= delta;
     } else {
         collateralAllocated -= collateralAmount;
+        ephemeralLiabilities -= int256(OptionsCompute.convertFromDecimals(optionsValue, ERC20(collateralAsset).decimals()));
+        ephemeralDelta += delta;
     }
-    if (!optionSeries.isPut) {
-        (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
-            amount, optionSeries.strike, optionSeries.expiration, wov.totalAmountCall, wov.weightedStrikeCall, wov.weightedTimeCall, isSale );
-        weightedOptionValues.totalAmountCall = newTotal;
-        weightedOptionValues.weightedStrikeCall = newWeight;
-        weightedOptionValues.weightedTimeCall = newTime;
-    } else {
-        (uint newTotal, uint newWeight, uint newTime) = OptionsCompute.computeNewWeights(
-            amount, optionSeries.strike, optionSeries.expiration, wov.totalAmountPut, wov.weightedStrikePut, wov.weightedTimePut, isSale);
-        weightedOptionValues.totalAmountPut = newTotal;
-        weightedOptionValues.weightedStrikePut = newWeight;
-        weightedOptionValues.weightedTimePut = newTime;
-    }
-  }
-
-  /**
-   * @notice value of all puts written by the pool
-   * @return value of all puts denominated in e18
-   */
-  function _valuePutsWritten()
-      internal
-      view
-      returns (uint)
-  {
-      WeightedOptionValues memory wov = weightedOptionValues;
-      if (wov.weightedStrikePut == 0) return uint(0);
-      uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      uint optionPrice = BlackScholes.blackScholesCalc(
-         underlyingPrice,
-         wov.weightedStrikePut,
-         wov.weightedTimePut,
-         getImpliedVolatility(true, underlyingPrice, wov.weightedStrikePut, wov.weightedTimePut),
-         riskFreeRate,
-         true
-      );
-      return wov.totalAmountPut.mul(optionPrice);      
-  }
-
-  /**
-   * @notice value of all calls written by the pool
-   * @return value of all calls denominated in e18
-   */
-  function _valueCallsWritten()
-      internal
-      view
-      returns (uint)
-  {
-      WeightedOptionValues memory wov = weightedOptionValues;
-      if (wov.weightedStrikeCall == 0) return uint(0);
-      uint underlyingPrice = getUnderlyingPrice(underlyingAsset, strikeAsset);
-      uint optionPrice = BlackScholes.blackScholesCalc(
-        underlyingPrice,
-        wov.weightedStrikeCall,
-        wov.weightedTimeCall,
-        getImpliedVolatility(false, underlyingPrice, wov.weightedStrikeCall, wov.weightedTimeCall),
-        riskFreeRate,
-        false
-      );     
-      return wov.totalAmountCall.mul(optionPrice);
   }
 
   /**

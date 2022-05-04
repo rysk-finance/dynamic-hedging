@@ -245,7 +245,7 @@ contract OptionHandler is
     // premium needs to adjusted for decimals of collateral asset
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), convertedPrem);
     // write the option contract, includes sending the premium from the user to the pool, option series should be in e8
-    liquidityPool.handlerWriteOption(order.optionSeries, order.seriesAddress, order.amount, getOptionRegistry(), convertedPrem, msg.sender);
+    liquidityPool.handlerWriteOption(order.optionSeries, order.seriesAddress, order.amount, getOptionRegistry(), convertedPrem, delta, msg.sender);
     emit OrderExecuted(_orderId);
     // invalidate the order
     delete orderStores[_orderId];
@@ -281,12 +281,12 @@ contract OptionHandler is
     returns (uint optionAmount, address series)
   {
     // calculate premium
-    (uint256 premium,) = liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount);
+    (uint256 premium, int256 delta) = liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount);
     // premium needs to adjusted for decimals of collateral asset
     uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), convertedPrem);
     // write the option, optionAmount in e18
-    (optionAmount, series) = liquidityPool.handlerIssueAndWriteOption(optionSeries, amount, convertedPrem, msg.sender);
+    (optionAmount, series) = liquidityPool.handlerIssueAndWriteOption(optionSeries, amount, convertedPrem, delta, msg.sender);
   }
 
  /**
@@ -325,7 +325,7 @@ contract OptionHandler is
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
     // calculate premium, strike needs to be in e18
-    (uint256 premium,) = liquidityPool.quotePriceWithUtilizationGreeks(
+    (uint256 premium, int256 delta) = liquidityPool.quotePriceWithUtilizationGreeks(
         Types.OptionSeries({
         expiration: optionSeries.expiration,
         strike: uint128(OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals())),
@@ -340,7 +340,7 @@ contract OptionHandler is
     uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), convertedPrem);
     return liquidityPool.handlerWriteOption(
-      optionSeries, seriesAddress, amount, optionRegistry, convertedPrem, msg.sender);
+      optionSeries, seriesAddress, amount, optionRegistry, convertedPrem, delta, msg.sender);
   }
 
   /**
@@ -384,7 +384,7 @@ contract OptionHandler is
     // premium needs to adjusted for decimals of collateral asset
     uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
     SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(liquidityPool), OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals()));
-    return liquidityPool.handlerBuybackOption(optionSeries, amount, optionRegistry, seriesAddress, convertedPrem, msg.sender);
+    return liquidityPool.handlerBuybackOption(optionSeries, amount, optionRegistry, seriesAddress, convertedPrem, delta, msg.sender);
   }
 
   ///////////////////////////

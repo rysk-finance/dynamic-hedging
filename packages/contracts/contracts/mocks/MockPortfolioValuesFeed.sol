@@ -109,7 +109,7 @@ function fulfill(
     });
     latestId = _requestId;
     portfolioValues[_underlying][_strike] = portfolioValue;
-    liquidityPool.resetTempValues();
+    liquidityPool.resetEphemeralValues();
     emit DataFullfilled(_underlying, _strike, _delta, _gamma, _vega, _theta, _callPutsValue);
   }
 
