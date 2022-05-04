@@ -10,7 +10,6 @@ import {
     IController,
     GammaTypes
 } from "../interfaces/GammaInterface.sol";
-import {Constants} from "./Constants.sol";
 
 library OpynInteractions {
 
@@ -74,7 +73,7 @@ library OpynInteractions {
      * @param strike is the strike price of the option in 1e8 format
      * @param expiration is the expiry timestamp of the option
      * @param isPut the type of option
-     * @return the address of the option
+     * @return otokenFromFactory the address of the option
      */
     function getOtoken(
         address oTokenFactory,
@@ -84,21 +83,16 @@ library OpynInteractions {
         uint256 strike,
         uint256 expiration,
         bool isPut
-    ) external view returns (address) {
+    ) external view returns (address otokenFromFactory) {
         IOtokenFactory factory = IOtokenFactory(oTokenFactory);
-        address otokenFromFactory =
-            factory.getOtoken(
-                underlying,
-                strikeAsset,
-                collateral,
-                strike,
-                expiration,
-                isPut
-            );
-
-        if (otokenFromFactory != address(0)) {
-            return otokenFromFactory;
-        }
+        otokenFromFactory = factory.getOtoken(
+                                                underlying,
+                                                strikeAsset,
+                                                collateral,
+                                                strike,
+                                                expiration,
+                                                isPut
+                                              );
     }
     /**
      * @notice Creates the actual Opyn short position by depositing collateral and minting otokens
@@ -121,13 +115,11 @@ library OpynInteractions {
         uint256 vaultType
     ) external returns (uint256) {
         IController controller = IController(gammaController);
-
+        amount = amount/SCALE_FROM;
         // An otoken's collateralAsset is the vault's `asset`
         // So in the context of performing Opyn short operations we call them collateralAsset
         IOtoken oToken = IOtoken(oTokenAddress);
         address collateralAsset = oToken.collateralAsset();
-        // TODO Consider if safemath division is needed here
-        uint256 mintAmount = amount / SCALE_FROM;
 
         // double approve to fix non-compliant ERC20s
         ERC20 collateralToken = ERC20(collateralAsset);
@@ -169,7 +161,7 @@ library OpynInteractions {
                 address(this), // address to transfer to
                 oTokenAddress, // option address
                 vaultId, // vaultId
-                mintAmount, // amount
+                amount, // amount
                 0, //index
                 "" //data
             );
@@ -192,7 +184,7 @@ library OpynInteractions {
                 address(this), // address to transfer to
                 oTokenAddress, // option address
                 vaultId, // vaultId
-                mintAmount, // amount
+                amount, // amount
                 0, //index
                 "" //data
             );
@@ -200,8 +192,8 @@ library OpynInteractions {
         }
 
         controller.operate(actions);
-
-        return mintAmount;
+        // returns in e8
+        return amount;
     }
 
     /**
@@ -321,6 +313,7 @@ library OpynInteractions {
         );
 
         controller.operate(actions);
+        // returns in collateral decimals
         return collateralAsset.balanceOf(address(this)) - startCollatBalance;
     }
 
@@ -368,6 +361,7 @@ library OpynInteractions {
         uint256 endCollateralBalance = collateralToken.balanceOf(address(this));
         // calulate collateral redeemed and lost for collateral management in liquidity pool
         collateralRedeemed = endCollateralBalance - startCollateralBalance;
+        // returns in collateral decimals, collateralDecimals, e8
         return (collateralRedeemed, vault.collateralAmounts[0] - collateralRedeemed ,vault.shortAmounts[0]);
     }
 
@@ -377,7 +371,7 @@ library OpynInteractions {
      * @param gammaController is the address of the opyn controller contract
      * @param marginPool is the address of the opyn margin pool
      * @param series is the address of the option to redeem
-     * @param amount is the number of oTokens to redeem
+     * @param amount is the number of oTokens to redeem - passed in as e8
      * @return amount of asset received by exercising the option
      */
     function redeem(
@@ -387,9 +381,8 @@ library OpynInteractions {
         uint256 amount
     ) external returns (uint256) {
         IController controller = IController(gammaController);
-
-        address asset = IOtoken(series).collateralAsset();
-        uint256 startAssetBalance = IERC20(asset).balanceOf(msg.sender);
+        address collateralAsset = IOtoken(series).collateralAsset();
+        uint256 startAssetBalance = IERC20(collateralAsset).balanceOf(msg.sender);
 
         // If it is after expiry, we need to redeem the profits
         IController.ActionArgs[] memory actions =
@@ -408,7 +401,8 @@ library OpynInteractions {
         SafeTransferLib.safeApprove(ERC20(series), marginPool, amount);
         controller.operate(actions);
 
-        uint256 endAssetBalance = IERC20(asset).balanceOf(msg.sender);
+        uint256 endAssetBalance = IERC20(collateralAsset).balanceOf(msg.sender);
+        // returns in collateral decimals
         return endAssetBalance - startAssetBalance;
     }
 

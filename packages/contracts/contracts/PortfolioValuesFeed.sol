@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "./interfaces/ILiquidityPool.sol";
 import "./libraries/Types.sol";
 
 /**
  * @title The PortfolioValuesFeed contract
  * @notice An external adapter Consumer contract that makes requests to obtain portfolio values for different pools
  */
-contract PortfolioValuesFeed is ChainlinkClient {
+contract PortfolioValuesFeed is Ownable, ChainlinkClient {
   using Chainlink for Chainlink.Request;
 
   ///////////////////////////
@@ -18,12 +20,19 @@ contract PortfolioValuesFeed is ChainlinkClient {
   address private immutable oracle;
   bytes32 private immutable jobId;
   uint256 private immutable fee;
+  address private immutable link;
 
   /////////////////////////////////
   /// oracle settable variables ///
   /////////////////////////////////
 
   mapping(address => mapping(address => Types.PortfolioValues)) private portfolioValues;
+
+  /////////////////////////////////
+  /// govern settable variables ///
+  /////////////////////////////////
+
+  ILiquidityPool public liquidityPool;
 
   //////////////
   /// events ///
@@ -53,6 +62,15 @@ contract PortfolioValuesFeed is ChainlinkClient {
     oracle = _oracle;
     jobId = _jobId;
     fee = _fee;
+    link = _link;
+  }
+
+  ///////////////
+  /// setters ///
+  ///////////////
+
+  function setLiquidityPool(address _liquidityPool) external onlyOwner {
+    liquidityPool = ILiquidityPool(_liquidityPool);
   }
 
   //////////////////////////////////////////////////////
@@ -83,7 +101,7 @@ function fulfill(
     uint256 _callPutsValue,
     uint256 _spotPrice
 )
-    public
+    external
     recordChainlinkFulfillment(_requestId)
   {
     Types.PortfolioValues memory portfolioValue = Types.PortfolioValues({
@@ -96,8 +114,17 @@ function fulfill(
         timestamp: block.timestamp
     });
     portfolioValues[_underlying][_strike] = portfolioValue;
+    liquidityPool.resetEphemeralValues();
     emit DataFullfilled(_underlying, _strike, _delta, _gamma, _vega, _theta, _callPutsValue);
   }
+
+/**
+ * @notice Witdraws LINK from the contract
+ * @dev Implement a withdraw function to avoid locking your LINK in the contract
+ */
+function withdrawLink(uint256 _amount) external onlyOwner {
+  LinkTokenInterface(link).transfer(msg.sender, _amount);
+}
 
   /////////////////////////////////////////////
   /// external state changing functionality ///
@@ -109,7 +136,7 @@ function fulfill(
    *
    * @return requestId - id of the request
    */
-  function requestPortfolioData(string memory _underlying, string memory _strike) public returns (bytes32 requestId) {
+  function requestPortfolioData(string memory _underlying, string memory _strike) external returns (bytes32 requestId) {
     Chainlink.Request memory request = buildChainlinkRequest(
       jobId,
       address(this),
@@ -127,12 +154,6 @@ function fulfill(
     // Sends the request
     return sendChainlinkRequestTo(oracle, request, fee);
   }
-
-  /**
-   * @notice Witdraws LINK from the contract
-   * @dev Implement a withdraw function to avoid locking your LINK in the contract
-   */
-  function withdrawLink() external {}
 
   ///////////////////////////
   /// non-complex getters ///

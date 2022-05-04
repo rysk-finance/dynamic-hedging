@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
@@ -24,7 +25,7 @@ contract VolatilityFeed is Ownable {
     
     // number of seconds in a year used for calculations
     uint256 private constant ONE_YEAR_SECONDS = 31557600;
-    constructor() public {}
+    constructor() {}
 
    ///////////////
    /// setters ///
@@ -65,7 +66,7 @@ contract VolatilityFeed is Ownable {
     uint underlyingPrice,
     uint strikePrice,
     uint expiration
-  ) public view returns(uint) {
+  ) external view returns(uint) {
       uint256 time = (expiration - block.timestamp).div(ONE_YEAR_SECONDS);
       int underlying = int(underlyingPrice);
       int spot_distance = (int(strikePrice) - int(underlying)).div(underlying);

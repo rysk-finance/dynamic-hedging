@@ -148,14 +148,14 @@ module.exports = {
 	},
 	dependencyCompiler: {
 		paths: [
-			"@rage/core/contracts/protocol/RageTradeFactory.sol",
-			"@rage/core/contracts/protocol/clearinghouse/ClearingHouse.sol",
-			"@rage/core/contracts/protocol/insurancefund/InsuranceFund.sol",
-			"@rage/core/contracts/protocol/RageTradeFactory.sol",
-			"@rage/core/contracts/protocol/tokens/VToken.sol",
-			"@rage/core/contracts/protocol/tokens/VQuote.sol",
-			"@rage/core/contracts/protocol/RageTradeFactory.sol",
-			"@rage/core/contracts/protocol/wrapper/VPoolWrapper.sol"
-		]
+		  '@rage/core/contracts/protocol/RageTradeFactory.sol',
+		  '@rage/core/contracts/protocol/clearinghouse/ClearingHouse.sol',
+		  '@rage/core/contracts/protocol/insurancefund/InsuranceFund.sol',
+		  '@rage/core/contracts/protocol/tokens/VToken.sol',
+		  '@rage/core/contracts/protocol/tokens/VQuote.sol',
+		  '@rage/core/contracts/protocol/wrapper/VPoolWrapper.sol',
+		],
+		// turn on for slither
+		// keep: true,
 	}
 }

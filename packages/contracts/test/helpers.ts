@@ -177,8 +177,8 @@ export async function calculateOptionQuoteLocally(
 	priceFeed: PriceFeed,
 	optionSeries: {
 		expiration: number
-		isPut: boolean
 		strike: BigNumber
+		isPut: boolean
 		strikeAsset: string
 		underlying: string
 		collateral: string

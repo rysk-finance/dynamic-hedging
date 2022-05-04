@@ -7,6 +7,7 @@ import { MintableERC20 } from "../types/MintableERC20"
 import { PriceFeed } from "../types/PriceFeed"
 import { WETH } from "../types/WETH"
 import { USDC_ADDRESS, WETH_ADDRESS } from "./constants"
+import { toWei } from "../utils/conversion-helper"
 let usd: MintableERC20
 let weth: WETH
 let signers: Signer[]
@@ -44,9 +45,8 @@ describe("Price Feed", async () => {
 		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
 		const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
 		priceFeed = _priceFeed
-		await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, ethUSDAggregator.address)
 		await priceFeed.addPriceFeed(weth.address, usd.address, ethUSDAggregator.address)
-		const feedAddress = await priceFeed.priceFeeds(ZERO_ADDRESS, usd.address)
+		const feedAddress = await priceFeed.priceFeeds(weth.address, usd.address)
 		expect(feedAddress).to.eq(ethUSDAggregator.address)
 	})
 
@@ -61,15 +61,36 @@ describe("Price Feed", async () => {
 			"1607535064",
 			"55340232221128660932"
 		)
-		const quote = await priceFeed.getRate(ZERO_ADDRESS, usd.address)
+		const quote = await priceFeed.getRate(weth.address, usd.address)
 		expect(quote).to.eq(rate)
 	})
 
 	it("Should return a normalized price quote", async () => {
 		await ethUSDAggregator.mock.decimals.returns("8")
-		const quote = await priceFeed.getNormalizedRate(ZERO_ADDRESS, usd.address)
+		const quote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		// get decimal to 18 places
 		const expected = BigNumber.from(rate).mul(BigNumber.from(10 ** 10))
 		expect(quote).to.eq(expected)
+	})
+	it("Should return a normalised price quote on e18 decimals", async () => {
+		rate = "567000000000000000000"
+		await ethUSDAggregator.mock.latestRoundData.returns(
+			"55340232221128660932",
+			rate,
+			"1607534965",
+			"1607535064",
+			"55340232221128660932"
+		)
+		await ethUSDAggregator.mock.decimals.returns(
+			"18"
+		)
+		const quote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		expect(quote).to.eq(rate)
+	})
+	it("Should revert for a non-existent price quote", async () => {
+		await expect(priceFeed.getRate(ZERO_ADDRESS, usd.address)).to.be.revertedWith("Price feed does not exist")
+	})
+	it("Should revert for a non-existent normalised price quote", async () => {
+		await expect(priceFeed.getNormalizedRate(ZERO_ADDRESS, usd.address)).to.be.revertedWith("Price feed does not exist")
 	})
 })

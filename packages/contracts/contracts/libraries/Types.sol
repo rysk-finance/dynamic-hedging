@@ -1,16 +1,16 @@
-pragma solidity >=0.8.9;
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.8.0;
 
 
 library Types {
         struct OptionSeries {
-            uint expiration;
+            uint64 expiration;
+            uint128 strike;
             bool isPut;
-            uint strike;
             address underlying;
             address strikeAsset;
             address collateral;
         }
-
         struct PortfolioValues {
             int256 delta;
             int256 gamma;
@@ -20,7 +20,6 @@ library Types {
             uint256 timestamp;
             uint256 spotPrice;
         }
-
         struct Order {
             OptionSeries optionSeries;
             uint256 amount;
@@ -28,5 +27,14 @@ library Types {
             uint256 orderExpiry;
             address buyer;
             address seriesAddress;
+        }
+        // strike and expiry date range for options
+        struct OptionParams {
+            uint128 minCallStrikePrice;
+            uint128 maxCallStrikePrice;
+            uint128 minPutStrikePrice;
+            uint128 maxPutStrikePrice;
+            uint128 minExpiry;
+            uint128 maxExpiry;
         }
 }
