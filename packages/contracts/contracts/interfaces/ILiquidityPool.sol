@@ -4,6 +4,8 @@ pragma solidity >=0.8.9;
 import { Types } from "../libraries/Types.sol";
 import "../interfaces/IOptionRegistry.sol";
 interface ILiquidityPool {
+  function deposit(uint _amount, address _recipient) external returns (uint256);
+  function withdraw(uint _shares, address _recipient) external returns (uint256);
   function collateralAsset() external view returns (address);
   function resetTempValues() external;
   function handlerIssue(Types.OptionSeries memory optionSeries) external returns (address);
