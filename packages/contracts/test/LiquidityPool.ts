@@ -65,6 +65,7 @@ import exp from "constants"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { OptionHandler } from "../types/OptionHandler"
+import { FlashLoanMock } from "../types/FlashLoanMock"
 import { Console } from "console"
 let usd: MintableERC20
 let weth: WETH
@@ -91,6 +92,7 @@ let putOptionToken2: IOToken
 let collateralAllocatedToVault1: BigNumber
 let proposedSeries: any
 let handler: OptionHandler
+let flashLoanContract: FlashLoanMock
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -239,6 +241,17 @@ describe("Liquidity Pools", async () => {
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
+
+		const whaleSigner = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
+
+		// deploy flash loan contract
+		const flashLoanMockFactory = await ethers.getContractFactory("FlashLoanMock", {
+			signer: whaleSigner
+		})
+		flashLoanContract = (await flashLoanMockFactory.deploy(
+			handler.address,
+			liquidityPool.address
+		)) as FlashLoanMock
 	})
 	it("Deposit to the liquidityPool", async () => {
 		const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
@@ -1471,6 +1484,7 @@ describe("Liquidity Pools", async () => {
 			handler.connect(receiver).buybackOption(buybackToken.address, amount)
 		).to.be.revertedWith("DeltaNotDecreased()")
 	})
+
 	it("Cannot complete buy order after expiry", async () => {
 		const [sender, receiver] = signers
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -1531,6 +1545,7 @@ describe("Liquidity Pools", async () => {
 		)
 		await expect(handler.connect(receiver).executeOrder(orderId)).to.be.revertedWith("OrderExpired()")
 	})
+
 	it("fails to execute invalid custom orders", async () => {
 		let customOrderPriceMultiplier = 0.93
 		let customOrderPriceMultiplierInvalid = 0.89 // below 10% buffer
@@ -1706,7 +1721,164 @@ describe("Liquidity Pools", async () => {
 		)
 		await liquidityPool.unpause()
 	})
+	it("simulates a flash loan deposit and withdraw in same tx", async () => {
+		const whaleSigner = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
+		const lpUsdcBalanceBefore = await usd.balanceOf(liquidityPool.address)
 
+		const whaleUsdcBalanceBefore = await usd.balanceOf(whaleSigner.address)
+
+		expect(flashLoanContract).to.haveOwnProperty("depositAndWithdraw")
+		await usd.connect(whaleSigner).approve(flashLoanContract.address, whaleUsdcBalanceBefore)
+		console.log({ whaleUsdcBalanceBefore })
+		await flashLoanContract.depositAndWithdraw(whaleUsdcBalanceBefore)
+
+		const whaleUsdcBalanceAfter = await usd.balanceOf(whaleSigner.address)
+		const lpUsdcBalanceAfter = await usd.balanceOf(liquidityPool.address)
+
+		console.log({
+			whaleUsdcBalanceBefore: tFormatUSDC(whaleUsdcBalanceBefore),
+			whaleUsdcBalanceAfter: tFormatUSDC(whaleUsdcBalanceAfter),
+			poolBalanceBefore: tFormatUSDC(lpUsdcBalanceBefore),
+			poolBalanceAfter: tFormatUSDC(lpUsdcBalanceAfter)
+		})
+		expect(tFormatUSDC(whaleUsdcBalanceAfter)).to.not.be.gt(tFormatUSDC(whaleUsdcBalanceBefore))
+		expect(tFormatUSDC(lpUsdcBalanceAfter)).to.not.be.lt(tFormatUSDC(lpUsdcBalanceBefore))
+	})
+	it("simulates a flash loan deposit, large option buy and withdraw in same tx", async () => {
+		const whaleSigner = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
+		const lpUsdcBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const whaleUsdcBalanceBefore = await usd.balanceOf(whaleSigner.address)
+		const amount = toWei("100")
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		proposedSeries = {
+			expiration: expiration3,
+			strike: BigNumber.from(strikePrice),
+			isPut: false,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+
+		const localQuote = await calculateOptionQuoteLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeries,
+			amount
+		)
+
+		await usd.connect(whaleSigner).approve(flashLoanContract.address, whaleUsdcBalanceBefore)
+		// expect liquidity buffer  threshold revert when whale tries to withdraw funds
+
+		await expect(
+			flashLoanContract.depositBuyAndWithdraw(
+				whaleUsdcBalanceBefore.mul(8).div(10),
+				amount,
+				proposedSeries
+			)
+		).to.be.revertedWith("WithdrawExceedsLiquidity()")
+	})
+	it("simulates a flash loan deposit, large option buy then sell, and withdraw in same tx", async () => {
+		const whaleSigner = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
+		const lpUsdcBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const whaleUsdcBalanceBefore = await usd.balanceOf(whaleSigner.address)
+		const amount = toWei("100")
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const bidAskSpread = await liquidityPool.bidAskIVSpread()
+		const senderBalanceBefore = await usd.balanceOf(senderAddress)
+		const receiverBalanceBefore = await usd.balanceOf(receiverAddress)
+		const blockNumber = await ethers.provider.getBlockNumber()
+
+		console.log({ bidAskSpread })
+		proposedSeries = {
+			expiration: expiration3,
+			strike: BigNumber.from(strikePrice),
+			isPut: false,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+
+		const localQuote = await calculateOptionQuoteLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeries,
+			amount
+		)
+
+		await usd.connect(whaleSigner).approve(flashLoanContract.address, whaleUsdcBalanceBefore)
+		await usd.connect(whaleSigner).approve(liquidityPool.address, whaleUsdcBalanceBefore)
+
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+
+		const marginPoolAddress = await addressBook.getMarginPool()
+		const marginPoolBalanceBefore = await usd.balanceOf(marginPoolAddress)
+
+		const seriesAddress = await flashLoanContract.callStatic.depositBuySellAndWithdraw(
+			whaleUsdcBalanceBefore.mul(8).div(10),
+			amount,
+			proposedSeries
+		)
+		console.log({ seriesAddress })
+		// await liquidityPool
+		// 	.connect(whaleSigner)
+		// 	.deposit(whaleUsdcBalanceBefore.mul(1).div(10), whaleSigner.address)
+		const tx = await flashLoanContract.depositBuySellAndWithdraw(
+			whaleUsdcBalanceBefore.mul(8).div(10),
+			amount,
+			proposedSeries
+		)
+
+		const receipt = await tx.wait()
+		const events = receipt.events?.filter(
+			x => x.address == "0x9BcC604D4381C5b0Ad12Ff3Bf32bEdE063416BC7"
+		)
+		const transferEvents = events?.find(event => event.event == "Transfer")
+		// console.log({ events })
+		// const logs = await liquidityPool.queryFilter(liquidityPool.filters.Transfer(), blockNumber)
+		// console.log({ logs })
+
+		const lpUsdcBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const whaleUsdcBalanceAfter = await usd.balanceOf(whaleSigner.address)
+		const whaleShareBalanceAfter = await liquidityPool.balanceOf(whaleSigner.address)
+
+		const vaultId = await optionRegistry.vaultIds(seriesAddress)
+		const vaultDetails = await controller.getVault(optionRegistry.address, vaultId)
+
+		const usdcLeftInVault = tFormatUSDC(vaultDetails.collateralAmounts[0])
+		const usdcLeftInMock = tFormatEth(await usd.balanceOf(flashLoanContract.address))
+		const usdcLeftInRegistry = tFormatEth(await usd.balanceOf(optionRegistry.address))
+		const usdcLeftInHandler = tFormatEth(await usd.balanceOf(handler.address))
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		const collateralAllocatedDiff = tFormatUSDC(
+			collateralAllocatedAfter.sub(collateralAllocatedBefore)
+		)
+		const marginPoolBalanceAfter = await usd.balanceOf(marginPoolAddress)
+		const senderBalanceAfter = await usd.balanceOf(senderAddress)
+		const receiverBalanceAfter = await usd.balanceOf(receiverAddress)
+
+		console.log({
+			whaleUsdcBalanceBefore: tFormatUSDC(whaleUsdcBalanceBefore),
+			whaleUsdcBalanceAfter: tFormatUSDC(whaleUsdcBalanceAfter),
+			whaleUsdcBalanceDownBad: tFormatUSDC(whaleUsdcBalanceBefore.sub(whaleUsdcBalanceAfter)),
+			poolBalanceBefore: tFormatUSDC(lpUsdcBalanceBefore),
+			poolBalanceAfter: tFormatUSDC(lpUsdcBalanceAfter),
+			poolBalanceUpGood: tFormatUSDC(lpUsdcBalanceAfter.sub(lpUsdcBalanceBefore)),
+			usdcLeftInVault,
+			usdcLeftInMock,
+			usdcLeftInRegistry,
+			usdcLeftInHandler,
+			collateralAllocatedDiff,
+			marginPoolBalanceBefore,
+			marginPoolBalanceAfter,
+			whaleShareBalanceAfter,
+			senderBalanceBefore,
+			senderBalanceAfter,
+			receiverBalanceBefore,
+			receiverBalanceAfter
+		})
+	})
 	it("settles an expired ITM vault", async () => {
 		const totalCollateralAllocated = await liquidityPool.collateralAllocated()
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
@@ -1762,6 +1934,7 @@ describe("Liquidity Pools", async () => {
 		expect(collateralAllocatedBefore.sub(collateralAllocatedAfter)).to.equal(collateralReturned)
 		expect(collateralLost).to.equal(0)
 	})
+
 	it("updates option params with setter", async () => {
 		await liquidityPool.setNewOptionParams(
 			utils.parseEther("700"),
@@ -1935,6 +2108,7 @@ describe("Liquidity Pools", async () => {
 		expect(callVol[5]).to.eq(coefs[5])
 		expect(callVol[6]).to.eq(coefs[6])
 	})
+
 	// have as final test as this just sets things wrong
 	it("protocol changes feeds", async () => {
 		await optionProtocol.changePortfolioValuesFeed(priceFeed.address)
