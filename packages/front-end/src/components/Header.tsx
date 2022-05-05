@@ -2,9 +2,13 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useWalletContext } from "../App";
 import { AppPaths } from "../config/appPaths";
+import { useGlobalContext } from "../state/GlobalContext";
 import { Button } from "./shared/Button";
 
 export const Header: React.FC = () => {
+  const {
+    state: { connectWalletIndicatorActive },
+  } = useGlobalContext();
   const { connectWallet, provider } = useWalletContext();
   const { pathname } = useLocation();
 
@@ -42,7 +46,14 @@ export const Header: React.FC = () => {
           </Link>
         </div>
         {!provider ? (
-          <Button onClick={() => connectWallet?.()}>Connect</Button>
+          <Button
+            onClick={() => connectWallet?.()}
+            className={`origin-center transition-transform ${
+              connectWalletIndicatorActive ? "scale-110" : ""
+            }`}
+          >
+            Connect
+          </Button>
         ) : (
           <p>Connected</p>
         )}

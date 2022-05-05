@@ -6,6 +6,7 @@ import LPABI from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
 import { USDC_ADDRESS } from "../config/mainnetContracts";
 import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
+import { RequiresWalletConnection } from "./RequiresWalletConnection";
 import { RadioButtonSlider } from "./shared/RadioButtonSlider";
 import { TextInput } from "./shared/TextInput";
 
@@ -96,7 +97,14 @@ export const VaultDepositWithdraw = () => {
           <div className="w-full">
             <div className="p-4 flex justify-between border-b-2 border-black">
               <h4>Balance:</h4>
-              <h4>{balance?.toString()} USDC</h4>
+              <div className="flex">
+                <h4 className="mr-2">
+                  <RequiresWalletConnection className="w-[120px]">
+                    {balance?.toString()}
+                  </RequiresWalletConnection>{" "}
+                </h4>
+                <h4>USDC</h4>
+              </div>
             </div>
             <div className="w-fit">
               <RadioButtonSlider

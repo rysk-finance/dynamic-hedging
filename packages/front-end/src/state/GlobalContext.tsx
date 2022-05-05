@@ -6,6 +6,7 @@ import React from "react";
 const defaultGlobalState: GlobalState = {
   ethPrice: null,
   eth24hChange: null,
+  connectWalletIndicatorActive: false,
 };
 
 export const GlobalReactContext = createContext<GlobalContext>({
