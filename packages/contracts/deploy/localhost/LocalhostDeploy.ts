@@ -1,10 +1,10 @@
 import { BigNumber, Signer, utils } from "ethers"
 import fs from "fs"
-import { deployments, ethers, getNamedAccounts, network } from "hardhat"
+import { ethers, network } from "hardhat"
 import { DeployFunction } from "hardhat-deploy/types"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
 import path from "path"
-import { CHAINLINK_WETH_PRICER, CONTROLLER_OWNER } from "../../test/constants"
+import { CHAINLINK_WETH_PRICER } from "../../test/constants"
 import { setupTestOracle } from "../../test/helpers"
 import { MockChainlinkAggregator } from "../../types/MockChainlinkAggregator"
 import { Oracle } from "../../types/Oracle"
@@ -59,10 +59,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	const opynOracle = opynParams.oracle
 	const opynNewCalculator = opynParams.newCalculator
 
-	// deploy libraries
-	const constantsFactory = await hre.ethers.getContractFactory("Constants")
-	const constants = await constantsFactory.deploy()
-
 	// deploy oracle
 	const res = await setupTestOracle(await sender.getAddress())
 	const oracle = res[0] as Oracle
@@ -104,6 +100,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 		portfolioValuesFeed
 	)
 	const liquidityPool = lpParams.liquidityPool
+
+	liquidityPool.setMaxTimeDeviationThreshold(1000000000000000)
 
 	let contractAddresses
 
