@@ -143,7 +143,7 @@ export const VaultDepositWithdraw = () => {
           }
         }}
         className={`w-full py-6 rounded-b-xl bg-black text-white mt-[-2px] ${
-          inputValue ? "" : "bg-gray-300 cursor-default"
+          inputValue && account ? "" : "bg-gray-300 cursor-default"
         }`}
       >
         Submit
