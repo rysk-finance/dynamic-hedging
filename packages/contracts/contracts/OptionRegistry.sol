@@ -1,4 +1,6 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
+
 import "./tokens/ERC20.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IOracle.sol";
@@ -8,10 +10,13 @@ import "./interfaces/AddressBookInterface.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import { LiquidityPool } from "./LiquidityPool.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import { CustomErrors } from "./libraries/CustomErrors.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import { OpynInteractions } from "./libraries/OpynInteractions.sol";
 import { IController, GammaTypes} from "./interfaces/GammaInterface.sol";
+import "hardhat/console.sol";
+
 
 contract OptionRegistry is Ownable, AccessControl {
 
@@ -86,6 +91,7 @@ contract OptionRegistry is Ownable, AccessControl {
     error AlreadyExpired();
     error NotLiquidityPool();
     error NonExistentSeries();
+    error InvalidCollateral();
     error VaultNotLiquidated();
     error InsufficientBalance();
 
@@ -140,24 +146,26 @@ contract OptionRegistry is Ownable, AccessControl {
 
     /**
      * @notice Either retrieves the option token if it already exists, or deploy it
-     * @param  underlying is the address of the underlying asset of the option
-     * @param  strikeAsset is the address of the collateral asset of the option
-     * @param  expiration is the expiry timestamp of the option
-     * @param  isPut the type of option
-     * @param  strike is the strike price of the option - 1e18 format
-     * @param collateral is the address of the asset to collateralize the option with
+     * @param  optionSeries the series used for the mint - strike passed in as e18
      * @return the address of the option
      */
-    function issue(address underlying, address strikeAsset, uint256 expiration, bool isPut, uint256 strike, address collateral) external onlyLiquidityPool returns (address) {
+    function issue(
+       Types.OptionSeries memory optionSeries
+       ) 
+       external 
+       onlyLiquidityPool 
+       returns (address) 
+       {
         // deploy an oToken contract address
-        if(expiration <= block.timestamp) {revert AlreadyExpired();}
-        uint256 formattedStrike = formatStrikePrice(strike, collateral);
+        if(optionSeries.expiration <= block.timestamp) {revert AlreadyExpired();}
+        // assumes strike is passed in e18, converts to e8
+        uint128 formattedStrike = uint128(formatStrikePrice(optionSeries.strike, optionSeries.collateral));
         // create option storage hash
-        bytes32 issuanceHash = getIssuanceHash(underlying, strikeAsset, collateral, expiration, isPut, formattedStrike);
+        bytes32 issuanceHash = getIssuanceHash(optionSeries.underlying, optionSeries.strikeAsset, optionSeries.collateral, optionSeries.expiration, optionSeries.isPut, formattedStrike);
         // check for an opyn oToken if it doesn't exist deploy it
-        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, collateral, underlying, strikeAsset, formattedStrike, expiration, isPut);
+        address series = OpynInteractions.getOrDeployOtoken(oTokenFactory, optionSeries.collateral, optionSeries.underlying, optionSeries.strikeAsset, formattedStrike, optionSeries.expiration, optionSeries.isPut);
         // store the option data as a hash
-        seriesInfo[series] = Types.OptionSeries(expiration, isPut, formattedStrike, underlying, strikeAsset, collateral);
+        seriesInfo[series] = Types.OptionSeries(optionSeries.expiration, formattedStrike, optionSeries.isPut,  optionSeries.underlying, optionSeries.strikeAsset, optionSeries.collateral);
         seriesAddress[issuanceHash] = series;
         emit OptionTokenCreated(series);
         return series;
@@ -166,8 +174,8 @@ contract OptionRegistry is Ownable, AccessControl {
     /**
      * @notice Open an options contract using collateral from the liquidity pool
      * @param  _series the address of the option token to be created
-     * @param  amount the amount of options to deploy
-     * @param  collateralAmount the collateral required for the option
+     * @param  amount the amount of options to deploy - assume in e18
+     * @param  collateralAmount the collateral required for the option - assumes in collateral decimals
      * @dev only callable by the liquidityPool
      * @return if the transaction succeeded
      * @return the amount of collateral taken from the liquidityPool
@@ -175,6 +183,7 @@ contract OptionRegistry is Ownable, AccessControl {
     function open(address _series, uint256 amount, uint256 collateralAmount) external onlyLiquidityPool returns (bool, uint256) {
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
+        // assumes strike in e8
         if(series.expiration <= block.timestamp) {revert AlreadyExpired();}
         // transfer collateral to this contract, collateral will depend on the option type
         SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
@@ -186,25 +195,36 @@ contract OptionRegistry is Ownable, AccessControl {
           vaultId_ = (controller.getAccountVaultCounter(address(this))) + 1;
           vaultCount++;
         } 
-        uint256 mintAmount = OpynInteractions.createShort(gammaController, marginPool, _series, collateralAmount, vaultId_, amount, 1);
+        uint256 mintAmount = OpynInteractions.createShort(
+          gammaController, 
+          marginPool, 
+          _series, 
+          collateralAmount, 
+          vaultId_, 
+          amount,
+          1
+          );
         emit OptionsContractOpened(_series, vaultId_, mintAmount);
         // transfer the option to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(_series), msg.sender, mintAmount);
         vaultIds[_series] = vaultId_;
+        // returns in collateral decimals
         return (true, collateralAmount);
     }
 
     /**
      * @notice Close an options contract (oToken) before it has expired
      * @param  _series the address of the option token to be burnt
-     * @param  amount the amount of options to burn
+     * @param  amount the amount of options to burn - assumes in e18
      * @dev only callable by the liquidityPool
      * @return if the transaction succeeded
      */
     function close(address _series, uint amount) external onlyLiquidityPool returns (bool, uint256) {
         // withdraw and burn
         Types.OptionSeries memory series = seriesInfo[_series];
+        // assumes strike in e8
         // make sure the option hasnt expired yet
+        if(series.expiration == 0) { revert NonExistentSeries(); }
         if(series.expiration <= block.timestamp) {revert AlreadyExpired();}
         // get the vault id
         uint256 vaultId = vaultIds[_series];
@@ -214,7 +234,8 @@ contract OptionRegistry is Ownable, AccessControl {
         // burn the oToken tracking the amount of collateral returned
         uint256 collatReturned = OpynInteractions.burnShort(gammaController, _series, convertedAmount, vaultId);
         SafeTransferLib.safeTransfer(ERC20(series.collateral), msg.sender, collatReturned);
-        emit OptionsContractClosed(_series, vaultId, amount);
+        emit OptionsContractClosed(_series, vaultId, convertedAmount);
+        // returns in collateral decimals
         return (true, collatReturned);
     }
 
@@ -223,20 +244,21 @@ contract OptionRegistry is Ownable, AccessControl {
      * @param  vaultId the id of the vault to check
      */
     function adjustCollateral(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
-      (bool isBelowMin, bool isAboveMax,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
+      (bool isBelowMin, bool isAboveMax,,uint256 collateralAmount, address _collateralAsset) = checkVaultHealth(vaultId);
+      if (collateralAsset != _collateralAsset) {revert InvalidCollateral(); }
       if (!isBelowMin && !isAboveMax) {revert HealthyVault();}
       if (isBelowMin) {
         LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, false);
         // transfer the needed collateral to this contract from the liquidityPool
-        SafeTransferLib.safeTransferFrom(collateralAsset, liquidityPool, address(this), collateralAmount);
+        SafeTransferLib.safeTransferFrom(_collateralAsset, liquidityPool, address(this), collateralAmount);
         // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-        OpynInteractions.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
+        OpynInteractions.depositCollat(gammaController, marginPool, _collateralAsset, collateralAmount, vaultId);
       } else if (isAboveMax) {
         LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, true);
         // decrease the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-        OpynInteractions.withdrawCollat(gammaController, collateralAsset, collateralAmount, vaultId);
+        OpynInteractions.withdrawCollat(gammaController, _collateralAsset, collateralAmount, vaultId);
         // transfer the excess collateral to the liquidityPool from this address
-        SafeTransferLib.safeTransfer(ERC20(collateralAsset), liquidityPool, collateralAmount);
+        SafeTransferLib.safeTransfer(ERC20(_collateralAsset), liquidityPool, collateralAmount);
       }
     }
 
@@ -247,12 +269,13 @@ contract OptionRegistry is Ownable, AccessControl {
      * @dev    this is a safety function, if worst comes to worse any caller can collateralise a vault to save it.
      */
     function adjustCollateralCaller(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
-      (bool isBelowMin,,,uint256 collateralAmount, address collateralAsset) = checkVaultHealth(vaultId);
+      (bool isBelowMin,,,uint256 collateralAmount, address _collateralAsset) = checkVaultHealth(vaultId);
+      if (collateralAsset != _collateralAsset) {revert InvalidCollateral(); }
       if (!isBelowMin) {revert HealthyVault();}
       // transfer the needed collateral to this contract from the msg.sender
-      SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collateralAmount);
+      SafeTransferLib.safeTransferFrom(_collateralAsset, msg.sender, address(this), collateralAmount);
       // increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
-      OpynInteractions.depositCollat(gammaController, marginPool, collateralAsset, collateralAmount, vaultId);
+      OpynInteractions.depositCollat(gammaController, marginPool, _collateralAsset, collateralAmount, vaultId);
     }
 
     /**
@@ -296,14 +319,15 @@ contract OptionRegistry is Ownable, AccessControl {
     /**
      * @notice Settle an options vault
      * @param  _series the address of the option token to be burnt
-     * @return success if the transaction succeeded
-     * @return collatReturned the amount of collateral returned from the vault
-     * @return collatLost the amount of collateral used to pay ITM options on vault settle
-     * @return amountShort number of oTokens that the vault was short
+     * @return  if the transaction succeeded
+     * @return  the amount of collateral returned from the vault
+     * @return  the amount of collateral used to pay ITM options on vault settle
+     * @return  number of oTokens that the vault was short
      * @dev callable by anyone but returns funds to the liquidityPool
      */
-    function settle(address _series) external returns (bool success, uint256 collatReturned, uint256 collatLost, uint256 amountShort) {
+    function settle(address _series) external returns (bool, uint256, uint256, uint256) {
         Types.OptionSeries memory series = seriesInfo[_series];
+        // strike will be in e8
         if (series.expiration == 0) {revert NonExistentSeries();}
         // check that the option has expired
         if (series.expiration >= block.timestamp) {revert NotExpired();}
@@ -314,6 +338,7 @@ contract OptionRegistry is Ownable, AccessControl {
         // transfer the collateral back to the liquidity pool
         SafeTransferLib.safeTransfer(ERC20(series.collateral), liquidityPool, collatReturned);
         emit OptionsContractSettled(_series, collatReturned, collatLost, amountShort);
+        // assumes in collateral decimals, collateral decimals, e8 
         return (true, collatReturned, collatLost, amountShort);
     }
 
@@ -324,6 +349,7 @@ contract OptionRegistry is Ownable, AccessControl {
      */
     function redeem(address _series) external returns (uint256) {
         Types.OptionSeries memory series = seriesInfo[_series];
+        // strike will be in e8
         if (series.expiration == 0) {revert NonExistentSeries();}
         // check that the option has expired
         if (series.expiration >= block.timestamp) {revert NotExpired();}
@@ -333,6 +359,7 @@ contract OptionRegistry is Ownable, AccessControl {
         SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), IERC20(_series).balanceOf(msg.sender));
         // redeem
         uint256 collatReturned = OpynInteractions.redeem(gammaController, marginPool, _series, seriesBalance);
+        // assumes in collateral decimals
         return collatReturned;
     }
 
@@ -344,7 +371,7 @@ contract OptionRegistry is Ownable, AccessControl {
      * @notice Send collateral funds for an option to be minted
      * @dev series.strike should be scaled by 1e8.
      * @param  series details of the option series
-     * @param  amount amount of options to mint
+     * @param  amount amount of options to mint always in e18
      * @return amount transferred
      */
     function getCollateral(Types.OptionSeries memory series, uint256 amount) external view returns (uint256) {
@@ -353,8 +380,8 @@ contract OptionRegistry is Ownable, AccessControl {
           series.underlying,
           series.strikeAsset,
           series.collateral,
-          amount/ SCALE_FROM,
-          series.strike,
+          amount/ SCALE_FROM,         // assumes that amount is always in e18
+          series.strike,              // assumes in e8
           IOracle(addressBook.getOracle()).getPrice(series.underlying),
           series.expiration,
           IERC20(series.collateral).decimals(),
@@ -363,6 +390,7 @@ contract OptionRegistry is Ownable, AccessControl {
         // based on this collateral requirement and the health factor get the amount to deposit
         uint256 upperHealthFactor = series.isPut ? putUpperHealthFactor : callUpperHealthFactor;
         collateralAmount = ((collateralAmount * upperHealthFactor) / MAX_BPS);
+        // assumes in collateral decimals
       return collateralAmount;
     }
 
@@ -404,8 +432,8 @@ contract OptionRegistry is Ownable, AccessControl {
           series.underlying,
           series.strikeAsset,
           series.collateral,
-          vault.shortAmounts[0],
-          series.strike,
+          vault.shortAmounts[0],    // assumes in e8
+          series.strike,            // assumes in e8
           IOracle(addressBook.getOracle()).getPrice(series.underlying),
           series.expiration,
           IERC20(series.collateral).decimals(),
@@ -435,16 +463,16 @@ contract OptionRegistry is Ownable, AccessControl {
     /// non-complex getters ///
     ///////////////////////////
 
-   function getSeriesAddress(bytes32 issuanceHash) public view returns (address) {
+   function getSeriesAddress(bytes32 issuanceHash) external view returns (address) {
      return seriesAddress[issuanceHash];
    }
 
-   function getSeries(Types.OptionSeries memory _series) public view returns (address) {
+   function getSeries(Types.OptionSeries memory _series) external view returns (address) {
      return seriesAddress[getIssuanceHash(_series.underlying, _series.strikeAsset, _series.collateral, _series.expiration, _series.isPut, _series.strike)];
    }
 
    function getSeriesInfo(address series)
-     public
+     external
      view
      returns (Types.OptionSeries memory) {
      return seriesInfo[series];
@@ -480,7 +508,7 @@ contract OptionRegistry is Ownable, AccessControl {
     function formatStrikePrice(
         uint256 strikePrice,
         address collateral
-    ) internal view returns (uint) {
+    ) public view returns (uint) {
         // convert strike to 1e8 format
         uint price = strikePrice / (10**10);
         uint collateralDecimals = IERC20(collateral).decimals();

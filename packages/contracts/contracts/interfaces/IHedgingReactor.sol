@@ -9,7 +9,7 @@ interface IHedgingReactor {
     /// @notice Execute a strategy to hedge delta exposure
     /// @param delta The exposure of the liquidity pool that the reactor needs to hedge against
     /// @return deltaChange The difference in delta exposure as a result of strategy execution
-    function hedgeDelta(int256 delta) external returns(int256 deltaChange);
+    function hedgeDelta(int256 delta) external returns(int256);
 
     /// @notice Returns the delta exposure of the reactor
     function getDelta() view external returns (int256 delta);

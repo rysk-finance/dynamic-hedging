@@ -19,7 +19,7 @@ import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry } from "../types/OptionRegistry"
+import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { WETH } from "../types/WETH"
 import {
@@ -59,6 +59,8 @@ let senderAddress: string
 let receiverAddress: string
 let aggregator: MockChainlinkAggregator
 let pricer: string
+let proposedSeries: OptionSeriesStruct
+let proposedSeriesETH: OptionSeriesStruct
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
@@ -93,6 +95,14 @@ let strike = toWei("3500")
 // handles the conversion of expiryDate to a unix timestamp
 const now = moment().utc().unix()
 let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
+const optionParams = {
+	minCallStrikePrice: 0,
+	maxCallStrikePrice: toWei("100000000000"),
+	minPutStrikePrice: 0,
+	maxPutStrikePrice: toWei("1000000000000"),
+	minExpiry:0,
+	maxExpiry:99999999999,
+}
 
 describe("Options protocol Vault Health", function () {
 	before(async function () {
@@ -190,13 +200,16 @@ describe("Options protocol Vault Health", function () {
 
 	it("Creates a USDC collataralised call option token series", async () => {
 		const [sender] = signers
+		proposedSeries = {
+			expiration: expiration,
+			strike: strike,
+			isPut: call,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: USDC_ADDRESS[chainId]
+		}
 		const issue = await optionRegistry.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			call,
-			strike,
-			USDC_ADDRESS[chainId]
+			proposedSeries
 		)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
@@ -208,13 +221,16 @@ describe("Options protocol Vault Health", function () {
 	})
 	it("Creates a ETH collataralised call option token series", async () => {
 		const [sender] = signers
+		proposedSeriesETH = {
+			expiration: expiration,
+			strike: strike,
+			isPut: call,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: WETH_ADDRESS[chainId]
+		}
 		const issue = await optionRegistryETH.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			call,
-			strike,
-			WETH_ADDRESS[chainId]
+			proposedSeriesETH
 		)
 		await expect(issue).to.emit(optionRegistryETH, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
@@ -1110,13 +1126,16 @@ describe("Options protocol Vault Health", function () {
 		// fast forward expiryPeriod length of time
 		expiration = createValidExpiry(expiration, 14)
 		strike = toWei("2300")
+		proposedSeries = {
+			expiration: expiration,
+			strike: strike,
+			isPut: put,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: USDC_ADDRESS[chainId]
+		}
 		const issuePut = await optionRegistry.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			put,
-			strike,
-			USDC_ADDRESS[chainId]
+			proposedSeries
 		)
 		await expect(issuePut).to.emit(optionRegistry, "OptionTokenCreated")
 		let receipt = await (await issuePut).wait(1)
@@ -1129,13 +1148,16 @@ describe("Options protocol Vault Health", function () {
 
 	it("creates a ETH put option token series", async () => {
 		const [sender] = signers
+		proposedSeriesETH = {
+			expiration: expiration,
+			strike: strike,
+			isPut: put,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: WETH_ADDRESS[chainId]
+		}
 		const issuePut = await optionRegistryETH.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			put,
-			strike,
-			WETH_ADDRESS[chainId]
+			proposedSeriesETH
 		)
 		await expect(issuePut).to.emit(optionRegistryETH, "OptionTokenCreated")
 		let receipt = await (await issuePut).wait(1)
@@ -1369,13 +1391,16 @@ describe("Options protocol Vault Health", function () {
 		// fast forward expiryPeriod length of time
 		expiration = createValidExpiry(expiration, 14)
 		strike = toWei("3500")
+		proposedSeries = {
+			expiration: expiration,
+			strike: strike,
+			isPut: call,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: USDC_ADDRESS[chainId]
+		}
 		const issue = await optionRegistry.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			call,
-			strike,
-			USDC_ADDRESS[chainId]
+			proposedSeries
 		)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
@@ -1494,13 +1519,16 @@ describe("Options protocol Vault Health", function () {
 		// fast forward expiryPeriod length of time
 		expiration = createValidExpiry(expiration, 14)
 		strike = toWei("3500")
+		proposedSeries = {
+			expiration: expiration,
+			strike: strike,
+			isPut: call,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: USDC_ADDRESS[chainId]
+		}
 		const issue = await optionRegistry.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			call,
-			strike,
-			USDC_ADDRESS[chainId]
+			proposedSeries
 		)
 		const currentPrice = await oracle.getPrice(weth.address)
 		const settlePrice = currentPrice.sub(toWei("500").div(oTokenDecimalShift18))
@@ -1667,5 +1695,6 @@ describe("Options protocol Vault Health", function () {
 		expect(collatAmounts3).to.eq(0)
 		const usdBalAft = await usd.balanceOf(senderAddress)
 		expect(usdBalAft.sub(liqBalAft)).to.eq(0)
+		await expect(optionRegistry.registerLiquidatedVault(4)).to.be.revertedWith("VaultNotLiquidated()")
 	})
 })

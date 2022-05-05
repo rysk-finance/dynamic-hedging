@@ -12,6 +12,7 @@ import { Vault } from "./pages/Vault";
 import { OptionsTrading } from "./pages/OptionsTrading";
 import { Dashboard } from "./pages/Dashboard";
 import { GlobalContextProvider } from "./state/GlobalContext";
+import { AppPaths } from "./config/appPaths";
 
 // TODO(HC): Move infura key to env variable
 const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
@@ -150,9 +151,9 @@ function App() {
           <div className="pt-16 px-16">
             <div className="root-grid py-24">
               <Routes>
-                <Route path="/" element={<Vault />} />
-                <Route path="options" element={<OptionsTrading />} />
-                <Route path="dashboard" element={<Dashboard />} />
+                <Route path={AppPaths.VAULT} element={<Vault />} />
+                <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
+                <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
               </Routes>
             </div>
           </div>

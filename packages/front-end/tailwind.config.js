@@ -54,6 +54,7 @@ module.exports = {
       },
       fontFamily: {
         "dm-mono": ["DM Mono"],
+        parabole: ["Parabole"],
       },
       gridColumnStart: {
         13: "13",

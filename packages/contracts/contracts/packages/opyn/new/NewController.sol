@@ -13,7 +13,7 @@ import {MarginVault} from "../libs/MarginVault.sol";
 import {Actions} from "../libs/Actions.sol";
 import {AddressBookInterface} from "../interfaces/AddressBookInterface.sol";
 import {OtokenInterface} from "../interfaces/OtokenInterface.sol";
-import {NewMarginCalculatorInterface} from "./NewMarginCalculatorInterface.sol";
+import {MarginCalculatorInterface} from "../new/NewMarginCalculatorInterface.sol";
 import {OracleInterface} from "../interfaces/OracleInterface.sol";
 import {WhitelistInterface} from "../interfaces/WhitelistInterface.sol";
 import {MarginPoolInterface} from "../interfaces/MarginPoolInterface.sol";
@@ -62,7 +62,7 @@ import {CalleeInterface} from "../interfaces/CalleeInterface.sol";
 
 /**
  * @title Controller
- * @author Rysk && Opyn Team
+ * @author Opyn Team
  * @notice Contract that controls the Gamma Protocol and the interaction of all sub contracts
  */
 contract NewController is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
@@ -72,7 +72,7 @@ contract NewController is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgr
     AddressBookInterface public addressbook;
     WhitelistInterface public whitelist;
     OracleInterface public oracle;
-    NewMarginCalculatorInterface public calculator;
+    MarginCalculatorInterface public calculator;
     MarginPoolInterface public pool;
 
     ///@dev scale used in MarginCalculator
@@ -190,12 +190,13 @@ contract NewController is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgr
     /// @notice emits an event when a vault is liquidated
     event VaultLiquidated(
         address indexed liquidator,
-        address indexed receiver,
+        address receiver,
         address indexed vaultOwner,
         uint256 auctionPrice,
         uint256 collateralPayout,
         uint256 debtAmount,
-        uint256 vaultId
+        uint256 vaultId,
+        address indexed series
     );
     /// @notice emits an event when a call action is executed
     event CallExecuted(address indexed from, address indexed to, bytes data);
@@ -1033,9 +1034,12 @@ contract NewController is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgr
         MarginVault.VaultLiquidationDetails storage vaultLiqDetails = vaultLiquidationDetails[_args.owner][
             _args.vaultId
         ];
+        address series = vault.shortOtokens[0];
         if (vaultLiqDetails.series == vault.shortOtokens[0]) {
-            vaultLiqDetails.shortAmount += uint128(_args.amount);
-            vaultLiqDetails.collateralAmount += uint128(collateralToSell);
+            vaultLiqDetails.shortAmount = uint128(uint256(vaultLiqDetails.shortAmount).add(_args.amount));
+            vaultLiqDetails.collateralAmount += uint128(
+                uint256(vaultLiqDetails.collateralAmount).add(collateralToSell)
+            );
         } else {
             vaultLiqDetails.series = vault.shortOtokens[0];
             vaultLiqDetails.shortAmount = uint128(_args.amount);
@@ -1059,7 +1063,8 @@ contract NewController is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgr
             price,
             collateralToSell,
             _args.amount,
-            _args.vaultId
+            _args.vaultId,
+            series
         );
     }
 
@@ -1173,7 +1178,7 @@ contract NewController is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgr
     function _refreshConfigInternal() internal {
         whitelist = WhitelistInterface(addressbook.getWhitelist());
         oracle = OracleInterface(addressbook.getOracle());
-        calculator = NewMarginCalculatorInterface(addressbook.getMarginCalculator());
+        calculator = MarginCalculatorInterface(addressbook.getMarginCalculator());
         pool = MarginPoolInterface(addressbook.getMarginPool());
     }
 }

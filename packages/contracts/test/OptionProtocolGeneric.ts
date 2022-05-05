@@ -19,7 +19,7 @@ import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import { NewWhitelist } from "../types/NewWhitelist"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry } from "../types/OptionRegistry"
+import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
 import { WETH } from "../types/WETH"
 import {
@@ -54,6 +54,8 @@ let erc20PutOptionETH: IOToken
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
+let proposedSeries: OptionSeriesStruct
+let proposedSeriesETH: OptionSeriesStruct
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
@@ -89,6 +91,14 @@ const strike = toWei("3500")
 const now = moment().utc().unix()
 let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 
+const optionParams = {
+            minCallStrikePrice: 0,
+            maxCallStrikePrice: toWei("100000000000"),
+            minPutStrikePrice: 0,
+            maxPutStrikePrice: toWei("1000000000000"),
+            minExpiry:0,
+            maxExpiry:99999999999,
+		}
 describe("Options protocol", function () {
 	before(async function () {
 		await hre.network.provider.request({
@@ -116,9 +126,7 @@ describe("Options protocol", function () {
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
-		const constantsFactory = await ethers.getContractFactory("Constants")
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
-		const constants = await constantsFactory.deploy()
 		const interactions = await interactionsFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
@@ -166,13 +174,16 @@ describe("Options protocol", function () {
 
 	it("Creates a USDC collataralised call option token series", async () => {
 		const [sender] = signers
+		proposedSeries = {
+			expiration: expiration,
+			strike: strike,
+			isPut: call,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: USDC_ADDRESS[chainId]
+		}
 		const issue = await optionRegistry.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			call,
-			strike,
-			USDC_ADDRESS[chainId]
+			proposedSeries
 		)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
@@ -185,12 +196,7 @@ describe("Options protocol", function () {
 	it("Returns correct oToken when calling getOrDeployOtoken", async () => {
 		const [sender] = signers
 		const issue = await optionRegistry.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			call,
-			strike,
-			USDC_ADDRESS[chainId]
+			proposedSeries
 		)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
@@ -225,13 +231,16 @@ describe("Options protocol", function () {
 	})		
 	it("Creates a ETH collataralised call option token series", async () => {
 		const [sender] = signers
+		proposedSeriesETH = {
+			expiration: expiration,
+			strike: strike,
+			isPut: call,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: WETH_ADDRESS[chainId]
+		}
 		const issue = await optionRegistryETH.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			call,
-			strike,
-			WETH_ADDRESS[chainId]
+			proposedSeriesETH
 		)
 		await expect(issue).to.emit(optionRegistryETH, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
@@ -413,7 +422,28 @@ describe("Options protocol", function () {
 		const usdBalance = await usd.balanceOf(senderAddress)
 		expect(usdBalance.sub(usdBalanceBefore).sub(marginReq)).to.be.within(-1, 1)
 	})
-
+	it("reverts liquidityPool because of non-existent series", async () => {
+		const [sender, receiver] = signers
+		const value = toWei("1")
+		const balanceBef = await optionTokenUSDC.balanceOf(senderAddress)
+		const optionRegistrySender = optionRegistry.connect(sender)
+		await optionTokenUSDC.approve(optionRegistry.address, value.div(oTokenDecimalShift18))
+		const usdBalanceBefore = await usd.balanceOf(senderAddress)
+		const underlyingPrice = await oracle.getPrice(weth.address)
+		let marginReq = await newCalculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			usd.address,
+			value.div(oTokenDecimalShift18),
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			6,
+			false
+		)
+		marginReq = (await optionRegistryETH.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
+		await expect(optionRegistrySender.close(weth.address, value)).to.be.revertedWith("NonExistentSeries()")
+	})
 	it("liquidityPool close and transaction succeeds ETH options", async () => {
 		const [sender, receiver] = signers
 		const value = toWei("1")
@@ -477,12 +507,7 @@ describe("Options protocol", function () {
 	it("Fails to create a USDC collataralised call option token series when expired", async () => {
 		const [sender] = signers
 		await  expect(optionRegistry.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			call,
-			strike,
-			USDC_ADDRESS[chainId]
+			proposedSeries
 		)).to.be.revertedWith("AlreadyExpired()")
 	})
 	it("Fails to open a USDC collataralised call option token series when expired", async () => {
@@ -587,13 +612,16 @@ describe("Options protocol", function () {
 		const [sender] = signers
 		// fast forward expiryPeriod length of time
 		expiration = createValidExpiry(expiration, 14)
+		proposedSeries = {
+			expiration: expiration,
+			strike: strike,
+			isPut: call,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: USDC_ADDRESS[chainId]
+		}
 		const issueCall = await optionRegistry.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			call,
-			strike,
-			USDC_ADDRESS[chainId]
+			proposedSeries
 		)
 		await expect(issueCall).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issueCall.wait(1)
@@ -606,13 +634,16 @@ describe("Options protocol", function () {
 
 	it("creates a ETH collateralised call option token series", async () => {
 		const [sender] = signers
+		proposedSeriesETH = {
+			expiration: expiration,
+			strike: strike,
+			isPut: call,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: WETH_ADDRESS[chainId]
+		}
 		const issueCall = await optionRegistryETH.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			call,
-			strike,
-			WETH_ADDRESS[chainId]
+			proposedSeriesETH
 		)
 		await expect(issueCall).to.emit(optionRegistryETH, "OptionTokenCreated")
 		const receipt = await issueCall.wait(1)
@@ -625,13 +656,16 @@ describe("Options protocol", function () {
 
 	it("creates a USDC put option token series", async () => {
 		const [sender] = signers
+		proposedSeries = {
+			expiration: expiration,
+			strike: strike,
+			isPut: put,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: USDC_ADDRESS[chainId]
+		}
 		const issuePut = await optionRegistry.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			put,
-			strike,
-			USDC_ADDRESS[chainId]
+			proposedSeries
 		)
 		await expect(issuePut).to.emit(optionRegistry, "OptionTokenCreated")
 		let receipt = await (await issuePut).wait(1)
@@ -644,13 +678,16 @@ describe("Options protocol", function () {
 
 	it("creates a ETH put option token series", async () => {
 		const [sender] = signers
+		proposedSeriesETH = {
+			expiration: expiration,
+			strike: strike,
+			isPut: put,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: WETH_ADDRESS[chainId]
+		}
 		const issuePut = await optionRegistryETH.issue(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			expiration,
-			put,
-			strike,
-			WETH_ADDRESS[chainId]
+			proposedSeriesETH
 		)
 		await expect(issuePut).to.emit(optionRegistryETH, "OptionTokenCreated")
 		let receipt = await (await issuePut).wait(1)
@@ -841,6 +878,10 @@ describe("Options protocol", function () {
 	it("gets the series via issuance hash", async () => {
 		const issuance = await optionRegistry.getIssuanceHash(await optionRegistry.getSeriesInfo(optionTokenUSDC.address))
 		const series = await optionRegistry.getSeriesAddress(issuance)
+		expect(series).to.equal(optionTokenUSDC.address)
+	})
+	it("gets the series via series", async () => {
+		const series = await optionRegistry.getSeries(await optionRegistry.getSeriesInfo(optionTokenUSDC.address))
 		expect(series).to.equal(optionTokenUSDC.address)
 	})
 })
