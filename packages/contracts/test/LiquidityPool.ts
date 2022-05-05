@@ -1779,18 +1779,16 @@ describe("Liquidity Pools", async () => {
 		).to.be.revertedWith("WithdrawExceedsLiquidity()")
 	})
 	it("simulates a flash loan deposit, large option buy then sell, and withdraw in same tx", async () => {
+		const [sender, receiver, smallUser] = await ethers.getSigners()
 		const whaleSigner = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
+		await usd.connect(whaleSigner).transfer(smallUser.address, toUSDC("1000"))
 		const lpUsdcBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const whaleUsdcBalanceBefore = await usd.balanceOf(whaleSigner.address)
+		const userUsdcBalanceBefore = await usd.balanceOf(smallUser.address)
 		const amount = toWei("100")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const bidAskSpread = await liquidityPool.bidAskIVSpread()
-		const senderBalanceBefore = await usd.balanceOf(senderAddress)
-		const receiverBalanceBefore = await usd.balanceOf(receiverAddress)
-		const blockNumber = await ethers.provider.getBlockNumber()
 
-		console.log({ bidAskSpread })
 		proposedSeries = {
 			expiration: expiration3,
 			strike: BigNumber.from(strikePrice),
@@ -1800,84 +1798,129 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 
+		await usd.connect(whaleSigner).approve(flashLoanContract.address, whaleUsdcBalanceBefore)
+		await usd.connect(whaleSigner).approve(liquidityPool.address, whaleUsdcBalanceBefore)
+		await usd.connect(smallUser).approve(liquidityPool.address, userUsdcBalanceBefore)
+
+		const smallUserShares = await liquidityPool
+			.connect(smallUser)
+			.callStatic.deposit(userUsdcBalanceBefore, smallUser.address)
+		await liquidityPool.connect(smallUser).deposit(userUsdcBalanceBefore, smallUser.address)
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+
+		await flashLoanContract.depositBuySellAndWithdraw(
+			whaleUsdcBalanceBefore.mul(8).div(10),
+			amount,
+			proposedSeries
+		)
+		await liquidityPool.connect(smallUser).withdraw(smallUserShares, smallUser.address)
+
+		const lpUsdcBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const whaleUsdcBalanceAfter = await usd.balanceOf(whaleSigner.address)
+		const userUsdcBalanceAfter = await usd.balanceOf(smallUser.address)
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+
+		expect(whaleUsdcBalanceAfter).is.not.gt(whaleUsdcBalanceBefore)
+		expect(lpUsdcBalanceAfter).is.not.lt(lpUsdcBalanceBefore)
+		expect(userUsdcBalanceAfter).is.not.lt(userUsdcBalanceBefore)
+		expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
+	})
+	it("simulates a flash loan deposit and option buy. Then changes the price before sell and withdraw", async () => {
+		const [sender, receiver, smallUser] = await ethers.getSigners()
+		const whaleSigner = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
+		await usd.connect(whaleSigner).transfer(smallUser.address, toUSDC("1000"))
+		const lpUsdcBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const whaleUsdcBalanceBefore = await usd.balanceOf(whaleSigner.address)
+		const userUsdcBalanceBefore = await usd.balanceOf(smallUser.address)
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const amount = toWei("100")
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+
+		proposedSeries = {
+			expiration: expiration3,
+			strike: BigNumber.from(strikePrice),
+			isPut: false,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+
+		const localDelta = await calculateOptionDeltaLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeries,
+			amount,
+			true
+		)
+
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
 			priceFeed,
 			proposedSeries,
-			amount
+			amount,
+			false
 		)
 
 		await usd.connect(whaleSigner).approve(flashLoanContract.address, whaleUsdcBalanceBefore)
 		await usd.connect(whaleSigner).approve(liquidityPool.address, whaleUsdcBalanceBefore)
+		await usd.connect(smallUser).approve(liquidityPool.address, userUsdcBalanceBefore)
 
-		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const prevaluesBefore = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
 
-		const marginPoolAddress = await addressBook.getMarginPool()
-		const marginPoolBalanceBefore = await usd.balanceOf(marginPoolAddress)
+		const smallUserShares = await liquidityPool
+			.connect(smallUser)
+			.callStatic.deposit(userUsdcBalanceBefore, smallUser.address)
+		await liquidityPool.connect(smallUser).deposit(userUsdcBalanceBefore, smallUser.address)
 
-		const seriesAddress = await flashLoanContract.callStatic.depositBuySellAndWithdraw(
+		const [optionAmount, seriesAddress, shares] = await flashLoanContract.callStatic.depositAndBuy(
 			whaleUsdcBalanceBefore.mul(8).div(10),
 			amount,
 			proposedSeries
 		)
-		console.log({ seriesAddress })
-		// await liquidityPool
-		// 	.connect(whaleSigner)
-		// 	.deposit(whaleUsdcBalanceBefore.mul(1).div(10), whaleSigner.address)
-		const tx = await flashLoanContract.depositBuySellAndWithdraw(
+		// deposit and buy options with whale account
+		await flashLoanContract.depositAndBuy(
 			whaleUsdcBalanceBefore.mul(8).div(10),
 			amount,
 			proposedSeries
 		)
 
-		const receipt = await tx.wait()
-		const events = receipt.events?.filter(
-			x => x.address == "0x9BcC604D4381C5b0Ad12Ff3Bf32bEdE063416BC7"
+		// change price
+		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
+		await setOpynOracleExpiryPrice(
+			WETH_ADDRESS[chainId],
+			oracle,
+			expiration,
+			priceQuote.sub(toWei("20"))
 		)
-		const transferEvents = events?.find(event => event.event == "Transfer")
-		// console.log({ events })
-		// const logs = await liquidityPool.queryFilter(liquidityPool.filters.Transfer(), blockNumber)
-		// console.log({ logs })
+		// mock external adapter delta calculation
+		const prevaluesAfter = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
+		console.log({ before: prevaluesBefore.delta, after: prevaluesAfter.delta.add(localDelta) })
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("2"),
+			weth.address,
+			usd.address,
+			prevaluesAfter.delta.add(localDelta),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			prevaluesAfter.callPutsValue.add(toWei(localQuote.toString())),
+			priceQuote
+		)
+		// sell the option back and withdraw
+		await flashLoanContract.sellAndWithdraw(seriesAddress, optionAmount, shares)
+
+		await liquidityPool.connect(smallUser).withdraw(smallUserShares, smallUser.address)
 
 		const lpUsdcBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const whaleUsdcBalanceAfter = await usd.balanceOf(whaleSigner.address)
-		const whaleShareBalanceAfter = await liquidityPool.balanceOf(whaleSigner.address)
-
-		const vaultId = await optionRegistry.vaultIds(seriesAddress)
-		const vaultDetails = await controller.getVault(optionRegistry.address, vaultId)
-
-		const usdcLeftInVault = tFormatUSDC(vaultDetails.collateralAmounts[0])
-		const usdcLeftInMock = tFormatEth(await usd.balanceOf(flashLoanContract.address))
-		const usdcLeftInRegistry = tFormatEth(await usd.balanceOf(optionRegistry.address))
-		const usdcLeftInHandler = tFormatEth(await usd.balanceOf(handler.address))
+		const userUsdcBalanceAfter = await usd.balanceOf(smallUser.address)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
-		const collateralAllocatedDiff = tFormatUSDC(
-			collateralAllocatedAfter.sub(collateralAllocatedBefore)
-		)
-		const marginPoolBalanceAfter = await usd.balanceOf(marginPoolAddress)
-		const senderBalanceAfter = await usd.balanceOf(senderAddress)
-		const receiverBalanceAfter = await usd.balanceOf(receiverAddress)
 
-		console.log({
-			whaleUsdcBalanceBefore: tFormatUSDC(whaleUsdcBalanceBefore),
-			whaleUsdcBalanceAfter: tFormatUSDC(whaleUsdcBalanceAfter),
-			whaleUsdcBalanceDownBad: tFormatUSDC(whaleUsdcBalanceBefore.sub(whaleUsdcBalanceAfter)),
-			poolBalanceBefore: tFormatUSDC(lpUsdcBalanceBefore),
-			poolBalanceAfter: tFormatUSDC(lpUsdcBalanceAfter),
-			poolBalanceUpGood: tFormatUSDC(lpUsdcBalanceAfter.sub(lpUsdcBalanceBefore)),
-			usdcLeftInVault,
-			usdcLeftInMock,
-			usdcLeftInRegistry,
-			usdcLeftInHandler,
-			collateralAllocatedDiff,
-			marginPoolBalanceBefore,
-			marginPoolBalanceAfter,
-			whaleShareBalanceAfter,
-			senderBalanceBefore,
-			senderBalanceAfter,
-			receiverBalanceBefore,
-			receiverBalanceAfter
-		})
+		expect(whaleUsdcBalanceAfter).is.not.gt(whaleUsdcBalanceBefore)
+		expect(lpUsdcBalanceAfter).is.not.lt(lpUsdcBalanceBefore)
+		expect(userUsdcBalanceAfter).is.not.lt(userUsdcBalanceBefore)
+		expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 	})
 	it("settles an expired ITM vault", async () => {
 		const totalCollateralAllocated = await liquidityPool.collateralAllocated()

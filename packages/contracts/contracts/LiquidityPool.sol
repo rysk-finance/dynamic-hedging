@@ -365,6 +365,8 @@ contract LiquidityPool is
     returns (uint256) 
     {
     require(handler[msg.sender]);
+        // console.log("buyback option premium in LP:", premium);
+
     // strike passed in as e8
     return _buybackOption(optionSeries, amount, optionRegistry, seriesAddress, premium, seller);
   }

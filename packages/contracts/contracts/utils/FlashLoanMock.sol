@@ -38,13 +38,44 @@ contract FlashLoanMock {
     }
 
     function depositBuySellAndWithdraw(uint _collateralAmount, uint _optionAmount, Types.OptionSeries memory _optionSeries) public returns (address){
+        uint whaleBalBeforeDeposit = ERC20(collateralAsset).balanceOf(msg.sender);
         uint shares = _deposit(_collateralAmount);
+        uint whaleBalBeforeSale = ERC20(collateralAsset).balanceOf(msg.sender);
+        console.log("whale bal down from deposit", whaleBalBeforeDeposit - whaleBalBeforeSale);
         (uint optionAmount, address seriesAddress) =_buyOptionSeries(_optionSeries, _optionAmount);
+        uint whaleBalAfterSale = ERC20(collateralAsset).balanceOf(msg.sender);
+        console.log("whale bal down from buying", whaleBalBeforeSale - whaleBalAfterSale);
         _sellOptionSeriesBack(seriesAddress, optionAmount);
+        uint whaleBalAfterBuyback = ERC20(collateralAsset).balanceOf(msg.sender);
+        console.log("whale bal up from selling",whaleBalAfterBuyback - whaleBalAfterSale);
+
         _withdraw(shares);
-      
+        uint whaleBalAfterWithdraw = ERC20(collateralAsset).balanceOf(msg.sender);
+        console.log("whale bal up from withdrawing",whaleBalAfterWithdraw - whaleBalAfterBuyback);
         return seriesAddress;
     }
+
+    function depositAndBuy(uint _collateralAmount, uint _optionAmount, Types.OptionSeries memory _optionSeries) public returns (uint, address, uint){
+        uint whaleBalBeforeDeposit = ERC20(collateralAsset).balanceOf(msg.sender);
+        uint shares = _deposit(_collateralAmount);
+        uint whaleBalBeforeSale = ERC20(collateralAsset).balanceOf(msg.sender);
+        console.log("whale bal down from deposit", whaleBalBeforeDeposit - whaleBalBeforeSale);
+        (uint optionAmount, address seriesAddress) =_buyOptionSeries(_optionSeries, _optionAmount);
+        uint whaleBalAfterSale = ERC20(collateralAsset).balanceOf(msg.sender);
+        return (optionAmount, seriesAddress, shares);
+    }
+
+    function sellAndWithdraw(address _seriesAddress, uint _optionAmount, uint _shares ) public {
+         _sellOptionSeriesBack(_seriesAddress, _optionAmount);
+        uint whaleBalAfterBuyback = ERC20(collateralAsset).balanceOf(msg.sender);
+        // console.log("whale bal up from selling",whaleBalAfterBuyback - whaleBalAfterSale);
+
+        _withdraw(_shares);
+        uint whaleBalAfterWithdraw = ERC20(collateralAsset).balanceOf(msg.sender);
+        console.log("whale bal up from withdrawing",whaleBalAfterWithdraw - whaleBalAfterBuyback);
+    }
+
+
 
     function _deposit(uint256 _amount) internal returns (uint) {
         SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _amount);

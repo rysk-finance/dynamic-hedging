@@ -282,6 +282,7 @@ contract OptionHandler is
   {
     // calculate premium
     (uint256 premium,) = liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount);
+    // console.log("sell option premium:", premium);
     // premium needs to adjusted for decimals of collateral asset
     uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), convertedPrem);
@@ -373,6 +374,8 @@ contract OptionHandler is
        optionSeries.underlying,
        optionSeries.strikeAsset,
        collateralAsset), amount);
+    // console.log("buyback option premium:", premium);
+
     // if option seller is not on our whitelist, run some extra checks
     if (!buybackWhitelist[msg.sender]){
       int portfolioDelta = liquidityPool.getPortfolioDelta();
