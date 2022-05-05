@@ -21,6 +21,7 @@ import moment from "moment"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
+import HandlerSol from "../artifacts/contracts/OptionHandler.sol/OptionHandler.json"
 import { ERC20 } from "../types/ERC20"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
@@ -45,12 +46,17 @@ import {
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS,
 	CONTROLLER_OWNER,
-	GAMMA_ORACLE_NEW
+	CHAINLINK_WETH_PRICER
 } from "./constants"
+import { deployOpyn } from "../utils/opyn-deployer"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
 import { WriteOptionEvent } from "../types/LiquidityPool"
 import { VolatilityFeed } from "../types/VolatilityFeed"
+import { NewController } from "../types/NewController"
+import { OptionHandler } from "../types/OptionHandler"
+import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
+import { getMatchingEvents, WRITE_OPTION } from "../utils/events"
 
 type WriteEvent = WriteOptionEvent & Event
 type DecodedData = {
@@ -65,6 +71,7 @@ interface EnrichedWriteEvent extends WriteEvent {
 
 let usd: MintableERC20
 let weth: WETH
+let wethERC20: ERC20Interface
 let optionRegistry: OptionRegistry
 let optionProtocol: Protocol
 let signers: Signer[]
@@ -73,13 +80,14 @@ let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
 let priceFeed: PriceFeed
-let controller: Controller
+let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 let volFeed: VolatilityFeed
 let portfolioValuesFeed: MockPortfolioValuesFeed
+let handler: OptionHandler
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const expected_put_delta = 0.39679640941831507
@@ -153,314 +161,69 @@ describe("Oracle core logic", async () => {
 				}
 			]
 		})
-		// impersonate the opyn controller owner
+
 		await network.provider.request({
 			method: "hardhat_impersonateAccount",
-			params: [CONTROLLER_OWNER[chainId]]
+			params: [CHAINLINK_WETH_PRICER[chainId]]
 		})
 		signers = await ethers.getSigners()
+		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
+		controller = opynParams.controller
+		addressBook = opynParams.addressBook
+		oracle = opynParams.oracle
+		newCalculator = opynParams.newCalculator
 		const [sender] = signers
 
 		const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
 		await sender.sendTransaction({
 			to: signer.address,
-			value: ethers.utils.parseEther("1.0") // Sends exactly 1.0 ether
+			value: ethers.utils.parseEther("10.0") // Sends exactly 10.0 ether
 		})
-		// get an instance of the controller
-		controller = (await ethers.getContractAt(
-			"contracts/packages/opyn/core/Controller.sol:Controller",
-			GAMMA_CONTROLLER[chainId]
-		)) as Controller
-		// get an instance of the addressbook
-		addressBook = (await ethers.getContractAt(
-			"contracts/packages/opyn/core/AddressBook.sol:AddressBook",
-			ADDRESS_BOOK[chainId]
-		)) as AddressBook
+
+		const forceSendContract = await ethers.getContractFactory("ForceSend")
+		const forceSend = await forceSendContract.deploy() // force Send is a contract that forces the sending of Ether to WBTC minter (which is a contract with no receive() function)
+		await forceSend
+			.connect(signer)
+			.go(CHAINLINK_WETH_PRICER[chainId], { value: utils.parseEther("0.5") })
+
 		// get the oracle
-		const res = await setupTestOracle(await signers[0].getAddress())
+		const res = await setupTestOracle(await sender.getAddress())
 		oracle = res[0] as Oracle
 		opynAggregator = res[1] as MockChainlinkAggregator
-		// deploy the new calculator
-		const newCalculatorInstance = await ethers.getContractFactory("NewMarginCalculator")
-		newCalculator = (await newCalculatorInstance.deploy(
-			GAMMA_ORACLE_NEW[chainId],
-			ADDRESS_BOOK[chainId]
-		)) as NewMarginCalculator
-		// deploy the new whitelist
-		const newWhitelistInstance = await ethers.getContractFactory("NewWhitelist")
-		const newWhitelist = await newWhitelistInstance.deploy(ADDRESS_BOOK[chainId])
-		// update the addressbook with the new calculator and whitelist addresses
-		await addressBook.connect(signer).setMarginCalculator(newCalculator.address)
-		await addressBook.connect(signer).setWhitelist(newWhitelist.address)
-		// update the whitelist and calculator in the controller
-		await controller.connect(signer).refreshConfiguration()
-		// whitelist collateral
-		await newWhitelist.whitelistCollateral(WETH_ADDRESS[chainId])
-		await newWhitelist.whitelistCollateral(USDC_ADDRESS[chainId])
-		// whitelist products
-		// normal calls
-		await newWhitelist.whitelistProduct(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			false
+		let deployParams = await deploySystem(signers, oracle, opynAggregator)
+		weth = deployParams.weth
+		wethERC20 = deployParams.wethERC20
+		usd = deployParams.usd
+		optionRegistry = deployParams.optionRegistry
+		priceFeed = deployParams.priceFeed
+		volFeed = deployParams.volFeed
+		portfolioValuesFeed = deployParams.portfolioValuesFeed
+		optionProtocol = deployParams.optionProtocol
+		let lpParams = await deployLiquidityPool(
+			signers,
+			optionProtocol,
+			usd,
+			wethERC20,
+			rfr,
+			minCallStrikePrice,
+			minPutStrikePrice,
+			maxCallStrikePrice,
+			maxPutStrikePrice,
+			minExpiry,
+			maxExpiry,
+			optionRegistry,
+			portfolioValuesFeed
 		)
-		// normal puts
-		await newWhitelist.whitelistProduct(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			true
-		)
-		// usd collateralised calls
-		await newWhitelist.whitelistProduct(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			false
-		)
-		// eth collateralised puts
-		await newWhitelist.whitelistProduct(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			true
-		)
-		// whitelist vault type 0 collateral
-		await newWhitelist.whitelistCoveredCollateral(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId], false)
-		await newWhitelist.whitelistCoveredCollateral(USDC_ADDRESS[chainId], WETH_ADDRESS[chainId], true)
-		// whitelist vault type 1 collateral
-		await newWhitelist.whitelistNakedCollateral(USDC_ADDRESS[chainId], WETH_ADDRESS[chainId], false)
-		await newWhitelist.whitelistNakedCollateral(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId], true)
-		// set product spot shock values
-		// usd collateralised calls
-		await newCalculator.setSpotShock(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			false,
-			productSpotShockValue
-		)
-		// usd collateralised puts
-		await newCalculator.setSpotShock(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			true,
-			productSpotShockValue
-		)
-		// eth collateralised calls
-		await newCalculator.setSpotShock(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			false,
-			productSpotShockValue
-		)
-		// eth collateralised puts
-		await newCalculator.setSpotShock(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			true,
-			productSpotShockValue
-		)
-		// set expiry to value values
-		// usd collateralised calls
-		await newCalculator.setUpperBoundValues(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			false,
-			timeToExpiry,
-			expiryToValue
-		)
-		// usd collateralised puts
-		await newCalculator.setUpperBoundValues(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			true,
-			timeToExpiry,
-			expiryToValue
-		)
-		// eth collateralised calls
-		await newCalculator.setUpperBoundValues(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			false,
-			timeToExpiry,
-			expiryToValue
-		)
-		// eth collateralised puts
-		await newCalculator.setUpperBoundValues(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			true,
-			timeToExpiry,
-			expiryToValue
-		)
-	})
-
-	it("Deploys the Option Registry and sets state with written options", async () => {
-		// creates a liquidity pool with USDC as strike Asset
-		type int7 = [
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish
-		]
-		type number7 = [number, number, number, number, number, number, number]
-		const coefInts: number7 = [
-			1.42180236,
-			0,
-			-0.08626792,
-			0.07873822,
-			0.00650549,
-			0.02160918,
-			-0.1393287
-		]
+		volatility = lpParams.volatility
+		liquidityPool = lpParams.liquidityPool
+		handler = lpParams.handler
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
-		// deploy libraries
-		const constantsFactory = await hre.ethers.getContractFactory("Constants")
-		const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
-		const constants = await constantsFactory.deploy()
-		const interactions = await interactionsFactory.deploy()
-		// deploy options registry
-		const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {
-			libraries: {
-				OpynInteractions: interactions.address
-			}
-		})
-		// get and transfer weth
-		weth = (await ethers.getContractAt(
-			"contracts/interfaces/WETH.sol:WETH",
-			WETH_ADDRESS[chainId]
-		)) as WETH
-		usd = (await ethers.getContractAt(
-			"contracts/tokens/ERC20.sol:ERC20",
-			USDC_ADDRESS[chainId]
-		)) as MintableERC20
-		await network.provider.request({
-			method: "hardhat_impersonateAccount",
-			params: [USDC_OWNER_ADDRESS[chainId]]
-		})
-		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
-		await usd.connect(signer).transfer(senderAddress, toWei("1000").div(oTokenDecimalShift18))
-		await weth.deposit({ value: utils.parseEther("99") })
-		const _optionRegistry = (await optionRegistryFactory.deploy(
-			USDC_ADDRESS[chainId],
-			OTOKEN_FACTORY[chainId],
-			GAMMA_CONTROLLER[chainId],
-			MARGIN_POOL[chainId],
-			senderAddress,
-			ADDRESS_BOOK[chainId]
-		)) as OptionRegistry
-		optionRegistry = _optionRegistry
-		expect(optionRegistry).to.have.property("deployTransaction")
+		//await portfolioValuesFeed.setLiquidityPool(liquidityPool.address)
+	})
 
-		// deploy price feed
-		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-		const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
-		priceFeed = _priceFeed
-		await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
-		await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
-		// oracle returns price denominated in 1e8
-		const oraclePrice = await oracle.getPrice(weth.address)
-		// pricefeed returns price denominated in 1e18
-		const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		expect(oraclePrice.mul(10_000_000_000)).to.equal(priceFeedPrice)
-
-		const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
-		volFeed = (await volFeedFactory.deploy()) as VolatilityFeed
-
-		//@ts-ignore
-		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		await volFeed.setVolatilitySkew(coefs, true)
-		await volFeed.setVolatilitySkew(coefs, false)
-
-		const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
-		portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
-			await signers[0].getAddress(),
-			utils.formatBytes32String("jobId"),
-			toWei("1"),
-			ZERO_ADDRESS
-		)) as MockPortfolioValuesFeed
-		await portfolioValuesFeed.fulfill(
-			utils.formatBytes32String("1"),
-			weth.address,
-			usd.address,
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0)
-		)
-
-		// deploy option protocol and link to registry/price feed
-		const protocolFactory = await ethers.getContractFactory("contracts/OptionsProtocol.sol:Protocol")
-		optionProtocol = (await protocolFactory.deploy(
-			optionRegistry.address,
-			priceFeed.address,
-			volFeed.address,
-			portfolioValuesFeed.address
-		)) as Protocol
-		expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
-
-		//@ts-ignore
-		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-
-		const normDistFactory = await ethers.getContractFactory("NormalDist", {
-			libraries: {}
-		})
-		const normDist = await normDistFactory.deploy()
-		const volFactory = await ethers.getContractFactory("Volatility", {
-			libraries: {}
-		})
-		volatility = (await volFactory.deploy()) as Volatility
-		const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
-			libraries: {
-				NormalDist: normDist.address
-			}
-		})
-		const blackScholesDeploy = await blackScholesFactory.deploy()
-
-		const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
-			libraries: {
-				BlackScholes: blackScholesDeploy.address
-			}
-		})
-		const lp = (await liquidityPoolFactory.deploy(
-			optionProtocol.address,
-			usd.address,
-			weth.address,
-			usd.address,
-			toWei(rfr),
-			"ETH/USDC",
-			"EDP",
-			{
-				minCallStrikePrice,
-				maxCallStrikePrice,
-				minPutStrikePrice,
-				maxPutStrikePrice,
-				minExpiry: minExpiry,
-				maxExpiry: maxExpiry
-			},
-			await signers[0].getAddress()
-		)) as LiquidityPool
-
-		const lpAddress = lp.address
-		liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
-		optionRegistry.setLiquidityPool(liquidityPool.address)
-
+	it("Deploys the Option Registry and sets state with written options", async () => {
 		// deposit to the liquidity pool
 		const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
 		await hre.network.provider.request({
@@ -526,14 +289,17 @@ describe("Oracle core logic", async () => {
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		let quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
-		await usd.approve(liquidityPool.address, quote)
+		await usd.approve(handler.address, quote)
 		balance = await usd.balanceOf(senderAddress)
-		let write = await liquidityPool.issueAndWriteOption(proposedSeries, amount)
+		let write = await handler.issueAndWriteOption(proposedSeries, amount)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		receipt = await write.wait(1)
 		const events = receipt.events
-		const writeEvent = events?.find(x => x.event == "WriteOption")
-		const seriesAddress = writeEvent?.args?.series
+
+		const writeEvents = getMatchingEvents(receipt, WRITE_OPTION)
+		const writeEvent = writeEvents[0]
+		const seriesAddress = writeEvent !== "failed" ? writeEvent?.series : ""
+		//@ts-ignore
 		const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await putOptionToken.balanceOf(senderAddress)
 		const registryUsdBalance = await liquidityPool.collateralAllocated()
@@ -556,7 +322,7 @@ describe("Oracle core logic", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		write = await liquidityPool.issueAndWriteOption(proposedCallSeries, amount)
+		write = await handler.issueAndWriteOption(proposedCallSeries, amount)
 		receipt = await write.wait(1)
 	})
 
