@@ -206,7 +206,7 @@ export async function calculateOptionQuoteLocally(
 		priceNorm,
 		fromWei(optionSeries.strike),
 		timeToExpiration,
-		toBuy ? Number(fromWei(iv)) - Number(bidAskSpread) : fromWei(iv),
+		toBuy ? Number(fromWei(iv)) * (1 - Number(bidAskSpread)) : fromWei(iv),
 		parseFloat(rfr),
 		optionSeries.isPut ? "put" : "call"
 	)
@@ -232,7 +232,7 @@ export async function calculateOptionDeltaLocally(
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block
-	const time = genOptionTimeFromUnix(timestamp , optionSeries.expiration)
+	const time = genOptionTimeFromUnix(timestamp, optionSeries.expiration)
 	const vol = await liquidityPool.getImpliedVolatility(
 		optionSeries.isPut,
 		priceQuote,
@@ -240,7 +240,14 @@ export async function calculateOptionDeltaLocally(
 		optionSeries.expiration
 	)
 	const opType = optionSeries.isPut ? "put" : "call"
-	let localDelta = greeks.getDelta(fromWei(priceQuote), fromWei(optionSeries.strike), time, fromWei(vol), rfr, opType)
+	let localDelta = greeks.getDelta(
+		fromWei(priceQuote),
+		fromWei(optionSeries.strike),
+		time,
+		fromWei(vol),
+		rfr,
+		opType
+	)
 	localDelta = isShort ? -localDelta : localDelta
-	return toWei(localDelta.toString()).mul(amount.div(toWei('1')))
+	return toWei(localDelta.toString()).mul(amount.div(toWei("1")))
 }
