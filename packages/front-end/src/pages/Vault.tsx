@@ -1,4 +1,5 @@
 import React from "react";
+import { Card } from "../components/shared/Card";
 import { VaultDepositWithdraw } from "../components/VaultDepositWithdraw";
 
 export const Vault = () => {
@@ -12,8 +13,10 @@ export const Vault = () => {
           justo, sit amet sagittis nunc efficitur ac.{" "}
         </p>
       </div>
-      <div className="col-start-9 col-end-17 border-black border-2 p-8">
-        <VaultDepositWithdraw />
+      <div className="col-start-9 col-end-17">
+        <Card>
+          <VaultDepositWithdraw />
+        </Card>
       </div>
     </>
   );

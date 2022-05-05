@@ -4,17 +4,24 @@ import { Dispatch } from "react";
 export type GlobalState = {
   ethPrice: number | null;
   eth24hChange: number | null;
+  connectWalletIndicatorActive: boolean;
 };
 
 export enum ActionType {
   SET_ETH_PRICE,
+  SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
 }
 
-export type GlobalAction = {
-  type: ActionType.SET_ETH_PRICE;
-  price: number;
-  change?: number;
-};
+export type GlobalAction =
+  | {
+      type: ActionType.SET_ETH_PRICE;
+      price: number;
+      change?: number;
+    }
+  | {
+      type: ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE;
+      isActive: boolean;
+    };
 
 export type GlobalContext = {
   state: GlobalState;

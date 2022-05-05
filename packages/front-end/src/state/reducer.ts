@@ -19,6 +19,11 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ethPrice: action.price,
         eth24hChange: action.change ?? state.eth24hChange,
       };
+    case ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE:
+      return {
+        ...state,
+        connectWalletIndicatorActive: action.isActive,
+      };
   }
 };
 
