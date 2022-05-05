@@ -87,8 +87,8 @@ export const VaultDepositWithdraw = () => {
       <div className="font-parabole">
         <h3 className="pl-4 py-2 border-b-2 border-black">Rysk Vault</h3>
       </div>
-      <div className="flex">
-        <div className="border-r-2 border-black w-16 flex justify-center items-center">
+      <div className="flex border-b-2 border-black">
+        <div className="border-r-2 border-b-2 border-black w-16 flex justify-center items-center">
           <div className="w-7 h-7 rounded-full border-black border-2 flex justify-center items-center">
             <div className="w-4 h-4 rounded-full border-black border-2" />
           </div>
@@ -137,8 +137,14 @@ export const VaultDepositWithdraw = () => {
         </div>
       </div>
       <button
-        onClick={() => handleSubmit()}
-        className="w-full py-6 rounded-b-xl bg-black text-white mt-[-2px]"
+        onClick={() => {
+          if (inputValue) {
+            handleSubmit();
+          }
+        }}
+        className={`w-full py-6 rounded-b-xl bg-black text-white mt-[-2px] ${
+          inputValue ? "" : "bg-gray-300 cursor-default"
+        }`}
       >
         Submit
       </button>
