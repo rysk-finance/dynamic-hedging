@@ -732,7 +732,7 @@ contract LiquidityPool is
       uint iv = getImpliedVolatility(optionSeries.isPut, underlyingPrice, optionSeries.strike, optionSeries.expiration);
       if (iv == 0) {revert CustomErrors.IVNotFound();}
       if (isBuying) {
-        iv = iv - bidAskIVSpread;
+        iv = (iv * (1e18 - (bidAskIVSpread)))/1e18;
       }
       // revert CustomErrors.if the expiry is in the past
       if (optionSeries.expiration <= block.timestamp) {revert CustomErrors.OptionExpiryInvalid();}
