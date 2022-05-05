@@ -3,7 +3,7 @@ const DAY_MS = HOUR_MS * 24;
 
 export const getTimeDifferenceString = (time: number) => {
   const days = Math.floor(time / DAY_MS);
-  let timeRemaining = time - days * DAY_MS;
+  const timeRemaining = time - days * DAY_MS;
   const hours = Math.round(timeRemaining / HOUR_MS);
 
   return `${days}d ${hours}h`;

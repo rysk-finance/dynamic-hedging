@@ -1,10 +1,12 @@
 import { createContext, useContext, useReducer } from "react";
 import { globalReducer } from "./reducer";
 import { GlobalContext, GlobalState } from "./types";
+import React from "react";
 
 const defaultGlobalState: GlobalState = {
   ethPrice: null,
   eth24hChange: null,
+  connectWalletIndicatorActive: false,
 };
 
 export const GlobalReactContext = createContext<GlobalContext>({
