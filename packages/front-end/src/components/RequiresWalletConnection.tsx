@@ -12,7 +12,7 @@ export const RequiresWalletConnection: React.FC<
   RequiresWalletConnectionProps
 > = ({ className, fallbackComponent, children }) => {
   const { dispatch } = useGlobalContext();
-  const { account } = useWalletContext();
+  const { account, connectWallet } = useWalletContext();
 
   const handleMouseEnter = useCallback(() => {
     dispatch({
@@ -46,7 +46,10 @@ export const RequiresWalletConnection: React.FC<
 
   return (
     <div
-      className={`border-2 border-black bg-yellow-500 w-full h-full ${className}`}
+      onClick={() => {
+        connectWallet?.();
+      }}
+      className={`border-2 border-black bg-yellow-500 w-full h-full cursor-pointer ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     ></div>
