@@ -118,11 +118,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     /// @inheritdoc IHedgingReactor
     function withdraw(uint256 _amount, address _token) external returns (uint256) {
         require(msg.sender == parentLiquidityPool, "!vault");
-        uint256 convertedAmount = OptionsCompute.convertToDecimals(_amount, IERC20(_token).decimals());
         uint256 balance = IERC20(_token).balanceOf(address(this));
-        uint256 convertedBalance = OptionsCompute.convertFromDecimals(balance, IERC20(_token).decimals());
-        if (convertedAmount <= balance) {
-            SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, convertedAmount);
+        if (_amount <= balance) {
+            SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, _amount);
             return _amount;
         } else {
             // not enough in balance. Liquidate ETH.
@@ -131,14 +129,14 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             if(ethBalance < minAmount) {
                 return 0;
             }
-            _liquidateETH(convertedAmount - balance, ethBalance, _token);         
+            _liquidateETH(_amount - balance, ethBalance, _token);         
             balance = IERC20(_token).balanceOf(address(this));
-            if(balance < convertedAmount){
+            if(balance < _amount){
                 SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, balance);
                 internalDelta = int256(IERC20(wETH).balanceOf(address(this)));
-                return convertedBalance;
+                return balance;
             } else {
-                SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, convertedAmount);
+                SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, _amount);
                 internalDelta = int256(IERC20(wETH).balanceOf(address(this)));
                 return _amount;
             }

@@ -8,14 +8,18 @@ interface CustomErrors {
     error OrderExpired();
     error InvalidAmount();
     error IssuanceFailed();
+    error RoundNotClosed();
+    error NothingToRedeem();
     error DeltaNotDecreased();
     error NonExistentOtoken();
     error OrderExpiryTooLong();
     error InvalidShareAmount();
+    error ExistingWithdrawal();
     error TotalSupplyReached();
     error StrikeAssetInvalid();
     error OptionStrikeInvalid();
     error OptionExpiryInvalid();
+    error NoExistingWithdrawal();
     error CollateralAssetInvalid();
     error UnderlyingAssetInvalid();
     error CollateralAmountInvalid();

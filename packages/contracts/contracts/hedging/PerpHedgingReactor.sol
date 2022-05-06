@@ -145,17 +145,16 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         require(msg.sender == parentLiquidityPool, "!vault");
         if (_token != collateralAsset) {revert IncorrectCollateral();}
         // check the holdings if enough just lying around then transfer it
-        // assume amount is passed in as e18
-        uint256 convertedAmount = OptionsCompute.convertToDecimals(_amount, IERC20(_token).decimals());
+        // assume amount is passed in as collateral decimals
         uint256 balance = IERC20(_token).balanceOf(address(this));
-        if (convertedAmount <= balance) {
-            SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, convertedAmount);
+        if (_amount <= balance) {
+            SafeTransferLib.safeTransfer(ERC20(_token), msg.sender, _amount);
             // return in e18 format
             return _amount;
         }
         // get the collatNeeded (this should not underflow as the 
         // previous check will have eliminated these cases)
-        uint256 collatNeeded = convertedAmount - balance;
+        uint256 collatNeeded = _amount - balance;
         // liquidate the collateral needed
         (uint256 collatReturned, int256 deltaChange) = _liquidatePosition(collatNeeded);
         // adjust the internal delta in accordance with the change that liquidatePosition made
@@ -165,13 +164,13 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
             // transfer assets back to the liquidityPool 
             // TODO: track this transfer either in LiquidityPool or here
             SafeTransferLib.safeTransfer(ERC20(_token), parentLiquidityPool, collatReturned + balance);
-            // return in e18 format
-            return OptionsCompute.convertFromDecimals(collatReturned + balance, IERC20(_token).decimals());
+            // return in colalteral decimals format
+            return collatReturned + balance;
         } else {
             // transfer assets back to the liquidityPool 
             // TODO: track this transfer either in LiquidityPool or here
-            SafeTransferLib.safeTransfer(ERC20(_token), parentLiquidityPool, convertedAmount);
-            // return in e18 format
+            SafeTransferLib.safeTransfer(ERC20(_token), parentLiquidityPool, _amount);
+            // return in collateral decimals format
             return _amount;
         }
     }

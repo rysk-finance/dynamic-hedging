@@ -56,8 +56,12 @@ contract LiquidityPool is
   mapping(uint256 => uint256) public epochPricePerShare;
   // deposit receipts for users
   mapping(address => DepositReceipt) public depositReceipts;
+  // withdrawal receipts for users
+  mapping(address => WithdrawalReceipt) public withdrawalReceipts;
   // pending deposits for a round
   uint256 public pendingDeposits;
+  // pending withdrawals
+  uint256 public pendingWithdrawals;
 
   /////////////////////////////////////
   /// governance settable variables ///
@@ -67,8 +71,8 @@ contract LiquidityPool is
   uint public bufferPercentage = 2000;
   // list of addresses for hedging reactors
   address[] public hedgingReactors;
-  // max total supply of the lp shares
-  uint public maxTotalSupply = type(uint256).max;
+  // max total supply of collateral, denominated in e18
+  uint public collateralCap = type(uint256).max;
   // Maximum discount that an option tilting factor can discount an option price
   uint public maxDiscount = PRBMathUD60x18.SCALE * 10 / 100; // As a percentage. Init at 10%
   // The spread between the bid and ask on the IV skew;
@@ -112,15 +116,21 @@ contract LiquidityPool is
     uint128 epoch;
     uint128 amount;
     uint256 unredeemedShares;
-    address recipient;
+  }
+
+  struct WithdrawalReceipt {
+    uint128 epoch;
+    uint128 shares;
   }
 
   event OrderCreated(uint orderId);
   event OrderExecuted(uint orderId);
   event LiquidityAdded(uint amount);
   event StrangleCreated(uint strangleId);
-  event Deposit(address recipient, uint strikeAmount, address sender, uint256 epoch);
-  event Withdraw(address recipient, uint shares,  uint strikeAmount);
+  event Deposit(address recipient, uint amount, uint256 epoch);
+  event Redeem(address recipient, uint256 amount, uint256 epoch);
+  event InitiateWithdraw(address recipient, uint256 amount, uint256 epoch);
+  event Withdraw(address recipient, uint amount,  uint shares);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
   event SettleVault(address series, uint collateralReturned, uint collateralLost, address closer);
   event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
@@ -215,12 +225,12 @@ contract LiquidityPool is
       maxDiscount = _maxDiscount;
   }
   /**
-   * @notice set the maximum share supply of the pool
-   * @param _maxTotalSupply of the shares
+   * @notice set the maximum collateral amount allowed in the pool
+   * @param _collateralCap of the collateral held
    * @dev   only governance can call this function
    */
-  function setMaxTotalSupply(uint256 _maxTotalSupply) external onlyOwner {
-      maxTotalSupply = _maxTotalSupply;
+  function setCollateralCap(uint256 _collateralCap) external onlyOwner {
+      collateralCap = _collateralCap;
   }
   /**
    * @notice update the liquidity pool buffer limit
@@ -376,6 +386,10 @@ function resetEphemeralValues() external {
     delete ephemeralLiabilities;
     delete ephemeralDelta;
 }
+
+function pauseTrading() external onlyOwner {}
+
+function executeEpochCalculation() external onlyOwner {}
   /////////////////////////////////////////////
   /// external state changing functionality ///
   /////////////////////////////////////////////
@@ -383,13 +397,11 @@ function resetEphemeralValues() external {
   /** 
    * @notice function for adding liquidity to the options liquidity pool
    * @param _amount    amount of the strike asset to deposit
-   * @param _recipient the recipient of the shares
    * @return success
    * @dev    entry point to provide liquidity to dynamic hedging vault 
    */
   function deposit(
-    uint _amount,
-    address _recipient
+    uint _amount
     )
     external
     whenNotPaused()
@@ -397,83 +409,104 @@ function resetEphemeralValues() external {
     returns(bool)
   {
     if (_amount == 0) {revert CustomErrors.InvalidAmount();}
-    _deposit(_amount, _recipient);
+    _deposit(_amount);
     // Pull in tokens from sender
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _amount);    
     return true;
   }
-
-  function _deposit(uint256 _amount, address _recipient) private {
-    uint256 currentEpoch = epoch;
-    // check the total allowed shares arent surpassed by incrementing the shares with the amount multiplied by the
-    // previous price per share
-    uint256 totalSharesWithDeposit = totalSupply + (_amount*epochPricePerShare[currentEpoch - 1]) / 1e18;
-    if (totalSharesWithDeposit > maxTotalSupply) {revert CustomErrors.TotalSupplyReached();}
-    emit Deposit(_recipient, _amount, msg.sender, currentEpoch);
-    DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
-    // check for any unredeemed shares
-    uint256 unredeemedShares = uint256(depositReceipt.unredeemedShares);
-    // if there is already a receipt from a previous round then acknowledge and record it
-    if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
-      unredeemedShares += _sharesForAmount(_amount, epochPricePerShare[depositReceipt.epoch]);
-    }
-    // if there is a second deposit in the same round then increment this amount
-    if (currentEpoch == depositReceipt.epoch) {
-      _amount += uint256(depositReceipt.amount);
-    }
-    require(_amount <= type(uint128).max, "overflow");
-    // create the deposit receipt
-    depositReceipts[msg.sender] = DepositReceipt({
-      epoch: uint128(currentEpoch),
-      amount: uint128(_amount),
-      unredeemedShares: unredeemedShares,
-      recipient: _recipient
-    });
-    pendingDeposits += _amount;
+  /** 
+   * @notice function for allowing a user to redeem their shares from a previous epoch
+   * @param _shares the number of shares to redeem 
+   * @return the number of shares actually returned
+   */
+  function redeem(uint256 _shares) external nonReentrant returns (uint256) {
+    if (_shares == 0) {revert CustomErrors.InvalidShareAmount();}
+    return _redeem(_shares);
   }
+
   /**
-   * @notice function for removing liquidity from the options liquidity pool
+   * @notice function for initiating a withdraw request from the pool
    * @param _shares    amount of shares to return
-   * @param _recipient the recipient of the amount to return
-   * @return transferCollateralAmount amount of strike asset to return to the recipient
    * @dev    entry point to remove liquidity to dynamic hedging vault 
    */
-  function withdraw(
-    uint _shares,
-    address _recipient
+  function intiateWithdraw(
+    uint _shares
   )
     external
     whenNotPaused()
     nonReentrant
-    returns(uint transferCollateralAmount)
   {
     if (_shares == 0) {revert CustomErrors.InvalidShareAmount();}
-    // get the value of amount for the shares
-    uint collateralAmount = _shareValue(_shares);
-    // calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
-    (uint256 normalizedCollateralBalance,, uint256 _decimals) = getNormalizedBalance(collateralAsset);
-    // Calculate liquidity that can be withdrawn without hitting buffer
-    int256 bufferRemaining = int256(normalizedCollateralBalance) - int(_getNAV() * bufferPercentage/MAX_BPS);
-    // determine if any extra liquidity is needed. If this value is 0 or less, withdrawal can happen with no further action
-    int256 amountNeeded = int(collateralAmount) - bufferRemaining;
+
+    // maybe need redemption maths here
+    _redeem(type(uint256).max);
+
+    uint256 currentEpoch = epoch;
+    WithdrawalReceipt memory withdrawalReceipt = withdrawalReceipts[msg.sender];
+
+    emit InitiateWithdraw(msg.sender, _shares, currentEpoch);
+    uint256 existingShares = withdrawalReceipt.shares;
+    uint256 withdrawalShares;
+    if(withdrawalReceipt.epoch == currentEpoch) {
+      withdrawalShares = existingShares + _shares;
+    } else {
+      if (existingShares != 0) {revert CustomErrors.ExistingWithdrawal();}
+      withdrawalShares = _shares;
+      withdrawalReceipts[msg.sender].epoch = uint128(currentEpoch);
+    }
+
+    withdrawalReceipts[msg.sender].shares = uint128(withdrawalShares);
+    pendingWithdrawals += pendingWithdrawals + _shares;
+
+    transferFrom(msg.sender, address(this), _shares);
+  }
+
+  /**
+   * @notice function for completing the withdraw from a pool
+   * @param _shares    amount of shares to return
+   * @dev    entry point to remove liquidity to dynamic hedging vault 
+   */
+  function completeWithdraw(
+    uint256 _shares
+  )
+    external
+    whenNotPaused()
+    nonReentrant
+    returns (uint256)
+  {
+    WithdrawalReceipt memory withdrawalReceipt = withdrawalReceipts[msg.sender];
+    // cache the storage variables
+    uint256 withdrawalShares = _shares > withdrawalReceipt.shares ? withdrawalReceipt.shares : _shares;
+    uint256 withdrawalEpoch = withdrawalReceipt.epoch;
+    // make sure there is something to withdraw and make sure the round isnt the current one
+    if (withdrawalShares == 0) {revert CustomErrors.NoExistingWithdrawal();}
+    if (withdrawalEpoch == epoch) {revert CustomErrors.RoundNotClosed();}
+    // reduced the stored share receipt by the shares requested
+    withdrawalReceipts[msg.sender].shares -= uint128(withdrawalShares);
+    pendingWithdrawals -= withdrawalShares;
+    // get the withdrawal amount based on the shares and pps at the epoch
+    uint256 withdrawalAmount = _amountForShares(withdrawalShares, epochPricePerShare[withdrawalEpoch]);
+    if (withdrawalAmount == 0) { revert  CustomErrors.InvalidAmount();}
+    // get the liquidity that can be withdrawn from the pool without hitting the collateral requirement buffer
+    int256 buffer = int(collateralAllocated * bufferPercentage / MAX_BPS);
+    int256 collatBalance = int(ERC20(collateralAsset).balanceOf(address(this)));
+    int256 bufferRemaining = collatBalance - buffer;
+    // get the extra liquidity that is needed 
+    int256 amountNeeded = int(withdrawalAmount) - bufferRemaining;
+    // loop through the reactors and move funds
     if (amountNeeded > 0) {
-      // if above zero, we need to withdraw funds from hedging reactors
-      // assumes returned in e18
       for (uint8 i=0; i < hedgingReactors.length; i++) {
         amountNeeded -= int(IHedgingReactor(hedgingReactors[i]).withdraw(uint(amountNeeded), collateralAsset));
         if (amountNeeded <= 0) {
           break;
         }
       }
-      // if still above zero after withdrawing from hedging reactors, we do not have enough liquidity
       if (amountNeeded > 0) { revert CustomErrors.WithdrawExceedsLiquidity();}
     }
-    transferCollateralAmount = OptionsCompute.convertToDecimals(collateralAmount, _decimals);
-    // burn the shares
-    _burn(msg.sender, _shares);
-    // send funds to user
-    SafeTransferLib.safeTransfer(ERC20(collateralAsset), _recipient, transferCollateralAmount);
-    emit Withdraw(_recipient, _shares, transferCollateralAmount);
+    emit Withdraw(msg.sender, withdrawalAmount, withdrawalShares);
+    _burn(address(this), withdrawalShares);
+    SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, withdrawalAmount);    
+    return withdrawalAmount;
   }
 
   ///////////////////////
@@ -638,6 +671,61 @@ function resetEphemeralValues() external {
   /// internal utilities ///
   //////////////////////////
 
+  function _deposit(uint256 _amount) private {
+    uint256 currentEpoch = epoch;
+    // check the total allowed collateral amount isnt surpassed by incrementing the total assets with the amount denominated in e18
+    uint256 totalAmountWithDeposit = _getAssets() + OptionsCompute.convertFromDecimals(_amount, ERC20(collateralAsset).decimals());
+    if (totalAmountWithDeposit > collateralCap) {revert CustomErrors.TotalSupplyReached();}
+    emit Deposit(msg.sender, _amount, currentEpoch);
+    DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
+    // check for any unredeemed shares
+    uint256 unredeemedShares = uint256(depositReceipt.unredeemedShares);
+    // if there is already a receipt from a previous round then acknowledge and record it
+    if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
+      unredeemedShares += _sharesForAmount(depositReceipt.amount, epochPricePerShare[depositReceipt.epoch]);
+    }
+    // if there is a second deposit in the same round then increment this amount
+    if (currentEpoch == depositReceipt.epoch) {
+      _amount += uint256(depositReceipt.amount);
+    }
+    require(_amount <= type(uint128).max, "overflow");
+    // create the deposit receipt
+    depositReceipts[msg.sender] = DepositReceipt({
+      epoch: uint128(currentEpoch),
+      amount: uint128(_amount),
+      unredeemedShares: unredeemedShares
+    });
+    pendingDeposits += _amount;
+  }
+
+  /**
+   * @dev inspired by Ribbon's queue system
+   */
+  function _redeem(uint256 _shares) internal returns (uint256) {
+    DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
+    uint256 currentEpoch = epoch;
+    // check for any unredeemed shares
+    uint256 unredeemedShares = uint256(depositReceipt.unredeemedShares);
+    // if there is already a receipt from a previous round then acknowledge and record it
+    if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
+      unredeemedShares += _sharesForAmount(depositReceipt.amount, epochPricePerShare[depositReceipt.epoch]);
+    }
+    // if the shares requested are greater than their unredeemedShares then floor to unredeemedShares, otherwise 
+    // use their requested share number
+    uint256 toRedeem = _shares > unredeemedShares ? unredeemedShares : _shares;
+    if (toRedeem == 0) {revert CustomErrors.NothingToRedeem();}
+    // if the deposit receipt is on this epoch and there are unredeemed shares then we leave amount as is,
+    // if the epoch has past then we set the amount to 0 and take from the unredeemedShares
+    if (depositReceipt.epoch < currentEpoch) {
+      depositReceipts[msg.sender].amount = 0;
+    }
+    depositReceipts[msg.sender].unredeemedShares = uint128(unredeemedShares - toRedeem);
+    emit Redeem(msg.sender, toRedeem, depositReceipt.epoch);
+    // transfer as the shares will have been minted in the epoch execution
+    transfer(msg.sender, toRedeem);
+    return toRedeem;
+  }
+
   /**
    * @notice get the number of shares for a given amount
    * @param _amount  the amount to convert to shares - assumed in collateral decimals
@@ -656,8 +744,21 @@ function resetEphemeralValues() external {
     if (totalSupply == 0) {
       shares = convertedAmount;
     } else {
-      shares = convertedAmount.mul(PRBMath.SCALE).div(assetPerShare);
+      shares = convertedAmount * PRBMath.SCALE / assetPerShare;
     }
+  }
+
+  /**
+   * @notice get the amount for a given number of shares
+   * @param _shares  the shares to convert to amount in e18
+   * @return amount the number of amount based on shares in collateral decimals
+   */
+  function _amountForShares(uint256 _shares, uint256 _assetPerShare)
+    internal
+    view
+    returns (uint amount)
+  {
+    amount = OptionsCompute.convertToDecimals(_shares * _assetPerShare/ PRBMath.SCALE, ERC20(collateralAsset).decimals());
   }
 
   /**
@@ -672,13 +773,7 @@ function resetEphemeralValues() external {
     // equities = assets - liabilities
     // assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
     // liabilities: Options that we wrote in e18
-    uint256 assets = 
-      OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) 
-      + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
-    for (uint8 i=0; i < hedgingReactors.length; i++) {
-      // should always return value in e18 decimals
-       assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
-    }
+    uint256 assets = _getAssets();
     Types.PortfolioValues memory portfolioValues = getPortfolioValues();
     // check that the portfolio values are acceptable
     _validatePortfolioValues(portfolioValues);
@@ -690,6 +785,26 @@ function resetEphemeralValues() external {
   }
 
   /**
+   * @notice get the Asset Value
+   * @return Asset Value in e18 decimal format
+   */
+  function _getAssets()
+    internal
+    view
+    returns (uint)
+  {
+    // assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
+    // liabilities: Options that we wrote in e18
+    uint256 assets = 
+      OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) 
+      + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
+    for (uint8 i=0; i < hedgingReactors.length; i++) {
+      // should always return value in e18 decimals
+       assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
+    }
+    return assets;
+  }
+  /**
    * @notice get the latest oracle fed portfolio values and check when they were last updated and make sure this is within a reasonable window
    */
   function _validatePortfolioValues(Types.PortfolioValues memory portfolioValues) internal view {
@@ -699,23 +814,6 @@ function resetEphemeralValues() external {
       uint256 priceDelta = OptionsCompute.calculatePercentageDifference(getUnderlyingPrice(underlyingAsset, strikeAsset), portfolioValues.spotPrice);
       // If price has deviated too much we want to prevent a possible oracle attack
       if (priceDelta > maxPriceDeviationThreshold) { revert CustomErrors.PriceDeltaExceedsThreshold(priceDelta); }
-  }
-
-  /**
-   * @notice get the amount for a given number of shares
-   * @param _shares  the shares to convert to amount in e18
-   * @return amount the number of amount based on shares in e18
-   */
-  function _shareValue(uint _shares)
-    internal
-    view
-    returns (uint amount)
-  {
-    if (totalSupply == 0) {
-      amount = _shares;
-    } else {
-      amount = _shares.mul(_getNAV()).div(totalSupply);
-    }
   }
 
   /**
