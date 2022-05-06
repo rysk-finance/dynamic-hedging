@@ -50,6 +50,14 @@ contract LiquidityPool is
   int256 public ephemeralLiabilities;
   // ephemeral delta of the pool
   int256 public ephemeralDelta;
+  // epoch of the price per share round
+  uint256 public epoch;
+  // epoch PPS
+  mapping(uint256 => uint256) public epochPricePerShare;
+  // deposit receipts for users
+  mapping(address => DepositReceipt) public depositReceipts;
+  // pending deposits for a round
+  uint256 public pendingDeposits;
 
   /////////////////////////////////////
   /// governance settable variables ///
@@ -100,11 +108,18 @@ contract LiquidityPool is
     uint deltaTiltFactor; //e18
   }
 
+  struct DepositReceipt {
+    uint128 epoch;
+    uint128 amount;
+    uint256 unredeemedShares;
+    address recipient;
+  }
+
   event OrderCreated(uint orderId);
   event OrderExecuted(uint orderId);
   event LiquidityAdded(uint amount);
   event StrangleCreated(uint strangleId);
-  event Deposit(address recipient, uint strikeAmount, uint shares);
+  event Deposit(address recipient, uint strikeAmount, address sender, uint256 epoch);
   event Withdraw(address recipient, uint shares,  uint strikeAmount);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
   event SettleVault(address series, uint collateralReturned, uint collateralLost, address closer);
@@ -131,6 +146,8 @@ contract LiquidityPool is
     collateralAsset = _collateralAsset;
     protocol = Protocol(_protocol);
     optionParams = _optionParams;
+    epochPricePerShare[0] = 1e18;
+    epoch++;
   }
 
   ///////////////
@@ -367,7 +384,7 @@ function resetEphemeralValues() external {
    * @notice function for adding liquidity to the options liquidity pool
    * @param _amount    amount of the strike asset to deposit
    * @param _recipient the recipient of the shares
-   * @return shares amount of shares minted to the recipient
+   * @return success
    * @dev    entry point to provide liquidity to dynamic hedging vault 
    */
   function deposit(
@@ -377,20 +394,43 @@ function resetEphemeralValues() external {
     external
     whenNotPaused()
     nonReentrant
-    returns(uint shares)
+    returns(bool)
   {
     if (_amount == 0) {revert CustomErrors.InvalidAmount();}
-    // Calculate shares to mint based on the amount provided
-    (shares) = _sharesForAmount(_amount);
-    if (shares == 0) {revert CustomErrors.InvalidShareAmount();}
+    _deposit(_amount, _recipient);
     // Pull in tokens from sender
-    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _amount);
-    // mint lp token to recipient
-    _mint(_recipient, shares);
-    emit Deposit(_recipient, _amount, shares);
-    if (totalSupply > maxTotalSupply) {revert CustomErrors.TotalSupplyReached();}
+    SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _amount);    
+    return true;
   }
 
+  function _deposit(uint256 _amount, address _recipient) private {
+    uint256 currentEpoch = epoch;
+    // check the total allowed shares arent surpassed by incrementing the shares with the amount multiplied by the
+    // previous price per share
+    uint256 totalSharesWithDeposit = totalSupply + (_amount*epochPricePerShare[currentEpoch - 1]) / 1e18;
+    if (totalSharesWithDeposit > maxTotalSupply) {revert CustomErrors.TotalSupplyReached();}
+    emit Deposit(_recipient, _amount, msg.sender, currentEpoch);
+    DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
+    // check for any unredeemed shares
+    uint256 unredeemedShares = uint256(depositReceipt.unredeemedShares);
+    // if there is already a receipt from a previous round then acknowledge and record it
+    if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
+      unredeemedShares += _sharesForAmount(_amount, epochPricePerShare[depositReceipt.epoch]);
+    }
+    // if there is a second deposit in the same round then increment this amount
+    if (currentEpoch == depositReceipt.epoch) {
+      _amount += uint256(depositReceipt.amount);
+    }
+    require(_amount <= type(uint128).max, "overflow");
+    // create the deposit receipt
+    depositReceipts[msg.sender] = DepositReceipt({
+      epoch: uint128(currentEpoch),
+      amount: uint128(_amount),
+      unredeemedShares: unredeemedShares,
+      recipient: _recipient
+    });
+    pendingDeposits += _amount;
+  }
   /**
    * @notice function for removing liquidity from the options liquidity pool
    * @param _shares    amount of shares to return
@@ -603,7 +643,7 @@ function resetEphemeralValues() external {
    * @param _amount  the amount to convert to shares - assumed in collateral decimals
    * @return shares the number of shares based on the amount - assumed in e18
    */
-  function _sharesForAmount(uint _amount)
+  function _sharesForAmount(uint _amount, uint256 assetPerShare)
     internal
     view
     returns
@@ -616,7 +656,7 @@ function resetEphemeralValues() external {
     if (totalSupply == 0) {
       shares = convertedAmount;
     } else {
-      shares = convertedAmount.mul(totalSupply).div(_getNAV());
+      shares = convertedAmount.mul(PRBMath.SCALE).div(assetPerShare);
     }
   }
 
