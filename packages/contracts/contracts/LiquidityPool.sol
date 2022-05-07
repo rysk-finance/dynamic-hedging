@@ -125,6 +125,7 @@ contract LiquidityPool is
     uint128 shares;
   }
 
+  event EpochExecuted(uint epoch);
   event OrderCreated(uint orderId);
   event OrderExecuted(uint orderId);
   event LiquidityAdded(uint amount);
@@ -453,13 +454,14 @@ function executeEpochCalculation() external onlyOwner {
   Types.PortfolioValues memory portfolioValues = getPortfolioValues();
   // check that the portfolio values are acceptable
   _validatePortfolioValues(portfolioValues);
-  uint256 singleShare = 1e18;
-  uint256 newPricePerShare = totalSupply > 0 ?  singleShare * _getNAV() / totalSupply: singleShare;
+  uint256 newPricePerShare = totalSupply > 0 ?  1e18 * _getNAV() / totalSupply: 1e18;
   uint256 sharesToMint = _sharesForAmount(pendingDeposits, newPricePerShare);
   epochPricePerShare[epoch] = newPricePerShare;
   pendingDeposits = 0;
   isTradingPaused = false;
+  emit EpochExecuted(epoch);
   epoch++;
+  _mint(address(this), sharesToMint);
 }
 
   /////////////////////////////////////////////
