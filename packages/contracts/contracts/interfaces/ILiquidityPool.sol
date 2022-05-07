@@ -5,6 +5,8 @@ import { Types } from "../libraries/Types.sol";
 import "../interfaces/IOptionRegistry.sol";
 interface ILiquidityPool {
   function collateralAsset() external view returns (address);
+  function underlyingAsset() external view returns (address);
+  function strikeAsset() external view returns (address);
   function handlerIssue(Types.OptionSeries memory optionSeries) external returns (address);
   function resetEphemeralValues() external;
   function handlerWriteOption(

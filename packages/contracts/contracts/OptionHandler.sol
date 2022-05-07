@@ -11,6 +11,7 @@ import "./interfaces/IOptionRegistry.sol";
 import { Types } from "./libraries/Types.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
+import "./interfaces/IPortfolioValuesFeed.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
@@ -33,6 +34,11 @@ contract OptionHandler is
   // Protocol management contract
   ILiquidityPool public immutable liquidityPool;
   Protocol public immutable protocol;
+  // asset that denominates the strike price
+  address public immutable strikeAsset;
+  // asset that is used as the reference asset
+  address public immutable underlyingAsset;
+  // asset that is used for collateral asset
   address public immutable collateralAsset;
 
   /////////////////////////
@@ -92,6 +98,8 @@ contract OptionHandler is
     protocol = Protocol(_protocol);
     liquidityPool = ILiquidityPool(_liquidityPool);
     collateralAsset = liquidityPool.collateralAsset();
+    underlyingAsset = liquidityPool.underlyingAsset();
+    strikeAsset = liquidityPool.strikeAsset();
   }
 
   ///////////////
@@ -287,6 +295,7 @@ contract OptionHandler is
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), convertedPrem);
     // write the option, optionAmount in e18
     (optionAmount, series) = liquidityPool.handlerIssueAndWriteOption(optionSeries, amount, convertedPrem, delta, msg.sender);
+    getPortfolioValuesFeed().requestPortfolioData(string(abi.encodePacked(underlyingAsset)), string(abi.encodePacked(strikeAsset)));
   }
 
  /**
@@ -340,6 +349,7 @@ contract OptionHandler is
     // premium needs to adjusted for decimals of collateral asset
     uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), convertedPrem);
+    getPortfolioValuesFeed().requestPortfolioData(string(abi.encodePacked(underlyingAsset)), string(abi.encodePacked(strikeAsset)));
     return liquidityPool.handlerWriteOption(
       optionSeries, seriesAddress, amount, optionRegistry, convertedPrem, delta, msg.sender);
   }
@@ -385,6 +395,7 @@ contract OptionHandler is
     // premium needs to adjusted for decimals of collateral asset
     uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
     SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(liquidityPool), OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals()));
+    getPortfolioValuesFeed().requestPortfolioData(string(abi.encodePacked(underlyingAsset)), string(abi.encodePacked(strikeAsset)));
     return liquidityPool.handlerBuybackOption(optionSeries, amount, optionRegistry, seriesAddress, convertedPrem, delta, msg.sender);
   }
 
@@ -398,5 +409,13 @@ contract OptionHandler is
    */
   function getOptionRegistry() internal view returns (IOptionRegistry) {
     return IOptionRegistry(protocol.optionRegistry());
+  }
+
+  /**
+   * @notice get the portfolio values feed used by the liquidity pool
+   * @return the portfolio values feed contract
+   */
+  function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
+    return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
   }
 }
