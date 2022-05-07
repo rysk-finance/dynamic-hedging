@@ -174,6 +174,7 @@ export async function increase(duration: number | BigNumber) {
 
 export async function calculateOptionQuoteLocally(
 	liquidityPool: LiquidityPool,
+	collateralAsset: MintableERC20,
 	priceFeed: PriceFeed,
 	optionSeries: {
 		expiration: number
@@ -186,19 +187,46 @@ export async function calculateOptionQuoteLocally(
 	amount: BigNumber,
 	toBuy: boolean = false
 ) {
-	const totalLiqidity = await liquidityPool.totalSupply()
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block
 	const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), optionSeries.expiration)
-	const priceQuote = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-	const priceNorm = fromWei(priceQuote)
-	const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity))
-	const utilizationPrice = Number(priceNorm) * utilization
+	const underlyingPrice = await priceFeed.getNormalizedRate(
+		WETH_ADDRESS[chainId],
+		USDC_ADDRESS[chainId]
+	)
+	const priceNorm = fromWei(underlyingPrice)
+	const maxDiscount = 0.1 // 10%
+
+	const NAV = await liquidityPool.getNAV()
+	const collateralAllocated = await liquidityPool.collateralAllocated()
+	const lpUSDBalance = await collateralAsset.balanceOf(liquidityPool.address)
+	const portfolioDeltaBefore = await liquidityPool.getPortfolioDelta()
+	const optionDelta = await calculateOptionDeltaLocally(
+		liquidityPool,
+		priceFeed,
+		optionSeries,
+		amount,
+		!toBuy
+	)
+	// optionDelta will already be inverted is we are selling it
+	const portfolioDeltaAfter = portfolioDeltaBefore.add(optionDelta)
+	const portfolioDeltaIsDecreased =
+		Math.abs(portfolioDeltaAfter.toNumber()) - Math.abs(portfolioDeltaBefore.toNumber()) < 0
+	const normalisedDelta =
+		Math.abs(portfolioDeltaBefore.add(portfolioDeltaAfter).div(2).toNumber()) /
+		NAV.div(underlyingPrice).toNumber()
+
+	const deltaTiltAmount = normalisedDelta > maxDiscount ? maxDiscount : normalisedDelta
+	console.log({ deltaTiltAmount, maxDiscount })
+
+	const maxPrice = optionSeries.isPut ? optionSeries.strike : underlyingPrice
+	const utilization = collateralAllocated.div(collateralAllocated.add(lpUSDBalance))
+	let utilizationPrice = maxPrice.mul(utilization)
 
 	const iv = await liquidityPool.getImpliedVolatility(
 		optionSeries.isPut,
-		priceQuote,
+		underlyingPrice,
 		optionSeries.strike,
 		optionSeries.expiration
 	)
@@ -210,8 +238,17 @@ export async function calculateOptionQuoteLocally(
 		parseFloat(rfr),
 		optionSeries.isPut ? "put" : "call"
 	)
-
-	return (utilizationPrice > localBS ? utilizationPrice : localBS) * parseFloat(fromWei(amount))
+	// if delta exposure reduces, subtract delta skew from  pricequotes
+	if (portfolioDeltaIsDecreased) {
+		const newOptionPrice = localBS - deltaTiltAmount * localBS
+		utilizationPrice = utilizationPrice.sub(utilizationPrice.mul(deltaTiltAmount))
+		return utilizationPrice.gt(newOptionPrice) ? utilizationPrice : newOptionPrice
+		// if delta exposure increases, add delta skew to price quotes
+	} else {
+		const newOptionPrice = localBS + deltaTiltAmount * localBS
+		utilizationPrice = utilizationPrice.add(utilizationPrice.mul(deltaTiltAmount))
+		return utilizationPrice.gt(newOptionPrice) ? utilizationPrice : newOptionPrice
+	}
 }
 
 export async function calculateOptionDeltaLocally(
@@ -232,7 +269,7 @@ export async function calculateOptionDeltaLocally(
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block
-	const time = genOptionTimeFromUnix(timestamp , optionSeries.expiration)
+	const time = genOptionTimeFromUnix(timestamp, optionSeries.expiration)
 	const vol = await liquidityPool.getImpliedVolatility(
 		optionSeries.isPut,
 		priceQuote,
@@ -240,7 +277,14 @@ export async function calculateOptionDeltaLocally(
 		optionSeries.expiration
 	)
 	const opType = optionSeries.isPut ? "put" : "call"
-	let localDelta = greeks.getDelta(fromWei(priceQuote), fromWei(optionSeries.strike), time, fromWei(vol), rfr, opType)
+	let localDelta = greeks.getDelta(
+		fromWei(priceQuote),
+		fromWei(optionSeries.strike),
+		time,
+		fromWei(vol),
+		rfr,
+		opType
+	)
 	localDelta = isShort ? -localDelta : localDelta
-	return toWei(localDelta.toString()).mul(amount.div(toWei('1')))
+	return toWei(localDelta.toString()).mul(amount.div(toWei("1")))
 }

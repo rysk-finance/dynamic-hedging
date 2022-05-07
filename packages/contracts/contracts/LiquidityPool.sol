@@ -97,7 +97,7 @@ contract LiquidityPool is
     int totalDelta; // e18
     uint utilizationPrice; //e18
     bool isDecreased;
-    uint deltaTiltFactor; //e18
+    uint deltaTiltAmount; //e18
   }
 
   event OrderCreated(uint orderId);
@@ -537,29 +537,24 @@ function resetEphemeralValues() external {
       uint maxPrice = (optionSeries.isPut ? optionSeries.strike : underlyingPrice).mul(amount);
       // quoteState.utilizationPrice = maxPrice.mul(quoteState.totalOptionPrice.div(totalSupply));
       quoteState.utilizationPrice = maxPrice.mul(collateralAllocated.div(collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))));
-      // layered on to BlackScholes price when delta is moved away from target
-      // is a percentage
-      // quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.totalOptionPrice);
+    
+      // this is the percentage of the option price which is added to or subtracted from option price
+      // according to whether portfolio delta is increased or decreased respectively
+      quoteState.deltaTiltAmount = normalizedDelta > maxDiscount ? maxDiscount : normalizedDelta;
       if (quoteState.isDecreased) {
-        // this is the percentage of the option price which is added to or subtracted from option price
-        // according to whether portfolio delta is increased or decreased respectively
-        uint deltaTiltAmount = normalizedDelta > maxDiscount ? maxDiscount : normalizedDelta;
 
         // discounted BS option price
-        uint newOptionPrice = quoteState.totalOptionPrice - deltaTiltAmount.mul(quoteState.totalOptionPrice);
+        uint newOptionPrice = quoteState.totalOptionPrice - quoteState.deltaTiltAmount.mul(quoteState.totalOptionPrice);
         // discounted utilization priced option
-        quoteState.utilizationPrice = quoteState.utilizationPrice - discount.mul(quoteState.utilizationPrice);
+        quoteState.utilizationPrice = quoteState.utilizationPrice - quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice);
         // quote the greater of discounted utilization or discounted BS
         quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       } else {
-        uint newOptionPrice = quoteState.totalOptionPrice + deltaTiltAmount.mul(quoteState.totalOptionPrice);
-        if (quoteState.utilizationPrice < maxPrice) {
-          // increase utilization by delta tilt factor for moving delta away from zero
-          quoteState.utilizationPrice = deltaTiltAmount.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
-          quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
-        } else {
-          quote = maxPrice;
-        }
+        uint newOptionPrice = quoteState.totalOptionPrice + quoteState.deltaTiltAmount.mul(quoteState.totalOptionPrice);
+        // increase utilization by delta tilt factor for moving delta away from zero
+        quoteState.utilizationPrice = quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
+        quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
+      
       }
       quote =  OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
       delta = quoteState.totalDelta;

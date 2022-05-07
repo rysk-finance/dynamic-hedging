@@ -299,6 +299,7 @@ describe("Liquidity Pools", async () => {
 			arr.forEach(async ({ optionSeries, amount }) => {
 				const localQuote = await calculateOptionQuoteLocally(
 					liquidityPool,
+					usd,
 					priceFeed,
 					optionSeries,
 					amount
@@ -319,6 +320,7 @@ describe("Liquidity Pools", async () => {
 			arr.forEach(async ({ optionSeries, amount }) => {
 				const localQuote = await calculateOptionQuoteLocally(
 					liquidityPool,
+					usd,
 					priceFeed,
 					optionSeries,
 					amount

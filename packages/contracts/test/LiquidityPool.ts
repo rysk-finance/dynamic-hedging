@@ -304,6 +304,7 @@ describe("Liquidity Pools", async () => {
 
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			optionSeries,
 			amount
@@ -346,6 +347,7 @@ describe("Liquidity Pools", async () => {
 
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			optionSeries,
 			amount,
@@ -630,6 +632,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			proposedSeries,
 			amount
@@ -920,6 +923,7 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			optionSeries,
 			amount
@@ -966,6 +970,7 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			proposedSeries,
 			amount
@@ -1045,12 +1050,14 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuoteCall = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			proposedSeriesCall,
 			amount
 		)
 		const localQuotePut = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			proposedSeriesPut,
 			amount
@@ -1215,6 +1222,7 @@ describe("Liquidity Pools", async () => {
 		const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			{
 				expiration: orderDeets.optionSeries.expiration.toNumber(),
@@ -1317,6 +1325,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuote1 = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			{
 				expiration: orderDeets1.optionSeries.expiration.toNumber(),
@@ -1345,6 +1354,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuote2 = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			{
 				expiration: orderDeets2.optionSeries.expiration.toNumber(),
@@ -1559,18 +1569,21 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuoteInvalidDeltaCall = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			proposedSeriesInvalidDeltaCall,
 			amount
 		)
 		const localQuoteInvalidDeltaPut = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			proposedSeriesInvalidDeltaPut,
 			amount
 		)
 		const localQuoteInvalidPrice = await calculateOptionQuoteLocally(
 			liquidityPool,
+			usd,
 			priceFeed,
 			proposedSeriesInvalidPrice,
 			amount
