@@ -504,35 +504,58 @@ function resetEphemeralValues() external {
       int portfolioDelta = getPortfolioDelta();
       // portfolio delta upon writing option
       // subtract totalDelta because the pool is taking on the negative of the option's delta
-      int newDelta = PRBMathSD59x18.abs(portfolioDelta - quoteState.totalDelta);
-      // assumes a single collateral type regardless of call or put
-      // Is delta decreased?
-      quoteState.isDecreased = newDelta < PRBMathSD59x18.abs(portfolioDelta);
+      int newDelta = portfolioDelta - quoteState.totalDelta;
+      // How much closer to zero is the delta
+      // If closer to zero, this will be negative. Further away is positive
+      int deltaDistanceFromZeroDiff = PRBMathSD59x18.abs(newDelta) - PRBMathSD59x18.abs(portfolioDelta);
+      // Is delta moved closer to zero?
+      quoteState.isDecreased = deltaDistanceFromZeroDiff < 0;
       // delta in non-nominal terms
-      uint normalizedDelta = uint256(newDelta < 0 ? -newDelta : newDelta).div(_getNAV());
+      // This value is only used for tilting so we are only interested in its distance from 0
+      // ****** check this is bounded between 0 and 1 *********
+      // Does this need to be divided by NAV in ETH denomination?
+
+      // this line should get 1/3 of the discount
+      // 50 -> -25 == (50+(-25))/2 -> 12.5
+      // as this line
+      // 50 -> 25 == (50+25)/2 -> 37.5
+      // this line should get slightly less discount
+      // 50 -> -5 == (50+(-5))/2 -> 22.5
+      // as this line+
+      // 50 -> 5 == (50+5)/2 -> 27.5
+      // 50 -> 0 == (50+0)/2
+      // 25 -> 50 ==  (50+25)/2
+      // 25 -> -50 == (25+ (-50))/2 -> -12.5
+      // 25 -> 24 == 
+      uint normalizedDelta = uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))).div(_getNAV().div(getUnderlyingPrice(underlyingAsset, collateralAsset)));
+      console.log("delta quote:", deltaQuote < 0 ? uint(-deltaQuote) : uint(deltaQuote));
+      console.log("normalized delta:", normalizedDelta);
+      console.log("porfolio delta", portfolioDelta < 0 ? uint(-portfolioDelta) : uint(portfolioDelta), newDelta < 0 ? uint(-newDelta) : uint(newDelta));
+      console.log("values:",uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))),(_getNAV().div(getUnderlyingPrice(underlyingAsset, collateralAsset))));
+      // uint normalizedDelta = uint256(newDelta < 0 ? 1- -newDelta :1- newDelta).div(_getNAV());
       // max theoretical price of the option
       uint maxPrice = (optionSeries.isPut ? optionSeries.strike : underlyingPrice).mul(amount);
-
-      // ******                                           *******
-      // ******   What is this line trying to achieve?    *******
-      quoteState.utilizationPrice = maxPrice.mul(quoteState.totalOptionPrice.div(totalSupply));
+      // quoteState.utilizationPrice = maxPrice.mul(quoteState.totalOptionPrice.div(totalSupply));
+      quoteState.utilizationPrice = maxPrice.mul(collateralAllocated.div(collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))));
       // layered on to BlackScholes price when delta is moved away from target
-      quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.totalOptionPrice);
+      // is a percentage
+      // quoteState.deltaTiltFactor = (maxPrice.mul(normalizedDelta)).div(quoteState.totalOptionPrice);
       if (quoteState.isDecreased) {
-        // provide discount for moving towards delta zero
-        uint discount = quoteState.deltaTiltFactor > maxDiscount ? maxDiscount : quoteState.deltaTiltFactor;
+        // this is the percentage of the option price which is added to or subtracted from option price
+        // according to whether portfolio delta is increased or decreased respectively
+        uint deltaTiltAmount = normalizedDelta > maxDiscount ? maxDiscount : normalizedDelta;
 
         // discounted BS option price
-        uint newOptionPrice = quoteState.totalOptionPrice - discount.mul(quoteState.totalOptionPrice);
+        uint newOptionPrice = quoteState.totalOptionPrice - deltaTiltAmount.mul(quoteState.totalOptionPrice);
         // discounted utilization priced option
         quoteState.utilizationPrice = quoteState.utilizationPrice - discount.mul(quoteState.utilizationPrice);
         // quote the greater of discounted utilization or discounted BS
         quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
       } else {
-        uint newOptionPrice = quoteState.deltaTiltFactor.mul(quoteState.totalOptionPrice) + quoteState.totalOptionPrice;
+        uint newOptionPrice = quoteState.totalOptionPrice + deltaTiltAmount.mul(quoteState.totalOptionPrice);
         if (quoteState.utilizationPrice < maxPrice) {
           // increase utilization by delta tilt factor for moving delta away from zero
-          quoteState.utilizationPrice = quoteState.deltaTiltFactor.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
+          quoteState.utilizationPrice = deltaTiltAmount.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
           quote = quoteState.utilizationPrice > newOptionPrice ? quoteState.utilizationPrice : newOptionPrice;
         } else {
           quote = maxPrice;
