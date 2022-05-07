@@ -68,10 +68,6 @@ contract LiquidityPool is
   uint public bidAskIVSpread;
   // option issuance parameters
   Types.OptionParams public optionParams;
-  // max time to allow between oracle updates
-  uint256 public maxTimeDeviationThreshold;
-  // max price difference to allow between oracle updates
-  uint256 public maxPriceDeviationThreshold;
   // riskFreeRate as a percentage PRBMath Float. IE: 3% -> 0.03 * 10**18
   uint public riskFreeRate;
   // handlers who are approved to interact with options functionality
@@ -142,12 +138,6 @@ contract LiquidityPool is
   }
   function unpause() external onlyOwner {
     _unpause();
-  }
-  function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external onlyOwner {
-    maxTimeDeviationThreshold = _maxTimeDeviationThreshold;
-  }
-  function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold) external onlyOwner {
-    maxPriceDeviationThreshold = _maxPriceDeviationThreshold;
   }
   /**
    * @notice set a new hedging reactor
@@ -469,12 +459,17 @@ function resetEphemeralValues() external {
       returns (int256)
   {
       // assumes in e18
-      Types.PortfolioValues memory portfolioValues = getPortfolioValues(); 
-      _validatePortfolioValues(portfolioValues);
+      IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
+      address underlyingAsset_ = underlyingAsset;
+      address strikeAsset_ = strikeAsset;
+      Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(underlyingAsset_, strikeAsset_);
+      // check that the portfolio values are acceptable
+      pvFeed.validatePortfolioValues(underlyingAsset_, strikeAsset_, getUnderlyingPrice(underlyingAsset_, strikeAsset_));
       // assumes in e18
       int256 externalDelta;
-      for (uint8 i=0; i < hedgingReactors.length; i++) {
-        externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
+      address[] memory hedgingReactors_ = hedgingReactors;
+      for (uint8 i=0; i < hedgingReactors_.length; i++) {
+        externalDelta += IHedgingReactor(hedgingReactors_[i]).getDelta();
       }
       return portfolioValues.delta + externalDelta + ephemeralDelta;
   }
@@ -629,36 +624,30 @@ function resetEphemeralValues() external {
     view
     returns (uint)
   {
+    // cache
+    address underlyingAsset_ = underlyingAsset;
+    address strikeAsset_ = strikeAsset;
+    address collateralAsset_ = collateralAsset;
     // equities = assets - liabilities
     // assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
     // liabilities: Options that we wrote in e18
     uint256 assets = 
-      OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) 
-      + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
-    for (uint8 i=0; i < hedgingReactors.length; i++) {
+      OptionsCompute.convertFromDecimals(IERC20(collateralAsset_).balanceOf(address(this)), IERC20(collateralAsset_).decimals()) 
+      + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset_).decimals());
+    address[] memory hedgingReactors_ = hedgingReactors;
+    for (uint8 i=0; i < hedgingReactors_.length; i++) {
       // should always return value in e18 decimals
-       assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
+       assets += IHedgingReactor(hedgingReactors_[i]).getPoolDenominatedValue();
     }
-    Types.PortfolioValues memory portfolioValues = getPortfolioValues();
+    IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
+    Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(underlyingAsset_, strikeAsset_);
     // check that the portfolio values are acceptable
-    _validatePortfolioValues(portfolioValues);
+    pvFeed.validatePortfolioValues(underlyingAsset_, strikeAsset_, getUnderlyingPrice(underlyingAsset_, strikeAsset_));
     int256 ephemeralLiabilities_ = ephemeralLiabilities;
     // ephemeralLiabilities can be -ve but portfolioValues will not
     // when converting liabilities it should never be -ve, if it is then the NAV calc will fail
     uint256 liabilities = portfolioValues.callPutsValue + (ephemeralLiabilities_ > 0 ? uint256(ephemeralLiabilities_) : uint256(-ephemeralLiabilities_));
     return assets - liabilities;
-  }
-
-  /**
-   * @notice get the latest oracle fed portfolio values and check when they were last updated and make sure this is within a reasonable window
-   */
-  function _validatePortfolioValues(Types.PortfolioValues memory portfolioValues) internal view {
-      uint256 timeDelta = block.timestamp - portfolioValues.timestamp;
-      // If too much time has passed we want to prevent a possible oracle attack
-      if (timeDelta > maxTimeDeviationThreshold) { revert CustomErrors.TimeDeltaExceedsThreshold(timeDelta); }
-      uint256 priceDelta = OptionsCompute.calculatePercentageDifference(getUnderlyingPrice(underlyingAsset, strikeAsset), portfolioValues.spotPrice);
-      // If price has deviated too much we want to prevent a possible oracle attack
-      if (priceDelta > maxPriceDeviationThreshold) { revert CustomErrors.PriceDeltaExceedsThreshold(priceDelta); }
   }
 
   /**
@@ -734,13 +723,15 @@ function resetEphemeralValues() external {
     if(optionSeries.collateral != collateralAsset) { revert CustomErrors.CollateralAssetInvalid();}
     if(optionSeries.underlying != underlyingAsset) { revert CustomErrors.UnderlyingAssetInvalid();}
     if(optionSeries.strikeAsset != strikeAsset) { revert CustomErrors.StrikeAssetInvalid();}
+    // cache
+    Types.OptionParams memory optionParams_ = optionParams;
     // check the expiry is within the allowed bounds
-    if (block.timestamp + optionParams.minExpiry > optionSeries.expiration || optionSeries.expiration > block.timestamp + optionParams.maxExpiry) {revert CustomErrors.OptionExpiryInvalid();}
+    if (block.timestamp + optionParams_.minExpiry > optionSeries.expiration || optionSeries.expiration > block.timestamp + optionParams_.maxExpiry) {revert CustomErrors.OptionExpiryInvalid();}
     // check that the option strike is within the range of the min and max acceptable strikes of calls and puts
     if(optionSeries.isPut){
-      if (optionParams.minPutStrikePrice > optionSeries.strike || optionSeries.strike > optionParams.maxPutStrikePrice) {revert CustomErrors.OptionStrikeInvalid();}
+      if (optionParams_.minPutStrikePrice > optionSeries.strike || optionSeries.strike > optionParams_.maxPutStrikePrice) {revert CustomErrors.OptionStrikeInvalid();}
     } else {
-      if (optionParams.minCallStrikePrice > optionSeries.strike || optionSeries.strike > optionParams.maxCallStrikePrice) {revert CustomErrors.OptionStrikeInvalid();}
+      if (optionParams_.minCallStrikePrice > optionSeries.strike || optionSeries.strike > optionParams_.maxCallStrikePrice) {revert CustomErrors.OptionStrikeInvalid();}
     }
     // issue the option from the option registry (its characteristics will be stored in the optionsRegistry)
     series = optionRegistry.issue(
@@ -853,14 +844,6 @@ function resetEphemeralValues() external {
    */
   function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
     return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
-  }
-
-  /**
-   * @notice get the portfolio values feed used by the liquidity pool
-   * @return the portfolio values feed contract
-   */
-  function getPortfolioValues() internal view returns (Types.PortfolioValues memory) {
-    return getPortfolioValuesFeed().getPortfolioValues(underlyingAsset, strikeAsset);
   }
 
   /**
