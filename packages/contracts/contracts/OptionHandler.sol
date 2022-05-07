@@ -324,6 +324,7 @@ contract OptionHandler is
     IOptionRegistry optionRegistry = getOptionRegistry();
     // get the option series from the pool
     Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+    if(optionSeries.expiration == 0){revert CustomErrors.NonExistentOtoken();} 
     // calculate premium, strike needs to be in e18
     (uint256 premium, int256 delta) = liquidityPool.quotePriceWithUtilizationGreeks(
         Types.OptionSeries({

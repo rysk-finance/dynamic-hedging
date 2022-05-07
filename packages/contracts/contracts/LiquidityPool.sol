@@ -88,6 +88,8 @@ contract LiquidityPool is
   uint public riskFreeRate;
   // handlers who are approved to interact with options functionality
   mapping(address => bool) public handler;
+  // is the purchase and sale of options paused
+  bool public isTradingPaused;
 
   //////////////////////////
   /// constant variables ///
@@ -127,10 +129,10 @@ contract LiquidityPool is
   event OrderExecuted(uint orderId);
   event LiquidityAdded(uint amount);
   event StrangleCreated(uint strangleId);
+  event Withdraw(address recipient, uint amount,  uint shares);
   event Deposit(address recipient, uint amount, uint256 epoch);
   event Redeem(address recipient, uint256 amount, uint256 epoch);
   event InitiateWithdraw(address recipient, uint256 amount, uint256 epoch);
-  event Withdraw(address recipient, uint amount,  uint shares);
   event WriteOption(address series, uint amount, uint premium, uint escrow, address buyer);
   event SettleVault(address series, uint collateralReturned, uint collateralLost, address closer);
   event BuybackOption(address series, uint amount, uint premium, uint escrowReturned, address seller);
@@ -166,6 +168,9 @@ contract LiquidityPool is
 
   function pauseContract() external onlyOwner {
     _pause();
+  }
+  function pauseUnpauseTrading(bool _pause) external onlyOwner {
+    isTradingPaused = _pause;
   }
   function unpause() external onlyOwner {
     _unpause();
@@ -302,12 +307,28 @@ contract LiquidityPool is
     return collatReturned;
   }
 
+  /** 
+   * @notice issue an option 
+   * @param optionSeries the series detail of the option - strike decimals in e18
+   * @dev only callable by a handler contract
+   */
   function handlerIssue(Types.OptionSeries memory optionSeries) external returns(address) {
     require(handler[msg.sender]);
     // series strike in e18
     return _issue(optionSeries, getOptionRegistry());
   }
 
+  /** 
+   * @notice write an option that already exists
+   * @param optionSeries the series detail of the option - strike decimals in e8
+   * @param seriesAddress the series address of the oToken
+   * @param amount the number of options to write - in e18
+   * @param optionRegistry the registry used for options writing
+   * @param premium the premium of the option - in collateral decimals
+   * @param delta the delta of the option - in e18
+   * @param recipient the receiver of the option
+   * @dev only callable by a handler contract
+   */
   function handlerWriteOption(
     Types.OptionSeries memory optionSeries, 
     address seriesAddress, 
@@ -320,6 +341,7 @@ contract LiquidityPool is
     external 
     returns(uint256) 
     {
+      if (isTradingPaused) { revert CustomErrors.TradingPaused();}
       require(handler[msg.sender]);
       return _writeOption(
         optionSeries,     // series strike in e8
@@ -333,6 +355,15 @@ contract LiquidityPool is
         );
     }
 
+  /** 
+   * @notice write an option that doesnt exist 
+   * @param optionSeries the series detail of the option - strike decimals in e18
+   * @param amount the number of options to write - in e18
+   * @param premium the premium of the option - in collateral decimals
+   * @param delta the delta of the option - in e18
+   * @param recipient the receiver of the option
+   * @dev only callable by a handler contract
+   */
   function handlerIssueAndWriteOption(    
     Types.OptionSeries memory optionSeries, 
     uint256 amount, 
@@ -343,6 +374,7 @@ contract LiquidityPool is
     external 
     returns(uint256, address) 
     {
+    if (isTradingPaused) { revert CustomErrors.TradingPaused();}
     require(handler[msg.sender]);
     IOptionRegistry optionRegistry = getOptionRegistry();
     // series strike passed in as e18
@@ -360,6 +392,17 @@ contract LiquidityPool is
         recipient
         ), seriesAddress);
   }
+  /** 
+   * @notice buy back an option that already exists
+   * @param optionSeries the series detail of the option - strike decimals in e8
+   * @param amount the number of options to buyback - in e18
+   * @param optionRegistry the registry used for options writing
+   * @param seriesAddress the series address of the oToken
+   * @param premium the premium of the option - in collateral decimals
+   * @param delta the delta of the option - in e18
+   * @param seller the receiver of the option
+   * @dev only callable by a handler contract
+   */
   function handlerBuybackOption(
     Types.OptionSeries memory optionSeries, 
     uint256 amount, 
@@ -372,6 +415,7 @@ contract LiquidityPool is
     external 
     returns (uint256) 
     {
+    if (isTradingPaused) { revert CustomErrors.TradingPaused();}
     require(handler[msg.sender]);
     // strike passed in as e8
     return _buybackOption(optionSeries, amount, optionRegistry, seriesAddress, premium, delta, seller);
@@ -387,9 +431,37 @@ function resetEphemeralValues() external {
     delete ephemeralDelta;
 }
 
-function pauseTrading() external onlyOwner {}
+/**
+  * @notice reset the temporary portfolio and delta values that have been changed since the last oracle update
+  * @dev    this function must be called in order to execute an epoch calculation
+  */
+function pauseTradingAndRequest() external onlyOwner returns (bytes32){
+  //TODO: make time based so that it can be called by anyone and the next epoch can be calculated
+  // pause trading
+  isTradingPaused = true;
+  // make an oracle request
+  return getPortfolioValuesFeed().requestPortfolioData(string(abi.encodePacked(underlyingAsset)), string(abi.encodePacked(strikeAsset)));
+}
 
-function executeEpochCalculation() external onlyOwner {}
+/**
+  * @notice execute the epoch and set all the price per shares
+  * @dev    this function must be called in order to execute an epoch calculation and batch a mutual fund epoch
+  */
+function executeEpochCalculation() external onlyOwner {
+  if (isTradingPaused) { revert CustomErrors.TradingPaused();}
+  // TODO: Maybe change this so it checks the request Id instead of validating by price and time
+  Types.PortfolioValues memory portfolioValues = getPortfolioValues();
+  // check that the portfolio values are acceptable
+  _validatePortfolioValues(portfolioValues);
+  uint256 singleShare = 1e18;
+  uint256 newPricePerShare = totalSupply > 0 ?  singleShare * _getNAV() / totalSupply: singleShare;
+  uint256 sharesToMint = _sharesForAmount(pendingDeposits, newPricePerShare);
+  epochPricePerShare[epoch] = newPricePerShare;
+  pendingDeposits = 0;
+  isTradingPaused = false;
+  epoch++;
+}
+
   /////////////////////////////////////////////
   /// external state changing functionality ///
   /////////////////////////////////////////////
@@ -737,15 +809,9 @@ function executeEpochCalculation() external onlyOwner {}
     returns
     (uint shares)
   {
-    // equities = assets - liabilities
-    // assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff
-    // liabilities: Options that we wrote 
     uint256 convertedAmount = OptionsCompute.convertFromDecimals(_amount, IERC20(collateralAsset).decimals());
-    if (totalSupply == 0) {
-      shares = convertedAmount;
-    } else {
-      shares = convertedAmount * PRBMath.SCALE / assetPerShare;
-    }
+    shares = convertedAmount * PRBMath.SCALE / assetPerShare;
+    
   }
 
   /**
