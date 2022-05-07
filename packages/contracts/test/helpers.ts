@@ -1,5 +1,5 @@
 import hre, { ethers } from "hardhat"
-import { toWei, genOptionTimeFromUnix, fromWei } from "../utils/conversion-helper"
+import { toWei, genOptionTimeFromUnix, fromWei, tFormatUSDC } from "../utils/conversion-helper"
 import {
 	CHAINLINK_WETH_PRICER,
 	GAMMA_ORACLE,
@@ -14,7 +14,7 @@ import {
 import greeks from "greeks"
 import { MintableERC20 } from "../types/MintableERC20"
 import { WETH } from "../types/WETH"
-import { BigNumber, Contract } from "ethers"
+import { BigNumber, Contract, utils } from "ethers"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { ChainLinkPricer } from "../types/ChainLinkPricer"
 import { LiquidityPool } from "../types/LiquidityPool"
@@ -196,7 +196,7 @@ export async function calculateOptionQuoteLocally(
 		USDC_ADDRESS[chainId]
 	)
 	const priceNorm = fromWei(underlyingPrice)
-	const maxDiscount = 0.1 // 10%
+	const maxDiscount = ethers.utils.parseUnits("1", 17) // 10%
 
 	const NAV = await liquidityPool.getNAV()
 	const collateralAllocated = await liquidityPool.collateralAllocated()
@@ -211,18 +211,25 @@ export async function calculateOptionQuoteLocally(
 	)
 	// optionDelta will already be inverted is we are selling it
 	const portfolioDeltaAfter = portfolioDeltaBefore.add(optionDelta)
-	const portfolioDeltaIsDecreased =
-		Math.abs(portfolioDeltaAfter.toNumber()) - Math.abs(portfolioDeltaBefore.toNumber()) < 0
-	const normalisedDelta =
-		Math.abs(portfolioDeltaBefore.add(portfolioDeltaAfter).div(2).toNumber()) /
-		NAV.div(underlyingPrice).toNumber()
+	const portfolioDeltaIsDecreased = portfolioDeltaAfter.abs().sub(portfolioDeltaBefore.abs()).lt(0)
+	const normalisedDelta = portfolioDeltaBefore
+		.add(portfolioDeltaAfter)
+		.div(2)
+		.abs()
+		.div(NAV.div(underlyingPrice))
 
-	const deltaTiltAmount = normalisedDelta > maxDiscount ? maxDiscount : normalisedDelta
-	console.log({ deltaTiltAmount, maxDiscount })
+	console.log({
+		maxDiscount: utils.formatEther(maxDiscount),
+		normalisedDelta: utils.formatEther(normalisedDelta)
+	})
+	const deltaTiltAmount = parseFloat(
+		utils.formatEther(normalisedDelta.gt(maxDiscount) ? maxDiscount : normalisedDelta)
+	)
 
 	const maxPrice = optionSeries.isPut ? optionSeries.strike : underlyingPrice
-	const utilization = collateralAllocated.div(collateralAllocated.add(lpUSDBalance))
-	let utilizationPrice = maxPrice.mul(utilization)
+	const utilization =
+		tFormatUSDC(collateralAllocated) / tFormatUSDC(collateralAllocated.add(lpUSDBalance))
+	let utilizationPrice = parseFloat(utils.formatEther(maxPrice)) * utilization
 
 	const iv = await liquidityPool.getImpliedVolatility(
 		optionSeries.isPut,
@@ -241,13 +248,30 @@ export async function calculateOptionQuoteLocally(
 	// if delta exposure reduces, subtract delta skew from  pricequotes
 	if (portfolioDeltaIsDecreased) {
 		const newOptionPrice = localBS - deltaTiltAmount * localBS
-		utilizationPrice = utilizationPrice.sub(utilizationPrice.mul(deltaTiltAmount))
-		return utilizationPrice.gt(newOptionPrice) ? utilizationPrice : newOptionPrice
+		utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
+		console.log({
+			localBS,
+			utilizationPrice,
+			newOptionPrice,
+			utilization,
+			collateralAllocated,
+			demoninator: collateralAllocated.add(lpUSDBalance)
+		})
+		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
 		// if delta exposure increases, add delta skew to price quotes
 	} else {
 		const newOptionPrice = localBS + deltaTiltAmount * localBS
-		utilizationPrice = utilizationPrice.add(utilizationPrice.mul(deltaTiltAmount))
-		return utilizationPrice.gt(newOptionPrice) ? utilizationPrice : newOptionPrice
+		utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
+		console.log({
+			localBS,
+			utilizationPrice,
+			newOptionPrice,
+			utilization,
+			collateralAllocated,
+			demoninator: collateralAllocated.add(lpUSDBalance)
+		})
+
+		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
 	}
 }
 
