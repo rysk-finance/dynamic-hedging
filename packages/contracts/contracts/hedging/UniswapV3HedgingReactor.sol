@@ -26,7 +26,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     /// @notice address of the price feed used for getting asset prices
     address public immutable priceFeed;
     /// @notice generalised list of stablecoin addresses to trade against wETH
-    address public immutable collateral;
+    address public immutable collateralAsset;
     /// @notice address of the wETH contract 
     address public immutable wETH;
     /// @notice instance of the uniswap V3 router interface
@@ -55,17 +55,19 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     /// @notice used for unlimited token approval 
     uint256 private constant MAX_UINT = 2**256 - 1;
 
-    constructor (ISwapRouter _swapRouter, address _collateral, address _wethAddress, address _parentLiquidityPool, uint24 _poolFee, address _priceFeed) {
+    constructor (ISwapRouter _swapRouter, address _collateralAsset, address _wethAddress, address _parentLiquidityPool, uint24 _poolFee, address _priceFeed) {
         swapRouter = _swapRouter;
-        collateral = _collateral;
+        collateralAsset = _collateralAsset;
         wETH = _wethAddress;
         parentLiquidityPool = _parentLiquidityPool;
         poolFee = _poolFee;
         priceFeed = _priceFeed;
 
-        SafeTransferLib.safeApprove( ERC20(collateral), address(swapRouter), MAX_UINT );
+        SafeTransferLib.safeApprove( ERC20(collateralAsset), address(swapRouter), MAX_UINT );
         SafeTransferLib.safeApprove( ERC20(_wethAddress), address(swapRouter), MAX_UINT );
     }
+
+    error IncorrectCollateral();
 
     ///////////////
     /// setters ///
@@ -94,7 +96,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         if (_delta < 0) { // buy wETH
         //TODO calculate amountInMaximum using live oracle data
         //TODO set stablecoin and amountin/out variables
-            (int256 deltaChange,) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateral);
+            (int256 deltaChange,) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset);
             internalDelta += deltaChange;
             return deltaChange;
         } else { // sell wETH
@@ -104,11 +106,11 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             }
             if(_delta > int256(ethBalance)){ // not enough ETH to sell to offset delta so sell all ETH available.
                 //TODO calculate amountOutMinmmum using live oracle data
-                (int256 deltaChange,) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateral);
+                (int256 deltaChange,) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateralAsset);
                   internalDelta += deltaChange;
                 return deltaChange;
             } else {
-                 (int256 deltaChange,) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateral);
+                 (int256 deltaChange,) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateralAsset);
                   internalDelta += deltaChange;
                 return deltaChange;
             }
@@ -118,30 +120,20 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     /// @inheritdoc IHedgingReactor
     function withdraw(uint256 _amount, address _token) external returns (uint256) {
         require(msg.sender == parentLiquidityPool, "!vault");
+        if (_token != collateralAsset) {revert IncorrectCollateral();}
+        // check the holdings if enough just lying around then transfer it
+        // assume amount is passed in as e18
         uint256 convertedAmount = OptionsCompute.convertToDecimals(_amount, IERC20(_token).decimals());
         uint256 balance = IERC20(_token).balanceOf(address(this));
-        uint256 convertedBalance = OptionsCompute.convertFromDecimals(balance, IERC20(_token).decimals());
+        if (balance == 0) {return 0;}
         if (convertedAmount <= balance) {
             SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, convertedAmount);
+            // return in e18 format
             return _amount;
         } else {
-            // not enough in balance. Liquidate ETH.
-            //TODO change amountInMaximum
-            uint256 ethBalance = IERC20(wETH).balanceOf(address(this));
-            if(ethBalance < minAmount) {
-                return 0;
-            }
-            _liquidateETH(convertedAmount - balance, ethBalance, _token);         
-            balance = IERC20(_token).balanceOf(address(this));
-            if(balance < convertedAmount){
-                SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, balance);
-                internalDelta = int256(IERC20(wETH).balanceOf(address(this)));
-                return convertedBalance;
-            } else {
-                SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, convertedAmount);
-                internalDelta = int256(IERC20(wETH).balanceOf(address(this)));
-                return _amount;
-            }
+            SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, balance);
+            // return in e18 format
+            return OptionsCompute.convertFromDecimals(balance, IERC20(_token).decimals());
         }
     }
 
@@ -165,8 +157,8 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
 
     /// @inheritdoc IHedgingReactor
     function getPoolDenominatedValue() external view returns(uint256 value){
-        return OptionsCompute.convertFromDecimals(IERC20(collateral).balanceOf(address(this)), IERC20(collateral).decimals()) +
-                (PriceFeed(priceFeed).getNormalizedRate(wETH, collateral) * IERC20(wETH).balanceOf(address(this))) / 10**IERC20(wETH).decimals();
+        return OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) +
+                (PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset) * IERC20(wETH).balanceOf(address(this))) / 10**IERC20(wETH).decimals();
     }
 
     //////////////////////////
@@ -226,50 +218,5 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         
         // return ngative _amountIn because deltaChange is negative
         return (-int256(_amountIn), amountOut);
-    }
-
-    /**
-        @notice function to sell ETH if stable collateral is needed in the liquidity pool.
-        @param _amountOut Amount of stablecoin needed
-        @param _amountInMaximum The max amount of ETH willing to spend. Slippage limit.
-        @param _buyToken The stablecoin to buy to withdraw to LP
-     */
-    
-    function _liquidateETH(uint256 _amountOut, uint256 _amountInMaximum, address _buyToken) internal returns (uint256 stableBalanceReceived){
-        // tries to use exact output to obtain amount of stablecoin needed to withdraw without over-selling
-        ISwapRouter.ExactOutputSingleParams memory params =
-            ISwapRouter.ExactOutputSingleParams({
-                tokenIn: wETH,
-                tokenOut: _buyToken,
-                fee: poolFee,
-                recipient: address(this),
-                deadline: block.timestamp,
-                amountOut: _amountOut,
-                amountInMaximum: _amountInMaximum,
-                sqrtPriceLimitX96: 0
-            });
-
-        // Tries to execute the swap and return output 
-        try swapRouter.exactOutputSingle(params){
-            return (_amountOut);
-        // Transaction will fail if not enough ETH to fund the output needed
-        // So in this case, liquidate all ETH and return output
-        } catch {
-            ISwapRouter.ExactInputSingleParams memory catchParams =
-            ISwapRouter.ExactInputSingleParams({
-                tokenIn: wETH,
-                tokenOut: _buyToken,
-                fee: poolFee,
-                recipient: address(this),
-                deadline: block.timestamp,
-                amountIn: uint256(internalDelta), // amount of ETH this reactor has
-                amountOutMinimum: 0,
-                sqrtPriceLimitX96: 0
-            });
-            uint256 amountOut = swapRouter.exactInputSingle(catchParams);
-
-            return (amountOut);
-
-        }
     }
 }

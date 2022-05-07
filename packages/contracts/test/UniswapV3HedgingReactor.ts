@@ -395,8 +395,8 @@ describe("UniswapV3HedgingReactor", () => {
 			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
 		)
 
-		expect(reactorWethBalanceAfter).to.be.below(reactorWethBalanceBefore)
-		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.equal(parseFloat(withdrawAmount))
+		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore)
+		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore - reactorUsdcBalanceBefore).to.be.within(-0.001, 0.001)
 		expect(reactorUsdcBalanceAfter).to.equal(0)
 		expect(reactorDelta).to.equal(reactorWethBalanceAfter)
 	})
@@ -443,7 +443,7 @@ describe("UniswapV3HedgingReactor", () => {
 		)
 
 		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.be.below(parseFloat(withdrawAmount))
-		expect(reactorWethBalanceAfter).to.equal(0)
+		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore)
 		expect(reactorUsdcBalanceAfter).to.equal(0)
 	})
 

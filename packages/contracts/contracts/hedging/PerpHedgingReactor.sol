@@ -148,31 +148,15 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         // assume amount is passed in as e18
         uint256 convertedAmount = OptionsCompute.convertToDecimals(_amount, IERC20(_token).decimals());
         uint256 balance = IERC20(_token).balanceOf(address(this));
+        if (balance == 0) {return 0;}
         if (convertedAmount <= balance) {
             SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, convertedAmount);
             // return in e18 format
             return _amount;
-        }
-        // get the collatNeeded (this should not underflow as the 
-        // previous check will have eliminated these cases)
-        uint256 collatNeeded = convertedAmount - balance;
-        // liquidate the collateral needed
-        (uint256 collatReturned, int256 deltaChange) = _liquidatePosition(collatNeeded);
-        // adjust the internal delta in accordance with the change that liquidatePosition made
-        internalDelta += deltaChange;
-        // get the actual returned value to send back to the user
-        if (collatReturned < collatNeeded) {
-            // transfer assets back to the liquidityPool 
-            // TODO: track this transfer either in LiquidityPool or here
-            SafeTransferLib.safeTransfer(ERC20(_token), parentLiquidityPool, collatReturned + balance);
-            // return in e18 format
-            return OptionsCompute.convertFromDecimals(collatReturned + balance, IERC20(_token).decimals());
         } else {
-            // transfer assets back to the liquidityPool 
-            // TODO: track this transfer either in LiquidityPool or here
-            SafeTransferLib.safeTransfer(ERC20(_token), parentLiquidityPool, convertedAmount);
+            SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, balance);
             // return in e18 format
-            return _amount;
+            return OptionsCompute.convertFromDecimals(balance, IERC20(_token).decimals());
         }
     }
 
@@ -384,62 +368,5 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
             SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, uint256(collatToWithdraw));
         }
         return _amount;
-    }
-
-    /**
-        @notice function to close positions if stable collateral is needed in the liquidity pool.
-        @param _amount the amount to liquidate
-     */
-    function _liquidatePosition(uint256 _amount) internal returns (uint256 stableBalanceReceived, int256 deltaChange){
-        // look at the net pool holdings
-        int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
-        // access the collateral held in the account
-        (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
-        // just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
-        if (collatDeposits.length == 0) {revert IncorrectCollateral();}
-        if (address(collatDeposits[0].collateral) != collateralAsset) {revert IncorrectCollateral();}
-        uint256 collat = collatDeposits[0].balance;
-        // get the current price of the underlying asset from chainlink to be used to calculate position sizing
-        uint256 currentPrice = OptionsCompute.convertToDecimals(PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset), ERC20(collateralAsset).decimals());
-        IClearingHouseStructures.SwapParams memory swapParams;
-        if (collat <= _amount) {
-            // if the amount needed is greater than or equal to the collateral then close all positions and withdraw
-            // all collateral
-            // make the swapParams to close the position
-            swapParams = IClearingHouseStructures.SwapParams(
-                -netPosition,
-                0,
-                false,
-                false,
-                true
-            ); 
-            // execute the swap
-            clearingHouse.swapToken(accountId, poolId, swapParams); 
-            (,,collatDeposits,) = clearingHouse.getAccountInfo(accountId);
-            collat = collatDeposits[0].balance;
-            // withdraw all collateral from the margin account, leave 1 wei to make sure the collateral index stays
-            clearingHouse.updateMargin(accountId, collateralId, -int256(collat) + 1);
-            return (collat - 1, -netPosition);
-        }
-        // reduce the collateral by amount
-        uint256 newCollat = collat - _amount;
-        // calculate what the position should be if the collat is changed to newCollat
-        int256 newPosition = int256((newCollat * MAX_BIPS * 1e18) / (healthFactor * currentPrice)); 
-        // get the correct sign for the newPosition
-        newPosition = netPosition > 0 ? newPosition : -newPosition;
-        // calculate the difference between the old and new position
-        int256 diff = newPosition - netPosition;
-        swapParams = IClearingHouseStructures.SwapParams(
-            diff,
-            0,
-            false,
-            false,
-            false
-        ); 
-        // execute the swap
-        clearingHouse.swapToken(accountId, poolId, swapParams);   
-        // withdraw excess collateral from the margin account
-        clearingHouse.updateMargin(accountId, collateralId, -int256(_amount));
-        return (_amount, diff);
     }
 }
