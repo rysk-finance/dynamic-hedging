@@ -61,6 +61,7 @@ import { getMatchingEvents, WRITE_OPTION } from "../utils/events"
 type WriteEvent = WriteOptionEvent & Event
 type DecodedData = {
 	series: string
+	amount: BigNumber
 }
 interface EnrichedWriteEvent extends WriteEvent {
 	decoded?: DecodedData
@@ -294,8 +295,6 @@ describe("Oracle core logic", async () => {
 		let write = await handler.issueAndWriteOption(proposedSeries, amount)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		receipt = await write.wait(1)
-		const events = receipt.events
-
 		const writeEvents = getMatchingEvents(receipt, WRITE_OPTION)
 		const writeEvent = writeEvents[0]
 		const seriesAddress = writeEvent !== "failed" ? writeEvent?.series : ""
@@ -308,6 +307,8 @@ describe("Oracle core logic", async () => {
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew), 2)).to.eq(tFormatEth(quote, 2))
+		await putOptionToken.approve(handler.address, toOpyn(fromWei(amount)))
+		const buyback = await handler.buybackOption(seriesAddress, amount)
 
 		// LP writes a ETH/USD call for premium
 		blockNum = await ethers.provider.getBlockNumber()
@@ -328,11 +329,28 @@ describe("Oracle core logic", async () => {
 
 	// encompasses primary logic to be used by external adapter to fetch and compute delta
 	it("Fetches deposit events and computes delta", async () => {
-		const events = liquidityPool.filters.WriteOption()
-		const writeOption = await liquidityPool.queryFilter(events)
+		const writeOptionEventFilter = liquidityPool.filters.WriteOption()
+		const buybackEventFilter = liquidityPool.filters.BuybackOption()
+		const vaultLiquidatedFilter = controller.filters.VaultLiquidated()
+		const writeOption = await liquidityPool.queryFilter(writeOptionEventFilter)
+		const buybackEvents = await liquidityPool.queryFilter(buybackEventFilter)
+		const vaultedLiquidatedEvents = await controller.queryFilter(vaultLiquidatedFilter)
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
+		// index buybacks amounts by series
+		const buybackAmounts: Record<string, BigNumber> = {}
+		buybackEvents.map(x => {
+			if (!x.decode) return
+			const decoded: DecodedData = x.decode(x.data, x.topics)
+			const amount = buybackAmounts[decoded.series]
+			if (!amount) {
+				buybackAmounts[decoded.series] = decoded.amount
+			} else {
+				buybackAmounts[decoded.series] = amount.add(buybackAmounts[decoded.series])
+			}
+			return decoded
+		})
 		const enrichedWriteOptions: Promise<EnrichedWriteEvent>[] = writeOption.map(
 			async (x: WriteOptionEvent): Promise<EnrichedWriteEvent> => {
 				const y: EnrichedWriteEvent = x
@@ -360,6 +378,18 @@ describe("Oracle core logic", async () => {
 					Number(timestamp),
 					seriesInfo.expiration.toNumber()
 				)
+				const amount: BigNumber = y?.decoded?.amount ? y?.decoded?.amount : BigNumber.from(0)
+				const buybackAmount: BigNumber = buybackAmounts[y.series]
+					? buybackAmounts[y.series]
+					: BigNumber.from(0)
+				let amountActive: number = 0
+				if (buybackAmount.gte(amount)) {
+					buybackAmounts[y.series] = buybackAmount.sub(amount)
+				} else {
+					amountActive = Number(fromWei(amount.sub(buybackAmount)))
+					buybackAmounts[y.series] = BigNumber.from(0)
+				}
+
 				const delta = greeks.getDelta(
 					priceNorm,
 					fromOpyn(seriesInfo.strike),
@@ -369,7 +399,7 @@ describe("Oracle core logic", async () => {
 					optionType
 				)
 				// invert sign due to writing rather than buying
-				y.delta = delta * -1
+				y.delta = amountActive * delta * -1
 				return y
 			}
 		)
@@ -380,7 +410,7 @@ describe("Oracle core logic", async () => {
 		})
 		// closed due to buyback - subtract the amount of the buyback
 		// closed due to liquidation - get all liquidated events
-		const delta = filtered.reduce((total, num) => total + (num.delta || 0), 0)
+		const portfolioDelta = filtered.reduce((total, num) => total + (num.delta || 0), 0)
 		expect(resolved.length).to.eq(2)
 		//expect(delta).to.eq(expected_portfolio_delta)
 	})
