@@ -664,8 +664,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 			// where y is the premium added to the BS option price
 			// x is the utilization percentage of the liquidity pool
 			// this curve passes through (0.5, 0.05) which is where the <50% linear function ends
-			int256 parabolaFunctionYIntercept = int256(
-				utilizationFunctionThreshold.mul(belowThresholdGradient - utilizationFunctionThreshold)
+			int256 parabolaFunctionYIntercept = int256(utilizationFunctionThreshold).mul(
+				int256(belowThresholdGradient) - int256(utilizationFunctionThreshold)
 			);
 			int256 multiplicationFactor = int256(_utilization.mul(_utilization)) +
 				parabolaFunctionYIntercept;

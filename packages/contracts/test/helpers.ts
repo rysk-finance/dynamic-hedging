@@ -254,27 +254,11 @@ export async function calculateOptionQuoteLocally(
 	if (portfolioDeltaIsDecreased) {
 		const newOptionPrice = localBS - deltaTiltAmount * localBS
 		utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
-		// console.log({
-		// 	localBS,
-		// 	utilizationPrice,
-		// 	newOptionPrice,
-		// 	utilization,
-		// 	collateralAllocated,
-		// 	demoninator: collateralAllocated.add(lpUSDBalance)
-		// })
 		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
 		// if delta exposure increases, add delta skew to price quotes
 	} else {
 		const newOptionPrice = localBS + deltaTiltAmount * localBS
 		utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
-		// console.log({
-		// 	localBS,
-		// 	utilizationPrice,
-		// 	newOptionPrice,
-		// 	utilization,
-		// 	collateralAllocated,
-		// 	demoninator: collateralAllocated.add(lpUSDBalance)
-		// })
 
 		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
 	}
