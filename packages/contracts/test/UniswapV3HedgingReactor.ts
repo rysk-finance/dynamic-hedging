@@ -219,7 +219,6 @@ describe("UniswapV3HedgingReactor", () => {
 				6
 			)
 		)
-
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther("0.3"))
 		await hedgeDeltaTx.wait()
 
@@ -238,8 +237,9 @@ describe("UniswapV3HedgingReactor", () => {
 		const reactorDelta = parseFloat(
 			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
 		)
+
 		// no funds being withdrawn to LP so balance should be unchanged
-		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter)
+		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.be.within(0, 5000)
 		expect(reactorDelta).to.equal(0.2)
 		expect(reactorWethBalance).to.equal(0.2)
 	})
@@ -270,7 +270,7 @@ describe("UniswapV3HedgingReactor", () => {
 				6
 			)
 		)
-		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter)
+		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.be.within(0,400)
 		expect(reactorWethBalance).to.equal(0)
 		expect(reactorDelta).to.equal(0)
 	})

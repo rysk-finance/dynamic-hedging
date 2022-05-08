@@ -91,12 +91,15 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     function hedgeDelta(int256 _delta) external returns (int256) {
         
         require(msg.sender == parentLiquidityPool, "!vault");
+        // cache
+        address collateralAsset_ = collateralAsset;
         uint amountOutMinimum = 0;
         uint amountInMaximum = MAX_UINT;
+        int256 deltaChange;
         if (_delta < 0) { // buy wETH
         //TODO calculate amountInMaximum using live oracle data
         //TODO set stablecoin and amountin/out variables
-            (int256 deltaChange,) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset);
+            (deltaChange,) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset_);
             internalDelta += deltaChange;
             return deltaChange;
         } else { // sell wETH
@@ -106,14 +109,14 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
             }
             if(_delta > int256(ethBalance)){ // not enough ETH to sell to offset delta so sell all ETH available.
                 //TODO calculate amountOutMinmmum using live oracle data
-                (int256 deltaChange,) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateralAsset);
+                (deltaChange,) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateralAsset_);
                   internalDelta += deltaChange;
-                return deltaChange;
             } else {
-                 (int256 deltaChange,) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateralAsset);
+                 (deltaChange,) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateralAsset_);
                   internalDelta += deltaChange;
-                return deltaChange;
             }
+            SafeTransferLib.safeTransfer(ERC20(collateralAsset_), parentLiquidityPool, ERC20(collateralAsset_).balanceOf(address(this)));
+            return deltaChange;
         }
     }
 
