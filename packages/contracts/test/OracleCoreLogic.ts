@@ -72,10 +72,13 @@ type VaultLiquidatedEvent = {
 interface EnrichedWriteEvent extends WriteEvent {
 	decoded?: DecodedData
 	series?: string
-	delta?: number
 	expiration?: number
 	vaultId?: string
 	amount?: BigNumber
+	delta?: number
+	gamma?: number
+	vega?: number
+	theta?: number
 }
 
 let usd: MintableERC20
@@ -433,17 +436,27 @@ describe("Oracle core logic", async () => {
 				seriesInfo.expiration.toNumber()
 			)
 
-			const delta = greeks.getDelta(
+			const greekVariables = [
 				priceNorm,
 				fromOpyn(seriesInfo.strike),
 				timeToExpiration, // don't use this
 				fromWei(iv),
 				parseFloat(rfr),
 				optionType
-			)
+			]
+			const delta = greeks.getDelta(...greekVariables)
+			const gamma = greeks.getGamma(...greekVariables)
+			const vega = greeks.getVega(...greekVariables)
+			const theta = greeks.getTheta(...greekVariables)
 			// invert sign due to writing rather than buying
 			// @TODO consider keeping calculation in BigNumber as more precise and is the format onchain.
-			if (x.amount) x.delta = Number(fromWei(x.amount)) * delta * -1
+			if (x.amount) {
+				const numericAmt = Number(fromWei(x.amount))
+				x.delta = numericAmt * delta * -1
+				x.gamma = numericAmt * gamma * -1
+				x.theta = numericAmt * theta * -1
+				x.vega = numericAmt * vega * -1
+			}
 			return x
 		})
 		const resolvedOptionPositions = await Promise.all(enrichedOptionPositions)
