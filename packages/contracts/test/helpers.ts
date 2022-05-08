@@ -218,14 +218,15 @@ export async function calculateOptionQuoteLocally(
 		.abs()
 		.div(NAV.div(underlyingPrice))
 
-	console.log({
-		maxDiscount: utils.formatEther(maxDiscount),
-		normalisedDelta: utils.formatEther(normalisedDelta)
-	})
 	const deltaTiltAmount = parseFloat(
 		utils.formatEther(normalisedDelta.gt(maxDiscount) ? maxDiscount : normalisedDelta)
 	)
 
+	// console.log({
+	// 	maxDiscount: utils.formatEther(maxDiscount),
+	// 	normalisedDelta: utils.formatEther(normalisedDelta),
+	// 	deltaTiltAmount
+	// })
 	const maxPrice = optionSeries.isPut ? optionSeries.strike : underlyingPrice
 	const utilization =
 		tFormatUSDC(collateralAllocated) / tFormatUSDC(collateralAllocated.add(lpUSDBalance))
@@ -249,27 +250,27 @@ export async function calculateOptionQuoteLocally(
 	if (portfolioDeltaIsDecreased) {
 		const newOptionPrice = localBS - deltaTiltAmount * localBS
 		utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
-		console.log({
-			localBS,
-			utilizationPrice,
-			newOptionPrice,
-			utilization,
-			collateralAllocated,
-			demoninator: collateralAllocated.add(lpUSDBalance)
-		})
+		// console.log({
+		// 	localBS,
+		// 	utilizationPrice,
+		// 	newOptionPrice,
+		// 	utilization,
+		// 	collateralAllocated,
+		// 	demoninator: collateralAllocated.add(lpUSDBalance)
+		// })
 		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
 		// if delta exposure increases, add delta skew to price quotes
 	} else {
 		const newOptionPrice = localBS + deltaTiltAmount * localBS
 		utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
-		console.log({
-			localBS,
-			utilizationPrice,
-			newOptionPrice,
-			utilization,
-			collateralAllocated,
-			demoninator: collateralAllocated.add(lpUSDBalance)
-		})
+		// console.log({
+		// 	localBS,
+		// 	utilizationPrice,
+		// 	newOptionPrice,
+		// 	utilization,
+		// 	collateralAllocated,
+		// 	demoninator: collateralAllocated.add(lpUSDBalance)
+		// })
 
 		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
 	}
