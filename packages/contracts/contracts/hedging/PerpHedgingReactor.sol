@@ -148,14 +148,14 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         // assume amount is passed in as collateral decimals
         uint256 balance = IERC20(_token).balanceOf(address(this));
         if (balance == 0) {return 0;}
-        if (convertedAmount <= balance) {
-            SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, convertedAmount);
-            // return in e18 format
+        if (_amount <= balance) {
+            SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, _amount);
+            // return in collateral format
             return _amount;
         } else {
             SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, balance);
-            // return in e18 format
-            return OptionsCompute.convertFromDecimals(balance, IERC20(_token).decimals());
+            // return in collateral format
+            return balance;
         }
     }
 

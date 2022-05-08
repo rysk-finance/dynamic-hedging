@@ -431,7 +431,7 @@ function pauseTradingAndRequest() external onlyOwner returns (bytes32){
   // pause trading
   isTradingPaused = true;
   // make an oracle request
-  return getPortfolioValuesFeed().requestPortfolioData(string(abi.encodePacked(underlyingAsset)), string(abi.encodePacked(strikeAsset)));
+  return getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
 }
 
 /**
@@ -439,11 +439,12 @@ function pauseTradingAndRequest() external onlyOwner returns (bytes32){
   * @dev    this function must be called in order to execute an epoch calculation and batch a mutual fund epoch
   */
 function executeEpochCalculation() external onlyOwner {
-  if (isTradingPaused) { revert CustomErrors.TradingPaused();}
+  if (!isTradingPaused) { revert CustomErrors.TradingNotPaused();}
+  address underlyingAsset_ = underlyingAsset;
+  address strikeAsset_ = strikeAsset;
   // TODO: Maybe change this so it checks the request Id instead of validating by price and time
-  Types.PortfolioValues memory portfolioValues = getPortfolioValues();
   // check that the portfolio values are acceptable
-  _validatePortfolioValues(portfolioValues);
+  getPortfolioValuesFeed().validatePortfolioValues(underlyingAsset_, strikeAsset_, getUnderlyingPrice(underlyingAsset_, strikeAsset_));
   uint256 newPricePerShare = totalSupply > 0 ?  1e18 * _getNAV() / totalSupply: 1e18;
   uint256 sharesToMint = _sharesForAmount(pendingDeposits, newPricePerShare);
   epochPricePerShare[epoch] = newPricePerShare;
@@ -493,7 +494,7 @@ function executeEpochCalculation() external onlyOwner {
    * @param _shares    amount of shares to return
    * @dev    entry point to remove liquidity to dynamic hedging vault 
    */
-  function intiateWithdraw(
+  function initiateWithdraw(
     uint _shares
   )
     external
@@ -502,7 +503,7 @@ function executeEpochCalculation() external onlyOwner {
   {
     if (_shares == 0) {revert CustomErrors.InvalidShareAmount();}
 
-    // maybe need redemption maths here
+    // redeem so a user can use a completed deposit as shares for an initiation
     _redeem(type(uint256).max);
 
     uint256 currentEpoch = epoch;
@@ -559,8 +560,9 @@ function executeEpochCalculation() external onlyOwner {
     int256 amountNeeded = int(withdrawalAmount) - bufferRemaining;
     // loop through the reactors and move funds
     if (amountNeeded > 0) {
-      for (uint8 i=0; i < hedgingReactors.length; i++) {
-        amountNeeded -= int(IHedgingReactor(hedgingReactors[i]).withdraw(uint(amountNeeded)));
+      address[] memory hedgingReactors_ = hedgingReactors;
+      for (uint8 i=0; i < hedgingReactors_.length; i++) {
+        amountNeeded -= int(IHedgingReactor(hedgingReactors_[i]).withdraw(uint(amountNeeded)));
         if (amountNeeded <= 0) {
           break;
         }
@@ -606,9 +608,9 @@ function executeEpochCalculation() external onlyOwner {
       returns (int256)
   {
       // assumes in e18
-      IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
       address underlyingAsset_ = underlyingAsset;
       address strikeAsset_ = strikeAsset;
+      IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
       Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(underlyingAsset_, strikeAsset_);
       // check that the portfolio values are acceptable
       pvFeed.validatePortfolioValues(underlyingAsset_, strikeAsset_, getUnderlyingPrice(underlyingAsset_, strikeAsset_));
@@ -836,7 +838,6 @@ function executeEpochCalculation() external onlyOwner {
     // cache
     address underlyingAsset_ = underlyingAsset;
     address strikeAsset_ = strikeAsset;
-    address collateralAsset_ = collateralAsset;
     // equities = assets - liabilities
     // assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
     // liabilities: Options that we wrote in e18
@@ -862,14 +863,16 @@ function executeEpochCalculation() external onlyOwner {
     view
     returns (uint)
   {
+    address collateralAsset_ = collateralAsset;
     // assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
     // liabilities: Options that we wrote in e18
     uint256 assets = 
-      OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) 
-      + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
-    for (uint8 i=0; i < hedgingReactors.length; i++) {
+      OptionsCompute.convertFromDecimals(IERC20(collateralAsset_).balanceOf(address(this)), IERC20(collateralAsset_).decimals()) 
+      + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset_).decimals());
+    address[] memory hedgingReactors_ = hedgingReactors;
+    for (uint8 i=0; i < hedgingReactors_.length; i++) {
       // should always return value in e18 decimals
-       assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
+       assets += IHedgingReactor(hedgingReactors_[i]).getPoolDenominatedValue();
     }
     return assets;
   }

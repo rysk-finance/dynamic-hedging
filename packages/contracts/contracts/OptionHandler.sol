@@ -295,7 +295,7 @@ contract OptionHandler is
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), convertedPrem);
     // write the option, optionAmount in e18
     (optionAmount, series) = liquidityPool.handlerIssueAndWriteOption(optionSeries, amount, convertedPrem, delta, msg.sender);
-    getPortfolioValuesFeed().requestPortfolioData(string(abi.encodePacked(underlyingAsset)), string(abi.encodePacked(strikeAsset)));
+    getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
   }
 
  /**
@@ -349,7 +349,7 @@ contract OptionHandler is
     // premium needs to adjusted for decimals of collateral asset
     uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
     SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), convertedPrem);
-    getPortfolioValuesFeed().requestPortfolioData(string(abi.encodePacked(underlyingAsset)), string(abi.encodePacked(strikeAsset)));
+    getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
     return liquidityPool.handlerWriteOption(
       optionSeries, seriesAddress, amount, optionRegistry, convertedPrem, delta, msg.sender);
   }
@@ -395,7 +395,7 @@ contract OptionHandler is
     // premium needs to adjusted for decimals of collateral asset
     uint256 convertedPrem = OptionsCompute.convertToDecimals(premium, ERC20(collateralAsset).decimals());
     SafeTransferLib.safeTransferFrom(seriesAddress, msg.sender, address(liquidityPool), OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals()));
-    getPortfolioValuesFeed().requestPortfolioData(string(abi.encodePacked(underlyingAsset)), string(abi.encodePacked(strikeAsset)));
+    getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
     return liquidityPool.handlerBuybackOption(optionSeries, amount, optionRegistry, seriesAddress, convertedPrem, delta, msg.sender);
   }
 

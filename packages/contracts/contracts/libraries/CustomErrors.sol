@@ -6,11 +6,12 @@ interface CustomErrors {
     error InvalidPrice();
     error InvalidBuyer();
     error OrderExpired();
-    error TradingPaused();
     error InvalidAmount();
+    error TradingPaused();
     error IssuanceFailed();
     error RoundNotClosed();
     error NothingToRedeem();
+    error TradingNotPaused();
     error DeltaNotDecreased();
     error NonExistentOtoken();
     error OrderExpiryTooLong();
