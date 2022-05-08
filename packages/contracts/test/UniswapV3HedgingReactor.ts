@@ -219,7 +219,6 @@ describe("UniswapV3HedgingReactor", () => {
 				6
 			)
 		)
-
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther("0.3"))
 		await hedgeDeltaTx.wait()
 
@@ -238,8 +237,9 @@ describe("UniswapV3HedgingReactor", () => {
 		const reactorDelta = parseFloat(
 			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
 		)
+
 		// no funds being withdrawn to LP so balance should be unchanged
-		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter)
+		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.be.within(0, 5000)
 		expect(reactorDelta).to.equal(0.2)
 		expect(reactorWethBalance).to.equal(0.2)
 	})
@@ -270,7 +270,7 @@ describe("UniswapV3HedgingReactor", () => {
 				6
 			)
 		)
-		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter)
+		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.be.within(0,400)
 		expect(reactorWethBalance).to.equal(0)
 		expect(reactorDelta).to.equal(0)
 	})
@@ -300,7 +300,6 @@ describe("UniswapV3HedgingReactor", () => {
 		expect(reactorWethBalanceBefore).to.equal(0.5)
 
 		const withdrawAmount = "500"
-		expect(parseFloat(withdrawAmount)).to.be.below(reactorUsdcBalance)
 
 		const LpUsdcBalanceBefore = parseFloat(
 			ethers.utils.formatUnits(
@@ -309,8 +308,7 @@ describe("UniswapV3HedgingReactor", () => {
 			)
 		)
 		const withdrawTx = await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
+			ethers.utils.parseUnits(withdrawAmount, 18)
 		)
 		let reactorUsdcBalanceOld = reactorUsdcBalance
 		reactorUsdcBalance = parseFloat(
@@ -334,10 +332,10 @@ describe("UniswapV3HedgingReactor", () => {
 			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
 		)
 		// expect LP balance to go up by withdrawAmount
-		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.equal(parseFloat(withdrawAmount))
+		expect(LpUsdcBalanceAfter).to.equal(LpUsdcBalanceBefore)
 		// expect reactor balance to go down by withdrawAmount
 		expect(reactorUsdcBalance.toFixed(6)).to.equal(
-			(reactorUsdcBalanceOld - parseFloat(withdrawAmount)).toFixed(6)
+			(reactorUsdcBalanceOld).toFixed(6)
 		)
 		// expect reactor wETH balance to be unchanged
 		expect(reactorWethBalanceBefore).to.equal(reactorWethBalanceAfter)
@@ -369,8 +367,7 @@ describe("UniswapV3HedgingReactor", () => {
 		expect(parseFloat(withdrawAmount)).to.be.above(reactorUsdcBalanceBefore)
 		// withdraw more than current balance
 		await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
+			ethers.utils.parseUnits(withdrawAmount, 18)
 		)
 		await liquidityPoolDummy.getDelta()
 		const reactorWethBalanceAfter = parseFloat(
@@ -395,8 +392,8 @@ describe("UniswapV3HedgingReactor", () => {
 			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
 		)
 
-		expect(reactorWethBalanceAfter).to.be.below(reactorWethBalanceBefore)
-		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.equal(parseFloat(withdrawAmount))
+		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore)
+		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore - reactorUsdcBalanceBefore).to.be.within(-0.001, 0.001)
 		expect(reactorUsdcBalanceAfter).to.equal(0)
 		expect(reactorDelta).to.equal(reactorWethBalanceAfter)
 	})
@@ -418,8 +415,7 @@ describe("UniswapV3HedgingReactor", () => {
 		expect(reactorWethBalanceBefore).to.be.above(0)
 		const withdrawAmount = "100000000" //100 million
 		const tx = await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
+			ethers.utils.parseUnits(withdrawAmount, 18)
 		)
 
 		await tx.wait()
@@ -443,7 +439,7 @@ describe("UniswapV3HedgingReactor", () => {
 		)
 
 		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.be.below(parseFloat(withdrawAmount))
-		expect(reactorWethBalanceAfter).to.equal(0)
+		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore)
 		expect(reactorUsdcBalanceAfter).to.equal(0)
 	})
 
@@ -504,7 +500,7 @@ describe("UniswapV3HedgingReactor", () => {
 
 	it("withdraw reverts if not called form liquidity pool", async () => {
 		await expect(
-			uniswapV3HedgingReactor.withdraw(100000000000, usdcContract.address)
+			uniswapV3HedgingReactor.withdraw(100000000000)
 		).to.be.revertedWith("!vault")
 	})
 

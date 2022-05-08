@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./libraries/Types.sol";
 
@@ -33,12 +34,21 @@ contract PortfolioValuesFeed is Ownable, ChainlinkClient {
   /////////////////////////////////
 
   ILiquidityPool public liquidityPool;
+  // mapping of addresses to their string versions
+  mapping(address => string) public stringedAddresses;
+  // max time to allow between oracle updates for an underlying and strike
+  mapping(address => mapping(address => uint256)) public maxTimeDeviationThreshold;
+  // max price difference to allow between oracle updates for an underlying and strike
+  mapping(address => mapping(address => uint256)) public maxPriceDeviationThreshold;
 
-  //////////////
-  /// events ///
-  //////////////
+  ////////////////////////
+  /// events && errors ///
+  ////////////////////////
 
   event DataFullfilled(address indexed underlying, address indexed strike, int256 delta, int256 gamma, int256 vega, int256 theta, uint256 callPutsValue);
+
+  error TimeDeltaExceedsThreshold(uint256 timeDelta);
+  error PriceDeltaExceedsThreshold(uint256 priceDelta);
 
   /**
    * @notice Executes once when a contract is created to initialize state variables
@@ -73,6 +83,16 @@ contract PortfolioValuesFeed is Ownable, ChainlinkClient {
     liquidityPool = ILiquidityPool(_liquidityPool);
   }
 
+  function setAddressStringMapping(address _asset, string memory _stringVersion) external onlyOwner {
+    stringedAddresses[_asset] = _stringVersion;
+  }
+
+  function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold, address underlying, address strike) external onlyOwner {
+    maxTimeDeviationThreshold[underlying][strike] = _maxTimeDeviationThreshold;
+  }
+  function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold, address underlying, address strike) external onlyOwner {
+    maxPriceDeviationThreshold[underlying][strike] = _maxPriceDeviationThreshold;
+  }
   //////////////////////////////////////////////////////
   /// access-controlled state changing functionality ///
   //////////////////////////////////////////////////////
@@ -136,16 +156,17 @@ function withdrawLink(uint256 _amount) external onlyOwner {
    *
    * @return requestId - id of the request
    */
-  function requestPortfolioData(string memory _underlying, string memory _strike) external returns (bytes32 requestId) {
+  function requestPortfolioData(address _underlying, address _strike) external returns (bytes32 requestId) {
     Chainlink.Request memory request = buildChainlinkRequest(
       jobId,
       address(this),
       this.fulfill.selector
     );
-
+    string memory underlyingString = stringedAddresses[_underlying];
+    string memory strikeString = stringedAddresses[_strike];
     request.add("endpoint", "portfolio-values");
-    request.add("underlying", _underlying);
-    request.add("strike", _strike);
+    request.add("underlying", underlyingString);
+    request.add("strike", strikeString);
 
     // Multiply the result by 1000000000000000000 to remove decimals
     int256 timesAmount = 10**18;
@@ -166,5 +187,17 @@ function withdrawLink(uint256 _amount) external onlyOwner {
     view
     returns (Types.PortfolioValues memory) {
         return portfolioValues[underlying][strike];
+    }
+
+  /**
+   * @notice get the latest oracle fed portfolio values and check when they were last updated and make sure this is within a reasonable window
+   */
+  function validatePortfolioValues(address underlying, address strike, uint256 spotPrice) external view {
+      uint256 timeDelta = block.timestamp - portfolioValues[underlying][strike].timestamp;
+      // If too much time has passed we want to prevent a possible oracle attack
+      if (timeDelta > maxTimeDeviationThreshold[underlying][strike]) { revert TimeDeltaExceedsThreshold(timeDelta); }
+      uint256 priceDelta = OptionsCompute.calculatePercentageDifference(spotPrice, portfolioValues[underlying][strike].spotPrice);
+      // If price has deviated too much we want to prevent a possible oracle attack
+      if (priceDelta > maxPriceDeviationThreshold[underlying][strike]) { revert PriceDeltaExceedsThreshold(priceDelta); }
   }
 }
