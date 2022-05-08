@@ -47,7 +47,6 @@ contract PriceFeed is Ownable {
         address strike
     ) public view returns(uint) {
         address feedAddress = priceFeeds[underlying][strike];
-        //TODO attempt path through ETH
         require(feedAddress != address(0), "Price feed does not exist");
         AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
         (, int rate,,,) = feed.latestRoundData();
@@ -59,7 +58,6 @@ contract PriceFeed is Ownable {
        address strike
     ) external view returns(uint) {
         address feedAddress = priceFeeds[underlying][strike];
-        //TODO attempt path through ETH
         require(feedAddress != address(0), "Price feed does not exist");
         AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
         uint8 feedDecimals = feed.decimals();

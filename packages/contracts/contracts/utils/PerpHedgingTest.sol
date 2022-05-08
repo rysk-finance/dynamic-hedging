@@ -27,8 +27,8 @@ contract PerpHedgingTest {
         return IHedgingReactor(perpHedgingReactor).getDelta();
     }
 
-    function withdraw(uint256 _amount, address _token) public returns (uint256){
-        return IHedgingReactor(perpHedgingReactor).withdraw(_amount, _token);
+    function withdraw(uint256 _amount) public returns (uint256){
+        return IHedgingReactor(perpHedgingReactor).withdraw(_amount);
     }
 
     function update() public returns(uint256){

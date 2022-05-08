@@ -1504,8 +1504,7 @@ describe("Liquidity Pools", async () => {
 		const seriesInfo = await optionRegistry.getSeriesInfo(order.seriesAddress)
 		expect(order.optionSeries.expiration).to.eq(seriesInfo.expiration.toString())
 		expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
-		// TODO: another tiny rounding error below. why?
-		// expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
+		expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 		expect(await handler.orderIdCounter()).to.eq(orderId)
 		optionToken = new Contract(order.seriesAddress, Otoken.abi, sender) as IOToken
 		increase(1201)
