@@ -63,11 +63,19 @@ type DecodedData = {
 	series: string
 	amount: BigNumber
 }
+type VaultLiquidatedEvent = {
+	vaultOwner: string
+	// amount of liquidation in 1e8
+	debtAmount: BigNumber
+	vaultId: BigNumber
+}
 interface EnrichedWriteEvent extends WriteEvent {
 	decoded?: DecodedData
 	series?: string
 	delta?: number
 	expiration?: number
+	vaultId?: string
+	amount?: BigNumber
 }
 
 let usd: MintableERC20
@@ -334,12 +342,18 @@ describe("Oracle core logic", async () => {
 		const vaultLiquidatedFilter = controller.filters.VaultLiquidated()
 		const writeOption = await liquidityPool.queryFilter(writeOptionEventFilter)
 		const buybackEvents = await liquidityPool.queryFilter(buybackEventFilter)
-		const vaultedLiquidatedEvents = await controller.queryFilter(vaultLiquidatedFilter)
+		const vaultLiquidatedEvents = await controller.queryFilter(vaultLiquidatedFilter)
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
+
+		// index liquidated vaults by vaultId
+		const liquidatedVaults: Record<string, BigNumber> = {}
 		// index buybacks amounts by series
 		const buybackAmounts: Record<string, BigNumber> = {}
+		// index write amount by series address
+		const writeOptionAmounts: Record<string, BigNumber> = {}
+
 		buybackEvents.map(x => {
 			if (!x.decode) return
 			const decoded: DecodedData = x.decode(x.data, x.topics)
@@ -351,6 +365,11 @@ describe("Oracle core logic", async () => {
 			}
 			return decoded
 		})
+		vaultLiquidatedEvents.map(x => {
+			if (!x.decode) return
+			const decoded: VaultLiquidatedEvent = x.decode(x.data, x.topics)
+			liquidatedVaults[decoded.vaultId.toString()] = decoded.debtAmount
+		})
 		const enrichedWriteOptions: Promise<EnrichedWriteEvent>[] = writeOption.map(
 			async (x: WriteOptionEvent): Promise<EnrichedWriteEvent> => {
 				const y: EnrichedWriteEvent = x
@@ -358,59 +377,80 @@ describe("Oracle core logic", async () => {
 				if (!decode) return x
 				y.decoded = decode(data, topics)
 				y.series = y?.decoded?.series
+				if (!y.series) return y
 				//@TODO consider batching these as a multicall or using an indexing service
-				if (!y.series) return x
 				const seriesInfo = await optionRegistry.seriesInfo(y.series)
+				const vaultId = await optionRegistry.vaultIds(y.series)
+				y.vaultId = vaultId.toString()
 				y.expiration = seriesInfo.expiration.toNumber()
-				const priceQuote = await priceFeed.getNormalizedRate(
-					seriesInfo.underlying,
-					seriesInfo.strikeAsset
-				)
-				const priceNorm = fromWei(priceQuote)
-				const iv = await liquidityPool.getImpliedVolatility(
-					seriesInfo.isPut,
-					priceQuote,
-					seriesInfo.strike,
-					seriesInfo.expiration
-				)
-				const optionType = seriesInfo.isPut ? "put" : "call"
-				const timeToExpiration = genOptionTimeFromUnix(
-					Number(timestamp),
-					seriesInfo.expiration.toNumber()
-				)
 				const amount: BigNumber = y?.decoded?.amount ? y?.decoded?.amount : BigNumber.from(0)
-				const buybackAmount: BigNumber = buybackAmounts[y.series]
-					? buybackAmounts[y.series]
-					: BigNumber.from(0)
-				let amountActive: number = 0
-				if (buybackAmount.gte(amount)) {
-					buybackAmounts[y.series] = buybackAmount.sub(amount)
-				} else {
-					amountActive = Number(fromWei(amount.sub(buybackAmount)))
-					buybackAmounts[y.series] = BigNumber.from(0)
-				}
-
-				const delta = greeks.getDelta(
-					priceNorm,
-					fromOpyn(seriesInfo.strike),
-					timeToExpiration, // don't use this
-					fromWei(iv),
-					parseFloat(rfr),
-					optionType
-				)
-				// invert sign due to writing rather than buying
-				y.delta = amountActive * delta * -1
+				y.amount = amount
+				writeOptionAmounts[y.series] = amount
 				return y
 			}
 		)
 		const resolved = await Promise.all(enrichedWriteOptions)
+		// remove expired options
 		const filtered = resolved.filter(x => {
 			if (!x.expiration) return
 			return x.expiration > timestamp
 		})
+		// reduce write events to options positions by series
+		const seriesProcessed = new Set()
+		//@ts-ignore
+		const optionPositions: EnrichedWriteEvent[] = filtered.reduce((acc, cv) => {
+			if (!cv.series) return acc
+			if (seriesProcessed.has(cv.series)) return acc
+			const amount = writeOptionAmounts[cv.series]
+			cv.amount = amount
+			seriesProcessed.add(cv.series)
+			return [...acc, cv]
+		}, [])
+
+		const enrichedOptionPositions = optionPositions.map(async x => {
+			if (!x.series || !x.vaultId) return x
+			// reduce notional amount by buybacks and liquidations
+			const buybackAmount: BigNumber = buybackAmounts[x.series]
+			const liquidationAmount: BigNumber = liquidatedVaults[x.vaultId]
+			if (buybackAmount) x.amount = x.amount?.sub(buybackAmount)
+			if (liquidationAmount) x.amount = x.amount?.sub(liquidationAmount)
+
+			const seriesInfo = await optionRegistry.seriesInfo(x.series)
+			const priceQuote = await priceFeed.getNormalizedRate(
+				seriesInfo.underlying,
+				seriesInfo.strikeAsset
+			)
+			const priceNorm = fromWei(priceQuote)
+			const iv = await liquidityPool.getImpliedVolatility(
+				seriesInfo.isPut,
+				priceQuote,
+				seriesInfo.strike,
+				seriesInfo.expiration
+			)
+			const optionType = seriesInfo.isPut ? "put" : "call"
+			const timeToExpiration = genOptionTimeFromUnix(
+				Number(timestamp),
+				seriesInfo.expiration.toNumber()
+			)
+
+			const delta = greeks.getDelta(
+				priceNorm,
+				fromOpyn(seriesInfo.strike),
+				timeToExpiration, // don't use this
+				fromWei(iv),
+				parseFloat(rfr),
+				optionType
+			)
+			// invert sign due to writing rather than buying
+			// @TODO consider keeping calculation in BigNumber as more precise and is the format onchain.
+			if (x.amount) x.delta = Number(fromWei(x.amount)) * delta * -1
+			return x
+		})
+		const resolvedOptionPositions = await Promise.all(enrichedOptionPositions)
+
 		// closed due to buyback - subtract the amount of the buyback
 		// closed due to liquidation - get all liquidated events
-		const portfolioDelta = filtered.reduce((total, num) => total + (num.delta || 0), 0)
+		const portfolioDelta = resolvedOptionPositions.reduce((total, num) => total + (num.delta || 0), 0)
 		expect(resolved.length).to.eq(2)
 		//expect(delta).to.eq(expected_portfolio_delta)
 	})
