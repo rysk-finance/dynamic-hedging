@@ -202,19 +202,15 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         // if there is too much collateral then return some to the pool
         if (collatRequired > collat) {
             // transfer assets from the liquidityPool to here to collateralise the pool
-            // TODO: track this transfer either in LiquidityPool or here
             SafeTransferLib.safeTransferFrom(collateralAsset, parentLiquidityPool, address(this), collatRequired - collat);
             // deposit the collateral into the margin account
             clearingHouse.updateMargin(accountId, collateralId, int256(collatRequired - collat));
-            // TODO: change the internal holdings around
             return collatRequired - collat;
         } else if (collatRequired < collat) {
             // withdraw excess collateral from the margin account
             clearingHouse.updateMargin(accountId, collateralId, -int256(collat - collatRequired));
             // transfer assets back to the liquidityPool 
-            // TODO: track this transfer either in LiquidityPool or here
             SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, collat - collatRequired);
-            // TODO: change the internal holdings around
             return collat - collatRequired;
         } else {
             return 0;
@@ -320,7 +316,6 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         // withdraw the excess margin
         if (collatToDeposit > 0) {
             // transfer assets from the liquidityPool to here to collateralise the pool
-            // TODO: track this transfer either in LiquidityPool or here
             SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collatToDeposit);
             // deposit the collateral into the margin account
             clearingHouse.updateMargin(accountId, collateralId, int256(collatToDeposit));
@@ -364,7 +359,6 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
                 clearingHouse.updateMargin(accountId, collateralId, -int256(collatToWithdraw));
             }
             // transfer assets back to the liquidityPool 
-            // TODO: track this transfer either in LiquidityPool or here
             SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, uint256(collatToWithdraw));
         }
         return _amount;

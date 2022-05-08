@@ -2,13 +2,12 @@
 pragma solidity >=0.8.9;
 
 import "../PriceFeed.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/IERC20.sol";
 import "../libraries/OptionsCompute.sol";
 import '../libraries/SafeTransferLib.sol';
 import "../interfaces/IHedgingReactor.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
-import "hardhat/console.sol";
 
 
 /**
@@ -94,13 +93,13 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         // cache
         address collateralAsset_ = collateralAsset;
         uint amountOutMinimum = 0;
-        uint amountInMaximum = MAX_UINT;
         int256 deltaChange;
         if (_delta < 0) { // buy wETH
-        //TODO calculate amountInMaximum using live oracle data
-        //TODO set stablecoin and amountin/out variables
+            // get the current price convert it to collateral decimals multiply it by the amount, add 5% then make sure decimals are fine
+            uint amountInMaximum = OptionsCompute.convertToDecimals(getUnderlyingPrice(wETH, collateralAsset_), IERC20(collateralAsset_).decimals()) * uint256(-_delta) * 105 / 1e20;
             (deltaChange,) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset_);
             internalDelta += deltaChange;
+            SafeTransferLib.safeTransfer(ERC20(collateralAsset_), parentLiquidityPool, ERC20(collateralAsset_).balanceOf(address(this)));
             return deltaChange;
         } else { // sell wETH
             uint256 ethBalance = IERC20(wETH).balanceOf(address(this));
@@ -108,7 +107,6 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
                 return 0;
             }
             if(_delta > int256(ethBalance)){ // not enough ETH to sell to offset delta so sell all ETH available.
-                //TODO calculate amountOutMinmmum using live oracle data
                 (deltaChange,) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateralAsset_);
                   internalDelta += deltaChange;
             } else {
@@ -175,9 +173,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         @param _sellToken the stablecoin to sell
     */
     function _swapExactOutputSingle(uint256 _amountOut, uint256 _amountInMaximum, address _sellToken) internal returns (int256, uint256) {
-        /// @TODO get live uniswap price data to establish _amountInMaximum value and change tempTransferAmount to that value
-        uint tempTransferAmount =  5000000000; // 5,000 USDC
-        SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), tempTransferAmount);
+        SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), _amountInMaximum);
 
         ISwapRouter.ExactOutputSingleParams memory params =
             ISwapRouter.ExactOutputSingleParams({
@@ -222,4 +218,24 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         // return ngative _amountIn because deltaChange is negative
         return (-int256(_amountIn), amountOut);
     }
+
+  /**
+   * @notice get the underlying price with just the underlying asset and strike asset
+   * @param underlying   the asset that is used as the reference asset
+   * @param _strikeAsset the asset that the underlying value is denominated in
+   * @return the underlying price
+   */
+  function getUnderlyingPrice(
+    address underlying,
+    address _strikeAsset
+  )
+    internal
+    view
+    returns (uint)
+  {
+    return PriceFeed(priceFeed).getNormalizedRate(
+      underlying,
+      _strikeAsset
+    );
+  }
 }

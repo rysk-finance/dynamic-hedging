@@ -300,7 +300,6 @@ describe("UniswapV3HedgingReactor", () => {
 		expect(reactorWethBalanceBefore).to.equal(0.5)
 
 		const withdrawAmount = "500"
-		expect(parseFloat(withdrawAmount)).to.be.below(reactorUsdcBalance)
 
 		const LpUsdcBalanceBefore = parseFloat(
 			ethers.utils.formatUnits(
@@ -333,10 +332,10 @@ describe("UniswapV3HedgingReactor", () => {
 			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
 		)
 		// expect LP balance to go up by withdrawAmount
-		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.equal(parseFloat(withdrawAmount))
+		expect(LpUsdcBalanceAfter).to.equal(LpUsdcBalanceBefore)
 		// expect reactor balance to go down by withdrawAmount
 		expect(reactorUsdcBalance.toFixed(6)).to.equal(
-			(reactorUsdcBalanceOld - parseFloat(withdrawAmount)).toFixed(6)
+			(reactorUsdcBalanceOld).toFixed(6)
 		)
 		// expect reactor wETH balance to be unchanged
 		expect(reactorWethBalanceBefore).to.equal(reactorWethBalanceAfter)
