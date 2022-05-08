@@ -118,9 +118,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     }
 
     /// @inheritdoc IHedgingReactor
-    function withdraw(uint256 _amount, address _token) external returns (uint256) {
+    function withdraw(uint256 _amount) external returns (uint256) {
         require(msg.sender == parentLiquidityPool, "!vault");
-        if (_token != collateralAsset) {revert IncorrectCollateral();}
+        address _token = collateralAsset;
         // check the holdings if enough just lying around then transfer it
         // assume amount is passed in as e18
         uint256 convertedAmount = OptionsCompute.convertToDecimals(_amount, IERC20(_token).decimals());

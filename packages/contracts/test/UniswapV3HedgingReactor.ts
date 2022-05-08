@@ -309,8 +309,7 @@ describe("UniswapV3HedgingReactor", () => {
 			)
 		)
 		const withdrawTx = await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
+			ethers.utils.parseUnits(withdrawAmount, 18)
 		)
 		let reactorUsdcBalanceOld = reactorUsdcBalance
 		reactorUsdcBalance = parseFloat(
@@ -369,8 +368,7 @@ describe("UniswapV3HedgingReactor", () => {
 		expect(parseFloat(withdrawAmount)).to.be.above(reactorUsdcBalanceBefore)
 		// withdraw more than current balance
 		await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
+			ethers.utils.parseUnits(withdrawAmount, 18)
 		)
 		await liquidityPoolDummy.getDelta()
 		const reactorWethBalanceAfter = parseFloat(
@@ -418,8 +416,7 @@ describe("UniswapV3HedgingReactor", () => {
 		expect(reactorWethBalanceBefore).to.be.above(0)
 		const withdrawAmount = "100000000" //100 million
 		const tx = await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
+			ethers.utils.parseUnits(withdrawAmount, 18)
 		)
 
 		await tx.wait()
@@ -504,7 +501,7 @@ describe("UniswapV3HedgingReactor", () => {
 
 	it("withdraw reverts if not called form liquidity pool", async () => {
 		await expect(
-			uniswapV3HedgingReactor.withdraw(100000000000, usdcContract.address)
+			uniswapV3HedgingReactor.withdraw(100000000000)
 		).to.be.revertedWith("!vault")
 	})
 

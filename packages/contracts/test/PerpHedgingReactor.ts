@@ -338,13 +338,6 @@ describe("PerpHedgingReactor", () => {
 		await expect((liquidityPoolDummy.hedgeDelta(delta))).to.be.revertedWith('ERC20: transfer amount exceeds balance')
 
 	})
-	it("reverts withdrawal if incorrect token input", async () => {
-		const withdrawAmount = "1000"
-		await expect(liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			ZERO_ADDRESS
-		)).to.be.revertedWith("IncorrectCollateral()")
-	})
 	it("liquidates usdc held position", async () => {
 		const withdrawAmount = "1000"
 		await usdcContract
@@ -359,8 +352,7 @@ describe("PerpHedgingReactor", () => {
 		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
 		// withdraw more than current balance
 		await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
+			ethers.utils.parseUnits(withdrawAmount, 18)
 		)
 		const reactorCollatBalanceAfter =  (await clearingHouse.getAccountInfo(0)).collateralDeposits[0].balance
 		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
@@ -390,8 +382,7 @@ describe("PerpHedgingReactor", () => {
 		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
 		// withdraw more than current balance
 		await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
+			ethers.utils.parseUnits(withdrawAmount, 18)
 		)
 		const reactorCollatBalanceAfter =  (await clearingHouse.getAccountInfo(0)).collateralDeposits[0].balance
 		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
@@ -496,8 +487,7 @@ describe("PerpHedgingReactor", () => {
 		await liquidityPoolDummy.hedgeDelta(reactorDeltaBefore)
 		const withdrawAmount = "100000000" 
 		const tx = await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
+			ethers.utils.parseUnits(withdrawAmount, 18)
 		)
 
 		await tx.wait()
@@ -535,7 +525,7 @@ describe("PerpHedgingReactor", () => {
 
 	it("withdraw reverts if not called form liquidity pool", async () => {
 		await expect(
-			perpHedgingReactor.withdraw(100000000000, usdcContract.address)
+			perpHedgingReactor.withdraw(100000000000)
 		).to.be.revertedWith("!vault")
 	})
 
