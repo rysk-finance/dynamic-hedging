@@ -29,11 +29,11 @@ Withdraws all loose change from the reactor, returning the minimum of the ```bal
 
 Doesnt do anything, needed because of interface.
 
-### ```getDelta()```
+### ```getDelta()``` ***View***
 
 This function gets the internalDelta of the pool. Which is assumed to always hold the live delta value of the pool.
 
-### ```getPoolDenominatedValue()```
+### ```getPoolDenominatedValue()``` ***View***
 
 This function should return the value of the pool denominated in e18 decimals. It gets the value of loose change and the value of spot positions multiplied by the current chainlink price
 

@@ -323,9 +323,9 @@ contract OptionRegistry is Ownable, AccessControl {
      * @return  the amount of collateral returned from the vault
      * @return  the amount of collateral used to pay ITM options on vault settle
      * @return  number of oTokens that the vault was short
-     * @dev callable by anyone but returns funds to the liquidityPool
+     * @dev callable by the liquidityPool so that local variables can also be updated
      */
-    function settle(address _series) external returns (bool, uint256, uint256, uint256) {
+    function settle(address _series) external onlyLiquidityPool returns (bool, uint256, uint256, uint256) {
         Types.OptionSeries memory series = seriesInfo[_series];
         // strike will be in e8
         if (series.expiration == 0) {revert NonExistentSeries();}
