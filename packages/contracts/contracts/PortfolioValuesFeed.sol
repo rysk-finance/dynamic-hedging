@@ -36,9 +36,9 @@ contract PortfolioValuesFeed is Ownable, ChainlinkClient {
   // mapping of addresses to their string versions
   mapping(address => string) public stringedAddresses;
 
-  ////////////////////////
-  /// events && errors ///
-  ////////////////////////
+  //////////////
+  /// events ///
+  //////////////
 
   event DataFullfilled(address indexed underlying, address indexed strike, int256 delta, int256 gamma, int256 vega, int256 theta, uint256 callPutsValue);
 
