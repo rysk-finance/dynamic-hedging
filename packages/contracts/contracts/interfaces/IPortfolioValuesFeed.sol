@@ -15,7 +15,6 @@ interface IPortfolioValuesFeed {
    * @return requestId - id of the request
    */
   function requestPortfolioData(address _underlying, address _strike) external returns (bytes32 requestId);
-  function validatePortfolioValues(address, address, uint256) external view;
   ///////////////////////////
   /// non-complex getters ///
   ///////////////////////////

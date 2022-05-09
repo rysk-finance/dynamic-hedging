@@ -174,10 +174,14 @@ export async function deployLiquidityPool(
 		}
 	})
 	const blackScholesDeploy = await blackScholesFactory.deploy()
-
+	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute",{
+		libraries: {}
+	})
+	const optionsCompute = (await optionsCompFactory.deploy())
 	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
 		libraries: {
-			BlackScholes: blackScholesDeploy.address
+			BlackScholes: blackScholesDeploy.address,
+			OptionsCompute: optionsCompute.address
 		}
 	})
 	const lp = (await liquidityPoolFactory.deploy(
@@ -203,8 +207,8 @@ export async function deployLiquidityPool(
 	const lpAddress = lp.address
 	const liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
-	await pvFeed.setMaxTimeDeviationThreshold(600, WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-	await pvFeed.setMaxPriceDeviationThreshold(toWei("1"), WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
+	await liquidityPool.setMaxTimeDeviationThreshold(600)
+	await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
 	await pvFeed.setAddressStringMapping(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId])
 	await pvFeed.setAddressStringMapping(USDC_ADDRESS[chainId], USDC_ADDRESS[chainId])
 	await pvFeed.setLiquidityPool(liquidityPool.address)

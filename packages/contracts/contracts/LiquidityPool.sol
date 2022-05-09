@@ -84,6 +84,10 @@ contract LiquidityPool is
   mapping(address => bool) public handler;
   // is the purchase and sale of options paused
   bool public isTradingPaused;
+  // max time to allow between oracle updates for an underlying and strike
+  uint256 public maxTimeDeviationThreshold;
+  // max price difference to allow between oracle updates for an underlying and strike
+  uint256 public maxPriceDeviationThreshold;
 
   //////////////////////////
   /// constant variables ///
@@ -239,6 +243,12 @@ contract LiquidityPool is
   */
   function setRiskFreeRate(uint _riskFreeRate) external onlyOwner {
     riskFreeRate = _riskFreeRate;
+  }
+  function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external onlyOwner {
+    maxTimeDeviationThreshold = _maxTimeDeviationThreshold;
+  }
+  function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold) external onlyOwner {
+    maxPriceDeviationThreshold = _maxPriceDeviationThreshold;
   }
   /**
    * @notice change the status of a handler
@@ -440,9 +450,16 @@ function executeEpochCalculation() external whenNotPaused() onlyOwner {
   if (!isTradingPaused) { revert CustomErrors.TradingNotPaused();}
   address underlyingAsset_ = underlyingAsset;
   address strikeAsset_ = strikeAsset;
+  IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
+  Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(underlyingAsset_, strikeAsset_);
   // TODO: Maybe change this so it checks the request Id instead of validating by price and time
   // check that the portfolio values are acceptable
-  getPortfolioValuesFeed().validatePortfolioValues(underlyingAsset_, strikeAsset_, getUnderlyingPrice(underlyingAsset_, strikeAsset_));
+  OptionsCompute.validatePortfolioValues(
+        getUnderlyingPrice(underlyingAsset_, strikeAsset_), 
+        portfolioValues,
+        maxTimeDeviationThreshold,
+        maxPriceDeviationThreshold
+        );
   uint256 newPricePerShare = totalSupply > 0 ?  1e18 * (_getNAV() - OptionsCompute.convertFromDecimals(pendingDeposits, ERC20(collateralAsset).decimals())) / totalSupply: 1e18;
   uint256 sharesToMint = _sharesForAmount(pendingDeposits, newPricePerShare);
   epochPricePerShare[epoch] = newPricePerShare;
@@ -613,7 +630,12 @@ function executeEpochCalculation() external whenNotPaused() onlyOwner {
       IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
       Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(underlyingAsset_, strikeAsset_);
       // check that the portfolio values are acceptable
-      pvFeed.validatePortfolioValues(underlyingAsset_, strikeAsset_, getUnderlyingPrice(underlyingAsset_, strikeAsset_));
+      OptionsCompute.validatePortfolioValues(
+        getUnderlyingPrice(underlyingAsset_, strikeAsset_), 
+        portfolioValues,
+        maxTimeDeviationThreshold,
+        maxPriceDeviationThreshold
+        );
       // assumes in e18
       int256 externalDelta;
       address[] memory hedgingReactors_ = hedgingReactors;
@@ -840,12 +862,16 @@ function executeEpochCalculation() external whenNotPaused() onlyOwner {
     // equities = assets - liabilities
     // assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
     // liabilities: Options that we wrote in e18
-
     uint256 assets = _getAssets();
     IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
     Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(underlyingAsset_, strikeAsset_);
     // check that the portfolio values are acceptable
-    pvFeed.validatePortfolioValues(underlyingAsset_, strikeAsset_, getUnderlyingPrice(underlyingAsset_, strikeAsset_));
+    OptionsCompute.validatePortfolioValues(
+        getUnderlyingPrice(underlyingAsset_, strikeAsset_), 
+        portfolioValues,
+        maxTimeDeviationThreshold,
+        maxPriceDeviationThreshold
+        );
     int256 ephemeralLiabilities_ = ephemeralLiabilities;
     // ephemeralLiabilities can be -ve but portfolioValues will not
     // when converting liabilities it should never be -ve, if it is then the NAV calc will fail
