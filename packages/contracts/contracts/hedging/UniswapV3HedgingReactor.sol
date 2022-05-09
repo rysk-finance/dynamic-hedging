@@ -94,7 +94,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         uint amountOutMinimum = 0;
         int256 deltaChange;
         if (_delta < 0) { // buy wETH
-            // get the current price convert it to collateral decimals multiply it by the amount, add 5% then make sure decimals are fine
+            // get the current price convert it to collateral decimals multiply it by the amount, add 1% then make sure decimals are fine
             uint amountInMaximum = OptionsCompute.convertToDecimals(getUnderlyingPrice(wETH_, collateralAsset_), IERC20(collateralAsset_).decimals()) * uint256(-_delta) * 101 / 1e20;
             (deltaChange,) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset_);
             internalDelta += deltaChange;
