@@ -88,21 +88,22 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
 
     /// @inheritdoc IHedgingReactor
     function hedgeDelta(int256 _delta) external returns (int256) {
-        
-        require(msg.sender == parentLiquidityPool, "!vault");
+        address parentLiquidityPool_ = parentLiquidityPool;
+        address wETH_ = wETH;
+        require(msg.sender == parentLiquidityPool_, "!vault");
         // cache
         address collateralAsset_ = collateralAsset;
         uint amountOutMinimum = 0;
         int256 deltaChange;
         if (_delta < 0) { // buy wETH
-            // get the current price convert it to collateral decimals multiply it by the amount, add 5% then make sure decimals are fine
-            uint amountInMaximum = OptionsCompute.convertToDecimals(getUnderlyingPrice(wETH, collateralAsset_), IERC20(collateralAsset_).decimals()) * uint256(-_delta) * 105 / 1e20;
+            // get the current price convert it to collateral decimals multiply it by the amount, add 1% then make sure decimals are fine
+            uint amountInMaximum = OptionsCompute.convertToDecimals(getUnderlyingPrice(wETH_, collateralAsset_), IERC20(collateralAsset_).decimals()) * uint256(-_delta) * 101 / 1e20;
             (deltaChange,) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset_);
             internalDelta += deltaChange;
-            SafeTransferLib.safeTransfer(ERC20(collateralAsset_), parentLiquidityPool, ERC20(collateralAsset_).balanceOf(address(this)));
+            SafeTransferLib.safeTransfer(ERC20(collateralAsset_), parentLiquidityPool_, ERC20(collateralAsset_).balanceOf(address(this)));
             return deltaChange;
         } else { // sell wETH
-            uint256 ethBalance = IERC20(wETH).balanceOf(address(this));
+            uint256 ethBalance = IERC20(wETH_).balanceOf(address(this));
             if(ethBalance < minAmount){
                 return 0;
             }
@@ -113,7 +114,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
                  (deltaChange,) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateralAsset_);
                   internalDelta += deltaChange;
             }
-            SafeTransferLib.safeTransfer(ERC20(collateralAsset_), parentLiquidityPool, ERC20(collateralAsset_).balanceOf(address(this)));
+            SafeTransferLib.safeTransfer(ERC20(collateralAsset_), parentLiquidityPool_, ERC20(collateralAsset_).balanceOf(address(this)));
             return deltaChange;
         }
     }
@@ -158,8 +159,10 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
 
     /// @inheritdoc IHedgingReactor
     function getPoolDenominatedValue() external view returns(uint256 value){
-        return OptionsCompute.convertFromDecimals(IERC20(collateralAsset).balanceOf(address(this)), IERC20(collateralAsset).decimals()) +
-                (PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset) * IERC20(wETH).balanceOf(address(this))) / 10**IERC20(wETH).decimals();
+        address collateralAsset_ = collateralAsset;
+        address wETH_ = wETH;
+        return OptionsCompute.convertFromDecimals(IERC20(collateralAsset_).balanceOf(address(this)), IERC20(collateralAsset_).decimals()) +
+                (PriceFeed(priceFeed).getNormalizedRate(wETH_, collateralAsset_) * IERC20(wETH_).balanceOf(address(this))) / 10**IERC20(wETH_).decimals();
     }
 
     //////////////////////////
