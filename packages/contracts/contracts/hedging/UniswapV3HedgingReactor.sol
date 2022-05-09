@@ -66,8 +66,6 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
         SafeTransferLib.safeApprove( ERC20(_wethAddress), address(swapRouter), MAX_UINT );
     }
 
-    error IncorrectCollateral();
-
     ///////////////
     /// setters ///
     ///////////////
