@@ -272,7 +272,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		uint256 _aboveThresholdGradient,
 		int256 _aboveThresholdYIntercept,
 		uint256 _utilizationFunctionThreshold
-	) external {
+	) external onlyOwner {
 		belowThresholdGradient = _belowThresholdGradient;
 		aboveThresholdGradient = _aboveThresholdGradient;
 		aboveThresholdYIntercept = _aboveThresholdYIntercept;
