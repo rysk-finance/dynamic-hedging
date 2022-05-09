@@ -2,6 +2,8 @@ import hre, { ethers, network } from "hardhat"
 import { BigNumberish, Contract, utils, Signer, BigNumber, Event } from "ethers"
 //@ts-ignore
 import greeks from "greeks"
+//@ts-ignore
+import bs from "black-scholes"
 import {
 	toWei,
 	tFormatEth,
@@ -79,6 +81,7 @@ interface EnrichedWriteEvent extends WriteEvent {
 	gamma?: number
 	vega?: number
 	theta?: number
+	price?: number
 }
 
 let usd: MintableERC20
@@ -448,23 +451,21 @@ describe("Oracle core logic", async () => {
 			const gamma = greeks.getGamma(...greekVariables)
 			const vega = greeks.getVega(...greekVariables)
 			const theta = greeks.getTheta(...greekVariables)
-			// invert sign due to writing rather than buying
+			const price = bs.blackScholes(...greekVariables)
 			// @TODO consider keeping calculation in BigNumber as more precise and is the format onchain.
 			if (x.amount) {
 				const numericAmt = Number(fromWei(x.amount))
+				// invert sign due to writing rather than buying
 				x.delta = numericAmt * delta * -1
 				x.gamma = numericAmt * gamma * -1
 				x.theta = numericAmt * theta * -1
 				x.vega = numericAmt * vega * -1
+				x.price = numericAmt * price
 			}
 			return x
 		})
 		const resolvedOptionPositions = await Promise.all(enrichedOptionPositions)
-
-		// closed due to buyback - subtract the amount of the buyback
-		// closed due to liquidation - get all liquidated events
 		const portfolioDelta = resolvedOptionPositions.reduce((total, num) => total + (num.delta || 0), 0)
 		expect(resolved.length).to.eq(2)
-		//expect(delta).to.eq(expected_portfolio_delta)
 	})
 })
