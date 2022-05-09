@@ -60,8 +60,6 @@ contract LiquidityPool is
   mapping(address => WithdrawalReceipt) public withdrawalReceipts;
   // pending deposits for a round
   uint256 public pendingDeposits;
-  // pending withdrawals
-  uint256 public pendingWithdrawals;
 
   /////////////////////////////////////
   /// governance settable variables ///
@@ -438,17 +436,17 @@ function pauseTradingAndRequest() external onlyOwner returns (bytes32){
   * @notice execute the epoch and set all the price per shares
   * @dev    this function must be called in order to execute an epoch calculation and batch a mutual fund epoch
   */
-function executeEpochCalculation() external onlyOwner {
+function executeEpochCalculation() external whenNotPaused() onlyOwner {
   if (!isTradingPaused) { revert CustomErrors.TradingNotPaused();}
   address underlyingAsset_ = underlyingAsset;
   address strikeAsset_ = strikeAsset;
   // TODO: Maybe change this so it checks the request Id instead of validating by price and time
   // check that the portfolio values are acceptable
   getPortfolioValuesFeed().validatePortfolioValues(underlyingAsset_, strikeAsset_, getUnderlyingPrice(underlyingAsset_, strikeAsset_));
-  uint256 newPricePerShare = totalSupply > 0 ?  1e18 * _getNAV() / totalSupply: 1e18;
+  uint256 newPricePerShare = totalSupply > 0 ?  1e18 * (_getNAV() - OptionsCompute.convertFromDecimals(pendingDeposits, ERC20(collateralAsset).decimals())) / totalSupply: 1e18;
   uint256 sharesToMint = _sharesForAmount(pendingDeposits, newPricePerShare);
   epochPricePerShare[epoch] = newPricePerShare;
-  pendingDeposits = 0;
+  delete pendingDeposits;
   isTradingPaused = false;
   emit EpochExecuted(epoch);
   epoch++;
@@ -503,9 +501,12 @@ function executeEpochCalculation() external onlyOwner {
   {
     if (_shares == 0) {revert CustomErrors.InvalidShareAmount();}
 
+    if (depositReceipts[msg.sender].amount > 0 || 
+        depositReceipts[msg.sender].unredeemedShares > 0) {
     // redeem so a user can use a completed deposit as shares for an initiation
     _redeem(type(uint256).max);
-
+    }
+    if (balanceOf[msg.sender] < _shares) {revert CustomErrors.InsufficientShareBalance();}
     uint256 currentEpoch = epoch;
     WithdrawalReceipt memory withdrawalReceipt = withdrawalReceipts[msg.sender];
 
@@ -515,15 +516,14 @@ function executeEpochCalculation() external onlyOwner {
     if(withdrawalReceipt.epoch == currentEpoch) {
       withdrawalShares = existingShares + _shares;
     } else {
-      if (existingShares != 0) {revert CustomErrors.ExistingWithdrawal();}
+      // do 100 wei just in case of any rounding issues
+      if (existingShares > 100) {revert CustomErrors.ExistingWithdrawal();}
       withdrawalShares = _shares;
       withdrawalReceipts[msg.sender].epoch = uint128(currentEpoch);
     }
 
     withdrawalReceipts[msg.sender].shares = uint128(withdrawalShares);
-    pendingWithdrawals += pendingWithdrawals + _shares;
-
-    transferFrom(msg.sender, address(this), _shares);
+    transfer(address(this), _shares);
   }
 
   /**
@@ -539,16 +539,16 @@ function executeEpochCalculation() external onlyOwner {
     nonReentrant
     returns (uint256)
   {
+    if (_shares == 0) {revert CustomErrors.InvalidShareAmount();}
     WithdrawalReceipt memory withdrawalReceipt = withdrawalReceipts[msg.sender];
     // cache the storage variables
     uint256 withdrawalShares = _shares > withdrawalReceipt.shares ? withdrawalReceipt.shares : _shares;
     uint256 withdrawalEpoch = withdrawalReceipt.epoch;
     // make sure there is something to withdraw and make sure the round isnt the current one
     if (withdrawalShares == 0) {revert CustomErrors.NoExistingWithdrawal();}
-    if (withdrawalEpoch == epoch) {revert CustomErrors.RoundNotClosed();}
+    if (withdrawalEpoch == epoch) {revert CustomErrors.EpochNotClosed();}
     // reduced the stored share receipt by the shares requested
     withdrawalReceipts[msg.sender].shares -= uint128(withdrawalShares);
-    pendingWithdrawals -= withdrawalShares;
     // get the withdrawal amount based on the shares and pps at the epoch
     uint256 withdrawalAmount = _amountForShares(withdrawalShares, epochPricePerShare[withdrawalEpoch]);
     if (withdrawalAmount == 0) { revert  CustomErrors.InvalidAmount();}
@@ -755,23 +755,21 @@ function executeEpochCalculation() external onlyOwner {
     if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
       unredeemedShares += _sharesForAmount(depositReceipt.amount, epochPricePerShare[depositReceipt.epoch]);
     }
+    uint256 depositAmount = _amount;
     // if there is a second deposit in the same round then increment this amount
     if (currentEpoch == depositReceipt.epoch) {
-      _amount += uint256(depositReceipt.amount);
+      depositAmount += uint256(depositReceipt.amount);
     }
-    require(_amount <= type(uint128).max, "overflow");
+    require(depositAmount <= type(uint128).max, "overflow");
     // create the deposit receipt
     depositReceipts[msg.sender] = DepositReceipt({
       epoch: uint128(currentEpoch),
-      amount: uint128(_amount),
+      amount: uint128(depositAmount),
       unredeemedShares: unredeemedShares
     });
     pendingDeposits += _amount;
   }
 
-  /**
-   * @dev inspired by Ribbon's queue system
-   */
   function _redeem(uint256 _shares) internal returns (uint256) {
     DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
     uint256 currentEpoch = epoch;
@@ -784,7 +782,7 @@ function executeEpochCalculation() external onlyOwner {
     // if the shares requested are greater than their unredeemedShares then floor to unredeemedShares, otherwise 
     // use their requested share number
     uint256 toRedeem = _shares > unredeemedShares ? unredeemedShares : _shares;
-    if (toRedeem == 0) {revert CustomErrors.NothingToRedeem();}
+    if (toRedeem == 0) {return 0;}
     // if the deposit receipt is on this epoch and there are unredeemed shares then we leave amount as is,
     // if the epoch has past then we set the amount to 0 and take from the unredeemedShares
     if (depositReceipt.epoch < currentEpoch) {
@@ -792,8 +790,9 @@ function executeEpochCalculation() external onlyOwner {
     }
     depositReceipts[msg.sender].unredeemedShares = uint128(unredeemedShares - toRedeem);
     emit Redeem(msg.sender, toRedeem, depositReceipt.epoch);
+    allowance[address(this)][msg.sender] = toRedeem;
     // transfer as the shares will have been minted in the epoch execution
-    transfer(msg.sender, toRedeem);
+    transferFrom(address(this), msg.sender, toRedeem);
     return toRedeem;
   }
 

@@ -9,8 +9,7 @@ interface CustomErrors {
     error InvalidAmount();
     error TradingPaused();
     error IssuanceFailed();
-    error RoundNotClosed();
-    error NothingToRedeem();
+    error EpochNotClosed();
     error TradingNotPaused();
     error DeltaNotDecreased();
     error NonExistentOtoken();
@@ -26,6 +25,7 @@ interface CustomErrors {
     error UnderlyingAssetInvalid();
     error CollateralAmountInvalid();
     error WithdrawExceedsLiquidity();
+    error InsufficientShareBalance();
     error MaxLiquidityBufferReached();
     error CustomOrderInsufficientPrice();
     error CustomOrderInvalidDeltaValue();
