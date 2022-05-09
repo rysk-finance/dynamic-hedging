@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "./Types.sol";
+import "./CustomErrors.sol";
 
 library OptionsCompute {
     using PRBMathUD60x18 for uint256;
@@ -74,5 +75,24 @@ library OptionsCompute {
             return b.div(a);
         }
         return a.div(b);
+    }
+    /**
+    * @notice get the latest oracle fed portfolio values and check when they were last updated and make sure this is within a reasonable window
+    */
+    function validatePortfolioValues(
+        uint256 spotPrice, 
+        Types.PortfolioValues memory portfolioValues,
+        uint256 maxTimeDeviationThreshold,
+        uint256 maxPriceDeviationThreshold
+        ) 
+        public
+        view
+        {
+        uint256 timeDelta = block.timestamp - portfolioValues.timestamp;
+        // If too much time has passed we want to prevent a possible oracle attack
+        if (timeDelta > maxTimeDeviationThreshold) { revert CustomErrors.TimeDeltaExceedsThreshold(timeDelta); }
+        uint256 priceDelta = calculatePercentageDifference(spotPrice, portfolioValues.spotPrice);
+        // If price has deviated too much we want to prevent a possible oracle attack
+        if (priceDelta > maxPriceDeviationThreshold) { revert CustomErrors.PriceDeltaExceedsThreshold(priceDelta); }
     }
 }
