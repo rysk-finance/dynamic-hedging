@@ -1,11 +1,13 @@
-import { ethers } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import React, { useCallback, useEffect, useState } from "react";
 import ERC20ABI from "../abis/erc20.json";
 import { useWalletContext } from "../App";
 import LPABI from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
+import { MAX_UINT_256 } from "../config/constants";
 import { USDC_ADDRESS } from "../config/mainnetContracts";
 import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
+import { useGlobalContext } from "../state/GlobalContext";
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
 import { RadioButtonSlider } from "./shared/RadioButtonSlider";
 import { TextInput } from "./shared/TextInput";
@@ -17,6 +19,10 @@ enum Mode {
 
 export const VaultDepositWithdraw = () => {
   const { account } = useWalletContext();
+
+  const {
+    state: { settings },
+  } = useGlobalContext();
 
   const [mode, setMode] = useState<Mode>(Mode.DEPOSIT);
 
@@ -58,12 +64,19 @@ export const VaultDepositWithdraw = () => {
       if (account && lpContract && usdcContract) {
         if (mode === Mode.DEPOSIT) {
           const amount = ethers.utils.parseUnits(inputValue, 6);
-          // USDC is 6 decimals
-          const approvalTransaction = await usdcContract.approve(
-            addresses.localhost.liquidityPool,
-            amount
-          );
-          await approvalTransaction.wait();
+          const approvedAmount = (await usdcContract.allowance(
+            account,
+            addresses.localhost.liquidityPool
+          )) as BigNumber;
+          if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
+            const approvalTransaction = await usdcContract.approve(
+              addresses.localhost.liquidityPool,
+              settings.unlimitedApproval
+                ? ethers.BigNumber.from(MAX_UINT_256)
+                : amount
+            );
+            await approvalTransaction.wait();
+          }
           const depositTransaction = await lpContract.deposit(amount, account);
           await depositTransaction.wait();
         } else if (mode === Mode.WITHDRAW) {
