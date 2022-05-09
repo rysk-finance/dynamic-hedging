@@ -103,7 +103,7 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 // First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
 
-const invalidExpiryDateLong: string = "2024-09-03"
+const invalidExpiryDateLong: string = "2022-04-22"
 const invalidExpiryDateShort: string = "2022-03-01"
 // decimal representation of a percentage
 const rfr: string = "0.03"
@@ -132,7 +132,7 @@ const maxPutStrikePrice = utils.parseEther("10000")
 // one week in seconds
 const minExpiry = 86400 * 7
 // 365 days in seconds
-const maxExpiry = 86400 * 365
+const maxExpiry = 86400 * 50
 
 // time travel period between each expiry
 const expiryPeriod = {
@@ -144,14 +144,15 @@ const expiryPeriod = {
 const productSpotShockValue = scaleNum("0.6", 27)
 // array of time to expiry
 const day = 60 * 60 * 24
-const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56]
+const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56, day * 84]
 // array of upper bound value correspond to time to expiry
 const expiryToValue = [
 	scaleNum("0.1678", 27),
 	scaleNum("0.237", 27),
 	scaleNum("0.3326", 27),
 	scaleNum("0.4032", 27),
-	scaleNum("0.4603", 27)
+	scaleNum("0.4603", 27),
+	scaleNum("0.5", 27)
 ]
 
 /* --- end variables to change --- */
@@ -304,6 +305,7 @@ describe("Liquidity Pools", async () => {
 
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			optionSeries,
@@ -347,6 +349,7 @@ describe("Liquidity Pools", async () => {
 
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			optionSeries,
@@ -378,8 +381,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount))[0]
-		await usd.approve(handler.address, quote)
+		await usd.approve(handler.address, toWei("1000000000"))
 		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
@@ -392,8 +394,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount))[0]
-		await usd.approve(handler.address, quote2)
+		await usd.approve(handler.address, toWei("1000000000"))
 		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
@@ -416,8 +417,8 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount))[0]
-		await usd.approve(handler.address, quote)
+		// const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount))[0]
+		await usd.approve(handler.address, toWei("100000000"))
 		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
@@ -431,12 +432,11 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount))[0]
-		await usd.approve(handler.address, quote2)
+		// const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount))[0]
+		await usd.approve(handler.address, toWei("100000000"))
 		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
-
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
 		// check to make sure no balances have changed
@@ -632,6 +632,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			proposedSeries,
@@ -923,6 +924,7 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			optionSeries,
@@ -970,6 +972,7 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			proposedSeries,
@@ -1050,6 +1053,7 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuoteCall = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			proposedSeriesCall,
@@ -1057,6 +1061,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuotePut = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			proposedSeriesPut,
@@ -1222,6 +1227,7 @@ describe("Liquidity Pools", async () => {
 		const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			{
@@ -1325,6 +1331,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuote1 = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			{
@@ -1354,6 +1361,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuote2 = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			{
@@ -1569,6 +1577,7 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuoteInvalidDeltaCall = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			proposedSeriesInvalidDeltaCall,
@@ -1576,6 +1585,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuoteInvalidDeltaPut = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			proposedSeriesInvalidDeltaPut,
@@ -1583,6 +1593,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuoteInvalidPrice = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
 			usd,
 			priceFeed,
 			proposedSeriesInvalidPrice,

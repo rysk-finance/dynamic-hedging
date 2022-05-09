@@ -22,6 +22,7 @@ import { PriceFeed } from "../types/PriceFeed"
 //@ts-ignore
 import bs from "black-scholes"
 import { E } from "prb-math"
+import { OptionRegistry } from "../types/OptionRegistry"
 
 const { provider } = ethers
 const { parseEther } = ethers.utils
@@ -29,8 +30,10 @@ const chainId = 1
 // decimal representation of a percentage
 const rfr: string = "0.03"
 const bidAskSpread = "0.3"
-const belowUtilizationThresholGradient = 0.1
-const utilizationFunctionThreshold = 0.5 // 50%
+const belowUtilizationThresholdGradient = 0.1
+const aboveUtilizationThresholdGradient = 1.5
+const utilizationFunctionThreshold = 0.6 // 60%
+const yIntercept = -0.84
 
 export async function whitelistProduct(
 	underlying: string,
@@ -176,6 +179,7 @@ export async function increase(duration: number | BigNumber) {
 
 export async function calculateOptionQuoteLocally(
 	liquidityPool: LiquidityPool,
+	optionRegistry: OptionRegistry,
 	collateralAsset: MintableERC20,
 	priceFeed: PriceFeed,
 	optionSeries: {
@@ -223,15 +227,23 @@ export async function calculateOptionQuoteLocally(
 	const deltaTiltAmount = parseFloat(
 		utils.formatEther(normalisedDelta.gt(maxDiscount) ? maxDiscount : normalisedDelta)
 	)
-
-	// console.log({
-	// 	maxDiscount: utils.formatEther(maxDiscount),
-	// 	normalisedDelta: utils.formatEther(normalisedDelta),
-	// 	deltaTiltAmount
-	// })
-	const maxPrice = optionSeries.isPut ? optionSeries.strike : underlyingPrice
-	const utilization =
+	const liquidityAllocated = await optionRegistry.getCollateral(
+		{
+			expiration: optionSeries.expiration,
+			strike: optionSeries.strike.div(10 ** 10),
+			isPut: optionSeries.isPut,
+			underlying: optionSeries.underlying,
+			strikeAsset: optionSeries.strikeAsset,
+			collateral: optionSeries.collateral
+		},
+		amount
+	)
+	const utilizationBefore =
 		tFormatUSDC(collateralAllocated) / tFormatUSDC(collateralAllocated.add(lpUSDBalance))
+	console.log({ liquidityAllocated })
+	const utilizationAfter =
+		tFormatUSDC(collateralAllocated.add(liquidityAllocated)) /
+		tFormatUSDC(collateralAllocated.add(lpUSDBalance))
 
 	const iv = await liquidityPool.getImpliedVolatility(
 		optionSeries.isPut,
@@ -248,8 +260,8 @@ export async function calculateOptionQuoteLocally(
 			parseFloat(rfr),
 			optionSeries.isPut ? "put" : "call"
 		) * parseFloat(fromWei(amount))
-	let utilizationPrice = getUtilizationPrice(utilization, localBS)
-	console.log({ utilization, localBS, utilizationPrice })
+	let utilizationPrice = getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
+	console.log({ utilizationBefore, utilizationAfter, localBS, utilizationPrice })
 	// if delta exposure reduces, subtract delta skew from  pricequotes
 	if (portfolioDeltaIsDecreased) {
 		const newOptionPrice = localBS - deltaTiltAmount * localBS
@@ -259,7 +271,6 @@ export async function calculateOptionQuoteLocally(
 	} else {
 		const newOptionPrice = localBS + deltaTiltAmount * localBS
 		utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
-
 		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
 	}
 }
@@ -302,14 +313,37 @@ export async function calculateOptionDeltaLocally(
 	return toWei(localDelta.toString()).mul(amount.div(toWei("1")))
 }
 
-function getUtilizationPrice(utilization: number, optionPrice: number) {
-	if (utilization < utilizationFunctionThreshold) {
-		return optionPrice + optionPrice * utilization * belowUtilizationThresholGradient
-	} else {
-		const yIntercept =
-			belowUtilizationThresholGradient * utilizationFunctionThreshold -
-			utilizationFunctionThreshold ** 2
-		const utilizationPremiumFactor = utilization ** 2 + yIntercept
+function getUtilizationPrice(
+	utilizationBefore: number,
+	utilizationAfter: number,
+	optionPrice: number
+) {
+	if (
+		utilizationBefore < utilizationFunctionThreshold &&
+		utilizationAfter < utilizationFunctionThreshold
+	) {
+		return (
+			optionPrice +
+			((optionPrice * (utilizationBefore + utilizationAfter)) / 2) * belowUtilizationThresholdGradient
+		)
+	} else if (
+		utilizationBefore > utilizationFunctionThreshold &&
+		utilizationAfter > utilizationFunctionThreshold
+	) {
+		const utilizationPremiumFactor =
+			((utilizationBefore + utilizationAfter) / 2) * aboveUtilizationThresholdGradient + yIntercept
 		return optionPrice + optionPrice * utilizationPremiumFactor
+	} else {
+		const weightingRatio =
+			(utilizationFunctionThreshold - utilizationBefore) /
+			(utilizationAfter - utilizationFunctionThreshold)
+		const averageFactorBelow =
+			((utilizationFunctionThreshold + utilizationBefore) / 2) * belowUtilizationThresholdGradient
+		const averageFactorAbove =
+			((utilizationFunctionThreshold + utilizationAfter) / 2) * aboveUtilizationThresholdGradient +
+			yIntercept
+		const multiplicationFactor =
+			(weightingRatio * averageFactorBelow + averageFactorAbove) / (1 + weightingRatio)
+		return optionPrice + optionPrice * multiplicationFactor
 	}
 }

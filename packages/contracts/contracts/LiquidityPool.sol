@@ -69,6 +69,15 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	uint256 public riskFreeRate;
 	// handlers who are approved to interact with options functionality
 	mapping(address => bool) public handler;
+	// variables relating to the utilization skew function:
+	// the gradient of the function where utiization is below function threshold. e18
+	uint256 belowThresholdGradient = 1e17; // 0.1
+	// the gradient of the line above the utilization threshold. e18
+	uint256 aboveThresholdGradient = 15e17; // 1.5
+	// the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold
+	int256 aboveThresholdYIntercept = -84e16; //-0.84
+	// the percentage utilization above which the function moves from its shallow line to its steep line. e18
+	uint256 utilizationFunctionThreshold = 6e17; // 60%
 
 	//////////////////////////
 	/// constant variables ///
@@ -88,7 +97,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	struct UtilizationState {
 		uint256 totalOptionPrice; //e18
 		int256 totalDelta; // e18
-		uint256 utilization; // e18
+		uint256 utilizationBefore; // e18
+		uint256 utilizationAfter; //e18
 		uint256 utilizationPrice; //e18
 		bool isDecreased;
 		uint256 deltaTiltAmount; //e18
@@ -245,6 +255,28 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 */
 	function changeHandler(address _handler, bool auth) external onlyOwner {
 		handler[_handler] = auth;
+	}
+
+	/**
+    @notice sets the parameters for the function that determines the utilization price factor
+            The function is made up of two parts, both linear. The line to the left of the utilisation threshold has a low gradient
+			while the gradient to the right of the threshold is much steeper. TThe aim of this function is to make options much more
+			expensive near full utilization while not having much effect at low utilizations.
+    @param _belowThresholdGradient the gradient of the function where utiization is below function threshold. e18
+	@param _aboveThresholdGradient the gradient of the line above the utilization threshold. e18
+	@param _aboveThresholdYIntercept the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold
+    @param _utilizationFunctionThreshold the percentage utilization above which the function moves from its shallow line to its steep line
+   */
+	function setUtilizationSkewParams(
+		uint256 _belowThresholdGradient,
+		uint256 _aboveThresholdGradient,
+		int256 _aboveThresholdYIntercept,
+		uint256 _utilizationFunctionThreshold
+	) external {
+		belowThresholdGradient = _belowThresholdGradient;
+		aboveThresholdGradient = _aboveThresholdGradient;
+		aboveThresholdYIntercept = _aboveThresholdYIntercept;
+		utilizationFunctionThreshold = _utilizationFunctionThreshold;
 	}
 
 	//////////////////////////////////////////////////////
@@ -540,86 +572,43 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		// portfolio delta upon writing option
 		// subtract totalDelta because the pool is taking on the negative of the option's delta
 		int256 newDelta = portfolioDelta - quoteState.totalDelta;
-		// How much closer to zero is the delta
-		// If closer to zero, this will be negative. Further away is positive
-		int256 deltaDistanceFromZeroDiff = PRBMathSD59x18.abs(newDelta) -
-			PRBMathSD59x18.abs(portfolioDelta);
 		// Is delta moved closer to zero?
-		quoteState.isDecreased = deltaDistanceFromZeroDiff < 0;
-		// delta in non-nominal terms
-		// This value is only used for tilting so we are only interested in its distance from 0
-		// ****** check this is bounded between 0 and 1 *********
-		// Does this need to be divided by NAV in ETH denomination?
-
-		// this line should get 1/3 of the discount
-		// 50 -> -25 == (50+(-25))/2 -> 12.5
-		// as this line
-		// 50 -> 25 == (50+25)/2 -> 37.5
-		// this line should get slightly less discount
-		// 50 -> -5 == (50+(-5))/2 -> 22.5
-		// as this line+
-		// 50 -> 5 == (50+5)/2 -> 27.5
-		// 50 -> 0 == (50+0)/2
-		// 25 -> 50 ==  (50+25)/2
-		// 25 -> -50 == (25+ (-50))/2 -> -12.5
-		// 25 -> 24 ==
+		quoteState.isDecreased = (PRBMathSD59x18.abs(newDelta) - PRBMathSD59x18.abs(portfolioDelta)) < 0;
+		// delta exposure of the portolio per ETH equivalent value the portfolio holds.
+		// This value is only used for tilting so we are only interested in its distance from 0 - its magnitude
 		uint256 normalizedDelta = uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))).div(
 			_getNAV().div(getUnderlyingPrice(underlyingAsset, collateralAsset))
 		);
-		// console.log("delta quote:", deltaQuote < 0 ? uint256(-deltaQuote) : uint256(deltaQuote));
-		// console.log("normalized delta:", normalizedDelta);
-		// console.log(
-		// 	"porfolio delta",
-		// 	portfolioDelta < 0 ? uint256(-portfolioDelta) : uint256(portfolioDelta),
-		// 	newDelta < 0 ? uint256(-newDelta) : uint256(newDelta)
-		// );
-		// console.log(
-		// 	"values:",
-		// 	uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))),
-		// 	(_getNAV().div(getUnderlyingPrice(underlyingAsset, collateralAsset)))
-		// );
-		// uint normalizedDelta = uint256(newDelta < 0 ? 1- -newDelta :1- newDelta).div(_getNAV());
-		// max theoretical price of the option
-		uint256 maxPrice = (optionSeries.isPut ? optionSeries.strike : underlyingPrice).mul(amount);
-		// quoteState.utilizationPrice = maxPrice.mul(quoteState.totalOptionPrice.div(totalSupply));
-		quoteState.utilization = collateralAllocated.div(
-			collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
-		);
-		console.log("getUtilizationPrice called");
-		quoteState.utilizationPrice = _getUtilizationPrice(
-			quoteState.utilization,
-			quoteState.totalOptionPrice
-		);
-
-		console.log("optionPrice", quoteState.totalOptionPrice);
-		console.log("utilizationPrice", quoteState.utilizationPrice);
-		console.log("utilization", quoteState.utilization);
-
 		// this is the percentage of the option price which is added to or subtracted from option price
 		// according to whether portfolio delta is increased or decreased respectively
 		quoteState.deltaTiltAmount = normalizedDelta > maxDiscount ? maxDiscount : normalizedDelta;
+
+		// Work out the utilization of the pool as a percentage
+		quoteState.utilizationBefore = collateralAllocated.div(
+			collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
+		);
+		IOptionRegistry optionRegistry = getOptionRegistry();
+		optionSeries.strike = optionSeries.strike / 1e10;
+		uint256 collateralToAllocate = optionRegistry.getCollateral(optionSeries, amount);
+
+		quoteState.utilizationAfter = (collateralToAllocate + collateralAllocated).div(
+			collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
+		);
+		// get the price of the option with the utilization premium added
+		quoteState.utilizationPrice = _getUtilizationPrice(
+			quoteState.utilizationBefore,
+			quoteState.utilizationAfter,
+			quoteState.totalOptionPrice
+		);
 		if (quoteState.isDecreased) {
-			// discounted BS option price
-			uint256 newOptionPrice = quoteState.totalOptionPrice -
-				quoteState.deltaTiltAmount.mul(quoteState.totalOptionPrice);
-			// discounted utilization priced option
-			quoteState.utilizationPrice =
+			quote =
 				quoteState.utilizationPrice -
 				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice);
-			// quote the greater of discounted utilization or discounted BS
-			quote = quoteState.utilizationPrice > newOptionPrice
-				? quoteState.utilizationPrice
-				: newOptionPrice;
 		} else {
-			uint256 newOptionPrice = quoteState.totalOptionPrice +
-				quoteState.deltaTiltAmount.mul(quoteState.totalOptionPrice);
 			// increase utilization by delta tilt factor for moving delta away from zero
-			quoteState.utilizationPrice =
+			quote =
 				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) +
 				quoteState.utilizationPrice;
-			quote = quoteState.utilizationPrice > newOptionPrice
-				? quoteState.utilizationPrice
-				: newOptionPrice;
 		}
 		quote = OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
 		delta = quoteState.totalDelta;
@@ -629,54 +618,53 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		}
 	}
 
-	uint256 belowThresholdGradient = 1e17; // 0.1
-	uint256 utilizationFunctionThreshold = 5e17; // 50%
-
-	/**
-    @notice sets the parameters for the function that determines the utilization price factor
-            The function is made up of two parts. A linear part which aims to slowly increase the factor as utilization increases
-            and a parabolic part which only comes info effect once a certain utilization percentage is reached. It is a quadratic function of utilization.
-            The aim of this function is to make options much more expensive near full utilization while not having much effect at low utilizations.
-    @param _belowThresholdGradient the gradient of the linear portion of the function (where utiization is below function threshold). e18
-    @param _utilizationFunctionThreshold the percentage utilization above which the function moves from its linear portion to its parabolic portion. e18
-
-   */
-	function setUtilizationSkewParams(
-		uint256 _belowThresholdGradient,
-		uint256 _utilizationFunctionThreshold
-	) external {
-		belowThresholdGradient = _belowThresholdGradient;
-		utilizationFunctionThreshold = _utilizationFunctionThreshold;
-	}
-
-	function _getUtilizationPrice(uint256 _utilization, uint256 _totalOptionPrice)
-		internal
-		view
-		returns (uint256 utilizationPrice)
-	{
-		if (_utilization < utilizationFunctionThreshold) {
+	function _getUtilizationPrice(
+		uint256 _utilizationBefore,
+		uint256 _utilizationAfter,
+		uint256 _totalOptionPrice
+	) internal view returns (uint256 utilizationPrice) {
+		uint256 _utilizationFunctionThreshold = utilizationFunctionThreshold;
+		if (
+			_utilizationBefore < _utilizationFunctionThreshold &&
+			_utilizationAfter < _utilizationFunctionThreshold
+		) {
 			// linear function up to 50% utilization
 			// adds 10% of utilization percentage on to price
 			// eg at 50% utilization, options will be priced 5% more expensive
-			return _totalOptionPrice + _totalOptionPrice.mul(_utilization).mul(belowThresholdGradient);
-		} else {
-			// over 50% utilization the skew factor will follow the curve of y = x^2 - 0.2
-			// where y is the premium added to the BS option price
-			// x is the utilization percentage of the liquidity pool
-			// this curve passes through (0.5, 0.05) which is where the <50% linear function ends
-			int256 parabolaFunctionYIntercept = int256(utilizationFunctionThreshold).mul(
-				int256(belowThresholdGradient) - int256(utilizationFunctionThreshold)
-			);
-			int256 multiplicationFactor = int256(_utilization.mul(_utilization)) +
-				parabolaFunctionYIntercept;
-			console.log(
-				"Y Intercept:",
-				parabolaFunctionYIntercept < 0
-					? uint256(-parabolaFunctionYIntercept)
-					: uint256(parabolaFunctionYIntercept),
-				uint256(multiplicationFactor)
-			);
+			return
+				_totalOptionPrice +
+				_totalOptionPrice.mul(_utilizationBefore + _utilizationAfter).mul(belowThresholdGradient).div(
+					2e18
+				);
+		} else if (
+			_utilizationBefore > _utilizationFunctionThreshold &&
+			_utilizationAfter > _utilizationFunctionThreshold
+		) {
+			// over 50% utilization the skew factor will follow a steeper line
+
+			int256 multiplicationFactor = int256(
+				aboveThresholdGradient.mul(_utilizationBefore + _utilizationAfter).div(2e18)
+			) + aboveThresholdYIntercept;
+
 			return _totalOptionPrice + _totalOptionPrice.mul(uint256(multiplicationFactor));
+		} else {
+			// finds the ratio of the distance below the threshold to the distance above the threshold
+			uint256 weightingRatio = (_utilizationFunctionThreshold - _utilizationBefore).div(
+				_utilizationAfter - _utilizationFunctionThreshold
+			);
+			// finds the average y value on the part of the function below threshold
+			uint256 averageFactorBelow = (_utilizationFunctionThreshold + _utilizationBefore).div(2e18).mul(
+				belowThresholdGradient
+			);
+			// finds average y value on part of the function above threshold
+			uint256 averageFactorAbove = (_utilizationAfter + _utilizationFunctionThreshold).div(2e18).mul(
+				aboveThresholdGradient
+			) - uint256(-aboveThresholdYIntercept);
+			// finds the weighted average of the two above averaged to find the average utilization skew over the range of utilization
+			uint256 multiplicationFactor = (weightingRatio.mul(averageFactorBelow) + averageFactorAbove).div(
+				1e18 + weightingRatio
+			);
+			return _totalOptionPrice + _totalOptionPrice.mul(multiplicationFactor);
 		}
 	}
 
@@ -843,7 +831,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 			revert CustomErrors.IVNotFound();
 		}
 		if (isBuying) {
-			iv = iv - bidAskIVSpread;
+			iv = (iv * (1e18 - (bidAskIVSpread))) / 1e18;
 		}
 		// revert CustomErrors.if the expiry is in the past
 		if (optionSeries.expiration <= block.timestamp) {
