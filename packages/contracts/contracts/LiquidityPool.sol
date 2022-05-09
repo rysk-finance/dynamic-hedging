@@ -72,7 +72,11 @@ contract LiquidityPool is
   uint public riskFreeRate;
   // handlers who are approved to interact with options functionality
   mapping(address => bool) public handler;
-
+  // max time to allow between oracle updates for an underlying and strike
+  uint256 public maxTimeDeviationThreshold;
+  // max price difference to allow between oracle updates for an underlying and strike
+  uint256 public maxPriceDeviationThreshold;
+  
   //////////////////////////
   /// constant variables ///
   //////////////////////////  
@@ -208,6 +212,12 @@ contract LiquidityPool is
   */
   function setRiskFreeRate(uint _riskFreeRate) external onlyOwner {
     riskFreeRate = _riskFreeRate;
+  }
+  function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external onlyOwner {
+    maxTimeDeviationThreshold = _maxTimeDeviationThreshold;
+  }
+  function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold) external onlyOwner {
+    maxPriceDeviationThreshold = _maxPriceDeviationThreshold;
   }
   /**
    * @notice change the status of a handler
@@ -464,7 +474,12 @@ function resetEphemeralValues() external {
       address strikeAsset_ = strikeAsset;
       Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(underlyingAsset_, strikeAsset_);
       // check that the portfolio values are acceptable
-      pvFeed.validatePortfolioValues(underlyingAsset_, strikeAsset_, getUnderlyingPrice(underlyingAsset_, strikeAsset_));
+      OptionsCompute.validatePortfolioValues(
+        getUnderlyingPrice(underlyingAsset_, strikeAsset_), 
+        portfolioValues,
+        maxTimeDeviationThreshold,
+        maxPriceDeviationThreshold
+        );
       // assumes in e18
       int256 externalDelta;
       address[] memory hedgingReactors_ = hedgingReactors;
@@ -642,7 +657,12 @@ function resetEphemeralValues() external {
     IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
     Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(underlyingAsset_, strikeAsset_);
     // check that the portfolio values are acceptable
-    pvFeed.validatePortfolioValues(underlyingAsset_, strikeAsset_, getUnderlyingPrice(underlyingAsset_, strikeAsset_));
+    OptionsCompute.validatePortfolioValues(
+        getUnderlyingPrice(underlyingAsset_, strikeAsset_), 
+        portfolioValues,
+        maxTimeDeviationThreshold,
+        maxPriceDeviationThreshold
+        );
     int256 ephemeralLiabilities_ = ephemeralLiabilities;
     // ephemeralLiabilities can be -ve but portfolioValues will not
     // when converting liabilities it should never be -ve, if it is then the NAV calc will fail

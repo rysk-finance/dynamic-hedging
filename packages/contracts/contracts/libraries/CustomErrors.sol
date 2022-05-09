@@ -24,6 +24,8 @@ interface CustomErrors {
     error CustomOrderInsufficientPrice();
     error CustomOrderInvalidDeltaValue();
     error DeltaQuoteError(uint256 quote, int256 delta);
+    error TimeDeltaExceedsThreshold(uint256 timeDelta);
+    error PriceDeltaExceedsThreshold(uint256 priceDelta);
     error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity);
     error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin);
     error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity);
