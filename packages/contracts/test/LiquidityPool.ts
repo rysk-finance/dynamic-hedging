@@ -949,6 +949,10 @@ describe("Liquidity Pools", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
 	})
+	it("reverts when rebalance delta too small", async () => {
+		const delta = await liquidityPool.getPortfolioDelta()
+		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(toWei("0.00001"), 0)).to.be.reverted
+	})
 	it("returns zero when hedging positive delta when reactor has no funds", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		expect(delta).to.be.gt(0)
@@ -2030,6 +2034,12 @@ describe("Liquidity Pools", async () => {
 		const afterValue = await liquidityPool.riskFreeRate()
 		expect(afterValue).to.eq(expectedValue)
 		expect(afterValue).to.not.eq(beforeValue)
+	})
+	it("pauses trading", async () => {
+		await liquidityPool.pauseUnpauseTrading(true)
+		expect(await liquidityPool.isTradingPaused()).to.be.true
+		await liquidityPool.pauseUnpauseTrading(false)
+		expect(await liquidityPool.isTradingPaused()).to.be.false
 	})
 	it("handler-only functions in Liquidity pool revert if not called by handler", async () => {
 		await expect(liquidityPool.resetEphemeralValues()).to.be.reverted
