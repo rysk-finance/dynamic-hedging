@@ -420,7 +420,7 @@ function resetEphemeralValues() external {
       // if above zero, we need to withdraw funds from hedging reactors
       // assumes returned in e18
       for (uint8 i=0; i < hedgingReactors.length; i++) {
-        amountNeeded -= int(IHedgingReactor(hedgingReactors[i]).withdraw(uint(amountNeeded), collateralAsset));
+        amountNeeded -= int(IHedgingReactor(hedgingReactors[i]).withdraw(uint(amountNeeded)));
         if (amountNeeded <= 0) {
           break;
         }
