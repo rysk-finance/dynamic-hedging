@@ -11,6 +11,7 @@ import { WriteOptionEvent } from "../types/LiquidityPool"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { PriceFeed } from "../types/PriceFeed"
 import { fromWei, genOptionTimeFromUnix, fromOpyn } from "../utils/conversion-helper"
+import { Oracle } from "../types/Oracle"
 
 type WriteEvent = WriteOptionEvent & Event
 type DecodedData = {
@@ -41,20 +42,25 @@ export async function getPortfolioValues(
 	controller: NewController,
 	optionRegistry: OptionRegistry,
 	priceFeed: PriceFeed,
-	rfr: string
+	opynOracle: Oracle
 ) {
 	const writeOptionEventFilter = liquidityPool.filters.WriteOption()
 	const buybackEventFilter = liquidityPool.filters.BuybackOption()
 	const vaultLiquidatedFilter = controller.filters.VaultLiquidated()
+	const vaultSettledFilter = controller.filters.VaultSettled()
 	const writeOption = await liquidityPool.queryFilter(writeOptionEventFilter)
 	const buybackEvents = await liquidityPool.queryFilter(buybackEventFilter)
 	const vaultLiquidatedEvents = await controller.queryFilter(vaultLiquidatedFilter)
+	const vaultSettledEvents = await controller.queryFilter(vaultSettledFilter)
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
+	const underlyingAsset = await liquidityPool.underlyingAsset()
 	const { timestamp } = block
 
 	// index liquidated vaults by vaultId
 	const liquidatedVaults: Record<string, BigNumber> = {}
+	// index settled vaults by vaultId
+	const settledVaults = new Set<string>()
 	// index buybacks amounts by series
 	const buybackAmounts: Record<string, BigNumber> = {}
 	// index write amount by series address
@@ -75,6 +81,11 @@ export async function getPortfolioValues(
 		if (!x.decode) return
 		const decoded: VaultLiquidatedEvent = x.decode(x.data, x.topics)
 		liquidatedVaults[decoded.vaultId.toString()] = decoded.debtAmount
+	})
+	vaultSettledEvents.map(x => {
+		if (!x.decode) return
+		const decoded = x.decode(x.data, x.topics)
+		settledVaults.add(decoded.vaultId.toString())
 	})
 	const enrichedWriteOptions: Promise<EnrichedWriteEvent>[] = writeOption.map(
 		async (x: WriteOptionEvent): Promise<EnrichedWriteEvent> => {
@@ -98,8 +109,10 @@ export async function getPortfolioValues(
 	const resolved = await Promise.all(enrichedWriteOptions)
 	// remove expired options
 	const filtered = resolved.filter(x => {
+		if (!x.vaultId) return
 		if (!x.expiration) return
-		return x.expiration > timestamp
+		// filter out only expired and settled
+		return x.expiration > timestamp || !settledVaults.has(x.vaultId)
 	})
 	// reduce write events to options positions by series
 	const seriesProcessed = new Set()
@@ -134,13 +147,23 @@ export async function getPortfolioValues(
 			seriesInfo.expiration
 		)
 		const optionType = seriesInfo.isPut ? "put" : "call"
-		const timeToExpiration = genOptionTimeFromUnix(
-			Number(timestamp),
-			seriesInfo.expiration.toNumber()
-		)
-
+		let timeToExpiration = genOptionTimeFromUnix(Number(timestamp), seriesInfo.expiration.toNumber())
+		const rfr = fromWei(await liquidityPool.riskFreeRate())
+		let priceToUse
+		if (!x.expiration) return x
+		// handle expired but not settled options
+		if (x.expiration >= timestamp) {
+			const [price, isFinalized] = await opynOracle.getExpiryPrice(
+				underlyingAsset,
+				seriesInfo.expiration
+			)
+			timeToExpiration = 0
+			isFinalized ? (priceToUse = fromOpyn(price)) : (priceToUse = priceNorm)
+		} else {
+			timeToExpiration = genOptionTimeFromUnix(Number(timestamp), seriesInfo.expiration.toNumber())
+		}
 		const greekVariables = [
-			priceNorm,
+			priceToUse,
 			fromOpyn(seriesInfo.strike),
 			timeToExpiration,
 			fromWei(iv),

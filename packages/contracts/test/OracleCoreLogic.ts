@@ -319,12 +319,12 @@ describe("Oracle core logic", async () => {
 
 	// encompasses primary logic to be used by external adapter to fetch and compute delta
 	it("Computes portfolio values", async () => {
-		const portfolioValues = getPortfolioValues(
+		const portfolioValues = await getPortfolioValues(
 			liquidityPool,
 			controller,
 			optionRegistry,
 			priceFeed,
-			rfr
+			oracle
 		)
 		//@TODO test portfolioValues
 	})
