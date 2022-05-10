@@ -7,7 +7,7 @@ export const Dashboard = () => {
     <div className="col-start-1 col-end-17">
       <h2 className="mb-4">Vaults</h2>
       <div className="mb-24">
-        <Card>
+        <Card tabHeight={35} tabWidth={150} tabPunchColor="red-500">
           <div className="bg-black p-4 rounded-tr-lg mt-[-1px]">
             <h3 className="text-white font-parabole">Dynamic Hedging</h3>
           </div>
