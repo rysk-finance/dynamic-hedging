@@ -581,10 +581,12 @@ describe("Liquidity Pools", async () => {
 		// LP USDC balance after should equal balanceBefore, minus collateral allocated, plus premium quote.
 		// This does have a small rounding discrepency that might need looking into
 		expect(
-			LpBalanceAfter.sub(
-				LpBalanceBefore.add(BigNumber.from(parseInt(quote))).sub(collateralAllocatedDiff)
+			tFormatUSDC(
+				LpBalanceAfter.sub(
+					LpBalanceBefore.add(BigNumber.from(parseInt(quote))).sub(collateralAllocatedDiff)
+				)
 			)
-		).to.be.within(-1000, 1000)
+		).to.be.within(-0.001, 0.001)
 		// check number of OTokens minted increases
 		expect(numberOTokensMintedAfter).to.eq(numberOTokensMintedBefore.add(amount.div(1e10)))
 		// check expected amount of collateral was used
