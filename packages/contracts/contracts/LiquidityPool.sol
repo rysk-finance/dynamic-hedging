@@ -74,8 +74,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	uint256 belowThresholdGradient = 1e17; // 0.1
 	// the gradient of the line above the utilization threshold. e18
 	uint256 aboveThresholdGradient = 15e17; // 1.5
-	// the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold
-	int256 aboveThresholdYIntercept = -84e16; //-0.84
+	// the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold.  Will always be negative but enter the absolute value
+	uint256 aboveThresholdYIntercept = 84e16; //-0.84
 	// the percentage utilization above which the function moves from its shallow line to its steep line. e18
 	uint256 utilizationFunctionThreshold = 6e17; // 60%
 
@@ -264,13 +264,13 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 			expensive near full utilization while not having much effect at low utilizations.
     @param _belowThresholdGradient the gradient of the function where utiization is below function threshold. e18
 	@param _aboveThresholdGradient the gradient of the line above the utilization threshold. e18
-	@param _aboveThresholdYIntercept the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold
+	@param _aboveThresholdYIntercept the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold. Will always be negative but enter the absolute value
     @param _utilizationFunctionThreshold the percentage utilization above which the function moves from its shallow line to its steep line
    */
 	function setUtilizationSkewParams(
 		uint256 _belowThresholdGradient,
 		uint256 _aboveThresholdGradient,
-		int256 _aboveThresholdYIntercept,
+		uint256 _aboveThresholdYIntercept,
 		uint256 _utilizationFunctionThreshold
 	) external onlyOwner {
 		belowThresholdGradient = _belowThresholdGradient;
@@ -642,9 +642,9 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		) {
 			// over 50% utilization the skew factor will follow a steeper line
 
-			int256 multiplicationFactor = int256(
-				aboveThresholdGradient.mul(_utilizationBefore + _utilizationAfter).div(2e18)
-			) + aboveThresholdYIntercept;
+			uint256 multiplicationFactor = aboveThresholdGradient
+				.mul(_utilizationBefore + _utilizationAfter)
+				.div(2e18) - aboveThresholdYIntercept;
 
 			return _totalOptionPrice + _totalOptionPrice.mul(uint256(multiplicationFactor));
 		} else {
@@ -660,7 +660,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 			// finds average y value on part of the function above threshold
 			uint256 averageFactorAbove = (_utilizationAfter + _utilizationFunctionThreshold).div(2e18).mul(
 				aboveThresholdGradient
-			) - uint256(-aboveThresholdYIntercept);
+			) - aboveThresholdYIntercept;
 			// finds the weighted average of the two above averaged to find the average utilization skew over the range of utilization
 			uint256 multiplicationFactor = (weightingRatio.mul(averageFactorBelow) + averageFactorAbove).div(
 				1e18 + weightingRatio
