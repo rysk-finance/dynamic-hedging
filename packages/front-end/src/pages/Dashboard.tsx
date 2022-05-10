@@ -66,7 +66,7 @@ export const Dashboard = () => {
       <div className="w-full mb-24">
         <h2 className="mb-4">Vaults</h2>
         <div className="mb-24">
-          <Card tabHeight={35} tabWidth={150} tabPunchColor="red-500">
+          <Card tabHeight={35} tabWidth={150} tabPunchColor="black">
             <div className="bg-black p-4 rounded-tr-lg mt-[-1px]">
               <h3 className="text-white font-parabole">Dynamic Hedging</h3>
             </div>
@@ -104,7 +104,7 @@ export const Dashboard = () => {
 
         <div className="w-full">
           <h2 className="mb-4">Options</h2>
-          <Card tabHeight={35} tabWidth={150} tabPunchColor="red-500">
+          <Card tabHeight={35} tabWidth={150} tabPunchColor="black">
             <div className="border-y-2 border-black p-4 rounded-tr-lg mt-[-1px]">
               <RadioButtonSlider
                 options={OPTIONS_BUTTONS}
