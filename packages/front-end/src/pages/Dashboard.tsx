@@ -22,6 +22,42 @@ const OPTIONS_BUTTONS: Option<OptionState>[] = [
   },
 ];
 
+// TODO(HC): Replace these with options fetched from SC.
+const DUMMY_OPTIONS = {
+  [OptionState.OPEN]: [
+    {
+      option: "Call 4/29 $3400 Strike",
+      size: 10,
+      avgPrice: 10,
+      markPrice: 20,
+      pnl: 100,
+    },
+    {
+      option: "Call 4/30 $3400 Strike",
+      size: 10,
+      avgPrice: 10,
+      markPrice: 20,
+      pnl: 100,
+    },
+  ],
+  [OptionState.EXPIRED]: [
+    {
+      option: "Call 4/09 $3400 Strike",
+      size: 100,
+      avgPrice: 10,
+      markPrice: 20,
+      pnl: 1400,
+    },
+    {
+      option: "Call 4/04 $3400 Strike",
+      size: 100,
+      avgPrice: 10,
+      markPrice: 20,
+      pnl: 1020,
+    },
+  ],
+} as const;
+
 export const Dashboard = () => {
   const [listedOptionState, setListedOptionState] = useState(OptionState.OPEN);
 
@@ -76,7 +112,40 @@ export const Dashboard = () => {
                 setSelected={setListedOptionState}
               />
             </div>
-            <div className="pb-8 py-12 px-8 flex flex-col lg:flex-row h-full"></div>
+            <div className="p-4">
+              <table className="w-full">
+                <thead className="text-left text-lg">
+                  <tr>
+                    <th className="pl-4">Option</th>
+                    <th>Size</th>
+                    <th>Avg. Price</th>
+                    <th className="pr-4">Mark Price</th>
+                    <th className="pr-4">PNL</th>
+                    <th className="pr-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {DUMMY_OPTIONS[listedOptionState].map((option) => (
+                    <tr className={`h-12`} key={option.option}>
+                      <td className="pl-4">{option.option}</td>
+                      <td>{option.size}</td>
+                      <td>${option.avgPrice}</td>
+                      <td className="pr-4">${option.markPrice}</td>
+                      <td className="pr-4">
+                        {option.pnl >= 0 ? "+" : "-"}${option.pnl}
+                      </td>
+                      <td>
+                        {listedOptionState === OptionState.OPEN ? (
+                          <Button>Close</Button>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Card>
         </div>
       </div>
