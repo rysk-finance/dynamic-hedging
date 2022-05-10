@@ -33,6 +33,8 @@ contract PortfolioValuesFeed is Ownable, ChainlinkClient {
   /////////////////////////////////
 
   ILiquidityPool public liquidityPool;
+  // mapping of addresses to their string versions
+  mapping(address => string) public stringedAddresses;
 
   //////////////
   /// events ///
@@ -71,6 +73,10 @@ contract PortfolioValuesFeed is Ownable, ChainlinkClient {
 
   function setLiquidityPool(address _liquidityPool) external onlyOwner {
     liquidityPool = ILiquidityPool(_liquidityPool);
+  }
+
+  function setAddressStringMapping(address _asset, string memory _stringVersion) external onlyOwner {
+    stringedAddresses[_asset] = _stringVersion;
   }
 
   //////////////////////////////////////////////////////
@@ -136,16 +142,17 @@ function withdrawLink(uint256 _amount) external onlyOwner {
    *
    * @return requestId - id of the request
    */
-  function requestPortfolioData(string memory _underlying, string memory _strike) external returns (bytes32 requestId) {
+  function requestPortfolioData(address _underlying, address _strike) external returns (bytes32 requestId) {
     Chainlink.Request memory request = buildChainlinkRequest(
       jobId,
       address(this),
       this.fulfill.selector
     );
-
+    string memory underlyingString = stringedAddresses[_underlying];
+    string memory strikeString = stringedAddresses[_strike];
     request.add("endpoint", "portfolio-values");
-    request.add("underlying", _underlying);
-    request.add("strike", _strike);
+    request.add("underlying", underlyingString);
+    request.add("strike", strikeString);
 
     // Multiply the result by 1000000000000000000 to remove decimals
     int256 timesAmount = 10**18;
@@ -166,5 +173,5 @@ function withdrawLink(uint256 _amount) external onlyOwner {
     view
     returns (Types.PortfolioValues memory) {
         return portfolioValues[underlying][strike];
-  }
+    }
 }

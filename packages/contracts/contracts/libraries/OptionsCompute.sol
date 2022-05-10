@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "./Types.sol";
+import "./CustomErrors.sol";
 
 library OptionsCompute {
     using PRBMathUD60x18 for uint256;
@@ -75,54 +76,23 @@ library OptionsCompute {
         }
         return a.div(b);
     }
-
-   /**
-        @dev computes new portfolio options position on a given side (put or call). Reduces and represents this position as a single option.
-        @param amount the number number of newly written options in e18
-        @param strike the strike of the newly written option in e18
-        @param expiration expiration date of the new option
-        @param totalAmount total amount of active calls/puts in e18
-        @param weightedStrike weighted strike price of active calls/puts in e18
-        @param weightedTime weighted time to expiry of active calls/puts
-        @return newTotalAmount the new total amount of active calls/puts in e18
-        @return newWeightedStrike new weighted strike price of active calls/puts in e18
-        @return newWeightedTime new weighted time to expiry of active calls/puts
-     */
-    function computeNewWeights(
-       uint amount,
-       uint strike,
-       uint expiration,
-       uint totalAmount,
-       uint weightedStrike,
-       uint weightedTime, 
-       bool isSale
-    ) 
-    internal
-    pure 
-    returns (uint, uint, uint) 
-    {
-        uint weight = PRBMathUD60x18.scale();
-        if (!isSale) {
-            if(amount == totalAmount) {
-                return (0, 0, 0);
-            }
-            if (totalAmount > 0) {
-                weight = amount.div(totalAmount - amount);
-            }
-            uint exWeight = PRBMathUD60x18.scale() + weight;
-            uint newTotalAmount = totalAmount - amount;
-            uint newWeightedStrike = (exWeight.mul(weightedStrike)) - (weight.mul(strike));
-            uint newWeightedTime = (exWeight.mul(weightedTime)) - (weight.mul(expiration));
-            return (newTotalAmount, newWeightedStrike, newWeightedTime);
-        } else {
-            if (totalAmount > 0) {
-                weight = amount.div(totalAmount + amount);
-            }
-            uint exWeight = PRBMathUD60x18.scale() - weight;
-            uint newTotalAmount = totalAmount + amount;
-            uint newWeightedStrike = (exWeight.mul(weightedStrike)) + (weight.mul(strike));
-            uint newWeightedTime = (exWeight.mul(weightedTime)) + (weight.mul(expiration));
-            return (newTotalAmount, newWeightedStrike, newWeightedTime);      
-        }
+    /**
+    * @notice get the latest oracle fed portfolio values and check when they were last updated and make sure this is within a reasonable window
+    */
+    function validatePortfolioValues(
+        uint256 spotPrice, 
+        Types.PortfolioValues memory portfolioValues,
+        uint256 maxTimeDeviationThreshold,
+        uint256 maxPriceDeviationThreshold
+        ) 
+        public
+        view
+        {
+        uint256 timeDelta = block.timestamp - portfolioValues.timestamp;
+        // If too much time has passed we want to prevent a possible oracle attack
+        if (timeDelta > maxTimeDeviationThreshold) { revert CustomErrors.TimeDeltaExceedsThreshold(timeDelta); }
+        uint256 priceDelta = calculatePercentageDifference(spotPrice, portfolioValues.spotPrice);
+        // If price has deviated too much we want to prevent a possible oracle attack
+        if (priceDelta > maxPriceDeviationThreshold) { revert CustomErrors.PriceDeltaExceedsThreshold(priceDelta); }
     }
 }

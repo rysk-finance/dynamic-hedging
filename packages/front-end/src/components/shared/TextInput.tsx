@@ -19,7 +19,7 @@ export const TextInput: React.FC<TextInputProps> = ({
 }) => {
   const setter = (value: string) => {
     if (numericOnly) {
-      if (value === "" || Number(value)) {
+      if (value === "" || !isNaN(Number(value))) {
         setValue(value);
       }
     } else {
@@ -31,7 +31,9 @@ export const TextInput: React.FC<TextInputProps> = ({
       <input
         type="text"
         {...props}
-        className={`border-black border-2 w-full p-2 ${props.className ?? ""}`}
+        className={`border-black border-2 w-full p-2 ${
+          props.className ?? ""
+        } outline-none`}
         value={value}
         onChange={(event) => setter(event.target.value)}
       />

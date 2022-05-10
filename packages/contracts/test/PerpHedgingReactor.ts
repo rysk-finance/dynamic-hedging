@@ -171,13 +171,6 @@ describe("PerpHedgingReactor", () => {
 	it("reverts update if not initialised", async () => {
 		await expect(liquidityPoolDummy.update()).to.be.revertedWith("IncorrectCollateral()")
 	})
-	it("reverts withdrawal if not initialised", async () => {
-		const withdrawAmount = "1000"
-		await expect(liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
-		)).to.be.revertedWith("IncorrectCollateral()")
-	})
 	it("initialises the reactor", async () => {
 		await usdcContract.approve(perpHedgingReactor.address, 1)
 		await perpHedgingReactor.initialiseReactor()
@@ -345,13 +338,6 @@ describe("PerpHedgingReactor", () => {
 		await expect((liquidityPoolDummy.hedgeDelta(delta))).to.be.revertedWith('ERC20: transfer amount exceeds balance')
 
 	})
-	it("reverts withdrawal if incorrect token input", async () => {
-		const withdrawAmount = "1000"
-		await expect(liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			ZERO_ADDRESS
-		)).to.be.revertedWith("IncorrectCollateral()")
-	})
 	it("liquidates usdc held position", async () => {
 		const withdrawAmount = "1000"
 		await usdcContract
@@ -366,8 +352,7 @@ describe("PerpHedgingReactor", () => {
 		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
 		// withdraw more than current balance
 		await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
+			ethers.utils.parseUnits(withdrawAmount, 18)
 		)
 		const reactorCollatBalanceAfter =  (await clearingHouse.getAccountInfo(0)).collateralDeposits[0].balance
 		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
@@ -393,26 +378,21 @@ describe("PerpHedgingReactor", () => {
 		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorCollatBalanceBefore =  (await clearingHouse.getAccountInfo(0)).collateralDeposits[0].balance
-		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-		const reactorUsdcBalanceBefore = await usdcContract.balanceOf(perpHedgingReactor.address)
 		const withdrawAmount = "1000"
-		const newCollat = reactorCollatBalanceBefore.sub(toUSDC(withdrawAmount))
-		const expectedDelta = (newCollat.mul(-10000).mul(e18).div((await perpHedgingReactor.healthFactor()).mul(price.div(USDC_SCALE))));
 		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
 		// withdraw more than current balance
 		await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
+			ethers.utils.parseUnits(withdrawAmount, 18)
 		)
 		const reactorCollatBalanceAfter =  (await clearingHouse.getAccountInfo(0)).collateralDeposits[0].balance
 		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		
-		expect(reactorDeltaAfter).to.equal(expectedDelta)
-		expect(reactorWethBalanceAfter).to.equal(expectedDelta)
-		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter.sub(toUSDC(withdrawAmount)))
-		expect(newCollat).to.eq(reactorCollatBalanceAfter)
+		expect(reactorDeltaAfter).to.equal(reactorDeltaBefore)
+		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore)
+		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter)
+		expect(reactorCollatBalanceBefore).to.eq(reactorCollatBalanceAfter)
 	})
 	it("update fixes balances one way", async () => {
 		const realSqrtPrice = await priceToSqrtPriceX96(2510, 6, 18);
@@ -504,11 +484,10 @@ describe("PerpHedgingReactor", () => {
 		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorCollatBalanceBefore =  (await clearingHouse.getAccountInfo(0)).collateralDeposits[0].balance
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-		
+		await liquidityPoolDummy.hedgeDelta(reactorDeltaBefore)
 		const withdrawAmount = "100000000" 
 		const tx = await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18),
-			usdcContract.address
+			ethers.utils.parseUnits(withdrawAmount, 18)
 		)
 
 		await tx.wait()
@@ -546,7 +525,7 @@ describe("PerpHedgingReactor", () => {
 
 	it("withdraw reverts if not called form liquidity pool", async () => {
 		await expect(
-			perpHedgingReactor.withdraw(100000000000, usdcContract.address)
+			perpHedgingReactor.withdraw(100000000000)
 		).to.be.revertedWith("!vault")
 	})
 

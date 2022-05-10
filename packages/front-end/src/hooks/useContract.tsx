@@ -5,7 +5,7 @@ import { useWalletContext } from "../App";
 type useContractArgs = {
   address: string;
   ABI: ethers.ContractInterface;
-  readOnly: boolean;
+  readOnly?: boolean;
 };
 
 export const useContract = ({

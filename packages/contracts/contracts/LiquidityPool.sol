@@ -485,9 +485,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 			// if above zero, we need to withdraw funds from hedging reactors
 			// assumes returned in e18
 			for (uint8 i = 0; i < hedgingReactors.length; i++) {
-				amountNeeded -= int256(
-					IHedgingReactor(hedgingReactors[i]).withdraw(uint256(amountNeeded), collateralAsset)
-				);
+				amountNeeded -= int256(IHedgingReactor(hedgingReactors[i]).withdraw(uint256(amountNeeded)));
 				if (amountNeeded <= 0) {
 					break;
 				}
@@ -536,12 +534,25 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 */
 	function getPortfolioDelta() public view returns (int256) {
 		// assumes in e18
-		Types.PortfolioValues memory portfolioValues = getPortfolioValues();
-		_validatePortfolioValues(portfolioValues);
+		IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
+		address underlyingAsset_ = underlyingAsset;
+		address strikeAsset_ = strikeAsset;
+		Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(
+			underlyingAsset_,
+			strikeAsset_
+		);
+		// check that the portfolio values are acceptable
+		OptionsCompute.validatePortfolioValues(
+			getUnderlyingPrice(underlyingAsset_, strikeAsset_),
+			portfolioValues,
+			maxTimeDeviationThreshold,
+			maxPriceDeviationThreshold
+		);
 		// assumes in e18
 		int256 externalDelta;
-		for (uint8 i = 0; i < hedgingReactors.length; i++) {
-			externalDelta += IHedgingReactor(hedgingReactors[i]).getDelta();
+		address[] memory hedgingReactors_ = hedgingReactors;
+		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
+			externalDelta += IHedgingReactor(hedgingReactors_[i]).getDelta();
 		}
 		return portfolioValues.delta + externalDelta + ephemeralDelta;
 	}
@@ -751,45 +762,40 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 * @return Net Asset Value in e18 decimal format
 	 */
 	function _getNAV() internal view returns (uint256) {
+		// cache
+		address underlyingAsset_ = underlyingAsset;
+		address strikeAsset_ = strikeAsset;
+		address collateralAsset_ = collateralAsset;
 		// equities = assets - liabilities
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
 		uint256 assets = OptionsCompute.convertFromDecimals(
-			IERC20(collateralAsset).balanceOf(address(this)),
-			IERC20(collateralAsset).decimals()
-		) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset).decimals());
-		for (uint8 i = 0; i < hedgingReactors.length; i++) {
+			IERC20(collateralAsset_).balanceOf(address(this)),
+			IERC20(collateralAsset_).decimals()
+		) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset_).decimals());
+		address[] memory hedgingReactors_ = hedgingReactors;
+		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
 			// should always return value in e18 decimals
-			assets += IHedgingReactor(hedgingReactors[i]).getPoolDenominatedValue();
+			assets += IHedgingReactor(hedgingReactors_[i]).getPoolDenominatedValue();
 		}
-		Types.PortfolioValues memory portfolioValues = getPortfolioValues();
+		IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
+		Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(
+			underlyingAsset_,
+			strikeAsset_
+		);
 		// check that the portfolio values are acceptable
-		_validatePortfolioValues(portfolioValues);
+		OptionsCompute.validatePortfolioValues(
+			getUnderlyingPrice(underlyingAsset_, strikeAsset_),
+			portfolioValues,
+			maxTimeDeviationThreshold,
+			maxPriceDeviationThreshold
+		);
 		int256 ephemeralLiabilities_ = ephemeralLiabilities;
 		// ephemeralLiabilities can be -ve but portfolioValues will not
 		// when converting liabilities it should never be -ve, if it is then the NAV calc will fail
 		uint256 liabilities = portfolioValues.callPutsValue +
 			(ephemeralLiabilities_ > 0 ? uint256(ephemeralLiabilities_) : uint256(-ephemeralLiabilities_));
 		return assets - liabilities;
-	}
-
-	/**
-	 * @notice get the latest oracle fed portfolio values and check when they were last updated and make sure this is within a reasonable window
-	 */
-	function _validatePortfolioValues(Types.PortfolioValues memory portfolioValues) internal view {
-		uint256 timeDelta = block.timestamp - portfolioValues.timestamp;
-		// If too much time has passed we want to prevent a possible oracle attack
-		if (timeDelta > maxTimeDeviationThreshold) {
-			revert CustomErrors.TimeDeltaExceedsThreshold(timeDelta);
-		}
-		uint256 priceDelta = OptionsCompute.calculatePercentageDifference(
-			getUnderlyingPrice(underlyingAsset, strikeAsset),
-			portfolioValues.spotPrice
-		);
-		// If price has deviated too much we want to prevent a possible oracle attack
-		if (priceDelta > maxPriceDeviationThreshold) {
-			revert CustomErrors.PriceDeltaExceedsThreshold(priceDelta);
-		}
 	}
 
 	/**

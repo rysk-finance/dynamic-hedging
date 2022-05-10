@@ -126,6 +126,8 @@ contracts
 │   ├── AggregatorV3Interface.sol
 │   ├── GammaInterface.sol
 │   ├── IERC20.sol
+│   ├── IOptionRegistry.sol
+│   ├── ILiquidityPool.sol
 │   ├── IHedgingReactor.sol
 │   ├── IMarginCalculator.sol
 │   └── IOracle.sol
