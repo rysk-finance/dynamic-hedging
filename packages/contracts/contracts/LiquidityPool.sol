@@ -435,7 +435,6 @@ function resetEphemeralValues() external {
   * @dev    this function must be called in order to execute an epoch calculation
   */
 function pauseTradingAndRequest() external onlyOwner returns (bytes32){
-  //TODO: make time based so that it can be called by anyone and the next epoch can be calculated
   // pause trading
   isTradingPaused = true;
   // make an oracle request
@@ -764,7 +763,13 @@ function executeEpochCalculation() external whenNotPaused() onlyOwner {
   /// internal utilities ///
   //////////////////////////
 
-  function _deposit(uint256 _amount) private {
+ /** 
+   * @notice function for queueing to add liquidity to the options liquidity pool and receiving storing interest
+   *         to receive shares when the next epoch is initiated.
+   * @param _amount    amount of the strike asset to deposit
+   * @dev    internal function for entry point to provide liquidity to dynamic hedging vault 
+   */
+  function _deposit(uint256 _amount) internal {
     uint256 currentEpoch = epoch;
     // check the total allowed collateral amount isnt surpassed by incrementing the total assets with the amount denominated in e18
     uint256 totalAmountWithDeposit = _getAssets() + OptionsCompute.convertFromDecimals(_amount, ERC20(collateralAsset).decimals());
@@ -792,6 +797,11 @@ function executeEpochCalculation() external whenNotPaused() onlyOwner {
     pendingDeposits += _amount;
   }
 
+  /** 
+   * @notice functionality for allowing a user to redeem their shares from a previous epoch
+   * @param _shares the number of shares to redeem 
+   * @return the number of shares actually returned
+   */
   function _redeem(uint256 _shares) internal returns (uint256) {
     DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
     uint256 currentEpoch = epoch;

@@ -60,7 +60,7 @@ if for any reason the final value is less than the net losses of the margin acco
 
 ### ```setHealthFactor(uint256 _healthFactor) external onlyOwner```
 
-The health factor is the parameter used to govern what the minimum collateral is required in the perpetual margin account relative to the open perpetual position. healthFactor is denominated in ```MAX_BIPS``` decimals. When determining the collateral amount required for a particular position the calculation is:
+The health factor is the parameter used to govern what the minimum collateral is required in the perpetual margin account relative to the open perpetual position. healthFactor is denominated in ```MAX_BIPS``` decimals (10000). When determining the collateral amount required for a particular position the calculation is:
 
 ```((position * currentPrice)/1e18) * healthFactor/MAX_BIPS```
 
