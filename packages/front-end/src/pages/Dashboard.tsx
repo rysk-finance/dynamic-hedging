@@ -94,7 +94,7 @@ export const Dashboard = () => {
                   </a>
                 </div>
               </div>
-              <div className="flex flex-col w-full lg:w-[30%] lg:w-full h-full justify-around items-center">
+              <div className="flex flex-col w-full lg:w-[30%] h-full justify-around items-center">
                 <Button className="w-full mb-8">Deposit</Button>
                 <Button className="w-full">Withdraw</Button>
               </div>
