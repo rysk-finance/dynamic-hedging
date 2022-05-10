@@ -14,7 +14,7 @@ interface IPortfolioValuesFeed {
    *
    * @return requestId - id of the request
    */
-  function requestPortfolioData(string memory _underlying, string memory _strike) external returns (bytes32 requestId);
+  function requestPortfolioData(address _underlying, address _strike) external returns (bytes32 requestId);
   ///////////////////////////
   /// non-complex getters ///
   ///////////////////////////

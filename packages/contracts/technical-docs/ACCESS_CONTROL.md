@@ -10,20 +10,20 @@ All contracts below inherit Ownable so all contracts have an OWNER
 ## LiquidityPool 
 ### (OWNER, MANAGER, GUARDIAN, KEEPER)
 
-- LiquidityPool pause/unpause: GUARDIAN, OWNER
+- LiquidityPool pause/unpause/pauseAndUnpauseTrading: GUARDIAN, OWNER
 - LiquidityPool setters: OWNER
     - bufferPercentage [the collateral amount percentage that must be left in the pool]: OWNER
     - hedgingReactors [hedging reactors used for hedging delta with new derivatives]: OWNER
-    - maxTotalSupply [max amount of shares allowed]: OWNER
+    - collateralCap [max amount of collateral allowed]: OWNER
     - maxDiscount [max discount allowed for options prices because of delta skew]: OWNER
     - bidAskIVSpread [the implied volatility difference for when selling options back to the pool]: OWNER
     - optionParams [options value range for options that the pool can write]: OWNER
-    - maxTimeDeviationThreshold [time window after which a portfolio feed update gets stale]: OWNER
-    - maxPriceDeviationThreshold [price window after which a portfolio feed update gets stale]: OWNER
     - riskFreeRate [rate used for options calculation]: OWNER
     - handler [authorised contracts that can interact with liquidityPool options writing capabilities]: OWNER
 - LiquidityPool rebalancePortfolioDelta: OWNER, MANAGER
 - LiquidityPool settleVault: OWNER, MANAGER, KEEPER 
+- LiquidityPool pauseTradingAndRequest: OWNER, MANAGER, KEEPER
+- LiquidityPool executeEpochCalculation: OWNER, MANAGER, KEEPER
 
 
 ## OptionHandler
@@ -52,6 +52,10 @@ All contracts below inherit Ownable so all contracts have an OWNER
 
 - PortfolioValuesFeed setters: OWNER
     - liquidityPool [liquidityPool contract authorised to interact with options capabilitites]: OWNER
+    - stringedAddresses [address to string asset mappings]: OWNER
+    - maxTimeDeviationThreshold [time window after which a portfolio feed update gets stale]: OWNER
+    - maxPriceDeviationThreshold [price window after which a portfolio feed update gets stale]: OWNER
+- PortfolioValuesFeed withdrawLink: OWNER
 
 ## PriceFeed
 ### (OWNER)
