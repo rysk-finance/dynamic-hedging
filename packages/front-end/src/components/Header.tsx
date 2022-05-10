@@ -9,7 +9,7 @@ export const Header: React.FC = () => {
   const {
     state: { connectWalletIndicatorActive },
   } = useGlobalContext();
-  const { connectWallet, provider } = useWalletContext();
+  const { connectWallet, provider, disconnect } = useWalletContext();
   const { pathname } = useLocation();
 
   return (
@@ -55,7 +55,7 @@ export const Header: React.FC = () => {
             Connect
           </Button>
         ) : (
-          <p>Connected</p>
+          <Button onClick={() => disconnect?.()}>Disconnect</Button>
         )}
       </div>
     </div>
