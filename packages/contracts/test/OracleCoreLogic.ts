@@ -238,7 +238,7 @@ describe("Oracle core logic", async () => {
 		expect(liquidityPoolBalance.toString()).to.eq(toWei(liquidityPoolUsdcDeposit))
 
 		// Removes from liquidityPool with no options written
-		await liquidityPool.setMaxTimeDeviationThreshold("1000")
+		//await liquidityPool.setMaxTimeDeviationThreshold("1000")
 		liquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
 		const halfBalance = liquidityPoolBalance.div(BigNumber.from(2))
 		await liquidityPool.withdraw(halfBalance, senderAddress)

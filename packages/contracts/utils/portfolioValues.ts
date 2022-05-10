@@ -80,7 +80,9 @@ export async function getPortfolioValues(
 	vaultLiquidatedEvents.map(x => {
 		if (!x.decode) return
 		const decoded: VaultLiquidatedEvent = x.decode(x.data, x.topics)
-		liquidatedVaults[decoded.vaultId.toString()] = decoded.debtAmount
+		const debtAmount = liquidatedVaults[decoded.vaultId.toString()]
+		if (!debtAmount) liquidatedVaults[decoded.vaultId.toString()] = decoded.debtAmount
+		else liquidatedVaults[decoded.vaultId.toString()] = debtAmount.add(decoded.debtAmount)
 	})
 	vaultSettledEvents.map(x => {
 		if (!x.decode) return
@@ -149,16 +151,13 @@ export async function getPortfolioValues(
 		const optionType = seriesInfo.isPut ? "put" : "call"
 		let timeToExpiration = genOptionTimeFromUnix(Number(timestamp), seriesInfo.expiration.toNumber())
 		const rfr = fromWei(await liquidityPool.riskFreeRate())
-		let priceToUse
+		let priceToUse = priceNorm
 		if (!x.expiration) return x
 		// handle expired but not settled options
-		if (x.expiration >= timestamp) {
-			const [price, isFinalized] = await opynOracle.getExpiryPrice(
-				underlyingAsset,
-				seriesInfo.expiration
-			)
+		if (x.expiration <= timestamp) {
+			const [price] = await opynOracle.getExpiryPrice(underlyingAsset, seriesInfo.expiration)
 			timeToExpiration = 0
-			isFinalized ? (priceToUse = fromOpyn(price)) : (priceToUse = priceNorm)
+			priceToUse = fromOpyn(price)
 		} else {
 			timeToExpiration = genOptionTimeFromUnix(Number(timestamp), seriesInfo.expiration.toNumber())
 		}
