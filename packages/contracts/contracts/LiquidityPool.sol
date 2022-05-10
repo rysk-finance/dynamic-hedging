@@ -625,8 +625,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	) internal view returns (uint256 utilizationPrice) {
 		uint256 _utilizationFunctionThreshold = utilizationFunctionThreshold;
 		if (
-			_utilizationBefore < _utilizationFunctionThreshold &&
-			_utilizationAfter < _utilizationFunctionThreshold
+			_utilizationBefore <= _utilizationFunctionThreshold &&
+			_utilizationAfter <= _utilizationFunctionThreshold
 		) {
 			// linear function up to 50% utilization
 			// adds 10% of utilization percentage on to price
@@ -637,8 +637,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 					2e18
 				);
 		} else if (
-			_utilizationBefore > _utilizationFunctionThreshold &&
-			_utilizationAfter > _utilizationFunctionThreshold
+			_utilizationBefore >= _utilizationFunctionThreshold &&
+			_utilizationAfter >= _utilizationFunctionThreshold
 		) {
 			// over 50% utilization the skew factor will follow a steeper line
 
@@ -648,6 +648,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 
 			return _totalOptionPrice + _totalOptionPrice.mul(uint256(multiplicationFactor));
 		} else {
+			// _utilizationAfter will always be greater than _utilizationBefore
 			// finds the ratio of the distance below the threshold to the distance above the threshold
 			uint256 weightingRatio = (_utilizationFunctionThreshold - _utilizationBefore).div(
 				_utilizationAfter - _utilizationFunctionThreshold
