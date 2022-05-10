@@ -14,6 +14,7 @@ type CardProps = {
   tabHeight?: number;
   tabWidth?: number;
   tabSlopeWidth?: number;
+  tabPunchColor?: string;
 };
 
 export const Card: React.FC<CardProps> = ({
@@ -24,6 +25,7 @@ export const Card: React.FC<CardProps> = ({
   tabHeight = DEFAULT_TAB_HEIGHT,
   tabWidth = DEFAULT_TAB_WIDTH,
   tabSlopeWidth = DEFAULT_TAB_SLOPE_WIDTH,
+  tabPunchColor,
 }) => {
   const [rect, setRect] = useState<DOMRect | null>(null);
 
@@ -52,6 +54,24 @@ export const Card: React.FC<CardProps> = ({
             strokeWidth={`${lineWidth}px`}
             ref={svgRef}
           >
+            {tabPunchColor && (
+              <>
+                <circle
+                  cx={`${tabHeight / 2}px`}
+                  cy={`${tabHeight / 2}px`}
+                  r={`${(tabHeight - 12) / 2.0}px`}
+                  fill="transparent"
+                  className={`stroke-${tabPunchColor}`}
+                ></circle>
+                <circle
+                  cx={`${tabHeight / 2}px`}
+                  cy={`${tabHeight / 2}px`}
+                  r={`${(tabHeight - 12) / 3.5}px`}
+                  fill="transparent"
+                  className={`stroke-${tabPunchColor}`}
+                ></circle>
+              </>
+            )}
             {rect && (
               <path
                 d={`m ${minorBorderRadius} ${lineWidth / 2}
