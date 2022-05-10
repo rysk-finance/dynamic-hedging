@@ -30,13 +30,13 @@ export const VaultDepositWithdraw = () => {
 
   const [inputValue, setInputValue] = useState("");
 
-  const [lpContract] = useContract({
+  const [lpContract, lpContractCall] = useContract({
     address: addresses.localhost.liquidityPool,
     ABI: LPABI.abi,
     readOnly: false,
   });
 
-  const [usdcContract] = useContract({
+  const [usdcContract, usdcContractCall] = useContract({
     address: USDC_ADDRESS,
     ABI: ERC20ABI,
     readOnly: false,
@@ -81,11 +81,7 @@ export const VaultDepositWithdraw = () => {
           await depositTransaction.wait();
         } else if (mode === Mode.WITHDRAW) {
           const amount = ethers.utils.parseUnits(inputValue, 18);
-          const withdrawTransaction = await lpContract.withdraw(
-            amount,
-            account
-          );
-          await withdrawTransaction.wait();
+          await lpContractCall(lpContract.withdraw, amount, account);
         }
         await getBalance(account);
         setInputValue("");

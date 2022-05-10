@@ -1,6 +1,8 @@
 import * as ethers from "ethers";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWalletContext } from "../App";
+import { toast } from "react-toastify";
+import { TransactionResponse } from "@ethersproject/abstract-provider";
 
 type useContractArgs = {
   address: string;
@@ -16,6 +18,30 @@ export const useContract = ({
   const { provider } = useWalletContext();
   const [contract, setContract] = useState<ethers.Contract | null>(null);
 
+  const callWithErrorHandling = useCallback(
+    async (method: ethers.ContractFunction, ...args: any) => {
+      try {
+        const transaction = (await method(...args)) as TransactionResponse;
+        await transaction.wait();
+        toast(`✅ Tranasaction successful`);
+        return;
+      } catch (err) {
+        try {
+          // Might need to modify this is errors other than RPC errors are being thrown
+          // my contract function calls.
+          toast(`❌ ${(err as any).data.message}`, {
+            autoClose: 5000,
+          });
+          return null;
+        } catch {
+          toast(JSON.stringify(err));
+          return null;
+        }
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     const signerOrProvider = readOnly ? provider : provider?.getSigner();
     if (signerOrProvider) {
@@ -23,5 +49,5 @@ export const useContract = ({
     }
   }, [address, ABI, provider, readOnly]);
 
-  return [contract];
+  return [contract, callWithErrorHandling] as const;
 };

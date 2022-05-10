@@ -4,15 +4,17 @@ import { init } from "@web3-onboard/react";
 import walletConnectModule from "@web3-onboard/walletconnect";
 import * as ethers from "ethers";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { Route, Routes } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import { Header } from "./components/Header";
-import { toHex } from "./utils";
-import { Routes, Route } from "react-router-dom";
-import { Vault } from "./pages/Vault";
-import { OptionsTrading } from "./pages/OptionsTrading";
-import { Dashboard } from "./pages/Dashboard";
-import { GlobalContextProvider } from "./state/GlobalContext";
 import { AppPaths } from "./config/appPaths";
+import { Dashboard } from "./pages/Dashboard";
+import { OptionsTrading } from "./pages/OptionsTrading";
+import { Vault } from "./pages/Vault";
+import { GlobalContextProvider } from "./state/GlobalContext";
+import { toHex } from "./utils";
 
 // TODO(HC): Move infura key to env variable
 const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
@@ -158,6 +160,11 @@ function App() {
             </div>
           </div>
         </div>
+        <ToastContainer
+          toastClassName="bg-bone rounded-none border-2 border-black font-dm-mono text-black max-w-xl w-fit"
+          hideProgressBar
+          position="bottom-center"
+        />
       </GlobalContextProvider>
     </WalletContext.Provider>
   );
