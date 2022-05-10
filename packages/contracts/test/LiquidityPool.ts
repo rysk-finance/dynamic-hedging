@@ -159,8 +159,6 @@ const expiryToValue = [
 
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
-const expiration3 = moment.utc(expiryDate).add(2, "w").add(8, "h").valueOf() / 1000
-const expiration4 = moment.utc(expiryDate).add(3, "w").add(8, "h").valueOf() / 1000
 const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
 const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
 
@@ -881,7 +879,7 @@ describe("Liquidity Pools", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
-			expiration: expiration3,
+			expiration: expiration2,
 			strike: BigNumber.from(strikePrice),
 			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
