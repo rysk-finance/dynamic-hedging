@@ -110,6 +110,7 @@ const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
+const collatDecimalShift = BigNumber.from(1000000000000)
 // amount of dollars OTM written options will be (both puts and calls)
 // use negative numbers for ITM options
 const strike = "20"
@@ -239,8 +240,6 @@ describe("Liquidity Pools", async () => {
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
-	})
-	it("Deposit to the liquidityPool", async () => {
 		const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
 		await hre.network.provider.request({
 			method: "hardhat_impersonateAccount",
@@ -250,18 +249,73 @@ describe("Liquidity Pools", async () => {
 		const usdWhaleConnect = await usd.connect(usdcWhale)
 		await usdWhaleConnect.transfer(senderAddress, toUSDC("1000000"))
 		await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
-		const senderBalance = await usd.balanceOf(senderAddress)
+	})
+	it("Succeeds: User 1: Deposit to the liquidityPool", async () => {
+		const user = senderAddress
+		const usdBalanceBefore = await usd.balanceOf(user)
+		const lpBalanceBefore = await liquidityPool.balanceOf(user)
+		const lpusdBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
+		const epochBefore = await liquidityPool.epoch()
+		const depositReceiptBefore = await liquidityPool.depositReceipts(user)
+		const pendingDepositBefore = await liquidityPool.pendingDeposits()
 		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
-		const deposit = await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit), senderAddress)
-		const liquidityProviderShareBalance = await liquidityPool.balanceOf(senderAddress)
-		const receipt = await deposit.wait(1)
-		const event = receipt?.events?.find(x => x.event == "Deposit")
-		const newSenderBalance = await usd.balanceOf(senderAddress)
-		expect(event?.event).to.eq("Deposit")
-		// check liquidity providers balance reduces by correct amount
-		expect(senderBalance.sub(newSenderBalance)).to.eq(toUSDC(liquidityPoolUsdcDeposit))
-		// check liquidity provider owns correct number of LP shares
-		expect(liquidityProviderShareBalance.toString()).to.eq(toWei(liquidityPoolUsdcDeposit))
+		expect(await liquidityPool.callStatic.deposit(toUSDC(liquidityPoolUsdcDeposit))).to.be.true
+		const deposit = await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit))
+		const usdBalanceAfter = await usd.balanceOf(user)
+		const lpBalanceAfter = await liquidityPool.balanceOf(user)
+		const lpusdBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
+		const epochAfter = await liquidityPool.epoch()
+		const depositReceiptAfter = await liquidityPool.depositReceipts(user)
+		const pendingDepositAfter = await liquidityPool.pendingDeposits()
+		const logs = await liquidityPool.queryFilter(liquidityPool.filters.Deposit(), 0)
+		const depositEvent = logs[0].args
+		expect(depositEvent.recipient).to.equal(user)
+		expect(depositEvent.amount).to.equal(toUSDC(liquidityPoolUsdcDeposit))
+		expect(depositEvent.epoch).to.equal(epochBefore)
+		expect(usdBalanceBefore.sub(usdBalanceAfter)).to.equal(toUSDC(liquidityPoolUsdcDeposit))
+		expect(lpBalanceBefore.sub(lpBalanceAfter)).to.equal(0)
+		expect(lpusdBalanceAfter.sub(lpusdBalanceBefore)).to.equal(toUSDC(liquidityPoolUsdcDeposit))
+		expect(lplpBalanceBefore.sub(lplpBalanceAfter)).to.equal(0)
+		expect(epochAfter).to.equal(epochBefore)
+		expect(pendingDepositAfter.sub(pendingDepositBefore)).to.equal(toUSDC(liquidityPoolUsdcDeposit))
+		expect(depositReceiptBefore.epoch).to.equal(0)
+		expect(depositReceiptAfter.epoch).to.equal(epochBefore).to.equal(epochAfter)
+		expect(depositReceiptAfter.amount.sub(depositReceiptBefore.amount)).to.equal(
+			toUSDC(liquidityPoolUsdcDeposit)
+		)
+		expect(depositReceiptAfter.unredeemedShares.sub(depositReceiptBefore.unredeemedShares)).to.equal(
+			0
+		)
+		expect(depositReceiptAfter.unredeemedShares).to.equal(0)
+	})
+	it("Succeeds: pauses trading", async () => {
+		await liquidityPool.pauseTradingAndRequest()
+		expect(await liquidityPool.isTradingPaused()).to.be.true
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("2"),
+			weth.address,
+			usd.address,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(priceQuote)
+		)
+	})
+	it("Succeeds: execute epoch", async () => {
+		const epochBefore = await liquidityPool.epoch()
+		const pendingDepositBefore = await liquidityPool.pendingDeposits()
+		await liquidityPool.executeEpochCalculation()
+		const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
+		expect(await liquidityPool.epochPricePerShare(epochBefore)).to.equal(toWei("1"))
+		expect(await liquidityPool.pendingDeposits()).to.equal(0)
+		expect(await liquidityPool.isTradingPaused()).to.be.false
+		expect(await liquidityPool.epoch()).to.equal(epochBefore.add(1))
+		expect(pendingDepositBefore.mul(collatDecimalShift)).to.equal(lplpBalanceAfter)
 	})
 	it("deploys the hedging reactor", async () => {
 		const uniswapV3HedgingReactorFactory = await ethers.getContractFactory(
@@ -895,6 +949,10 @@ describe("Liquidity Pools", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
 	})
+	it("reverts when rebalance delta too small", async () => {
+		const delta = await liquidityPool.getPortfolioDelta()
+		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(toWei("0.00001"), 0)).to.be.reverted
+	})
 	it("returns zero when hedging positive delta when reactor has no funds", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		expect(delta).to.be.gt(0)
@@ -1287,7 +1345,7 @@ describe("Liquidity Pools", async () => {
 		const [sender, receiver] = signers
 		// add more liquidity to stop buffer reached error
 		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit).mul(2))
-		await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit).mul(2), senderAddress)
+		await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit).mul(2))
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const receiverOTokenBalBef = (await strangleCallToken.balanceOf(receiverAddress)).add(
 			await stranglePutToken.balanceOf(receiverAddress)
@@ -1504,8 +1562,7 @@ describe("Liquidity Pools", async () => {
 		const seriesInfo = await optionRegistry.getSeriesInfo(order.seriesAddress)
 		expect(order.optionSeries.expiration).to.eq(seriesInfo.expiration.toString())
 		expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
-		// TODO: another tiny rounding error below. why?
-		// expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
+		expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 		expect(await handler.orderIdCounter()).to.eq(orderId)
 		optionToken = new Contract(order.seriesAddress, Otoken.abi, sender) as IOToken
 		increase(1201)
@@ -1650,52 +1707,164 @@ describe("Liquidity Pools", async () => {
 		expect(tFormatEth(res)).to.eq(truncate(expected_iv))
 	})
 
-	it("Adds additional liquidity from new account", async () => {
-		optionRegistry.setLiquidityPool(liquidityPool.address)
-		const [sender, receiver] = signers
-		const sendAmount = toUSDC("20000")
-		const usdReceiver = usd.connect(receiver)
-		await usdReceiver.approve(liquidityPool.address, sendAmount)
-		const lpReceiver = liquidityPool.connect(receiver)
-		const totalSupply = await liquidityPool.totalSupply()
-		await lpReceiver.deposit(sendAmount, receiverAddress)
-		const newTotalSupply = await liquidityPool.totalSupply()
-		const lpBalance = await lpReceiver.balanceOf(receiverAddress)
-		const difference = newTotalSupply.sub(lpBalance)
-		expect(difference).to.eq(await lpReceiver.balanceOf(senderAddress))
-		expect(newTotalSupply).to.eq(totalSupply.add(lpBalance))
+	it("Succeeds: User 2: Deposit to the liquidityPool", async () => {
+		const user = receiverAddress
+		const usdBalanceBefore = await usd.balanceOf(user)
+		const lpBalanceBefore = await liquidityPool.balanceOf(user)
+		const lpusdBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
+		const epochBefore = await liquidityPool.epoch()
+		const depositReceiptBefore = await liquidityPool.depositReceipts(user)
+		const pendingDepositBefore = await liquidityPool.pendingDeposits()
+		await usd.connect(signers[1]).approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
+		expect(
+			await liquidityPool.connect(signers[1]).callStatic.deposit(toUSDC(liquidityPoolUsdcDeposit))
+		).to.be.true
+		const deposit = await liquidityPool.connect(signers[1]).deposit(toUSDC(liquidityPoolUsdcDeposit))
+		const usdBalanceAfter = await usd.balanceOf(user)
+		const lpBalanceAfter = await liquidityPool.balanceOf(user)
+		const lpusdBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
+		const epochAfter = await liquidityPool.epoch()
+		const depositReceiptAfter = await liquidityPool.depositReceipts(user)
+		const pendingDepositAfter = await liquidityPool.pendingDeposits()
+		const logs = await liquidityPool.queryFilter(liquidityPool.filters.Deposit(), 0)
+		const depositEvent = logs[2].args
+		expect(depositEvent.recipient).to.equal(user)
+		expect(depositEvent.amount).to.equal(toUSDC(liquidityPoolUsdcDeposit))
+		expect(depositEvent.epoch).to.equal(epochBefore)
+		expect(usdBalanceBefore.sub(usdBalanceAfter)).to.equal(toUSDC(liquidityPoolUsdcDeposit))
+		expect(lpBalanceBefore.sub(lpBalanceAfter)).to.equal(0)
+		expect(lpusdBalanceAfter.sub(lpusdBalanceBefore)).to.equal(toUSDC(liquidityPoolUsdcDeposit))
+		expect(lplpBalanceBefore.sub(lplpBalanceAfter)).to.equal(0)
+		expect(epochAfter).to.equal(epochBefore)
+		expect(pendingDepositAfter.sub(pendingDepositBefore)).to.equal(toUSDC(liquidityPoolUsdcDeposit))
+		expect(depositReceiptBefore.epoch).to.equal(0)
+		expect(depositReceiptAfter.epoch).to.equal(epochBefore).to.equal(epochAfter)
+		expect(depositReceiptAfter.amount.sub(depositReceiptBefore.amount)).to.equal(
+			toUSDC(liquidityPoolUsdcDeposit)
+		)
+		expect(depositReceiptAfter.unredeemedShares.sub(depositReceiptBefore.unredeemedShares)).to.equal(
+			0
+		)
+		expect(depositReceiptAfter.unredeemedShares).to.equal(0)
+	})
+	it("Succeeds: pauses trading", async () => {
+		await liquidityPool.pauseTradingAndRequest()
+		expect(await liquidityPool.isTradingPaused()).to.be.true
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("2"),
+			weth.address,
+			usd.address,
+			prevalues.delta,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			prevalues.callPutsValue,
+			BigNumber.from(priceQuote)
+		)
+	})
+	it("Succeeds: execute epoch", async () => {
+		const epochBefore = await liquidityPool.epoch()
+		const pendingDepositBefore = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
+		const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
+		const totalSupplyBefore = await liquidityPool.totalSupply()
+		await liquidityPool.executeEpochCalculation()
+		const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
+		expect(await liquidityPool.epochPricePerShare(epochBefore)).to.equal(
+			toWei("1")
+				.mul((await liquidityPool.getNAV()).sub(pendingDepositBefore))
+				.div(totalSupplyBefore)
+		)
+		expect(await liquidityPool.pendingDeposits()).to.equal(0)
+		expect(await liquidityPool.isTradingPaused()).to.be.false
+		expect(await liquidityPool.epoch()).to.equal(epochBefore.add(1))
+		expect(
+			pendingDepositBefore.mul(toWei("1")).div(await liquidityPool.epochPricePerShare(epochBefore))
+		).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
+	})
+	it("Succeed: User 1: redeems all shares", async () => {
+		const user = senderAddress
+		const usdBalanceBefore = await usd.balanceOf(user)
+		const lpBalanceBefore = await liquidityPool.balanceOf(user)
+		const lpusdBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
+		const epochBefore = await liquidityPool.epoch()
+		const depositReceiptBefore = await liquidityPool.depositReceipts(user)
+		const pendingDepositBefore = await liquidityPool.pendingDeposits()
+		// set as big number to redeem all
+		const toRedeem = await liquidityPool.callStatic.redeem(toWei("100000000000000"))
+		await liquidityPool.redeem(toWei("100000000000000"))
+		const usdBalanceAfter = await usd.balanceOf(user)
+		const lpBalanceAfter = await liquidityPool.balanceOf(user)
+		const lpusdBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
+		const epochAfter = await liquidityPool.epoch()
+		const depositReceiptAfter = await liquidityPool.depositReceipts(user)
+		const pendingDepositAfter = await liquidityPool.pendingDeposits()
+		const logs = await liquidityPool.queryFilter(liquidityPool.filters.Redeem(), 0)
+		const redeemEvent = logs[0].args
+		expect(redeemEvent.recipient).to.equal(user)
+		expect(redeemEvent.amount).to.equal(toRedeem)
+		expect(redeemEvent.epoch).to.equal(epochBefore.sub(1))
+		expect(usdBalanceAfter).to.equal(usdBalanceBefore)
+		expect(lpBalanceAfter.sub(lpBalanceBefore)).to.equal(toRedeem)
+		expect(lpusdBalanceBefore).to.equal(lpusdBalanceAfter)
+		expect(lplpBalanceBefore.sub(lplpBalanceAfter)).to.equal(toRedeem)
+		expect(epochAfter).to.equal(epochBefore)
+		expect(depositReceiptAfter.epoch).to.equal(epochBefore.sub(1)).to.equal(epochAfter.sub(1))
+		expect(depositReceiptBefore.amount.sub(depositReceiptAfter.amount)).to.equal(
+			depositReceiptBefore.amount
+		)
+		expect(depositReceiptAfter.amount).to.equal(0)
+		expect(
+			depositReceiptBefore.unredeemedShares.add(
+				depositReceiptBefore.amount
+					.mul(collatDecimalShift)
+					.mul(toWei("1"))
+					.div(await liquidityPool.epochPricePerShare(depositReceiptBefore.epoch))
+			)
+		).to.equal(toRedeem)
+		expect(depositReceiptAfter.unredeemedShares).to.equal(0)
+		expect(await liquidityPool.allowance(liquidityPool.address, user)).to.equal(0)
 	})
 
-	it("LP can redeem half shares", async () => {
-		const shares = (await liquidityPool.balanceOf(senderAddress)).div(2)
-		const totalShares = await liquidityPool.totalSupply()
-		//@ts-ignore
-		const ratio = 1 / fromWei(totalShares)
-		const usdBalance = await usd.balanceOf(liquidityPool.address)
-		const withdraw = await liquidityPool.withdraw(shares, senderAddress)
-		const receipt = await withdraw.wait(1)
-		const events = receipt.events
-		const removeEvent = events?.find(x => x.event == "Withdraw")
-		const strikeAmount = removeEvent?.args?.strikeAmount
-		const usdBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		//@ts-ignore
-		const diff = fromWei(usdBalance) * ratio
-		expect(diff).to.be.within(0, 1)
-		expect(strikeAmount).to.be.eq(usdBalance.sub(usdBalanceAfter))
-	})
-	it("LP can not redeems shares when in excess of liquidity", async () => {
-		const [sender, receiver] = signers
-		const shares = await liquidityPool.balanceOf(senderAddress)
-		const withdraw = liquidityPool.withdraw(shares, senderAddress)
-		await expect(withdraw).to.be.revertedWith("WithdrawExceedsLiquidity()")
+	it("Succeed: User 1: Initiates Withdraw for half owned balance", async () => {
+		const user = senderAddress
+		const usdBalanceBefore = await usd.balanceOf(user)
+		const lpBalanceBefore = await liquidityPool.balanceOf(user)
+		const lpusdBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
+		const epochBefore = await liquidityPool.epoch()
+		const withdrawalReceiptBefore = await liquidityPool.withdrawalReceipts(user)
+		await liquidityPool.initiateWithdraw(lpBalanceBefore.div(2))
+		const usdBalanceAfter = await usd.balanceOf(user)
+		const lpBalanceAfter = await liquidityPool.balanceOf(user)
+		const lpusdBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
+		const epochAfter = await liquidityPool.epoch()
+		const withdrawalReceiptAfter = await liquidityPool.withdrawalReceipts(user)
+		const logs = await liquidityPool.queryFilter(liquidityPool.filters.InitiateWithdraw(), 0)
+		const initWithdrawEvent = logs[0].args
+		expect(initWithdrawEvent.recipient).to.equal(user)
+		expect(initWithdrawEvent.amount).to.equal(lpBalanceBefore.div(2))
+		expect(initWithdrawEvent.epoch).to.equal(epochBefore)
+		expect(usdBalanceAfter).to.equal(usdBalanceBefore)
+		expect(lpBalanceBefore.sub(lpBalanceAfter)).to.equal(lpBalanceBefore.div(2))
+		expect(lpusdBalanceAfter).to.equal(lpusdBalanceBefore)
+		expect(lplpBalanceAfter.sub(lplpBalanceBefore)).to.equal(lpBalanceBefore.div(2))
+		expect(withdrawalReceiptAfter.epoch).to.equal(epochBefore).to.equal(epochAfter)
+		expect(withdrawalReceiptBefore.epoch).to.equal(0)
+		expect(withdrawalReceiptAfter.shares).to.equal(lpBalanceBefore.div(2))
+		expect(withdrawalReceiptBefore.shares).to.equal(0)
 	})
 	it("pauses and unpauses LP contract", async () => {
 		await usd.approve(liquidityPool.address, toUSDC("200"))
-		await liquidityPool.deposit(toUSDC("100"), senderAddress)
+		await liquidityPool.deposit(toUSDC("100"))
 		await liquidityPool.pauseContract()
-		await expect(liquidityPool.deposit(toUSDC("100"), senderAddress)).to.be.revertedWith(
-			"Pausable: paused"
-		)
+		await expect(liquidityPool.deposit(toUSDC("100"))).to.be.revertedWith("Pausable: paused")
 		await liquidityPool.unpause()
 	})
 
@@ -1832,11 +2001,11 @@ describe("Liquidity Pools", async () => {
 		expect(customOrderBoundsAfter.putMaxDelta).to.equal(utils.parseEther("-0.05"))
 		expect(customOrderBoundsAfter.maxPriceRange).to.equal(800)
 	})
-	it("updates maxTotalSupply variable", async () => {
-		const beforeValue = await liquidityPool.maxTotalSupply()
+	it("updates collateralCap variable", async () => {
+		const beforeValue = await liquidityPool.collateralCap()
 		const expectedValue = toWei("1000000000000000")
-		await liquidityPool.setMaxTotalSupply(expectedValue)
-		const afterValue = await liquidityPool.maxTotalSupply()
+		await liquidityPool.setCollateralCap(expectedValue)
+		const afterValue = await liquidityPool.collateralCap()
 		expect(afterValue).to.eq(expectedValue)
 		expect(afterValue).to.not.eq(beforeValue)
 	})
@@ -1865,6 +2034,12 @@ describe("Liquidity Pools", async () => {
 		const afterValue = await liquidityPool.riskFreeRate()
 		expect(afterValue).to.eq(expectedValue)
 		expect(afterValue).to.not.eq(beforeValue)
+	})
+	it("pauses trading", async () => {
+		await liquidityPool.pauseUnpauseTrading(true)
+		expect(await liquidityPool.isTradingPaused()).to.be.true
+		await liquidityPool.pauseUnpauseTrading(false)
+		expect(await liquidityPool.isTradingPaused()).to.be.false
 	})
 	it("handler-only functions in Liquidity pool revert if not called by handler", async () => {
 		await expect(liquidityPool.resetEphemeralValues()).to.be.reverted
@@ -1900,10 +2075,6 @@ describe("Liquidity Pools", async () => {
 				senderAddress
 			)
 		).to.be.reverted
-	})
-	it("reverts when trying to deposit/withdraw 0", async () => {
-		await expect(liquidityPool.deposit(0, senderAddress)).to.be.revertedWith("InvalidAmount()")
-		await expect(liquidityPool.withdraw(0, senderAddress)).to.be.revertedWith("InvalidShareAmount()")
 	})
 	it("returns a volatility skew", async () => {
 		type int7 = [

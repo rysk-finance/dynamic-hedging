@@ -1,15 +1,21 @@
 import { Dispatch } from "react";
 
+export type AppSettings = {
+  unlimitedApproval: boolean;
+};
+
 // Global context
 export type GlobalState = {
   ethPrice: number | null;
   eth24hChange: number | null;
   connectWalletIndicatorActive: boolean;
+  settings: AppSettings;
 };
 
 export enum ActionType {
   SET_ETH_PRICE,
   SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
+  SET_SETTINGS,
 }
 
 export type GlobalAction =
@@ -21,6 +27,10 @@ export type GlobalAction =
   | {
       type: ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE;
       isActive: boolean;
+    }
+  | {
+      type: ActionType.SET_SETTINGS;
+      settings: Partial<AppSettings>;
     };
 
 export type GlobalContext = {
