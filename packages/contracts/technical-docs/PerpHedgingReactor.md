@@ -48,11 +48,11 @@ This function can only be called by a keeper or internally when delegated by the
 
 The functions goal is to rebalance the pool to make sure its healthFactor is at the desired healthFactor. If the collateral is 1 and net position is 0 then do nothing as this is the desired rest state of the reactor. It determines the desired collateral for the position. If the collateral is too much then remove some collateral and send it back to the liquidityPool. If the collateral is too little then get some funds from the liquidtyPool and update the margin. This function can only be called by a keeper. 
 
-### ```getDelta()```
+### ```getDelta()``` ***View***
 
 This function gets the internalDelta of the pool. Which is assumed to always hold the live delta value of the pool.
 
-### ```getPoolDenominatedValue()```
+### ```getPoolDenominatedValue()``` ***View***
 
 This function should return the value of the pool denominated in e18 decimals. It gets the collateral holdings of the margin account, any loose collateral in the reactor, the netProfit or netLoss of the pool these are summed and all assumed as in collateral decimals.
 

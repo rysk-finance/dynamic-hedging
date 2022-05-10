@@ -61,6 +61,9 @@ contract LiquidityPoolAdjustCollateralTest {
         return OptionRegistry(optionRegistry).close(_series, amount);
     }
 
+    function settle(address _series) external returns (bool, uint256, uint256, uint256) {
+        return OptionRegistry(optionRegistry).settle(_series);
+    }
     /**
     @notice adjust the collateral held in a specific vault because of health
     @param lpCollateralDifference amount of collateral taken from or given to the liquidity pool
