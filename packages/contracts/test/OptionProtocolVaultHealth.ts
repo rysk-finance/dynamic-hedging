@@ -1033,6 +1033,7 @@ describe("Options protocol Vault Health", function () {
 		expect(healthF).to.equal(healthFactor)
 	})
 	it("settles when option expires ITM USD collateral", async () => {
+		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		const [sender, receiver] = signers
 		// get balance before
 		const balanceUSD = await usd.balanceOf(liquidityPool.address)
@@ -1045,11 +1046,10 @@ describe("Options protocol Vault Health", function () {
 			await optionTokenUSDC.balanceOf(liquidityPool.address)
 		)
 		// call redeem from the options registry
-		const settleTx = await optionRegistry.settle(optionTokenUSDC.address)
-		const receipt = await settleTx.wait()
-		const events = receipt.events
-		const removeEvent = events?.find(x => x.event == "OptionsContractSettled")
-		const collateralReturned = removeEvent?.args?.collateralReturned
+		const settleTx = await liquidityPool.settle(optionTokenUSDC.address)
+		const logs = await optionRegistry.queryFilter(optionRegistry.filters.OptionsContractSettled(), 0)
+		const settleEvent = logs[logs.length - 1].args
+		const collateralReturned = settleEvent.collateralReturned
 		// check balances are in order
 		const newBalanceUSD = await usd.balanceOf(liquidityPool.address)
 		const opBalRegistry = await optionTokenUSDC.balanceOf(optionRegistry.address)
