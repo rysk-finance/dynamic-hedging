@@ -65,7 +65,7 @@ library OptionsCompute {
 		Types.PortfolioValues memory portfolioValues,
 		uint256 maxTimeDeviationThreshold,
 		uint256 maxPriceDeviationThreshold
-	) internal view {
+	) public view {
 		uint256 timeDelta = block.timestamp - portfolioValues.timestamp;
 		// If too much time has passed we want to prevent a possible oracle attack
 		if (timeDelta > maxTimeDeviationThreshold) {
