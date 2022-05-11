@@ -99,8 +99,6 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	bytes32 private constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
-	// value below which delta is not worth hedging due to gas costs
-	int256 private constant dustValue = 1e15;
 
 	/////////////////////////
 	/// structs && events ///
@@ -129,10 +127,6 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	}
 
 	event EpochExecuted(uint256 epoch);
-	event OrderCreated(uint256 orderId);
-	event OrderExecuted(uint256 orderId);
-	event LiquidityAdded(uint256 amount);
-	event StrangleCreated(uint256 strangleId);
 	event Withdraw(address recipient, uint256 amount, uint256 shares);
 	event Deposit(address recipient, uint256 amount, uint256 epoch);
 	event Redeem(address recipient, uint256 amount, uint256 epoch);
@@ -325,9 +319,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		onlyRole(ADMIN_ROLE)
 		whenNotPaused
 	{
-		if (BlackScholes.abs(delta) > dustValue) {
-			IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
-		}
+		IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
 	}
 
 	/**
@@ -360,9 +352,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		// get number of options in vault and collateral returned to recalculate our position without these options
 		// returns in collat decimals, collat decimals and e8
-		(, uint256 collatReturned, uint256 collatLost, uint256 oTokensAmount) = optionRegistry.settle(
-			seriesAddress
-		);
+		(, uint256 collatReturned, uint256 collatLost, ) = optionRegistry.settle(seriesAddress);
 		emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
 		_adjustVariables(collatReturned, 0, 0, false);
 		collateralAllocated -= collatLost;
@@ -739,10 +729,19 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		view
 		returns (uint256 quote, int256 delta)
 	{
-		// returns quotes for a single option. All denominated in 1e18
-		(uint256 optionQuote, int256 deltaQuote, uint256 underlyingPrice) = quotePriceGreeks(
+		uint256 underlyingPrice = getUnderlyingPrice(optionSeries.underlying, optionSeries.strikeAsset);
+		(uint256 optionQuote, int256 deltaQuote) = OptionsCompute.quotePriceGreeks(
 			optionSeries,
-			false
+			false,
+			bidAskIVSpread,
+			riskFreeRate,
+			getImpliedVolatility(
+				optionSeries.isPut,
+				underlyingPrice,
+				optionSeries.strike,
+				optionSeries.expiration
+			),
+			underlyingPrice
 		);
 		// using a struct to get around stack too deep issues
 		UtilizationState memory quoteState;
@@ -758,7 +757,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		// delta exposure of the portolio per ETH equivalent value the portfolio holds.
 		// This value is only used for tilting so we are only interested in its distance from 0 - its magnitude
 		uint256 normalizedDelta = uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))).div(
-			_getNAV().div(getUnderlyingPrice(underlyingAsset, collateralAsset))
+			_getNAV().div(underlyingPrice)
 		);
 		// this is the percentage of the option price which is added to or subtracted from option price
 		// according to whether portfolio delta is increased or decreased respectively
@@ -777,10 +776,14 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 			collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
 		);
 		// get the price of the option with the utilization premium added
-		quoteState.utilizationPrice = _getUtilizationPrice(
+		quoteState.utilizationPrice = OptionsCompute.getUtilizationPrice(
 			quoteState.utilizationBefore,
 			quoteState.utilizationAfter,
-			quoteState.totalOptionPrice
+			quoteState.totalOptionPrice,
+			utilizationFunctionThreshold,
+			belowThresholdGradient,
+			aboveThresholdGradient,
+			aboveThresholdYIntercept
 		);
 		if (quoteState.isDecreased) {
 			quote =
@@ -812,9 +815,19 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		view
 		returns (uint256 quote, int256 delta)
 	{
-		(uint256 optionQuote, int256 deltaQuote, uint256 underlyingPrice) = quotePriceGreeks(
+		uint256 underlyingPrice = getUnderlyingPrice(optionSeries.underlying, optionSeries.strikeAsset);
+		(uint256 optionQuote, int256 deltaQuote) = OptionsCompute.quotePriceGreeks(
 			optionSeries,
-			true
+			true,
+			bidAskIVSpread,
+			riskFreeRate,
+			getImpliedVolatility(
+				optionSeries.isPut,
+				underlyingPrice,
+				optionSeries.strike,
+				optionSeries.expiration
+			),
+			underlyingPrice
 		);
 		quote = OptionsCompute.convertToCollateralDenominated(
 			optionQuote.mul(amount),
@@ -1016,100 +1029,6 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 			assets += IHedgingReactor(hedgingReactors_[i]).getPoolDenominatedValue();
 		}
 		return assets;
-	}
-
-	/**
-	 * @notice get the greeks of a quotePrice for a given optionSeries
-	 * @param  optionSeries Types.OptionSeries struct for describing the option to price greeks - strike in e18
-	 * @return quote           Quote price of the option - in e18
-	 * @return delta           delta of the option being priced - in e18
-	 * @return underlyingPrice price of the underlyingAsset
-	 */
-	function quotePriceGreeks(Types.OptionSeries memory optionSeries, bool isBuying)
-		internal
-		view
-		returns (
-			uint256 quote,
-			int256 delta,
-			uint256 underlyingPrice
-		)
-	{
-		underlyingPrice = getUnderlyingPrice(optionSeries.underlying, optionSeries.strikeAsset);
-		uint256 iv = getImpliedVolatility(
-			optionSeries.isPut,
-			underlyingPrice,
-			optionSeries.strike,
-			optionSeries.expiration
-		);
-		if (iv == 0) {
-			revert CustomErrors.IVNotFound();
-		}
-		if (isBuying) {
-			iv = (iv * (1e18 - (bidAskIVSpread))) / 1e18;
-		}
-		// revert CustomErrors.if the expiry is in the past
-		if (optionSeries.expiration <= block.timestamp) {
-			revert CustomErrors.OptionExpiryInvalid();
-		}
-		(quote, delta) = BlackScholes.blackScholesCalcGreeks(
-			underlyingPrice,
-			optionSeries.strike,
-			optionSeries.expiration,
-			iv,
-			riskFreeRate,
-			optionSeries.isPut
-		);
-	}
-
-	function _getUtilizationPrice(
-		uint256 _utilizationBefore,
-		uint256 _utilizationAfter,
-		uint256 _totalOptionPrice
-	) internal view returns (uint256 utilizationPrice) {
-		uint256 _utilizationFunctionThreshold = utilizationFunctionThreshold;
-		if (
-			_utilizationBefore <= _utilizationFunctionThreshold &&
-			_utilizationAfter <= _utilizationFunctionThreshold
-		) {
-			// linear function up to 50% utilization
-			// adds 10% of utilization percentage on to price
-			// eg at 50% utilization, options will be priced 5% more expensive
-			return
-				_totalOptionPrice +
-				_totalOptionPrice.mul(_utilizationBefore + _utilizationAfter).mul(belowThresholdGradient).div(
-					2e18
-				);
-		} else if (
-			_utilizationBefore >= _utilizationFunctionThreshold &&
-			_utilizationAfter >= _utilizationFunctionThreshold
-		) {
-			// over 50% utilization the skew factor will follow a steeper line
-
-			uint256 multiplicationFactor = aboveThresholdGradient
-				.mul(_utilizationBefore + _utilizationAfter)
-				.div(2e18) - aboveThresholdYIntercept;
-
-			return _totalOptionPrice + _totalOptionPrice.mul(uint256(multiplicationFactor));
-		} else {
-			// _utilizationAfter will always be greater than _utilizationBefore
-			// finds the ratio of the distance below the threshold to the distance above the threshold
-			uint256 weightingRatio = (_utilizationFunctionThreshold - _utilizationBefore).div(
-				_utilizationAfter - _utilizationFunctionThreshold
-			);
-			// finds the average y value on the part of the function below threshold
-			uint256 averageFactorBelow = (_utilizationFunctionThreshold + _utilizationBefore).div(2e18).mul(
-				belowThresholdGradient
-			);
-			// finds average y value on part of the function above threshold
-			uint256 averageFactorAbove = (_utilizationAfter + _utilizationFunctionThreshold).div(2e18).mul(
-				aboveThresholdGradient
-			) - aboveThresholdYIntercept;
-			// finds the weighted average of the two above averaged to find the average utilization skew over the range of utilization
-			uint256 multiplicationFactor = (weightingRatio.mul(averageFactorBelow) + averageFactorAbove).div(
-				1e18 + weightingRatio
-			);
-			return _totalOptionPrice + _totalOptionPrice.mul(multiplicationFactor);
-		}
 	}
 
 	/**
