@@ -67,7 +67,6 @@ import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deplo
 import { ERC20Interface } from "../types/ERC20Interface"
 import { OptionHandler } from "../types/OptionHandler"
 import { Console } from "console"
-import { ConsoleLogger } from "ts-generator/dist/logger"
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: ERC20Interface
@@ -170,7 +169,7 @@ const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").va
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
 
-describe("Liquidity Pools", async () => {
+describe("Dynamic price quoter", async () => {
 	before(async function () {
 		await hre.network.provider.request({
 			method: "hardhat_reset",
@@ -257,15 +256,12 @@ describe("Liquidity Pools", async () => {
 		const senderBalance = await usd.balanceOf(senderAddress)
 		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
 		const deposit = await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit))
-		const liquidityProviderShareBalance = await liquidityPool.balanceOf(senderAddress)
 		const receipt = await deposit.wait(1)
 		const event = receipt?.events?.find(x => x.event == "Deposit")
 		const newSenderBalance = await usd.balanceOf(senderAddress)
 		expect(event?.event).to.eq("Deposit")
 		// check liquidity providers balance reduces by correct amount
 		expect(senderBalance.sub(newSenderBalance)).to.eq(toUSDC(liquidityPoolUsdcDeposit))
-		// check liquidity provider owns correct number of LP shares
-		expect(liquidityProviderShareBalance.toString()).to.eq(toWei(liquidityPoolUsdcDeposit))
 	})
 
 	describe("Quote", function () {
@@ -289,10 +285,9 @@ describe("Liquidity Pools", async () => {
 						underlying: weth.address,
 						collateral: usd.address
 					},
-					amount: toWei((Math.random() * 10000).toString())
+					amount: toWei((Math.random() * 10).toString())
 				}
 			}
-			console.log(arr)
 		})
 
 		it("Returns a quote for a ETH/USD put with utilization", async () => {
@@ -314,12 +309,11 @@ describe("Liquidity Pools", async () => {
 					optionSeries,
 					amount
 				)
-				console.log({ bsQuote })
-
 				const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount))[0]
 				const truncQuote = truncate(localQuote)
 				const chainQuote = tFormatEth(quote.toString())
 				const diff = percentDiff(truncQuote, chainQuote)
+				console.log({ bsQuote })
 				console.log({ diff })
 				console.log({ priceQuote: tFormatEth(priceQuote) })
 				console.log({ localQuote }, { quote: tFormatEth(quote) })
@@ -345,12 +339,12 @@ describe("Liquidity Pools", async () => {
 					optionSeries,
 					amount
 				)
-				console.log({ bsQuote })
 
 				const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount))[0]
 				const truncQuote = truncate(localQuote)
 				const chainQuote = tFormatEth(quote.toString())
 				const diff = percentDiff(truncQuote, chainQuote)
+				console.log({ bsQuote })
 				console.log({ diff })
 				console.log({ priceQuote: tFormatEth(priceQuote) })
 				console.log({ localQuote }, { quote: tFormatEth(quote) })

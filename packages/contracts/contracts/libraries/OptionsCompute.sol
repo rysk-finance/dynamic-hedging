@@ -50,7 +50,7 @@ library OptionsCompute {
      @param b the larger integer
      @return uint256 the percentage differnce
     */
-	function calculatePercentageDifference(uint256 a, uint256 b) public pure returns (uint256) {
+	function calculatePercentageDifference(uint256 a, uint256 b) internal pure returns (uint256) {
 		if (a > b) {
 			return b.div(a);
 		}

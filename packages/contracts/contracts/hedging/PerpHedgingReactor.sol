@@ -10,8 +10,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@rage/core/contracts/interfaces/IClearingHouse.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "hardhat/console.sol";
-
 
 /**
     @title A hedging reactor that will manage delta by opening or closing short or long perp positions

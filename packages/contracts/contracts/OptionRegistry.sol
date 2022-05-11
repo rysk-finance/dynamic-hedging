@@ -15,7 +15,6 @@ import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import { OpynInteractions } from "./libraries/OpynInteractions.sol";
 import { IController, GammaTypes} from "./interfaces/GammaInterface.sol";
-import "hardhat/console.sol";
 
 
 contract OptionRegistry is Ownable, AccessControl {

@@ -16,7 +16,6 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 
-import "hardhat/console.sol";
 
 contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 	using PRBMathSD59x18 for int256;

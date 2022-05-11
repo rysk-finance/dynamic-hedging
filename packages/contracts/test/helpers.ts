@@ -240,7 +240,6 @@ export async function calculateOptionQuoteLocally(
 	)
 	const utilizationBefore =
 		tFormatUSDC(collateralAllocated) / tFormatUSDC(collateralAllocated.add(lpUSDBalance))
-	console.log({ liquidityAllocated })
 	const utilizationAfter =
 		tFormatUSDC(collateralAllocated.add(liquidityAllocated)) /
 		tFormatUSDC(collateralAllocated.add(lpUSDBalance))
@@ -261,7 +260,6 @@ export async function calculateOptionQuoteLocally(
 			optionSeries.isPut ? "put" : "call"
 		) * parseFloat(fromWei(amount))
 	let utilizationPrice = getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
-	console.log({ utilizationBefore, utilizationAfter, localBS, utilizationPrice })
 	// if delta exposure reduces, subtract delta skew from  pricequotes
 	if (portfolioDeltaIsDecreased) {
 		const newOptionPrice = localBS - deltaTiltAmount * localBS
