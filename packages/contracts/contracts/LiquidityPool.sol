@@ -14,7 +14,6 @@ import "./interfaces/IHedgingReactor.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "hardhat/console.sol";
 
 contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausable {
 	using PRBMathSD59x18 for int256;
@@ -317,7 +316,6 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex)
 		external
 		onlyRole(ADMIN_ROLE)
-		whenNotPaused
 	{
 		IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
 	}
@@ -349,10 +347,9 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
     @return collatReturned the amount of collateral returned to the liquidity pool.
   */
 	function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256) {
-		IOptionRegistry optionRegistry = getOptionRegistry();
 		// get number of options in vault and collateral returned to recalculate our position without these options
 		// returns in collat decimals, collat decimals and e8
-		(, uint256 collatReturned, uint256 collatLost, ) = optionRegistry.settle(seriesAddress);
+		(, uint256 collatReturned, uint256 collatLost, ) = getOptionRegistry().settle(seriesAddress);
 		emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
 		_adjustVariables(collatReturned, 0, 0, false);
 		collateralAllocated -= collatLost;
@@ -508,8 +505,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		}
 		address underlyingAsset_ = underlyingAsset;
 		address strikeAsset_ = strikeAsset;
-		IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
-		Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(
+		Types.PortfolioValues memory portfolioValues = getPortfolioValuesFeed().getPortfolioValues(
 			underlyingAsset_,
 			strikeAsset_
 		);
@@ -639,9 +635,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 			revert CustomErrors.InvalidAmount();
 		}
 		// get the liquidity that can be withdrawn from the pool without hitting the collateral requirement buffer
-		int256 buffer = int256((collateralAllocated * bufferPercentage) / MAX_BPS);
-		int256 collatBalance = int256(ERC20(collateralAsset).balanceOf(address(this)));
-		int256 bufferRemaining = collatBalance - buffer;
+		int256 bufferRemaining = int256(ERC20(collateralAsset).balanceOf(address(this))) - int256((collateralAllocated * bufferPercentage) / MAX_BPS);
 		// get the extra liquidity that is needed
 		int256 amountNeeded = int256(withdrawalAmount) - bufferRemaining;
 		// loop through the reactors and move funds
@@ -696,8 +690,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		// assumes in e18
 		address underlyingAsset_ = underlyingAsset;
 		address strikeAsset_ = strikeAsset;
-		IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
-		Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(
+		Types.PortfolioValues memory portfolioValues = getPortfolioValuesFeed().getPortfolioValues(
 			underlyingAsset_,
 			strikeAsset_
 		);
@@ -767,11 +760,9 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		quoteState.utilizationBefore = collateralAllocated.div(
 			collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
 		);
-		IOptionRegistry optionRegistry = getOptionRegistry();
 		optionSeries.strike = optionSeries.strike / 1e10;
 		// returns collateral decimals
-		quoteState.collateralToAllocate = optionRegistry.getCollateral(optionSeries, amount);
-
+		quoteState.collateralToAllocate =  getOptionRegistry().getCollateral(optionSeries, amount);
 		quoteState.utilizationAfter = (quoteState.collateralToAllocate + collateralAllocated).div(
 			collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
 		);
@@ -956,11 +947,9 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		view
 		returns (uint256 shares)
 	{
-		uint256 convertedAmount = OptionsCompute.convertFromDecimals(
-			_amount,
-			IERC20(collateralAsset).decimals()
-		);
-		shares = (convertedAmount * PRBMath.SCALE) / assetPerShare;
+		shares = (OptionsCompute.convertFromDecimals(
+			          _amount,
+			          IERC20(collateralAsset).decimals()) * PRBMath.SCALE) / assetPerShare;
 	}
 
 	/**
@@ -991,8 +980,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
 		uint256 assets = _getAssets();
-		IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
-		Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(
+		Types.PortfolioValues memory portfolioValues = getPortfolioValuesFeed().getPortfolioValues(
 			underlyingAsset_,
 			strikeAsset_
 		);
