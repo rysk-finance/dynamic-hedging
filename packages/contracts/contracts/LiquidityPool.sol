@@ -109,6 +109,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	struct UtilizationState {
 		uint256 totalOptionPrice; //e18
 		int256 totalDelta; // e18
+		uint256 collateralToAllocate; //collateral decimals
 		uint256 utilizationBefore; // e18
 		uint256 utilizationAfter; //e18
 		uint256 utilizationPrice; //e18
@@ -769,9 +770,10 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		);
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		optionSeries.strike = optionSeries.strike / 1e10;
-		uint256 collateralToAllocate = optionRegistry.getCollateral(optionSeries, amount);
+		// returns collateral decimals
+		quoteState.collateralToAllocate = optionRegistry.getCollateral(optionSeries, amount);
 
-		quoteState.utilizationAfter = (collateralToAllocate + collateralAllocated).div(
+		quoteState.utilizationAfter = (quoteState.collateralToAllocate + collateralAllocated).div(
 			collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
 		);
 		// get the price of the option with the utilization premium added
