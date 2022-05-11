@@ -68,15 +68,19 @@ This function returns an oToken from the opyn-rysk gamma otoken factory. If the 
 
 ### ```getSeries(Types.OptionSeries memory _series) external view returns (address) ``` ***View***
 
+This function takes in an address then searches the seriesInfo[] mapping in the contract to retrieve the OptionSeries struct for that series address.
 
 ### ```getSeriesInfo(address series) external view returns (Types.OptionSeries memory) ``` ***View***
 
+This function takes in an address then searches the seriesInfo[] mapping in the contract to retrieve the OptionSeries struct for that series address, these will match opyn's records.
 
 ### ```getIssuanceHash(Types.OptionSeries memory _series) public pure returns (bytes32) ``` ***View***
 
+This function gets the issuance hash of the input value which should be an OptionSeries struct. This hash is used for series storage.
 
 ### ``` getIssuanceHash(address underlying, address strikeAsset, address collateral, uint expiration, bool isPut, uint strike) internal pure returns(bytes32) ``` ***View***
 
+This function gets the issuance hash of the input values. This hash is used for series storage
 
 ### ``` formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint) ``` ***View***
 
