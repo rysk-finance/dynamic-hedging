@@ -313,6 +313,52 @@ export async function calculateOptionDeltaLocally(
 	return toWei(localDelta.toString()).mul(amount.div(toWei("1")))
 }
 
+export async function getBlackScholesQuote(
+	liquidityPool: LiquidityPool,
+	optionRegistry: OptionRegistry,
+	collateralAsset: MintableERC20,
+	priceFeed: PriceFeed,
+	optionSeries: {
+		expiration: number
+		strike: BigNumber
+		isPut: boolean
+		strikeAsset: string
+		underlying: string
+		collateral: string
+	},
+	amount: BigNumber,
+	toBuy: boolean = false
+) {
+	const underlyingPrice = await priceFeed.getNormalizedRate(
+		WETH_ADDRESS[chainId],
+		USDC_ADDRESS[chainId]
+	)
+	const iv = await liquidityPool.getImpliedVolatility(
+		optionSeries.isPut,
+		underlyingPrice,
+		optionSeries.strike,
+		optionSeries.expiration
+	)
+	const blockNum = await ethers.provider.getBlockNumber()
+	const block = await ethers.provider.getBlock(blockNum)
+	const { timestamp } = block
+	const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), optionSeries.expiration)
+
+	const priceNorm = fromWei(underlyingPrice)
+
+	const localBS =
+		bs.blackScholes(
+			priceNorm,
+			fromWei(optionSeries.strike),
+			timeToExpiration,
+			toBuy ? Number(fromWei(iv)) - Number(bidAskSpread) : fromWei(iv),
+			parseFloat(rfr),
+			optionSeries.isPut ? "put" : "call"
+		) * parseFloat(fromWei(amount))
+
+	return localBS
+}
+
 function getUtilizationPrice(
 	utilizationBefore: number,
 	utilizationAfter: number,

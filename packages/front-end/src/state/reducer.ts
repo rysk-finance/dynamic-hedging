@@ -24,6 +24,11 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ...state,
         connectWalletIndicatorActive: action.isActive,
       };
+    case ActionType.SET_SETTINGS:
+      return {
+        ...state,
+        settings: { ...state.settings, ...action.settings },
+      };
   }
 };
 

@@ -240,6 +240,32 @@ contract OptionRegistry is Ownable, AccessControl {
     }
 
     /**
+     * @notice Settle an options vault
+     * @param  _series the address of the option token to be burnt
+     * @return  if the transaction succeeded
+     * @return  the amount of collateral returned from the vault
+     * @return  the amount of collateral used to pay ITM options on vault settle
+     * @return  number of oTokens that the vault was short
+     * @dev callable by the liquidityPool so that local variables can also be updated
+     */
+    function settle(address _series) external onlyLiquidityPool returns (bool, uint256, uint256, uint256) {
+        Types.OptionSeries memory series = seriesInfo[_series];
+        // strike will be in e8
+        if (series.expiration == 0) {revert NonExistentSeries();}
+        // check that the option has expired
+        if (series.expiration >= block.timestamp) {revert NotExpired();}
+        // get the vault
+        uint256 vaultId = vaultIds[_series];
+        // settle the vault
+        (uint256 collatReturned, uint256 collatLost, uint amountShort) = OpynInteractions.settle(gammaController, vaultId);
+        // transfer the collateral back to the liquidity pool
+        SafeTransferLib.safeTransfer(ERC20(series.collateral), liquidityPool, collatReturned);
+        emit OptionsContractSettled(_series, collatReturned, collatLost, amountShort);
+        // assumes in collateral decimals, collateral decimals, e8 
+        return (true, collatReturned, collatLost, amountShort);
+    }
+    
+    /**
      * @notice adjust the collateral held in a specific vault because of health
      * @param  vaultId the id of the vault to check
      */
@@ -315,32 +341,6 @@ contract OptionRegistry is Ownable, AccessControl {
     /////////////////////////////////////////////
     /// external state changing functionality ///
     /////////////////////////////////////////////
-
-    /**
-     * @notice Settle an options vault
-     * @param  _series the address of the option token to be burnt
-     * @return  if the transaction succeeded
-     * @return  the amount of collateral returned from the vault
-     * @return  the amount of collateral used to pay ITM options on vault settle
-     * @return  number of oTokens that the vault was short
-     * @dev callable by anyone but returns funds to the liquidityPool
-     */
-    function settle(address _series) external returns (bool, uint256, uint256, uint256) {
-        Types.OptionSeries memory series = seriesInfo[_series];
-        // strike will be in e8
-        if (series.expiration == 0) {revert NonExistentSeries();}
-        // check that the option has expired
-        if (series.expiration >= block.timestamp) {revert NotExpired();}
-        // get the vault
-        uint256 vaultId = vaultIds[_series];
-        // settle the vault
-        (uint256 collatReturned, uint256 collatLost, uint amountShort) = OpynInteractions.settle(gammaController, vaultId);
-        // transfer the collateral back to the liquidity pool
-        SafeTransferLib.safeTransfer(ERC20(series.collateral), liquidityPool, collatReturned);
-        emit OptionsContractSettled(_series, collatReturned, collatLost, amountShort);
-        // assumes in collateral decimals, collateral decimals, e8 
-        return (true, collatReturned, collatLost, amountShort);
-    }
 
     /**
      * @notice Redeem oTokens for the locked collateral

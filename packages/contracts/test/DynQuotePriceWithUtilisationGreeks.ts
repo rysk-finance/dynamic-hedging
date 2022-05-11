@@ -44,6 +44,7 @@ import {
 	setupOracle,
 	calculateOptionQuoteLocally,
 	calculateOptionDeltaLocally,
+	getBlackScholesQuote,
 	increase,
 	setOpynOracleExpiryPrice
 } from "./helpers"
@@ -255,7 +256,7 @@ describe("Liquidity Pools", async () => {
 		await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
 		const senderBalance = await usd.balanceOf(senderAddress)
 		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
-		const deposit = await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit), senderAddress)
+		const deposit = await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit))
 		const liquidityProviderShareBalance = await liquidityPool.balanceOf(senderAddress)
 		const receipt = await deposit.wait(1)
 		const event = receipt?.events?.find(x => x.event == "Deposit")
@@ -305,6 +306,15 @@ describe("Liquidity Pools", async () => {
 					optionSeries,
 					amount
 				)
+				const bsQuote = await getBlackScholesQuote(
+					liquidityPool,
+					optionRegistry,
+					usd,
+					priceFeed,
+					optionSeries,
+					amount
+				)
+				console.log({ bsQuote })
 
 				const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount))[0]
 				const truncQuote = truncate(localQuote)
@@ -327,6 +337,15 @@ describe("Liquidity Pools", async () => {
 					optionSeries,
 					amount
 				)
+				const bsQuote = await getBlackScholesQuote(
+					liquidityPool,
+					optionRegistry,
+					usd,
+					priceFeed,
+					optionSeries,
+					amount
+				)
+				console.log({ bsQuote })
 
 				const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount))[0]
 				const truncQuote = truncate(localQuote)

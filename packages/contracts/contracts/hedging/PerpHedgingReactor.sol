@@ -102,16 +102,16 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     ///////////////
 
     /// @notice update the health factor parameter
-    function setHealthFactor(uint _healthFactor) public onlyOwner {
+    function setHealthFactor(uint _healthFactor) external onlyOwner {
         if (_healthFactor < MAX_BIPS) {revert InvalidHealthFactor();}
         healthFactor = _healthFactor;
     }
     /// @notice update the keeper
-    function setKeeper(address _keeper) public onlyOwner {
+    function setKeeper(address _keeper) external onlyOwner {
         keeper = _keeper;
     }
     /// @notice update the keeper
-    function setSyncOnChange(bool _syncOnChange) public onlyOwner {
+    function setSyncOnChange(bool _syncOnChange) external onlyOwner {
         syncOnChange = _syncOnChange;
     }
 
@@ -145,25 +145,24 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         require(msg.sender == parentLiquidityPool, "!vault");
         address _token = collateralAsset;
         // check the holdings if enough just lying around then transfer it
-        // assume amount is passed in as e18
-        uint256 convertedAmount = OptionsCompute.convertToDecimals(_amount, IERC20(_token).decimals());
+        // assume amount is passed in as collateral decimals
         uint256 balance = IERC20(_token).balanceOf(address(this));
         if (balance == 0) {return 0;}
-        if (convertedAmount <= balance) {
-            SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, convertedAmount);
-            // return in e18 format
+        if (_amount <= balance) {
+            SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, _amount);
+            // return in collateral format
             return _amount;
         } else {
             SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, balance);
-            // return in e18 format
-            return OptionsCompute.convertFromDecimals(balance, IERC20(_token).decimals());
+            // return in collateral format
+            return balance;
         }
     }
 
     /// @notice function to poke the margin account to update the profits of the vault and also manage
     ///         the collateral to safe bounds.
     /// @dev    only callable by a keeper
-    function syncAndUpdate() public {
+    function syncAndUpdate() external {
         sync();
         update();
     }

@@ -11,6 +11,7 @@ import "./interfaces/IOptionRegistry.sol";
 import { Types } from "./libraries/Types.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
+import "./interfaces/IPortfolioValuesFeed.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
@@ -28,6 +29,11 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 	// Protocol management contract
 	ILiquidityPool public immutable liquidityPool;
 	Protocol public immutable protocol;
+	// asset that denominates the strike price
+	address public immutable strikeAsset;
+	// asset that is used as the reference asset
+	address public immutable underlyingAsset;
+	// asset that is used for collateral asset
 	address public immutable collateralAsset;
 
 	/////////////////////////
@@ -85,6 +91,8 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 		protocol = Protocol(_protocol);
 		liquidityPool = ILiquidityPool(_liquidityPool);
 		collateralAsset = liquidityPool.collateralAsset();
+		underlyingAsset = liquidityPool.underlyingAsset();
+		strikeAsset = liquidityPool.strikeAsset();
 	}
 
 	///////////////
@@ -348,6 +356,7 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 			delta,
 			msg.sender
 		);
+		getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
 	}
 
 	/**
@@ -380,6 +389,9 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		// get the option series from the pool
 		Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+		if (optionSeries.expiration == 0) {
+			revert CustomErrors.NonExistentOtoken();
+		}
 		// calculate premium, strike needs to be in e18
 		(uint256 premium, int256 delta) = liquidityPool.quotePriceWithUtilizationGreeks(
 			Types.OptionSeries({
@@ -405,6 +417,7 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 			address(liquidityPool),
 			convertedPrem
 		);
+		getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
 		return
 			liquidityPool.handlerWriteOption(
 				optionSeries,
@@ -475,6 +488,7 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 			address(liquidityPool),
 			OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals())
 		);
+		getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
 		return
 			liquidityPool.handlerBuybackOption(
 				optionSeries,
@@ -497,5 +511,13 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 	 */
 	function getOptionRegistry() internal view returns (IOptionRegistry) {
 		return IOptionRegistry(protocol.optionRegistry());
+	}
+
+	/**
+	 * @notice get the portfolio values feed used by the liquidity pool
+	 * @return the portfolio values feed contract
+	 */
+	function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
+		return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
 	}
 }
