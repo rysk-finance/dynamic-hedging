@@ -86,6 +86,7 @@ contract OptionRegistry is Ownable, AccessControl {
     event OptionsContractClosed(address indexed series, uint256 vaultId, uint256 closedAmount);
     event OptionsContractSettled(address indexed series, uint256 collateralReturned, uint256 collateralLost, uint256 amountLost);
 
+    error NoVault();
     error NotExpired();
     error HealthyVault();
     error AlreadyExpired();
@@ -228,6 +229,7 @@ contract OptionRegistry is Ownable, AccessControl {
         if(series.expiration <= block.timestamp) {revert AlreadyExpired();}
         // get the vault id
         uint256 vaultId = vaultIds[_series];
+        if (vaultId == 0) {revert NoVault();}
         uint256 convertedAmount = OptionsCompute.convertToDecimals(amount, IERC20(_series).decimals());
         // transfer the oToken back to this account
         SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), convertedAmount);
