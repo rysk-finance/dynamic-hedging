@@ -25,9 +25,11 @@ export const Settings = () => {
 
   return (
     <div className="w-full">
-      <h4 className="mb-4">Settings</h4>
       <div>
-        <div className="w-[50%] flex-column">
+        <p>
+          <b>Settings</b>
+        </p>
+        <div className="w-full flex-column">
           <div className="flex justify-between items-center">
             <span>Unlimited Approval</span>
             <Toggle
