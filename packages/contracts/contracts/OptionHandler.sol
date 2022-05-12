@@ -254,7 +254,8 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 				strikeAsset: order.optionSeries.strikeAsset,
 				collateral: order.optionSeries.collateral
 			}),
-			order.amount
+			order.amount,
+			false
 		);
 		// calculate the total premium
 		uint256 premium = (order.amount * order.price) / 1e18;
@@ -335,7 +336,8 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 		// calculate premium
 		(uint256 premium, int256 delta) = liquidityPool.quotePriceWithUtilizationGreeks(
 			optionSeries,
-			amount
+			amount,
+			false
 		);
 		// premium needs to adjusted for decimals of collateral asset
 		uint256 convertedPrem = OptionsCompute.convertToDecimals(
@@ -404,7 +406,8 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 				strikeAsset: optionSeries.strikeAsset,
 				collateral: optionSeries.collateral
 			}),
-			amount
+			amount,
+			false
 		);
 		// premium needs to adjusted for decimals of collateral asset
 		uint256 convertedPrem = OptionsCompute.convertToDecimals(
@@ -456,7 +459,7 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 			OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals())
 		);
 		// get Liquidity pool quote on the option to buy back, always return the total values
-		(uint256 premium, int256 delta) = liquidityPool.quotePriceBuying(
+		(uint256 premium, int256 delta) = liquidityPool.quotePriceWithUtilizationGreeks(
 			Types.OptionSeries(
 				optionSeries.expiration,
 				strikeDecimalConverted, // convert from 1e8 to 1e18 notation for quotePrice
@@ -465,7 +468,8 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 				optionSeries.strikeAsset,
 				collateralAsset
 			),
-			amount
+			amount,
+			true
 		);
 		// if option seller is not on our whitelist, run some extra checks
 		if (!buybackWhitelist[msg.sender]) {

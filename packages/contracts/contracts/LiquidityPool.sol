@@ -113,6 +113,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		uint256 utilizationPrice; //e18
 		bool isDecreased;
 		uint256 deltaTiltAmount; //e18
+		uint256 underlyingPrice; // strike asset decimals
+		uint256 iv; // e18
 	}
 
 	struct DepositReceipt {
@@ -721,30 +723,35 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 * @notice get the quote price and delta for a given option
 	 * @param  optionSeries option type to quote - strike assumed in e18
 	 * @param  amount the number of options to mint  - assumed in e18
+	 * @param toBuy whether the protocol is buying the option
 	 * @return quote the price of the options - returns in e18
 	 * @return delta the delta of the options - returns in e18
 	 */
-	function quotePriceWithUtilizationGreeks(Types.OptionSeries memory optionSeries, uint256 amount)
-		public
-		view
-		returns (uint256 quote, int256 delta)
-	{
-		uint256 underlyingPrice = getUnderlyingPrice(optionSeries.underlying, optionSeries.strikeAsset);
-		(uint256 optionQuote, int256 deltaQuote) = OptionsCompute.quotePriceGreeks(
-			optionSeries,
-			false,
-			bidAskIVSpread,
-			riskFreeRate,
-			getImpliedVolatility(
-				optionSeries.isPut,
-				underlyingPrice,
-				optionSeries.strike,
-				optionSeries.expiration
-			),
-			underlyingPrice
-		);
+	function quotePriceWithUtilizationGreeks(
+		Types.OptionSeries memory optionSeries,
+		uint256 amount,
+		bool toBuy
+	) public view returns (uint256 quote, int256 delta) {
 		// using a struct to get around stack too deep issues
 		UtilizationState memory quoteState;
+		quoteState.underlyingPrice = getUnderlyingPrice(
+			optionSeries.underlying,
+			optionSeries.strikeAsset
+		);
+		quoteState.iv = getImpliedVolatility(
+			optionSeries.isPut,
+			quoteState.underlyingPrice,
+			optionSeries.strike,
+			optionSeries.expiration
+		);
+		(uint256 optionQuote, int256 deltaQuote) = OptionsCompute.quotePriceGreeks(
+			optionSeries,
+			toBuy,
+			bidAskIVSpread,
+			riskFreeRate,
+			quoteState.iv,
+			quoteState.underlyingPrice
+		);
 		// price of acquiring total amount of options (remains e18 due to PRBMath)
 		quoteState.totalOptionPrice = optionQuote.mul(amount);
 		quoteState.totalDelta = deltaQuote.mul(int256(amount));
@@ -757,34 +764,40 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		// delta exposure of the portolio per ETH equivalent value the portfolio holds.
 		// This value is only used for tilting so we are only interested in its distance from 0 - its magnitude
 		uint256 normalizedDelta = uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))).div(
-			_getNAV().div(underlyingPrice)
+			_getNAV().div(quoteState.underlyingPrice)
 		);
 		// this is the percentage of the option price which is added to or subtracted from option price
 		// according to whether portfolio delta is increased or decreased respectively
 		quoteState.deltaTiltAmount = normalizedDelta > maxDiscount ? maxDiscount : normalizedDelta;
 
-		// Work out the utilization of the pool as a percentage
-		quoteState.utilizationBefore = collateralAllocated.div(
-			collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
-		);
-		IOptionRegistry optionRegistry = getOptionRegistry();
-		optionSeries.strike = optionSeries.strike / 1e10;
-		// returns collateral decimals
-		quoteState.collateralToAllocate = optionRegistry.getCollateral(optionSeries, amount);
+		if (!toBuy) {
+			// if selling options, we want to add the utilization premium
+			// Work out the utilization of the pool as a percentage
+			quoteState.utilizationBefore = collateralAllocated.div(
+				collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
+			);
+			IOptionRegistry optionRegistry = getOptionRegistry();
+			optionSeries.strike = optionSeries.strike / 1e10;
+			// returns collateral decimals
+			quoteState.collateralToAllocate = optionRegistry.getCollateral(optionSeries, amount);
 
-		quoteState.utilizationAfter = (quoteState.collateralToAllocate + collateralAllocated).div(
-			collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
-		);
-		// get the price of the option with the utilization premium added
-		quoteState.utilizationPrice = OptionsCompute.getUtilizationPrice(
-			quoteState.utilizationBefore,
-			quoteState.utilizationAfter,
-			quoteState.totalOptionPrice,
-			utilizationFunctionThreshold,
-			belowThresholdGradient,
-			aboveThresholdGradient,
-			aboveThresholdYIntercept
-		);
+			quoteState.utilizationAfter = (quoteState.collateralToAllocate + collateralAllocated).div(
+				collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
+			);
+			// get the price of the option with the utilization premium added
+			quoteState.utilizationPrice = OptionsCompute.getUtilizationPrice(
+				quoteState.utilizationBefore,
+				quoteState.utilizationAfter,
+				quoteState.totalOptionPrice,
+				utilizationFunctionThreshold,
+				belowThresholdGradient,
+				aboveThresholdGradient,
+				aboveThresholdYIntercept
+			);
+		} else {
+			// do not use utlilization premium for buybacks
+			quoteState.utilizationPrice = quoteState.totalOptionPrice;
+		}
 		if (quoteState.isDecreased) {
 			quote =
 				quoteState.utilizationPrice -
@@ -795,7 +808,11 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) +
 				quoteState.utilizationPrice;
 		}
-		quote = OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
+		quote = OptionsCompute.convertToCollateralDenominated(
+			quote,
+			quoteState.underlyingPrice,
+			optionSeries
+		);
 		delta = quoteState.totalDelta;
 		//@TODO think about more robust considitions for this check
 		if (quote == 0 || delta == int256(0)) {
@@ -803,66 +820,66 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		}
 	}
 
-	/**
-	 * @notice get the quote price and delta for a given option
-	 * @param  optionSeries option type to quote - strike assumed in e18
-	 * @param  amount the number of options to buy - assumed in e18
-	 * @return quote the price of the options - assumed in collateral decimals
-	 * @return delta the delta of the options - assumed in e18
-	 */
-	function quotePriceBuying(Types.OptionSeries memory optionSeries, uint256 amount)
-		public
-		view
-		returns (uint256 quote, int256 delta)
-	{
-		uint256 underlyingPrice = getUnderlyingPrice(optionSeries.underlying, optionSeries.strikeAsset);
-		(uint256 optionQuote, int256 deltaQuote) = OptionsCompute.quotePriceGreeks(
-			optionSeries,
-			true,
-			bidAskIVSpread,
-			riskFreeRate,
-			getImpliedVolatility(
-				optionSeries.isPut,
-				underlyingPrice,
-				optionSeries.strike,
-				optionSeries.expiration
-			),
-			underlyingPrice
-		);
-		uint256 totalOptionPrice = optionQuote.mul(amount);
-		uint256 totalDelta = deltaQuote.mul(int256(amount));
-		// portfolio delta upon buying option
-		// portfolio takes on the delta of the options so add them
-		int256 newDelta = portfolioDelta + quoteState.totalDelta;
+	// /**
+	//  * @notice get the quote price and delta for a given option
+	//  * @param  optionSeries option type to quote - strike assumed in e18
+	//  * @param  amount the number of options to buy - assumed in e18
+	//  * @return quote the price of the options - assumed in collateral decimals
+	//  * @return delta the delta of the options - assumed in e18
+	//  */
+	// function quotePriceBuying(Types.OptionSeries memory optionSeries, uint256 amount)
+	// 	public
+	// 	view
+	// 	returns (uint256 quote, int256 delta)
+	// {
+	// 	uint256 underlyingPrice = getUnderlyingPrice(optionSeries.underlying, optionSeries.strikeAsset);
+	// 	(uint256 optionQuote, int256 deltaQuote) = OptionsCompute.quotePriceGreeks(
+	// 		optionSeries,
+	// 		true,
+	// 		bidAskIVSpread,
+	// 		riskFreeRate,
+	// 		getImpliedVolatility(
+	// 			optionSeries.isPut,
+	// 			underlyingPrice,
+	// 			optionSeries.strike,
+	// 			optionSeries.expiration
+	// 		),
+	// 		underlyingPrice
+	// 	);
+	// 	uint256 totalOptionPrice = optionQuote.mul(amount);
+	// 	uint256 totalDelta = deltaQuote.mul(int256(amount));
+	// 	// portfolio delta upon buying option
+	// 	// portfolio takes on the delta of the options so add them
+	// 	int256 newDelta = portfolioDelta + quoteState.totalDelta;
 
-		// Is delta moved closer to zero?
-		quoteState.isDecreased = (PRBMathSD59x18.abs(newDelta) - PRBMathSD59x18.abs(portfolioDelta)) < 0;
+	// 	// Is delta moved closer to zero?
+	// 	quoteState.isDecreased = (PRBMathSD59x18.abs(newDelta) - PRBMathSD59x18.abs(portfolioDelta)) < 0;
 
-		// delta exposure of the portolio per ETH equivalent value the portfolio holds.
-		// This value is only used for tilting so we are only interested in its distance from 0 - its magnitude
-		uint256 normalizedDelta = uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))).div(
-			_getNAV().div(underlyingPrice)
-		);
-		// this is the percentage of the option price which is added to or subtracted from option price
-		// according to whether portfolio delta is increased or decreased respectively
-		quoteState.deltaTiltAmount = normalizedDelta > maxDiscount ? maxDiscount : normalizedDelta;
-		if (quoteState.isDecreased) {
-			quote =
-				quoteState.totalOptionPrice -
-				quoteState.deltaTiltAmount.mul(quoteState.totalOptionPrice);
-		} else {
-			// increase utilization by delta tilt factor for moving delta away from zero
-			quote =
-				quoteState.deltaTiltAmount.mul(quoteState.totalOptionPrice) +
-				quoteState.totalOptionPrice;
-		}
-		quote = OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
-		delta = totalDelta;
-		//@TODO think about more robust considitions for this check
-		if (quote == 0 || delta == int256(0)) {
-			revert CustomErrors.DeltaQuoteError(quote, delta);
-		}
-	}
+	// 	// delta exposure of the portolio per ETH equivalent value the portfolio holds.
+	// 	// This value is only used for tilting so we are only interested in its distance from 0 - its magnitude
+	// 	uint256 normalizedDelta = uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))).div(
+	// 		_getNAV().div(underlyingPrice)
+	// 	);
+	// 	// this is the percentage of the option price which is added to or subtracted from option price
+	// 	// according to whether portfolio delta is increased or decreased respectively
+	// 	quoteState.deltaTiltAmount = normalizedDelta > maxDiscount ? maxDiscount : normalizedDelta;
+	// 	if (quoteState.isDecreased) {
+	// 		quote =
+	// 			quoteState.totalOptionPrice -
+	// 			quoteState.deltaTiltAmount.mul(quoteState.totalOptionPrice);
+	// 	} else {
+	// 		// increase utilization by delta tilt factor for moving delta away from zero
+	// 		quote =
+	// 			quoteState.deltaTiltAmount.mul(quoteState.totalOptionPrice) +
+	// 			quoteState.totalOptionPrice;
+	// 	}
+	// 	quote = OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
+	// 	delta = totalDelta
+	// 	//@TODO think about more robust considitions for this check
+	// 	if (quote == 0 || delta == int256(0)) {
+	// 		revert CustomErrors.DeltaQuoteError(quote, delta);
+	// 	}
+	// }
 
 	///////////////////////////
 	/// non-complex getters ///

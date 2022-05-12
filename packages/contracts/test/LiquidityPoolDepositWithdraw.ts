@@ -570,7 +570,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount, false))[0]
 		await usd.approve(handler.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
@@ -775,9 +775,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const epochBefore = await liquidityPool.epoch()
 		const withdrawalReceiptBefore = await liquidityPool.withdrawalReceipts(user)
 		const depositReceiptBefore = await liquidityPool.depositReceipts(user)
-		const toRedeem = await liquidityPool
-		.connect(signers[1])
-		.callStatic.redeem(lpBalanceBefore)
+		const toRedeem = await liquidityPool.connect(signers[1]).callStatic.redeem(lpBalanceBefore)
 		await liquidityPool.connect(signers[1]).initiateWithdraw(lpBalanceBefore)
 		const usdBalanceAfter = await usd.balanceOf(user)
 		const lpBalanceAfter = await liquidityPool.balanceOf(user)
@@ -868,7 +866,9 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		const singleQ = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		const singleQ = (
+			await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount, false)
+		)[0]
 		quote = quote.add(singleQ)
 		await usd.approve(handler.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
@@ -950,7 +950,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(await liquidityPool.collateralCap()).to.equal(toUSDC("100"))
 	})
 	it("Revers: User 1: Deposit to the liquidityPool but hits collat cap", async () => {
-		await expect(liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit))).to.be.revertedWith("TotalSupplyReached()")
-
+		await expect(liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit))).to.be.revertedWith(
+			"TotalSupplyReached()"
+		)
 	})
 })

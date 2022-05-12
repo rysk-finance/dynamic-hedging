@@ -260,7 +260,9 @@ export async function calculateOptionQuoteLocally(
 			parseFloat(rfr),
 			optionSeries.isPut ? "put" : "call"
 		) * parseFloat(fromWei(amount))
-	let utilizationPrice = getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
+	let utilizationPrice = toBuy
+		? localBS
+		: getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
 	console.log({ utilizationBefore, utilizationAfter, localBS, utilizationPrice })
 	// if delta exposure reduces, subtract delta skew from  pricequotes
 	if (portfolioDeltaIsDecreased) {

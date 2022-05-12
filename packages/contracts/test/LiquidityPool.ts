@@ -374,7 +374,8 @@ describe("Liquidity Pools", async () => {
 					underlying: weth.address,
 					collateral: usd.address
 				},
-				amount
+				amount,
+				false
 			)
 		)[0]
 		const truncQuote = truncate(localQuote)
@@ -409,7 +410,7 @@ describe("Liquidity Pools", async () => {
 			true
 		)
 
-		const buyQuotes = await liquidityPool.quotePriceBuying(optionSeries, amount)
+		const buyQuotes = await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
 		const buyQuote = buyQuotes[0]
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(buyQuote.toString())
@@ -469,7 +470,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		// const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount))[0]
+		// const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount, false))[0]
 		await usd.approve(handler.address, toWei("100000000"))
 		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
 			"OptionStrikeInvalid()"
@@ -484,7 +485,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		// const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount))[0]
+		// const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount, false))[0]
 		await usd.approve(handler.address, toWei("100000000"))
 		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
 			"OptionStrikeInvalid()"
@@ -514,7 +515,9 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		const quote = (
+			await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount, false)
+		)[0]
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
@@ -618,7 +621,9 @@ describe("Liquidity Pools", async () => {
 			collateral: seriesInfo.collateral
 		}
 		const quote = utils.formatUnits(
-			(await liquidityPool.quotePriceWithUtilizationGreeks(seriesInfoDecimalCorrected, amount))[0],
+			(
+				await liquidityPool.quotePriceWithUtilizationGreeks(seriesInfoDecimalCorrected, amount, false)
+			)[0],
 			12
 		)
 		await handler.writeOption(putOptionToken.address, amount)
@@ -694,7 +699,9 @@ describe("Liquidity Pools", async () => {
 		)
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
-		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		const quote = (
+			await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount, false)
+		)[0]
 		await usd.approve(handler.address, quote)
 		const buyerUSDBalanceBefore = await usd.balanceOf(senderAddress)
 		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
@@ -767,7 +774,9 @@ describe("Liquidity Pools", async () => {
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 
 		await putOptionToken.approve(handler.address, toOpyn(fromWei(amount)))
-		const quote = (await liquidityPool.quotePriceBuying(seriesInfoDecimalCorrected, amount))[0]
+		const quote = (
+			await liquidityPool.quotePriceWithUtilizationGreeks(seriesInfoDecimalCorrected, amount, true)
+		)[0]
 		const write = await handler.buybackOption(putOptionAddress, amount)
 		await write.wait(1)
 		const logs = await liquidityPool.queryFilter(liquidityPool.filters.BuybackOption(), 0)
@@ -833,9 +842,10 @@ describe("Liquidity Pools", async () => {
 			underlying: seriesInfo.underlying,
 			collateral: seriesInfo.collateral
 		}
-		const [quote, expectedDeltaChange] = await liquidityPool.quotePriceBuying(
+		const [quote, expectedDeltaChange] = await liquidityPool.quotePriceWithUtilizationGreeks(
 			seriesInfoDecimalCorrected,
-			amount
+			amount,
+			true
 		)
 
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
@@ -955,7 +965,8 @@ describe("Liquidity Pools", async () => {
 	})
 	it("reverts when rebalance delta too small", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
-		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(toWei("0.00001"), 0)).to.be.reverted
+		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(toWei("0.00001"), 0)).to.be
+			.reverted
 	})
 	it("returns zero when hedging positive delta when reactor has no funds", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
@@ -999,7 +1010,8 @@ describe("Liquidity Pools", async () => {
 					underlying: weth.address,
 					collateral: usd.address
 				},
-				amount
+				amount,
+				false
 			)
 		)[0]
 		const truncQuote = truncate(localQuote)

@@ -316,7 +316,9 @@ describe("Liquidity Pools", async () => {
 				)
 				console.log({ bsQuote })
 
-				const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount))[0]
+				const quote = (
+					await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, false)
+				)[0]
 				const truncQuote = truncate(localQuote)
 				const chainQuote = tFormatEth(quote.toString())
 				const diff = percentDiff(truncQuote, chainQuote)
@@ -347,7 +349,9 @@ describe("Liquidity Pools", async () => {
 				)
 				console.log({ bsQuote })
 
-				const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount))[0]
+				const quote = (
+					await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, false)
+				)[0]
 				const truncQuote = truncate(localQuote)
 				const chainQuote = tFormatEth(quote.toString())
 				const diff = percentDiff(truncQuote, chainQuote)
