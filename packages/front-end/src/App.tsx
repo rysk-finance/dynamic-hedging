@@ -10,6 +10,7 @@ import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import { Header } from "./components/Header";
 import { AppPaths } from "./config/appPaths";
+import { useLocalStorage } from "./hooks/useLocalStorage";
 import { Dashboard } from "./pages/Dashboard";
 import { OptionsTrading } from "./pages/OptionsTrading";
 import { Vault } from "./pages/Vault";
@@ -86,8 +87,13 @@ const WalletContext = createContext<WalletContext>({
 
 export const useWalletContext = () => useContext(WalletContext);
 
+export const WALLETS_LOCAL_STORAGE_KEY = "connectedWallets";
+
 function App() {
   const [web3Onboard, setWeb3Onboard] = useState<OnboardAPI | null>(null);
+  const [walletUnsubscribe, setWalletUnsubscribe] = useState<
+    (() => void) | null
+  >(null);
   const [provider, setProvider] =
     useState<ethers.ethers.providers.Web3Provider | null>(null);
   const [account, setAccount] = useState<string | null>(null);
@@ -96,13 +102,36 @@ function App() {
   const [network, setNetwork] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  const [getLocalStorage, setLocalStorage] = useLocalStorage();
+
   useEffect(() => {
     setWeb3Onboard(onboard);
   }, []);
 
-  const connectWallet = async () => {
+  useEffect(() => {
+    const walletsSub = web3Onboard?.state.select("wallets");
+    if (walletsSub) {
+      const { unsubscribe } = walletsSub.subscribe((wallets) => {
+        const connectedWallets = wallets.map(({ label }) => label);
+        setLocalStorage(WALLETS_LOCAL_STORAGE_KEY, connectedWallets);
+      });
+      if (walletUnsubscribe) {
+        setWalletUnsubscribe(unsubscribe);
+      }
+    }
+    return () => {
+      walletUnsubscribe?.();
+      setWalletUnsubscribe(null);
+    };
+  }, [web3Onboard]);
+
+  const connectWallet = async (wallet?: string) => {
     try {
-      const wallets = await onboard.connectWallet();
+      const wallets = await onboard.connectWallet(
+        wallet
+          ? { autoSelect: { label: wallet, disableModals: true } }
+          : undefined
+      );
       setIsLoading(true);
       const { accounts, chains, provider } = wallets[0];
       const ethersProvider = new ethers.providers.Web3Provider(provider);
@@ -114,6 +143,13 @@ function App() {
       setError(error);
     }
   };
+
+  useEffect(() => {
+    const wallets = getLocalStorage<string[]>(WALLETS_LOCAL_STORAGE_KEY);
+    if (wallets && wallets.length > 0) {
+      connectWallet(wallets[0]);
+    }
+  }, []);
 
   const switchNetwork = async () => {
     if (network) {
