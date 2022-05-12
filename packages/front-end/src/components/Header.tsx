@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useWalletContext } from "../App";
 import { AppPaths } from "../config/appPaths";
 import { useGlobalContext } from "../state/GlobalContext";
+import { HeaderPopover } from "./HeaderPopover";
 import { Button } from "./shared/Button";
 
 export const Header: React.FC = () => {
@@ -55,7 +56,8 @@ export const Header: React.FC = () => {
             Connect
           </Button>
         ) : (
-          <Button onClick={() => disconnect?.()}>Disconnect</Button>
+          <HeaderPopover />
+          // <Button onClick={() => disconnect?.()}>Disconnect</Button>
         )}
       </div>
     </div>
