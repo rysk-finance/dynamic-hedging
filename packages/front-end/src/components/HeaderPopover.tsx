@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
+import { Settings } from "./dashboard/Settings";
 import { Button } from "./shared/Button";
 
 export const HeaderPopover: React.FC = () => {
@@ -19,7 +20,7 @@ export const HeaderPopover: React.FC = () => {
       </Button>
 
       {isOpen && (
-        <div className="fixed top-[72px] bg-bone border-2 border-black right-16 p-2">
+        <div className="fixed top-[72px] bg-bone border-2 border-black right-16 p-2 min-w-[300px]">
           <div className="flex flex-col">
             <Button
               onClick={() => {
@@ -39,6 +40,9 @@ export const HeaderPopover: React.FC = () => {
             >
               Open in Etherscan
             </Button>
+            <div className="mb-4">
+              <Settings />
+            </div>
             <Button
               onClick={() => {
                 disconnect?.();
