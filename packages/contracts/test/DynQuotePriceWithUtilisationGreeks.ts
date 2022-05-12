@@ -304,7 +304,8 @@ describe("Liquidity Pools", async () => {
 					usd,
 					priceFeed,
 					optionSeries,
-					amount
+					amount,
+					false
 				)
 				const bsQuote = await getBlackScholesQuote(
 					liquidityPool,
@@ -337,7 +338,8 @@ describe("Liquidity Pools", async () => {
 					usd,
 					priceFeed,
 					optionSeries,
-					amount
+					amount,
+					false
 				)
 				const bsQuote = await getBlackScholesQuote(
 					liquidityPool,

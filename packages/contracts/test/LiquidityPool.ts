@@ -361,7 +361,8 @@ describe("Liquidity Pools", async () => {
 			usd,
 			priceFeed,
 			optionSeries,
-			amount
+			amount,
+			false
 		)
 
 		const quote = (
