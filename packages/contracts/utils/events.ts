@@ -4,10 +4,14 @@ import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/Liquidity
 const FAILED = "failed"
 // Event names
 export const WRITE_OPTION = "WriteOption"
+export const BUYBACK_OPTION = "BuybackOption"
 
 type EventsMap = Record<string, any>
 const eventsMap: EventsMap = {
 	[WRITE_OPTION]: {
+		["abi"]: LiquidityPoolSol.abi
+	},
+	[BUYBACK_OPTION]: {
 		["abi"]: LiquidityPoolSol.abi
 	}
 }

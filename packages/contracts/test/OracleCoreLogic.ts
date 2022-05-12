@@ -17,7 +17,8 @@ import {
 	tFormatUSDC,
 	scaleNum,
 	genOptionTimeFromUnix,
-	fromOpyn
+	fromOpyn,
+	truncate
 } from "../utils/conversion-helper"
 import moment from "moment"
 import { expect } from "chai"
@@ -57,7 +58,7 @@ import { VolatilityFeed } from "../types/VolatilityFeed"
 import { NewController } from "../types/NewController"
 import { OptionHandler } from "../types/OptionHandler"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
-import { getMatchingEvents, WRITE_OPTION } from "../utils/events"
+import { getMatchingEvents, WRITE_OPTION, BUYBACK_OPTION } from "../utils/events"
 import { getPortfolioValues } from "../utils/portfolioValues"
 
 let usd: MintableERC20
@@ -79,6 +80,7 @@ let opynAggregator: MockChainlinkAggregator
 let volFeed: VolatilityFeed
 let portfolioValuesFeed: MockPortfolioValuesFeed
 let handler: OptionHandler
+let portfolioValueArgs: [LiquidityPool, NewController, OptionRegistry, PriceFeed, Oracle]
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const expected_put_delta = 0.39679640941831507
@@ -236,6 +238,7 @@ describe("Oracle core logic", async () => {
 		expect(event?.event).to.eq("Deposit")
 		expect(balance.sub(newBalance)).to.eq(toUSDC(liquidityPoolUsdcDeposit))
 		expect(liquidityPoolBalance.toString()).to.eq(toWei(liquidityPoolUsdcDeposit))
+		portfolioValueArgs = [liquidityPool, controller, optionRegistry, priceFeed, oracle]
 
 		// Removes from liquidityPool with no options written
 		//await liquidityPool.setMaxTimeDeviationThreshold("1000")
@@ -283,22 +286,22 @@ describe("Oracle core logic", async () => {
 		await usd.approve(handler.address, quote)
 		balance = await usd.balanceOf(senderAddress)
 		let write = await handler.issueAndWriteOption(proposedSeries, amount)
-		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		receipt = await write.wait(1)
 		const writeEvents = getMatchingEvents(receipt, WRITE_OPTION)
+		const portfolioValuesPutWrite = await getPortfolioValues(...portfolioValueArgs)
+		// check that computed portfolio delta from events matches expected put delta
+		expect(truncate(portfolioValuesPutWrite.portfolioDelta)).to.eq(truncate(expected_put_delta))
 		const writeEvent = writeEvents[0]
 		const seriesAddress = writeEvent !== "failed" ? writeEvent?.series : ""
 		//@ts-ignore
 		const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await putOptionToken.balanceOf(senderAddress)
-		const registryUsdBalance = await liquidityPool.collateralAllocated()
 		const balanceNew = await usd.balanceOf(senderAddress)
 		const opynAmount = toOpyn(fromWei(amount))
 		expect(putBalance).to.eq(opynAmount)
+		expect(writeEvents.length).to.eq(1)
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew), 2)).to.eq(tFormatEth(quote, 2))
-		await putOptionToken.approve(handler.address, toOpyn(fromWei(amount)))
-		const buyback = await handler.buybackOption(seriesAddress, amount)
 
 		// LP writes a ETH/USD call for premium
 		blockNum = await ethers.provider.getBlockNumber()
@@ -315,6 +318,28 @@ describe("Oracle core logic", async () => {
 		}
 		write = await handler.issueAndWriteOption(proposedCallSeries, amount)
 		receipt = await write.wait(1)
+		const callWriteEvents = getMatchingEvents(receipt, WRITE_OPTION)
+		const callWriteEvent = callWriteEvents[0]
+		const callSeriesAddress = callWriteEvent !== "failed" ? callWriteEvent?.series : ""
+		const callOptionToken = new Contract(callSeriesAddress, Otoken.abi, sender) as IOToken
+		const portfolioValuesCallWrite = await getPortfolioValues(...portfolioValueArgs)
+		expect(truncate(portfolioValuesCallWrite.portfolioDelta)).to.eq(
+			truncate(expected_portfolio_delta)
+		)
+
+		// buyback
+		const buybackAmount = amount.div(BigNumber.from(50))
+		const buybackAmountOpyn = buybackAmount.sub(BigNumber.from(10 ** 10))
+		await callOptionToken.approve(handler.address, buybackAmount)
+		const buyback = await handler.buybackOption(callSeriesAddress, buybackAmountOpyn)
+		const buybackReceipt = await buyback.wait(0)
+		const buybackAmountNormalized = fromWei(buybackAmount)
+		const buybackDeltaAmount = Number(buybackAmountNormalized) * expected_call_delta
+		const newDelta = expected_portfolio_delta - buybackDeltaAmount
+		const portfolioValuesBuyback = await getPortfolioValues(...portfolioValueArgs)
+		expect(truncate(newDelta)).to.eq(truncate(portfolioValuesBuyback.portfolioDelta))
+
+		// liquidate vault to generate event
 	})
 
 	// encompasses primary logic to be used by external adapter to fetch and compute delta
