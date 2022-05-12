@@ -758,7 +758,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		int256 portfolioDelta = getPortfolioDelta();
 		// portfolio delta upon writing option
 		// subtract totalDelta because the pool is taking on the negative of the option's delta
-		int256 newDelta = portfolioDelta - quoteState.totalDelta;
+		int256 newDelta = toBuy ? portfolioDelta + quoteState.totalDelta : portfolioDelta - quoteState.totalDelta;
 		// Is delta moved closer to zero?
 		quoteState.isDecreased = (PRBMathSD59x18.abs(newDelta) - PRBMathSD59x18.abs(portfolioDelta)) < 0;
 		// delta exposure of the portolio per ETH equivalent value the portfolio holds.
