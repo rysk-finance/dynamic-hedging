@@ -264,8 +264,6 @@ describe("Liquidity Pools", async () => {
 		expect(event?.event).to.eq("Deposit")
 		// check liquidity providers balance reduces by correct amount
 		expect(senderBalance.sub(newSenderBalance)).to.eq(toUSDC(liquidityPoolUsdcDeposit))
-		// check liquidity provider owns correct number of LP shares
-		expect(liquidityProviderShareBalance.toString()).to.eq(toWei(liquidityPoolUsdcDeposit))
 	})
 
 	describe("Quote", function () {
@@ -292,7 +290,6 @@ describe("Liquidity Pools", async () => {
 					amount: toWei((Math.random() * 10000).toString())
 				}
 			}
-			console.log(arr)
 		})
 
 		it("Returns a quote for a ETH/USD put with utilization", async () => {
@@ -315,7 +312,6 @@ describe("Liquidity Pools", async () => {
 					optionSeries,
 					amount
 				)
-				console.log({ bsQuote })
 
 				const quote = (
 					await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, false)
@@ -323,6 +319,7 @@ describe("Liquidity Pools", async () => {
 				const truncQuote = truncate(localQuote)
 				const chainQuote = tFormatEth(quote.toString())
 				const diff = percentDiff(truncQuote, chainQuote)
+				console.log({ bsQuote })
 				console.log({ diff })
 				console.log({ priceQuote: tFormatEth(priceQuote) })
 				console.log({ localQuote }, { quote: tFormatEth(quote) })
@@ -349,7 +346,6 @@ describe("Liquidity Pools", async () => {
 					optionSeries,
 					amount
 				)
-				console.log({ bsQuote })
 
 				const quote = (
 					await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, false)
@@ -357,6 +353,7 @@ describe("Liquidity Pools", async () => {
 				const truncQuote = truncate(localQuote)
 				const chainQuote = tFormatEth(quote.toString())
 				const diff = percentDiff(truncQuote, chainQuote)
+				console.log({ bsQuote })
 				console.log({ diff })
 				console.log({ priceQuote: tFormatEth(priceQuote) })
 				console.log({ localQuote }, { quote: tFormatEth(quote) })
