@@ -299,7 +299,8 @@ describe("Dynamic price quoter", async () => {
 					usd,
 					priceFeed,
 					optionSeries,
-					amount
+					amount,
+					false
 				)
 				const bsQuote = await getBlackScholesQuote(
 					liquidityPool,
@@ -309,7 +310,10 @@ describe("Dynamic price quoter", async () => {
 					optionSeries,
 					amount
 				)
-				const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount))[0]
+
+				const quote = (
+					await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, false)
+				)[0]
 				const truncQuote = truncate(localQuote)
 				const chainQuote = tFormatEth(quote.toString())
 				const diff = percentDiff(truncQuote, chainQuote)
@@ -329,7 +333,8 @@ describe("Dynamic price quoter", async () => {
 					usd,
 					priceFeed,
 					optionSeries,
-					amount
+					amount,
+					false
 				)
 				const bsQuote = await getBlackScholesQuote(
 					liquidityPool,
@@ -340,7 +345,9 @@ describe("Dynamic price quoter", async () => {
 					amount
 				)
 
-				const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount))[0]
+				const quote = (
+					await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, false)
+				)[0]
 				const truncQuote = truncate(localQuote)
 				const chainQuote = tFormatEth(quote.toString())
 				const diff = percentDiff(truncQuote, chainQuote)

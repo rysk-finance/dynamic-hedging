@@ -250,16 +250,19 @@ export async function calculateOptionQuoteLocally(
 		optionSeries.strike,
 		optionSeries.expiration
 	)
+
 	const localBS =
 		bs.blackScholes(
 			priceNorm,
 			fromWei(optionSeries.strike),
 			timeToExpiration,
-			toBuy ? Number(fromWei(iv)) - Number(bidAskSpread) : fromWei(iv),
+			toBuy ? Number(fromWei(iv)) * (1 - Number(bidAskSpread)) : fromWei(iv),
 			parseFloat(rfr),
 			optionSeries.isPut ? "put" : "call"
 		) * parseFloat(fromWei(amount))
-	let utilizationPrice = getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
+	let utilizationPrice = toBuy
+		? localBS
+		: getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
 	// if delta exposure reduces, subtract delta skew from  pricequotes
 	if (portfolioDeltaIsDecreased) {
 		const newOptionPrice = localBS - deltaTiltAmount * localBS

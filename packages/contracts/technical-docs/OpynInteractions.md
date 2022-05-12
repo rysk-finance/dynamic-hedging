@@ -24,7 +24,7 @@ This function closes a short option position. It burns a specified short option 
 
 ### ``` function redeem(address gammaController, address marginPool, address series, uint256 amount) external returns uint256``` ***NonTrustedAccessible***
 
-After an option expires this function allows a user to redeem their payout if the option expired in the money. If the option expired OTM then it returns nothing. This function should not settle vaults.
+After an option expires this function allows a user to redeem their payout if the option expired in the money. If the option expired OTM then it returns nothing. This function should not settle vaults. Sending funds directly to the sender.
 
 ### ``` function depositCollat(address gammaController, address marginPool, address collateralAsset, uint256 depositAmount, uint256 vaultId) external```
 
