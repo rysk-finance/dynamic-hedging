@@ -1,5 +1,13 @@
 import hre, { ethers, network } from "hardhat"
-import { BigNumberish, Contract, utils, Signer, BigNumber, Event } from "ethers"
+import {
+	BigNumberish,
+	Contract,
+	utils,
+	Signer,
+	BigNumber,
+	ContractTransaction,
+	ContractReceipt
+} from "ethers"
 //@ts-ignore
 import greeks from "greeks"
 //@ts-ignore
@@ -139,6 +147,16 @@ const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
+const amount = toWei("1")
+let callOptionToken: IOToken
+let callSeriesAddress: any
+let blockNum: number
+let block: any
+let timestamp: any
+let strikePrice: BigNumber
+let priceQuote: BigNumber
+let write: ContractTransaction
+let receipt: ContractReceipt
 
 describe("Oracle core logic", async () => {
 	before(async function () {
@@ -267,11 +285,10 @@ describe("Oracle core logic", async () => {
 		expect(newTotalSupply).to.eq(totalSupply.add(lpBalance))
 
 		// LP writes a ETH/USD put for premium
-		const amount = toWei("1")
-		let blockNum = await ethers.provider.getBlockNumber()
-		let block = await ethers.provider.getBlock(blockNum)
+		blockNum = await ethers.provider.getBlockNumber()
+		block = await ethers.provider.getBlock(blockNum)
 		let { timestamp } = block
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		let strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
 			expiration: expiration,
@@ -302,7 +319,10 @@ describe("Oracle core logic", async () => {
 		expect(writeEvents.length).to.eq(1)
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew), 2)).to.eq(tFormatEth(quote, 2))
+	})
 
+	it("Computes portfolio delta after writing an intial put option from the pool", async () => {
+		const [sender] = signers
 		// LP writes a ETH/USD call for premium
 		blockNum = await ethers.provider.getBlockNumber()
 		block = await ethers.provider.getBlock(blockNum)
@@ -320,14 +340,42 @@ describe("Oracle core logic", async () => {
 		receipt = await write.wait(1)
 		const callWriteEvents = getMatchingEvents(receipt, WRITE_OPTION)
 		const callWriteEvent = callWriteEvents[0]
-		const callSeriesAddress = callWriteEvent !== "failed" ? callWriteEvent?.series : ""
-		const callOptionToken = new Contract(callSeriesAddress, Otoken.abi, sender) as IOToken
+		callSeriesAddress = callWriteEvent !== "failed" ? callWriteEvent?.series : ""
+		callOptionToken = new Contract(callSeriesAddress, Otoken.abi, sender) as IOToken
 		const portfolioValuesCallWrite = await getPortfolioValues(...portfolioValueArgs)
 		expect(truncate(portfolioValuesCallWrite.portfolioDelta)).to.eq(
 			truncate(expected_portfolio_delta)
 		)
+	})
 
-		// buyback
+	it("Computes portfolio delta after writing a call from an existing pool", async () => {
+		const [sender] = signers
+		// LP writes a ETH/USD call for premium
+		blockNum = await ethers.provider.getBlockNumber()
+		block = await ethers.provider.getBlock(blockNum)
+		timestamp = block.timestamp
+		strikePrice = priceQuote.add(toWei(strike)).add(toWei(strike))
+		const proposedCallSeries = {
+			expiration: expiration,
+			isPut: CALL_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		write = await handler.issueAndWriteOption(proposedCallSeries, amount)
+		receipt = await write.wait(1)
+		const callWriteEvents = getMatchingEvents(receipt, WRITE_OPTION)
+		const callWriteEvent = callWriteEvents[0]
+		callSeriesAddress = callWriteEvent !== "failed" ? callWriteEvent?.series : ""
+		callOptionToken = new Contract(callSeriesAddress, Otoken.abi, sender) as IOToken
+		const portfolioValuesCallWrite = await getPortfolioValues(...portfolioValueArgs)
+		expect(truncate(portfolioValuesCallWrite.portfolioDelta)).to.eq(
+			truncate(expected_portfolio_delta)
+		)
+	})
+
+	it("Computes portfolio delta after partial buyback of option", async () => {
 		const buybackAmount = amount.div(BigNumber.from(50))
 		const buybackAmountOpyn = buybackAmount.sub(BigNumber.from(10 ** 10))
 		await callOptionToken.approve(handler.address, buybackAmount)
@@ -338,9 +386,9 @@ describe("Oracle core logic", async () => {
 		const newDelta = expected_portfolio_delta - buybackDeltaAmount
 		const portfolioValuesBuyback = await getPortfolioValues(...portfolioValueArgs)
 		expect(truncate(newDelta)).to.eq(truncate(portfolioValuesBuyback.portfolioDelta))
-
-		// liquidate vault to generate event
 	})
+
+	it("properly computed portfolio delta after liquidation event", async () => {})
 
 	// encompasses primary logic to be used by external adapter to fetch and compute delta
 	it("Computes portfolio values", async () => {
