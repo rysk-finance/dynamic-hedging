@@ -829,12 +829,35 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 			),
 			underlyingPrice
 		);
-		quote = OptionsCompute.convertToCollateralDenominated(
-			optionQuote.mul(amount),
-			underlyingPrice,
-			optionSeries
+		uint256 totalOptionPrice = optionQuote.mul(amount);
+		uint256 totalDelta = deltaQuote.mul(int256(amount));
+		// portfolio delta upon buying option
+		// portfolio takes on the delta of the options so add them
+		int256 newDelta = portfolioDelta + quoteState.totalDelta;
+
+		// Is delta moved closer to zero?
+		quoteState.isDecreased = (PRBMathSD59x18.abs(newDelta) - PRBMathSD59x18.abs(portfolioDelta)) < 0;
+
+		// delta exposure of the portolio per ETH equivalent value the portfolio holds.
+		// This value is only used for tilting so we are only interested in its distance from 0 - its magnitude
+		uint256 normalizedDelta = uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))).div(
+			_getNAV().div(underlyingPrice)
 		);
-		delta = deltaQuote.mul(int256(amount));
+		// this is the percentage of the option price which is added to or subtracted from option price
+		// according to whether portfolio delta is increased or decreased respectively
+		quoteState.deltaTiltAmount = normalizedDelta > maxDiscount ? maxDiscount : normalizedDelta;
+		if (quoteState.isDecreased) {
+			quote =
+				quoteState.totalOptionPrice -
+				quoteState.deltaTiltAmount.mul(quoteState.totalOptionPrice);
+		} else {
+			// increase utilization by delta tilt factor for moving delta away from zero
+			quote =
+				quoteState.deltaTiltAmount.mul(quoteState.totalOptionPrice) +
+				quoteState.totalOptionPrice;
+		}
+		quote = OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
+		delta = totalDelta;
 		//@TODO think about more robust considitions for this check
 		if (quote == 0 || delta == int256(0)) {
 			revert CustomErrors.DeltaQuoteError(quote, delta);
