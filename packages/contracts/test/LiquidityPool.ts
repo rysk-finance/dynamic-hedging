@@ -810,8 +810,8 @@ describe("Liquidity Pools", async () => {
 		).to.be.within(-0.002, 0.002)
 		// liquidity pool USD balance goes down by (quote - collateralReturned)
 		expect(lpUSDBalanceDiff - (tFormatEth(quote) - collateralAllocatedDiff)).to.be.within(
-			-0.001,
-			0.001
+			-0.0011,
+			0.0011
 		)
 		// collateral returned is correct amount
 		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.001, 0.001)
