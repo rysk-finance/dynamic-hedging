@@ -170,7 +170,7 @@ const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").va
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
 
-describe("Liquidity Pools", async () => {
+describe("Dyn Quote Tests", async () => {
 	before(async function () {
 		await hre.network.provider.request({
 			method: "hardhat_reset",
@@ -267,7 +267,6 @@ describe("Liquidity Pools", async () => {
 	})
 
 	describe("Quote", function () {
-		let tests: any
 		let arr: any
 		it("gets price", async () => {
 			priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -287,7 +286,7 @@ describe("Liquidity Pools", async () => {
 						underlying: weth.address,
 						collateral: usd.address
 					},
-					amount: toWei((Math.random() * 10000).toString())
+					amount: toWei((Math.random() * 100).toString())
 				}
 			}
 		})
@@ -319,7 +318,8 @@ describe("Liquidity Pools", async () => {
 				const truncQuote = truncate(localQuote)
 				const chainQuote = tFormatEth(quote.toString())
 				const diff = percentDiff(truncQuote, chainQuote)
-				console.log({ bsQuote })
+				console.log("PUTS SELL")
+				console.log({ bsQuoteLocal: bsQuote })
 				console.log({ diff })
 				console.log({ priceQuote: tFormatEth(priceQuote) })
 				console.log({ localQuote }, { quote: tFormatEth(quote) })
@@ -353,7 +353,80 @@ describe("Liquidity Pools", async () => {
 				const truncQuote = truncate(localQuote)
 				const chainQuote = tFormatEth(quote.toString())
 				const diff = percentDiff(truncQuote, chainQuote)
-				console.log({ bsQuote })
+				console.log("CALLS SELL")
+				console.log({ bsQuoteLocal: bsQuote })
+				console.log({ diff })
+				console.log({ priceQuote: tFormatEth(priceQuote) })
+				console.log({ localQuote }, { quote: tFormatEth(quote) })
+				expect(diff).to.be.within(0, 0.1)
+			})
+		})
+		it("Returns a quote for a ETH/USD put to buy", async () => {
+			//@ts-ignore
+			arr.forEach(async ({ optionSeries, amount }) => {
+				const localQuote = await calculateOptionQuoteLocally(
+					liquidityPool,
+					optionRegistry,
+					usd,
+					priceFeed,
+					optionSeries,
+					amount,
+					true
+				)
+				const bsQuote = await getBlackScholesQuote(
+					liquidityPool,
+					optionRegistry,
+					usd,
+					priceFeed,
+					optionSeries,
+					amount,
+					true
+				)
+
+				const quote = (
+					await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
+				)[0]
+				const truncQuote = truncate(localQuote)
+				const chainQuote = tFormatEth(quote.toString())
+				const diff = percentDiff(truncQuote, chainQuote)
+				console.log("PUTS BUY")
+				console.log({ bsQuoteLocal: bsQuote })
+				console.log({ diff })
+				console.log({ priceQuote: tFormatEth(priceQuote) })
+				console.log({ localQuote }, { quote: tFormatEth(quote) })
+				expect(diff).to.be.within(0, 0.1)
+			})
+		})
+		it("Returns a quote for ETH/USD call to buy", async () => {
+			//@ts-ignore
+			arr.forEach(async ({ optionSeries, amount }) => {
+				const localQuote = await calculateOptionQuoteLocally(
+					liquidityPool,
+					optionRegistry,
+					usd,
+					priceFeed,
+					optionSeries,
+					amount,
+					true
+				)
+				const bsQuote = await getBlackScholesQuote(
+					liquidityPool,
+					optionRegistry,
+					usd,
+					priceFeed,
+					optionSeries,
+					amount,
+					true
+				)
+
+				const quote = (
+					await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
+				)[0]
+				const truncQuote = truncate(localQuote)
+				const chainQuote = tFormatEth(quote.toString())
+				const diff = percentDiff(truncQuote, chainQuote)
+				console.log("CALLS BUY")
+				console.log({ bsQuoteLocal: bsQuote })
 				console.log({ diff })
 				console.log({ priceQuote: tFormatEth(priceQuote) })
 				console.log({ localQuote }, { quote: tFormatEth(quote) })

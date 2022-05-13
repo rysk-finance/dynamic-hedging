@@ -1,5 +1,11 @@
 import hre, { ethers } from "hardhat"
-import { toWei, genOptionTimeFromUnix, fromWei, tFormatUSDC } from "../utils/conversion-helper"
+import {
+	toWei,
+	genOptionTimeFromUnix,
+	fromWei,
+	tFormatUSDC,
+	tFormatEth
+} from "../utils/conversion-helper"
 import {
 	CHAINLINK_WETH_PRICER,
 	GAMMA_ORACLE,
@@ -29,7 +35,6 @@ const { parseEther } = ethers.utils
 const chainId = 1
 // decimal representation of a percentage
 const rfr: string = "0.03"
-const bidAskSpread = "0.3"
 const belowUtilizationThresholdGradient = 0.1
 const aboveUtilizationThresholdGradient = 1.5
 const utilizationFunctionThreshold = 0.6 // 60%
@@ -202,6 +207,12 @@ export async function calculateOptionQuoteLocally(
 		USDC_ADDRESS[chainId]
 	)
 	const priceNorm = fromWei(underlyingPrice)
+	const iv = await liquidityPool.getImpliedVolatility(
+		optionSeries.isPut,
+		underlyingPrice,
+		optionSeries.strike,
+		optionSeries.expiration
+	)
 	const maxDiscount = ethers.utils.parseUnits("1", 17) // 10%
 
 	const NAV = await liquidityPool.getNAV()
@@ -215,7 +226,7 @@ export async function calculateOptionQuoteLocally(
 		amount,
 		!toBuy
 	)
-	// optionDelta will already be inverted is we are selling it
+	// optionDelta will already be inverted if we are selling it
 	const portfolioDeltaAfter = portfolioDeltaBefore.add(optionDelta)
 	const portfolioDeltaIsDecreased = portfolioDeltaAfter.abs().sub(portfolioDeltaBefore.abs()).lt(0)
 	const normalisedDelta = portfolioDeltaBefore
@@ -243,13 +254,7 @@ export async function calculateOptionQuoteLocally(
 	const utilizationAfter =
 		tFormatUSDC(collateralAllocated.add(liquidityAllocated)) /
 		tFormatUSDC(collateralAllocated.add(lpUSDBalance))
-
-	const iv = await liquidityPool.getImpliedVolatility(
-		optionSeries.isPut,
-		underlyingPrice,
-		optionSeries.strike,
-		optionSeries.expiration
-	)
+	const bidAskSpread = tFormatEth(await liquidityPool.bidAskIVSpread())
 
 	const localBS =
 		bs.blackScholes(
@@ -265,14 +270,21 @@ export async function calculateOptionQuoteLocally(
 		: getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
 	// if delta exposure reduces, subtract delta skew from  pricequotes
 	if (portfolioDeltaIsDecreased) {
-		const newOptionPrice = localBS - deltaTiltAmount * localBS
-		utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
-		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
+		if (toBuy) {
+			utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
+		} else {
+			utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
+		}
+		return utilizationPrice
 		// if delta exposure increases, add delta skew to price quotes
 	} else {
-		const newOptionPrice = localBS + deltaTiltAmount * localBS
-		utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
-		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
+		if (toBuy) {
+			utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
+		} else {
+			utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
+		}
+
+		return utilizationPrice
 	}
 }
 
@@ -346,13 +358,13 @@ export async function getBlackScholesQuote(
 	const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), optionSeries.expiration)
 
 	const priceNorm = fromWei(underlyingPrice)
-
+	const bidAskSpread = tFormatEth(await liquidityPool.bidAskIVSpread())
 	const localBS =
 		bs.blackScholes(
 			priceNorm,
 			fromWei(optionSeries.strike),
 			timeToExpiration,
-			toBuy ? Number(fromWei(iv)) - Number(bidAskSpread) : fromWei(iv),
+			toBuy ? Number(fromWei(iv)) * (1 - Number(bidAskSpread)) : fromWei(iv),
 			parseFloat(rfr),
 			optionSeries.isPut ? "put" : "call"
 		) * parseFloat(fromWei(amount))

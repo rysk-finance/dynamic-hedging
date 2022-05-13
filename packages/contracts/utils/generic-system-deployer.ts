@@ -209,6 +209,7 @@ export async function deployLiquidityPool(
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
 	await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
+	await liquidityPool.setBidAskSpread(toWei("0.05"))
 	await pvFeed.setAddressStringMapping(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId])
 	await pvFeed.setAddressStringMapping(USDC_ADDRESS[chainId], USDC_ADDRESS[chainId])
 	await pvFeed.setLiquidityPool(liquidityPool.address)
