@@ -741,7 +741,9 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		int256 portfolioDelta = getPortfolioDelta();
 		// portfolio delta upon writing option
 		// subtract totalDelta because the pool is taking on the negative of the option's delta
-		int256 newDelta = toBuy ? portfolioDelta + quoteState.totalDelta : portfolioDelta - quoteState.totalDelta;
+		int256 newDelta = toBuy
+			? portfolioDelta + quoteState.totalDelta
+			: portfolioDelta - quoteState.totalDelta;
 		// Is delta moved closer to zero?
 		quoteState.isDecreased = (PRBMathSD59x18.abs(newDelta) - PRBMathSD59x18.abs(portfolioDelta)) < 0;
 		// delta exposure of the portolio per ETH equivalent value the portfolio holds.
@@ -779,24 +781,17 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		} else {
 			// do not use utlilization premium for buybacks
 			quoteState.utilizationPrice = quoteState.totalOptionPrice;
-			console.log("bsPrice:", quoteState.utilizationPrice);
 		}
+		console.log("utilization price contract", quoteState.utilizationPrice, quoteState.isDecreased);
 		if (quoteState.isDecreased) {
-			quote = toBuy ?
-				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) +
-				quoteState.utilizationPrice
-				:
-				quoteState.utilizationPrice -
-				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice);
-				
+			quote = toBuy
+				? quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice
+				: quoteState.utilizationPrice - quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice);
 		} else {
 			// increase utilization by delta tilt factor for moving delta away from zero
-			quote = toBuy ?
-				quoteState.utilizationPrice -
-				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice)
-				:
-				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) +
-				quoteState.utilizationPrice;
+			quote = toBuy
+				? quoteState.utilizationPrice - quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice)
+				: quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
 			console.log("quote: ", quote);
 		}
 		quote = OptionsCompute.convertToCollateralDenominated(

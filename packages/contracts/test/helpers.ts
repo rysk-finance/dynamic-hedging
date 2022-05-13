@@ -1,5 +1,11 @@
 import hre, { ethers } from "hardhat"
-import { toWei, genOptionTimeFromUnix, fromWei, tFormatUSDC, tFormatEth } from "../utils/conversion-helper"
+import {
+	toWei,
+	genOptionTimeFromUnix,
+	fromWei,
+	tFormatUSDC,
+	tFormatEth
+} from "../utils/conversion-helper"
 import {
 	CHAINLINK_WETH_PRICER,
 	GAMMA_ORACLE,
@@ -249,6 +255,7 @@ export async function calculateOptionQuoteLocally(
 		tFormatUSDC(collateralAllocated.add(liquidityAllocated)) /
 		tFormatUSDC(collateralAllocated.add(lpUSDBalance))
 	const bidAskSpread = tFormatEth(await liquidityPool.bidAskIVSpread())
+
 	const localBS =
 		bs.blackScholes(
 			priceNorm,
@@ -261,25 +268,24 @@ export async function calculateOptionQuoteLocally(
 	let utilizationPrice = toBuy
 		? localBS
 		: getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
+	console.log("utilisation price local:", utilizationPrice, portfolioDeltaIsDecreased)
 	// if delta exposure reduces, subtract delta skew from  pricequotes
 	if (portfolioDeltaIsDecreased) {
-		const newOptionPrice = localBS - deltaTiltAmount * localBS
 		if (toBuy) {
 			utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
 		} else {
 			utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
 		}
-		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
+		return utilizationPrice
 		// if delta exposure increases, add delta skew to price quotes
 	} else {
-		const newOptionPrice = localBS + deltaTiltAmount * localBS
 		if (toBuy) {
 			utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
 		} else {
 			utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
 		}
 
-		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
+		return utilizationPrice
 	}
 }
 
