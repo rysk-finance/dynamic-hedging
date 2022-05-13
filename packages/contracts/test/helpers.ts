@@ -268,7 +268,6 @@ export async function calculateOptionQuoteLocally(
 	let utilizationPrice = toBuy
 		? localBS
 		: getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
-	console.log("utilisation price local:", utilizationPrice, portfolioDeltaIsDecreased)
 	// if delta exposure reduces, subtract delta skew from  pricequotes
 	if (portfolioDeltaIsDecreased) {
 		if (toBuy) {

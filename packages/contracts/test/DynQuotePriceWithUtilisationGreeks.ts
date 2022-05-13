@@ -319,6 +319,7 @@ describe("Dyn Quote Tests", async () => {
 				const chainQuote = tFormatEth(quote.toString())
 				const diff = percentDiff(truncQuote, chainQuote)
 				console.log("PUTS SELL")
+				console.log({ bsQuoteLocal: bsQuote })
 				console.log({ diff })
 				console.log({ priceQuote: tFormatEth(priceQuote) })
 				console.log({ localQuote }, { quote: tFormatEth(quote) })
@@ -389,7 +390,7 @@ describe("Dyn Quote Tests", async () => {
 				const chainQuote = tFormatEth(quote.toString())
 				const diff = percentDiff(truncQuote, chainQuote)
 				console.log("PUTS BUY")
-
+				console.log({ bsQuoteLocal: bsQuote })
 				console.log({ diff })
 				console.log({ priceQuote: tFormatEth(priceQuote) })
 				console.log({ localQuote }, { quote: tFormatEth(quote) })

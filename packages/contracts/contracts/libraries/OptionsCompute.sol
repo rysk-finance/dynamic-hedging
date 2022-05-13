@@ -111,6 +111,8 @@ library OptionsCompute {
 
 			return _totalOptionPrice + _totalOptionPrice.mul(multiplicationFactor);
 		} else {
+			// in this case the utilization after is above the threshold and
+			// utilization before is below it.
 			// _utilizationAfter will always be greater than _utilizationBefore
 			// finds the ratio of the distance below the threshold to the distance above the threshold
 			uint256 weightingRatio = (_utilizationFunctionThreshold - _utilizationBefore).div(
