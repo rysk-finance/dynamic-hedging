@@ -4,12 +4,11 @@ pragma solidity >=0.8.9;
 import "./tokens/ERC20.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IOracle.sol";
+import "./libraries/AccessControl.sol";
 import "./interfaces/IMarginCalculator.sol";
 import { Types } from "./libraries/Types.sol";
 import "./interfaces/AddressBookInterface.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import { LiquidityPool } from "./LiquidityPool.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import { CustomErrors } from "./libraries/CustomErrors.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
@@ -18,7 +17,7 @@ import { IController, GammaTypes} from "./interfaces/GammaInterface.sol";
 import "hardhat/console.sol";
 
 
-contract OptionRegistry is Ownable, AccessControl {
+contract OptionRegistry is AccessControl {
 
     ///////////////////////////
     /// immutable variables ///
@@ -62,6 +61,8 @@ contract OptionRegistry is Ownable, AccessControl {
     uint64 public putUpperHealthFactor = 12_000;
     // min health threshold for puts
     uint64 public putLowerHealthFactor = 11_000;
+    // keeper addresses for this contract
+    mapping(address => bool) public keeper;
 
     //////////////////////////
     /// constant variables ///
@@ -71,8 +72,6 @@ contract OptionRegistry is Ownable, AccessControl {
     uint256 private constant MAX_BPS = 10_000;
     // used to convert e18 to e8
     uint256 private constant SCALE_FROM = 10**10;
-    // Access control role identifier
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     // oToken decimals
     uint8 private constant OPYN_DECIMALS = 8;
 
@@ -87,6 +86,7 @@ contract OptionRegistry is Ownable, AccessControl {
     event OptionsContractSettled(address indexed series, uint256 collateralReturned, uint256 collateralLost, uint256 amountLost);
 
     error NoVault();
+    error NotKeeper();
     error NotExpired();
     error HealthyVault();
     error AlreadyExpired();
@@ -96,23 +96,21 @@ contract OptionRegistry is Ownable, AccessControl {
     error VaultNotLiquidated();
     error InsufficientBalance();
 
-    /**
-     * @dev Throws if called by any account other than the liquidity pool.
-     */
-    modifier onlyLiquidityPool() {
-        if (msg.sender != liquidityPool) {revert NotLiquidityPool();}
-        _;
-    }
-
-    constructor(address _collateralAsset, address _oTokenFactory, address _gammaController, address _marginPool, address _liquidityPool, address _addressBook) {
+    constructor(
+      address _collateralAsset, 
+      address _oTokenFactory, 
+      address _gammaController, 
+      address _marginPool, 
+      address _liquidityPool, 
+      address _addressBook,
+      address _authority
+      ) AccessControl(IAuthority(_authority)) {
       collateralAsset = _collateralAsset;
       oTokenFactory = _oTokenFactory;
       gammaController = _gammaController;
       marginPool = _marginPool;
       liquidityPool = _liquidityPool;
       addressBook = AddressBookInterface(_addressBook);
-      // Grant admin role to deployer
-      _setupRole(ADMIN_ROLE, msg.sender);
     }
 
     ///////////////
@@ -123,8 +121,19 @@ contract OptionRegistry is Ownable, AccessControl {
      * @notice Set the liquidity pool address
      * @param  _newLiquidityPool set the liquidityPool address
      */
-    function setLiquidityPool(address _newLiquidityPool) external onlyOwner {
+    function setLiquidityPool(address _newLiquidityPool) external {
+      _onlyGovernor();
       liquidityPool = _newLiquidityPool;
+    }
+
+    /**
+     * @notice Set or revoke a keeper
+     * @param  _target address to become a keeper
+     * @param  _auth accept or revoke
+     */
+    function setKeeper(address _target, bool _auth) external {
+      _onlyGovernor();
+      keeper[_target] = _auth;
     }
 
     /**
@@ -134,7 +143,8 @@ contract OptionRegistry is Ownable, AccessControl {
      * @param  _callLower the lower health threshold for calls
      * @param  _callUpper the upper health threshold for calls
      */
-    function setHealthThresholds(uint64 _putLower, uint64 _putUpper, uint64 _callLower, uint64 _callUpper) external onlyOwner {
+    function setHealthThresholds(uint64 _putLower, uint64 _putUpper, uint64 _callLower, uint64 _callUpper) external {
+      _onlyGovernor();
       putLowerHealthFactor = _putLower;
       putUpperHealthFactor = _putUpper;
       callLowerHealthFactor = _callLower;
@@ -154,9 +164,9 @@ contract OptionRegistry is Ownable, AccessControl {
        Types.OptionSeries memory optionSeries
        ) 
        external 
-       onlyLiquidityPool 
        returns (address) 
        {
+        _isLiquidityPool();
         // deploy an oToken contract address
         if(optionSeries.expiration <= block.timestamp) {revert AlreadyExpired();}
         // assumes strike is passed in e18, converts to e8
@@ -181,7 +191,8 @@ contract OptionRegistry is Ownable, AccessControl {
      * @return if the transaction succeeded
      * @return the amount of collateral taken from the liquidityPool
      */
-    function open(address _series, uint256 amount, uint256 collateralAmount) external onlyLiquidityPool returns (bool, uint256) {
+    function open(address _series, uint256 amount, uint256 collateralAmount) external returns (bool, uint256) {
+        _isLiquidityPool();
         // make sure the options are ok to open
         Types.OptionSeries memory series = seriesInfo[_series];
         // assumes strike in e8
@@ -220,7 +231,8 @@ contract OptionRegistry is Ownable, AccessControl {
      * @dev only callable by the liquidityPool
      * @return if the transaction succeeded
      */
-    function close(address _series, uint amount) external onlyLiquidityPool returns (bool, uint256) {
+    function close(address _series, uint amount) external returns (bool, uint256) {
+        _isLiquidityPool();
         // withdraw and burn
         Types.OptionSeries memory series = seriesInfo[_series];
         // assumes strike in e8
@@ -250,7 +262,8 @@ contract OptionRegistry is Ownable, AccessControl {
      * @return  number of oTokens that the vault was short
      * @dev callable by the liquidityPool so that local variables can also be updated
      */
-    function settle(address _series) external onlyLiquidityPool returns (bool, uint256, uint256, uint256) {
+    function settle(address _series) external returns (bool, uint256, uint256, uint256) {
+        _isLiquidityPool();
         Types.OptionSeries memory series = seriesInfo[_series];
         // strike will be in e8
         if (series.expiration == 0) {revert NonExistentSeries();}
@@ -271,7 +284,8 @@ contract OptionRegistry is Ownable, AccessControl {
      * @notice adjust the collateral held in a specific vault because of health
      * @param  vaultId the id of the vault to check
      */
-    function adjustCollateral(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
+    function adjustCollateral(uint256 vaultId) external {
+      _onlyKeeper();
       (bool isBelowMin, bool isAboveMax,,uint256 collateralAmount, address _collateralAsset) = checkVaultHealth(vaultId);
       if (collateralAsset != _collateralAsset) {revert InvalidCollateral(); }
       if (!isBelowMin && !isAboveMax) {revert HealthyVault();}
@@ -296,7 +310,8 @@ contract OptionRegistry is Ownable, AccessControl {
      * @param  vaultId the id of the vault to check
      * @dev    this is a safety function, if worst comes to worse any caller can collateralise a vault to save it.
      */
-    function adjustCollateralCaller(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
+    function adjustCollateralCaller(uint256 vaultId) external {
+      _onlyKeeper();
       (bool isBelowMin,,,uint256 collateralAmount, address _collateralAsset) = checkVaultHealth(vaultId);
       if (collateralAsset != _collateralAsset) {revert InvalidCollateral(); }
       if (!isBelowMin) {revert HealthyVault();}
@@ -311,7 +326,8 @@ contract OptionRegistry is Ownable, AccessControl {
      * @param  vaultId the id of the vault to check
      * @dev    this is a safety function, if a vault is liquidated.
      */
-    function wCollatLiquidatedVault(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
+    function wCollatLiquidatedVault(uint256 vaultId) external {
+      _onlyKeeper();
       // get the vault details from the vaultId
       GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
       require(vault.shortAmounts[0] == 0, "Vault has short positions [amount]");
@@ -330,7 +346,8 @@ contract OptionRegistry is Ownable, AccessControl {
      * @param  vaultId the id of the vault to register liquidation for
      * @dev    this is a safety function, if a vault is liquidated to update the collateral assets in the pool
      */
-    function registerLiquidatedVault(uint256 vaultId) external onlyRole(ADMIN_ROLE) {
+    function registerLiquidatedVault(uint256 vaultId) external {
+      _onlyKeeper();
       // get the vault liquidation details from the vaultId
       (address series,, uint256 collateralLiquidated) = IController(gammaController).getVaultLiquidationDetails(address(this), vaultId);
       if( series == address(0)) {revert VaultNotLiquidated();}
@@ -519,4 +536,12 @@ contract OptionRegistry is Ownable, AccessControl {
         // round floor strike to prevent errors in Gamma protocol
         return price / (10**difference) * (10**difference);
     }
+
+    function _isLiquidityPool() internal view {
+      if (msg.sender != liquidityPool) {revert NotLiquidityPool();}
+	  }
+
+    function _onlyKeeper() internal view {
+      if (!keeper[msg.sender]) {revert NotKeeper();}
+	  }
 }

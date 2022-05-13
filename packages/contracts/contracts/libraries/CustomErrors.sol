@@ -3,6 +3,7 @@ pragma solidity >=0.8.0;
 
 interface CustomErrors {
     error IVNotFound();
+    error NotHandler();
     error InvalidPrice();
     error InvalidBuyer();
     error OrderExpired();

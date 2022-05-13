@@ -91,6 +91,7 @@ let putOptionToken2: IOToken
 let collateralAllocatedToVault1: BigNumber
 let proposedSeries: any
 let handler: OptionHandler
+let authority: string
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -218,6 +219,7 @@ describe("Liquidity Pools", async () => {
 		volFeed = deployParams.volFeed
 		portfolioValuesFeed = deployParams.portfolioValuesFeed
 		optionProtocol = deployParams.optionProtocol
+		authority = deployParams.authority.address
 		let lpParams = await deployLiquidityPool(
 			signers,
 			optionProtocol,
@@ -231,7 +233,8 @@ describe("Liquidity Pools", async () => {
 			minExpiry,
 			maxExpiry,
 			optionRegistry,
-			portfolioValuesFeed
+			portfolioValuesFeed,
+			authority
 		)
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
@@ -330,7 +333,8 @@ describe("Liquidity Pools", async () => {
 			WETH_ADDRESS[chainId],
 			liquidityPool.address,
 			3000,
-			priceFeed.address
+			priceFeed.address,
+			authority
 		)) as UniswapV3HedgingReactor
 
 		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")

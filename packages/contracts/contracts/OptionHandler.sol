@@ -5,6 +5,7 @@ import "./Protocol.sol";
 import "./tokens/ERC20.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./libraries/CustomErrors.sol";
+import "./libraries/AccessControl.sol";
 import "./libraries/SafeTransferLib.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
@@ -13,12 +14,10 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 
-import "hardhat/console.sol";
 
-contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
+contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
 
@@ -26,7 +25,7 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 	/// immutable variables ///
 	///////////////////////////
 
-	// Protocol management contract
+	// Protocol management contracts
 	ILiquidityPool public immutable liquidityPool;
 	Protocol public immutable protocol;
 	// asset that denominates the strike price
@@ -58,8 +57,6 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 	/// constant variables ///
 	//////////////////////////
 
-	// Access control role identifier
-	bytes32 private constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
 
@@ -82,12 +79,10 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 	event OrderExecuted(uint256 orderId);
 
 	constructor(
-		address adminAddress,
+		address _authority,
 		address _protocol,
 		address _liquidityPool
-	) {
-		// Grant admin role to deployer
-		_setupRole(ADMIN_ROLE, adminAddress);
+	) AccessControl(IAuthority(_authority)) {
 		protocol = Protocol(_protocol);
 		liquidityPool = ILiquidityPool(_liquidityPool);
 		collateralAsset = liquidityPool.collateralAsset();
@@ -113,7 +108,8 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 		int128 _putMinDelta,
 		int128 _putMaxDelta,
 		uint32 _maxPriceRange
-	) external onlyOwner {
+	) external {
+		_onlyGovernor();
 		customOrderBounds.callMinDelta = _callMinDelta;
 		customOrderBounds.callMaxDelta = _callMaxDelta;
 		customOrderBounds.putMinDelta = _putMinDelta;
@@ -121,15 +117,18 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 		customOrderBounds.maxPriceRange = _maxPriceRange;
 	}
 
-	function pauseContract() external onlyOwner {
+	function pauseContract() external {
+		_onlyGuardian();
 		_pause();
 	}
 
-	function unpause() external onlyOwner {
+	function unpause() external {
+		_onlyGuardian();
 		_unpause();
 	}
 
-	function addOrRemoveBuybackAddress(address _addressToWhitelist, bool toAdd) external onlyOwner {
+	function addOrRemoveBuybackAddress(address _addressToWhitelist, bool toAdd) external {
+		_onlyGovernor();
 		buybackWhitelist[_addressToWhitelist] = toAdd;
 	}
 
@@ -155,7 +154,8 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 		uint256 _price,
 		uint256 _orderExpiry,
 		address _buyerAddress
-	) public onlyRole(ADMIN_ROLE) returns (uint256) {
+	) public returns (uint256) {
+		_onlyManager();
 		if (_price == 0) {
 			revert CustomErrors.InvalidPrice();
 		}
@@ -204,7 +204,8 @@ contract OptionHandler is Pausable, Ownable, AccessControl, ReentrancyGuard {
 		uint256 _pricePut,
 		uint256 _orderExpiry,
 		address _buyerAddress
-	) external onlyRole(ADMIN_ROLE) returns (uint256, uint256) {
+	) external returns (uint256, uint256) {
+		_onlyManager();
 		uint256 callOrderId = createOrder(
 			_optionSeriesCall,
 			_amountCall,

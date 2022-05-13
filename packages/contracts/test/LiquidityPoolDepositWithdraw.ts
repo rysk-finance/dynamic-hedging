@@ -72,6 +72,7 @@ let optionToken1: string
 let priceQuote: any
 let quote: any
 let localDelta: any
+let authority: string
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -158,6 +159,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		volFeed = deployParams.volFeed
 		portfolioValuesFeed = deployParams.portfolioValuesFeed
 		optionProtocol = deployParams.optionProtocol
+		authority = deployParams.authority.address
 		let lpParams = await deployLiquidityPool(
 			signers,
 			optionProtocol,
@@ -171,7 +173,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			minExpiry,
 			maxExpiry,
 			optionRegistry,
-			portfolioValuesFeed
+			portfolioValuesFeed,
+			authority
 		)
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool

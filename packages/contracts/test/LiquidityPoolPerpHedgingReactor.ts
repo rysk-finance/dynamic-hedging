@@ -94,6 +94,7 @@ let poolId: string
 let settlementTokenOracle: OracleMock
 let collateralId: string
 let handler: OptionHandler
+let authority: string
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -208,6 +209,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		volFeed = deployParams.volFeed
 		portfolioValuesFeed = deployParams.portfolioValuesFeed
 		optionProtocol = deployParams.optionProtocol
+		authority = deployParams.authority.address
 		let lpParams = await deployLiquidityPool(
 			signers,
 			optionProtocol,
@@ -221,7 +223,8 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 			minExpiry,
 			maxExpiry,
 			optionRegistry,
-			portfolioValuesFeed
+			portfolioValuesFeed,
+			authority
 		)
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
@@ -289,7 +292,8 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 			liquidityPool.address,
 			poolId,
 			collateralId,
-			priceFeed.address
+			priceFeed.address,
+			authority
 		)) as PerpHedgingReactor
 
 		expect(perpHedgingReactor).to.have.property("hedgeDelta")

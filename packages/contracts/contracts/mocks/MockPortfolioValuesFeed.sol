@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "../libraries/AccessControl.sol";
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import { OptionsCompute } from "../libraries/OptionsCompute.sol";
 import "../interfaces/ILiquidityPool.sol";
 import "../libraries/Types.sol";
 
 /**
- * @title The Mock PortfolioValuesFeed contract - NEVER USE THIS IN PRODUCTION! FOR TESTING ONLY!
+ * @title The PortfolioValuesFeed contract
  * @notice An external adapter Consumer contract that makes requests to obtain portfolio values for different pools
+ *         SHOULD NOT BE USED IN PRODUCTION
  */
-contract MockPortfolioValuesFeed is Ownable, ChainlinkClient {
+contract MockPortfolioValuesFeed is AccessControl, ChainlinkClient {
   using Chainlink for Chainlink.Request;
 
   ///////////////////////////
@@ -37,11 +38,12 @@ contract MockPortfolioValuesFeed is Ownable, ChainlinkClient {
   // mapping of addresses to their string versions
   mapping(address => string) public stringedAddresses;
 
-  ////////////////////////
-  /// events && errors ///
-  ////////////////////////
+  //////////////
+  /// events ///
+  //////////////
 
   event DataFullfilled(address indexed underlying, address indexed strike, int256 delta, int256 gamma, int256 vega, int256 theta, uint256 callPutsValue);
+
   /**
    * @notice Executes once when a contract is created to initialize state variables
    *
@@ -54,8 +56,9 @@ contract MockPortfolioValuesFeed is Ownable, ChainlinkClient {
     address _oracle,
     bytes32 _jobId,
     uint256 _fee,
-    address _link
-  ) {
+    address _link,
+    address _authority
+  ) AccessControl(IAuthority(_authority))  {
     if (_link == address(0)) {
       setPublicChainlinkToken();
     } else {
@@ -71,11 +74,13 @@ contract MockPortfolioValuesFeed is Ownable, ChainlinkClient {
   /// setters ///
   ///////////////
 
-  function setLiquidityPool(address _liquidityPool) external onlyOwner {
+  function setLiquidityPool(address _liquidityPool) external {
+    _onlyGovernor;
     liquidityPool = ILiquidityPool(_liquidityPool);
   }
 
-  function setAddressStringMapping(address _asset, string memory _stringVersion) external onlyOwner {
+  function setAddressStringMapping(address _asset, string memory _stringVersion) external {
+    _onlyGovernor();
     stringedAddresses[_asset] = _stringVersion;
   }
 
@@ -108,6 +113,7 @@ function fulfill(
     uint256 _spotPrice
 )
     external
+    // recordChainlinkFulfillment(_requestId)
   {
     Types.PortfolioValues memory portfolioValue = Types.PortfolioValues({
         delta: _delta,
@@ -127,7 +133,8 @@ function fulfill(
  * @notice Witdraws LINK from the contract
  * @dev Implement a withdraw function to avoid locking your LINK in the contract
  */
-function withdrawLink(uint256 _amount) external onlyOwner {
+function withdrawLink(uint256 _amount) external {
+  _onlyGovernor();
   LinkTokenInterface(link).transfer(msg.sender, _amount);
 }
 
@@ -142,7 +149,6 @@ function withdrawLink(uint256 _amount) external onlyOwner {
    * @return requestId - id of the request
    */
   function requestPortfolioData(address _underlying, address _strike) external returns (bytes32 requestId) {
-    return 0;
     // Chainlink.Request memory request = buildChainlinkRequest(
     //   jobId,
     //   address(this),
@@ -174,5 +180,4 @@ function withdrawLink(uint256 _amount) external onlyOwner {
     returns (Types.PortfolioValues memory) {
         return portfolioValues[underlying][strike];
     }
-
 }
