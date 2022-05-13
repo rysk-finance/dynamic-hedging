@@ -132,9 +132,9 @@ function fulfill(
  * @notice Witdraws LINK from the contract
  * @dev Implement a withdraw function to avoid locking your LINK in the contract
  */
-function withdrawLink(uint256 _amount) external {
+function withdrawLink(uint256 _amount, address _target) external {
   _onlyGovernor();
-  LinkTokenInterface(link).transfer(msg.sender, _amount);
+  LinkTokenInterface(link).transfer(_target, _amount);
 }
 
   /////////////////////////////////////////////
