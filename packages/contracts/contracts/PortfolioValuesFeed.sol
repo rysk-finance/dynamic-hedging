@@ -28,6 +28,7 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
   /////////////////////////////////
 
   mapping(address => mapping(address => Types.PortfolioValues)) private portfolioValues;
+  mapping(bytes32 => bool) public completedRequests;
 
   /////////////////////////////////
   /// govern settable variables ///
@@ -125,6 +126,7 @@ function fulfill(
     });
     portfolioValues[_underlying][_strike] = portfolioValue;
     liquidityPool.resetEphemeralValues();
+    completedRequests[_requestId] = true;
     emit DataFullfilled(_underlying, _strike, _delta, _gamma, _vega, _theta, _callPutsValue);
   }
 
@@ -162,7 +164,6 @@ function withdrawLink(uint256 _amount) external {
     // Multiply the result by 1000000000000000000 to remove decimals
     int256 timesAmount = 10**18;
     request.addInt("times", timesAmount);
-
     // Sends the request
     return sendChainlinkRequestTo(oracle, request, fee);
   }

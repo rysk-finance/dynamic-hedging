@@ -560,7 +560,7 @@ describe("Liquidity Pools", async () => {
 		const poolUSDBalanceDiff = tFormatUSDC(poolBalanceAfter.sub(poolBalanceBefore))
 		const expectedUSDBalanceDiff = tFormatEth(quote) - tFormatUSDC(collateralAllocatedDiff)
 		// check LP USDC balance is changed
-		expect(poolUSDBalanceDiff - expectedUSDBalanceDiff).to.be.within(-0.0015, 0.0015)
+		expect(poolUSDBalanceDiff - expectedUSDBalanceDiff).to.be.within(-0.0025, 0.0025)
 		// check collateral allocated is increased
 		expect(
 			tFormatUSDC(collateralAllocatedDiff) - tFormatUSDC(expectedCollateralAllocated)
@@ -878,8 +878,8 @@ describe("Liquidity Pools", async () => {
 		// check option seller's USD balance increases by correct amount
 		expect(tFormatUSDC(sellerUSDBalanceAfter.sub(sellerUSDBalanceBefore)).toPrecision(5)).to.eq(tFormatEth(quote).toPrecision(5))
 		// expect liquidity pool's USD balance decreases by correct amount
-		expect(tFormatUSDC(lpUSDBalanceBefore.sub(lpUSDBalanceAfter))).to.eq(
-			tFormatEth(quote) - collateralAllocatedDiff
+		expect(tFormatUSDC(lpUSDBalanceBefore.sub(lpUSDBalanceAfter)).toPrecision(6)).to.eq(
+			(tFormatEth(quote) - collateralAllocatedDiff).toPrecision(6)
 		)
 		// expect collateral allocated in LP reduces by correct amount
 		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.0011, 0.0011)

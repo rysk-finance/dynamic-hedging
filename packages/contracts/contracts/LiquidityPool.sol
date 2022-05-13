@@ -54,6 +54,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	mapping(address => WithdrawalReceipt) public withdrawalReceipts;
 	// pending deposits for a round
 	uint256 public pendingDeposits;
+	// last epoch execution time
+	uint256 public lastEpochTimestamp;
+	// request associated with an epoch
+	bytes32 public epochRequest;
 
 	/////////////////////////////////////
 	/// governance settable variables ///
@@ -91,6 +95,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	uint256 aboveThresholdYIntercept = 84e16; //-0.84
 	// the percentage utilization above which the function moves from its shallow line to its steep line. e18
 	uint256 utilizationFunctionThreshold = 6e17; // 60%
+	// minimum epoch length
+	uint256 public minimumEpochLength = 86400;
 
 	//////////////////////////
 	/// constant variables ///
@@ -289,6 +295,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		maxPriceDeviationThreshold = _maxPriceDeviationThreshold;
 	}
 
+	function setMinimumEpochLength(uint256 _minimumEpochLength) external {
+		_onlyGovernor();
+		minimumEpochLength = _minimumEpochLength;
+	}
 	/**
 	 * @notice change the status of a handler
 	 */
@@ -499,11 +509,15 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @dev    this function must be called in order to execute an epoch calculation
 	 */
 	function pauseTradingAndRequest() external returns (bytes32) {
-		_onlyGovernor();
+		// if enough time has passed then anyone can call this contract, otherwise only governance can call this contract
+		if (block.timestamp < lastEpochTimestamp + minimumEpochLength) {
+			_onlyGovernor();
+		}
 		// pause trading
 		isTradingPaused = true;
-		// make an oracle request
-		return getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
+		// make an oracle request and store the epoch request
+		epochRequest = getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
+		return epochRequest;
 	}
 
 	/**
@@ -511,7 +525,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @dev    this function must be called in order to execute an epoch calculation and batch a mutual fund epoch
 	 */
 	function executeEpochCalculation() external whenNotPaused {
-		_onlyGovernor();
+		if (!getPortfolioValuesFeed().completedRequests(epochRequest)) {
+			_onlyGovernor();
+		}
 		if (!isTradingPaused) {
 			revert CustomErrors.TradingNotPaused();
 		}

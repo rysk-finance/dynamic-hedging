@@ -25,4 +25,6 @@ interface IPortfolioValuesFeed {
   ) external 
     view
     returns (Types.PortfolioValues memory);
+
+  function completedRequests(bytes32) external returns (bool);
 }
