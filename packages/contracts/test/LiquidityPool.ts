@@ -876,13 +876,13 @@ describe("Liquidity Pools", async () => {
 		// check option seller's OToken balance reduced
 		expect(sellerOTokenBalanceAfter).to.equal(sellerOTokenBalanceBefore.sub(toOpyn(fromWei(amount))))
 		// check option seller's USD balance increases by correct amount
-		expect(tFormatUSDC(sellerUSDBalanceAfter.sub(sellerUSDBalanceBefore))).to.eq(tFormatEth(quote))
+		expect(tFormatUSDC(sellerUSDBalanceAfter.sub(sellerUSDBalanceBefore)).toPrecision(5)).to.eq(tFormatEth(quote).toPrecision(5))
 		// expect liquidity pool's USD balance decreases by correct amount
 		expect(tFormatUSDC(lpUSDBalanceBefore.sub(lpUSDBalanceAfter))).to.eq(
 			tFormatEth(quote) - collateralAllocatedDiff
 		)
 		// expect collateral allocated in LP reduces by correct amount
-		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.001, 0.001)
+		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.0011, 0.0011)
 		// expect portfolio delta to change
 		expect(tFormatEth(deltaAfter)).to.equal(tFormatEth(deltaBefore.add(expectedDeltaChange)))
 	})
