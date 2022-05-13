@@ -746,33 +746,43 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		// price of acquiring total amount of options (remains e18 due to PRBMath)
 		quoteState.totalOptionPrice = optionQuote.mul(amount);
 		quoteState.totalDelta = deltaQuote.mul(int256(amount));
-		int256 portfolioDelta = getPortfolioDelta();
-		// portfolio delta upon writing option
-		// subtract totalDelta because the pool is taking on the negative of the option's delta
-		int256 newDelta = toBuy ? portfolioDelta + quoteState.totalDelta : portfolioDelta - quoteState.totalDelta;
-		// Is delta moved closer to zero?
-		quoteState.isDecreased = (PRBMathSD59x18.abs(newDelta) - PRBMathSD59x18.abs(portfolioDelta)) < 0;
-		// delta exposure of the portolio per ETH equivalent value the portfolio holds.
-		// This value is only used for tilting so we are only interested in its distance from 0 - its magnitude
-		uint256 normalizedDelta = uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))).div(
-			_getNAV().div(quoteState.underlyingPrice)
-		);
-		// this is the percentage of the option price which is added to or subtracted from option price
-		// according to whether portfolio delta is increased or decreased respectively
-		quoteState.deltaTiltAmount = normalizedDelta > maxDiscount ? maxDiscount : normalizedDelta;
 
+		// will update quoteState.utilizationPrice
+		addUtilizationPremium(quoteState, optionSeries, amount, toBuy);
+		quote = applyDeltaSkew(quoteState, toBuy);
+
+		quote = OptionsCompute.convertToCollateralDenominated(
+			quote,
+			quoteState.underlyingPrice,
+			optionSeries
+		);
+		delta = quoteState.totalDelta;
+		if (quote == 0 || delta == int256(0)) {
+			revert CustomErrors.DeltaQuoteError(quote, delta);
+		}
+	}
+
+	function addUtilizationPremium(
+		UtilizationState memory quoteState,
+		Types.OptionSeries memory optionSeries,
+		uint256 amount,
+		bool toBuy
+	) internal view {
 		if (!toBuy) {
+			uint256 collateralAllocated_ = collateralAllocated;
 			// if selling options, we want to add the utilization premium
 			// Work out the utilization of the pool as a percentage
-			quoteState.utilizationBefore = collateralAllocated.div(
-				collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
+			quoteState.utilizationBefore = collateralAllocated_.div(
+				collateralAllocated_ + ERC20(collateralAsset).balanceOf(address(this))
 			);
+			// assumes strike is e18
+			// strike is not being used again so we dont care if format changes
 			optionSeries.strike = optionSeries.strike / 1e10;
 			// returns collateral decimals
 			quoteState.collateralToAllocate = getOptionRegistry().getCollateral(optionSeries, amount);
 
-			quoteState.utilizationAfter = (quoteState.collateralToAllocate + collateralAllocated).div(
-				collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
+			quoteState.utilizationAfter = (quoteState.collateralToAllocate + collateralAllocated_).div(
+				collateralAllocated_ + ERC20(collateralAsset).balanceOf(address(this))
 			);
 			// get the price of the option with the utilization premium added
 			quoteState.utilizationPrice = OptionsCompute.getUtilizationPrice(
@@ -787,98 +797,42 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		} else {
 			// do not use utlilization premium for buybacks
 			quoteState.utilizationPrice = quoteState.totalOptionPrice;
-			console.log("bsPrice:", quoteState.utilizationPrice);
-		}
-		if (quoteState.isDecreased) {
-			quote = toBuy ?
-				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) +
-				quoteState.utilizationPrice
-				:
-				quoteState.utilizationPrice -
-				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice);
-				
-		} else {
-			// increase utilization by delta tilt factor for moving delta away from zero
-			quote = toBuy ?
-				quoteState.utilizationPrice -
-				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice)
-				:
-				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) +
-				quoteState.utilizationPrice;
-			console.log("quote: ", quote);
-		}
-		quote = OptionsCompute.convertToCollateralDenominated(
-			quote,
-			quoteState.underlyingPrice,
-			optionSeries
-		);
-		delta = quoteState.totalDelta;
-		//@TODO think about more robust considitions for this check
-		if (quote == 0 || delta == int256(0)) {
-			revert CustomErrors.DeltaQuoteError(quote, delta);
 		}
 	}
 
-	// /**
-	//  * @notice get the quote price and delta for a given option
-	//  * @param  optionSeries option type to quote - strike assumed in e18
-	//  * @param  amount the number of options to buy - assumed in e18
-	//  * @return quote the price of the options - assumed in collateral decimals
-	//  * @return delta the delta of the options - assumed in e18
-	//  */
-	// function quotePriceBuying(Types.OptionSeries memory optionSeries, uint256 amount)
-	// 	public
-	// 	view
-	// 	returns (uint256 quote, int256 delta)
-	// {
-	// 	uint256 underlyingPrice = getUnderlyingPrice(optionSeries.underlying, optionSeries.strikeAsset);
-	// 	(uint256 optionQuote, int256 deltaQuote) = OptionsCompute.quotePriceGreeks(
-	// 		optionSeries,
-	// 		true,
-	// 		bidAskIVSpread,
-	// 		riskFreeRate,
-	// 		getImpliedVolatility(
-	// 			optionSeries.isPut,
-	// 			underlyingPrice,
-	// 			optionSeries.strike,
-	// 			optionSeries.expiration
-	// 		),
-	// 		underlyingPrice
-	// 	);
-	// 	uint256 totalOptionPrice = optionQuote.mul(amount);
-	// 	uint256 totalDelta = deltaQuote.mul(int256(amount));
-	// 	// portfolio delta upon buying option
-	// 	// portfolio takes on the delta of the options so add them
-	// 	int256 newDelta = portfolioDelta + quoteState.totalDelta;
+	function applyDeltaSkew(UtilizationState memory quoteState, bool toBuy)
+		internal
+		view
+		returns (uint256 quote)
+	{
+		// portfolio delta before writing option
+		int256 portfolioDelta = getPortfolioDelta();
+		// subtract totalDelta if buying as pool is taking on the negative of the option's delta
+		int256 newDelta = toBuy
+			? portfolioDelta + quoteState.totalDelta
+			: portfolioDelta - quoteState.totalDelta;
+		// Is delta moved closer to zero?
+		quoteState.isDecreased = (PRBMathSD59x18.abs(newDelta) - PRBMathSD59x18.abs(portfolioDelta)) < 0;
+		// delta exposure of the portolio per ETH equivalent value the portfolio holds.
+		// This value is only used for tilting so we are only interested in its distance from 0 (its magnitude)
+		uint256 normalizedDelta = uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))).div(
+			_getNAV().div(quoteState.underlyingPrice)
+		);
+		// this is the percentage of the option price which is added to or subtracted from option price
+		// according to whether portfolio delta is increased or decreased respectively
+		quoteState.deltaTiltAmount = normalizedDelta > maxDiscount ? maxDiscount : normalizedDelta;
 
-	// 	// Is delta moved closer to zero?
-	// 	quoteState.isDecreased = (PRBMathSD59x18.abs(newDelta) - PRBMathSD59x18.abs(portfolioDelta)) < 0;
-
-	// 	// delta exposure of the portolio per ETH equivalent value the portfolio holds.
-	// 	// This value is only used for tilting so we are only interested in its distance from 0 - its magnitude
-	// 	uint256 normalizedDelta = uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))).div(
-	// 		_getNAV().div(underlyingPrice)
-	// 	);
-	// 	// this is the percentage of the option price which is added to or subtracted from option price
-	// 	// according to whether portfolio delta is increased or decreased respectively
-	// 	quoteState.deltaTiltAmount = normalizedDelta > maxDiscount ? maxDiscount : normalizedDelta;
-	// 	if (quoteState.isDecreased) {
-	// 		quote =
-	// 			quoteState.totalOptionPrice -
-	// 			quoteState.deltaTiltAmount.mul(quoteState.totalOptionPrice);
-	// 	} else {
-	// 		// increase utilization by delta tilt factor for moving delta away from zero
-	// 		quote =
-	// 			quoteState.deltaTiltAmount.mul(quoteState.totalOptionPrice) +
-	// 			quoteState.totalOptionPrice;
-	// 	}
-	// 	quote = OptionsCompute.convertToCollateralDenominated(quote, underlyingPrice, optionSeries);
-	// 	delta = totalDelta
-	// 	//@TODO think about more robust considitions for this check
-	// 	if (quote == 0 || delta == int256(0)) {
-	// 		revert CustomErrors.DeltaQuoteError(quote, delta);
-	// 	}
-	// }
+		if (quoteState.isDecreased) {
+			quote = toBuy
+				? quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice
+				: quoteState.utilizationPrice - quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice);
+		} else {
+			// increase utilization by delta tilt factor for moving delta away from zero
+			quote = toBuy
+				? quoteState.utilizationPrice - quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice)
+				: quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
+		}
+	}
 
 	///////////////////////////
 	/// non-complex getters ///

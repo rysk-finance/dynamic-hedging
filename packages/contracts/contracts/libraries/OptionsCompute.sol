@@ -92,26 +92,27 @@ library OptionsCompute {
 			_utilizationBefore <= _utilizationFunctionThreshold &&
 			_utilizationAfter <= _utilizationFunctionThreshold
 		) {
-			// linear function up to 50% utilization
-			// adds 10% of utilization percentage on to price
-			// eg at 50% utilization, options will be priced 5% more expensive
-			return
-				_totalOptionPrice +
-				_totalOptionPrice.mul(_utilizationBefore + _utilizationAfter).mul(_belowThresholdGradient).div(
-					2e18
-				);
+			// linear function up to threshold utilization
+			// take average of before and after utilization and multiply the average by belowThresholdGradient
+
+			uint256 multiplicationFactor = (_utilizationBefore + _utilizationAfter)
+				.mul(_belowThresholdGradient)
+				.div(2e18);
+			return _totalOptionPrice + _totalOptionPrice.mul(multiplicationFactor);
 		} else if (
 			_utilizationBefore >= _utilizationFunctionThreshold &&
 			_utilizationAfter >= _utilizationFunctionThreshold
 		) {
-			// over 50% utilization the skew factor will follow a steeper line
+			// over threshold utilization the skew factor will follow a steeper line
 
 			uint256 multiplicationFactor = _aboveThresholdGradient
 				.mul(_utilizationBefore + _utilizationAfter)
 				.div(2e18) - _aboveThresholdYIntercept;
 
-			return _totalOptionPrice + _totalOptionPrice.mul(uint256(multiplicationFactor));
+			return _totalOptionPrice + _totalOptionPrice.mul(multiplicationFactor);
 		} else {
+			// in this case the utilization after is above the threshold and
+			// utilization before is below it.
 			// _utilizationAfter will always be greater than _utilizationBefore
 			// finds the ratio of the distance below the threshold to the distance above the threshold
 			uint256 weightingRatio = (_utilizationFunctionThreshold - _utilizationBefore).div(
@@ -150,6 +151,7 @@ library OptionsCompute {
 		if (iv == 0) {
 			revert CustomErrors.IVNotFound();
 		}
+		// reduce IV by a factor of bidAskIVSpread if we are buying the options
 		if (isBuying) {
 			iv = (iv * (1e18 - (bidAskIVSpread))) / 1e18;
 		}
