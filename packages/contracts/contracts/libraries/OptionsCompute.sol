@@ -6,6 +6,7 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "./Types.sol";
 import "./CustomErrors.sol";
+import "hardhat/console.sol";
 
 library OptionsCompute {
 	using PRBMathUD60x18 for uint256;

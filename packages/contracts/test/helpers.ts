@@ -1,5 +1,5 @@
 import hre, { ethers } from "hardhat"
-import { toWei, genOptionTimeFromUnix, fromWei, tFormatUSDC } from "../utils/conversion-helper"
+import { toWei, genOptionTimeFromUnix, fromWei, tFormatUSDC, tFormatEth } from "../utils/conversion-helper"
 import {
 	CHAINLINK_WETH_PRICER,
 	GAMMA_ORACLE,
@@ -29,7 +29,6 @@ const { parseEther } = ethers.utils
 const chainId = 1
 // decimal representation of a percentage
 const rfr: string = "0.03"
-const bidAskSpread = "0.3"
 const belowUtilizationThresholdGradient = 0.1
 const aboveUtilizationThresholdGradient = 1.5
 const utilizationFunctionThreshold = 0.6 // 60%
@@ -249,6 +248,7 @@ export async function calculateOptionQuoteLocally(
 	const utilizationAfter =
 		tFormatUSDC(collateralAllocated.add(liquidityAllocated)) /
 		tFormatUSDC(collateralAllocated.add(lpUSDBalance))
+	const bidAskSpread = tFormatEth(await liquidityPool.bidAskIVSpread())
 	const localBS =
 		bs.blackScholes(
 			priceNorm,
@@ -353,13 +353,13 @@ export async function getBlackScholesQuote(
 	const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), optionSeries.expiration)
 
 	const priceNorm = fromWei(underlyingPrice)
-
+	const bidAskSpread = tFormatEth(await liquidityPool.bidAskIVSpread())
 	const localBS =
 		bs.blackScholes(
 			priceNorm,
 			fromWei(optionSeries.strike),
 			timeToExpiration,
-			toBuy ? Number(fromWei(iv)) - Number(bidAskSpread) : fromWei(iv),
+			toBuy ? Number(fromWei(iv)) * (1 - Number(bidAskSpread)) : fromWei(iv),
 			parseFloat(rfr),
 			optionSeries.isPut ? "put" : "call"
 		) * parseFloat(fromWei(amount))

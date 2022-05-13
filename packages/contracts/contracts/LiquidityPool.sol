@@ -351,10 +351,9 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
     @return collatReturned the amount of collateral returned to the liquidity pool.
   */
 	function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256) {
-		IOptionRegistry optionRegistry = getOptionRegistry();
 		// get number of options in vault and collateral returned to recalculate our position without these options
 		// returns in collat decimals, collat decimals and e8
-		(, uint256 collatReturned, uint256 collatLost, ) = optionRegistry.settle(seriesAddress);
+		(, uint256 collatReturned, uint256 collatLost, ) = getOptionRegistry().settle(seriesAddress);
 		emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
 		_adjustVariables(collatReturned, 0, 0, false);
 		collateralAllocated -= collatLost;
@@ -508,21 +507,6 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		if (!isTradingPaused) {
 			revert CustomErrors.TradingNotPaused();
 		}
-		address underlyingAsset_ = underlyingAsset;
-		address strikeAsset_ = strikeAsset;
-		IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
-		Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(
-			underlyingAsset_,
-			strikeAsset_
-		);
-		// TODO: Maybe change this so it checks the request Id instead of validating by price and time
-		// check that the portfolio values are acceptable
-		OptionsCompute.validatePortfolioValues(
-			getUnderlyingPrice(underlyingAsset_, strikeAsset_),
-			portfolioValues,
-			maxTimeDeviationThreshold,
-			maxPriceDeviationThreshold
-		);
 		uint256 newPricePerShare = totalSupply > 0
 			? (1e18 *
 				(_getNAV() -
@@ -698,8 +682,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		// assumes in e18
 		address underlyingAsset_ = underlyingAsset;
 		address strikeAsset_ = strikeAsset;
-		IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
-		Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(
+		Types.PortfolioValues memory portfolioValues = getPortfolioValuesFeed().getPortfolioValues(
 			underlyingAsset_,
 			strikeAsset_
 		);
@@ -1039,8 +1022,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
 		uint256 assets = _getAssets();
-		IPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
-		Types.PortfolioValues memory portfolioValues = pvFeed.getPortfolioValues(
+		Types.PortfolioValues memory portfolioValues = getPortfolioValuesFeed().getPortfolioValues(
 			underlyingAsset_,
 			strikeAsset_
 		);
