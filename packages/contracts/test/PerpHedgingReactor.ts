@@ -478,7 +478,7 @@ describe("PerpHedgingReactor", () => {
 		expect(LpUsdcBalanceAfter.sub(LpUsdcBalanceBefore)).to.eq(reactorCollatBalanceBefore.sub(collatRequired))
 	})
 	it("update reverts when not called by keeper", async () => {
-		await expect(perpHedgingReactor.update()).to.be.revertedWith("InvalidSender()")
+		await expect(perpHedgingReactor.connect(signers[2]).update()).to.be.revertedWith("NotKeeper()")
 	})
 	it("liquidates all positions and withdraws", async () => {
 		// If withdraw amount is greater than the value of assets in the reactor, it should liquidate everything and send all to the LP

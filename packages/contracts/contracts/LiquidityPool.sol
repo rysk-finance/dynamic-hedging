@@ -91,6 +91,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	uint256 aboveThresholdYIntercept = 84e16; //-0.84
 	// the percentage utilization above which the function moves from its shallow line to its steep line. e18
 	uint256 utilizationFunctionThreshold = 6e17; // 60%
+	// keeper mapping
+	mapping(address => bool) public keeper;
 
 	//////////////////////////
 	/// constant variables ///
@@ -297,6 +299,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		handler[_handler] = auth;
 	}
 
+    /// @notice update the keepers
+    function setKeeper(address _keeper, bool _auth) external {
+        _onlyGovernor();
+        keeper[_keeper] = _auth;
+    }
+
 	/**
 		@notice sets the parameters for the function that determines the utilization price factor
 				The function is made up of two parts, both linear. The line to the left of the utilisation threshold has a low gradient
@@ -362,7 +370,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
     @return collatReturned the amount of collateral returned to the liquidity pool.
   */
 	function settleVault(address seriesAddress) public returns (uint256) {
-		_onlyManager();
+		_isKeeper();
 		// get number of options in vault and collateral returned to recalculate our position without these options
 		// returns in collat decimals, collat decimals and e8
 		(, uint256 collatReturned, uint256 collatLost, ) = getOptionRegistry().settle(seriesAddress);
@@ -499,7 +507,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @dev    this function must be called in order to execute an epoch calculation
 	 */
 	function pauseTradingAndRequest() external returns (bytes32) {
-		_onlyGovernor();
+		_isKeeper();
 		// pause trading
 		isTradingPaused = true;
 		// make an oracle request
@@ -511,7 +519,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @dev    this function must be called in order to execute an epoch calculation and batch a mutual fund epoch
 	 */
 	function executeEpochCalculation() external whenNotPaused {
-		_onlyGovernor();
+		_isKeeper();
 		if (!isTradingPaused) {
 			revert CustomErrors.TradingNotPaused();
 		}
@@ -1242,6 +1250,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function _isHandler() internal view {
 		if (!handler[msg.sender]) {
 			revert CustomErrors.NotHandler();
+		}
+	}
+	/// @dev keepers, managers or governors can access
+	function _isKeeper() internal view {
+		if (!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()) {
+			revert CustomErrors.NotKeeper();
 		}
 	}
 }

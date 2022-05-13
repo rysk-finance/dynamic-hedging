@@ -285,7 +285,7 @@ contract OptionRegistry is AccessControl {
      * @param  vaultId the id of the vault to check
      */
     function adjustCollateral(uint256 vaultId) external {
-      _onlyKeeper();
+      _isKeeper();
       (bool isBelowMin, bool isAboveMax,,uint256 collateralAmount, address _collateralAsset) = checkVaultHealth(vaultId);
       if (collateralAsset != _collateralAsset) {revert InvalidCollateral(); }
       if (!isBelowMin && !isAboveMax) {revert HealthyVault();}
@@ -311,7 +311,7 @@ contract OptionRegistry is AccessControl {
      * @dev    this is a safety function, if worst comes to worse any caller can collateralise a vault to save it.
      */
     function adjustCollateralCaller(uint256 vaultId) external {
-      _onlyKeeper();
+      _onlyGuardian();
       (bool isBelowMin,,,uint256 collateralAmount, address _collateralAsset) = checkVaultHealth(vaultId);
       if (collateralAsset != _collateralAsset) {revert InvalidCollateral(); }
       if (!isBelowMin) {revert HealthyVault();}
@@ -327,7 +327,7 @@ contract OptionRegistry is AccessControl {
      * @dev    this is a safety function, if a vault is liquidated.
      */
     function wCollatLiquidatedVault(uint256 vaultId) external {
-      _onlyKeeper();
+      _isKeeper();
       // get the vault details from the vaultId
       GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
       require(vault.shortAmounts[0] == 0, "Vault has short positions [amount]");
@@ -347,7 +347,7 @@ contract OptionRegistry is AccessControl {
      * @dev    this is a safety function, if a vault is liquidated to update the collateral assets in the pool
      */
     function registerLiquidatedVault(uint256 vaultId) external {
-      _onlyKeeper();
+      _isKeeper();
       // get the vault liquidation details from the vaultId
       (address series,, uint256 collateralLiquidated) = IController(gammaController).getVaultLiquidationDetails(address(this), vaultId);
       if( series == address(0)) {revert VaultNotLiquidated();}
@@ -541,7 +541,10 @@ contract OptionRegistry is AccessControl {
       if (msg.sender != liquidityPool) {revert NotLiquidityPool();}
 	  }
 
-    function _onlyKeeper() internal view {
-      if (!keeper[msg.sender]) {revert NotKeeper();}
-	  }
+	/// @dev keepers, managers or governors can access
+	function _isKeeper() internal view {
+		if (!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()) {
+			revert NotKeeper();
+		}
+	}
 }

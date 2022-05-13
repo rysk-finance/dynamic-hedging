@@ -71,7 +71,6 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
     //////////////
 
     error ValueFailure();
-    error InvalidSender();
     error InvalidHealthFactor();
     error IncorrectCollateral();
     error InvalidTransactionNotEnoughMargin(int256 accountMarketValue, int256 totalRequiredMargin);
@@ -107,7 +106,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
         if (_healthFactor < MAX_BIPS) {revert InvalidHealthFactor();}
         healthFactor = _healthFactor;
     }
-    /// @notice update the keeper
+    /// @notice update the keepers
     function setKeeper(address _keeper, bool _auth) external {
         _onlyGovernor();
         keeper[_keeper] = _auth;
@@ -173,13 +172,13 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
     /// @notice function to poke the margin account to update the profits of the vault
     /// @dev    only callable by a keeper
     function sync() public {
-        if (!keeper[msg.sender] || msg.sender != parentLiquidityPool){revert InvalidSender();}
+        _isKeeper();
         clearingHouse.settleProfit(accountId);
     }
 
     /// @inheritdoc IHedgingReactor
     function update() public returns (uint256) {
-        if (!keeper[msg.sender]){revert InvalidSender();}
+        _isKeeper();
         address collateralAsset_ = collateralAsset;
         IClearingHouse clearingHouse_ = clearingHouse;
         uint256 accountId_ = accountId;
@@ -373,4 +372,15 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
         }
         return _amount;
     }
+    /// @dev keepers, managers or governors can access
+	function _isKeeper() internal view {
+		if (
+            !keeper[msg.sender] && 
+            msg.sender != authority.governor() && 
+            msg.sender != authority.manager() && 
+            msg.sender != parentLiquidityPool) 
+            {
+			revert CustomErrors.NotKeeper();
+		}
+	}
 }

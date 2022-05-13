@@ -37,10 +37,10 @@ abstract contract AccessControl {
     }
 
     function _onlyGuardian() internal view {
-        if (!authority.guardian(msg.sender) || msg.sender != authority.governor()) revert UNAUTHORIZED();
+        if (!authority.guardian(msg.sender) && msg.sender != authority.governor()) revert UNAUTHORIZED();
     }
 
     function _onlyManager() internal view {
-        if (msg.sender != authority.manager() || msg.sender != authority.governor()) revert UNAUTHORIZED();
+        if (msg.sender != authority.manager() && msg.sender != authority.governor()) revert UNAUTHORIZED();
     }
 }
