@@ -202,6 +202,12 @@ export async function calculateOptionQuoteLocally(
 		USDC_ADDRESS[chainId]
 	)
 	const priceNorm = fromWei(underlyingPrice)
+	const iv = await liquidityPool.getImpliedVolatility(
+		optionSeries.isPut,
+		underlyingPrice,
+		optionSeries.strike,
+		optionSeries.expiration
+	)
 	const maxDiscount = ethers.utils.parseUnits("1", 17) // 10%
 
 	const NAV = await liquidityPool.getNAV()
@@ -215,7 +221,7 @@ export async function calculateOptionQuoteLocally(
 		amount,
 		!toBuy
 	)
-	// optionDelta will already be inverted is we are selling it
+	// optionDelta will already be inverted if we are selling it
 	const portfolioDeltaAfter = portfolioDeltaBefore.add(optionDelta)
 	const portfolioDeltaIsDecreased = portfolioDeltaAfter.abs().sub(portfolioDeltaBefore.abs()).lt(0)
 	const normalisedDelta = portfolioDeltaBefore
@@ -243,14 +249,6 @@ export async function calculateOptionQuoteLocally(
 	const utilizationAfter =
 		tFormatUSDC(collateralAllocated.add(liquidityAllocated)) /
 		tFormatUSDC(collateralAllocated.add(lpUSDBalance))
-
-	const iv = await liquidityPool.getImpliedVolatility(
-		optionSeries.isPut,
-		underlyingPrice,
-		optionSeries.strike,
-		optionSeries.expiration
-	)
-
 	const localBS =
 		bs.blackScholes(
 			priceNorm,
@@ -266,12 +264,21 @@ export async function calculateOptionQuoteLocally(
 	// if delta exposure reduces, subtract delta skew from  pricequotes
 	if (portfolioDeltaIsDecreased) {
 		const newOptionPrice = localBS - deltaTiltAmount * localBS
-		utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
+		if (toBuy) {
+			utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
+		} else {
+			utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
+		}
 		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
 		// if delta exposure increases, add delta skew to price quotes
 	} else {
 		const newOptionPrice = localBS + deltaTiltAmount * localBS
-		utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
+		if (toBuy) {
+			utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
+		} else {
+			utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
+		}
+
 		return utilizationPrice > newOptionPrice ? utilizationPrice : newOptionPrice
 	}
 }

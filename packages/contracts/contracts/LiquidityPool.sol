@@ -776,10 +776,9 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 			quoteState.utilizationBefore = collateralAllocated.div(
 				collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
 			);
-			IOptionRegistry optionRegistry = getOptionRegistry();
 			optionSeries.strike = optionSeries.strike / 1e10;
 			// returns collateral decimals
-			quoteState.collateralToAllocate = optionRegistry.getCollateral(optionSeries, amount);
+			quoteState.collateralToAllocate = getOptionRegistry().getCollateral(optionSeries, amount);
 
 			quoteState.utilizationAfter = (quoteState.collateralToAllocate + collateralAllocated).div(
 				collateralAllocated + ERC20(collateralAsset).balanceOf(address(this))
@@ -797,16 +796,25 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		} else {
 			// do not use utlilization premium for buybacks
 			quoteState.utilizationPrice = quoteState.totalOptionPrice;
+			console.log("bsPrice:", quoteState.utilizationPrice);
 		}
 		if (quoteState.isDecreased) {
-			quote =
+			quote = toBuy ?
+				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) +
+				quoteState.utilizationPrice
+				:
 				quoteState.utilizationPrice -
 				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice);
+				
 		} else {
 			// increase utilization by delta tilt factor for moving delta away from zero
-			quote =
+			quote = toBuy ?
+				quoteState.utilizationPrice -
+				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice)
+				:
 				quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) +
 				quoteState.utilizationPrice;
+			console.log("quote: ", quote);
 		}
 		quote = OptionsCompute.convertToCollateralDenominated(
 			quote,
