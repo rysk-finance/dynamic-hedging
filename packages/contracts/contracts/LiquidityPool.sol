@@ -299,11 +299,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		handler[_handler] = auth;
 	}
 
-    /// @notice update the keepers
-    function setKeeper(address _keeper, bool _auth) external {
-        _onlyGovernor();
-        keeper[_keeper] = _auth;
-    }
+	/// @notice update the keepers
+	function setKeeper(address _keeper, bool _auth) external {
+		_onlyGovernor();
+		keeper[_keeper] = _auth;
+	}
 
 	/**
 		@notice sets the parameters for the function that determines the utilization price factor
@@ -336,9 +336,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice function for hedging portfolio delta through external means
 	 * @param delta the current portfolio delta
 	 */
-	function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex)
-		external
-	{
+	function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex) external {
 		_onlyManager();
 		IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
 	}
@@ -770,6 +768,14 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		}
 	}
 
+	/**
+		@notice applies a utilization premium when the protocol is selling options.
+		Stores the utilization price in quoteState.utilizationPrice for use in quotePriceWithUtilizationGreeks
+		@param quoteState the struct created in quoteStateWithUtilizationGreeks to store memory variables
+		@param optionSeries the option type for which we are quoting a price
+		@param amount the amount of options. e18
+		@param toBuy whether we are buying an option. False if selling 
+	 */
 	function addUtilizationPremium(
 		UtilizationState memory quoteState,
 		Types.OptionSeries memory optionSeries,
@@ -808,6 +814,14 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		}
 	}
 
+	/** 
+		@notice Applies a discount or premium based on the liquidity pool's delta exposure
+		Gives discount if the transaction results in a lower delta exposure for the liquidity pool.
+		Prices option more richly if the transaction results in higher delta exposure for liquidity pool.
+		@param quoteState the struct created in quoteStateWithUtilizationGreeks to store memory variables
+		@param toBuy whether we are buying an option. False if selling
+		@return quote the quote for the option with the delta skew applied
+	 */
 	function applyDeltaSkew(UtilizationState memory quoteState, bool toBuy)
 		internal
 		view
@@ -1242,19 +1256,24 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	{
 		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
+
 	function _isTradingPaused() internal view {
 		if (isTradingPaused) {
 			revert CustomErrors.TradingPaused();
 		}
 	}
+
 	function _isHandler() internal view {
 		if (!handler[msg.sender]) {
 			revert CustomErrors.NotHandler();
 		}
 	}
+
 	/// @dev keepers, managers or governors can access
 	function _isKeeper() internal view {
-		if (!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()) {
+		if (
+			!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()
+		) {
 			revert CustomErrors.NotKeeper();
 		}
 	}
