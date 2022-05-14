@@ -15,11 +15,15 @@ All contracts below inherit Ownable so all contracts have an OWNER
     - bufferPercentage [the collateral amount percentage that must be left in the pool]: OWNER
     - hedgingReactors [hedging reactors used for hedging delta with new derivatives]: OWNER
     - collateralCap [max amount of collateral allowed]: OWNER
-    - maxDiscount [max discount allowed for options prices because of delta skew]: OWNER
-    - bidAskIVSpread [the implied volatility difference for when selling options back to the pool]: OWNER
+    - maxDiscount [max discount allowed for options prices because of delta skew]: OWNER, MANAGER
+    - bidAskIVSpread [the implied volatility difference for when selling options back to the pool]: MANAGER, OWNER
     - optionParams [options value range for options that the pool can write]: OWNER
     - riskFreeRate [rate used for options calculation]: OWNER
     - handler [authorised contracts that can interact with liquidityPool options writing capabilities]: OWNER
+    - maxTimeDeviationThreshold [time window after which a portfolio feed update gets stale]: OWNER
+    - maxPriceDeviationThreshold [price window after which a portfolio feed update gets stale]: OWNER
+    - utilizationSkewParams [parameters used for the quote price pricing mechanism]: OWNER, MANAGER
+    - keeper [authorised specified function caller]: OWNER
 - LiquidityPool rebalancePortfolioDelta: OWNER, MANAGER
 - LiquidityPool settleVault: OWNER, MANAGER, KEEPER 
 - LiquidityPool pauseTradingAndRequest: OWNER, MANAGER, KEEPER
@@ -53,8 +57,6 @@ All contracts below inherit Ownable so all contracts have an OWNER
 - PortfolioValuesFeed setters: OWNER
     - liquidityPool [liquidityPool contract authorised to interact with options capabilitites]: OWNER
     - stringedAddresses [address to string asset mappings]: OWNER
-    - maxTimeDeviationThreshold [time window after which a portfolio feed update gets stale]: OWNER
-    - maxPriceDeviationThreshold [price window after which a portfolio feed update gets stale]: OWNER
 - PortfolioValuesFeed withdrawLink: OWNER
 
 ## PriceFeed
@@ -65,10 +67,10 @@ All contracts below inherit Ownable so all contracts have an OWNER
 
 
 ## VolatilityFeed
-### (OWNER)
+### (OWNER, MANAGER)
 
-- VolatilityFeed setters: OWNER
-    - volatilitySkew [the volatility skew used for puts and calls]: OWNER
+- VolatilityFeed setters: OWNER. MANAGER
+    - volatilitySkew [the volatility skew used for puts and calls]: OWNER, MANAGER
 
 ## Protocol
 ### (OWNER)

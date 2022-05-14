@@ -8,15 +8,16 @@ import "./VolatilityFeed.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
 import "./libraries/CustomErrors.sol";
+import "./libraries/AccessControl.sol";
 import "./libraries/SafeTransferLib.sol";
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+
 import "hardhat/console.sol";
 
-contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausable {
+contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
 
@@ -90,13 +91,13 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	uint256 aboveThresholdYIntercept = 84e16; //-0.84
 	// the percentage utilization above which the function moves from its shallow line to its steep line. e18
 	uint256 utilizationFunctionThreshold = 6e17; // 60%
+	// keeper mapping
+	mapping(address => bool) public keeper;
 
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
 
-	// Access control role identifier
-	bytes32 private constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
 
@@ -157,10 +158,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		string memory name,
 		string memory symbol,
 		Types.OptionParams memory _optionParams,
-		address adminAddress
-	) ERC20(name, symbol, 18) {
-		// Grant admin role to deployer
-		_setupRole(ADMIN_ROLE, adminAddress);
+		address _authority
+	) ERC20(name, symbol, 18) AccessControl(IAuthority(_authority)) {
 		strikeAsset = _strikeAsset;
 		riskFreeRate = rfr;
 		underlyingAsset = _underlyingAsset;
@@ -175,15 +174,18 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	/// setters ///
 	///////////////
 
-	function pauseContract() external onlyOwner {
+	function pauseContract() external {
+		_onlyGuardian();
 		_pause();
 	}
 
-	function pauseUnpauseTrading(bool _pause) external onlyOwner {
+	function pauseUnpauseTrading(bool _pause) external {
+		_onlyGuardian();
 		isTradingPaused = _pause;
 	}
 
-	function unpause() external onlyOwner {
+	function unpause() external {
+		_onlyGuardian();
 		_unpause();
 	}
 
@@ -192,7 +194,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 * @param _reactorAddress append a new hedging reactor
 	 * @dev   only governance can call this function
 	 */
-	function setHedgingReactorAddress(address _reactorAddress) external onlyOwner {
+	function setHedgingReactorAddress(address _reactorAddress) external {
+		_onlyGovernor();
 		hedgingReactors.push(_reactorAddress);
 		SafeTransferLib.safeApprove(ERC20(collateralAsset), _reactorAddress, type(uint256).max);
 	}
@@ -202,7 +205,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 * @param _index remove a hedging reactor
 	 * @dev   only governance can call this function
 	 */
-	function removeHedgingReactorAddress(uint256 _index) external onlyOwner {
+	function removeHedgingReactorAddress(uint256 _index) external {
+		_onlyGovernor();
 		SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors[_index], 0);
 		for (uint256 i = _index; i < hedgingReactors.length - 1; i++) {
 			hedgingReactors[i] = hedgingReactors[i + 1];
@@ -220,7 +224,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		uint128 _newMaxPutStrike,
 		uint128 _newMinExpiry,
 		uint128 _newMaxExpiry
-	) external onlyOwner {
+	) external {
+		_onlyGovernor();
 		optionParams.minCallStrikePrice = _newMinCallStrike;
 		optionParams.maxCallStrikePrice = _newMaxCallStrike;
 		optionParams.minPutStrikePrice = _newMinPutStrike;
@@ -233,7 +238,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 * @notice set the bid ask spread used to price option buying
 	 * @param _bidAskSpread the bid ask spread to update to
 	 */
-	function setBidAskSpread(uint256 _bidAskSpread) external onlyOwner {
+	function setBidAskSpread(uint256 _bidAskSpread) external {
+		_onlyManager();
 		bidAskIVSpread = _bidAskSpread;
 	}
 
@@ -242,7 +248,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 * @param _maxDiscount of the option as a percentage in 1e18 format. ie: 1*e18 == 1%
 	 * @dev   only governance can call this function
 	 */
-	function setMaxDiscount(uint256 _maxDiscount) external onlyOwner {
+	function setMaxDiscount(uint256 _maxDiscount) external {
+		_onlyManager();
 		maxDiscount = _maxDiscount;
 	}
 
@@ -251,7 +258,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 * @param _collateralCap of the collateral held
 	 * @dev   only governance can call this function
 	 */
-	function setCollateralCap(uint256 _collateralCap) external onlyOwner {
+	function setCollateralCap(uint256 _collateralCap) external {
+		_onlyGovernor();
 		collateralCap = _collateralCap;
 	}
 
@@ -259,7 +267,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 * @notice update the liquidity pool buffer limit
 	 * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of total NAV. (for 20% enter 2000)
 	 */
-	function setBufferPercentage(uint256 _bufferPercentage) external onlyOwner {
+	function setBufferPercentage(uint256 _bufferPercentage) external {
+		_onlyGovernor();
 		bufferPercentage = _bufferPercentage;
 	}
 
@@ -267,24 +276,34 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 * @notice update the liquidity pool risk free rate
 	 * @param _riskFreeRate the risk free rate of the market
 	 */
-	function setRiskFreeRate(uint256 _riskFreeRate) external onlyOwner {
+	function setRiskFreeRate(uint256 _riskFreeRate) external {
+		_onlyGovernor();
 		riskFreeRate = _riskFreeRate;
 	}
 
-	function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external onlyOwner {
+	function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external {
+		_onlyGovernor();
 		maxTimeDeviationThreshold = _maxTimeDeviationThreshold;
 	}
 
-	function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold) external onlyOwner {
+	function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold) external {
+		_onlyGovernor();
 		maxPriceDeviationThreshold = _maxPriceDeviationThreshold;
 	}
 
 	/**
 	 * @notice change the status of a handler
 	 */
-	function changeHandler(address _handler, bool auth) external onlyOwner {
+	function changeHandler(address _handler, bool auth) external {
+		_onlyGovernor();
 		handler[_handler] = auth;
 	}
+
+    /// @notice update the keepers
+    function setKeeper(address _keeper, bool _auth) external {
+        _onlyGovernor();
+        keeper[_keeper] = _auth;
+    }
 
 	/**
 		@notice sets the parameters for the function that determines the utilization price factor
@@ -301,7 +320,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		uint256 _aboveThresholdGradient,
 		uint256 _aboveThresholdYIntercept,
 		uint256 _utilizationFunctionThreshold
-	) external onlyOwner {
+	) external {
+		_onlyManager();
 		belowThresholdGradient = _belowThresholdGradient;
 		aboveThresholdGradient = _aboveThresholdGradient;
 		aboveThresholdYIntercept = _aboveThresholdYIntercept;
@@ -318,9 +338,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 */
 	function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex)
 		external
-		onlyRole(ADMIN_ROLE)
-		whenNotPaused
 	{
+		_onlyManager();
 		IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
 	}
 
@@ -350,7 +369,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
     @param seriesAddress the address of the oToken vault to close
     @return collatReturned the amount of collateral returned to the liquidity pool.
   */
-	function settleVault(address seriesAddress) public onlyRole(ADMIN_ROLE) returns (uint256) {
+	function settleVault(address seriesAddress) public returns (uint256) {
+		_isKeeper();
 		// get number of options in vault and collateral returned to recalculate our position without these options
 		// returns in collat decimals, collat decimals and e8
 		(, uint256 collatReturned, uint256 collatLost, ) = getOptionRegistry().settle(seriesAddress);
@@ -367,7 +387,7 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 * @dev only callable by a handler contract
 	 */
 	function handlerIssue(Types.OptionSeries memory optionSeries) external returns (address) {
-		require(handler[msg.sender]);
+		_isHandler();
 		// series strike in e18
 		return _issue(optionSeries, getOptionRegistry());
 	}
@@ -392,10 +412,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		int256 delta,
 		address recipient
 	) external returns (uint256) {
-		if (isTradingPaused) {
-			revert CustomErrors.TradingPaused();
-		}
-		require(handler[msg.sender]);
+		_isTradingPaused();
+		_isHandler();
 		return
 			_writeOption(
 				optionSeries, // series strike in e8
@@ -425,10 +443,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		int256 delta,
 		address recipient
 	) external returns (uint256, address) {
-		if (isTradingPaused) {
-			revert CustomErrors.TradingPaused();
-		}
-		require(handler[msg.sender]);
+		_isTradingPaused();
+		_isHandler();
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		// series strike passed in as e18
 		address seriesAddress = _issue(optionSeries, optionRegistry);
@@ -469,10 +485,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		int256 delta,
 		address seller
 	) external returns (uint256) {
-		if (isTradingPaused) {
-			revert CustomErrors.TradingPaused();
-		}
-		require(handler[msg.sender]);
+		_isTradingPaused();
+		_isHandler();
 		// strike passed in as e8
 		return
 			_buybackOption(optionSeries, amount, optionRegistry, seriesAddress, premium, delta, seller);
@@ -492,7 +506,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 * @notice reset the temporary portfolio and delta values that have been changed since the last oracle update
 	 * @dev    this function must be called in order to execute an epoch calculation
 	 */
-	function pauseTradingAndRequest() external onlyOwner returns (bytes32) {
+	function pauseTradingAndRequest() external returns (bytes32) {
+		_isKeeper();
 		// pause trading
 		isTradingPaused = true;
 		// make an oracle request
@@ -503,7 +518,8 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 	 * @notice execute the epoch and set all the price per shares
 	 * @dev    this function must be called in order to execute an epoch calculation and batch a mutual fund epoch
 	 */
-	function executeEpochCalculation() external whenNotPaused onlyOwner {
+	function executeEpochCalculation() external whenNotPaused {
+		_isKeeper();
 		if (!isTradingPaused) {
 			revert CustomErrors.TradingNotPaused();
 		}
@@ -1225,5 +1241,21 @@ contract LiquidityPool is ERC20, Ownable, AccessControl, ReentrancyGuard, Pausab
 		returns (uint256)
 	{
 		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
+	}
+	function _isTradingPaused() internal view {
+		if (isTradingPaused) {
+			revert CustomErrors.TradingPaused();
+		}
+	}
+	function _isHandler() internal view {
+		if (!handler[msg.sender]) {
+			revert CustomErrors.NotHandler();
+		}
+	}
+	/// @dev keepers, managers or governors can access
+	function _isKeeper() internal view {
+		if (!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()) {
+			revert CustomErrors.NotKeeper();
+		}
 	}
 }

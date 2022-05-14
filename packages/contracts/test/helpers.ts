@@ -255,7 +255,6 @@ export async function calculateOptionQuoteLocally(
 		tFormatUSDC(collateralAllocated.add(liquidityAllocated)) /
 		tFormatUSDC(collateralAllocated.add(lpUSDBalance))
 	const bidAskSpread = tFormatEth(await liquidityPool.bidAskIVSpread())
-
 	const localBS =
 		bs.blackScholes(
 			priceNorm,
