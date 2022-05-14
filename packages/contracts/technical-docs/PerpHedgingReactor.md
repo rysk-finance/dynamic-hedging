@@ -12,7 +12,7 @@ The pool uses a Chainlink Price feed Oracle for internal price calculations. Rag
 
 ## Function by Function
 
-### ```initialiseReactor() external onlyOwner```
+### ```initialiseReactor() external ***Direct NonTrustedAccessible***```
 
 initialise the reactor by adding 1 wei of collateral to the clearing house margin account. This ensures that the margin account exists (if it drops to 0 then the margin account will not exist which will cause other functionality to fail). Thus initialise reactor can be called so long as a margin account doesnt exist.
 

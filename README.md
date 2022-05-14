@@ -95,18 +95,32 @@ npm run start
 
 <!-- USAGE EXAMPLES -->
 
-## Usage
+## Testing Contracts
 
-List of options
+Complete steps 1 to 3 from above:
+
+Compile all files
 
 ```sh
-npx hardhat
+npm run compile
 ```
 
-Run tests
+Run all tests
 
 ```sh
 npx hardhat test
+```
+
+To run a specific test suite, e.g. LiquidityPool.ts
+
+```sh
+npx hardhat test test/LiquidityPool.ts
+```
+
+Run test coverage
+
+```sh
+npm run test-coverage
 ```
 
 ## Contract Architecture
