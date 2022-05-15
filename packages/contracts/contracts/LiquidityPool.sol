@@ -218,8 +218,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 	/**
 	 * @notice update all optionParam variables for max and min strikes and max and 
-   *         min expiries for options that the DHV can issue
-   * @dev   only management or above can call this function
+     *         min expiries for options that the DHV can issue
+     * @dev   only management or above can call this function
 	 */
 	function setNewOptionParams(
 		uint128 _newMinCallStrike,
@@ -241,7 +241,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice set the bid ask spread used to price option buying
 	 * @param _bidAskSpread the bid ask spread to update to
-   * @dev   only management or above can call this function
+     * @dev   only management or above can call this function
 	 */
 	function setBidAskSpread(uint256 _bidAskSpread) external {
 		_onlyManager();
@@ -271,7 +271,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice update the liquidity pool buffer limit
 	 * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of total NAV. (for 20% enter 2000)
-   * @dev   only governance can call this function
+     * @dev   only governance can call this function
 	 */
 	function setBufferPercentage(uint256 _bufferPercentage) external {
 		_onlyGovernor();
@@ -328,7 +328,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 *  @param _aboveThresholdGradient the gradient of the line above the utilization threshold. e18
 	 *	@param _aboveThresholdYIntercept the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold. Will always be negative but enter the absolute value
 	 *  @param _utilizationFunctionThreshold the percentage utilization above which the function moves from its shallow line to its steep line
-   */
+     */
 	function setUtilizationSkewParams(
 		uint256 _belowThresholdGradient,
 		uint256 _aboveThresholdGradient,
@@ -349,7 +349,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice function for hedging portfolio delta through external means
 	 * @param delta the current portfolio delta
-   * @param reactorIndex the index of the reactor in the hedgingReactors array to use
+     * @param reactorIndex the index of the reactor in the hedgingReactors array to use
 	 */
 	function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex) external {
 		_onlyManager();
@@ -357,11 +357,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	/**
-   * @notice adjust the collateral held in a specific vault because of health
-   * @param lpCollateralDifference amount of collateral taken from or given to the liquidity pool in collateral decimals
-   * @param addToLpBalance true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool
-   * @dev   called by the option registry only
-   */
+     * @notice adjust the collateral held in a specific vault because of health
+     * @param lpCollateralDifference amount of collateral taken from or given to the liquidity pool in collateral decimals
+     * @param addToLpBalance true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool
+     * @dev   called by the option registry only
+     */
 	function adjustCollateral(uint256 lpCollateralDifference, bool addToLpBalance) external {
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		require(msg.sender == address(optionRegistry));
@@ -379,10 +379,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	/**
-   * @notice closes an oToken vault, returning collateral (minus ITM option expiry value) back to the pool
-   * @param seriesAddress the address of the oToken vault to close
-   * @return collatReturned the amount of collateral returned to the liquidity pool, assumes in collateral decimals
-   */
+     * @notice closes an oToken vault, returning collateral (minus ITM option expiry value) back to the pool
+     * @param seriesAddress the address of the oToken vault to close
+     * @return collatReturned the amount of collateral returned to the liquidity pool, assumes in collateral decimals
+     */
 	function settleVault(address seriesAddress) public returns (uint256) {
 		_isKeeper();
 		// get number of options in vault and collateral returned to recalculate our position without these options
@@ -508,9 +508,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	/**
-    @notice reset the temporary portfolio and delta values that have been changed since the last oracle update
-    @dev    only callable by the portfolio values feed oracle contract
-  */
+     * @notice reset the temporary portfolio and delta values that have been changed since the last oracle update
+     * @dev    only callable by the portfolio values feed oracle contract
+     */
 	function resetEphemeralValues() external {
 		require(msg.sender == address(getPortfolioValuesFeed()));
 		delete ephemeralLiabilities;
@@ -608,7 +608,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		emit InitiateWithdraw(msg.sender, _shares, currentEpoch);
 		uint256 existingShares = withdrawalReceipt.shares;
 		uint256 withdrawalShares;
-    // if they already have an initiated withdrawal from this round just increment
+    	// if they already have an initiated withdrawal from this round just increment
 		if (withdrawalReceipt.epoch == currentEpoch) {
 			withdrawalShares = existingShares + _shares;
 		} else {
@@ -1176,16 +1176,16 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	/**
-   * @notice buys a number of options back and burns the tokens
-   * @param optionSeries the option token series to buyback - strike passed in as e8
-   * @param amount the number of options to buyback expressed in 1e18
-   * @param optionRegistry the registry
-   * @param seriesAddress the series being sold
-   * @param premium the premium to be sent back to the owner (in collat decimals)
-   * @param delta the delta of the option
-   * @param seller the address 
-   * @return the number of options burned in e18
-   */
+     * @notice buys a number of options back and burns the tokens
+     * @param optionSeries the option token series to buyback - strike passed in as e8
+	 * @param amount the number of options to buyback expressed in 1e18
+	 * @param optionRegistry the registry
+	 * @param seriesAddress the series being sold
+	 * @param premium the premium to be sent back to the owner (in collat decimals)
+	 * @param delta the delta of the option
+	 * @param seller the address 
+	 * @return the number of options burned in e18
+	 */
 	function _buybackOption(
 		Types.OptionSeries memory optionSeries,
 		uint256 amount,
