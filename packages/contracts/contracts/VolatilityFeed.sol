@@ -18,6 +18,8 @@ contract VolatilityFeed is AccessControl {
     int[7] public callsVolatilitySkew;
     // skew parameters for puts
     int[7] public putsVolatilitySkew;
+	// keeper mapping
+	mapping(address => bool) public keeper;
 
     //////////////////////////
     /// constant variables ///
@@ -40,7 +42,7 @@ contract VolatilityFeed is AccessControl {
   function setVolatilitySkew(int[7] calldata values, bool isPut)
       external
   {
-      _onlyManager();
+      _isKeeper();
       if (!isPut) {
           callsVolatilitySkew = values;
       } else {
@@ -48,6 +50,11 @@ contract VolatilityFeed is AccessControl {
       }
   }
 
+  /// @notice update the keepers
+  function setKeeper(address _keeper, bool _auth) external {
+		_onlyGovernor();
+		keeper[_keeper] = _auth;
+  }
     
   ///////////////////////
   /// complex getters ///
@@ -110,4 +117,13 @@ contract VolatilityFeed is AccessControl {
         int c4PlusC5 = coef[4].mul(points[0].mul(points[0])) + (coef[5].mul(points[0]).mul(points[1]));
         return iPlusC1 + c2PlusC3 + c4PlusC5 + (coef[6].mul(points[1].mul(points[1])));
     }
+
+    /// @dev keepers, managers or governors can access
+	function _isKeeper() internal view {
+		if (
+			!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()
+		) {
+			revert();
+		}
+	}
 }
