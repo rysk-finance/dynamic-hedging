@@ -574,7 +574,7 @@ describe("Liquidity Pools", async () => {
 			0.01
 		)
 	})
-	it("can issue a series", async function () {
+	it("can issue a put series", async function () {
 		const series = await handler.callStatic.issue(proposedSeries)
 		await handler.issue(proposedSeries)
 		const structSeries = await optionRegistry.getSeriesInfo(series)
@@ -585,6 +585,38 @@ describe("Liquidity Pools", async () => {
 		expect(structSeries.underlying).to.equal(proposedSeries.underlying)
 		expect(structSeries.strike).to.equal(
 			await optionRegistry.formatStrikePrice(proposedSeries.strike, proposedSeries.collateral)
+		)
+		const issuance = await optionRegistry.getIssuanceHash(await optionRegistry.getSeriesInfo(series))
+		const seriesAddy = await optionRegistry.getSeriesAddress(issuance)
+		expect(seriesAddy).to.equal(series)
+	})
+	it("can issue a call series", async function () {
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.add(toWei(strike))
+		const series = await handler.callStatic.issue({
+			expiration: expiration,
+			strike: BigNumber.from(strikePrice),
+			isPut: CALL_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		})
+		await handler.issue({
+			expiration: expiration,
+			strike: BigNumber.from(strikePrice),
+			isPut: CALL_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		})
+		const structSeries = await optionRegistry.getSeriesInfo(series)
+		expect(structSeries.expiration).to.equal(proposedSeries.expiration)
+		expect(structSeries.isPut).to.equal(false)
+		expect(structSeries.collateral).to.equal(proposedSeries.collateral)
+		expect(structSeries.strikeAsset).to.equal(proposedSeries.strikeAsset)
+		expect(structSeries.underlying).to.equal(proposedSeries.underlying)
+		expect(structSeries.strike).to.equal(
+			await optionRegistry.formatStrikePrice(BigNumber.from(strikePrice), proposedSeries.collateral)
 		)
 		const issuance = await optionRegistry.getIssuanceHash(await optionRegistry.getSeriesInfo(series))
 		const seriesAddy = await optionRegistry.getSeriesAddress(issuance)
