@@ -91,6 +91,7 @@ let putOptionToken2: IOToken
 let collateralAllocatedToVault1: BigNumber
 let proposedSeries: any
 let handler: OptionHandler
+let authority: string
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -103,7 +104,7 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 // First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
 
-const invalidExpiryDateLong: string = "2024-09-03"
+const invalidExpiryDateLong: string = "2022-04-22"
 const invalidExpiryDateShort: string = "2022-03-01"
 // decimal representation of a percentage
 const rfr: string = "0.03"
@@ -133,7 +134,7 @@ const maxPutStrikePrice = utils.parseEther("10000")
 // one week in seconds
 const minExpiry = 86400 * 7
 // 365 days in seconds
-const maxExpiry = 86400 * 365
+const maxExpiry = 86400 * 50
 
 // time travel period between each expiry
 const expiryPeriod = {
@@ -145,22 +146,21 @@ const expiryPeriod = {
 const productSpotShockValue = scaleNum("0.6", 27)
 // array of time to expiry
 const day = 60 * 60 * 24
-const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56]
+const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56, day * 84]
 // array of upper bound value correspond to time to expiry
 const expiryToValue = [
 	scaleNum("0.1678", 27),
 	scaleNum("0.237", 27),
 	scaleNum("0.3326", 27),
 	scaleNum("0.4032", 27),
-	scaleNum("0.4603", 27)
+	scaleNum("0.4603", 27),
+	scaleNum("0.5", 27)
 ]
 
 /* --- end variables to change --- */
 
 const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
-const expiration3 = moment.utc(expiryDate).add(2, "w").add(8, "h").valueOf() / 1000
-const expiration4 = moment.utc(expiryDate).add(3, "w").add(8, "h").valueOf() / 1000
 const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
 const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
 
@@ -219,6 +219,7 @@ describe("Liquidity Pools", async () => {
 		volFeed = deployParams.volFeed
 		portfolioValuesFeed = deployParams.portfolioValuesFeed
 		optionProtocol = deployParams.optionProtocol
+		authority = deployParams.authority.address
 		let lpParams = await deployLiquidityPool(
 			signers,
 			optionProtocol,
@@ -232,7 +233,8 @@ describe("Liquidity Pools", async () => {
 			minExpiry,
 			maxExpiry,
 			optionRegistry,
-			portfolioValuesFeed
+			portfolioValuesFeed,
+			authority
 		)
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
@@ -331,7 +333,8 @@ describe("Liquidity Pools", async () => {
 			WETH_ADDRESS[chainId],
 			liquidityPool.address,
 			3000,
-			priceFeed.address
+			priceFeed.address,
+			authority
 		)) as UniswapV3HedgingReactor
 
 		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")
@@ -358,9 +361,12 @@ describe("Liquidity Pools", async () => {
 
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			optionSeries,
-			amount
+			amount,
+			false
 		)
 
 		const quote = (
@@ -373,7 +379,8 @@ describe("Liquidity Pools", async () => {
 					underlying: weth.address,
 					collateral: usd.address
 				},
-				amount
+				amount,
+				false
 			)
 		)[0]
 		const truncQuote = truncate(localQuote)
@@ -400,13 +407,15 @@ describe("Liquidity Pools", async () => {
 
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			optionSeries,
 			amount,
 			true
 		)
 
-		const buyQuotes = await liquidityPool.quotePriceBuying(optionSeries, amount)
+		const buyQuotes = await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
 		const buyQuote = buyQuotes[0]
 		const truncQuote = truncate(localQuote)
 		const chainQuote = tFormatEth(buyQuote.toString())
@@ -430,8 +439,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount))[0]
-		await usd.approve(handler.address, quote)
+		await usd.approve(handler.address, toWei("1000000000"))
 		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
@@ -444,8 +452,7 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount))[0]
-		await usd.approve(handler.address, quote2)
+		await usd.approve(handler.address, toWei("1000000000"))
 		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
@@ -468,8 +475,8 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount))[0]
-		await usd.approve(handler.address, quote)
+		// const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount, false))[0]
+		await usd.approve(handler.address, toWei("100000000"))
 		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
@@ -483,12 +490,11 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount))[0]
-		await usd.approve(handler.address, quote2)
+		// const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount, false))[0]
+		await usd.approve(handler.address, toWei("100000000"))
 		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
-
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
 		// check to make sure no balances have changed
@@ -501,7 +507,6 @@ describe("Liquidity Pools", async () => {
 		expect(delta).to.equal(0)
 	})
 	it("LP Writes a ETH/USD put for premium", async () => {
-		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const [sender] = signers
 		const amount = toWei("5")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -514,7 +519,12 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		const [quote, delta] = await liquidityPool.quotePriceWithUtilizationGreeks(
+			proposedSeries,
+			amount,
+			false
+		)
+
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
@@ -557,6 +567,12 @@ describe("Liquidity Pools", async () => {
 		expect(
 			tFormatUSDC(collateralAllocatedDiff) - tFormatUSDC(expectedCollateralAllocated)
 		).to.be.within(-0.001, 0.001)
+		// check ephemeral values update correctly
+		expect(tFormatEth(await liquidityPool.ephemeralDelta())).to.equal(-tFormatEth(delta))
+		expect(tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatEth(quote)).to.be.within(
+			-0.01,
+			0.01
+		)
 	})
 	it("can issue a series", async function () {
 		const series = await handler.callStatic.issue(proposedSeries)
@@ -575,7 +591,8 @@ describe("Liquidity Pools", async () => {
 		expect(seriesAddy).to.equal(series)
 	})
 	it("can compute portfolio delta", async function () {
-		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		expect(await liquidityPool.ephemeralDelta()).to.not.eq(0)
+		expect(await liquidityPool.ephemeralLiabilities()).to.not.eq(0)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
@@ -597,12 +614,16 @@ describe("Liquidity Pools", async () => {
 		)
 		const delta = await liquidityPool.getPortfolioDelta()
 		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
+		// expect ephemeral values to be reset
+		expect(await liquidityPool.ephemeralDelta()).to.eq(0)
+		expect(await liquidityPool.ephemeralLiabilities()).to.eq(0)
 	})
 	it("writes more options for an existing series", async () => {
-		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
+		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 		const amount = toWei("12")
 		const putBalance = await putOptionToken.balanceOf(senderAddress)
-		const LpBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const LpBalanceBefore = tFormatUSDC(await usd.balanceOf(liquidityPool.address))
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const numberOTokensMintedBefore = await putOptionToken.totalSupply()
 
@@ -617,14 +638,17 @@ describe("Liquidity Pools", async () => {
 			underlying: seriesInfo.underlying,
 			collateral: seriesInfo.collateral
 		}
-		const quote = utils.formatUnits(
-			(await liquidityPool.quotePriceWithUtilizationGreeks(seriesInfoDecimalCorrected, amount))[0],
-			12
-		)
+		const quote = (
+			await liquidityPool.quotePriceWithUtilizationGreeks(seriesInfoDecimalCorrected, amount, false)
+		)[0]
+
+		const delta = (
+			await liquidityPool.quotePriceWithUtilizationGreeks(seriesInfoDecimalCorrected, amount, false)
+		)[1]
 		await handler.writeOption(putOptionToken.address, amount)
 
 		const putBalanceAfter = await putOptionToken.balanceOf(senderAddress)
-		const LpBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const LpBalanceAfter = tFormatUSDC(await usd.balanceOf(liquidityPool.address))
 		const numberOTokensMintedAfter = await putOptionToken.totalSupply()
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const collateralAllocatedDiff = collateralAllocatedAfter.sub(collateralAllocatedBefore)
@@ -633,14 +657,19 @@ describe("Liquidity Pools", async () => {
 		// LP USDC balance after should equal balanceBefore, minus collateral allocated, plus premium quote.
 		// This does have a small rounding discrepency that might need looking into
 		expect(
-			LpBalanceAfter.sub(
-				LpBalanceBefore.add(BigNumber.from(parseInt(quote))).sub(collateralAllocatedDiff)
-			)
-		).to.be.within(-1000, 1000)
+			LpBalanceAfter - LpBalanceBefore - (tFormatEth(quote) - tFormatUSDC(collateralAllocatedDiff))
+		).to.be.within(-0.001, 0.001)
 		// check number of OTokens minted increases
 		expect(numberOTokensMintedAfter).to.eq(numberOTokensMintedBefore.add(amount.div(1e10)))
 		// check expected amount of collateral was used
 		expect(expectedCollateralAllocated).to.eq(collateralAllocatedDiff)
+		// check ephemeral values update correctly
+		const ephemeralLiabilitiesDiff =
+			tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatEth(ephemeralLiabilitiesBefore)
+		const ephemeralDeltaDiff =
+			tFormatEth(await liquidityPool.ephemeralDelta()) - tFormatEth(ephemeralDeltaBefore)
+		expect(ephemeralDeltaDiff).to.equal(-tFormatEth(delta))
+		expect(ephemeralLiabilitiesDiff - tFormatEth(quote)).to.be.within(-0.01, 0.01)
 	})
 	it("pauses and unpauses handler contract", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
@@ -657,6 +686,8 @@ describe("Liquidity Pools", async () => {
 		expect(await handler.paused()).to.eq(false)
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
+		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
+		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const [sender] = signers
 		const amount = toWei("8")
@@ -684,13 +715,19 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			proposedSeries,
 			amount
 		)
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
-		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		const [quote, delta] = await liquidityPool.quotePriceWithUtilizationGreeks(
+			proposedSeries,
+			amount,
+			false
+		)
 		await usd.approve(handler.address, quote)
 		const buyerUSDBalanceBefore = await usd.balanceOf(senderAddress)
 		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
@@ -727,6 +764,13 @@ describe("Liquidity Pools", async () => {
 		expect(
 			tFormatUSDC(collateralAllocatedDiff) - tFormatUSDC(expectedCollateralAllocated)
 		).to.be.within(-0.001, 0.001)
+		// check ephemeral values update correctly
+		const ephemeralLiabilitiesDiff =
+			tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatEth(ephemeralLiabilitiesBefore)
+		const ephemeralDeltaDiff =
+			tFormatEth(await liquidityPool.ephemeralDelta()) - tFormatEth(ephemeralDeltaBefore)
+		expect(ephemeralDeltaDiff).to.equal(-tFormatEth(delta))
+		expect(ephemeralLiabilitiesDiff - tFormatEth(quote)).to.be.within(-0.01, 0.01)
 	})
 
 	it("adds address to the buyback whitelist", async () => {
@@ -761,9 +805,15 @@ describe("Liquidity Pools", async () => {
 		const sellerOTokenBalanceBefore = await putOptionToken.balanceOf(senderAddress)
 		const sellerUsdcBalanceBefore = await usd.balanceOf(senderAddress)
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
+		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 
 		await putOptionToken.approve(handler.address, toOpyn(fromWei(amount)))
-		const quote = (await liquidityPool.quotePriceBuying(seriesInfoDecimalCorrected, amount))[0]
+		const [quote, delta] = await liquidityPool.quotePriceWithUtilizationGreeks(
+			seriesInfoDecimalCorrected,
+			amount,
+			true
+		)
 		const write = await handler.buybackOption(putOptionAddress, amount)
 		await write.wait(1)
 		const logs = await liquidityPool.queryFilter(liquidityPool.filters.BuybackOption(), 0)
@@ -796,11 +846,18 @@ describe("Liquidity Pools", async () => {
 		).to.be.within(-0.002, 0.002)
 		// liquidity pool USD balance goes down by (quote - collateralReturned)
 		expect(lpUSDBalanceDiff - (tFormatEth(quote) - collateralAllocatedDiff)).to.be.within(
-			-0.001,
-			0.001
+			-0.0011,
+			0.0011
 		)
 		// collateral returned is correct amount
 		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.001, 0.001)
+		// check ephemeral values update correctly
+		const ephemeralLiabilitiesDiff =
+			tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatEth(ephemeralLiabilitiesBefore)
+		const ephemeralDeltaDiff =
+			tFormatEth(await liquidityPool.ephemeralDelta()) - tFormatEth(ephemeralDeltaBefore)
+		expect(ephemeralDeltaDiff - tFormatEth(delta)).to.be.within(-0.01, 0.01)
+		expect(ephemeralLiabilitiesDiff + tFormatEth(quote)).to.be.within(-0.01, 0.01)
 	})
 	it("fails if buyback token address is invalid", async () => {
 		const amount = toWei("1")
@@ -829,9 +886,10 @@ describe("Liquidity Pools", async () => {
 			underlying: seriesInfo.underlying,
 			collateral: seriesInfo.collateral
 		}
-		const [quote, expectedDeltaChange] = await liquidityPool.quotePriceBuying(
+		const [quote, expectedDeltaChange] = await liquidityPool.quotePriceWithUtilizationGreeks(
 			seriesInfoDecimalCorrected,
-			amount
+			amount,
+			true
 		)
 
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
@@ -839,6 +897,8 @@ describe("Liquidity Pools", async () => {
 		const sellerOTokenBalanceBefore = await putOptionToken2.balanceOf(senderAddress)
 		const sellerUSDBalanceBefore = await usd.balanceOf(senderAddress)
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
+		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 
 		await putOptionToken2.approve(handler.address, toOpyn(fromWei(amount)))
 		await handler.buybackOption(putOptionToken2.address, amount)
@@ -857,17 +917,28 @@ describe("Liquidity Pools", async () => {
 		// check option seller's OToken balance reduced
 		expect(sellerOTokenBalanceAfter).to.equal(sellerOTokenBalanceBefore.sub(toOpyn(fromWei(amount))))
 		// check option seller's USD balance increases by correct amount
-		expect(tFormatUSDC(sellerUSDBalanceAfter.sub(sellerUSDBalanceBefore))).to.eq(tFormatEth(quote))
+		expect(tFormatUSDC(sellerUSDBalanceAfter.sub(sellerUSDBalanceBefore)).toPrecision(5)).to.eq(
+			tFormatEth(quote).toPrecision(5)
+		)
 		// expect liquidity pool's USD balance decreases by correct amount
 		expect(tFormatUSDC(lpUSDBalanceBefore.sub(lpUSDBalanceAfter))).to.eq(
 			tFormatEth(quote) - collateralAllocatedDiff
 		)
 		// expect collateral allocated in LP reduces by correct amount
-		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.001, 0.001)
+		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.0011, 0.0011)
 		// expect portfolio delta to change
 		expect(tFormatEth(deltaAfter)).to.equal(tFormatEth(deltaBefore.add(expectedDeltaChange)))
+		// check ephemeral values update correctly
+		const ephemeralLiabilitiesDiff =
+			tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatEth(ephemeralLiabilitiesBefore)
+		const ephemeralDeltaDiff =
+			tFormatEth(await liquidityPool.ephemeralDelta()) - tFormatEth(ephemeralDeltaBefore)
+		expect(ephemeralDeltaDiff - tFormatEth(expectedDeltaChange)).to.be.within(-0.01, 0.01)
+		expect(ephemeralLiabilitiesDiff + tFormatEth(quote)).to.be.within(-0.01, 0.01)
 	})
 	it("can compute portfolio delta", async function () {
+		expect(await liquidityPool.ephemeralDelta()).to.not.eq(0)
+		expect(await liquidityPool.ephemeralLiabilities()).to.not.eq(0)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
@@ -920,16 +991,21 @@ describe("Liquidity Pools", async () => {
 		).delta
 		expect(oracleDelta.sub(localDelta.add(localDelta2))).to.be.within(-5, 5)
 		expect(delta.sub(localDelta.add(localDelta2))).to.be.within(-1e15, 1e15)
+		// expect ephemeral values to be reset
+		expect(await liquidityPool.ephemeralDelta()).to.eq(0)
+		expect(await liquidityPool.ephemeralLiabilities()).to.eq(0)
 	})
 	it("reverts if option collateral exceeds buffer limit", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
+		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 
 		const amount = toWei("20")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
-			expiration: expiration3,
+			expiration: expiration2,
 			strike: BigNumber.from(strikePrice),
 			isPut: PUT_FLAVOR,
 			strikeAsset: usd.address,
@@ -942,8 +1018,12 @@ describe("Liquidity Pools", async () => {
 
 		const lpUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		const ephemeralDeltaAfter = await liquidityPool.ephemeralDelta()
+		const ephemeralLiabilitiesAfter = await liquidityPool.ephemeralLiabilities()
 		expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
+		expect(ephemeralDeltaBefore).to.eq(ephemeralDeltaAfter)
+		expect(ephemeralLiabilitiesBefore).to.eq(ephemeralLiabilitiesAfter)
 	})
 	it("reverts when non-admin calls rebalance function", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
@@ -951,7 +1031,8 @@ describe("Liquidity Pools", async () => {
 	})
 	it("reverts when rebalance delta too small", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
-		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(toWei("0.00001"), 0)).to.be.reverted
+		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(toWei("0.00001"), 0)).to.be
+			.reverted
 	})
 	it("returns zero when hedging positive delta when reactor has no funds", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
@@ -978,6 +1059,8 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			optionSeries,
 			amount
@@ -993,7 +1076,8 @@ describe("Liquidity Pools", async () => {
 					underlying: weth.address,
 					collateral: usd.address
 				},
-				amount
+				amount,
+				false
 			)
 		)[0]
 		const truncQuote = truncate(localQuote)
@@ -1012,7 +1096,7 @@ describe("Liquidity Pools", async () => {
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const strikePrice = priceQuote.sub(toWei("600"))
-		const amount = toWei("5")
+		const amount = toWei("10")
 		const orderExpiry = 10
 		const proposedSeries = {
 			expiration: expiration,
@@ -1024,6 +1108,8 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			proposedSeries,
 			amount
@@ -1083,7 +1169,7 @@ describe("Liquidity Pools", async () => {
 		const strikePricePut = priceQuote.sub(toWei("900"))
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 
-		const amount = toWei("2")
+		const amount = toWei("10")
 		const orderExpiry = 600 // 10 minutes
 		const proposedSeriesCall = {
 			expiration: expiration,
@@ -1103,12 +1189,16 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuoteCall = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			proposedSeriesCall,
 			amount
 		)
 		const localQuotePut = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			proposedSeriesPut,
 			amount
@@ -1244,6 +1334,8 @@ describe("Liquidity Pools", async () => {
 		const receiverBalBefore = await usd.balanceOf(receiverAddress)
 		const orderDeets = await handler.orderStores(customOrderId)
 		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
+		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
+		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 
 		const expectedCollateralAllocated = await optionRegistry.getCollateral(
 			{
@@ -1273,6 +1365,8 @@ describe("Liquidity Pools", async () => {
 		const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			{
 				expiration: orderDeets.optionSeries.expiration.toNumber(),
@@ -1289,6 +1383,15 @@ describe("Liquidity Pools", async () => {
 		await usd.connect(receiver).approve(handler.address, 100000000000)
 		await optionToken.approve(handler.address, toOpyn(fromWei(orderDeets.amount)))
 		await handler.connect(receiver).executeOrder(customOrderId)
+
+		// check ephemeral values update correctly
+		const ephemeralLiabilitiesDiff =
+			tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatEth(ephemeralLiabilitiesBefore)
+		const ephemeralDeltaDiff =
+			tFormatEth(await liquidityPool.ephemeralDelta()) - tFormatEth(ephemeralDeltaBefore)
+		expect(ephemeralDeltaDiff - tFormatEth(localDelta)).to.be.within(-0.01, 0.01)
+		expect(percentDiff(ephemeralLiabilitiesDiff, localQuote)).to.be.within(-0.01, 0.01)
+
 		const deltaAfter = tFormatEth(await liquidityPool.getPortfolioDelta())
 		await portfolioValuesFeed.fulfill(
 			utils.formatBytes32String("1"),
@@ -1301,6 +1404,10 @@ describe("Liquidity Pools", async () => {
 			prevalues.callPutsValue.add(toWei(localQuote.toString())),
 			priceQuote
 		)
+
+		// expect ephemeral values to be reset
+		expect(await liquidityPool.ephemeralDelta()).to.eq(0)
+		expect(await liquidityPool.ephemeralLiabilities()).to.eq(0)
 		const receiverOTokenBalAfter = await optionToken.balanceOf(receiverAddress)
 		const lpUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const lpOTokenBalAfter = await optionToken.balanceOf(liquidityPool.address)
@@ -1339,7 +1446,7 @@ describe("Liquidity Pools", async () => {
 					tFormatUSDC(expectedCollateralAllocated))
 		).to.be.within(-0.01, 0.01)
 		// check delta changes by expected amount
-		expect(deltaAfter).to.eq(deltaBefore + tFormatEth(localDelta))
+		expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
 	})
 	it("executes a strangle", async () => {
 		const [sender, receiver] = signers
@@ -1354,6 +1461,8 @@ describe("Liquidity Pools", async () => {
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const receiverUSDBalBefore = await usd.balanceOf(receiverAddress)
 		const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
+		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
+		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 
 		const orderDeets1 = await handler.orderStores(strangleCallId)
 		const orderDeets2 = await handler.orderStores(stranglePutId)
@@ -1375,6 +1484,8 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuote1 = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			{
 				expiration: orderDeets1.optionSeries.expiration.toNumber(),
@@ -1403,6 +1514,8 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuote2 = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			{
 				expiration: orderDeets2.optionSeries.expiration.toNumber(),
@@ -1416,6 +1529,7 @@ describe("Liquidity Pools", async () => {
 			false
 		)
 		const localDelta = localDelta1.add(localDelta2)
+		const localQuote = localQuote1 + localQuote2
 		const expectedCollateralAllocated = (
 			await optionRegistry.getCollateral(
 				{
@@ -1444,6 +1558,14 @@ describe("Liquidity Pools", async () => {
 
 		await usd.connect(receiver).approve(liquidityPool.address, 1000000000)
 		await handler.connect(receiver).executeStrangle(strangleCallId, stranglePutId)
+
+		// check ephemeral values update correctly
+		const ephemeralLiabilitiesDiff =
+			tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatEth(ephemeralLiabilitiesBefore)
+		const ephemeralDeltaDiff =
+			tFormatEth(await liquidityPool.ephemeralDelta()) - tFormatEth(ephemeralDeltaBefore)
+		expect(ephemeralDeltaDiff - tFormatEth(localDelta)).to.be.within(-0.01, 0.01)
+		expect(percentDiff(ephemeralLiabilitiesDiff, localQuote)).to.be.within(-0.01, 0.01)
 		await portfolioValuesFeed.fulfill(
 			utils.formatBytes32String("1"),
 			weth.address,
@@ -1455,6 +1577,10 @@ describe("Liquidity Pools", async () => {
 			prevalues.callPutsValue.add(toWei(localQuote1.toString()).add(toWei(localQuote2.toString()))),
 			priceQuote
 		)
+
+		// expect ephemeral values to be reset
+		expect(await liquidityPool.ephemeralDelta()).to.eq(0)
+		expect(await liquidityPool.ephemeralLiabilities()).to.eq(0)
 		const receiverUSDBalAfter = await usd.balanceOf(receiverAddress)
 		const receiverOTokenBalAfter = (await strangleCallToken.balanceOf(receiverAddress)).add(
 			await stranglePutToken.balanceOf(receiverAddress)
@@ -1495,7 +1621,7 @@ describe("Liquidity Pools", async () => {
 			tFormatUSDC(buyerUSDBalanceDiff) -
 				(parseFloat(fromWei(orderDeets1.amount)) * tFormatEth(orderDeets1.price) +
 					parseFloat(fromWei(orderDeets2.amount)) * tFormatEth(orderDeets2.price))
-		).to.be.within(-0.01, 0.01)
+		).to.be.within(-0.015, 0.015)
 		// check collateralAllocated is correct
 		expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
 		// check liquidity pool USD balance increases by agreed price minus collateral
@@ -1504,25 +1630,33 @@ describe("Liquidity Pools", async () => {
 				(tFormatEth(orderDeets1.amount) * tFormatEth(orderDeets1.price) +
 					tFormatEth(orderDeets2.amount) * tFormatEth(orderDeets2.price) -
 					tFormatUSDC(expectedCollateralAllocated))
-		).to.be.within(-0.01, 0.01)
+		).to.be.within(-0.015, 0.015)
 		// check delta changes by expected amount
-		expect(deltaAfter).to.eq(deltaBefore + tFormatEth(localDelta))
+		expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
 	})
 	it("does not buy back an option from a non-whitelisted address if it moves delta away to zero", async () => {
 		const [sender, receiver] = signers
 		const amount = toWei("1")
 
+		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
+		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 		await handler.addOrRemoveBuybackAddress(receiverAddress, false)
 		await expect(await handler.buybackWhitelist(receiverAddress)).to.be.false
 		const deltaBefore = await liquidityPool.getPortfolioDelta()
 		const buybackToken = tFormatEth(deltaBefore) < 0 ? stranglePutToken : strangleCallToken
+		const ephemeralDeltaAfter = await liquidityPool.ephemeralDelta()
+		const ephemeralLiabilitiesAfter = await liquidityPool.ephemeralLiabilities()
 
 		await expect(
 			handler.connect(receiver).buybackOption(buybackToken.address, amount)
 		).to.be.revertedWith("DeltaNotDecreased()")
+		expect(ephemeralLiabilitiesBefore).to.eq(ephemeralLiabilitiesAfter)
+		expect(ephemeralDeltaBefore).to.eq(ephemeralDeltaAfter)
 	})
 	it("Cannot complete buy order after expiry", async () => {
 		const [sender, receiver] = signers
+		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
+		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike).add(100))
 		const amount = toWei("1")
@@ -1548,6 +1682,10 @@ describe("Liquidity Pools", async () => {
 		const createOrderEvent = events?.find(x => x.event == "OrderCreated")
 		const orderId = createOrderEvent?.args?.orderId
 		const order = await handler.orderStores(orderId)
+		const ephemeralDeltaAfter = await liquidityPool.ephemeralDelta()
+		const ephemeralLiabilitiesAfter = await liquidityPool.ephemeralLiabilities()
+		expect(ephemeralLiabilitiesBefore).to.eq(ephemeralLiabilitiesAfter)
+		expect(ephemeralDeltaBefore).to.eq(ephemeralDeltaAfter)
 		expect(order.optionSeries.expiration).to.eq(proposedSeries.expiration)
 		expect(order.optionSeries.isPut).to.eq(proposedSeries.isPut)
 		expect(
@@ -1578,6 +1716,10 @@ describe("Liquidity Pools", async () => {
 			prevalues.callPutsValue,
 			priceQuote
 		)
+
+		// expect ephemeral values to be reset
+		expect(await liquidityPool.ephemeralDelta()).to.eq(0)
+		expect(await liquidityPool.ephemeralLiabilities()).to.eq(0)
 		await expect(handler.connect(receiver).executeOrder(orderId)).to.be.revertedWith("OrderExpired()")
 	})
 	it("fails to execute invalid custom orders", async () => {
@@ -1616,18 +1758,24 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuoteInvalidDeltaCall = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			proposedSeriesInvalidDeltaCall,
 			amount
 		)
 		const localQuoteInvalidDeltaPut = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			proposedSeriesInvalidDeltaPut,
 			amount
 		)
 		const localQuoteInvalidPrice = await calculateOptionQuoteLocally(
 			liquidityPool,
+			optionRegistry,
+			usd,
 			priceFeed,
 			proposedSeriesInvalidPrice,
 			amount

@@ -94,6 +94,7 @@ let poolId: string
 let settlementTokenOracle: OracleMock
 let collateralId: string
 let handler: OptionHandler
+let authority: string
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -208,21 +209,23 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		volFeed = deployParams.volFeed
 		portfolioValuesFeed = deployParams.portfolioValuesFeed
 		optionProtocol = deployParams.optionProtocol
+		authority = deployParams.authority.address
 		let lpParams = await deployLiquidityPool(
-			signers, 
-			optionProtocol, 
-			usd, 
-			wethERC20, 
-			rfr, 
-			minCallStrikePrice, 
-			minPutStrikePrice, 
-			maxCallStrikePrice, 
-			maxPutStrikePrice, 
-			minExpiry, 
-			maxExpiry, 
+			signers,
+			optionProtocol,
+			usd,
+			wethERC20,
+			rfr,
+			minCallStrikePrice,
+			minPutStrikePrice,
+			maxCallStrikePrice,
+			maxPutStrikePrice,
+			minExpiry,
+			maxExpiry,
 			optionRegistry,
-			portfolioValuesFeed
-			)
+			portfolioValuesFeed,
+			authority
+		)
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		handler = lpParams.handler
@@ -252,7 +255,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		expect(event?.event).to.eq("Deposit")
 	})
 	it("pauses trading and executes epoch", async () => {
-		await liquidityPool.pauseTradingAndRequest();
+		await liquidityPool.pauseTradingAndRequest()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		await portfolioValuesFeed.fulfill(
 			utils.formatBytes32String("2"),
@@ -289,7 +292,8 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 			liquidityPool.address,
 			poolId,
 			collateralId,
-			priceFeed.address
+			priceFeed.address,
+			authority
 		)) as PerpHedgingReactor
 
 		expect(perpHedgingReactor).to.have.property("hedgeDelta")
@@ -301,9 +305,9 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 
 		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
 	})
-	it('#deploy range order', async () => {
+	it("#deploy range order", async () => {
 		await deployRangeOrder(signers, clearingHouse, usd, collateralId, vTokenAddress, vQuoteAddress)
-	  });
+	})
 	it("can compute portfolio delta", async function () {
 		const delta = await liquidityPool.getPortfolioDelta()
 		expect(delta).to.equal(0)
@@ -326,10 +330,13 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		}
 		const EthPrice = await oracle.getPrice(weth.address)
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		const quote = (
+			await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount, false)
+		)[0]
 		await usd.approve(handler.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
-		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount)).series
+		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
+			.series
 		const write = await handler.issueAndWriteOption(proposedSeries, amount)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
@@ -381,11 +388,12 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const lpAllocatedBefore = await liquidityPool.collateralAllocated()
-		quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount))[0]
+		quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount, false))[0]
 		await usd.approve(handler.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
-		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount)).series
+		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
+			.series
 		const write = await handler.issueAndWriteOption(proposedSeries, amount)
 		localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
@@ -453,7 +461,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		expect(newTotalSupply).to.eq(totalSupply.add(lpBalance))
 	})
 	it("pauses trading and executes epoch", async () => {
-		await liquidityPool.pauseTradingAndRequest();
+		await liquidityPool.pauseTradingAndRequest()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		await portfolioValuesFeed.fulfill(
 			utils.formatBytes32String("1"),
@@ -470,10 +478,14 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 	})
 	it("initiates withdraw liquidity", async () => {
 		await liquidityPool.initiateWithdraw(await liquidityPool.balanceOf(senderAddress))
-		await liquidityPool.connect(signers[1]).initiateWithdraw(await liquidityPool.connect(signers[1]).callStatic.redeem(toWei("1000000000000")))
+		await liquidityPool
+			.connect(signers[1])
+			.initiateWithdraw(
+				await liquidityPool.connect(signers[1]).callStatic.redeem(toWei("1000000000000"))
+			)
 	})
 	it("pauses trading and executes epoch", async () => {
-		await liquidityPool.pauseTradingAndRequest();
+		await liquidityPool.pauseTradingAndRequest()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		await portfolioValuesFeed.fulfill(
 			utils.formatBytes32String("1"),

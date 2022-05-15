@@ -41,9 +41,11 @@ describe("Price Feed", async () => {
 		)) as WETH
 		usd = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
 		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
-
+		const authorityFactory = await hre.ethers.getContractFactory("Authority")
+		const senderAddress = await signers[0].getAddress()
+		const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
 		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-		const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
+		const _priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
 		priceFeed = _priceFeed
 		await priceFeed.addPriceFeed(weth.address, usd.address, ethUSDAggregator.address)
 		const feedAddress = await priceFeed.priceFeeds(weth.address, usd.address)

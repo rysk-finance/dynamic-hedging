@@ -3,6 +3,7 @@ pragma solidity >=0.8.9;
 
 import "../PriceFeed.sol";
 import "../interfaces/IERC20.sol";
+import "../libraries/AccessControl.sol";
 import "../libraries/OptionsCompute.sol";
 import '../libraries/SafeTransferLib.sol';
 import "../interfaces/IHedgingReactor.sol";
@@ -14,7 +15,7 @@ import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
     @title A hedging reactor that will manage delta by swapping between ETH and stablecoin spot assets.
  */
 
-contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
+contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 
     ///////////////////////////
     /// immutable variables ///
@@ -54,7 +55,17 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     /// @notice used for unlimited token approval 
     uint256 private constant MAX_UINT = 2**256 - 1;
 
-    constructor (ISwapRouter _swapRouter, address _collateralAsset, address _wethAddress, address _parentLiquidityPool, uint24 _poolFee, address _priceFeed) {
+    constructor (
+        ISwapRouter _swapRouter, 
+        address _collateralAsset, 
+        address _wethAddress, 
+        address _parentLiquidityPool, 
+        uint24 _poolFee, 
+        address _priceFeed,
+        address _authority
+        ) 
+        AccessControl(IAuthority(_authority)) 
+        {
         swapRouter = _swapRouter;
         collateralAsset = _collateralAsset;
         wETH = _wethAddress;
@@ -71,12 +82,14 @@ contract UniswapV3HedgingReactor is IHedgingReactor, Ownable {
     ///////////////
 
     /// @notice update the uniswap v3 pool fee
-    function changePoolFee(uint24 _poolFee) external onlyOwner {
+    function changePoolFee(uint24 _poolFee) external {
+        _onlyGovernor();
         poolFee = _poolFee;
     }
 
     /// @notice update the minAmount parameter
-    function setMinAmount(uint _minAmount) external onlyOwner {
+    function setMinAmount(uint _minAmount) external {
+        _onlyGovernor();
         minAmount = _minAmount;
     }
 
