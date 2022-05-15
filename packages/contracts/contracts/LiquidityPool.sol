@@ -541,6 +541,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		epochPricePerShare[epoch] = newPricePerShare;
 		delete pendingDeposits;
 		isTradingPaused = false;
+		lastEpochTimestamp = block.timestamp;
 		emit EpochExecuted(epoch);
 		epoch++;
 		_mint(address(this), sharesToMint);
