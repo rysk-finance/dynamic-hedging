@@ -320,10 +320,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	/**
-	 *	@notice sets the parameters for the function that determines the utilization price factor
-	 *	The function is made up of two parts, both linear. The line to the left of the utilisation threshold has a low gradient
-	 *	while the gradient to the right of the threshold is much steeper. TThe aim of this function is to make options much more
-	 *	expensive near full utilization while not having much effect at low utilizations.
+	 *  @notice sets the parameters for the function that determines the utilization price factor
+	 *  The function is made up of two parts, both linear. The line to the left of the utilisation threshold has a low gradient
+	 *  while the gradient to the right of the threshold is much steeper. TThe aim of this function is to make options much more
+	 *  expensive near full utilization while not having much effect at low utilizations.
 	 *  @param _belowThresholdGradient the gradient of the function where utiization is below function threshold. e18
 	 *  @param _aboveThresholdGradient the gradient of the line above the utilization threshold. e18
 	 *  @param _aboveThresholdYIntercept the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold. Will always be negative but enter the absolute value
