@@ -5,7 +5,6 @@ import "../interfaces/IAuthority.sol";
 
 error UNAUTHORIZED();
 error AUTHORITY_INITIALIZED();
-
 /**
  *  @title Contract used for access control functionality, based off of OlympusDao Access Control
  */
