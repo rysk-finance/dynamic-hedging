@@ -501,6 +501,84 @@ describe("Liquidity Pools", async () => {
 		expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 		expect(senderUSDBalanceBefore).to.eq(senderUSDBalanceAfter)
 	})
+	it("reverts when attempting to write ETH/USD call with expiry outside of limit", async () => {
+		const amount = toWei("1")
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.add(toWei(strike))
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
+
+		// series with expiry too long
+		const proposedSeries1 = {
+			expiration: invalidExpirationLong,
+			strike: BigNumber.from(strikePrice),
+			isPut: CALL_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await usd.approve(handler.address, toWei("1000000000"))
+		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
+			"OptionExpiryInvalid()"
+		)
+		// series with expiry too short
+		const proposedSeries2 = {
+			expiration: invalidExpirationShort,
+			strike: BigNumber.from(strikePrice),
+			isPut: CALL_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await usd.approve(handler.address, toWei("1000000000"))
+		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
+			"OptionExpiryInvalid()"
+		)
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
+		// check to make sure no balances have changed
+		expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
+		expect(senderUSDBalanceBefore).to.eq(senderUSDBalanceAfter)
+	})
+	it("reverts when attempting to write a ETH/USD call with strike outside of limit", async () => {
+		const amount = toWei("7")
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
+		// Series with strike price too high
+		const proposedSeries1 = {
+			expiration: expiration,
+			strike: invalidStrikeHigh,
+			isPut: CALL_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		// const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount, false))[0]
+		await usd.approve(handler.address, toWei("100000000"))
+		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
+			"OptionStrikeInvalid()"
+		)
+		// Series with strike price too low
+
+		const proposedSeries2 = {
+			expiration: expiration,
+			strike: invalidStrikeLow,
+			isPut: CALL_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		// const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount, false))[0]
+		await usd.approve(handler.address, toWei("100000000"))
+		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
+			"OptionStrikeInvalid()"
+		)
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
+		// check to make sure no balances have changed
+		expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
+		expect(senderUSDBalanceBefore).to.eq(senderUSDBalanceAfter)
+	})
 	it("can compute portfolio delta", async function () {
 		const delta = await liquidityPool.getPortfolioDelta()
 		// no options have been written yet
