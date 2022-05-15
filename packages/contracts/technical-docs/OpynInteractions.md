@@ -10,19 +10,19 @@ The library does not directly use oracles, the opyn-rysk gamma protocol uses cha
 
 ## Function by Function
 
-### ``` getOrDeployOtoken(address oTokenFactory, address collateral, address underlying, address strikeAsset, uint256 strike, uint256 expiration,bool isPut) external returns address ``` ***NonTrustedAccessible***
+### ``` getOrDeployOtoken(address oTokenFactory, address collateral, address underlying, address strikeAsset, uint256 strike, uint256 expiration,bool isPut) external returns address ``` ***Indirect NonTrustedAccessible***
 
 This function returns an oToken from the opyn-rysk gamma otoken factory. If that oToken does not exist then it creates the otoken through the otoken factory. The strike is passed in in oToken (e8) decimals.
 
-### ``` createShort(address gammaController, address marginPool, address oTokenAddress, uint256 depositAmount, uint256 vaultId, uint256 amount, uint256 vaultType) external returns uint256``` ***NonTrustedAccessible***
+### ``` createShort(address gammaController, address marginPool, address oTokenAddress, uint256 depositAmount, uint256 vaultId, uint256 amount, uint256 vaultType) external returns uint256``` ***Indirect NonTrustedAccessible***
 
 This function is responsible for writing short option positions. It expects the amount in e18 decimals, which it converts to e8 decimals. The function gets the next expected vault id if this is the same as the passed in vault id then a new vault is opened with the vault type 1 (partial collateralisation), collateral is deposited and the short option is minted and sent to the caller. If the next expected vault id is different to the one passed in it means that a vault for this option series already exists so it deposits the collateral to that vault and mints the options. The final amount should be returned in e8 decimals. This function can be accessed from an untrusted party.
 
-### ```burnShort(address gammaController, address oTokenAddress, uint256 burnAmount, uint256 vaultId) external returns uint256``` ***NonTrustedAccessible***
+### ```burnShort(address gammaController, address oTokenAddress, uint256 burnAmount, uint256 vaultId) external returns uint256``` ***Indirect NonTrustedAccessible***
 
 This function closes a short option position. It burns a specified short option position and then takes the collateral from the vault that is freed by burning this collateral is sent to the options registry then to the liquidity pool and should be accounted for in collateralAllocated. The collateral redeemed is: ```collatAmounts * burnAmount / shortAmounts ``` the ratio of the burn amount to the short amount multiplied by the total collateral, so that the health factor stays the same. burnAmount comes in in oToken decimals and the collateral is returned in collateral decimals. This function can be accessed from an untrusted party.
 
-### ``` function redeem(address gammaController, address marginPool, address series, uint256 amount) external returns uint256``` ***NonTrustedAccessible***
+### ``` function redeem(address gammaController, address marginPool, address series, uint256 amount) external returns uint256``` ***Direct NonTrustedAccessible***
 
 After an option expires this function allows a user to redeem their payout if the option expired in the money. If the option expired OTM then it returns nothing. This function should not settle vaults. Sending funds directly to the sender.
 
