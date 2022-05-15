@@ -1096,7 +1096,7 @@ describe("Liquidity Pools", async () => {
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const strikePrice = priceQuote.sub(toWei("600"))
-		const amount = toWei("5")
+		const amount = toWei("10")
 		const orderExpiry = 10
 		const proposedSeries = {
 			expiration: expiration,
@@ -1169,7 +1169,7 @@ describe("Liquidity Pools", async () => {
 		const strikePricePut = priceQuote.sub(toWei("900"))
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 
-		const amount = toWei("2")
+		const amount = toWei("10")
 		const orderExpiry = 600 // 10 minutes
 		const proposedSeriesCall = {
 			expiration: expiration,
@@ -1390,8 +1390,7 @@ describe("Liquidity Pools", async () => {
 		const ephemeralDeltaDiff =
 			tFormatEth(await liquidityPool.ephemeralDelta()) - tFormatEth(ephemeralDeltaBefore)
 		expect(ephemeralDeltaDiff - tFormatEth(localDelta)).to.be.within(-0.01, 0.01)
-		console.log({ ephemeralLiabilitiesDiff, localQuote })
-		expect(ephemeralLiabilitiesDiff - localQuote).to.be.within(-0.01, 0.01)
+		expect(percentDiff(ephemeralLiabilitiesDiff, localQuote)).to.be.within(-0.01, 0.01)
 
 		const deltaAfter = tFormatEth(await liquidityPool.getPortfolioDelta())
 		await portfolioValuesFeed.fulfill(
@@ -1447,7 +1446,7 @@ describe("Liquidity Pools", async () => {
 					tFormatUSDC(expectedCollateralAllocated))
 		).to.be.within(-0.01, 0.01)
 		// check delta changes by expected amount
-		expect(deltaAfter).to.eq(deltaBefore + tFormatEth(localDelta))
+		expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
 	})
 	it("executes a strangle", async () => {
 		const [sender, receiver] = signers
@@ -1566,8 +1565,7 @@ describe("Liquidity Pools", async () => {
 		const ephemeralDeltaDiff =
 			tFormatEth(await liquidityPool.ephemeralDelta()) - tFormatEth(ephemeralDeltaBefore)
 		expect(ephemeralDeltaDiff - tFormatEth(localDelta)).to.be.within(-0.01, 0.01)
-		console.log({ ephemeralLiabilitiesDiff, localQuote1, localQuote2 })
-		expect(ephemeralLiabilitiesDiff - localQuote).to.be.within(-0.01, 0.01)
+		expect(percentDiff(ephemeralLiabilitiesDiff, localQuote)).to.be.within(-0.01, 0.01)
 		await portfolioValuesFeed.fulfill(
 			utils.formatBytes32String("1"),
 			weth.address,
@@ -1623,7 +1621,7 @@ describe("Liquidity Pools", async () => {
 			tFormatUSDC(buyerUSDBalanceDiff) -
 				(parseFloat(fromWei(orderDeets1.amount)) * tFormatEth(orderDeets1.price) +
 					parseFloat(fromWei(orderDeets2.amount)) * tFormatEth(orderDeets2.price))
-		).to.be.within(-0.01, 0.01)
+		).to.be.within(-0.015, 0.015)
 		// check collateralAllocated is correct
 		expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
 		// check liquidity pool USD balance increases by agreed price minus collateral
@@ -1632,9 +1630,9 @@ describe("Liquidity Pools", async () => {
 				(tFormatEth(orderDeets1.amount) * tFormatEth(orderDeets1.price) +
 					tFormatEth(orderDeets2.amount) * tFormatEth(orderDeets2.price) -
 					tFormatUSDC(expectedCollateralAllocated))
-		).to.be.within(-0.01, 0.01)
+		).to.be.within(-0.015, 0.015)
 		// check delta changes by expected amount
-		expect(deltaAfter).to.eq(deltaBefore + tFormatEth(localDelta))
+		expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
 	})
 	it("does not buy back an option from a non-whitelisted address if it moves delta away to zero", async () => {
 		const [sender, receiver] = signers

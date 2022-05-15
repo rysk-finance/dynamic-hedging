@@ -15,7 +15,7 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
-
+import "hardhat/console.sol";
 
 contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	using PRBMathSD59x18 for int256;
@@ -282,13 +282,14 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 				revert CustomErrors.CustomOrderInvalidDeltaValue();
 			}
 		}
+		address collateralAsset_ = collateralAsset;
 		uint256 convertedPrem = OptionsCompute.convertToDecimals(
 			premium,
-			ERC20(collateralAsset).decimals()
+			ERC20(collateralAsset_).decimals()
 		);
 		// premium needs to adjusted for decimals of collateral asset
 		SafeTransferLib.safeTransferFrom(
-			collateralAsset,
+			collateralAsset_,
 			msg.sender,
 			address(liquidityPool),
 			convertedPrem
@@ -299,7 +300,7 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			order.seriesAddress,
 			order.amount,
 			getOptionRegistry(),
-			convertedPrem,
+			OptionsCompute.convertToDecimals(poolCalculatedPremium, ERC20(collateralAsset_).decimals()),
 			delta,
 			msg.sender
 		);
