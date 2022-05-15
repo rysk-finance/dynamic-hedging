@@ -9,14 +9,16 @@ import "./utils/ReentrancyGuard.sol";
 import "./libraries/BlackScholes.sol";
 import "./libraries/CustomErrors.sol";
 import "./libraries/AccessControl.sol";
+import "./libraries/OptionsCompute.sol";
 import "./libraries/SafeTransferLib.sol";
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
-import "hardhat/console.sol";
-
+/**
+ *  @title Contract used as the Dynamic Hedging Vault for storing funds, issuing shares and processing options transactions
+ */
 contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
@@ -119,14 +121,14 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	struct DepositReceipt {
-		uint128 epoch;
-		uint128 amount;
-		uint256 unredeemedShares;
+		uint128 epoch; 
+		uint128 amount; //collateral decimals
+		uint256 unredeemedShares; //e18
 	}
 
 	struct WithdrawalReceipt {
 		uint128 epoch;
-		uint128 shares;
+		uint128 shares; //e18
 	}
 
 	event EpochExecuted(uint256 epoch);
@@ -215,7 +217,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	/**
-	 * @notice update all optionParam variables
+	 * @notice update all optionParam variables for max and min strikes and max and 
+   *         min expiries for options that the DHV can issue
+   * @dev   only management or above can call this function
 	 */
 	function setNewOptionParams(
 		uint128 _newMinCallStrike,
@@ -225,7 +229,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint128 _newMinExpiry,
 		uint128 _newMaxExpiry
 	) external {
-		_onlyGovernor();
+		_onlyManager();
 		optionParams.minCallStrikePrice = _newMinCallStrike;
 		optionParams.maxCallStrikePrice = _newMaxCallStrike;
 		optionParams.minPutStrikePrice = _newMinPutStrike;
@@ -237,6 +241,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice set the bid ask spread used to price option buying
 	 * @param _bidAskSpread the bid ask spread to update to
+   * @dev   only management or above can call this function
 	 */
 	function setBidAskSpread(uint256 _bidAskSpread) external {
 		_onlyManager();
@@ -246,7 +251,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice set the maximum percentage discount for an option
 	 * @param _maxDiscount of the option as a percentage in 1e18 format. ie: 1*e18 == 1%
-	 * @dev   only governance can call this function
+	 * @dev   only management or above can call this function
 	 */
 	function setMaxDiscount(uint256 _maxDiscount) external {
 		_onlyManager();
@@ -266,6 +271,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice update the liquidity pool buffer limit
 	 * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of total NAV. (for 20% enter 2000)
+   * @dev   only governance can call this function
 	 */
 	function setBufferPercentage(uint256 _bufferPercentage) external {
 		_onlyGovernor();
@@ -281,11 +287,17 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		riskFreeRate = _riskFreeRate;
 	}
 
+	/**
+	 * @notice update the max oracle time deviation threshold
+	 */
 	function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external {
 		_onlyGovernor();
 		maxTimeDeviationThreshold = _maxTimeDeviationThreshold;
 	}
 
+	/**
+	 * @notice update the max oracle price deviation threshold
+	 */
 	function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold) external {
 		_onlyGovernor();
 		maxPriceDeviationThreshold = _maxPriceDeviationThreshold;
@@ -299,22 +311,24 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		handler[_handler] = auth;
 	}
 
-	/// @notice update the keepers
+	/**
+	 * @notice change the status of a keeper
+	 */
 	function setKeeper(address _keeper, bool _auth) external {
 		_onlyGovernor();
 		keeper[_keeper] = _auth;
 	}
 
 	/**
-		@notice sets the parameters for the function that determines the utilization price factor
-				The function is made up of two parts, both linear. The line to the left of the utilisation threshold has a low gradient
-				while the gradient to the right of the threshold is much steeper. TThe aim of this function is to make options much more
-				expensive near full utilization while not having much effect at low utilizations.
-		@param _belowThresholdGradient the gradient of the function where utiization is below function threshold. e18
-		@param _aboveThresholdGradient the gradient of the line above the utilization threshold. e18
-		@param _aboveThresholdYIntercept the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold. Will always be negative but enter the absolute value
-		@param _utilizationFunctionThreshold the percentage utilization above which the function moves from its shallow line to its steep line
-    */
+	 *	@notice sets the parameters for the function that determines the utilization price factor
+	 *		      The function is made up of two parts, both linear. The line to the left of the utilisation threshold has a low gradient
+	 *			    while the gradient to the right of the threshold is much steeper. TThe aim of this function is to make options much more
+	 *		      expensive near full utilization while not having much effect at low utilizations.
+	 *	@param _belowThresholdGradient the gradient of the function where utiization is below function threshold. e18
+	 *  @param _aboveThresholdGradient the gradient of the line above the utilization threshold. e18
+	 *	@param _aboveThresholdYIntercept the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold. Will always be negative but enter the absolute value
+	 *  @param _utilizationFunctionThreshold the percentage utilization above which the function moves from its shallow line to its steep line
+   */
 	function setUtilizationSkewParams(
 		uint256 _belowThresholdGradient,
 		uint256 _aboveThresholdGradient,
@@ -335,6 +349,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice function for hedging portfolio delta through external means
 	 * @param delta the current portfolio delta
+   * @param reactorIndex the index of the reactor in the hedgingReactors array to use
 	 */
 	function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex) external {
 		_onlyManager();
@@ -342,10 +357,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	/**
-    @notice adjust the collateral held in a specific vault because of health
-    @param lpCollateralDifference amount of collateral taken from or given to the liquidity pool in collateral decimals
-    @param addToLpBalance true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool
-  */
+   * @notice adjust the collateral held in a specific vault because of health
+   * @param lpCollateralDifference amount of collateral taken from or given to the liquidity pool in collateral decimals
+   * @param addToLpBalance true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool
+   * @dev   called by the option registry only
+   */
 	function adjustCollateral(uint256 lpCollateralDifference, bool addToLpBalance) external {
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		require(msg.sender == address(optionRegistry));
@@ -363,10 +379,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	/**
-    @notice closes an oToken vault, returning collateral (minus ITM option expiry value) back to the pool
-    @param seriesAddress the address of the oToken vault to close
-    @return collatReturned the amount of collateral returned to the liquidity pool.
-  */
+   * @notice closes an oToken vault, returning collateral (minus ITM option expiry value) back to the pool
+   * @param seriesAddress the address of the oToken vault to close
+   * @return collatReturned the amount of collateral returned to the liquidity pool, assumes in collateral decimals
+   */
 	function settleVault(address seriesAddress) public returns (uint256) {
 		_isKeeper();
 		// get number of options in vault and collateral returned to recalculate our position without these options
@@ -375,8 +391,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
 		_adjustVariables(collatReturned, 0, 0, false);
 		collateralAllocated -= collatLost;
-		// assumes in collateral decimals
-		return collatReturned;
+    return collatReturned;
 	}
 
 	/**
@@ -446,7 +461,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		// series strike passed in as e18
 		address seriesAddress = _issue(optionSeries, optionRegistry);
-		// series strike received in e8
+		// series strike received in e8, retrieved from the option registry instead of
+    // using one in memory because formatStrikePrice might have slightly changed the 
+    // strike
 		optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
 		return (
 			_writeOption(
@@ -591,6 +608,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		emit InitiateWithdraw(msg.sender, _shares, currentEpoch);
 		uint256 existingShares = withdrawalReceipt.shares;
 		uint256 withdrawalShares;
+    // if they already have an initiated withdrawal from this round just increment
 		if (withdrawalReceipt.epoch == currentEpoch) {
 			withdrawalShares = existingShares + _shares;
 		} else {
@@ -644,7 +662,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		int256 bufferRemaining = collatBalance - buffer;
 		// get the extra liquidity that is needed
 		int256 amountNeeded = int256(withdrawalAmount) - bufferRemaining;
-		// loop through the reactors and move funds
+		// loop through the reactors and move funds if found
 		if (amountNeeded > 0) {
 			address[] memory hedgingReactors_ = hedgingReactors;
 			for (uint8 i = 0; i < hedgingReactors_.length; i++) {
@@ -683,8 +701,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			uint256 _decimals
 		)
 	{
-		collateralBalance = IERC20(asset).balanceOf(address(this));
-		_decimals = IERC20(asset).decimals();
+		collateralBalance = ERC20(asset).balanceOf(address(this));
+		_decimals = ERC20(asset).decimals();
 		normalizedBalance = OptionsCompute.convertFromDecimals(collateralBalance, _decimals);
 	}
 
@@ -769,12 +787,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	/**
-		@notice applies a utilization premium when the protocol is selling options.
-		Stores the utilization price in quoteState.utilizationPrice for use in quotePriceWithUtilizationGreeks
-		@param quoteState the struct created in quoteStateWithUtilizationGreeks to store memory variables
-		@param optionSeries the option type for which we are quoting a price
-		@param amount the amount of options. e18
-		@param toBuy whether we are buying an option. False if selling 
+	 *	@notice applies a utilization premium when the protocol is selling options.
+	 *	Stores the utilization price in quoteState.utilizationPrice for use in quotePriceWithUtilizationGreeks
+	 *	@param quoteState the struct created in quoteStateWithUtilizationGreeks to store memory variables
+	 *	@param optionSeries the option type for which we are quoting a price
+	 *	@param amount the amount of options. e18
+	 *	@param toBuy whether we are buying an option. False if selling 
 	 */
 	function addUtilizationPremium(
 		UtilizationState memory quoteState,
@@ -815,12 +833,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	/** 
-		@notice Applies a discount or premium based on the liquidity pool's delta exposure
-		Gives discount if the transaction results in a lower delta exposure for the liquidity pool.
-		Prices option more richly if the transaction results in higher delta exposure for liquidity pool.
-		@param quoteState the struct created in quoteStateWithUtilizationGreeks to store memory variables
-		@param toBuy whether we are buying an option. False if selling
-		@return quote the quote for the option with the delta skew applied
+	 *	@notice Applies a discount or premium based on the liquidity pool's delta exposure
+	 *	Gives discount if the transaction results in a lower delta exposure for the liquidity pool.
+	 *	Prices option more richly if the transaction results in higher delta exposure for liquidity pool.
+	 *	@param quoteState the struct created in quoteStateWithUtilizationGreeks to store memory variables
+	 *	@param toBuy whether we are buying an option. False if selling
+	 *	@return quote the quote for the option with the delta skew applied
 	 */
 	function applyDeltaSkew(UtilizationState memory quoteState, bool toBuy)
 		internal
@@ -973,7 +991,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	{
 		uint256 convertedAmount = OptionsCompute.convertFromDecimals(
 			_amount,
-			IERC20(collateralAsset).decimals()
+			ERC20(collateralAsset).decimals()
 		);
 		shares = (convertedAmount * PRBMath.SCALE) / assetPerShare;
 	}
@@ -1034,9 +1052,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
 		uint256 assets = OptionsCompute.convertFromDecimals(
-			IERC20(collateralAsset_).balanceOf(address(this)),
-			IERC20(collateralAsset_).decimals()
-		) + OptionsCompute.convertFromDecimals(collateralAllocated, IERC20(collateralAsset_).decimals());
+			ERC20(collateralAsset_).balanceOf(address(this)),
+			ERC20(collateralAsset_).decimals()
+		) + OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset_).decimals());
 		address[] memory hedgingReactors_ = hedgingReactors;
 		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
 			// should always return value in e18 decimals
@@ -1136,11 +1154,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint256 collateralAmount = optionRegistry.getCollateral(optionSeries, amount);
 		if (
 			uint256(bufferRemaining) <
-			OptionsCompute.convertFromDecimals(collateralAmount, IERC20(collateralAsset).decimals())
+			OptionsCompute.convertFromDecimals(collateralAmount, ERC20(collateralAsset).decimals())
 		) {
 			revert CustomErrors.MaxLiquidityBufferReached();
 		}
-		IERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);
+		ERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);
 		(, collateralAmount) = optionRegistry.open(seriesAddress, amount, collateralAmount);
 		emit WriteOption(seriesAddress, amount, premium, collateralAmount, recipient);
 		// convert e8 strike to e18 strike
@@ -1151,23 +1169,23 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		SafeTransferLib.safeTransfer(
 			ERC20(seriesAddress),
 			recipient,
-			OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals())
+			OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals())
 		);
 		// returns in e18
 		return amount;
 	}
 
 	/**
-    @notice buys a number of options back and burns the tokens
-    @param optionSeries the option token series to buyback - strike passed in as e8
-    @param amount the number of options to buyback expressed in 1e18
-    @param optionRegistry the registry
-    @param seriesAddress the series being sold
-    @param premium the premium to be sent back to the owner (in collat decimals)
-    @param delta the delta of the option
-    @param seller the address 
-    @return the number of options burned in e18
-  */
+   * @notice buys a number of options back and burns the tokens
+   * @param optionSeries the option token series to buyback - strike passed in as e8
+   * @param amount the number of options to buyback expressed in 1e18
+   * @param optionRegistry the registry
+   * @param seriesAddress the series being sold
+   * @param premium the premium to be sent back to the owner (in collat decimals)
+   * @param delta the delta of the option
+   * @param seller the address 
+   * @return the number of options burned in e18
+   */
 	function _buybackOption(
 		Types.OptionSeries memory optionSeries,
 		uint256 amount,
@@ -1180,7 +1198,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		SafeTransferLib.safeApprove(
 			ERC20(seriesAddress),
 			address(optionRegistry),
-			OptionsCompute.convertToDecimals(amount, IERC20(seriesAddress).decimals())
+			OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals())
 		);
 		(, uint256 collateralReturned) = optionRegistry.close(seriesAddress, amount);
 		emit BuybackOption(seriesAddress, amount, premium, collateralReturned, seller);

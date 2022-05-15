@@ -2,18 +2,15 @@
 pragma solidity >=0.8.9;
 
 import "../PriceFeed.sol";
-import "../interfaces/IERC20.sol";
 import "../libraries/AccessControl.sol";
 import "../libraries/OptionsCompute.sol";
 import '../libraries/SafeTransferLib.sol';
 import "../interfaces/IHedgingReactor.sol";
 import "@rage/core/contracts/interfaces/IClearingHouse.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "hardhat/console.sol";
-
 
 /**
-    @title A hedging reactor that will manage delta by opening or closing short or long perp positions
+ *  @title A hedging reactor that will manage delta by opening or closing short or long perp positions using rage trade
  */
 
 contract PerpHedgingReactor is IHedgingReactor, AccessControl {
@@ -111,7 +108,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
         _onlyGovernor();
         keeper[_keeper] = _auth;
     }
-    /// @notice update the keeper
+    /// @notice set whether changing a position should trigger a sync before updating
     function setSyncOnChange(bool _syncOnChange) external {
         _onlyGovernor();
         syncOnChange = _syncOnChange;
@@ -121,6 +118,8 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
     /// access-controlled external functions ///
     ////////////////////////////////////////////
 
+    /// @notice function to deposit 1 wei of USDC into the margin account so that a margin account is made, cannot be
+    ///         be called if an account already exists
     function initialiseReactor() external {
         (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
         if (collatDeposits.length != 0) {revert();}
@@ -148,7 +147,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
         address _token = collateralAsset;
         // check the holdings if enough just lying around then transfer it
         // assume amount is passed in as collateral decimals
-        uint256 balance = IERC20(_token).balanceOf(address(this));
+        uint256 balance = ERC20(_token).balanceOf(address(this));
         if (balance == 0) {return 0;}
         if (_amount <= balance) {
             SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, _amount);
@@ -256,7 +255,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
             value -= uint256(-netProfit);
         }
         // value to be returned in e18
-        value = OptionsCompute.convertFromDecimals(value, IERC20(collateralAsset_).decimals());
+        value = OptionsCompute.convertFromDecimals(value, ERC20(collateralAsset_).decimals());
     }
 
     //////////////////////////

@@ -5,6 +5,9 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import { NormalDist } from "./NormalDist.sol";
 
+/**
+ *  @title Library used to calculate an option price using Black Scholes
+ */
 library BlackScholes {
 	using PRBMathSD59x18 for int256;
 	using PRBMathSD59x18 for int8;

@@ -2,7 +2,6 @@
 pragma solidity >=0.8.9;
 
 import "./tokens/ERC20.sol";
-import "./interfaces/IERC20.sol";
 import "./interfaces/IOracle.sol";
 import "./libraries/AccessControl.sol";
 import "./interfaces/IMarginCalculator.sol";
@@ -14,8 +13,10 @@ import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import { OpynInteractions } from "./libraries/OpynInteractions.sol";
 import { IController, GammaTypes } from "./interfaces/GammaInterface.sol";
-import "hardhat/console.sol";
 
+/**
+ *  @title Contract used for conducting options issuance and settlement as well as collateral management
+ */
 contract OptionRegistry is AccessControl {
 	///////////////////////////
 	/// immutable variables ///
@@ -283,7 +284,7 @@ contract OptionRegistry is AccessControl {
 		if (vaultId == 0) {
 			revert NoVault();
 		}
-		uint256 convertedAmount = OptionsCompute.convertToDecimals(amount, IERC20(_series).decimals());
+		uint256 convertedAmount = OptionsCompute.convertToDecimals(amount, ERC20(_series).decimals());
 		// transfer the oToken back to this account
 		SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), convertedAmount);
 		// burn the oToken tracking the amount of collateral returned
@@ -482,16 +483,16 @@ contract OptionRegistry is AccessControl {
 		if (series.expiration >= block.timestamp) {
 			revert NotExpired();
 		}
-		if (IERC20(_series).balanceOf(msg.sender) == 0) {
+		if (ERC20(_series).balanceOf(msg.sender) == 0) {
 			revert InsufficientBalance();
 		}
-		uint256 seriesBalance = IERC20(_series).balanceOf(msg.sender);
+		uint256 seriesBalance = ERC20(_series).balanceOf(msg.sender);
 		// transfer the oToken back to this account
 		SafeTransferLib.safeTransferFrom(
 			_series,
 			msg.sender,
 			address(this),
-			IERC20(_series).balanceOf(msg.sender)
+			ERC20(_series).balanceOf(msg.sender)
 		);
 		// redeem
 		uint256 collatReturned = OpynInteractions.redeem(
@@ -529,7 +530,7 @@ contract OptionRegistry is AccessControl {
 			series.strike, // assumes in e8
 			IOracle(addressBook.getOracle()).getPrice(series.underlying),
 			series.expiration,
-			IERC20(series.collateral).decimals(),
+			ERC20(series.collateral).decimals(),
 			series.isPut
 		);
 		// based on this collateral requirement and the health factor get the amount to deposit
@@ -606,7 +607,7 @@ contract OptionRegistry is AccessControl {
 			series.strike, // assumes in e8
 			IOracle(addressBook.getOracle()).getPrice(series.underlying),
 			series.expiration,
-			IERC20(series.collateral).decimals(),
+			ERC20(series.collateral).decimals(),
 			series.isPut
 		);
 		// get the amount held in the vault
@@ -695,7 +696,7 @@ contract OptionRegistry is AccessControl {
 	function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256) {
 		// convert strike to 1e8 format
 		uint256 price = strikePrice / (10**10);
-		uint256 collateralDecimals = IERC20(collateral).decimals();
+		uint256 collateralDecimals = ERC20(collateral).decimals();
 		if (collateralDecimals >= OPYN_DECIMALS) return price;
 		uint256 difference = OPYN_DECIMALS - collateralDecimals;
 		// round floor strike to prevent errors in Gamma protocol

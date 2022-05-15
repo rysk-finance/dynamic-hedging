@@ -7,6 +7,9 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "./interfaces/AggregatorV3Interface.sol";
 
+/**
+ *  @title Contract used for accessing exchange rates using chainlink price feeds
+ */
 contract PriceFeed is AccessControl {
 	using PRBMathUD60x18 for uint8;
 	using PRBMathSD59x18 for int256;
@@ -51,6 +54,7 @@ contract PriceFeed is AccessControl {
 		return uint256(rate);
 	}
 
+	/// @dev get the rate from chainlink and convert it to e18 decimals
 	function getNormalizedRate(address underlying, address strike) external view returns (uint256) {
 		address feedAddress = priceFeeds[underlying][strike];
 		require(feedAddress != address(0), "Price feed does not exist");

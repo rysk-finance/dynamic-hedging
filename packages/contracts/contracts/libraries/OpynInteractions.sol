@@ -2,10 +2,12 @@
 pragma solidity >=0.8.4;
 
 import "./SafeTransferLib.sol";
-import "../interfaces/IERC20.sol";
 import { Types } from "./Types.sol";
 import { IOtokenFactory, IOtoken, IController, GammaTypes } from "../interfaces/GammaInterface.sol";
 
+/**
+ *  @title Library used for standard interactions with the opyn-rysk gamma protocol
+ */
 library OpynInteractions {
 	uint256 private constant SCALE_FROM = 10**10;
 	error NoShort();
@@ -270,7 +272,7 @@ library OpynInteractions {
 		// An otoken's collateralAsset is the vault's `asset`
 		// So in the context of performing Opyn short operations we call them collateralAsset
 		IOtoken oToken = IOtoken(oTokenAddress);
-		IERC20 collateralAsset = IERC20(oToken.collateralAsset());
+		ERC20 collateralAsset = ERC20(oToken.collateralAsset());
 		uint256 startCollatBalance = collateralAsset.balanceOf(address(this));
 		GammaTypes.Vault memory vault = controller.getVault(address(this), vaultId);
 		// initialise the controller args with 2 incase the vault already exists
@@ -328,9 +330,9 @@ library OpynInteractions {
 
 		// An otoken's collateralAsset is the vault's `asset`
 		// So in the context of performing Opyn short operations we call them collateralAsset
-		IERC20 collateralToken = IERC20(vault.collateralAssets[0]);
+		ERC20 collateralToken = ERC20(vault.collateralAssets[0]);
 
-		// This is equivalent to doing IERC20(vault.asset).balanceOf(address(this))
+		// This is equivalent to doing ERC20(vault.asset).balanceOf(address(this))
 		uint256 startCollateralBalance = collateralToken.balanceOf(address(this));
 
 		// If it is after expiry, we need to settle the short position using the normal way
@@ -377,7 +379,7 @@ library OpynInteractions {
 	) external returns (uint256) {
 		IController controller = IController(gammaController);
 		address collateralAsset = IOtoken(series).collateralAsset();
-		uint256 startAssetBalance = IERC20(collateralAsset).balanceOf(msg.sender);
+		uint256 startAssetBalance = ERC20(collateralAsset).balanceOf(msg.sender);
 
 		// If it is after expiry, we need to redeem the profits
 		IController.ActionArgs[] memory actions = new IController.ActionArgs[](1);
@@ -395,7 +397,7 @@ library OpynInteractions {
 		SafeTransferLib.safeApprove(ERC20(series), marginPool, amount);
 		controller.operate(actions);
 
-		uint256 endAssetBalance = IERC20(collateralAsset).balanceOf(msg.sender);
+		uint256 endAssetBalance = ERC20(collateralAsset).balanceOf(msg.sender);
 		// returns in collateral decimals
 		return endAssetBalance - startAssetBalance;
 	}

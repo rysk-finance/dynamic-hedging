@@ -3,6 +3,9 @@ pragma solidity >=0.8.0;
 
 import "./libraries/AccessControl.sol";
 
+/**
+ *  @title Contract used for storage of important contracts for the liquidity pool
+ */
 contract Protocol is AccessControl {
 	////////////////////////
 	/// static variables ///

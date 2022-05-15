@@ -5,6 +5,9 @@ import "./interfaces/IAuthority.sol";
 
 import "./libraries/AccessControl.sol";
 
+/**
+ *  @title Contract used as the source of truth for all protocol authority and access control, based off of OlympusDao Access Control
+ */
 contract Authority is IAuthority, AccessControl {
 	/* ========== STATE VARIABLES ========== */
 

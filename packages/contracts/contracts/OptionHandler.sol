@@ -15,8 +15,10 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
-import "hardhat/console.sol";
 
+/**
+ *  @title Contract used for all user facing options interactions
+ */
 contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
@@ -126,7 +128,9 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		_onlyGuardian();
 		_unpause();
 	}
-
+	/**
+	 * @notice add or remove addresses who have no restrictions on the options they can sell back to the pool
+	 */
 	function addOrRemoveBuybackAddress(address _addressToWhitelist, bool toAdd) external {
 		_onlyGovernor();
 		buybackWhitelist[_addressToWhitelist] = toAdd;
@@ -137,17 +141,17 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	//////////////////////////////////////////////////////
 
 	/**
-    @notice creates an order for a number of options from the pool to a specified user. The function
-            is intended to be used to issue options to market makers/ OTC market participants
-            in order to have flexibility and customisability on option issuance and market 
-            participant UX.
-    @param _optionSeries the option token series to issue - strike in e18
-    @param _amount the number of options to issue - e18
-    @param _price the price per unit to issue at - in e18
-    @param _orderExpiry the expiry of the order (if past the order is redundant)
-    @param _buyerAddress the agreed upon buyer address
-    @return orderId the unique id of the order
-  */
+     * @notice creates an order for a number of options from the pool to a specified user. The function
+     *      is intended to be used to issue options to market makers/ OTC market participants
+     *      in order to have flexibility and customisability on option issuance and market 
+     *      participant UX.
+     * @param _optionSeries the option token series to issue - strike in e18
+     * @param _amount the number of options to issue - e18
+     * @param _price the price per unit to issue at - in e18
+     * @param _orderExpiry the expiry of the order (if past the order is redundant)
+     * @param _buyerAddress the agreed upon buyer address
+     * @return orderId the unique id of the order
+     */
 	function createOrder(
 		Types.OptionSeries memory _optionSeries,
 		uint256 _amount,
@@ -183,18 +187,18 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	}
 
 	/** 
-    @notice creates a strangle order. One custom put and one custom call order to be executed simultaneously.
-    @param _optionSeriesCall the option token series to issue for the call part of the strangle - strike in e18
-    @param _optionSeriesPut the option token series to issue for the put part of the strangle - strike in e18
-    @param _amountCall the number of call options to issue 
-    @param _amountPut the number of put options to issue 
-    @param _priceCall the price per unit to issue calls at
-    @param _pricePut the price per unit to issue puts at
-    @param _orderExpiry the expiry of the order (if past the order is redundant)
-    @param _buyerAddress the agreed upon buyer address
-    @return callOrderId the unique id of the call part of the strangle
-    @return putOrderId the unique id of the put part of the strangle
-  */
+     * @notice creates a strangle order. One custom put and one custom call order to be executed simultaneously.
+     * @param _optionSeriesCall the option token series to issue for the call part of the strangle - strike in e18
+     * @param _optionSeriesPut the option token series to issue for the put part of the strangle - strike in e18
+     * @param _amountCall the number of call options to issue 
+     * @param _amountPut the number of put options to issue 
+     * @param _priceCall the price per unit to issue calls at
+     * @param _pricePut the price per unit to issue puts at
+     * @param _orderExpiry the expiry of the order (if past the order is redundant)
+     * @param _buyerAddress the agreed upon buyer address
+     * @return callOrderId the unique id of the call part of the strangle
+     * @return putOrderId the unique id of the put part of the strangle
+  	 */
 	function createStrangle(
 		Types.OptionSeries memory _optionSeriesCall,
 		Types.OptionSeries memory _optionSeriesPut,
@@ -224,12 +228,12 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	}
 
 	/**
-    @notice fulfills an order for a number of options from the pool to a specified user. The function
-            is intended to be used to issue options to market makers/ OTC market participants
-            in order to have flexibility and customisability on option issuance and market 
-            participant UX.
-    @param  _orderId the id of the order for options purchase
-  */
+     * @notice fulfills an order for a number of options from the pool to a specified user. The function
+     *      is intended to be used to issue options to market makers/ OTC market participants
+     *      in order to have flexibility and customisability on option issuance and market 
+     *      participant UX.
+     * @param  _orderId the id of the order for options purchase
+  	 */
 	function executeOrder(uint256 _orderId) public nonReentrant {
 		// get the order
 		Types.Order memory order = orderStores[_orderId];
@@ -310,9 +314,9 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	}
 
 	/**
-    @notice fulfills a stored strangle order consisting of a stores call and a stored put.
-    This is intended to be called by market makers/OTC market participants.
-  */
+     * @notice fulfills a stored strangle order consisting of a stores call and a stored put.
+     * This is intended to be called by market makers/OTC market participants.
+	 */
 	function executeStrangle(uint256 _orderId1, uint256 _orderId2) external {
 		executeOrder(_orderId1);
 		executeOrder(_orderId2);
@@ -436,11 +440,11 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	}
 
 	/**
-    @notice buys a number of options back and burns the tokens
-    @param seriesAddress the option token series address to buyback
-    @param amount the number of options to buyback expressed in 1e18
-    @return the number of options bought and burned
-  */
+     * @notice buys a number of options back and burns the tokens
+     * @param seriesAddress the option token series address to buyback
+     * @param amount the number of options to buyback expressed in 1e18
+     * @return the number of options bought and burned
+  	 */
 	function buybackOption(address seriesAddress, uint256 amount)
 		external
 		nonReentrant
