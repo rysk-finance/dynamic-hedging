@@ -3,13 +3,14 @@ import { Link, useLocation } from "react-router-dom";
 import { useWalletContext } from "../App";
 import { AppPaths } from "../config/appPaths";
 import { useGlobalContext } from "../state/GlobalContext";
+import { HeaderPopover } from "./HeaderPopover";
 import { Button } from "./shared/Button";
 
 export const Header: React.FC = () => {
   const {
     state: { connectWalletIndicatorActive },
   } = useGlobalContext();
-  const { connectWallet, provider } = useWalletContext();
+  const { connectWallet, provider, disconnect } = useWalletContext();
   const { pathname } = useLocation();
 
   return (
@@ -55,7 +56,8 @@ export const Header: React.FC = () => {
             Connect
           </Button>
         ) : (
-          <p>Connected</p>
+          <HeaderPopover />
+          // <Button onClick={() => disconnect?.()}>Disconnect</Button>
         )}
       </div>
     </div>

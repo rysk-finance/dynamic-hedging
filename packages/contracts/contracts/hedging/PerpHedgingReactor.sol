@@ -3,13 +3,12 @@ pragma solidity >=0.8.9;
 
 import "../PriceFeed.sol";
 import "../interfaces/IERC20.sol";
+import "../libraries/AccessControl.sol";
 import "../libraries/OptionsCompute.sol";
 import '../libraries/SafeTransferLib.sol';
 import "../interfaces/IHedgingReactor.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@rage/core/contracts/interfaces/IClearingHouse.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-
 import "hardhat/console.sol";
 
 
@@ -17,7 +16,7 @@ import "hardhat/console.sol";
     @title A hedging reactor that will manage delta by opening or closing short or long perp positions
  */
 
-contract PerpHedgingReactor is IHedgingReactor, Ownable {
+contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 
     /////////////////////////////////
     /// immutable state variables ///
@@ -52,7 +51,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     /////////////////////////////////////
 
     /// @notice address of the keeper of this pool
-    address public keeper;
+    mapping(address => bool) public keeper;
     /// @notice desired healthFactor of the pool
     uint256 public healthFactor = 12_000;
     /// @notice should change position also sync state
@@ -72,7 +71,6 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     //////////////
 
     error ValueFailure();
-    error InvalidSender();
     error InvalidHealthFactor();
     error IncorrectCollateral();
     error InvalidTransactionNotEnoughMargin(int256 accountMarketValue, int256 totalRequiredMargin);
@@ -84,8 +82,9 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         address _parentLiquidityPool, 
         uint32 _poolId,
         uint32 _collateralId, 
-        address _priceFeed
-        ) {
+        address _priceFeed,
+        address _authority
+        ) AccessControl(IAuthority(_authority)) {
         clearingHouse = IClearingHouse(_clearingHouse);
         collateralAsset = _collateralAsset;
         wETH = _wethAddress;
@@ -102,16 +101,19 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     ///////////////
 
     /// @notice update the health factor parameter
-    function setHealthFactor(uint _healthFactor) external onlyOwner {
+    function setHealthFactor(uint _healthFactor) external {
+        _onlyGovernor();
         if (_healthFactor < MAX_BIPS) {revert InvalidHealthFactor();}
         healthFactor = _healthFactor;
     }
-    /// @notice update the keeper
-    function setKeeper(address _keeper) external onlyOwner {
-        keeper = _keeper;
+    /// @notice update the keepers
+    function setKeeper(address _keeper, bool _auth) external {
+        _onlyGovernor();
+        keeper[_keeper] = _auth;
     }
     /// @notice update the keeper
-    function setSyncOnChange(bool _syncOnChange) external onlyOwner {
+    function setSyncOnChange(bool _syncOnChange) external {
+        _onlyGovernor();
         syncOnChange = _syncOnChange;
     }
 
@@ -119,7 +121,7 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     /// access-controlled external functions ///
     ////////////////////////////////////////////
 
-    function initialiseReactor() external onlyOwner {
+    function initialiseReactor() external {
         (,,IClearingHouse.CollateralDepositView[] memory collatDeposits,) = clearingHouse.getAccountInfo(accountId);
         if (collatDeposits.length != 0) {revert();}
         SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), 1);
@@ -170,13 +172,13 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
     /// @notice function to poke the margin account to update the profits of the vault
     /// @dev    only callable by a keeper
     function sync() public {
-        if (msg.sender != keeper || msg.sender != parentLiquidityPool){revert InvalidSender();}
+        _isKeeper();
         clearingHouse.settleProfit(accountId);
     }
 
     /// @inheritdoc IHedgingReactor
     function update() public returns (uint256) {
-        if (msg.sender != keeper){revert InvalidSender();}
+        _isKeeper();
         address collateralAsset_ = collateralAsset;
         IClearingHouse clearingHouse_ = clearingHouse;
         uint256 accountId_ = accountId;
@@ -370,4 +372,15 @@ contract PerpHedgingReactor is IHedgingReactor, Ownable {
         }
         return _amount;
     }
+    /// @dev keepers, managers or governors can access
+	function _isKeeper() internal view {
+		if (
+            !keeper[msg.sender] && 
+            msg.sender != authority.governor() && 
+            msg.sender != authority.manager() && 
+            msg.sender != parentLiquidityPool) 
+            {
+			revert CustomErrors.NotKeeper();
+		}
+	}
 }

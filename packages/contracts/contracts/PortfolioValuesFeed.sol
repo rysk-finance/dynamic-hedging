@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./libraries/AccessControl.sol";
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import "./interfaces/ILiquidityPool.sol";
@@ -11,7 +11,7 @@ import "./libraries/Types.sol";
  * @title The PortfolioValuesFeed contract
  * @notice An external adapter Consumer contract that makes requests to obtain portfolio values for different pools
  */
-contract PortfolioValuesFeed is Ownable, ChainlinkClient {
+contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
   using Chainlink for Chainlink.Request;
 
   ///////////////////////////
@@ -55,8 +55,9 @@ contract PortfolioValuesFeed is Ownable, ChainlinkClient {
     address _oracle,
     bytes32 _jobId,
     uint256 _fee,
-    address _link
-  ) {
+    address _link,
+    address _authority
+  ) AccessControl(IAuthority(_authority))  {
     if (_link == address(0)) {
       setPublicChainlinkToken();
     } else {
@@ -72,11 +73,13 @@ contract PortfolioValuesFeed is Ownable, ChainlinkClient {
   /// setters ///
   ///////////////
 
-  function setLiquidityPool(address _liquidityPool) external onlyOwner {
+  function setLiquidityPool(address _liquidityPool) external {
+    _onlyGovernor;
     liquidityPool = ILiquidityPool(_liquidityPool);
   }
 
-  function setAddressStringMapping(address _asset, string memory _stringVersion) external onlyOwner {
+  function setAddressStringMapping(address _asset, string memory _stringVersion) external {
+    _onlyGovernor();
     stringedAddresses[_asset] = _stringVersion;
   }
 
@@ -129,8 +132,9 @@ function fulfill(
  * @notice Witdraws LINK from the contract
  * @dev Implement a withdraw function to avoid locking your LINK in the contract
  */
-function withdrawLink(uint256 _amount) external onlyOwner {
-  LinkTokenInterface(link).transfer(msg.sender, _amount);
+function withdrawLink(uint256 _amount, address _target) external {
+  _onlyGovernor();
+  LinkTokenInterface(link).transfer(_target, _amount);
 }
 
   /////////////////////////////////////////////

@@ -60,7 +60,7 @@
                 <mxCell id="1642eGbjVczJc0algu5P-17" value="Liquidity Provider" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
                     <mxGeometry x="380" y="170" width="80" height="80" as="geometry"/>
                 </mxCell>
-                <mxCell id="1642eGbjVczJc0algu5P-19" value="issueAndWriteOption&lt;br&gt;buyBackOption&lt;br&gt;redeem&lt;br&gt;settle&lt;br&gt;quotePrice" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="1642eGbjVczJc0algu5P-18" target="hZv7sSVvZLK3GC8TUpPU-1" edge="1">
+                <mxCell id="1642eGbjVczJc0algu5P-19" value="issueAndWriteOption&lt;br&gt;buyBackOption&lt;br&gt;quotePrice" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="1642eGbjVczJc0algu5P-18" target="hZv7sSVvZLK3GC8TUpPU-1" edge="1">
                     <mxGeometry relative="1" as="geometry">
                         <Array as="points">
                             <mxPoint x="540" y="135"/>
@@ -87,7 +87,7 @@
                 <mxCell id="1642eGbjVczJc0algu5P-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="1" source="1642eGbjVczJc0algu5P-26" target="1642eGbjVczJc0algu5P-4" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="1642eGbjVczJc0algu5P-28" value="settle&lt;br&gt;rebalancePortfolioDelta&lt;br&gt;adjustWeightedVariables&lt;br&gt;pause/unpause" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="1642eGbjVczJc0algu5P-27" vertex="1" connectable="0">
+                <mxCell id="1642eGbjVczJc0algu5P-28" value="settle&lt;br&gt;rebalancePortfolioDelta&lt;br&gt;pause/unpause" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="1642eGbjVczJc0algu5P-27" vertex="1" connectable="0">
                     <mxGeometry x="-0.1799" y="2" relative="1" as="geometry">
                         <mxPoint as="offset"/>
                     </mxGeometry>
@@ -114,7 +114,7 @@
                     <mxGeometry x="660" y="490" width="130" height="90" as="geometry"/>
                 </mxCell>
                 <mxCell id="jicTCFTSVg2uyOjH9K08-5" value="&lt;b&gt;&lt;font style=&quot;font-size: 21px&quot;&gt;Diagram A&lt;/font&gt;&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;strokeWidth=2;" parent="1" vertex="1">
-                    <mxGeometry x="370" y="100" width="120" height="20" as="geometry"/>
+                    <mxGeometry x="-134" y="44" width="120" height="20" as="geometry"/>
                 </mxCell>
                 <mxCell id="jicTCFTSVg2uyOjH9K08-6" value="&lt;b&gt;&lt;font style=&quot;font-size: 21px&quot;&gt;Diagram D&lt;/font&gt;&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;strokeWidth=2;" parent="1" vertex="1">
                     <mxGeometry x="75" y="1280" width="120" height="20" as="geometry"/>
@@ -424,10 +424,10 @@
                         <mxPoint as="offset"/>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="fGb8RV4LIUpfqrv7IjaU-17" value="checkVaultHealth&lt;br&gt;adjustCollateral&lt;br&gt;withdrawExcessCollat" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontColor=#000000;" parent="1" source="fGb8RV4LIUpfqrv7IjaU-2" target="1642eGbjVczJc0algu5P-5" edge="1">
+                <mxCell id="fGb8RV4LIUpfqrv7IjaU-17" value="&lt;font color=&quot;#ffffff&quot;&gt;checkVaultHealth&lt;br&gt;adjustCollateral&lt;br&gt;withdrawExcessCollat&lt;/font&gt;" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontColor=#000000;" parent="1" source="fGb8RV4LIUpfqrv7IjaU-2" target="1642eGbjVczJc0algu5P-5" edge="1">
                     <mxGeometry relative="1" as="geometry"/>
                 </mxCell>
-                <mxCell id="fGb8RV4LIUpfqrv7IjaU-2" value="Keeper" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fontColor=#000000;" parent="1" vertex="1">
+                <mxCell id="fGb8RV4LIUpfqrv7IjaU-2" value="Keeper" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;" parent="1" vertex="1">
                     <mxGeometry x="-15" y="495" width="80" height="80" as="geometry"/>
                 </mxCell>
                 <mxCell id="fGb8RV4LIUpfqrv7IjaU-4" value="Volatility Skew Oracle" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">

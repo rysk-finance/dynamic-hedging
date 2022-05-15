@@ -1,4 +1,4 @@
-import { ethers, network } from "hardhat"
+import hre, { ethers, network } from "hardhat"
 import { Signer, BigNumber } from "ethers"
 import { expect } from "chai"
 import { MintableERC20 } from "../types/MintableERC20"
@@ -68,11 +68,14 @@ describe("UniswapV3HedgingReactor", () => {
 
 		expect(LPContractBalance).to.equal(1000000)
 	})
+	let authority: string
 	it("Should deploy price feed", async () => {
 		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
-
+		const authorityFactory = await hre.ethers.getContractFactory("Authority")
+		const senderAddress = await signers[0].getAddress()
+		authority = (await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)).address
 		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-		const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
+		const _priceFeed = (await priceFeedFactory.deploy(authority)) as PriceFeed
 		priceFeed = _priceFeed
 		await priceFeed.addPriceFeed(ZERO_ADDRESS, USDC_ADDRESS[chainId], ethUSDAggregator.address)
 		await priceFeed.addPriceFeed(
@@ -106,7 +109,8 @@ describe("UniswapV3HedgingReactor", () => {
 			WETH_ADDRESS[chainId],
 			liquidityPoolDummyAddress,
 			3000,
-			priceFeed.address
+			priceFeed.address,
+			authority
 		)) as UniswapV3HedgingReactor
 
 		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")

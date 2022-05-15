@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
+import "./libraries/AccessControl.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 
-contract VolatilityFeed is Ownable {
+contract VolatilityFeed is AccessControl {
     using PRBMathSD59x18 for int256;
     using PRBMathUD60x18 for uint256;
 
@@ -18,6 +18,8 @@ contract VolatilityFeed is Ownable {
     int[7] public callsVolatilitySkew;
     // skew parameters for puts
     int[7] public putsVolatilitySkew;
+	// keeper mapping
+	mapping(address => bool) public keeper;
 
     //////////////////////////
     /// constant variables ///
@@ -25,7 +27,7 @@ contract VolatilityFeed is Ownable {
     
     // number of seconds in a year used for calculations
     uint256 private constant ONE_YEAR_SECONDS = 31557600;
-    constructor() {}
+    constructor(address _authority) AccessControl(IAuthority(_authority)) {}
 
    ///////////////
    /// setters ///
@@ -38,9 +40,9 @@ contract VolatilityFeed is Ownable {
    * @dev   only governance can call this function
    */
   function setVolatilitySkew(int[7] calldata values, bool isPut)
-      onlyOwner
       external
   {
+      _isKeeper();
       if (!isPut) {
           callsVolatilitySkew = values;
       } else {
@@ -48,6 +50,11 @@ contract VolatilityFeed is Ownable {
       }
   }
 
+  /// @notice update the keepers
+  function setKeeper(address _keeper, bool _auth) external {
+		_onlyGovernor();
+		keeper[_keeper] = _auth;
+  }
     
   ///////////////////////
   /// complex getters ///
@@ -110,4 +117,13 @@ contract VolatilityFeed is Ownable {
         int c4PlusC5 = coef[4].mul(points[0].mul(points[0])) + (coef[5].mul(points[0]).mul(points[1]));
         return iPlusC1 + c2PlusC3 + c4PlusC5 + (coef[6].mul(points[1].mul(points[1])));
     }
+
+    /// @dev keepers, managers or governors can access
+	function _isKeeper() internal view {
+		if (
+			!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()
+		) {
+			revert();
+		}
+	}
 }

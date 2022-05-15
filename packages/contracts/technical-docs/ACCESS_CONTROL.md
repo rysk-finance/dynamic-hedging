@@ -15,8 +15,8 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
     - bufferPercentage [the collateral amount percentage that must be left in the pool]: GOVERNOR
     - hedgingReactors [hedging reactors used for hedging delta with new derivatives]: GOVERNOR
     - collateralCap [max amount of collateral allowed]: GOVERNOR
-    - maxDiscount [max discount allowed for options prices because of delta skew]: GOVERNOR
-    - bidAskIVSpread [the implied volatility difference for when selling options back to the pool]: GOVERNOR
+    - maxDiscount [max discount allowed for options prices because of delta skew]: GOVERNOR, MANAGER
+    - bidAskIVSpread [the implied volatility difference for when selling options back to the pool]: GOVERNOR, MANAGER
     - optionParams [options value range for options that the pool can write]: GOVERNOR
     - riskFreeRate [rate used for options calculation]: GOVERNOR
     - handler [authorised contracts that can interact with liquidityPool options writing capabilities]: GOVERNOR
@@ -24,7 +24,10 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
 - LiquidityPool settleVault: GOVERNOR, MANAGER, KEEPER 
 - LiquidityPool pauseTradingAndRequest: GOVERNOR, MANAGER, KEEPER
 - LiquidityPool executeEpochCalculation: GOVERNOR, MANAGER, KEEPER
-
+- maxTimeDeviationThreshold [time window after which a portfolio feed update gets stale]: GOVERNOR
+- maxPriceDeviationThreshold [price window after which a portfolio feed update gets stale]: GOVERNOR
+- utilizationSkewParams [parameters used for the quote price pricing mechanism]: GOVERNOR, MANAGER
+- keeper [authorised specified function caller]: GOVERNOR
 
 ## OptionHandler
 ### (GOVERNOR, MANAGER, GUARDIAN)
@@ -68,7 +71,7 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
 ### (GOVERNOR)
 
 - VolatilityFeed setters: GOVERNOR
-    - volatilitySkew [the volatility skew used for puts and calls]: GOVERNOR
+    - volatilitySkew [the volatility skew used for puts and calls]: GOVERNOR, MANAGER, KEEPER
 
 ## Protocol
 ### (GOVERNOR)

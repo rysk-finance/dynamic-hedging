@@ -137,6 +137,7 @@ contracts
 │   └── UniswapV3HedgingReactor.sol
 ├── interfaces
 │   ├── AddressBookInterface.sol
+│   ├── IAuthority.sol
 │   ├── AggregatorV3Interface.sol
 │   ├── GammaInterface.sol
 │   ├── IERC20.sol
@@ -151,10 +152,12 @@ contracts
 │   ├── NormalDist.sol
 │   ├── OptionsCompute.sol
 │   ├── OpynInteractions.sol
+│   ├── AccessControl.sol
 │   ├── SafeTransferLib.sol
 │   └── Types.sol
 ├── tokens
 │   └── ERC20.sol
+├── Authority.sol
 ├── LiquidityPool.sol
 ├── OptionRegistry.sol
 ├── OptionHandler.sol

@@ -1,5 +1,11 @@
 import hre, { ethers } from "hardhat"
-import { toWei, genOptionTimeFromUnix, fromWei } from "../utils/conversion-helper"
+import {
+	toWei,
+	genOptionTimeFromUnix,
+	fromWei,
+	tFormatUSDC,
+	tFormatEth
+} from "../utils/conversion-helper"
 import {
 	CHAINLINK_WETH_PRICER,
 	GAMMA_ORACLE,
@@ -14,7 +20,7 @@ import {
 import greeks from "greeks"
 import { MintableERC20 } from "../types/MintableERC20"
 import { WETH } from "../types/WETH"
-import { BigNumber, Contract } from "ethers"
+import { BigNumber, Contract, utils } from "ethers"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { ChainLinkPricer } from "../types/ChainLinkPricer"
 import { LiquidityPool } from "../types/LiquidityPool"
@@ -22,13 +28,17 @@ import { PriceFeed } from "../types/PriceFeed"
 //@ts-ignore
 import bs from "black-scholes"
 import { E } from "prb-math"
+import { OptionRegistry } from "../types/OptionRegistry"
 
 const { provider } = ethers
 const { parseEther } = ethers.utils
 const chainId = 1
 // decimal representation of a percentage
 const rfr: string = "0.03"
-const bidAskSpread = "0.3"
+const belowUtilizationThresholdGradient = 0.1
+const aboveUtilizationThresholdGradient = 1.5
+const utilizationFunctionThreshold = 0.6 // 60%
+const yIntercept = -0.84
 
 export async function whitelistProduct(
 	underlying: string,
@@ -174,6 +184,8 @@ export async function increase(duration: number | BigNumber) {
 
 export async function calculateOptionQuoteLocally(
 	liquidityPool: LiquidityPool,
+	optionRegistry: OptionRegistry,
+	collateralAsset: MintableERC20,
 	priceFeed: PriceFeed,
 	optionSeries: {
 		expiration: number
@@ -186,32 +198,93 @@ export async function calculateOptionQuoteLocally(
 	amount: BigNumber,
 	toBuy: boolean = false
 ) {
-	const totalLiqidity = await liquidityPool.totalSupply()
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block
 	const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), optionSeries.expiration)
-	const priceQuote = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-	const priceNorm = fromWei(priceQuote)
-	const utilization = Number(fromWei(amount)) / Number(fromWei(totalLiqidity))
-	const utilizationPrice = Number(priceNorm) * utilization
-
+	const underlyingPrice = await priceFeed.getNormalizedRate(
+		WETH_ADDRESS[chainId],
+		USDC_ADDRESS[chainId]
+	)
+	const priceNorm = fromWei(underlyingPrice)
 	const iv = await liquidityPool.getImpliedVolatility(
 		optionSeries.isPut,
-		priceQuote,
+		underlyingPrice,
 		optionSeries.strike,
 		optionSeries.expiration
 	)
-	const localBS = bs.blackScholes(
-		priceNorm,
-		fromWei(optionSeries.strike),
-		timeToExpiration,
-		toBuy ? Number(fromWei(iv)) - Number(bidAskSpread) : fromWei(iv),
-		parseFloat(rfr),
-		optionSeries.isPut ? "put" : "call"
-	)
+	const maxDiscount = ethers.utils.parseUnits("1", 17) // 10%
 
-	return (utilizationPrice > localBS ? utilizationPrice : localBS) * parseFloat(fromWei(amount))
+	const NAV = await liquidityPool.getNAV()
+	const collateralAllocated = await liquidityPool.collateralAllocated()
+	const lpUSDBalance = await collateralAsset.balanceOf(liquidityPool.address)
+	const portfolioDeltaBefore = await liquidityPool.getPortfolioDelta()
+	const optionDelta = await calculateOptionDeltaLocally(
+		liquidityPool,
+		priceFeed,
+		optionSeries,
+		amount,
+		!toBuy
+	)
+	// optionDelta will already be inverted if we are selling it
+	const portfolioDeltaAfter = portfolioDeltaBefore.add(optionDelta)
+	const portfolioDeltaIsDecreased = portfolioDeltaAfter.abs().sub(portfolioDeltaBefore.abs()).lt(0)
+	const normalisedDelta = portfolioDeltaBefore
+		.add(portfolioDeltaAfter)
+		.div(2)
+		.abs()
+		.div(NAV.div(underlyingPrice))
+
+	const deltaTiltAmount = parseFloat(
+		utils.formatEther(normalisedDelta.gt(maxDiscount) ? maxDiscount : normalisedDelta)
+	)
+	const liquidityAllocated = await optionRegistry.getCollateral(
+		{
+			expiration: optionSeries.expiration,
+			strike: optionSeries.strike.div(10 ** 10),
+			isPut: optionSeries.isPut,
+			underlying: optionSeries.underlying,
+			strikeAsset: optionSeries.strikeAsset,
+			collateral: optionSeries.collateral
+		},
+		amount
+	)
+	const utilizationBefore =
+		tFormatUSDC(collateralAllocated) / tFormatUSDC(collateralAllocated.add(lpUSDBalance))
+	const utilizationAfter =
+		tFormatUSDC(collateralAllocated.add(liquidityAllocated)) /
+		tFormatUSDC(collateralAllocated.add(lpUSDBalance))
+	const bidAskSpread = tFormatEth(await liquidityPool.bidAskIVSpread())
+	const localBS =
+		bs.blackScholes(
+			priceNorm,
+			fromWei(optionSeries.strike),
+			timeToExpiration,
+			toBuy ? Number(fromWei(iv)) * (1 - Number(bidAskSpread)) : fromWei(iv),
+			parseFloat(rfr),
+			optionSeries.isPut ? "put" : "call"
+		) * parseFloat(fromWei(amount))
+	let utilizationPrice = toBuy
+		? localBS
+		: getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
+	// if delta exposure reduces, subtract delta skew from  pricequotes
+	if (portfolioDeltaIsDecreased) {
+		if (toBuy) {
+			utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
+		} else {
+			utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
+		}
+		return utilizationPrice
+		// if delta exposure increases, add delta skew to price quotes
+	} else {
+		if (toBuy) {
+			utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
+		} else {
+			utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
+		}
+
+		return utilizationPrice
+	}
 }
 
 export async function calculateOptionDeltaLocally(
@@ -232,7 +305,7 @@ export async function calculateOptionDeltaLocally(
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block
-	const time = genOptionTimeFromUnix(timestamp , optionSeries.expiration)
+	const time = genOptionTimeFromUnix(timestamp, optionSeries.expiration)
 	const vol = await liquidityPool.getImpliedVolatility(
 		optionSeries.isPut,
 		priceQuote,
@@ -240,7 +313,95 @@ export async function calculateOptionDeltaLocally(
 		optionSeries.expiration
 	)
 	const opType = optionSeries.isPut ? "put" : "call"
-	let localDelta = greeks.getDelta(fromWei(priceQuote), fromWei(optionSeries.strike), time, fromWei(vol), rfr, opType)
+	let localDelta = greeks.getDelta(
+		fromWei(priceQuote),
+		fromWei(optionSeries.strike),
+		time,
+		fromWei(vol),
+		rfr,
+		opType
+	)
 	localDelta = isShort ? -localDelta : localDelta
-	return toWei(localDelta.toString()).mul(amount.div(toWei('1')))
+	return toWei(localDelta.toString()).mul(amount.div(toWei("1")))
+}
+
+export async function getBlackScholesQuote(
+	liquidityPool: LiquidityPool,
+	optionRegistry: OptionRegistry,
+	collateralAsset: MintableERC20,
+	priceFeed: PriceFeed,
+	optionSeries: {
+		expiration: number
+		strike: BigNumber
+		isPut: boolean
+		strikeAsset: string
+		underlying: string
+		collateral: string
+	},
+	amount: BigNumber,
+	toBuy: boolean = false
+) {
+	const underlyingPrice = await priceFeed.getNormalizedRate(
+		WETH_ADDRESS[chainId],
+		USDC_ADDRESS[chainId]
+	)
+	const iv = await liquidityPool.getImpliedVolatility(
+		optionSeries.isPut,
+		underlyingPrice,
+		optionSeries.strike,
+		optionSeries.expiration
+	)
+	const blockNum = await ethers.provider.getBlockNumber()
+	const block = await ethers.provider.getBlock(blockNum)
+	const { timestamp } = block
+	const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), optionSeries.expiration)
+
+	const priceNorm = fromWei(underlyingPrice)
+	const bidAskSpread = tFormatEth(await liquidityPool.bidAskIVSpread())
+	const localBS =
+		bs.blackScholes(
+			priceNorm,
+			fromWei(optionSeries.strike),
+			timeToExpiration,
+			toBuy ? Number(fromWei(iv)) * (1 - Number(bidAskSpread)) : fromWei(iv),
+			parseFloat(rfr),
+			optionSeries.isPut ? "put" : "call"
+		) * parseFloat(fromWei(amount))
+
+	return localBS
+}
+
+function getUtilizationPrice(
+	utilizationBefore: number,
+	utilizationAfter: number,
+	optionPrice: number
+) {
+	if (
+		utilizationBefore < utilizationFunctionThreshold &&
+		utilizationAfter < utilizationFunctionThreshold
+	) {
+		return (
+			optionPrice +
+			((optionPrice * (utilizationBefore + utilizationAfter)) / 2) * belowUtilizationThresholdGradient
+		)
+	} else if (
+		utilizationBefore > utilizationFunctionThreshold &&
+		utilizationAfter > utilizationFunctionThreshold
+	) {
+		const utilizationPremiumFactor =
+			((utilizationBefore + utilizationAfter) / 2) * aboveUtilizationThresholdGradient + yIntercept
+		return optionPrice + optionPrice * utilizationPremiumFactor
+	} else {
+		const weightingRatio =
+			(utilizationFunctionThreshold - utilizationBefore) /
+			(utilizationAfter - utilizationFunctionThreshold)
+		const averageFactorBelow =
+			((utilizationFunctionThreshold + utilizationBefore) / 2) * belowUtilizationThresholdGradient
+		const averageFactorAbove =
+			((utilizationFunctionThreshold + utilizationAfter) / 2) * aboveUtilizationThresholdGradient +
+			yIntercept
+		const multiplicationFactor =
+			(weightingRatio * averageFactorBelow + averageFactorAbove) / (1 + weightingRatio)
+		return optionPrice + optionPrice * multiplicationFactor
+	}
 }

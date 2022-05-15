@@ -90,11 +90,14 @@ describe("PerpHedgingReactor Sc2", () => {
 			ethers.utils.formatUnits(await usdcContract.balanceOf(liquidityPoolDummyAddress), 6)
 		)
 	})
+	let authority: string
 	it("#deploy price feed", async () => {
 		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
-
+		const authorityFactory = await hre.ethers.getContractFactory("Authority")
+		const senderAddress = await signers[0].getAddress()
+		authority = (await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)).address
 		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-		const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
+		const _priceFeed = (await priceFeedFactory.deploy(authority)) as PriceFeed
 		priceFeed = _priceFeed
 		await priceFeed.addPriceFeed(ZERO_ADDRESS, USDC_ADDRESS[chainId], ethUSDAggregator.address)
 		await priceFeed.addPriceFeed(
@@ -140,11 +143,11 @@ describe("PerpHedgingReactor Sc2", () => {
 			liquidityPoolDummyAddress,
 			poolId,
 			collateralId,
-			priceFeed.address
+			priceFeed.address,
+			authority
 		)) as PerpHedgingReactor
 
 		expect(perpHedgingReactor).to.have.property("hedgeDelta")
-
 	})
 
 	it('#deploy range order', async () => {
@@ -154,7 +157,7 @@ describe("PerpHedgingReactor Sc2", () => {
 		const reactorAddress = perpHedgingReactor.address
 
 		await liquidityPoolDummy.setHedgingReactorAddress(reactorAddress)
-		perpHedgingReactor.setKeeper(liquidityPoolDummy.address)
+		perpHedgingReactor.setKeeper(liquidityPoolDummy.address, true)
 		expect(await liquidityPoolDummy.perpHedgingReactor()).to.equal(reactorAddress)
 	})
 	it("initialises the reactor", async () => {

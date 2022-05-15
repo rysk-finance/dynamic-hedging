@@ -2,12 +2,12 @@
 pragma solidity >=0.8.9;
 
 import "./interfaces/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./libraries/AccessControl.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "./interfaces/AggregatorV3Interface.sol";
 
-contract PriceFeed is Ownable {
+contract PriceFeed is AccessControl {
     using PRBMathUD60x18 for uint8;
     using PRBMathSD59x18 for int256;
     using PRBMathUD60x18 for uint256;
@@ -24,7 +24,7 @@ contract PriceFeed is Ownable {
     
     uint8 private constant SCALE_DECIMALS = 18;
 
-    constructor() {}
+    constructor(address _authority) AccessControl(IAuthority(_authority)) {}
 
    ///////////////
    /// setters ///
@@ -34,7 +34,8 @@ contract PriceFeed is Ownable {
         address underlying,
         address strike,
         address feed
-    ) public onlyOwner {
+    ) public {
+        _onlyGovernor();
         priceFeeds[underlying][strike] = feed;
     }
 
