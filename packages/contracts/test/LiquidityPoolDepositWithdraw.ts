@@ -957,4 +957,49 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			"TotalSupplyReached()"
 		)
 	})
+	it("Succeeds: pauses trading from keeper", async () => {
+		await liquidityPool.setKeeper(await signers[2].getAddress(), true)
+		await liquidityPool.connect(signers[2]).pauseTradingAndRequest()
+		expect(await liquidityPool.isTradingPaused()).to.be.true
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		// deliberately underprice quote so that the pool comes out as profitable
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("2"),
+			weth.address,
+			usd.address,
+			localDelta,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			quote.sub(toWei("100")),
+			BigNumber.from(priceQuote)
+		)
+	})
+	it("Succeeds: execute epoch from keeper", async () => {
+		const epochBefore = await liquidityPool.epoch()
+		const pendingDepositBefore = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
+		const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
+		const totalSupplyBefore = await liquidityPool.totalSupply()
+		await liquidityPool.connect(signers[2]).executeEpochCalculation()
+		const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
+		expect(await liquidityPool.epochPricePerShare(epochBefore)).to.equal(
+			toWei("1")
+				.mul((await liquidityPool.getNAV()).sub(pendingDepositBefore))
+				.div(totalSupplyBefore)
+		)
+		expect(await liquidityPool.pendingDeposits()).to.equal(0)
+		expect(await liquidityPool.isTradingPaused()).to.be.false
+		expect(await liquidityPool.epoch()).to.equal(epochBefore.add(1))
+		expect(
+			pendingDepositBefore.mul(toWei("1")).div(await liquidityPool.epochPricePerShare(epochBefore))
+		).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
+	})
+	it("Reverts: pauses trading from unauthorised", async () => {
+		await expect(liquidityPool.connect(signers[3]).pauseTradingAndRequest()).to.be.revertedWith("NotKeeper()")
+
+	})
+	it("Reverts: execute epoch from unauthorised", async () => {
+		await expect(liquidityPool.connect(signers[3]).executeEpochCalculation()).to.be.revertedWith("NotKeeper()")
+
+	})
 })

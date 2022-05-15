@@ -11,21 +11,21 @@ The library does not directly use oracles, the opyn-rysk gamma protocol uses cha
 
 ## Function by Function
 
-### ``` issue(Types.OptionSeries memory optionSeries) external onlyLiquidityPool returns address ``` ***NonTrustedAccessible***
+### ``` issue(Types.OptionSeries memory optionSeries) external onlyLiquidityPool returns address ``` ***Indirect NonTrustedAccessible***
 
 This function creates an oToken series via OpynInteractions and stores the identity of this oToken in the option registry without minting a short position. The strike is passed in as e18 decimals and converted with ``` formatStrikePrice()``` in order to make it compatible with opyn's e18 decimals. It is stored with opyn's decimals.
 This function is called via the LiquidityPool only.
 
-### ``` open(address _series, uint256 amount, uint256 collateralAmount) external onlyLiquidityPool returns bool, uint256 ``` ***NonTrustedAccessible***
+### ``` open(address _series, uint256 amount, uint256 collateralAmount) external onlyLiquidityPool returns bool, uint256 ``` ***Indirect NonTrustedAccessible***
 
 This function mints a short position for an oToken that has been "issued" by the option registry. If it has not been issued then it will not be minted. This contract will retrieve the seriesInfo from the registry, then will retrieve the opyn-rysk vault id for this series if it exists. If it does not exist then a new vault id will be created. A short is created via OpynInteractions to the options registry which is then transferred to the LiquidityPool.
 This function is called via the LiquidityPool only.
 
-### ```close(address _series, uint amount) external onlyLiquidityPool returns bool, uint256``` ***NonTrustedAccessible***
+### ```close(address _series, uint amount) external onlyLiquidityPool returns bool, uint256``` ***Indirect NonTrustedAccessible***
 
 This function closes a short position that was "issued" by the option registry and a vault already exists (it does not have to be opened by the option registry, but an option of this series has to have been minted at some point). It closes the oToken via OpynInteractions after transferring the oToken from the liquidity pool to the registry. After the close it will return any redeemed collateral to the liquidity pool. It makes sure the oToken can be closed (i.e. if it hasnt already expired).
 
-### ```redeem(address _series) external returns uint256 ``` ***NonTrustedAccessible***
+### ```redeem(address _series) external returns uint256 ``` ***Direct NonTrustedAccessible***
 
 This function interacts with Gamma protocol to "redeem" any oToken. This means that it burns the oToken and returns the option value to the sender after it has expired. 
 

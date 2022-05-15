@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
+import "./Types.sol";
+import "./CustomErrors.sol";
 import "./BlackScholes.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
-import "./Types.sol";
-import "./CustomErrors.sol";
-import "hardhat/console.sol";
 
+/**
+ *  @title Library used for various helper functionality for the Liquidity Pool
+ */
 library OptionsCompute {
 	using PRBMathUD60x18 for uint256;
 	using PRBMathSD59x18 for int256;
@@ -23,6 +25,7 @@ library OptionsCompute {
 		return value / (10**difference);
 	}
 
+	/// @dev converts from specified decimals to e18
 	function convertFromDecimals(uint256 value, uint256 decimals) internal pure returns (uint256) {
 		if (decimals > SCALE_DECIMALS) {
 			revert();
@@ -46,11 +49,11 @@ library OptionsCompute {
 	}
 
 	/** 
-     @dev computes the percentage difference between two integers
-     @param a the smaller integer
-     @param b the larger integer
-     @return uint256 the percentage differnce
-    */
+     * @dev computes the percentage difference between two integers
+     * @param a the smaller integer
+     * @param b the larger integer
+     * @return uint256 the percentage differnce
+     */
 	function calculatePercentageDifference(uint256 a, uint256 b) internal pure returns (uint256) {
 		if (a > b) {
 			return b.div(a);
@@ -59,7 +62,8 @@ library OptionsCompute {
 	}
 
 	/**
-	 * @notice get the latest oracle fed portfolio values and check when they were last updated and make sure this is within a reasonable window
+	 * @notice get the latest oracle fed portfolio values and check when they were last updated and make sure this is within a reasonable window in
+	 *		   terms of price and time
 	 */
 	function validatePortfolioValues(
 		uint256 spotPrice,
@@ -79,6 +83,9 @@ library OptionsCompute {
 		}
 	}
 
+	/**
+	 *	@notice calculates the utilization price of an option using the liquidity pool's utilisation skew algorithm
+	 */
 	function getUtilizationPrice(
 		uint256 _utilizationBefore,
 		uint256 _utilizationAfter,

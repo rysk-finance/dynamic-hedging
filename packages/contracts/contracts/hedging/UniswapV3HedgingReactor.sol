@@ -2,17 +2,15 @@
 pragma solidity >=0.8.9;
 
 import "../PriceFeed.sol";
-import "../interfaces/IERC20.sol";
 import "../libraries/AccessControl.sol";
 import "../libraries/OptionsCompute.sol";
 import '../libraries/SafeTransferLib.sol';
 import "../interfaces/IHedgingReactor.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 
 
 /**
-    @title A hedging reactor that will manage delta by swapping between ETH and stablecoin spot assets.
+ *   @title A hedging reactor that will manage delta by swapping between ETH and stablecoin spot assets on uniswap v3.
  */
 
 contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
@@ -108,13 +106,13 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
         int256 deltaChange;
         if (_delta < 0) { // buy wETH
             // get the current price convert it to collateral decimals multiply it by the amount, add 1% then make sure decimals are fine
-            uint amountInMaximum = OptionsCompute.convertToDecimals(getUnderlyingPrice(wETH_, collateralAsset_), IERC20(collateralAsset_).decimals()) * uint256(-_delta) * 101 / 1e20;
+            uint amountInMaximum = OptionsCompute.convertToDecimals(getUnderlyingPrice(wETH_, collateralAsset_), ERC20(collateralAsset_).decimals()) * uint256(-_delta) * 101 / 1e20;
             (deltaChange,) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset_);
             internalDelta += deltaChange;
             SafeTransferLib.safeTransfer(ERC20(collateralAsset_), parentLiquidityPool_, ERC20(collateralAsset_).balanceOf(address(this)));
             return deltaChange;
         } else { // sell wETH
-            uint256 ethBalance = IERC20(wETH_).balanceOf(address(this));
+            uint256 ethBalance = ERC20(wETH_).balanceOf(address(this));
             if(ethBalance < minAmount){
                 return 0;
             }
@@ -135,7 +133,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
         require(msg.sender == parentLiquidityPool, "!vault");
         address _token = collateralAsset;
         // check the holdings if enough just lying around then transfer it
-        uint256 balance = IERC20(_token).balanceOf(address(this));
+        uint256 balance = ERC20(_token).balanceOf(address(this));
         if (balance == 0) {return 0;}
         if (_amount <= balance) {
             SafeTransferLib.safeTransfer(ERC20(_token) ,msg.sender, _amount);
@@ -170,8 +168,8 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
     function getPoolDenominatedValue() external view returns(uint256 value){
         address collateralAsset_ = collateralAsset;
         address wETH_ = wETH;
-        return OptionsCompute.convertFromDecimals(IERC20(collateralAsset_).balanceOf(address(this)), IERC20(collateralAsset_).decimals()) +
-                (PriceFeed(priceFeed).getNormalizedRate(wETH_, collateralAsset_) * IERC20(wETH_).balanceOf(address(this))) / 10**IERC20(wETH_).decimals();
+        return OptionsCompute.convertFromDecimals(ERC20(collateralAsset_).balanceOf(address(this)), ERC20(collateralAsset_).decimals()) +
+                (PriceFeed(priceFeed).getNormalizedRate(wETH_, collateralAsset_) * ERC20(wETH_).balanceOf(address(this))) / 10**ERC20(wETH_).decimals();
     }
 
     //////////////////////////
@@ -180,10 +178,10 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 
 
     /** @notice function to sell stablecoins for exact amount of wETH to increase delta
-        @param _amountOut the exact amount of wETH to buy
-        @param _amountInMaximum the max amount of stablecoin willing to spend. Slippage limit.
-        @param _sellToken the stablecoin to sell
-    */
+     *  @param _amountOut the exact amount of wETH to buy
+     *  @param _amountInMaximum the max amount of stablecoin willing to spend. Slippage limit.
+     *  @param _sellToken the stablecoin to sell
+     */
     function _swapExactOutputSingle(uint256 _amountOut, uint256 _amountInMaximum, address _sellToken) internal returns (int256, uint256) {
         SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), _amountInMaximum);
 
@@ -204,12 +202,12 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
         return (int256(_amountOut), amountIn);
     }
 
-      /** @notice function to sell exact amount of wETH to decrease delta
-        @param _amountIn the exact amount of wETH to sell
-        @param _amountOutMinimum the min amount of stablecoin willing to receive. Slippage limit.
-        @param _buyToken the stablecoin to buy
-        @return deltaChange The resulting difference in delta exposure
-    */
+    /** @notice function to sell exact amount of wETH to decrease delta
+     *  @param _amountIn the exact amount of wETH to sell
+     *  @param _amountOutMinimum the min amount of stablecoin willing to receive. Slippage limit.
+     *  @param _buyToken the stablecoin to buy
+     *  @return deltaChange The resulting difference in delta exposure
+     */
     function _swapExactInputSingle(uint256 _amountIn, uint256 _amountOutMinimum, address _buyToken) internal returns (int256, uint256) {
     
         ISwapRouter.ExactInputSingleParams memory params =
@@ -231,23 +229,23 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
         return (-int256(_amountIn), amountOut);
     }
 
-  /**
-   * @notice get the underlying price with just the underlying asset and strike asset
-   * @param underlying   the asset that is used as the reference asset
-   * @param _strikeAsset the asset that the underlying value is denominated in
-   * @return the underlying price
-   */
-  function getUnderlyingPrice(
-    address underlying,
-    address _strikeAsset
-  )
-    internal
-    view
-    returns (uint)
-  {
-    return PriceFeed(priceFeed).getNormalizedRate(
-      underlying,
-      _strikeAsset
-    );
-  }
+    /**
+    * @notice get the underlying price with just the underlying asset and strike asset
+    * @param underlying   the asset that is used as the reference asset
+    * @param _strikeAsset the asset that the underlying value is denominated in
+    * @return the underlying price
+    */
+    function getUnderlyingPrice(
+        address underlying,
+        address _strikeAsset
+    )
+        internal
+        view
+        returns (uint)
+    {
+        return PriceFeed(priceFeed).getNormalizedRate(
+        underlying,
+        _strikeAsset
+        );
+    }
 }

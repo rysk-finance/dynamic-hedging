@@ -10,6 +10,7 @@ import "../libraries/Types.sol";
 /**
  * @title The PortfolioValuesFeed contract
  * @notice An external adapter Consumer contract that makes requests to obtain portfolio values for different pools
+ *         SHOULD NOT BE USED IN PRODUCTION
  */
 contract MockPortfolioValuesFeed is AccessControl, ChainlinkClient {
   using Chainlink for Chainlink.Request;
