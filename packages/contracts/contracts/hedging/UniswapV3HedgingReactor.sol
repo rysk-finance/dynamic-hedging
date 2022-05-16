@@ -14,7 +14,7 @@ import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 /**
  *   @title A hedging reactor that will manage delta by swapping between ETH and stablecoin spot assets on uniswap v3.
  *   @dev interacts with LiquidityPool via hedgeDelta, getDelta, getPoolDenominatedValue and withdraw, 
- *		  interacts with Uniswap V3 and chainlink via the swap functions
+ *	      interacts with Uniswap V3 and chainlink via the swap functions
  */
 
 contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
