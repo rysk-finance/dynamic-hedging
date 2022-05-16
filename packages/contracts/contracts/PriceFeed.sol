@@ -2,13 +2,16 @@
 pragma solidity >=0.8.9;
 
 import "./interfaces/IERC20.sol";
+import "./interfaces/AggregatorV3Interface.sol";
+
 import "./libraries/AccessControl.sol";
+
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-import "./interfaces/AggregatorV3Interface.sol";
 
 /**
  *  @title Contract used for accessing exchange rates using chainlink price feeds
+ *  @dev Interacts with chainlink price feeds and services all contracts in the system for price data.
  */
 contract PriceFeed is AccessControl {
 	using PRBMathUD60x18 for uint8;

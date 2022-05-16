@@ -2,22 +2,27 @@
 pragma solidity >=0.8.0;
 
 import "./Protocol.sol";
+
 import "./tokens/ERC20.sol";
+import "./libraries/Types.sol";
 import "./utils/ReentrancyGuard.sol";
 import "./libraries/CustomErrors.sol";
 import "./libraries/AccessControl.sol";
+import "./libraries/OptionsCompute.sol";
 import "./libraries/SafeTransferLib.sol";
+
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
-import { Types } from "./libraries/Types.sol";
+import "./interfaces/IPortfolioValuesFeed.sol";
+
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-import "./interfaces/IPortfolioValuesFeed.sol";
+
 import "@openzeppelin/contracts/security/Pausable.sol";
-import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 
 /**
  *  @title Contract used for all user facing options interactions
+ *  @dev Interacts with liquidityPool to write options and quote their prices.
  */
 contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	using PRBMathSD59x18 for int256;
