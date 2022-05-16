@@ -9,7 +9,7 @@ import { IOtokenFactory, IOtoken, IController, GammaTypes } from "../interfaces/
 /**
  *  @title Library used for standard interactions with the opyn-rysk gamma protocol
  *   @dev inherited by the options registry to complete base opyn-rysk gamma protocol interactions
- *		  Interacts with the opyn-rysk gamma protocol in all functions
+ *        Interacts with the opyn-rysk gamma protocol in all functions
  */
 library OpynInteractions {
 	uint256 private constant SCALE_FROM = 10**10;

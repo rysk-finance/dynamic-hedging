@@ -19,7 +19,7 @@ import { IController, GammaTypes } from "./interfaces/GammaInterface.sol";
 /**
  *  @title Contract used for conducting options issuance and settlement as well as collateral management
  *  @dev Interacts with the opyn-rysk gamma protocol via OpynInteractions for options activity. Interacts with
- *		 the liquidity pool for collateral and instructions.
+ *       the liquidity pool for collateral and instructions.
  */
 contract OptionRegistry is AccessControl {
 	///////////////////////////

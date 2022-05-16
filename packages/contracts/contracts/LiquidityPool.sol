@@ -23,9 +23,9 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 /**
  *  @title Contract used as the Dynamic Hedging Vault for storing funds, issuing shares and processing options transactions
  *  @dev Interacts with the OptionRegistry for options behaviour, Interacts with hedging reactors for alternative derivatives
- *		 Interacts with Handlers for periphary user options interactions. Interacts with Chainlink price feeds throughout.
- *		 Interacts with Volatility Feed via getImpliedVolatility(), interacts with a chainlink PortfolioValues external adaptor 
- *	     oracle via PortfolioValuesFeed.
+ *       Interacts with Handlers for periphary user options interactions. Interacts with Chainlink price feeds throughout.
+ *       Interacts with Volatility Feed via getImpliedVolatility(), interacts with a chainlink PortfolioValues external adaptor
+ *       oracle via PortfolioValuesFeed.
  */
 contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	using PRBMathSD59x18 for int256;
