@@ -2,13 +2,14 @@
 pragma solidity >=0.8.9;
 
 import "./libraries/AccessControl.sol";
+
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 
 /**
  *  @title Contract used as the Dynamic Hedging Vault for storing funds, issuing shares and processing options transactions
+ *  @dev Interacts with liquidity pool to feed in volatility data.
  */
-
 contract VolatilityFeed is AccessControl {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;

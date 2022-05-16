@@ -2,15 +2,21 @@
 pragma solidity >=0.8.9;
 
 import "../PriceFeed.sol";
+
 import "../libraries/AccessControl.sol";
 import "../libraries/OptionsCompute.sol";
 import "../libraries/SafeTransferLib.sol";
+
 import "../interfaces/IHedgingReactor.sol";
+
 import "@rage/core/contracts/interfaces/IClearingHouse.sol";
+
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  *  @title A hedging reactor that will manage delta by opening or closing short or long perp positions using rage trade
+ *   @dev interacts with LiquidityPool via hedgeDelta, getDelta, getPoolDenominatedValue and withdraw, 
+ *		  interacts with Rage Trade and chainlink via the change position, update and sync
  */
 
 contract PerpHedgingReactor is IHedgingReactor, AccessControl {
