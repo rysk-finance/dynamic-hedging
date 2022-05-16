@@ -88,7 +88,12 @@ contract OptionRegistry is AccessControl {
 		uint256 collateralLost,
 		uint256 amountLost
 	);
-  event VaultLiquidationRegistered(address indexed series, uint256 vaultId, uint256 amountLiquidated, uint256 collateralLiquidated);
+	event VaultLiquidationRegistered(
+		address indexed series,
+		uint256 vaultId,
+		uint256 amountLiquidated,
+		uint256 collateralLiquidated
+	);
 
 	error NoVault();
 	error NotKeeper();
@@ -459,7 +464,7 @@ contract OptionRegistry is AccessControl {
 		if (series == address(0)) {
 			revert VaultNotLiquidated();
 		}
-    emit VaultLiquidationRegistered(series, vaultId, amount, collateralLiquidated);
+		emit VaultLiquidationRegistered(series, vaultId, amount, collateralLiquidated);
 		// adjust the collateral in the liquidity pool to reflect the loss
 		LiquidityPool(liquidityPool).adjustCollateral(collateralLiquidated, true);
 		// clear the liquidation record from gamma controller so as not to double count the liquidation
