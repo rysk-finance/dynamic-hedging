@@ -197,6 +197,9 @@ describe("Options protocol", function () {
 		// save the option token address
 		optionTokenUSDC = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 	})
+	it("Reverts: Tries to close oToken series that doesnt have a vault", async () => {
+		await expect(optionRegistry.close(optionTokenUSDC.address, toWei("2"))).to.be.revertedWith("NoVault()")
+	})
 	it("Returns correct oToken when calling getOrDeployOtoken", async () => {
 		const [sender] = signers
 		const issue = await optionRegistry.issue(
@@ -887,25 +890,5 @@ describe("Options protocol", function () {
 	it("gets the series via series", async () => {
 		const series = await optionRegistry.getSeries(await optionRegistry.getSeriesInfo(optionTokenUSDC.address))
 		expect(series).to.equal(optionTokenUSDC.address)
-	})
-	it("Reverts: Tries to close oToken series that doesnt have a vault", async () => {
-		const [sender] = signers
-		proposedSeries = {
-			expiration: expiration,
-			strike: strike.add(toWei('50')),
-			isPut: call,
-			underlying: WETH_ADDRESS[chainId],
-			strikeAsset: USDC_ADDRESS[chainId],
-			collateral: USDC_ADDRESS[chainId]
-		}
-		const issue = await optionRegistry.issue(
-			proposedSeries
-		)
-		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
-		const receipt = await issue.wait(1)
-		const events = receipt.events
-		const removeEvent = events?.find(x => x.event == "OptionTokenCreated")
-		const seriesAddress = removeEvent?.args?.token
-		await expect(optionRegistry.close(seriesAddress, toWei("2"))).to.be.revertedWith("NoVault()")
 	})
 })

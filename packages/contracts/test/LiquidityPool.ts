@@ -2194,7 +2194,7 @@ describe("Liquidity Pools", async () => {
 		await expect(handler.buybackOption(putOptionToken2.address, toWei("3"))).to.be.revertedWith("OptionExpiryInvalid()")
 	})
 	it("Reverts: tries to write an option that doesnt exist in the handler", async () => {
-		await expect(handler.writeOption(ZERO_ADDRESS, toWei("3"))).to.be.revertedWith("NonExistedOtoken()")
+		await expect(handler.writeOption(ZERO_ADDRESS, toWei("3"))).to.be.revertedWith("NonExistentOtoken()")
 	})
 	it("updates option params with setter", async () => {
 		await liquidityPool.setNewOptionParams(
