@@ -197,6 +197,9 @@ describe("Options protocol", function () {
 		// save the option token address
 		optionTokenUSDC = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 	})
+	it("Reverts: Tries to close oToken series that doesnt have a vault", async () => {
+		await expect(optionRegistry.close(optionTokenUSDC.address, toWei("2"))).to.be.revertedWith("NoVault()")
+	})
 	it("Returns correct oToken when calling getOrDeployOtoken", async () => {
 		const [sender] = signers
 		const issue = await optionRegistry.issue(

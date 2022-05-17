@@ -952,7 +952,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		await liquidityPool.setCollateralCap(toUSDC("100"))
 		expect(await liquidityPool.collateralCap()).to.equal(toUSDC("100"))
 	})
-	it("Revers: User 1: Deposit to the liquidityPool but hits collat cap", async () => {
+	it("Reverts: User 1: Deposit to the liquidityPool but hits collat cap", async () => {
 		await expect(liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit))).to.be.revertedWith(
 			"TotalSupplyReached()"
 		)
