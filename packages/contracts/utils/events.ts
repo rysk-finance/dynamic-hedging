@@ -1,10 +1,12 @@
 import { utils, Event, ContractReceipt } from "ethers"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
+import OptionRegistrySol from "../artifacts/contracts/OptionRegistry.sol/OptionRegistry.json"
 
 const FAILED = "failed"
 // Event names
 export const WRITE_OPTION = "WriteOption"
 export const BUYBACK_OPTION = "BuybackOption"
+export const VAULT_LIQUIDATION_REGISTERED = "VaultLiquidationRegistered"
 
 type EventsMap = Record<string, any>
 const eventsMap: EventsMap = {
@@ -13,6 +15,9 @@ const eventsMap: EventsMap = {
 	},
 	[BUYBACK_OPTION]: {
 		["abi"]: LiquidityPoolSol.abi
+	},
+	[VAULT_LIQUIDATION_REGISTERED]: {
+		["abi"]: OptionRegistrySol.abi
 	}
 }
 
