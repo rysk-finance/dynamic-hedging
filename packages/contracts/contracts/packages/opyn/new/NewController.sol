@@ -18,6 +18,7 @@ import {OracleInterface} from "../interfaces/OracleInterface.sol";
 import {WhitelistInterface} from "../interfaces/WhitelistInterface.sol";
 import {MarginPoolInterface} from "../interfaces/MarginPoolInterface.sol";
 import {CalleeInterface} from "../interfaces/CalleeInterface.sol";
+import "hardhat/console.sol";
 
 /**
  * Controller Error Codes
@@ -1016,6 +1017,7 @@ contract NewController is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgr
             _args.vaultId
         );
 
+        console.log("price isUnderCollat", price, isUnderCollat);
         require(isUnderCollat, "C33");
 
         // amount of collateral to offer to liquidator

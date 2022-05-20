@@ -8,6 +8,7 @@ import {
 	ContractTransaction,
 	ContractReceipt
 } from "ethers"
+import { AbiCoder } from "ethers/lib/utils"
 //@ts-ignore
 import greeks from "greeks"
 //@ts-ignore
@@ -393,7 +394,39 @@ describe("Oracle core logic", async () => {
 		expect(truncate(newDelta)).to.eq(truncate(portfolioValuesBuyback.portfolioDelta))
 	})
 
-	it("properly computed portfolio delta after liquidation event", async () => {})
+	it("properly computed portfolio delta after liquidation event", async () => {
+		const arr = await optionRegistry.checkVaultHealth(2)
+		const healthFBefore = arr[2]
+		console.log({ arr })
+		// move price and change vault health
+		const currentPrice = await oracle.getPrice(weth.address)
+		const settlePrice = currentPrice.add(toWei("1").div(oTokenDecimalShift18))
+		await opynAggregator.setLatestAnswer(settlePrice)
+		await opynAggregator.setRoundAnswer(0, settlePrice)
+		await opynAggregator.setRoundTimestamp(0)
+
+		const vaultDetails = await controller.getVault(optionRegistry.address, 2)
+		console.log({ vaultDetails, currentPrice, settlePrice })
+		const value = vaultDetails.shortAmounts[0]
+		const liqBalBef = await usd.balanceOf(senderAddress)
+		const collatAmountsBef = vaultDetails.collateralAmounts[0]
+		const liqOpBalBef = await callOptionToken.balanceOf(senderAddress)
+		expect(liqOpBalBef).to.be.gt(0)
+		const abiCode = new AbiCoder()
+		const liquidateArgs = [
+			{
+				actionType: 10,
+				owner: optionRegistry.address,
+				secondAddress: senderAddress,
+				asset: callOptionToken.address,
+				vaultId: 2,
+				amount: value,
+				index: "0",
+				data: abiCode.encode(["uint256"], ["6"])
+			}
+		]
+		await controller.operate(liquidateArgs)
+	})
 
 	// encompasses primary logic to be used by external adapter to fetch and compute delta
 	it("Computes portfolio values", async () => {
