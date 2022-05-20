@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import "./Types.sol";
 import "./CustomErrors.sol";
 import "./BlackScholes.sol";
+
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 
@@ -48,12 +49,12 @@ library OptionsCompute {
 		}
 	}
 
-	/** 
-     * @dev computes the percentage difference between two integers
-     * @param a the smaller integer
-     * @param b the larger integer
-     * @return uint256 the percentage differnce
-     */
+	/**
+	 * @dev computes the percentage difference between two integers
+	 * @param a the smaller integer
+	 * @param b the larger integer
+	 * @return uint256 the percentage differnce
+	 */
 	function calculatePercentageDifference(uint256 a, uint256 b) internal pure returns (uint256) {
 		if (a > b) {
 			return b.div(a);

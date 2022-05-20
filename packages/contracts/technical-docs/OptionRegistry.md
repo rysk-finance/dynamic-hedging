@@ -3,6 +3,8 @@
 ## General Overview
 
 This contract is responsible for handling all functionality pertaining to interaction with the opyn option protocol, storing the information about options series and conducting collateral management logic of partially collateralised vaults.
+The pool uses partial collateralisation which means that options contracts can be undercollateralised this means much better capital efficiency but also introduces margin risk, this is managed by holding a margin buffer in the LiquidityPool that can be used for managing collateral. For documentation on opyns partial liquidation system see: https://medium.com/opyn/partially-collateralized-options-now-in-defi-b9d223eb3f4d
+[opyn-rysk gamma protocol](https://github.com/rysk-finance/GammaProtocol) 
 This contract essentially gets infinite approval rights from the LiquidityPool.
 
 ## Oracle use

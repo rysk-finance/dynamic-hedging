@@ -2,10 +2,10 @@
 
 All contracts below inherit AccessControl with 3 roles, Governor, Manager and Guardian
 
-- GUARDIAN: Single addresses: [Jib], [Dan], [Gerry], [Josh]
-- GOVERNOR: 3/5 Multisig of addresses: [Jib, Gerry, Dan, Josh, X]
-- MANAGER: 2/3 Multisig of addresses: [Jib, Gerry, X]
-- KEEPER: Set of automated single addresses:
+1. GOVERNOR: 3/5 Multisig of addresses: [Jib, Gerry, Dan, Josh, X]
+2. MANAGER: 2/3 Multisig of addresses: [Jib, Gerry, X]
+3. GUARDIAN: Single addresses: [Jib], [Dan], [Gerry], [Josh]
+4. KEEPER: Set of automated single addresses (bots)
 
 ## LiquidityPool 
 ### (OWNER, MANAGER, GUARDIAN, KEEPER)
