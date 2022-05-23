@@ -16,17 +16,11 @@ import bs from "black-scholes"
 import {
 	toWei,
 	tFormatEth,
-	call,
-	put,
 	fromWei,
 	toUSDC,
-	fromUSDC,
-	fmtExpiration,
 	toOpyn,
 	tFormatUSDC,
 	scaleNum,
-	genOptionTimeFromUnix,
-	fromOpyn,
 	truncate
 } from "../utils/conversion-helper"
 import moment from "moment"
@@ -95,6 +89,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const expected_put_delta = 0.39679640941831507
 const expected_call_delta = -0.5856527252094983
 const expected_portfolio_delta = expected_put_delta + expected_call_delta
+const expected_portfolio_delta_two_calls = expected_put_delta + expected_call_delta * 2
 
 /* --- variables to change --- */
 
@@ -327,7 +322,7 @@ describe("Oracle core logic", async () => {
 		expect(tFormatUSDC(balance.sub(balanceNew), 2)).to.eq(tFormatEth(quote, 2))
 	})
 
-	it("Computes portfolio delta after writing an intial put option from the pool", async () => {
+	it("Computes portfolio delta after writing a call with intial put option from the pool", async () => {
 		const [sender] = signers
 		// LP writes a ETH/USD call for premium
 		blockNum = await ethers.provider.getBlockNumber()
@@ -344,17 +339,13 @@ describe("Oracle core logic", async () => {
 		}
 		write = await handler.issueAndWriteOption(proposedCallSeries, amount)
 		receipt = await write.wait(1)
-		const callWriteEvents = getMatchingEvents(receipt, WRITE_OPTION)
-		const callWriteEvent = callWriteEvents[0]
-		callSeriesAddress = callWriteEvent !== "failed" ? callWriteEvent?.series : ""
-		callOptionToken = new Contract(callSeriesAddress, Otoken.abi, sender) as IOToken
 		const portfolioValuesCallWrite = await getPortfolioValues(...portfolioValueArgs)
 		expect(truncate(portfolioValuesCallWrite.portfolioDelta)).to.eq(
 			truncate(expected_portfolio_delta)
 		)
 	})
 
-	it("Computes portfolio delta after writing a call from an existing pool", async () => {
+	it("Computes portfolio delta after writing an additional call from an existing pool", async () => {
 		const [sender] = signers
 		// LP writes a ETH/USD call for premium
 		blockNum = await ethers.provider.getBlockNumber()
@@ -377,11 +368,12 @@ describe("Oracle core logic", async () => {
 		callOptionToken = new Contract(callSeriesAddress, Otoken.abi, sender) as IOToken
 		const portfolioValuesCallWrite = await getPortfolioValues(...portfolioValueArgs)
 		expect(truncate(portfolioValuesCallWrite.portfolioDelta)).to.eq(
-			truncate(expected_portfolio_delta)
+			truncate(expected_portfolio_delta_two_calls)
 		)
 	})
 
 	it("Computes portfolio delta after partial buyback of option", async () => {
+		// 0.02 from wei
 		const buybackAmount = amount.div(BigNumber.from(50))
 		const buybackAmountOpyn = buybackAmount.sub(BigNumber.from(10 ** 10))
 		await callOptionToken.approve(handler.address, buybackAmount)
@@ -389,7 +381,7 @@ describe("Oracle core logic", async () => {
 		const buybackReceipt = await buyback.wait(0)
 		const buybackAmountNormalized = fromWei(buybackAmount)
 		const buybackDeltaAmount = Number(buybackAmountNormalized) * expected_call_delta
-		const newDelta = expected_portfolio_delta - buybackDeltaAmount
+		const newDelta = expected_portfolio_delta_two_calls - buybackDeltaAmount
 		const portfolioValuesBuyback = await getPortfolioValues(...portfolioValueArgs)
 		expect(truncate(newDelta)).to.eq(truncate(portfolioValuesBuyback.portfolioDelta))
 	})
@@ -397,16 +389,14 @@ describe("Oracle core logic", async () => {
 	it("properly computed portfolio delta after liquidation event", async () => {
 		const arr = await optionRegistry.checkVaultHealth(2)
 		const healthFBefore = arr[2]
-		console.log({ arr })
 		// move price and change vault health
 		const currentPrice = await oracle.getPrice(weth.address)
-		const settlePrice = currentPrice.add(toWei("1").div(oTokenDecimalShift18))
+		const settlePrice = currentPrice.add(toWei("1000").div(oTokenDecimalShift18))
 		await opynAggregator.setLatestAnswer(settlePrice)
 		await opynAggregator.setRoundAnswer(0, settlePrice)
 		await opynAggregator.setRoundTimestamp(0)
 
 		const vaultDetails = await controller.getVault(optionRegistry.address, 2)
-		console.log({ vaultDetails, currentPrice, settlePrice })
 		const value = vaultDetails.shortAmounts[0]
 		const liqBalBef = await usd.balanceOf(senderAddress)
 		const collatAmountsBef = vaultDetails.collateralAmounts[0]
@@ -426,6 +416,19 @@ describe("Oracle core logic", async () => {
 			}
 		]
 		await controller.operate(liquidateArgs)
+		await optionRegistry.registerLiquidatedVault(2)
+
+		await opynAggregator.setLatestAnswer(currentPrice)
+		await opynAggregator.setRoundAnswer(0, currentPrice)
+		await opynAggregator.setRoundTimestamp(0)
+		const portfolioValues = await getPortfolioValues(
+			liquidityPool,
+			controller,
+			optionRegistry,
+			priceFeed,
+			oracle
+		)
+		expect(truncate(expected_put_delta)).to.eq(truncate(portfolioValues.portfolioDelta))
 	})
 
 	// encompasses primary logic to be used by external adapter to fetch and compute delta

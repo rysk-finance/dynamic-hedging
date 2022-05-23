@@ -10,7 +10,7 @@ import { NewController } from "../types/NewController"
 import { WriteOptionEvent } from "../types/LiquidityPool"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { PriceFeed } from "../types/PriceFeed"
-import { fromWei, genOptionTimeFromUnix, fromOpyn } from "../utils/conversion-helper"
+import { fromWei, genOptionTimeFromUnix, fromOpyn, fromOpynToWei } from "../utils/conversion-helper"
 import { Oracle } from "../types/Oracle"
 
 type WriteEvent = WriteOptionEvent & Event
@@ -22,6 +22,10 @@ type VaultLiquidatedEvent = {
 	vaultOwner: string
 	// amount of liquidation in 1e8
 	debtAmount: BigNumber
+	vaultId: BigNumber
+}
+type VaultLiquidationRegisteredEvent = {
+	amountLiquidated: BigNumber
 	vaultId: BigNumber
 }
 interface EnrichedWriteEvent extends WriteEvent {
@@ -44,6 +48,7 @@ export async function getPortfolioValues(
 	priceFeed: PriceFeed,
 	opynOracle: Oracle
 ) {
+	const vaultLiquidationRegisteredFilter = optionRegistry.filters.VaultLiquidationRegistered()
 	const writeOptionEventFilter = liquidityPool.filters.WriteOption()
 	const buybackEventFilter = liquidityPool.filters.BuybackOption()
 	const vaultLiquidatedFilter = controller.filters.VaultLiquidated()
@@ -52,6 +57,9 @@ export async function getPortfolioValues(
 	const buybackEvents = await liquidityPool.queryFilter(buybackEventFilter)
 	const vaultLiquidatedEvents = await controller.queryFilter(vaultLiquidatedFilter)
 	const vaultSettledEvents = await controller.queryFilter(vaultSettledFilter)
+	const vaultLiquidationRegisteredEvents = await optionRegistry.queryFilter(
+		vaultLiquidationRegisteredFilter
+	)
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
 	const underlyingAsset = await liquidityPool.underlyingAsset()
@@ -59,6 +67,8 @@ export async function getPortfolioValues(
 
 	// index liquidated vaults by vaultId
 	const liquidatedVaults: Record<string, BigNumber> = {}
+	// index liquidated vault registrations by vaultId
+	const vaultLiquidations: Record<string, BigNumber> = {}
 	// index settled vaults by vaultId
 	const settledVaults = new Set<string>()
 	// index buybacks amounts by series
@@ -73,7 +83,7 @@ export async function getPortfolioValues(
 		if (!amount) {
 			buybackAmounts[decoded.series] = decoded.amount
 		} else {
-			buybackAmounts[decoded.series] = amount.add(buybackAmounts[decoded.series])
+			buybackAmounts[decoded.series] = amount.add(decoded.amount)
 		}
 		return decoded
 	})
@@ -84,6 +94,16 @@ export async function getPortfolioValues(
 		if (!debtAmount) liquidatedVaults[decoded.vaultId.toString()] = decoded.debtAmount
 		else liquidatedVaults[decoded.vaultId.toString()] = debtAmount.add(decoded.debtAmount)
 	})
+
+	vaultLiquidationRegisteredEvents.map(x => {
+		if (!x.decode) return
+		const decoded: VaultLiquidationRegisteredEvent = x.decode(x.data, x.topics)
+		const amountLiquidated = vaultLiquidations[decoded.vaultId.toString()]
+		const fromOpynAmount = fromOpynToWei(decoded.amountLiquidated)
+		if (!amountLiquidated) vaultLiquidations[decoded.vaultId.toString()] = fromOpynAmount
+		else vaultLiquidations[decoded.vaultId.toString()] = amountLiquidated.add(fromOpynAmount)
+	})
+
 	vaultSettledEvents.map(x => {
 		if (!x.decode) return
 		const decoded = x.decode(x.data, x.topics)
@@ -104,7 +124,9 @@ export async function getPortfolioValues(
 			y.expiration = seriesInfo.expiration.toNumber()
 			const amount: BigNumber = y?.decoded?.amount ? y?.decoded?.amount : BigNumber.from(0)
 			y.amount = amount
-			writeOptionAmounts[y.series] = amount
+			const existingWriteAmount = writeOptionAmounts[y.series]
+			if (!existingWriteAmount) writeOptionAmounts[y.series] = amount
+			else writeOptionAmounts[y.series] = existingWriteAmount.add(amount)
 			return y
 		}
 	)
@@ -132,7 +154,7 @@ export async function getPortfolioValues(
 		if (!x.series || !x.vaultId) return x
 		// reduce notional amount by buybacks and liquidations
 		const buybackAmount: BigNumber = buybackAmounts[x.series]
-		const liquidationAmount: BigNumber = liquidatedVaults[x.vaultId]
+		const liquidationAmount: BigNumber = vaultLiquidations[x.vaultId]
 		if (buybackAmount) x.amount = x.amount?.sub(buybackAmount)
 		if (liquidationAmount) x.amount = x.amount?.sub(liquidationAmount)
 
