@@ -51,11 +51,9 @@ export async function getPortfolioValues(
 	const vaultLiquidationRegisteredFilter = optionRegistry.filters.VaultLiquidationRegistered()
 	const writeOptionEventFilter = liquidityPool.filters.WriteOption()
 	const buybackEventFilter = liquidityPool.filters.BuybackOption()
-	const vaultLiquidatedFilter = controller.filters.VaultLiquidated()
 	const vaultSettledFilter = controller.filters.VaultSettled()
 	const writeOption = await liquidityPool.queryFilter(writeOptionEventFilter)
 	const buybackEvents = await liquidityPool.queryFilter(buybackEventFilter)
-	const vaultLiquidatedEvents = await controller.queryFilter(vaultLiquidatedFilter)
 	const vaultSettledEvents = await controller.queryFilter(vaultSettledFilter)
 	const vaultLiquidationRegisteredEvents = await optionRegistry.queryFilter(
 		vaultLiquidationRegisteredFilter
@@ -65,8 +63,6 @@ export async function getPortfolioValues(
 	const underlyingAsset = await liquidityPool.underlyingAsset()
 	const { timestamp } = block
 
-	// index liquidated vaults by vaultId
-	const liquidatedVaults: Record<string, BigNumber> = {}
 	// index liquidated vault registrations by vaultId
 	const vaultLiquidations: Record<string, BigNumber> = {}
 	// index settled vaults by vaultId
@@ -86,13 +82,6 @@ export async function getPortfolioValues(
 			buybackAmounts[decoded.series] = amount.add(decoded.amount)
 		}
 		return decoded
-	})
-	vaultLiquidatedEvents.map(x => {
-		if (!x.decode) return
-		const decoded: VaultLiquidatedEvent = x.decode(x.data, x.topics)
-		const debtAmount = liquidatedVaults[decoded.vaultId.toString()]
-		if (!debtAmount) liquidatedVaults[decoded.vaultId.toString()] = decoded.debtAmount
-		else liquidatedVaults[decoded.vaultId.toString()] = debtAmount.add(decoded.debtAmount)
 	})
 
 	vaultLiquidationRegisteredEvents.map(x => {

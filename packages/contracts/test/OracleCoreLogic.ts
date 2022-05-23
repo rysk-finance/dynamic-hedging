@@ -430,16 +430,4 @@ describe("Oracle core logic", async () => {
 		)
 		expect(truncate(expected_put_delta)).to.eq(truncate(portfolioValues.portfolioDelta))
 	})
-
-	// encompasses primary logic to be used by external adapter to fetch and compute delta
-	it("Computes portfolio values", async () => {
-		const portfolioValues = await getPortfolioValues(
-			liquidityPool,
-			controller,
-			optionRegistry,
-			priceFeed,
-			oracle
-		)
-		//@TODO test portfolioValues
-	})
 })
