@@ -86,7 +86,9 @@ let handler: OptionHandler
 let portfolioValueArgs: [LiquidityPool, NewController, OptionRegistry, PriceFeed, Oracle]
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+// delta of first put written
 const expected_put_delta = 0.39679640941831507
+// delta of first call written
 const expected_call_delta = -0.5856527252094983
 const expected_portfolio_delta = expected_put_delta + expected_call_delta
 const expected_portfolio_delta_two_calls = expected_put_delta + expected_call_delta * 2
