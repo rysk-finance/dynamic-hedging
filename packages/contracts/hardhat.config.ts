@@ -13,6 +13,7 @@ import path from "path"
 import "solidity-coverage"
 // Task imports
 import "./tasks/seedUSDC"
+import "./tasks/executeEpoch"
 
 const ethers = require("ethers")
 const bip39 = require("bip39")
@@ -148,13 +149,13 @@ module.exports = {
 	},
 	dependencyCompiler: {
 		paths: [
-		  '@rage/core/contracts/protocol/RageTradeFactory.sol',
-		  '@rage/core/contracts/protocol/clearinghouse/ClearingHouse.sol',
-		  '@rage/core/contracts/protocol/insurancefund/InsuranceFund.sol',
-		  '@rage/core/contracts/protocol/tokens/VToken.sol',
-		  '@rage/core/contracts/protocol/tokens/VQuote.sol',
-		  '@rage/core/contracts/protocol/wrapper/VPoolWrapper.sol',
-		],
+			"@rage/core/contracts/protocol/RageTradeFactory.sol",
+			"@rage/core/contracts/protocol/clearinghouse/ClearingHouse.sol",
+			"@rage/core/contracts/protocol/insurancefund/InsuranceFund.sol",
+			"@rage/core/contracts/protocol/tokens/VToken.sol",
+			"@rage/core/contracts/protocol/tokens/VQuote.sol",
+			"@rage/core/contracts/protocol/wrapper/VPoolWrapper.sol"
+		]
 		// turn on for slither
 		// keep: true,
 	}
