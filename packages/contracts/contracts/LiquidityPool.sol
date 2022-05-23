@@ -3,21 +3,29 @@ pragma solidity >=0.8.0;
 
 import "./Protocol.sol";
 import "./PriceFeed.sol";
-import "./tokens/ERC20.sol";
 import "./VolatilityFeed.sol";
+
+import "./tokens/ERC20.sol";
 import "./utils/ReentrancyGuard.sol";
+
 import "./libraries/BlackScholes.sol";
 import "./libraries/CustomErrors.sol";
 import "./libraries/AccessControl.sol";
 import "./libraries/OptionsCompute.sol";
 import "./libraries/SafeTransferLib.sol";
+
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
+
 import "@openzeppelin/contracts/security/Pausable.sol";
 
 /**
  *  @title Contract used as the Dynamic Hedging Vault for storing funds, issuing shares and processing options transactions
+ *  @dev Interacts with the OptionRegistry for options behaviour, Interacts with hedging reactors for alternative derivatives
+ *       Interacts with Handlers for periphary user options interactions. Interacts with Chainlink price feeds throughout.
+ *       Interacts with Volatility Feed via getImpliedVolatility(), interacts with a chainlink PortfolioValues external adaptor
+ *       oracle via PortfolioValuesFeed.
  */
 contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	using PRBMathSD59x18 for int256;
@@ -1070,7 +1078,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function _checkBuffer() internal view returns (int256 bufferRemaining) {
 		// calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
 		(uint256 normalizedCollateralBalance, , ) = getNormalizedBalance(collateralAsset);
-		bufferRemaining = int256(normalizedCollateralBalance - (_getNAV() * bufferPercentage) / MAX_BPS);
+		bufferRemaining = int256(
+			normalizedCollateralBalance -
+				(OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset).decimals()) *
+					bufferPercentage) /
+				MAX_BPS
+		);
 		// revert CustomErrors.if buffer allowance already hit
 		if (bufferRemaining <= 0) {
 			revert CustomErrors.MaxLiquidityBufferReached();

@@ -210,6 +210,8 @@ describe("Options protocol", function () {
 		await expect(optionRegistry.issue(
 			proposedSeries
 		)).to.be.revertedWith("OtokenFactory: Option has to expire 08:00 UTC")
+	it("Reverts: Tries to close oToken series that doesnt have a vault", async () => {
+		await expect(optionRegistry.close(optionTokenUSDC.address, toWei("2"))).to.be.revertedWith("NoVault()")
 	})
 	it("Returns correct oToken when calling getOrDeployOtoken", async () => {
 		proposedSeries = {

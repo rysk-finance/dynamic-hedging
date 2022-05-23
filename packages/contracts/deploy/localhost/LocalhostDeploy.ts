@@ -73,6 +73,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	const volFeed = deployParams.volFeed
 	const portfolioValuesFeed = deployParams.portfolioValuesFeed
 	const optionProtocol = deployParams.optionProtocol
+	const authority = deployParams.authority
 
 	const rfr: string = "0.03"
 	const minCallStrikePrice = utils.parseEther("500")
@@ -97,7 +98,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 		minExpiry,
 		maxExpiry,
 		optionRegistry,
-		portfolioValuesFeed
+		portfolioValuesFeed,
+		authority.address
 	)
 	const liquidityPool = lpParams.liquidityPool
 
@@ -122,6 +124,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	contractAddresses["localhost"]["volFeed"] = volFeed.address
 	contractAddresses["localhost"]["optionProtocol"] = optionProtocol.address
 	contractAddresses["localhost"]["liquidityPool"] = liquidityPool.address
+	contractAddresses["localhost"]["authority"] = authority.address
 
 	fs.writeFileSync(addressPath, JSON.stringify(contractAddresses, null, 4))
 }

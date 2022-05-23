@@ -1,21 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
-import "./tokens/ERC20.sol";
-import "./interfaces/IOracle.sol";
-import "./libraries/AccessControl.sol";
-import "./interfaces/IMarginCalculator.sol";
-import { Types } from "./libraries/Types.sol";
-import "./interfaces/AddressBookInterface.sol";
 import { LiquidityPool } from "./LiquidityPool.sol";
+
+import "./tokens/ERC20.sol";
+import "./libraries/AccessControl.sol";
+import { Types } from "./libraries/Types.sol";
 import { CustomErrors } from "./libraries/CustomErrors.sol";
 import { OptionsCompute } from "./libraries/OptionsCompute.sol";
 import { SafeTransferLib } from "./libraries/SafeTransferLib.sol";
 import { OpynInteractions } from "./libraries/OpynInteractions.sol";
+
+import "./interfaces/IOracle.sol";
+import "./interfaces/IMarginCalculator.sol";
+import "./interfaces/AddressBookInterface.sol";
 import { IController, GammaTypes } from "./interfaces/GammaInterface.sol";
 
 /**
  *  @title Contract used for conducting options issuance and settlement as well as collateral management
+ *  @dev Interacts with the opyn-rysk gamma protocol via OpynInteractions for options activity. Interacts with
+ *       the liquidity pool for collateral and instructions.
  */
 contract OptionRegistry is AccessControl {
 	///////////////////////////
@@ -87,6 +91,12 @@ contract OptionRegistry is AccessControl {
 		uint256 collateralReturned,
 		uint256 collateralLost,
 		uint256 amountLost
+	);
+	event VaultLiquidationRegistered(
+		address indexed series,
+		uint256 vaultId,
+		uint256 amountLiquidated,
+		uint256 collateralLiquidated
 	);
 
 	error NoVault();
@@ -453,11 +463,12 @@ contract OptionRegistry is AccessControl {
 	function registerLiquidatedVault(uint256 vaultId) external {
 		_isKeeper();
 		// get the vault liquidation details from the vaultId
-		(address series, , uint256 collateralLiquidated) = IController(gammaController)
+		(address series, uint256 amount, uint256 collateralLiquidated) = IController(gammaController)
 			.getVaultLiquidationDetails(address(this), vaultId);
 		if (series == address(0)) {
 			revert VaultNotLiquidated();
 		}
+		emit VaultLiquidationRegistered(series, vaultId, amount, collateralLiquidated);
 		// adjust the collateral in the liquidity pool to reflect the loss
 		LiquidityPool(liquidityPool).adjustCollateral(collateralLiquidated, true);
 		// clear the liquidation record from gamma controller so as not to double count the liquidation

@@ -3,12 +3,15 @@ pragma solidity ^0.8.9;
 
 import "./libraries/Types.sol";
 import "./libraries/AccessControl.sol";
+
 import "./interfaces/ILiquidityPool.sol";
+
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 
 /**
  * @title The PortfolioValuesFeed contract
  * @notice An external adapter Consumer contract that makes requests to obtain portfolio values for different pools
+ * @dev Interacts with the chainlink external adaptor for tracking portfolio values and the liquidityPool for feeding these values.
  */
 contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	using Chainlink for Chainlink.Request;

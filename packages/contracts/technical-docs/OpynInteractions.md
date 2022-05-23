@@ -2,7 +2,7 @@
 
 ## General Overview
 
-This library is responsible for processing any logic that interacts directly with the opyn-rysk gamma protocol. Allowing the creation of oTokens, creation of short position, closing of short positions, settling and redeeming. The contract makes use of opyn-rysk partial collateralisation. This library is inherited by ```OptionRegistry.sol```.
+This library is responsible for processing any logic that interacts directly with the opyn-rysk gamma protocol. Allowing the creation of oTokens, creation of short position, closing of short positions, settling and redeeming. The contract makes use of opyn-rysk partial collateralisation. This library is inherited by ```OptionRegistry.sol```. [opyn-rysk gamma protocol](https://github.com/rysk-finance/GammaProtocol) 
 
 ## Oracle use
 
