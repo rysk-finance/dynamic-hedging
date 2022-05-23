@@ -197,7 +197,29 @@ describe("Options protocol", function () {
 		// save the option token address
 		optionTokenUSDC = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 	})
+	it("Reverts: Cant create a USDC collataralised call option token series not at 8am", async () => {
+		const [sender] = signers
+		proposedSeries = {
+			expiration: expiration + 1000,
+			strike: strike,
+			isPut: call,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: USDC_ADDRESS[chainId]
+		}
+		await expect(optionRegistry.issue(
+			proposedSeries
+		)).to.be.revertedWith("OtokenFactory: Option has to expire 08:00 UTC")
+	})
 	it("Returns correct oToken when calling getOrDeployOtoken", async () => {
+		proposedSeries = {
+			expiration: expiration,
+			strike: strike,
+			isPut: call,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: USDC_ADDRESS[chainId]
+		}
 		const [sender] = signers
 		const issue = await optionRegistry.issue(
 			proposedSeries
