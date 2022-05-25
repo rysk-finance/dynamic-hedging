@@ -69,16 +69,15 @@ export const VaultDepositWithdraw = () => {
             addresses.localhost.liquidityPool
           )) as BigNumber;
           if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
-            const approvalTransaction = await usdcContract.approve(
+            await usdcContractCall(
+              usdcContract.approve,
               addresses.localhost.liquidityPool,
               settings.unlimitedApproval
                 ? ethers.BigNumber.from(MAX_UINT_256)
                 : amount
             );
-            await approvalTransaction.wait();
           }
-          const depositTransaction = await lpContract.deposit(amount, account);
-          await depositTransaction.wait();
+          await lpContractCall(lpContract.deposit, amount);
         } else if (mode === Mode.WITHDRAW) {
           const amount = ethers.utils.parseUnits(inputValue, 18);
           await lpContractCall(lpContract.withdraw, amount, account);
