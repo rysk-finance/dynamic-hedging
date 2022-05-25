@@ -3,11 +3,12 @@ import React, { useCallback, useEffect, useState } from "react";
 import ERC20ABI from "../abis/erc20.json";
 import { useWalletContext } from "../App";
 import LPABI from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
-import { MAX_UINT_256 } from "../config/constants";
+import { BIG_NUMBER_DECIMALS, MAX_UINT_256 } from "../config/constants";
 import { USDC_ADDRESS } from "../config/mainnetContracts";
 import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
 import { useGlobalContext } from "../state/GlobalContext";
+import { DepositReceipt } from "../types";
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
 import { RadioButtonSlider } from "./shared/RadioButtonSlider";
 import { TextInput } from "./shared/TextInput";
@@ -27,6 +28,8 @@ export const VaultDepositWithdraw = () => {
   const [mode, setMode] = useState<Mode>(Mode.DEPOSIT);
 
   const [balance, setBalance] = useState<string | null>(null);
+  const [amount, setAmount] = useState<string | null>(null);
+  const [unredeemedShares, setUnredeemedShares] = useState<string | null>(null);
 
   const [inputValue, setInputValue] = useState("");
 
@@ -35,6 +38,40 @@ export const VaultDepositWithdraw = () => {
     ABI: LPABI.abi,
     readOnly: false,
   });
+
+  const epochListener = useCallback(async () => {
+    if (lpContract && account) {
+      const receipt: DepositReceipt = await lpContract.depositReceipts(account);
+      const currentEpoch: BigNumber = await lpContract.epoch();
+      setAmount(receipt.amount.div(BIG_NUMBER_DECIMALS.USDC).toString());
+      const previousUnredeemedShares = receipt.unredeemedShares.div(
+        BIG_NUMBER_DECIMALS.RYSK
+      );
+      // If true, the share price for the most recent deposit hasn't been calculated
+      // so we can only show the collateral balance, not the equivalent number of shares.
+      if (currentEpoch._hex === receipt.epoch._hex) {
+        setUnredeemedShares(previousUnredeemedShares.toString());
+      } else {
+        const pricePerShareAtEpoch: BigNumber =
+          await lpContract.epochPricePerShare(receipt.epoch);
+        const newUnredeemedShares = receipt.amount
+          .mul(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC))
+          .div(pricePerShareAtEpoch);
+        const sharesToRedeem =
+          previousUnredeemedShares.add(newUnredeemedShares);
+        setUnredeemedShares(sharesToRedeem.toString());
+      }
+    }
+  }, [lpContract, account]);
+
+  useEffect(() => {
+    lpContract?.on("EpochExecuted", epochListener);
+    epochListener();
+
+    return () => {
+      lpContract?.off("EpochExecuted", epochListener);
+    };
+  }, [lpContract]);
 
   const [usdcContract, usdcContractCall] = useContract({
     address: USDC_ADDRESS,
@@ -104,14 +141,25 @@ export const VaultDepositWithdraw = () => {
         <div className="w-full">
           <div className="w-full">
             <div className="p-4 flex justify-between border-b-2 border-black">
-              <h4>Balance:</h4>
+              <h4>Amount:</h4>
               <div className="flex">
                 <h4 className="mr-2">
                   <RequiresWalletConnection className="w-[120px]">
-                    {balance?.toString()}
+                    {amount?.toString()}
+                  </RequiresWalletConnection>{" "}
+                  USDC
+                </h4>
+              </div>
+            </div>
+
+            <div className="p-4 flex justify-between border-b-2 border-black">
+              <h4>Redeemable Shares:</h4>
+              <div className="flex">
+                <h4 className="mr-2">
+                  <RequiresWalletConnection className="w-[120px]">
+                    {unredeemedShares?.toString()}
                   </RequiresWalletConnection>{" "}
                 </h4>
-                <h4>USDC</h4>
               </div>
             </div>
             <div className="w-fit">
