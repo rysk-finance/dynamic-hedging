@@ -50,6 +50,8 @@ export async function deploySystem(
 			OpynInteractions: interactions.address
 		}
 	})
+	const authorityFactory = await hre.ethers.getContractFactory("Authority")
+	const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
 	// get and transfer weth
 	const weth = (await ethers.getContractAt(
 		"contracts/interfaces/WETH.sol:WETH",
@@ -76,12 +78,13 @@ export async function deploySystem(
 		GAMMA_CONTROLLER[chainId],
 		MARGIN_POOL[chainId],
 		senderAddress,
-		ADDRESS_BOOK[chainId]
+		ADDRESS_BOOK[chainId],
+		authority.address
 	)) as OptionRegistry
 	const optionRegistry = _optionRegistry
 
 	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-	const _priceFeed = (await priceFeedFactory.deploy()) as PriceFeed
+	const _priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
 	const priceFeed = _priceFeed
 	await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
 	await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
@@ -91,7 +94,7 @@ export async function deploySystem(
 	const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
 
 	const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
-	const volFeed = (await volFeedFactory.deploy()) as VolatilityFeed
+	const volFeed = (await volFeedFactory.deploy(authority.address)) as VolatilityFeed
 	type int7 = [
 		BigNumberish,
 		BigNumberish,
@@ -121,7 +124,8 @@ export async function deploySystem(
 		senderAddress,
 		utils.formatBytes32String("jobId"),
 		toWei("1"),
-		ZERO_ADDRESS
+		ZERO_ADDRESS,
+		authority.address
 	)) as MockPortfolioValuesFeed
 
 	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
@@ -129,7 +133,8 @@ export async function deploySystem(
 		optionRegistry.address,
 		priceFeed.address,
 		volFeed.address,
-		portfolioValuesFeed.address
+		portfolioValuesFeed.address,
+		authority.address
 	)) as Protocol
 	expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 
@@ -141,7 +146,8 @@ export async function deploySystem(
 		priceFeed: priceFeed,
 		volFeed: volFeed,
 		portfolioValuesFeed: portfolioValuesFeed,
-		optionProtocol: optionProtocol
+		optionProtocol: optionProtocol,
+		authority: authority
 	}
 }
 
@@ -158,7 +164,8 @@ export async function deployLiquidityPool(
 	minExpiry: any,
 	maxExpiry: any,
 	optionRegistry: OptionRegistry,
-	pvFeed: MockPortfolioValuesFeed
+	pvFeed: MockPortfolioValuesFeed,
+	authority: string
 ) {
 	const normDistFactory = await ethers.getContractFactory("NormalDist", {
 		libraries: {}
@@ -174,10 +181,14 @@ export async function deployLiquidityPool(
 		}
 	})
 	const blackScholesDeploy = await blackScholesFactory.deploy()
-
+	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute",{
+		libraries: {}
+	})
+	const optionsCompute = (await optionsCompFactory.deploy())
 	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
 		libraries: {
-			BlackScholes: blackScholesDeploy.address
+			BlackScholes: blackScholesDeploy.address,
+			OptionsCompute: optionsCompute.address
 		}
 	})
 	const lp = (await liquidityPoolFactory.deploy(
@@ -197,7 +208,7 @@ export async function deployLiquidityPool(
 			maxExpiry: maxExpiry
 		},
 		//@ts-ignore
-		await signers[0].getAddress()
+		authority
 	)) as LiquidityPool
 
 	const lpAddress = lp.address
@@ -205,6 +216,9 @@ export async function deployLiquidityPool(
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
 	await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
+	await liquidityPool.setBidAskSpread(toWei("0.05"))
+	await pvFeed.setAddressStringMapping(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId])
+	await pvFeed.setAddressStringMapping(USDC_ADDRESS[chainId], USDC_ADDRESS[chainId])
 	await pvFeed.setLiquidityPool(liquidityPool.address)
 	await pvFeed.fulfill(
 		utils.formatBytes32String("1"),
@@ -219,7 +233,7 @@ export async function deployLiquidityPool(
 	)
 	const handlerFactory = await ethers.getContractFactory("OptionHandler")
 	const handler = await handlerFactory.deploy(
-		await signers[0].getAddress(),
+		authority,
 		optionProtocol.address,
 		liquidityPool.address,
 	) as OptionHandler

@@ -5,11 +5,11 @@ import { Types } from "../libraries/Types.sol";
 import "../interfaces/IOptionRegistry.sol";
 
 interface ILiquidityPool {
-	function deposit(uint256 _amount, address _recipient) external returns (uint256);
-
-	function withdraw(uint256 _shares, address _recipient) external returns (uint256);
-
 	function collateralAsset() external view returns (address);
+
+	function underlyingAsset() external view returns (address);
+
+	function strikeAsset() external view returns (address);
 
 	function handlerIssue(Types.OptionSeries memory optionSeries) external returns (address);
 
@@ -45,13 +45,9 @@ interface ILiquidityPool {
 
 	function getPortfolioDelta() external view returns (int256);
 
-	function quotePriceWithUtilizationGreeks(Types.OptionSeries memory optionSeries, uint256 amount)
-		external
-		view
-		returns (uint256 quote, int256 delta);
-
-	function quotePriceBuying(Types.OptionSeries memory optionSeries, uint256 amount)
-		external
-		view
-		returns (uint256, int256);
+	function quotePriceWithUtilizationGreeks(
+		Types.OptionSeries memory optionSeries,
+		uint256 amount,
+		bool toBuy
+	) external view returns (uint256 quote, int256 delta);
 }

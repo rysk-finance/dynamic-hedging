@@ -214,7 +214,7 @@ export async function updateRangeOrder(
         vTokenAddress: string,
         vQuoteAddress: string,
     ) {
-		const user0 = signers[1]
+		const user0 = signers[0]
 		await clearingHouse.connect(user0).createAccount();
 		const user0AccountNo = 1;
 		await usdcContract.connect(user0).approve(clearingHouse.address, parseTokenAmount(10 ** 5, 6))

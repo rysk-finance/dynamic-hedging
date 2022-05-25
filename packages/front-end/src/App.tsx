@@ -4,15 +4,18 @@ import { init } from "@web3-onboard/react";
 import walletConnectModule from "@web3-onboard/walletconnect";
 import * as ethers from "ethers";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { Route, Routes } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import { Header } from "./components/Header";
-import { toHex } from "./utils";
-import { Routes, Route } from "react-router-dom";
-import { Vault } from "./pages/Vault";
-import { OptionsTrading } from "./pages/OptionsTrading";
-import { Dashboard } from "./pages/Dashboard";
-import { GlobalContextProvider } from "./state/GlobalContext";
 import { AppPaths } from "./config/appPaths";
+import { useLocalStorage } from "./hooks/useLocalStorage";
+import { Dashboard } from "./pages/Dashboard";
+import { OptionsTrading } from "./pages/OptionsTrading";
+import { Vault } from "./pages/Vault";
+import { GlobalContextProvider } from "./state/GlobalContext";
+import { toHex } from "./utils";
 
 // TODO(HC): Move infura key to env variable
 const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
@@ -84,8 +87,13 @@ const WalletContext = createContext<WalletContext>({
 
 export const useWalletContext = () => useContext(WalletContext);
 
+export const WALLETS_LOCAL_STORAGE_KEY = "connectedWallets";
+
 function App() {
   const [web3Onboard, setWeb3Onboard] = useState<OnboardAPI | null>(null);
+  const [walletUnsubscribe, setWalletUnsubscribe] = useState<
+    (() => void) | null
+  >(null);
   const [provider, setProvider] =
     useState<ethers.ethers.providers.Web3Provider | null>(null);
   const [account, setAccount] = useState<string | null>(null);
@@ -94,13 +102,36 @@ function App() {
   const [network, setNetwork] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
+  const [getLocalStorage, setLocalStorage] = useLocalStorage();
+
   useEffect(() => {
     setWeb3Onboard(onboard);
   }, []);
 
-  const connectWallet = async () => {
+  useEffect(() => {
+    const walletsSub = web3Onboard?.state.select("wallets");
+    if (walletsSub) {
+      const { unsubscribe } = walletsSub.subscribe((wallets) => {
+        const connectedWallets = wallets.map(({ label }) => label);
+        setLocalStorage(WALLETS_LOCAL_STORAGE_KEY, connectedWallets);
+      });
+      if (walletUnsubscribe) {
+        setWalletUnsubscribe(unsubscribe);
+      }
+    }
+    return () => {
+      walletUnsubscribe?.();
+      setWalletUnsubscribe(null);
+    };
+  }, [web3Onboard]);
+
+  const connectWallet = async (wallet?: string) => {
     try {
-      const wallets = await onboard.connectWallet();
+      const wallets = await onboard.connectWallet(
+        wallet
+          ? { autoSelect: { label: wallet, disableModals: true } }
+          : undefined
+      );
       setIsLoading(true);
       const { accounts, chains, provider } = wallets[0];
       const ethersProvider = new ethers.providers.Web3Provider(provider);
@@ -112,6 +143,13 @@ function App() {
       setError(error);
     }
   };
+
+  useEffect(() => {
+    const wallets = getLocalStorage<string[]>(WALLETS_LOCAL_STORAGE_KEY);
+    if (wallets && wallets.length > 0) {
+      connectWallet(wallets[0]);
+    }
+  }, []);
 
   const switchNetwork = async () => {
     if (network) {
@@ -158,6 +196,11 @@ function App() {
             </div>
           </div>
         </div>
+        <ToastContainer
+          toastClassName="bg-bone rounded-none border-2 border-black font-dm-mono text-black max-w-xl w-fit"
+          hideProgressBar
+          position="bottom-center"
+        />
       </GlobalContextProvider>
     </WalletContext.Provider>
   );

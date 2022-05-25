@@ -1,152 +1,104 @@
-pragma solidity >= 0.8.9;
+pragma solidity >=0.8.9;
 
 import "../OptionHandler.sol";
+import "../PortfolioValuesFeed.sol";
 import "../tokens/ERC20.sol";
-import "../interfaces/ILiquidityPool.sol";
+import "../PriceFeed.sol";
+import "../LiquidityPool.sol";
 import "../libraries/SafeTransferLib.sol";
 import "hardhat/console.sol";
 
-
 contract FlashLoanMock {
+	OptionHandler public immutable optionHandler;
+	LiquidityPool public immutable liquidityPool;
+	PriceFeed public immutable priceFeed;
+	PortfolioValuesFeed public immutable portfolioValuesFeed;
+	address public immutable collateralAsset;
+	address public immutable underlyingAsset;
 
-   OptionHandler public immutable optionHandler;
-   ILiquidityPool public immutable liquidityPool;
-   address public immutable collateralAsset;
+	event BuyOption(uint256 optionAmount, address series);
 
-    constructor (address _optionHandler, address _liquidityPool) {
-        optionHandler = OptionHandler(_optionHandler);
-        liquidityPool = ILiquidityPool(_liquidityPool);
-        collateralAsset = liquidityPool.collateralAsset();
-        SafeTransferLib.safeApprove(ERC20(collateralAsset), address(liquidityPool), 2**256 -1);
-        SafeTransferLib.safeApprove(ERC20(collateralAsset), address(optionHandler), 2**256 -1);
-    }
+	constructor(
+		address _optionHandler,
+		address _liquidityPool,
+		address _priceFeed,
+		address _portfoliovaluesFeed
+	) {
+		optionHandler = OptionHandler(_optionHandler);
+		liquidityPool = LiquidityPool(_liquidityPool);
+		priceFeed = PriceFeed(_priceFeed);
+		portfolioValuesFeed = PortfolioValuesFeed(_portfoliovaluesFeed);
+		collateralAsset = liquidityPool.collateralAsset();
+		underlyingAsset = liquidityPool.underlyingAsset();
+		SafeTransferLib.safeApprove(ERC20(collateralAsset), address(liquidityPool), 2**256 - 1);
+		SafeTransferLib.safeApprove(ERC20(collateralAsset), address(optionHandler), 2**256 - 1);
+	}
 
-    /**
-        @notice simulates someone using a flash loan to deposit and withdraw large liquidity in the same tx
-        @param _amount amount of USDC to deposit. Denominated in 1e6
-     */
+	function deposit(uint256 _amount) public {
+		_deposit(_amount);
+	}
 
-    function depositAndWithdraw(uint256 _amount) public {
-        uint shares = _deposit(_amount);
-        _withdraw(shares);
-    }
+	function completeWithdraw(uint256 _shares) public {
+		uint256 withdrawalAmount = liquidityPool.completeWithdraw(_shares);
+		SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, withdrawalAmount);
+	}
 
-    function depositBuyAndWithdraw(uint _collateralAmount, uint _optionAmount, Types.OptionSeries memory _optionSeries) public {
-        uint shares = _deposit(_collateralAmount);
-        _buyOptionSeries(_optionSeries, _optionAmount);
-        _withdraw(shares);
-    }
+	function redeem(uint256 _shares) public {
+		liquidityPool.redeem(_shares);
+	}
 
-    function depositBuySellAndWithdraw(uint _collateralAmount, uint _optionAmount, Types.OptionSeries memory _optionSeries) public returns (address){
-        uint whaleBalBeforeDeposit = ERC20(collateralAsset).balanceOf(msg.sender);
-        uint shares = _deposit(_collateralAmount);
-        uint whaleBalBeforeSale = ERC20(collateralAsset).balanceOf(msg.sender);
-        console.log("whale bal down from deposit", whaleBalBeforeDeposit - whaleBalBeforeSale);
-        (uint optionAmount, address seriesAddress) =_buyOptionSeries(_optionSeries, _optionAmount);
-        uint whaleBalAfterSale = ERC20(collateralAsset).balanceOf(msg.sender);
-        console.log("whale bal down from buying", whaleBalBeforeSale - whaleBalAfterSale);
-        _sellOptionSeriesBack(seriesAddress, optionAmount);
-        uint whaleBalAfterBuyback = ERC20(collateralAsset).balanceOf(msg.sender);
-        console.log("whale bal up from selling",whaleBalAfterBuyback - whaleBalAfterSale);
+	function buyAndWithdraw(
+		uint256 _shares,
+		uint256 _optionAmount,
+		Types.OptionSeries memory _optionSeries
+	) public {
+		_buyOptionSeries(_optionSeries, _optionAmount);
+		_withdraw(_shares);
+	}
 
-        _withdraw(shares);
-        uint whaleBalAfterWithdraw = ERC20(collateralAsset).balanceOf(msg.sender);
-        console.log("whale bal up from withdrawing",whaleBalAfterWithdraw - whaleBalAfterBuyback);
-        return seriesAddress;
-    }
+	function buySellAndWithdraw(
+		uint256 _shares,
+		uint256 _optionAmount,
+		Types.OptionSeries memory _optionSeries
+	) public returns (address) {
+		(uint256 optionAmount, address seriesAddress) = _buyOptionSeries(_optionSeries, _optionAmount);
+		_sellOptionSeriesBack(seriesAddress, optionAmount);
+		_withdraw(_shares);
+		return seriesAddress;
+	}
 
-    function depositAndBuy(uint _collateralAmount, uint _optionAmount, Types.OptionSeries memory _optionSeries) public returns (uint, address, uint){
-        uint whaleBalBeforeDeposit = ERC20(collateralAsset).balanceOf(msg.sender);
-        uint shares = _deposit(_collateralAmount);
-        uint whaleBalBeforeSale = ERC20(collateralAsset).balanceOf(msg.sender);
-        console.log("whale bal down from deposit", whaleBalBeforeDeposit - whaleBalBeforeSale);
-        (uint optionAmount, address seriesAddress) =_buyOptionSeries(_optionSeries, _optionAmount);
-        uint whaleBalAfterSale = ERC20(collateralAsset).balanceOf(msg.sender);
-        return (optionAmount, seriesAddress, shares);
-    }
+	function _deposit(uint256 _amount) internal {
+		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _amount);
+		liquidityPool.deposit(_amount);
+	}
 
-    function sellAndWithdraw(address _seriesAddress, uint _optionAmount, uint _shares ) public {
-         _sellOptionSeriesBack(_seriesAddress, _optionAmount);
-        uint whaleBalAfterBuyback = ERC20(collateralAsset).balanceOf(msg.sender);
-        // console.log("whale bal up from selling",whaleBalAfterBuyback - whaleBalAfterSale);
+	function _withdraw(uint256 shares) internal {
+		liquidityPool.initiateWithdraw(shares);
+	}
 
-        _withdraw(_shares);
-        uint whaleBalAfterWithdraw = ERC20(collateralAsset).balanceOf(msg.sender);
-        console.log("whale bal up from withdrawing",whaleBalAfterWithdraw - whaleBalAfterBuyback);
-    }
+	function _buyOptionSeries(Types.OptionSeries memory _optionSeries, uint256 _amount)
+		internal
+		returns (uint256 optionAmount, address series)
+	{
+		(uint256 premium, ) = liquidityPool.quotePriceWithUtilizationGreeks(
+			_optionSeries,
+			_amount,
+			false
+		);
+		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), premium / 10**12);
+		(optionAmount, series) = optionHandler.issueAndWriteOption(_optionSeries, _amount);
+		emit BuyOption(optionAmount, series);
+	}
 
+	function _sellOptionSeriesBack(address _seriesAddress, uint256 _amount) public {
+		SafeTransferLib.safeApprove(ERC20(_seriesAddress), address(optionHandler), _amount);
+		uint256 balanceBefore = ERC20(collateralAsset).balanceOf(address(this));
+		optionHandler.buybackOption(_seriesAddress, _amount);
+		uint256 balanceAfter = ERC20(collateralAsset).balanceOf(address(this));
+		SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, balanceAfter - balanceBefore);
+	}
 
-
-    function _deposit(uint256 _amount) internal returns (uint) {
-        SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _amount);
-        return liquidityPool.deposit(_amount, address(this));
-       
-    }
-
-    function _withdraw(uint256 shares) internal {
-         // make recipient msg.sender so USDC goes back to calling address
-        // withdraw 80% each time to get around buffer requirements in liquidity pool
-        uint usdcReceived = liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-        usdcReceived += liquidityPool.withdraw(shares * 8/10, msg.sender);
-        shares = ERC20(address(liquidityPool)).balanceOf(address(this));
-    }
-
-    function _buyOptionSeries(Types.OptionSeries memory _optionSeries, uint _amount) internal returns (uint optionAmount, address series){
-        (uint256 premium,) = liquidityPool.quotePriceWithUtilizationGreeks(_optionSeries, _amount);
-        SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), premium/10**12);
-        return optionHandler.issueAndWriteOption(_optionSeries, _amount);
-    }
-
-    function _sellOptionSeriesBack(address _seriesAddress, uint _amount) internal {
-        SafeTransferLib.safeApprove(ERC20(_seriesAddress), address(optionHandler), _amount);
-        uint balanceBefore = ERC20(collateralAsset).balanceOf(address(this));
-        optionHandler.buybackOption(_seriesAddress, _amount);
-        uint balanceAfter = ERC20(collateralAsset).balanceOf(address(this));
-        SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, balanceAfter - balanceBefore);
-    }   
-
-    
-
-    /**
+	/**
         @notice simulates buying and selling options
      */
 }

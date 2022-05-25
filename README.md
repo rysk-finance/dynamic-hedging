@@ -95,18 +95,32 @@ npm run start
 
 <!-- USAGE EXAMPLES -->
 
-## Usage
+## Testing Contracts
 
-List of options
+Complete steps 1 to 3 from above:
+
+Compile all files
 
 ```sh
-npx hardhat
+npm run compile
 ```
 
-Run tests
+Run all tests
 
 ```sh
 npx hardhat test
+```
+
+To run a specific test suite, e.g. LiquidityPool.ts
+
+```sh
+npx hardhat test test/LiquidityPool.ts
+```
+
+Run test coverage
+
+```sh
+npm run test-coverage
 ```
 
 ## Contract Architecture
@@ -123,9 +137,12 @@ contracts
 │   └── UniswapV3HedgingReactor.sol
 ├── interfaces
 │   ├── AddressBookInterface.sol
+│   ├── IAuthority.sol
 │   ├── AggregatorV3Interface.sol
 │   ├── GammaInterface.sol
 │   ├── IERC20.sol
+│   ├── IOptionRegistry.sol
+│   ├── ILiquidityPool.sol
 │   ├── IHedgingReactor.sol
 │   ├── IMarginCalculator.sol
 │   └── IOracle.sol
@@ -135,10 +152,12 @@ contracts
 │   ├── NormalDist.sol
 │   ├── OptionsCompute.sol
 │   ├── OpynInteractions.sol
+│   ├── AccessControl.sol
 │   ├── SafeTransferLib.sol
 │   └── Types.sol
 ├── tokens
 │   └── ERC20.sol
+├── Authority.sol
 ├── LiquidityPool.sol
 ├── OptionRegistry.sol
 ├── OptionHandler.sol

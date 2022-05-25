@@ -144,6 +144,8 @@ describe("Options protocol Vault Health", function () {
 				OpynInteractions: interactions.address
 			}
 		})
+		const authorityFactory = await hre.ethers.getContractFactory("Authority")
+		const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
 		// get and transfer weth
 		weth = (await ethers.getContractAt(
 			"contracts/interfaces/WETH.sol:WETH",
@@ -167,22 +169,23 @@ describe("Options protocol Vault Health", function () {
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
 			senderAddress,
-			ADDRESS_BOOK[chainId]
+			ADDRESS_BOOK[chainId],
+			authority.address
 		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
-		// ensure deployer was granted admin role correctly
-		expect(await optionRegistry.hasRole(utils.id("ADMIN_ROLE"), senderAddress)).to.be.true
-		expect(await optionRegistry.hasRole(utils.id("ADMIN_ROLE"), receiverAddress)).to.be.false
 		const _optionRegistryETH = (await optionRegistryFactory.deploy(
 			WETH_ADDRESS[chainId],
 			OTOKEN_FACTORY[chainId],
 			GAMMA_CONTROLLER[chainId],
 			MARGIN_POOL[chainId],
 			senderAddress,
-			ADDRESS_BOOK[chainId]
+			ADDRESS_BOOK[chainId],
+			authority.address
 		)) as OptionRegistry
 		optionRegistryETH = _optionRegistryETH
+		await optionRegistry.setKeeper(senderAddress, true)
+		await optionRegistryETH.setKeeper(senderAddress, true)
 		expect(optionRegistryETH).to.have.property("deployTransaction")
 	})
 	it("Creates a liquidity pool", async () => {
@@ -1033,6 +1036,7 @@ describe("Options protocol Vault Health", function () {
 		expect(healthF).to.equal(healthFactor)
 	})
 	it("settles when option expires ITM USD collateral", async () => {
+		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		const [sender, receiver] = signers
 		// get balance before
 		const balanceUSD = await usd.balanceOf(liquidityPool.address)
@@ -1045,11 +1049,10 @@ describe("Options protocol Vault Health", function () {
 			await optionTokenUSDC.balanceOf(liquidityPool.address)
 		)
 		// call redeem from the options registry
-		const settleTx = await optionRegistry.settle(optionTokenUSDC.address)
-		const receipt = await settleTx.wait()
-		const events = receipt.events
-		const removeEvent = events?.find(x => x.event == "OptionsContractSettled")
-		const collateralReturned = removeEvent?.args?.collateralReturned
+		const settleTx = await liquidityPool.settle(optionTokenUSDC.address)
+		const logs = await optionRegistry.queryFilter(optionRegistry.filters.OptionsContractSettled(), 0)
+		const settleEvent = logs[logs.length - 1].args
+		const collateralReturned = settleEvent.collateralReturned
 		// check balances are in order
 		const newBalanceUSD = await usd.balanceOf(liquidityPool.address)
 		const opBalRegistry = await optionTokenUSDC.balanceOf(optionRegistry.address)

@@ -134,6 +134,8 @@ describe("Options protocol", function () {
 				OpynInteractions: interactions.address
 			}
 		})
+		const authorityFactory = await hre.ethers.getContractFactory("Authority")
+		const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
 		// get and transfer weth
 		weth = (await ethers.getContractAt(
 			"contracts/interfaces/WETH.sol:WETH",
@@ -156,7 +158,8 @@ describe("Options protocol", function () {
 			controller.address,
 			MARGIN_POOL[chainId],
 			senderAddress,
-			ADDRESS_BOOK[chainId]
+			ADDRESS_BOOK[chainId],
+			authority.address
 		)) as OptionRegistry
 		optionRegistry = _optionRegistry
 		expect(optionRegistry).to.have.property("deployTransaction")
@@ -166,7 +169,8 @@ describe("Options protocol", function () {
 			controller.address,
 			MARGIN_POOL[chainId],
 			senderAddress,
-			ADDRESS_BOOK[chainId]
+			ADDRESS_BOOK[chainId],
+			authority.address
 		)) as OptionRegistry
 		optionRegistryETH = _optionRegistryETH
 		expect(optionRegistryETH).to.have.property("deployTransaction")
@@ -192,6 +196,9 @@ describe("Options protocol", function () {
 		const seriesAddress = removeEvent?.args?.token
 		// save the option token address
 		optionTokenUSDC = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+	})
+	it("Reverts: Tries to close oToken series that doesnt have a vault", async () => {
+		await expect(optionRegistry.close(optionTokenUSDC.address, toWei("2"))).to.be.revertedWith("NoVault()")
 	})
 	it("Returns correct oToken when calling getOrDeployOtoken", async () => {
 		const [sender] = signers
