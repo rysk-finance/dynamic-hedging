@@ -11,3 +11,8 @@ export type DepositReceipt = {
   epoch: BigNumber;
   unredeemedShares: BigNumber;
 };
+
+export type WithdrawalReceipt = {
+  shares: BigNumber;
+  epoch: BigNumber;
+};

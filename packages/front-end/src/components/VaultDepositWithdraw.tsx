@@ -3,13 +3,18 @@ import React, { useCallback, useEffect, useState } from "react";
 import ERC20ABI from "../abis/erc20.json";
 import { useWalletContext } from "../App";
 import LPABI from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
-import { BIG_NUMBER_DECIMALS, MAX_UINT_256 } from "../config/constants";
+import {
+  BIG_NUMBER_DECIMALS,
+  MAX_UINT_256,
+  ZERO_UINT_256,
+} from "../config/constants";
 import { USDC_ADDRESS } from "../config/mainnetContracts";
 import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
 import { useGlobalContext } from "../state/GlobalContext";
-import { DepositReceipt } from "../types";
+import { DepositReceipt, WithdrawalReceipt } from "../types";
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
+import { Button } from "./shared/Button";
 import { RadioButtonSlider } from "./shared/RadioButtonSlider";
 import { TextInput } from "./shared/TextInput";
 
@@ -27,9 +32,15 @@ export const VaultDepositWithdraw = () => {
 
   const [mode, setMode] = useState<Mode>(Mode.DEPOSIT);
 
-  const [balance, setBalance] = useState<string | null>(null);
-  const [amount, setAmount] = useState<string | null>(null);
-  const [unredeemedShares, setUnredeemedShares] = useState<string | null>(null);
+  const [currentEpoch, setCurrentEpoch] = useState<null | BigNumber>(null);
+  const [unredeemableCollateral, setUnredeemableCollateral] =
+    useState<BigNumber | null>(null);
+  const [redeemedShares, setRedeemedShares] = useState<string | null>(null);
+  const [unredeemedShares, setUnredeemedShares] = useState<BigNumber | null>(
+    null
+  );
+  const [withdrawlReceipt, setWithdrawlReceipt] =
+    useState<WithdrawalReceipt | null>(null);
 
   const [inputValue, setInputValue] = useState("");
 
@@ -43,15 +54,19 @@ export const VaultDepositWithdraw = () => {
     if (lpContract && account) {
       const receipt: DepositReceipt = await lpContract.depositReceipts(account);
       const currentEpoch: BigNumber = await lpContract.epoch();
-      setAmount(receipt.amount.div(BIG_NUMBER_DECIMALS.USDC).toString());
+      setCurrentEpoch(currentEpoch);
       const previousUnredeemedShares = receipt.unredeemedShares.div(
         BIG_NUMBER_DECIMALS.RYSK
       );
       // If true, the share price for the most recent deposit hasn't been calculated
       // so we can only show the collateral balance, not the equivalent number of shares.
       if (currentEpoch._hex === receipt.epoch._hex) {
-        setUnredeemedShares(previousUnredeemedShares.toString());
+        setUnredeemedShares(previousUnredeemedShares);
+        if (receipt.amount.toNumber() !== 0) {
+          setUnredeemableCollateral(receipt.amount);
+        }
       } else {
+        setUnredeemableCollateral(null);
         const pricePerShareAtEpoch: BigNumber =
           await lpContract.epochPricePerShare(receipt.epoch);
         const newUnredeemedShares = receipt.amount
@@ -59,19 +74,10 @@ export const VaultDepositWithdraw = () => {
           .div(pricePerShareAtEpoch);
         const sharesToRedeem =
           previousUnredeemedShares.add(newUnredeemedShares);
-        setUnredeemedShares(sharesToRedeem.toString());
+        setUnredeemedShares(sharesToRedeem);
       }
     }
   }, [lpContract, account]);
-
-  useEffect(() => {
-    lpContract?.on("EpochExecuted", epochListener);
-    epochListener();
-
-    return () => {
-      lpContract?.off("EpochExecuted", epochListener);
-    };
-  }, [lpContract]);
 
   const [usdcContract, usdcContractCall] = useContract({
     address: USDC_ADDRESS,
@@ -83,10 +89,37 @@ export const VaultDepositWithdraw = () => {
     async (address: string) => {
       const balance = await lpContract?.balanceOf(address);
       const parsedBalance = ethers.utils.formatUnits(balance, 18);
-      setBalance(parsedBalance ?? null);
+      setRedeemedShares(parsedBalance ?? null);
     },
     [lpContract]
   );
+
+  const getSharesPendingWithdrawal = useCallback(async () => {
+    if (lpContract && account) {
+      const receipt: WithdrawalReceipt = await lpContract.withdrawalReceipts(
+        account
+      );
+      setWithdrawlReceipt(receipt);
+    }
+  }, [lpContract, account]);
+
+  const redeemShares = useCallback(async () => {
+    // TODO(HC): Make number of shares to redeem a param once UI is figured out.
+    if (lpContract) {
+      await lpContractCall(lpContract.redeem, BigNumber.from(MAX_UINT_256));
+    }
+  }, [lpContract, lpContractCall]);
+
+  const completeWithdrawal = useCallback(async () => {
+    // TODO(HC): Does this also need to take number of shares as an input
+    if (lpContract) {
+      await lpContractCall(
+        lpContract.completeWithdraw,
+        BigNumber.from(MAX_UINT_256)
+      );
+      await getSharesPendingWithdrawal();
+    }
+  }, [lpContract, lpContractCall, getSharesPendingWithdrawal]);
 
   useEffect(() => {
     (async () => {
@@ -95,6 +128,20 @@ export const VaultDepositWithdraw = () => {
       }
     })();
   }, [getBalance, account]);
+
+  // Attatch event listeners
+  useEffect(() => {
+    lpContract?.on("EpochExecuted", epochListener);
+    epochListener();
+
+    lpContract?.on("InitiateWithdraw", getSharesPendingWithdrawal);
+    getSharesPendingWithdrawal();
+
+    return () => {
+      lpContract?.off("EpochExecuted", epochListener);
+      lpContract?.off("InitiateWithdraw", getSharesPendingWithdrawal);
+    };
+  }, [lpContract, getSharesPendingWithdrawal, epochListener]);
 
   const handleSubmit = async () => {
     try {
@@ -117,7 +164,7 @@ export const VaultDepositWithdraw = () => {
           await lpContractCall(lpContract.deposit, amount);
         } else if (mode === Mode.WITHDRAW) {
           const amount = ethers.utils.parseUnits(inputValue, 18);
-          await lpContractCall(lpContract.withdraw, amount, account);
+          await lpContractCall(lpContract.initiateWithdraw, amount);
         }
         await getBalance(account);
         setInputValue("");
@@ -140,41 +187,113 @@ export const VaultDepositWithdraw = () => {
         </div>
         <div className="w-full">
           <div className="w-full">
-            <div className="p-4 flex justify-between border-b-2 border-black">
-              <h4>Amount:</h4>
-              <div className="flex">
-                <h4 className="mr-2">
-                  <RequiresWalletConnection className="w-[120px]">
-                    {amount?.toString()}
-                  </RequiresWalletConnection>{" "}
-                  USDC
-                </h4>
+            <div className="w-full border-b-2 border-black">
+              <div className="w-fit">
+                <RadioButtonSlider
+                  selected={mode}
+                  setSelected={setMode}
+                  options={[
+                    {
+                      key: Mode.DEPOSIT,
+                      label: "Deposit",
+                      value: Mode.DEPOSIT,
+                    },
+                    {
+                      key: Mode.WITHDRAW,
+                      label: "Withdraw",
+                      value: Mode.WITHDRAW,
+                    },
+                  ]}
+                />
               </div>
             </div>
 
             <div className="p-4 flex justify-between border-b-2 border-black">
-              <h4>Redeemable Shares:</h4>
+              <h4>Shares:</h4>
               <div className="flex">
                 <h4 className="mr-2">
                   <RequiresWalletConnection className="w-[120px]">
-                    {unredeemedShares?.toString()}
+                    {redeemedShares?.toString()}
                   </RequiresWalletConnection>{" "}
                 </h4>
               </div>
             </div>
-            <div className="w-fit">
-              <RadioButtonSlider
-                selected={mode}
-                setSelected={setMode}
-                options={[
-                  { key: Mode.DEPOSIT, label: "Deposit", value: Mode.DEPOSIT },
-                  {
-                    key: Mode.WITHDRAW,
-                    label: "Withdraw",
-                    value: Mode.WITHDRAW,
-                  },
-                ]}
-              />
+
+            <div className="p-4 flex justify-between items-center">
+              {mode === Mode.DEPOSIT ? (
+                <>
+                  <h4>Redeemable Shares:</h4>
+                  <div className="flex items-center h-[36px]">
+                    <RequiresWalletConnection className="w-[120px] h-6 mr-2">
+                      {unredeemedShares && unredeemedShares.toNumber() !== 0 && (
+                        <Button
+                          className="mr-4"
+                          onClick={() => {
+                            redeemShares();
+                          }}
+                        >
+                          Redeem
+                        </Button>
+                      )}
+                      <h4 className="mr-2">{unredeemedShares?.toString()}</h4>
+                      {unredeemableCollateral && (
+                        <div className="rounded-full bg-red-500 h-2 w-2 relative cursor-pointer group">
+                          <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
+                            {/* TODO(HC): Determine what this copy should be. */}
+                            <p>
+                              Your collateral of{" "}
+                              <b>
+                                {unredeemableCollateral
+                                  ?.div(BIG_NUMBER_DECIMALS.USDC)
+                                  .toString()}
+                                {" USDC "}
+                              </b>
+                              has been recieved and will be available to redeem
+                              shortly.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </RequiresWalletConnection>{" "}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h4>Pending Withdrawal:</h4>
+                  <div className="flex items-center h-[36px]">
+                    <RequiresWalletConnection className="w-[120px] h-6 mr-2">
+                      {currentEpoch &&
+                        !withdrawlReceipt?.epoch.eq(currentEpoch) &&
+                        withdrawlReceipt?.shares._hex !== ZERO_UINT_256 && (
+                          <Button
+                            className="mr-4"
+                            onClick={() => {
+                              completeWithdrawal();
+                            }}
+                          >
+                            Complete
+                          </Button>
+                        )}
+                      <h4 className="mr-2">
+                        {withdrawlReceipt?.shares
+                          .div(BIG_NUMBER_DECIMALS.RYSK)
+                          .toString()}
+                      </h4>
+                      {currentEpoch &&
+                        withdrawlReceipt?.epoch.eq(currentEpoch) && (
+                          <div className="rounded-full bg-red-500 h-2 w-2 relative cursor-pointer group">
+                            <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
+                              <p>
+                                Your collateral will be available to withdraw
+                                shortly.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                    </RequiresWalletConnection>{" "}
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <div className="ml-[-2px]">
@@ -184,7 +303,7 @@ export const VaultDepositWithdraw = () => {
               value={inputValue}
               iconLeft={
                 <div className="h-full flex items-center px-4 text-right text-gray-600">
-                  <p>USDC</p>
+                  <p>{mode === Mode.DEPOSIT ? "USDC" : "Shares"}</p>
                 </div>
               }
               numericOnly
