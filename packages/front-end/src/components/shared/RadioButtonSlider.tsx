@@ -6,8 +6,10 @@ type RadioButtonSliderProps<T> = {
   selected: T | null;
   setSelected: (value: T) => void;
   predicate?: (arg: T) => boolean;
+  buttonClassName?: string;
   selectedClassName?: string;
   deselectedClassName?: string;
+  buttonType?: "primary" | "secondary";
 };
 
 type RadioButtonSliderType<T = any> = React.FC<RadioButtonSliderProps<T>>;
@@ -17,8 +19,10 @@ export const RadioButtonSlider: RadioButtonSliderType = ({
   selected,
   setSelected,
   predicate,
-  selectedClassName,
-  deselectedClassName,
+  buttonClassName = "",
+  selectedClassName = "",
+  deselectedClassName = "",
+  buttonType = "primary",
 }) => {
   return (
     <div className={`flex w-full box-content relative`}>
@@ -33,7 +37,9 @@ export const RadioButtonSlider: RadioButtonSliderType = ({
             key={option.key}
             className={`px-4 py-2 rounded-full border-2 outline-none ${
               isSelected
-                ? `bg-white border-black box-border my-[-2px] ${selectedClassName}`
+                ? `${
+                    buttonType === "primary" ? "bg-white" : ""
+                  } border-black box-border my-[-2px] ${buttonClassName} ${selectedClassName}`
                 : `${deselectedClassName}`
             }`}
             onClick={() => setSelected(option.value)}
