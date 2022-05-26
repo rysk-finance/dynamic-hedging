@@ -15,7 +15,6 @@ import { useContract } from "../hooks/useContract";
 import { useGlobalContext } from "../state/GlobalContext";
 import { DepositReceipt, WithdrawalReceipt } from "../types";
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
-import { Button } from "./shared/Button";
 import { RadioButtonSlider } from "./shared/RadioButtonSlider";
 import { TextInput } from "./shared/TextInput";
 
@@ -41,6 +40,7 @@ export const VaultDepositWithdraw = () => {
     state: { settings },
   } = useGlobalContext();
 
+  // UI State
   const [mode, setMode] = useState<Mode>(Mode.DEPOSIT);
   const [depositMode, setDepositMode] = useState<DepositMode>(
     DepositMode.COLLATERAL
@@ -48,11 +48,12 @@ export const VaultDepositWithdraw = () => {
   const [withdrawMode, setWithrawMode] = useState<WithdrawMode>(
     WithdrawMode.INITIATE
   );
+  const [inputValue, setInputValue] = useState("");
 
-  const [currentEpoch, setCurrentEpoch] = useState<null | BigNumber>(null);
+  // Chain state
+  const [redeemedShares, setRedeemedShares] = useState<BigNumber | null>(null);
   const [unredeemableCollateral, setUnredeemableCollateral] =
     useState<BigNumber | null>(null);
-  const [redeemedShares, setRedeemedShares] = useState<BigNumber | null>(null);
   const [unredeemedShares, setUnredeemedShares] = useState<BigNumber | null>(
     null
   );
@@ -61,22 +62,32 @@ export const VaultDepositWithdraw = () => {
   const [withdrawEpochSharePrice, setWithdrawEpochSharePrice] =
     useState<BigNumber | null>(null);
 
-  const [inputValue, setInputValue] = useState("");
-
+  // Contracts
   const [lpContract, lpContractCall] = useContract({
     address: addresses.localhost.liquidityPool,
     ABI: LPABI.abi,
     readOnly: false,
   });
+  const [usdcContract, usdcContractCall] = useContract({
+    address: USDC_ADDRESS,
+    ABI: ERC20ABI,
+    readOnly: false,
+  });
 
-  const epochListener = useCallback(async () => {
+  const getBalance = useCallback(
+    async (address: string) => {
+      const balance = await lpContract?.balanceOf(address);
+      setRedeemedShares(balance);
+    },
+    [lpContract]
+  );
+
+  const updateDepositState = useCallback(async () => {
     if (lpContract && account) {
-      // Deposit logic
       const depositReceipt: DepositReceipt = await lpContract.depositReceipts(
         account
       );
       const currentEpoch: BigNumber = await lpContract.epoch();
-      setCurrentEpoch(currentEpoch);
       const previousUnredeemedShares = depositReceipt.unredeemedShares;
       // If true, the share price for the most recent deposit hasn't been calculated
       // so we can only show the collateral balance, not the equivalent number of shares.
@@ -100,40 +111,28 @@ export const VaultDepositWithdraw = () => {
         const sharesToRedeem =
           previousUnredeemedShares.add(newUnredeemedShares);
         setUnredeemedShares(sharesToRedeem);
-
-        // Withdraw logic
-        const withdrawalReceipt: WithdrawalReceipt =
-          await lpContract.withdrawalReceipts(account);
-        const withdrawSharePrice = await lpContract.epochPricePerShare(
-          withdrawalReceipt.epoch
-        );
-        setWithdrawEpochSharePrice(withdrawSharePrice);
       }
+      getBalance(account);
     }
-  }, [lpContract, account]);
+  }, [account, lpContract, getBalance]);
 
-  const [usdcContract, usdcContractCall] = useContract({
-    address: USDC_ADDRESS,
-    ABI: ERC20ABI,
-    readOnly: false,
-  });
-
-  const getBalance = useCallback(
-    async (address: string) => {
-      const balance = await lpContract?.balanceOf(address);
-      setRedeemedShares(balance);
-    },
-    [lpContract]
-  );
-
-  const getSharesPendingWithdrawal = useCallback(async () => {
+  const updateWithdrawState = useCallback(async () => {
     if (lpContract && account) {
-      const receipt: WithdrawalReceipt = await lpContract.withdrawalReceipts(
-        account
+      const withdrawalReceipt: WithdrawalReceipt =
+        await lpContract.withdrawalReceipts(account);
+      setwithdrawalReceipt(withdrawalReceipt);
+      const withdrawSharePrice = await lpContract.epochPricePerShare(
+        withdrawalReceipt.epoch
       );
-      setwithdrawalReceipt(receipt);
+      setWithdrawEpochSharePrice(withdrawSharePrice);
+      getBalance(account);
     }
-  }, [lpContract, account]);
+  }, [account, lpContract, getBalance]);
+
+  const epochListener = useCallback(async () => {
+    updateDepositState();
+    updateWithdrawState();
+  }, [updateDepositState, updateWithdrawState]);
 
   useEffect(() => {
     (async () => {
@@ -146,27 +145,34 @@ export const VaultDepositWithdraw = () => {
   // Attatch event listeners
   useEffect(() => {
     lpContract?.on("EpochExecuted", epochListener);
-    epochListener();
+    lpContract?.on("Deposit", updateDepositState);
+    lpContract?.on("Withdraw", updateWithdrawState);
+    lpContract?.on("InitiateWithdraw", updateWithdrawState);
+    lpContract?.on("Redeem", updateDepositState);
 
-    lpContract?.on("InitiateWithdraw", getSharesPendingWithdrawal);
-    getSharesPendingWithdrawal();
+    epochListener();
 
     return () => {
       lpContract?.off("EpochExecuted", epochListener);
-      lpContract?.off("InitiateWithdraw", getSharesPendingWithdrawal);
+      lpContract?.off("Deposit", updateDepositState);
+      lpContract?.off("Withdraw", updateWithdrawState);
+      lpContract?.off("InitiateWithdraw", updateWithdrawState);
     };
-  }, [lpContract, getSharesPendingWithdrawal, epochListener]);
+  }, [lpContract, epochListener, updateDepositState, updateWithdrawState]);
 
+  // Update UI buttons when switching between deposit/withdraw mode
   useEffect(() => {
     setDepositMode(DepositMode.COLLATERAL);
     setWithrawMode(WithdrawMode.INITIATE);
     setInputValue("");
   }, [mode]);
 
+  // Reset input value when switching mode
   useEffect(() => {
     setInputValue("");
   }, [mode, depositMode, withdrawMode]);
 
+  // Handlers for the 4 different possible interactions.
   const handleDepositCollateral = async () => {
     if (usdcContract && lpContract && account) {
       const amount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
@@ -216,6 +222,7 @@ export const VaultDepositWithdraw = () => {
     }
   };
 
+  // Coordinate the 4 possible interactions
   const handleSubmit = async () => {
     try {
       if (account && lpContract && usdcContract) {
