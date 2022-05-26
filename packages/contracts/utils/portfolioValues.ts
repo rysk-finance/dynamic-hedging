@@ -4,14 +4,24 @@ import { ethers } from "hardhat"
 import greeks from "greeks"
 //@ts-ignore
 import bs from "black-scholes"
-import { BigNumber, Event } from "ethers"
+import { BigNumber, Event, utils } from "ethers"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { NewController } from "../types/NewController"
 import { WriteOptionEvent } from "../types/LiquidityPool"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { PriceFeed } from "../types/PriceFeed"
-import { fromWei, genOptionTimeFromUnix, fromOpyn, fromOpynToWei } from "../utils/conversion-helper"
+import {
+	fromWei,
+	genOptionTimeFromUnix,
+	fromOpyn,
+	fromOpynToWei,
+	PUT,
+	tFormatUSDC,
+	toWei
+} from "../utils/conversion-helper"
 import { Oracle } from "../types/Oracle"
+import { ERC20 } from "../types/ERC20"
+import ERC20Artifact from "../artifacts/contracts/tokens/ERC20.sol/ERC20.json"
 
 type WriteEvent = WriteOptionEvent & Event
 type DecodedData = {
@@ -40,7 +50,91 @@ interface EnrichedWriteEvent extends WriteEvent {
 	theta?: number
 	price?: number
 }
+type SeriesInfo = [BigNumber, BigNumber, boolean, string, string, string] & {
+	expiration: BigNumber
+	strike: BigNumber
+	isPut: boolean
+	underlying: string
+	strikeAsset: string
+	collateral: string
+}
 
+type GreekVariables = [string, string, number, string, number, "put" | "call"]
+
+function getUtilizationPrice(
+	utilizationBefore: number,
+	utilizationAfter: number,
+	optionPrice: number,
+	utilizationFunctionThreshold: number = 0.6, //60%
+	belowUtilizationThresholdGradient: number = 0.1,
+	aboveUtilizationThresholdGradient: number = 1.5,
+	yIntercept: number = -0.84
+) {
+	if (
+		utilizationBefore < utilizationFunctionThreshold &&
+		utilizationAfter < utilizationFunctionThreshold
+	) {
+		return (
+			optionPrice +
+			((optionPrice * (utilizationBefore + utilizationAfter)) / 2) * belowUtilizationThresholdGradient
+		)
+	} else if (
+		utilizationBefore > utilizationFunctionThreshold &&
+		utilizationAfter > utilizationFunctionThreshold
+	) {
+		const utilizationPremiumFactor =
+			((utilizationBefore + utilizationAfter) / 2) * aboveUtilizationThresholdGradient + yIntercept
+		return optionPrice + optionPrice * utilizationPremiumFactor
+	} else {
+		const weightingRatio =
+			(utilizationFunctionThreshold - utilizationBefore) /
+			(utilizationAfter - utilizationFunctionThreshold)
+		const averageFactorBelow =
+			((utilizationFunctionThreshold + utilizationBefore) / 2) * belowUtilizationThresholdGradient
+		const averageFactorAbove =
+			((utilizationFunctionThreshold + utilizationAfter) / 2) * aboveUtilizationThresholdGradient +
+			yIntercept
+		const multiplicationFactor =
+			(weightingRatio * averageFactorBelow + averageFactorAbove) / (1 + weightingRatio)
+		return optionPrice + optionPrice * multiplicationFactor
+	}
+}
+function calculateOptionQuote(
+	greekVariables: GreekVariables,
+	underlyingPrice: BigNumber,
+	nav: BigNumber,
+	amount: BigNumber,
+	collateralAllocated: BigNumber,
+	liquidityAllocated: BigNumber,
+	portfolioDeltaBefore: BigNumber,
+	optionDelta: number,
+	lpUSDBalance: BigNumber,
+	maxDiscount: BigNumber = ethers.utils.parseUnits("1", 17) // 10%
+) {
+	const numericAmt: number = parseFloat(fromWei(amount))
+	const formattedOptionDelta: BigNumber = toWei(optionDelta.toString()).mul(amount.div(toWei("1")))
+	const portfolioDeltaAfter: BigNumber = portfolioDeltaBefore.add(formattedOptionDelta)
+	const portfolioDeltaIsDecreased = portfolioDeltaAfter.abs().sub(portfolioDeltaBefore.abs()).lt(0)
+	const normalisedDelta = portfolioDeltaBefore
+		.add(portfolioDeltaAfter)
+		.div(2)
+		.abs()
+		.div(nav.div(underlyingPrice))
+
+	const deltaTiltAmount = parseFloat(
+		utils.formatEther(normalisedDelta.gt(maxDiscount) ? maxDiscount : normalisedDelta)
+	)
+	const localBS = bs.blackScholes(...greekVariables) * numericAmt
+	const utilizationBefore =
+		tFormatUSDC(collateralAllocated) / tFormatUSDC(collateralAllocated.add(lpUSDBalance))
+	const utilizationAfter =
+		tFormatUSDC(collateralAllocated.add(liquidityAllocated)) /
+		tFormatUSDC(collateralAllocated.add(lpUSDBalance))
+	const utilizationPrice = getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
+	// if delta exposure reduces, subtract delta skew from  pricequotes
+	if (portfolioDeltaIsDecreased) return utilizationPrice - utilizationPrice * deltaTiltAmount
+	return utilizationPrice + utilizationPrice * deltaTiltAmount
+}
 export async function getPortfolioValues(
 	liquidityPool: LiquidityPool,
 	controller: NewController,
@@ -48,6 +142,20 @@ export async function getPortfolioValues(
 	priceFeed: PriceFeed,
 	opynOracle: Oracle
 ) {
+	const collateralAssetAddress = await liquidityPool.collateralAsset()
+	const collateralAsset: ERC20 = new ethers.Contract(
+		collateralAssetAddress,
+		ERC20Artifact.abi,
+		liquidityPool.provider
+	) as ERC20
+	const lpCollateralBalance = await collateralAsset.balanceOf(liquidityPool.address)
+	const collateralAllocated = await liquidityPool.collateralAllocated()
+	const nav = await liquidityPool.getNAV()
+	const portfolioDeltaBefore = await liquidityPool.getPortfolioDelta()
+	const underlying = await liquidityPool.underlyingAsset()
+	const strikeAsset = await liquidityPool.strikeAsset()
+	const priceQuote = await priceFeed.getNormalizedRate(underlying, strikeAsset)
+
 	const vaultLiquidationRegisteredFilter = optionRegistry.filters.VaultLiquidationRegistered()
 	const writeOptionEventFilter = liquidityPool.filters.WriteOption()
 	const buybackEventFilter = liquidityPool.filters.BuybackOption()
@@ -148,10 +256,6 @@ export async function getPortfolioValues(
 		if (liquidationAmount) x.amount = x.amount?.sub(liquidationAmount)
 
 		const seriesInfo = await optionRegistry.seriesInfo(x.series)
-		const priceQuote = await priceFeed.getNormalizedRate(
-			seriesInfo.underlying,
-			seriesInfo.strikeAsset
-		)
 		const priceNorm = fromWei(priceQuote)
 		const iv = await liquidityPool.getImpliedVolatility(
 			seriesInfo.isPut,
@@ -172,7 +276,7 @@ export async function getPortfolioValues(
 		} else {
 			timeToExpiration = genOptionTimeFromUnix(Number(timestamp), seriesInfo.expiration.toNumber())
 		}
-		const greekVariables = [
+		const greekVariables: GreekVariables = [
 			priceToUse,
 			fromOpyn(seriesInfo.strike),
 			timeToExpiration,
@@ -185,15 +289,36 @@ export async function getPortfolioValues(
 		const vega = greeks.getVega(...greekVariables)
 		const theta = greeks.getTheta(...greekVariables)
 		const price = bs.blackScholes(...greekVariables)
+		const optionSeries = {
+			expiration: timeToExpiration,
+			strike: BigNumber.from(greekVariables[1]),
+			isPut: greekVariables[5] == "put" ? true : false,
+			strikeAsset: seriesInfo.strikeAsset,
+			underlying: seriesInfo.underlying,
+			collateral: seriesInfo.collateral
+		}
+		if (!x.amount) return x
+		const liquidityAllocated: BigNumber = await optionRegistry.getCollateral(optionSeries, x.amount)
 		// @TODO consider keeping calculation in BigNumber as more precise and is the format onchain.
 		if (x.amount) {
+			const quote = calculateOptionQuote(
+				greekVariables,
+				price,
+				nav,
+				x.amount,
+				collateralAllocated,
+				liquidityAllocated,
+				portfolioDeltaBefore,
+				delta,
+				lpCollateralBalance
+			)
 			const numericAmt = Number(fromWei(x.amount))
 			// invert sign due to writing rather than buying
 			x.delta = numericAmt * delta * -1
 			x.gamma = numericAmt * gamma * -1
 			x.theta = numericAmt * theta * -1
 			x.vega = numericAmt * vega * -1
-			x.price = numericAmt * price
+			x.price = quote
 		}
 		return x
 	})
