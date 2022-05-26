@@ -35,16 +35,25 @@ export const RadioButtonSlider: RadioButtonSliderType = ({
           // selected buttons.
           <button
             key={option.key}
-            className={`px-4 py-2 rounded-full border-2 outline-none ${
+            className={`group relative px-4 py-2 rounded-full border-2 outline-none ${
               isSelected
                 ? `${
                     buttonType === "primary" ? "bg-white" : ""
                   } border-black box-border my-[-2px] ${buttonClassName} ${selectedClassName}`
                 : `${deselectedClassName}`
-            }`}
-            onClick={() => setSelected(option.value)}
+            } ${option.disabled ? "text-gray-500 cursor-not-allowed" : ""}`}
+            onClick={() => {
+              if (!option.disabled) {
+                setSelected(option.value);
+              }
+            }}
           >
             {option.label}
+            {option.disabledTooltip && (
+              <div className="absolute p-2 bg-bone z-10 border-2 border-black top-[100%] right-0 text-black hidden group-hover:block">
+                <p className="text-sm w-fit">{option.disabledTooltip}</p>
+              </div>
+            )}
           </button>
         );
       })}

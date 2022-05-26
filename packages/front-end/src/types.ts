@@ -4,6 +4,8 @@ export type Option<T> = {
   label: string;
   value: T;
   key: string;
+  disabled?: boolean;
+  disabledTooltip?: string;
 };
 
 export type DepositReceipt = {

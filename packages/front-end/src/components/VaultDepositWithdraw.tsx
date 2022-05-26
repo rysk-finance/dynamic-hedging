@@ -51,6 +51,7 @@ export const VaultDepositWithdraw = () => {
   const [inputValue, setInputValue] = useState("");
 
   // Chain state
+  const [currentEpoch, setCurrentEpoch] = useState<BigNumber | null>(null);
   const [redeemedShares, setRedeemedShares] = useState<BigNumber | null>(null);
   const [unredeemableCollateral, setUnredeemableCollateral] =
     useState<BigNumber | null>(null);
@@ -61,6 +62,9 @@ export const VaultDepositWithdraw = () => {
     useState<WithdrawalReceipt | null>(null);
   const [withdrawEpochSharePrice, setWithdrawEpochSharePrice] =
     useState<BigNumber | null>(null);
+
+  const initiateWithdrawDisabled =
+    withdrawalReceipt && withdrawalReceipt.shares._hex !== ZERO_UINT_256;
 
   // Contracts
   const [lpContract, lpContractCall] = useContract({
@@ -132,7 +136,11 @@ export const VaultDepositWithdraw = () => {
   const epochListener = useCallback(async () => {
     updateDepositState();
     updateWithdrawState();
-  }, [updateDepositState, updateWithdrawState]);
+    if (lpContract) {
+      const epoch = await lpContract.epoch();
+      setCurrentEpoch(epoch);
+    }
+  }, [updateDepositState, updateWithdrawState, lpContract]);
 
   useEffect(() => {
     (async () => {
@@ -163,9 +171,16 @@ export const VaultDepositWithdraw = () => {
   // Update UI buttons when switching between deposit/withdraw mode
   useEffect(() => {
     setDepositMode(DepositMode.COLLATERAL);
-    setWithrawMode(WithdrawMode.INITIATE);
     setInputValue("");
-  }, [mode]);
+  }, [mode, initiateWithdrawDisabled]);
+
+  // Ensure the initiate withdraw button gets disabled if a deposit has already
+  // been initiated.
+  useEffect(() => {
+    setWithrawMode(
+      initiateWithdrawDisabled ? WithdrawMode.COMPLETE : WithdrawMode.INITIATE
+    );
+  }, [mode, initiateWithdrawDisabled]);
 
   // Reset input value when switching mode
   useEffect(() => {
@@ -209,7 +224,6 @@ export const VaultDepositWithdraw = () => {
 
   const handleCompleteWithdraw = async () => {
     if (lpContract && withdrawEpochSharePrice) {
-      // console.log(withdrawalReceipt);
       const usdcAmount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
       const sharesAmount = usdcAmount
         .div(
@@ -249,16 +263,19 @@ export const VaultDepositWithdraw = () => {
 
   return (
     <div className="flex-col items-center justify-between h-full">
-      <div className="px-4 py-2 border-b-2 border-black flex items-center justify-between">
+      <div className="px-6 py-2 border-b-2 border-black flex items-center justify-between">
         <div className="w-fit h-full flex items-center font-parabole ">
           <h3 className="">Rysk Vault</h3>
         </div>
         <div className="w-fit h-full flex items-center">
-          <h4 className="">
-            <b>
-              Shares: {redeemedShares?.div(BIG_NUMBER_DECIMALS.RYSK).toString()}
-            </b>
-          </h4>
+          <RequiresWalletConnection className="h-8 w-32">
+            <h4>
+              <b>
+                Shares:{" "}
+                {redeemedShares?.div(BIG_NUMBER_DECIMALS.RYSK).toString()} RYSK
+              </b>
+            </h4>
+          </RequiresWalletConnection>
         </div>
       </div>
       <div className="flex border-b-2 border-black">
@@ -284,6 +301,10 @@ export const VaultDepositWithdraw = () => {
                       key: Mode.WITHDRAW,
                       label: "Withdraw",
                       value: Mode.WITHDRAW,
+                      disabled:
+                        redeemedShares?._hex === ZERO_UINT_256 &&
+                        unredeemedShares?._hex === ZERO_UINT_256,
+                      disabledTooltip: "You have no shares to withdraw",
                     },
                   ]}
                 />
@@ -306,6 +327,10 @@ export const VaultDepositWithdraw = () => {
                         key: DepositMode.REDEEM,
                         label: "2. Redeem Shares",
                         value: DepositMode.REDEEM,
+                        disabled:
+                          !unredeemedShares ||
+                          unredeemedShares._hex === ZERO_UINT_256,
+                        disabledTooltip: "You have no unredeemed shares",
                       },
                     ]}
                   />
@@ -319,6 +344,11 @@ export const VaultDepositWithdraw = () => {
                         key: WithdrawMode.INITIATE,
                         label: "1. Initiate",
                         value: WithdrawMode.INITIATE,
+                        disabled:
+                          !!withdrawalReceipt &&
+                          withdrawalReceipt.shares._hex !== ZERO_UINT_256,
+                        disabledTooltip:
+                          "There is already an active withdrawal",
                       },
                       {
                         key: WithdrawMode.COMPLETE,
@@ -335,18 +365,20 @@ export const VaultDepositWithdraw = () => {
               {mode === Mode.DEPOSIT ? (
                 depositMode === DepositMode.COLLATERAL ? (
                   <>
-                    <h4>Collateral:</h4>
+                    <h5>Collateral:</h5>
                     <div className="flex items-center h-[36px]">
                       <RequiresWalletConnection className="w-[120px] h-6 mr-2">
                         {
-                          <h4 className="mr-2">
-                            {unredeemableCollateral
-                              ? unredeemableCollateral
-                                  .div(BIG_NUMBER_DECIMALS.USDC)
-                                  .toString()
-                              : "0"}{" "}
-                            USDC
-                          </h4>
+                          <h5 className="mr-2">
+                            <b>
+                              {unredeemableCollateral
+                                ? unredeemableCollateral
+                                    .div(BIG_NUMBER_DECIMALS.USDC)
+                                    .toString()
+                                : "0"}{" "}
+                              USDC
+                            </b>
+                          </h5>
                         }
                         {unredeemableCollateral &&
                           unredeemableCollateral?._hex !== ZERO_UINT_256 && (
@@ -374,31 +406,37 @@ export const VaultDepositWithdraw = () => {
                   </>
                 ) : (
                   <>
-                    <h4>Shares:</h4>
+                    <h5>Shares:</h5>
                     <div className="flex items-center h-[36px]">
                       <RequiresWalletConnection className="w-[120px] h-6 mr-2">
-                        <h4 className="mr-2">
-                          {unredeemedShares
-                            ?.div(BIG_NUMBER_DECIMALS.RYSK)
-                            .toString()}
-                        </h4>
+                        <h5 className="mr-2">
+                          <b>
+                            {unredeemedShares
+                              ?.div(BIG_NUMBER_DECIMALS.RYSK)
+                              .toString()}{" "}
+                            RYSK
+                          </b>
+                        </h5>
                       </RequiresWalletConnection>{" "}
                     </div>
                   </>
                 )
               ) : withdrawMode === WithdrawMode.INITIATE ? (
                 <>
-                  <h4>Shares:</h4>
+                  <h5>Shares:</h5>
                   <div className="flex items-center h-[36px]">
                     <RequiresWalletConnection className="w-[120px] h-6 mr-2">
                       {unredeemedShares && redeemedShares && (
                         <>
-                          <h4 className="mr-2">
-                            {redeemedShares
-                              ?.add(unredeemedShares)
-                              .div(BIG_NUMBER_DECIMALS.RYSK)
-                              .toString()}
-                          </h4>
+                          <h5 className="mr-2">
+                            <b>
+                              {redeemedShares
+                                ?.add(unredeemedShares)
+                                .div(BIG_NUMBER_DECIMALS.RYSK)
+                                .toString()}{" "}
+                              RYSK
+                            </b>
+                          </h5>
                           {unredeemedShares._hex !== ZERO_UINT_256 &&
                             redeemedShares._hex !== ZERO_UINT_256 && (
                               <div className="rounded-full bg-green-600 h-2 w-2 relative cursor-pointer group">
@@ -418,29 +456,33 @@ export const VaultDepositWithdraw = () => {
                 </>
               ) : (
                 <>
-                  <h4>Collateral:</h4>
+                  <h5>Collateral:</h5>
                   <div className="flex items-center h-[36px]">
                     <RequiresWalletConnection className="w-[120px] h-6 mr-2">
                       {withdrawalReceipt &&
                         (withdrawEpochSharePrice &&
                         withdrawEpochSharePrice?._hex !== ZERO_UINT_256 ? (
                           <>
-                            <h4 className="mr-2">
-                              {/* TODO(HC): Scale this properly once sharePrice being returned by oracle is more accurate. */}
-                              {withdrawalReceipt.shares
-                                .div(BIG_NUMBER_DECIMALS.RYSK)
-                                .mul(
-                                  withdrawEpochSharePrice.div(
-                                    BIG_NUMBER_DECIMALS.RYSK
+                            <h5 className="mr-2">
+                              <b>
+                                {/* TODO(HC): Scale this properly once sharePrice being returned by oracle is more accurate. */}
+                                {withdrawalReceipt.shares
+                                  .div(BIG_NUMBER_DECIMALS.RYSK)
+                                  .mul(
+                                    withdrawEpochSharePrice.div(
+                                      BIG_NUMBER_DECIMALS.RYSK
+                                    )
                                   )
-                                )
-                                .toString()}{" "}
-                              USDC
-                            </h4>
+                                  .toString()}{" "}
+                                USDC
+                              </b>
+                            </h5>
                           </>
                         ) : (
                           <>
-                            <h4 className="mr-2">0 USDC</h4>
+                            <h5 className="mr-2">
+                              <b>0 USDC</b>
+                            </h5>
                             <div className="rounded-full bg-red-500 h-2 w-2 relative cursor-pointer group">
                               <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
                                 <p>
