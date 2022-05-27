@@ -50,7 +50,11 @@ export const RadioButtonSlider: RadioButtonSliderType = ({
           >
             {option.label}
             {option.disabledTooltip && (
-              <div className="absolute p-2 bg-bone z-10 border-2 border-black top-[100%] right-0 text-black hidden group-hover:block">
+              <div
+                className={`absolute p-2 bg-bone z-10 border-2 border-black top-[100%] right-0 text-black hidden ${
+                  option.disabled ? "group-hover:block" : ""
+                }`}
+              >
                 <p className="text-sm w-fit">{option.disabledTooltip}</p>
               </div>
             )}
