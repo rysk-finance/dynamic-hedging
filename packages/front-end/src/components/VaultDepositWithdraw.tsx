@@ -223,15 +223,8 @@ export const VaultDepositWithdraw = () => {
   };
 
   const handleCompleteWithdraw = async () => {
-    if (lpContract && withdrawEpochSharePrice) {
-      const usdcAmount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
-      const sharesAmount = usdcAmount
-        .div(
-          withdrawEpochSharePrice
-            .div(BIG_NUMBER_DECIMALS.RYSK)
-            .mul(BIG_NUMBER_DECIMALS.USDC)
-        )
-        .mul(BIG_NUMBER_DECIMALS.RYSK);
+    if (lpContract && withdrawEpochSharePrice && withdrawalReceipt) {
+      const sharesAmount = withdrawalReceipt.shares;
       await lpContractCall(lpContract.completeWithdraw, sharesAmount);
     }
   };
@@ -483,7 +476,7 @@ export const VaultDepositWithdraw = () => {
                             <h5 className="mr-2">
                               <b>0 USDC</b>
                             </h5>
-                            <div className="rounded-full bg-red-500 h-2 w-2 relative cursor-pointer group">
+                            <div className="rounded-full bg-green-500 h-2 w-2 relative cursor-pointer group">
                               <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
                                 <p>
                                   Your shares will be available to withdraw as
@@ -501,46 +494,59 @@ export const VaultDepositWithdraw = () => {
             </div>
           </div>
           <div className="ml-[-2px]">
-            <TextInput
-              className="text-right p-4 text-xl"
-              setValue={setInputValue}
-              value={inputValue}
-              iconLeft={
-                <div className="h-full flex items-center px-4 text-right text-gray-600">
-                  <p>
-                    {mode === Mode.DEPOSIT
-                      ? depositMode === DepositMode.COLLATERAL
-                        ? "USDC"
-                        : "Shares"
-                      : withdrawMode === WithdrawMode.INITIATE
-                      ? "Shares"
-                      : "USDC"}
-                  </p>
-                </div>
-              }
-              numericOnly
-            />
+            {!(
+              mode === Mode.WITHDRAW && withdrawMode === WithdrawMode.COMPLETE
+            ) ? (
+              <TextInput
+                className="text-right p-4 text-xl"
+                setValue={setInputValue}
+                value={inputValue}
+                iconLeft={
+                  <div className="h-full flex items-center px-4 text-right text-gray-600">
+                    <p>
+                      {mode === Mode.DEPOSIT
+                        ? depositMode === DepositMode.COLLATERAL
+                          ? "USDC"
+                          : "Shares"
+                        : withdrawMode === WithdrawMode.INITIATE
+                        ? "Shares"
+                        : "USDC"}
+                    </p>
+                  </div>
+                }
+                numericOnly
+              />
+            ) : (
+              <div className="border-b-2 border-black w-full" />
+            )}
           </div>
         </div>
       </div>
-      <button
-        onClick={() => {
-          if (inputValue) {
-            handleSubmit();
-          }
-        }}
-        className={`w-full py-6 rounded-b-xl bg-black text-white mt-[-2px] ${
-          inputValue && account ? "" : "bg-gray-300 cursor-default"
-        }`}
-      >
-        {mode === Mode.DEPOSIT
-          ? depositMode === DepositMode.COLLATERAL
-            ? "Deposit"
-            : "Redeem"
-          : withdrawMode === WithdrawMode.INITIATE
-          ? "Initiate withdrawal"
-          : "Complete withdrawal"}
-      </button>
+      {mode === Mode.WITHDRAW && withdrawMode === WithdrawMode.COMPLETE ? (
+        <button
+          onClick={handleSubmit}
+          className={`w-full py-6 rounded-b-xl bg-black text-white mt-[-2px]`}
+        >
+          Complete withdrawal
+        </button>
+      ) : (
+        <button
+          onClick={() => {
+            if (inputValue) {
+              handleSubmit();
+            }
+          }}
+          className={`w-full py-6 rounded-b-xl bg-black text-white mt-[-2px] ${
+            inputValue && account ? "" : "bg-gray-300 cursor-default"
+          }`}
+        >
+          {mode === Mode.DEPOSIT
+            ? depositMode === DepositMode.COLLATERAL
+              ? "Deposit"
+              : "Redeem"
+            : "Complete withdrawal"}
+        </button>
+      )}
     </div>
   );
 };
