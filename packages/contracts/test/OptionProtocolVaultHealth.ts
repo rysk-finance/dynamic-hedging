@@ -1517,6 +1517,175 @@ describe("Options protocol Vault Health", function () {
 		expect(usdBalAft.sub(liqBalAf)).to.eq(0)
 	})
 	it("Creates a USD collataralised call option token series", async () => {
+		const [sender] = signers
+		await optionRegistry.setLiquidityPool(senderAddress)
+		strike = toWei("3500")
+		proposedSeries = {
+			expiration: expiration,
+			strike: strike,
+			isPut: call,
+			underlying: WETH_ADDRESS[chainId],
+			strikeAsset: USDC_ADDRESS[chainId],
+			collateral: USDC_ADDRESS[chainId]
+		}
+		const issue = await optionRegistry.issue(
+			proposedSeries
+		)
+		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
+		const receipt = await issue.wait(1)
+		const events = receipt.events
+		const removeEvent = events?.find(x => x.event == "OptionTokenCreated")
+		const seriesAddress = removeEvent?.args?.token
+		// save the option token address
+		optionTokenUSDC = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+		const value = toWei("4")
+		await usd.approve(optionRegistry.address, value)
+		const collatAmount = await optionRegistry.getCollateral(
+			await optionRegistry.seriesInfo(optionTokenUSDC.address),
+			value
+		)
+		await optionRegistry.open(optionTokenUSDC.address, value, collatAmount)
+	})
+	it("moves the price and changes vault health USD to negative rebalance stage", async () => {
+		const currentPrice = await oracle.getPrice(weth.address)
+		const arr = await optionRegistry.checkVaultHealth(3)
+		const healthFBefore = arr[2]
+		const settlePrice = currentPrice.add(toWei("800").div(oTokenDecimalShift18))
+		await aggregator.setLatestAnswer(settlePrice)
+		await aggregator.setRoundAnswer(6, settlePrice)
+		await aggregator.setRoundTimestamp(6)
+		const vaultDetails = await controller.getVault(optionRegistry.address, 3)
+		const value = vaultDetails.shortAmounts[0]
+		const collatAmounts = vaultDetails.collateralAmounts[0]
+		const underlyingPrice = await oracle.getPrice(weth.address)
+		let marginReq = await newCalculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			usd.address,
+			value,
+			strike.div(oTokenDecimalShift18),
+			underlyingPrice,
+			expiration,
+			6,
+			false
+		)
+		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
+		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
+		const neededCollat = marginReq.sub(collatAmounts)
+		let [
+			isBelowMin,
+			isAboveMax,
+			healthFactor,
+			collateralAmount,
+			collateralAsset
+		] = await optionRegistry.checkVaultHealth(3)
+
+		expect(isBelowMin).to.be.true
+		expect(isAboveMax).to.be.false
+		expect(neededCollat).to.equal(collateralAmount)
+		expect(collateralAmount).to.be.gt(0)
+		expect(healthF).to.not.equal(healthFBefore)
+		expect(healthFactor).to.not.equal(healthFBefore)
+		expect(healthF).to.equal(healthFactor)
+		const roundId = 6
+		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
+			optionRegistry.address,
+			3
+		)
+		expect(isUnderCollat).to.be.true
+	})
+	it("vault gets partially liquidated", async () => {
+		const vaultDetails = await controller.getVault(optionRegistry.address, 3)
+		const value = vaultDetails.shortAmounts[0].div(2)
+		const liqBalBef = await usd.balanceOf(senderAddress)
+		const collatAmountsBef = vaultDetails.collateralAmounts[0]
+		const liqOpBalBef = await optionTokenUSDC.balanceOf(senderAddress)
+		expect(liqOpBalBef).to.be.gt(0)
+		const abiCode = new AbiCoder()
+		const liquidateArgs = [
+			{
+				actionType: 10,
+				owner: optionRegistry.address,
+				secondAddress: senderAddress,
+				asset: optionTokenUSDC.address,
+				vaultId: 3,
+				amount: value,
+				index: "0",
+				data: abiCode.encode(["uint256"], ["6"])
+			}
+		]
+		await controller.operate(liquidateArgs)
+		const vaultDetailsNew = await controller.getVault(optionRegistry.address, 3)
+		const valueNew = vaultDetailsNew.shortAmounts[0]
+		const collatAmountsNew = vaultDetailsNew.collateralAmounts[0]
+		const liqBalAf = await usd.balanceOf(senderAddress)
+		const liqOpBalAf = await optionTokenUSDC.balanceOf(senderAddress)
+		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef.div(2))).to.be.within(-3,3)
+		expect(liqOpBalAf).to.eq(value)
+		expect(valueNew).to.eq(value)
+		expect(collatAmountsNew.sub(collatAmountsBef.div(2))).to.be.within(-3,3)
+		await optionRegistry.setLiquidityPool(liquidityPool.address)
+		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
+		expect(vld[0]).to.equal(optionTokenUSDC.address)
+		expect(vld[1]).to.equal(value)
+		expect(vld[2]).to.equal(collatAmountsBef.sub(collatAmountsNew))
+		const vaultDetails3 = await controller.getVault(optionRegistry.address, 3)
+		const collatAmounts3 = vaultDetails3.collateralAmounts[0]
+		expect(collatAmounts3.sub(collatAmountsBef.div(2))).to.be.within(-2,2)
+		const usdBalAft = await usd.balanceOf(senderAddress)
+		expect(usdBalAft.sub(liqBalAf)).to.eq(0)
+	})
+	it("vault liquidated remaining amount", async () => {
+		const vaultDetails = await controller.getVault(optionRegistry.address, 3)
+		const value = vaultDetails.shortAmounts[0]
+		const liqBalBef = await usd.balanceOf(senderAddress)
+		const collatAmountsBef = vaultDetails.collateralAmounts[0]
+		const liqOpBalBef = await optionTokenUSDC.balanceOf(senderAddress)
+		expect(liqOpBalBef).to.be.gt(0)
+		const abiCode = new AbiCoder()
+		const vldBef = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
+		const liquidateArgs = [
+			{
+				actionType: 10,
+				owner: optionRegistry.address,
+				secondAddress: senderAddress,
+				asset: optionTokenUSDC.address,
+				vaultId: 3,
+				amount: value,
+				index: "0",
+				data: abiCode.encode(["uint256"], ["6"])
+			}
+		]
+		await controller.operate(liquidateArgs)
+		const vaultDetailsNew = await controller.getVault(optionRegistry.address, 3)
+		const valueNew = vaultDetailsNew.shortAmounts[0]
+		const collatAmountsNew = vaultDetailsNew.collateralAmounts[0]
+		const liqBalAf = await usd.balanceOf(senderAddress)
+		const liqOpBalAf = await optionTokenUSDC.balanceOf(senderAddress)
+		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef)).to.be.within(-3,3)
+		expect(liqOpBalAf).to.eq(0)
+		expect(valueNew).to.eq(0)
+		expect(collatAmountsNew).to.be.within(-3,3)
+		await optionRegistry.setLiquidityPool(liquidityPool.address)
+		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
+		expect(vld[0]).to.equal(optionTokenUSDC.address)
+		expect(vld[1]).to.equal(value.mul(2))
+		expect(vld[2]).to.equal(collatAmountsBef.add(vldBef[2]))
+		const collatAlloc = await liquidityPool.collateralAllocated();
+		await optionRegistry.registerLiquidatedVault(3)
+		const vldAfter = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
+		expect(vldAfter[0]).to.equal(ZERO_ADDRESS)
+		expect(vldAfter[1]).to.equal(0)
+		expect(vldAfter[2]).to.equal(0)
+		const collatAllocAft = await liquidityPool.collateralAllocated()
+		expect(vld[2]).to.equal(collatAlloc.sub(collatAllocAft))
+		const vaultDetails3 = await controller.getVault(optionRegistry.address, 3)
+		const collatAmounts3 = vaultDetails3.collateralAmounts[0]
+		expect(collatAmounts3).to.eq(0)
+		const usdBalAft = await usd.balanceOf(senderAddress)
+		expect(usdBalAft.sub(liqBalAf)).to.eq(0)
+	})
+	it("Creates a USD collataralised call option token series", async () => {
 		await optionRegistry.setLiquidityPool(senderAddress)
 		const [sender] = signers
 		// fast forward expiryPeriod length of time
@@ -1700,4 +1869,5 @@ describe("Options protocol Vault Health", function () {
 		expect(usdBalAft.sub(liqBalAft)).to.eq(0)
 		await expect(optionRegistry.registerLiquidatedVault(4)).to.be.revertedWith("VaultNotLiquidated()")
 	})
+
 })

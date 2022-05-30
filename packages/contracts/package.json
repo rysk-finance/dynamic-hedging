@@ -10,7 +10,8 @@
 		"deploy:localhost": "npx hardhat deploy --network localhost --tags localhost && ./copyAddressesToFrontEnd.sh --deploy-scripts deploy/localhost",
 		"compile": "hardhat clean && hardhat compile && hardhat typechain && ./copyABIsToFrontend.sh",
 		"mainnet-fork": "source .env && npx hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/$ALCHEMY_KEY --fork-block-number 12821000",
-		"seed-usdc": "npx hardhat seedUSDC --network localhost  --address "
+		"seed-usdc": "npx hardhat seedUSDC --network localhost  --address ",
+		"execute-epoch": "npx hardhat executeEpoch --network localhost"
 	},
 	"keywords": [],
 	"author": "",

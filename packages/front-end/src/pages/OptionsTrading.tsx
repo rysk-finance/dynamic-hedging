@@ -2,6 +2,7 @@ import React from "react";
 import { CustomOptionOrder } from "../components/optionsTrading/CustomOptionOrder";
 import { OptionsTable } from "../components/optionsTrading/OptionsTable";
 import { Purchase } from "../components/optionsTrading/Purchase";
+import { Card } from "../components/shared/Card";
 import { ETHPriceIndicator } from "../components/shared/ETHPriceIndicator";
 import { OptionsTradingProvider } from "../state/OptionsTradingContext";
 
@@ -14,20 +15,26 @@ export const OptionsTrading = () => {
           <ETHPriceIndicator />
         </div>
       </div>
-      <div className="col-start-1 col-end-6 pr-4 py-4">
-        <div className="bg-white border-black border-2 p-4">
-          <CustomOptionOrder />
-        </div>
-      </div>
-      <div className="col-start-6 col-end-12 p-4">
-        <div className="bg-white border-black border-2 pt-4">
-          <OptionsTable />
-        </div>
-      </div>
-      <div className="col-start-12 col-end-17 pl-4 pl-4 py-4">
-        <div className="bg-white border-black border-2 p-4">
-          <Purchase />
-        </div>
+      <div className="col-start-1 col-end-17">
+        <Card>
+          <div>
+            <div className="col-start-1 col-end-6 pr-4 py-4">
+              <div className="bg-white border-black border-2 p-4">
+                <CustomOptionOrder />
+              </div>
+            </div>
+            <div className="col-start-6 col-end-12 p-4">
+              <div className="bg-white border-black border-2 pt-4">
+                <OptionsTable />
+              </div>
+            </div>
+            <div className="col-start-12 col-end-17 pl-4 pl-4 py-4">
+              <div className="bg-white border-black border-2 p-4">
+                <Purchase />
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
     </OptionsTradingProvider>
   );

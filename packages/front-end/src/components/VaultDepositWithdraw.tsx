@@ -3,11 +3,17 @@ import React, { useCallback, useEffect, useState } from "react";
 import ERC20ABI from "../abis/erc20.json";
 import { useWalletContext } from "../App";
 import LPABI from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
-import { MAX_UINT_256 } from "../config/constants";
+import {
+  BIG_NUMBER_DECIMALS,
+  DECIMALS,
+  MAX_UINT_256,
+  ZERO_UINT_256,
+} from "../config/constants";
 import { USDC_ADDRESS } from "../config/mainnetContracts";
 import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
 import { useGlobalContext } from "../state/GlobalContext";
+import { DepositReceipt, WithdrawalReceipt } from "../types";
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
 import { RadioButtonSlider } from "./shared/RadioButtonSlider";
 import { TextInput } from "./shared/TextInput";
@@ -17,6 +23,16 @@ enum Mode {
   WITHDRAW = "Withdraw",
 }
 
+enum DepositMode {
+  COLLATERAL = "Collateral",
+  REDEEM = "Redeem",
+}
+
+enum WithdrawMode {
+  INITIATE = "Initiate",
+  COMPLETE = "Complete",
+}
+
 export const VaultDepositWithdraw = () => {
   const { account } = useWalletContext();
 
@@ -24,18 +40,38 @@ export const VaultDepositWithdraw = () => {
     state: { settings },
   } = useGlobalContext();
 
+  // UI State
   const [mode, setMode] = useState<Mode>(Mode.DEPOSIT);
-
-  const [balance, setBalance] = useState<string | null>(null);
-
+  const [depositMode, setDepositMode] = useState<DepositMode>(
+    DepositMode.COLLATERAL
+  );
+  const [withdrawMode, setWithrawMode] = useState<WithdrawMode>(
+    WithdrawMode.INITIATE
+  );
   const [inputValue, setInputValue] = useState("");
 
+  // Chain state
+  const [currentEpoch, setCurrentEpoch] = useState<BigNumber | null>(null);
+  const [redeemedShares, setRedeemedShares] = useState<BigNumber | null>(null);
+  const [unredeemableCollateral, setUnredeemableCollateral] =
+    useState<BigNumber | null>(null);
+  const [unredeemedShares, setUnredeemedShares] = useState<BigNumber | null>(
+    null
+  );
+  const [withdrawalReceipt, setwithdrawalReceipt] =
+    useState<WithdrawalReceipt | null>(null);
+  const [withdrawEpochSharePrice, setWithdrawEpochSharePrice] =
+    useState<BigNumber | null>(null);
+
+  const initiateWithdrawDisabled =
+    withdrawalReceipt && withdrawalReceipt.shares._hex !== ZERO_UINT_256;
+
+  // Contracts
   const [lpContract, lpContractCall] = useContract({
     address: addresses.localhost.liquidityPool,
     ABI: LPABI.abi,
     readOnly: false,
   });
-
   const [usdcContract, usdcContractCall] = useContract({
     address: USDC_ADDRESS,
     ABI: ERC20ABI,
@@ -45,11 +81,66 @@ export const VaultDepositWithdraw = () => {
   const getBalance = useCallback(
     async (address: string) => {
       const balance = await lpContract?.balanceOf(address);
-      const parsedBalance = ethers.utils.formatUnits(balance, 18);
-      setBalance(parsedBalance ?? null);
+      setRedeemedShares(balance);
     },
     [lpContract]
   );
+
+  const updateDepositState = useCallback(async () => {
+    if (lpContract && account) {
+      const depositReceipt: DepositReceipt = await lpContract.depositReceipts(
+        account
+      );
+      const currentEpoch: BigNumber = await lpContract.epoch();
+      const previousUnredeemedShares = depositReceipt.unredeemedShares;
+      // If true, the share price for the most recent deposit hasn't been calculated
+      // so we can only show the collateral balance, not the equivalent number of shares.
+      if (currentEpoch._hex === depositReceipt.epoch._hex) {
+        setUnredeemedShares(previousUnredeemedShares);
+        if (depositReceipt.amount.toNumber() !== 0) {
+          setUnredeemableCollateral(depositReceipt.amount);
+        }
+      } else {
+        setUnredeemableCollateral(null);
+        const pricePerShareAtEpoch: BigNumber =
+          await lpContract.epochPricePerShare(depositReceipt.epoch);
+        // TODO(HC): Price oracle is returning 1*10^18 for price so having to adjust price
+        // whilst building out to avoid share numbers being too small. Once price oracle is returning
+        // more accurate
+        const newUnredeemedShares = depositReceipt.amount
+          .div(BIG_NUMBER_DECIMALS.USDC)
+          .mul(BIG_NUMBER_DECIMALS.RYSK)
+          .div(pricePerShareAtEpoch)
+          .mul(BIG_NUMBER_DECIMALS.RYSK);
+        const sharesToRedeem =
+          previousUnredeemedShares.add(newUnredeemedShares);
+        setUnredeemedShares(sharesToRedeem);
+      }
+      getBalance(account);
+    }
+  }, [account, lpContract, getBalance]);
+
+  const updateWithdrawState = useCallback(async () => {
+    if (lpContract && account) {
+      const withdrawalReceipt: WithdrawalReceipt =
+        await lpContract.withdrawalReceipts(account);
+      setwithdrawalReceipt(withdrawalReceipt);
+      const withdrawSharePrice = await lpContract.epochPricePerShare(
+        withdrawalReceipt.epoch
+      );
+      setWithdrawEpochSharePrice(withdrawSharePrice);
+      getBalance(account);
+    }
+  }, [account, lpContract, getBalance]);
+
+  const epochListener = useCallback(async () => {
+    updateDepositState();
+    updateWithdrawState();
+    if (lpContract) {
+      const epoch = await lpContract.epoch();
+      setCurrentEpoch(epoch);
+    }
+  }, [updateDepositState, updateWithdrawState, lpContract]);
 
   useEffect(() => {
     (async () => {
@@ -59,29 +150,101 @@ export const VaultDepositWithdraw = () => {
     })();
   }, [getBalance, account]);
 
+  // Attatch event listeners
+  useEffect(() => {
+    lpContract?.on("EpochExecuted", epochListener);
+    lpContract?.on("Deposit", updateDepositState);
+    lpContract?.on("Withdraw", updateWithdrawState);
+    lpContract?.on("InitiateWithdraw", updateWithdrawState);
+    lpContract?.on("Redeem", updateDepositState);
+
+    epochListener();
+
+    return () => {
+      lpContract?.off("EpochExecuted", epochListener);
+      lpContract?.off("Deposit", updateDepositState);
+      lpContract?.off("Withdraw", updateWithdrawState);
+      lpContract?.off("InitiateWithdraw", updateWithdrawState);
+    };
+  }, [lpContract, epochListener, updateDepositState, updateWithdrawState]);
+
+  // Update UI buttons when switching between deposit/withdraw mode
+  useEffect(() => {
+    setDepositMode(DepositMode.COLLATERAL);
+    setInputValue("");
+  }, [mode, initiateWithdrawDisabled]);
+
+  // Ensure the initiate withdraw button gets disabled if a deposit has already
+  // been initiated.
+  useEffect(() => {
+    setWithrawMode(
+      initiateWithdrawDisabled ? WithdrawMode.COMPLETE : WithdrawMode.INITIATE
+    );
+  }, [mode, initiateWithdrawDisabled]);
+
+  // Reset input value when switching mode
+  useEffect(() => {
+    setInputValue("");
+  }, [mode, depositMode, withdrawMode]);
+
+  // Handlers for the 4 different possible interactions.
+  const handleDepositCollateral = async () => {
+    if (usdcContract && lpContract && account) {
+      const amount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
+      const approvedAmount = (await usdcContract.allowance(
+        account,
+        addresses.localhost.liquidityPool
+      )) as BigNumber;
+      if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
+        await usdcContractCall(
+          usdcContract.approve,
+          addresses.localhost.liquidityPool,
+          settings.unlimitedApproval
+            ? ethers.BigNumber.from(MAX_UINT_256)
+            : amount
+        );
+      }
+      await lpContractCall(lpContract.deposit, amount);
+    }
+  };
+
+  const handleRedeemShares = async () => {
+    if (lpContract) {
+      const amount = ethers.utils.parseUnits(inputValue, DECIMALS.RYSK);
+      await lpContractCall(lpContract.redeem, amount);
+    }
+  };
+
+  const handleInitiateWithdraw = async () => {
+    if (lpContract) {
+      const amount = ethers.utils.parseUnits(inputValue, DECIMALS.RYSK);
+      await lpContractCall(lpContract.initiateWithdraw, amount);
+    }
+  };
+
+  const handleCompleteWithdraw = async () => {
+    if (lpContract && withdrawEpochSharePrice && withdrawalReceipt) {
+      const sharesAmount = withdrawalReceipt.shares;
+      await lpContractCall(lpContract.completeWithdraw, sharesAmount);
+    }
+  };
+
+  // Coordinate the 4 possible interactions
   const handleSubmit = async () => {
     try {
       if (account && lpContract && usdcContract) {
         if (mode === Mode.DEPOSIT) {
-          const amount = ethers.utils.parseUnits(inputValue, 6);
-          const approvedAmount = (await usdcContract.allowance(
-            account,
-            addresses.localhost.liquidityPool
-          )) as BigNumber;
-          if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
-            const approvalTransaction = await usdcContract.approve(
-              addresses.localhost.liquidityPool,
-              settings.unlimitedApproval
-                ? ethers.BigNumber.from(MAX_UINT_256)
-                : amount
-            );
-            await approvalTransaction.wait();
+          if (depositMode === DepositMode.COLLATERAL) {
+            await handleDepositCollateral();
+          } else if (depositMode === DepositMode.REDEEM) {
+            await handleRedeemShares();
           }
-          const depositTransaction = await lpContract.deposit(amount, account);
-          await depositTransaction.wait();
         } else if (mode === Mode.WITHDRAW) {
-          const amount = ethers.utils.parseUnits(inputValue, 18);
-          await lpContractCall(lpContract.withdraw, amount, account);
+          if (withdrawMode === WithdrawMode.INITIATE) {
+            await handleInitiateWithdraw();
+          } else if (withdrawMode === WithdrawMode.COMPLETE) {
+            await handleCompleteWithdraw();
+          }
         }
         await getBalance(account);
         setInputValue("");
@@ -93,8 +256,20 @@ export const VaultDepositWithdraw = () => {
 
   return (
     <div className="flex-col items-center justify-between h-full">
-      <div className="font-parabole">
-        <h3 className="pl-4 py-2 border-b-2 border-black">Rysk Vault</h3>
+      <div className="px-6 py-2 border-b-2 border-black flex items-center justify-between">
+        <div className="w-fit h-full flex items-center font-parabole ">
+          <h3 className="">Rysk Vault</h3>
+        </div>
+        <div className="w-fit h-full flex items-center">
+          <RequiresWalletConnection className="h-8 w-32">
+            <h4>
+              <b>
+                Shares:{" "}
+                {redeemedShares?.div(BIG_NUMBER_DECIMALS.RYSK).toString()} RYSK
+              </b>
+            </h4>
+          </RequiresWalletConnection>
+        </div>
       </div>
       <div className="flex border-b-2 border-black">
         <div className="border-r-2 border-b-2 border-black w-16 flex justify-center items-center">
@@ -104,59 +279,274 @@ export const VaultDepositWithdraw = () => {
         </div>
         <div className="w-full">
           <div className="w-full">
-            <div className="p-4 flex justify-between border-b-2 border-black">
-              <h4>Balance:</h4>
-              <div className="flex">
-                <h4 className="mr-2">
-                  <RequiresWalletConnection className="w-[120px]">
-                    {balance?.toString()}
-                  </RequiresWalletConnection>{" "}
-                </h4>
-                <h4>USDC</h4>
+            <div className="w-full border-b-2 border-black">
+              <div className="w-fit">
+                <RadioButtonSlider
+                  selected={mode}
+                  setSelected={setMode}
+                  options={[
+                    {
+                      key: Mode.DEPOSIT,
+                      label: "Deposit",
+                      value: Mode.DEPOSIT,
+                    },
+                    {
+                      key: Mode.WITHDRAW,
+                      label: "Withdraw",
+                      value: Mode.WITHDRAW,
+                      disabled:
+                        redeemedShares?._hex === ZERO_UINT_256 &&
+                        unredeemedShares?._hex === ZERO_UINT_256,
+                      disabledTooltip: "You have no shares to withdraw",
+                    },
+                  ]}
+                />
               </div>
             </div>
-            <div className="w-fit">
-              <RadioButtonSlider
-                selected={mode}
-                setSelected={setMode}
-                options={[
-                  { key: Mode.DEPOSIT, label: "Deposit", value: Mode.DEPOSIT },
-                  {
-                    key: Mode.WITHDRAW,
-                    label: "Withdraw",
-                    value: Mode.WITHDRAW,
-                  },
-                ]}
-              />
+            <div className="w-full border-b-2 border-black">
+              <div className="w-fit">
+                {mode === Mode.DEPOSIT ? (
+                  <RadioButtonSlider
+                    selected={depositMode}
+                    setSelected={setDepositMode}
+                    buttonType="secondary"
+                    options={[
+                      {
+                        key: DepositMode.COLLATERAL,
+                        label: "1. Deposit Collateral",
+                        value: DepositMode.COLLATERAL,
+                      },
+                      {
+                        key: DepositMode.REDEEM,
+                        label: "2. Redeem Shares",
+                        value: DepositMode.REDEEM,
+                        disabled:
+                          !unredeemedShares ||
+                          unredeemedShares._hex === ZERO_UINT_256,
+                        disabledTooltip: "You have no unredeemed shares",
+                      },
+                    ]}
+                  />
+                ) : (
+                  <RadioButtonSlider
+                    selected={withdrawMode}
+                    setSelected={setWithrawMode}
+                    buttonType="secondary"
+                    options={[
+                      {
+                        key: WithdrawMode.INITIATE,
+                        label: "1. Initiate",
+                        value: WithdrawMode.INITIATE,
+                        disabled:
+                          !!withdrawalReceipt &&
+                          withdrawalReceipt.shares._hex !== ZERO_UINT_256,
+                        disabledTooltip:
+                          "There is already an active withdrawal",
+                      },
+                      {
+                        key: WithdrawMode.COMPLETE,
+                        label: "2. Complete",
+                        value: WithdrawMode.COMPLETE,
+                      },
+                    ]}
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 flex justify-between items-center">
+              {mode === Mode.DEPOSIT ? (
+                depositMode === DepositMode.COLLATERAL ? (
+                  <>
+                    <h5>Collateral:</h5>
+                    <div className="flex items-center h-[36px]">
+                      <RequiresWalletConnection className="w-[120px] h-6 mr-2">
+                        {
+                          <h5 className="mr-2">
+                            <b>
+                              {unredeemableCollateral
+                                ? unredeemableCollateral
+                                    .div(BIG_NUMBER_DECIMALS.USDC)
+                                    .toString()
+                                : "0"}{" "}
+                              USDC
+                            </b>
+                          </h5>
+                        }
+                        {unredeemableCollateral &&
+                          unredeemableCollateral?._hex !== ZERO_UINT_256 && (
+                            <div className="rounded-full bg-green-600 h-2 w-2 relative cursor-pointer group mr-2">
+                              <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
+                                {/* TODO(HC): Determine what this copy should be. */}
+                                <p>
+                                  Your collateral will be availale to redeem as
+                                  shares during our weekly strategy every Friday
+                                  at 11am UTC
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        {unredeemedShares?._hex !== ZERO_UINT_256 && (
+                          <div className="rounded-full bg-yellow-600 h-2 w-2 relative cursor-pointer group">
+                            <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
+                              {/* TODO(HC): Determine what this copy should be. */}
+                              <p>You have some shares available to redeem.</p>
+                            </div>
+                          </div>
+                        )}
+                      </RequiresWalletConnection>{" "}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h5>Shares:</h5>
+                    <div className="flex items-center h-[36px]">
+                      <RequiresWalletConnection className="w-[120px] h-6 mr-2">
+                        <h5 className="mr-2">
+                          <b>
+                            {unredeemedShares
+                              ?.div(BIG_NUMBER_DECIMALS.RYSK)
+                              .toString()}{" "}
+                            RYSK
+                          </b>
+                        </h5>
+                      </RequiresWalletConnection>{" "}
+                    </div>
+                  </>
+                )
+              ) : withdrawMode === WithdrawMode.INITIATE ? (
+                <>
+                  <h5>Shares:</h5>
+                  <div className="flex items-center h-[36px]">
+                    <RequiresWalletConnection className="w-[120px] h-6 mr-2">
+                      {unredeemedShares && redeemedShares && (
+                        <>
+                          <h5 className="mr-2">
+                            <b>
+                              {redeemedShares
+                                ?.add(unredeemedShares)
+                                .div(BIG_NUMBER_DECIMALS.RYSK)
+                                .toString()}{" "}
+                              RYSK
+                            </b>
+                          </h5>
+                          {unredeemedShares._hex !== ZERO_UINT_256 &&
+                            redeemedShares._hex !== ZERO_UINT_256 && (
+                              <div className="rounded-full bg-green-600 h-2 w-2 relative cursor-pointer group">
+                                <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
+                                  {/* TODO(HC): Determine what this copy should be. */}
+                                  <p>
+                                    This is the sum of your redeemed and
+                                    unredeemed shares
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                        </>
+                      )}
+                    </RequiresWalletConnection>{" "}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h5>Collateral:</h5>
+                  <div className="flex items-center h-[36px]">
+                    <RequiresWalletConnection className="w-[120px] h-6 mr-2">
+                      {withdrawalReceipt &&
+                        (withdrawEpochSharePrice &&
+                        withdrawEpochSharePrice?._hex !== ZERO_UINT_256 ? (
+                          <>
+                            <h5 className="mr-2">
+                              <b>
+                                {/* TODO(HC): Scale this properly once sharePrice being returned by oracle is more accurate. */}
+                                {withdrawalReceipt.shares
+                                  .div(BIG_NUMBER_DECIMALS.RYSK)
+                                  .mul(
+                                    withdrawEpochSharePrice.div(
+                                      BIG_NUMBER_DECIMALS.RYSK
+                                    )
+                                  )
+                                  .toString()}{" "}
+                                USDC
+                              </b>
+                            </h5>
+                          </>
+                        ) : (
+                          <>
+                            <h5 className="mr-2">
+                              <b>0 USDC</b>
+                            </h5>
+                            <div className="rounded-full bg-green-500 h-2 w-2 relative cursor-pointer group">
+                              <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
+                                <p>
+                                  Your shares will be available to withdraw as
+                                  collateral during our weekly strategy every
+                                  Friday at 11am UTC
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        ))}
+                    </RequiresWalletConnection>{" "}
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <div className="ml-[-2px]">
-            <TextInput
-              className="text-right p-4 text-xl"
-              setValue={setInputValue}
-              value={inputValue}
-              iconLeft={
-                <div className="h-full flex items-center px-4 text-right text-gray-600">
-                  <p>USDC</p>
-                </div>
-              }
-              numericOnly
-            />
+            {!(
+              mode === Mode.WITHDRAW && withdrawMode === WithdrawMode.COMPLETE
+            ) ? (
+              <TextInput
+                className="text-right p-4 text-xl"
+                setValue={setInputValue}
+                value={inputValue}
+                iconLeft={
+                  <div className="h-full flex items-center px-4 text-right text-gray-600">
+                    <p>
+                      {mode === Mode.DEPOSIT
+                        ? depositMode === DepositMode.COLLATERAL
+                          ? "USDC"
+                          : "Shares"
+                        : withdrawMode === WithdrawMode.INITIATE
+                        ? "Shares"
+                        : "USDC"}
+                    </p>
+                  </div>
+                }
+                numericOnly
+              />
+            ) : (
+              <div className="border-b-2 border-black w-full" />
+            )}
           </div>
         </div>
       </div>
-      <button
-        onClick={() => {
-          if (inputValue) {
-            handleSubmit();
-          }
-        }}
-        className={`w-full py-6 rounded-b-xl bg-black text-white mt-[-2px] ${
-          inputValue && account ? "" : "bg-gray-300 cursor-default"
-        }`}
-      >
-        Submit
-      </button>
+      {mode === Mode.WITHDRAW && withdrawMode === WithdrawMode.COMPLETE ? (
+        <button
+          onClick={handleSubmit}
+          className={`w-full py-6 rounded-b-xl bg-black text-white mt-[-2px]`}
+        >
+          Complete withdrawal
+        </button>
+      ) : (
+        <button
+          onClick={() => {
+            if (inputValue) {
+              handleSubmit();
+            }
+          }}
+          className={`w-full py-6 rounded-b-xl bg-black text-white mt-[-2px] ${
+            inputValue && account ? "" : "bg-gray-300 cursor-default"
+          }`}
+        >
+          {mode === Mode.DEPOSIT
+            ? depositMode === DepositMode.COLLATERAL
+              ? "Deposit"
+              : "Redeem"
+            : "Complete withdrawal"}
+        </button>
+      )}
     </div>
   );
 };
