@@ -28,6 +28,7 @@ export const Card: React.FC<CardProps> = ({
   tabPunchColor,
 }) => {
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [svgElement, setSVGElement] = useState<SVGSVGElement | null>(null);
 
   const getSVGRect = useCallback((element: SVGSVGElement) => {
     const boundingRect = element.getBoundingClientRect();
@@ -40,12 +41,24 @@ export const Card: React.FC<CardProps> = ({
         window.addEventListener("resize", () => getSVGRect(element));
         getSVGRect(element);
       }
+      if (!svgElement) {
+        setSVGElement(element);
+      }
     },
     [getSVGRect]
   );
 
+  const containerRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (element && svgElement) {
+        new ResizeObserver(() => getSVGRect(svgElement)).observe(element);
+      }
+    },
+    [svgElement]
+  );
+
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative containerrr" ref={containerRef}>
       <div className="w-full h-full absolute pointer-events-none">
         {
           <svg
