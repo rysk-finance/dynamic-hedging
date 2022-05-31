@@ -13,7 +13,7 @@ import path from "path"
 import "solidity-coverage"
 // Task imports
 import "./tasks/seedUSDC"
-import "./tasks/executeEpoch"
+// import "./tasks/executeEpoch"
 
 const ethers = require("ethers")
 const bip39 = require("bip39")
