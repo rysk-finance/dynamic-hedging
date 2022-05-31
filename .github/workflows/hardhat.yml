@@ -7,9 +7,7 @@ on:
  push:
   branches:
    - "**" # matches every branch
- pull_request:
-  branches:
-   - "**" # matches every branch
+
 
 defaults:
   run:
@@ -22,16 +20,14 @@ jobs:
   env:
     ALCHEMY: ${{ secrets.ALCHEMY }}
     TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
-  strategy:
-   matrix:
-    node-version: [16.13.1]
+
 
   steps:
     - uses: actions/checkout@v2
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v2
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: 16
 
     - name: Node module cache
       uses: actions/cache@v2
