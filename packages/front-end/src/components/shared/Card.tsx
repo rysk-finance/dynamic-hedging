@@ -148,10 +148,9 @@ export const Card: React.FC<CardProps> = ({
         }
       </div>
       <div
-        className="w-full relative"
+        className="w-full relative h-full"
         style={{
           paddingTop: tabHeight,
-          height: `calc(100% - ${tabHeight}px)`,
         }}
       >
         {children}

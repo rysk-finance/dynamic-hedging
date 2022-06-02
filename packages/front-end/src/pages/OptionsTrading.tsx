@@ -37,13 +37,13 @@ export const OptionsTrading = () => {
             </div>
           </div>
           <div className="flex grow">
-            <div className="bg-white border-black border-2 p-4 mr-[-2px]">
+            <div className="bg-white border-black border-2 p-4 mr-[-2px] rounded-bl-lg">
               <CustomOptionOrder />
             </div>
             <div className="bg-white border-black border-2 grow mr-[-2px]">
               <OptionsTable />
             </div>
-            <div className="bg-white border-black border-2 p-4 grow">
+            <div className="bg-white border-black border-2 p-4 grow rounded-br-lg">
               <Purchase />
             </div>
           </div>
