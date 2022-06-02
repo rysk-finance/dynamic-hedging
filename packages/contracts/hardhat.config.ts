@@ -40,6 +40,10 @@ const ropsten = process.env.ROPSTEN || new ethers.providers.InfuraProvider("rops
 
 const rinkeby = process.env.RINKEBY || new ethers.providers.InfuraProvider("rinkeby").connection.url
 
+const arbitrumRinkeby =
+	process.env.ARBITRUM_RINKEBY ||
+	new ethers.providers.InfuraProvider("arbitrum-rinkeby").connection.url
+
 module.exports = {
 	typechain: {
 		outDir: "types",
@@ -124,9 +128,16 @@ module.exports = {
 		},
 		rinkeby: {
 			url: rinkeby,
-			accounts,
+			accounts: [process.env.DEPLOYER_PRIVATE_KEY],
 			chainId: 4,
 			saveDeployments: true
+		},
+		arbitrumRinkeby: {
+			url: arbitrumRinkeby,
+			chainId: 421611,
+			saveDeployments: true,
+			accounts: [process.env.DEPLOYER_PRIVATE_KEY],
+			gas: 500000000
 		}
 	},
 	etherscan: {

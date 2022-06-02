@@ -86,7 +86,6 @@ export async function deploySystem(
 	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
 	const _priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
 	const priceFeed = _priceFeed
-	await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
 	await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
 	// oracle returns price denominated in 1e8
 	const oraclePrice = await oracle.getPrice(weth.address)
@@ -181,10 +180,10 @@ export async function deployLiquidityPool(
 		}
 	})
 	const blackScholesDeploy = await blackScholesFactory.deploy()
-	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute",{
+	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}
 	})
-	const optionsCompute = (await optionsCompFactory.deploy())
+	const optionsCompute = await optionsCompFactory.deploy()
 	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
 		libraries: {
 			BlackScholes: blackScholesDeploy.address,
@@ -232,11 +231,11 @@ export async function deployLiquidityPool(
 		BigNumber.from(0)
 	)
 	const handlerFactory = await ethers.getContractFactory("OptionHandler")
-	const handler = await handlerFactory.deploy(
+	const handler = (await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,
-		liquidityPool.address,
-	) as OptionHandler
+		liquidityPool.address
+	)) as OptionHandler
 	await liquidityPool.changeHandler(handler.address, true)
 	return {
 		volatility: volatility,
