@@ -18,10 +18,7 @@ export const OptionsTrading = () => {
         <div className="flex items-start"></div>
       </div>
       <div className="col-start-1 col-end-17">
-        <Card filledHeader headerHeight={50}>
-          <div className="flex justify-between mt-[-5px]">
-            <p className="text-white p-4">ETH.option</p>
-          </div>
+        <Card headerHeight={50} headerContent="ETH.option">
           <div className="flex justify-stretch items-stretch">
             <div className="px-6 py-4 border-r-2 border-black">
               <img src="/icons/ethereum.svg" />
@@ -43,15 +40,15 @@ export const OptionsTrading = () => {
               <div className="bg-black p-2 text-white border-r-2 border-white">
                 <p>Custom Option</p>
               </div>
-              <div className="grow border-x-2 border-b-2 border-black rounded-bl-lg grow">
+              <div className="grow border-r-2 border-black rounded-bl-lg grow">
                 <CustomOptionOrder />
               </div>
             </div>
-            <div className="bg-white grow flex-col">
+            <div className="grow flex-col rounded-br-lg">
               <div className="bg-black p-2 text-white ">
                 <p>Options</p>
               </div>
-              <div className="grow border-r-2 border-b-2 border-black">
+              <div className="grow border-black rounded-br-lg">
                 <OptionsTable />
               </div>
             </div>

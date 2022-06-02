@@ -66,10 +66,7 @@ export const Dashboard = () => {
       <div className="w-full mb-24">
         <h2 className="mb-4">Vaults</h2>
         <div className="mb-24">
-          <Card tabHeight={35} tabWidth={150} tabPunchColor="black">
-            <div className="bg-black p-4 rounded-tr-lg mt-[-1px]">
-              <h3 className="text-white font-parabole">Dynamic Hedging</h3>
-            </div>
+          <Card tabPunchColor="black" headerContent="RYSK.DynamicHedging">
             <div className="pb-8 py-12 px-8 flex flex-col lg:flex-row h-full">
               <div className="flex h-full w-full lg:w-[70%] justify-around">
                 <div className="flex flex-col items-center justify-center h-full mb-8 lg:mb-0">
@@ -104,7 +101,7 @@ export const Dashboard = () => {
 
         <div className="w-full">
           <h2 className="mb-4">Options</h2>
-          <Card tabHeight={35} tabWidth={150} tabPunchColor="black">
+          <Card headerContent="RYSK.Options">
             <div className="border-y-2 border-black p-4 rounded-tr-lg mt-[-1px]">
               <RadioButtonSlider
                 options={OPTIONS_BUTTONS}

@@ -24,7 +24,7 @@ enum Mode {
 }
 
 enum DepositMode {
-  COLLATERAL = "Collateral",
+  USDC = "USDC",
   REDEEM = "Redeem",
 }
 
@@ -42,9 +42,7 @@ export const VaultDepositWithdraw = () => {
 
   // UI State
   const [mode, setMode] = useState<Mode>(Mode.DEPOSIT);
-  const [depositMode, setDepositMode] = useState<DepositMode>(
-    DepositMode.COLLATERAL
-  );
+  const [depositMode, setDepositMode] = useState<DepositMode>(DepositMode.USDC);
   const [withdrawMode, setWithrawMode] = useState<WithdrawMode>(
     WithdrawMode.INITIATE
   );
@@ -170,7 +168,7 @@ export const VaultDepositWithdraw = () => {
 
   // Update UI buttons when switching between deposit/withdraw mode
   useEffect(() => {
-    setDepositMode(DepositMode.COLLATERAL);
+    setDepositMode(DepositMode.USDC);
     setInputValue("");
   }, [mode, initiateWithdrawDisabled]);
 
@@ -234,7 +232,7 @@ export const VaultDepositWithdraw = () => {
     try {
       if (account && lpContract && usdcContract) {
         if (mode === Mode.DEPOSIT) {
-          if (depositMode === DepositMode.COLLATERAL) {
+          if (depositMode === DepositMode.USDC) {
             await handleDepositCollateral();
           } else if (depositMode === DepositMode.REDEEM) {
             await handleRedeemShares();
@@ -256,10 +254,7 @@ export const VaultDepositWithdraw = () => {
 
   return (
     <div className="flex-col items-center justify-between h-full">
-      <div className="px-6 py-2 border-b-2 border-black flex items-center justify-between">
-        <div className="w-fit h-full flex items-center font-parabole ">
-          <h3 className="">Rysk Vault</h3>
-        </div>
+      <div className="px-4 py-4 border-b-2 border-black flex items-center justify-end">
         <div className="w-fit h-full flex items-center">
           <RequiresWalletConnection className="h-8 w-32">
             <h4>
@@ -312,9 +307,9 @@ export const VaultDepositWithdraw = () => {
                     buttonType="secondary"
                     options={[
                       {
-                        key: DepositMode.COLLATERAL,
-                        label: "1. Deposit Collateral",
-                        value: DepositMode.COLLATERAL,
+                        key: DepositMode.USDC,
+                        label: "1. Deposit USDC",
+                        value: DepositMode.USDC,
                       },
                       {
                         key: DepositMode.REDEEM,
@@ -356,9 +351,9 @@ export const VaultDepositWithdraw = () => {
 
             <div className="p-4 flex justify-between items-center">
               {mode === Mode.DEPOSIT ? (
-                depositMode === DepositMode.COLLATERAL ? (
+                depositMode === DepositMode.USDC ? (
                   <>
-                    <h5>Collateral:</h5>
+                    <h5>USDC:</h5>
                     <div className="flex items-center h-[36px]">
                       <RequiresWalletConnection className="w-[120px] h-6 mr-2">
                         {
@@ -379,9 +374,9 @@ export const VaultDepositWithdraw = () => {
                               <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
                                 {/* TODO(HC): Determine what this copy should be. */}
                                 <p>
-                                  Your collateral will be availale to redeem as
-                                  shares during our weekly strategy every Friday
-                                  at 11am UTC
+                                  Your USDC will be availale to redeem as shares
+                                  during our weekly strategy every Friday at
+                                  11am UTC
                                 </p>
                               </div>
                             </div>
@@ -498,14 +493,14 @@ export const VaultDepositWithdraw = () => {
               mode === Mode.WITHDRAW && withdrawMode === WithdrawMode.COMPLETE
             ) ? (
               <TextInput
-                className="text-right p-4 text-xl"
+                className="text-right p-4 text-xl border-r-0"
                 setValue={setInputValue}
                 value={inputValue}
                 iconLeft={
                   <div className="h-full flex items-center px-4 text-right text-gray-600">
                     <p>
                       {mode === Mode.DEPOSIT
-                        ? depositMode === DepositMode.COLLATERAL
+                        ? depositMode === DepositMode.USDC
                           ? "USDC"
                           : "Shares"
                         : withdrawMode === WithdrawMode.INITIATE
@@ -525,7 +520,7 @@ export const VaultDepositWithdraw = () => {
       {mode === Mode.WITHDRAW && withdrawMode === WithdrawMode.COMPLETE ? (
         <button
           onClick={handleSubmit}
-          className={`w-full py-6 rounded-b-xl bg-black text-white mt-[-2px]`}
+          className={`w-full py-6 bg-black text-white mt-[-2px]`}
         >
           Complete withdrawal
         </button>
@@ -536,15 +531,15 @@ export const VaultDepositWithdraw = () => {
               handleSubmit();
             }
           }}
-          className={`w-full py-6 rounded-b-xl bg-black text-white mt-[-2px] ${
+          className={`w-full py-6 bg-black text-white mt-[-2px] ${
             inputValue && account ? "" : "bg-gray-300 cursor-default"
           }`}
         >
           {mode === Mode.DEPOSIT
-            ? depositMode === DepositMode.COLLATERAL
+            ? depositMode === DepositMode.USDC
               ? "Deposit"
               : "Redeem"
-            : "Complete withdrawal"}
+            : "Initiate withdrawal"}
         </button>
       )}
     </div>
