@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, FC } from "react";
 
 const DEFAULT_LINE_WIDTH = 2;
 const DEFAULT_MAIN_BORDER_RADIUS = 12;
@@ -6,6 +6,7 @@ const DEFAULT_MINOR_BORDER_RADIUS = 5;
 const DEFAULT_TAB_HEIGHT = 20;
 const DEFAULT_TAB_WIDTH = 100;
 const DEFAULT_TAB_SLOPE_WIDTH = 30;
+const DEFAULT_HEADER_HEIGHT = 20;
 
 type CardProps = {
   lineWidth?: number;
@@ -14,6 +15,8 @@ type CardProps = {
   tabHeight?: number;
   tabWidth?: number;
   tabSlopeWidth?: number;
+  filledHeader?: boolean;
+  headerHeight?: number;
   tabPunchColor?: string;
 };
 
@@ -25,6 +28,8 @@ export const Card: React.FC<CardProps> = ({
   tabHeight = DEFAULT_TAB_HEIGHT,
   tabWidth = DEFAULT_TAB_WIDTH,
   tabSlopeWidth = DEFAULT_TAB_SLOPE_WIDTH,
+  filledHeader = false,
+  headerHeight = DEFAULT_HEADER_HEIGHT,
   tabPunchColor,
 }) => {
   const [rect, setRect] = useState<DOMRect | null>(null);
@@ -58,7 +63,7 @@ export const Card: React.FC<CardProps> = ({
   );
 
   return (
-    <div className="w-full h-full relative containerrr" ref={containerRef}>
+    <div className="w-full h-full relative" ref={containerRef}>
       <div className="w-full h-full absolute pointer-events-none">
         {
           <svg
@@ -116,11 +121,34 @@ export const Card: React.FC<CardProps> = ({
                 stroke="black"
               ></path>
             )}
+            {rect && filledHeader && (
+              <path
+                d={`m ${minorBorderRadius} ${lineWidth / 2}
+              L ${tabWidth} ${lineWidth / 2}
+              
+              C ${tabWidth + minorBorderRadius * 2} ${lineWidth / 2}, ${
+                  tabWidth + tabSlopeWidth - minorBorderRadius * 2
+                } ${tabHeight}, ${tabWidth + tabSlopeWidth} ${tabHeight}
+              
+              L ${rect.width - mainBorderRadius - lineWidth / 2} ${tabHeight}
+              A ${mainBorderRadius} ${mainBorderRadius} 1 0 1 ${
+                  rect.width - lineWidth / 2
+                } ${tabHeight + mainBorderRadius}
+              L ${rect.width - lineWidth / 2} ${tabHeight + headerHeight}
+              L 0 ${tabHeight + headerHeight}
+              L ${lineWidth / 2} ${minorBorderRadius}
+              A ${minorBorderRadius} ${minorBorderRadius} 1 0 1 ${minorBorderRadius} ${
+                  lineWidth / 2
+                }`}
+                stroke="black"
+                fill="black"
+              ></path>
+            )}
           </svg>
         }
       </div>
       <div
-        className="w-full"
+        className="w-full relative"
         style={{
           paddingTop: tabHeight,
           height: `calc(100% - ${tabHeight}px)`,
