@@ -53,7 +53,8 @@ export const OptionsTrading = () => {
               </div>
             </div>
           </div>
-          <div className="bg-white grow rounded-br-lg flex flex-col">
+          <div className="py-2 border-y-2 border-black" />
+          <div className="grow rounded-br-lg flex flex-col">
             <div className="bg-black p-2 text-white">
               <p>Complete order</p>
             </div>

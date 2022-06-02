@@ -72,7 +72,6 @@ export const CustomOptionOrder: React.FC = () => {
         >
           Add
         </Button>
-        <div className="border-t-2 border-black w-full" />
       </div>
     </div>
   );
