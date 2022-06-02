@@ -4,9 +4,13 @@ import { OptionsTable } from "../components/optionsTrading/OptionsTable";
 import { Purchase } from "../components/optionsTrading/Purchase";
 import { Card } from "../components/shared/Card";
 import { ETHPriceIndicator } from "../components/shared/ETHPriceIndicator";
+import { useGlobalContext } from "../state/GlobalContext";
 import { OptionsTradingProvider } from "../state/OptionsTradingContext";
 
 export const OptionsTrading = () => {
+  const {
+    state: { ethPriceUpdateTime },
+  } = useGlobalContext();
   return (
     <OptionsTradingProvider>
       <div className="col-start-1 col-end-17 mb-16 flex justify-between">
@@ -25,6 +29,9 @@ export const OptionsTrading = () => {
             <div className="flex items-center justify-between grow px-4">
               <div className="flex flex-col justify-around">
                 <h4>Ethereum</h4>
+                <p className="text-gray-600 text-xs">
+                  Late Update: {ethPriceUpdateTime?.toLocaleTimeString("en-US")}
+                </p>
               </div>
               <ETHPriceIndicator />
             </div>

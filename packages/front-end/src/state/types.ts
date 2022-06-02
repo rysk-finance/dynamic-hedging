@@ -8,6 +8,7 @@ export type AppSettings = {
 export type GlobalState = {
   ethPrice: number | null;
   eth24hChange: number | null;
+  ethPriceUpdateTime: Date | null;
   connectWalletIndicatorActive: boolean;
   settings: AppSettings;
 };
@@ -23,6 +24,7 @@ export type GlobalAction =
       type: ActionType.SET_ETH_PRICE;
       price: number;
       change?: number;
+      date: Date;
     }
   | {
       type: ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE;
