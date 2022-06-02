@@ -11,20 +11,29 @@ export const OptionsTrading = () => {
     <OptionsTradingProvider>
       <div className="col-start-1 col-end-17 mb-16 flex justify-between">
         <h3>Trade Options</h3>
-        <div className="flex items-start">
-          <ETHPriceIndicator />
-        </div>
+        <div className="flex items-start"></div>
       </div>
       <div className="col-start-1 col-end-17">
-        <Card filledHeader headerHeight={60}>
-          <div className="flex justify-between">
-            <h4 className="text-white p-4">Ethereum.option</h4>
+        <Card filledHeader headerHeight={50}>
+          <div className="flex justify-between mt-[-5px]">
+            <p className="text-white p-4">Ethereum.option</p>
+          </div>
+          <div className="flex justify-stretch items-stretch">
+            <div className="px-6 py-4 border-r-2 border-black">
+              <img src="/icons/ethereum.svg" />
+            </div>
+            <div className="flex items-center justify-between grow px-4">
+              <div className="flex flex-col justify-around">
+                <h4>Ethereum</h4>
+              </div>
+              <ETHPriceIndicator />
+            </div>
           </div>
           <div className="flex grow">
             <div className="bg-white border-black border-2 p-4 mr-[-2px]">
               <CustomOptionOrder />
             </div>
-            <div className="bg-white border-black border-2 pt-4 grow mr-[-2px]">
+            <div className="bg-white border-black border-2 grow mr-[-2px]">
               <OptionsTable />
             </div>
             <div className="bg-white border-black border-2 p-4 grow">
