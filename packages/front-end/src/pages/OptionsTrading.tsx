@@ -28,7 +28,9 @@ export const OptionsTrading = () => {
             </div>
             <div className="flex items-center justify-between grow px-4">
               <div className="flex flex-col justify-around">
-                <h4>Ether</h4>
+                <h4>
+                  <b>Ether</b>
+                </h4>
                 <p className="text-gray-600 text-xs">
                   Late Update: {ethPriceUpdateTime?.toLocaleTimeString("en-US")}
                 </p>
@@ -37,7 +39,7 @@ export const OptionsTrading = () => {
             </div>
           </div>
           <div className="flex grow items-stretch">
-            <div className="bg-white rounded-bl-lg flex flex-col">
+            <div className="bg-bone rounded-bl-lg flex flex-col">
               <div className="bg-black p-2 text-white border-r-2 border-white">
                 <p>Custom Option</p>
               </div>
@@ -46,14 +48,14 @@ export const OptionsTrading = () => {
               </div>
             </div>
             <div className="bg-white grow flex-col">
-              <div className="bg-black p-2 text-white border-r-2 border-white">
+              <div className="bg-black p-2 text-white ">
                 <p>Options</p>
               </div>
               <div className="grow border-r-2 border-b-2 border-black">
                 <OptionsTable />
               </div>
             </div>
-            <div className="bg-white grow rounded-br-lg flex flex-col">
+            {/* <div className="bg-white grow rounded-br-lg flex flex-col">
               <div className="bg-black p-2 text-white">
                 <p>Complete order</p>
               </div>
@@ -62,7 +64,7 @@ export const OptionsTrading = () => {
                   <Purchase />
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </Card>
       </div>

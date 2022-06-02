@@ -34,19 +34,26 @@ export const ExpiryDatePicker: React.FC = () => {
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-2">
-        <h5>Expiration date</h5>
-        {expiryTime && (
+      <div className="mb-2 px-4 py-2">
+        <div className="flex items-center">
+          <h4 className="font-parabole mr-2 pb-1">Expiration date: </h4>
           <p>
-            expiry in: <b>{getTimeDifferenceString(expiryTime)}</b>
+            {expiryDate && expiryDate?.toLocaleDateString("en-US")}
+            {" 8:00am UTC"}
           </p>
-        )}
+        </div>
+        <p className="text-gray-600 text-xs">
+          {expiryTime && (
+            <p>Time to expiry: {getTimeDifferenceString(expiryTime)}</p>
+          )}
+        </p>
       </div>
-      <div className="w-[70%]">
+      <div className="w-full border-y-2 border-black">
         <RadioButtonList
           options={expiryDateOptions}
           selected={expiryDate}
           setSelected={setExpiryDate}
+          removeOuterBorder
         />
       </div>
     </div>
