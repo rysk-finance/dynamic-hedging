@@ -99,6 +99,11 @@ function getUtilizationPrice(
 		return optionPrice + optionPrice * multiplicationFactor
 	}
 }
+/**
+ * @typeParam greekVariables - variables used for localized black-scholes price
+ * @param underlyingPrice - underlying price in wei
+ * @returns option quote based on utilization
+ */
 function calculateOptionQuote(
 	greekVariables: GreekVariables,
 	underlyingPrice: BigNumber,
@@ -288,10 +293,10 @@ export async function getPortfolioValues(
 		const gamma = greeks.getGamma(...greekVariables)
 		const vega = greeks.getVega(...greekVariables)
 		const theta = greeks.getTheta(...greekVariables)
-		const price = bs.blackScholes(...greekVariables)
+		const price: number = bs.blackScholes(...greekVariables)
 		const optionSeries = {
-			expiration: timeToExpiration,
-			strike: BigNumber.from(greekVariables[1]),
+			expiration: seriesInfo.expiration,
+			strike: seriesInfo.strike,
 			isPut: greekVariables[5] == "put" ? true : false,
 			strikeAsset: seriesInfo.strikeAsset,
 			underlying: seriesInfo.underlying,
@@ -303,7 +308,7 @@ export async function getPortfolioValues(
 		if (x.amount) {
 			const quote = calculateOptionQuote(
 				greekVariables,
-				price,
+				toWei(price.toString()),
 				nav,
 				x.amount,
 				collateralAllocated,
