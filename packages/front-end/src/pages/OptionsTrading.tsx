@@ -20,7 +20,7 @@ export const OptionsTrading = () => {
       <div className="col-start-1 col-end-17">
         <Card filledHeader headerHeight={50}>
           <div className="flex justify-between mt-[-5px]">
-            <p className="text-white p-4">Ethereum.option</p>
+            <p className="text-white p-4">ETH.option</p>
           </div>
           <div className="flex justify-stretch items-stretch">
             <div className="px-6 py-4 border-r-2 border-black">
@@ -28,7 +28,7 @@ export const OptionsTrading = () => {
             </div>
             <div className="flex items-center justify-between grow px-4">
               <div className="flex flex-col justify-around">
-                <h4>Ethereum</h4>
+                <h4>Ether</h4>
                 <p className="text-gray-600 text-xs">
                   Late Update: {ethPriceUpdateTime?.toLocaleTimeString("en-US")}
                 </p>
@@ -36,15 +36,32 @@ export const OptionsTrading = () => {
               <ETHPriceIndicator />
             </div>
           </div>
-          <div className="flex grow">
-            <div className="bg-white border-black border-2 p-4 mr-[-2px] rounded-bl-lg">
-              <CustomOptionOrder />
+          <div className="flex grow items-stretch">
+            <div className="bg-white rounded-bl-lg flex flex-col">
+              <div className="bg-black p-2 text-white border-r-2 border-white">
+                <p>Custom Option</p>
+              </div>
+              <div className="grow border-x-2 border-b-2 border-black rounded-bl-lg grow">
+                <CustomOptionOrder />
+              </div>
             </div>
-            <div className="bg-white border-black border-2 grow mr-[-2px]">
-              <OptionsTable />
+            <div className="bg-white grow flex-col">
+              <div className="bg-black p-2 text-white border-r-2 border-white">
+                <p>Options</p>
+              </div>
+              <div className="grow border-r-2 border-b-2 border-black">
+                <OptionsTable />
+              </div>
             </div>
-            <div className="bg-white border-black border-2 p-4 grow rounded-br-lg">
-              <Purchase />
+            <div className="bg-white grow rounded-br-lg flex flex-col">
+              <div className="bg-black p-2 text-white">
+                <p>Complete order</p>
+              </div>
+              <div className="grow border-r-2 border-b-2 border-black rounded-br-lg">
+                <div className="grow">
+                  <Purchase />
+                </div>
+              </div>
             </div>
           </div>
         </Card>
