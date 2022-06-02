@@ -52,16 +52,14 @@ export const OptionsTrading = () => {
                 <OptionsTable />
               </div>
             </div>
-            {/* <div className="bg-white grow rounded-br-lg flex flex-col">
-              <div className="bg-black p-2 text-white">
-                <p>Complete order</p>
-              </div>
-              <div className="grow border-r-2 border-b-2 border-black rounded-br-lg">
-                <div className="grow">
-                  <Purchase />
-                </div>
-              </div>
-            </div> */}
+          </div>
+          <div className="bg-white grow rounded-br-lg flex flex-col">
+            <div className="bg-black p-2 text-white">
+              <p>Complete order</p>
+            </div>
+            <div>
+              <Purchase />
+            </div>
           </div>
         </Card>
       </div>

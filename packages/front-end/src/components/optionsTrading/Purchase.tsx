@@ -25,23 +25,29 @@ export const Purchase: React.FC = () => {
     dispatch({ type: OptionsTradingActionType.SET_SELECTED_OPTION, option });
   };
 
-  return selectedOption ? (
-    <div>
-      <div className="w-full flex justify-end">
-        <button className="text-xl" onClick={() => setSelectedOption(null)}>
-          ✕
-        </button>
-      </div>
-      <div className="mb-16">
-        <h4>Buy: {selectedOption.type}</h4>
-        <p>Strike: {selectedOption.strike}</p>
-        <p>IV: {selectedOption.IV}</p>
-        <p>Delta: {selectedOption.delta}</p>
-        <p>Price: {selectedOption.price}</p>
-      </div>
-      <div className="h-32 w-full border-black border-2">
-        <ReturnLineChart data={DUMMY_DATA} />
-      </div>
+  return (
+    <div className="p-4">
+      {selectedOption ? (
+        <>
+          <div className="w-full flex justify-end">
+            <button className="text-xl" onClick={() => setSelectedOption(null)}>
+              ✕
+            </button>
+          </div>
+          <div className="mb-16">
+            <h4>Buy: {selectedOption.type}</h4>
+            <p>Strike: {selectedOption.strike}</p>
+            <p>IV: {selectedOption.IV}</p>
+            <p>Delta: {selectedOption.delta}</p>
+            <p>Price: {selectedOption.price}</p>
+          </div>
+          <div className="h-32 w-full border-black border-2">
+            <ReturnLineChart data={DUMMY_DATA} />
+          </div>
+        </>
+      ) : (
+        <p>Select an option first</p>
+      )}
     </div>
-  ) : null;
+  );
 };
