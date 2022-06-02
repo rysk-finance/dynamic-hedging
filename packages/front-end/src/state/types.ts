@@ -86,5 +86,5 @@ export type OptionsTradingAction =
     }
   | {
       type: OptionsTradingActionType.SET_SELECTED_OPTION;
-      option: Option;
+      option: Option | null;
     };

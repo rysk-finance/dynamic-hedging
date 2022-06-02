@@ -16,22 +16,19 @@ export const OptionsTrading = () => {
         </div>
       </div>
       <div className="col-start-1 col-end-17">
-        <Card>
-          <div>
-            <div className="col-start-1 col-end-6 pr-4 py-4">
-              <div className="bg-white border-black border-2 p-4">
-                <CustomOptionOrder />
-              </div>
+        <Card filledHeader headerHeight={60}>
+          <div className="flex justify-between">
+            <h4 className="text-white p-4">Ethereum.option</h4>
+          </div>
+          <div className="flex grow">
+            <div className="bg-white border-black border-2 p-4 mr-[-2px]">
+              <CustomOptionOrder />
             </div>
-            <div className="col-start-6 col-end-12 p-4">
-              <div className="bg-white border-black border-2 pt-4">
-                <OptionsTable />
-              </div>
+            <div className="bg-white border-black border-2 pt-4 grow mr-[-2px]">
+              <OptionsTable />
             </div>
-            <div className="col-start-12 col-end-17 pl-4 pl-4 py-4">
-              <div className="bg-white border-black border-2 p-4">
-                <Purchase />
-              </div>
+            <div className="bg-white border-black border-2 p-4 grow">
+              <Purchase />
             </div>
           </div>
         </Card>
