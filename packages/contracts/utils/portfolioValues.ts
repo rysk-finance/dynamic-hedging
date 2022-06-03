@@ -23,6 +23,7 @@ import { Oracle } from "../types/Oracle"
 import { ERC20 } from "../types/ERC20"
 import ERC20Artifact from "../artifacts/contracts/tokens/ERC20.sol/ERC20.json"
 
+type GreekVariables = [string, string, number, string, number, "put" | "call"]
 type WriteEvent = WriteOptionEvent & Event
 type DecodedData = {
 	series: string
@@ -48,7 +49,10 @@ interface EnrichedWriteEvent extends WriteEvent {
 	gamma?: number
 	vega?: number
 	theta?: number
-	price?: number
+	bsQuote?: number
+	utilizationQuote: number
+	greekVariables?: GreekVariables
+	liquidityAllocated?: BigNumber
 }
 type SeriesInfo = [BigNumber, BigNumber, boolean, string, string, string] & {
 	expiration: BigNumber
@@ -58,8 +62,6 @@ type SeriesInfo = [BigNumber, BigNumber, boolean, string, string, string] & {
 	strikeAsset: string
 	collateral: string
 }
-
-type GreekVariables = [string, string, number, string, number, "put" | "call"]
 
 function getUtilizationPrice(
 	utilizationBefore: number,
@@ -102,6 +104,7 @@ function getUtilizationPrice(
 /**
  * @typeParam greekVariables - variables used for localized black-scholes price
  * @param underlyingPrice - underlying price in wei
+ * @param optionDelta - delta of the option being written not adjusted for amount
  * @returns option quote based on utilization
  */
 function calculateOptionQuote(
@@ -155,7 +158,7 @@ export async function getPortfolioValues(
 	) as ERC20
 	const lpCollateralBalance = await collateralAsset.balanceOf(liquidityPool.address)
 	const collateralAllocated = await liquidityPool.collateralAllocated()
-	const nav = await liquidityPool.getNAV()
+	const assets = await liquidityPool.getAssets()
 	const portfolioDeltaBefore = await liquidityPool.getPortfolioDelta()
 	const underlying = await liquidityPool.underlyingAsset()
 	const strikeAsset = await liquidityPool.strikeAsset()
@@ -213,9 +216,9 @@ export async function getPortfolioValues(
 	})
 	const enrichedWriteOptions: Promise<EnrichedWriteEvent>[] = writeOption.map(
 		async (x: WriteOptionEvent): Promise<EnrichedWriteEvent> => {
-			const y: EnrichedWriteEvent = x
+			const y: EnrichedWriteEvent = x as EnrichedWriteEvent
 			const { data, topics, decode } = y
-			if (!decode) return x
+			if (!decode) return y
 			y.decoded = decode(data, topics)
 			y.series = y?.decoded?.series
 			if (!y.series) return y
@@ -293,7 +296,7 @@ export async function getPortfolioValues(
 		const gamma = greeks.getGamma(...greekVariables)
 		const vega = greeks.getVega(...greekVariables)
 		const theta = greeks.getTheta(...greekVariables)
-		const price: number = bs.blackScholes(...greekVariables)
+		const bsQuote: number = bs.blackScholes(...greekVariables)
 		const optionSeries = {
 			expiration: seriesInfo.expiration,
 			strike: seriesInfo.strike,
@@ -304,26 +307,16 @@ export async function getPortfolioValues(
 		}
 		if (!x.amount) return x
 		const liquidityAllocated: BigNumber = await optionRegistry.getCollateral(optionSeries, x.amount)
+		x.liquidityAllocated = liquidityAllocated
 		// @TODO consider keeping calculation in BigNumber as more precise and is the format onchain.
 		if (x.amount) {
-			const quote = calculateOptionQuote(
-				greekVariables,
-				toWei(price.toString()),
-				nav,
-				x.amount,
-				collateralAllocated,
-				liquidityAllocated,
-				portfolioDeltaBefore,
-				delta,
-				lpCollateralBalance
-			)
 			const numericAmt = Number(fromWei(x.amount))
 			// invert sign due to writing rather than buying
 			x.delta = numericAmt * delta * -1
 			x.gamma = numericAmt * gamma * -1
 			x.theta = numericAmt * theta * -1
 			x.vega = numericAmt * vega * -1
-			x.price = quote
+			x.bsQuote = bsQuote
 		}
 		return x
 	})
@@ -332,6 +325,32 @@ export async function getPortfolioValues(
 	const portfolioGamma = resolvedOptionPositions.reduce((total, num) => total + (num.gamma || 0), 0)
 	const portfolioVega = resolvedOptionPositions.reduce((total, num) => total + (num.vega || 0), 0)
 	const portfolioTheta = resolvedOptionPositions.reduce((total, num) => total + (num.theta || 0), 0)
-	const callsPutsValue = resolvedOptionPositions.reduce((total, num) => total + (num.price || 0), 0)
+	const bsCallsPutsValue = resolvedOptionPositions.reduce(
+		(total, num) => total + (num.bsQuote || 0),
+		0
+	)
+	const nav = assets.sub(toWei(bsCallsPutsValue.toString()))
+	const enrichedWithNav: EnrichedWriteEvent[] = resolvedOptionPositions.map(x => {
+		if (x.amount && x.greekVariables && x.liquidityAllocated) {
+			const delta = greeks.getDelta(...x.greekVariables)
+			const quote = calculateOptionQuote(
+				x.greekVariables,
+				priceQuote,
+				nav,
+				x.amount,
+				collateralAllocated,
+				x.liquidityAllocated,
+				portfolioDeltaBefore,
+				delta,
+				lpCollateralBalance
+			)
+			x.utilizationQuote = quote
+		}
+		return x
+	})
+	const callsPutsValue = enrichedWithNav.reduce(
+		(total, num) => total + (num.utilizationQuote || 0),
+		0
+	)
 	return { portfolioDelta, portfolioGamma, portfolioTheta, portfolioVega, callsPutsValue }
 }

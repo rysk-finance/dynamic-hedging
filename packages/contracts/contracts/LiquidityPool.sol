@@ -903,6 +903,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		return getVolatilityFeed().getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
 	}
 
+	function getAssets() external view returns (uint256) {
+		return _getAssets();
+	}
+
 	function getNAV() external view returns (uint256) {
 		return _getNAV();
 	}
