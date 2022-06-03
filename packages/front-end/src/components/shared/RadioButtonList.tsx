@@ -29,7 +29,7 @@ export const RadioButtonList: RadioButtonListType = ({
           <Button
             key={option.key}
             className={`${
-              isSelected ? "" : "bg-gray-500"
+              isSelected ? "" : "!bg-gray-500"
             }  basis-0 grow mr-[-2px] ${
               removeOuterBorder
                 ? `border-y-0 ${

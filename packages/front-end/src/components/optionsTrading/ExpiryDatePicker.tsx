@@ -90,7 +90,7 @@ export const ExpiryDatePicker: React.FC = () => {
         <Button
           onClick={handleCustomExpiryClick}
           className={`border-y-0 border-r-0 w-[30%] ${
-            isCustomExpiryDate ? "" : "bg-gray-500"
+            isCustomExpiryDate ? "" : "!bg-gray-500"
           }`}
         >
           Custom
