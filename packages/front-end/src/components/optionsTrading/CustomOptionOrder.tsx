@@ -20,6 +20,10 @@ export const CustomOptionOrder: React.FC = () => {
 
   const [uiStrikePrice, setUIStrikePrice] = useState("");
 
+  const {
+    state: { expiryDate },
+  } = useOptionsTradingContext();
+
   const setOptionType = (optionType: OptionType) => {
     dispatch({ type: OptionsTradingActionType.SET_OPTION_TYPE, optionType });
   };
@@ -31,6 +35,8 @@ export const CustomOptionOrder: React.FC = () => {
     });
     setUIStrikePrice("");
   };
+
+  const submitIsDisabled = !(uiStrikePrice && expiryDate);
 
   return (
     <div className="w-full">
@@ -67,7 +73,10 @@ export const CustomOptionOrder: React.FC = () => {
           />
         </div>
         <Button
-          className="!py-4 w-full !bg-black text-white mb-4"
+          disabled={submitIsDisabled}
+          className={`!py-4 w-full !bg-black text-white mb-4 border-x-0 ${
+            submitIsDisabled && "!bg-gray-300"
+          }`}
           onClick={handleSubmit}
         >
           Add
