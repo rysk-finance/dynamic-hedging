@@ -80,7 +80,7 @@ export type OptionsTradingAction =
     }
   | {
       type: OptionsTradingActionType.SET_EXPIRY_DATE;
-      date: Date;
+      date: Date | null;
     }
   | {
       type: OptionsTradingActionType.ADD_CUSTOM_STRIKE;
