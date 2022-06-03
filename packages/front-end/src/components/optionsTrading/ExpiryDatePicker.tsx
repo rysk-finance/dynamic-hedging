@@ -101,7 +101,10 @@ export const ExpiryDatePicker: React.FC = () => {
             ref={datePickerRef}
           >
             <DatePicker
-              onChange={(date) => setExpiryDate(date)}
+              onChange={(date) => {
+                setDatePickerIsOpen(false);
+                setExpiryDate(date);
+              }}
               selected={expiryDate}
             />
           </div>
