@@ -7,6 +7,7 @@ import { formatShortDate } from "../../utils/formatShortDate";
 import { getSuggestedExpiryDates } from "../../utils/getSuggestedExpiryDates";
 import { getTimeDifferenceString } from "../../utils/getTimeDifferenceString";
 import { Button } from "../shared/Button";
+import { DatePicker } from "../shared/DatePicker";
 import { RadioButtonList } from "../shared/RadioButtonList";
 
 export const ExpiryDatePicker: React.FC = () => {
@@ -96,10 +97,13 @@ export const ExpiryDatePicker: React.FC = () => {
         </Button>
         {datePickerIsOpen && (
           <div
-            className="absolute flex justify-center items-center w-full h-48 border-2 border-black z-10 bg-bone top-[110%] right-[1px] w-[80%]"
+            className="absolute flex justify-center items-center border-2 border-black z-10 bg-bone top-[110%] right-[1px] w-fit"
             ref={datePickerRef}
           >
-            <p>Date picker here</p>
+            <DatePicker
+              onChange={(date) => setExpiryDate(date)}
+              selected={expiryDate}
+            />
           </div>
         )}
       </div>
