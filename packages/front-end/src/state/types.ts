@@ -1,3 +1,4 @@
+import { BigNumber } from "ethers";
 import { Dispatch } from "react";
 
 export type AppSettings = {
@@ -68,12 +69,12 @@ export type Option = {
 };
 
 export type OptionParams = {
-  minCallStrikePrice: number;
-  maxCallStrikePrice: number;
-  minPutStrikePrice: number;
-  maxPutStrikePrice: number;
-  minExpiry: number;
-  maxExpiry: number;
+  minCallStrikePrice: BigNumber;
+  maxCallStrikePrice: BigNumber;
+  minPutStrikePrice: BigNumber;
+  maxPutStrikePrice: BigNumber;
+  minExpiry: BigNumber;
+  maxExpiry: BigNumber;
 };
 
 export enum OptionsTradingActionType {
