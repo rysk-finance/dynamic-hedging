@@ -39,7 +39,7 @@ export const CustomOptionOrder: React.FC = () => {
   const submitIsDisabled = !(uiStrikePrice && expiryDate);
 
   return (
-    <div className="w-full">
+    <div className="w-full min-w-[420px]">
       <div className="mb-4 border-b-2 border-black">
         <RadioButtonList
           options={optionTypeOptions}
