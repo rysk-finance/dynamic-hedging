@@ -61,10 +61,10 @@ export const OptionsTable: React.FC = () => {
   };
 
   return (
-    <table className="w-full">
-      <thead className="text-left">
+    <table className="w-full bg-white">
+      <thead className="text-left border-b-2 border-black">
         <tr>
-          <th className="pl-4">Strike ($)</th>
+          <th className="pl-4 py-2">Strike ($)</th>
           <th>IV</th>
           <th>Delta</th>
           <th className="pr-4">Price ($)</th>
