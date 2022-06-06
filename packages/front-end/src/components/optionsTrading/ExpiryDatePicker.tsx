@@ -12,7 +12,7 @@ import { RadioButtonList } from "../shared/RadioButtonList";
 
 export const ExpiryDatePicker: React.FC = () => {
   const {
-    state: { expiryDate },
+    state: { expiryDate, optionParams },
     dispatch,
   } = useOptionsTradingContext();
 
@@ -36,9 +36,6 @@ export const ExpiryDatePicker: React.FC = () => {
       const clickIsInsideDatePicker = (
         event.target as HTMLElement
       ).className.includes("react-datepicker");
-      console.log(
-        (event.target as HTMLElement).className.includes("react-datepicker")
-      );
       return !clickIsInsideDatePicker;
     }
   );
@@ -75,6 +72,14 @@ export const ExpiryDatePicker: React.FC = () => {
   }, [setExpiryDate]);
 
   const expiryTime = expiryDate && expiryDate.getTime() - new Date().getTime();
+
+  const minExpiryDate = optionParams
+    ? new Date(Number(new Date()) + optionParams.minExpiry.toNumber() * 1000)
+    : null;
+
+  const maxExpiryDate = optionParams
+    ? new Date(Number(new Date()) + optionParams.maxExpiry.toNumber() * 1000)
+    : null;
 
   return (
     <div className="w-full">
@@ -117,6 +122,8 @@ export const ExpiryDatePicker: React.FC = () => {
             ref={datePickerRef}
           >
             <DatePicker
+              minDate={minExpiryDate}
+              maxDate={maxExpiryDate}
               onChange={(date) => {
                 setDatePickerIsOpen(false);
                 setExpiryDate(date);
