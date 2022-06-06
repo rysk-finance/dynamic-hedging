@@ -14,7 +14,7 @@ const optionTypeOptions: Option<OptionType>[] = [
 
 export const CustomOptionOrder: React.FC = () => {
   const {
-    state: { optionType },
+    state: { optionType, optionParams },
     dispatch,
   } = useOptionsTradingContext();
 
@@ -51,22 +51,35 @@ export const CustomOptionOrder: React.FC = () => {
           removeOuterBorder
         />
       </div>
-      <div className="bg-black p-2 text-white border-r-2 border-white">
+      <div className="bg-black p-2 text-white border-white">
         <p>Select Expiry</p>
       </div>
       <div className="mb-4">
         <ExpiryDatePicker />
       </div>
       <div>
-        <div className="bg-black p-2 text-white border-r-2 border-white">
+        <div className="bg-black p-2 text-white border-white">
           <p>Add a custom strike</p>
         </div>
         <div className="flex flex-col px-4 mb-4">
-          {/* <div className="flex items-center">
+          <div className="flex items-center">
             <h4 className="font-parabole mr-2 pb-1">Custom Strike:</h4>
             {uiStrikePrice && <p>{uiStrikePrice} USDC</p>}
-          </div> */}
-          {/* <p className="text-gray-500 text-xs"></p> */}
+          </div>
+          <p className="text-gray-500 text-xs">
+            Min: $
+            {optionParams
+              ? optionType === OptionType.CALL
+                ? optionParams.minCallStrikePrice.toString()
+                : optionParams.maxCallStrikePrice.toString()
+              : ""}{" "}
+            / Max: $
+            {optionParams
+              ? optionType === OptionType.CALL
+                ? optionParams.minPutStrikePrice.toString()
+                : optionParams.maxPutStrikePrice.toString()
+              : ""}
+          </p>
         </div>
         <div className="mb-4">
           <TextInput

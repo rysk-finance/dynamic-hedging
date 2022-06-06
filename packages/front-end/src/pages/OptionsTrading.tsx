@@ -40,9 +40,6 @@ export const OptionsTrading = () => {
           </div>
           <div className="flex grow items-stretch">
             <div className="bg-bone rounded-bl-lg flex flex-col min-w-[420px]">
-              <div className="bg-black p-2 text-white border-r-2 border-white">
-                <p>Custom Option</p>
-              </div>
               <div className="grow border-r-2 border-black rounded-bl-lg grow">
                 <CustomOptionOrder />
               </div>
