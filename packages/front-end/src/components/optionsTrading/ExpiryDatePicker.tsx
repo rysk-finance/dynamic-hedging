@@ -25,7 +25,23 @@ export const ExpiryDatePicker: React.FC = () => {
     setDatePickerIsOpen(false);
   }, []);
 
-  useOnClickOutside(datePickerRef, datePickerIsOpen, onClickOffDatePicker);
+  useOnClickOutside(
+    datePickerRef,
+    datePickerIsOpen,
+    onClickOffDatePicker,
+    (_, event) => {
+      // Need to do this custom DOM check because react datepicker dynamically
+      // adds and removes the month scroll buttons from the DOM, which interferes
+      // with some logic on the useOnClickOutside hook.
+      const clickIsInsideDatePicker = (
+        event.target as HTMLElement
+      ).className.includes("react-datepicker");
+      console.log(
+        (event.target as HTMLElement).className.includes("react-datepicker")
+      );
+      return !clickIsInsideDatePicker;
+    }
+  );
 
   const handleCustomExpiryClick = () => {
     setDatePickerIsOpen(true);
