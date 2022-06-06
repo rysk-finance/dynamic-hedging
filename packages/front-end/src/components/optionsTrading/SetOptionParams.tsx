@@ -6,12 +6,7 @@ import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { OptionsTradingActionType } from "../../state/types";
 
 export const SetOptionParams = () => {
-  const {
-    dispatch,
-    state: { optionParams },
-  } = useOptionsTradingContext();
-
-  console.log(optionParams);
+  const { dispatch } = useOptionsTradingContext();
 
   const [lpContract] = useContract({
     address: addresses.localhost.liquidityPool,
