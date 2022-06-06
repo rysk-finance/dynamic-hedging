@@ -2,6 +2,7 @@ import React from "react";
 import { CustomOptionOrder } from "../components/optionsTrading/CustomOptionOrder";
 import { OptionsTable } from "../components/optionsTrading/OptionsTable";
 import { Purchase } from "../components/optionsTrading/Purchase";
+import { SetOptionParams } from "../components/optionsTrading/SetOptionParams";
 import { Card } from "../components/shared/Card";
 import { ETHPriceIndicator } from "../components/shared/ETHPriceIndicator";
 import { useGlobalContext } from "../state/GlobalContext";
@@ -11,8 +12,10 @@ export const OptionsTrading = () => {
   const {
     state: { ethPriceUpdateTime },
   } = useGlobalContext();
+
   return (
     <OptionsTradingProvider>
+      <SetOptionParams />
       <div className="col-start-1 col-end-17 mb-16 flex justify-between">
         <h3>Buy Options</h3>
         <div className="flex items-start"></div>
@@ -36,7 +39,10 @@ export const OptionsTrading = () => {
             </div>
           </div>
           <div className="flex grow items-stretch">
-            <div className="bg-bone rounded-bl-lg flex flex-col">
+            <div className="bg-bone rounded-bl-lg flex flex-col min-w-[420px]">
+              <div className="bg-black p-2 text-white border-r-2 border-white">
+                <p>Custom Option</p>
+              </div>
               <div className="grow border-r-2 border-black rounded-bl-lg grow">
                 <CustomOptionOrder />
               </div>
