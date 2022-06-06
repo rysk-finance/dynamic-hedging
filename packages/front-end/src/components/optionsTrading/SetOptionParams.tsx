@@ -6,10 +6,13 @@ import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { OptionsTradingActionType } from "../../state/types";
 
 export const SetOptionParams = () => {
-  const { dispatch } = useOptionsTradingContext();
+  const {
+    dispatch,
+    state: { optionParams },
+  } = useOptionsTradingContext();
 
   const [lpContract] = useContract({
-    address: addresses.localhost.liquidityPool,
+    contract: "liquidityPool",
     ABI: LPABI.abi,
     readOnly: false,
   });
