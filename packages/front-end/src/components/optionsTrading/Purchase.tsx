@@ -1,4 +1,5 @@
 import { BigNumber } from "@ethersproject/bignumber";
+import { Serie } from "@nivo/line";
 import { ethers } from "ethers";
 import React, { useState } from "react";
 import { toast } from "react-toastify";
@@ -30,6 +31,17 @@ const DUMMY_OPTION_SERIES: OptionSeries = {
   expiration: "1657267200",
   isPut: false,
 };
+
+// TODO(HC): Make this not dummy data...
+const DUMMY_DATA: Serie[] = [
+  {
+    id: "return",
+    data: Array.from(Array(100).keys()).map((x) => ({
+      x: x,
+      y: Math.max(50, x),
+    })),
+  },
+];
 
 export const Purchase: React.FC = () => {
   const {
@@ -152,6 +164,10 @@ export const Purchase: React.FC = () => {
       }
     }
   };
+
+  const [uiOrderSize, setUIOrderSize] = useState("");
+
+  const buyIsDisabled = !uiOrderSize;
 
   return (
     <div>
