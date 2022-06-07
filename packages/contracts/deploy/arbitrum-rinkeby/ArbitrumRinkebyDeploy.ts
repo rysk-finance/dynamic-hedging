@@ -98,6 +98,7 @@ async function main() {
 		authority.address
 	)
 	const liquidityPool = lpParams.liquidityPool
+	const handler = lpParams.handler
 	console.log("liquidity pool deployed")
 
 	liquidityPool.setMaxTimeDeviationThreshold(1000000000000000)
@@ -113,7 +114,7 @@ async function main() {
 
 	// @ts-ignore
 	contractAddresses["arbitrumRinkeby"]["OpynController"] =
-		"0xb2923CAbbC7dd78e9573D1D6d755E75dCB49CE47"
+		"0x2acb561509a082bf2c58ce86cd30df6c2c2017f6"
 	contractAddresses["arbitrumRinkeby"]["OpynAddressBook"] =
 		"0x2d3E178FFd961BD8C0b035C926F9f2363a436DdC"
 	contractAddresses["arbitrumRinkeby"]["OpynOracle"] = "0xe4d64aed5e76bCcE2C255f3c819f4C3817D42f19"
@@ -125,11 +126,13 @@ async function main() {
 	contractAddresses["arbitrumRinkeby"]["optionProtocol"] = optionProtocol.address
 	contractAddresses["arbitrumRinkeby"]["liquidityPool"] = liquidityPool.address
 	contractAddresses["arbitrumRinkeby"]["authority"] = authority.address
+	contractAddresses["arbitrumRinkeby"]["portfolioValuesFeed"] = portfolioValuesFeed.address
+	contractAddresses["arbitrumRinkeby"]["optionHandler"] = handler.address
 
 	fs.writeFileSync(addressPath, JSON.stringify(contractAddresses, null, 4))
 
 	console.log({
-		OpynController: "0xb2923CAbbC7dd78e9573D1D6d755E75dCB49CE47",
+		OpynController: "0x2acb561509a082bf2c58ce86cd30df6c2c2017f6",
 		OpynAddressBook: "0x2d3E178FFd961BD8C0b035C926F9f2363a436DdC",
 		OpynOracle: "0xe4d64aed5e76bCcE2C255f3c819f4C3817D42f19",
 		OpynNewCalculator: "0xa91B46bDDB891fED2cEE626FB03E2929702951A6",
@@ -138,7 +141,9 @@ async function main() {
 		volFeed: volFeed.address,
 		optionProtocol: optionProtocol.address,
 		liquidityPool: liquidityPool.address,
-		authority: authority.address
+		authority: authority.address,
+		pvFeed: portfolioValuesFeed.address,
+		optionHandler: handler.address
 	})
 	console.log(contractAddresses)
 }
@@ -224,7 +229,7 @@ export async function deploySystem(
 	const _optionRegistry = (await optionRegistryFactory.deploy(
 		"0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737", // usdc
 		"0xcBcC61d56bb2cD6076E2268Ea788F51309FA253B", // oToken Factory
-		"0xb2923CAbbC7dd78e9573D1D6d755E75dCB49CE47", // controller
+		"0x2acb561509a082bf2c58ce86cd30df6c2c2017f6", // controller
 		"0xDD91EB7C3822552D89a5Cb8D4166B1EB19A36Ff2", // margin pool
 		deployerAddress,
 		"0x2d3E178FFd961BD8C0b035C926F9f2363a436DdC", // address book

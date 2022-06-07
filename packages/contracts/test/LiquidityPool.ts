@@ -65,7 +65,6 @@ import exp from "constants"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { OptionHandler } from "../types/OptionHandler"
-import { Console } from "console"
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: ERC20Interface
@@ -2191,10 +2190,14 @@ describe("Liquidity Pools", async () => {
 		expect(collateralLost).to.equal(0)
 	})
 	it("Reverts: tries to sell an expired option back to the pool", async () => {
-		await expect(handler.buybackOption(putOptionToken2.address, toWei("3"))).to.be.revertedWith("OptionExpiryInvalid()")
+		await expect(handler.buybackOption(putOptionToken2.address, toWei("3"))).to.be.revertedWith(
+			"OptionExpiryInvalid()"
+		)
 	})
 	it("Reverts: tries to write an option that doesnt exist in the handler", async () => {
-		await expect(handler.writeOption(ZERO_ADDRESS, toWei("3"))).to.be.revertedWith("NonExistentOtoken()")
+		await expect(handler.writeOption(ZERO_ADDRESS, toWei("3"))).to.be.revertedWith(
+			"NonExistentOtoken()"
+		)
 	})
 	it("updates option params with setter", async () => {
 		await liquidityPool.setNewOptionParams(
