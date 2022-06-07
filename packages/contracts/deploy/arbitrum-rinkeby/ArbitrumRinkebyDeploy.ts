@@ -70,6 +70,7 @@ async function main() {
 	const portfolioValuesFeed = deployParams.portfolioValuesFeed
 	const optionProtocol = deployParams.optionProtocol
 	const authority = deployParams.authority
+	const interactions = deployParams.opynInteractions
 
 	const rfr: string = "0.03"
 	const minCallStrikePrice = utils.parseEther("500")
@@ -95,7 +96,8 @@ async function main() {
 		maxExpiry,
 		optionRegistry,
 		portfolioValuesFeed,
-		authority.address
+		authority.address,
+		priceFeed
 	)
 	const liquidityPool = lpParams.liquidityPool
 	const handler = lpParams.handler
@@ -264,7 +266,8 @@ export async function deploySystem(
 		volFeed: volFeed,
 		portfolioValuesFeed: portfolioValuesFeed,
 		optionProtocol: optionProtocol,
-		authority: authority
+		authority: authority,
+		opynInteractions: interactions
 	}
 }
 
@@ -282,7 +285,8 @@ export async function deployLiquidityPool(
 	maxExpiry: any,
 	optionRegistry: OptionRegistry,
 	pvFeed: MockPortfolioValuesFeed,
-	authority: string
+	authority: string,
+	priceFeed: PriceFeed
 ) {
 	const normDistFactory = await ethers.getContractFactory("NormalDist", {
 		libraries: {}
@@ -377,6 +381,8 @@ export async function deployLiquidityPool(
 	await pvFeed.setLiquidityPool(liquidityPool.address)
 	console.log("pv feed lp set")
 
+	const price = await priceFeed.getNormalizedRate(weth.address, usd.address)
+	console.log({ price })
 	await pvFeed.fulfill(
 		utils.formatBytes32String("1"),
 		weth.address,
@@ -386,7 +392,7 @@ export async function deployLiquidityPool(
 		BigNumber.from(0),
 		BigNumber.from(0),
 		BigNumber.from(0),
-		BigNumber.from(0)
+		price
 	)
 	console.log("pv feed fulfilled")
 
