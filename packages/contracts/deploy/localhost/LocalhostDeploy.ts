@@ -127,7 +127,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	contractAddresses["localhost"]["optionProtocol"] = optionProtocol.address
 	contractAddresses["localhost"]["liquidityPool"] = liquidityPool.address
 	contractAddresses["localhost"]["authority"] = authority.address
-	contractAddresses["arbitrumRinkeby"]["optionHandler"] = handler.address
+	contractAddresses["localhost"]["optionHandler"] = handler.address
 
 	fs.writeFileSync(addressPath, JSON.stringify(contractAddresses, null, 4))
 }
