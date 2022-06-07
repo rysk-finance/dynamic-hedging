@@ -102,6 +102,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 		authority.address
 	)
 	const liquidityPool = lpParams.liquidityPool
+	const handler = lpParams.handler
 
 	liquidityPool.setMaxTimeDeviationThreshold(1000000000000000)
 
@@ -126,6 +127,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	contractAddresses["localhost"]["optionProtocol"] = optionProtocol.address
 	contractAddresses["localhost"]["liquidityPool"] = liquidityPool.address
 	contractAddresses["localhost"]["authority"] = authority.address
+	contractAddresses["arbitrumRinkeby"]["optionHandler"] = handler.address
 
 	fs.writeFileSync(addressPath, JSON.stringify(contractAddresses, null, 4))
 }
