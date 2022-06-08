@@ -127,7 +127,7 @@ module.exports = {
 		},
 		rinkeby: {
 			url: rinkeby,
-			accounts: [process.env.DEPLOYER_PRIVATE_KEY],
+			accounts: [process.env.DEPLOYER_PRIVATE_KEY || accounts],
 			chainId: 4,
 			saveDeployments: true
 		},
@@ -135,7 +135,7 @@ module.exports = {
 			url: arbitrumRinkeby,
 			chainId: 421611,
 			saveDeployments: true,
-			accounts: [process.env.DEPLOYER_PRIVATE_KEY],
+			accounts: [process.env.DEPLOYER_PRIVATE_KEY] || accounts,
 			gas: 500000000
 		}
 	},
