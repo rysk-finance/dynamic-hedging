@@ -23,7 +23,7 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	address private immutable oracle;
 	bytes32 private immutable jobId;
 	uint256 private immutable fee;
-	address private immutable link;
+	address private link;
 
 	/////////////////////////////////
 	/// oracle settable variables ///
@@ -91,6 +91,11 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	function setAddressStringMapping(address _asset, string memory _stringVersion) external {
 		_onlyGovernor();
 		stringedAddresses[_asset] = _stringVersion;
+	}
+
+	function setLink(address _link) external {
+		_onlyGovernor();
+		link = _link;
 	}
 
 	//////////////////////////////////////////////////////
