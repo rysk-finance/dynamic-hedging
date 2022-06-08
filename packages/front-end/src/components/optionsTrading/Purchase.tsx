@@ -1,27 +1,60 @@
+import { BigNumber } from "@ethersproject/bignumber";
+import { ethers } from "ethers";
 import React, { useState } from "react";
+import ERC20ABI from "../../abis/erc20.json";
+import { useWalletContext } from "../../App";
+import OptionHandlerABI from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json";
+import OptionRegistryABI from "../../artifacts/contracts/OptionRegistry.sol/OptionRegistry.json";
+import {
+  BIG_NUMBER_DECIMALS,
+  CHAINID,
+  MAX_UINT_256,
+  USDC_ADDRESS,
+  WETH_ADDRESS,
+  ZERO_ADDRESS,
+} from "../../config/constants";
+import addresses from "../../contracts.json";
+import { useContract } from "../../hooks/useContract";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
-import { ReturnLineChart } from "./ReturnLineChart";
-import { Serie } from "@nivo/line";
-import { OptionsTradingActionType, Option } from "../../state/types";
+import { Option, OptionsTradingActionType } from "../../state/types";
+import { OptionSeries } from "../../types";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 
-// TODO(HC): Make this not dummy data...
-const DUMMY_DATA: Serie[] = [
-  {
-    id: "return",
-    data: Array.from(Array(100).keys()).map((x) => ({
-      x: x,
-      y: Math.max(50, x),
-    })),
-  },
-];
+const DUMMY_OPTION_SERIES: OptionSeries = {
+  strike: BigNumber.from("2000").mul(BIG_NUMBER_DECIMALS.RYSK),
+  strikeAsset: USDC_ADDRESS[CHAINID.ETH_MAINNET],
+  collateral: USDC_ADDRESS[CHAINID.ETH_MAINNET],
+  underlying: WETH_ADDRESS[CHAINID.ETH_MAINNET],
+  expiration: "1657267200",
+  isPut: false,
+};
 
 export const Purchase: React.FC = () => {
   const {
     state: { selectedOption },
     dispatch,
   } = useOptionsTradingContext();
+
+  const { account } = useWalletContext();
+
+  const [optionRegistryContract, optionRegistryContractCall] = useContract({
+    address: addresses.localhost.OpynOptionRegistry,
+    ABI: OptionRegistryABI.abi,
+    readOnly: false,
+  });
+
+  const [optionHandlerContract, optionHandlerContractCall] = useContract({
+    address: addresses.localhost.optionHandler,
+    ABI: OptionHandlerABI.abi,
+    readOnly: false,
+  });
+
+  const [usdcContract, usdcContractCall] = useContract({
+    address: USDC_ADDRESS[CHAINID.ETH_MAINNET],
+    ABI: ERC20ABI,
+    readOnly: false,
+  });
 
   const setSelectedOption = (option: Option | null) => {
     dispatch({ type: OptionsTradingActionType.SET_SELECTED_OPTION, option });
@@ -30,6 +63,46 @@ export const Purchase: React.FC = () => {
   const [uiOrderSize, setUIOrderSize] = useState("");
 
   const buyIsDisabled = !uiOrderSize;
+
+  const handleBuy = async () => {
+    if (
+      optionRegistryContract &&
+      optionHandlerContract &&
+      usdcContract &&
+      account
+    ) {
+      try {
+        const seriesAddress = await optionRegistryContract.getSeries({
+          ...DUMMY_OPTION_SERIES,
+          // We create option series using e18, but when our contracts interact with
+          // Opyn, this gets converted to e8, so we need to use e8 when checking
+          // otokens.
+          strike: DUMMY_OPTION_SERIES.strike.div(
+            BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.OPYN)
+          ),
+        });
+        console.log(seriesAddress);
+        // Series hasn't been created yet
+        if (seriesAddress === ZERO_ADDRESS) {
+          await usdcContractCall(
+            usdcContract.approve,
+            addresses.localhost.optionHandler,
+            ethers.BigNumber.from(MAX_UINT_256)
+          );
+          console.log(DUMMY_OPTION_SERIES);
+          await optionHandlerContractCall(
+            optionHandlerContract.issueAndWriteOption,
+            DUMMY_OPTION_SERIES,
+            BIG_NUMBER_DECIMALS.RYSK
+          );
+        } else {
+          console.log("series is minted");
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  };
 
   return (
     <div>
@@ -84,6 +157,7 @@ export const Purchase: React.FC = () => {
                 className={`w-full border-b-0 border-x-0 !py-4 !bg-black text-white ${
                   buyIsDisabled ? "!bg-gray-300" : ""
                 }`}
+                onClick={handleBuy}
               >
                 Buy
               </Button>

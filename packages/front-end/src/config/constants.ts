@@ -7,14 +7,18 @@ export const MAX_UINT_256 =
 export const ZERO_UINT_256 = "0x00";
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 export const DECIMALS = {
   USDC: 6,
+  OPYN: 8,
   RYSK: 18,
 };
 
 // Using strings in constructor to avoid JS max int issues.
 export const BIG_NUMBER_DECIMALS = {
   USDC: BigNumber.from("1000000"),
+  OPYN: BigNumber.from("100000000"),
   RYSK: BigNumber.from("1000000000000000000"),
 };
 

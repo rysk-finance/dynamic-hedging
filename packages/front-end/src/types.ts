@@ -1,5 +1,9 @@
 import { BigNumber } from "ethers";
 
+export type Address = string;
+// UNIX time in seconds (note this differs from JS which uses ms)
+export type TimestampSeconds = string;
+
 export type Option<T> = {
   label: string;
   value: T;
@@ -50,3 +54,11 @@ export type ExternalContractAddresses = {
 
 export type ContractAddresses = RyskContractAddresses &
   ExternalContractAddresses;
+export type OptionSeries = {
+  expiration: TimestampSeconds;
+  strike: BigNumber;
+  isPut: boolean;
+  underlying: Address;
+  strikeAsset: Address;
+  collateral: Address;
+};
