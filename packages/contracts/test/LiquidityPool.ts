@@ -767,7 +767,7 @@ describe("Liquidity Pools", async () => {
 		// This does have a small rounding discrepency that might need looking into
 		expect(
 			LpBalanceAfter - LpBalanceBefore - (tFormatEth(quote) - tFormatUSDC(collateralAllocatedDiff))
-		).to.be.within(-0.001, 0.001)
+		).to.be.within(-0.003, 0.003)
 		// check number of OTokens minted increases
 		expect(numberOTokensMintedAfter).to.eq(numberOTokensMintedBefore.add(amount.div(1e10)))
 		// check expected amount of collateral was used
@@ -1731,7 +1731,7 @@ describe("Liquidity Pools", async () => {
 			tFormatUSDC(buyerUSDBalanceDiff) -
 				(parseFloat(fromWei(orderDeets1.amount)) * tFormatEth(orderDeets1.price) +
 					parseFloat(fromWei(orderDeets2.amount)) * tFormatEth(orderDeets2.price))
-		).to.be.within(-0.015, 0.015)
+		).to.be.within(-0.02, 0.02)
 		// check collateralAllocated is correct
 		expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
 		// check liquidity pool USD balance increases by agreed price minus collateral
@@ -1740,7 +1740,7 @@ describe("Liquidity Pools", async () => {
 				(tFormatEth(orderDeets1.amount) * tFormatEth(orderDeets1.price) +
 					tFormatEth(orderDeets2.amount) * tFormatEth(orderDeets2.price) -
 					tFormatUSDC(expectedCollateralAllocated))
-		).to.be.within(-0.015, 0.015)
+		).to.be.within(-0.02, 0.02)
 		// check delta changes by expected amount
 		expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
 	})
