@@ -127,12 +127,6 @@ export const Purchase: React.FC = () => {
       {selectedOption ? (
         <>
           <div className="w-full flex justify-between relative">
-            <button
-              className="absolute text-xl top-4 right-4"
-              onClick={() => setSelectedOption(null)}
-            >
-              ✕
-            </button>
             <div className="w-1/2 border-r-2 border-black">
               <div className="w-full p-4">
                 <div className="flex items-center">
