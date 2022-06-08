@@ -104,7 +104,14 @@ function getUtilizationPrice(
 /**
  * @typeParam greekVariables - variables used for localized black-scholes price
  * @param underlyingPrice - underlying price in wei
+ * @param nav - Net Asset Value in wei
+ * @param amount - Quantity of options being written in wei
+ * @param collateralAllocated - Amount of collateral allocated by liquidity pool in wei
+ * @param liquidityAllocated - Amount of collateral new option being written will use
+ * @param portfolioDeltaBefore - Existing delta of the portfolio
  * @param optionDelta - delta of the option being written not adjusted for amount
+ * @param lpUSDBalance - USD balance of the liquidity pool
+ * @param maxDiscount - Max discount that will be applied in the tilt factor as defined in the liquidity pool
  * @returns option quote based on utilization
  */
 function calculateOptionQuote(
@@ -143,6 +150,14 @@ function calculateOptionQuote(
 	if (portfolioDeltaIsDecreased) return utilizationPrice - utilizationPrice * deltaTiltAmount
 	return utilizationPrice + utilizationPrice * deltaTiltAmount
 }
+/**
+ * @typeParam liquidityPool - Instance of the liquidityPool
+ * @typeParam controller - Instance of the controller
+ * @typeParam optionRegistry - Instance of the option registry
+ * @typeParam priceFeed - Instance of the price feed
+ * @typeParam opynOracle - Instance of the opyn oracle
+ * @returns {{ portfolioDelta: number, portfolioGamma: number, portfolioTheta: number, portfolioVega: number, callsPutsValue: number}}
+ */
 export async function getPortfolioValues(
 	liquidityPool: LiquidityPool,
 	controller: NewController,
@@ -151,6 +166,7 @@ export async function getPortfolioValues(
 	opynOracle: Oracle
 ) {
 	const collateralAssetAddress = await liquidityPool.collateralAsset()
+	const maxDiscount = await liquidityPool.maxDiscount()
 	const collateralAsset: ERC20 = new ethers.Contract(
 		collateralAssetAddress,
 		ERC20Artifact.abi,
@@ -342,7 +358,8 @@ export async function getPortfolioValues(
 				x.liquidityAllocated,
 				portfolioDeltaBefore,
 				delta,
-				lpCollateralBalance
+				lpCollateralBalance,
+				maxDiscount
 			)
 			x.utilizationQuote = quote
 		}
