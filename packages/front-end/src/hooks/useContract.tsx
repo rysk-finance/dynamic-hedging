@@ -32,11 +32,19 @@ export const useContract = (args: useContractArgs) => {
   );
 
   const callWithErrorHandling = useCallback(
-    async (method: ethers.ContractFunction, ...args: any) => {
+    async ({
+      method,
+      args,
+      successMessage: successMessage = "✅ Transaction successful",
+    }: {
+      method: ethers.ContractFunction;
+      args: any[];
+      successMessage?: string;
+    }) => {
       try {
         const transaction = (await method(...args)) as TransactionResponse;
         await transaction.wait();
-        toast(`✅ Transaction successful`);
+        toast(successMessage);
         return;
       } catch (err) {
         try {

@@ -81,22 +81,40 @@ export const Purchase: React.FC = () => {
             BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.OPYN)
           ),
         });
-        console.log(seriesAddress);
         // Series hasn't been created yet
         if (seriesAddress === ZERO_ADDRESS) {
-          await usdcContractCall(
-            usdcContract.approve,
-            addresses.localhost.optionHandler,
-            ethers.BigNumber.from(MAX_UINT_256)
-          );
-          console.log(DUMMY_OPTION_SERIES);
-          await optionHandlerContractCall(
-            optionHandlerContract.issueAndWriteOption,
-            DUMMY_OPTION_SERIES,
-            BIG_NUMBER_DECIMALS.RYSK
-          );
+          await usdcContractCall({
+            method: usdcContract.approve,
+            args: [
+              addresses.localhost.optionHandler,
+              ethers.BigNumber.from(MAX_UINT_256),
+            ],
+            successMessage: "✅ Approval successful",
+          });
+          await optionHandlerContractCall({
+            method: optionHandlerContract.issueAndWriteOption,
+            args: [
+              DUMMY_OPTION_SERIES,
+              BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(uiOrderSize)),
+            ],
+          });
         } else {
-          console.log("series is minted");
+          await usdcContractCall({
+            method: usdcContract.approve,
+            args: [
+              addresses.localhost.optionHandler,
+              ethers.BigNumber.from(MAX_UINT_256),
+            ],
+            successMessage: "✅ Approval successful",
+          });
+
+          await optionHandlerContractCall({
+            method: optionHandlerContract.writeOption,
+            args: [
+              seriesAddress,
+              BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(uiOrderSize)),
+            ],
+          });
         }
       } catch (err) {
         console.log(err);

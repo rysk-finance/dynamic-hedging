@@ -193,36 +193,45 @@ export const VaultDepositWithdraw = () => {
         addresses.localhost.liquidityPool
       )) as BigNumber;
       if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
-        await usdcContractCall(
-          usdcContract.approve,
-          addresses.localhost.liquidityPool,
-          settings.unlimitedApproval
-            ? ethers.BigNumber.from(MAX_UINT_256)
-            : amount
-        );
+        await usdcContractCall({
+          method: usdcContract.approve,
+          args: [
+            addresses.localhost.liquidityPool,
+            settings.unlimitedApproval
+              ? ethers.BigNumber.from(MAX_UINT_256)
+              : amount,
+          ],
+          successMessage: "✅ Approval successful",
+        });
       }
-      await lpContractCall(lpContract.deposit, amount);
+      await lpContractCall({ method: lpContract.deposit, args: [amount] });
     }
   };
 
   const handleRedeemShares = async () => {
     if (lpContract) {
       const amount = ethers.utils.parseUnits(inputValue, DECIMALS.RYSK);
-      await lpContractCall(lpContract.redeem, amount);
+      await lpContractCall({ method: lpContract.redeem, args: [amount] });
     }
   };
 
   const handleInitiateWithdraw = async () => {
     if (lpContract) {
       const amount = ethers.utils.parseUnits(inputValue, DECIMALS.RYSK);
-      await lpContractCall(lpContract.initiateWithdraw, amount);
+      await lpContractCall({
+        method: lpContract.initiateWithdraw,
+        args: [amount],
+      });
     }
   };
 
   const handleCompleteWithdraw = async () => {
     if (lpContract && withdrawEpochSharePrice && withdrawalReceipt) {
       const sharesAmount = withdrawalReceipt.shares;
-      await lpContractCall(lpContract.completeWithdraw, sharesAmount);
+      await lpContractCall({
+        method: lpContract.completeWithdraw,
+        args: [sharesAmount],
+      });
     }
   };
 
