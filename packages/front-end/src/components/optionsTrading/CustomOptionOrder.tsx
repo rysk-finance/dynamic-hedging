@@ -40,6 +40,9 @@ export const CustomOptionOrder: React.FC = () => {
 
   return (
     <div className="w-full min-w-[420px]">
+      <div className="bg-black p-2 text-white border-r-2 border-white">
+        <p>Select Type</p>
+      </div>
       <div className="mb-4 border-b-2 border-black">
         <RadioButtonList
           options={optionTypeOptions}
@@ -48,16 +51,22 @@ export const CustomOptionOrder: React.FC = () => {
           removeOuterBorder
         />
       </div>
+      <div className="bg-black p-2 text-white border-r-2 border-white">
+        <p>Select Expiry</p>
+      </div>
       <div className="mb-4">
         <ExpiryDatePicker />
       </div>
       <div>
+        <div className="bg-black p-2 text-white border-r-2 border-white">
+          <p>Add a custom strike</p>
+        </div>
         <div className="flex flex-col px-4 mb-4">
-          <div className="flex items-center">
+          {/* <div className="flex items-center">
             <h4 className="font-parabole mr-2 pb-1">Custom Strike:</h4>
             {uiStrikePrice && <p>{uiStrikePrice} USDC</p>}
-          </div>
-          <p className="text-gray-500 text-xs">What do we put here?</p>
+          </div> */}
+          {/* <p className="text-gray-500 text-xs"></p> */}
         </div>
         <div className="mb-4">
           <TextInput

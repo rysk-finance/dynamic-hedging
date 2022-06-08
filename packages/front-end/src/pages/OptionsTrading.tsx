@@ -14,7 +14,7 @@ export const OptionsTrading = () => {
   return (
     <OptionsTradingProvider>
       <div className="col-start-1 col-end-17 mb-16 flex justify-between">
-        <h3>Trade Options</h3>
+        <h3>Buy Options</h3>
         <div className="flex items-start"></div>
       </div>
       <div className="col-start-1 col-end-17">
@@ -37,16 +37,13 @@ export const OptionsTrading = () => {
           </div>
           <div className="flex grow items-stretch">
             <div className="bg-bone rounded-bl-lg flex flex-col">
-              <div className="bg-black p-2 text-white border-r-2 border-white">
-                <p>Custom Option</p>
-              </div>
               <div className="grow border-r-2 border-black rounded-bl-lg grow">
                 <CustomOptionOrder />
               </div>
             </div>
             <div className="grow flex-col rounded-br-lg">
               <div className="bg-black p-2 text-white ">
-                <p>Options</p>
+                <p>Select Option</p>
               </div>
               <div className="grow border-black rounded-br-lg">
                 <OptionsTable />
