@@ -63,15 +63,46 @@ type SeriesInfo = [BigNumber, BigNumber, boolean, string, string, string] & {
 	collateral: string
 }
 
+type UtilizationCurve = {
+	utilizationFunctionThreshold: number
+	belowUtilizationThresholdGradient: number
+	aboveUtilizationThresholdGradient: number
+	yIntercept: number
+}
+
+const weiToNum = (x: BigNumber) => Number(fromWei(x))
+async function getUtilizationCurve(liquidityPool: LiquidityPool): Promise<UtilizationCurve> {
+	const utilizationFunctionThreshold: number = weiToNum(
+		await liquidityPool.utilizationFunctionThreshold()
+	)
+	const belowUtilizationThresholdGradient: number = weiToNum(
+		await liquidityPool.belowThresholdGradient()
+	)
+	const aboveUtilizationThresholdGradient: number = weiToNum(
+		await liquidityPool.aboveThresholdGradient()
+	)
+	const yIntercept: number = weiToNum(await liquidityPool.aboveThresholdYIntercept())
+	let utilizationCurve: UtilizationCurve = {
+		utilizationFunctionThreshold,
+		belowUtilizationThresholdGradient,
+		aboveUtilizationThresholdGradient,
+		yIntercept
+	}
+	return utilizationCurve
+}
+
 function getUtilizationPrice(
 	utilizationBefore: number,
 	utilizationAfter: number,
 	optionPrice: number,
-	utilizationFunctionThreshold: number = 0.6, //60%
-	belowUtilizationThresholdGradient: number = 0.1,
-	aboveUtilizationThresholdGradient: number = 1.5,
-	yIntercept: number = -0.84
+	utilizationCurve: UtilizationCurve
 ) {
+	const {
+		utilizationFunctionThreshold,
+		belowUtilizationThresholdGradient,
+		aboveUtilizationThresholdGradient,
+		yIntercept
+	} = utilizationCurve
 	if (
 		utilizationBefore < utilizationFunctionThreshold &&
 		utilizationAfter < utilizationFunctionThreshold
@@ -124,6 +155,7 @@ function calculateOptionQuote(
 	portfolioDeltaBefore: BigNumber,
 	optionDelta: number,
 	lpUSDBalance: BigNumber,
+	utilizationCurve: UtilizationCurve,
 	maxDiscount: BigNumber = ethers.utils.parseUnits("1", 17) // 10%
 ) {
 	const numericAmt: number = parseFloat(fromWei(amount))
@@ -145,7 +177,12 @@ function calculateOptionQuote(
 	const utilizationAfter =
 		tFormatUSDC(collateralAllocated.add(liquidityAllocated)) /
 		tFormatUSDC(collateralAllocated.add(lpUSDBalance))
-	const utilizationPrice = getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
+	const utilizationPrice = getUtilizationPrice(
+		utilizationBefore,
+		utilizationAfter,
+		localBS,
+		utilizationCurve
+	)
 	// if delta exposure reduces, subtract delta skew from  pricequotes
 	if (portfolioDeltaIsDecreased) return utilizationPrice - utilizationPrice * deltaTiltAmount
 	return utilizationPrice + utilizationPrice * deltaTiltAmount
@@ -165,6 +202,7 @@ export async function getPortfolioValues(
 	priceFeed: PriceFeed,
 	opynOracle: Oracle
 ) {
+	const utilizationCurve: UtilizationCurve = await getUtilizationCurve(liquidityPool)
 	const collateralAssetAddress = await liquidityPool.collateralAsset()
 	const maxDiscount = await liquidityPool.maxDiscount()
 	const collateralAsset: ERC20 = new ethers.Contract(
@@ -359,6 +397,7 @@ export async function getPortfolioValues(
 				portfolioDeltaBefore,
 				delta,
 				lpCollateralBalance,
+				utilizationCurve,
 				maxDiscount
 			)
 			x.utilizationQuote = quote
