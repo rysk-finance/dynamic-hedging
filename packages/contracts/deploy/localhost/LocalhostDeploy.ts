@@ -103,7 +103,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	const liquidityPool = lpParams.liquidityPool
 	const handler = lpParams.handler
 
-	liquidityPool.setMaxTimeDeviationThreshold(1000000000000000)
+	await liquidityPool.setMaxTimeDeviationThreshold(1000000000000000)
 
 	let contractAddresses
 
