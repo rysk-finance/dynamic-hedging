@@ -44,6 +44,7 @@ const DUMMY_DATA: Serie[] = [
 ];
 
 export const Purchase: React.FC = () => {
+  // Context state
   const {
     state: { settings },
   } = useGlobalContext();
@@ -54,34 +55,33 @@ export const Purchase: React.FC = () => {
 
   const { account } = useWalletContext();
 
+  // Local state
+  const [uiOrderSize, setUIOrderSize] = useState("");
+  const [isApproved, setIsApproved] = useState(false);
+
+  // Contracts
   const [optionRegistryContract, optionRegistryContractCall] = useContract({
-    address: addresses.localhost.OpynOptionRegistry,
+    contract: "OpynOptionRegistry",
     ABI: OptionRegistryABI.abi,
     readOnly: false,
   });
 
   const [optionHandlerContract, optionHandlerContractCall] = useContract({
-    address: addresses.localhost.optionHandler,
+    contract: "optionHandler",
     ABI: OptionHandlerABI.abi,
     readOnly: false,
   });
 
   const [usdcContract, usdcContractCall] = useContract({
-    address: USDC_ADDRESS[CHAINID.ETH_MAINNET],
+    contract: "USDC",
     ABI: ERC20ABI,
     readOnly: false,
   });
-
-  const [uiOrderSize, setUIOrderSize] = useState("");
-  const [isApproved, setIsApproved] = useState(false);
 
   const handleInputChange = (value: string) => {
     setIsApproved(false);
     setUIOrderSize(value);
   };
-
-  const approveIsDisabled = !uiOrderSize || isApproved;
-  const buyIsDisabled = !uiOrderSize || !isApproved;
 
   const handleApproveSpend = async () => {
     if (usdcContract) {
@@ -165,9 +165,8 @@ export const Purchase: React.FC = () => {
     }
   };
 
-  const [uiOrderSize, setUIOrderSize] = useState("");
-
-  const buyIsDisabled = !uiOrderSize;
+  const approveIsDisabled = !uiOrderSize || isApproved;
+  const buyIsDisabled = !uiOrderSize || !isApproved;
 
   return (
     <div>

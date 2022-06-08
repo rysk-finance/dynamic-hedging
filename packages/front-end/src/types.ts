@@ -54,6 +54,7 @@ export type ExternalContractAddresses = {
 
 export type ContractAddresses = RyskContractAddresses &
   ExternalContractAddresses;
+
 export type OptionSeries = {
   expiration: TimestampSeconds;
   strike: BigNumber;
