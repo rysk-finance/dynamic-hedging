@@ -83,7 +83,7 @@ contract MockPortfolioValuesFeed is AccessControl, ChainlinkClient {
 	///////////////
 
 	function setLiquidityPool(address _liquidityPool) external {
-		_onlyGovernor;
+		_onlyGovernor();
 		liquidityPool = ILiquidityPool(_liquidityPool);
 	}
 
