@@ -278,7 +278,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 	/**
 	 * @notice update the liquidity pool buffer limit
-	 * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of total NAV. (for 20% enter 2000)
+	 * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of collateral allocated to options. (for 20% enter 2000)
 	 * @dev   only governance can call this function
 	 */
 	function setBufferPercentage(uint256 _bufferPercentage) external {
