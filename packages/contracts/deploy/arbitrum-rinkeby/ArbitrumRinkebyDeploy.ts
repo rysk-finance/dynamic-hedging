@@ -1,18 +1,10 @@
 import { BigNumber, Signer, utils, BigNumberish, Contract } from "ethers"
 import { expect } from "chai"
-
 import fs from "fs"
 import { toWei } from "../../utils/conversion-helper"
-import hre, { ethers, network } from "hardhat"
-import { DeployFunction } from "hardhat-deploy/types"
-import { HardhatRuntimeEnvironment } from "hardhat/types"
+import hre, { ethers } from "hardhat"
 import path from "path"
-import { CHAINLINK_WETH_PRICER } from "../../test/constants"
-import { setupTestOracle } from "../../test/helpers"
-import { MockChainlinkAggregator } from "../../types/MockChainlinkAggregator"
 import { Oracle } from "../../types/Oracle"
-import { scaleNum } from "../../utils/conversion-helper"
-import { deployOpyn } from "../../utils/opyn-deployer"
 import { WETH } from "../../types/WETH"
 import { ERC20Interface } from "../../types/ERC20Interface"
 import { MintableERC20 } from "../../types/MintableERC20"
@@ -26,10 +18,25 @@ import { LiquidityPool } from "../../types/LiquidityPool"
 import LiquidityPoolSol from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 import { MockPortfolioValuesFeed } from "../../types/MockPortfolioValuesFeed"
 
-const chainId = 4214611
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+/* To use for other chains:
+		- Change addresses below to deployed contracts on new chain
+		- Swap out Mock portfolio values feed factory for real one
+		- Check liquidity pool deploy params
+*/
 
 const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
+
+//	Arbitrum rinkeby specific contract addresses. Change for other networks
+const chainlinkOracleAddress = "0x5f0423B1a6935dc5596e7A24d98532b67A0AeFd8"
+const linkTokenAddress = "0x615fBe6372676474d9e6933d310469c9b68e9726"
+const gammaOracleAddress = "0xe4d64aed5e76bCcE2C255f3c819f4C3817D42f19"
+const opynControllerProxyAddress = "0x2acb561509a082bf2c58ce86cd30df6c2c2017f6"
+const opynAddressBookAddress = "0x2d3E178FFd961BD8C0b035C926F9f2363a436DdC"
+const opynNewCalculatorAddress = "0xa91B46bDDB891fED2cEE626FB03E2929702951A6"
+const oTokenFactoryAddress = "0xcBcC61d56bb2cD6076E2268Ea788F51309FA253B"
+const marginPoolAddress = "0xDD91EB7C3822552D89a5Cb8D4166B1EB19A36Ff2"
+const wethAddress = "0xE32513090f05ED2eE5F3c5819C9Cce6d020Fefe7"
+const usdcAddress = "0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737"
 
 async function main() {
 	const [deployer] = await ethers.getSigners()
@@ -38,17 +45,10 @@ async function main() {
 
 	console.log("Account balance:", (await deployer.getBalance()).toString())
 
-	const oracle = (await ethers.getContractAt(
-		"Oracle",
-		"0xe4d64aed5e76bCcE2C255f3c819f4C3817D42f19"
-	)) as Oracle
+	const gammaOracle = (await ethers.getContractAt("Oracle", gammaOracleAddress)) as Oracle
 
 	// deploy system
-	let deployParams = await deploySystem(
-		deployer,
-		oracle,
-		"0x5f0423B1a6935dc5596e7A24d98532b67A0AeFd8"
-	)
+	let deployParams = await deploySystem(deployer, gammaOracle, chainlinkOracleAddress)
 	console.log("system deployed")
 	const wethERC20 = deployParams.wethERC20
 	const usd = deployParams.usd
@@ -106,13 +106,10 @@ async function main() {
 	}
 
 	// @ts-ignore
-	contractAddresses["arbitrumRinkeby"]["OpynController"] =
-		"0x2acb561509a082bf2c58ce86cd30df6c2c2017f6"
-	contractAddresses["arbitrumRinkeby"]["OpynAddressBook"] =
-		"0x2d3E178FFd961BD8C0b035C926F9f2363a436DdC"
-	contractAddresses["arbitrumRinkeby"]["OpynOracle"] = "0xe4d64aed5e76bCcE2C255f3c819f4C3817D42f19"
-	contractAddresses["arbitrumRinkeby"]["OpynNewCalculator"] =
-		"0xa91B46bDDB891fED2cEE626FB03E2929702951A6"
+	contractAddresses["arbitrumRinkeby"]["OpynController"] = opynControllerProxyAddress
+	contractAddresses["arbitrumRinkeby"]["OpynAddressBook"] = opynAddressBookAddress
+	contractAddresses["arbitrumRinkeby"]["OpynOracle"] = gammaOracleAddress
+	contractAddresses["arbitrumRinkeby"]["OpynNewCalculator"] = opynNewCalculatorAddress
 	contractAddresses["arbitrumRinkeby"]["OpynOptionRegistry"] = optionRegistry.address
 	contractAddresses["arbitrumRinkeby"]["priceFeed"] = priceFeed.address
 	contractAddresses["arbitrumRinkeby"]["volFeed"] = volFeed.address
@@ -129,10 +126,10 @@ async function main() {
 	fs.writeFileSync(addressPath, JSON.stringify(contractAddresses, null, 4))
 
 	console.log({
-		OpynController: "0x2acb561509a082bf2c58ce86cd30df6c2c2017f6",
-		OpynAddressBook: "0x2d3E178FFd961BD8C0b035C926F9f2363a436DdC",
-		OpynOracle: "0xe4d64aed5e76bCcE2C255f3c819f4C3817D42f19",
-		OpynNewCalculator: "0xa91B46bDDB891fED2cEE626FB03E2929702951A6",
+		OpynController: opynControllerProxyAddress,
+		OpynAddressBook: opynAddressBookAddress,
+		OpynOracle: gammaOracleAddress,
+		OpynNewCalculator: opynNewCalculatorAddress,
 		OpynOptionRegistry: optionRegistry.address,
 		priceFeed: priceFeed.address,
 		volFeed: volFeed.address,
@@ -188,15 +185,12 @@ export async function deploySystem(
 	// get weth and usdc contracts
 	const weth = (await ethers.getContractAt(
 		"contracts/interfaces/WETH.sol:WETH",
-		"0xE32513090f05ED2eE5F3c5819C9Cce6d020Fefe7"
+		wethAddress
 	)) as WETH
-	const wethERC20 = (await ethers.getContractAt(
-		"ERC20Interface",
-		"0xE32513090f05ED2eE5F3c5819C9Cce6d020Fefe7"
-	)) as ERC20Interface
+	const wethERC20 = (await ethers.getContractAt("ERC20Interface", wethAddress)) as ERC20Interface
 	const usd = (await ethers.getContractAt(
 		"contracts/tokens/ERC20.sol:ERC20",
-		"0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737"
+		usdcAddress
 	)) as MintableERC20
 
 	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
@@ -258,12 +252,14 @@ export async function deploySystem(
 	await volFeed.setVolatilitySkew(coefs, true)
 	await volFeed.setVolatilitySkew(coefs, false)
 	console.log("vol feed skews set")
+
+	/* ********* Mock contract - swap for real on prod ********* */
 	const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
 	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
 		deployerAddress,
 		utils.formatBytes32String("jobId"),
 		toWei("1"),
-		"0x615fBe6372676474d9e6933d310469c9b68e9726", // LINK token address
+		linkTokenAddress,
 		authority.address
 	)) as MockPortfolioValuesFeed
 	console.log("mock portfolio values feed deployed")
@@ -275,7 +271,7 @@ export async function deploySystem(
 				deployerAddress,
 				utils.formatBytes32String("jobId"),
 				toWei("1"),
-				"0x615fBe6372676474d9e6933d310469c9b68e9726", // LINK token address
+				linkTokenAddress,
 				authority.address
 			]
 		})
@@ -296,11 +292,11 @@ export async function deploySystem(
 	console.log(deployerAddress, authority.address)
 	const optionRegistry = (await optionRegistryFactory.deploy(
 		usd.address, // usdc
-		"0xcBcC61d56bb2cD6076E2268Ea788F51309FA253B", // oToken Factory
-		"0x2acb561509a082bf2c58ce86cd30df6c2c2017f6", // controller
-		"0xDD91EB7C3822552D89a5Cb8D4166B1EB19A36Ff2", // margin pool
+		oTokenFactoryAddress,
+		opynControllerProxyAddress,
+		marginPoolAddress,
 		deployerAddress,
-		"0x2d3E178FFd961BD8C0b035C926F9f2363a436DdC", // address book
+		opynAddressBookAddress,
 		authority.address,
 		{ gasLimit: BigNumber.from("500000000") }
 	)) as OptionRegistry
@@ -311,11 +307,11 @@ export async function deploySystem(
 			address: optionRegistry.address,
 			constructorArguments: [
 				usd.address, // usdc
-				"0xcBcC61d56bb2cD6076E2268Ea788F51309FA253B", // oToken Factory
-				"0x2acb561509a082bf2c58ce86cd30df6c2c2017f6", // controller
-				"0xDD91EB7C3822552D89a5Cb8D4166B1EB19A36Ff2", // margin pool
+				oTokenFactoryAddress,
+				opynControllerProxyAddress,
+				marginPoolAddress,
 				deployerAddress,
-				"0x2d3E178FFd961BD8C0b035C926F9f2363a436DdC", // address book
+				opynAddressBookAddress,
 				authority.address
 			]
 		})
@@ -527,14 +523,8 @@ export async function deployLiquidityPool(
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
 	await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
 	await liquidityPool.setBidAskSpread(toWei("0.05"))
-	await pvFeed.setAddressStringMapping(
-		"0xE32513090f05ED2eE5F3c5819C9Cce6d020Fefe7", // weth address
-		"0xE32513090f05ED2eE5F3c5819C9Cce6d020Fefe7"
-	)
-	await pvFeed.setAddressStringMapping(
-		"0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737", // usdc address
-		"0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737"
-	)
+	await pvFeed.setAddressStringMapping(wethAddress, wethAddress)
+	await pvFeed.setAddressStringMapping(usdcAddress, usdcAddress)
 	await pvFeed.setLiquidityPool(liquidityPool.address)
 	console.log("pv feed lp set")
 
