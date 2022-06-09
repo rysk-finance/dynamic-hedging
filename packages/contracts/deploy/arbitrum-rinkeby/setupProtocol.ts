@@ -18,7 +18,6 @@ dotenv.config()
 
 // arbitrum rinkeby addresses
 const liquidityPoolAddress = "0xA7f49544f51f46E3bA2099A3aCad70502b8bc125"
-const optionRegistryAddress = "0xA6005cAcF024404d4335751d4dE8c23ff6EC5214"
 const usdcAddress = "0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737"
 const pvFeedAddress = "0x540932Ac16341384E273bDf888806F001003560B"
 const priceFeedAddress = "0xDbBF84a29515C783Ea183f92120be7Aa9120fA23"
