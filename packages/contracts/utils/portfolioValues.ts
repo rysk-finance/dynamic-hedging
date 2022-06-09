@@ -25,6 +25,7 @@ import ERC20Artifact from "../artifacts/contracts/tokens/ERC20.sol/ERC20.json"
 
 type GreekVariables = [string, string, number, string, number, "put" | "call"]
 type WriteEvent = WriteOptionEvent & Event
+type WriteOptionAmounts = Record<string, BigNumber>
 type DecodedData = {
 	series: string
 	amount: BigNumber
@@ -80,12 +81,61 @@ type ContractsState = {
 	vaultLiquidationRegisteredEvents: VaultLiquidationRegisteredEvent[]
 }
 
+async function filterAndEnrichWriteOptions(
+	writeOption: WriteOptionEvent[],
+	optionRegistry: OptionRegistry,
+	writeOptionAmounts: WriteOptionAmounts,
+	timestamp: number,
+	settledVaults: Set<string>
+): Promise<EnrichedWriteEvent[]> {
+	const enrichedWriteOptions: Promise<EnrichedWriteEvent>[] = writeOption.map(
+		async (x: WriteOptionEvent): Promise<EnrichedWriteEvent> => {
+			const y: EnrichedWriteEvent = x as EnrichedWriteEvent
+			const { data, topics, decode } = y
+			if (!decode) return y
+			y.decoded = decode(data, topics)
+			y.series = y?.decoded?.series
+			if (!y.series) return y
+			//@TODO consider batching these as a multicall or using an indexing service
+			const seriesInfo = await optionRegistry.seriesInfo(y.series)
+			const vaultId = await optionRegistry.vaultIds(y.series)
+			y.vaultId = vaultId.toString()
+			y.expiration = seriesInfo.expiration.toNumber()
+			const amount: BigNumber = y?.decoded?.amount ? y?.decoded?.amount : BigNumber.from(0)
+			y.amount = amount
+			const existingWriteAmount = writeOptionAmounts[y.series]
+			if (!existingWriteAmount) writeOptionAmounts[y.series] = amount
+			else writeOptionAmounts[y.series] = existingWriteAmount.add(amount)
+			return y
+		}
+	)
+	const resolved = await Promise.all(enrichedWriteOptions)
+	const filtered = resolved.filter(x => {
+		if (!x.vaultId) return
+		if (!x.expiration) return
+		// filter out only expired and settled
+		return x.expiration > timestamp || !settledVaults.has(x.vaultId)
+	})
+	// reduce write events to options positions by series
+	const seriesProcessed = new Set()
+	//@ts-ignore
+	const optionPositions: EnrichedWriteEvent[] = filtered.reduce((acc, cv) => {
+		if (!cv.series) return acc
+		if (seriesProcessed.has(cv.series)) return acc
+		const amount = writeOptionAmounts[cv.series]
+		cv.amount = amount
+		seriesProcessed.add(cv.series)
+		return [...acc, cv]
+	}, [])
+	return optionPositions
+}
+
 async function getContractsState(
 	liquidityPool: LiquidityPool,
 	priceFeed: PriceFeed,
 	optionRegistry: OptionRegistry,
 	controller: NewController
-) {
+): Promise<ContractsState> {
 	const utilizationCurve: UtilizationCurve = await getUtilizationCurve(liquidityPool)
 	const collateralAssetAddress = await liquidityPool.collateralAsset()
 	const maxDiscount = await liquidityPool.maxDiscount()
@@ -281,7 +331,7 @@ export async function getPortfolioValues(
 	// index buybacks amounts by series
 	const buybackAmounts: Record<string, BigNumber> = {}
 	// index write amount by series address
-	const writeOptionAmounts: Record<string, BigNumber> = {}
+	const writeOptionAmounts: WriteOptionAmounts = {}
 
 	contractsState.buybackEvents.map(x => {
 		if (!x.decode) return
@@ -309,46 +359,13 @@ export async function getPortfolioValues(
 		const decoded = x.decode(x.data, x.topics)
 		settledVaults.add(decoded.vaultId.toString())
 	})
-	const enrichedWriteOptions: Promise<EnrichedWriteEvent>[] = contractsState.writeOption.map(
-		async (x: WriteOptionEvent): Promise<EnrichedWriteEvent> => {
-			const y: EnrichedWriteEvent = x as EnrichedWriteEvent
-			const { data, topics, decode } = y
-			if (!decode) return y
-			y.decoded = decode(data, topics)
-			y.series = y?.decoded?.series
-			if (!y.series) return y
-			//@TODO consider batching these as a multicall or using an indexing service
-			const seriesInfo = await optionRegistry.seriesInfo(y.series)
-			const vaultId = await optionRegistry.vaultIds(y.series)
-			y.vaultId = vaultId.toString()
-			y.expiration = seriesInfo.expiration.toNumber()
-			const amount: BigNumber = y?.decoded?.amount ? y?.decoded?.amount : BigNumber.from(0)
-			y.amount = amount
-			const existingWriteAmount = writeOptionAmounts[y.series]
-			if (!existingWriteAmount) writeOptionAmounts[y.series] = amount
-			else writeOptionAmounts[y.series] = existingWriteAmount.add(amount)
-			return y
-		}
+	const optionPositions: EnrichedWriteEvent[] = await filterAndEnrichWriteOptions(
+		contractsState.writeOption,
+		optionRegistry,
+		writeOptionAmounts,
+		timestamp,
+		settledVaults
 	)
-	const resolved = await Promise.all(enrichedWriteOptions)
-	// remove expired options
-	const filtered = resolved.filter(x => {
-		if (!x.vaultId) return
-		if (!x.expiration) return
-		// filter out only expired and settled
-		return x.expiration > timestamp || !settledVaults.has(x.vaultId)
-	})
-	// reduce write events to options positions by series
-	const seriesProcessed = new Set()
-	//@ts-ignore
-	const optionPositions: EnrichedWriteEvent[] = filtered.reduce((acc, cv) => {
-		if (!cv.series) return acc
-		if (seriesProcessed.has(cv.series)) return acc
-		const amount = writeOptionAmounts[cv.series]
-		cv.amount = amount
-		seriesProcessed.add(cv.series)
-		return [...acc, cv]
-	}, [])
 
 	const enrichedOptionPositions = optionPositions.map(async x => {
 		if (!x.series || !x.vaultId) return x
