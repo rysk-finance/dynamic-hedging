@@ -25,7 +25,7 @@ import ERC20Artifact from "../artifacts/contracts/tokens/ERC20.sol/ERC20.json"
 
 type GreekVariables = [string, string, number, string, number, "put" | "call"]
 type WriteEvent = WriteOptionEvent & Event
-type WriteOptionAmounts = Record<string, BigNumber>
+type EventMap = Record<string, BigNumber>
 type DecodedData = {
 	series: string
 	amount: BigNumber
@@ -81,10 +81,51 @@ type ContractsState = {
 	vaultLiquidationRegisteredEvents: VaultLiquidationRegisteredEvent[]
 }
 
+/**
+ * Uses the contractState to set the event maps
+ *
+ * @typeParam contractState
+ * @typeParam buybackAmount
+ * @typeParam vaultLiquidation
+ * @typeParam settleVaults
+ */
+function populateEventMaps(
+	contractsState: ContractsState,
+	buybackAmounts: EventMap,
+	vaultLiquidations: EventMap,
+	settledVaults: Set<string>
+) {
+	contractsState.buybackEvents.forEach(x => {
+		if (!x.decode) return
+		const decoded: DecodedData = x.decode(x.data, x.topics)
+		const amount = buybackAmounts[decoded.series]
+		if (!amount) {
+			buybackAmounts[decoded.series] = decoded.amount
+		} else {
+			buybackAmounts[decoded.series] = amount.add(decoded.amount)
+		}
+	})
+
+	contractsState.vaultLiquidationRegisteredEvents.forEach(x => {
+		if (!x.decode) return
+		const decoded: VaultLiquidationRegistered = x.decode(x.data, x.topics)
+		const amountLiquidated = vaultLiquidations[decoded.vaultId.toString()]
+		const fromOpynAmount = fromOpynToWei(decoded.amountLiquidated)
+		if (!amountLiquidated) vaultLiquidations[decoded.vaultId.toString()] = fromOpynAmount
+		else vaultLiquidations[decoded.vaultId.toString()] = amountLiquidated.add(fromOpynAmount)
+	})
+
+	contractsState.vaultSettledEvents.forEach(x => {
+		if (!x.decode) return
+		const decoded = x.decode(x.data, x.topics)
+		settledVaults.add(decoded.vaultId.toString())
+	})
+}
+
 async function filterAndEnrichWriteOptions(
 	writeOption: WriteOptionEvent[],
 	optionRegistry: OptionRegistry,
-	writeOptionAmounts: WriteOptionAmounts,
+	writeOptionAmounts: EventMap,
 	timestamp: number,
 	settledVaults: Set<string>
 ): Promise<EnrichedWriteEvent[]> {
@@ -325,40 +366,15 @@ export async function getPortfolioValues(
 	const { timestamp } = block
 
 	// index liquidated vault registrations by vaultId
-	const vaultLiquidations: Record<string, BigNumber> = {}
+	const vaultLiquidations: EventMap = {}
 	// index settled vaults by vaultId
 	const settledVaults = new Set<string>()
 	// index buybacks amounts by series
-	const buybackAmounts: Record<string, BigNumber> = {}
+	const buybackAmounts: EventMap = {}
 	// index write amount by series address
-	const writeOptionAmounts: WriteOptionAmounts = {}
+	const writeOptionAmounts: EventMap = {}
 
-	contractsState.buybackEvents.map(x => {
-		if (!x.decode) return
-		const decoded: DecodedData = x.decode(x.data, x.topics)
-		const amount = buybackAmounts[decoded.series]
-		if (!amount) {
-			buybackAmounts[decoded.series] = decoded.amount
-		} else {
-			buybackAmounts[decoded.series] = amount.add(decoded.amount)
-		}
-		return decoded
-	})
-
-	contractsState.vaultLiquidationRegisteredEvents.map(x => {
-		if (!x.decode) return
-		const decoded: VaultLiquidationRegistered = x.decode(x.data, x.topics)
-		const amountLiquidated = vaultLiquidations[decoded.vaultId.toString()]
-		const fromOpynAmount = fromOpynToWei(decoded.amountLiquidated)
-		if (!amountLiquidated) vaultLiquidations[decoded.vaultId.toString()] = fromOpynAmount
-		else vaultLiquidations[decoded.vaultId.toString()] = amountLiquidated.add(fromOpynAmount)
-	})
-
-	contractsState.vaultSettledEvents.map(x => {
-		if (!x.decode) return
-		const decoded = x.decode(x.data, x.topics)
-		settledVaults.add(decoded.vaultId.toString())
-	})
+	populateEventMaps(contractsState, buybackAmounts, vaultLiquidations, settledVaults)
 	const optionPositions: EnrichedWriteEvent[] = await filterAndEnrichWriteOptions(
 		contractsState.writeOption,
 		optionRegistry,
