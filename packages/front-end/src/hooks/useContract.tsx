@@ -36,15 +36,18 @@ export const useContract = (args: useContractArgs) => {
       method,
       args,
       successMessage: successMessage = "✅ Transaction successful",
+      onComplete,
     }: {
       method: ethers.ContractFunction;
       args: any[];
       successMessage?: string;
+      onComplete?: () => void;
     }) => {
       try {
         const transaction = (await method(...args)) as TransactionResponse;
         await transaction.wait();
         toast(successMessage);
+        onComplete?.();
         return;
       } catch (err) {
         try {
