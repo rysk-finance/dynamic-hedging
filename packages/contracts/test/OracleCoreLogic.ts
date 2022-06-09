@@ -253,17 +253,12 @@ describe("Oracle core logic", async () => {
 		let liquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
 		let receipt = await deposit.wait(1)
 		const event = receipt?.events?.find(x => x.event == "Deposit")
-		const newBalance = await usd.balanceOf(senderAddress)
 		expect(event?.event).to.eq("Deposit")
-		expect(balance.sub(newBalance)).to.eq(toUSDC(liquidityPoolUsdcDeposit))
-		//expect(liquidityPoolBalance.toString()).to.eq(toWei(liquidityPoolUsdcDeposit))
 		portfolioValueArgs = [liquidityPool, controller, optionRegistry, priceFeed, oracle]
 
 		// Removes from liquidityPool with no options written
-		//await liquidityPool.setMaxTimeDeviationThreshold("1000")
 		liquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
 		const halfBalance = liquidityPoolBalance.div(BigNumber.from(2))
-		//await liquidityPool.initiateWithdraw(halfBalance)
 		const newLiquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
 		const expectedBalance = (
 			parseFloat(liquidityPoolUsdcDeposit) - parseFloat(liquidityPoolUsdcWithdraw)

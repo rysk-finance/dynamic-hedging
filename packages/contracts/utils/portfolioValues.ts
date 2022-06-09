@@ -122,6 +122,85 @@ function populateEventMaps(
 	})
 }
 
+async function enrichOptionPositions(
+	optionPositions: EnrichedWriteEvent[],
+	contractsState: ContractsState,
+	buybackAmounts: EventMap,
+	vaultLiquidations: EventMap,
+	timestamp: number,
+	optionRegistry: OptionRegistry,
+	liquidityPool: LiquidityPool,
+	opynOracle: Oracle
+): Promise<EnrichedWriteEvent[]> {
+	const enrichedOptionPositions = optionPositions.map(async x => {
+		if (!x.series || !x.vaultId) return x
+		// reduce notional amount by buybacks and liquidations
+		const buybackAmount: BigNumber = buybackAmounts[x.series]
+		const liquidationAmount: BigNumber = vaultLiquidations[x.vaultId]
+		if (buybackAmount) x.amount = x.amount?.sub(buybackAmount)
+		if (liquidationAmount) x.amount = x.amount?.sub(liquidationAmount)
+
+		const seriesInfo = await optionRegistry.seriesInfo(x.series)
+		const priceNorm = fromWei(contractsState.priceQuote)
+		const iv = await liquidityPool.getImpliedVolatility(
+			seriesInfo.isPut,
+			contractsState.priceQuote,
+			seriesInfo.strike,
+			seriesInfo.expiration
+		)
+		const optionType = seriesInfo.isPut ? "put" : "call"
+		let timeToExpiration = genOptionTimeFromUnix(Number(timestamp), seriesInfo.expiration.toNumber())
+		const rfr = fromWei(await liquidityPool.riskFreeRate())
+		let priceToUse = priceNorm
+		if (!x.expiration) return x
+		// handle expired but not settled options
+		if (x.expiration <= timestamp) {
+			const [price] = await opynOracle.getExpiryPrice(contractsState.underlying, seriesInfo.expiration)
+			timeToExpiration = 0
+			priceToUse = fromOpyn(price)
+		} else {
+			timeToExpiration = genOptionTimeFromUnix(Number(timestamp), seriesInfo.expiration.toNumber())
+		}
+		const greekVariables: GreekVariables = [
+			priceToUse,
+			fromOpyn(seriesInfo.strike),
+			timeToExpiration,
+			fromWei(iv),
+			parseFloat(rfr),
+			optionType
+		]
+		const delta = greeks.getDelta(...greekVariables)
+		const gamma = greeks.getGamma(...greekVariables)
+		const vega = greeks.getVega(...greekVariables)
+		const theta = greeks.getTheta(...greekVariables)
+		const bsQuote: number = bs.blackScholes(...greekVariables)
+		const optionSeries = {
+			expiration: seriesInfo.expiration,
+			strike: seriesInfo.strike,
+			isPut: greekVariables[5] == "put" ? true : false,
+			strikeAsset: seriesInfo.strikeAsset,
+			underlying: seriesInfo.underlying,
+			collateral: seriesInfo.collateral
+		}
+		if (!x.amount) return x
+		const liquidityAllocated: BigNumber = await optionRegistry.getCollateral(optionSeries, x.amount)
+		x.liquidityAllocated = liquidityAllocated
+		// @TODO consider keeping calculation in BigNumber as more precise and is the format onchain.
+		if (x.amount) {
+			const numericAmt = Number(fromWei(x.amount))
+			// invert sign due to writing rather than buying
+			x.delta = numericAmt * delta * -1
+			x.gamma = numericAmt * gamma * -1
+			x.theta = numericAmt * theta * -1
+			x.vega = numericAmt * vega * -1
+			x.bsQuote = bsQuote
+		}
+		return x
+	})
+	const resolvedOptionPositions = await Promise.all(enrichedOptionPositions)
+	return resolvedOptionPositions
+}
+
 async function filterAndEnrichWriteOptions(
 	writeOption: WriteOptionEvent[],
 	optionRegistry: OptionRegistry,
@@ -362,7 +441,6 @@ export async function getPortfolioValues(
 
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
-	const underlyingAsset = await liquidityPool.underlyingAsset()
 	const { timestamp } = block
 
 	// index liquidated vault registrations by vaultId
@@ -383,72 +461,16 @@ export async function getPortfolioValues(
 		settledVaults
 	)
 
-	const enrichedOptionPositions = optionPositions.map(async x => {
-		if (!x.series || !x.vaultId) return x
-		// reduce notional amount by buybacks and liquidations
-		const buybackAmount: BigNumber = buybackAmounts[x.series]
-		const liquidationAmount: BigNumber = vaultLiquidations[x.vaultId]
-		if (buybackAmount) x.amount = x.amount?.sub(buybackAmount)
-		if (liquidationAmount) x.amount = x.amount?.sub(liquidationAmount)
-
-		const seriesInfo = await optionRegistry.seriesInfo(x.series)
-		const priceNorm = fromWei(contractsState.priceQuote)
-		const iv = await liquidityPool.getImpliedVolatility(
-			seriesInfo.isPut,
-			contractsState.priceQuote,
-			seriesInfo.strike,
-			seriesInfo.expiration
-		)
-		const optionType = seriesInfo.isPut ? "put" : "call"
-		let timeToExpiration = genOptionTimeFromUnix(Number(timestamp), seriesInfo.expiration.toNumber())
-		const rfr = fromWei(await liquidityPool.riskFreeRate())
-		let priceToUse = priceNorm
-		if (!x.expiration) return x
-		// handle expired but not settled options
-		if (x.expiration <= timestamp) {
-			const [price] = await opynOracle.getExpiryPrice(underlyingAsset, seriesInfo.expiration)
-			timeToExpiration = 0
-			priceToUse = fromOpyn(price)
-		} else {
-			timeToExpiration = genOptionTimeFromUnix(Number(timestamp), seriesInfo.expiration.toNumber())
-		}
-		const greekVariables: GreekVariables = [
-			priceToUse,
-			fromOpyn(seriesInfo.strike),
-			timeToExpiration,
-			fromWei(iv),
-			parseFloat(rfr),
-			optionType
-		]
-		const delta = greeks.getDelta(...greekVariables)
-		const gamma = greeks.getGamma(...greekVariables)
-		const vega = greeks.getVega(...greekVariables)
-		const theta = greeks.getTheta(...greekVariables)
-		const bsQuote: number = bs.blackScholes(...greekVariables)
-		const optionSeries = {
-			expiration: seriesInfo.expiration,
-			strike: seriesInfo.strike,
-			isPut: greekVariables[5] == "put" ? true : false,
-			strikeAsset: seriesInfo.strikeAsset,
-			underlying: seriesInfo.underlying,
-			collateral: seriesInfo.collateral
-		}
-		if (!x.amount) return x
-		const liquidityAllocated: BigNumber = await optionRegistry.getCollateral(optionSeries, x.amount)
-		x.liquidityAllocated = liquidityAllocated
-		// @TODO consider keeping calculation in BigNumber as more precise and is the format onchain.
-		if (x.amount) {
-			const numericAmt = Number(fromWei(x.amount))
-			// invert sign due to writing rather than buying
-			x.delta = numericAmt * delta * -1
-			x.gamma = numericAmt * gamma * -1
-			x.theta = numericAmt * theta * -1
-			x.vega = numericAmt * vega * -1
-			x.bsQuote = bsQuote
-		}
-		return x
-	})
-	const resolvedOptionPositions = await Promise.all(enrichedOptionPositions)
+	const resolvedOptionPositions: EnrichedWriteEvent[] = await enrichOptionPositions(
+		optionPositions,
+		contractsState,
+		buybackAmounts,
+		vaultLiquidations,
+		timestamp,
+		optionRegistry,
+		liquidityPool,
+		opynOracle
+	)
 	const portfolioDelta = resolvedOptionPositions.reduce((total, num) => total + (num.delta || 0), 0)
 	const portfolioGamma = resolvedOptionPositions.reduce((total, num) => total + (num.gamma || 0), 0)
 	const portfolioVega = resolvedOptionPositions.reduce((total, num) => total + (num.vega || 0), 0)
