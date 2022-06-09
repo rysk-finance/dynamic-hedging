@@ -5,10 +5,10 @@ import greeks from "greeks"
 //@ts-ignore
 import bs from "black-scholes"
 import { BigNumber, Event, utils } from "ethers"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { NewController } from "../types/NewController"
+import { BuybackOptionEvent, LiquidityPool } from "../types/LiquidityPool"
+import { NewController, VaultSettledEvent } from "../types/NewController"
 import { WriteOptionEvent } from "../types/LiquidityPool"
-import { OptionRegistry } from "../types/OptionRegistry"
+import { OptionRegistry, VaultLiquidationRegisteredEvent } from "../types/OptionRegistry"
 import { PriceFeed } from "../types/PriceFeed"
 import {
 	fromWei,
@@ -29,13 +29,7 @@ type DecodedData = {
 	series: string
 	amount: BigNumber
 }
-type VaultLiquidatedEvent = {
-	vaultOwner: string
-	// amount of liquidation in 1e8
-	debtAmount: BigNumber
-	vaultId: BigNumber
-}
-type VaultLiquidationRegisteredEvent = {
+interface VaultLiquidationRegistered extends VaultLiquidationRegisteredEvent {
 	amountLiquidated: BigNumber
 	vaultId: BigNumber
 }
@@ -68,6 +62,72 @@ type UtilizationCurve = {
 	belowUtilizationThresholdGradient: number
 	aboveUtilizationThresholdGradient: number
 	yIntercept: number
+}
+
+type ContractsState = {
+	utilizationCurve: UtilizationCurve
+	maxDiscount: BigNumber
+	lpCollateralBalance: BigNumber
+	collateralAllocated: BigNumber
+	assets: BigNumber
+	portfolioDeltaBefore: BigNumber
+	underlying: string
+	strikeAsset: string
+	priceQuote: BigNumber
+	writeOption: WriteOptionEvent[]
+	buybackEvents: BuybackOptionEvent[]
+	vaultSettledEvents: VaultSettledEvent[]
+	vaultLiquidationRegisteredEvents: VaultLiquidationRegisteredEvent[]
+}
+
+async function getContractsState(
+	liquidityPool: LiquidityPool,
+	priceFeed: PriceFeed,
+	optionRegistry: OptionRegistry,
+	controller: NewController
+) {
+	const utilizationCurve: UtilizationCurve = await getUtilizationCurve(liquidityPool)
+	const collateralAssetAddress = await liquidityPool.collateralAsset()
+	const maxDiscount = await liquidityPool.maxDiscount()
+	const collateralAsset: ERC20 = new ethers.Contract(
+		collateralAssetAddress,
+		ERC20Artifact.abi,
+		liquidityPool.provider
+	) as ERC20
+	const lpCollateralBalance = await collateralAsset.balanceOf(liquidityPool.address)
+	const collateralAllocated = await liquidityPool.collateralAllocated()
+	const assets = await liquidityPool.getAssets()
+	const portfolioDeltaBefore = await liquidityPool.getPortfolioDelta()
+	const underlying = await liquidityPool.underlyingAsset()
+	const strikeAsset = await liquidityPool.strikeAsset()
+	const priceQuote = await priceFeed.getNormalizedRate(underlying, strikeAsset)
+
+	const vaultLiquidationRegisteredFilter = optionRegistry.filters.VaultLiquidationRegistered()
+	const writeOptionEventFilter = liquidityPool.filters.WriteOption()
+	const buybackEventFilter = liquidityPool.filters.BuybackOption()
+	const vaultSettledFilter = controller.filters.VaultSettled()
+	const writeOption = await liquidityPool.queryFilter(writeOptionEventFilter)
+	const buybackEvents = await liquidityPool.queryFilter(buybackEventFilter)
+	const vaultSettledEvents = await controller.queryFilter(vaultSettledFilter)
+	const vaultLiquidationRegisteredEvents = await optionRegistry.queryFilter(
+		vaultLiquidationRegisteredFilter
+	)
+	const contractsState: ContractsState = {
+		utilizationCurve,
+		maxDiscount,
+		lpCollateralBalance,
+		collateralAllocated,
+		assets,
+		portfolioDeltaBefore,
+		priceQuote,
+		writeOption,
+		buybackEvents,
+		vaultSettledEvents,
+		vaultLiquidationRegisteredEvents,
+		underlying,
+		strikeAsset
+	}
+	return contractsState
 }
 
 const weiToNum = (x: BigNumber) => Number(fromWei(x))
@@ -202,32 +262,13 @@ export async function getPortfolioValues(
 	priceFeed: PriceFeed,
 	opynOracle: Oracle
 ) {
-	const utilizationCurve: UtilizationCurve = await getUtilizationCurve(liquidityPool)
-	const collateralAssetAddress = await liquidityPool.collateralAsset()
-	const maxDiscount = await liquidityPool.maxDiscount()
-	const collateralAsset: ERC20 = new ethers.Contract(
-		collateralAssetAddress,
-		ERC20Artifact.abi,
-		liquidityPool.provider
-	) as ERC20
-	const lpCollateralBalance = await collateralAsset.balanceOf(liquidityPool.address)
-	const collateralAllocated = await liquidityPool.collateralAllocated()
-	const assets = await liquidityPool.getAssets()
-	const portfolioDeltaBefore = await liquidityPool.getPortfolioDelta()
-	const underlying = await liquidityPool.underlyingAsset()
-	const strikeAsset = await liquidityPool.strikeAsset()
-	const priceQuote = await priceFeed.getNormalizedRate(underlying, strikeAsset)
-
-	const vaultLiquidationRegisteredFilter = optionRegistry.filters.VaultLiquidationRegistered()
-	const writeOptionEventFilter = liquidityPool.filters.WriteOption()
-	const buybackEventFilter = liquidityPool.filters.BuybackOption()
-	const vaultSettledFilter = controller.filters.VaultSettled()
-	const writeOption = await liquidityPool.queryFilter(writeOptionEventFilter)
-	const buybackEvents = await liquidityPool.queryFilter(buybackEventFilter)
-	const vaultSettledEvents = await controller.queryFilter(vaultSettledFilter)
-	const vaultLiquidationRegisteredEvents = await optionRegistry.queryFilter(
-		vaultLiquidationRegisteredFilter
+	const contractsState: ContractsState = await getContractsState(
+		liquidityPool,
+		priceFeed,
+		optionRegistry,
+		controller
 	)
+
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
 	const underlyingAsset = await liquidityPool.underlyingAsset()
@@ -242,7 +283,7 @@ export async function getPortfolioValues(
 	// index write amount by series address
 	const writeOptionAmounts: Record<string, BigNumber> = {}
 
-	buybackEvents.map(x => {
+	contractsState.buybackEvents.map(x => {
 		if (!x.decode) return
 		const decoded: DecodedData = x.decode(x.data, x.topics)
 		const amount = buybackAmounts[decoded.series]
@@ -254,21 +295,21 @@ export async function getPortfolioValues(
 		return decoded
 	})
 
-	vaultLiquidationRegisteredEvents.map(x => {
+	contractsState.vaultLiquidationRegisteredEvents.map(x => {
 		if (!x.decode) return
-		const decoded: VaultLiquidationRegisteredEvent = x.decode(x.data, x.topics)
+		const decoded: VaultLiquidationRegistered = x.decode(x.data, x.topics)
 		const amountLiquidated = vaultLiquidations[decoded.vaultId.toString()]
 		const fromOpynAmount = fromOpynToWei(decoded.amountLiquidated)
 		if (!amountLiquidated) vaultLiquidations[decoded.vaultId.toString()] = fromOpynAmount
 		else vaultLiquidations[decoded.vaultId.toString()] = amountLiquidated.add(fromOpynAmount)
 	})
 
-	vaultSettledEvents.map(x => {
+	contractsState.vaultSettledEvents.map(x => {
 		if (!x.decode) return
 		const decoded = x.decode(x.data, x.topics)
 		settledVaults.add(decoded.vaultId.toString())
 	})
-	const enrichedWriteOptions: Promise<EnrichedWriteEvent>[] = writeOption.map(
+	const enrichedWriteOptions: Promise<EnrichedWriteEvent>[] = contractsState.writeOption.map(
 		async (x: WriteOptionEvent): Promise<EnrichedWriteEvent> => {
 			const y: EnrichedWriteEvent = x as EnrichedWriteEvent
 			const { data, topics, decode } = y
@@ -318,10 +359,10 @@ export async function getPortfolioValues(
 		if (liquidationAmount) x.amount = x.amount?.sub(liquidationAmount)
 
 		const seriesInfo = await optionRegistry.seriesInfo(x.series)
-		const priceNorm = fromWei(priceQuote)
+		const priceNorm = fromWei(contractsState.priceQuote)
 		const iv = await liquidityPool.getImpliedVolatility(
 			seriesInfo.isPut,
-			priceQuote,
+			contractsState.priceQuote,
 			seriesInfo.strike,
 			seriesInfo.expiration
 		)
@@ -383,22 +424,22 @@ export async function getPortfolioValues(
 		(total, num) => total + (num.bsQuote || 0),
 		0
 	)
-	const nav = assets.sub(toWei(bsCallsPutsValue.toString()))
+	const nav = contractsState.assets.sub(toWei(bsCallsPutsValue.toString()))
 	const enrichedWithNav: EnrichedWriteEvent[] = resolvedOptionPositions.map(x => {
 		if (x.amount && x.greekVariables && x.liquidityAllocated) {
 			const delta = greeks.getDelta(...x.greekVariables)
 			const quote = calculateOptionQuote(
 				x.greekVariables,
-				priceQuote,
+				contractsState.priceQuote,
 				nav,
 				x.amount,
-				collateralAllocated,
+				contractsState.collateralAllocated,
 				x.liquidityAllocated,
-				portfolioDeltaBefore,
+				contractsState.portfolioDeltaBefore,
 				delta,
-				lpCollateralBalance,
-				utilizationCurve,
-				maxDiscount
+				contractsState.lpCollateralBalance,
+				contractsState.utilizationCurve,
+				contractsState.maxDiscount
 			)
 			x.utilizationQuote = quote
 		}
