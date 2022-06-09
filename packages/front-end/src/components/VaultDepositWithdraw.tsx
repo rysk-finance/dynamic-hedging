@@ -47,6 +47,7 @@ export const VaultDepositWithdraw = () => {
     WithdrawMode.INITIATE
   );
   const [inputValue, setInputValue] = useState("");
+  const [isApproved, setIsApproved] = useState(false);
 
   // Chain state
   const [currentEpoch, setCurrentEpoch] = useState<BigNumber | null>(null);
@@ -183,37 +184,58 @@ export const VaultDepositWithdraw = () => {
   // Reset input value when switching mode
   useEffect(() => {
     setInputValue("");
+    setIsApproved(false);
   }, [mode, depositMode, withdrawMode]);
 
-  const handleApproveSpend = async (amount: BigNumber) => {
+  // UI Handlers
+  const handleInputChange = (value: string) => {
+    setIsApproved(false);
+    setInputValue(value);
+  };
+
+  // Handlers for the different possible vault interactions.
+  const handleApproveSpend = async () => {
     if (usdcContract) {
+      const amount = BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(inputValue));
       const approvedAmount = (await usdcContract.allowance(
         account,
-        addresses.localhost.liquidityPool
+        addresses.localhost.optionHandler
       )) as BigNumber;
-      if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
-        await usdcContractCall({
-          method: usdcContract.approve,
-          args: [
-            addresses.localhost.liquidityPool,
-            settings.unlimitedApproval
-              ? ethers.BigNumber.from(MAX_UINT_256)
-              : amount,
-          ],
-          successMessage: "✅ Approval successful",
-        });
-      } else {
-        toast("✅ Your transaction is already approved");
+      try {
+        if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
+          await usdcContractCall({
+            method: usdcContract.approve,
+            args: [
+              addresses.localhost.optionHandler,
+              settings.unlimitedApproval
+                ? ethers.BigNumber.from(MAX_UINT_256)
+                : amount,
+            ],
+            successMessage: "✅ Approval successful",
+          });
+        } else {
+          toast("✅ Your transaction is already approved");
+        }
+        setIsApproved(true);
+      } catch {
+        toast("❌ There was an error approving your transaction.");
       }
     }
   };
 
-  // Handlers for the 4 different possible interactions.
   const handleDepositCollateral = async () => {
     if (usdcContract && lpContract && account) {
       const amount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
-      handleApproveSpend(amount);
-      await lpContractCall({ method: lpContract.deposit, args: [amount] });
+      await lpContractCall({
+        method: lpContract.deposit,
+        args: [amount],
+        onComplete: () => {
+          setIsApproved(false);
+        },
+        onFail: () => {
+          setIsApproved(false);
+        },
+      });
     }
   };
 
@@ -268,6 +290,18 @@ export const VaultDepositWithdraw = () => {
       console.error(err);
     }
   };
+
+  const approveIsDisabled = !inputValue || isApproved;
+  const depositIsDisabled =
+    mode === Mode.DEPOSIT &&
+    depositMode === DepositMode.USDC &&
+    !(inputValue && account && isApproved);
+  const completeWithdrawIsDisabled = !(
+    withdrawalReceipt &&
+    !withdrawalReceipt.shares.isZero() &&
+    withdrawEpochSharePrice &&
+    withdrawEpochSharePrice?._hex !== ZERO_UINT_256
+  );
 
   return (
     <div className="flex-col items-center justify-between h-full">
@@ -534,31 +568,73 @@ export const VaultDepositWithdraw = () => {
           </div>
         </div>
       </div>
-      {mode === Mode.WITHDRAW && withdrawMode === WithdrawMode.COMPLETE ? (
-        <button
-          onClick={handleSubmit}
-          className={`w-full py-6 bg-black text-white mt-[-2px]`}
-        >
-          Complete withdrawal
-        </button>
-      ) : (
-        <button
-          onClick={() => {
-            if (inputValue) {
-              handleSubmit();
-            }
-          }}
-          className={`w-full py-6 bg-black text-white mt-[-2px] ${
-            inputValue && account ? "" : "bg-gray-300 cursor-default"
-          }`}
-        >
-          {mode === Mode.DEPOSIT
-            ? depositMode === DepositMode.USDC
-              ? "Deposit"
-              : "Redeem"
-            : "Initiate withdrawal"}
-        </button>
-      )}
+      <div className="flex">
+        {mode === Mode.DEPOSIT ? (
+          depositMode === DepositMode.USDC ? (
+            // Deposit
+            <>
+              <button
+                onClick={handleApproveSpend}
+                className={`w-full py-6 bg-black text-white mt-[-2px] ${
+                  approveIsDisabled ? "!bg-gray-300" : ""
+                }`}
+              >
+                {`${isApproved ? "Approved ✅" : "Approve"}`}
+              </button>
+              <button
+                onClick={() => {
+                  if (inputValue) {
+                    handleSubmit();
+                  }
+                }}
+                className={`w-full py-6 bg-black text-white mt-[-2px] ${
+                  depositIsDisabled ? "!bg-gray-300" : ""
+                }`}
+                disabled={!(inputValue && account)}
+              >
+                Deposit
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => {
+                if (inputValue) {
+                  handleSubmit();
+                }
+              }}
+              className={`w-full py-6 bg-black text-white mt-[-2px] ${
+                !(inputValue && account) ? "!bg-gray-300" : ""
+              }`}
+              disabled={!(inputValue && account)}
+            >
+              Redeem
+            </button>
+          )
+        ) : withdrawMode === WithdrawMode.INITIATE ? (
+          <button
+            onClick={() => {
+              if (inputValue) {
+                handleSubmit();
+              }
+            }}
+            className={`w-full py-6 bg-black text-white mt-[-2px] ${
+              !(inputValue && account) ? "bg-gray-300 cursor-default" : ""
+            }`}
+          >
+            Initiate withdrawal
+          </button>
+        ) : (
+          <button
+            onClick={handleSubmit}
+            className={`w-full py-6 bg-black text-white mt-[-2px] ${
+              completeWithdrawIsDisabled ? "!bg-gray-300 cursor-default" : ""
+            }`}
+            disabled={completeWithdrawIsDisabled}
+          >
+            Complete withdrawal
+          </button>
+        )}
+      </div>
     </div>
   );
 };

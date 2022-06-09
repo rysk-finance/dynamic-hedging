@@ -61,28 +61,41 @@ export const Purchase: React.FC = () => {
   });
 
   const [uiOrderSize, setUIOrderSize] = useState("");
+  const [isApproved, setIsApproved] = useState(false);
 
-  const buyIsDisabled = !uiOrderSize;
+  const handleInputChange = (value: string) => {
+    setIsApproved(false);
+    setUIOrderSize(value);
+  };
 
-  const handleApproveSpend = async (amount: BigNumber) => {
+  const approveIsDisabled = !uiOrderSize || isApproved;
+  const buyIsDisabled = !uiOrderSize || !isApproved;
+
+  const handleApproveSpend = async () => {
     if (usdcContract) {
+      const amount = BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(uiOrderSize));
       const approvedAmount = (await usdcContract.allowance(
         account,
         addresses.localhost.optionHandler
       )) as BigNumber;
-      if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
-        await usdcContractCall({
-          method: usdcContract.approve,
-          args: [
-            addresses.localhost.optionHandler,
-            settings.unlimitedApproval
-              ? ethers.BigNumber.from(MAX_UINT_256)
-              : amount,
-          ],
-          successMessage: "✅ Approval successful",
-        });
-      } else {
-        toast("✅ Your transaction is already approved");
+      try {
+        if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
+          await usdcContractCall({
+            method: usdcContract.approve,
+            args: [
+              addresses.localhost.optionHandler,
+              settings.unlimitedApproval
+                ? ethers.BigNumber.from(MAX_UINT_256)
+                : amount,
+            ],
+            successMessage: "✅ Approval successful",
+          });
+        } else {
+          toast("✅ Your transaction is already approved");
+        }
+        setIsApproved(true);
+      } catch {
+        toast("❌ There was an error approving your transaction.");
       }
     }
   };
@@ -95,11 +108,9 @@ export const Purchase: React.FC = () => {
       account
     ) {
       try {
-        // Approval
         const amount = BIG_NUMBER_DECIMALS.RYSK.mul(
           BigNumber.from(uiOrderSize)
         );
-        handleApproveSpend(amount);
         const seriesAddress = await optionRegistryContract.getSeries({
           ...DUMMY_OPTION_SERIES,
           // We create option series using e18, but when our contracts interact with
@@ -113,24 +124,26 @@ export const Purchase: React.FC = () => {
         if (seriesAddress === ZERO_ADDRESS) {
           await optionHandlerContractCall({
             method: optionHandlerContract.issueAndWriteOption,
-            args: [
-              DUMMY_OPTION_SERIES,
-              BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(uiOrderSize)),
-            ],
+            args: [DUMMY_OPTION_SERIES, amount],
             onComplete: () => {
               setUIOrderSize("");
+              setIsApproved(false);
+            },
+            onFail: () => {
+              setIsApproved(false);
             },
           });
           // Series already exists.
         } else {
           await optionHandlerContractCall({
             method: optionHandlerContract.writeOption,
-            args: [
-              seriesAddress,
-              BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(uiOrderSize)),
-            ],
+            args: [seriesAddress, amount],
             onComplete: () => {
               setUIOrderSize("");
+              setIsApproved(false);
+            },
+            onFail: () => {
+              setIsApproved(false);
             },
           });
         }
@@ -161,7 +174,7 @@ export const Purchase: React.FC = () => {
               <div className="w-full ">
                 <TextInput
                   value={uiOrderSize}
-                  setValue={setUIOrderSize}
+                  setValue={handleInputChange}
                   className="text-right border-x-0 w-full"
                   iconLeft={
                     <div className="px-2 flex items-center h-full">
@@ -182,15 +195,25 @@ export const Purchase: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <Button
-                disabled={buyIsDisabled}
-                className={`w-full border-b-0 border-x-0 !py-4 !bg-black text-white ${
-                  buyIsDisabled ? "!bg-gray-300" : ""
-                }`}
-                onClick={handleBuy}
-              >
-                Buy
-              </Button>
+              <div className="flex">
+                <Button
+                  className={`w-full border-b-0 border-x-0 !py-4 !bg-black text-white ${
+                    approveIsDisabled ? "!bg-gray-300 " : ""
+                  }`}
+                  onClick={handleApproveSpend}
+                >
+                  {`${isApproved ? "Approved ✅" : "Approve"}`}
+                </Button>
+                <Button
+                  disabled={buyIsDisabled}
+                  className={`w-full border-b-0 border-x-0 !py-4 !bg-black text-white ${
+                    buyIsDisabled ? "!bg-gray-300" : ""
+                  }`}
+                  onClick={handleBuy}
+                >
+                  Buy
+                </Button>
+              </div>
             </div>
           </div>
         </>

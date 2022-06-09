@@ -37,11 +37,13 @@ export const useContract = (args: useContractArgs) => {
       args,
       successMessage: successMessage = "✅ Transaction successful",
       onComplete,
+      onFail,
     }: {
       method: ethers.ContractFunction;
       args: any[];
       successMessage?: string;
       onComplete?: () => void;
+      onFail?: () => void;
     }) => {
       try {
         const transaction = (await method(...args)) as TransactionResponse;
@@ -56,9 +58,11 @@ export const useContract = (args: useContractArgs) => {
           toast(`❌ ${(err as any).data.message}`, {
             autoClose: 5000,
           });
+          onFail?.();
           return null;
         } catch {
           toast(JSON.stringify(err));
+          onFail?.();
           return null;
         }
       }
