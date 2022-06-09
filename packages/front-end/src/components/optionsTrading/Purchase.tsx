@@ -1,6 +1,7 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import { ethers } from "ethers";
 import React, { useState } from "react";
+import { toast } from "react-toastify";
 import ERC20ABI from "../../abis/erc20.json";
 import { useWalletContext } from "../../App";
 import OptionHandlerABI from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json";
@@ -15,8 +16,8 @@ import {
 } from "../../config/constants";
 import addresses from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
+import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
-import { Option, OptionsTradingActionType } from "../../state/types";
 import { OptionSeries } from "../../types";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
@@ -32,8 +33,11 @@ const DUMMY_OPTION_SERIES: OptionSeries = {
 
 export const Purchase: React.FC = () => {
   const {
+    state: { settings },
+  } = useGlobalContext();
+
+  const {
     state: { selectedOption },
-    dispatch,
   } = useOptionsTradingContext();
 
   const { account } = useWalletContext();
@@ -56,13 +60,32 @@ export const Purchase: React.FC = () => {
     readOnly: false,
   });
 
-  const setSelectedOption = (option: Option | null) => {
-    dispatch({ type: OptionsTradingActionType.SET_SELECTED_OPTION, option });
-  };
-
   const [uiOrderSize, setUIOrderSize] = useState("");
 
   const buyIsDisabled = !uiOrderSize;
+
+  const handleApproveSpend = async (amount: BigNumber) => {
+    if (usdcContract) {
+      const approvedAmount = (await usdcContract.allowance(
+        account,
+        addresses.localhost.optionHandler
+      )) as BigNumber;
+      if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
+        await usdcContractCall({
+          method: usdcContract.approve,
+          args: [
+            addresses.localhost.optionHandler,
+            settings.unlimitedApproval
+              ? ethers.BigNumber.from(MAX_UINT_256)
+              : amount,
+          ],
+          successMessage: "✅ Approval successful",
+        });
+      } else {
+        toast("✅ Your transaction is already approved");
+      }
+    }
+  };
 
   const handleBuy = async () => {
     if (
@@ -72,6 +95,11 @@ export const Purchase: React.FC = () => {
       account
     ) {
       try {
+        // Approval
+        const amount = BIG_NUMBER_DECIMALS.RYSK.mul(
+          BigNumber.from(uiOrderSize)
+        );
+        handleApproveSpend(amount);
         const seriesAddress = await optionRegistryContract.getSeries({
           ...DUMMY_OPTION_SERIES,
           // We create option series using e18, but when our contracts interact with
@@ -83,37 +111,27 @@ export const Purchase: React.FC = () => {
         });
         // Series hasn't been created yet
         if (seriesAddress === ZERO_ADDRESS) {
-          await usdcContractCall({
-            method: usdcContract.approve,
-            args: [
-              addresses.localhost.optionHandler,
-              ethers.BigNumber.from(MAX_UINT_256),
-            ],
-            successMessage: "✅ Approval successful",
-          });
           await optionHandlerContractCall({
             method: optionHandlerContract.issueAndWriteOption,
             args: [
               DUMMY_OPTION_SERIES,
               BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(uiOrderSize)),
             ],
+            onComplete: () => {
+              setUIOrderSize("");
+            },
           });
+          // Series already exists.
         } else {
-          await usdcContractCall({
-            method: usdcContract.approve,
-            args: [
-              addresses.localhost.optionHandler,
-              ethers.BigNumber.from(MAX_UINT_256),
-            ],
-            successMessage: "✅ Approval successful",
-          });
-
           await optionHandlerContractCall({
             method: optionHandlerContract.writeOption,
             args: [
               seriesAddress,
               BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(uiOrderSize)),
             ],
+            onComplete: () => {
+              setUIOrderSize("");
+            },
           });
         }
       } catch (err) {

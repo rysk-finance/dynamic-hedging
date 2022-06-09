@@ -1,5 +1,6 @@
 import { BigNumber, ethers } from "ethers";
 import React, { useCallback, useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import ERC20ABI from "../abis/erc20.json";
 import { useWalletContext } from "../App";
 import LPABI from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
@@ -184,10 +185,8 @@ export const VaultDepositWithdraw = () => {
     setInputValue("");
   }, [mode, depositMode, withdrawMode]);
 
-  // Handlers for the 4 different possible interactions.
-  const handleDepositCollateral = async () => {
-    if (usdcContract && lpContract && account) {
-      const amount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
+  const handleApproveSpend = async (amount: BigNumber) => {
+    if (usdcContract) {
       const approvedAmount = (await usdcContract.allowance(
         account,
         addresses.localhost.liquidityPool
@@ -203,7 +202,17 @@ export const VaultDepositWithdraw = () => {
           ],
           successMessage: "✅ Approval successful",
         });
+      } else {
+        toast("✅ Your transaction is already approved");
       }
+    }
+  };
+
+  // Handlers for the 4 different possible interactions.
+  const handleDepositCollateral = async () => {
+    if (usdcContract && lpContract && account) {
+      const amount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
+      handleApproveSpend(amount);
       await lpContractCall({ method: lpContract.deposit, args: [amount] });
     }
   };
