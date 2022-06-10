@@ -399,6 +399,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
 		_adjustVariables(collatReturned, 0, 0, false);
 		collateralAllocated -= collatLost;
+		// if the vault expired ITM then when settled the oracle will still have accounted for it as a liability. When
+		// the settle happens the liability is wiped off as it is now accounted for in collateralAllocated but because the
+		// oracle doesn't know this yet we need to temporarily reduce the liability value.
+		ephemeralLiabilities -= int256(collatLost);
 		return collatReturned;
 	}
 
