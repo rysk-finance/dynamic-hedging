@@ -6,9 +6,32 @@ import {
   OptionsTradingActionType,
   OptionType,
 } from "../../state/types";
+import LPABI from "../../abis/LiquidityPool.json";
+import ORABI from "../../abis/OptionRegistry.json";
+import ERC20ABI from "../../abis/erc20.json";
+import PFABI from "../../abis/PriceFeed.json";
+import { calculateOptionQuoteLocally, calculateOptionDeltaLocally, returnIVFromQuote } from "../../utils/helpers"
+import { USDC_ADDRESS, OPYN_OPTION_REGISTRY, LIQUIDITY_POOL, PRICE_FEED, WETH_ADDRESS  } from "../../config/constants";
+import { useContract } from "../../hooks/useContract";
+import { BigNumber, ethers } from "ethers";
+import { LiquidityPool } from "../../types/LiquidityPool"
+import { OptionRegistry } from "../../types/OptionRegistry";
+import { ERC20 } from "../../types/ERC20";
+import { PriceFeed } from "../../types/PriceFeed";
+import { toWei, fromWei } from "../../utils/conversion-helper";
+import NumberFormat from 'react-number-format';
 
-const suggestedCallOptionPriceDiff = [-200, 0, 200, 400, 600, 800, 1000];
-const suggestedPutOptionPriceDiff = [-1000, -800, -600, -400, -200, 0, 200];
+const suggestedCallOptionPriceDiff = [-100, 0, 100, 200, 300, 400, 600, 800];
+const suggestedPutOptionPriceDiff = [-800, -600, -400, -300, -200, -100, 0, 100];
+
+// TODO add dynamic
+const networkId = 421611
+const provider = new ethers.providers.InfuraProvider(networkId, process.env.REACT_APP_INFURA_KEY);
+
+const liquidityPool = new ethers.Contract(LIQUIDITY_POOL[networkId], LPABI, provider) as LiquidityPool
+const optionRegistry = new ethers.Contract(OPYN_OPTION_REGISTRY[networkId], ORABI, provider) as OptionRegistry
+const priceFeed = new ethers.Contract(PRICE_FEED[networkId], PFABI, provider ) as PriceFeed
+const usdc = new ethers.Contract(USDC_ADDRESS[networkId], ERC20ABI, provider) as ERC20
 
 export const OptionsTable: React.FC = () => {
   const {
@@ -24,7 +47,7 @@ export const OptionsTable: React.FC = () => {
   }, [ethPrice, cachedEthPrice]);
 
   const {
-    state: { optionType, customOptionStrikes },
+    state: { optionType, customOptionStrikes, expiryDate },
     dispatch,
   } = useOptionsTradingContext();
 
@@ -43,18 +66,63 @@ export const OptionsTable: React.FC = () => {
         ),
         ...customOptionStrikes,
       ].sort((a, b) => a - b);
-      const suggestions: Option[] = strikes.map<Option>((strike) => {
-        return {
-          strike: strike,
-          IV: 100,
-          delta: 0.5,
-          price: 100,
-          type: optionType,
-        };
-      });
-      setSuggestions(suggestions);
+
+      const fetchPrices = async () => {
+        // const data = await fetch('https://yourapi.com');
+
+        const suggestions = await Promise.all(strikes.map(async strike => {
+
+          const optionSeries = {
+              expiration: Number(expiryDate?.getTime()) / 1000,
+              strike: toWei((strike).toString()),
+              isPut: optionType !== OptionType.CALL,
+              strikeAsset: USDC_ADDRESS[networkId],
+              underlying: WETH_ADDRESS[networkId],
+              collateral: USDC_ADDRESS[networkId]
+            }
+
+          console.log( optionSeries )
+
+          const localQuote = await calculateOptionQuoteLocally(
+            liquidityPool,
+            optionRegistry,
+            usdc,
+            priceFeed,
+            optionSeries,
+            toWei((1).toString()),
+            true
+          )
+
+          const localDelta = await calculateOptionDeltaLocally(
+            liquidityPool,
+            priceFeed,
+            optionSeries,
+            toWei((1).toString()),
+            false
+          )
+
+          const iv = await returnIVFromQuote(localQuote, priceFeed, optionSeries)
+
+          console.log(iv)
+
+          return {
+            strike: strike,
+            IV: iv * 100,
+            delta: Number(fromWei(localDelta).toString()),
+            price: localQuote,
+            type: optionType,
+          };
+        }));
+
+        setSuggestions(suggestions);
+
+      }
+
+      fetchPrices()
+      .catch(console.error);
+
     }
-  }, [cachedEthPrice, optionType, customOptionStrikes]);
+  }, [cachedEthPrice, optionType, customOptionStrikes, expiryDate]);
 
   const setSelectedOption = (option: Option) => {
     dispatch({ type: OptionsTradingActionType.SET_SELECTED_OPTION, option });
@@ -81,14 +149,14 @@ export const OptionsTable: React.FC = () => {
           >
             <td className="pl-4">{option.strike}</td>
             <td>
-              {option.IV}
-              {"%"}
+              <NumberFormat value={option.IV} displayType={"text"} decimalScale={2} suffix={'%'} />
             </td>
             <td>
-              {option.delta}
-              {"%"}
+              <NumberFormat value={option.delta} displayType={"text"} decimalScale={2} />
             </td>
-            <td className="pr-4">{option.price}</td>
+            <td className="pr-4">
+              <NumberFormat value={option.price} displayType={"text"} decimalScale={2} />
+            </td>
           </tr>
         ))}
       </tbody>

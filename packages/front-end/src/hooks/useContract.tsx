@@ -23,7 +23,7 @@ export const useContract = ({
       try {
         const transaction = (await method(...args)) as TransactionResponse;
         await transaction.wait();
-        toast(`✅ Tranasaction successful`);
+        toast(`✅ Transaction successful`);
         return;
       } catch (err) {
         try {
