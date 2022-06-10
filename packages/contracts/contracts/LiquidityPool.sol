@@ -397,12 +397,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		// returns in collat decimals, collat decimals and e8
 		(, uint256 collatReturned, uint256 collatLost, ) = getOptionRegistry().settle(seriesAddress);
 		emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
-		_adjustVariables(collatReturned, 0, 0, false);
-		collateralAllocated -= collatLost;
 		// if the vault expired ITM then when settled the oracle will still have accounted for it as a liability. When
 		// the settle happens the liability is wiped off as it is now accounted for in collateralAllocated but because the
 		// oracle doesn't know this yet we need to temporarily reduce the liability value.
-		ephemeralLiabilities -= int256(collatLost);
+		_adjustVariables(collatReturned, collatLost, 0, false);
+		collateralAllocated -= collatLost;
 		return collatReturned;
 	}
 
@@ -1231,6 +1230,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice adjust the variables of the pool
 	 * @param  collateralAmount the amount of collateral transferred to change on collateral allocated in collateral decimals
+	 * @param  optionsValue the value of the options in e18 decimals
+	 * @param  delta the delta of the options in e18 decimals
 	 * @param  isSale whether the action was an option sale or not
 	 */
 	function _adjustVariables(
