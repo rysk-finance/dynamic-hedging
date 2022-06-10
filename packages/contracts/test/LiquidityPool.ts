@@ -2227,7 +2227,7 @@ describe("Liquidity Pools", async () => {
 		const hedgingReactorBefore = await liquidityPool.hedgingReactors(0)
 		// check hedging reactor exists in array
 		expect(parseInt(hedgingReactorBefore, 16)).to.not.eq(0x0)
-		await liquidityPool.removeHedgingReactorAddress(0)
+		await liquidityPool.removeHedgingReactorAddress(0, false)
 		// check no hedging reactors exist
 		await expect(liquidityPool.hedgingReactors(0)).to.be.reverted
 		// restore hedging reactor
@@ -2241,9 +2241,9 @@ describe("Liquidity Pools", async () => {
 		expect(await liquidityPool.hedgingReactors(2)).to.equal(ETH_ADDRESS)
 		// delete two added reactors
 		// should remove middle element (element 1)
-		await liquidityPool.removeHedgingReactorAddress(1)
+		await liquidityPool.removeHedgingReactorAddress(1, true)
 		// should remove last element (elements 1)
-		await liquidityPool.removeHedgingReactorAddress(1)
+		await liquidityPool.removeHedgingReactorAddress(1, true)
 		expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
 		await expect(liquidityPool.hedgingReactors(1)).to.be.reverted
 	})

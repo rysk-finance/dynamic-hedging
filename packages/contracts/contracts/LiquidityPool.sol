@@ -213,10 +213,20 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice remove a new hedging reactor by index
 	 * @param _index remove a hedging reactor
+	 * @param _override whether to override whether the reactor is wound down 
+	 		 			(THE REACTOR SHOULD BE WOUND DOWN SEPERATELY)
 	 * @dev   only governance can call this function
 	 */
-	function removeHedgingReactorAddress(uint256 _index) external {
+	function removeHedgingReactorAddress(uint256 _index, bool _override) external {
 		_onlyGovernor();
+		if (!_override) {
+			IHedgingReactor reactor = IHedgingReactor(hedgingReactors[_index]);
+			int256 delta = reactor.getDelta();
+			if (delta != 0){
+			reactor.hedgeDelta(reactor.getDelta());
+			}
+			reactor.withdraw(type(uint256).max);
+		}
 		SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors[_index], 0);
 		for (uint256 i = _index; i < hedgingReactors.length - 1; i++) {
 			hedgingReactors[i] = hedgingReactors[i + 1];
