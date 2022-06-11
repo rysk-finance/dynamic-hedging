@@ -1,13 +1,9 @@
 import hre, { ethers, network } from "hardhat"
 import { BigNumberish, Contract, utils, Signer, BigNumber, providers } from "ethers"
-import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import {
 	toWei,
 	truncate,
 	tFormatEth,
-	call,
-	put,
-	genOptionTimeFromUnix,
 	fromWei,
 	percentDiff,
 	toUSDC,
@@ -15,7 +11,6 @@ import {
 	toOpyn,
 	tFormatUSDC,
 	scaleNum,
-	fromWeiToUSDC
 } from "../utils/conversion-helper"
 import moment from "moment"
 //@ts-ignore
@@ -305,7 +300,7 @@ describe("Liquidity Pools", async () => {
 			BigNumber.from(0),
 			BigNumber.from(0),
 			BigNumber.from(0),
-			BigNumber.from(priceQuote)
+			priceQuote
 		)
 	})
 	it("Succeeds: execute epoch", async () => {
@@ -422,14 +417,57 @@ describe("Liquidity Pools", async () => {
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.within(0, 0.1)
 	})
-
+	it("Reverts: Push to price deviation threshold to cause quote to fail", async () => {
+		const latestPrice = await priceFeed.getRate(weth.address, usd.address)
+		await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from('10000000000')))
+		const amount = toWei("1")
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const optionSeries = {
+			expiration: expiration,
+			strike: strikePrice,
+			isPut: PUT_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await expect(liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)).to.be.revertedWith("PriceDeltaExceedsThreshold(35101293340577287)")
+	})
+	it("Reverts: Push to time deviation threshold to cause quote to fail", async () => {
+		const latestPrice = await priceFeed.getRate(weth.address, usd.address)
+		await opynAggregator.setLatestAnswer(latestPrice.sub(BigNumber.from('10000000000')))
+		const amount = toWei("1")
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const optionSeries = {
+			expiration: expiration,
+			strike: strikePrice,
+			isPut: PUT_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await increase(700)
+		await expect(liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)).to.be.revertedWith("TimeDeltaExceedsThreshold(706)")
+	})
 	it("reverts when attempting to write ETH/USD puts with expiry outside of limit", async () => {
+		
 		const amount = toWei("1")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
-
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("2"),
+			weth.address,
+			usd.address,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			priceQuote
+		)
 		// series with expiry too long
 		const proposedSeries1 = {
 			expiration: invalidExpirationLong,
@@ -703,6 +741,7 @@ describe("Liquidity Pools", async () => {
 	it("can compute portfolio delta", async function () {
 		expect(await liquidityPool.ephemeralDelta()).to.not.eq(0)
 		expect(await liquidityPool.ephemeralLiabilities()).to.not.eq(0)
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
@@ -720,7 +759,7 @@ describe("Liquidity Pools", async () => {
 			BigNumber.from(0),
 			BigNumber.from(0),
 			BigNumber.from(0),
-			BigNumber.from(0)
+			priceQuote
 		)
 		const delta = await liquidityPool.getPortfolioDelta()
 		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
@@ -1067,7 +1106,7 @@ describe("Liquidity Pools", async () => {
 			BigNumber.from(0),
 			BigNumber.from(0),
 			BigNumber.from(0),
-			BigNumber.from(0)
+			priceQuote
 		)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries2 = {
@@ -1094,7 +1133,7 @@ describe("Liquidity Pools", async () => {
 			BigNumber.from(0),
 			BigNumber.from(0),
 			BigNumber.from(0),
-			BigNumber.from(0)
+			priceQuote
 		)
 		const delta = await liquidityPool.getPortfolioDelta()
 		const oracleDelta = (
@@ -2022,7 +2061,7 @@ describe("Liquidity Pools", async () => {
 			BigNumber.from(0),
 			BigNumber.from(0),
 			prevalues.callPutsValue,
-			BigNumber.from(priceQuote)
+			priceQuote
 		)
 	})
 	it("Succeeds: execute epoch", async () => {
