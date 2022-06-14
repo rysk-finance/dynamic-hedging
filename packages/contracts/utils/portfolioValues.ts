@@ -71,7 +71,7 @@ type ContractsState = {
 	lpCollateralBalance: BigNumber
 	collateralAllocated: BigNumber
 	assets: BigNumber
-	portfolioDeltaBefore: BigNumber
+	externalDelta: BigNumber
 	underlying: string
 	strikeAsset: string
 	priceQuote: BigNumber
@@ -250,6 +250,10 @@ async function filterAndEnrichWriteOptions(
 	return optionPositions
 }
 
+async function getHedgingReactorDeltas(liquidityPool: LiquidityPool) {
+	const addresses = await liquidityPool.hedgingReactors.length
+}
+
 async function getContractsState(
 	liquidityPool: LiquidityPool,
 	priceFeed: PriceFeed,
@@ -267,7 +271,7 @@ async function getContractsState(
 	const lpCollateralBalance = await collateralAsset.balanceOf(liquidityPool.address)
 	const collateralAllocated = await liquidityPool.collateralAllocated()
 	const assets = await liquidityPool.getAssets()
-	const portfolioDeltaBefore = await liquidityPool.getPortfolioDelta()
+	const externalDelta = await liquidityPool.getExternalDelta()
 	const underlying = await liquidityPool.underlyingAsset()
 	const strikeAsset = await liquidityPool.strikeAsset()
 	const priceQuote = await priceFeed.getNormalizedRate(underlying, strikeAsset)
@@ -288,7 +292,7 @@ async function getContractsState(
 		lpCollateralBalance,
 		collateralAllocated,
 		assets,
-		portfolioDeltaBefore,
+		externalDelta,
 		priceQuote,
 		writeOption,
 		buybackEvents,
@@ -300,6 +304,10 @@ async function getContractsState(
 	return contractsState
 }
 
+function computeDelta(portfolioDelta: number, externalDelta: BigNumber): BigNumber {
+	const externalDeltaNumber: number = Number(fromWei(externalDelta))
+	return toWei(portfolioDelta.toString()).add(externalDeltaNumber)
+}
 const weiToNum = (x: BigNumber) => Number(fromWei(x))
 async function getUtilizationCurve(liquidityPool: LiquidityPool): Promise<UtilizationCurve> {
 	const utilizationFunctionThreshold: number = weiToNum(
@@ -490,7 +498,7 @@ export async function getPortfolioValues(
 				x.amount,
 				contractsState.collateralAllocated,
 				x.liquidityAllocated,
-				contractsState.portfolioDeltaBefore,
+				computeDelta(portfolioDelta, contractsState.externalDelta),
 				delta,
 				contractsState.lpCollateralBalance,
 				contractsState.utilizationCurve,
