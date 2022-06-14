@@ -1,10 +1,13 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useOnClickOutside } from "../../hooks/useOnClickOutside";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { OptionsTradingActionType } from "../../state/types";
 import { Option } from "../../types";
 import { formatShortDate } from "../../utils/formatShortDate";
 import { getSuggestedExpiryDates } from "../../utils/getSuggestedExpiryDates";
 import { getTimeDifferenceString } from "../../utils/getTimeDifferenceString";
+import { Button } from "../shared/Button";
+import { DatePicker } from "../shared/DatePicker";
 import { RadioButtonList } from "../shared/RadioButtonList";
 
 export const ExpiryDatePicker: React.FC = () => {
@@ -13,11 +16,36 @@ export const ExpiryDatePicker: React.FC = () => {
     dispatch,
   } = useOptionsTradingContext();
 
+  const [datePickerIsOpen, setDatePickerIsOpen] = useState(false);
+  const [isCustomExpiryDate, setIsCustomExpiryDate] = useState(false);
+
+  const datePickerRef = useRef<HTMLDivElement | null>(null);
+
+  const onClickOffDatePicker = useCallback(() => {
+    setDatePickerIsOpen(false);
+  }, []);
+
+  useOnClickOutside(datePickerRef, datePickerIsOpen, onClickOffDatePicker);
+
+  const handleCustomExpiryClick = () => {
+    setDatePickerIsOpen(true);
+    setIsCustomExpiryDate(true);
+    setExpiryDate(null);
+  };
+
   const setExpiryDate = useCallback(
-    (date: Date) => {
+    (date: Date | null) => {
       dispatch({ type: OptionsTradingActionType.SET_EXPIRY_DATE, date });
     },
     [dispatch]
+  );
+
+  const handleRadioExpiryClick = useCallback(
+    (date: Date) => {
+      setIsCustomExpiryDate(false);
+      setExpiryDate(date);
+    },
+    [setExpiryDate]
   );
 
   const expiryDateOptions = useMemo(() => {
@@ -34,20 +62,53 @@ export const ExpiryDatePicker: React.FC = () => {
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-2">
-        <h5>Expiration date</h5>
-        {expiryTime && (
+      <div className="mb-2 px-4 py-2">
+        <div className="flex items-center">
+          <h4 className="font-parabole mr-2 pb-1">Expiration date: </h4>
+          {expiryDate && (
+            <p>
+              {expiryDate.toLocaleDateString("en-US")}
+              {" 8:00am UTC"}
+            </p>
+          )}
+        </div>
+        <p className="text-gray-600 text-xs">
           <p>
-            expiry in: <b>{getTimeDifferenceString(expiryTime)}</b>
+            Time to expiry: {expiryTime && getTimeDifferenceString(expiryTime)}
           </p>
-        )}
+        </p>
       </div>
-      <div className="w-[70%]">
-        <RadioButtonList
-          options={expiryDateOptions}
-          selected={expiryDate}
-          setSelected={setExpiryDate}
-        />
+      <div className="w-full border-y-2 border-black flex relative">
+        <div className="w-[70%]">
+          <RadioButtonList
+            options={expiryDateOptions}
+            selected={expiryDate}
+            setSelected={handleRadioExpiryClick}
+            removeOuterBorder
+          />
+        </div>
+        <Button
+          onClick={handleCustomExpiryClick}
+          className={`border-y-0 border-r-0 w-[30%] ${
+            isCustomExpiryDate ? "" : "!bg-gray-500"
+          }`}
+        >
+          Custom
+        </Button>
+        {datePickerIsOpen && (
+          <div
+            className="absolute flex justify-center items-center border-2 border-black z-10 bg-bone top-[110%] right-[1px] w-fit"
+            ref={datePickerRef}
+          >
+            <DatePicker
+              onChange={(date) => {
+                setDatePickerIsOpen(false);
+                setExpiryDate(date);
+              }}
+              selected={expiryDate}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

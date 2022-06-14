@@ -6,5 +6,5 @@ export const getTimeDifferenceString = (time: number) => {
   const timeRemaining = time - days * DAY_MS;
   const hours = Math.round(timeRemaining / HOUR_MS);
 
-  return `${days}d ${hours}h`;
+  return `${days ? `${days}d` : ""} ${hours}h`;
 };

@@ -8,6 +8,7 @@ export type AppSettings = {
 export type GlobalState = {
   ethPrice: number | null;
   eth24hChange: number | null;
+  ethPriceUpdateTime: Date | null;
   connectWalletIndicatorActive: boolean;
   settings: AppSettings;
 };
@@ -23,6 +24,7 @@ export type GlobalAction =
       type: ActionType.SET_ETH_PRICE;
       price: number;
       change?: number;
+      date: Date;
     }
   | {
       type: ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE;
@@ -78,7 +80,7 @@ export type OptionsTradingAction =
     }
   | {
       type: OptionsTradingActionType.SET_EXPIRY_DATE;
-      date: Date;
+      date: Date | null;
     }
   | {
       type: OptionsTradingActionType.ADD_CUSTOM_STRIKE;
@@ -86,5 +88,5 @@ export type OptionsTradingAction =
     }
   | {
       type: OptionsTradingActionType.SET_SELECTED_OPTION;
-      option: Option;
+      option: Option | null;
     };

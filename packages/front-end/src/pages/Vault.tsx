@@ -14,7 +14,7 @@ export const Vault = () => {
         </p>
       </div>
       <div className="col-start-9 col-end-17">
-        <Card>
+        <Card headerContent="RYSK.vault">
           <VaultDepositWithdraw />
         </Card>
       </div>
