@@ -1,4 +1,5 @@
 import { BigNumber } from "ethers";
+import { ETHNetwork } from "../types";
 
 export const MAX_UINT_256 =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -20,7 +21,14 @@ export const BIG_NUMBER_DECIMALS = {
 export enum CHAINID {
   ETH_MAINNET = 1,
   ARBITRUM_RINKEBY = 421611,
+  LOCALHOST = 1337,
 }
+
+export const IDToNetwork: Record<CHAINID, ETHNetwork> = {
+  [CHAINID.ETH_MAINNET]: ETHNetwork.MAINNET,
+  [CHAINID.ARBITRUM_RINKEBY]: ETHNetwork.ARBITRUM_RINKEBY,
+  [CHAINID.LOCALHOST]: ETHNetwork.LOCALHOST,
+};
 
 export const WETH_ADDRESS = {
   [CHAINID.ETH_MAINNET]: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",

@@ -177,7 +177,6 @@ function App() {
   };
 
   const disconnect = useCallback(async () => {
-    console.log("here");
     const [primaryWallet] = await onboard.state.get().wallets;
     if (!primaryWallet) return;
     await onboard.disconnectWallet({ label: primaryWallet.label });
