@@ -8,7 +8,7 @@ import {
 	ContractTransaction,
 	ContractReceipt
 } from "ethers"
-import { AbiCoder } from "ethers/lib/utils"
+import { AbiCoder, serializeTransaction } from "ethers/lib/utils"
 //@ts-ignore
 import greeks from "greeks"
 //@ts-ignore
@@ -64,6 +64,18 @@ import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deplo
 import { getMatchingEvents, WRITE_OPTION, BUYBACK_OPTION } from "../utils/events"
 import { getPortfolioValues } from "../utils/portfolioValues"
 
+type Series = {
+	expiration: number
+	isPut: boolean
+	strike: BigNumber
+	strikeAsset: string
+	underlying: string
+	collateral: string
+}
+type WrittenOption = {
+	amount: BigNumber
+	series: Series
+}
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: ERC20Interface
@@ -156,6 +168,8 @@ let priceQuote: BigNumber
 let write: ContractTransaction
 let receipt: ContractReceipt
 let authority: string
+
+const writtenOptions: WrittenOption[] = []
 
 describe("Oracle core logic", async () => {
 	before(async function () {
@@ -301,6 +315,7 @@ describe("Oracle core logic", async () => {
 		await usd.approve(handler.address, quote)
 		balance = await usd.balanceOf(senderAddress)
 		let write = await handler.issueAndWriteOption(proposedSeries, amount)
+		writtenOptions.push({ amount, series: proposedSeries })
 		receipt = await write.wait(1)
 		const writeEvents = getMatchingEvents(receipt, WRITE_OPTION)
 		const portfolioValuesPutWrite = await getPortfolioValues(...portfolioValueArgs)
@@ -335,6 +350,7 @@ describe("Oracle core logic", async () => {
 			collateral: usd.address
 		}
 		write = await handler.issueAndWriteOption(proposedCallSeries, amount)
+		writtenOptions.push({ amount, series: proposedCallSeries })
 		receipt = await write.wait(1)
 		const portfolioValuesCallWrite = await getPortfolioValues(...portfolioValueArgs)
 		expect(truncate(portfolioValuesCallWrite.portfolioDelta)).to.eq(
@@ -358,6 +374,7 @@ describe("Oracle core logic", async () => {
 			collateral: usd.address
 		}
 		write = await handler.issueAndWriteOption(proposedCallSeries, amount)
+		writtenOptions.push({ amount, series: proposedCallSeries })
 		receipt = await write.wait(1)
 		const callWriteEvents = getMatchingEvents(receipt, WRITE_OPTION)
 		const callWriteEvent = callWriteEvents[0]
@@ -426,5 +443,42 @@ describe("Oracle core logic", async () => {
 			oracle
 		)
 		expect(truncate(expected_put_delta)).to.eq(truncate(portfolioValues.portfolioDelta))
+	})
+
+	it("properly computes calls and puts values with expired OTM options", async () => {
+		// set block timestamp past expiration of all options
+		const TARGET_BLOCK = 1649145600
+		await network.provider.request({
+			method: "evm_setNextBlockTimestamp",
+			params: [TARGET_BLOCK]
+		})
+		await ethers.provider.send("evm_mine", [])
+		blockNum = await ethers.provider.getBlockNumber()
+		block = await ethers.provider.getBlock(blockNum)
+		timestamp = block.timestamp
+		expect(timestamp).to.eq(TARGET_BLOCK)
+		priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const sumValues = writtenOptions
+			.map(x => {
+				const { series } = x
+				const { isPut, strike, expiration } = series
+				if (expiration > timestamp) throw "Option is not expired"
+				if (isPut) {
+					if (priceQuote.gt(strike)) return BigNumber.from(0)
+					return strike.sub(priceQuote)
+				}
+				if (priceQuote.lt(strike)) return BigNumber.from(0)
+				return priceQuote.sub(strike)
+			})
+			.reduce((pv: BigNumber, cv: BigNumber) => pv.add(cv), BigNumber.from(0))
+		expect(sumValues).to.eq(BigNumber.from(0))
+		const portfolioValues = await getPortfolioValues(
+			liquidityPool,
+			controller,
+			optionRegistry,
+			priceFeed,
+			oracle
+		)
+		expect(portfolioValues.callsPutsValue).to.eq(0)
 	})
 })
