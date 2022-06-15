@@ -34,7 +34,7 @@ enum WithdrawMode {
 }
 
 export const VaultDepositWithdraw = () => {
-  const { account } = useWalletContext();
+  const { account, network } = useWalletContext();
 
   const {
     state: { settings },
@@ -195,18 +195,18 @@ export const VaultDepositWithdraw = () => {
 
   // Handlers for the different possible vault interactions.
   const handleApproveSpend = async () => {
-    if (usdcContract) {
+    if (usdcContract && network) {
       const amount = BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(inputValue));
       const approvedAmount = (await usdcContract.allowance(
         account,
-        addresses.localhost.optionHandler
+        addresses[network.name]["liquidityPool"]
       )) as BigNumber;
       try {
         if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
           await usdcContractCall({
             method: usdcContract.approve,
             args: [
-              addresses.localhost.optionHandler,
+              addresses[network.name]["liquidityPool"],
               settings.unlimitedApproval
                 ? ethers.BigNumber.from(MAX_UINT_256)
                 : amount,
@@ -224,8 +224,12 @@ export const VaultDepositWithdraw = () => {
   };
 
   const handleDepositCollateral = async () => {
-    if (usdcContract && lpContract && account) {
+    if (usdcContract && lpContract && account && network) {
       const amount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
+      const approvedAmount = (await usdcContract.allowance(
+        account,
+        addresses[network.name]["liquidityPool"]
+      )) as BigNumber;
       await lpContractCall({
         method: lpContract.deposit,
         args: [amount],
@@ -545,7 +549,7 @@ export const VaultDepositWithdraw = () => {
             ) ? (
               <TextInput
                 className="text-right p-4 text-xl border-r-0"
-                setValue={setInputValue}
+                setValue={handleInputChange}
                 value={inputValue}
                 iconLeft={
                   <div className="h-full flex items-center px-4 text-right text-gray-600">
