@@ -49,6 +49,11 @@ export const VaultDepositWithdraw = () => {
   const [inputValue, setInputValue] = useState("");
   const [listeningForApproval, setListeningForApproval] = useState(false);
   const [listeningForDeposit, setListeningForDeposit] = useState(false);
+  const [listeningForRedeem, setListeningForRedeem] = useState(false);
+  const [listeningForWithdrawInit, setListeningForWithdrawInit] =
+    useState(false);
+  const [listeningForWithdrawComplete, setListeningForWithdrawComplete] =
+    useState(false);
 
   // Chain state
   const [currentEpoch, setCurrentEpoch] = useState<BigNumber | null>(null);
@@ -69,28 +74,53 @@ export const VaultDepositWithdraw = () => {
   const initiateWithdrawDisabled =
     withdrawalReceipt && withdrawalReceipt.shares._hex !== ZERO_UINT_256;
 
-  // lpContract?.on("EpochExecuted", epochListener);
-  // lpContract?.on("Deposit", updateDepositState);
   // lpContract?.on("Withdraw", updateWithdrawState);
   // lpContract?.on("InitiateWithdraw", updateWithdrawState);
-  // lpContract?.on("Redeem", updateDepositState);
 
   // Contracts
   const [lpContract, lpContractCall] = useContract<{
+    EpochExecuted: [];
     Deposit: [BigNumber, BigNumber, BigNumber];
+    Redeem: [];
+    InitiateWithdraw: [];
+    Withdraw: [];
   }>({
     contract: "liquidityPool",
     ABI: LPABI.abi,
     readOnly: false,
     events: {
+      EpochExecuted: () => {
+        // TODO: Update copy here
+        toast("✅ The epoch was advanced");
+        epochListener();
+      },
       Deposit: () => {
         setListeningForDeposit(false);
         toast("✅ Deposit complete");
         updateDepositState();
       },
+      Redeem: () => {
+        setListeningForRedeem(false);
+        toast("✅ Redeem completed");
+        updateDepositState();
+      },
+      InitiateWithdraw: () => {
+        toast("✅ Your withdrawal was initiated");
+        updateWithdrawState();
+        setListeningForWithdrawComplete(false);
+      },
+      Withdraw: () => {
+        toast("✅ Your withdrawal was initiated");
+        updateWithdrawState();
+        setListeningForWithdrawComplete(false);
+      },
     },
     isListening: {
+      EpochExecuted: true,
       Deposit: listeningForDeposit,
+      Redeem: listeningForRedeem,
+      InitiateWithdraw: listeningForWithdrawInit,
+      Withdraw: listeningForWithdrawComplete,
     },
   });
 
@@ -182,22 +212,6 @@ export const VaultDepositWithdraw = () => {
     })();
   }, [getBalance, account]);
 
-  // Attatch event listeners
-  useEffect(() => {
-    lpContract?.on("EpochExecuted", epochListener);
-    lpContract?.on("Withdraw", updateWithdrawState);
-    lpContract?.on("InitiateWithdraw", updateWithdrawState);
-    lpContract?.on("Redeem", updateDepositState);
-
-    epochListener();
-
-    return () => {
-      lpContract?.off("EpochExecuted", epochListener);
-      lpContract?.off("Withdraw", updateWithdrawState);
-      lpContract?.off("InitiateWithdraw", updateWithdrawState);
-    };
-  }, [lpContract, epochListener, updateDepositState, updateWithdrawState]);
-
   // Update UI buttons when switching between deposit/withdraw mode
   useEffect(() => {
     setDepositMode(DepositMode.USDC);
@@ -273,6 +287,7 @@ export const VaultDepositWithdraw = () => {
     if (lpContract) {
       const amount = ethers.utils.parseUnits(inputValue, DECIMALS.RYSK);
       await lpContractCall({ method: lpContract.redeem, args: [amount] });
+      setListeningForRedeem(true);
     }
   };
 
@@ -283,6 +298,7 @@ export const VaultDepositWithdraw = () => {
         method: lpContract.initiateWithdraw,
         args: [amount],
       });
+      setListeningForWithdrawInit(true);
     }
   };
 
@@ -293,6 +309,7 @@ export const VaultDepositWithdraw = () => {
         method: lpContract.completeWithdraw,
         args: [sharesAmount],
       });
+      setListeningForWithdrawComplete(true);
     }
   };
 
