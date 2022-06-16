@@ -1,6 +1,6 @@
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import * as ethers from "ethers";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
 import addresses from "../contracts.json";
@@ -42,7 +42,14 @@ type useContractArgs<T extends Record<EventName, EventData>> =
 /**
  *
  * @param args
+ *  readOnly - just determines whether to instance contract with provider or signer
+ *  events - a map of Event names, to their handler functions
+ *  isListening - a map of Event names to whether their handler should be listening or not.
  * @returns
+ * [
+ *  the contract,
+ *  a wrapper around the contract functions that handles async + error handling.
+ * ]
  */
 export const useContract = <T extends Record<EventName, EventData> = any>(
   args: useContractArgs<T>
@@ -58,6 +65,9 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
   // Store events in state on init, to avoid re-adding event handlers
   // when reference changes on re-renders.
   const [contractEvents] = useState(() => args.events);
+  // Caching the events with listeners attached so that we don't unneccesarily
+  // add and remove event listeners.
+  const eventsWithListeners = useRef(new Set());
 
   const callWithErrorHandling = useCallback(
     async ({
@@ -98,6 +108,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
     []
   );
 
+  // Instances the ethrs contract in state.
   useEffect(() => {
     const signerOrProvider = args.readOnly ? provider : provider?.getSigner();
     if (signerOrProvider && network && !ethersContract) {
@@ -113,71 +124,54 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
     }
   }, [args, provider, network, ethersContract]);
 
-  // Takes the handlers map and creates an updated map where the handler
-  // is wrapped in an if statement that checks whether the isListening values
-  // is true (or if it's not present, in which case we assume true).
-  const updatedHandlers = useMemo(() => {
-    const handlers: Partial<EventHandlerMap<T>> = {};
-
-    if (contractEvents) {
+  // Attaches and removes the handlers as isListening map changes.
+  useEffect(() => {
+    if (ethersContract && contractEvents) {
       const eventNames = Object.keys(
         contractEvents
       ) as (keyof EventHandlerMap<T>)[];
+
       eventNames.forEach((eventName) => {
-        const updatedHandler: EventHandlerMap<T>[typeof eventName] = (
-          ...handlerArgs
-        ) => {
-          const shouldRunHandler =
-            !args.isListening ||
-            !args.isListening[eventName] ||
-            (args.isListening && args.isListening[eventName]);
-          if (shouldRunHandler) {
-            const handler = contractEvents[eventName];
-            handler(...handlerArgs);
+        if (contractEvents) {
+          const handler = contractEvents[eventName];
+          // Attach listener if no isListening argument present, or if that Event isn't in
+          // the isListening map, or if it is present and its value is true.
+          const shouldAttachListener =
+            (!args.isListening || args.isListening[eventName]) &&
+            !eventsWithListeners.current.has(eventName);
+          // Remove listener only if it's value in the map is false.
+          const shouldRemoveListener =
+            args.isListening &&
+            !args.isListening[eventName] &&
+            eventsWithListeners.current.has(eventName);
+          if (handler) {
+            if (shouldAttachListener) {
+              // @ts-ignore - unable to tell ethers that this handler
+              // takes specific args, and not just any[]
+              ethersContract.on(eventName as string, handler);
+            }
+            if (shouldRemoveListener) {
+              // @ts-ignore - same as above
+              ethersContract.off(eventName as string, handler);
+            }
           }
-        };
-        handlers[eventName] = updatedHandler;
-      });
-    }
-
-    return handlers;
-  }, [args.isListening, contractEvents]);
-
-  // Attaches and removes the handlers as isListening map changes.
-  useEffect(() => {
-    if (ethersContract && updatedHandlers) {
-      const eventNames = Object.keys(
-        updatedHandlers
-      ) as (keyof EventHandlerMap<T>)[];
-
-      eventNames.forEach((eventName) => {
-        const handler = updatedHandlers[eventName];
-        // Need to do this check as we instanced handlers as a Partial in the Memo above.
-        // Should always be true.
-        if (handler) {
-          // @ts-ignore - unable to tell ethers that this handler
-          // takes specific args, and not just any[]
-          ethersContract.on(eventName as string, handler);
         }
       });
+      const activeEvents = eventNames.filter(
+        (eventName) => args.isListening?.[eventName]
+      );
+      eventsWithListeners.current = new Set(activeEvents);
     }
+  }, [ethersContract, contractEvents, args.isListening]);
 
+  // Cleanup effect. Remove all contract event listeners.
+  useEffect(() => {
     return () => {
-      if (ethersContract && updatedHandlers) {
-        const eventNames = Object.keys(
-          updatedHandlers
-        ) as (keyof EventHandlerMap<T>)[];
-
-        eventNames.forEach((eventName) => {
-          const handler = updatedHandlers[eventName];
-          if (handler) {
-            // @ts-ignore - same as above where we're adding the listener.
-            ethersContract.off(eventName as string, handler);
-          }
-        });
+      if (ethersContract) {
+        ethersContract.removeAllListeners();
       }
     };
-  }, [updatedHandlers, ethersContract]);
+  }, [ethersContract]);
 
   return [ethersContract, callWithErrorHandling] as const;
 };
