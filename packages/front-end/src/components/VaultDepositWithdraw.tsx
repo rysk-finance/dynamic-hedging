@@ -120,7 +120,6 @@ export const VaultDepositWithdraw = () => {
 
   const updateDepositState = useCallback(async () => {
     if (lpContract && account) {
-      console.log("updating deposit state");
       const depositReceipt: DepositReceipt = await lpContract.depositReceipts(
         account
       );
