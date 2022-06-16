@@ -327,6 +327,7 @@ describe("Options protocol Vault Health", function () {
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
+		expect(upperHealthFactor).to.eq(uhf)
 		expect(collateralAmount).to.equal(0)
 		expect(collateralAsset).to.equal(weth.address)
 	})
@@ -371,6 +372,7 @@ describe("Options protocol Vault Health", function () {
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
+		expect(upperHealthFactor).to.eq(uhf)
 		expect(collateralAmount).to.equal(0)
 		expect(collateralAsset).to.equal(usd.address)
 	})
@@ -415,6 +417,7 @@ describe("Options protocol Vault Health", function () {
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
+		expect(upperHealthFactor).to.eq(uhf)
 		expect(collateralAmount).to.equal(0)
 		expect(collateralAsset).to.equal(weth.address)
 	})
@@ -1204,6 +1207,7 @@ describe("Options protocol Vault Health", function () {
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
+		expect(upperHealthFactor).to.eq(uhf)
 		expect(collateralAmount).to.equal(0)
 		expect(collateralAsset).to.equal(usd.address)
 		let [
