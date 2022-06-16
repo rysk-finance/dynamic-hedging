@@ -126,15 +126,32 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
     }
   }, [args, provider, network, ethersContract]);
 
-  // Attaches and removes the handlers as isListening map changes.
+  // Update the local events map. The event handlers attached to the contract
+  // look up the appropriate handler on this object, meaning we can update the
+  // function references freely, without needing the update the handler.
   useEffect(() => {
-    if (ethersContract && contractEvents) {
+    if (contractEvents.current) {
       const eventNames = Object.keys(
-        contractEvents
+        contractEvents.current
       ) as (keyof EventHandlerMap<T>)[];
 
       eventNames.forEach((eventName) => {
-        if (contractEvents) {
+        if (contractEvents.current && args.events) {
+          contractEvents.current[eventName] = args.events[eventName];
+        }
+      });
+    }
+  }, [args.events]);
+
+  // Attaches and removes the handlers as isListening map changes.
+  useEffect(() => {
+    if (ethersContract && contractEvents.current) {
+      const eventNames = Object.keys(
+        contractEvents.current
+      ) as (keyof EventHandlerMap<T>)[];
+
+      eventNames.forEach((eventName) => {
+        if (contractEvents.current) {
           const handler = contractEvents.current?.[eventName];
           // Attach listener if no isListening argument present, or if that Event isn't in
           // the isListening map, or if it is present and its value is true.
@@ -148,13 +165,24 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
             eventsWithListeners.current.has(eventName);
           if (handler) {
             if (shouldAttachListener) {
-              // @ts-ignore - unable to tell ethers that this handler
-              // takes specific args, and not just any[]
-              ethersContract.on(eventName as string, handler);
+              // Here, we're defining an inline function that looks up the appropriate
+              // handler on the contractEvents ref. This means we can update the function
+              // inside of contractevents, and the updated handler will get called, without
+              // us needing to remove then add a new listener.
+              ethersContract.on(eventName as string, (...args) => {
+                const handler = contractEvents.current?.[eventName];
+                // @ts-ignore - unable to tell ethers that this handler
+                // takes specific args, and not just any[]
+                handler(args);
+              });
             }
             if (shouldRemoveListener) {
-              // @ts-ignore - same as above
-              ethersContract.off(eventName as string, handler);
+              const handlers = ethersContract.listeners(eventName as string);
+              // There should only ever be one. Using forEach just to be safe.
+              handlers.forEach((handler) => {
+                // @ts-ignore - same as above
+                ethersContract.removeListener(eventName as string, handler);
+              });
             }
           }
         }
@@ -165,41 +193,6 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
       eventsWithListeners.current = new Set(activeEvents);
     }
   }, [ethersContract, contractEvents, args.isListening]);
-
-  // Attaches and removes listeners if handler function reference changes.
-  useEffect(() => {
-    if (args.events) {
-      const eventNames = Object.keys(
-        contractEvents
-      ) as (keyof EventHandlerMap<T>)[];
-
-      console.log(JSON.stringify(eventsWithListeners));
-
-      eventNames.forEach((eventName) => {
-        if (ethersContract && contractEvents.current && args.events) {
-          const handlerIsUpdated =
-            contractEvents.current?.[eventName] !== args.events[eventName];
-          if (handlerIsUpdated && eventsWithListeners.current.has(eventName)) {
-            console.log("handler is updated for", eventName);
-            // remove old listener
-            ethersContract.off(
-              eventName as string,
-              // @ts-ignore - see above
-              contractEvents.current[eventName]
-            );
-            // add new listener
-            ethersContract.on(
-              eventName as string,
-              // @ts-ignore - see above
-              args.events[eventName]
-            );
-            // update local map of handlers
-            contractEvents.current[eventName] = args.events[eventName];
-          }
-        }
-      });
-    }
-  }, [args.events, ethersContract]);
 
   // Cleanup effect. Remove all contract event listeners.
   useEffect(() => {
