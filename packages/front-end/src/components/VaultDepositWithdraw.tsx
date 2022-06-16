@@ -479,14 +479,15 @@ export const VaultDepositWithdraw = () => {
                               </div>
                             </div>
                           )}
-                        {unredeemedShares?._hex !== ZERO_UINT_256 && (
-                          <div className="rounded-full bg-yellow-600 h-2 w-2 relative cursor-pointer group">
-                            <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
-                              {/* TODO(HC): Determine what this copy should be. */}
-                              <p>You have some shares available to redeem.</p>
+                        {unredeemedShares &&
+                          unredeemedShares?._hex !== ZERO_UINT_256 && (
+                            <div className="rounded-full bg-yellow-600 h-2 w-2 relative cursor-pointer group">
+                              <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
+                                {/* TODO(HC): Determine what this copy should be. */}
+                                <p>You have some shares available to redeem.</p>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
                       </RequiresWalletConnection>{" "}
                     </div>
                   </>
