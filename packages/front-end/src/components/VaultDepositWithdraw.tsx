@@ -208,9 +208,10 @@ export const VaultDepositWithdraw = () => {
     (async () => {
       if (account) {
         await getBalance(account);
+        await epochListener();
       }
     })();
-  }, [getBalance, account]);
+  }, [getBalance, account, epochListener]);
 
   // Update UI buttons when switching between deposit/withdraw mode
   useEffect(() => {
