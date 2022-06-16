@@ -547,30 +547,26 @@ export const VaultDepositWithdraw = () => {
                   <h5>Collateral:</h5>
                   <div className="flex items-center h-[36px]">
                     <RequiresWalletConnection className="w-[120px] h-6 mr-2">
-                      {withdrawalReceipt &&
-                        (withdrawEpochSharePrice &&
-                        withdrawEpochSharePrice?._hex !== ZERO_UINT_256 ? (
-                          <>
-                            <h5 className="mr-2">
-                              <b>
-                                {/* TODO(HC): Scale this properly once sharePrice being returned by oracle is more accurate. */}
-                                {withdrawalReceipt.shares
-                                  .div(BIG_NUMBER_DECIMALS.RYSK)
-                                  .mul(
-                                    withdrawEpochSharePrice.div(
-                                      BIG_NUMBER_DECIMALS.RYSK
-                                    )
+                      <>
+                        <h5 className="mr-2">
+                          <b>
+                            {/* TODO(HC): Scale this properly once sharePrice being returned by oracle is more accurate. */}
+                            {withdrawalReceipt &&
+                              withdrawEpochSharePrice &&
+                              withdrawalReceipt.shares
+                                .div(BIG_NUMBER_DECIMALS.RYSK)
+                                .mul(
+                                  withdrawEpochSharePrice.div(
+                                    BIG_NUMBER_DECIMALS.RYSK
                                   )
-                                  .toString()}{" "}
-                                USDC
-                              </b>
-                            </h5>
-                          </>
-                        ) : (
-                          <>
-                            <h5 className="mr-2">
-                              <b>0 USDC</b>
-                            </h5>
+                                )
+                                .toString()}{" "}
+                            USDC
+                          </b>
+                        </h5>
+                        {withdrawalReceipt &&
+                          withdrawEpochSharePrice &&
+                          withdrawEpochSharePrice?._hex === ZERO_UINT_256 && (
                             <div className="rounded-full bg-green-500 h-2 w-2 relative cursor-pointer group">
                               <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
                                 <p>
@@ -580,8 +576,8 @@ export const VaultDepositWithdraw = () => {
                                 </p>
                               </div>
                             </div>
-                          </>
-                        ))}
+                          )}
+                      </>
                     </RequiresWalletConnection>{" "}
                   </div>
                 </>
