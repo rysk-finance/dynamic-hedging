@@ -110,7 +110,7 @@ export const VaultDepositWithdraw = () => {
         setListeningForWithdrawComplete(false);
       },
       Withdraw: () => {
-        toast("✅ Your withdrawal was initiated");
+        toast("✅ Your withdrawal was completed");
         updateWithdrawState();
         setListeningForWithdrawComplete(false);
       },
