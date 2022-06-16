@@ -43,7 +43,9 @@ type useContractArgs<T extends Record<EventName, EventData>> =
  *
  * @param args
  *  readOnly - just determines whether to instance contract with provider or signer
- *  events - a map of Event names, to their handler functions
+ *  events - a map of Event names, to their handler functions. handler functions should
+ *           be memoised using useCallback and NOT PASSED INLINE, as we use function references
+ *           to determine when to add and remove listeners.
  *  isListening - a map of Event names to whether their handler should be listening or not.
  * @returns
  * [
@@ -62,9 +64,9 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
     null
   );
 
-  // Store events in state on init, to avoid re-adding event handlers
-  // when reference changes on re-renders.
-  const [contractEvents] = useState(() => args.events);
+  // Store map of function handlers in ref so we can remove and add
+  // handlers when required.
+  const contractEvents = useRef(args.events);
   // Caching the events with listeners attached so that we don't unneccesarily
   // add and remove event listeners.
   const eventsWithListeners = useRef(new Set());
@@ -108,7 +110,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
     []
   );
 
-  // Instances the ethrs contract in state.
+  // Instances the ethers contract in state.
   useEffect(() => {
     const signerOrProvider = args.readOnly ? provider : provider?.getSigner();
     if (signerOrProvider && network && !ethersContract) {
@@ -133,7 +135,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
 
       eventNames.forEach((eventName) => {
         if (contractEvents) {
-          const handler = contractEvents[eventName];
+          const handler = contractEvents.current?.[eventName];
           // Attach listener if no isListening argument present, or if that Event isn't in
           // the isListening map, or if it is present and its value is true.
           const shouldAttachListener =
@@ -163,6 +165,41 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
       eventsWithListeners.current = new Set(activeEvents);
     }
   }, [ethersContract, contractEvents, args.isListening]);
+
+  // Attaches and removes listeners if handler function reference changes.
+  useEffect(() => {
+    if (args.events) {
+      const eventNames = Object.keys(
+        contractEvents
+      ) as (keyof EventHandlerMap<T>)[];
+
+      console.log(JSON.stringify(eventsWithListeners));
+
+      eventNames.forEach((eventName) => {
+        if (ethersContract && contractEvents.current && args.events) {
+          const handlerIsUpdated =
+            contractEvents.current?.[eventName] !== args.events[eventName];
+          if (handlerIsUpdated && eventsWithListeners.current.has(eventName)) {
+            console.log("handler is updated for", eventName);
+            // remove old listener
+            ethersContract.off(
+              eventName as string,
+              // @ts-ignore - see above
+              contractEvents.current[eventName]
+            );
+            // add new listener
+            ethersContract.on(
+              eventName as string,
+              // @ts-ignore - see above
+              args.events[eventName]
+            );
+            // update local map of handlers
+            contractEvents.current[eventName] = args.events[eventName];
+          }
+        }
+      });
+    }
+  }, [args.events, ethersContract]);
 
   // Cleanup effect. Remove all contract event listeners.
   useEffect(() => {

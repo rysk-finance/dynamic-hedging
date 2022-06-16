@@ -13,7 +13,7 @@ import {
 import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
 import { useGlobalContext } from "../state/GlobalContext";
-import { DepositReceipt, WithdrawalReceipt } from "../types";
+import { DepositReceipt, Events, WithdrawalReceipt } from "../types";
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
 import { RadioButtonSlider } from "./shared/RadioButtonSlider";
 import { TextInput } from "./shared/TextInput";
@@ -47,7 +47,8 @@ export const VaultDepositWithdraw = () => {
     WithdrawMode.INITIATE
   );
   const [inputValue, setInputValue] = useState("");
-  const [isApproved, setIsApproved] = useState(false);
+  const [listeningForApproval, setListeningForApproval] = useState(false);
+  const [listeningForDeposit, setListeningForDeposit] = useState(false);
 
   // Chain state
   const [currentEpoch, setCurrentEpoch] = useState<BigNumber | null>(null);
@@ -61,20 +62,52 @@ export const VaultDepositWithdraw = () => {
     useState<WithdrawalReceipt | null>(null);
   const [withdrawEpochSharePrice, setWithdrawEpochSharePrice] =
     useState<BigNumber | null>(null);
+  const [approvalState, setApprovalState] = useState<Events["Approval"] | null>(
+    null
+  );
 
   const initiateWithdrawDisabled =
     withdrawalReceipt && withdrawalReceipt.shares._hex !== ZERO_UINT_256;
 
+  // lpContract?.on("EpochExecuted", epochListener);
+  // lpContract?.on("Deposit", updateDepositState);
+  // lpContract?.on("Withdraw", updateWithdrawState);
+  // lpContract?.on("InitiateWithdraw", updateWithdrawState);
+  // lpContract?.on("Redeem", updateDepositState);
+
   // Contracts
-  const [lpContract, lpContractCall] = useContract({
+  const [lpContract, lpContractCall] = useContract<{
+    Deposit: [BigNumber, BigNumber, BigNumber];
+  }>({
     contract: "liquidityPool",
     ABI: LPABI.abi,
     readOnly: false,
+    events: {
+      Deposit: () => {
+        setListeningForDeposit(false);
+        toast("✅ Deposit complete");
+        updateDepositState();
+      },
+    },
+    isListening: {
+      Deposit: listeningForDeposit,
+    },
   });
-  const [usdcContract, usdcContractCall] = useContract({
+
+  const [usdcContract, usdcContractCall] = useContract<{
+    Approval: [string, string, BigNumber];
+  }>({
     contract: "USDC",
     ABI: ERC20ABI,
     readOnly: false,
+    events: {
+      Approval: (owner, spender, value) => {
+        setApprovalState({ owner, spender, value });
+        setListeningForApproval(false);
+        toast("✅ Approval complete");
+      },
+    },
+    isListening: { Approval: listeningForApproval },
   });
 
   const getBalance = useCallback(
@@ -87,6 +120,7 @@ export const VaultDepositWithdraw = () => {
 
   const updateDepositState = useCallback(async () => {
     if (lpContract && account) {
+      console.log("updating deposit state");
       const depositReceipt: DepositReceipt = await lpContract.depositReceipts(
         account
       );
@@ -152,7 +186,6 @@ export const VaultDepositWithdraw = () => {
   // Attatch event listeners
   useEffect(() => {
     lpContract?.on("EpochExecuted", epochListener);
-    lpContract?.on("Deposit", updateDepositState);
     lpContract?.on("Withdraw", updateWithdrawState);
     lpContract?.on("InitiateWithdraw", updateWithdrawState);
     lpContract?.on("Redeem", updateDepositState);
@@ -161,7 +194,6 @@ export const VaultDepositWithdraw = () => {
 
     return () => {
       lpContract?.off("EpochExecuted", epochListener);
-      lpContract?.off("Deposit", updateDepositState);
       lpContract?.off("Withdraw", updateWithdrawState);
       lpContract?.off("InitiateWithdraw", updateWithdrawState);
     };
@@ -184,13 +216,12 @@ export const VaultDepositWithdraw = () => {
   // Reset input value when switching mode
   useEffect(() => {
     setInputValue("");
-    setIsApproved(false);
   }, [mode, depositMode, withdrawMode]);
 
   // UI Handlers
   const handleInputChange = (value: string) => {
-    setIsApproved(false);
     setInputValue(value);
+    setApprovalState(null);
   };
 
   // Handlers for the different possible vault interactions.
@@ -211,14 +242,15 @@ export const VaultDepositWithdraw = () => {
                 ? ethers.BigNumber.from(MAX_UINT_256)
                 : amount,
             ],
-            successMessage: "✅ Approval successful",
+            successMessage: "✅ Approval submitted",
           });
+          setListeningForApproval(true);
         } else {
           toast("✅ Your transaction is already approved");
         }
-        setIsApproved(true);
       } catch {
         toast("❌ There was an error approving your transaction.");
+        setListeningForApproval(false);
       }
     }
   };
@@ -226,20 +258,15 @@ export const VaultDepositWithdraw = () => {
   const handleDepositCollateral = async () => {
     if (usdcContract && lpContract && account && network) {
       const amount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
-      const approvedAmount = (await usdcContract.allowance(
-        account,
-        addresses[network.name]["liquidityPool"]
-      )) as BigNumber;
       await lpContractCall({
         method: lpContract.deposit,
         args: [amount],
+        successMessage: "✅ Deposit submitted",
         onComplete: () => {
-          setIsApproved(false);
-        },
-        onFail: () => {
-          setIsApproved(false);
+          setApprovalState(null);
         },
       });
+      setListeningForDeposit(true);
     }
   };
 
@@ -270,7 +297,7 @@ export const VaultDepositWithdraw = () => {
     }
   };
 
-  // Coordinate the 4 possible interactions
+  // Coordinate the interactions on submit
   const handleSubmit = async () => {
     try {
       if (account && lpContract && usdcContract) {
@@ -295,11 +322,11 @@ export const VaultDepositWithdraw = () => {
     }
   };
 
-  const approveIsDisabled = !inputValue || isApproved;
+  const approveIsDisabled = !inputValue || approvalState;
   const depositIsDisabled =
     mode === Mode.DEPOSIT &&
     depositMode === DepositMode.USDC &&
-    !(inputValue && account && isApproved);
+    !(inputValue && account && approvalState);
   const completeWithdrawIsDisabled = !(
     withdrawalReceipt &&
     !withdrawalReceipt.shares.isZero() &&
@@ -583,7 +610,7 @@ export const VaultDepositWithdraw = () => {
                   approveIsDisabled ? "!bg-gray-300" : ""
                 }`}
               >
-                {`${isApproved ? "Approved ✅" : "Approve"}`}
+                {`${approvalState ? "Approved ✅" : "Approve"}`}
               </button>
               <button
                 onClick={() => {

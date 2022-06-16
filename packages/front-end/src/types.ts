@@ -63,3 +63,7 @@ export type OptionSeries = {
   strikeAsset: Address;
   collateral: Address;
 };
+
+export type Events = {
+  Approval: { owner: Address; spender: Address; value: BigNumber };
+};
