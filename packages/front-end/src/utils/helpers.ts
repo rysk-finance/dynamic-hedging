@@ -17,6 +17,7 @@ import bs from 'black-scholes'
 import greeks from "greeks"
 //@ts-ignore
 import impliedVol from "implied-volatility"
+import { truncateDecimalString } from "../utils"
 
 const rfr = "0.03"
 const belowUtilizationThresholdGradient = 0.1
@@ -179,7 +180,7 @@ export async function calculateOptionDeltaLocally(
 		opType
 	)
 	localDelta = isShort ? -localDelta : localDelta
-	return toWei(localDelta.toString()).mul(amount.div(toWei("1")))
+	return toWei(truncateDecimalString(localDelta.toString())).mul(amount.div(toWei("1")))
 }
 
 export async function getBlackScholesQuote(
