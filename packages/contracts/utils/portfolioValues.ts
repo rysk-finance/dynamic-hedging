@@ -157,6 +157,8 @@ async function enrichOptionPositions(
 			const [price] = await opynOracle.getExpiryPrice(contractsState.underlying, seriesInfo.expiration)
 			timeToExpiration = 0
 			// if expiration price is not set there is a fallback price
+			// do not use this approach in production version of external adapter
+			// actual external adapter will need to query historical price as a fallback
 			priceToUse = Number(price) > 0 ? fromOpyn(price) : priceNorm
 		} else {
 			timeToExpiration = genOptionTimeFromUnix(Number(timestamp), seriesInfo.expiration.toNumber())
@@ -175,14 +177,6 @@ async function enrichOptionPositions(
 		const vega = greeks.getVega(...greekVariables)
 		const theta = greeks.getTheta(...greekVariables)
 		const bsQuote: number = bs.blackScholes(...greekVariables)
-		const optionSeries = {
-			expiration: seriesInfo.expiration,
-			strike: seriesInfo.strike,
-			isPut: greekVariables[5] == "put" ? true : false,
-			strikeAsset: seriesInfo.strikeAsset,
-			underlying: seriesInfo.underlying,
-			collateral: seriesInfo.collateral
-		}
 		if (!x.amount) return x
 		const optionRegistryAddress = optionRegistry.address
 		const vaultInfo = await controller.getVault(optionRegistryAddress, x.vaultId)

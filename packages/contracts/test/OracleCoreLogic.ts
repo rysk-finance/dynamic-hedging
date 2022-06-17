@@ -247,7 +247,6 @@ describe("Oracle core logic", async () => {
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
-		//await portfolioValuesFeed.setLiquidityPool(liquidityPool.address)
 	})
 
 	it("Deploys the Option Registry and sets state with written options", async () => {
@@ -309,7 +308,6 @@ describe("Oracle core logic", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		let quote = (
 			await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount, false)
 		)[0]
@@ -392,7 +390,6 @@ describe("Oracle core logic", async () => {
 		const buybackAmountOpyn = buybackAmount.sub(BigNumber.from(10 ** 10))
 		await callOptionToken.approve(handler.address, buybackAmount)
 		const buyback = await handler.buybackOption(callSeriesAddress, buybackAmountOpyn)
-		const buybackReceipt = await buyback.wait(0)
 		const buybackAmountNormalized = fromWei(buybackAmount)
 		const buybackDeltaAmount = Number(buybackAmountNormalized) * expected_call_delta
 		const newDelta = expected_portfolio_delta_two_calls - buybackDeltaAmount
@@ -412,8 +409,6 @@ describe("Oracle core logic", async () => {
 
 		const vaultDetails = await controller.getVault(optionRegistry.address, 2)
 		const value = vaultDetails.shortAmounts[0]
-		const liqBalBef = await usd.balanceOf(senderAddress)
-		const collatAmountsBef = vaultDetails.collateralAmounts[0]
 		const liqOpBalBef = await callOptionToken.balanceOf(senderAddress)
 		expect(liqOpBalBef).to.be.gt(0)
 		const abiCode = new AbiCoder()
@@ -515,6 +510,7 @@ describe("Oracle core logic", async () => {
 			[strikePrice]
 		)
 		// adjust threshold parameters for writing new options
+		// to prevent threshold oracle error when requesting a quote
 		await liquidityPool.setMaxPriceDeviationThreshold("31568660")
 		await liquidityPool.setMaxTimeDeviationThreshold("31568680")
 		let quote = (
