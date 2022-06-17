@@ -106,8 +106,8 @@ export const CustomOptionOrder: React.FC = () => {
           </div>
           <Button
             disabled={submitIsDisabled}
-            className={`!py-4 w-full !bg-black text-white mb-4 border-x-0 ${
-              submitIsDisabled && "!bg-gray-300"
+            className={`!py-4 w-full text-white mb-4 border-x-0 ${
+              submitIsDisabled ? "!bg-gray-300" : "!bg-black"
             }`}
             onClick={handleSubmit}
           >
