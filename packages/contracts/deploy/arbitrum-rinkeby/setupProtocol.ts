@@ -34,8 +34,28 @@ const deposit = async () => {
 	const balance = await deployer.getBalance()
 	const liquidityPool = await ethers.getContractAt("LiquidityPool", liquidityPoolAddress, deployer)
 	const usdc = await ethers.getContractAt("MockERC20", usdcAddress, deployer)
+	const priceFeed = (await ethers.getContractAt(
+		"PriceFeed",
+		priceFeedAddress,
+		deployer
+	)) as PriceFeed
 	console.log({ balance: ethers.utils.formatEther(balance) })
 	await usdc.approve(liquidityPool.address, depositAmount)
+
+	const pvFeed = await ethers.getContractAt("PortfolioValuesFeed", pvFeedAddress, deployer)
+	const price = await priceFeed.getNormalizedRate(wethAddress, usdcAddress)
+	console.log({ price })
+	await pvFeed.fulfill(
+		utils.formatBytes32String("1"),
+		wethAddress,
+		usdcAddress,
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		price
+	)
 
 	await liquidityPool.deposit(depositAmount, {
 		gasLimit: BigNumber.from("1000000000")
@@ -43,8 +63,8 @@ const deposit = async () => {
 
 	await liquidityPool.pauseTradingAndRequest()
 
-	await liquidityPool.executeEpochCalculation()
-
+	const executeTx = await liquidityPool.executeEpochCalculation()
+	await executeTx.wait()
 	await liquidityPool.redeem(toWei("1000000000000000"))
 }
 
