@@ -21,7 +21,8 @@ import {
 	toOpyn,
 	tFormatUSDC,
 	scaleNum,
-	truncate
+	truncate,
+	genOptionTimeFromUnix
 } from "../utils/conversion-helper"
 import moment from "moment"
 import { expect } from "chai"
@@ -42,7 +43,7 @@ import { Controller } from "../types/Controller"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle } from "./helpers"
+import { setupTestOracle, setOpynOracleExpiryPrice, setupOracle } from "./helpers"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -52,7 +53,8 @@ import {
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS,
 	CONTROLLER_OWNER,
-	CHAINLINK_WETH_PRICER
+	CHAINLINK_WETH_PRICER,
+	oTokenDecimalShift18
 } from "./constants"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
@@ -99,9 +101,9 @@ let portfolioValueArgs: [LiquidityPool, NewController, OptionRegistry, PriceFeed
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 // delta of first put written
-const expected_put_delta = 0.39679640941831507
+const expected_put_delta = 0.401771025305072
 // delta of first call written
-const expected_call_delta = -0.5856527252094983
+const expected_call_delta = -0.5793846314710722
 const expected_portfolio_delta = expected_put_delta + expected_call_delta
 const expected_portfolio_delta_two_calls = expected_put_delta + expected_call_delta * 2
 
@@ -116,7 +118,6 @@ const expiryDate: string = "2022-04-05"
 const rfr: string = "0.03"
 // edit depending on the chain id to be tested on
 const chainId = 1
-const oTokenDecimalShift18 = 10000000000
 // amount of dollars OTM written options will be (both puts and calls)
 // use negative numbers for ITM options
 const strike = "20"
@@ -335,7 +336,6 @@ describe("Oracle core logic", async () => {
 	})
 
 	it("Computes portfolio delta after writing a call with intial put option from the pool", async () => {
-		const [sender] = signers
 		// LP writes a ETH/USD call for premium
 		blockNum = await ethers.provider.getBlockNumber()
 		block = await ethers.provider.getBlock(blockNum)
@@ -447,7 +447,7 @@ describe("Oracle core logic", async () => {
 
 	it("properly computes calls and puts values with expired OTM options", async () => {
 		// set block timestamp past expiration of all options
-		const TARGET_BLOCK = 1649145600
+		const TARGET_BLOCK = 1649145600 // 04/05/2022
 		await network.provider.request({
 			method: "evm_setNextBlockTimestamp",
 			params: [TARGET_BLOCK]
@@ -458,6 +458,12 @@ describe("Oracle core logic", async () => {
 		timestamp = block.timestamp
 		expect(timestamp).to.eq(TARGET_BLOCK)
 		priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		await setOpynOracleExpiryPrice(
+			WETH_ADDRESS[chainId],
+			oracle,
+			expiration,
+			priceQuote.div(oTokenDecimalShift18)
+		)
 		const sumValues = writtenOptions
 			.map(x => {
 				const { series } = x
@@ -480,5 +486,94 @@ describe("Oracle core logic", async () => {
 			oracle
 		)
 		expect(portfolioValues.callsPutsValue).to.eq(0)
+	})
+
+	it("properly computes portfolio value with expired ITM options", async () => {
+		const [sender] = signers
+		const senderAddress: string = await sender.getAddress()
+		blockNum = await ethers.provider.getBlockNumber()
+		block = await ethers.provider.getBlock(blockNum)
+		timestamp = block.timestamp
+		priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		let strikePrice = priceQuote.add(toWei(strike))
+		let expiration = Date.parse("30 July 2022 08:00:00 UTC") / 1000
+		const proposedPutSeries = {
+			expiration: expiration,
+			isPut: PUT_FLAVOR,
+			strike: strikePrice,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await newCalculator.setUpperBoundValues(
+			proposedPutSeries.underlying,
+			proposedPutSeries.strikeAsset,
+			proposedPutSeries.collateral,
+			proposedPutSeries.isPut,
+			[BigNumber.from(proposedPutSeries.expiration)],
+			[strikePrice]
+		)
+		// adjust threshold parameters for writing new options
+		await liquidityPool.setMaxPriceDeviationThreshold("31568660")
+		await liquidityPool.setMaxTimeDeviationThreshold("31568680")
+		await liquidityPool.setNewOptionParams(
+			minCallStrikePrice,
+			maxCallStrikePrice,
+			minPutStrikePrice,
+			maxPutStrikePrice,
+			0,
+			maxExpiry
+		)
+		let quote = (
+			await liquidityPool.quotePriceWithUtilizationGreeks(proposedPutSeries, amount, false)
+		)[0]
+		await usd.approve(handler.address, quote)
+		const iv = await liquidityPool.getImpliedVolatility(
+			proposedPutSeries.isPut,
+			priceQuote,
+			strikePrice,
+			expiration
+		)
+		const rfr = fromWei(await liquidityPool.riskFreeRate())
+		const tte = genOptionTimeFromUnix(Number(timestamp), expiration)
+		let write = await handler.issueAndWriteOption(proposedPutSeries, amount)
+		receipt = await write.wait(1)
+		const writeEvents = getMatchingEvents(receipt, WRITE_OPTION)
+		const writeEvent = writeEvents[0]
+		const seriesAddress = writeEvent !== "failed" ? writeEvent?.series : ""
+
+		const localBS = bs.blackScholes(
+			fromWei(priceQuote),
+			fromWei(strikePrice),
+			tte,
+			fromWei(iv),
+			parseFloat(rfr),
+			"put"
+		)
+		const prePortfolioValues = await getPortfolioValues(
+			liquidityPool,
+			controller,
+			optionRegistry,
+			priceFeed,
+			oracle
+		)
+		const percentageDifference = Math.abs((localBS - prePortfolioValues.callsPutsValue) / localBS)
+		// due to utilization there will be some difference from localBS, but should be low given utilization rate
+		expect(percentageDifference).to.be.lessThan(0.01)
+		await network.provider.request({
+			method: "evm_setNextBlockTimestamp",
+			params: [expiration]
+		})
+		await ethers.provider.send("evm_mine", [])
+		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, priceQuote)
+		await liquidityPool.settleVault(seriesAddress)
+		const postPortfolioValues = await getPortfolioValues(
+			liquidityPool,
+			controller,
+			optionRegistry,
+			priceFeed,
+			oracle
+		)
+		expect(postPortfolioValues.callsPutsValue).to.eq(0)
 	})
 })
