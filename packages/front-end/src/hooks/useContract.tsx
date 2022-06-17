@@ -3,20 +3,33 @@ import { useCallback, useEffect, useState } from "react";
 import { useWalletContext } from "../App";
 import { toast } from "react-toastify";
 import { TransactionResponse } from "@ethersproject/abstract-provider";
+import addresses from "../contracts.json";
+import { ContractAddresses, ETHNetwork } from "../types";
 
-type useContractArgs = {
-  address: string;
+type useContractRyskContractArgs = {
+  contract: keyof ContractAddresses;
   ABI: ethers.ContractInterface;
   readOnly?: boolean;
 };
 
-export const useContract = ({
-  address,
-  ABI,
-  readOnly = true,
-}: useContractArgs) => {
+type useContractExternalContractArgs = {
+  contractAddress: string;
+  ABI: ethers.ContractInterface;
+  readOnly?: boolean;
+};
+
+type useContractArgs =
+  | useContractRyskContractArgs
+  | useContractExternalContractArgs;
+
+export const useContract = (args: useContractArgs) => {
+  const [network] = useState(
+    process.env.REACT_APP_NETWORK as keyof typeof addresses | undefined
+  );
   const { provider } = useWalletContext();
-  const [contract, setContract] = useState<ethers.Contract | null>(null);
+  const [ethersContract, setEthersContract] = useState<ethers.Contract | null>(
+    null
+  );
 
   const callWithErrorHandling = useCallback(
     async (method: ethers.ContractFunction, ...args: any) => {
@@ -43,11 +56,19 @@ export const useContract = ({
   );
 
   useEffect(() => {
-    const signerOrProvider = readOnly ? provider : provider?.getSigner();
-    if (signerOrProvider) {
-      setContract(new ethers.Contract(address, ABI, signerOrProvider));
+    const signerOrProvider = args.readOnly ? provider : provider?.getSigner();
+    if (signerOrProvider && network && !ethersContract) {
+      const address =
+        "contract" in args
+          ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
+              (args as useContractRyskContractArgs).contract
+            ]
+          : (args as useContractExternalContractArgs).contractAddress;
+      setEthersContract(
+        new ethers.Contract(address, args.ABI, signerOrProvider)
+      );
     }
-  }, [address, ABI, provider, readOnly]);
+  }, [args, provider, network, ethersContract]);
 
-  return [contract, callWithErrorHandling] as const;
+  return [ethersContract, callWithErrorHandling] as const;
 };

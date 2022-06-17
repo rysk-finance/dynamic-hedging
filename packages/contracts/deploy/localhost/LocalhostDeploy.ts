@@ -111,7 +111,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 		// @ts-ignore
 		contractAddresses = JSON.parse(fs.readFileSync(addressPath))
 	} catch {
-		contractAddresses = { localhost: {} }
+		console.log("Cannot find contract addresses")
+		process.exit()
 	}
 
 	// @ts-ignore

@@ -3,7 +3,13 @@ import injectedModule from "@web3-onboard/injected-wallets";
 import { init } from "@web3-onboard/react";
 import walletConnectModule from "@web3-onboard/walletconnect";
 import * as ethers from "ethers";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -21,6 +27,7 @@ import { toHex } from "./utils";
 const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
 const ROPSTEN_RPC_URL = `https://ropsten.infura.io/v3/${process.env.REACT_APP_INFURA_URL}`;
 const RINKEBY_RPC_URL = `https://rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_URL}`;
+const ARBITRUM_RINKEBY_RPC_URL = `https://arbitrum-rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_URL}`;
 
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();
@@ -49,6 +56,13 @@ const onboard = init({
       label: "Ethereum Rinkeby Testnet",
       rpcUrl: RINKEBY_RPC_URL,
     },
+    {
+      id: "0x5",
+      token: "rETH",
+      namespace: "evm",
+      label: "Arbitrum Rinkeby Testnet",
+      rpcUrl: ARBITRUM_RINKEBY_RPC_URL,
+    },
   ],
   appMetadata: {
     // TODO(HC): Update icon
@@ -65,6 +79,7 @@ const onboard = init({
 
 type WalletContext = {
   connectWallet: (() => Promise<void>) | null;
+  network: ethers.ethers.providers.Network | null;
   switchNetwork: (() => Promise<void>) | null;
   disconnect: (() => Promise<void>) | null;
   provider: ethers.ethers.providers.Web3Provider | null;
@@ -77,6 +92,7 @@ type WalletContext = {
 const WalletContext = createContext<WalletContext>({
   connectWallet: null,
   switchNetwork: null,
+  network: null,
   disconnect: null,
   provider: null,
   account: null,
@@ -99,7 +115,8 @@ function App() {
   const [account, setAccount] = useState<string | null>(null);
   const [error, setError] = useState<any>(null);
   const [chainId, setChainId] = useState<string | null>(null);
-  const [network, setNetwork] = useState<number | null>(null);
+  const [network, setNetwork] =
+    useState<ethers.ethers.providers.Network | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [getLocalStorage, setLocalStorage] = useLocalStorage();
@@ -123,7 +140,7 @@ function App() {
       walletUnsubscribe?.();
       setWalletUnsubscribe(null);
     };
-  }, [web3Onboard]);
+  }, [web3Onboard, setLocalStorage, walletUnsubscribe]);
 
   const connectWallet = async (wallet?: string) => {
     try {
@@ -136,6 +153,8 @@ function App() {
       const { accounts, chains, provider } = wallets[0];
       const ethersProvider = new ethers.providers.Web3Provider(provider);
       setProvider(ethersProvider);
+      const network = await ethersProvider.getNetwork();
+      setNetwork(network);
       setAccount(accounts[0].address);
       setChainId(chains[0].id);
       setIsLoading(false);
@@ -149,20 +168,20 @@ function App() {
     if (wallets && wallets.length > 0) {
       connectWallet(wallets[0]);
     }
-  }, []);
+  }, [getLocalStorage]);
 
   const switchNetwork = async () => {
     if (network) {
-      await onboard.setChain({ chainId: toHex(network) });
+      await onboard.setChain({ chainId: toHex(network.chainId) });
     }
   };
 
-  const disconnect = async () => {
+  const disconnect = useCallback(async () => {
     const [primaryWallet] = await onboard.state.get().wallets;
     if (!primaryWallet) return;
     await onboard.disconnectWallet({ label: primaryWallet.label });
     refreshState();
-  };
+  }, []);
 
   const refreshState = () => {
     setAccount("");
@@ -170,10 +189,25 @@ function App() {
     setProvider(null);
   };
 
+  useEffect(() => {
+    if (window.ethereum) {
+      window.ethereum.on("chainChanged", disconnect);
+      window.ethereum.on("accountsChanged", disconnect);
+    }
+
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener("chainChanged", disconnect);
+        window.ethereum.removeListener("accountsChanged", disconnect);
+      }
+    };
+  }, [disconnect]);
+
   return (
     <WalletContext.Provider
       value={{
         connectWallet,
+        network,
         switchNetwork,
         disconnect,
         provider,

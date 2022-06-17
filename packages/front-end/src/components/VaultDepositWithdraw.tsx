@@ -9,7 +9,6 @@ import {
   MAX_UINT_256,
   ZERO_UINT_256,
 } from "../config/constants";
-import { USDC_ADDRESS } from "../config/mainnetContracts";
 import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
 import { useGlobalContext } from "../state/GlobalContext";
@@ -66,12 +65,12 @@ export const VaultDepositWithdraw = () => {
 
   // Contracts
   const [lpContract, lpContractCall] = useContract({
-    address: addresses.localhost.liquidityPool,
+    contract: "liquidityPool",
     ABI: LPABI.abi,
     readOnly: false,
   });
   const [usdcContract, usdcContractCall] = useContract({
-    address: USDC_ADDRESS,
+    contract: "USDC",
     ABI: ERC20ABI,
     readOnly: false,
   });
