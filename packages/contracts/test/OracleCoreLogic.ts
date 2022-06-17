@@ -486,6 +486,7 @@ describe("Oracle core logic", async () => {
 			oracle
 		)
 		expect(portfolioValues.callsPutsValue).to.eq(0)
+		expect(portfolioValues.portfolioDelta).to.eq(0)
 	})
 
 	it("properly computes portfolio value with expired ITM options", async () => {
@@ -516,14 +517,6 @@ describe("Oracle core logic", async () => {
 		// adjust threshold parameters for writing new options
 		await liquidityPool.setMaxPriceDeviationThreshold("31568660")
 		await liquidityPool.setMaxTimeDeviationThreshold("31568680")
-		await liquidityPool.setNewOptionParams(
-			minCallStrikePrice,
-			maxCallStrikePrice,
-			minPutStrikePrice,
-			maxPutStrikePrice,
-			0,
-			maxExpiry
-		)
 		let quote = (
 			await liquidityPool.quotePriceWithUtilizationGreeks(proposedPutSeries, amount, false)
 		)[0]
@@ -575,5 +568,6 @@ describe("Oracle core logic", async () => {
 			oracle
 		)
 		expect(postPortfolioValues.callsPutsValue).to.eq(0)
+		expect(postPortfolioValues.portfolioDelta).to.eq(0)
 	})
 })
