@@ -19,7 +19,6 @@ import {
 	genOptionTimeFromUnix,
 	fromOpyn,
 	fromOpynToWei,
-	PUT,
 	tFormatUSDC,
 	toWei
 } from "../utils/conversion-helper"
@@ -38,12 +37,6 @@ interface VaultLiquidationRegistered extends VaultLiquidationRegisteredEvent {
 	amountLiquidated: BigNumber
 	vaultId: BigNumber
 }
-
-interface DecodedSettledVault extends VaultSettledEvent {
-	vaultId: BigNumber
-	accountOwner: string
-	oTokenAddress: string
-}
 interface EnrichedWriteEvent extends WriteEvent {
 	decoded?: DecodedData
 	series?: string
@@ -59,15 +52,6 @@ interface EnrichedWriteEvent extends WriteEvent {
 	greekVariables?: GreekVariables
 	liquidityAllocated?: BigNumber
 }
-type SeriesInfo = [BigNumber, BigNumber, boolean, string, string, string] & {
-	expiration: BigNumber
-	strike: BigNumber
-	isPut: boolean
-	underlying: string
-	strikeAsset: string
-	collateral: string
-}
-
 type UtilizationCurve = {
 	utilizationFunctionThreshold: number
 	belowUtilizationThresholdGradient: number
@@ -87,7 +71,6 @@ type ContractsState = {
 	priceQuote: BigNumber
 	writeOption: WriteOptionEvent[]
 	buybackEvents: BuybackOptionEvent[]
-	vaultSettledEvents: VaultSettledEvent[]
 	vaultLiquidationRegisteredEvents: VaultLiquidationRegisteredEvent[]
 	optionsContractSettledEvents: OptionsContractSettledEvent[]
 }
@@ -124,13 +107,6 @@ function populateEventMaps(
 		const fromOpynAmount = fromOpynToWei(decoded.amountLiquidated)
 		if (!amountLiquidated) vaultLiquidations[decoded.vaultId.toString()] = fromOpynAmount
 		else vaultLiquidations[decoded.vaultId.toString()] = amountLiquidated.add(fromOpynAmount)
-	})
-
-	contractsState.vaultSettledEvents.forEach(x => {
-		if (!x.decode) return
-		const decoded: DecodedSettledVault = x.decode(x.data, x.topics)
-		//const id = keySettledVault(decoded.accountOwner, decoded.vaultId)
-		//settledVaults.add(decoded.vaultId.toString())
 	})
 
 	contractsState.optionsContractSettledEvents.forEach((x: OptionsContractSettledEvent) => {
@@ -276,10 +252,6 @@ async function filterAndEnrichWriteOptions(
 	return optionPositions
 }
 
-async function getHedgingReactorDeltas(liquidityPool: LiquidityPool) {
-	const addresses = await liquidityPool.hedgingReactors.length
-}
-
 async function getContractsState(
 	liquidityPool: LiquidityPool,
 	priceFeed: PriceFeed,
@@ -305,10 +277,8 @@ async function getContractsState(
 	const vaultLiquidationRegisteredFilter = optionRegistry.filters.VaultLiquidationRegistered()
 	const writeOptionEventFilter = liquidityPool.filters.WriteOption()
 	const buybackEventFilter = liquidityPool.filters.BuybackOption()
-	const vaultSettledFilter = controller.filters.VaultSettled()
 	const writeOption = await liquidityPool.queryFilter(writeOptionEventFilter)
 	const buybackEvents = await liquidityPool.queryFilter(buybackEventFilter)
-	const vaultSettledEvents = await controller.queryFilter(vaultSettledFilter)
 	const vaultLiquidationRegisteredEvents = await optionRegistry.queryFilter(
 		vaultLiquidationRegisteredFilter
 	)
@@ -324,7 +294,6 @@ async function getContractsState(
 		priceQuote,
 		writeOption,
 		buybackEvents,
-		vaultSettledEvents,
 		vaultLiquidationRegisteredEvents,
 		underlying,
 		strikeAsset,
