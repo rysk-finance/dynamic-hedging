@@ -8,7 +8,11 @@ import { BigNumber, Event, utils } from "ethers"
 import { BuybackOptionEvent, LiquidityPool } from "../types/LiquidityPool"
 import { NewController, VaultSettledEvent } from "../types/NewController"
 import { WriteOptionEvent } from "../types/LiquidityPool"
-import { OptionRegistry, VaultLiquidationRegisteredEvent } from "../types/OptionRegistry"
+import {
+	OptionRegistry,
+	VaultLiquidationRegisteredEvent,
+	OptionsContractSettledEvent
+} from "../types/OptionRegistry"
 import { PriceFeed } from "../types/PriceFeed"
 import {
 	fromWei,
@@ -33,6 +37,12 @@ type DecodedData = {
 interface VaultLiquidationRegistered extends VaultLiquidationRegisteredEvent {
 	amountLiquidated: BigNumber
 	vaultId: BigNumber
+}
+
+interface DecodedSettledVault extends VaultSettledEvent {
+	vaultId: BigNumber
+	accountOwner: string
+	oTokenAddress: string
 }
 interface EnrichedWriteEvent extends WriteEvent {
 	decoded?: DecodedData
@@ -79,6 +89,7 @@ type ContractsState = {
 	buybackEvents: BuybackOptionEvent[]
 	vaultSettledEvents: VaultSettledEvent[]
 	vaultLiquidationRegisteredEvents: VaultLiquidationRegisteredEvent[]
+	optionsContractSettledEvents: OptionsContractSettledEvent[]
 }
 
 /**
@@ -117,8 +128,15 @@ function populateEventMaps(
 
 	contractsState.vaultSettledEvents.forEach(x => {
 		if (!x.decode) return
+		const decoded: DecodedSettledVault = x.decode(x.data, x.topics)
+		//const id = keySettledVault(decoded.accountOwner, decoded.vaultId)
+		//settledVaults.add(decoded.vaultId.toString())
+	})
+
+	contractsState.optionsContractSettledEvents.forEach((x: OptionsContractSettledEvent) => {
+		if (!x.decode) return
 		const decoded = x.decode(x.data, x.topics)
-		settledVaults.add(decoded.vaultId.toString())
+		settledVaults.add(decoded.series)
 	})
 }
 
@@ -130,10 +148,13 @@ async function enrichOptionPositions(
 	timestamp: number,
 	optionRegistry: OptionRegistry,
 	liquidityPool: LiquidityPool,
-	opynOracle: Oracle
+	opynOracle: Oracle,
+	controller: NewController
 ): Promise<EnrichedWriteEvent[]> {
 	const enrichedOptionPositions = optionPositions.map(async x => {
 		if (!x.series || !x.vaultId) return x
+		if (!x.expiration) return x
+		const expired = x.expiration <= timestamp
 		// reduce notional amount by buybacks and liquidations
 		const buybackAmount: BigNumber = buybackAmounts[x.series]
 		const liquidationAmount: BigNumber = vaultLiquidations[x.vaultId]
@@ -142,22 +163,25 @@ async function enrichOptionPositions(
 
 		const seriesInfo = await optionRegistry.seriesInfo(x.series)
 		const priceNorm = fromWei(contractsState.priceQuote)
-		const iv = await liquidityPool.getImpliedVolatility(
-			seriesInfo.isPut,
-			contractsState.priceQuote,
-			seriesInfo.strike,
-			seriesInfo.expiration
-		)
+		const iv = expired
+			? "0"
+			: await liquidityPool.getImpliedVolatility(
+					seriesInfo.isPut,
+					contractsState.priceQuote,
+					fromOpynToWei(seriesInfo.strike),
+					seriesInfo.expiration
+			  )
+
 		const optionType = seriesInfo.isPut ? "put" : "call"
 		let timeToExpiration = genOptionTimeFromUnix(Number(timestamp), seriesInfo.expiration.toNumber())
 		const rfr = fromWei(await liquidityPool.riskFreeRate())
 		let priceToUse = priceNorm
-		if (!x.expiration) return x
 		// handle expired but not settled options
-		if (x.expiration <= timestamp) {
+		if (expired) {
 			const [price] = await opynOracle.getExpiryPrice(contractsState.underlying, seriesInfo.expiration)
 			timeToExpiration = 0
-			priceToUse = fromOpyn(price)
+			// if expiration price is not set there is a fallback price
+			priceToUse = Number(price) > 0 ? fromOpyn(price) : priceNorm
 		} else {
 			timeToExpiration = genOptionTimeFromUnix(Number(timestamp), seriesInfo.expiration.toNumber())
 		}
@@ -169,6 +193,7 @@ async function enrichOptionPositions(
 			parseFloat(rfr),
 			optionType
 		]
+		x.greekVariables = greekVariables
 		const delta = greeks.getDelta(...greekVariables)
 		const gamma = greeks.getGamma(...greekVariables)
 		const vega = greeks.getVega(...greekVariables)
@@ -183,7 +208,9 @@ async function enrichOptionPositions(
 			collateral: seriesInfo.collateral
 		}
 		if (!x.amount) return x
-		const liquidityAllocated: BigNumber = await optionRegistry.getCollateral(optionSeries, x.amount)
+		const optionRegistryAddress = optionRegistry.address
+		const vaultInfo = await controller.getVault(optionRegistryAddress, x.vaultId)
+		const liquidityAllocated: BigNumber = vaultInfo.collateralAmounts[0]
 		x.liquidityAllocated = liquidityAllocated
 		// @TODO consider keeping calculation in BigNumber as more precise and is the format onchain.
 		if (x.amount) {
@@ -231,10 +258,9 @@ async function filterAndEnrichWriteOptions(
 	)
 	const resolved = await Promise.all(enrichedWriteOptions)
 	const filtered = resolved.filter(x => {
-		if (!x.vaultId) return
+		if (!x.series) return
 		if (!x.expiration) return
-		// filter out only expired and settled
-		return x.expiration > timestamp || !settledVaults.has(x.vaultId)
+		return x.expiration > timestamp || !settledVaults.has(x.series)
 	})
 	// reduce write events to options positions by series
 	const seriesProcessed = new Set()
@@ -286,6 +312,8 @@ async function getContractsState(
 	const vaultLiquidationRegisteredEvents = await optionRegistry.queryFilter(
 		vaultLiquidationRegisteredFilter
 	)
+	const optionsContractSettledFilter = await optionRegistry.filters.OptionsContractSettled()
+	const optionsContractSettledEvents = await optionRegistry.queryFilter(optionsContractSettledFilter)
 	const contractsState: ContractsState = {
 		utilizationCurve,
 		maxDiscount,
@@ -299,7 +327,8 @@ async function getContractsState(
 		vaultSettledEvents,
 		vaultLiquidationRegisteredEvents,
 		underlying,
-		strikeAsset
+		strikeAsset,
+		optionsContractSettledEvents
 	}
 	return contractsState
 }
@@ -477,7 +506,8 @@ export async function getPortfolioValues(
 		timestamp,
 		optionRegistry,
 		liquidityPool,
-		opynOracle
+		opynOracle,
+		controller
 	)
 	const portfolioDelta = resolvedOptionPositions.reduce((total, num) => total + (num.delta || 0), 0)
 	const portfolioGamma = resolvedOptionPositions.reduce((total, num) => total + (num.gamma || 0), 0)
