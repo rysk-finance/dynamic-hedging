@@ -56,9 +56,6 @@ export const OptionsTradingContent = () => {
               </div>
             </div>
             <div className="grow flex-col rounded-br-lg">
-              <div className="bg-black p-2 text-white ">
-                <p>Options</p>
-              </div>
               <div className="grow border-black rounded-br-lg">
                 <OptionsTable />
               </div>
