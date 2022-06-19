@@ -53,5 +53,10 @@ export const optionsTradingReducer: Reducer<
         ...state,
         customOptionStrikes: [...state.customOptionStrikes, action.strike],
       };
+    case OptionsTradingActionType.SET_OPTION_PARAMS:
+      return {
+        ...state,
+        optionParams: action.params,
+      };
   }
 };

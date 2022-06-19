@@ -12,7 +12,7 @@ import { RadioButtonList } from "../shared/RadioButtonList";
 
 export const ExpiryDatePicker: React.FC = () => {
   const {
-    state: { expiryDate },
+    state: { expiryDate, optionParams },
     dispatch,
   } = useOptionsTradingContext();
 
@@ -25,7 +25,20 @@ export const ExpiryDatePicker: React.FC = () => {
     setDatePickerIsOpen(false);
   }, []);
 
-  useOnClickOutside(datePickerRef, datePickerIsOpen, onClickOffDatePicker);
+  useOnClickOutside(
+    datePickerRef,
+    datePickerIsOpen,
+    onClickOffDatePicker,
+    (_, event) => {
+      // Need to do this custom DOM check because react datepicker dynamically
+      // adds and removes the month scroll buttons from the DOM, which interferes
+      // with some logic on the useOnClickOutside hook.
+      const clickIsInsideDatePicker = (
+        event.target as HTMLElement
+      ).className.includes("react-datepicker");
+      return !clickIsInsideDatePicker;
+    }
+  );
 
   const handleCustomExpiryClick = () => {
     setDatePickerIsOpen(true);
@@ -59,6 +72,14 @@ export const ExpiryDatePicker: React.FC = () => {
   }, [setExpiryDate]);
 
   const expiryTime = expiryDate && expiryDate.getTime() - new Date().getTime();
+
+  const minExpiryDate = optionParams
+    ? new Date(Number(new Date()) + optionParams.minExpiry.toNumber() * 1000)
+    : null;
+
+  const maxExpiryDate = optionParams
+    ? new Date(Number(new Date()) + optionParams.maxExpiry.toNumber() * 1000)
+    : null;
 
   return (
     <div className="w-full">
@@ -101,6 +122,8 @@ export const ExpiryDatePicker: React.FC = () => {
             ref={datePickerRef}
           >
             <DatePicker
+              minDate={minExpiryDate}
+              maxDate={maxExpiryDate}
               onChange={(date) => {
                 setDatePickerIsOpen(false);
                 setExpiryDate(date);

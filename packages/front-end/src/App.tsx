@@ -16,11 +16,13 @@ import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import { Header } from "./components/Header";
 import { AppPaths } from "./config/appPaths";
+import { CHAINID, IDToNetwork } from "./config/constants";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { Dashboard } from "./pages/Dashboard";
 import { OptionsTrading } from "./pages/OptionsTrading";
 import { Vault } from "./pages/Vault";
 import { GlobalContextProvider } from "./state/GlobalContext";
+import { ETHNetwork } from "./types";
 import { toHex } from "./utils";
 
 // TODO(HC): Move infura key to env variable
@@ -79,7 +81,7 @@ const onboard = init({
 
 type WalletContext = {
   connectWallet: (() => Promise<void>) | null;
-  network: ethers.ethers.providers.Network | null;
+  network: { name: ETHNetwork; id: CHAINID } | null;
   switchNetwork: (() => Promise<void>) | null;
   disconnect: (() => Promise<void>) | null;
   provider: ethers.ethers.providers.Web3Provider | null;
@@ -115,8 +117,7 @@ function App() {
   const [account, setAccount] = useState<string | null>(null);
   const [error, setError] = useState<any>(null);
   const [chainId, setChainId] = useState<string | null>(null);
-  const [network, setNetwork] =
-    useState<ethers.ethers.providers.Network | null>(null);
+  const [network, setNetwork] = useState<WalletContext["network"] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [getLocalStorage, setLocalStorage] = useLocalStorage();
@@ -154,7 +155,13 @@ function App() {
       const ethersProvider = new ethers.providers.Web3Provider(provider);
       setProvider(ethersProvider);
       const network = await ethersProvider.getNetwork();
-      setNetwork(network);
+      const networkName =
+        network.chainId in IDToNetwork
+          ? IDToNetwork[network.chainId as CHAINID]
+          : null;
+      if (networkName) {
+        setNetwork({ id: network.chainId, name: networkName });
+      }
       setAccount(accounts[0].address);
       setChainId(chains[0].id);
       setIsLoading(false);
@@ -172,7 +179,7 @@ function App() {
 
   const switchNetwork = async () => {
     if (network) {
-      await onboard.setChain({ chainId: toHex(network.chainId) });
+      await onboard.setChain({ chainId: toHex(network.id) });
     }
   };
 

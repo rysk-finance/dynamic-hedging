@@ -15,7 +15,7 @@ export const Header: React.FC = () => {
   const { pathname } = useLocation();
 
   const envChainID = process.env.REACT_APP_CHAIN_ID;
-  const connectedChainId = network?.chainId;
+  const connectedChainId = network?.id;
 
   const incorrectNetwork =
     connectedChainId && envChainID && connectedChainId !== Number(envChainID);

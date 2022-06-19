@@ -8,6 +8,7 @@ type TextInputProps = React.DetailedHTMLProps<
   value: string;
   setValue: (value: string) => void;
   numericOnly?: boolean;
+  maxNumDecimals?: number;
 };
 
 export const TextInput: React.FC<TextInputProps> = ({
@@ -15,11 +16,16 @@ export const TextInput: React.FC<TextInputProps> = ({
   setValue,
   iconLeft,
   numericOnly = false,
+  maxNumDecimals,
   ...props
 }) => {
   const setter = (value: string) => {
     if (numericOnly) {
-      if (value === "" || !isNaN(Number(value))) {
+      const isWithinDecimalLimit =
+        maxNumDecimals && value.includes(".")
+          ? value.split(".")[1].length <= maxNumDecimals
+          : true;
+      if (value === "" || (!isNaN(Number(value)) && isWithinDecimalLimit)) {
         setValue(value);
       }
     } else {

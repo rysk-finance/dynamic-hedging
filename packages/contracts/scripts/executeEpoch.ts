@@ -15,8 +15,6 @@ async function main() {
 		const [signer] = await hre.ethers.getSigners()
 		const lpContract = new hre.ethers.Contract(localhost.liquidityPool, abi, signer)
 
-		lpContract.setMaxTimeDeviationThreshold(1000000000000000)
-
 		const initialEpoch = await lpContract.epoch()
 		console.log(`Current epoch is ${initialEpoch}`)
 

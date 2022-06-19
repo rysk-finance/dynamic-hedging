@@ -1,11 +1,13 @@
+import { ethers } from "ethers";
 import React, { useState } from "react";
+import { BIG_NUMBER_DECIMALS, DECIMALS } from "../../config/constants";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { OptionsTradingActionType, OptionType } from "../../state/types";
-import { RadioButtonList } from "../shared/RadioButtonList";
 import { Option } from "../../types";
-import { ExpiryDatePicker } from "./ExpiryDatePicker";
-import { TextInput } from "../shared/TextInput";
 import { Button } from "../shared/Button";
+import { RadioButtonList } from "../shared/RadioButtonList";
+import { TextInput } from "../shared/TextInput";
+import { ExpiryDatePicker } from "./ExpiryDatePicker";
 
 const optionTypeOptions: Option<OptionType>[] = [
   { key: OptionType.CALL, label: "Calls", value: OptionType.CALL },
@@ -14,7 +16,7 @@ const optionTypeOptions: Option<OptionType>[] = [
 
 export const CustomOptionOrder: React.FC = () => {
   const {
-    state: { optionType },
+    state: { optionType, optionParams },
     dispatch,
   } = useOptionsTradingContext();
 
@@ -36,7 +38,21 @@ export const CustomOptionOrder: React.FC = () => {
     setUIStrikePrice("");
   };
 
-  const submitIsDisabled = !(uiStrikePrice && expiryDate);
+  const strikeBigNumber = uiStrikePrice
+    ? ethers.utils.parseUnits(uiStrikePrice, DECIMALS.RYSK)
+    : null;
+
+  const strikeIsWithinLimits =
+    strikeBigNumber && optionParams
+      ? optionType === OptionType.CALL
+        ? optionParams.minCallStrikePrice.lte(strikeBigNumber) &&
+          optionParams.maxCallStrikePrice.gte(strikeBigNumber)
+        : optionParams.minPutStrikePrice.lte(strikeBigNumber) &&
+          optionParams.maxPutStrikePrice.gte(strikeBigNumber)
+      : false;
+
+  const submitIsDisabled =
+    !strikeIsWithinLimits || !(uiStrikePrice && expiryDate);
 
   return (
     <div className="w-full min-w-[420px]">
@@ -51,22 +67,43 @@ export const CustomOptionOrder: React.FC = () => {
           removeOuterBorder
         />
       </div>
-      <div className="bg-black p-2 text-white border-r-2 border-white">
+      <div className="bg-black p-2 text-white border-white">
         <p>Select Expiry</p>
       </div>
       <div className="mb-4">
         <ExpiryDatePicker />
       </div>
       <div>
-        <div className="bg-black p-2 text-white border-r-2 border-white">
+        <div className="bg-black p-2 text-white border-white">
           <p>Add a custom strike</p>
         </div>
         <div className="flex flex-col px-4 mb-4">
-          {/* <div className="flex items-center">
+          <div className="flex items-center">
             <h4 className="font-parabole mr-2 pb-1">Custom Strike:</h4>
             {uiStrikePrice && <p>{uiStrikePrice} USDC</p>}
-          </div> */}
-          {/* <p className="text-gray-500 text-xs"></p> */}
+          </div>
+          <p className="text-gray-500 text-xs">
+            Min: $
+            {optionParams
+              ? optionType === OptionType.CALL
+                ? optionParams.minCallStrikePrice
+                    .div(BIG_NUMBER_DECIMALS.RYSK)
+                    .toString()
+                : optionParams.minPutStrikePrice
+                    .div(BIG_NUMBER_DECIMALS.RYSK)
+                    .toString()
+              : ""}{" "}
+            / Max: $
+            {optionParams
+              ? optionType === OptionType.CALL
+                ? optionParams.maxCallStrikePrice
+                    .div(BIG_NUMBER_DECIMALS.RYSK)
+                    .toString()
+                : optionParams.maxPutStrikePrice
+                    .div(BIG_NUMBER_DECIMALS.RYSK)
+                    .toString()
+              : ""}
+          </p>
         </div>
         <div className="mb-4">
           <TextInput
@@ -79,6 +116,7 @@ export const CustomOptionOrder: React.FC = () => {
               </div>
             }
             numericOnly
+            maxNumDecimals={6}
           />
         </div>
         <Button

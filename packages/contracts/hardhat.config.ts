@@ -13,6 +13,7 @@ import path from "path"
 import "solidity-coverage"
 // Task imports
 import "./tasks/seedUSDC"
+// import "./tasks/executeEpoch"
 
 const ethers = require("ethers")
 const bip39 = require("bip39")
@@ -38,6 +39,10 @@ if (mnemonic) {
 const ropsten = process.env.ROPSTEN || new ethers.providers.InfuraProvider("ropsten").connection.url
 
 const rinkeby = process.env.RINKEBY || new ethers.providers.InfuraProvider("rinkeby").connection.url
+
+const arbitrumRinkeby =
+	process.env.ARBITRUM_RINKEBY ||
+	new ethers.providers.InfuraProvider("arbitrum-rinkeby").connection.url
 
 module.exports = {
 	typechain: {
@@ -123,13 +128,20 @@ module.exports = {
 		},
 		rinkeby: {
 			url: rinkeby,
-			accounts,
+			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
 			chainId: 4,
 			saveDeployments: true
+		},
+		arbitrumRinkeby: {
+			url: arbitrumRinkeby,
+			chainId: 421611,
+			saveDeployments: true,
+			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
+			gas: 500000000
 		}
 	},
 	etherscan: {
-		apiKey: process.env.ETHERSCAN
+		apiKey: process.env.ARBISCAN_API_KEY
 	},
 	gasReporter: {
 		currency: "USD",

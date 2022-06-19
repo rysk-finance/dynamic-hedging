@@ -1,3 +1,4 @@
+import { BigNumber } from "ethers";
 import { Dispatch } from "react";
 
 export type AppSettings = {
@@ -44,6 +45,7 @@ export type GlobalContext = {
 export type OptionsTradingState = {
   optionType: OptionType;
   expiryDate: Date | null;
+  optionParams: OptionParams | null;
   customOptionStrikes: number[];
   selectedOption: Option | null;
 };
@@ -66,11 +68,21 @@ export type Option = {
   price: number;
 };
 
+export type OptionParams = {
+  minCallStrikePrice: BigNumber;
+  maxCallStrikePrice: BigNumber;
+  minPutStrikePrice: BigNumber;
+  maxPutStrikePrice: BigNumber;
+  minExpiry: BigNumber;
+  maxExpiry: BigNumber;
+};
+
 export enum OptionsTradingActionType {
   SET_OPTION_TYPE,
   SET_EXPIRY_DATE,
   SET_SELECTED_OPTION,
   ADD_CUSTOM_STRIKE,
+  SET_OPTION_PARAMS,
 }
 
 export type OptionsTradingAction =
@@ -89,4 +101,8 @@ export type OptionsTradingAction =
   | {
       type: OptionsTradingActionType.SET_SELECTED_OPTION;
       option: Option | null;
+    }
+  | {
+      type: OptionsTradingActionType.SET_OPTION_PARAMS;
+      params: OptionParams | null;
     };
