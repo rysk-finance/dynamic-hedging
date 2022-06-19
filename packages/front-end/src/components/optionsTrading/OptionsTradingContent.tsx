@@ -29,7 +29,7 @@ export const OptionsTradingContent = () => {
         <div className="flex items-start"></div>
       </div>
       <div className="col-start-1 col-end-17">
-        <Card headerHeight={50} headerContent="ETH.option">
+        <Card headerHeight={50} headerContent="ETH.options">
           <div className="flex justify-stretch items-stretch">
             <div className="px-6 py-4 border-r-2 border-black">
               <img src="/icons/ethereum.svg" />
