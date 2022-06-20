@@ -94,13 +94,13 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	uint256 public maxPriceDeviationThreshold;
 	// variables relating to the utilization skew function:
 	// the gradient of the function where utiization is below function threshold. e18
-	uint256 belowThresholdGradient = 1e17; // 0.1
+	uint256 public belowThresholdGradient = 1e17; // 0.1
 	// the gradient of the line above the utilization threshold. e18
-	uint256 aboveThresholdGradient = 15e17; // 1.5
+	uint256 public aboveThresholdGradient = 15e17; // 1.5
 	// the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold.  Will always be negative but enter the absolute value
-	uint256 aboveThresholdYIntercept = 84e16; //-0.84
+	uint256 public aboveThresholdYIntercept = 84e16; //-0.84
 	// the percentage utilization above which the function moves from its shallow line to its steep line. e18
-	uint256 utilizationFunctionThreshold = 6e17; // 60%
+	uint256 public utilizationFunctionThreshold = 6e17; // 60%
 	// keeper mapping
 	mapping(address => bool) public keeper;
 
@@ -713,6 +713,18 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		_decimals = ERC20(asset).decimals();
 		normalizedBalance = OptionsCompute.convertFromDecimals(collateralBalance, _decimals);
 	}
+	/**
+	 * @notice get the delta of the hedging reactors
+	 * @return hedging reactor delta in e18 format
+	 */
+	function getExternalDelta() public view returns (int256) {
+		int256 externalDelta;
+		address[] memory hedgingReactors_ = hedgingReactors;
+		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
+			externalDelta += IHedgingReactor(hedgingReactors_[i]).getDelta();
+		}
+		return externalDelta;
+	}
 
 	/**
 	 * @notice get the delta of the portfolio
@@ -733,12 +745,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			maxTimeDeviationThreshold,
 			maxPriceDeviationThreshold
 		);
-		// assumes in e18
-		int256 externalDelta;
-		address[] memory hedgingReactors_ = hedgingReactors;
-		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
-			externalDelta += IHedgingReactor(hedgingReactors_[i]).getDelta();
-		}
+		int256 externalDelta = getExternalDelta();
 		return portfolioValues.delta + externalDelta + ephemeralDelta;
 	}
 
@@ -901,6 +908,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint256 expiration
 	) public view returns (uint256) {
 		return getVolatilityFeed().getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+	}
+
+	function getAssets() external view returns (uint256) {
+		return _getAssets();
 	}
 
 	function getNAV() external view returns (uint256) {
