@@ -212,8 +212,8 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	 * @param _pricePut the price per unit to issue puts at
 	 * @param _orderExpiry the expiry of the order (if past the order is redundant)
 	 * @param _buyerAddress the agreed upon buyer address
-	 * @return callOrderId the unique id of the call part of the strangle
 	 * @return putOrderId the unique id of the put part of the strangle
+	 * @return callOrderId the unique id of the call part of the strangle
 	 */
 	function createStrangle(
 		Types.OptionSeries memory _optionSeriesCall,
