@@ -382,7 +382,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @dev   called by the option registry only
 	 */
 	function adjustCollateral(uint256 lpCollateralDifference, bool addToLpBalance) external {
-		IOptionRegistry optionRegistry = getOptionRegistry();
+		IOptionRegistry optionRegistry = _getOptionRegistry();
 		require(msg.sender == address(optionRegistry));
 		// assumes in collateral decimals
 		if (addToLpBalance) {
@@ -406,7 +406,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		_isKeeper();
 		// get number of options in vault and collateral returned to recalculate our position without these options
 		// returns in collat decimals, collat decimals and e8
-		(, uint256 collatReturned, uint256 collatLost, ) = getOptionRegistry().settle(seriesAddress);
+		(, uint256 collatReturned, uint256 collatLost, ) = _getOptionRegistry().settle(seriesAddress);
 		emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
 		// if the vault expired ITM then when settled the oracle will still have accounted for it as a liability. When
 		// the settle happens the liability is wiped off as it is now accounted for in collateralAllocated but because the
@@ -424,7 +424,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function handlerIssue(Types.OptionSeries memory optionSeries) external returns (address) {
 		_isHandler();
 		// series strike in e18
-		return _issue(optionSeries, getOptionRegistry());
+		return _issue(optionSeries, _getOptionRegistry());
 	}
 
 	/**
@@ -480,7 +480,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	) external returns (uint256, address) {
 		_isTradingNotPausedd();
 		_isHandler();
-		IOptionRegistry optionRegistry = getOptionRegistry();
+		IOptionRegistry optionRegistry = _getOptionRegistry();
 		// series strike passed in as e18
 		address seriesAddress = _issue(optionSeries, optionRegistry);
 		// series strike received in e8, retrieved from the option registry instead of
@@ -534,7 +534,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @dev    only callable by the portfolio values feed oracle contract
 	 */
 	function resetEphemeralValues() external {
-		require(msg.sender == address(getPortfolioValuesFeed()));
+		require(msg.sender == address(_getPortfolioValuesFeed()));
 		delete ephemeralLiabilities;
 		delete ephemeralDelta;
 	}
@@ -548,7 +548,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		// pause trading
 		isTradingPaused = true;
 		// make an oracle request
-		return getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
+		return _getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
 	}
 
 	/**
@@ -714,7 +714,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @return collateralBalance balance in original decimal format
 	 * @return _decimals decimals of asset
 	 */
-	function getNormalizedBalance(address asset)
+	function _getNormalizedBalance(address asset)
 		internal
 		view
 		returns (
@@ -736,13 +736,13 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		// assumes in e18
 		address underlyingAsset_ = underlyingAsset;
 		address strikeAsset_ = strikeAsset;
-		Types.PortfolioValues memory portfolioValues = getPortfolioValuesFeed().getPortfolioValues(
+		Types.PortfolioValues memory portfolioValues = _getPortfolioValuesFeed().getPortfolioValues(
 			underlyingAsset_,
 			strikeAsset_
 		);
 		// check that the portfolio values are acceptable
 		OptionsCompute.validatePortfolioValues(
-			getUnderlyingPrice(underlyingAsset_, strikeAsset_),
+			_getUnderlyingPrice(underlyingAsset_, strikeAsset_),
 			portfolioValues,
 			maxTimeDeviationThreshold,
 			maxPriceDeviationThreshold
@@ -771,7 +771,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	) public view returns (uint256 quote, int256 delta) {
 		// using a struct to get around stack too deep issues
 		UtilizationState memory quoteState;
-		quoteState.underlyingPrice = getUnderlyingPrice(
+		quoteState.underlyingPrice = _getUnderlyingPrice(
 			optionSeries.underlying,
 			optionSeries.strikeAsset
 		);
@@ -833,7 +833,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			// strike is not being used again so we dont care if format changes
 			optionSeries.strike = optionSeries.strike / 1e10;
 			// returns collateral decimals
-			quoteState.collateralToAllocate = getOptionRegistry().getCollateral(optionSeries, amount);
+			quoteState.collateralToAllocate = _getOptionRegistry().getCollateral(optionSeries, amount);
 
 			quoteState.utilizationAfter = (quoteState.collateralToAllocate + collateralAllocated_).div(
 				collateralAllocated_ + ERC20(collateralAsset).balanceOf(address(this))
@@ -914,7 +914,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint256 strikePrice,
 		uint256 expiration
 	) public view returns (uint256) {
-		return getVolatilityFeed().getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+		return _getVolatilityFeed().getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
 	}
 
 	function getNAV() external view returns (uint256) {
@@ -1046,13 +1046,13 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
 		uint256 assets = _getAssets();
-		Types.PortfolioValues memory portfolioValues = getPortfolioValuesFeed().getPortfolioValues(
+		Types.PortfolioValues memory portfolioValues = _getPortfolioValuesFeed().getPortfolioValues(
 			underlyingAsset_,
 			strikeAsset_
 		);
 		// check that the portfolio values are acceptable
 		OptionsCompute.validatePortfolioValues(
-			getUnderlyingPrice(underlyingAsset_, strikeAsset_),
+			_getUnderlyingPrice(underlyingAsset_, strikeAsset_),
 			portfolioValues,
 			maxTimeDeviationThreshold,
 			maxPriceDeviationThreshold
@@ -1091,7 +1091,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function _checkBuffer() internal view returns (int256 bufferRemaining) {
 		// calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
-		(uint256 normalizedCollateralBalance, , ) = getNormalizedBalance(collateralAsset);
+		(uint256 normalizedCollateralBalance, , ) = _getNormalizedBalance(collateralAsset);
 		bufferRemaining = int256(
 			normalizedCollateralBalance -
 				(OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset).decimals()) *
@@ -1270,7 +1270,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice get the volatility feed used by the liquidity pool
 	 * @return the volatility feed contract interface
 	 */
-	function getVolatilityFeed() internal view returns (VolatilityFeed) {
+	function _getVolatilityFeed() internal view returns (VolatilityFeed) {
 		return VolatilityFeed(protocol.volatilityFeed());
 	}
 
@@ -1278,7 +1278,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice get the portfolio values feed used by the liquidity pool
 	 * @return the portfolio values feed contract
 	 */
-	function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
+	function _getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
 		return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
 	}
 
@@ -1286,7 +1286,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice get the option registry used for storing and managing the options
 	 * @return the option registry contract
 	 */
-	function getOptionRegistry() internal view returns (IOptionRegistry) {
+	function _getOptionRegistry() internal view returns (IOptionRegistry) {
 		return IOptionRegistry(protocol.optionRegistry());
 	}
 
@@ -1296,7 +1296,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @param _strikeAsset the asset that the underlying value is denominated in
 	 * @return the underlying price
 	 */
-	function getUnderlyingPrice(address underlying, address _strikeAsset)
+	function _getUnderlyingPrice(address underlying, address _strikeAsset)
 		internal
 		view
 		returns (uint256)
