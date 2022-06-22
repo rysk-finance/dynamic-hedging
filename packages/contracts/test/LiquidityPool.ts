@@ -825,7 +825,7 @@ describe("Liquidity Pools", async () => {
 	})
 	it("pauses and unpauses handler contract", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		await handler.pauseContract()
+		await handler.pause()
 		const amount = toWei("1")
 
 		expect(await handler.paused()).to.eq(true)

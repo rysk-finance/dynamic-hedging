@@ -126,7 +126,7 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		customOrderBounds.maxPriceRange = _maxPriceRange;
 	}
 
-	function pauseContract() external {
+	function pause() external {
 		_onlyGuardian();
 		_pause();
 	}
