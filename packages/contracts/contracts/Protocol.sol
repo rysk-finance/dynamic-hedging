@@ -11,8 +11,8 @@ contract Protocol is AccessControl {
 	/// static variables ///
 	////////////////////////
 
-	address public optionRegistry;
-	address public priceFeed;
+	address public immutable optionRegistry;
+	address public immutable priceFeed;
 
 	/////////////////////////////////////
 	/// governance settable variables ///
