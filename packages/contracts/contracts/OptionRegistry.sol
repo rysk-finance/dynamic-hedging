@@ -416,7 +416,7 @@ contract OptionRegistry is AccessControl {
 		}
 		// transfer the needed collateral to this contract from the msg.sender
 		SafeTransferLib.safeTransferFrom(_collateralAsset, msg.sender, address(this), collateralAmount);
-		// increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
+		// increase the collateral in the vault
 		OpynInteractions.depositCollat(
 			gammaController,
 			marginPool,
