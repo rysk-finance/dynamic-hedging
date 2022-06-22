@@ -402,7 +402,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @param seriesAddress the address of the oToken vault to close
 	 * @return collatReturned the amount of collateral returned to the liquidity pool, assumes in collateral decimals
 	 */
-	function settleVault(address seriesAddress) public returns (uint256) {
+	function settleVault(address seriesAddress) external returns (uint256) {
 		_isKeeper();
 		// get number of options in vault and collateral returned to recalculate our position without these options
 		// returns in collat decimals, collat decimals and e8
