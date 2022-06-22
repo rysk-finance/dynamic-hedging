@@ -494,17 +494,12 @@ contract OptionRegistry is AccessControl {
 		if (series.expiration >= block.timestamp) {
 			revert NotExpired();
 		}
-		if (ERC20(_series).balanceOf(msg.sender) == 0) {
+		uint256 seriesBalance = ERC20(_series).balanceOf(msg.sender);
+		if (seriesBalance == 0) {
 			revert InsufficientBalance();
 		}
-		uint256 seriesBalance = ERC20(_series).balanceOf(msg.sender);
 		// transfer the oToken back to this account
-		SafeTransferLib.safeTransferFrom(
-			_series,
-			msg.sender,
-			address(this),
-			ERC20(_series).balanceOf(msg.sender)
-		);
+		SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), seriesBalance);
 		// redeem
 		uint256 collatReturned = OpynInteractions.redeem(
 			gammaController,
