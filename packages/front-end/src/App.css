@@ -35,3 +35,25 @@
   font-size: 18px;
   line-height: 20px;
 }
+
+.custom-date-picker .react-datepicker{
+  font-family: "DM Mono";
+  background-color: #EDE9DD;
+  border: none;
+}
+
+.custom-date-picker .react-datepicker .react-datepicker__header{
+  background-color: #EDE9DD;
+  border: none;
+}
+
+.custom-date-picker .react-datepicker .react-datepicker__day--keyboard-selected {
+  background-color: #EDE9DD;
+  border: 2px solid black;
+  color: black;
+  box-sizing: content-box;
+}
+
+.custom-date-picker .react-datepicker .react-datepicker__day--selected {
+  background-color: #6ABD00;
+}

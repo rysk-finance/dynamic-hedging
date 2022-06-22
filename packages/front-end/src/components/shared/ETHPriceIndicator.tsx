@@ -15,7 +15,7 @@ export const ETHPriceIndicator: React.FC = () => {
   return (
     <button
       onClick={updatePrice}
-      className="border-black border-2 bg-white py-2 px-4 flex justify-between w-fit cursor-pointer"
+      className="py-2 px-4 flex justify-between w-fit cursor-pointer"
     >
       <p className="pr-8">ETH</p>
       <p className="pr-8">${ethPrice}</p>

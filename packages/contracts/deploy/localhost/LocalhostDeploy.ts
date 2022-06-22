@@ -24,8 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 			{
 				forking: {
 					chainId: 1,
-					jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-					blockNumber: 14290000
+					jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`
 				}
 			}
 		]
@@ -102,8 +101,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 		authority.address
 	)
 	const liquidityPool = lpParams.liquidityPool
+	const handler = lpParams.handler
 
-	liquidityPool.setMaxTimeDeviationThreshold(1000000000000000)
+	await liquidityPool.setMaxTimeDeviationThreshold(1000000000000000)
 
 	let contractAddresses
 
@@ -111,7 +111,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 		// @ts-ignore
 		contractAddresses = JSON.parse(fs.readFileSync(addressPath))
 	} catch {
-		contractAddresses = { localhost: {} }
+		console.log("Cannot find contract addresses")
+		process.exit()
 	}
 
 	// @ts-ignore
@@ -125,6 +126,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	contractAddresses["localhost"]["optionProtocol"] = optionProtocol.address
 	contractAddresses["localhost"]["liquidityPool"] = liquidityPool.address
 	contractAddresses["localhost"]["authority"] = authority.address
+	contractAddresses["localhost"]["optionHandler"] = handler.address
 
 	fs.writeFileSync(addressPath, JSON.stringify(contractAddresses, null, 4))
 }

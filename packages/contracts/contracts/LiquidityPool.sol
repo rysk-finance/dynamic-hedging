@@ -727,6 +727,18 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		_decimals = ERC20(asset).decimals();
 		normalizedBalance = OptionsCompute.convertFromDecimals(collateralBalance, _decimals);
 	}
+	/**
+	 * @notice get the delta of the hedging reactors
+	 * @return hedging reactor delta in e18 format
+	 */
+	function getExternalDelta() public view returns (int256) {
+		int256 externalDelta;
+		address[] memory hedgingReactors_ = hedgingReactors;
+		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
+			externalDelta += IHedgingReactor(hedgingReactors_[i]).getDelta();
+		}
+		return externalDelta;
+	}
 
 	/**
 	 * @notice get the delta of the portfolio
@@ -747,12 +759,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			maxTimeDeviationThreshold,
 			maxPriceDeviationThreshold
 		);
-		// assumes in e18
-		int256 externalDelta;
-		address[] memory hedgingReactors_ = hedgingReactors;
-		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
-			externalDelta += IHedgingReactor(hedgingReactors_[i]).getDelta();
-		}
+		int256 externalDelta = getExternalDelta();
 		return portfolioValues.delta + externalDelta + ephemeralDelta;
 	}
 
@@ -915,6 +922,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint256 expiration
 	) public view returns (uint256) {
 		return _getVolatilityFeed().getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+	}
+
+	function getAssets() external view returns (uint256) {
+		return _getAssets();
 	}
 
 	function getNAV() external view returns (uint256) {

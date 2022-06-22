@@ -18,9 +18,15 @@
     "@web3-onboard/walletconnect": "^2.0.1",
     "axios": "^0.26.1",
     "dotenv": "^16.0.0",
+    "env-cmd": "^10.1.0",
     "ethers": "^5.6.4",
+    "greeks": "^1.0.0",
+    "implied-volatility": "^1.0.0",
+    "moment": "^2.29.3",
     "react": "^17.0.2",
+    "react-datepicker": "^4.8.0",
     "react-dom": "^17.0.2",
+    "react-number-format": "^4.9.3",
     "react-router": "^6.3.0",
     "react-router-dom": "^6.3.0",
     "react-scripts": "5.0.1",
@@ -30,7 +36,9 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "env-cmd -f .env -f .env.local react-scripts start",
+    "start:testnet": "env-cmd -f .env -f .env.testnet react-scripts start",
+    "start:mainnet": "env-cmd -f .env -f .env.mainnet react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -55,8 +63,10 @@
   },
   "devDependencies": {
     "@types/node": "^16.11.27",
+    "@types/react-datepicker": "^4.4.1",
     "@typescript-eslint/eslint-plugin": "^5.21.0",
     "@typescript-eslint/parser": "^5.21.0",
+    "black-scholes": "^1.1.0",
     "eslint": "^8.14.0",
     "eslint-plugin-react": "^7.29.4"
   }

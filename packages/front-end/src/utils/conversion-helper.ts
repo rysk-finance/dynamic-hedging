@@ -1,6 +1,6 @@
-import { util } from "chai"
 import { BigNumber, BigNumberish, utils } from "ethers"
 // import BigNumber from 'bignumber.js'
+import moment from 'moment'
 
 export const formatEth = (x: BigNumberish) => Number(utils.formatEther(x))
 export function truncate(num: number, places: number = 3): number {
@@ -28,7 +28,6 @@ export const toOpyn = (x: string) => utils.parseUnits(x, 8)
 export const toWeiFromUSDC = (x: string) => utils.parseUnits(x, 12)
 export const fromWeiToUSDC = (x: string) => utils.parseUnits(utils.formatEther(x), 6)
 export const fromOpyn = (x: BigNumberish) => utils.formatUnits(x, 8)
-export const fromOpynToWei = (x: BigNumber) => utils.parseUnits(x.toString(), 10)
 export const getDiffSeconds = (now: moment.Moment, future: moment.Moment) =>
 	future.unix() - now.unix()
 export const convertRounded = (x: BigNumberish): number => Math.round(Number(x.toString()))
@@ -39,7 +38,7 @@ export const sample = (x: any[]): any => x[Math.floor(Math.random() * x.length)]
 export const percentDiff = (a: number, b: number): number => (a === b ? 0 : Math.abs(1 - a / b))
 export const percentDiffArr = (a: (number | string)[], b: (number | string)[]): number => {
 	const diffs = a.map((i: number | string, idx: number) => {
-		let j = b[idx]
+		const j = b[idx]
 		return percentDiff(Number(i), Number(j))
 	})
 	const sum = diffs.reduce((a: number, b: number) => a + b, 0)
@@ -65,7 +64,7 @@ const sum = function (array: [number]) {
 }
 
 export const mean = function (array: [number]) {
-	let arraySum = sum(array)
+	const arraySum = sum(array)
 	return arraySum / array.length
 }
 
@@ -79,4 +78,4 @@ export const median = function (array: [number]) {
 	}
 }
 export const parseTokenAmount = (value: BigNumberish, decimals: number) =>
-	BigNumber.from(value).mul(BigNumber.from(10).pow(BigNumber.from(decimals)))
+  BigNumber.from(value).mul(BigNumber.from(10).pow(BigNumber.from(decimals)));

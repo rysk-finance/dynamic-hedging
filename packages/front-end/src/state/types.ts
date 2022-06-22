@@ -1,3 +1,4 @@
+import { BigNumber } from "ethers";
 import { Dispatch } from "react";
 
 export type AppSettings = {
@@ -8,6 +9,7 @@ export type AppSettings = {
 export type GlobalState = {
   ethPrice: number | null;
   eth24hChange: number | null;
+  ethPriceUpdateTime: Date | null;
   connectWalletIndicatorActive: boolean;
   settings: AppSettings;
 };
@@ -23,6 +25,7 @@ export type GlobalAction =
       type: ActionType.SET_ETH_PRICE;
       price: number;
       change?: number;
+      date: Date;
     }
   | {
       type: ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE;
@@ -42,6 +45,7 @@ export type GlobalContext = {
 export type OptionsTradingState = {
   optionType: OptionType;
   expiryDate: Date | null;
+  optionParams: OptionParams | null;
   customOptionStrikes: number[];
   selectedOption: Option | null;
 };
@@ -64,11 +68,21 @@ export type Option = {
   price: number;
 };
 
+export type OptionParams = {
+  minCallStrikePrice: BigNumber;
+  maxCallStrikePrice: BigNumber;
+  minPutStrikePrice: BigNumber;
+  maxPutStrikePrice: BigNumber;
+  minExpiry: BigNumber;
+  maxExpiry: BigNumber;
+};
+
 export enum OptionsTradingActionType {
   SET_OPTION_TYPE,
   SET_EXPIRY_DATE,
   SET_SELECTED_OPTION,
   ADD_CUSTOM_STRIKE,
+  SET_OPTION_PARAMS,
 }
 
 export type OptionsTradingAction =
@@ -78,7 +92,7 @@ export type OptionsTradingAction =
     }
   | {
       type: OptionsTradingActionType.SET_EXPIRY_DATE;
-      date: Date;
+      date: Date | null;
     }
   | {
       type: OptionsTradingActionType.ADD_CUSTOM_STRIKE;
@@ -86,5 +100,9 @@ export type OptionsTradingAction =
     }
   | {
       type: OptionsTradingActionType.SET_SELECTED_OPTION;
-      option: Option;
+      option: Option | null;
+    }
+  | {
+      type: OptionsTradingActionType.SET_OPTION_PARAMS;
+      params: OptionParams | null;
     };

@@ -18,6 +18,7 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ...state,
         ethPrice: action.price,
         eth24hChange: action.change ?? state.eth24hChange,
+        ethPriceUpdateTime: action.date,
       };
     case ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE:
       return {
@@ -51,6 +52,11 @@ export const optionsTradingReducer: Reducer<
       return {
         ...state,
         customOptionStrikes: [...state.customOptionStrikes, action.strike],
+      };
+    case OptionsTradingActionType.SET_OPTION_PARAMS:
+      return {
+        ...state,
+        optionParams: action.params,
       };
   }
 };

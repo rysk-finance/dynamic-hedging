@@ -9,7 +9,7 @@ const USDC_MAINNET_CONTRACT_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB4
 task("seedUSDC", "Seeds a provided account with 500 USDC")
 	.addParam("address", "Target address")
 	// Default to 500 USDC
-	.addOptionalParam("amount", "USDC amount to send", (500 * 1e6).toString())
+	.addOptionalParam("amount", "USDC amount to send", (500000 * 1e6).toString())
 	.setAction(async ({ address, amount }, hre) => {
 		try {
 			await hre.network.provider.request({
