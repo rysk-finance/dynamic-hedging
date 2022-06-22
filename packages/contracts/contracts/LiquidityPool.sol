@@ -447,7 +447,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		int256 delta,
 		address recipient
 	) external returns (uint256) {
-		_isTradingNotPausedd();
+		_isTradingNotPaused();
 		_isHandler();
 		return
 			_writeOption(
@@ -478,7 +478,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		int256 delta,
 		address recipient
 	) external returns (uint256, address) {
-		_isTradingNotPausedd();
+		_isTradingNotPaused();
 		_isHandler();
 		IOptionRegistry optionRegistry = _getOptionRegistry();
 		// series strike passed in as e18
@@ -522,7 +522,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		int256 delta,
 		address seller
 	) external returns (uint256) {
-		_isTradingNotPausedd();
+		_isTradingNotPaused();
 		_isHandler();
 		// strike passed in as e8
 		return
@@ -727,6 +727,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		_decimals = ERC20(asset).decimals();
 		normalizedBalance = OptionsCompute.convertFromDecimals(collateralBalance, _decimals);
 	}
+
 	/**
 	 * @notice get the delta of the hedging reactors
 	 * @return hedging reactor delta in e18 format
@@ -1315,7 +1316,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
 
-	function _isTradingNotPausedd() internal view {
+	function _isTradingNotPaused() internal view {
 		if (isTradingPaused) {
 			revert CustomErrors.TradingPaused();
 		}
