@@ -768,7 +768,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		Types.OptionSeries memory optionSeries,
 		uint256 amount,
 		bool toBuy
-	) public view returns (uint256 quote, int256 delta) {
+	) external view returns (uint256 quote, int256 delta) {
 		// using a struct to get around stack too deep issues
 		UtilizationState memory quoteState;
 		quoteState.underlyingPrice = _getUnderlyingPrice(
