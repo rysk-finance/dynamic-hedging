@@ -49,7 +49,7 @@ contract PriceFeed is AccessControl {
 	/// complex getters ///
 	///////////////////////
 
-	function getRate(address underlying, address strike) public view returns (uint256) {
+	function getRate(address underlying, address strike) external view returns (uint256) {
 		address feedAddress = priceFeeds[underlying][strike];
 		require(feedAddress != address(0), "Price feed does not exist");
 		AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
