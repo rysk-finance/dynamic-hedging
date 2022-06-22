@@ -10,7 +10,7 @@ import {
 	fromOpyn,
 	toOpyn,
 	tFormatUSDC,
-	scaleNum,
+	scaleNum
 } from "../utils/conversion-helper"
 import moment from "moment"
 //@ts-ignore
@@ -419,7 +419,7 @@ describe("Liquidity Pools", async () => {
 	})
 	it("Reverts: Push to price deviation threshold to cause quote to fail", async () => {
 		const latestPrice = await priceFeed.getRate(weth.address, usd.address)
-		await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from('10000000000')))
+		await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from("10000000000")))
 		const amount = toWei("1")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
@@ -431,11 +431,13 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await expect(liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)).to.be.revertedWith("PriceDeltaExceedsThreshold(35101293340577287)")
+		await expect(
+			liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
+		).to.be.revertedWith("PriceDeltaExceedsThreshold(35101293340577287)")
 	})
 	it("Reverts: Push to time deviation threshold to cause quote to fail", async () => {
 		const latestPrice = await priceFeed.getRate(weth.address, usd.address)
-		await opynAggregator.setLatestAnswer(latestPrice.sub(BigNumber.from('10000000000')))
+		await opynAggregator.setLatestAnswer(latestPrice.sub(BigNumber.from("10000000000")))
 		const amount = toWei("1")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
@@ -448,10 +450,11 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await increase(700)
-		await expect(liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)).to.be.revertedWith("TimeDeltaExceedsThreshold(706)")
+		await expect(
+			liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
+		).to.be.revertedWith("TimeDeltaExceedsThreshold(706)")
 	})
 	it("reverts when attempting to write ETH/USD puts with expiry outside of limit", async () => {
-		
 		const amount = toWei("1")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
@@ -2230,10 +2233,14 @@ describe("Liquidity Pools", async () => {
 		expect(collateralLost).to.equal(0)
 	})
 	it("Reverts: tries to sell an expired option back to the pool", async () => {
-		await expect(handler.buybackOption(putOptionToken2.address, toWei("3"))).to.be.revertedWith("OptionExpiryInvalid()")
+		await expect(handler.buybackOption(putOptionToken2.address, toWei("3"))).to.be.revertedWith(
+			"OptionExpiryInvalid()"
+		)
 	})
 	it("Reverts: tries to write an option that doesnt exist in the handler", async () => {
-		await expect(handler.writeOption(ZERO_ADDRESS, toWei("3"))).to.be.revertedWith("NonExistentOtoken()")
+		await expect(handler.writeOption(ZERO_ADDRESS, toWei("3"))).to.be.revertedWith(
+			"NonExistentOtoken()"
+		)
 	})
 	it("updates option params with setter", async () => {
 		await liquidityPool.setNewOptionParams(
@@ -2338,6 +2345,18 @@ describe("Liquidity Pools", async () => {
 		const afterValue = await liquidityPool.riskFreeRate()
 		expect(afterValue).to.eq(expectedValue)
 		expect(afterValue).to.not.eq(beforeValue)
+	})
+	it("sets new utilization skew params", async () => {
+		await liquidityPool.setUtilizationSkewParams(toWei("0.05"), toWei("2"), toWei("0.7"))
+		const newBelowThesholdGradient = await liquidityPool.belowThresholdGradient()
+		const newAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
+		const newAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
+		const newUtilizationThreshold = await liquidityPool.utilizationFunctionThreshold()
+		expect(newBelowThesholdGradient).to.eq(toWei("0.05"))
+		expect(newAboveThesholdGradient).to.eq(toWei("2"))
+		expect(newUtilizationThreshold).to.eq(toWei("0.7"))
+		const expectedYIntercept = -0.7 * (0.05 - 2)
+		expect(newAboveThesholdYIntercept).to.eq(toWei(expectedYIntercept.toString()))
 	})
 	it("pauses trading", async () => {
 		await liquidityPool.pauseUnpauseTrading(true)

@@ -94,13 +94,13 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	uint256 public maxPriceDeviationThreshold;
 	// variables relating to the utilization skew function:
 	// the gradient of the function where utiization is below function threshold. e18
-	uint256 belowThresholdGradient = 1e17; // 0.1
+	uint256 public belowThresholdGradient = 1e17; // 0.1
 	// the gradient of the line above the utilization threshold. e18
-	uint256 aboveThresholdGradient = 15e17; // 1.5
+	uint256 public aboveThresholdGradient = 15e17; // 1.5
 	// the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold.  Will always be negative but enter the absolute value
-	uint256 aboveThresholdYIntercept = 84e16; //-0.84
+	uint256 public aboveThresholdYIntercept = 84e16; //-0.84
 	// the percentage utilization above which the function moves from its shallow line to its steep line. e18
-	uint256 utilizationFunctionThreshold = 6e17; // 60%
+	uint256 public utilizationFunctionThreshold = 6e17; // 60%
 	// keeper mapping
 	mapping(address => bool) public keeper;
 
@@ -340,23 +340,24 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 *  @notice sets the parameters for the function that determines the utilization price factor
 	 *  The function is made up of two parts, both linear. The line to the left of the utilisation threshold has a low gradient
-	 *  while the gradient to the right of the threshold is much steeper. TThe aim of this function is to make options much more
+	 *  while the gradient to the right of the threshold is much steeper. The aim of this function is to make options much more
 	 *  expensive near full utilization while not having much effect at low utilizations.
 	 *  @param _belowThresholdGradient the gradient of the function where utiization is below function threshold. e18
 	 *  @param _aboveThresholdGradient the gradient of the line above the utilization threshold. e18
-	 *  @param _aboveThresholdYIntercept the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold. Will always be negative but enter the absolute value
 	 *  @param _utilizationFunctionThreshold the percentage utilization above which the function moves from its shallow line to its steep line
 	 */
 	function setUtilizationSkewParams(
 		uint256 _belowThresholdGradient,
 		uint256 _aboveThresholdGradient,
-		uint256 _aboveThresholdYIntercept,
 		uint256 _utilizationFunctionThreshold
 	) external {
 		_onlyManager();
 		belowThresholdGradient = _belowThresholdGradient;
 		aboveThresholdGradient = _aboveThresholdGradient;
-		aboveThresholdYIntercept = _aboveThresholdYIntercept;
+		aboveThresholdYIntercept = _utilizationFunctionThreshold.mul(
+			_aboveThresholdGradient - _belowThresholdGradient // inverted the order of the subtraction to result in a positive uint
+		);
+
 		utilizationFunctionThreshold = _utilizationFunctionThreshold;
 	}
 
