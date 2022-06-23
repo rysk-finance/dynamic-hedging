@@ -2164,7 +2164,7 @@ describe("Liquidity Pools", async () => {
 	it("pauses and unpauses LP contract", async () => {
 		await usd.approve(liquidityPool.address, toUSDC("200"))
 		await liquidityPool.deposit(toUSDC("100"))
-		await liquidityPool.pauseContract()
+		await liquidityPool.pause()
 		await expect(liquidityPool.deposit(toUSDC("100"))).to.be.revertedWith("Pausable: paused")
 		await liquidityPool.unpause()
 	})

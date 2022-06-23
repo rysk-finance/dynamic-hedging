@@ -184,7 +184,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/// setters ///
 	///////////////
 
-	function pauseContract() external {
+	function pause() external {
 		_onlyGuardian();
 		_pause();
 	}
