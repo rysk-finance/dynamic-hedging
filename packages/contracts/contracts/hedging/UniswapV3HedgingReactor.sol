@@ -49,9 +49,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 	/// @notice uniswap v3 pool fee expressed at 10e6
 	uint24 public poolFee;
 	/// @notice slippage for buys
-	uint8 public buySlippage = 1;
+	uint16 public buySlippage = 100;
 	/// @notice slippage for sells
-	uint8 public sellSlippage = 1;
+	uint16 public sellSlippage = 100;
 
 	//////////////////////////
 	/// constant variables ///
@@ -97,9 +97,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 	}
 
 	/// @notice set slippage
-	function setSlippage(uint8 _buySlippage, uint8 _sellSlippage) external {
+	function setSlippage(uint16 _buySlippage, uint16 _sellSlippage) external {
 		_onlyGovernor();
-		require(_sellSlippage < 100);
+		require(_sellSlippage < 10000);
 		buySlippage = _buySlippage;
 		sellSlippage = _sellSlippage;
 	}
@@ -125,7 +125,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 				ERC20(collateralAsset_).decimals()
 			) *
 				uint256(-_delta) *
-				(100 + buySlippage)) / 1e20;
+				(10000 + buySlippage)) / 1e22;
 			(deltaChange, ) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset_);
 			internalDelta += deltaChange;
 			SafeTransferLib.safeTransfer(
@@ -146,7 +146,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 				uint256 amountOutMinimum = (OptionsCompute.convertToDecimals(
 					underlyingPrice,
 					ERC20(collateralAsset_).decimals()
-				) * ethBalance * (100 - sellSlippage)) / 1e20;
+				) * ethBalance * (10000 - sellSlippage)) / 1e22;
 				(deltaChange, ) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateralAsset_);
 				internalDelta += deltaChange;
 			} else {
@@ -154,7 +154,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 				uint256 amountOutMinimum = (OptionsCompute.convertToDecimals(
 					underlyingPrice,
 					ERC20(collateralAsset_).decimals()
-				) * uint256(_delta) * (100 - sellSlippage)) / 1e20;
+				) * uint256(_delta) * (10000 - sellSlippage)) / 1e22;
 				(deltaChange, ) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateralAsset_);
 				internalDelta += deltaChange;
 			}
