@@ -75,6 +75,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	error ValueFailure();
 	error InvalidHealthFactor();
 	error IncorrectCollateral();
+	error IncorrectDeltaChange();
 	error InvalidTransactionNotEnoughMargin(int256 accountMarketValue, int256 totalRequiredMargin);
 
 	constructor(
@@ -297,6 +298,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		}
 		uint256 collatToDeposit;
 		uint256 collatToWithdraw;
+		int256 positionOpened;
 		// access the collateral held in the account
 		(, , IClearingHouse.CollateralDepositView[] memory collatDeposits, ) = clearingHouse
 			.getAccountInfo(accountId);
@@ -341,7 +343,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 				false
 			);
 			// execute the swap
-			clearingHouse.swapToken(accountId, poolId, swapParams);
+			(positionOpened, ) = clearingHouse.swapToken(accountId, poolId, swapParams);
 		} else {
 			// this will happen if amount is 0
 			return 0;
@@ -364,7 +366,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 				false
 			);
 			// execute the swap
-			clearingHouse.swapToken(accountId, poolId, swapParams);
+			(positionOpened, ) = clearingHouse.swapToken(accountId, poolId, swapParams);
 		} else if (collatToWithdraw > 0) {
 			// make the swapParams to close the position
 			IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
@@ -376,7 +378,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 			);
 			// execute the swap, since this is a withdrawal and we may withdraw all we want to make sure the account is properly settled
 			// so we update the margin, if it fails then we settle any profits and update
-			clearingHouse.swapToken(accountId, poolId, swapParams);
+			(positionOpened, ) = clearingHouse.swapToken(accountId, poolId, swapParams);
 			try clearingHouse.updateMargin(accountId, collateralId, -int256(collatToWithdraw)) {} catch (
 				bytes memory reason
 			) {
@@ -398,6 +400,8 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 			// transfer assets back to the liquidityPool
 			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, uint256(collatToWithdraw));
 		}
+		// make sure that _amount and positionOpened are the same, if they are not then revert
+		if (positionOpened != _amount) { revert IncorrectDeltaChange();}
 		return _amount;
 	}
 
