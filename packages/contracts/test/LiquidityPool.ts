@@ -450,9 +450,27 @@ describe("Liquidity Pools", async () => {
 			liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
 		).to.be.revertedWith("PriceDeltaExceedsThreshold(35101293340577287)")
 	})
+	it("Reverts: Push to price deviation threshold to cause quote to fail other way", async () => {
+		const latestPrice = await priceFeed.getRate(weth.address, usd.address)
+		await opynAggregator.setLatestAnswer(latestPrice.sub(BigNumber.from("20000000000")))
+		const amount = toWei("1")
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const optionSeries = {
+			expiration: expiration,
+			strike: strikePrice,
+			isPut: PUT_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		await expect(
+			liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
+		).to.be.revertedWith("PriceDeltaExceedsThreshold(37751549786835530)")
+	})
 	it("Reverts: Push to time deviation threshold to cause quote to fail", async () => {
 		const latestPrice = await priceFeed.getRate(weth.address, usd.address)
-		await opynAggregator.setLatestAnswer(latestPrice.sub(BigNumber.from("10000000000")))
+		await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from("10000000000")))
 		const amount = toWei("1")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
@@ -467,7 +485,7 @@ describe("Liquidity Pools", async () => {
 		await increase(700)
 		await expect(
 			liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
-		).to.be.revertedWith("TimeDeltaExceedsThreshold(706)")
+		).to.be.revertedWith("TimeDeltaExceedsThreshold(707)")
 	})
 	it("reverts when attempting to write ETH/USD puts with expiry outside of limit", async () => {
 		const amount = toWei("1")
@@ -1612,7 +1630,7 @@ describe("Liquidity Pools", async () => {
 			tFormatUSDC(lpUSDBalanceDiff) -
 				(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
 					tFormatUSDC(expectedCollateralAllocated))
-		).to.be.within(-0.01, 0.01)
+		).to.be.within(-0.015, 0.015)
 		// check delta changes by expected amount
 		expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
 	})
