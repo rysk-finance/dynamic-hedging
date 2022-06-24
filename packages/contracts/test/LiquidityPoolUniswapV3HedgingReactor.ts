@@ -20,11 +20,9 @@ import moment from "moment"
 import bs from "black-scholes"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import { deployRage, deployRangeOrder } from "../utils/rage-deployer"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { PerpHedgingReactor } from "../types/PerpHedgingReactor"
+import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { OracleMock } from "../types/OracleMock"
-import { ClearingHouse } from "../types/ClearingHouse"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
@@ -85,14 +83,7 @@ let opynAggregator: MockChainlinkAggregator
 let putOptionToken: IOToken
 let putOptionToken2: IOToken
 let collateralAllocatedToVault1: BigNumber
-let perpHedgingReactor: PerpHedgingReactor
-let vTokenAddress: string
-let vQuoteAddress: string
-let rageOracle: OracleMock
-let clearingHouse: ClearingHouse
-let poolId: string
-let settlementTokenOracle: OracleMock
-let collateralId: string
+let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let handler: OptionHandler
 let authority: string
 
@@ -169,7 +160,7 @@ const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").va
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
 
-describe("Liquidity Pools hedging reactor: perps", async () => {
+describe("Liquidity Pools hedging reactor: univ3", async () => {
 	before(async function () {
 		await hre.network.provider.request({
 			method: "hardhat_reset",
@@ -271,59 +262,49 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		await liquidityPool.executeEpochCalculation()
 		await liquidityPool.redeem(toWei("10000000"))
 	})
-	it("#deploys rage", async () => {
-		let rageParams = await deployRage()
-		clearingHouse = rageParams.clearingHouse
-		poolId = rageParams.poolId
-		collateralId = rageParams.collateralId
-		vQuoteAddress = rageParams.vQuoteAddress
-		vTokenAddress = rageParams.vTokenAddress
-		rageOracle = rageParams.rageOracle
-		settlementTokenOracle = rageParams.settlementTokenOracle
-	})
-	it("#deploys the hedging reactor", async () => {
-		const perpHedgingReactorFactory = await ethers.getContractFactory("PerpHedgingReactor", {
-			signer: signers[0]
-		})
-		perpHedgingReactor = (await perpHedgingReactorFactory.deploy(
-			clearingHouse.address,
+	it("deploys the hedging reactor", async () => {
+		const uniswapV3HedgingReactorFactory = await ethers.getContractFactory(
+			"UniswapV3HedgingReactor",
+			{
+				signer: signers[0]
+			}
+		)
+
+		uniswapV3HedgingReactor = (await uniswapV3HedgingReactorFactory.deploy(
+			UNISWAP_V3_SWAP_ROUTER[chainId],
 			USDC_ADDRESS[chainId],
 			WETH_ADDRESS[chainId],
 			liquidityPool.address,
-			poolId,
-			collateralId,
+			3000,
 			priceFeed.address,
 			authority
-		)) as PerpHedgingReactor
-
-		expect(perpHedgingReactor).to.have.property("hedgeDelta")
-		await usd.approve(perpHedgingReactor.address, 1)
-		await perpHedgingReactor.initialiseReactor()
-		const reactorAddress = perpHedgingReactor.address
+		)) as UniswapV3HedgingReactor
+		await uniswapV3HedgingReactor.setSlippage(100, 1000)
+		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")
+		const minAmount = await uniswapV3HedgingReactor.minAmount()
+		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 16))
+		const reactorAddress = uniswapV3HedgingReactor.address
 
 		await liquidityPool.setHedgingReactorAddress(reactorAddress)
 
 		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
 	})
-	it("#deploy range order", async () => {
-		await deployRangeOrder(signers, clearingHouse, usd, collateralId, vTokenAddress, vQuoteAddress)
-	})
 	it("can compute portfolio delta", async function () {
 		const delta = await liquidityPool.getPortfolioDelta()
 		expect(delta).to.equal(0)
 	})
-	it("LP Writes a ETH/USD put for premium", async () => {
+	it("LP Writes a ETH/USD call for premium", async () => {
 		const [sender] = signers
 		const amount = toWei("1")
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike))
+		const strikePrice = priceQuote.add(toWei(strike))
 		const proposedSeries = {
 			expiration: expiration,
 			strike: BigNumber.from(strikePrice),
-			isPut: PUT_FLAVOR,
+			isPut: CALL_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -370,18 +351,18 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 	let prevalues: any
 	let quote: any
 	let localDelta: any
-	it("LP writes another ETH/USD put that expires later", async () => {
+	it("LP writes another ETH/USD call that expires later", async () => {
 		const [sender] = signers
 		const amount = toWei("3")
 		const blockNum = await ethers.provider.getBlockNumber()
 		const block = await ethers.provider.getBlock(blockNum)
 		const { timestamp } = block
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike))
+		const strikePrice = priceQuote.add(toWei(strike))
 		const proposedSeries = {
 			expiration: expiration2,
 			strike: BigNumber.from(strikePrice),
-			isPut: PUT_FLAVOR,
+			isPut: CALL_FLAVOR,
 			strikeAsset: usd.address,
 			underlying: weth.address,
 			collateral: usd.address
@@ -430,18 +411,18 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 	})
 	it("can compute portfolio delta", async function () {
 		const delta = await liquidityPool.getPortfolioDelta()
-		expect(delta).to.be.gt(0)
+		expect(delta).to.be.lt(0)
 	})
 
 	it("reverts when non-admin calls rebalance function", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
 	})
-	it("hedges positive delta in perp hedging reactor", async () => {
+	it("hedges negative delta in hedging reactor", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
-		const reactorDelta = await perpHedgingReactor.internalDelta()
+		const reactorDelta = await uniswapV3HedgingReactor.internalDelta()
 		await liquidityPool.rebalancePortfolioDelta(delta, 0)
-		const newReactorDelta = await perpHedgingReactor.internalDelta()
+		const newReactorDelta = await uniswapV3HedgingReactor.internalDelta()
 		const newDelta = await liquidityPool.getPortfolioDelta()
 		expect(newDelta).to.be.within(0, 1e13)
 		expect(reactorDelta.sub(newReactorDelta)).to.equal(delta)
@@ -528,7 +509,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
 		const strikePrice = await putOptionToken.strikePrice()
 		// set price to $80 ITM for put
-		const settlePrice = strikePrice.sub(toWei("80").div(oTokenDecimalShift18))
+		const settlePrice = strikePrice.add(toWei("80").div(oTokenDecimalShift18))
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
 		// settle the vault
@@ -539,7 +520,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		const collateralReturned = settleEvent?.args?.collateralReturned
 		const collateralLost = settleEvent?.args?.collateralLost
 		// puts expired ITM, so the amount ITM will be subtracted and used to pay out option holders
-		const optionITMamount = strikePrice.sub(settlePrice)
+		const optionITMamount = settlePrice.sub(strikePrice)
 		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
 		// format from e8 oracle price to e6 USDC decimals
 		expect(collateralReturned).to.equal(
@@ -555,7 +536,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
 		const strikePrice = await putOptionToken.strikePrice()
 		// set price to $100 OTM for put
-		const settlePrice = strikePrice.add(toWei("100").div(oTokenDecimalShift18))
+		const settlePrice = strikePrice.sub(toWei("100").div(oTokenDecimalShift18))
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration2, settlePrice)
 		// settle the vault
@@ -571,14 +552,12 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		expect(await liquidityPool.collateralAllocated()).to.equal(0)
 		expect(collateralLost).to.equal(0)
 	})
-	it("Succeed: Perp hedging reactor unwind", async () => {
-		await perpHedgingReactor.syncAndUpdate()
-
+	it("Succeed: Hedging reactor unwind", async () => {
 		await liquidityPool.removeHedgingReactorAddress(0, false)
-		expect(await perpHedgingReactor.getDelta()).to.equal(0)
+		expect(await uniswapV3HedgingReactor.getDelta()).to.equal(0)
 		expect(await liquidityPool.getExternalDelta()).to.equal(0)
-		expect((await perpHedgingReactor.getPoolDenominatedValue()).div(1e12)).to.eq(1)
-		expect(await usd.balanceOf(perpHedgingReactor.address)).to.eq(0)
+		expect(await uniswapV3HedgingReactor.getPoolDenominatedValue()).to.eq(0)
+		expect(await usd.balanceOf(uniswapV3HedgingReactor.address)).to.eq(0)
 		// check no hedging reactors exist
 		await expect(liquidityPool.hedgingReactors(0)).to.be.reverted
 	})
