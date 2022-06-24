@@ -247,6 +247,21 @@ describe("Liquidity Pools", async () => {
 		await usdWhaleConnect.transfer(senderAddress, toUSDC("1000000"))
 		await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
 	})
+	it("Succeeds: sets utilization skew params correctly", async () => {
+		const oldBelowThesholdGradient = await liquidityPool.belowThresholdGradient()
+		const oldAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
+		const oldAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
+		const oldUtilizationThreshold = await liquidityPool.utilizationFunctionThreshold()
+		await liquidityPool.setUtilizationSkewParams(toWei("0.1"), toWei("1.5"), toWei("0.6"))
+		const newBelowThesholdGradient = await liquidityPool.belowThresholdGradient()
+		const newAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
+		const newAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
+		const newUtilizationThreshold = await liquidityPool.utilizationFunctionThreshold()
+		expect(newBelowThesholdGradient).to.eq(oldBelowThesholdGradient)
+		expect(newAboveThesholdGradient).to.eq(oldAboveThesholdGradient)
+		expect(newUtilizationThreshold).to.eq(oldUtilizationThreshold)
+		expect(newAboveThesholdYIntercept).to.eq(oldAboveThesholdYIntercept)
+	})
 	it("Succeeds: User 1: Deposit to the liquidityPool", async () => {
 		const user = senderAddress
 		const usdBalanceBefore = await usd.balanceOf(user)
