@@ -546,8 +546,7 @@ describe("Oracle core logic", async () => {
 			priceFeed,
 			oracle
 		)
-		const percentageDifference = Math.abs((localBS - prePortfolioValues.callsPutsValue) / localBS)
-		// due to utilization there will be some difference from localBS, but should be low given utilization rate
+		const percentageDifference = Math.abs((localBS - prePortfolioValues.bsCallsPutsValue) / localBS)
 		expect(percentageDifference).to.be.lessThan(0.01)
 		await network.provider.request({
 			method: "evm_setNextBlockTimestamp",

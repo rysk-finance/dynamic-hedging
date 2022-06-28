@@ -28,14 +28,26 @@ import ERC20Artifact from "../artifacts/contracts/tokens/ERC20.sol/ERC20.json"
 
 type GreekVariables = [string, string, number, string, number, "put" | "call"]
 type WriteEvent = WriteOptionEvent & Event
-type EventMap = Record<string, BigNumber>
+type OptionEventAmounts = {
+	amount: BigNumber
+	escrow: BigNumber
+}
+type EventMap = Record<string, OptionEventAmounts>
 type DecodedData = {
 	series: string
 	amount: BigNumber
+	escrow: BigNumber
+}
+
+type BuybackDecodedData = {
+	series: string
+	amount: BigNumber
+	escrowReturned: BigNumber
 }
 interface VaultLiquidationRegistered extends VaultLiquidationRegisteredEvent {
 	amountLiquidated: BigNumber
 	vaultId: BigNumber
+	collateralLiquidated: BigNumber
 }
 interface EnrichedWriteEvent extends WriteEvent {
 	decoded?: DecodedData
@@ -43,6 +55,7 @@ interface EnrichedWriteEvent extends WriteEvent {
 	expiration?: number
 	vaultId?: string
 	amount?: BigNumber
+	escrow?: BigNumber
 	delta?: number
 	gamma?: number
 	vega?: number
@@ -63,7 +76,6 @@ type ContractsState = {
 	utilizationCurve: UtilizationCurve
 	maxDiscount: BigNumber
 	lpCollateralBalance: BigNumber
-	collateralAllocated: BigNumber
 	assets: BigNumber
 	externalDelta: BigNumber
 	underlying: string
@@ -74,6 +86,7 @@ type ContractsState = {
 	vaultLiquidationRegisteredEvents: VaultLiquidationRegisteredEvent[]
 	optionsContractSettledEvents: OptionsContractSettledEvent[]
 }
+const ZERO: BigNumber = BigNumber.from(0)
 
 /**
  * Uses the contractState to set the event maps
@@ -91,22 +104,26 @@ function populateEventMaps(
 ) {
 	contractsState.buybackEvents.forEach(x => {
 		if (!x.decode) return
-		const decoded: DecodedData = x.decode(x.data, x.topics)
-		const amount = buybackAmounts[decoded.series]
-		if (!amount) {
-			buybackAmounts[decoded.series] = decoded.amount
-		} else {
-			buybackAmounts[decoded.series] = amount.add(decoded.amount)
-		}
+		const decoded: BuybackDecodedData = x.decode(x.data, x.topics)
+		const { amount, escrowReturned } = decoded
+		const amounts: OptionEventAmounts = buybackAmounts[decoded.series]
+		const newAmounts: OptionEventAmounts = { amount, escrow: escrowReturned }
+		if (amounts && amounts.amount) newAmounts.amount = amount.add(amounts.amount)
+		if (amounts && amounts.escrow) newAmounts.escrow = escrowReturned.add(amounts.escrow)
+		buybackAmounts[decoded.series] = newAmounts
 	})
 
 	contractsState.vaultLiquidationRegisteredEvents.forEach(x => {
 		if (!x.decode) return
 		const decoded: VaultLiquidationRegistered = x.decode(x.data, x.topics)
-		const amountLiquidated = vaultLiquidations[decoded.vaultId.toString()]
-		const fromOpynAmount = fromOpynToWei(decoded.amountLiquidated)
-		if (!amountLiquidated) vaultLiquidations[decoded.vaultId.toString()] = fromOpynAmount
-		else vaultLiquidations[decoded.vaultId.toString()] = amountLiquidated.add(fromOpynAmount)
+		const { amountLiquidated, collateralLiquidated } = decoded
+		const amounts = vaultLiquidations[decoded.vaultId.toString()]
+		const fromOpynAmount = fromOpynToWei(amountLiquidated)
+		const fromOpynEscrow = fromOpynToWei(collateralLiquidated)
+		const newAmounts: OptionEventAmounts = { amount: amountLiquidated, escrow: collateralLiquidated }
+		if (amounts && amounts.amount) newAmounts.amount = amounts.amount.add(fromOpynAmount)
+		if (amounts && amounts.escrow) newAmounts.escrow = amounts.amount.add(fromOpynEscrow)
+		vaultLiquidations[decoded.vaultId.toString()] = newAmounts
 	})
 
 	contractsState.optionsContractSettledEvents.forEach((x: OptionsContractSettledEvent) => {
@@ -132,10 +149,24 @@ async function enrichOptionPositions(
 		if (!x.expiration) return x
 		const expired = x.expiration <= timestamp
 		// reduce notional amount by buybacks and liquidations
-		const buybackAmount: BigNumber = buybackAmounts[x.series]
-		const liquidationAmount: BigNumber = vaultLiquidations[x.vaultId]
-		if (buybackAmount) x.amount = x.amount?.sub(buybackAmount)
-		if (liquidationAmount) x.amount = x.amount?.sub(liquidationAmount)
+		const buybackEventAmounts: OptionEventAmounts = buybackAmounts[x.series]
+		const buybackAmount: BigNumber = buybackEventAmounts ? buybackEventAmounts.amount : ZERO
+		const buybackEscrow: BigNumber = buybackEventAmounts ? buybackEventAmounts.escrow : ZERO
+		const liquidationEventAmounts: OptionEventAmounts = vaultLiquidations[x.vaultId]
+		const liquidationAmount: BigNumber = liquidationEventAmounts
+			? fromOpynToWei(liquidationEventAmounts.amount)
+			: ZERO
+		const liquidationEscrow: BigNumber = liquidationEventAmounts
+			? fromOpynToWei(liquidationEventAmounts.escrow)
+			: ZERO
+		if (buybackEventAmounts) {
+			x.amount = x.amount?.sub(buybackAmount)
+			x.escrow = x.escrow?.sub(buybackEscrow)
+		}
+		if (liquidationEventAmounts) {
+			x.amount = x.amount?.sub(liquidationAmount)
+			x.escrow = x.escrow?.sub(liquidationEscrow)
+		}
 
 		const seriesInfo = await optionRegistry.seriesInfo(x.series)
 		const priceNorm = fromWei(contractsState.priceQuote)
@@ -212,6 +243,7 @@ async function filterAndEnrichWriteOptions(
 			if (!decode) return y
 			y.decoded = decode(data, topics)
 			y.series = y?.decoded?.series
+			y.escrow = y?.decoded?.escrow
 			if (!y.series) return y
 			//@TODO consider batching these as a multicall or using an indexing service
 			const seriesInfo = await optionRegistry.seriesInfo(y.series)
@@ -219,10 +251,16 @@ async function filterAndEnrichWriteOptions(
 			y.vaultId = vaultId.toString()
 			y.expiration = seriesInfo.expiration.toNumber()
 			const amount: BigNumber = y?.decoded?.amount ? y?.decoded?.amount : BigNumber.from(0)
+			const escrow: BigNumber = y?.decoded?.escrow ? y?.decoded?.escrow : BigNumber.from(0)
 			y.amount = amount
+			// populate writeOptionAmounts
 			const existingWriteAmount = writeOptionAmounts[y.series]
-			if (!existingWriteAmount) writeOptionAmounts[y.series] = amount
-			else writeOptionAmounts[y.series] = existingWriteAmount.add(amount)
+			const newWriteAmounts: OptionEventAmounts = { amount, escrow }
+			if (existingWriteAmount && existingWriteAmount.amount)
+				newWriteAmounts.amount = existingWriteAmount.amount.add(amount)
+			if (existingWriteAmount && existingWriteAmount.escrow)
+				newWriteAmounts.escrow = existingWriteAmount.escrow.add(escrow)
+			writeOptionAmounts[y.series] = newWriteAmounts
 			return y
 		}
 	)
@@ -238,8 +276,9 @@ async function filterAndEnrichWriteOptions(
 	const optionPositions: EnrichedWriteEvent[] = filtered.reduce((acc, cv) => {
 		if (!cv.series) return acc
 		if (seriesProcessed.has(cv.series)) return acc
-		const amount = writeOptionAmounts[cv.series]
-		cv.amount = amount
+		const amounts: OptionEventAmounts = writeOptionAmounts[cv.series]
+		cv.amount = amounts.amount
+		cv.escrow = amounts.escrow
 		seriesProcessed.add(cv.series)
 		return [...acc, cv]
 	}, [])
@@ -261,7 +300,6 @@ async function getContractsState(
 		liquidityPool.provider
 	) as ERC20
 	const lpCollateralBalance = await collateralAsset.balanceOf(liquidityPool.address)
-	const collateralAllocated = await liquidityPool.collateralAllocated()
 	const assets = await liquidityPool.getAssets()
 	const externalDelta = await liquidityPool.getExternalDelta()
 	const underlying = await liquidityPool.underlyingAsset()
@@ -282,7 +320,6 @@ async function getContractsState(
 		utilizationCurve,
 		maxDiscount,
 		lpCollateralBalance,
-		collateralAllocated,
 		assets,
 		externalDelta,
 		priceQuote,
@@ -423,7 +460,13 @@ function calculateOptionQuote(
  * @typeParam optionRegistry - Instance of the option registry
  * @typeParam priceFeed - Instance of the price feed
  * @typeParam opynOracle - Instance of the opyn oracle
- * @returns {{ portfolioDelta: number, portfolioGamma: number, portfolioTheta: number, portfolioVega: number, callsPutsValue: number}}
+ * @returns {{
+ *  portfolioDelta: number,
+ *  portfolioGamma: number,
+ *  portfolioTheta: number,
+ *  portfolioVega: number,
+ *  callsPutsValue: number,
+ *  bsCallsPutsValue: number }}
  */
 export async function getPortfolioValues(
 	liquidityPool: LiquidityPool,
@@ -481,15 +524,21 @@ export async function getPortfolioValues(
 		0
 	)
 	const nav = contractsState.assets.sub(toWei(bsCallsPutsValue.toString()))
+	const collateralAllocated = resolvedOptionPositions.reduce((total: BigNumber, cv) => {
+		if (cv.escrow) {
+			return total.add(cv.escrow)
+		}
+		return total
+	}, ZERO)
 	const enrichedWithNav: EnrichedWriteEvent[] = resolvedOptionPositions.map(x => {
-		if (x.amount && x.greekVariables && x.liquidityAllocated) {
+		if (x.amount && x.escrow && x.greekVariables && x.liquidityAllocated) {
 			const delta = greeks.getDelta(...x.greekVariables)
 			const quote = calculateOptionQuote(
 				x.greekVariables,
 				contractsState.priceQuote,
 				nav,
 				x.amount,
-				contractsState.collateralAllocated,
+				collateralAllocated,
 				x.liquidityAllocated,
 				computeDelta(portfolioDelta, contractsState.externalDelta),
 				delta,
@@ -505,5 +554,12 @@ export async function getPortfolioValues(
 		(total, num) => total + (num.utilizationQuote || 0),
 		0
 	)
-	return { portfolioDelta, portfolioGamma, portfolioTheta, portfolioVega, callsPutsValue }
+	return {
+		portfolioDelta,
+		portfolioGamma,
+		portfolioTheta,
+		portfolioVega,
+		callsPutsValue,
+		bsCallsPutsValue
+	}
 }
