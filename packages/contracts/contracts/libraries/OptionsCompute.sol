@@ -58,7 +58,7 @@ library OptionsCompute {
 	function calculatePercentageChange(uint256 a, uint256 b) internal pure returns (uint256) {
 		// ((b - a) * 1e18) / a
 		// then get the absolute value for the diff
-		return uint256((((int256(b) - int256(a)).mul(1e18)).div(int256(a))).abs());
+		return uint256((((int256(b) - int256(a)) * (1e18)) / (int256(a))).abs());
 	}
 
 	/**
