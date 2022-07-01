@@ -556,6 +556,11 @@ export async function getPortfolioValues(
 			const premium = x.premium ? x.premium : ZERO
 			// not inverting delta here to stay consistent with contracts
 			const delta = greeks.getDelta(...x.greekVariables)
+			// collateral has been removed when the option(s) were written
+			// so we need to add it back to get the USD balance before the option(s) was written
+			const preWriteCollateralBalance = contractsState.lpCollateralBalance
+				.add(x.liquidityAllocated)
+				.sub(premium)
 			const quote = calculateOptionQuote(
 				x.greekVariables,
 				contractsState.priceQuote,
@@ -565,9 +570,7 @@ export async function getPortfolioValues(
 				x.liquidityAllocated,
 				computeDelta(portfolioDelta, contractsState.externalDelta, delta, x.amount),
 				delta,
-				// collateral has been removed when the option(s) were written
-				// so we need to add it back to get the USD balance before the option(s) was written
-				contractsState.lpCollateralBalance.add(x.liquidityAllocated).sub(premium),
+				preWriteCollateralBalance,
 				contractsState.utilizationCurve,
 				contractsState.maxDiscount
 			)
