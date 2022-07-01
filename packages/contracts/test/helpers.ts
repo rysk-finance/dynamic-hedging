@@ -141,7 +141,9 @@ export async function setOpynOracleExpiryPrice(
 	pricer?: string
 ) {
 	await increaseTo(expiry + ORACLE_LOCKING_PERIOD + 100)
-	if (pricer == undefined) [(pricer = CHAINLINK_WETH_PRICER[chainId])]
+	if (pricer == undefined) {
+		pricer = await oracle.getPricer(asset)
+	}
 	await hre.network.provider.request({
 		method: "hardhat_impersonateAccount",
 		params: [pricer]
