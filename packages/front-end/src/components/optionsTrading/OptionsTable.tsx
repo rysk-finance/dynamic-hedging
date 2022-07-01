@@ -21,6 +21,7 @@ import { ERC20 } from "../../types/ERC20";
 import { PriceFeed } from "../../types/PriceFeed";
 import { toWei, fromWei } from "../../utils/conversion-helper";
 import NumberFormat from 'react-number-format';
+import { PortfolioValuesFeed } from "../../types/PortfolioValuesFeed";
 
 const suggestedCallOptionPriceDiff = [-100, 0, 100, 200, 300, 400, 600, 800];
 const suggestedPutOptionPriceDiff = [-800, -600, -400, -300, -200, -100, 0, 100];
@@ -32,7 +33,7 @@ const provider = new ethers.providers.InfuraProvider(networkId, process.env.REAC
 const liquidityPool = new ethers.Contract(LIQUIDITY_POOL[networkId], LPABI, provider) as LiquidityPool
 const optionRegistry = new ethers.Contract(OPYN_OPTION_REGISTRY[networkId], ORABI, provider) as OptionRegistry
 const priceFeed = new ethers.Contract(PRICE_FEED[networkId], PFABI, provider ) as PriceFeed
-const portfolioValuesFeed = new ethers.Contract(PORTFOLIO_VALUES_FEED[networkId], PVFABI, provider ) as PriceFeed
+const portfolioValuesFeed = new ethers.Contract(PORTFOLIO_VALUES_FEED[networkId], PVFABI, provider ) as PortfolioValuesFeed
 const usdc = new ethers.Contract(USDC_ADDRESS[networkId], ERC20ABI, provider) as ERC20
 
 export const OptionsTable: React.FC = () => {
