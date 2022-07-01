@@ -227,7 +227,7 @@ async function enrichOptionPositions(
 			x.gamma = numericAmt * gamma * -1
 			x.theta = numericAmt * theta * -1
 			x.vega = numericAmt * vega * -1
-			x.bsQuote = bsQuote
+			x.bsQuote = numericAmt * bsQuote
 		}
 		return x
 	})
