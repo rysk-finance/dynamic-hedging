@@ -6,6 +6,7 @@ import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import { OptionsCompute } from "../libraries/OptionsCompute.sol";
 import "../interfaces/ILiquidityPool.sol";
 import "../libraries/Types.sol";
+import "../libraries/CustomErrors.sol";
 
 /**
  * @title The PortfolioValuesFeed contract
@@ -37,6 +38,8 @@ contract MockPortfolioValuesFeed is AccessControl, ChainlinkClient {
 	ILiquidityPool public liquidityPool;
 	// mapping of addresses to their string versions
 	mapping(address => string) public stringedAddresses;
+	// keeper mapping
+	mapping(address => bool) public keeper;
 
 	//////////////
 	/// events ///
@@ -83,13 +86,21 @@ contract MockPortfolioValuesFeed is AccessControl, ChainlinkClient {
 	///////////////
 
 	function setLiquidityPool(address _liquidityPool) external {
-		_onlyGovernor;
+		_onlyGovernor();
 		liquidityPool = ILiquidityPool(_liquidityPool);
 	}
 
 	function setAddressStringMapping(address _asset, string memory _stringVersion) external {
 		_onlyGovernor();
 		stringedAddresses[_asset] = _stringVersion;
+	}
+
+	/**
+	 * @notice change the status of a keeper
+	 */
+	function setKeeper(address _keeper, bool _auth) external {
+		_onlyGovernor();
+		keeper[_keeper] = _auth;
 	}
 
 	//////////////////////////////////////////////////////
@@ -158,6 +169,7 @@ contract MockPortfolioValuesFeed is AccessControl, ChainlinkClient {
 		external
 		returns (bytes32 requestId)
 	{
+		_isKeeper();
 		// Chainlink.Request memory request = buildChainlinkRequest(
 		//   jobId,
 		//   address(this),
@@ -185,5 +197,14 @@ contract MockPortfolioValuesFeed is AccessControl, ChainlinkClient {
 		returns (Types.PortfolioValues memory)
 	{
 		return portfolioValues[underlying][strike];
+	}
+
+	/// @dev keepers, managers or governors can access
+	function _isKeeper() internal view {
+		if (
+			!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()
+		) {
+			revert CustomErrors.NotKeeper();
+		}
 	}
 }

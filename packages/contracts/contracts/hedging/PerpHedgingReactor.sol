@@ -34,19 +34,19 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	address public immutable wETH;
 	/// @notice instance of the clearing house interface
 	IClearingHouse public immutable clearingHouse;
+	/// @notice collateralId to be used in the perp pool
+	uint32 public immutable collateralId;
+	/// @notice poolId to be used in the perp pool
+	uint32 public immutable poolId;
+	/// @notice accountId for the perp pool
+	uint256 public immutable accountId;
 
 	/////////////////////////
 	/// dynamic variables ///
 	/////////////////////////
 
-	/// @notice accountId for the perp pool
-	uint256 public accountId;
 	/// @notice delta of the pool
 	int256 public internalDelta;
-	/// @notice collateralId to be used in the perp pool
-	uint32 public collateralId;
-	/// @notice poolId to be used in the perp pool
-	uint32 public poolId;
 
 	/////////////////////////////////////
 	/// governance settable variables ///
@@ -75,6 +75,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	error ValueFailure();
 	error InvalidHealthFactor();
 	error IncorrectCollateral();
+	error IncorrectDeltaChange();
 	error InvalidTransactionNotEnoughMargin(int256 accountMarketValue, int256 totalRequiredMargin);
 
 	constructor(
@@ -191,10 +192,9 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	/// @inheritdoc IHedgingReactor
 	function update() public returns (uint256) {
 		_isKeeper();
-		uint256 accountId_ = accountId;
-		int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId_, poolId);
+		int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
 		(, , IClearingHouse.CollateralDepositView[] memory collatDeposits, ) = clearingHouse
-			.getAccountInfo(accountId_);
+			.getAccountInfo(accountId);
 		// just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
 		if (collatDeposits.length == 0) {
 			revert IncorrectCollateral();
@@ -228,11 +228,11 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 				collatRequired - collat
 			);
 			// deposit the collateral into the margin account
-			clearingHouse.updateMargin(accountId_, collateralId, int256(collatRequired - collat));
+			clearingHouse.updateMargin(accountId, collateralId, int256(collatRequired - collat));
 			return collatRequired - collat;
 		} else if (collatRequired < collat) {
 			// withdraw excess collateral from the margin account
-			clearingHouse.updateMargin(accountId_, collateralId, -int256(collat - collatRequired));
+			clearingHouse.updateMargin(accountId, collateralId, -int256(collat - collatRequired));
 			// transfer assets back to the liquidityPool
 			SafeTransferLib.safeTransfer(
 				ERC20(collateralAsset),
@@ -256,11 +256,10 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @inheritdoc IHedgingReactor
 	function getPoolDenominatedValue() external view returns (uint256 value) {
-		uint256 accountId_ = accountId;
 		// calculate the value of the pools holdings (including any funding)
 		// access the collateral held in the account
 		(, , IClearingHouse.CollateralDepositView[] memory collatDeposits, ) = clearingHouse
-			.getAccountInfo(accountId_);
+			.getAccountInfo(accountId);
 		// just make sure the collateral at index 0 exists and is correct (this is unlikely to ever fail, but should be checked)
 		if (collatDeposits.length != 0) {
 			if (address(collatDeposits[0].collateral) == collateralAsset) {
@@ -270,7 +269,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		// increment any loose balance held by the pool
 		value += ERC20(collateralAsset).balanceOf(address(this));
 		// get the net profit of the account position
-		int256 netProfit = clearingHouse.getAccountNetProfit(accountId_);
+		int256 netProfit = clearingHouse.getAccountNetProfit(accountId);
 		if (netProfit > 0) {
 			value += uint256(netProfit);
 		} else if (netProfit < 0) {
@@ -297,12 +296,12 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		if (syncOnChange) {
 			sync();
 		}
-		uint256 accountId_ = accountId;
 		uint256 collatToDeposit;
 		uint256 collatToWithdraw;
+		int256 positionOpened;
 		// access the collateral held in the account
 		(, , IClearingHouse.CollateralDepositView[] memory collatDeposits, ) = clearingHouse
-			.getAccountInfo(accountId_);
+			.getAccountInfo(accountId);
 		// just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
 		if (collatDeposits.length == 0) {
 			revert IncorrectCollateral();
@@ -313,7 +312,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		uint256 collat = collatDeposits[0].balance;
 		// getAccountNetProfit and updateProfit
 		// check the net position of the margin account
-		int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId_, poolId);
+		int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
 		// get the new net position with the amount of the swap added
 		int256 newPosition = netPosition + _amount;
 		// get the current price of the underlying asset from chainlink to be used to calculate position sizing
@@ -344,7 +343,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 				false
 			);
 			// execute the swap
-			clearingHouse.swapToken(accountId_, poolId, swapParams);
+			(positionOpened, ) = clearingHouse.swapToken(accountId, poolId, swapParams);
 		} else {
 			// this will happen if amount is 0
 			return 0;
@@ -357,7 +356,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 			// transfer assets from the liquidityPool to here to collateralise the pool
 			SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collatToDeposit);
 			// deposit the collateral into the margin account
-			clearingHouse.updateMargin(accountId_, collateralId, int256(collatToDeposit));
+			clearingHouse.updateMargin(accountId, collateralId, int256(collatToDeposit));
 			// make the swapParams
 			IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
 				_amount,
@@ -367,7 +366,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 				false
 			);
 			// execute the swap
-			clearingHouse.swapToken(accountId_, poolId, swapParams);
+			(positionOpened, ) = clearingHouse.swapToken(accountId, poolId, swapParams);
 		} else if (collatToWithdraw > 0) {
 			// make the swapParams to close the position
 			IClearingHouseStructures.SwapParams memory swapParams = IClearingHouseStructures.SwapParams(
@@ -379,8 +378,8 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 			);
 			// execute the swap, since this is a withdrawal and we may withdraw all we want to make sure the account is properly settled
 			// so we update the margin, if it fails then we settle any profits and update
-			clearingHouse.swapToken(accountId_, poolId, swapParams);
-			try clearingHouse.updateMargin(accountId_, collateralId, -int256(collatToWithdraw)) {} catch (
+			(positionOpened, ) = clearingHouse.swapToken(accountId, poolId, swapParams);
+			try clearingHouse.updateMargin(accountId, collateralId, -int256(collatToWithdraw)) {} catch (
 				bytes memory reason
 			) {
 				// way of catching custom errors referenced here: https://ethereum.stackexchange.com/questions/125238/catching-custom-error
@@ -388,19 +387,21 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 				bytes4 receivedSelector = bytes4(reason);
 				assert(expectedSelector == receivedSelector);
 				// settle the profits to make sure the collateral is covered
-				clearingHouse.settleProfit(accountId_);
+				clearingHouse.settleProfit(accountId);
 				// get the new collat
-				(, , collatDeposits, ) = clearingHouse.getAccountInfo(accountId_);
+				(, , collatDeposits, ) = clearingHouse.getAccountInfo(accountId);
 				collat = collatDeposits[0].balance;
 				// if the collat value is smaller than collatToWithdraw then withdraw all collat
 				if (collat <= collatToWithdraw && collat != 0) {
 					collatToWithdraw = collat - 1;
 				}
-				clearingHouse.updateMargin(accountId_, collateralId, -int256(collatToWithdraw));
+				clearingHouse.updateMargin(accountId, collateralId, -int256(collatToWithdraw));
 			}
 			// transfer assets back to the liquidityPool
 			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, uint256(collatToWithdraw));
 		}
+		// make sure that _amount and positionOpened are the same, if they are not then revert
+		if (positionOpened != _amount) { revert IncorrectDeltaChange();}
 		return _amount;
 	}
 

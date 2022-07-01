@@ -249,7 +249,7 @@ describe("Oracle core logic", async () => {
 		receiverAddress = await signers[1].getAddress()
 	})
 
-	it("Deploys the Option Registry and sets state with written options", async () => {
+	it("Sets state with written options", async () => {
 		// deposit to the liquidity pool
 		const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
 		await hre.network.provider.request({
@@ -308,6 +308,20 @@ describe("Oracle core logic", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
+
+		// set the oracle state
+		await portfolioValuesFeed.fulfill(
+			utils.formatBytes32String("2"),
+			weth.address,
+			usd.address,
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			BigNumber.from(0),
+			priceQuote
+		)
+		
 		let quote = (
 			await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount, false)
 		)[0]

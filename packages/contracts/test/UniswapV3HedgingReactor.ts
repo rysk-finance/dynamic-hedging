@@ -33,7 +33,7 @@ describe("UniswapV3HedgingReactor", () => {
 					forking: {
 						chainId: 1,
 						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
-						blockNumber: 12821000
+						blockNumber: 14500000
 					}
 				}
 			]
@@ -55,6 +55,10 @@ describe("UniswapV3HedgingReactor", () => {
 			params: [USDC_OWNER_ADDRESS[chainId]]
 		})
 		usdcWhale = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
+		await signers[0].sendTransaction({
+			to: USDC_OWNER_ADDRESS[chainId],
+			value: ethers.utils.parseEther("1.0"), // Sends exactly 1.0 ether
+		  });
 		usdcWhaleAddress = await usdcWhale.getAddress()
 		usdcContract = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
 
@@ -85,7 +89,7 @@ describe("UniswapV3HedgingReactor", () => {
 		)
 		const feedAddress = await priceFeed.priceFeeds(ZERO_ADDRESS, USDC_ADDRESS[chainId])
 		expect(feedAddress).to.eq(ethUSDAggregator.address)
-		rate = "2890000000"
+		rate = "3455720000"
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			rate,
@@ -112,7 +116,7 @@ describe("UniswapV3HedgingReactor", () => {
 			priceFeed.address,
 			authority
 		)) as UniswapV3HedgingReactor
-
+		await uniswapV3HedgingReactor.setSlippage(100, 1000)
 		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")
 		const minAmount = await uniswapV3HedgingReactor.minAmount()
 		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 16))
@@ -274,7 +278,7 @@ describe("UniswapV3HedgingReactor", () => {
 				6
 			)
 		)
-		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.be.within(0,400)
+		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.be.within(0,700)
 		expect(reactorWethBalance).to.equal(0)
 		expect(reactorDelta).to.equal(0)
 	})
