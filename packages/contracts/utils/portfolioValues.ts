@@ -538,7 +538,9 @@ export async function getPortfolioValues(
 				x.liquidityAllocated,
 				computeDelta(portfolioDelta, contractsState.externalDelta),
 				delta,
-				contractsState.lpCollateralBalance,
+				// collateral has been removed when the option(s) were written
+				// so we need to add it back to get the USD balance before the option(s) was written
+				contractsState.lpCollateralBalance.add(x.liquidityAllocated),
 				contractsState.utilizationCurve,
 				contractsState.maxDiscount
 			)
