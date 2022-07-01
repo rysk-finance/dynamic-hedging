@@ -10,8 +10,9 @@ import LPABI from "../../abis/LiquidityPool.json";
 import ORABI from "../../abis/OptionRegistry.json";
 import ERC20ABI from "../../abis/erc20.json";
 import PFABI from "../../abis/PriceFeed.json";
+import PVFABI from "../../abis/PortfolioValuesFeed.json";
 import { calculateOptionQuoteLocally, calculateOptionDeltaLocally, returnIVFromQuote } from "../../utils/helpers"
-import { USDC_ADDRESS, OPYN_OPTION_REGISTRY, LIQUIDITY_POOL, PRICE_FEED, WETH_ADDRESS  } from "../../config/constants";
+import { USDC_ADDRESS, OPYN_OPTION_REGISTRY, LIQUIDITY_POOL, PRICE_FEED, WETH_ADDRESS, PORTFOLIO_VALUES_FEED  } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { BigNumber, ethers } from "ethers";
 import { LiquidityPool } from "../../types/LiquidityPool"
@@ -31,6 +32,7 @@ const provider = new ethers.providers.InfuraProvider(networkId, process.env.REAC
 const liquidityPool = new ethers.Contract(LIQUIDITY_POOL[networkId], LPABI, provider) as LiquidityPool
 const optionRegistry = new ethers.Contract(OPYN_OPTION_REGISTRY[networkId], ORABI, provider) as OptionRegistry
 const priceFeed = new ethers.Contract(PRICE_FEED[networkId], PFABI, provider ) as PriceFeed
+const portfolioValuesFeed = new ethers.Contract(PORTFOLIO_VALUES_FEED[networkId], PVFABI, provider ) as PriceFeed
 const usdc = new ethers.Contract(USDC_ADDRESS[networkId], ERC20ABI, provider) as ERC20
 
 export const OptionsTable: React.FC = () => {
@@ -86,6 +88,7 @@ export const OptionsTable: React.FC = () => {
           const localQuote = await calculateOptionQuoteLocally(
             liquidityPool,
             optionRegistry,
+            portfolioValuesFeed,
             usdc,
             priceFeed,
             optionSeries,

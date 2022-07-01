@@ -10,6 +10,7 @@ import { LiquidityPool } from "../types/LiquidityPool"
 import { ERC20 } from "../types/ERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { PriceFeed } from "../types/PriceFeed"
+import { PortfolioValuesFeed } from "../types/PortfolioValuesFeed"
 
 //@ts-ignore
 import bs from 'black-scholes'
@@ -28,6 +29,7 @@ const yIntercept = -0.84
 export async function calculateOptionQuoteLocally(
 	liquidityPool: LiquidityPool,
 	optionRegistry: OptionRegistry,
+	portfolioValuesFeed: PortfolioValuesFeed,
 	collateralAsset: ERC20,
 	priceFeed: PriceFeed,
 	optionSeries: {
@@ -66,7 +68,35 @@ export async function calculateOptionQuoteLocally(
 		optionSeries.expiration
 	)
 	const maxDiscount = ethers.utils.parseUnits("1", 17) // 10%
+
+	// TODO update once new LP is deployed
+	const getAltNAV = (await liquidityPool.getAssets()).sub(
+										await liquidityPool.ephemeralLiabilities()
+									).sub(
+										(await portfolioValuesFeed.getPortfolioValues(optionSeries.underlying, optionSeries.strikeAsset)).callPutsValue
+									)
+
 	const NAV = await liquidityPool.getNAV()
+				.catch( e => {
+					console.log(e)
+					// TODO update once LP is deployed 
+					// getAssets() - effephemeralLiabalities - portfolioValueFeed.getPortfolioVaules.callPutsValue
+					return getAltNAV
+				})
+				.then(res => {
+					return res
+				})
+
+
+
+	// try {
+	// 	let NAV = await liquidityPool.getNAV()
+	// } catch(e) {
+	// 	console.error(e);
+	// } finally {
+	// 	let NAV = 100
+	// }
+
   console.log("NAV IS:", NAV)
 	const collateralAllocated = await liquidityPool.collateralAllocated()
 	const lpUSDBalance = await collateralAsset.balanceOf(liquidityPool.address)
