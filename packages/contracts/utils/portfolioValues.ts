@@ -32,11 +32,16 @@ type OptionEventAmounts = {
 	amount: BigNumber
 	escrow: BigNumber
 }
+interface WriteOptionEventAmounts extends OptionEventAmounts {
+	premium: BigNumber
+}
+type WriteEventMap = Record<string, WriteOptionEventAmounts>
 type EventMap = Record<string, OptionEventAmounts>
 type DecodedData = {
 	series: string
 	amount: BigNumber
 	escrow: BigNumber
+	premium: BigNumber
 }
 
 type BuybackDecodedData = {
@@ -56,6 +61,7 @@ interface EnrichedWriteEvent extends WriteEvent {
 	vaultId?: string
 	amount?: BigNumber
 	escrow?: BigNumber
+	premium?: BigNumber
 	delta?: number
 	gamma?: number
 	vega?: number
@@ -232,7 +238,7 @@ async function enrichOptionPositions(
 async function filterAndEnrichWriteOptions(
 	writeOption: WriteOptionEvent[],
 	optionRegistry: OptionRegistry,
-	writeOptionAmounts: EventMap,
+	writeOptionAmounts: WriteEventMap,
 	timestamp: number,
 	settledVaults: Set<string>
 ): Promise<EnrichedWriteEvent[]> {
@@ -244,6 +250,7 @@ async function filterAndEnrichWriteOptions(
 			y.decoded = decode(data, topics)
 			y.series = y?.decoded?.series
 			y.escrow = y?.decoded?.escrow
+			y.premium = y?.decoded?.premium
 			if (!y.series) return y
 			//@TODO consider batching these as a multicall or using an indexing service
 			const seriesInfo = await optionRegistry.seriesInfo(y.series)
@@ -252,14 +259,17 @@ async function filterAndEnrichWriteOptions(
 			y.expiration = seriesInfo.expiration.toNumber()
 			const amount: BigNumber = y?.decoded?.amount ? y?.decoded?.amount : BigNumber.from(0)
 			const escrow: BigNumber = y?.decoded?.escrow ? y?.decoded?.escrow : BigNumber.from(0)
+			const premium: BigNumber = y?.decoded?.premium ? y?.decoded?.premium : BigNumber.from(0)
 			y.amount = amount
 			// populate writeOptionAmounts
 			const existingWriteAmount = writeOptionAmounts[y.series]
-			const newWriteAmounts: OptionEventAmounts = { amount, escrow }
+			const newWriteAmounts: WriteOptionEventAmounts = { amount, escrow, premium }
 			if (existingWriteAmount && existingWriteAmount.amount)
 				newWriteAmounts.amount = existingWriteAmount.amount.add(amount)
 			if (existingWriteAmount && existingWriteAmount.escrow)
 				newWriteAmounts.escrow = existingWriteAmount.escrow.add(escrow)
+			if (existingWriteAmount && existingWriteAmount.premium)
+				newWriteAmounts.premium = existingWriteAmount.premium.add(premium)
 			writeOptionAmounts[y.series] = newWriteAmounts
 			return y
 		}
@@ -276,9 +286,10 @@ async function filterAndEnrichWriteOptions(
 	const optionPositions: EnrichedWriteEvent[] = filtered.reduce((acc, cv) => {
 		if (!cv.series) return acc
 		if (seriesProcessed.has(cv.series)) return acc
-		const amounts: OptionEventAmounts = writeOptionAmounts[cv.series]
+		const amounts: WriteOptionEventAmounts = writeOptionAmounts[cv.series]
 		cv.amount = amounts.amount
 		cv.escrow = amounts.escrow
+		cv.premium = amounts.premium
 		seriesProcessed.add(cv.series)
 		return [...acc, cv]
 	}, [])
@@ -332,10 +343,23 @@ async function getContractsState(
 	}
 	return contractsState
 }
-
-function computeDelta(portfolioDelta: number, externalDelta: BigNumber): BigNumber {
+/**
+ *
+ * @param portfolioDelta - the delta of the portfolio after the option has already been written
+ * @param externalDelta - the delta of external liquidity pools such as hedging reactors
+ * @param optionDelta - the uninverted delta of the option being traded
+ * @param amount - the quantity of the option being traded
+ * @returns - the delta of the portfolio plus the uninverted delta of the option being traded
+ */
+function computeDelta(
+	portfolioDelta: number,
+	externalDelta: BigNumber,
+	optionDelta: number,
+	amount: BigNumber
+): BigNumber {
 	const externalDeltaNumber: number = Number(fromWei(externalDelta))
-	return toWei(portfolioDelta.toString()).add(externalDeltaNumber)
+	const originalDelta = portfolioDelta + optionDelta * Number(fromWei(amount))
+	return toWei(originalDelta.toString()).add(externalDeltaNumber)
 }
 const weiToNum = (x: BigNumber) => Number(fromWei(x))
 async function getUtilizationCurve(liquidityPool: LiquidityPool): Promise<UtilizationCurve> {
@@ -427,7 +451,8 @@ function calculateOptionQuote(
 ) {
 	const numericAmt: number = parseFloat(fromWei(amount))
 	const formattedOptionDelta: BigNumber = toWei(optionDelta.toString()).mul(amount.div(toWei("1")))
-	const portfolioDeltaAfter: BigNumber = portfolioDeltaBefore.add(formattedOptionDelta)
+	// subtract new delta as pool is not buying
+	const portfolioDeltaAfter: BigNumber = portfolioDeltaBefore.sub(formattedOptionDelta)
 	const portfolioDeltaIsDecreased = portfolioDeltaAfter.abs().sub(portfolioDeltaBefore.abs()).lt(0)
 	const normalisedDelta = portfolioDeltaBefore
 		.add(portfolioDeltaAfter)
@@ -494,7 +519,7 @@ export async function getPortfolioValues(
 	// index buybacks amounts by series
 	const buybackAmounts: EventMap = {}
 	// index write amount by series address
-	const writeOptionAmounts: EventMap = {}
+	const writeOptionAmounts: WriteEventMap = {}
 
 	populateEventMaps(contractsState, buybackAmounts, vaultLiquidations, settledVaults)
 	const optionPositions: EnrichedWriteEvent[] = await filterAndEnrichWriteOptions(
@@ -528,6 +553,8 @@ export async function getPortfolioValues(
 	let collateralAllocated = ZERO
 	const enrichedWithNav: EnrichedWriteEvent[] = resolvedOptionPositions.map(x => {
 		if (x.amount && x.escrow && x.greekVariables && x.liquidityAllocated) {
+			const premium = x.premium ? x.premium : ZERO
+			// not inverting delta here to stay consistent with contracts
 			const delta = greeks.getDelta(...x.greekVariables)
 			const quote = calculateOptionQuote(
 				x.greekVariables,
@@ -536,11 +563,11 @@ export async function getPortfolioValues(
 				x.amount,
 				collateralAllocated,
 				x.liquidityAllocated,
-				computeDelta(portfolioDelta, contractsState.externalDelta),
+				computeDelta(portfolioDelta, contractsState.externalDelta, delta, x.amount),
 				delta,
 				// collateral has been removed when the option(s) were written
 				// so we need to add it back to get the USD balance before the option(s) was written
-				contractsState.lpCollateralBalance.add(x.liquidityAllocated),
+				contractsState.lpCollateralBalance.add(x.liquidityAllocated).sub(premium),
 				contractsState.utilizationCurve,
 				contractsState.maxDiscount
 			)
