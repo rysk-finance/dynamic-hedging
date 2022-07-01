@@ -798,7 +798,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 		// will update quoteState.utilizationPrice
 		addUtilizationPremium(quoteState, optionSeries, amount, toBuy);
-		quote = applyDeltaSkew(quoteState, toBuy);
+		quote = applyDeltaPremium(quoteState, toBuy);
+
 		quote = OptionsCompute.convertToCollateralDenominated(
 			quote,
 			quoteState.underlyingPrice,
@@ -864,7 +865,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 *	@param toBuy whether we are buying an option. False if selling
 	 *	@return quote the quote for the option with the delta skew applied
 	 */
-	function applyDeltaSkew(UtilizationState memory quoteState, bool toBuy)
+	function applyDeltaPremium(UtilizationState memory quoteState, bool toBuy)
 		internal
 		view
 		returns (uint256 quote)

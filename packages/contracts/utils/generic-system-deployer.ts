@@ -237,6 +237,8 @@ export async function deployLiquidityPool(
 		liquidityPool.address,
 	) as OptionHandler
 	await liquidityPool.changeHandler(handler.address, true)
+	await pvFeed.setKeeper(handler.address, true)
+	await pvFeed.setKeeper(liquidityPool.address, true)
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,

@@ -33,7 +33,7 @@ These values are used to set the time and price thresholds for when an oracle up
 
 These are contracts that have the authority to issue, write, and buyback options from the liquidityPool. They must be authorised. This architecture allows for multiple handlers and upgradeability on the handlers.
 
-### Options pricing (quotePriceWithUtilizationGreeks, applyUtilizationPremium, applyDeltaSkew, getImpliedVolatility, OptionsCompute, utilisationSkewParams)
+### Options pricing (quotePriceWithUtilizationGreeks, applyUtilizationPremium, applyDeltaPremium, getImpliedVolatility, OptionsCompute, utilisationSkewParams)
 
 An explainer of the option pricing methodology and processes can be seen here: https://bejewled-egret-22c.notion.site/QuotePriceWithUtilizationGreeks-e7fdfdc890cc4b55852a5901c099ef9a 
 

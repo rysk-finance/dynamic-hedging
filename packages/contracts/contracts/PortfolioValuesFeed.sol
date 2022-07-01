@@ -2,6 +2,7 @@
 pragma solidity ^0.8.9;
 
 import "./libraries/Types.sol";
+import "./libraries/CustomErrors.sol";
 import "./libraries/AccessControl.sol";
 
 import "./interfaces/ILiquidityPool.sol";
@@ -38,6 +39,8 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	ILiquidityPool public liquidityPool;
 	// mapping of addresses to their string versions
 	mapping(address => string) public stringedAddresses;
+	// keeper mapping
+	mapping(address => bool) public keeper;
 
 	//////////////
 	/// events ///
@@ -96,6 +99,14 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	function setLink(address _link) external {
 		_onlyGovernor();
 		link = _link;
+	}
+
+	/**
+	 * @notice change the status of a keeper
+	 */
+	function setKeeper(address _keeper, bool _auth) external {
+		_onlyGovernor();
+		keeper[_keeper] = _auth;
 	}
 
 	//////////////////////////////////////////////////////
@@ -163,6 +174,7 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 		external
 		returns (bytes32 requestId)
 	{
+		_isKeeper();
 		Chainlink.Request memory request = buildChainlinkRequest(
 			jobId,
 			address(this),
@@ -192,5 +204,14 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 		returns (Types.PortfolioValues memory)
 	{
 		return portfolioValues[underlying][strike];
+	}
+
+	/// @dev keepers, managers or governors can access
+	function _isKeeper() internal view {
+		if (
+			!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()
+		) {
+			revert CustomErrors.NotKeeper();
+		}
 	}
 }

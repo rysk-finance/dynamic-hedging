@@ -116,7 +116,7 @@ describe("UniswapV3HedgingReactor", () => {
 			priceFeed.address,
 			authority
 		)) as UniswapV3HedgingReactor
-		await uniswapV3HedgingReactor.setSlippage(1, 10)
+		await uniswapV3HedgingReactor.setSlippage(100, 1000)
 		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")
 		const minAmount = await uniswapV3HedgingReactor.minAmount()
 		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 16))
