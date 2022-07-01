@@ -6,17 +6,11 @@ import "./interfaces/AggregatorV3Interface.sol";
 
 import "./libraries/AccessControl.sol";
 
-import "prb-math/contracts/PRBMathSD59x18.sol";
-import "prb-math/contracts/PRBMathUD60x18.sol";
-
 /**
  *  @title Contract used for accessing exchange rates using chainlink price feeds
  *  @dev Interacts with chainlink price feeds and services all contracts in the system for price data.
  */
 contract PriceFeed is AccessControl {
-	using PRBMathUD60x18 for uint8;
-	using PRBMathSD59x18 for int256;
-	using PRBMathUD60x18 for uint256;
 
 	/////////////////////////////////////
 	/// governance settable variables ///

@@ -219,15 +219,16 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function removeHedgingReactorAddress(uint256 _index, bool _override) external {
 		_onlyGovernor();
+		address[] memory hedgingReactors_ = hedgingReactors;
 		if (!_override) {
-			IHedgingReactor reactor = IHedgingReactor(hedgingReactors[_index]);
+			IHedgingReactor reactor = IHedgingReactor(hedgingReactors_[_index]);
 			int256 delta = reactor.getDelta();
 			if (delta != 0) {
-				reactor.hedgeDelta(reactor.getDelta());
+				reactor.hedgeDelta(delta);
 			}
 			reactor.withdraw(type(uint256).max);
 		}
-		SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors[_index], 0);
+		SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors_[_index], 0);
 		for (uint256 i = _index; i < hedgingReactors.length - 1; i++) {
 			hedgingReactors[i] = hedgingReactors[i + 1];
 		}
@@ -711,34 +712,29 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice Returning balance in 1e18 format
 	 * @param asset address of the asset to get balance and normalize
 	 * @return normalizedBalance balance in 1e18 format
-	 * @return collateralBalance balance in original decimal format
-	 * @return _decimals decimals of asset
 	 */
 	function _getNormalizedBalance(address asset)
 		internal
 		view
 		returns (
-			uint256 normalizedBalance,
-			uint256 collateralBalance,
-			uint256 _decimals
+			uint256 normalizedBalance
 		)
 	{
-		collateralBalance = ERC20(asset).balanceOf(address(this));
-		_decimals = ERC20(asset).decimals();
-		normalizedBalance = OptionsCompute.convertFromDecimals(collateralBalance, _decimals);
+		normalizedBalance = OptionsCompute.convertFromDecimals(
+			ERC20(asset).balanceOf(address(this)), 
+			ERC20(asset).decimals()
+			);
 	}
 
 	/**
 	 * @notice get the delta of the hedging reactors
-	 * @return hedging reactor delta in e18 format
+	 * @return externalDelta hedging reactor delta in e18 format
 	 */
-	function getExternalDelta() public view returns (int256) {
-		int256 externalDelta;
+	function getExternalDelta() public view returns (int256 externalDelta) {
 		address[] memory hedgingReactors_ = hedgingReactors;
 		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
 			externalDelta += IHedgingReactor(hedgingReactors_[i]).getDelta();
 		}
-		return externalDelta;
 	}
 
 	/**
@@ -760,8 +756,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			maxTimeDeviationThreshold,
 			maxPriceDeviationThreshold
 		);
-		int256 externalDelta = getExternalDelta();
-		return portfolioValues.delta + externalDelta + ephemeralDelta;
+		return portfolioValues.delta + getExternalDelta() + ephemeralDelta;
 	}
 
 	/**
@@ -980,9 +975,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice functionality for allowing a user to redeem their shares from a previous epoch
 	 * @param _shares the number of shares to redeem
-	 * @return the number of shares actually returned
+	 * @return toRedeem the number of shares actually returned
 	 */
-	function _redeem(uint256 _shares) internal returns (uint256) {
+	function _redeem(uint256 _shares) internal returns (uint256 toRedeem) {
 		DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
 		uint256 currentEpoch = epoch;
 		// check for any unredeemed shares
@@ -996,7 +991,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		}
 		// if the shares requested are greater than their unredeemedShares then floor to unredeemedShares, otherwise
 		// use their requested share number
-		uint256 toRedeem = _shares > unredeemedShares ? unredeemedShares : _shares;
+		toRedeem = _shares > unredeemedShares ? unredeemedShares : _shares;
 		if (toRedeem == 0) {
 			return 0;
 		}
@@ -1010,7 +1005,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		allowance[address(this)][msg.sender] = toRedeem;
 		// transfer as the shares will have been minted in the epoch execution
 		transferFrom(address(this), msg.sender, toRedeem);
-		return toRedeem;
 	}
 
 	/**
@@ -1079,13 +1073,13 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 	/**
 	 * @notice get the Asset Value
-	 * @return Asset Value in e18 decimal format
+	 * @return assets Asset Value in e18 decimal format
 	 */
-	function _getAssets() internal view returns (uint256) {
+	function _getAssets() internal view returns (uint256 assets) {
 		address collateralAsset_ = collateralAsset;
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
-		uint256 assets = OptionsCompute.convertFromDecimals(
+		assets = OptionsCompute.convertFromDecimals(
 			ERC20(collateralAsset_).balanceOf(address(this)),
 			ERC20(collateralAsset_).decimals()
 		) + OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset_).decimals());
@@ -1094,7 +1088,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			// should always return value in e18 decimals
 			assets += IHedgingReactor(hedgingReactors_[i]).getPoolDenominatedValue();
 		}
-		return assets;
 	}
 
 	/**
@@ -1103,7 +1096,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function _checkBuffer() internal view returns (int256 bufferRemaining) {
 		// calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
-		(uint256 normalizedCollateralBalance, , ) = _getNormalizedBalance(collateralAsset);
+		uint256 normalizedCollateralBalance = _getNormalizedBalance(collateralAsset);
 		bufferRemaining = int256(
 			normalizedCollateralBalance -
 				(OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset).decimals()) *
