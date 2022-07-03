@@ -32,6 +32,12 @@ export const IDToNetwork: Record<CHAINID, ETHNetwork> = {
   [CHAINID.LOCALHOST]: ETHNetwork.LOCALHOST,
 };
 
+export const SUBGRAPH_URL = {
+  [CHAINID.LOCALHOST]: "",
+  [CHAINID.ETH_MAINNET]: "",
+  [CHAINID.ARBITRUM_RINKEBY]: "https://api.thegraph.com/subgraphs/name/ugolino/rysktestnet",
+}
+
 /**
  * Tokens and owners
  */

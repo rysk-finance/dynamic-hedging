@@ -79,3 +79,8 @@ export const median = function (array: [number]) {
 }
 export const parseTokenAmount = (value: BigNumberish, decimals: number) =>
   BigNumber.from(value).mul(BigNumber.from(10).pow(BigNumber.from(decimals)));
+
+export const renameOtoken = (string: string) => {
+	const isPut = string.slice(-1) === "P";
+	return `${isPut ? "Put" : "Call" }` + " " + string.substring(string.indexOf('-') + 1).slice(0, -1)
+} 

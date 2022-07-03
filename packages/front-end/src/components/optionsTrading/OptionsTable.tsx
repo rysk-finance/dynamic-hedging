@@ -71,8 +71,6 @@ export const OptionsTable: React.FC = () => {
       ].sort((a, b) => a - b);
 
       const fetchPrices = async () => {
-        // const data = await fetch('https://yourapi.com');
-
         const suggestions = await Promise.all(strikes.map(async strike => {
 
           const optionSeries = {
