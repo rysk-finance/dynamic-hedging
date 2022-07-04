@@ -38,7 +38,7 @@ export const UserOptionsList = () => {
     expired: boolean;
     symbol: string,
     amount: number,
-    avgPrice: number
+    entryPrice: number
   }
 
    // Local state
@@ -51,7 +51,7 @@ export const UserOptionsList = () => {
 
       const positionsQuery = `
         query($account: String) {
-          positions(first: 1000, where: { account_contains: "${account}" }) {
+          positions(first: 1000, where: { account_contains: "${account?.toLowerCase()}" }) {
             id
             amount
             oToken {
@@ -88,16 +88,21 @@ export const UserOptionsList = () => {
 
               
               // 1e18
-              const totBought = position.writeOptionsTransactions.map(
-                ( pos: any) => pos.amount).reduce((prev: BigNumber, next: BigNumber) => Number(prev) + Number(next)
-              );
+              const totBought = position.writeOptionsTransactions.length > 0 
+                                ? position.writeOptionsTransactions.map(
+                                  ( pos: any) => pos.amount).reduce((prev: BigNumber, next: BigNumber) => Number(prev) + Number(next)
+                                ) 
+                                : 0
 
               // 1e8
-              const totPremium = position.writeOptionsTransactions.map(
-                ( pos: any) => pos.premium).reduce((prev: BigNumber, next: BigNumber) => Number(prev) + Number(next)
-              );
+              const totPremium = position.writeOptionsTransactions.length > 0
+                                  ? position.writeOptionsTransactions.map(
+                                    ( pos: any) => pos.premium).reduce((prev: BigNumber, next: BigNumber) => Number(prev) + Number(next)
+                                  )
+                                  : 0
+
               // premium converted to 1e18 
-              const avgPrice = (totPremium * 1e10 ) / totBought
+              const entryPrice = totBought > 0 && totPremium > 0 ? (totPremium * 1e10 ) / totBought : 0
 
               // TODO add current price and PNL
               
@@ -106,7 +111,7 @@ export const UserOptionsList = () => {
                 expired: expired,
                 symbol: position.oToken.symbol,
                 amount: position.amount / 1e18,
-                avgPrice: avgPrice
+                entryPrice: entryPrice
               })
             })
 
@@ -114,6 +119,7 @@ export const UserOptionsList = () => {
             
         })
         .catch((err) => {
+          // TODO add fallback
           console.log('Error fetching data: ', err)
         })
 
@@ -128,7 +134,6 @@ export const UserOptionsList = () => {
 
   return (
     <div className="w-full">
-      <h2 className="mb-4">Options</h2>
       <Card headerContent="RYSK.Options">
         <div className="border-y-2 border-black p-4 rounded-tr-lg mt-[-1px]">
           <RadioButtonSlider
@@ -155,7 +160,7 @@ export const UserOptionsList = () => {
                   <tr className={`h-12`} key={option.option}>
                     <td className="pl-4">{option.option}</td>
                     <td>{option.size}</td>
-                    <td>${option.avgPrice}</td>
+                    <td>${option.entryPrice}</td>
                     <td className="pr-4">${option.markPrice}</td>
                     <td className="pr-4">
                       {option.pnl >= 0 ? "+" : "-"}${option.pnl}
@@ -177,7 +182,7 @@ export const UserOptionsList = () => {
                       <NumberFormat value={position.amount} displayType={"text"} decimalScale={2} />
                     </td>
                     <td className="pl-4">
-                      <NumberFormat value={position.avgPrice} displayType={"text"} decimalScale={2} />
+                      <NumberFormat value={position.entryPrice} displayType={"text"} decimalScale={2} />
                     </td>
                   </tr>
                 ))}
@@ -194,7 +199,7 @@ export const UserOptionsList = () => {
                 <tr>
                   <th className="pl-4">Option</th>
                   <th>Size</th>
-                  <th>Avg. Price</th>
+                  <th>Entry. Price</th>
                   <th className="pr-4">Mark Price</th>
                   <th className="pr-4">PNL</th>
                   <th className="pr-4">Actions</th>
@@ -205,7 +210,7 @@ export const UserOptionsList = () => {
                   <tr className={`h-12`} key={option.option}>
                     <td className="pl-4">{option.option}</td>
                     <td>{option.size}</td>
-                    <td>${option.avgPrice}</td>
+                    <td>${option.entryPrice}</td>
                     <td className="pr-4">${option.markPrice}</td>
                     <td className="pr-4">
                       {option.pnl >= 0 ? "+" : "-"}${option.pnl}
@@ -227,7 +232,10 @@ export const UserOptionsList = () => {
                       <NumberFormat value={position.amount} displayType={"text"} decimalScale={2} />
                     </td>
                     <td className="pl-4">
-                      <NumberFormat value={position.avgPrice} displayType={"text"} decimalScale={2} />
+                      <NumberFormat 
+                        value={position.entryPrice > 0 ? position.entryPrice : '-' } 
+                        displayType={"text"} 
+                        decimalScale={2} />
                     </td>
                   </tr>
                 ))}
