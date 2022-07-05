@@ -1,6 +1,6 @@
 import { ApolloClient, InMemoryCache, gql } from '@apollo/client'
 import { BigNumber } from 'ethers/lib/ethers';
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import NumberFormat from 'react-number-format';
 import { useWalletContext } from "../../App";
 import { BIG_NUMBER_DECIMALS, SUBGRAPH_URL } from "../../config/constants";
@@ -9,7 +9,8 @@ import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import LPABI from "../../abis/LiquidityPool.json";
 import { DepositReceipt } from '../../types';
-
+import { Link } from 'react-router-dom';
+import { AppPaths } from '../../config/appPaths';
 
 export const UserVault = () => {
 
@@ -217,8 +218,13 @@ export const UserVault = () => {
                 }
               </div>
               <div className="flex flex-col w-full lg:w-[30%] h-full justify-around items-center">
-                <Button className="w-full mb-8">Deposit</Button>
-                <Button className="w-full">Withdraw</Button>
+                {/* <Button className="w-full mb-8">Deposit</Button> */}
+                <Link className='w-full' to={ {pathname: AppPaths.VAULT, search: '?type=deposit' } }  >
+                  <Button className="w-full mb-8">Deposit</Button>
+                </Link>
+                <Link className='w-full' to={ {pathname: AppPaths.VAULT, search: '?type=withdraw' } }  >
+                  <Button className="w-full">Withdraw</Button>
+                </Link>
               </div>
             </div>
           </Card>

@@ -9,6 +9,7 @@ import { useWalletContext } from "../../App";
 import { renameOtoken } from "../../utils/conversion-helper";
 import { BigNumber } from "ethers";
 import NumberFormat from "react-number-format";
+import { BuyBack } from "./BuyBack";
 
 export const UserOptionsList = () => {
 
@@ -38,12 +39,15 @@ export const UserOptionsList = () => {
     expired: boolean;
     symbol: string,
     amount: number,
-    entryPrice: number
+    entryPrice: number,
+    otokenId: string
   }
 
    // Local state
   const [positions, setPositions] = useState<Position[]>([]);
   const [listedOptionState, setListedOptionState] = useState(OptionState.OPEN);
+
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   useEffect(() => {
 
@@ -111,7 +115,8 @@ export const UserOptionsList = () => {
                 expired: expired,
                 symbol: position.oToken.symbol,
                 amount: position.amount / 1e18,
-                entryPrice: entryPrice
+                entryPrice: entryPrice,
+                otokenId: position.oToken.id
               })
             })
 
@@ -144,18 +149,16 @@ export const UserOptionsList = () => {
         </div>
         { listedOptionState === OptionState.OPEN &&
           <div className="p-4">
-            <table className="w-full">
-              <thead className="text-left text-lg">
-                <tr>
-                  <th className="pl-4">Option</th>
-                  <th>Size</th>
-                  <th>Avg. Price</th>
-                  <th className="pr-4">Mark Price</th>
-                  <th className="pr-4">PNL</th>
-                  <th className="pr-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <div className="w-full">
+              <div className="grid grid-cols-12 text-left text-lg pb-4">
+                  <div className="col-span-3">Option</div>
+                  <div className="col-span-1">Size</div>
+                  <div className="col-span-2">Avg. Price</div>
+                  <div className="col-span-2">Mark Price</div>
+                  <div className="col-span-2">PNL</div>
+                  <div className="col-span-2">Actions</div>
+              </div>
+              <div>
                 {/* {DUMMY_OPTIONS[listedOptionState].map((option) => (
                   <tr className={`h-12`} key={option.option}>
                     <td className="pl-4">{option.option}</td>
@@ -176,19 +179,39 @@ export const UserOptionsList = () => {
                 ))} */}
                   
                 { positions.filter(position => !position.expired).map((position) => ( 
-                  <tr className={`h-12`} key={position.id}>
-                    <td className="pl-4">{renameOtoken(position.symbol)}</td>
-                    <td className="pl-4">
-                      <NumberFormat value={position.amount} displayType={"text"} decimalScale={2} />
-                    </td>
-                    <td className="pl-4">
-                      <NumberFormat value={position.entryPrice} displayType={"text"} decimalScale={2} />
-                    </td>
-                  </tr>
+                  <div key={position.id} className="w-full">
+                    <div className="grid grid-cols-12">
+                      <div className="col-span-3">{renameOtoken(position.symbol)}</div>
+                      <div className="col-span-1">
+                        <NumberFormat value={position.amount} displayType={"text"} decimalScale={2} />
+                      </div>
+                      <div className="col-span-2">
+                        <NumberFormat value={position.entryPrice} displayType={"text"} decimalScale={2} />
+                      </div>
+                      <div className="col-span-2">$</div>
+                      <div className="col-span-2">
+                        -
+                      </div>
+                      <div className="col-span-2">
+                        <Button onClick={() => setSelectedOption(position.otokenId)} className="w-full">
+                          Sell
+                        </Button>
+                      </div>
+                    </div>
+                    { selectedOption !== null && 
+                      <div className="pt-6 grid grid-cols-12">
+                        <div className="col-start-4 col-span-6">
+                          <h4 className="mb-4 text-center">Sell Option</h4>
+                          <BuyBack selectedOption={selectedOption} />
+                        </div> 
+                      </div>
+                    }
+                  </div>
+
                 ))}
 
-              </tbody>
-            </table>
+              </div>
+            </div>
           </div>
         }
 

@@ -1,8 +1,10 @@
 import React from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card } from "../components/shared/Card";
 import { VaultDepositWithdraw } from "../components/VaultDepositWithdraw";
 
 export const Vault = () => {
+
   return (
     <>
       <div className="col-start-1 col-end-8">
