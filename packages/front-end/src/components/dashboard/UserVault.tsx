@@ -145,7 +145,7 @@ export const UserVault = () => {
       <div>
         {/* <h2 className="mb-4">Vaults</h2> */}
         <div className="mb-24">
-          <Card tabPunchColor="black" headerContent="RYSK.DynamicHedging">
+          <Card tabPunchColor="black" headerContent="RYSK.dynamicHedgingVault">
             <div className="pb-8 py-12 px-8 flex flex-col lg:flex-row h-full">
               <div className="flex h-full w-full lg:w-[70%] justify-around">
                 <div className="flex flex-col items-center justify-center h-full mb-8 lg:mb-0">

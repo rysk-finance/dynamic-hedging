@@ -1,9 +1,4 @@
-import React, { useState } from "react";
-import { Button } from "../components/shared/Button";
-import { Card } from "../components/shared/Card";
-import { RadioButtonSlider } from "../components/shared/RadioButtonSlider";
-import { Option } from "../types";
-import { SUBGRAPH_URL } from "../config/constants";
+import React from "react";
 import { UserVault } from "../components/dashboard/UserVault";
 import { UserOptionsList } from "../components/dashboard/UserOptionsList";
 

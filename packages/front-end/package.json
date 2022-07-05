@@ -7,6 +7,7 @@
     "@ethersproject/abstract-provider": "^5.6.0",
     "@nivo/core": "^0.79.0",
     "@nivo/line": "^0.79.1",
+    "@ramonak/react-progress-bar": "^5.0.1",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.1.1",
     "@testing-library/user-event": "^13.5.0",
