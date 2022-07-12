@@ -1,4 +1,4 @@
-import { Button } from "../shared/Button"
+import { Button } from "../shared/Button";
 import React, { useState } from "react";
 import { useContract } from "../../hooks/useContract";
 import OptionRegistryABI from "../../abis/OptionRegistry.json";
@@ -8,9 +8,9 @@ import { TextInput } from "../shared/TextInput";
 import { BIG_NUMBER_DECIMALS } from "../../config/constants";
 import { BigNumber } from "ethers";
 
-export const BuyBack: React.FC<{selectedOption: string}> = ({selectedOption}) => {
-
-
+export const BuyBack: React.FC<{ selectedOption: string }> = ({
+  selectedOption,
+}) => {
   const { account } = useWalletContext();
 
   const [uiOrderSize, setUIOrderSize] = useState("");
@@ -29,46 +29,31 @@ export const BuyBack: React.FC<{selectedOption: string}> = ({selectedOption}) =>
   });
 
   const handleInputChange = (value: string) => {
-    // setIsApproved(false);
     setUIOrderSize(value);
   };
 
-
   const handleBuyBack = async () => {
-    if (
-      optionRegistryContract &&
-      optionHandlerContract &&
-      account
-    ) {
+    if (optionRegistryContract && optionHandlerContract && account) {
       try {
-
-        // const seriesInfo = await optionRegistryContract.getSeriesInfo(selectedOption)
-        // console.log(seriesInfo)
-
         const amount = BIG_NUMBER_DECIMALS.OPYN.mul(
           BigNumber.from(uiOrderSize)
         );
 
-        console.log(amount.toString())
+        console.log(amount.toString());
 
         await optionHandlerContractCall({
           method: optionHandlerContract.buybackOption,
           args: [selectedOption, amount],
           onComplete: () => {
             setUIOrderSize("");
-            console.log('completed')
-            // setIsApproved(false);
-          },
-          onFail: () => {
-            // setIsApproved(false);
+            console.log("completed");
           },
         });
-
       } catch (err) {
         console.log(err);
       }
     }
-  }
+  };
 
   return (
     <div>
@@ -86,28 +71,10 @@ export const BuyBack: React.FC<{selectedOption: string}> = ({selectedOption}) =>
       />
 
       <div className="flex">
-        {/* <Button
-          className={`w-full border-b-0 border-x-0 !py-4 text-white ${
-            approveIsDisabled ? "!bg-gray-300 " : "!bg-black"
-          }`}
-          onClick={handleApproveSpend}
-        >
-          {`${isApproved ? "Approved ✅" : "Approve"}`}
-        </Button> */}
-        <Button
-          // disabled={buyIsDisabled}
-          // className={`w-full border-b-0 border-x-0 !py-4 text-white ${
-          //   buyIsDisabled ? "!bg-gray-300" : "!bg-black"
-          // }`}
-          className="w-full mt-4"
-          onClick={handleBuyBack}
-        >
+        <Button className="w-full mt-4" onClick={handleBuyBack}>
           Sell
         </Button>
       </div>
-
-
     </div>
-  )
-
-}
+  );
+};

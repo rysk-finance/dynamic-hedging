@@ -1,25 +1,32 @@
-import React, { useEffect, useState } from "react";
-import { Card } from "../shared/Card";
-import { Option } from "../../types";
-import { ApolloClient, InMemoryCache, gql } from '@apollo/client'
-import { SUBGRAPH_URL } from "../../config/constants";
-import { RadioButtonSlider } from "../shared/RadioButtonSlider";
-import { Button } from "../shared/Button";
-import { useWalletContext } from "../../App";
-import { renameOtoken } from "../../utils/conversion-helper";
+import { gql, useApolloClient, useQuery } from "@apollo/client";
 import { BigNumber } from "ethers";
+import { useEffect, useState } from "react";
 import NumberFormat from "react-number-format";
+import { useWalletContext } from "../../App";
+import { Option } from "../../types";
+import { renameOtoken } from "../../utils/conversion-helper";
+import { Button } from "../shared/Button";
+import { Card } from "../shared/Card";
+import { RadioButtonSlider } from "../shared/RadioButtonSlider";
 import { BuyBack } from "./BuyBack";
+import React from "react";
+
+enum OptionState {
+  OPEN = "Open",
+  EXPIRED = "Expired",
+}
+
+interface Position {
+  id: string;
+  expired: boolean;
+  symbol: string;
+  amount: number;
+  entryPrice: number;
+  otokenId: string;
+}
 
 export const UserOptionsList = () => {
-
-  const { account, network } = useWalletContext();
-  const SUBGRAPH_URI = network?.id !== undefined ? SUBGRAPH_URL[network?.id] : ""
-
-  enum OptionState {
-    OPEN = "Open",
-    EXPIRED = "Expired",
-  }
+  const { account } = useWalletContext();
 
   const OPTIONS_BUTTONS: Option<OptionState>[] = [
     {
@@ -34,108 +41,88 @@ export const UserOptionsList = () => {
     },
   ];
 
-  interface Position {
-    id: string;
-    expired: boolean;
-    symbol: string,
-    amount: number,
-    entryPrice: number,
-    otokenId: string
-  }
-
-   // Local state
+  // Local state
   const [positions, setPositions] = useState<Position[]>([]);
   const [listedOptionState, setListedOptionState] = useState(OptionState.OPEN);
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
-  useEffect(() => {
+  const client = useApolloClient();
 
-    const fetchPositions = async () => {
-
-      const positionsQuery = `
-        query($account: String) {
-          positions(first: 1000, where: { account_contains: "${account?.toLowerCase()}" }) {
-            id
-            amount
-            oToken {
-              id
-              symbol
-              expiryTimestamp
-            }
-            writeOptionsTransactions {
-              id
-              amount
-              premium
-              timestamp
-            }
-          }
+  // TODO: Add typings here
+  const { loading, error, data } = useQuery(gql`
+    query($account: String) {
+      positions(first: 1000, where: { account_contains: "${account?.toLowerCase()}" }) {
+        id
+        amount
+        oToken {
+          id
+          symbol
+          expiryTimestamp
         }
-      `
+        writeOptionsTransactions {
+          id
+          amount
+          premium
+          timestamp
+        }
+      }
+    }
+  `);
 
-      const client = new ApolloClient({
-        uri: SUBGRAPH_URI,
-        cache: new InMemoryCache(),
-      })
+  useEffect(() => {
+    if (data && !loading) {
+      const positions: Position[] = [];
+      const timeNow = Date.now() / 1000;
 
-      client
-        .query({
-          query: gql(positionsQuery),
-        })
-        .then((data) => {
+      // TODO: Add typings here
+      data.data.positions.map((position: any) => {
+        const expired = timeNow > position.oToken.expiryTimestamp;
 
-            const positions: Position[] = []
-            const timeNow = Date.now() / 1000
+        // 1e18
+        const totBought =
+          position.writeOptionsTransactions.length > 0
+            ? position.writeOptionsTransactions
+                .map((pos: any) => pos.amount)
+                .reduce(
+                  (prev: BigNumber, next: BigNumber) =>
+                    Number(prev) + Number(next)
+                )
+            : 0;
 
-            data.data.positions.map( (position: any) => {
-              const expired = timeNow > position.oToken.expiryTimestamp;
+        // 1e8
+        const totPremium =
+          position.writeOptionsTransactions.length > 0
+            ? position.writeOptionsTransactions
+                .map((pos: any) => pos.premium)
+                .reduce(
+                  (prev: BigNumber, next: BigNumber) =>
+                    Number(prev) + Number(next)
+                )
+            : 0;
 
-              
-              // 1e18
-              const totBought = position.writeOptionsTransactions.length > 0 
-                                ? position.writeOptionsTransactions.map(
-                                  ( pos: any) => pos.amount).reduce((prev: BigNumber, next: BigNumber) => Number(prev) + Number(next)
-                                ) 
-                                : 0
+        // premium converted to 1e18
+        const entryPrice =
+          totBought > 0 && totPremium > 0 ? (totPremium * 1e10) / totBought : 0;
 
-              // 1e8
-              const totPremium = position.writeOptionsTransactions.length > 0
-                                  ? position.writeOptionsTransactions.map(
-                                    ( pos: any) => pos.premium).reduce((prev: BigNumber, next: BigNumber) => Number(prev) + Number(next)
-                                  )
-                                  : 0
+        // TODO add current price and PNL
 
-              // premium converted to 1e18 
-              const entryPrice = totBought > 0 && totPremium > 0 ? (totPremium * 1e10 ) / totBought : 0
-
-              // TODO add current price and PNL
-              
-              positions.push({
-                id: position.id,
-                expired: expired,
-                symbol: position.oToken.symbol,
-                amount: position.amount / 1e18,
-                entryPrice: entryPrice,
-                otokenId: position.oToken.id
-              })
-            })
-
-            setPositions(positions)
-            
-        })
-        .catch((err) => {
-          // TODO add fallback
-          console.log('Error fetching data: ', err)
-        })
-
+        positions.push({
+          id: position.id,
+          expired: expired,
+          symbol: position.oToken.symbol,
+          amount: position.amount / 1e18,
+          entryPrice: entryPrice,
+          otokenId: position.oToken.id,
+        });
+      });
+      setPositions(positions);
     }
 
-    if (account) {
-      fetchPositions()
-      .catch(console.error);
+    if (error) {
+      console.log(error);
     }
-
-  }, [account]);
+  }, [data, loading, error]);
 
   return (
     <div className="w-full">
@@ -147,75 +134,67 @@ export const UserOptionsList = () => {
             setSelected={setListedOptionState}
           />
         </div>
-        { listedOptionState === OptionState.OPEN &&
+        {listedOptionState === OptionState.OPEN && (
           <div className="p-4">
             <div className="w-full">
               <div className="grid grid-cols-12 text-left text-lg pb-4">
-                  <div className="col-span-3">Option</div>
-                  <div className="col-span-1">Size</div>
-                  <div className="col-span-2">Avg. Price</div>
-                  <div className="col-span-2">Mark Price</div>
-                  <div className="col-span-2">PNL</div>
-                  <div className="col-span-2">Actions</div>
+                <div className="col-span-3">Option</div>
+                <div className="col-span-1">Size</div>
+                <div className="col-span-2">Avg. Price</div>
+                <div className="col-span-2">Mark Price</div>
+                <div className="col-span-2">PNL</div>
+                <div className="col-span-2">Actions</div>
               </div>
               <div>
-                {/* {DUMMY_OPTIONS[listedOptionState].map((option) => (
-                  <tr className={`h-12`} key={option.option}>
-                    <td className="pl-4">{option.option}</td>
-                    <td>{option.size}</td>
-                    <td>${option.entryPrice}</td>
-                    <td className="pr-4">${option.markPrice}</td>
-                    <td className="pr-4">
-                      {option.pnl >= 0 ? "+" : "-"}${option.pnl}
-                    </td>
-                    <td>
-                      {listedOptionState === OptionState.OPEN ? (
-                        <Button>Close</Button>
-                      ) : (
-                        "-"
+                {positions
+                  .filter((position) => !position.expired)
+                  .map((position) => (
+                    <div key={position.id} className="w-full">
+                      <div className="grid grid-cols-12">
+                        <div className="col-span-3">
+                          {renameOtoken(position.symbol)}
+                        </div>
+                        <div className="col-span-1">
+                          <NumberFormat
+                            value={position.amount}
+                            displayType={"text"}
+                            decimalScale={2}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <NumberFormat
+                            value={position.entryPrice}
+                            displayType={"text"}
+                            decimalScale={2}
+                          />
+                        </div>
+                        <div className="col-span-2">$</div>
+                        <div className="col-span-2">-</div>
+                        <div className="col-span-2">
+                          <Button
+                            onClick={() => setSelectedOption(position.otokenId)}
+                            className="w-full"
+                          >
+                            Sell
+                          </Button>
+                        </div>
+                      </div>
+                      {selectedOption !== null && (
+                        <div className="pt-6 grid grid-cols-12">
+                          <div className="col-start-4 col-span-6">
+                            <h4 className="mb-4 text-center">Sell Option</h4>
+                            <BuyBack selectedOption={selectedOption} />
+                          </div>
+                        </div>
                       )}
-                    </td>
-                  </tr>
-                ))} */}
-                  
-                { positions.filter(position => !position.expired).map((position) => ( 
-                  <div key={position.id} className="w-full">
-                    <div className="grid grid-cols-12">
-                      <div className="col-span-3">{renameOtoken(position.symbol)}</div>
-                      <div className="col-span-1">
-                        <NumberFormat value={position.amount} displayType={"text"} decimalScale={2} />
-                      </div>
-                      <div className="col-span-2">
-                        <NumberFormat value={position.entryPrice} displayType={"text"} decimalScale={2} />
-                      </div>
-                      <div className="col-span-2">$</div>
-                      <div className="col-span-2">
-                        -
-                      </div>
-                      <div className="col-span-2">
-                        <Button onClick={() => setSelectedOption(position.otokenId)} className="w-full">
-                          Sell
-                        </Button>
-                      </div>
                     </div>
-                    { selectedOption !== null && 
-                      <div className="pt-6 grid grid-cols-12">
-                        <div className="col-start-4 col-span-6">
-                          <h4 className="mb-4 text-center">Sell Option</h4>
-                          <BuyBack selectedOption={selectedOption} />
-                        </div> 
-                      </div>
-                    }
-                  </div>
-
-                ))}
-
+                  ))}
               </div>
             </div>
           </div>
-        }
+        )}
 
-        { listedOptionState === OptionState.EXPIRED &&
+        {listedOptionState === OptionState.EXPIRED && (
           <div className="p-4">
             <table className="w-full">
               <thead className="text-left text-lg">
@@ -229,47 +208,34 @@ export const UserOptionsList = () => {
                 </tr>
               </thead>
               <tbody>
-                {/* {DUMMY_OPTIONS[listedOptionState].map((option) => (
-                  <tr className={`h-12`} key={option.option}>
-                    <td className="pl-4">{option.option}</td>
-                    <td>{option.size}</td>
-                    <td>${option.entryPrice}</td>
-                    <td className="pr-4">${option.markPrice}</td>
-                    <td className="pr-4">
-                      {option.pnl >= 0 ? "+" : "-"}${option.pnl}
-                    </td>
-                    <td>
-                      {listedOptionState === OptionState.OPEN ? (
-                        <Button>Close</Button>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                  </tr>
-                ))} */}
-                  
-                { positions.filter(position => position.expired).map((position) => ( 
-                  <tr className={`h-12`} key={position.id}>
-                    <td className="pl-4">{renameOtoken(position.symbol)}</td>
-                    <td className="pl-4">
-                      <NumberFormat value={position.amount} displayType={"text"} decimalScale={2} />
-                    </td>
-                    <td className="pl-4">
-                      <NumberFormat 
-                        value={position.entryPrice > 0 ? position.entryPrice : '-' } 
-                        displayType={"text"} 
-                        decimalScale={2} />
-                    </td>
-                  </tr>
-                ))}
-
+                {positions
+                  .filter((position) => position.expired)
+                  .map((position) => (
+                    <tr className={`h-12`} key={position.id}>
+                      <td className="pl-4">{renameOtoken(position.symbol)}</td>
+                      <td className="pl-4">
+                        <NumberFormat
+                          value={position.amount}
+                          displayType={"text"}
+                          decimalScale={2}
+                        />
+                      </td>
+                      <td className="pl-4">
+                        <NumberFormat
+                          value={
+                            position.entryPrice > 0 ? position.entryPrice : "-"
+                          }
+                          displayType={"text"}
+                          decimalScale={2}
+                        />
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
-        }
-
+        )}
       </Card>
     </div>
-  )
-
-}
+  );
+};
