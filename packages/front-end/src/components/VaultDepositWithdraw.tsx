@@ -359,7 +359,7 @@ export const VaultDepositWithdraw = () => {
             <h4>
               <b>
                 Shares:{" "}
-                {redeemedShares?.div(BIG_NUMBER_DECIMALS.RYSK).toString()} RYSK
+                {redeemedShares?.div(BIG_NUMBER_DECIMALS.RYSK).toString()} DHV USDC
               </b>
             </h4>
           </RequiresWalletConnection>
@@ -473,7 +473,7 @@ export const VaultDepositWithdraw = () => {
                               <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
                                 {/* TODO(HC): Determine what this copy should be. */}
                                 <p>
-                                  Your USDC will be availale to redeem as shares
+                                  Your USDC will be available to redeem as shares
                                   during our weekly strategy every Friday at
                                   11am UTC
                                 </p>
