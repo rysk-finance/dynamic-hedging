@@ -82,5 +82,5 @@ export const parseTokenAmount = (value: BigNumberish, decimals: number) =>
 
 export const renameOtoken = (string: string) => {
 	const isPut = string.slice(-1) === "P";
-	return `${isPut ? "Put" : "Call" }` + " " + string.substring(string.indexOf('-') + 1).slice(0, -1)
+	return  string.substring(string.indexOf('-') + 1).slice(0, -1) + " " + `${isPut ? "Put" : "Call" }`
 } 

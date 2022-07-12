@@ -4,6 +4,7 @@ import { Card } from "../components/shared/Card";
 import { VaultDepositWithdraw } from "../components/VaultDepositWithdraw";
 import { VaultStats } from "../components/VaultStats";
 import ProgressBar from "@ramonak/react-progress-bar";
+import { VaultChart } from "../components/VaultChart";
 
 
 export const Vault = () => {
@@ -48,6 +49,11 @@ export const Vault = () => {
       <div className="col-start-1 col-end-17 mt-16">
         {/* TODO add dynamic stast from Subgraph */}
         <VaultStats />  
+      </div>
+
+      <div className="col-start-1 col-end-17 mt-16">
+        {/* TODO add dynamic stast from Subgraph */}
+        <VaultChart />  
       </div>
 
       <div className="col-start-1 col-end-8 mt-16">

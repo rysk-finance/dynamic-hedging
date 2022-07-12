@@ -55,7 +55,7 @@ export const VaultStats = () => {
                   decimalScale={2} 
                   suffix="%" />
             </h3>
-            <h4 className="mb-2">Max Drowdown</h4>
+            <h4 className="mb-2">Max Drawdown</h4>
             <a href="#" className="underline">
               Learn more
             </a>
