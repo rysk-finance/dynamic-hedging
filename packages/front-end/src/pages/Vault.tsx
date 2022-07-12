@@ -5,6 +5,7 @@ import { VaultDepositWithdraw } from "../components/VaultDepositWithdraw";
 import { VaultStats } from "../components/VaultStats";
 import ProgressBar from "@ramonak/react-progress-bar";
 import { VaultChart } from "../components/VaultChart";
+import { LPStats } from "../components/LPStats";
 
 export const Vault = () => {
   return (
@@ -17,28 +18,7 @@ export const Vault = () => {
           The DHV targets market neutrality aiming to reduce the directional
           risk associated with price movements in the underlying asset. <br />
         </p>
-        {/* TODO read from LP contract */}
-        <div className="mt-12">
-          <div className="flex justify-between mb-4">
-            <div>
-              <h4>60k USDC</h4>
-              <p>Deposited</p>
-            </div>
-            <div className="text-right">
-              <h4>100k USDC</h4>
-              <p>Max Capacity</p>
-            </div>
-          </div>
-          <ProgressBar
-            completed={60}
-            bgColor={"#000"}
-            height={"30px"}
-            baseBgColor={"#ebebeb"}
-            animateOnRender={true}
-            borderRadius={"10px"}
-            className={"border-2 border-2 rounded-xl border-black"}
-          />
-        </div>
+        <LPStats />
       </div>
       <div className="col-start-9 col-end-17">
         <Card headerContent="DHV.actions">
