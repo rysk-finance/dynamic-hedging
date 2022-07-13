@@ -69,7 +69,7 @@ This functon gets the required collateral for the option series passed in and an
 
 This function returns an oToken from the opyn-rysk gamma otoken factory. If the otoken does not exist then it returns the zero address. The strike is passed in in oToken (e8) decimals.
 
-### ```checkVaultHealth(uint256 vaultId) public view returns (bool isBelowMin, bool isAboveMax, uint256 healthFactor, uint256 collatRequired, address collatAsset) ``` ***View***
+### ```checkVaultHealth(uint256 vaultId) public view returns (bool isBelowMin, bool isAboveMax, uint256 healthFactor, uint256 upperHealthFactor, uint256 collatRequired, address collatAsset) ``` ***View***
 
 This function checks the margin health of a specific vault and returns whether the vault is under or over collateralised and if so how much it is over/under by. Since all vaults use Opyn's partial collateralisation mechanism it means that they require collateral/margin management. The function starts by retrieving the vault from the opyn controller. Then searching for that series in the registry. Then the required collateral for that vault is retrieved from opyn's margin calculator and the collateral in the vault is retrieved. The health factor is calculated as ``` (collatAmount * MAX_BPS) / marginReq```. This health factor is then compared to the desired health factor. If it is above the healthFactor is above upperHealthFactor then the registry tells the caller that the vault is overcollateralised and the amount that should be withdrawn, If the opposite is true then the registry tells the caller that the vault is undercollateralised and the amount that should be deposited to return to the upperHealthFactor.
 

@@ -1,5 +1,6 @@
 import { BigNumber, ethers } from "ethers";
 import React, { useCallback, useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import ERC20ABI from "../abis/erc20.json";
 import { useWalletContext } from "../App";
 import LPABI from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
@@ -9,11 +10,10 @@ import {
   MAX_UINT_256,
   ZERO_UINT_256,
 } from "../config/constants";
-import { USDC_ADDRESS } from "../config/mainnetContracts";
 import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
 import { useGlobalContext } from "../state/GlobalContext";
-import { DepositReceipt, WithdrawalReceipt } from "../types";
+import { DepositReceipt, Events, WithdrawalReceipt } from "../types";
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
 import { RadioButtonSlider } from "./shared/RadioButtonSlider";
 import { TextInput } from "./shared/TextInput";
@@ -24,7 +24,7 @@ enum Mode {
 }
 
 enum DepositMode {
-  COLLATERAL = "Collateral",
+  USDC = "USDC",
   REDEEM = "Redeem",
 }
 
@@ -34,7 +34,7 @@ enum WithdrawMode {
 }
 
 export const VaultDepositWithdraw = () => {
-  const { account } = useWalletContext();
+  const { account, network } = useWalletContext();
 
   const {
     state: { settings },
@@ -42,13 +42,18 @@ export const VaultDepositWithdraw = () => {
 
   // UI State
   const [mode, setMode] = useState<Mode>(Mode.DEPOSIT);
-  const [depositMode, setDepositMode] = useState<DepositMode>(
-    DepositMode.COLLATERAL
-  );
+  const [depositMode, setDepositMode] = useState<DepositMode>(DepositMode.USDC);
   const [withdrawMode, setWithrawMode] = useState<WithdrawMode>(
     WithdrawMode.INITIATE
   );
   const [inputValue, setInputValue] = useState("");
+  const [listeningForApproval, setListeningForApproval] = useState(false);
+  const [listeningForDeposit, setListeningForDeposit] = useState(false);
+  const [listeningForRedeem, setListeningForRedeem] = useState(false);
+  const [listeningForWithdrawInit, setListeningForWithdrawInit] =
+    useState(false);
+  const [listeningForWithdrawComplete, setListeningForWithdrawComplete] =
+    useState(false);
 
   // Chain state
   const [currentEpoch, setCurrentEpoch] = useState<BigNumber | null>(null);
@@ -62,20 +67,77 @@ export const VaultDepositWithdraw = () => {
     useState<WithdrawalReceipt | null>(null);
   const [withdrawEpochSharePrice, setWithdrawEpochSharePrice] =
     useState<BigNumber | null>(null);
+  const [approvalState, setApprovalState] = useState<Events["Approval"] | null>(
+    null
+  );
 
   const initiateWithdrawDisabled =
     withdrawalReceipt && withdrawalReceipt.shares._hex !== ZERO_UINT_256;
 
+  // lpContract?.on("Withdraw", updateWithdrawState);
+  // lpContract?.on("InitiateWithdraw", updateWithdrawState);
+
   // Contracts
-  const [lpContract, lpContractCall] = useContract({
-    address: addresses.localhost.liquidityPool,
+  const [lpContract, lpContractCall] = useContract<{
+    EpochExecuted: [];
+    Deposit: [BigNumber, BigNumber, BigNumber];
+    Redeem: [];
+    InitiateWithdraw: [];
+    Withdraw: [];
+  }>({
+    contract: "liquidityPool",
     ABI: LPABI.abi,
     readOnly: false,
+    events: {
+      EpochExecuted: () => {
+        // TODO: Update copy here
+        toast("✅ The epoch was advanced");
+        epochListener();
+      },
+      Deposit: () => {
+        setListeningForDeposit(false);
+        toast("✅ Deposit complete");
+        updateDepositState();
+      },
+      Redeem: () => {
+        setListeningForRedeem(false);
+        toast("✅ Redeem completed");
+        updateDepositState();
+      },
+      InitiateWithdraw: () => {
+        toast("✅ Your withdrawal was initiated");
+        updateWithdrawState();
+        setListeningForWithdrawComplete(false);
+      },
+      Withdraw: () => {
+        toast("✅ Your withdrawal was completed");
+        updateWithdrawState();
+        setListeningForWithdrawComplete(false);
+      },
+    },
+    isListening: {
+      EpochExecuted: true,
+      Deposit: listeningForDeposit,
+      Redeem: listeningForRedeem,
+      InitiateWithdraw: listeningForWithdrawInit,
+      Withdraw: listeningForWithdrawComplete,
+    },
   });
-  const [usdcContract, usdcContractCall] = useContract({
-    address: USDC_ADDRESS,
+
+  const [usdcContract, usdcContractCall] = useContract<{
+    Approval: [string, string, BigNumber];
+  }>({
+    contract: "USDC",
     ABI: ERC20ABI,
     readOnly: false,
+    events: {
+      Approval: (owner, spender, value) => {
+        setApprovalState({ owner, spender, value });
+        setListeningForApproval(false);
+        toast("✅ Approval complete");
+      },
+    },
+    isListening: { Approval: listeningForApproval },
   });
 
   const getBalance = useCallback(
@@ -146,31 +208,14 @@ export const VaultDepositWithdraw = () => {
     (async () => {
       if (account) {
         await getBalance(account);
+        await epochListener();
       }
     })();
-  }, [getBalance, account]);
-
-  // Attatch event listeners
-  useEffect(() => {
-    lpContract?.on("EpochExecuted", epochListener);
-    lpContract?.on("Deposit", updateDepositState);
-    lpContract?.on("Withdraw", updateWithdrawState);
-    lpContract?.on("InitiateWithdraw", updateWithdrawState);
-    lpContract?.on("Redeem", updateDepositState);
-
-    epochListener();
-
-    return () => {
-      lpContract?.off("EpochExecuted", epochListener);
-      lpContract?.off("Deposit", updateDepositState);
-      lpContract?.off("Withdraw", updateWithdrawState);
-      lpContract?.off("InitiateWithdraw", updateWithdrawState);
-    };
-  }, [lpContract, epochListener, updateDepositState, updateWithdrawState]);
+  }, [getBalance, account, epochListener]);
 
   // Update UI buttons when switching between deposit/withdraw mode
   useEffect(() => {
-    setDepositMode(DepositMode.COLLATERAL);
+    setDepositMode(DepositMode.USDC);
     setInputValue("");
   }, [mode, initiateWithdrawDisabled]);
 
@@ -187,54 +232,94 @@ export const VaultDepositWithdraw = () => {
     setInputValue("");
   }, [mode, depositMode, withdrawMode]);
 
-  // Handlers for the 4 different possible interactions.
-  const handleDepositCollateral = async () => {
-    if (usdcContract && lpContract && account) {
-      const amount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
+  // UI Handlers
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+    setApprovalState(null);
+  };
+
+  // Handlers for the different possible vault interactions.
+  const handleApproveSpend = async () => {
+    if (usdcContract && network) {
+      const amount = BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(inputValue));
       const approvedAmount = (await usdcContract.allowance(
         account,
-        addresses.localhost.liquidityPool
+        addresses[network.name]["liquidityPool"]
       )) as BigNumber;
-      if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
-        await usdcContractCall(
-          usdcContract.approve,
-          addresses.localhost.liquidityPool,
-          settings.unlimitedApproval
-            ? ethers.BigNumber.from(MAX_UINT_256)
-            : amount
-        );
+      try {
+        if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
+          await usdcContractCall({
+            method: usdcContract.approve,
+            args: [
+              addresses[network.name]["liquidityPool"],
+              settings.unlimitedApproval
+                ? ethers.BigNumber.from(MAX_UINT_256)
+                : amount,
+            ],
+            successMessage: "✅ Approval submitted",
+          });
+          setListeningForApproval(true);
+        } else {
+          toast("✅ Your transaction is already approved");
+        }
+      } catch {
+        toast("❌ There was an error approving your transaction.");
+        setListeningForApproval(false);
       }
-      await lpContractCall(lpContract.deposit, amount);
+    }
+  };
+
+  const handleDepositCollateral = async () => {
+    if (usdcContract && lpContract && account && network) {
+      const amount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
+      await lpContractCall({
+        method: lpContract.deposit,
+        args: [amount],
+        successMessage: "✅ Deposit submitted",
+        onComplete: () => {
+          setApprovalState(null);
+        },
+      });
+      setListeningForDeposit(true);
     }
   };
 
   const handleRedeemShares = async () => {
     if (lpContract) {
       const amount = ethers.utils.parseUnits(inputValue, DECIMALS.RYSK);
-      await lpContractCall(lpContract.redeem, amount);
+      await lpContractCall({ method: lpContract.redeem, args: [amount] });
+      setListeningForRedeem(true);
     }
   };
 
   const handleInitiateWithdraw = async () => {
     if (lpContract) {
       const amount = ethers.utils.parseUnits(inputValue, DECIMALS.RYSK);
-      await lpContractCall(lpContract.initiateWithdraw, amount);
+      await lpContractCall({
+        method: lpContract.initiateWithdraw,
+        args: [amount],
+      });
+      setListeningForWithdrawInit(true);
     }
   };
 
   const handleCompleteWithdraw = async () => {
     if (lpContract && withdrawEpochSharePrice && withdrawalReceipt) {
       const sharesAmount = withdrawalReceipt.shares;
-      await lpContractCall(lpContract.completeWithdraw, sharesAmount);
+      await lpContractCall({
+        method: lpContract.completeWithdraw,
+        args: [sharesAmount],
+      });
+      setListeningForWithdrawComplete(true);
     }
   };
 
-  // Coordinate the 4 possible interactions
+  // Coordinate the interactions on submit
   const handleSubmit = async () => {
     try {
       if (account && lpContract && usdcContract) {
         if (mode === Mode.DEPOSIT) {
-          if (depositMode === DepositMode.COLLATERAL) {
+          if (depositMode === DepositMode.USDC) {
             await handleDepositCollateral();
           } else if (depositMode === DepositMode.REDEEM) {
             await handleRedeemShares();
@@ -254,12 +339,21 @@ export const VaultDepositWithdraw = () => {
     }
   };
 
+  const approveIsDisabled = !inputValue || approvalState;
+  const depositIsDisabled =
+    mode === Mode.DEPOSIT &&
+    depositMode === DepositMode.USDC &&
+    !(inputValue && account && approvalState);
+  const completeWithdrawIsDisabled = !(
+    withdrawalReceipt &&
+    !withdrawalReceipt.shares.isZero() &&
+    withdrawEpochSharePrice &&
+    withdrawEpochSharePrice?._hex !== ZERO_UINT_256
+  );
+
   return (
     <div className="flex-col items-center justify-between h-full">
-      <div className="px-6 py-2 border-b-2 border-black flex items-center justify-between">
-        <div className="w-fit h-full flex items-center font-parabole ">
-          <h3 className="">Rysk Vault</h3>
-        </div>
+      <div className="px-4 py-4 border-b-2 border-black flex items-center justify-end">
         <div className="w-fit h-full flex items-center">
           <RequiresWalletConnection className="h-8 w-32">
             <h4>
@@ -312,9 +406,9 @@ export const VaultDepositWithdraw = () => {
                     buttonType="secondary"
                     options={[
                       {
-                        key: DepositMode.COLLATERAL,
-                        label: "1. Deposit Collateral",
-                        value: DepositMode.COLLATERAL,
+                        key: DepositMode.USDC,
+                        label: "1. Deposit USDC",
+                        value: DepositMode.USDC,
                       },
                       {
                         key: DepositMode.REDEEM,
@@ -356,9 +450,9 @@ export const VaultDepositWithdraw = () => {
 
             <div className="p-4 flex justify-between items-center">
               {mode === Mode.DEPOSIT ? (
-                depositMode === DepositMode.COLLATERAL ? (
+                depositMode === DepositMode.USDC ? (
                   <>
-                    <h5>Collateral:</h5>
+                    <h5>USDC:</h5>
                     <div className="flex items-center h-[36px]">
                       <RequiresWalletConnection className="w-[120px] h-6 mr-2">
                         {
@@ -379,21 +473,22 @@ export const VaultDepositWithdraw = () => {
                               <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
                                 {/* TODO(HC): Determine what this copy should be. */}
                                 <p>
-                                  Your collateral will be availale to redeem as
-                                  shares during our weekly strategy every Friday
-                                  at 11am UTC
+                                  Your USDC will be availale to redeem as shares
+                                  during our weekly strategy every Friday at
+                                  11am UTC
                                 </p>
                               </div>
                             </div>
                           )}
-                        {unredeemedShares?._hex !== ZERO_UINT_256 && (
-                          <div className="rounded-full bg-yellow-600 h-2 w-2 relative cursor-pointer group">
-                            <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
-                              {/* TODO(HC): Determine what this copy should be. */}
-                              <p>You have some shares available to redeem.</p>
+                        {unredeemedShares &&
+                          unredeemedShares?._hex !== ZERO_UINT_256 && (
+                            <div className="rounded-full bg-yellow-600 h-2 w-2 relative cursor-pointer group">
+                              <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
+                                {/* TODO(HC): Determine what this copy should be. */}
+                                <p>You have some shares available to redeem.</p>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
                       </RequiresWalletConnection>{" "}
                     </div>
                   </>
@@ -452,30 +547,26 @@ export const VaultDepositWithdraw = () => {
                   <h5>Collateral:</h5>
                   <div className="flex items-center h-[36px]">
                     <RequiresWalletConnection className="w-[120px] h-6 mr-2">
-                      {withdrawalReceipt &&
-                        (withdrawEpochSharePrice &&
-                        withdrawEpochSharePrice?._hex !== ZERO_UINT_256 ? (
-                          <>
-                            <h5 className="mr-2">
-                              <b>
-                                {/* TODO(HC): Scale this properly once sharePrice being returned by oracle is more accurate. */}
-                                {withdrawalReceipt.shares
-                                  .div(BIG_NUMBER_DECIMALS.RYSK)
-                                  .mul(
-                                    withdrawEpochSharePrice.div(
-                                      BIG_NUMBER_DECIMALS.RYSK
-                                    )
+                      <>
+                        <h5 className="mr-2">
+                          <b>
+                            {/* TODO(HC): Scale this properly once sharePrice being returned by oracle is more accurate. */}
+                            {withdrawalReceipt &&
+                              withdrawEpochSharePrice &&
+                              withdrawalReceipt.shares
+                                .div(BIG_NUMBER_DECIMALS.RYSK)
+                                .mul(
+                                  withdrawEpochSharePrice.div(
+                                    BIG_NUMBER_DECIMALS.RYSK
                                   )
-                                  .toString()}{" "}
-                                USDC
-                              </b>
-                            </h5>
-                          </>
-                        ) : (
-                          <>
-                            <h5 className="mr-2">
-                              <b>0 USDC</b>
-                            </h5>
+                                )
+                                .toString()}{" "}
+                            USDC
+                          </b>
+                        </h5>
+                        {withdrawalReceipt &&
+                          withdrawEpochSharePrice &&
+                          withdrawEpochSharePrice?._hex === ZERO_UINT_256 && (
                             <div className="rounded-full bg-green-500 h-2 w-2 relative cursor-pointer group">
                               <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
                                 <p>
@@ -485,8 +576,8 @@ export const VaultDepositWithdraw = () => {
                                 </p>
                               </div>
                             </div>
-                          </>
-                        ))}
+                          )}
+                      </>
                     </RequiresWalletConnection>{" "}
                   </div>
                 </>
@@ -498,14 +589,14 @@ export const VaultDepositWithdraw = () => {
               mode === Mode.WITHDRAW && withdrawMode === WithdrawMode.COMPLETE
             ) ? (
               <TextInput
-                className="text-right p-4 text-xl"
-                setValue={setInputValue}
+                className="text-right p-4 text-xl border-r-0"
+                setValue={handleInputChange}
                 value={inputValue}
                 iconLeft={
                   <div className="h-full flex items-center px-4 text-right text-gray-600">
                     <p>
                       {mode === Mode.DEPOSIT
-                        ? depositMode === DepositMode.COLLATERAL
+                        ? depositMode === DepositMode.USDC
                           ? "USDC"
                           : "Shares"
                         : withdrawMode === WithdrawMode.INITIATE
@@ -522,31 +613,73 @@ export const VaultDepositWithdraw = () => {
           </div>
         </div>
       </div>
-      {mode === Mode.WITHDRAW && withdrawMode === WithdrawMode.COMPLETE ? (
-        <button
-          onClick={handleSubmit}
-          className={`w-full py-6 rounded-b-xl bg-black text-white mt-[-2px]`}
-        >
-          Complete withdrawal
-        </button>
-      ) : (
-        <button
-          onClick={() => {
-            if (inputValue) {
-              handleSubmit();
-            }
-          }}
-          className={`w-full py-6 rounded-b-xl bg-black text-white mt-[-2px] ${
-            inputValue && account ? "" : "bg-gray-300 cursor-default"
-          }`}
-        >
-          {mode === Mode.DEPOSIT
-            ? depositMode === DepositMode.COLLATERAL
-              ? "Deposit"
-              : "Redeem"
-            : "Complete withdrawal"}
-        </button>
-      )}
+      <div className="flex">
+        {mode === Mode.DEPOSIT ? (
+          depositMode === DepositMode.USDC ? (
+            // Deposit
+            <>
+              <button
+                onClick={handleApproveSpend}
+                className={`w-full py-6 bg-black text-white mt-[-2px] ${
+                  approveIsDisabled ? "!bg-gray-300" : ""
+                }`}
+              >
+                {`${approvalState ? "Approved ✅" : "Approve"}`}
+              </button>
+              <button
+                onClick={() => {
+                  if (inputValue) {
+                    handleSubmit();
+                  }
+                }}
+                className={`w-full py-6 bg-black text-white mt-[-2px] ${
+                  depositIsDisabled ? "!bg-gray-300" : ""
+                }`}
+                disabled={!(inputValue && account)}
+              >
+                Deposit
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => {
+                if (inputValue) {
+                  handleSubmit();
+                }
+              }}
+              className={`w-full py-6 bg-black text-white mt-[-2px] ${
+                !(inputValue && account) ? "!bg-gray-300" : ""
+              }`}
+              disabled={!(inputValue && account)}
+            >
+              Redeem
+            </button>
+          )
+        ) : withdrawMode === WithdrawMode.INITIATE ? (
+          <button
+            onClick={() => {
+              if (inputValue) {
+                handleSubmit();
+              }
+            }}
+            className={`w-full py-6 bg-black text-white mt-[-2px] ${
+              !(inputValue && account) ? "bg-gray-300 cursor-default" : ""
+            }`}
+          >
+            Initiate withdrawal
+          </button>
+        ) : (
+          <button
+            onClick={handleSubmit}
+            className={`w-full py-6 bg-black text-white mt-[-2px] ${
+              completeWithdrawIsDisabled ? "!bg-gray-300 cursor-default" : ""
+            }`}
+            disabled={completeWithdrawIsDisabled}
+          >
+            Complete withdrawal
+          </button>
+        )}
+      </div>
     </div>
   );
 };

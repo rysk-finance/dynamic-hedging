@@ -59,7 +59,7 @@ If a vault gets liquidated all collateral will have been lost. This function exi
 
 This function is used to tell that LiquidityPool that a liquidation of a vault controlled by the optionRegistry has happened. It checks the vaultLiquidationDetails, if there is a liquidation it will reflect this in the liquidityPool via collateralAllocated. It will then clear these liquidation details so that liquidations dont get double counted accidentally.
 
-### ```pauseContract / unpause onlyOwner ```
+### ```pause / unpause onlyOwner ```
 
 This function only callable by governance or guardians pauses all untrusted user functionality.
 

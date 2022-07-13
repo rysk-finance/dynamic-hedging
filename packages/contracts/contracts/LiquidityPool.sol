@@ -94,13 +94,13 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	uint256 public maxPriceDeviationThreshold;
 	// variables relating to the utilization skew function:
 	// the gradient of the function where utiization is below function threshold. e18
-	uint256 belowThresholdGradient = 1e17; // 0.1
+	uint256 public belowThresholdGradient = 1e17; // 0.1
 	// the gradient of the line above the utilization threshold. e18
-	uint256 aboveThresholdGradient = 15e17; // 1.5
+	uint256 public aboveThresholdGradient = 15e17; // 1.5
 	// the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold.  Will always be negative but enter the absolute value
-	uint256 aboveThresholdYIntercept = 84e16; //-0.84
+	uint256 public aboveThresholdYIntercept = 84e16; //-0.84
 	// the percentage utilization above which the function moves from its shallow line to its steep line. e18
-	uint256 utilizationFunctionThreshold = 6e17; // 60%
+	uint256 public utilizationFunctionThreshold = 6e17; // 60%
 	// keeper mapping
 	mapping(address => bool) public keeper;
 
@@ -184,7 +184,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/// setters ///
 	///////////////
 
-	function pauseContract() external {
+	function pause() external {
 		_onlyGuardian();
 		_pause();
 	}
@@ -213,11 +213,22 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice remove a new hedging reactor by index
 	 * @param _index remove a hedging reactor
+	 * @param _override whether to override whether the reactor is wound down 
+	 		 			(THE REACTOR SHOULD BE WOUND DOWN SEPERATELY)
 	 * @dev   only governance can call this function
 	 */
-	function removeHedgingReactorAddress(uint256 _index) external {
+	function removeHedgingReactorAddress(uint256 _index, bool _override) external {
 		_onlyGovernor();
-		SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors[_index], 0);
+		address[] memory hedgingReactors_ = hedgingReactors;
+		if (!_override) {
+			IHedgingReactor reactor = IHedgingReactor(hedgingReactors_[_index]);
+			int256 delta = reactor.getDelta();
+			if (delta != 0) {
+				reactor.hedgeDelta(delta);
+			}
+			reactor.withdraw(type(uint256).max);
+		}
+		SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors_[_index], 0);
 		for (uint256 i = _index; i < hedgingReactors.length - 1; i++) {
 			hedgingReactors[i] = hedgingReactors[i + 1];
 		}
@@ -278,7 +289,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 	/**
 	 * @notice update the liquidity pool buffer limit
-	 * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of total NAV. (for 20% enter 2000)
+	 * @param _bufferPercentage the minimum balance the liquidity pool must have as a percentage of collateral allocated to options. (for 20% enter 2000)
 	 * @dev   only governance can call this function
 	 */
 	function setBufferPercentage(uint256 _bufferPercentage) external {
@@ -330,23 +341,24 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 *  @notice sets the parameters for the function that determines the utilization price factor
 	 *  The function is made up of two parts, both linear. The line to the left of the utilisation threshold has a low gradient
-	 *  while the gradient to the right of the threshold is much steeper. TThe aim of this function is to make options much more
+	 *  while the gradient to the right of the threshold is much steeper. The aim of this function is to make options much more
 	 *  expensive near full utilization while not having much effect at low utilizations.
 	 *  @param _belowThresholdGradient the gradient of the function where utiization is below function threshold. e18
 	 *  @param _aboveThresholdGradient the gradient of the line above the utilization threshold. e18
-	 *  @param _aboveThresholdYIntercept the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold. Will always be negative but enter the absolute value
 	 *  @param _utilizationFunctionThreshold the percentage utilization above which the function moves from its shallow line to its steep line
 	 */
 	function setUtilizationSkewParams(
 		uint256 _belowThresholdGradient,
 		uint256 _aboveThresholdGradient,
-		uint256 _aboveThresholdYIntercept,
 		uint256 _utilizationFunctionThreshold
 	) external {
 		_onlyManager();
 		belowThresholdGradient = _belowThresholdGradient;
 		aboveThresholdGradient = _aboveThresholdGradient;
-		aboveThresholdYIntercept = _aboveThresholdYIntercept;
+		aboveThresholdYIntercept = _utilizationFunctionThreshold.mul(
+			_aboveThresholdGradient - _belowThresholdGradient // inverted the order of the subtraction to result in a positive uint
+		);
+
 		utilizationFunctionThreshold = _utilizationFunctionThreshold;
 	}
 
@@ -371,7 +383,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @dev   called by the option registry only
 	 */
 	function adjustCollateral(uint256 lpCollateralDifference, bool addToLpBalance) external {
-		IOptionRegistry optionRegistry = getOptionRegistry();
+		IOptionRegistry optionRegistry = _getOptionRegistry();
 		require(msg.sender == address(optionRegistry));
 		// assumes in collateral decimals
 		if (addToLpBalance) {
@@ -391,13 +403,16 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @param seriesAddress the address of the oToken vault to close
 	 * @return collatReturned the amount of collateral returned to the liquidity pool, assumes in collateral decimals
 	 */
-	function settleVault(address seriesAddress) public returns (uint256) {
+	function settleVault(address seriesAddress) external returns (uint256) {
 		_isKeeper();
 		// get number of options in vault and collateral returned to recalculate our position without these options
 		// returns in collat decimals, collat decimals and e8
-		(, uint256 collatReturned, uint256 collatLost, ) = getOptionRegistry().settle(seriesAddress);
+		(, uint256 collatReturned, uint256 collatLost, ) = _getOptionRegistry().settle(seriesAddress);
 		emit SettleVault(seriesAddress, collatReturned, collatLost, msg.sender);
-		_adjustVariables(collatReturned, 0, 0, false);
+		// if the vault expired ITM then when settled the oracle will still have accounted for it as a liability. When
+		// the settle happens the liability is wiped off as it is now accounted for in collateralAllocated but because the
+		// oracle doesn't know this yet we need to temporarily reduce the liability value.
+		_adjustVariables(collatReturned, collatLost, 0, false);
 		collateralAllocated -= collatLost;
 		return collatReturned;
 	}
@@ -410,7 +425,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function handlerIssue(Types.OptionSeries memory optionSeries) external returns (address) {
 		_isHandler();
 		// series strike in e18
-		return _issue(optionSeries, getOptionRegistry());
+		return _issue(optionSeries, _getOptionRegistry());
 	}
 
 	/**
@@ -433,7 +448,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		int256 delta,
 		address recipient
 	) external returns (uint256) {
-		_isTradingPaused();
+		_isTradingNotPaused();
 		_isHandler();
 		return
 			_writeOption(
@@ -464,9 +479,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		int256 delta,
 		address recipient
 	) external returns (uint256, address) {
-		_isTradingPaused();
+		_isTradingNotPaused();
 		_isHandler();
-		IOptionRegistry optionRegistry = getOptionRegistry();
+		IOptionRegistry optionRegistry = _getOptionRegistry();
 		// series strike passed in as e18
 		address seriesAddress = _issue(optionSeries, optionRegistry);
 		// series strike received in e8, retrieved from the option registry instead of
@@ -508,7 +523,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		int256 delta,
 		address seller
 	) external returns (uint256) {
-		_isTradingPaused();
+		_isTradingNotPaused();
 		_isHandler();
 		// strike passed in as e8
 		return
@@ -520,7 +535,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @dev    only callable by the portfolio values feed oracle contract
 	 */
 	function resetEphemeralValues() external {
-		require(msg.sender == address(getPortfolioValuesFeed()));
+		require(msg.sender == address(_getPortfolioValuesFeed()));
 		delete ephemeralLiabilities;
 		delete ephemeralDelta;
 	}
@@ -534,7 +549,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		// pause trading
 		isTradingPaused = true;
 		// make an oracle request
-		return getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
+		return _getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
 	}
 
 	/**
@@ -697,21 +712,29 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice Returning balance in 1e18 format
 	 * @param asset address of the asset to get balance and normalize
 	 * @return normalizedBalance balance in 1e18 format
-	 * @return collateralBalance balance in original decimal format
-	 * @return _decimals decimals of asset
 	 */
-	function getNormalizedBalance(address asset)
+	function _getNormalizedBalance(address asset)
 		internal
 		view
 		returns (
-			uint256 normalizedBalance,
-			uint256 collateralBalance,
-			uint256 _decimals
+			uint256 normalizedBalance
 		)
 	{
-		collateralBalance = ERC20(asset).balanceOf(address(this));
-		_decimals = ERC20(asset).decimals();
-		normalizedBalance = OptionsCompute.convertFromDecimals(collateralBalance, _decimals);
+		normalizedBalance = OptionsCompute.convertFromDecimals(
+			ERC20(asset).balanceOf(address(this)), 
+			ERC20(asset).decimals()
+			);
+	}
+
+	/**
+	 * @notice get the delta of the hedging reactors
+	 * @return externalDelta hedging reactor delta in e18 format
+	 */
+	function getExternalDelta() public view returns (int256 externalDelta) {
+		address[] memory hedgingReactors_ = hedgingReactors;
+		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
+			externalDelta += IHedgingReactor(hedgingReactors_[i]).getDelta();
+		}
 	}
 
 	/**
@@ -722,24 +745,18 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		// assumes in e18
 		address underlyingAsset_ = underlyingAsset;
 		address strikeAsset_ = strikeAsset;
-		Types.PortfolioValues memory portfolioValues = getPortfolioValuesFeed().getPortfolioValues(
+		Types.PortfolioValues memory portfolioValues = _getPortfolioValuesFeed().getPortfolioValues(
 			underlyingAsset_,
 			strikeAsset_
 		);
 		// check that the portfolio values are acceptable
 		OptionsCompute.validatePortfolioValues(
-			getUnderlyingPrice(underlyingAsset_, strikeAsset_),
+			_getUnderlyingPrice(underlyingAsset_, strikeAsset_),
 			portfolioValues,
 			maxTimeDeviationThreshold,
 			maxPriceDeviationThreshold
 		);
-		// assumes in e18
-		int256 externalDelta;
-		address[] memory hedgingReactors_ = hedgingReactors;
-		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
-			externalDelta += IHedgingReactor(hedgingReactors_[i]).getDelta();
-		}
-		return portfolioValues.delta + externalDelta + ephemeralDelta;
+		return portfolioValues.delta + getExternalDelta() + ephemeralDelta;
 	}
 
 	/**
@@ -754,10 +771,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		Types.OptionSeries memory optionSeries,
 		uint256 amount,
 		bool toBuy
-	) public view returns (uint256 quote, int256 delta) {
+	) external view returns (uint256 quote, int256 delta) {
 		// using a struct to get around stack too deep issues
 		UtilizationState memory quoteState;
-		quoteState.underlyingPrice = getUnderlyingPrice(
+		quoteState.underlyingPrice = _getUnderlyingPrice(
 			optionSeries.underlying,
 			optionSeries.strikeAsset
 		);
@@ -781,7 +798,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 		// will update quoteState.utilizationPrice
 		addUtilizationPremium(quoteState, optionSeries, amount, toBuy);
-		quote = applyDeltaSkew(quoteState, toBuy);
+		quote = applyDeltaPremium(quoteState, toBuy);
 
 		quote = OptionsCompute.convertToCollateralDenominated(
 			quote,
@@ -819,7 +836,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			// strike is not being used again so we dont care if format changes
 			optionSeries.strike = optionSeries.strike / 1e10;
 			// returns collateral decimals
-			quoteState.collateralToAllocate = getOptionRegistry().getCollateral(optionSeries, amount);
+			quoteState.collateralToAllocate = _getOptionRegistry().getCollateral(optionSeries, amount);
 
 			quoteState.utilizationAfter = (quoteState.collateralToAllocate + collateralAllocated_).div(
 				collateralAllocated_ + ERC20(collateralAsset).balanceOf(address(this))
@@ -848,7 +865,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 *	@param toBuy whether we are buying an option. False if selling
 	 *	@return quote the quote for the option with the delta skew applied
 	 */
-	function applyDeltaSkew(UtilizationState memory quoteState, bool toBuy)
+	function applyDeltaPremium(UtilizationState memory quoteState, bool toBuy)
 		internal
 		view
 		returns (uint256 quote)
@@ -900,7 +917,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint256 strikePrice,
 		uint256 expiration
 	) public view returns (uint256) {
-		return getVolatilityFeed().getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+		return _getVolatilityFeed().getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+	}
+
+	function getAssets() external view returns (uint256) {
+		return _getAssets();
 	}
 
 	function getNAV() external view returns (uint256) {
@@ -954,9 +975,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice functionality for allowing a user to redeem their shares from a previous epoch
 	 * @param _shares the number of shares to redeem
-	 * @return the number of shares actually returned
+	 * @return toRedeem the number of shares actually returned
 	 */
-	function _redeem(uint256 _shares) internal returns (uint256) {
+	function _redeem(uint256 _shares) internal returns (uint256 toRedeem) {
 		DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
 		uint256 currentEpoch = epoch;
 		// check for any unredeemed shares
@@ -970,7 +991,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		}
 		// if the shares requested are greater than their unredeemedShares then floor to unredeemedShares, otherwise
 		// use their requested share number
-		uint256 toRedeem = _shares > unredeemedShares ? unredeemedShares : _shares;
+		toRedeem = _shares > unredeemedShares ? unredeemedShares : _shares;
 		if (toRedeem == 0) {
 			return 0;
 		}
@@ -984,7 +1005,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		allowance[address(this)][msg.sender] = toRedeem;
 		// transfer as the shares will have been minted in the epoch execution
 		transferFrom(address(this), msg.sender, toRedeem);
-		return toRedeem;
 	}
 
 	/**
@@ -1032,13 +1052,13 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
 		uint256 assets = _getAssets();
-		Types.PortfolioValues memory portfolioValues = getPortfolioValuesFeed().getPortfolioValues(
+		Types.PortfolioValues memory portfolioValues = _getPortfolioValuesFeed().getPortfolioValues(
 			underlyingAsset_,
 			strikeAsset_
 		);
 		// check that the portfolio values are acceptable
 		OptionsCompute.validatePortfolioValues(
-			getUnderlyingPrice(underlyingAsset_, strikeAsset_),
+			_getUnderlyingPrice(underlyingAsset_, strikeAsset_),
 			portfolioValues,
 			maxTimeDeviationThreshold,
 			maxPriceDeviationThreshold
@@ -1053,13 +1073,13 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 	/**
 	 * @notice get the Asset Value
-	 * @return Asset Value in e18 decimal format
+	 * @return assets Asset Value in e18 decimal format
 	 */
-	function _getAssets() internal view returns (uint256) {
+	function _getAssets() internal view returns (uint256 assets) {
 		address collateralAsset_ = collateralAsset;
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
-		uint256 assets = OptionsCompute.convertFromDecimals(
+		assets = OptionsCompute.convertFromDecimals(
 			ERC20(collateralAsset_).balanceOf(address(this)),
 			ERC20(collateralAsset_).decimals()
 		) + OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset_).decimals());
@@ -1068,7 +1088,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			// should always return value in e18 decimals
 			assets += IHedgingReactor(hedgingReactors_[i]).getPoolDenominatedValue();
 		}
-		return assets;
 	}
 
 	/**
@@ -1077,7 +1096,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function _checkBuffer() internal view returns (int256 bufferRemaining) {
 		// calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
-		(uint256 normalizedCollateralBalance, , ) = getNormalizedBalance(collateralAsset);
+		uint256 normalizedCollateralBalance = _getNormalizedBalance(collateralAsset);
 		bufferRemaining = int256(
 			normalizedCollateralBalance -
 				(OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset).decimals()) *
@@ -1227,6 +1246,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/**
 	 * @notice adjust the variables of the pool
 	 * @param  collateralAmount the amount of collateral transferred to change on collateral allocated in collateral decimals
+	 * @param  optionsValue the value of the options in e18 decimals
+	 * @param  delta the delta of the options in e18 decimals
 	 * @param  isSale whether the action was an option sale or not
 	 */
 	function _adjustVariables(
@@ -1254,7 +1275,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice get the volatility feed used by the liquidity pool
 	 * @return the volatility feed contract interface
 	 */
-	function getVolatilityFeed() internal view returns (VolatilityFeed) {
+	function _getVolatilityFeed() internal view returns (VolatilityFeed) {
 		return VolatilityFeed(protocol.volatilityFeed());
 	}
 
@@ -1262,7 +1283,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice get the portfolio values feed used by the liquidity pool
 	 * @return the portfolio values feed contract
 	 */
-	function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
+	function _getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
 		return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
 	}
 
@@ -1270,7 +1291,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice get the option registry used for storing and managing the options
 	 * @return the option registry contract
 	 */
-	function getOptionRegistry() internal view returns (IOptionRegistry) {
+	function _getOptionRegistry() internal view returns (IOptionRegistry) {
 		return IOptionRegistry(protocol.optionRegistry());
 	}
 
@@ -1280,7 +1301,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @param _strikeAsset the asset that the underlying value is denominated in
 	 * @return the underlying price
 	 */
-	function getUnderlyingPrice(address underlying, address _strikeAsset)
+	function _getUnderlyingPrice(address underlying, address _strikeAsset)
 		internal
 		view
 		returns (uint256)
@@ -1288,7 +1309,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
 
-	function _isTradingPaused() internal view {
+	function _isTradingNotPaused() internal view {
 		if (isTradingPaused) {
 			revert CustomErrors.TradingPaused();
 		}

@@ -100,8 +100,8 @@ const optionParams = {
 	maxCallStrikePrice: toWei("100000000000"),
 	minPutStrikePrice: 0,
 	maxPutStrikePrice: toWei("1000000000000"),
-	minExpiry:0,
-	maxExpiry:99999999999,
+	minExpiry: 0,
+	maxExpiry: 99999999999
 }
 
 describe("Options protocol Vault Health", function () {
@@ -211,9 +211,7 @@ describe("Options protocol Vault Health", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: USDC_ADDRESS[chainId]
 		}
-		const issue = await optionRegistry.issue(
-			proposedSeries
-		)
+		const issue = await optionRegistry.issue(proposedSeries)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
 		const events = receipt.events
@@ -232,9 +230,7 @@ describe("Options protocol Vault Health", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: WETH_ADDRESS[chainId]
 		}
-		const issue = await optionRegistryETH.issue(
-			proposedSeriesETH
-		)
+		const issue = await optionRegistryETH.issue(proposedSeriesETH)
 		await expect(issue).to.emit(optionRegistryETH, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
 		const events = receipt.events
@@ -277,6 +273,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(1)
@@ -323,12 +320,14 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistryETH.checkVaultHealth(1)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
+		expect(upperHealthFactor).to.eq(uhf)
 		expect(collateralAmount).to.equal(0)
 		expect(collateralAsset).to.equal(weth.address)
 	})
@@ -366,12 +365,14 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(1)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
+		expect(upperHealthFactor).to.eq(uhf)
 		expect(collateralAmount).to.equal(0)
 		expect(collateralAsset).to.equal(usd.address)
 	})
@@ -409,12 +410,14 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistryETH.checkVaultHealth(1)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
+		expect(upperHealthFactor).to.eq(uhf)
 		expect(collateralAmount).to.equal(0)
 		expect(collateralAsset).to.equal(weth.address)
 	})
@@ -443,6 +446,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin0,
 			isAboveMax0,
 			healthFactor0,
+			upperHealthFactor0,
 			collateralAmount0,
 			collateralAsset0
 		] = await optionRegistry.checkVaultHealth(1)
@@ -452,6 +456,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(1)
@@ -519,6 +524,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(1)
@@ -538,6 +544,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin0,
 			isAboveMax0,
 			healthFactor0,
+			upperHealthFactor0,
 			collateralAmount0,
 			collateralAsset0
 		] = await optionRegistry.checkVaultHealth(1)
@@ -565,6 +572,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(1)
@@ -606,6 +614,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistryETH.checkVaultHealth(1)
@@ -643,6 +652,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(1)
@@ -655,10 +665,7 @@ describe("Options protocol Vault Health", function () {
 		expect(healthFactor).to.not.equal(healthFBefore)
 		expect(healthF).to.equal(healthFactor)
 		const roundId = 2
-		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
-			optionRegistry.address,
-			1
-		)
+		let [isUnderCollat, price, dust] = await controller.isLiquidatable(optionRegistry.address, 1)
 		expect(isUnderCollat).to.be.false
 	})
 	it("readjusts to negative and checks liquidate", async () => {
@@ -693,6 +700,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(1)
@@ -704,10 +712,7 @@ describe("Options protocol Vault Health", function () {
 		expect(healthFactor).to.not.equal(healthFBefore)
 		expect(healthF).to.equal(healthFactor)
 		const roundId = 3
-		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
-			optionRegistry.address,
-			1
-		)
+		let [isUnderCollat, price, dust] = await controller.isLiquidatable(optionRegistry.address, 1)
 		expect(isUnderCollat).to.be.true
 	})
 	it("reverts if unauthorised party tries to adjust collateral", async () => {
@@ -752,6 +757,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(1)
@@ -795,6 +801,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(1)
@@ -805,10 +812,7 @@ describe("Options protocol Vault Health", function () {
 		expect(healthF).to.not.equal(healthFBefore)
 		expect(healthFactor).to.not.equal(healthFBefore)
 		expect(healthF).to.equal(healthFactor)
-		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
-			optionRegistry.address,
-			1
-		)
+		let [isUnderCollat, price, dust] = await controller.isLiquidatable(optionRegistry.address, 1)
 		expect(isUnderCollat).to.be.true
 	})
 	it("adjusts collateral caller to get back to positive", async () => {
@@ -846,6 +850,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(1)
@@ -859,10 +864,10 @@ describe("Options protocol Vault Health", function () {
 	})
 	it("reverts when trying to adjust a healthy vault", async () => {
 		await expect(optionRegistry.adjustCollateral(1)).to.be.revertedWith("HealthyVault()")
-	})	
+	})
 	it("reverts adjustCollateralCaller when trying to adjust a healthy vault", async () => {
 		await expect(optionRegistry.adjustCollateralCaller(1)).to.be.revertedWith("HealthyVault()")
-	})	
+	})
 	it("moves the price and changes vault health ETH to negative rebalance stage", async () => {
 		const currentPrice = await oracle.getPrice(weth.address)
 		const arr = await optionRegistryETH.checkVaultHealth(1)
@@ -893,6 +898,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistryETH.checkVaultHealth(1)
@@ -935,6 +941,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(1)
@@ -983,6 +990,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(1)
@@ -1024,6 +1032,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistryETH.checkVaultHealth(1)
@@ -1137,9 +1146,7 @@ describe("Options protocol Vault Health", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: USDC_ADDRESS[chainId]
 		}
-		const issuePut = await optionRegistry.issue(
-			proposedSeries
-		)
+		const issuePut = await optionRegistry.issue(proposedSeries)
 		await expect(issuePut).to.emit(optionRegistry, "OptionTokenCreated")
 		let receipt = await (await issuePut).wait(1)
 		let events = receipt.events
@@ -1159,9 +1166,7 @@ describe("Options protocol Vault Health", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: WETH_ADDRESS[chainId]
 		}
-		const issuePut = await optionRegistryETH.issue(
-			proposedSeriesETH
-		)
+		const issuePut = await optionRegistryETH.issue(proposedSeriesETH)
 		await expect(issuePut).to.emit(optionRegistryETH, "OptionTokenCreated")
 		let receipt = await (await issuePut).wait(1)
 		let events = receipt.events
@@ -1195,18 +1200,21 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(2)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
+		expect(upperHealthFactor).to.eq(uhf)
 		expect(collateralAmount).to.equal(0)
 		expect(collateralAsset).to.equal(usd.address)
 		let [
 			isBelowMin2,
 			isAboveMax2,
 			healthFactor2,
+			upperHealthFactor2,
 			collateralAmount2,
 			collateralAsset2
 		] = await optionRegistryETH.checkVaultHealth(2)
@@ -1242,6 +1250,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(2)
@@ -1279,6 +1288,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(2)
@@ -1320,6 +1330,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(2)
@@ -1353,8 +1364,12 @@ describe("Options protocol Vault Health", function () {
 		const settlePrice = strike.sub(toWei(diff.toString())).div(oTokenDecimalShift18)
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice, pricer)
-		const opUSDbal = (await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()))).shortAmounts[0]
-		const collatBal = (await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()))).collateralAmounts[0]
+		const opUSDbal = (
+			await controller.getVault(optionRegistry.address, await optionRegistry.vaultCount())
+		).shortAmounts[0]
+		const collatBal = (
+			await controller.getVault(optionRegistry.address, await optionRegistry.vaultCount())
+		).collateralAmounts[0]
 		// call settle from the options registry
 		await optionRegistry.settle(erc20PutOptionUSDC.address)
 		// check balances are in order
@@ -1402,9 +1417,7 @@ describe("Options protocol Vault Health", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: USDC_ADDRESS[chainId]
 		}
-		const issue = await optionRegistry.issue(
-			proposedSeries
-		)
+		const issue = await optionRegistry.issue(proposedSeries)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
 		const events = receipt.events
@@ -1451,6 +1464,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(3)
@@ -1463,10 +1477,7 @@ describe("Options protocol Vault Health", function () {
 		expect(healthFactor).to.not.equal(healthFBefore)
 		expect(healthF).to.equal(healthFactor)
 		const roundId = 6
-		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
-			optionRegistry.address,
-			3
-		)
+		let [isUnderCollat, price, dust] = await controller.isLiquidatable(optionRegistry.address, 3)
 		expect(isUnderCollat).to.be.true
 	})
 	it("vault gets liquidated", async () => {
@@ -1495,14 +1506,14 @@ describe("Options protocol Vault Health", function () {
 		const collatAmountsNew = vaultDetailsNew.collateralAmounts[0]
 		const liqBalAf = await usd.balanceOf(senderAddress)
 		const liqOpBalAf = await optionTokenUSDC.balanceOf(senderAddress)
-		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef)).to.be.within(-3,3)
+		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef)).to.be.within(-3, 3)
 		expect(liqOpBalAf).to.eq(0)
 		expect(valueNew).to.eq(0)
-		expect(collatAmountsNew).to.be.within(-3,3)
+		expect(collatAmountsNew).to.be.within(-3, 3)
 		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		await optionRegistry.wCollatLiquidatedVault(3)
 		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
-		const collatAlloc = await liquidityPool.collateralAllocated();
+		const collatAlloc = await liquidityPool.collateralAllocated()
 		await optionRegistry.registerLiquidatedVault(3)
 		const vldAfter = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
 		expect(vldAfter[0]).to.equal(ZERO_ADDRESS)
@@ -1528,9 +1539,7 @@ describe("Options protocol Vault Health", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: USDC_ADDRESS[chainId]
 		}
-		const issue = await optionRegistry.issue(
-			proposedSeries
-		)
+		const issue = await optionRegistry.issue(proposedSeries)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
 		const events = receipt.events
@@ -1576,6 +1585,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(3)
@@ -1588,10 +1598,7 @@ describe("Options protocol Vault Health", function () {
 		expect(healthFactor).to.not.equal(healthFBefore)
 		expect(healthF).to.equal(healthFactor)
 		const roundId = 6
-		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
-			optionRegistry.address,
-			3
-		)
+		let [isUnderCollat, price, dust] = await controller.isLiquidatable(optionRegistry.address, 3)
 		expect(isUnderCollat).to.be.true
 	})
 	it("vault gets partially liquidated", async () => {
@@ -1620,10 +1627,10 @@ describe("Options protocol Vault Health", function () {
 		const collatAmountsNew = vaultDetailsNew.collateralAmounts[0]
 		const liqBalAf = await usd.balanceOf(senderAddress)
 		const liqOpBalAf = await optionTokenUSDC.balanceOf(senderAddress)
-		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef.div(2))).to.be.within(-3,3)
+		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef.div(2))).to.be.within(-3, 3)
 		expect(liqOpBalAf).to.eq(value)
 		expect(valueNew).to.eq(value)
-		expect(collatAmountsNew.sub(collatAmountsBef.div(2))).to.be.within(-3,3)
+		expect(collatAmountsNew.sub(collatAmountsBef.div(2))).to.be.within(-3, 3)
 		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
 		expect(vld[0]).to.equal(optionTokenUSDC.address)
@@ -1631,7 +1638,7 @@ describe("Options protocol Vault Health", function () {
 		expect(vld[2]).to.equal(collatAmountsBef.sub(collatAmountsNew))
 		const vaultDetails3 = await controller.getVault(optionRegistry.address, 3)
 		const collatAmounts3 = vaultDetails3.collateralAmounts[0]
-		expect(collatAmounts3.sub(collatAmountsBef.div(2))).to.be.within(-2,2)
+		expect(collatAmounts3.sub(collatAmountsBef.div(2))).to.be.within(-2, 2)
 		const usdBalAft = await usd.balanceOf(senderAddress)
 		expect(usdBalAft.sub(liqBalAf)).to.eq(0)
 	})
@@ -1662,16 +1669,16 @@ describe("Options protocol Vault Health", function () {
 		const collatAmountsNew = vaultDetailsNew.collateralAmounts[0]
 		const liqBalAf = await usd.balanceOf(senderAddress)
 		const liqOpBalAf = await optionTokenUSDC.balanceOf(senderAddress)
-		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef)).to.be.within(-3,3)
+		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef)).to.be.within(-3, 3)
 		expect(liqOpBalAf).to.eq(0)
 		expect(valueNew).to.eq(0)
-		expect(collatAmountsNew).to.be.within(-3,3)
+		expect(collatAmountsNew).to.be.within(-3, 3)
 		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
 		expect(vld[0]).to.equal(optionTokenUSDC.address)
 		expect(vld[1]).to.equal(value.mul(2))
 		expect(vld[2]).to.equal(collatAmountsBef.add(vldBef[2]))
-		const collatAlloc = await liquidityPool.collateralAllocated();
+		const collatAlloc = await liquidityPool.collateralAllocated()
 		await optionRegistry.registerLiquidatedVault(3)
 		const vldAfter = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
 		expect(vldAfter[0]).to.equal(ZERO_ADDRESS)
@@ -1699,9 +1706,7 @@ describe("Options protocol Vault Health", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: USDC_ADDRESS[chainId]
 		}
-		const issue = await optionRegistry.issue(
-			proposedSeries
-		)
+		const issue = await optionRegistry.issue(proposedSeries)
 		const currentPrice = await oracle.getPrice(weth.address)
 		const settlePrice = currentPrice.sub(toWei("500").div(oTokenDecimalShift18))
 		await aggregator.setLatestAnswer(settlePrice)
@@ -1753,6 +1758,7 @@ describe("Options protocol Vault Health", function () {
 			isBelowMin,
 			isAboveMax,
 			healthFactor,
+			upperHealthFactor,
 			collateralAmount,
 			collateralAsset
 		] = await optionRegistry.checkVaultHealth(4)
@@ -1765,10 +1771,7 @@ describe("Options protocol Vault Health", function () {
 		expect(healthFactor).to.not.equal(healthFBefore)
 		expect(healthF).to.equal(healthFactor)
 		const roundId = 6
-		let [isUnderCollat, price, dust] = await controller.isLiquidatable(
-			optionRegistry.address,
-			4
-		)
+		let [isUnderCollat, price, dust] = await controller.isLiquidatable(optionRegistry.address, 4)
 		expect(isUnderCollat).to.be.true
 	})
 	it("vault gets liquidated by non-holder", async () => {
@@ -1842,15 +1845,15 @@ describe("Options protocol Vault Health", function () {
 		const liqBalAf = await usd.balanceOf(receiverAddress)
 		const liqBalAft = await usd.balanceOf(senderAddress)
 		const liqOpBalAf = await optionTokenUSDC.balanceOf(receiverAddress)
-		expect(liqBalBef.sub(liqBalAf).sub(marginReq.sub(collatAmountsBef))).to.be.within(-3,3)
+		expect(liqBalBef.sub(liqBalAf).sub(marginReq.sub(collatAmountsBef))).to.be.within(-3, 3)
 		expect(liqOpBalBef).to.equal(liqOpBalAf)
 		expect(liqOpBalAf).to.eq(0)
 		expect(valueNew).to.eq(0)
-		expect(collatAmountsNew).to.be.within(-3,3)
+		expect(collatAmountsNew).to.be.within(-3, 3)
 		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 4)
 		await optionRegistry.wCollatLiquidatedVault(4)
-		const collatAlloc = await liquidityPool.collateralAllocated();
+		const collatAlloc = await liquidityPool.collateralAllocated()
 		const vaultLiqDetails = await controller.getVaultLiquidationDetails(optionRegistry.address, 4)
 		expect(vaultLiqDetails[0]).to.equal(optionTokenUSDC.address)
 		expect(vaultLiqDetails[1]).to.equal(value)
@@ -1869,5 +1872,4 @@ describe("Options protocol Vault Health", function () {
 		expect(usdBalAft.sub(liqBalAft)).to.eq(0)
 		await expect(optionRegistry.registerLiquidatedVault(4)).to.be.revertedWith("VaultNotLiquidated()")
 	})
-
 })

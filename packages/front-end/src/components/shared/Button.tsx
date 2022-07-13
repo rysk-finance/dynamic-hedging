@@ -9,7 +9,7 @@ export const Button: React.FC<
   return (
     <button
       {...props}
-      className={`border-black border-2 bg-white text-md px-2 py-1 hover:animate-border-round ${
+      className={`border-black border-2 bg-white text-md px-2 py-1 ${
         props.className ?? ""
       }`}
     />

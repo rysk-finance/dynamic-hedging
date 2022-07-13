@@ -362,6 +362,7 @@ contract OptionRegistry is AccessControl {
 			bool isBelowMin,
 			bool isAboveMax,
 			,
+			,
 			uint256 collateralAmount,
 			address _collateralAsset
 		) = checkVaultHealth(vaultId);
@@ -405,7 +406,7 @@ contract OptionRegistry is AccessControl {
 	 */
 	function adjustCollateralCaller(uint256 vaultId) external {
 		_onlyGuardian();
-		(bool isBelowMin, , , uint256 collateralAmount, address _collateralAsset) = checkVaultHealth(
+		(bool isBelowMin, , , , uint256 collateralAmount, address _collateralAsset) = checkVaultHealth(
 			vaultId
 		);
 		if (collateralAsset != _collateralAsset) {
@@ -416,7 +417,7 @@ contract OptionRegistry is AccessControl {
 		}
 		// transfer the needed collateral to this contract from the msg.sender
 		SafeTransferLib.safeTransferFrom(_collateralAsset, msg.sender, address(this), collateralAmount);
-		// increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
+		// increase the collateral in the vault
 		OpynInteractions.depositCollat(
 			gammaController,
 			marginPool,
@@ -494,17 +495,12 @@ contract OptionRegistry is AccessControl {
 		if (series.expiration >= block.timestamp) {
 			revert NotExpired();
 		}
-		if (ERC20(_series).balanceOf(msg.sender) == 0) {
+		uint256 seriesBalance = ERC20(_series).balanceOf(msg.sender);
+		if (seriesBalance == 0) {
 			revert InsufficientBalance();
 		}
-		uint256 seriesBalance = ERC20(_series).balanceOf(msg.sender);
 		// transfer the oToken back to this account
-		SafeTransferLib.safeTransferFrom(
-			_series,
-			msg.sender,
-			address(this),
-			ERC20(_series).balanceOf(msg.sender)
-		);
+		SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), seriesBalance);
 		// redeem
 		uint256 collatReturned = OpynInteractions.redeem(
 			gammaController,
@@ -588,6 +584,7 @@ contract OptionRegistry is AccessControl {
 	 * @return isBelowMin bool to determine whether the vault needs topping up
 	 * @return isAboveMax bool to determine whether the vault is too overcollateralised
 	 * @return healthFactor the health factor of the vault in MAX_BPS format
+	 * @return upperHealthFactor the upper bound of the acceptable health facor range in MAX_BPS format
 	 * @return collatRequired the amount of collateral required to return the vault back to normal
 	 * @return collatAsset the address of the collateral asset
 	 */
@@ -598,6 +595,7 @@ contract OptionRegistry is AccessControl {
 			bool isBelowMin,
 			bool isAboveMax,
 			uint256 healthFactor,
+			uint256 upperHealthFactor,
 			uint256 collatRequired,
 			address collatAsset
 		)
@@ -626,7 +624,7 @@ contract OptionRegistry is AccessControl {
 		// divide the amount held in the vault by the margin requirements to get the health factor
 		healthFactor = (collatAmount * MAX_BPS) / marginReq;
 		// set the upper and lower health factor depending on if the series is a put or a call
-		uint256 upperHealthFactor = series.isPut ? putUpperHealthFactor : callUpperHealthFactor;
+		upperHealthFactor = series.isPut ? putUpperHealthFactor : callUpperHealthFactor;
 		uint256 lowerHealthFactor = series.isPut ? putLowerHealthFactor : callLowerHealthFactor;
 		// if the vault health is above a certain threshold then the vault is above safe margins and collateral can be withdrawn
 		if (healthFactor > upperHealthFactor) {

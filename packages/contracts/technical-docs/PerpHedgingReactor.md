@@ -2,7 +2,7 @@
 
 ## General Overview
 
-This contracts responsibility is to hedge a delta specified by the liquidityPool using perpetual short or long positions. The perpetual provider is rage.trade (github: https://github.com/RageTrade/core.git). The contract's is responsible for maintaining the margin collateral at a specified health factor so as to ensure that the vault does not make a loss as a result of a margin account liquidation, other kinds of losses are possible.
+This contracts responsibility is to hedge a delta specified by the liquidityPool using perpetual short or long positions. The perpetual provider is rage.trade (github: https://github.com/RageTrade/core.git). The contract is responsible for maintaining the margin collateral at a specified health factor so as to ensure that the vault does not make a loss as a result of a margin account liquidation, other kinds of losses are possible.
 
 All functions assume that the LiquidityPool has the collateral to service its needs. 
 

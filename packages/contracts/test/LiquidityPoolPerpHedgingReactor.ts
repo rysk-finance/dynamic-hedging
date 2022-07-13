@@ -571,4 +571,15 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		expect(await liquidityPool.collateralAllocated()).to.equal(0)
 		expect(collateralLost).to.equal(0)
 	})
+	it("Succeed: Perp hedging reactor unwind", async () => {
+		await perpHedgingReactor.syncAndUpdate()
+
+		await liquidityPool.removeHedgingReactorAddress(0, false)
+		expect(await perpHedgingReactor.getDelta()).to.equal(0)
+		expect(await liquidityPool.getExternalDelta()).to.equal(0)
+		expect((await perpHedgingReactor.getPoolDenominatedValue()).div(1e12)).to.eq(1)
+		expect(await usd.balanceOf(perpHedgingReactor.address)).to.eq(0)
+		// check no hedging reactors exist
+		await expect(liquidityPool.hedgingReactors(0)).to.be.reverted
+	})
 })

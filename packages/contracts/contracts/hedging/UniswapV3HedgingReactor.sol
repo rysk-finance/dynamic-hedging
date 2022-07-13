@@ -44,10 +44,14 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 	/// governance settable variables ///
 	/////////////////////////////////////
 
-	// @notice limit to ensure we arent doing inefficient computation for dust amounts
+	/// @notice limit to ensure we arent doing inefficient computation for dust amounts
 	uint256 public minAmount = 1e16;
 	/// @notice uniswap v3 pool fee expressed at 10e6
 	uint24 public poolFee;
+	/// @notice slippage for buys
+	uint16 public buySlippage = 100;
+	/// @notice slippage for sells
+	uint16 public sellSlippage = 100;
 
 	//////////////////////////
 	/// constant variables ///
@@ -92,6 +96,14 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 		minAmount = _minAmount;
 	}
 
+	/// @notice set slippage
+	function setSlippage(uint16 _buySlippage, uint16 _sellSlippage) external {
+		_onlyGovernor();
+		require(_sellSlippage < 10000);
+		buySlippage = _buySlippage;
+		sellSlippage = _sellSlippage;
+	}
+
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
@@ -103,17 +115,17 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 		require(msg.sender == parentLiquidityPool_, "!vault");
 		// cache
 		address collateralAsset_ = collateralAsset;
-		uint256 amountOutMinimum = 0;
 		int256 deltaChange;
+		uint256 underlyingPrice = getUnderlyingPrice(wETH_, collateralAsset_);
 		if (_delta < 0) {
 			// buy wETH
 			// get the current price convert it to collateral decimals multiply it by the amount, add 1% then make sure decimals are fine
 			uint256 amountInMaximum = (OptionsCompute.convertToDecimals(
-				getUnderlyingPrice(wETH_, collateralAsset_),
+				underlyingPrice,
 				ERC20(collateralAsset_).decimals()
 			) *
 				uint256(-_delta) *
-				101) / 1e20;
+				(10000 + buySlippage)) / 1e22;
 			(deltaChange, ) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset_);
 			internalDelta += deltaChange;
 			SafeTransferLib.safeTransfer(
@@ -130,9 +142,19 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 			}
 			if (_delta > int256(ethBalance)) {
 				// not enough ETH to sell to offset delta so sell all ETH available.
+				// get the current price convert it to collateral decimals multiply it by the amount, take away 1% then make sure the decimals are fine
+				uint256 amountOutMinimum = (OptionsCompute.convertToDecimals(
+					underlyingPrice,
+					ERC20(collateralAsset_).decimals()
+				) * ethBalance * (10000 - sellSlippage)) / 1e22;
 				(deltaChange, ) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateralAsset_);
 				internalDelta += deltaChange;
 			} else {
+				// get the current price convert it to collateral decimals multiply it by the amount, take away 1% then make sure the decimals are fine
+				uint256 amountOutMinimum = (OptionsCompute.convertToDecimals(
+					underlyingPrice,
+					ERC20(collateralAsset_).decimals()
+				) * uint256(_delta) * (10000 - sellSlippage)) / 1e22;
 				(deltaChange, ) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateralAsset_);
 				internalDelta += deltaChange;
 			}
@@ -253,8 +275,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 
 		// The call to `exactInputSingle` executes the swap.
 		uint256 amountOut = swapRouter.exactInputSingle(params);
-
-		// return ngative _amountIn because deltaChange is negative
+		// return negative _amountIn because deltaChange is negative
 		return (-int256(_amountIn), amountOut);
 	}
 

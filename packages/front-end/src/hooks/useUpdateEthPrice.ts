@@ -36,6 +36,7 @@ export const useUpdateEthPrice = () => {
         type: ActionType.SET_ETH_PRICE,
         price: priceData.current_price,
         change: priceData.price_change_percentage_24h,
+        date: new Date(),
       });
     }
   }, [dispatch]);

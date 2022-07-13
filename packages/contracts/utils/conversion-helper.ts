@@ -1,3 +1,4 @@
+import { util } from "chai"
 import { BigNumber, BigNumberish, utils } from "ethers"
 // import BigNumber from 'bignumber.js'
 
@@ -27,6 +28,7 @@ export const toOpyn = (x: string) => utils.parseUnits(x, 8)
 export const toWeiFromUSDC = (x: string) => utils.parseUnits(x, 12)
 export const fromWeiToUSDC = (x: string) => utils.parseUnits(utils.formatEther(x), 6)
 export const fromOpyn = (x: BigNumberish) => utils.formatUnits(x, 8)
+export const fromOpynToWei = (x: BigNumber) => utils.parseUnits(x.toString(), 10)
 export const getDiffSeconds = (now: moment.Moment, future: moment.Moment) =>
 	future.unix() - now.unix()
 export const convertRounded = (x: BigNumberish): number => Math.round(Number(x.toString()))
@@ -77,4 +79,4 @@ export const median = function (array: [number]) {
 	}
 }
 export const parseTokenAmount = (value: BigNumberish, decimals: number) =>
-  BigNumber.from(value).mul(BigNumber.from(10).pow(BigNumber.from(decimals)));
+	BigNumber.from(value).mul(BigNumber.from(10).pow(BigNumber.from(decimals)))

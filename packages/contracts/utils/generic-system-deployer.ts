@@ -91,7 +91,6 @@ export async function deploySystem(
 	const oraclePrice = await oracle.getPrice(weth.address)
 	// pricefeed returns price denominated in 1e18
 	const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
-
 	const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
 	const volFeed = (await volFeedFactory.deploy(authority.address)) as VolatilityFeed
 	type int7 = [
@@ -214,7 +213,7 @@ export async function deployLiquidityPool(
 	const liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
-	await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
+	await liquidityPool.setMaxPriceDeviationThreshold(toWei("0.03"))
 	await liquidityPool.setBidAskSpread(toWei("0.05"))
 	await pvFeed.setAddressStringMapping(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId])
 	await pvFeed.setAddressStringMapping(USDC_ADDRESS[chainId], USDC_ADDRESS[chainId])
@@ -237,6 +236,8 @@ export async function deployLiquidityPool(
 		liquidityPool.address
 	)) as OptionHandler
 	await liquidityPool.changeHandler(handler.address, true)
+	await pvFeed.setKeeper(handler.address, true)
+	await pvFeed.setKeeper(liquidityPool.address, true)
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,
