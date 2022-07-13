@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { gql, useQuery } from "@apollo/client";
 import { BigNumber } from "ethers/lib/ethers";
 import { useEffect, useState } from "react";
@@ -7,7 +7,11 @@ import { Link } from "react-router-dom";
 import LPABI from "../../abis/LiquidityPool.json";
 import { useWalletContext } from "../../App";
 import { AppPaths } from "../../config/appPaths";
-import { BIG_NUMBER_DECIMALS, SUBGRAPH_URL } from "../../config/constants";
+import {
+  BIG_NUMBER_DECIMALS,
+  SUBGRAPH_URL,
+  ZERO_UINT_256,
+} from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { DepositReceipt } from "../../types";
 import { Button } from "../shared/Button";
@@ -48,11 +52,11 @@ export const UserVault = () => {
     `,
     {
       onCompleted: (data) => {
-        const balance = data.data.lpbalances[0]
+        const balance = data.data?.lpbalances[0]
           ? data.data.lpbalances[0].balance
           : 0;
 
-        setDepositBalance(balance);
+        balance && setDepositBalance(balance);
       },
     }
   );
@@ -203,12 +207,19 @@ export const UserVault = () => {
               >
                 <Button className="w-full mb-8">Deposit</Button>
               </Link>
-              <Link
-                className="w-full"
-                to={{ pathname: AppPaths.VAULT, search: "?type=withdraw" }}
-              >
-                <Button className="w-full">Withdraw</Button>
-              </Link>
+              {unredeemedSharesValue &&
+              unredeemedSharesValue._hex !== ZERO_UINT_256 ? (
+                <Link
+                  className="w-full"
+                  to={{ pathname: AppPaths.VAULT, search: "?type=withdraw" }}
+                >
+                  <Button className="w-full">Withdraw</Button>
+                </Link>
+              ) : (
+                <Button className="w-full !bg-gray-300 text-white cursor-default">
+                  Withdraw
+                </Button>
+              )}
             </div>
           </div>
         </Card>

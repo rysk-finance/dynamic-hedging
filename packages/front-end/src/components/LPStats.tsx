@@ -15,7 +15,6 @@ export const LPStats = () => {
   useEffect(() => {
     const getDepositedCollateral = async () => {
       if (lpContract) {
-        console.log("getting");
         const assets = await lpContract.getAssets();
         setDepositedCollateral(assets);
       }

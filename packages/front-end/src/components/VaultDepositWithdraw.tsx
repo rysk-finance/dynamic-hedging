@@ -12,6 +12,7 @@ import {
 } from "../config/constants";
 import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
+import { useQueryParams } from "../hooks/useQueryParams";
 import { useGlobalContext } from "../state/GlobalContext";
 import { DepositReceipt, Events, WithdrawalReceipt } from "../types";
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
@@ -40,6 +41,8 @@ export const VaultDepositWithdraw = () => {
   const {
     state: { settings },
   } = useGlobalContext();
+
+  const queryParams = useQueryParams();
 
   // UI State
   const [mode, setMode] = useState<Mode>(Mode.DEPOSIT);
@@ -71,6 +74,13 @@ export const VaultDepositWithdraw = () => {
   const [approvalState, setApprovalState] = useState<Events["Approval"] | null>(
     null
   );
+
+  useEffect(() => {
+    const type = queryParams.get("type");
+    if (type && type === "withdraw") {
+      setMode(Mode.WITHDRAW);
+    }
+  }, [queryParams]);
 
   const initiateWithdrawDisabled =
     withdrawalReceipt && withdrawalReceipt.shares._hex !== ZERO_UINT_256;
