@@ -47,8 +47,57 @@ export const UserOptionsList = () => {
 
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
+  const parsePositions = (data: any) => {
+    const positions: Position[] = [];
+    const timeNow = Date.now() / 1000;
+
+    // TODO: Add typings here
+    data.data?.positions.forEach((position: any) => {
+      const expired = timeNow > position.oToken.expiryTimestamp;
+
+      // 1e18
+      const totBought =
+        position.writeOptionsTransactions.length > 0
+          ? position.writeOptionsTransactions
+              .map((pos: any) => pos.amount)
+              .reduce(
+                (prev: BigNumber, next: BigNumber) =>
+                  Number(prev) + Number(next)
+              )
+          : 0;
+
+      // 1e8
+      const totPremium =
+        position.writeOptionsTransactions.length > 0
+          ? position.writeOptionsTransactions
+              .map((pos: any) => pos.premium)
+              .reduce(
+                (prev: BigNumber, next: BigNumber) =>
+                  Number(prev) + Number(next)
+              )
+          : 0;
+
+      // premium converted to 1e18
+      const entryPrice =
+        totBought > 0 && totPremium > 0 ? (totPremium * 1e10) / totBought : 0;
+
+      // TODO add current price and PNL
+
+      positions.push({
+        id: position.id,
+        expired: expired,
+        symbol: position.oToken.symbol,
+        amount: position.amount / 1e18,
+        entryPrice: entryPrice,
+        otokenId: position.oToken.id,
+      });
+      setPositions(positions);
+    });
+  };
+
   // TODO: Add typings here
-  const { loading, error, data } = useQuery(gql`
+  const { loading, error, data } = useQuery(
+    gql`
     query($account: String) {
       positions(first: 1000, where: { account_contains: "${account?.toLowerCase()}" }) {
         id
@@ -66,61 +115,14 @@ export const UserOptionsList = () => {
         }
       }
     }
-  `);
-
-  useEffect(() => {
-    if (data && !loading) {
-      const positions: Position[] = [];
-      const timeNow = Date.now() / 1000;
-
-      // TODO: Add typings here
-      data.data?.positions.forEach((position: any) => {
-        const expired = timeNow > position.oToken.expiryTimestamp;
-
-        // 1e18
-        const totBought =
-          position.writeOptionsTransactions.length > 0
-            ? position.writeOptionsTransactions
-                .map((pos: any) => pos.amount)
-                .reduce(
-                  (prev: BigNumber, next: BigNumber) =>
-                    Number(prev) + Number(next)
-                )
-            : 0;
-
-        // 1e8
-        const totPremium =
-          position.writeOptionsTransactions.length > 0
-            ? position.writeOptionsTransactions
-                .map((pos: any) => pos.premium)
-                .reduce(
-                  (prev: BigNumber, next: BigNumber) =>
-                    Number(prev) + Number(next)
-                )
-            : 0;
-
-        // premium converted to 1e18
-        const entryPrice =
-          totBought > 0 && totPremium > 0 ? (totPremium * 1e10) / totBought : 0;
-
-        // TODO add current price and PNL
-
-        positions.push({
-          id: position.id,
-          expired: expired,
-          symbol: position.oToken.symbol,
-          amount: position.amount / 1e18,
-          entryPrice: entryPrice,
-          otokenId: position.oToken.id,
-        });
-        setPositions(positions);
-      });
+  `,
+    {
+      onCompleted: parsePositions,
+      onError: (err) => {
+        console.log(err);
+      },
     }
-
-    if (error) {
-      console.log(error);
-    }
-  }, [data, loading, error]);
+  );
 
   return (
     positions && (
