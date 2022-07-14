@@ -147,7 +147,7 @@ contract NewMarginCalculator is Ownable {
      */
     function setLiquidationMultiplier(uint256 _liquidationMultiplier) external onlyOwner {
         require(
-            _liquidationMultiplier < MAX_BPS,
+            _liquidationMultiplier <= MAX_BPS,
             "MarginCalculator: liquidator multiplier should be less than MAX_BPS"
         );
 
