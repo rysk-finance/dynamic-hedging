@@ -1,16 +1,21 @@
-import { ApolloClient, InMemoryCache, gql } from "@apollo/client";
+import React, { useCallback } from "react";
+import { gql, useQuery } from "@apollo/client";
 import { BigNumber } from "ethers/lib/ethers";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import NumberFormat from "react-number-format";
+import { Link } from "react-router-dom";
+import LPABI from "../../abis/LiquidityPool.json";
 import { useWalletContext } from "../../App";
-import { BIG_NUMBER_DECIMALS, SUBGRAPH_URL } from "../../config/constants";
+import { AppPaths } from "../../config/appPaths";
+import {
+  BIG_NUMBER_DECIMALS,
+  SUBGRAPH_URL,
+  ZERO_UINT_256,
+} from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
+import { DepositReceipt } from "../../types";
 import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
-import LPABI from "../../abis/LiquidityPool.json";
-import { DepositReceipt } from "../../types";
-import { Link } from "react-router-dom";
-import { AppPaths } from "../../config/appPaths";
 
 export const UserVault = () => {
   const { account, network } = useWalletContext();
@@ -36,6 +41,26 @@ export const UserVault = () => {
     readOnly: true,
   });
 
+  useQuery(
+    gql`
+      query($account: String) {
+        lpbalances(first: 1000, where: { id: "${account}" }) {
+          id
+          balance
+        }
+      }
+    `,
+    {
+      onCompleted: (data) => {
+        const balance = data.data?.lpbalances[0]
+          ? data.data.lpbalances[0].balance
+          : 0;
+
+        balance && setDepositBalance(balance);
+      },
+    }
+  );
+
   useEffect(() => {
     const getCurrentPosition = async (address: string) => {
       const balance = await lpContract?.balanceOf(address);
@@ -53,7 +78,6 @@ export const UserVault = () => {
           : BigNumber.from(0);
 
       setCurrentPosition(positionValue);
-      console.log(positionValue.toString());
 
       const depositReceipt: DepositReceipt = await lpContract?.depositReceipts(
         account
@@ -91,49 +115,15 @@ export const UserVault = () => {
       }
     };
 
-    const fetchDepositBalance = async () => {
-      const positionsQuery = `
-        query($account: String) {
-          lpbalances(first: 1000, where: { id: "${account}" }) {
-            id
-            balance
-          }
-        }
-      `;
-
-      const client = new ApolloClient({
-        uri: SUBGRAPH_URI,
-        cache: new InMemoryCache(),
-      });
-
-      client
-        .query({
-          query: gql(positionsQuery),
-        })
-        .then((data) => {
-          const balance = data.data.lpbalances[0]
-            ? data.data.lpbalances[0].balance
-            : 0;
-
-          setDepositBalance(balance);
-        })
-        .catch((err) => {
-          // TODO add fallback
-          console.log("Error fetching data: ", err);
-        });
-    };
-
     (async () => {
       if (account && lpContract) {
         await getCurrentPosition(account);
-        fetchDepositBalance().catch(console.error);
       }
     })();
   }, [account, lpContract, SUBGRAPH_URI]);
 
   return (
     <div>
-      {/* <h2 className="mb-4">Vaults</h2> */}
       <div className="mb-24">
         <Card tabPunchColor="black" headerContent="RYSK.dynamicHedgingVault">
           <div className="pb-8 py-12 px-8 flex flex-col lg:flex-row h-full">
@@ -217,12 +207,19 @@ export const UserVault = () => {
               >
                 <Button className="w-full mb-8">Deposit</Button>
               </Link>
-              <Link
-                className="w-full"
-                to={{ pathname: AppPaths.VAULT, search: "?type=withdraw" }}
-              >
-                <Button className="w-full">Withdraw</Button>
-              </Link>
+              {unredeemedSharesValue &&
+              unredeemedSharesValue._hex !== ZERO_UINT_256 ? (
+                <Link
+                  className="w-full"
+                  to={{ pathname: AppPaths.VAULT, search: "?type=withdraw" }}
+                >
+                  <Button className="w-full">Withdraw</Button>
+                </Link>
+              ) : (
+                <Button className="w-full !bg-gray-300 text-white cursor-default">
+                  Withdraw
+                </Button>
+              )}
             </div>
           </div>
         </Card>
