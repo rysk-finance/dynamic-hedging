@@ -17,17 +17,19 @@ import { PriceFeed } from "../../types/PriceFeed"
 dotenv.config()
 
 // arbitrum rinkeby addresses
-const liquidityPoolAddress = "0xA7f49544f51f46E3bA2099A3aCad70502b8bc125"
+const liquidityPoolAddress = "0xd2327FbE765C298C54Fe7791B932465b288bADab"
 const usdcAddress = "0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737"
-const pvFeedAddress = "0x540932Ac16341384E273bDf888806F001003560B"
-const priceFeedAddress = "0xDbBF84a29515C783Ea183f92120be7Aa9120fA23"
+const pvFeedAddress = "0xa1d80cd1B471DD54c4eD657987Eeed45fd120EC7"
+const priceFeedAddress = "0x6b133054A1143E2B1bCA3adDE9558bFa02D48E7E"
 const wethAddress = "0xE32513090f05ED2eE5F3c5819C9Cce6d020Fefe7"
-const handlerAddress = "0xC50bC3833C744dC115c71D3754f2BB0dc1F392eD"
+const handlerAddress = "0x6508A9d3dcedDe32c7e34Daab2aD7AEc3292A792"
 
 const deployer = new ethers.Wallet(
 	process.env.DEPLOYER_PRIVATE_KEY as string,
 	new ethers.providers.InfuraProvider("arbitrum-rinkeby")
 )
+
+console.log({ deployer: deployer.address })
 
 const deposit = async () => {
 	const depositAmount = toUSDC("1000000")
@@ -61,8 +63,14 @@ const deposit = async () => {
 		gasLimit: BigNumber.from("1000000000")
 	})
 
-	await liquidityPool.pauseTradingAndRequest()
-
+	try {
+		const pauseTx = await liquidityPool.pauseTradingAndRequest()
+		await pauseTx.wait()
+	} catch (err) {
+		console.log(err)
+	}
+	const isTradingpaused = await liquidityPool.isTradingPaused()
+	console.log({ isTradingpaused })
 	const executeTx = await liquidityPool.executeEpochCalculation()
 	await executeTx.wait()
 	await liquidityPool.redeem(toWei("1000000000000000"))
@@ -100,6 +108,7 @@ const sellOptions = async (strikePrice: number, weeksUntilExpiry: number, isPut:
 		underlying: wethAddress,
 		collateral: usdcAddress
 	}
+	console.log({ optionSeries })
 	const pvFeed = await ethers.getContractAt("PortfolioValuesFeed", pvFeedAddress, deployer)
 	const price = await priceFeed.getNormalizedRate(wethAddress, usdcAddress)
 	console.log({ price })
