@@ -526,6 +526,7 @@ export async function deployLiquidityPool(
 	await pvFeed.setAddressStringMapping(wethAddress, wethAddress)
 	await pvFeed.setAddressStringMapping(usdcAddress, usdcAddress)
 	await pvFeed.setLiquidityPool(liquidityPool.address)
+	await pvFeed.setKeeper(liquidityPool.address, true)
 	console.log("pv feed lp set")
 
 	const price = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -563,6 +564,7 @@ export async function deployLiquidityPool(
 		}
 	}
 
+	await pvFeed.setKeeper(handler.address, true)
 	await liquidityPool.changeHandler(handler.address, true)
 	console.log("lp handler set")
 
