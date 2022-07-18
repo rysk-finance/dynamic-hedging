@@ -33,7 +33,7 @@ contract OptionRegistry is AccessControl {
 	// address of the collateralAsset
 	address public immutable collateralAsset;
 	// address of the opyn addressBook for accessing important opyn modules
-	AddressBookInterface internal immutable addressBook;
+	AddressBookInterface public immutable addressBook;
 	// address of the marginPool, contract for storing options collateral
 	address internal immutable marginPool;
 
@@ -55,7 +55,7 @@ contract OptionRegistry is AccessControl {
 	/////////////////////////////////////
 
 	// address of the rysk liquidity pools
-	address internal liquidityPool;
+	address public liquidityPool;
 	// max health threshold for calls
 	uint64 public callUpperHealthFactor = 13_000;
 	// min health threshold for calls
