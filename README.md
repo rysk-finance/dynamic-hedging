@@ -2,7 +2,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/github_username/repo_name">
-    <img src="./packages/front-end/public/logo.png" alt="Logo" width="auto" height="200">
+    <img src="./packages/front-end/public/logo.png" alt="Logo" width="auto" height="200" style="filter: brightness(100);">
   </a>
 
   <h3 align="center">Dynamic hedging</h3>
