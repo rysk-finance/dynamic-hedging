@@ -8,7 +8,6 @@ import "./libraries/Types.sol";
 import "./libraries/BlackScholes.sol";
 import "./libraries/CustomErrors.sol";
 import "./libraries/AccessControl.sol";
-import "./libraries/EnumerableSet.sol";
 
 import "./interfaces/ILiquidityPool.sol";
 
@@ -23,8 +22,8 @@ import "./interfaces/ILiquidityPool.sol";
  * @title The PortfolioValuesFeed contract
  * @notice An external adapter Consumer contract that makes requests to obtain portfolio values for different pools
  */
-contract AlphaPortfolioValuesFeed is AccessControl {
-	using EnumerableSet for EnumerableSet.AddressSet;
+contract AlphaPortfolioValuesFeedComplicated is AccessControl {
+
 	///////////////////////////
 	/// immutable variables ///
 	///////////////////////////
@@ -37,10 +36,14 @@ contract AlphaPortfolioValuesFeed is AccessControl {
 		Types.OptionSeries optionSeries;
 		uint256 amount;
 	}
+	struct ExpiryStorage{
+		mapping(address => OptionStores) stores; 
+		address[] addressList;
+	}
 
-	mapping(address => OptionStores) public storesForAddress;
+	mapping(uint64 => ExpiryStorage) internal storesForExpiry;
 	// series to loop over stored as issuance hashes
-	EnumerableSet.AddressSet internal addressSet;
+	uint64[] public expiriesToLoop;
 	// portfolio values
 	mapping(address => mapping(address => Types.PortfolioValues)) private portfolioValues;
 
@@ -79,8 +82,6 @@ contract AlphaPortfolioValuesFeed is AccessControl {
 		address seriesAddress
 	);
 
-	error IncorrectSeriesToRemove();
-	error SeriesNotExpired();
 	/**
 	 * @notice Executes once when a contract is created to initialize state variables
 	 *
@@ -142,32 +143,37 @@ contract AlphaPortfolioValuesFeed is AccessControl {
 		int256 _delta;
 		uint256 _callPutsValue;
 		uint256 callPutsValue;
-		uint lengthAddy = addressSet.length();
+		uint lengthExpiry = expiriesToLoop.length;
 		// get the spot price
 		uint256 spotPrice = PriceFeed(priceFeed).getNormalizedRate(_underlying, _strikeAsset);
 		uint256 rfr = 0;
-		for (uint i=0; i < lengthAddy; i++) {
-			// get series
-			OptionStores memory _optionStores = storesForAddress[addressSet.at(i)];
-			// get the vol
-			uint256 vol = VolatilityFeed(volFeed).getImpliedVolatility(
-				_optionStores.optionSeries.isPut, 
-				spotPrice, 
-				_optionStores.optionSeries.strike, 
-				_optionStores.optionSeries.expiration
-				);
-			// compute the delta and the price
-			(_callPutsValue, _delta)= BlackScholes.blackScholesCalcGreeks(
-				spotPrice, 
-				_optionStores.optionSeries.strike, 
-				_optionStores.optionSeries.expiration, 
-				vol,
-				rfr, 
-				_optionStores.optionSeries.isPut
-				);
+		for (uint i=0; i < lengthExpiry; i++) {
+			ExpiryStorage storage expiryStorage = storesForExpiry[expiriesToLoop[i]];
+			uint256 lengthSeries = expiryStorage.addressList.length;
+			for (uint j=0; j < lengthSeries; j++) {
+				// get series
+				OptionStores memory _optionStores = expiryStorage.stores[expiryStorage.addressList[i]];
+				// get the vol
+				uint256 vol = VolatilityFeed(volFeed).getImpliedVolatility(
+					_optionStores.optionSeries.isPut, 
+					spotPrice, 
+					_optionStores.optionSeries.strike, 
+					_optionStores.optionSeries.expiration
+					);
+				// compute the delta and the price
+				(_callPutsValue, _delta)= BlackScholes.blackScholesCalcGreeks(
+					spotPrice, 
+					_optionStores.optionSeries.strike, 
+					_optionStores.optionSeries.expiration, 
+					vol,
+					rfr, 
+					_optionStores.optionSeries.isPut
+					);
 				// increment the deltas and value
-			delta -= _delta * int256(_optionStores.amount) / 1e18;
-			callPutsValue += _callPutsValue * _optionStores.amount / 1e18;
+				delta -= _delta * int256(_optionStores.amount) / 1e18;
+				callPutsValue += _callPutsValue * _optionStores.amount / 1e18;
+			}
+
 		}
 		Types.PortfolioValues memory portfolioValue = Types.PortfolioValues({
 			delta: delta,
@@ -195,48 +201,17 @@ contract AlphaPortfolioValuesFeed is AccessControl {
 		address _seriesAddress
 	) external {
 		_isHandler();
-		if (addressSet.contains(_seriesAddress)) {
+		OptionStores memory stores_ = storesForExpiry[_optionSeries.expiration].stores[_seriesAddress];
+		if (stores_.optionSeries.expiration == 0) {
 			// maybe store them by expiry instead
-			addressSet.add(_seriesAddress);
-			storesForAddress[_seriesAddress] = OptionStores(_optionSeries, _amount);
+			expiriesToLoop.push(_optionSeries.expiration);
+			storesForExpiry[_optionSeries.expiration].addressList.push(_seriesAddress);
+			storesForExpiry[_optionSeries.expiration].stores[_seriesAddress] = OptionStores(_optionSeries, _amount);
 		} else {
-			storesForAddress[_seriesAddress].amount += _amount;
+			storesForExpiry[_optionSeries.expiration].stores[_seriesAddress].amount += _amount;
 		}
 
 		emit StoresUpdated(_optionSeries, _amount, _seriesAddress);
-	}
-
-	function syncLooper() external {
-		_isKeeper();
-		uint lengthAddy = addressSet.length();
-		address[] memory addyList;
-		uint n;
-		// need to figure out a way to loop through the array and remove addresses that have expired from the list making sure to replace them
-		for (uint i; i < lengthAddy; i++) {
-			if(storesForAddress[addressSet.at(i)].optionSeries.expiration > block.timestamp) {
-				addyList[n] = addressSet.at(i);
-				n++;
-			}
-		}
-		lengthAddy = addyList.length;
-		for  (uint j; j < lengthAddy; j++) {
-			_cleanLooper(addyList[j]);
-		}
-	}
-
-	function cleanLooperManually(uint256 index, address _series) public {
-		_isKeeper();
-		address series = addressSet.at(index);
-		if (series != _series) {revert IncorrectSeriesToRemove();}
-		if (storesForAddress[_series].optionSeries.expiration < block.timestamp) {revert SeriesNotExpired();}
-		_cleanLooper(_series);
-	}
-
-	function _cleanLooper(address _series) internal {
-		// clean out the address
-		addressSet.remove(_series);
-		// delete the stores
-		delete storesForAddress[_series];
 	}
 
 	/////////////////////////////////////////////

@@ -289,7 +289,7 @@ contract AlphaOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			delta,
 			msg.sender
 		);
-		getPortfolioValuesFeed().updateStores(order.optionSeries, order.amount);
+		getPortfolioValuesFeed().updateStores(order.optionSeries, order.amount, order.seriesAddress);
 		emit OrderExecuted(_orderId);
 		// invalidate the order
 		delete orderStores[_orderId];
