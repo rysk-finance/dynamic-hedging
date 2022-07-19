@@ -1482,6 +1482,7 @@ describe("Options protocol Vault Health", function () {
 	})
 	it("vault gets liquidated", async () => {
 		const vaultDetails = await controller.getVault(optionRegistry.address, 3)
+		const liqMultip = await newCalculator.liquidationMultiplier()
 		const value = vaultDetails.shortAmounts[0]
 		const liqBalBef = await usd.balanceOf(senderAddress)
 		const collatAmountsBef = vaultDetails.collateralAmounts[0]
@@ -1506,10 +1507,10 @@ describe("Options protocol Vault Health", function () {
 		const collatAmountsNew = vaultDetailsNew.collateralAmounts[0]
 		const liqBalAf = await usd.balanceOf(senderAddress)
 		const liqOpBalAf = await optionTokenUSDC.balanceOf(senderAddress)
-		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef)).to.be.within(-3, 3)
+		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef.mul(liqMultip).div(10000))).to.be.within(-3, 3)
 		expect(liqOpBalAf).to.eq(0)
 		expect(valueNew).to.eq(0)
-		expect(collatAmountsNew).to.be.within(-3, 3)
+		expect(collatAmountsNew.mul(BigNumber.from(10000).sub(liqMultip).div(10000))).to.be.within(-3, 3)
 		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		await optionRegistry.wCollatLiquidatedVault(3)
 		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
@@ -1603,6 +1604,7 @@ describe("Options protocol Vault Health", function () {
 	})
 	it("vault gets partially liquidated", async () => {
 		const vaultDetails = await controller.getVault(optionRegistry.address, 3)
+		const liqMultip = await newCalculator.liquidationMultiplier()
 		const value = vaultDetails.shortAmounts[0].div(2)
 		const liqBalBef = await usd.balanceOf(senderAddress)
 		const collatAmountsBef = vaultDetails.collateralAmounts[0]
@@ -1627,10 +1629,10 @@ describe("Options protocol Vault Health", function () {
 		const collatAmountsNew = vaultDetailsNew.collateralAmounts[0]
 		const liqBalAf = await usd.balanceOf(senderAddress)
 		const liqOpBalAf = await optionTokenUSDC.balanceOf(senderAddress)
-		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef.div(2))).to.be.within(-3, 3)
+		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef.div(2).mul(liqMultip).div(10000))).to.be.within(-3, 3)
 		expect(liqOpBalAf).to.eq(value)
 		expect(valueNew).to.eq(value)
-		expect(collatAmountsNew.sub(collatAmountsBef.div(2))).to.be.within(-3, 3)
+		expect(collatAmountsNew.sub(collatAmountsBef.div(2)).mul(BigNumber.from(10000).sub(liqMultip).div(10000))).to.be.within(-3, 3)
 		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
 		expect(vld[0]).to.equal(optionTokenUSDC.address)
@@ -1638,7 +1640,7 @@ describe("Options protocol Vault Health", function () {
 		expect(vld[2]).to.equal(collatAmountsBef.sub(collatAmountsNew))
 		const vaultDetails3 = await controller.getVault(optionRegistry.address, 3)
 		const collatAmounts3 = vaultDetails3.collateralAmounts[0]
-		expect(collatAmounts3.sub(collatAmountsBef.div(2))).to.be.within(-2, 2)
+		expect(collatAmounts3.sub(collatAmountsBef.div(2)).mul(BigNumber.from(10000).sub(liqMultip).div(10000))).to.be.within(-2, 2)
 		const usdBalAft = await usd.balanceOf(senderAddress)
 		expect(usdBalAft.sub(liqBalAf)).to.eq(0)
 	})
@@ -1650,6 +1652,10 @@ describe("Options protocol Vault Health", function () {
 		const liqOpBalBef = await optionTokenUSDC.balanceOf(senderAddress)
 		expect(liqOpBalBef).to.be.gt(0)
 		const abiCode = new AbiCoder()
+		const liquidatable = (await controller.isLiquidatable(optionRegistry.address, 3))[0]
+		if (!liquidatable){
+			return
+		}
 		const vldBef = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
 		const liquidateArgs = [
 			{
@@ -1775,6 +1781,7 @@ describe("Options protocol Vault Health", function () {
 		expect(isUnderCollat).to.be.true
 	})
 	it("vault gets liquidated by non-holder", async () => {
+		const liqMultip = await newCalculator.liquidationMultiplier()
 		const [sender, receiver] = signers
 		const vaultDetails = await controller.getVault(optionRegistry.address, 4)
 		const value = vaultDetails.shortAmounts[0]
@@ -1845,11 +1852,11 @@ describe("Options protocol Vault Health", function () {
 		const liqBalAf = await usd.balanceOf(receiverAddress)
 		const liqBalAft = await usd.balanceOf(senderAddress)
 		const liqOpBalAf = await optionTokenUSDC.balanceOf(receiverAddress)
-		expect(liqBalBef.sub(liqBalAf).sub(marginReq.sub(collatAmountsBef))).to.be.within(-3, 3)
+		expect(liqBalBef.sub(liqBalAf).sub(marginReq.sub(collatAmountsBef.mul(liqMultip).div(10000)))).to.be.within(-3, 3)
 		expect(liqOpBalBef).to.equal(liqOpBalAf)
 		expect(liqOpBalAf).to.eq(0)
 		expect(valueNew).to.eq(0)
-		expect(collatAmountsNew).to.be.within(-3, 3)
+		expect(collatAmountsNew.sub(collatAmountsBef.mul(BigNumber.from(10000).sub(liqMultip)).div(10000))).to.be.within(-3, 3)
 		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 4)
 		await optionRegistry.wCollatLiquidatedVault(4)

@@ -212,8 +212,8 @@ export const Purchase: React.FC = () => {
               </div>
               <div className="flex">
                 <Button
-                  className={`w-full border-b-0 border-x-0 !py-4 !bg-black text-white ${
-                    approveIsDisabled ? "!bg-gray-300 " : ""
+                  className={`w-full border-b-0 border-x-0 !py-4 text-white ${
+                    approveIsDisabled ? "!bg-gray-300 " : "!bg-black"
                   }`}
                   onClick={handleApproveSpend}
                 >
@@ -221,8 +221,8 @@ export const Purchase: React.FC = () => {
                 </Button>
                 <Button
                   disabled={buyIsDisabled}
-                  className={`w-full border-b-0 border-x-0 !py-4 !bg-black text-white ${
-                    buyIsDisabled ? "!bg-gray-300" : ""
+                  className={`w-full border-b-0 border-x-0 !py-4 text-white ${
+                    buyIsDisabled ? "!bg-gray-300" : "!bg-black"
                   }`}
                   onClick={handleBuy}
                 >

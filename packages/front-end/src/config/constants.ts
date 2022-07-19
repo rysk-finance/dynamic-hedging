@@ -32,6 +32,12 @@ export const IDToNetwork: Record<CHAINID, ETHNetwork> = {
   [CHAINID.LOCALHOST]: ETHNetwork.LOCALHOST,
 };
 
+export const SUBGRAPH_URL = {
+  [CHAINID.LOCALHOST]: "",
+  [CHAINID.ETH_MAINNET]: "",
+  [CHAINID.ARBITRUM_RINKEBY]: "https://api.thegraph.com/subgraphs/name/ugolino/rysktestnet",
+}
+
 /**
  * Tokens and owners
  */
@@ -58,6 +64,11 @@ export const LIQUIDITY_POOL = {
 export const PRICE_FEED = {
   [CHAINID.ETH_MAINNET]: "",
   [CHAINID.ARBITRUM_RINKEBY]: "0xDbBF84a29515C783Ea183f92120be7Aa9120fA23",
+};
+
+export const PORTFOLIO_VALUES_FEED = {
+  [CHAINID.ETH_MAINNET]: "",
+  [CHAINID.ARBITRUM_RINKEBY]: "0x540932Ac16341384E273bDf888806F001003560B",
 };
 
 export const USDC_OWNER_ADDRESS = {

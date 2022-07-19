@@ -83,7 +83,7 @@ export const ExpiryDatePicker: React.FC = () => {
 
   return (
     <div className="w-full">
-      <div className="mb-2 px-4 py-2">
+      <div className="p-4">
         <div className="flex items-center">
           <h4 className="font-parabole mr-2 pb-1">Expiration date: </h4>
           {expiryDate && (
