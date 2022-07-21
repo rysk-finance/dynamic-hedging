@@ -87,7 +87,9 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
     }) => {
       try {
         const transaction = (await method(...args)) as TransactionResponse;
-        await transaction.wait();
+        if (process.env.REACT_APP_ENV === "testnet") {
+          console.log(`TX HASH: ${transaction.hash}`);
+        }
         toast(successMessage);
         onComplete?.();
         return;
@@ -173,7 +175,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
                 const handler = contractEvents.current?.[eventName];
                 // @ts-ignore - unable to tell ethers that this handler
                 // takes specific args, and not just any[]
-                handler(args);
+                handler(...args);
               });
             }
             if (shouldRemoveListener) {
