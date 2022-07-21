@@ -1,8 +1,9 @@
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import * as ethers from "ethers";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
+import { TransactionDisplay } from "../components/shared/TransactionDisplay";
 import addresses from "../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../types";
 
@@ -90,7 +91,16 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
         if (process.env.REACT_APP_ENV === "testnet") {
           console.log(`TX HASH: ${transaction.hash}`);
         }
-        toast(successMessage);
+        toast(
+          <div>
+            <p>{successMessage}</p>
+            <p>
+              TX Hash:{" "}
+              <TransactionDisplay>{transaction.hash}</TransactionDisplay>
+            </p>
+          </div>,
+          { autoClose: false }
+        );
         onComplete?.();
         return;
       } catch (err) {
