@@ -206,6 +206,7 @@ function App() {
     setAccount("");
     setChainId("");
     setProvider(null);
+    setNetwork(null);
   };
 
   useEffect(() => {
