@@ -64,6 +64,7 @@ async function main() {
 
 		const option = {
 			expiration: "1661068800",
+			// Need to update to give a value in the orderBounds defined on optionHandler.
 			strike: BigNumber.from("2936").mul(RYSK_DECIMAL),
 			isPut: false,
 			underlying: arbitrumRinkeby.WETH,
@@ -91,6 +92,7 @@ async function main() {
 			orderAmount,
 			quote,
 			BigNumber.from(1800),
+			// Update to order reciever address.
 			"0x939f39468b34E985d5Faa8d044569cfeC9E6CA69"
 		)
 
