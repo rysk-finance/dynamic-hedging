@@ -1,40 +1,35 @@
 import { BigNumber, ethers } from "ethers";
 import React from "react";
 import NumberFormat, { NumberFormatProps } from "react-number-format";
-
-export enum Currency {
-  USDC = "USDC",
-  RYSK = "RYSK",
-}
+import { DECIMALS } from "../config/constants";
+import { Currency } from "../types";
 
 const CURRENCY_TO_DP_MAP: Record<Currency, number> = {
   [Currency.USDC]: 2,
   [Currency.RYSK]: 2,
-};
-
-const CURRENCY_TO_SUFFIX_MAP: Record<Currency, string> = {
-  [Currency.USDC]: "USDC",
-  [Currency.RYSK]: "",
+  [Currency.OPYN]: 2,
 };
 
 type BigNumberDisplayProps = {
   currency: Currency;
   children: BigNumber;
   numberFormatProps?: NumberFormatProps;
+  suffix?: string;
 };
 
 export const BigNumberDisplay: React.FC<BigNumberDisplayProps> = ({
   children,
   currency,
   numberFormatProps = {},
+  suffix,
 }) => {
   return (
     <NumberFormat
-      value={ethers.utils.formatEther(children)}
+      value={ethers.utils.formatUnits(children, DECIMALS[currency])}
       displayType={"text"}
       decimalScale={CURRENCY_TO_DP_MAP[currency]}
       fixedDecimalScale
-      suffix={` ${CURRENCY_TO_SUFFIX_MAP[currency]}`}
+      suffix={suffix ? ` ${suffix}` : undefined}
       {...numberFormatProps}
     />
   );
