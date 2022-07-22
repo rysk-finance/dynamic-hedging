@@ -65,6 +65,7 @@ export const OTCPageContent = () => {
       },
     },
     isListening: { Approval: isListeningForApproval },
+    filters: { Approval: [[account]] },
   });
 
   useEffect(() => {
