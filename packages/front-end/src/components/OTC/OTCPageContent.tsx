@@ -193,7 +193,11 @@ export const OTCPageContent = () => {
                 color="black"
                 disabled={approveDisabled}
               >
-                Approve
+                {isApproved
+                  ? "✅ Approved"
+                  : isListeningForApproval
+                  ? "⏱ Awaiting Approval"
+                  : "Approve"}
               </Button>
               <Button
                 className={`w-full border-b-0 border-x-0 !py-4 `}
@@ -201,7 +205,9 @@ export const OTCPageContent = () => {
                 onClick={handleComplete}
                 disabled={completeDisabled}
               >
-                Complete Purchase
+                {isListeningForComplete
+                  ? "⏱ Awaiting Completion"
+                  : "Complete Purchase"}
               </Button>
             </div>
           </>
