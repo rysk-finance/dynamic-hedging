@@ -79,6 +79,9 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 		link = _link;
 	}
 
+  event SetOracle(address oracle);
+  event SetLiquidityPool(address liquidityPool);
+  event SetAddressStringMapping(address asset, string stringVersion);
 	///////////////
 	/// setters ///
 	///////////////
@@ -86,16 +89,19 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
   function setOracle(address _oracle) external {
     _onlyGovernor();
     oracle = _oracle;
+    emit SetOracle(_oracle);
   }
 
 	function setLiquidityPool(address _liquidityPool) external {
     _onlyGovernor();
 		liquidityPool = ILiquidityPool(_liquidityPool);
+    emit SetLiquidityPool(_liquidityPool);
 	}
 
 	function setAddressStringMapping(address _asset, string memory _stringVersion) external {
 		_onlyGovernor();
 		stringedAddresses[_asset] = _stringVersion;
+    emit SetAddressStringMapping(_asset, _stringVersion);
 	}
 
 	//////////////////////////////////////////////////////
