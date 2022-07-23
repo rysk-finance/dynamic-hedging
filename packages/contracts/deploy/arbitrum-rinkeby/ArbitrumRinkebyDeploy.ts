@@ -17,7 +17,6 @@ import { Volatility } from "../../types/Volatility"
 import { LiquidityPool } from "../../types/LiquidityPool"
 import LiquidityPoolSol from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 import { MockPortfolioValuesFeed } from "../../types/MockPortfolioValuesFeed"
-import { PortfolioValuesFeed } from "../../types/PortfolioValuesFeed"
 
 /* To use for other chains:
 		- Change addresses below to deployed contracts on new chain
@@ -579,68 +578,7 @@ export async function deployLiquidityPool(
 	}
 }
 
-export async function deployNewPVFeed(
-	oracleAddress: string,
-	authorityAddress: string,
-	optionProtocolAddress: string,
-	liquidityPoolAddress: string
-) {
-	const portfolioValuesFeedFactory = await ethers.getContractFactory("PortfolioValuesFeed")
-	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
-		oracleAddress,
-		utils.formatBytes32String("jobId"),
-		toWei("1"),
-		linkTokenAddress,
-		authorityAddress
-	)) as PortfolioValuesFeed
-	console.log("mock portfolio values feed deployed")
-
-	try {
-		await hre.run("verify:verify", {
-			address: portfolioValuesFeed.address,
-			constructorArguments: [
-				oracleAddress,
-				utils.formatBytes32String("jobId"),
-				toWei("1"),
-				linkTokenAddress,
-				authorityAddress
-			]
-		})
-
-		console.log("portfolio values feed verified")
-	} catch (err: any) {
-		if (err.message.includes("Reason: Already Verified")) {
-			console.log("pvFeed contract already verified")
-		}
-	}
-
-	const optionProtocol = await ethers.getContractAt(
-		"contracts/Protocol.sol:Protocol",
-		optionProtocolAddress
-	)
-	await optionProtocol.changePortfolioValuesFeed(portfolioValuesFeed.address)
-	await portfolioValuesFeed.setAddressStringMapping(wethAddress, wethAddress)
-	await portfolioValuesFeed.setAddressStringMapping(usdcAddress, usdcAddress)
-	await portfolioValuesFeed.setLiquidityPool(liquidityPoolAddress)
-	await portfolioValuesFeed.setKeeper(liquidityPoolAddress, true)
-
-	expect(await optionProtocol.portfolioValuesFeed()).to.eq(portfolioValuesFeed.address)
-	console.log({ newPortfolioValuesFeed: portfolioValuesFeed.address })
-}
-
-// main()
-// 	.then(() => process.exit(0))
-// 	.catch(error => {
-// 		console.error(error)
-// 		process.exit(1)
-// 	})
-
-deployNewPVFeed(
-	"0xF91105B81Dfb795482A8A26E6AB880108a906C5E", //
-	"0xBadb002418B5A84362db7877e5E8b35b738f8c84",
-	"0xe52f05b164791c0a963b1729D54b0A4970e56378",
-	"0x502b02DD4bAdb4F2d104418DCb033606AC948e30"
-)
+main()
 	.then(() => process.exit(0))
 	.catch(error => {
 		console.error(error)
