@@ -27,6 +27,7 @@ import {
 } from "../test/constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { VolatilityFeed } from "../types/VolatilityFeed"
+import { DhvTokenCalculations } from "../types/DhvTokenCalculations"
 import { OptionHandler } from "../types/OptionHandler"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -127,13 +128,21 @@ export async function deploySystem(
 		authority.address
 	)) as MockPortfolioValuesFeed
 
+	const dhvTokenCalculationsFactory = await ethers.getContractFactory("DhvTokenCalculations")
+	const dhvTokenCalculations = (await dhvTokenCalculationsFactory.deploy(
+		usd.address,
+		weth.address,
+		usd.address
+	)) as DhvTokenCalculations
+
 	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
 	const optionProtocol = (await protocolFactory.deploy(
 		optionRegistry.address,
 		priceFeed.address,
 		volFeed.address,
 		portfolioValuesFeed.address,
-		authority.address
+		authority.address,
+		dhvTokenCalculations.address
 	)) as Protocol
 	expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 
@@ -180,10 +189,10 @@ export async function deployLiquidityPool(
 		}
 	})
 	const blackScholesDeploy = await blackScholesFactory.deploy()
-	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute",{
+	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}
 	})
-	const optionsCompute = (await optionsCompFactory.deploy())
+	const optionsCompute = await optionsCompFactory.deploy()
 	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
 		libraries: {
 			BlackScholes: blackScholesDeploy.address,
@@ -231,11 +240,11 @@ export async function deployLiquidityPool(
 		BigNumber.from(0)
 	)
 	const handlerFactory = await ethers.getContractFactory("OptionHandler")
-	const handler = await handlerFactory.deploy(
+	const handler = (await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,
-		liquidityPool.address,
-	) as OptionHandler
+		liquidityPool.address
+	)) as OptionHandler
 	await liquidityPool.changeHandler(handler.address, true)
 	await pvFeed.setKeeper(handler.address, true)
 	await pvFeed.setKeeper(liquidityPool.address, true)

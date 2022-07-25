@@ -35,11 +35,12 @@ contract DhvTokenCalculations {
 		uint256 NAV,
 		uint256 pendingDeposits
 	) external view returns (uint256 tokenPrice) {
-		uint256 newPricePerShare = totalSupply > 0
-			? (1e18 *
-				(NAV -
-					OptionsCompute.convertFromDecimals(pendingDeposits, ERC20(collateralAsset).decimals()))) /
-				totalSupply
-			: 1e18;
+		return
+			totalSupply > 0
+				? (1e18 *
+					(NAV -
+						OptionsCompute.convertFromDecimals(pendingDeposits, ERC20(collateralAsset).decimals()))) /
+					totalSupply
+				: 1e18;
 	}
 }
