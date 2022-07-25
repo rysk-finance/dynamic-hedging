@@ -44,20 +44,20 @@ const deposit = async () => {
 	console.log({ balance: ethers.utils.formatEther(balance) })
 	await usdc.approve(liquidityPool.address, depositAmount)
 
-	const pvFeed = await ethers.getContractAt("PortfolioValuesFeed", pvFeedAddress, deployer)
-	const price = await priceFeed.getNormalizedRate(wethAddress, usdcAddress)
-	console.log({ price })
-	await pvFeed.fulfill(
-		utils.formatBytes32String("1"),
-		wethAddress,
-		usdcAddress,
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0),
-		price
-	)
+	// const pvFeed = await ethers.getContractAt("PortfolioValuesFeed", pvFeedAddress, deployer)
+	// const price = await priceFeed.getNormalizedRate(wethAddress, usdcAddress)
+	// console.log({ price })
+	// await pvFeed.fulfill(
+	// 	utils.formatBytes32String("1"),
+	// 	wethAddress,
+	// 	usdcAddress,
+	// 	BigNumber.from(0),
+	// 	BigNumber.from(0),
+	// 	BigNumber.from(0),
+	// 	BigNumber.from(0),
+	// 	BigNumber.from(0),
+	// 	price
+	// )
 
 	await liquidityPool.deposit(depositAmount, {
 		gasLimit: BigNumber.from("1000000000")
@@ -69,11 +69,11 @@ const deposit = async () => {
 	} catch (err) {
 		console.log(err)
 	}
-	const isTradingpaused = await liquidityPool.isTradingPaused()
-	console.log({ isTradingpaused })
-	const executeTx = await liquidityPool.executeEpochCalculation()
-	await executeTx.wait()
-	await liquidityPool.redeem(toWei("1000000000000000"))
+	// const isTradingpaused = await liquidityPool.isTradingPaused()
+	// console.log({ isTradingpaused })
+	// const executeTx = await liquidityPool.executeEpochCalculation()
+	// await executeTx.wait()
+	// await liquidityPool.redeem(toWei("1000000000000000"))
 }
 
 const sellOptions = async (strikePrice: number, weeksUntilExpiry: number, isPut: boolean) => {
@@ -109,20 +109,20 @@ const sellOptions = async (strikePrice: number, weeksUntilExpiry: number, isPut:
 		collateral: usdcAddress
 	}
 	console.log({ optionSeries })
-	const pvFeed = await ethers.getContractAt("PortfolioValuesFeed", pvFeedAddress, deployer)
-	const price = await priceFeed.getNormalizedRate(wethAddress, usdcAddress)
-	console.log({ price })
-	await pvFeed.fulfill(
-		utils.formatBytes32String("1"),
-		wethAddress,
-		usdcAddress,
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0),
-		price
-	)
+	// const pvFeed = await ethers.getContractAt("PortfolioValuesFeed", pvFeedAddress, deployer)
+	// const price = await priceFeed.getNormalizedRate(wethAddress, usdcAddress)
+	// console.log({ price })
+	// await pvFeed.fulfill(
+	// 	utils.formatBytes32String("1"),
+	// 	wethAddress,
+	// 	usdcAddress,
+	// 	BigNumber.from(0),
+	// 	BigNumber.from(0),
+	// 	BigNumber.from(0),
+	// 	BigNumber.from(0),
+	// 	BigNumber.from(0),
+	// 	price
+	// )
 
 	const [quote] = await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, false)
 	console.log({ quote })
@@ -132,9 +132,11 @@ const sellOptions = async (strikePrice: number, weeksUntilExpiry: number, isPut:
 }
 
 // Deposit liquidity into pool then sell an option series
-deposit().then(() => {
-	sellOptions(1500, 3, true)
-})
+// deposit().then(() => {
+// 	sellOptions(1500, 3, true)
+// })
 
 // sell an option series without depositing more
 // sellOptions(1500, 3, true)
+
+deposit()
