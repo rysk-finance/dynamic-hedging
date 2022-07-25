@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import "./Protocol.sol";
 import "./PriceFeed.sol";
 import "./VolatilityFeed.sol";
+import "./DhvTokenCalculations.sol";
 
 import "./tokens/ERC20.sol";
 import "./utils/ReentrancyGuard.sol";
@@ -561,12 +562,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		if (!isTradingPaused) {
 			revert CustomErrors.TradingNotPaused();
 		}
-		uint256 newPricePerShare = totalSupply > 0
-			? (1e18 *
-				(_getNAV() -
-					OptionsCompute.convertFromDecimals(pendingDeposits, ERC20(collateralAsset).decimals()))) /
-				totalSupply
-			: 1e18;
+		uint256 newPricePerShare = _getDhvTokenCalculations().calculateTokenPrice(
+			totalSupply,
+			_getNAV(),
+			pendingDeposits
+		);
 		uint256 sharesToMint = _sharesForAmount(pendingDeposits, newPricePerShare);
 		epochPricePerShare[epoch] = newPricePerShare;
 		delete pendingDeposits;
@@ -713,17 +713,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @param asset address of the asset to get balance and normalize
 	 * @return normalizedBalance balance in 1e18 format
 	 */
-	function _getNormalizedBalance(address asset)
-		internal
-		view
-		returns (
-			uint256 normalizedBalance
-		)
-	{
+	function _getNormalizedBalance(address asset) internal view returns (uint256 normalizedBalance) {
 		normalizedBalance = OptionsCompute.convertFromDecimals(
-			ERC20(asset).balanceOf(address(this)), 
+			ERC20(asset).balanceOf(address(this)),
 			ERC20(asset).decimals()
-			);
+		);
 	}
 
 	/**
@@ -1079,10 +1073,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		address collateralAsset_ = collateralAsset;
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
-		assets = OptionsCompute.convertFromDecimals(
-			ERC20(collateralAsset_).balanceOf(address(this)),
-			ERC20(collateralAsset_).decimals()
-		) + OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset_).decimals());
+		assets =
+			OptionsCompute.convertFromDecimals(
+				ERC20(collateralAsset_).balanceOf(address(this)),
+				ERC20(collateralAsset_).decimals()
+			) +
+			OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset_).decimals());
 		address[] memory hedgingReactors_ = hedgingReactors;
 		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
 			// should always return value in e18 decimals
@@ -1285,6 +1281,14 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function _getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
 		return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
+	}
+
+	/**
+	 * @notice get the DHV share token calculations contract used by the liquidity pool
+	 * @return the DHV token calculations contract
+	 */
+	function _getDhvTokenCalculations() internal view returns (DhvTokenCalculations) {
+		return DhvTokenCalculations(protocol.dhvTokenCalculations());
 	}
 
 	/**

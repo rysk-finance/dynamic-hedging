@@ -20,18 +20,21 @@ contract Protocol is AccessControl {
 
 	address public volatilityFeed;
 	address public portfolioValuesFeed;
+	address public dhvTokenCalculations;
 
 	constructor(
 		address _optionRegistry,
 		address _priceFeed,
 		address _volatilityFeed,
 		address _portfolioValuesFeed,
-		address _authority
+		address _authority,
+		address _dhvTokenCalculations
 	) AccessControl(IAuthority(_authority)) {
 		optionRegistry = _optionRegistry;
 		priceFeed = _priceFeed;
 		volatilityFeed = _volatilityFeed;
 		portfolioValuesFeed = _portfolioValuesFeed;
+		dhvTokenCalculations = _dhvTokenCalculations;
 	}
 
 	///////////////
@@ -46,5 +49,10 @@ contract Protocol is AccessControl {
 	function changePortfolioValuesFeed(address _portfolioValuesFeed) external {
 		_onlyGovernor();
 		portfolioValuesFeed = _portfolioValuesFeed;
+	}
+
+	function changeDhvTokenCalculations(address _dhvTokenCalculations) external {
+		_onlyGovernor();
+		dhvTokenCalculations = _dhvTokenCalculations;
 	}
 }
