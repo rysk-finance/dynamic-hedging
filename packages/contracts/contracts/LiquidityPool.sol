@@ -1063,12 +1063,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			maxTimeDeviationThreshold,
 			maxPriceDeviationThreshold
 		);
-		int256 ephemeralLiabilities_ = ephemeralLiabilities;
-		// ephemeralLiabilities can be -ve but portfolioValues will not
-		// when converting liabilities it should never be -ve, if it is then the NAV calc will fail
-		uint256 liabilities = portfolioValues.callPutsValue +
-			(ephemeralLiabilities_ > 0 ? uint256(ephemeralLiabilities_) : uint256(-ephemeralLiabilities_));
-		return assets - liabilities;
+		// ephemeralLiabilities can be +/-, portfolioValues.callPutsValue could be +/-
+		int256 liabilities = portfolioValues.callPutsValue + ephemeralLiabilities;
+		// if this ever happens then something has gone very wrong so throw here
+		if (int256(assets) < liabilities) {revert CustomErrors.LiabilitiesGreaterThanAssets();}
+		return uint256(int256(assets) - liabilities);
 	}
 
 	/**

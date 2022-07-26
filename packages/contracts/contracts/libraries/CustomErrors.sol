@@ -29,6 +29,7 @@ interface CustomErrors {
 	error WithdrawExceedsLiquidity();
 	error InsufficientShareBalance();
 	error MaxLiquidityBufferReached();
+	error LiabilitiesGreaterThanAssets();
 	error CustomOrderInsufficientPrice();
 	error CustomOrderInvalidDeltaValue();
 	error DeltaQuoteError(uint256 quote, int256 delta);
