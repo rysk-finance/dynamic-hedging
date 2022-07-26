@@ -66,7 +66,9 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
   const [network] = useState(
     process.env.REACT_APP_NETWORK as keyof typeof addresses | undefined
   );
+  
   const { provider } = useWalletContext();
+
   const [ethersContract, setEthersContract] = useState<ethers.Contract | null>(
     null
   );
@@ -130,7 +132,14 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
 
   // Instances the ethers contract in state.
   useEffect(() => {
-    const signerOrProvider = args.readOnly ? provider : provider?.getSigner();
+
+  // TODO(Dan): Switch to mainnet
+  // const RINKEBY_RPC_URL = `https://rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
+  const ARBITRUM_RINKEBY_RPC_URL = `https://arbitrum-rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
+  const rpcProvider = new ethers.providers.JsonRpcProvider(ARBITRUM_RINKEBY_RPC_URL);
+
+  const signerOrProvider = args.readOnly ? rpcProvider : provider?.getSigner();
+
     if (signerOrProvider && network && !ethersContract) {
       const address =
         "contract" in args
