@@ -223,7 +223,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
       *   - Make sure the option has been settled!
 	  */ 
 	////////////////////////////////////////////////////////////////////////////////////////////
-
+	address[] private addyList;
 	/**
 	  * @notice function to clean all expired series from the options storage to remove them from the looped array.
 	  * @dev 	FOLLOW THE LOOP CLEANING INSTRUCTIONS ABOVE WHEN CALLING THIS FUNCTION
@@ -231,18 +231,16 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	function syncLooper() external {
 		_isKeeper();
 		uint lengthAddy = addressSet.length();
-		address[] memory addyList;
-		uint n;
 		for (uint i; i < lengthAddy; i++) {
-			if(storesForAddress[addressSet.at(i)].optionSeries.expiration > block.timestamp) {
-				addyList[n] = addressSet.at(i);
-				n++;
+			if(storesForAddress[addressSet.at(i)].optionSeries.expiration < block.timestamp) {
+				addyList.push(addressSet.at(i));
 			}
 		}
 		lengthAddy = addyList.length;
 		for  (uint j; j < lengthAddy; j++) {
 			_cleanLooper(addyList[j]);
 		}
+		delete addyList;
 	}
 
 	/**
@@ -256,7 +254,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		_isKeeper();
 		address series = addressSet.at(index);
 		if (series != _series) {revert IncorrectSeriesToRemove();}
-		if (storesForAddress[_series].optionSeries.expiration < block.timestamp) {revert SeriesNotExpired();}
+		if (storesForAddress[_series].optionSeries.expiration > block.timestamp) {revert SeriesNotExpired();}
 		_cleanLooper(_series);
 	}
 
@@ -275,7 +273,8 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	/**  MIGRATION PROCESS - FOR ALPHA
 	  *	  1/ On the migrate contract set this contract as a handler via Governance
 	  *   2/ Make sure the storage of options in this contract is up to date and clean/synced
-	  *   3/ Call migrate here via Governance
+	  *   3/ Call migrate here via Governance 
+	  *   3i/ If the migration gas gets too big then
 	  *   4/ Make sure the storage was correctly transferred to the new contract
 	  *   5/ Properly configure the handlers on the new contract via Governance
 	  *   6/ Properly configure the keepers on the new contract via Governance
@@ -283,16 +282,16 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	  *   8/ Change the PortfolioValuesFeed in the Protocol contract via Governance
       */ 
 	////////////////////////////////////////////////////////////////////////////////////////////
-
+	uint256 private lastLoopIndex;
 	/**
 	  * @notice migrate all stored options data to a new contract that has the IPortfolioValuesFeed interface
 	  * @param  _migrateContract the new portfolio values feed contract to migrate option values too
 	  * @dev 	FOLLOW THE MIGRATION PROCESS INSTRUCTIONS WHEN CALLING THIS FUNCTION
 	  */
-	function migrate(IPortfolioValuesFeed _migrateContract) external {
+	function migrate(IPortfolioValuesFeed _migrateContract, uint256 loopSize) external {
 		_onlyGovernor();
-		uint lengthAddy = addressSet.length();
-		for (uint i=0; i < lengthAddy; i++) {
+		uint lengthAddy = addressSet.length() > loopSize ? loopSize : addressSet.length();
+		for (uint i=lastLoopIndex; i < lengthAddy; i++) {
 			address oTokenAddy = addressSet.at(i);
 			OptionStores memory _optionStores = storesForAddress[oTokenAddy];
 			uint256 unsignedAmount = _optionStores.amount > 0 ? uint256(_optionStores.amount) : uint256(-_optionStores.amount);
@@ -303,6 +302,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 				oTokenAddy
 				);
 		}
+		if (i == addressSet.length()) {lastLoopIndex = 0;}
 	} 
 
 	/////////////////////////////////////////////

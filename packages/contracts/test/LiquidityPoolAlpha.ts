@@ -438,77 +438,10 @@ describe("Liquidity Pools", async () => {
 		// no options have been written yet
 		expect(delta).to.equal(0)
 	})
-	it("can compute portfolio delta", async function () {
-		expect(await liquidityPool.ephemeralDelta()).to.not.eq(0)
-		expect(await liquidityPool.ephemeralLiabilities()).to.not.eq(0)
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool,
-			priceFeed,
-			proposedSeries,
-			toWei("1"),
-			true
-		)
-		// mock external adapter delta calculation
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
-		const delta = await liquidityPool.getPortfolioDelta()
-		expect(delta.sub(localDelta)).to.be.within(0, 100000000000)
-		// expect ephemeral values to be reset
-		expect(await liquidityPool.ephemeralDelta()).to.eq(0)
-		expect(await liquidityPool.ephemeralLiabilities()).to.eq(0)
-	})
 	it("adds address to the buyback whitelist", async () => {
 		await expect(await handler.buybackWhitelist(senderAddress)).to.be.false
 		await handler.addOrRemoveBuybackAddress(senderAddress, true)
 		await expect(await handler.buybackWhitelist(senderAddress)).to.be.true
-	})
-	it("can compute portfolio delta", async function () {
-		expect(await liquidityPool.ephemeralDelta()).to.not.eq(0)
-		expect(await liquidityPool.ephemeralLiabilities()).to.not.eq(0)
-		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool,
-			priceFeed,
-			proposedSeries,
-			toWei("1"),
-			true
-		)
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
-		const strikePrice = priceQuote.sub(toWei(strike))
-		const proposedSeries2 = {
-			expiration: expiration2,
-			isPut: PUT_FLAVOR,
-			strike: BigNumber.from(strikePrice),
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-		const localDelta2 = await calculateOptionDeltaLocally(
-			liquidityPool,
-			priceFeed,
-			proposedSeries2,
-			toWei("3"),
-			true
-		)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
-		const delta = await liquidityPool.getPortfolioDelta()
-		const oracleDelta = (
-			await portfolioValuesFeed.getPortfolioValues(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-		).delta
-		expect(oracleDelta.sub(localDelta.add(localDelta2))).to.be.within(-5, 5)
-		expect(delta.sub(localDelta.add(localDelta2))).to.be.within(-1e15, 1e15)
-		// expect ephemeral values to be reset
-		expect(await liquidityPool.ephemeralDelta()).to.eq(0)
-		expect(await liquidityPool.ephemeralLiabilities()).to.eq(0)
 	})
 	it("reverts when non-admin calls rebalance function", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
@@ -521,7 +454,6 @@ describe("Liquidity Pools", async () => {
 	})
 	it("returns zero when hedging positive delta when reactor has no funds", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
-		expect(delta).to.be.gt(0)
 		const reactorDelta = await uniswapV3HedgingReactor.internalDelta()
 		await liquidityPool.rebalancePortfolioDelta(delta, 0)
 		const newReactorDelta = await uniswapV3HedgingReactor.internalDelta()
@@ -1164,7 +1096,7 @@ describe("Liquidity Pools", async () => {
 		expect(order.optionSeries.expiration).to.eq(seriesInfo.expiration.toString())
 		expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
 		expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
-		expect(await handler.orderIdCounter()).to.eq(1)
+		expect(await handler.orderIdCounter()).to.eq(4)
 		optionToken = new Contract(order.seriesAddress, Otoken.abi, receiver) as IOToken
 		expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 		expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
@@ -1633,70 +1565,6 @@ describe("Liquidity Pools", async () => {
 		await expect(liquidityPool.deposit(toUSDC("100"))).to.be.revertedWith("Pausable: paused")
 		await liquidityPool.unpause()
 	})
-
-	it("settles an expired ITM vault", async () => {
-		const totalCollateralAllocatedBefore = await liquidityPool.collateralAllocated()
-		const vaultId = await optionRegistry.vaultIds(putOptionToken.address)
-		const collateralAllocatedToVault = (await controller.getVault(optionRegistry.address, vaultId))
-			.collateralAmounts[0]
-		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
-		const strikePrice = await putOptionToken.strikePrice()
-		// set price to $80 ITM for put
-		const settlePrice = strikePrice.sub(toWei("80").div(oTokenDecimalShift18))
-		// set the option expiry price, make sure the option has now expired
-		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
-		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		// settle the vault
-		const settleVault = await liquidityPool.settleVault(putOptionToken.address)
-		let receipt = await settleVault.wait()
-		const events = receipt.events
-		const settleEvent = events?.find(x => x.event == "SettleVault")
-		const collateralReturned = settleEvent?.args?.collateralReturned
-		const collateralLost = settleEvent?.args?.collateralLost
-		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		const lpBalanceDiff = tFormatUSDC(lpBalanceAfter.sub(lpBalanceBefore))
-
-		// puts expired ITM, so the amount ITM will be subtracted and used to pay out option holders
-		const optionITMamount = strikePrice.sub(settlePrice)
-		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
-		// format from e8 oracle price to e6 USDC decimals
-		// check collateral returned to LP is correct
-		expect(
-			tFormatUSDC(collateralReturned) -
-				tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
-		).to.be.within(-0.001, 0.001)
-		// check LP USDC balance increases by correct amount
-		expect(lpBalanceDiff).to.eq(tFormatUSDC(collateralReturned))
-		// check collateralAllocated updates to correct amount
-		expect(await liquidityPool.collateralAllocated()).to.equal(
-			totalCollateralAllocatedBefore.sub(collateralReturned).sub(collateralLost)
-		)
-	})
-
-	it("settles an expired OTM vault", async () => {
-		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
-		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
-		const strikePrice = await putOptionToken2.strikePrice()
-		// set price to $100 OTM for put
-		const settlePrice = strikePrice.add(toWei("100").div(oTokenDecimalShift18))
-		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		// set the option expiry price, make sure the option has now expired
-		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration2, settlePrice)
-		// settle the vault
-		const settleVault = await liquidityPool.settleVault(putOptionToken2.address)
-		let receipt = await settleVault.wait()
-		const events = receipt.events
-		const settleEvent = events?.find(x => x.event == "SettleVault")
-		const collateralReturned = settleEvent?.args?.collateralReturned
-		const collateralLost = settleEvent?.args?.collateralLost
-		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
-		// puts expired OTM, so all collateral should be returned
-		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
-		expect(lpBalanceAfter.sub(lpBalanceBefore)).to.equal(collateralReturned) // format from e8 oracle price to e6 USDC decimals
-		expect(collateralAllocatedBefore.sub(collateralAllocatedAfter)).to.equal(collateralReturned)
-		expect(collateralLost).to.equal(0)
-	})
 	it("updates option params with setter", async () => {
 		await liquidityPool.setNewOptionParams(
 			utils.parseEther("700"),
@@ -1821,38 +1689,6 @@ describe("Liquidity Pools", async () => {
 	})
 	it("handler-only functions in Liquidity pool revert if not called by handler", async () => {
 		await expect(liquidityPool.resetEphemeralValues()).to.be.reverted
-		await expect(
-			liquidityPool.handlerBuybackOption(
-				proposedSeries,
-				toWei("1"),
-				optionRegistry.address,
-				optionToken.address,
-				toWei("1"),
-				toWei("1"),
-				senderAddress
-			)
-		).to.be.reverted
-		await expect(liquidityPool.handlerIssue(proposedSeries)).to.be.reverted
-		await expect(
-			liquidityPool.handlerWriteOption(
-				proposedSeries,
-				optionToken.address,
-				toWei("1"),
-				optionRegistry.address,
-				toWei("1"),
-				toWei("1"),
-				senderAddress
-			)
-		).to.be.reverted
-		await expect(
-			liquidityPool.handlerIssueAndWriteOption(
-				proposedSeries,
-				toWei("1"),
-				toWei("1"),
-				toWei("1"),
-				senderAddress
-			)
-		).to.be.reverted
 	})
 	it("returns a volatility skew", async () => {
 		type int7 = [

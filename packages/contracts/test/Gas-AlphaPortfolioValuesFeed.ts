@@ -38,7 +38,7 @@ import {
 	setupOracle,
 	calculateOptionQuoteLocally,
 	getBlackScholesQuote,
-	increase,
+	increaseTo,
 	setOpynOracleExpiryPrice,
 	calculateOptionDeltaLocally
 } from "./helpers"
@@ -152,14 +152,18 @@ const expiryToValue = [
 	scaleNum("0.5", 27)
 ]
 
-/* --- end variables to change --- */
+let noOfExpiries = 10
+let noOfStrikes = 5
 
+/* --- end variables to change --- */
 const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
 const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
 const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
 
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
+let predictedQuote = BigNumber.from(0);
+let predictedDelta = BigNumber.from(0);
 
 describe("APVF gas tests", async () => {
 	before(async function () {
@@ -252,22 +256,18 @@ describe("APVF gas tests", async () => {
 		await liquidityPool.setNewOptionParams(0, toWei("100000"), 0, toWei("100000"), 0, 10000000000)
 	})
 	describe("Spin up a bunch of options and try a fulfill", async () => {
-		
-		let predictedQuote = BigNumber.from(0);
-		let predictedDelta = BigNumber.from(0);
-
 		it("SETUP: Spin up a bunch of options", async () => {
-			const amount = toWei("0.001")
+			const amount = toWei("1")
 			const orderExpiry = 10
 			let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 			let n = 0;
-			for (let i = 0; i < 10; i++) {
+			for (let i = 0; i < noOfExpiries; i++) {
 				// get a new expiry
 				expiration += 3*24*60*60
 				// set the option type
 				const flavour = CALL_FLAVOR
 				let strike = await priceFeed.getNormalizedRate(weth.address, usd.address)
-				for (let j = 0; j < 10; j ++) {
+				for (let j = 0; j < noOfStrikes; j ++) {
 					strike = strike.add(toWei("10"))
 					const proposedSeries = {
 						expiration: expiration,
@@ -291,25 +291,84 @@ describe("APVF gas tests", async () => {
 					expect(await portfolioValuesFeed.addressSetLength()).to.equal(n+1)
 					expect(await portfolioValuesFeed.addressAtIndexInSet(n)).to.equal(order.seriesAddress)
 					expect(await portfolioValuesFeed.isAddressInSet(order.seriesAddress)).to.be.true
-					console.log(await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, true))
-					console.log(toWei((await getBlackScholesQuote(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, false)).toString()))
+					predictedDelta = predictedDelta.add(await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, true))
+					predictedQuote = predictedQuote.add((toWei((await getBlackScholesQuote(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, false)).toString())))
 					n += 1
 				}
 			}
-			console.log(predictedDelta)
-			console.log(predictedQuote)
 		})
 		it("SUCCEEDS: Calls fulfill on the options", async () => {
 			await portfolioValuesFeed.fulfill(weth.address, usd.address)
 			const pVs = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
-			console.log(pVs)
+			expect(pVs.delta).to.equal(predictedDelta)
+			expect(pVs.callPutsValue).to.equal(predictedQuote)
 		})
 	})
 	describe("Try a migration with all the options", async () => {
+		let migratePortfolioValuesFeed: AlphaPortfolioValuesFeed;
+		it("SETUP: Make a new portfolio values feed", async () => {
+			const normDistFactory = await ethers.getContractFactory("NormalDist", {
+				libraries: {}
+			})
+			const normDist = await normDistFactory.deploy()
+			const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+				libraries: {
+					NormalDist: normDist.address
+				}
+			})
+			const blackScholesDeploy = await blackScholesFactory.deploy()
+			const portfolioValuesFeedFactory = await ethers.getContractFactory("AlphaPortfolioValuesFeed", {
+				libraries: {
+					BlackScholes: blackScholesDeploy.address
+				}
+			})
+			migratePortfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
+				authority,
+				priceFeed.address,
+				volFeed.address
+			)) as AlphaPortfolioValuesFeed
+			await migratePortfolioValuesFeed.setHandler(portfolioValuesFeed.address, true)
+			await migratePortfolioValuesFeed.setLiquidityPool(liquidityPool.address)
+		})
+		it("SUCCEEDS: Tries to migrate to a new portfolio values feed", async () => {
+			const originalLength = await portfolioValuesFeed.addressSetLength()
+			await portfolioValuesFeed.migrate(migratePortfolioValuesFeed.address)
+			const newLength = await migratePortfolioValuesFeed.addressSetLength()
+			expect(originalLength).to.equal(newLength)
+		})
+		it("SUCCEEDS: Checks the new fulfill are the same as the old fulfill", async () => {
+			await portfolioValuesFeed.fulfill(weth.address, usd.address)
+			const pVs = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
+			await optionProtocol.changePortfolioValuesFeed(migratePortfolioValuesFeed.address)
+			await migratePortfolioValuesFeed.fulfill(weth.address, usd.address)
+			const mpVs = await migratePortfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
+			expect(pVs.delta).to.equal(mpVs.delta)
+			expect(pVs.callPutsValue.sub(mpVs.callPutsValue)).to.be.within(-100000, 100000)
+		})
+		it("SETUP: reconfigure original portfolio values feed", async () => {
+			await optionProtocol.changePortfolioValuesFeed(portfolioValuesFeed.address)
+		})
 	})
 	describe("Expire some of the options and try a clean", async () => {
-	})
-	describe("Expire some of the options at the end and try a clean", async () => {
+		it("SETUP: fastforward 3 days so options have expired", async () => {
+			const addressAtIndex0 = await portfolioValuesFeed.addressAtIndexInSet(0)
+			const ffExpiration = (await portfolioValuesFeed.storesForAddress(addressAtIndex0)).optionSeries.expiration
+			increaseTo(ffExpiration.add(100))
+		})
+		it("SUCCEEDS: Cleans one expired option manually", async () => {
+			const originalLength = await portfolioValuesFeed.addressSetLength()
+			const addressAtIndex0 = await portfolioValuesFeed.addressAtIndexInSet(0)
+			await portfolioValuesFeed.cleanLooperManually(0, addressAtIndex0)
+			const newLength = await portfolioValuesFeed.addressSetLength()
+			expect(originalLength.sub(1)).to.equal(newLength)
+			expect(await portfolioValuesFeed.isAddressInSet(addressAtIndex0)).to.be.false
+		})
+		it("SUCCEEDS: Cleans all expired options", async () => {
+			const originalLength = await portfolioValuesFeed.addressSetLength()
+			await portfolioValuesFeed.syncLooper()
+			const newLength = await portfolioValuesFeed.addressSetLength()
+			expect(originalLength.sub(noOfStrikes - 1)).to.equal(newLength)
+		})
 	})
 	describe("Expire some of the options ITM and try a fulfill", async () => {
 	})
