@@ -564,7 +564,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		}
 		uint256 newPricePerShare = _getDhvTokenCalculations().calculateTokenPrice(
 			totalSupply,
-			_getNAV(),
+			_getAssets(),
+			_getLiabilities(),
 			pendingDeposits
 		);
 		uint256 sharesToMint = _sharesForAmount(pendingDeposits, newPricePerShare);

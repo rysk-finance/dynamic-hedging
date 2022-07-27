@@ -32,13 +32,14 @@ contract DhvTokenCalculations {
 	 */
 	function calculateTokenPrice(
 		uint256 totalSupply,
-		uint256 NAV,
+		uint256 assets,
+		uint256 liabilities,
 		uint256 pendingDeposits
 	) external view returns (uint256 tokenPrice) {
 		return
 			totalSupply > 0
 				? (1e18 *
-					(NAV -
+					((assets - liabilities) -
 						OptionsCompute.convertFromDecimals(pendingDeposits, ERC20(collateralAsset).decimals()))) /
 					totalSupply
 				: 1e18;
