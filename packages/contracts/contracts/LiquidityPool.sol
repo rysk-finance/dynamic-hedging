@@ -1039,29 +1039,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @return Net Asset Value in e18 decimal format
 	 */
 	function _getNAV() internal view returns (uint256) {
-		// cache
-		address underlyingAsset_ = underlyingAsset;
-		address strikeAsset_ = strikeAsset;
 		// equities = assets - liabilities
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
 		uint256 assets = _getAssets();
-		Types.PortfolioValues memory portfolioValues = _getPortfolioValuesFeed().getPortfolioValues(
-			underlyingAsset_,
-			strikeAsset_
-		);
-		// check that the portfolio values are acceptable
-		OptionsCompute.validatePortfolioValues(
-			_getUnderlyingPrice(underlyingAsset_, strikeAsset_),
-			portfolioValues,
-			maxTimeDeviationThreshold,
-			maxPriceDeviationThreshold
-		);
-		int256 ephemeralLiabilities_ = ephemeralLiabilities;
-		// ephemeralLiabilities can be -ve but portfolioValues will not
-		// when converting liabilities it should never be -ve, if it is then the NAV calc will fail
-		uint256 liabilities = portfolioValues.callPutsValue +
-			(ephemeralLiabilities_ > 0 ? uint256(ephemeralLiabilities_) : uint256(-ephemeralLiabilities_));
+		uint256 liabilities = _getLiabilities();
 		return assets - liabilities;
 	}
 
@@ -1084,6 +1066,29 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			// should always return value in e18 decimals
 			assets += IHedgingReactor(hedgingReactors_[i]).getPoolDenominatedValue();
 		}
+	}
+
+	function _getLiabilities() internal view returns (uint256 liabilities) {
+		// cache
+		address underlyingAsset_ = underlyingAsset;
+		address strikeAsset_ = strikeAsset;
+		Types.PortfolioValues memory portfolioValues = _getPortfolioValuesFeed().getPortfolioValues(
+			underlyingAsset_,
+			strikeAsset_
+		);
+		// check that the portfolio values are acceptable
+		OptionsCompute.validatePortfolioValues(
+			_getUnderlyingPrice(underlyingAsset_, strikeAsset_),
+			portfolioValues,
+			maxTimeDeviationThreshold,
+			maxPriceDeviationThreshold
+		);
+		int256 ephemeralLiabilities_ = ephemeralLiabilities;
+		// ephemeralLiabilities can be -ve but portfolioValues will not
+		// when converting liabilities it should never be -ve, if it is then the NAV calc will fail
+		liabilities =
+			portfolioValues.callPutsValue +
+			(ephemeralLiabilities_ > 0 ? uint256(ephemeralLiabilities_) : uint256(-ephemeralLiabilities_));
 	}
 
 	/**
