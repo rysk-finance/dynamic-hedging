@@ -264,7 +264,7 @@ contract AlphaOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		// calculate the total premium
 		uint256 premium = (order.amount * order.price) / 1e18;
 
-		/// TODO: compute the delta
+		/// TODO: Could compute delta but is unnecessary so could potentially leave as 0 to save on gas
 		int256 delta = 0;
 
 		address collateralAsset_ = collateralAsset;
@@ -289,7 +289,16 @@ contract AlphaOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			delta,
 			msg.sender
 		);
-		getPortfolioValuesFeed().updateStores(order.optionSeries, order.amount, false, order.seriesAddress);
+		// convert the strike to e18 decimals for storage
+		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
+			order.optionSeries.expiration,
+			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike,  8)),
+			order.optionSeries.isPut,
+			underlyingAsset,
+			strikeAsset,
+			collateralAsset
+		);
+		getPortfolioValuesFeed().updateStores(seriesToStore, order.amount, false, order.seriesAddress);
 		emit OrderExecuted(_orderId);
 		// invalidate the order
 		delete orderStores[_orderId];

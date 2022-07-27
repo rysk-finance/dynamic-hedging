@@ -257,7 +257,7 @@ describe("APVF gas tests", async () => {
 	})
 	describe("Spin up a bunch of options and try a fulfill", async () => {
 		it("SETUP: Spin up a bunch of options", async () => {
-			const amount = toWei("1")
+			const amount = toWei("2")
 			const orderExpiry = 10
 			let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 			let n = 0;
@@ -280,19 +280,27 @@ describe("APVF gas tests", async () => {
 					const orderId = await handler.callStatic.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress)
 					await handler.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress)
 					const order = await handler.orderStores(orderId)
+					const convertedSeries = {
+						expiration: Number(order.optionSeries.expiration),
+						strike: order.optionSeries.strike.mul(oTokenDecimalShift18),
+						isPut: order.optionSeries.isPut,
+						strikeAsset: order.optionSeries.strikeAsset,
+						underlying: order.optionSeries.underlying,
+						collateral: order.optionSeries.collateral
+					}
 					// update the stores on the pvFeed
-					await portfolioValuesFeed.updateStores(order.optionSeries, order.amount, false, order.seriesAddress)
+					await portfolioValuesFeed.updateStores(convertedSeries, order.amount, false, order.seriesAddress)
 					// check the options are properly set
 					const stores = await portfolioValuesFeed.storesForAddress(order.seriesAddress)
 					expect(stores.optionSeries.expiration).to.equal(order.optionSeries.expiration)
 					expect(stores.optionSeries.isPut).to.equal(order.optionSeries.isPut)	
-					expect(stores.optionSeries.strike).to.equal(order.optionSeries.strike)		
+					expect(stores.optionSeries.strike).to.equal(convertedSeries.strike)		
 					expect(stores.amount).to.equal(order.amount)
 					expect(await portfolioValuesFeed.addressSetLength()).to.equal(n+1)
 					expect(await portfolioValuesFeed.addressAtIndexInSet(n)).to.equal(order.seriesAddress)
 					expect(await portfolioValuesFeed.isAddressInSet(order.seriesAddress)).to.be.true
-					predictedDelta = predictedDelta.add(await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, true))
-					predictedQuote = predictedQuote.add((toWei((await getBlackScholesQuote(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, false)).toString())))
+					predictedDelta = predictedDelta.add(await calculateOptionDeltaLocally(liquidityPool, priceFeed, convertedSeries, amount, true))
+					predictedQuote = predictedQuote.add((toWei((await getBlackScholesQuote(liquidityPool, optionRegistry, usd, priceFeed, convertedSeries, amount, false)).toString())))
 					n += 1
 				}
 			}
@@ -300,8 +308,8 @@ describe("APVF gas tests", async () => {
 		it("SUCCEEDS: Calls fulfill on the options", async () => {
 			await portfolioValuesFeed.fulfill(weth.address, usd.address)
 			const pVs = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
-			expect(pVs.delta).to.equal(predictedDelta)
-			expect(pVs.callPutsValue).to.equal(predictedQuote)
+			expect(tFormatEth(pVs.delta) - tFormatEth(predictedDelta)).to.be.within(-0.1, 0.1)
+			expect(tFormatEth(pVs.callPutsValue) - tFormatEth(predictedQuote)).to.be.within(-0.5, 0.5)
 		})
 	})
 	describe("Try a migration with all the options", async () => {
@@ -342,8 +350,8 @@ describe("APVF gas tests", async () => {
 			await optionProtocol.changePortfolioValuesFeed(migratePortfolioValuesFeed.address)
 			await migratePortfolioValuesFeed.fulfill(weth.address, usd.address)
 			const mpVs = await migratePortfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
-			expect(pVs.delta).to.equal(mpVs.delta)
-			expect(pVs.callPutsValue.sub(mpVs.callPutsValue)).to.be.within(-100000, 100000)
+			expect(tFormatEth(pVs.delta) - tFormatEth(mpVs.delta)).to.be.within(-0.1, 0.1)
+			expect(tFormatEth(pVs.callPutsValue) - tFormatEth(mpVs.callPutsValue)).to.be.within(-0.1, 0.1)
 		})
 		it("SETUP: reconfigure original portfolio values feed", async () => {
 			await optionProtocol.changePortfolioValuesFeed(portfolioValuesFeed.address)
@@ -370,8 +378,101 @@ describe("APVF gas tests", async () => {
 			expect(originalLength.sub(noOfStrikes - 1)).to.equal(newLength)
 		})
 	})
-	describe("Expire some of the options ITM and try a fulfill", async () => {
+	describe("Expire some of the options at the end and try a clean", async () => {
+		it("SETUP: writes some options at the end of the array that expire soon", async () => {
+			const amount = toWei("2")
+			const orderExpiry = 10
+			let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000 + 6*60*60*24
+			// set the option type
+			const flavour = CALL_FLAVOR
+			let strike = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			for (let j = 0; j < noOfStrikes; j ++) {
+				const storeLengthBefore = await portfolioValuesFeed.addressSetLength()
+				strike = strike.add(toWei("500"))
+				const proposedSeries = {
+					expiration: expiration,
+					strike: BigNumber.from(strike),
+					isPut: flavour,
+					strikeAsset: usd.address,
+					underlying: weth.address,
+					collateral: usd.address
+				}
+				const orderId = await handler.callStatic.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress)
+				await handler.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress)
+				const order = await handler.orderStores(orderId)
+				const convertedSeries = {
+					expiration: Number(order.optionSeries.expiration),
+					strike: order.optionSeries.strike.mul(oTokenDecimalShift18),
+					isPut: order.optionSeries.isPut,
+					strikeAsset: order.optionSeries.strikeAsset,
+					underlying: order.optionSeries.underlying,
+					collateral: order.optionSeries.collateral
+				}
+				// update the stores on the pvFeed
+				await portfolioValuesFeed.updateStores(convertedSeries, order.amount, false, order.seriesAddress)
+				// check the options are properly set
+				const stores = await portfolioValuesFeed.storesForAddress(order.seriesAddress)
+				expect(stores.optionSeries.expiration).to.equal(order.optionSeries.expiration)
+				expect(stores.optionSeries.isPut).to.equal(order.optionSeries.isPut)	
+				expect(stores.optionSeries.strike).to.equal(convertedSeries.strike)		
+				expect(stores.amount).to.equal(order.amount)
+				expect(await portfolioValuesFeed.addressSetLength()).to.equal(storeLengthBefore.add(1))
+				expect(await portfolioValuesFeed.addressAtIndexInSet(storeLengthBefore)).to.equal(order.seriesAddress)
+				expect(await portfolioValuesFeed.isAddressInSet(order.seriesAddress)).to.be.true
+				predictedDelta = predictedDelta.add(await calculateOptionDeltaLocally(liquidityPool, priceFeed, convertedSeries, amount, true))
+				predictedQuote = predictedQuote.add((toWei((await getBlackScholesQuote(liquidityPool, optionRegistry, usd, priceFeed, convertedSeries, amount, false)).toFixed(15).toString())))
+				}
+		})
+		it("SETUP: fastforward 3 days so options have expired", async () => {
+			const storeLengthBefore = await portfolioValuesFeed.addressSetLength()
+			const addressAtIndexLast = await portfolioValuesFeed.addressAtIndexInSet(storeLengthBefore.sub(1))
+			const ffExpiration = (await portfolioValuesFeed.storesForAddress(addressAtIndexLast)).optionSeries.expiration
+			increaseTo(ffExpiration.add(100))
+		})
+		it("SUCCEEDS: Cleans all expired options", async () => {
+			const originalLength = await portfolioValuesFeed.addressSetLength()
+			await portfolioValuesFeed.syncLooper()
+			const newLength = await portfolioValuesFeed.addressSetLength()
+			expect(originalLength.sub(noOfStrikes*2)).to.equal(newLength)
+		})
 	})
-	describe("Expire some of the options OTM and try a fulfill", async () => {
+	describe("Expire some of the options and try a fulfill without first cleaning", async () => {
+	it("SETUP: fastforward 3 days so options have expired", async () => {
+		const storeLengthBefore = await portfolioValuesFeed.addressSetLength()
+		const addressAtIndexLast = await portfolioValuesFeed.addressAtIndexInSet(10)
+		const ffExpiration = (await portfolioValuesFeed.storesForAddress(addressAtIndexLast)).optionSeries.expiration
+		increaseTo(ffExpiration.add(100))
 	})
+	it("FAILS: Fulfill fails because of expired options not cleaned", async () => {
+		await expect(portfolioValuesFeed.fulfill(weth.address, usd.address)).to.be.revertedWith('OptionHasExpiredInStores(10, "0x46C14EE9ACF2872F80b5b1242C70AF2CFE4c862C")')
+	})
+	it("SUCCEEDS: Cleans all expired options", async () => {
+		const originalLength = await portfolioValuesFeed.addressSetLength()
+		await portfolioValuesFeed.syncLooper()
+		const newLength = await portfolioValuesFeed.addressSetLength()
+		expect(originalLength.sub(noOfStrikes)).to.equal(newLength)
+	})
+	it("SUCCEEDS: Fulfills correctly", async () => {
+		const addressSet = await portfolioValuesFeed.getAddressSet()
+		predictedDelta = BigNumber.from(0)
+		predictedQuote = BigNumber.from(0)
+		for (let i = 0; i < addressSet.length; i++) {
+			const stores = await portfolioValuesFeed.storesForAddress(addressSet[i])
+			const proposedSeries = {
+				expiration: Number(stores.optionSeries.expiration),
+				strike: stores.optionSeries.strike,
+				isPut: stores.optionSeries.isPut,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			predictedDelta = predictedDelta.add(await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, stores.amount, true))
+			predictedQuote = predictedQuote.add((toWei((await getBlackScholesQuote(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, stores.amount, false)).toString())))
+		}
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
+		const pVs = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
+		expect(tFormatEth(pVs.delta) - tFormatEth(predictedDelta)).to.be.within(-0.1, 0.1)
+		expect(tFormatEth(pVs.callPutsValue) - tFormatEth(predictedQuote)).to.be.within(-0.1, 0.1)
+	})
+})
 })

@@ -324,7 +324,7 @@ export async function calculateOptionDeltaLocally(
 		opType
 	)
 	localDelta = isShort ? -localDelta : localDelta
-	return toWei(localDelta.toString()).mul(amount).div(toWei("1"))
+	return toWei(localDelta.toFixed(18).toString()).mul(amount).div(toWei("1"))
 }
 
 export async function getBlackScholesQuote(

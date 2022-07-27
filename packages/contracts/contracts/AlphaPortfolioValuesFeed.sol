@@ -14,15 +14,9 @@ import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 import "hardhat/console.sol";
 
-// TODO:
-// - deal with ITM expired options
-// - get the opyn expired price and figure out how to check if a vault was settled
-// - get the decimals sorted
-// - break up the for loops
-
 /**
- * @title The PortfolioValuesFeed contract
- * @notice An external adapter Consumer contract that makes requests to obtain portfolio values for different pools
+ * @title The AlphaPortfolioValuesFeed contract
+ * @notice Options portfolio storage and calculations
  */
 contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	using EnumerableSet for EnumerableSet.AddressSet;
@@ -83,8 +77,10 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		address seriesAddress
 	);
 
+	error OptionHasExpiredInStores(uint256 index, address seriesAddress);
 	error IncorrectSeriesToRemove();
 	error SeriesNotExpired();
+	
 	/**
 	 * @notice Executes once when a contract is created to initialize state variables
 	 *
@@ -135,6 +131,8 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	/**
 	 * @notice Fulfills the portfolio delta and portfolio value by doing a for loop over the stores.  This is then used to
 	 *         update the portfolio values for external contracts to know what the liquidity pool's value is
+	 *		   1/ Make sure any expired options are settled, otherwise this fulfillment will fail
+	 *		   2/ Once the addressSet is cleared of any 
 	 * @param _underlying - response; underlying address
 	 * @param _strikeAsset - response; strike address
 	 */
@@ -151,6 +149,9 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		for (uint i=0; i < lengthAddy; i++) {
 			// get series
 			OptionStores memory _optionStores = storesForAddress[addressSet.at(i)];
+			// check if the series has expired, if it has then flag this, 
+			// before retrying, settle all expired options and then clean the looper
+			if (_optionStores.optionSeries.expiration < block.timestamp) {revert OptionHasExpiredInStores(i, addressSet.at(i));}
 			// get the vol
 			uint256 vol = VolatilityFeed(volFeed).getImpliedVolatility(
 				_optionStores.optionSeries.isPut, 
@@ -167,8 +168,6 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 				rfr, 
 				_optionStores.optionSeries.isPut
 				);
-			console.log(uint256(-delta), uint256(_optionStores.amount));
-			console.log(spotPrice, _optionStores.optionSeries.strike);
 			// increment the deltas by adding if the option is long and subtracting if the option is short
 			delta -= _delta * _optionStores.amount / 1e18 ;
 			// increment the values by subtracting if the option is long (as this represents liabilities in the liquidity pool) and adding if the option is short as this value
@@ -193,8 +192,8 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 
 	/**
 	 * @notice Updates the option series stores to be used for portfolio value calculation
-	 * @param _optionSeries the option series that was created
-	 * @param _amount the number of options being minted
+	 * @param _optionSeries the option series that was created, strike in e18
+	 * @param _amount the number of options being minted in e18
 	 * @param _isLong whether the option being stored is a long or short position
 	 * @param _seriesAddress the address of the series represented by the oToken
 	 * @dev   callable by the handler and also during migration
@@ -282,16 +281,16 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	  *   8/ Change the PortfolioValuesFeed in the Protocol contract via Governance
       */ 
 	////////////////////////////////////////////////////////////////////////////////////////////
-	uint256 private lastLoopIndex;
+
 	/**
 	  * @notice migrate all stored options data to a new contract that has the IPortfolioValuesFeed interface
 	  * @param  _migrateContract the new portfolio values feed contract to migrate option values too
 	  * @dev 	FOLLOW THE MIGRATION PROCESS INSTRUCTIONS WHEN CALLING THIS FUNCTION
 	  */
-	function migrate(IPortfolioValuesFeed _migrateContract, uint256 loopSize) external {
+	function migrate(IPortfolioValuesFeed _migrateContract) external {
 		_onlyGovernor();
-		uint lengthAddy = addressSet.length() > loopSize ? loopSize : addressSet.length();
-		for (uint i=lastLoopIndex; i < lengthAddy; i++) {
+		uint lengthAddy = addressSet.length();
+		for (uint i=0; i < lengthAddy; i++) {
 			address oTokenAddy = addressSet.at(i);
 			OptionStores memory _optionStores = storesForAddress[oTokenAddy];
 			uint256 unsignedAmount = _optionStores.amount > 0 ? uint256(_optionStores.amount) : uint256(-_optionStores.amount);
@@ -302,7 +301,6 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 				oTokenAddy
 				);
 		}
-		if (i == addressSet.length()) {lastLoopIndex = 0;}
 	} 
 
 	/////////////////////////////////////////////
