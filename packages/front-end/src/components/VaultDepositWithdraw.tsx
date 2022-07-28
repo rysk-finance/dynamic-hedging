@@ -12,11 +12,13 @@ import {
 } from "../config/constants";
 import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
+import { useQueryParams } from "../hooks/useQueryParams";
 import { useGlobalContext } from "../state/GlobalContext";
 import { DepositReceipt, Events, WithdrawalReceipt } from "../types";
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
 import { RadioButtonSlider } from "./shared/RadioButtonSlider";
 import { TextInput } from "./shared/TextInput";
+import { UserPosition } from "./UserPosition";
 
 enum Mode {
   DEPOSIT = "Deposit",
@@ -39,6 +41,8 @@ export const VaultDepositWithdraw = () => {
   const {
     state: { settings },
   } = useGlobalContext();
+
+  const queryParams = useQueryParams();
 
   // UI State
   const [mode, setMode] = useState<Mode>(Mode.DEPOSIT);
@@ -70,6 +74,13 @@ export const VaultDepositWithdraw = () => {
   const [approvalState, setApprovalState] = useState<Events["Approval"] | null>(
     null
   );
+
+  useEffect(() => {
+    const type = queryParams.get("type");
+    if (type && type === "withdraw") {
+      setMode(Mode.WITHDRAW);
+    }
+  }, [queryParams]);
 
   const initiateWithdrawDisabled =
     withdrawalReceipt && withdrawalReceipt.shares._hex !== ZERO_UINT_256;
@@ -355,14 +366,7 @@ export const VaultDepositWithdraw = () => {
     <div className="flex-col items-center justify-between h-full">
       <div className="px-4 py-4 border-b-2 border-black flex items-center justify-end">
         <div className="w-fit h-full flex items-center">
-          <RequiresWalletConnection className="h-8 w-32">
-            <h4>
-              <b>
-                Shares:{" "}
-                {redeemedShares?.div(BIG_NUMBER_DECIMALS.RYSK).toString()} RYSK
-              </b>
-            </h4>
-          </RequiresWalletConnection>
+          <UserPosition />
         </div>
       </div>
       <div className="flex border-b-2 border-black">
@@ -473,9 +477,9 @@ export const VaultDepositWithdraw = () => {
                               <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
                                 {/* TODO(HC): Determine what this copy should be. */}
                                 <p>
-                                  Your USDC will be availale to redeem as shares
-                                  during our weekly strategy every Friday at
-                                  11am UTC
+                                  Your USDC will be available to redeem as
+                                  shares during our weekly strategy every Friday
+                                  at 11am UTC
                                 </p>
                               </div>
                             </div>

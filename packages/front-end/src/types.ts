@@ -64,6 +64,21 @@ export type OptionSeries = {
   collateral: Address;
 };
 
+export type Order = {
+  optionSeries: OptionSeries;
+  amount: BigNumber;
+  price: BigNumber;
+  orderExpiry: BigNumber;
+  buyer: Address;
+  seriesAddress: Address;
+};
+
 export type Events = {
   Approval: { owner: Address; spender: Address; value: BigNumber };
 };
+
+export enum Currency {
+  USDC = "USDC",
+  RYSK = "RYSK",
+  OPYN = "OPYN",
+}
