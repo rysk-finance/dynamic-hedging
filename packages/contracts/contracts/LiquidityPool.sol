@@ -95,11 +95,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	uint256 public maxPriceDeviationThreshold;
 	// variables relating to the utilization skew function:
 	// the gradient of the function where utiization is below function threshold. e18
-	uint256 public belowThresholdGradient = 1e17; // 0.1
+	uint256 public belowThresholdGradient = 0; // 0.1
 	// the gradient of the line above the utilization threshold. e18
-	uint256 public aboveThresholdGradient = 15e17; // 1.5
+	uint256 public aboveThresholdGradient = 1e18; // 1
 	// the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold.  Will always be negative but enter the absolute value
-	uint256 public aboveThresholdYIntercept = 84e16; //-0.84
+	uint256 public aboveThresholdYIntercept = 6e17; //-0.6
 	// the percentage utilization above which the function moves from its shallow line to its steep line. e18
 	uint256 public utilizationFunctionThreshold = 6e17; // 60%
 	// keeper mapping
