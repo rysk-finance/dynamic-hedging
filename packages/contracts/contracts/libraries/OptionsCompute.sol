@@ -64,7 +64,7 @@ library OptionsCompute {
 			pC = ((n - o) * 1e18) / o;
 		} else {
 			pC = ((o - n) * 1e18) / o;
-        }
+		}
 	}
 
 	/**
