@@ -61,9 +61,9 @@ library OptionsCompute {
 		// if new < old then its a percentage decrease so do:
 		// ((old - new) * 1e18) / old
 		if (n > o) {
-			pC = ((n - o) * 1e18) / o;
+			pC = (n - o).div(o);
 		} else {
-			pC = ((o - n) * 1e18) / o;
+			pC = (o - n).div(o);
 		}
 	}
 
