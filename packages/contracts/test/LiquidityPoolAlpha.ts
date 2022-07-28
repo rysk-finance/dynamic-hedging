@@ -169,7 +169,7 @@ const PUT_FLAVOR = true
 // test ITM option when expired and settled and removed
 // test OTM option when expired and settled and removed
 
-describe("Liquidity Pools", async () => {
+describe("Liquidity Pool with alpha tests", async () => {
 	before(async function () {
 		await hre.network.provider.request({
 			method: "hardhat_reset",
@@ -254,21 +254,6 @@ describe("Liquidity Pools", async () => {
 		await usdWhaleConnect.transfer(senderAddress, toUSDC("1000000"))
 		await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
 	})
-	it("Succeeds: sets utilization skew params correctly", async () => {
-		const oldBelowThesholdGradient = await liquidityPool.belowThresholdGradient()
-		const oldAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
-		const oldAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
-		const oldUtilizationThreshold = await liquidityPool.utilizationFunctionThreshold()
-		await liquidityPool.setUtilizationSkewParams(toWei("0.1"), toWei("1.5"), toWei("0.6"))
-		const newBelowThesholdGradient = await liquidityPool.belowThresholdGradient()
-		const newAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
-		const newAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
-		const newUtilizationThreshold = await liquidityPool.utilizationFunctionThreshold()
-		expect(newBelowThesholdGradient).to.eq(oldBelowThesholdGradient)
-		expect(newAboveThesholdGradient).to.eq(oldAboveThesholdGradient)
-		expect(newUtilizationThreshold).to.eq(oldUtilizationThreshold)
-		expect(newAboveThesholdYIntercept).to.eq(oldAboveThesholdYIntercept)
-	})
 	it("Succeeds: User 1: Deposit to the liquidityPool", async () => {
 		const user = senderAddress
 		const usdBalanceBefore = await usd.balanceOf(user)
@@ -310,7 +295,6 @@ describe("Liquidity Pools", async () => {
 		expect(depositReceiptAfter.unredeemedShares).to.equal(0)
 	})
 	it("Succeeds: pauses trading", async () => {
-		console.log("t")
 		await liquidityPool.pauseTradingAndRequest()
 		expect(await liquidityPool.isTradingPaused()).to.be.true
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -330,179 +314,11 @@ describe("Liquidity Pools", async () => {
 		expect(await liquidityPool.epoch()).to.equal(epochBefore.add(1))
 		expect(pendingDepositBefore.mul(collatDecimalShift)).to.equal(lplpBalanceAfter)
 	})
-	it("deploys the hedging reactor", async () => {
-		const uniswapV3HedgingReactorFactory = await ethers.getContractFactory(
-			"UniswapV3HedgingReactor",
-			{
-				signer: signers[0]
-			}
-		)
-
-		uniswapV3HedgingReactor = (await uniswapV3HedgingReactorFactory.deploy(
-			UNISWAP_V3_SWAP_ROUTER[chainId],
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			liquidityPool.address,
-			3000,
-			priceFeed.address,
-			authority
-		)) as UniswapV3HedgingReactor
-
-		expect(uniswapV3HedgingReactor).to.have.property("hedgeDelta")
-	})
-	it("sets reactor address on LP contract", async () => {
-		const reactorAddress = uniswapV3HedgingReactor.address
-
-		await liquidityPool.setHedgingReactorAddress(reactorAddress)
-
-		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
-	})
-	it("Returns a quote for a ETH/USD put with utilization", async () => {
-		const amount = toWei("5")
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike))
-		const optionSeries = {
-			expiration: expiration,
-			strike: strikePrice,
-			isPut: PUT_FLAVOR,
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-
-		const localQuote = await calculateOptionQuoteLocally(
-			liquidityPool,
-			optionRegistry,
-			usd,
-			priceFeed,
-			optionSeries,
-			amount,
-			false
-		)
-
-		const quote = (
-			await liquidityPool.quotePriceWithUtilizationGreeks(
-				{
-					expiration: expiration,
-					strike: BigNumber.from(strikePrice),
-					isPut: PUT_FLAVOR,
-					strikeAsset: usd.address,
-					underlying: weth.address,
-					collateral: usd.address
-				},
-				amount,
-				false
-			)
-		)[0]
-		const truncQuote = truncate(localQuote)
-		const chainQuote = tFormatEth(quote.toString())
-		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 0.1)
-	})
-
-	it("Returns a quote for a ETH/USD put to buy", async () => {
-		const thirtyPercentStr = "0.3"
-		const thirtyPercent = toWei(thirtyPercentStr)
-		await liquidityPool.setBidAskSpread(thirtyPercent)
-		const amount = toWei("1")
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike))
-		const optionSeries = {
-			expiration: expiration,
-			strike: strikePrice,
-			isPut: PUT_FLAVOR,
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-
-		const localQuote = await calculateOptionQuoteLocally(
-			liquidityPool,
-			optionRegistry,
-			usd,
-			priceFeed,
-			optionSeries,
-			amount,
-			true
-		)
-
-		const buyQuotes = await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
-		const buyQuote = buyQuotes[0]
-		const truncQuote = truncate(localQuote)
-		const chainQuote = tFormatEth(buyQuote.toString())
-		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 0.1)
-	})
 	it("can compute portfolio delta", async function () {
 		const delta = await liquidityPool.getPortfolioDelta()
 		// no options have been written yet
 		expect(delta).to.equal(0)
 	})
-	it("adds address to the buyback whitelist", async () => {
-		await expect(await handler.buybackWhitelist(senderAddress)).to.be.false
-		await handler.addOrRemoveBuybackAddress(senderAddress, true)
-		await expect(await handler.buybackWhitelist(senderAddress)).to.be.true
-	})
-	it("reverts when non-admin calls rebalance function", async () => {
-		const delta = await liquidityPool.getPortfolioDelta()
-		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
-	})
-	it("reverts when rebalance delta too small", async () => {
-		const delta = await liquidityPool.getPortfolioDelta()
-		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(toWei("0.00001"), 0)).to.be
-			.reverted
-	})
-	it("returns zero when hedging positive delta when reactor has no funds", async () => {
-		const delta = await liquidityPool.getPortfolioDelta()
-		const reactorDelta = await uniswapV3HedgingReactor.internalDelta()
-		await liquidityPool.rebalancePortfolioDelta(delta, 0)
-		const newReactorDelta = await uniswapV3HedgingReactor.internalDelta()
-		const newDelta = await liquidityPool.getPortfolioDelta()
-		expect(reactorDelta).to.equal(newReactorDelta).to.equal(0)
-		expect(newDelta.sub(delta)).to.be.within(0, 1e13)
-	})
-
-	it("Returns a quote for ETH/USD call with utilization", async () => {
-		const amount = toWei("5")
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.add(toWei(strike))
-		const optionSeries = {
-			expiration: expiration,
-			strike: strikePrice,
-			isPut: CALL_FLAVOR,
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-		const localQuote = await calculateOptionQuoteLocally(
-			liquidityPool,
-			optionRegistry,
-			usd,
-			priceFeed,
-			optionSeries,
-			amount
-		)
-
-		const quote = (
-			await liquidityPool.quotePriceWithUtilizationGreeks(
-				{
-					expiration: expiration,
-					isPut: CALL_FLAVOR,
-					strike: BigNumber.from(strikePrice),
-					strikeAsset: usd.address,
-					underlying: weth.address,
-					collateral: usd.address
-				},
-				amount,
-				false
-			)
-		)[0]
-		const truncQuote = truncate(localQuote)
-		const chainQuote = tFormatEth(quote.toString())
-		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 0.1)
-	})
-
 	let optionToken: IOToken
 	let customOrderPrice: number
 	let customOrderId: number
@@ -1394,24 +1210,6 @@ describe("Liquidity Pools", async () => {
 			"CustomOrderInsufficientPrice()"
 		)
 	})
-
-	it("Can compute IV from volatility skew coefs", async () => {
-		const coefs: BigNumberish[] = [
-			1.42180236,
-			0,
-			-0.08626792,
-			0.07873822,
-			0.00650549,
-			0.02160918,
-			-0.1393287
-		].map(x => toWei(x.toString()))
-		const points = [-0.36556715, 0.59115575].map(x => toWei(x.toString()))
-		const expected_iv = 1.4473946
-		//@ts-ignore
-		const res = await volatility.computeIVFromSkewInts(coefs, points)
-		expect(tFormatEth(res)).to.eq(truncate(expected_iv))
-	})
-
 	it("Succeeds: User 2: Deposit to the liquidityPool", async () => {
 		const user = receiverAddress
 		const usdBalanceBefore = await usd.balanceOf(user)
@@ -1558,181 +1356,7 @@ describe("Liquidity Pools", async () => {
 		expect(withdrawalReceiptAfter.shares).to.equal(lpBalanceBefore.div(2))
 		expect(withdrawalReceiptBefore.shares).to.equal(0)
 	})
-	it("pauses and unpauses LP contract", async () => {
-		await usd.approve(liquidityPool.address, toUSDC("200"))
-		await liquidityPool.deposit(toUSDC("100"))
-		await liquidityPool.pause()
-		await expect(liquidityPool.deposit(toUSDC("100"))).to.be.revertedWith("Pausable: paused")
-		await liquidityPool.unpause()
-	})
-	it("updates option params with setter", async () => {
-		await liquidityPool.setNewOptionParams(
-			utils.parseEther("700"),
-			utils.parseEther("12000"),
-			utils.parseEther("200"),
-			utils.parseEther("6000"),
-			86400 * 3,
-			86400 * 365
-		)
-
-		const minCallStrikePrice = (await liquidityPool.optionParams()).minCallStrikePrice
-		const maxCallStrikePrice = (await liquidityPool.optionParams()).maxCallStrikePrice
-		const minPutStrikePrice = (await liquidityPool.optionParams()).minPutStrikePrice
-		const maxPutStrikePrice = (await liquidityPool.optionParams()).maxPutStrikePrice
-		const minExpiry = (await liquidityPool.optionParams()).minExpiry
-		const maxExpiry = (await liquidityPool.optionParams()).maxExpiry
-
-		expect(minCallStrikePrice).to.equal(utils.parseEther("700"))
-		expect(maxCallStrikePrice).to.equal(utils.parseEther("12000"))
-		expect(minPutStrikePrice).to.equal(utils.parseEther("200"))
-		expect(maxPutStrikePrice).to.equal(utils.parseEther("6000"))
-		expect(minExpiry).to.equal(86400 * 3)
-		expect(maxExpiry).to.equal(86400 * 365)
-	})
-
-	it("adds and deletes a hedging reactor address", async () => {
-		const reactorAddress = uniswapV3HedgingReactor.address
-
-		const hedgingReactorBefore = await liquidityPool.hedgingReactors(0)
-		// check hedging reactor exists in array
-		expect(parseInt(hedgingReactorBefore, 16)).to.not.eq(0x0)
-		await liquidityPool.removeHedgingReactorAddress(0, false)
-		// check no hedging reactors exist
-		await expect(liquidityPool.hedgingReactors(0)).to.be.reverted
-		// restore hedging reactor
-		await liquidityPool.setHedgingReactorAddress(reactorAddress)
-		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
-
-		await liquidityPool.setHedgingReactorAddress(ETH_ADDRESS)
-		await liquidityPool.setHedgingReactorAddress(ETH_ADDRESS)
-
-		// check added addresses show
-		expect(await liquidityPool.hedgingReactors(2)).to.equal(ETH_ADDRESS)
-		// delete two added reactors
-		// should remove middle element (element 1)
-		await liquidityPool.removeHedgingReactorAddress(1, true)
-		// should remove last element (elements 1)
-		await liquidityPool.removeHedgingReactorAddress(1, true)
-		expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
-		await expect(liquidityPool.hedgingReactors(1)).to.be.reverted
-	})
-	it("sets new custom order bounds", async () => {
-		const customOrderBoundsBefore = await handler.customOrderBounds()
-
-		await handler.setCustomOrderBounds(
-			BigNumber.from(0),
-			utils.parseEther("0.3"),
-			utils.parseEther("-0.3"),
-			utils.parseEther("-0.05"),
-			BigNumber.from(800)
-		)
-
-		const customOrderBoundsAfter = await handler.customOrderBounds()
-
-		expect(customOrderBoundsAfter).to.not.eq(customOrderBoundsBefore)
-		expect(customOrderBoundsAfter.callMaxDelta).to.equal(utils.parseEther("0.3"))
-		expect(customOrderBoundsAfter.putMinDelta).to.equal(utils.parseEther("-0.3"))
-		expect(customOrderBoundsAfter.putMaxDelta).to.equal(utils.parseEther("-0.05"))
-		expect(customOrderBoundsAfter.maxPriceRange).to.equal(800)
-	})
-	it("updates collateralCap variable", async () => {
-		const beforeValue = await liquidityPool.collateralCap()
-		const expectedValue = toWei("1000000000000000")
-		await liquidityPool.setCollateralCap(expectedValue)
-		const afterValue = await liquidityPool.collateralCap()
-		expect(afterValue).to.eq(expectedValue)
-		expect(afterValue).to.not.eq(beforeValue)
-	})
-	it("updates maxDiscount variable", async () => {
-		const beforeValue = await liquidityPool.maxDiscount()
-		const expectedValue = toWei("2")
-		await liquidityPool.setMaxDiscount(expectedValue)
-		const afterValue = await liquidityPool.maxDiscount()
-		expect(afterValue).to.eq(expectedValue)
-		expect(afterValue).to.not.eq(beforeValue)
-	})
-	it("updates bufferPercentage variable", async () => {
-		const beforeValue = await liquidityPool.bufferPercentage()
-		expect(beforeValue).to.equal(2000)
-		const expectedValue = 1500
-		await liquidityPool.setBufferPercentage(expectedValue)
-		const afterValue = await liquidityPool.bufferPercentage()
-		expect(afterValue).to.eq(expectedValue)
-		expect(afterValue).to.not.eq(beforeValue)
-	})
-	it("updates riskFreeRate variable", async () => {
-		const beforeValue = await liquidityPool.riskFreeRate()
-		expect(beforeValue).to.equal(toWei("0.03"))
-		const expectedValue = toWei("0.06")
-		await liquidityPool.setRiskFreeRate(expectedValue)
-		const afterValue = await liquidityPool.riskFreeRate()
-		expect(afterValue).to.eq(expectedValue)
-		expect(afterValue).to.not.eq(beforeValue)
-	})
-	it("sets new utilization skew params", async () => {
-		await liquidityPool.setUtilizationSkewParams(toWei("0.05"), toWei("2"), toWei("0.7"))
-		const newBelowThesholdGradient = await liquidityPool.belowThresholdGradient()
-		const newAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
-		const newAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
-		const newUtilizationThreshold = await liquidityPool.utilizationFunctionThreshold()
-		expect(newBelowThesholdGradient).to.eq(toWei("0.05"))
-		expect(newAboveThesholdGradient).to.eq(toWei("2"))
-		expect(newUtilizationThreshold).to.eq(toWei("0.7"))
-		const expectedYIntercept = -0.7 * (0.05 - 2)
-		expect(newAboveThesholdYIntercept).to.eq(toWei(expectedYIntercept.toString()))
-	})
-	it("pauses trading", async () => {
-		await liquidityPool.pauseUnpauseTrading(true)
-		expect(await liquidityPool.isTradingPaused()).to.be.true
-		await liquidityPool.pauseUnpauseTrading(false)
-		expect(await liquidityPool.isTradingPaused()).to.be.false
-	})
 	it("handler-only functions in Liquidity pool revert if not called by handler", async () => {
 		await expect(liquidityPool.resetEphemeralValues()).to.be.reverted
-	})
-	it("returns a volatility skew", async () => {
-		type int7 = [
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish
-		]
-		type number7 = [number, number, number, number, number, number, number]
-		const coefInts: number7 = [
-			1.42180236,
-			0,
-			-0.08626792,
-			0.07873822,
-			0.00650549,
-			0.02160918,
-			-0.1393287
-		]
-		//@ts-ignore
-		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		const putVol = await volFeed.getVolatilitySkew(true)
-		const callVol = await volFeed.getVolatilitySkew(false)
-		expect(putVol[0]).to.eq(coefs[0])
-		expect(putVol[1]).to.eq(coefs[1])
-		expect(putVol[2]).to.eq(coefs[2])
-		expect(putVol[3]).to.eq(coefs[3])
-		expect(putVol[4]).to.eq(coefs[4])
-		expect(putVol[5]).to.eq(coefs[5])
-		expect(putVol[6]).to.eq(coefs[6])
-		expect(callVol[1]).to.eq(coefs[1])
-		expect(callVol[2]).to.eq(coefs[2])
-		expect(callVol[3]).to.eq(coefs[3])
-		expect(callVol[4]).to.eq(coefs[4])
-		expect(callVol[5]).to.eq(coefs[5])
-		expect(callVol[6]).to.eq(coefs[6])
-	})
-	// have as final test as this just sets things wrong
-	it("protocol changes feeds", async () => {
-		await optionProtocol.changePortfolioValuesFeed(priceFeed.address)
-		await optionProtocol.changeVolatilityFeed(priceFeed.address)
-		expect(await optionProtocol.portfolioValuesFeed()).to.eq(priceFeed.address)
-		expect(await optionProtocol.volatilityFeed()).to.eq(priceFeed.address)
 	})
 })

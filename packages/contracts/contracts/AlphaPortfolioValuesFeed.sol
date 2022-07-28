@@ -12,7 +12,6 @@ import "./libraries/EnumerableSet.sol";
 
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
-import "hardhat/console.sol";
 
 /**
  * @title The AlphaPortfolioValuesFeed contract
@@ -124,10 +123,6 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		handler[_handler] = _auth;
 	}
 
-	//////////////////////////////////////////////////////
-	/// access-controlled state changing functionality ///
-	//////////////////////////////////////////////////////
-
 	/**
 	 * @notice Fulfills the portfolio delta and portfolio value by doing a for loop over the stores.  This is then used to
 	 *         update the portfolio values for external contracts to know what the liquidity pool's value is
@@ -189,6 +184,10 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		liquidityPool.resetEphemeralValues();
 		emit DataFullfilled(_underlying, _strikeAsset, delta, 0, 0, 0, callPutsValue);
 	}
+
+	//////////////////////////////////////////////////////
+	/// access-controlled state changing functionality ///
+	//////////////////////////////////////////////////////
 
 	/**
 	 * @notice Updates the option series stores to be used for portfolio value calculation
@@ -315,7 +314,6 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		external
 		returns (bytes32 id)
 	{
-		_isKeeper();
 		emit RequestedUpdate(_underlying, _strike);
 	}
 
