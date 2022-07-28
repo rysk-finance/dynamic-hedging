@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
+import "prb-math/contracts/PRBMathUD60x18.sol";
+import "prb-math/contracts/PRBMathSD59x18.sol";
+
 import "./libraries/OptionsCompute.sol";
 import "./tokens/ERC20.sol";
+import "hardhat/console.sol";
 
 /**
  *  @title Modular contract used by the liquidity pool to calculate the value of its ERC20 ault token
@@ -10,6 +14,9 @@ import "./tokens/ERC20.sol";
  *  each time the token value is needed.
  */
 contract DhvTokenCalculations {
+	using PRBMathSD59x18 for int256;
+	using PRBMathUD60x18 for uint256;
+
 	// asset that denominates the strike price
 	address public immutable strikeAsset;
 	// asset that is used as the reference asset
@@ -37,12 +44,22 @@ contract DhvTokenCalculations {
 		uint256 collateralAllocated,
 		uint256 pendingDeposits
 	) external view returns (uint256 tokenPrice) {
-		return
-			totalSupply > 0
-				? (1e18 *
-					((assets - liabilities) -
-						OptionsCompute.convertFromDecimals(pendingDeposits, ERC20(collateralAsset).decimals()))) /
-					totalSupply
-				: 1e18;
+		uint256 tokenPriceInitial = totalSupply > 0
+			? (1e18 *
+				((assets - liabilities) -
+					OptionsCompute.convertFromDecimals(pendingDeposits, ERC20(collateralAsset).decimals()))) /
+				totalSupply
+			: 1e18;
+
+		tokenPrice = _utilizationPremium(tokenPriceInitial, collateralAllocated.div(assets));
+		console.log(tokenPriceInitial, tokenPrice, collateralAllocated.div(assets));
+	}
+
+	function _utilizationPremium(uint256 tokenPrice, uint256 utilization)
+		internal
+		pure
+		returns (uint256 utilizationTokenPrice)
+	{
+		return 1e18 - (utilization**8).mul(1e18 / 8);
 	}
 }

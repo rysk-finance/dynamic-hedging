@@ -566,6 +566,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			totalSupply,
 			_getAssets(),
 			_getLiabilities(),
+			collateralAllocated,
 			pendingDeposits
 		);
 		uint256 sharesToMint = _sharesForAmount(pendingDeposits, newPricePerShare);
