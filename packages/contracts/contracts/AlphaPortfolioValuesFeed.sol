@@ -14,7 +14,7 @@ import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 
 /**
- * @title The AlphaPortfolioValuesFeed contract
+ * @title AlphaPortfolioValuesFeed contract
  * @notice Options portfolio storage and calculations
  */
 contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
