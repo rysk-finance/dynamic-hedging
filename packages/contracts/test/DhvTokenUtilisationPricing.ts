@@ -169,7 +169,7 @@ let users
 let maliciousLiquidityProvider: Signer
 let maliciousProviderAddress: string
 
-describe("Liquidity Pools", async () => {
+describe("Dhv Accounting calculations", async () => {
 	before(async function () {
 		await hre.network.provider.request({
 			method: "hardhat_reset",
