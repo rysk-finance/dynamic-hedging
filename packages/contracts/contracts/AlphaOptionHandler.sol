@@ -18,13 +18,11 @@ import "./interfaces/IPortfolioValuesFeed.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 
-import "@openzeppelin/contracts/security/Pausable.sol";
-
 /**
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
  */
-contract AlphaOptionHandler is Pausable, AccessControl, ReentrancyGuard {
+contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
 
@@ -57,10 +55,6 @@ contract AlphaOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 
 	// settings for the limits of a custom order
 	CustomOrderBounds public customOrderBounds = CustomOrderBounds(0, 25e16, -25e16, 0, 1000);
-	// addresses that are whitelisted to sell options back to the protocol
-	mapping(address => bool) public buybackWhitelist;
-	// minimum delta to trigger a request
-	uint256 public minDeltaForRequest = 1e17;
 
 	//////////////////////////
 	/// constant variables ///
@@ -124,32 +118,6 @@ contract AlphaOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		customOrderBounds.putMinDelta = _putMinDelta;
 		customOrderBounds.putMaxDelta = _putMaxDelta;
 		customOrderBounds.maxPriceRange = _maxPriceRange;
-	}
-
-	function pause() external {
-		_onlyGuardian();
-		_pause();
-	}
-
-	function unpause() external {
-		_onlyGuardian();
-		_unpause();
-	}
-
-	/**
-	 * @notice add or remove addresses who have no restrictions on the options they can sell back to the pool
-	 */
-	function addOrRemoveBuybackAddress(address _addressToWhitelist, bool toAdd) external {
-		_onlyGovernor();
-		buybackWhitelist[_addressToWhitelist] = toAdd;
-	}
-
-	/**
-	 * @notice the minimum required delta of the trade to trigger a request
-	 */
-	function setMinDeltaForRequest(uint256 _minDeltaForRequest) external {
-		_onlyGovernor();
-		minDeltaForRequest = _minDeltaForRequest;
 	}
 
 	//////////////////////////////////////////////////////

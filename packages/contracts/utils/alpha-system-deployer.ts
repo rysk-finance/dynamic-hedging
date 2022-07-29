@@ -233,7 +233,7 @@ export async function deployLiquidityPool(
 		weth.address,
 		usd.address,
 	)
-	const handlerFactory = await ethers.getContractFactory("OptionHandler")
+	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
 	const handler = await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,
