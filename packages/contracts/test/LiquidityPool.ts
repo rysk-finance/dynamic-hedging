@@ -252,7 +252,7 @@ describe("Liquidity Pools", async () => {
 		const oldAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
 		const oldAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
 		const oldUtilizationThreshold = await liquidityPool.utilizationFunctionThreshold()
-		await liquidityPool.setUtilizationSkewParams(toWei("0.1"), toWei("1.5"), toWei("0.6"))
+		await liquidityPool.setUtilizationSkewParams(toWei("0.0"), toWei("1"), toWei("0.6"))
 		const newBelowThesholdGradient = await liquidityPool.belowThresholdGradient()
 		const newAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
 		const newAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
