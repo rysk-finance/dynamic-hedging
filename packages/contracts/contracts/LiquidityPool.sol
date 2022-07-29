@@ -4,7 +4,8 @@ pragma solidity >=0.8.0;
 import "./Protocol.sol";
 import "./PriceFeed.sol";
 import "./VolatilityFeed.sol";
-import "./DhvTokenCalculations.sol";
+// import "./DhvTokenCalculations.sol";
+import "./DhvTokenCalculationsUtilisation.sol";
 
 import "./tokens/ERC20.sol";
 import "./utils/ReentrancyGuard.sol";
@@ -1294,8 +1295,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice get the DHV share token calculations contract used by the liquidity pool
 	 * @return the DHV token calculations contract
 	 */
-	function _getDhvTokenCalculations() internal view returns (DhvTokenCalculations) {
-		return DhvTokenCalculations(protocol.dhvTokenCalculations());
+	function _getDhvTokenCalculations() internal view returns (DhvTokenCalculationsUtilisation) {
+		return DhvTokenCalculationsUtilisation(protocol.dhvTokenCalculations());
 	}
 
 	/**

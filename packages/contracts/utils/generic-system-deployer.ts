@@ -28,6 +28,7 @@ import {
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { VolatilityFeed } from "../types/VolatilityFeed"
 import { DhvTokenCalculations } from "../types/DhvTokenCalculations"
+import { DhvTokenCalculationsUtilisation } from "../types/DhvTokenCalculationsUtilisation"
 import { OptionHandler } from "../types/OptionHandler"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -128,12 +129,14 @@ export async function deploySystem(
 		authority.address
 	)) as MockPortfolioValuesFeed
 
-	const dhvTokenCalculationsFactory = await ethers.getContractFactory("DhvTokenCalculations")
-	const dhvTokenCalculations = (await dhvTokenCalculationsFactory.deploy(
+	const DhvTokenCalculationsUtilisationFactory = await ethers.getContractFactory(
+		"DhvTokenCalculationsUtilisation"
+	)
+	const DhvTokenCalculationsUtilisation = (await DhvTokenCalculationsUtilisationFactory.deploy(
 		usd.address,
 		weth.address,
 		usd.address
-	)) as DhvTokenCalculations
+	)) as DhvTokenCalculationsUtilisation
 
 	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
 	const optionProtocol = (await protocolFactory.deploy(
@@ -142,7 +145,7 @@ export async function deploySystem(
 		volFeed.address,
 		portfolioValuesFeed.address,
 		authority.address,
-		dhvTokenCalculations.address
+		DhvTokenCalculationsUtilisation.address
 	)) as Protocol
 	expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 

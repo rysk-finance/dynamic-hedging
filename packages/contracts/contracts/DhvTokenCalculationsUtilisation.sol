@@ -13,7 +13,7 @@ import "hardhat/console.sol";
  *  @dev Has a main external function, calculateTokenPrice() which will be called by the liquidity pool
  *  each time the token value is needed.
  */
-contract DhvTokenCalculations {
+contract DhvTokenCalculationsUtilisation {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
 
@@ -43,7 +43,8 @@ contract DhvTokenCalculations {
 		uint256 liabilities,
 		uint256 collateralAllocated,
 		uint256 pendingDeposits
-	) external view returns (uint256 tokenPrice) {
+	) external returns (uint256 tokenPrice) {
+		console.log("assets:", assets, "collateral allocated", collateralAllocated);
 		uint256 tokenPriceInitial = totalSupply > 0
 			? (1e18 *
 				((assets - liabilities) -
@@ -51,15 +52,18 @@ contract DhvTokenCalculations {
 				totalSupply
 			: 1e18;
 
-		tokenPrice = _utilizationPremium(tokenPriceInitial, collateralAllocated.div(assets));
-		console.log(tokenPriceInitial, tokenPrice, collateralAllocated.div(assets));
+		tokenPrice = _utilizationPremium(tokenPriceInitial, (10**12 * collateralAllocated).div(assets));
+		console.log(tokenPriceInitial, tokenPrice, (10**12 * collateralAllocated).div(assets));
 	}
 
 	function _utilizationPremium(uint256 tokenPrice, uint256 utilization)
 		internal
-		pure
-		returns (uint256 utilizationTokenPrice)
+		returns (
+			// pure
+			uint256 utilizationTokenPrice
+		)
 	{
-		return 1e18 - (utilization**8).mul(1e18 / 8);
+		console.log("tokenPrice:", tokenPrice, "utilization:", utilization);
+		return tokenPrice.mul(1e18 - (utilization.powu(8)).mul(1e18 / 8));
 	}
 }
