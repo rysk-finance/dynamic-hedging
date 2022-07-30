@@ -678,7 +678,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		// reduced the stored share receipt by the shares requested
 		withdrawalReceipts[msg.sender].shares -= uint128(withdrawalShares);
 		// get the withdrawal amount based on the shares and pps at the epoch
-		uint256 withdrawalAmount = _amountForShares(
+		uint256 withdrawalAmount = _getDhvTokenCalculations().amountForShares(
 			withdrawalShares,
 			epochPricePerShare[withdrawalEpoch]
 		);
@@ -1005,39 +1005,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		allowance[address(this)][msg.sender] = toRedeem;
 		// transfer as the shares will have been minted in the epoch execution
 		transferFrom(address(this), msg.sender, toRedeem);
-	}
-
-	/**
-	 * @notice get the number of shares for a given amount
-	 * @param _amount  the amount to convert to shares - assumed in collateral decimals
-	 * @return shares the number of shares based on the amount - assumed in e18
-	 */
-	function _sharesForAmount(uint256 _amount, uint256 assetPerShare)
-		internal
-		view
-		returns (uint256 shares)
-	{
-		uint256 convertedAmount = OptionsCompute.convertFromDecimals(
-			_amount,
-			ERC20(collateralAsset).decimals()
-		);
-		shares = (convertedAmount * PRBMath.SCALE) / assetPerShare;
-	}
-
-	/**
-	 * @notice get the amount for a given number of shares
-	 * @param _shares  the shares to convert to amount in e18
-	 * @return amount the number of amount based on shares in collateral decimals
-	 */
-	function _amountForShares(uint256 _shares, uint256 _assetPerShare)
-		internal
-		view
-		returns (uint256 amount)
-	{
-		amount = OptionsCompute.convertToDecimals(
-			(_shares * _assetPerShare) / PRBMath.SCALE,
-			ERC20(collateralAsset).decimals()
-		);
 	}
 
 	/**

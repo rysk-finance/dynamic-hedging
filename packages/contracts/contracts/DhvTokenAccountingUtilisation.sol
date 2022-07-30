@@ -92,6 +92,22 @@ contract DhvTokenAccountingUtilisation {
 		shares = (convertedAmount * PRBMath.SCALE) / assetPerShare;
 	}
 
+	/**
+	 * @notice get the amount for a given number of shares
+	 * @param _shares  the shares to convert to amount in e18
+	 * @return amount the number of amount based on shares in collateral decimals
+	 */
+	function amountForShares(uint256 _shares, uint256 _assetPerShare)
+		external
+		view
+		returns (uint256 amount)
+	{
+		amount = OptionsCompute.convertToDecimals(
+			(_shares * _assetPerShare) / PRBMath.SCALE,
+			ERC20(collateralAsset).decimals()
+		);
+	}
+
 	function _isLiquidityPool() internal view {
 		if (msg.sender != address(liquidityPool)) {
 			revert CustomErrors.NotLiquidityPool();
