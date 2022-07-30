@@ -5,7 +5,7 @@ import "./Protocol.sol";
 import "./PriceFeed.sol";
 import "./VolatilityFeed.sol";
 // import "./DhvTokenCalculations.sol";
-import "./DhvTokenCalculationsUtilisation.sol";
+import "./DhvTokenAccountingUtilisation.sol";
 
 import "./tokens/ERC20.sol";
 import "./utils/ReentrancyGuard.sol";
@@ -570,7 +570,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			collateralAllocated,
 			pendingDeposits
 		);
-		uint256 sharesToMint = _sharesForAmount(pendingDeposits, newPricePerShare);
+		uint256 sharesToMint = _getDhvTokenCalculations().sharesForAmount(
+			pendingDeposits,
+			newPricePerShare
+		);
 		epochPricePerShare[epoch] = newPricePerShare;
 		delete pendingDeposits;
 		isTradingPaused = false;
@@ -949,7 +952,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint256 unredeemedShares = uint256(depositReceipt.unredeemedShares);
 		// if there is already a receipt from a previous round then acknowledge and record it
 		if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
-			unredeemedShares += _sharesForAmount(
+			unredeemedShares += _getDhvTokenCalculations().sharesForAmount(
 				depositReceipt.amount,
 				epochPricePerShare[depositReceipt.epoch]
 			);
@@ -981,7 +984,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint256 unredeemedShares = uint256(depositReceipt.unredeemedShares);
 		// if there is already a receipt from a previous round then acknowledge and record it
 		if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
-			unredeemedShares += _sharesForAmount(
+			unredeemedShares += _getDhvTokenCalculations().sharesForAmount(
 				depositReceipt.amount,
 				epochPricePerShare[depositReceipt.epoch]
 			);
@@ -1295,8 +1298,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice get the DHV share token calculations contract used by the liquidity pool
 	 * @return the DHV token calculations contract
 	 */
-	function _getDhvTokenCalculations() internal view returns (DhvTokenCalculationsUtilisation) {
-		return DhvTokenCalculationsUtilisation(protocol.dhvTokenCalculations());
+	function _getDhvTokenCalculations() internal view returns (DhvTokenAccountingUtilisation) {
+		return DhvTokenAccountingUtilisation(protocol.dhvTokenCalculations());
 	}
 
 	/**

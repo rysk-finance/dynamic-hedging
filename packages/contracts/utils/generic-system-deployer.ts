@@ -27,8 +27,7 @@ import {
 } from "../test/constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { VolatilityFeed } from "../types/VolatilityFeed"
-import { DhvTokenCalculations } from "../types/DhvTokenCalculations"
-import { DhvTokenCalculationsUtilisation } from "../types/DhvTokenCalculationsUtilisation"
+import { DhvTokenAccountingUtilisation } from "../types/DhvTokenAccountingUtilisation"
 import { OptionHandler } from "../types/OptionHandler"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -129,23 +128,13 @@ export async function deploySystem(
 		authority.address
 	)) as MockPortfolioValuesFeed
 
-	const DhvTokenCalculationsUtilisationFactory = await ethers.getContractFactory(
-		"DhvTokenCalculationsUtilisation"
-	)
-	const DhvTokenCalculationsUtilisation = (await DhvTokenCalculationsUtilisationFactory.deploy(
-		usd.address,
-		weth.address,
-		usd.address
-	)) as DhvTokenCalculationsUtilisation
-
 	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
 	const optionProtocol = (await protocolFactory.deploy(
 		optionRegistry.address,
 		priceFeed.address,
 		volFeed.address,
 		portfolioValuesFeed.address,
-		authority.address,
-		DhvTokenCalculationsUtilisation.address
+		authority.address
 	)) as Protocol
 	expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 
@@ -242,6 +231,16 @@ export async function deployLiquidityPool(
 		BigNumber.from(0),
 		BigNumber.from(0)
 	)
+	const dhvTokenAccountingUtilisationFactory = await ethers.getContractFactory(
+		"DhvTokenAccountingUtilisation"
+	)
+	const dhvTokenAccountingUtilisation = (await dhvTokenAccountingUtilisationFactory.deploy(
+		liquidityPool.address,
+		usd.address,
+		weth.address,
+		usd.address
+	)) as DhvTokenAccountingUtilisation
+	await optionProtocol.changeDhvTokenCalculations(dhvTokenAccountingUtilisation.address)
 	const handlerFactory = await ethers.getContractFactory("OptionHandler")
 	const handler = (await handlerFactory.deploy(
 		authority,

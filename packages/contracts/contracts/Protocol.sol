@@ -27,14 +27,12 @@ contract Protocol is AccessControl {
 		address _priceFeed,
 		address _volatilityFeed,
 		address _portfolioValuesFeed,
-		address _authority,
-		address _dhvTokenCalculations
+		address _authority
 	) AccessControl(IAuthority(_authority)) {
 		optionRegistry = _optionRegistry;
 		priceFeed = _priceFeed;
 		volatilityFeed = _volatilityFeed;
 		portfolioValuesFeed = _portfolioValuesFeed;
-		dhvTokenCalculations = _dhvTokenCalculations;
 	}
 
 	///////////////
