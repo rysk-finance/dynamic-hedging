@@ -66,6 +66,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	mapping(address => WithdrawalReceipt) public withdrawalReceipts;
 	// pending deposits for a round
 	uint256 public pendingDeposits;
+	// pending withdrawals for a round
+	uint256 public pendingWithdrawals;
 
 	/////////////////////////////////////
 	/// governance settable variables ///
@@ -568,7 +570,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			_getAssets(),
 			_getLiabilities(),
 			collateralAllocated,
-			pendingDeposits
+			pendingDeposits,
+			pendingWithdrawals
 		);
 		uint256 sharesToMint = _getDhvTokenCalculations().sharesForAmount(
 			pendingDeposits,
@@ -576,6 +579,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		);
 		epochPricePerShare[epoch] = newPricePerShare;
 		delete pendingDeposits;
+		delete pendingWithdrawals;
 		isTradingPaused = false;
 		emit EpochExecuted(epoch);
 		epoch++;
@@ -650,6 +654,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		}
 
 		withdrawalReceipts[msg.sender].shares = uint128(withdrawalShares);
+		pendingWithdrawals += _shares;
 		transfer(address(this), _shares);
 	}
 

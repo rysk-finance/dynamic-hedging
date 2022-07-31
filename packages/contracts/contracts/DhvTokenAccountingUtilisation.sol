@@ -51,7 +51,8 @@ contract DhvTokenAccountingUtilisation {
 		uint256 assets,
 		uint256 liabilities,
 		uint256 collateralAllocated,
-		uint256 pendingDeposits
+		uint256 pendingDeposits,
+		uint256 pendingWithdrawals
 	) external returns (uint256 tokenPrice) {
 		uint256 tokenPriceInitial = totalSupply > 0
 			? (1e18 *
