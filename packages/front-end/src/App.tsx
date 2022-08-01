@@ -256,24 +256,26 @@ function App() {
       }}
     >
       <GlobalContextProvider>
-        <div className="App min-h-screen bg-bone font-dm-mono">
-          <Header />
-          <div className="pt-16 px-16">
-            <div className="root-grid py-24">
-              <Routes>
-                <Route path={AppPaths.VAULT} element={<Vault />} />
-                <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
-                <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
-                <Route path={AppPaths.OTC} element={<OTC />} />
-              </Routes>
+        <ApolloProvider client={apolloClient}>
+          <div className="App min-h-screen bg-bone font-dm-mono">
+            <Header />
+            <div className="pt-16 px-16">
+              <div className="root-grid py-24">
+                <Routes>
+                  <Route path={AppPaths.VAULT} element={<Vault />} />
+                  <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
+                  <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
+                  <Route path={AppPaths.OTC} element={<OTC />} />
+                </Routes>
+              </div>
             </div>
           </div>
-        </div>
-        <ToastContainer
-          toastClassName="bg-bone rounded-none border-2 border-black font-dm-mono text-black max-w-xl w-fit"
-          hideProgressBar
-          position="bottom-center"
-        />
+          <ToastContainer
+            toastClassName="bg-bone rounded-none border-2 border-black font-dm-mono text-black max-w-xl w-fit"
+            hideProgressBar
+            position="bottom-center"
+          />
+        </ApolloProvider>
       </GlobalContextProvider>
     </WalletContext.Provider>
   );
