@@ -18,7 +18,7 @@ interface IPortfolioValuesFeed {
 		external
 		returns (bytes32 requestId);
 
-	function updateStores(Types.OptionSeries memory _optionSeries, uint256 _amount, bool _isLong, address _seriesAddress) external;
+	function updateStores(Types.OptionSeries memory _optionSeries, int256 _shortExposure, int256 _longExposure, address _seriesAddress) external;
 	
 	///////////////////////////
 	/// non-complex getters ///

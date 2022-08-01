@@ -9,8 +9,12 @@ import "./libraries/BlackScholes.sol";
 import "./libraries/CustomErrors.sol";
 import "./libraries/AccessControl.sol";
 import "./libraries/EnumerableSet.sol";
+import "./libraries/OptionsCompute.sol";
 
+import "./Protocol.sol";
+import "./interfaces/GammaInterface.sol";
 import "./interfaces/ILiquidityPool.sol";
+import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 
 /**
@@ -22,14 +26,15 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 
 	struct OptionStores{
 		Types.OptionSeries optionSeries;
-		int256 amount;
+		int256 shortExposure;
+		int256 longExposure;
 	}
 
 	///////////////////////////
 	/// immutable variables ///
 	///////////////////////////
 
-	uint256 public constant rfr = 3e16;
+	uint256 constant oTokenDecimals = 8;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -45,13 +50,14 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	/// govern settable variables ///
 	/////////////////////////////////
 
-	address public priceFeed;
-	address public volFeed;
+	Protocol public protocol;
 	ILiquidityPool public liquidityPool;
 	// handlers that can push to this contract
 	mapping(address => bool) public handler;
 	// keeper mapping
 	mapping(address => bool) public keeper;
+	// risk free rate
+	uint256 public rfr = 3e16;
 
 	//////////////
 	/// events ///
@@ -71,27 +77,25 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		address _strike
 	);
 	event StoresUpdated(
-		Types.OptionSeries optionSeries,
-		int256 amount,
-		address seriesAddress
+		address seriesAddress,
+		int256 shortExposure,
+		int256 longExposure,
+		Types.OptionSeries optionSeries
 	);
 
 	error OptionHasExpiredInStores(uint256 index, address seriesAddress);
+	error NoVaultForShortPositions();
 	error IncorrectSeriesToRemove();
 	error SeriesNotExpired();
+	error NoShortPositions();
 	
 	/**
 	 * @notice Executes once when a contract is created to initialize state variables
-	 *
+	 *		   Make sure the protocol is configured after deployment
 	 */
 	constructor(
-		address _authority,
-		address _priceFeed,
-		address _volFeed
-	) AccessControl(IAuthority(_authority)) {
-		priceFeed = _priceFeed;
-		volFeed = _volFeed;
-	}
+		address _authority
+	) AccessControl(IAuthority(_authority)) {}
 
 	///////////////
 	/// setters ///
@@ -102,11 +106,15 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		liquidityPool = ILiquidityPool(_liquidityPool);
 	}
 
-	function setPriceFeed(address _priceFeed) external {
+	function setProtocol(address _protocol) external {
 		_onlyGovernor();
-		priceFeed = _priceFeed;
+		protocol = Protocol(_protocol);
 	}
 
+	function setRFR(uint256 _rfr) external {
+		_onlyGovernor();
+		rfr = _rfr;
+	}
 	/**
 	 * @notice change the status of a keeper
 	 */
@@ -140,7 +148,8 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		// get the length of the address set here to save gas on the for loop
 		uint lengthAddy = addressSet.length();
 		// get the spot price
-		uint256 spotPrice = PriceFeed(priceFeed).getNormalizedRate(_underlying, _strikeAsset);
+		uint256 spotPrice = _getUnderlyingPrice(_underlying, _strikeAsset);
+		VolatilityFeed volFeed = _getVolatilityFeed();
 		for (uint i=0; i < lengthAddy; i++) {
 			// get series
 			OptionStores memory _optionStores = storesForAddress[addressSet.at(i)];
@@ -148,7 +157,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 			// before retrying, settle all expired options and then clean the looper
 			if (_optionStores.optionSeries.expiration < block.timestamp) {revert OptionHasExpiredInStores(i, addressSet.at(i));}
 			// get the vol
-			uint256 vol = VolatilityFeed(volFeed).getImpliedVolatility(
+			uint256 vol = volFeed.getImpliedVolatility(
 				_optionStores.optionSeries.isPut, 
 				spotPrice, 
 				_optionStores.optionSeries.strike, 
@@ -163,11 +172,13 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 				rfr, 
 				_optionStores.optionSeries.isPut
 				);
+			// calculate the net exposure
+			int256 netExposure = _optionStores.shortExposure - _optionStores.longExposure;
 			// increment the deltas by adding if the option is long and subtracting if the option is short
-			delta -= _delta * _optionStores.amount / 1e18 ;
+			delta -= _delta * netExposure / 1e18 ;
 			// increment the values by subtracting if the option is long (as this represents liabilities in the liquidity pool) and adding if the option is short as this value
 			// represents liabilities
-			callPutsValue += int256(_callPutsValue) * _optionStores.amount / 1e18;
+			callPutsValue += int256(_callPutsValue) * netExposure / 1e18;
 		}
 		// update the portfolio values
 		Types.PortfolioValues memory portfolioValue = Types.PortfolioValues({
@@ -192,27 +203,27 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	/**
 	 * @notice Updates the option series stores to be used for portfolio value calculation
 	 * @param _optionSeries the option series that was created, strike in e18
-	 * @param _amount the number of options being minted in e18
-	 * @param _isLong whether the option being stored is a long or short position
+	 * @param shortExposure the amount of short to increment the short exposure by
+	 * @param longExposure the amount of long to increment the long exposure by
 	 * @param _seriesAddress the address of the series represented by the oToken
 	 * @dev   callable by the handler and also during migration
 	 */
 	function updateStores(
 		Types.OptionSeries memory _optionSeries,
-		uint256 _amount,
-		bool _isLong,
+		int256 shortExposure,
+		int256 longExposure,
 		address _seriesAddress
 	) external {
 		_isHandler();
-		int256 signedAmount = _isLong ? -int256(_amount) : int256(_amount);
 		if (!addressSet.contains(_seriesAddress)) {
 			// maybe store them by expiry instead
 			addressSet.add(_seriesAddress);
-			storesForAddress[_seriesAddress] = OptionStores(_optionSeries, signedAmount);
+			storesForAddress[_seriesAddress] = OptionStores(_optionSeries, shortExposure, longExposure);
 		} else {
-			storesForAddress[_seriesAddress].amount += signedAmount;
+			storesForAddress[_seriesAddress].shortExposure += shortExposure;
+			storesForAddress[_seriesAddress].longExposure += longExposure;
 		}
-		emit StoresUpdated(_optionSeries, signedAmount, _seriesAddress);
+		emit StoresUpdated(_seriesAddress, shortExposure, longExposure, _optionSeries);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////
@@ -244,14 +255,12 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	/**
 	  * @notice function to clean an expired series from the portfolio values feed, this function will make sure the series and index match
 	  *			and will also check if the series has expired before any cleaning happens.
-	  * @param  index the index of the option series to clear
 	  * @param  _series the series at the index input above
 	  * @dev 	FOLLOW THE LOOP CLEANING INSTRUCTIONS ABOVE WHEN CALLING THIS FUNCTION
 	  */
-	function cleanLooperManually(uint256 index, address _series) public {
+	function cleanLooperManually(address _series) external {
 		_isKeeper();
-		address series = addressSet.at(index);
-		if (series != _series) {revert IncorrectSeriesToRemove();}
+		if (!addressSet.contains(_series)) {revert IncorrectSeriesToRemove();}
 		if (storesForAddress[_series].optionSeries.expiration > block.timestamp) {revert SeriesNotExpired();}
 		_cleanLooper(_series);
 	}
@@ -265,6 +274,30 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		addressSet.remove(_series);
 		// delete the stores
 		delete storesForAddress[_series];
+	}
+
+	/**
+	  * @notice if a vault has been liquidated we need to account for it, so adjust our short positions to reality
+	  * @param  _series the option series address to be cleared
+	  */
+	function accountLiquidatedSeries(address _series) external {
+		_isKeeper();
+		if (!addressSet.contains(_series)) {revert IncorrectSeriesToRemove();}
+		// get the series
+		OptionStores memory _optionStores = storesForAddress[_series];
+		// check if there are any short positions for this asset
+		if (_optionStores.shortExposure == 0) {revert NoShortPositions();}
+		// get the vault for this option series from the option registry
+		IOptionRegistry optionRegistry = _getOptionRegistry();
+		uint256 vaultId = optionRegistry.vaultIds(_series);
+		// check if a vault id exists for that series
+		if (vaultId == 0) {revert NoVaultForShortPositions();}
+		// get the vault details and reset the short exposure to whatever it is
+		uint256 shortAmounts = OptionsCompute.convertFromDecimals(
+			IController(optionRegistry.gammaController()).getVault(address(optionRegistry), vaultId).shortAmounts[0],
+			oTokenDecimals
+			);
+		storesForAddress[_series].shortExposure = int256(shortAmounts);
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////
@@ -292,11 +325,10 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		for (uint i=0; i < lengthAddy; i++) {
 			address oTokenAddy = addressSet.at(i);
 			OptionStores memory _optionStores = storesForAddress[oTokenAddy];
-			uint256 unsignedAmount = _optionStores.amount > 0 ? uint256(_optionStores.amount) : uint256(-_optionStores.amount);
 			_migrateContract.updateStores(
 				_optionStores.optionSeries, 
-				unsignedAmount, 
-				_optionStores.amount < 0, 
+				_optionStores.shortExposure, 
+				_optionStores.longExposure, 
 				oTokenAddy
 				);
 		}
@@ -358,5 +390,35 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	}
 	function getAddressSet() external view returns (address[] memory) {
 		return addressSet.values();
+	}
+
+		/**
+	 * @notice get the volatility feed used by the liquidity pool
+	 * @return the volatility feed contract interface
+	 */
+	function _getVolatilityFeed() internal view returns (VolatilityFeed) {
+		return VolatilityFeed(protocol.volatilityFeed());
+	}
+
+	/**
+	 * @notice get the option registry used for storing and managing the options
+	 * @return the option registry contract
+	 */
+	function _getOptionRegistry() internal view returns (IOptionRegistry) {
+		return IOptionRegistry(protocol.optionRegistry());
+	}
+
+	/**
+	 * @notice get the underlying price with just the underlying asset and strike asset
+	 * @param underlying   the asset that is used as the reference asset
+	 * @param _strikeAsset the asset that the underlying value is denominated in
+	 * @return the underlying price
+	 */
+	function _getUnderlyingPrice(address underlying, address _strikeAsset)
+		internal
+		view
+		returns (uint256)
+	{
+		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
 }

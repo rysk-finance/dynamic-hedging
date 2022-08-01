@@ -233,10 +233,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			revert CustomErrors.OrderExpired();
 		}
 		// calculate the total premium
-		uint256 premium = (order.amount * order.price) / 1e18;
-
-		/// TODO: Could compute delta but is unnecessary so could potentially leave as 0 to save on gas
-		int256 delta = 0;
+		uint256 premium = order.amount.mul(order.price);
 
 		address collateralAsset_ = collateralAsset;
 		uint256 convertedPrem = OptionsCompute.convertToDecimals(
@@ -257,7 +254,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			order.amount,
 			getOptionRegistry(),
 			convertedPrem,
-			delta,
+			0, 						// delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
 			msg.sender
 		);
 		// convert the strike to e18 decimals for storage
@@ -269,7 +266,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			strikeAsset,
 			collateralAsset
 		);
-		getPortfolioValuesFeed().updateStores(seriesToStore, order.amount, false, order.seriesAddress);
+		getPortfolioValuesFeed().updateStores(seriesToStore, int256(order.amount), 0, order.seriesAddress);
 		emit OrderExecuted(_orderId);
 		// invalidate the order
 		delete orderStores[_orderId];

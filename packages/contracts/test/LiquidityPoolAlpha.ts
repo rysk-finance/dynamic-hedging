@@ -62,6 +62,7 @@ import { deployLiquidityPool, deploySystem } from "../utils/alpha-system-deploye
 import { ERC20Interface } from "../types/ERC20Interface"
 import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
 import { Console } from "console"
+import { AbiCoder } from "ethers/lib/utils"
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: ERC20Interface
@@ -854,7 +855,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
 		})
 	})
-	describe("Create and execute a single buy order", async () => { 
+	describe("Create a buy order and fail to meet order", async () => { 
 		let optionToken: IOToken
 		let customOrderPrice: number
 		let customOrderId: number
@@ -924,6 +925,47 @@ describe("Liquidity Pool with alpha tests", async () => {
 			increaseTo(expiration - 1000)
 			await expect(handler.connect(signers[1]).executeOrder(4)).to.be.revertedWith("OrderExpired()")
 		})
+	})
+	describe("Liquidate a position and update stores, make sure stores update properly", async () => {
+		let value: BigNumber
+		it("SETUP: partially liquidates a vault", async () => {
+			const currentPrice = await oracle.getPrice(weth.address)
+			const settlePrice = currentPrice.sub(toWei("2000").div(oTokenDecimalShift18))
+			await opynAggregator.setLatestAnswer(settlePrice)
+			const vaultDetails = await controller.getVault(optionRegistry.address, 1)
+			value = vaultDetails.shortAmounts[0].div(2)
+			const seriesAddy = await portfolioValuesFeed.addressAtIndexInSet(0)
+			const abiCode = new AbiCoder()
+			const optionToken = new Contract(seriesAddy, Otoken.abi, signers[0]) as IOToken
+
+			const liquidateArgs = [
+				{
+					actionType: 10,
+					owner: optionRegistry.address,
+					secondAddress: senderAddress,
+					asset: seriesAddy,
+					vaultId: 1,
+					amount: value,
+					index: "0",
+					data: abiCode.encode(["uint256"], ["6"])
+				}
+			]
+			await controller.connect(signers[1]).operate(liquidateArgs)
+		})
+		it("SUCCEEDS: sets stores to correct amount of liquidated vault", async () => {
+			const seriesAddy = await portfolioValuesFeed.addressAtIndexInSet(0)
+			const stores = await portfolioValuesFeed.storesForAddress(seriesAddy)
+			await portfolioValuesFeed.accountLiquidatedSeries(seriesAddy)
+			const vaultDetails = await controller.getVault(optionRegistry.address, 1)
+			const holdings = vaultDetails.shortAmounts[0].mul(oTokenDecimalShift18)
+			const storesAft = await portfolioValuesFeed.storesForAddress(seriesAddy)
+			expect(holdings).to.equal(storesAft.shortExposure)
+			expect(stores.shortExposure.sub(value.mul(oTokenDecimalShift18))).to.equal(storesAft.shortExposure)
+		})
+		it("REVERTS: cant account series that isnt stored", async () => {
+			await expect(portfolioValuesFeed.accountLiquidatedSeries(optionRegistry.address)).to.be.revertedWith("IncorrectSeriesToRemove()")
+		})
+	}) 
 	describe("Deposit funds into the liquidityPool and withdraw", async () => {
 		it("SUCCEEDS: User 2: Deposit to the liquidityPool", async () => {
 			const user = receiverAddress
@@ -1072,4 +1114,4 @@ describe("Liquidity Pool with alpha tests", async () => {
 		})
 	})
 })
-})
+

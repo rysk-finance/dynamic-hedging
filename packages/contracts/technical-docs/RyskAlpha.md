@@ -22,19 +22,19 @@ For full details see:
 
 ### `fulfill(address underlying, address strikeAsset) external` *No Access Control*
 
-This function is responsible for doing the calculation for determining the portfolio delta and portfolio valuation. It achieves this by storing all the addresses of series held by the liquidityPool in an addressSet where each address is a key to a mapping that contains details on the option position [option series (with strike in e18) and amount in e18], then looping over all of these and computing the delta and value of each one, then finally summing those to form the portfolio delta and value. 
+This function is responsible for doing the calculation for determining the portfolio delta and portfolio valuation. It achieves this by storing all the addresses of series held by the liquidityPool in an addressSet where each address is a key to a mapping that contains details on the option position [option series (with strike in e18) and amount in e18], then looping over all of these and computing the delta and value of each one, then finally summing those to form the portfolio delta and value. The amount incremented is the netExposure (shortExposure - longExposure)
 
 
 It works by looping through the `addressSet` then searching the `storesForAddress` mapping using the address of the loop. It first checks that the series being calculated has expired, if it has expired the fulfill will revert (the revert will also provide the address and index that it reverted at), what this indicates is that the oToken vault needs to be settled or redeemed and then removed from the loop via `syncLooper` or `cleanLooperManually`. This is done to prevent any miscalculated values of the pool due to expired options, since valuations are done manually and infrequently, this is reasonable to do. After that the volatility is determined from the `VolatilityFeed` and the black scholes delta and value of the option of the loop is determined. These values then increment the portfolioValues. Once the loop is complete, the delta and `portfolioValues` are pushed to storage.
 
 
-### `updateStores(Types.OptionSeries _optionSeries, uint256 _amount, bool _isLong, address _seriesAddress)` *Only Accessible by handlers*
+### `updateStores(Types.OptionSeries _optionSeries, int256 shortExposure, int256 longExposure, address _seriesAddress)` *Only Accessible by handlers*
 
-Update stores is the function that tells the Portfolio values feed any new positions that the liquidity pool has taken on. If the option is long or short it will immediately change the sign of `_amount` to represent this (long is negative, short is positive) [`signedAmount`]. Then the `addressSet` is checked for `_seriesAddress`, if it already exists then just increment the stores of that series by the signedAmount, otherwise add it to the `addressSet` and store the option details in `storesForAddress[_seriesAddress]`.
+Update stores is the function that tells the Portfolio values feed any new positions that the liquidity pool has taken on. Then the `addressSet` is checked for `_seriesAddress`, if it already exists then just increment the stores of that series by the signedAmount, otherwise add it to the `addressSet` and store the option details in `storesForAddress[_seriesAddress]`.
 
 An EnumerableSet.AddressSet by OpenZeppelin is used as it is easier to clean and much easier to search through.
 
-Update stores can theoretically be pushed to by any set of contracts, meaning that a buyside products could also be used and could share the same liquidityPool liquidity and be represented by the same portfolio.
+Update stores can theoretically be pushed to by any set of contracts, meaning that a buyside products could also be used and could share the same liquidityPool liquidity and be represented by the same portfolio. Long exposure and short exposure are updated seperately and they are ints so that reducing positions is easily done via `updateStores`.
 
 ### `syncLooper() external` *Only Accessible by keeper or above*
 
@@ -51,6 +51,10 @@ This function is used to clean out the addressSet of expired options, the purpos
 This is a more manual process, it takes an address and an index. It checks the addressSet at that index. It compares it to the address given, if they are the same then it checks if the option has expired, if it has then it removes the option.
 
 **WARNING: A current danger of this function is that options that have not been settled but are settlable could be removed from the loop, this could result in incorrect counting of the option values. *Thinking through ideas of how to fix this and open to ideas***
+
+### `accountLiquidatedSeries(addressseries) external` *Only Accessible by keeper or above*
+
+This function is used to fix accounting in the stores if a series gets liquidated. This is mostly here to deal with the edge case that a vault does get liquidated. It first checks that the series exists in the stores then it checks that the stores have short exposure, if it does then it will check for the vault id in the option registry, if it exists then we know the liquidity pool had this position. Then in order to match the records of that vault we set the stores to the e18 version of the short amount in that opyn vault, the reason we do not set it to 0 is because partial liquidations are possible. This function would NEED to be called when a liquidation has occured so should be managed by a bot, however it is likely that guardian protocols would have kicked in if a liquidation has occured (protocol has paused).
 
 ### `migrate(_migrateContract) external` *Only Accessible by Governance*
 

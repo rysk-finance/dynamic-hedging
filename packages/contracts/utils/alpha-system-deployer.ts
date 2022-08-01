@@ -134,8 +134,6 @@ export async function deploySystem(
     })
 	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
 		authority.address,
-        priceFeed.address,
-        volFeed.address
 	)) as AlphaPortfolioValuesFeed
 
 	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
@@ -229,6 +227,7 @@ export async function deployLiquidityPool(
 	await liquidityPool.setBidAskSpread(toWei("0.05"))
     await liquidityPool.setKeeper(await signers[0].getAddress(), true)
 	await pvFeed.setLiquidityPool(liquidityPool.address)
+	await pvFeed.setProtocol(optionProtocol.address)
 	await pvFeed.fulfill(
 		weth.address,
 		usd.address,
