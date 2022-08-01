@@ -32,7 +32,8 @@ import { OTC } from "./pages/OTC";
 const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
 const ROPSTEN_RPC_URL = `https://ropsten.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
 const RINKEBY_RPC_URL = `https://rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
-const ARBITRUM_RINKEBY_RPC_URL = `https://arbitrum-rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
+// const ARBITRUM_RINKEBY_RPC_URL = `https://arbitrum-rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
+const ARBITRUM_RINKEBY_RPC_URL = `https://arb-rinkeby.g.alchemy.com/v2/${process.env.REACT_APP_ALCHEMY_KEY}`;
 
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();
