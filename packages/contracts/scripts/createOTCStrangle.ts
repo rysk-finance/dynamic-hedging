@@ -62,7 +62,7 @@ async function main() {
 		const callOption = {
 			expiration: "1661068800",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
-			strike: BigNumber.from("2936").mul(RYSK_DECIMAL),
+			strike: BigNumber.from("2928").mul(RYSK_DECIMAL),
 			isPut: false,
 			underlying: arbitrumRinkeby.WETH,
 			strikeAsset: arbitrumRinkeby.USDC,
@@ -72,7 +72,7 @@ async function main() {
 		const putOption = {
 			expiration: "1661068800",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
-			strike: BigNumber.from("500").mul(RYSK_DECIMAL),
+			strike: BigNumber.from("491").mul(RYSK_DECIMAL),
 			isPut: true,
 			underlying: arbitrumRinkeby.WETH,
 			strikeAsset: arbitrumRinkeby.USDC,
