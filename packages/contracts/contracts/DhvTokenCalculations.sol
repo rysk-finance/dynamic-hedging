@@ -33,14 +33,16 @@ contract DhvTokenCalculations {
 	function calculateTokenPrice(
 		uint256 totalSupply,
 		uint256 assets,
-		uint256 liabilities,
+		int256 liabilities,
 		uint256 collateralAllocated,
 		uint256 pendingDeposits
 	) external view returns (uint256 tokenPrice) {
+		if (int256(assets) < liabilities) {revert CustomErrors.LiabilitiesGreaterThanAssets();}
+		uint256 NAV = uint256((int256(assets) - liabilities));
 		return
 			totalSupply > 0
 				? (1e18 *
-					((assets - liabilities) -
+					(NAV -
 						OptionsCompute.convertFromDecimals(pendingDeposits, ERC20(collateralAsset).decimals()))) /
 					totalSupply
 				: 1e18;

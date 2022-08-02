@@ -1,16 +1,23 @@
 import React from "react";
 
+type ButtonProps = {
+  color?: "white" | "black";
+};
+
 export const Button: React.FC<
   React.DetailedHTMLProps<
     React.ButtonHTMLAttributes<HTMLButtonElement>,
     HTMLButtonElement
-  >
-> = (props) => {
+  > &
+    ButtonProps
+> = ({ color, ...props }) => {
   return (
     <button
       {...props}
-      className={`border-black border-2 bg-white text-md px-2 py-1 ${
-        props.className ?? ""
+      className={`border-black border-2  text-md px-2 py-1 ${
+        color === "black" ? "bg-black text-white" : "bg-white text-black"
+      } ${props.className ?? ""} ${
+        props.disabled ? "!bg-gray-300 cursor-default" : ""
       }`}
     />
   );

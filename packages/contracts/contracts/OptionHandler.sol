@@ -68,6 +68,8 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
+	// custom order maximum time for liveness
+	uint256 private constant maxOrderExpiry = 1800;
 
 	/////////////////////////
 	/// structs && events ///
@@ -164,7 +166,8 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	 * @param _optionSeries the option token series to issue - strike in e18
 	 * @param _amount the number of options to issue - e18
 	 * @param _price the price per unit to issue at - in e18
-	 * @param _orderExpiry the expiry of the order (if past the order is redundant)
+	 * @param _orderExpiry the expiry of the custom order, after which the 
+	 *        buyer cannot use this order (if past the order is redundant)
 	 * @param _buyerAddress the agreed upon buyer address
 	 * @return orderId the unique id of the order
 	 */
@@ -179,7 +182,7 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		if (_price == 0) {
 			revert CustomErrors.InvalidPrice();
 		}
-		if (_orderExpiry > 1800) {
+		if (_orderExpiry > maxOrderExpiry) {
 			revert CustomErrors.OrderExpiryTooLong();
 		}
 		IOptionRegistry optionRegistry = getOptionRegistry();

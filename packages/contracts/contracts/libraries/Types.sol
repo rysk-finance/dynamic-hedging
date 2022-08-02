@@ -15,7 +15,7 @@ library Types {
 		int256 gamma;
 		int256 vega;
 		int256 theta;
-		uint256 callPutsValue;
+		int256 callPutsValue;
 		uint256 timestamp;
 		uint256 spotPrice;
 	}

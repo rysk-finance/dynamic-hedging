@@ -49,14 +49,16 @@ contract DhvTokenAccountingUtilisation {
 	function calculateTokenPrice(
 		uint256 totalSupply,
 		uint256 assets,
-		uint256 liabilities,
+		int256 liabilities,
 		uint256 collateralAllocated,
 		uint256 pendingDeposits,
 		uint256 pendingWithdrawals
 	) external returns (uint256 tokenPrice) {
+		if (int256(assets) < liabilities) {revert CustomErrors.LiabilitiesGreaterThanAssets();}
+		uint256 NAV = uint256((int256(assets) - liabilities));
 		uint256 tokenPriceInitial = totalSupply > 0
 			? (1e18 *
-				((assets - liabilities) -
+				( NAV -
 					OptionsCompute.convertFromDecimals(pendingDeposits, ERC20(collateralAsset).decimals()))) /
 				totalSupply
 			: 1e18;
@@ -66,8 +68,8 @@ contract DhvTokenAccountingUtilisation {
 
 	function _utilizationPremium(uint256 tokenPrice, uint256 utilization)
 		internal
+		pure
 		returns (
-			// pure
 			uint256 utilizationTokenPrice
 		)
 	{

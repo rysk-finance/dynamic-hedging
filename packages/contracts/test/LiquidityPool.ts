@@ -448,7 +448,7 @@ describe("Liquidity Pools", async () => {
 		}
 		await expect(
 			liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
-		).to.be.revertedWith("PriceDeltaExceedsThreshold(35101293340577287)")
+		).to.be.revertedWith("PriceDeltaExceedsThreshold(36378215763291390)")
 	})
 	it("Reverts: Push to price deviation threshold to cause quote to fail other way", async () => {
 		const latestPrice = await priceFeed.getRate(weth.address, usd.address)
@@ -466,7 +466,7 @@ describe("Liquidity Pools", async () => {
 		}
 		await expect(
 			liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
-		).to.be.revertedWith("PriceDeltaExceedsThreshold(37751549786835530)")
+		).to.be.revertedWith("PriceDeltaExceedsThreshold(36378215763291390)")
 	})
 	it("Reverts: Push to time deviation threshold to cause quote to fail", async () => {
 		const latestPrice = await priceFeed.getRate(weth.address, usd.address)
@@ -2475,8 +2475,10 @@ describe("Liquidity Pools", async () => {
 		await optionProtocol.changePortfolioValuesFeed(priceFeed.address)
 		await optionProtocol.changeVolatilityFeed(priceFeed.address)
 		await optionProtocol.changeDhvTokenCalculations(priceFeed.address)
+		await optionProtocol.changePriceFeed(volFeed.address)
+		expect(await optionProtocol.dhvTokenCalculations()).to.eq(priceFeed.address)
 		expect(await optionProtocol.portfolioValuesFeed()).to.eq(priceFeed.address)
 		expect(await optionProtocol.volatilityFeed()).to.eq(priceFeed.address)
-		expect(await optionProtocol.dhvTokenCalculations()).to.eq(priceFeed.address)
+		expect(await optionProtocol.priceFeed()).to.eq(volFeed.address)
 	})
 })

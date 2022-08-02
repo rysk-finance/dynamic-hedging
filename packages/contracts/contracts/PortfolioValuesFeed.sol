@@ -21,10 +21,8 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	/// immutable variables ///
 	///////////////////////////
 
-	address private immutable oracle;
 	bytes32 private immutable jobId;
 	uint256 private immutable fee;
-	address private link;
 
 	/////////////////////////////////
 	/// oracle settable variables ///
@@ -36,6 +34,8 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	/// govern settable variables ///
 	/////////////////////////////////
 
+	address public link;
+	address public oracle;
 	ILiquidityPool public liquidityPool;
 	// mapping of addresses to their string versions
 	mapping(address => string) public stringedAddresses;
@@ -53,8 +53,11 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 		int256 gamma,
 		int256 vega,
 		int256 theta,
-		uint256 callPutsValue
+		int256 callPutsValue
 	);
+  	event SetOracle(address oracle);
+  	event SetLiquidityPool(address liquidityPool);
+  	event SetAddressStringMapping(address asset, string stringVersion);
 
 	/**
 	 * @notice Executes once when a contract is created to initialize state variables
@@ -86,14 +89,22 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	/// setters ///
 	///////////////
 
+  	function setOracle(address _oracle) external {
+    	_onlyGovernor();
+    	oracle = _oracle;
+    	emit SetOracle(_oracle);
+  	}
+
 	function setLiquidityPool(address _liquidityPool) external {
 		_onlyGovernor();
 		liquidityPool = ILiquidityPool(_liquidityPool);
+    	emit SetLiquidityPool(_liquidityPool);
 	}
 
 	function setAddressStringMapping(address _asset, string memory _stringVersion) external {
 		_onlyGovernor();
 		stringedAddresses[_asset] = _stringVersion;
+    	emit SetAddressStringMapping(_asset, _stringVersion);
 	}
 
 	function setLink(address _link) external {
@@ -134,7 +145,7 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 		int256 _gamma,
 		int256 _vega,
 		int256 _theta,
-		uint256 _callPutsValue,
+		int256 _callPutsValue,
 		uint256 _spotPrice
 	) external recordChainlinkFulfillment(_requestId) {
 		Types.PortfolioValues memory portfolioValue = Types.PortfolioValues({

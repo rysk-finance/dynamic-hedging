@@ -698,15 +698,13 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function getPortfolioDelta() public view returns (int256) {
 		// assumes in e18
-		address underlyingAsset_ = underlyingAsset;
-		address strikeAsset_ = strikeAsset;
 		Types.PortfolioValues memory portfolioValues = _getPortfolioValuesFeed().getPortfolioValues(
-			underlyingAsset_,
-			strikeAsset_
+			underlyingAsset,
+			strikeAsset
 		);
 		// check that the portfolio values are acceptable
 		OptionsCompute.validatePortfolioValues(
-			_getUnderlyingPrice(underlyingAsset_, strikeAsset_),
+			_getUnderlyingPrice(underlyingAsset, strikeAsset),
 			portfolioValues,
 			maxTimeDeviationThreshold,
 			maxPriceDeviationThreshold
@@ -939,8 +937,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
 		uint256 assets = _getAssets();
-		uint256 liabilities = _getLiabilities();
-		return assets - liabilities;
+		int256 liabilities = _getLiabilities();
+		// if this ever happens then something has gone very wrong so throw here
+		if (int256(assets) < liabilities) {revert CustomErrors.LiabilitiesGreaterThanAssets();}
+		return uint256(int256(assets) - liabilities);
 	}
 
 	/**
@@ -948,15 +948,14 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @return assets Asset Value in e18 decimal format
 	 */
 	function _getAssets() internal view returns (uint256 assets) {
-		address collateralAsset_ = collateralAsset;
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
 		assets =
 			OptionsCompute.convertFromDecimals(
-				ERC20(collateralAsset_).balanceOf(address(this)),
-				ERC20(collateralAsset_).decimals()
+				ERC20(collateralAsset).balanceOf(address(this)),
+				ERC20(collateralAsset).decimals()
 			) +
-			OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset_).decimals());
+			OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset).decimals());
 		address[] memory hedgingReactors_ = hedgingReactors;
 		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
 			// should always return value in e18 decimals
@@ -964,27 +963,20 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		}
 	}
 
-	function _getLiabilities() internal view returns (uint256 liabilities) {
-		// cache
-		address underlyingAsset_ = underlyingAsset;
-		address strikeAsset_ = strikeAsset;
+	function _getLiabilities() internal view returns (int256 liabilities) {
 		Types.PortfolioValues memory portfolioValues = _getPortfolioValuesFeed().getPortfolioValues(
-			underlyingAsset_,
-			strikeAsset_
+			underlyingAsset,
+			strikeAsset
 		);
 		// check that the portfolio values are acceptable
 		OptionsCompute.validatePortfolioValues(
-			_getUnderlyingPrice(underlyingAsset_, strikeAsset_),
+			_getUnderlyingPrice(underlyingAsset, strikeAsset),
 			portfolioValues,
 			maxTimeDeviationThreshold,
 			maxPriceDeviationThreshold
 		);
-		int256 ephemeralLiabilities_ = ephemeralLiabilities;
-		// ephemeralLiabilities can be -ve but portfolioValues will not
-		// when converting liabilities it should never be -ve, if it is then the NAV calc will fail
-		liabilities =
-			portfolioValues.callPutsValue +
-			(ephemeralLiabilities_ > 0 ? uint256(ephemeralLiabilities_) : uint256(-ephemeralLiabilities_));
+		// ephemeralLiabilities can be +/-, portfolioValues.callPutsValue could be +/-
+		liabilities = portfolioValues.callPutsValue + ephemeralLiabilities;
 	}
 
 	/**
