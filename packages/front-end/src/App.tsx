@@ -1,9 +1,11 @@
+import React from "react";
+import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
 import { OnboardAPI } from "@web3-onboard/core";
 import injectedModule from "@web3-onboard/injected-wallets";
 import { init } from "@web3-onboard/react";
 import walletConnectModule from "@web3-onboard/walletconnect";
 import * as ethers from "ethers";
-import React, {
+import {
   createContext,
   useCallback,
   useContext,
@@ -16,7 +18,7 @@ import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import { Header } from "./components/Header";
 import { AppPaths } from "./config/appPaths";
-import { CHAINID, IDToNetwork } from "./config/constants";
+import { CHAINID, IDToNetwork, SUBGRAPH_URL } from "./config/constants";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { Dashboard } from "./pages/Dashboard";
 import { OptionsTrading } from "./pages/OptionsTrading";
@@ -24,12 +26,13 @@ import { Vault } from "./pages/Vault";
 import { GlobalContextProvider } from "./state/GlobalContext";
 import { ETHNetwork } from "./types";
 import { toHex } from "./utils";
+import { OTC } from "./pages/OTC";
 
 // TODO(HC): Move infura key to env variable
 const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
-const ROPSTEN_RPC_URL = `https://ropsten.infura.io/v3/${process.env.REACT_APP_INFURA_URL}`;
-const RINKEBY_RPC_URL = `https://rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_URL}`;
-const ARBITRUM_RINKEBY_RPC_URL = `https://arbitrum-rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_URL}`;
+const ROPSTEN_RPC_URL = `https://ropsten.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
+const RINKEBY_RPC_URL = `https://rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
+const ARBITRUM_RINKEBY_RPC_URL = `https://arbitrum-rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
 
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();
@@ -119,6 +122,15 @@ function App() {
   const [chainId, setChainId] = useState<string | null>(null);
   const [network, setNetwork] = useState<WalletContext["network"] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  // Initialising to a client with undefined URL, rather than just null, as ApolloProvider
+  // expects client to always be non-null. We overwrite with a new client with a defined
+  // uri in a useEffect below.
+  const [apolloClient, setApolloClient] = useState(
+    new ApolloClient({
+      uri: undefined,
+      cache: new InMemoryCache(),
+    })
+  );
 
   const [getLocalStorage, setLocalStorage] = useLocalStorage();
 
@@ -194,6 +206,7 @@ function App() {
     setAccount("");
     setChainId("");
     setProvider(null);
+    setNetwork(null);
   };
 
   useEffect(() => {
@@ -210,6 +223,18 @@ function App() {
     };
   }, [disconnect]);
 
+  useEffect(() => {
+    const SUBGRAPH_URI =
+      network?.id !== undefined ? SUBGRAPH_URL[network?.id] : "";
+
+    const client = new ApolloClient({
+      uri: SUBGRAPH_URI,
+      cache: new InMemoryCache(),
+    });
+
+    setApolloClient(client);
+  }, [network?.id]);
+
   return (
     <WalletContext.Provider
       value={{
@@ -225,23 +250,26 @@ function App() {
       }}
     >
       <GlobalContextProvider>
-        <div className="App min-h-screen bg-bone font-dm-mono">
-          <Header />
-          <div className="pt-16 px-16">
-            <div className="root-grid py-24">
-              <Routes>
-                <Route path={AppPaths.VAULT} element={<Vault />} />
-                <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
-                <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
-              </Routes>
+        <ApolloProvider client={apolloClient}>
+          <div className="App min-h-screen bg-bone font-dm-mono">
+            <Header />
+            <div className="pt-16 px-16">
+              <div className="root-grid py-24">
+                <Routes>
+                  <Route path={AppPaths.VAULT} element={<Vault />} />
+                  <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
+                  <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
+                  <Route path={AppPaths.OTC} element={<OTC />} />
+                </Routes>
+              </div>
             </div>
           </div>
-        </div>
-        <ToastContainer
-          toastClassName="bg-bone rounded-none border-2 border-black font-dm-mono text-black max-w-xl w-fit"
-          hideProgressBar
-          position="bottom-center"
-        />
+          <ToastContainer
+            toastClassName="bg-bone rounded-none border-2 border-black font-dm-mono text-black max-w-xl w-fit"
+            hideProgressBar
+            position="bottom-center"
+          />
+        </ApolloProvider>
       </GlobalContextProvider>
     </WalletContext.Provider>
   );

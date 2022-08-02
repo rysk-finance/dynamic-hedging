@@ -51,14 +51,20 @@ library OptionsCompute {
 
 	/**
 	 * @dev computes the percentage change between two integers
-	 * @param a new value in e18
-	 * @param b old value in e18
-	 * @return uint256 the percentage change in e18
+	 * @param n new value in e18
+	 * @param o old value in e18
+	 * @return pC uint256 the percentage change in e18
 	 */
-	function calculatePercentageChange(uint256 a, uint256 b) internal pure returns (uint256) {
-		// ((b - a) * 1e18) / a
-		// then get the absolute value for the diff
-		return uint256((((int256(b) - int256(a)) * (1e18)) / (int256(a))).abs());
+	function calculatePercentageChange(uint256 n, uint256 o) internal pure returns (uint256 pC) {
+		// if new > old then its a percentage increase so do:
+		// ((new - old) * 1e18) / old
+		// if new < old then its a percentage decrease so do:
+		// ((old - new) * 1e18) / old
+		if (n > o) {
+			pC = (n - o).div(o);
+		} else {
+			pC = (o - n).div(o);
+		}
 	}
 
 	/**
