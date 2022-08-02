@@ -41,7 +41,9 @@ async function main() {
 			price
 		)
 
-		await lpContract.executeEpochCalculation()
+		const transaction = await lpContract.executeEpochCalculation()
+
+		await transaction.wait()
 
 		const newEpoch = await lpContract.epoch()
 		console.log(`New epoch is ${newEpoch}`)

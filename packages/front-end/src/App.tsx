@@ -26,6 +26,7 @@ import { Vault } from "./pages/Vault";
 import { GlobalContextProvider } from "./state/GlobalContext";
 import { ETHNetwork } from "./types";
 import { toHex } from "./utils";
+import { OTC } from "./pages/OTC";
 
 // TODO(HC): Move infura key to env variable
 const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
@@ -205,6 +206,7 @@ function App() {
     setAccount("");
     setChainId("");
     setProvider(null);
+    setNetwork(null);
   };
 
   useEffect(() => {
@@ -257,6 +259,7 @@ function App() {
                   <Route path={AppPaths.VAULT} element={<Vault />} />
                   <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
                   <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
+                  <Route path={AppPaths.OTC} element={<OTC />} />
                 </Routes>
               </div>
             </div>
