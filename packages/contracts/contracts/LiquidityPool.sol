@@ -639,38 +639,13 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @dev    entry point to remove liquidity to dynamic hedging vault
 	 */
 	function completeWithdraw(uint256 _shares) external whenNotPaused nonReentrant returns (uint256) {
-		if (_shares == 0) {
-			revert CustomErrors.InvalidShareAmount();
-		}
-		Types.WithdrawalReceipt memory withdrawalReceipt = withdrawalReceipts[msg.sender];
-		// cache the storage variables
-		uint256 withdrawalShares = _shares > withdrawalReceipt.shares
-			? withdrawalReceipt.shares
-			: _shares;
-		uint256 withdrawalEpoch = withdrawalReceipt.epoch;
-		// make sure there is something to withdraw and make sure the round isnt the current one
-		if (withdrawalShares == 0) {
-			revert CustomErrors.NoExistingWithdrawal();
-		}
-		if (withdrawalEpoch == epoch) {
-			revert CustomErrors.EpochNotClosed();
-		}
-		// reduced the stored share receipt by the shares requested
-		withdrawalReceipts[msg.sender].shares -= uint128(withdrawalShares);
-		// get the withdrawal amount based on the shares and pps at the epoch
-		uint256 withdrawalAmount = _getDhvTokenCalculations().amountForShares(
-			withdrawalShares,
-			epochPricePerShare[withdrawalEpoch]
-		);
-		if (withdrawalAmount == 0) {
-			revert CustomErrors.InvalidAmount();
-		}
-		// get the liquidity that can be withdrawn from the pool without hitting the collateral requirement buffer
-		int256 buffer = int256((collateralAllocated * bufferPercentage) / MAX_BPS);
-		int256 collatBalance = int256(ERC20(collateralAsset).balanceOf(address(this)));
-		int256 bufferRemaining = collatBalance - buffer;
-		// get the extra liquidity that is needed
-		int256 amountNeeded = int256(withdrawalAmount) - bufferRemaining;
+		(
+			int256 amountNeeded,
+			uint256 withdrawalAmount,
+			uint256 withdrawalShares,
+			Types.WithdrawalReceipt memory withdrawalReceipt
+		) = _getDhvTokenCalculations().completeWithdraw(msg.sender, _shares, MAX_BPS);
+		withdrawalReceipts[msg.sender] = withdrawalReceipt;
 		// loop through the reactors and move funds if found
 		if (amountNeeded > 0) {
 			address[] memory hedgingReactors_ = hedgingReactors;

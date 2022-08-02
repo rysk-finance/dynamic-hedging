@@ -8,7 +8,6 @@ import "./libraries/OptionsCompute.sol";
 import "./libraries/Types.sol";
 import "./tokens/ERC20.sol";
 import "./interfaces/ILiquidityPool.sol";
-import "hardhat/console.sol";
 
 /**
  *  @title Modular contract used by the liquidity pool to calculate the value of its ERC20 ault token
@@ -63,7 +62,6 @@ contract DhvTokenAccountingUtilisation {
 			: 1e18;
 		// collateralAllocated needs to be converted to e18
 		tokenPrice = _utilizationPremium(tokenPriceInitial, (10**12 * collateralAllocated).div(assets));
-		console.log(tokenPriceInitial, tokenPrice, (10**12 * collateralAllocated).div(assets));
 	}
 
 	function _utilizationPremium(uint256 tokenPrice, uint256 utilization)
@@ -73,7 +71,6 @@ contract DhvTokenAccountingUtilisation {
 			uint256 utilizationTokenPrice
 		)
 	{
-		console.log("tokenPrice:", tokenPrice, "utilization:", utilization);
 		return tokenPrice.mul(1e18 - (utilization.powu(8)).mul(1e18 / 8));
 	}
 
@@ -141,7 +138,6 @@ contract DhvTokenAccountingUtilisation {
 			depositReceipt.amount = 0;
 		}
 		depositReceipt.unredeemedShares = uint128(unredeemedShares - toRedeem);
-		console.log(depositReceipt.unredeemedShares);
 		return (toRedeem, depositReceipt);
 	}
 
@@ -175,6 +171,55 @@ contract DhvTokenAccountingUtilisation {
 		withdrawalReceipt.shares = uint128(withdrawalShares);
 	}
 
+	function completeWithdraw(
+		address withdrawer,
+		uint256 shares,
+		uint256 MAX_BPS
+	)
+		external
+		view
+		returns (
+			int256 amountNeeded,
+			uint256 withdrawalAmount,
+			uint256 withdrawalShares,
+			Types.WithdrawalReceipt memory withdrawalReceipt
+		)
+	{
+		_isLiquidityPool();
+		if (shares == 0) {
+			revert CustomErrors.InvalidShareAmount();
+		}
+		withdrawalReceipt = liquidityPool.withdrawalReceipts(withdrawer);
+		// cache the storage variables
+		withdrawalShares = shares > withdrawalReceipt.shares ? withdrawalReceipt.shares : shares;
+		uint256 withdrawalEpoch = withdrawalReceipt.epoch;
+		// make sure there is something to withdraw and make sure the round isnt the current one
+		if (withdrawalShares == 0) {
+			revert CustomErrors.NoExistingWithdrawal();
+		}
+		if (withdrawalEpoch == liquidityPool.epoch()) {
+			revert CustomErrors.EpochNotClosed();
+		}
+		// reduced the stored share receipt by the shares requested
+		withdrawalReceipt.shares -= uint128(withdrawalShares);
+		// get the withdrawal amount based on the shares and pps at the epoch
+		withdrawalAmount = amountForShares(
+			withdrawalShares,
+			liquidityPool.epochPricePerShare(withdrawalEpoch)
+		);
+		if (withdrawalAmount == 0) {
+			revert CustomErrors.InvalidAmount();
+		}
+		// get the liquidity that can be withdrawn from the pool without hitting the collateral requirement buffer
+		int256 buffer = int256(
+			(liquidityPool.collateralAllocated() * liquidityPool.bufferPercentage()) / MAX_BPS
+		);
+		int256 collatBalance = int256(ERC20(collateralAsset).balanceOf(address(liquidityPool)));
+		int256 bufferRemaining = collatBalance - buffer;
+		// get the extra liquidity that is needed
+		amountNeeded = int256(withdrawalAmount) - bufferRemaining;
+	}
+
 	/**
 	 * @notice get the number of shares for a given amount
 	 * @param _amount  the amount to convert to shares - assumed in collateral decimals
@@ -198,7 +243,7 @@ contract DhvTokenAccountingUtilisation {
 	 * @return amount the number of amount based on shares in collateral decimals
 	 */
 	function amountForShares(uint256 _shares, uint256 _assetPerShare)
-		external
+		public
 		view
 		returns (uint256 amount)
 	{

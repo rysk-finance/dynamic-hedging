@@ -25,6 +25,12 @@ interface ILiquidityPool is IERC20 {
 
 	function strikeAsset() external view returns (address);
 
+	function collateralAllocated() external view returns (uint256);
+
+	function bufferPercentage() external view returns (uint256);
+
+	function MAX_BPS() external view returns (uint256);
+
 	function handlerIssue(Types.OptionSeries memory optionSeries) external returns (address);
 
 	function resetEphemeralValues() external;
