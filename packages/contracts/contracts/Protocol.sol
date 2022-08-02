@@ -11,8 +11,7 @@ contract Protocol is AccessControl {
 	/// static variables ///
 	////////////////////////
 
-	address public optionRegistry;
-	address public priceFeed;
+	address public immutable optionRegistry;
 
 	/////////////////////////////////////
 	/// governance settable variables ///
@@ -20,6 +19,7 @@ contract Protocol is AccessControl {
 
 	address public volatilityFeed;
 	address public portfolioValuesFeed;
+	address public priceFeed;
 
 	constructor(
 		address _optionRegistry,
@@ -46,5 +46,10 @@ contract Protocol is AccessControl {
 	function changePortfolioValuesFeed(address _portfolioValuesFeed) external {
 		_onlyGovernor();
 		portfolioValuesFeed = _portfolioValuesFeed;
+	}
+
+	function changePriceFeed(address _priceFeed) external {
+		_onlyGovernor();
+		priceFeed = _priceFeed;
 	}
 }
