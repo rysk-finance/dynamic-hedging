@@ -402,7 +402,6 @@ function calculateOptionQuote(
 		utils.formatEther(normalisedDelta.gt(maxDiscount) ? maxDiscount : normalisedDelta)
 	)
 	const localBS = bs.blackScholes(...greekVariables) * numericAmt
-	console.log({ localBS })
 	const utilizationBefore =
 		tFormatUSDC(collateralAllocated) / tFormatUSDC(collateralAllocated.add(lpUSDBalance))
 	const utilizationAfter =
@@ -414,7 +413,6 @@ function calculateOptionQuote(
 		localBS,
 		utilizationCurve
 	)
-	console.log({ utilizationBefore, utilizationAfter, utilizationPrice })
 	// if delta exposure reduces, subtract delta skew from  pricequotes
 	if (portfolioDeltaIsDecreased) return utilizationPrice - utilizationPrice * deltaTiltAmount
 	return utilizationPrice + utilizationPrice * deltaTiltAmount
@@ -482,7 +480,6 @@ export async function getPortfolioValues(
 		(total, num) => total + (num.bsQuote || 0),
 		0
 	)
-	console.log({ bsCallsPutsValue: bsCallsPutsValue * 400 })
 	const nav = contractsState.assets.sub(toWei(bsCallsPutsValue.toString()))
 	const enrichedWithNav: EnrichedWriteEvent[] = resolvedOptionPositions.map(x => {
 		if (x.amount && x.greekVariables && x.liquidityAllocated) {
