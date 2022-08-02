@@ -120,19 +120,6 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 		keeper[_keeper] = _auth;
 	}
 
-	function setLink(address _link) external {
-		_onlyGovernor();
-		link = _link;
-	}
-
-	/**
-	 * @notice change the status of a keeper
-	 */
-	function setKeeper(address _keeper, bool _auth) external {
-		_onlyGovernor();
-		keeper[_keeper] = _auth;
-	}
-
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
