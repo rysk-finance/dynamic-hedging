@@ -104,7 +104,7 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	function setAddressStringMapping(address _asset, string memory _stringVersion) external {
 		_onlyGovernor();
 		stringedAddresses[_asset] = _stringVersion;
-    emit SetAddressStringMapping(_asset, _stringVersion);
+    	emit SetAddressStringMapping(_asset, _stringVersion);
 	}
 
 	function setLink(address _link) external {
