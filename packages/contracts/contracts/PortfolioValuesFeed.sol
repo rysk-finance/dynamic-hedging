@@ -21,7 +21,7 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	/// immutable variables ///
 	///////////////////////////
 
-	address private immutable oracle;
+	address private oracle;
 	bytes32 private immutable jobId;
 	uint256 private immutable fee;
 	address private link;
@@ -82,18 +82,29 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 		link = _link;
 	}
 
+  event SetOracle(address oracle);
+  event SetLiquidityPool(address liquidityPool);
+  event SetAddressStringMapping(address asset, string stringVersion);
 	///////////////
 	/// setters ///
 	///////////////
 
+  function setOracle(address _oracle) external {
+    _onlyGovernor();
+    oracle = _oracle;
+    emit SetOracle(_oracle);
+  }
+
 	function setLiquidityPool(address _liquidityPool) external {
 		_onlyGovernor();
 		liquidityPool = ILiquidityPool(_liquidityPool);
+    emit SetLiquidityPool(_liquidityPool);
 	}
 
 	function setAddressStringMapping(address _asset, string memory _stringVersion) external {
 		_onlyGovernor();
 		stringedAddresses[_asset] = _stringVersion;
+    emit SetAddressStringMapping(_asset, _stringVersion);
 	}
 
 	function setLink(address _link) external {
