@@ -3,8 +3,9 @@
 pragma solidity >=0.8.9;
 import { Types } from "../libraries/Types.sol";
 import "../interfaces/IOptionRegistry.sol";
+import "./IERC20.sol";
 
-interface ILiquidityPool {
+interface ILiquidityPool is IERC20 {
 	function collateralCap() external view returns (uint256);
 
 	function epoch() external view returns (uint256);
@@ -29,6 +30,8 @@ interface ILiquidityPool {
 	function resetEphemeralValues() external;
 
 	function getAssets() external view returns (uint256);
+
+	function redeem(uint256) external returns (uint256);
 
 	function handlerWriteOption(
 		Types.OptionSeries memory optionSeries,

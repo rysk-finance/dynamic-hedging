@@ -111,12 +111,14 @@ contract DhvTokenAccountingUtilisation {
 		require(depositAmount <= type(uint128).max, "overflow");
 	}
 
-	function redeem(
-		address redeemer,
-		uint256 shares,
-		Types.DepositReceipt memory depositReceipt
-	) external view returns (uint256 toRedeem, Types.DepositReceipt memory) {
+	function redeem(address redeemer, uint256 shares)
+		external
+		view
+		returns (uint256 toRedeem, Types.DepositReceipt memory)
+	{
 		_isLiquidityPool();
+		Types.DepositReceipt memory depositReceipt = liquidityPool.depositReceipts(redeemer);
+
 		uint256 currentEpoch = liquidityPool.epoch();
 		// check for any unredeemed shares
 		uint256 unredeemedShares = uint256(depositReceipt.unredeemedShares);
@@ -141,6 +143,36 @@ contract DhvTokenAccountingUtilisation {
 		depositReceipt.unredeemedShares = uint128(unredeemedShares - toRedeem);
 		console.log(depositReceipt.unredeemedShares);
 		return (toRedeem, depositReceipt);
+	}
+
+	function initiatewithdraw(address withdrawer, uint256 shares)
+		external
+		view
+		returns (Types.WithdrawalReceipt memory withdrawalReceipt)
+	{
+		_isLiquidityPool();
+
+		if (liquidityPool.balanceOf(withdrawer) < shares) {
+			revert CustomErrors.InsufficientShareBalance();
+		}
+		uint256 currentEpoch = liquidityPool.epoch();
+		withdrawalReceipt = liquidityPool.withdrawalReceipts(withdrawer);
+
+		uint256 existingShares = withdrawalReceipt.shares;
+		uint256 withdrawalShares;
+		// if they already have an initiated withdrawal from this round just increment
+		if (withdrawalReceipt.epoch == currentEpoch) {
+			withdrawalShares = existingShares + shares;
+		} else {
+			// do 100 wei just in case of any rounding issues
+			if (existingShares > 100) {
+				revert CustomErrors.ExistingWithdrawal();
+			}
+			withdrawalShares = shares;
+			withdrawalReceipt.epoch = uint128(currentEpoch);
+		}
+
+		withdrawalReceipt.shares = uint128(withdrawalShares);
 	}
 
 	/**

@@ -617,34 +617,19 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		if (_shares == 0) {
 			revert CustomErrors.InvalidShareAmount();
 		}
+		Types.DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
 
-		if (depositReceipts[msg.sender].amount > 0 || depositReceipts[msg.sender].unredeemedShares > 0) {
+		if (depositReceipt.amount > 0 || depositReceipt.unredeemedShares > 0) {
 			// redeem so a user can use a completed deposit as shares for an initiation
 			_redeem(type(uint256).max);
 		}
-		if (balanceOf[msg.sender] < _shares) {
-			revert CustomErrors.InsufficientShareBalance();
-		}
-		uint256 currentEpoch = epoch;
-		Types.WithdrawalReceipt memory withdrawalReceipt = withdrawalReceipts[msg.sender];
-
-		emit InitiateWithdraw(msg.sender, _shares, currentEpoch);
-		uint256 existingShares = withdrawalReceipt.shares;
-		uint256 withdrawalShares;
-		// if they already have an initiated withdrawal from this round just increment
-		if (withdrawalReceipt.epoch == currentEpoch) {
-			withdrawalShares = existingShares + _shares;
-		} else {
-			// do 100 wei just in case of any rounding issues
-			if (existingShares > 100) {
-				revert CustomErrors.ExistingWithdrawal();
-			}
-			withdrawalShares = _shares;
-			withdrawalReceipts[msg.sender].epoch = uint128(currentEpoch);
-		}
-
-		withdrawalReceipts[msg.sender].shares = uint128(withdrawalShares);
+		Types.WithdrawalReceipt memory withdrawalReceipt = _getDhvTokenCalculations().initiatewithdraw(
+			msg.sender,
+			_shares
+		);
+		withdrawalReceipts[msg.sender] = withdrawalReceipt;
 		pendingWithdrawals += _shares;
+		emit InitiateWithdraw(msg.sender, _shares, epoch);
 		transfer(address(this), _shares);
 	}
 
@@ -958,7 +943,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function _redeem(uint256 _shares) internal returns (uint256) {
 		(uint256 toRedeem, Types.DepositReceipt memory depositReceipt) = _getDhvTokenCalculations()
-			.redeem(msg.sender, _shares, depositReceipts[msg.sender]);
+			.redeem(msg.sender, _shares);
 		if (toRedeem == 0) {
 			return 0;
 		}
