@@ -16,6 +16,7 @@ import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/Liquidity
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
+import { DhvTokenAccountingUtilisation } from "../types/DhvTokenAccountingUtilisation"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -232,6 +233,16 @@ export async function deployLiquidityPool(
 		weth.address,
 		usd.address,
 	)
+	const dhvTokenAccountingUtilisationFactory = await ethers.getContractFactory(
+		"DhvTokenAccountingUtilisation"
+	)
+	const dhvTokenAccountingUtilisation = (await dhvTokenAccountingUtilisationFactory.deploy(
+		liquidityPool.address,
+		usd.address,
+		weth.address,
+		usd.address
+	)) as DhvTokenAccountingUtilisation
+	await optionProtocol.changeDhvTokenCalculations(dhvTokenAccountingUtilisation.address)
 	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
 	const handler = await handlerFactory.deploy(
 		authority,
