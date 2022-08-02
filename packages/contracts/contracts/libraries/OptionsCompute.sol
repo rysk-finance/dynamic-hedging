@@ -50,16 +50,21 @@ library OptionsCompute {
 	}
 
 	/**
-	 * @dev computes the percentage difference between two integers
-	 * @param a the smaller integer
-	 * @param b the larger integer
-	 * @return uint256 the percentage differnce
+	 * @dev computes the percentage change between two integers
+	 * @param n new value in e18
+	 * @param o old value in e18
+	 * @return pC uint256 the percentage change in e18
 	 */
-	function calculatePercentageDifference(uint256 a, uint256 b) internal pure returns (uint256) {
-		if (a > b) {
-			return b.div(a);
+	function calculatePercentageChange(uint256 n, uint256 o) internal pure returns (uint256 pC) {
+		// if new > old then its a percentage increase so do:
+		// ((new - old) * 1e18) / old
+		// if new < old then its a percentage decrease so do:
+		// ((old - new) * 1e18) / old
+		if (n > o) {
+			pC = (n - o).div(o);
+		} else {
+			pC = (o - n).div(o);
 		}
-		return a.div(b);
 	}
 
 	/**
@@ -77,7 +82,7 @@ library OptionsCompute {
 		if (timeDelta > maxTimeDeviationThreshold) {
 			revert CustomErrors.TimeDeltaExceedsThreshold(timeDelta);
 		}
-		uint256 priceDelta = calculatePercentageDifference(spotPrice, portfolioValues.spotPrice);
+		uint256 priceDelta = calculatePercentageChange(spotPrice, portfolioValues.spotPrice);
 		// If price has deviated too much we want to prevent a possible oracle attack
 		if (priceDelta > maxPriceDeviationThreshold) {
 			revert CustomErrors.PriceDeltaExceedsThreshold(priceDelta);

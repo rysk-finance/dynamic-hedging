@@ -59,6 +59,8 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	CustomOrderBounds public customOrderBounds = CustomOrderBounds(0, 25e16, -25e16, 0, 1000);
 	// addresses that are whitelisted to sell options back to the protocol
 	mapping(address => bool) public buybackWhitelist;
+	// minimum delta to trigger a request
+	uint256 public minDeltaForRequest = 1e17;
 
 	//////////////////////////
 	/// constant variables ///
@@ -124,7 +126,7 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		customOrderBounds.maxPriceRange = _maxPriceRange;
 	}
 
-	function pauseContract() external {
+	function pause() external {
 		_onlyGuardian();
 		_pause();
 	}
@@ -140,6 +142,14 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	function addOrRemoveBuybackAddress(address _addressToWhitelist, bool toAdd) external {
 		_onlyGovernor();
 		buybackWhitelist[_addressToWhitelist] = toAdd;
+	}
+
+	/**
+	 * @notice the minimum required delta of the trade to trigger a request
+	 */
+	function setMinDeltaForRequest(uint256 _minDeltaForRequest) external {
+		_onlyGovernor();
+		minDeltaForRequest = _minDeltaForRequest;
 	}
 
 	//////////////////////////////////////////////////////
@@ -202,8 +212,8 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	 * @param _pricePut the price per unit to issue puts at
 	 * @param _orderExpiry the expiry of the order (if past the order is redundant)
 	 * @param _buyerAddress the agreed upon buyer address
-	 * @return callOrderId the unique id of the call part of the strangle
 	 * @return putOrderId the unique id of the put part of the strangle
+	 * @return callOrderId the unique id of the call part of the strangle
 	 */
 	function createStrangle(
 		Types.OptionSeries memory _optionSeriesCall,
@@ -370,7 +380,9 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			delta,
 			msg.sender
 		);
-		getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
+		if (uint256(delta.abs()) > minDeltaForRequest) {
+			getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
+		}
 	}
 
 	/**
@@ -432,7 +444,9 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			address(liquidityPool),
 			convertedPrem
 		);
-		getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
+		if (uint256(delta.abs()) > minDeltaForRequest) {
+			getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
+		}
 		return
 			liquidityPool.handlerWriteOption(
 				optionSeries,
@@ -504,7 +518,9 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			address(liquidityPool),
 			OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals())
 		);
-		getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
+		if (uint256(delta.abs()) > minDeltaForRequest) {
+			getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
+		}
 		return
 			liquidityPool.handlerBuybackOption(
 				optionSeries,
