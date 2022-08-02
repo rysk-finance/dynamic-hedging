@@ -61,9 +61,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	// epoch PPS
 	mapping(uint256 => uint256) public epochPricePerShare;
 	// deposit receipts for users
-	mapping(address => DepositReceipt) public depositReceipts;
+	mapping(address => Types.DepositReceipt) public depositReceipts;
 	// withdrawal receipts for users
-	mapping(address => WithdrawalReceipt) public withdrawalReceipts;
+	mapping(address => Types.WithdrawalReceipt) public withdrawalReceipts;
 	// pending deposits for a round
 	uint256 public pendingDeposits;
 	// pending withdrawals for a round
@@ -118,30 +118,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/////////////////////////
 	/// structs && events ///
 	/////////////////////////
-
-	struct UtilizationState {
-		uint256 totalOptionPrice; //e18
-		int256 totalDelta; // e18
-		uint256 collateralToAllocate; //collateral decimals
-		uint256 utilizationBefore; // e18
-		uint256 utilizationAfter; //e18
-		uint256 utilizationPrice; //e18
-		bool isDecreased;
-		uint256 deltaTiltAmount; //e18
-		uint256 underlyingPrice; // strike asset decimals
-		uint256 iv; // e18
-	}
-
-	struct DepositReceipt {
-		uint128 epoch;
-		uint128 amount; //collateral decimals
-		uint256 unredeemedShares; //e18
-	}
-
-	struct WithdrawalReceipt {
-		uint128 epoch;
-		uint128 shares; //e18
-	}
 
 	event EpochExecuted(uint256 epoch);
 	event Withdraw(address recipient, uint256 amount, uint256 shares);
@@ -600,7 +576,21 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		if (_amount == 0) {
 			revert CustomErrors.InvalidAmount();
 		}
-		_deposit(_amount);
+		(uint256 depositAmount, uint256 unredeemedShares) = _getDhvTokenCalculations().deposit(
+			msg.sender,
+			_amount
+			// epoch,
+			// collateralCap
+		);
+
+		emit Deposit(msg.sender, _amount, epoch);
+		// create the deposit receipt
+		depositReceipts[msg.sender] = Types.DepositReceipt({
+			epoch: uint128(epoch),
+			amount: uint128(depositAmount),
+			unredeemedShares: unredeemedShares
+		});
+		pendingDeposits += _amount;
 		// Pull in tokens from sender
 		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _amount);
 		return true;
@@ -636,7 +626,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			revert CustomErrors.InsufficientShareBalance();
 		}
 		uint256 currentEpoch = epoch;
-		WithdrawalReceipt memory withdrawalReceipt = withdrawalReceipts[msg.sender];
+		Types.WithdrawalReceipt memory withdrawalReceipt = withdrawalReceipts[msg.sender];
 
 		emit InitiateWithdraw(msg.sender, _shares, currentEpoch);
 		uint256 existingShares = withdrawalReceipt.shares;
@@ -667,7 +657,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		if (_shares == 0) {
 			revert CustomErrors.InvalidShareAmount();
 		}
-		WithdrawalReceipt memory withdrawalReceipt = withdrawalReceipts[msg.sender];
+		Types.WithdrawalReceipt memory withdrawalReceipt = withdrawalReceipts[msg.sender];
 		// cache the storage variables
 		uint256 withdrawalShares = _shares > withdrawalReceipt.shares
 			? withdrawalReceipt.shares
@@ -778,7 +768,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		bool toBuy
 	) external view returns (uint256 quote, int256 delta) {
 		// using a struct to get around stack too deep issues
-		UtilizationState memory quoteState;
+		Types.UtilizationState memory quoteState;
 		quoteState.underlyingPrice = _getUnderlyingPrice(
 			optionSeries.underlying,
 			optionSeries.strikeAsset
@@ -825,7 +815,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 *	@param toBuy whether we are buying an option. False if selling
 	 */
 	function addUtilizationPremium(
-		UtilizationState memory quoteState,
+		Types.UtilizationState memory quoteState,
 		Types.OptionSeries memory optionSeries,
 		uint256 amount,
 		bool toBuy
@@ -870,7 +860,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 *	@param toBuy whether we are buying an option. False if selling
 	 *	@return quote the quote for the option with the delta skew applied
 	 */
-	function applyDeltaPremium(UtilizationState memory quoteState, bool toBuy)
+	function applyDeltaPremium(Types.UtilizationState memory quoteState, bool toBuy)
 		internal
 		view
 		returns (uint256 quote)
@@ -937,79 +927,47 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/// internal utilities ///
 	//////////////////////////
 
-	/**
-	 * @notice function for queueing to add liquidity to the options liquidity pool and receiving storing interest
-	 *         to receive shares when the next epoch is initiated.
-	 * @param _amount    amount of the strike asset to deposit
-	 * @dev    internal function for entry point to provide liquidity to dynamic hedging vault
-	 */
-	function _deposit(uint256 _amount) internal {
-		uint256 currentEpoch = epoch;
-		// check the total allowed collateral amount isnt surpassed by incrementing the total assets with the amount denominated in e18
-		uint256 totalAmountWithDeposit = _getAssets() +
-			OptionsCompute.convertFromDecimals(_amount, ERC20(collateralAsset).decimals());
-		if (totalAmountWithDeposit > collateralCap) {
-			revert CustomErrors.TotalSupplyReached();
-		}
-		emit Deposit(msg.sender, _amount, currentEpoch);
-		DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
-		// check for any unredeemed shares
-		uint256 unredeemedShares = uint256(depositReceipt.unredeemedShares);
-		// if there is already a receipt from a previous round then acknowledge and record it
-		if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
-			unredeemedShares += _getDhvTokenCalculations().sharesForAmount(
-				depositReceipt.amount,
-				epochPricePerShare[depositReceipt.epoch]
-			);
-		}
-		uint256 depositAmount = _amount;
-		// if there is a second deposit in the same round then increment this amount
-		if (currentEpoch == depositReceipt.epoch) {
-			depositAmount += uint256(depositReceipt.amount);
-		}
-		require(depositAmount <= type(uint128).max, "overflow");
-		// create the deposit receipt
-		depositReceipts[msg.sender] = DepositReceipt({
-			epoch: uint128(currentEpoch),
-			amount: uint128(depositAmount),
-			unredeemedShares: unredeemedShares
-		});
-		pendingDeposits += _amount;
-	}
+	// /**
+	//  * @notice function for queueing to add liquidity to the options liquidity pool and receiving storing interest
+	//  *         to receive shares when the next epoch is initiated.
+	//  * @param _amount    amount of the strike asset to deposit
+	//  * @dev    internal function for entry point to provide liquidity to dynamic hedging vault
+	//  */
+	// function _deposit(uint256 _amount) internal {
+	// 	(uint256 depositAmount, uint256 unredeemedShares) = _getDhvTokenCalculations().deposit(
+	// 		msg.sender,
+	// 		_amount,
+	// 		epoch,
+	// 		collateralCap
+	// 	);
+
+	// 	emit Deposit(msg.sender, _amount, epoch);
+	// 	// create the deposit receipt
+	// 	depositReceipts[msg.sender] = Types.DepositReceipt({
+	// 		epoch: uint128(epoch),
+	// 		amount: uint128(depositAmount),
+	// 		unredeemedShares: unredeemedShares
+	// 	});
+	// 	pendingDeposits += _amount;
+	// }
 
 	/**
 	 * @notice functionality for allowing a user to redeem their shares from a previous epoch
 	 * @param _shares the number of shares to redeem
 	 * @return toRedeem the number of shares actually returned
 	 */
-	function _redeem(uint256 _shares) internal returns (uint256 toRedeem) {
-		DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
-		uint256 currentEpoch = epoch;
-		// check for any unredeemed shares
-		uint256 unredeemedShares = uint256(depositReceipt.unredeemedShares);
-		// if there is already a receipt from a previous round then acknowledge and record it
-		if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
-			unredeemedShares += _getDhvTokenCalculations().sharesForAmount(
-				depositReceipt.amount,
-				epochPricePerShare[depositReceipt.epoch]
-			);
-		}
-		// if the shares requested are greater than their unredeemedShares then floor to unredeemedShares, otherwise
-		// use their requested share number
-		toRedeem = _shares > unredeemedShares ? unredeemedShares : _shares;
+	function _redeem(uint256 _shares) internal returns (uint256) {
+		(uint256 toRedeem, Types.DepositReceipt memory depositReceipt) = _getDhvTokenCalculations()
+			.redeem(msg.sender, _shares, depositReceipts[msg.sender]);
 		if (toRedeem == 0) {
 			return 0;
 		}
-		// if the deposit receipt is on this epoch and there are unredeemed shares then we leave amount as is,
-		// if the epoch has past then we set the amount to 0 and take from the unredeemedShares
-		if (depositReceipt.epoch < currentEpoch) {
-			depositReceipts[msg.sender].amount = 0;
-		}
-		depositReceipts[msg.sender].unredeemedShares = uint128(unredeemedShares - toRedeem);
-		emit Redeem(msg.sender, toRedeem, depositReceipt.epoch);
+		depositReceipts[msg.sender] = depositReceipt;
 		allowance[address(this)][msg.sender] = toRedeem;
+		emit Redeem(msg.sender, toRedeem, depositReceipt.epoch);
 		// transfer as the shares will have been minted in the epoch execution
 		transferFrom(address(this), msg.sender, toRedeem);
+		return toRedeem;
 	}
 
 	/**

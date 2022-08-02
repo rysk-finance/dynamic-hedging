@@ -5,8 +5,9 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 
 import "./libraries/OptionsCompute.sol";
+import "./libraries/Types.sol";
 import "./tokens/ERC20.sol";
-import "./LiquidityPool.sol";
+import "./interfaces/ILiquidityPool.sol";
 import "hardhat/console.sol";
 
 /**
@@ -23,7 +24,7 @@ contract DhvTokenAccountingUtilisation {
 	///////////////////////////
 
 	// the liquidity pool address
-	LiquidityPool public immutable liquidityPool;
+	ILiquidityPool public immutable liquidityPool;
 	// asset that denominates the strike price
 	address public immutable strikeAsset;
 	// asset that is used as the reference asset
@@ -37,7 +38,7 @@ contract DhvTokenAccountingUtilisation {
 		address _underlyingAsset,
 		address _collateralAsset
 	) {
-		liquidityPool = LiquidityPool(_liquidityPool);
+		liquidityPool = ILiquidityPool(_liquidityPool);
 		strikeAsset = _strikeAsset;
 		underlyingAsset = _underlyingAsset;
 		collateralAsset = _collateralAsset;
@@ -76,13 +77,79 @@ contract DhvTokenAccountingUtilisation {
 		return tokenPrice.mul(1e18 - (utilization.powu(8)).mul(1e18 / 8));
 	}
 
+	// ------------------ Called functions from LP ----------------
+
+	function deposit(address depositor, uint256 _amount)
+		external
+		view
+		returns (uint256 depositAmount, uint256 unredeemedShares)
+	{
+		_isLiquidityPool();
+		uint256 collateralCap = liquidityPool.collateralCap();
+		uint256 currentEpoch = liquidityPool.epoch();
+		// check the total allowed collateral amount isnt surpassed by incrementing the total assets with the amount denominated in e18
+		uint256 totalAmountWithDeposit = liquidityPool.getAssets() +
+			OptionsCompute.convertFromDecimals(_amount, ERC20(collateralAsset).decimals());
+		if (totalAmountWithDeposit > collateralCap) {
+			revert CustomErrors.TotalSupplyReached();
+		}
+		Types.DepositReceipt memory depositReceipt = liquidityPool.depositReceipts(depositor);
+		// check for any unredeemed shares
+		unredeemedShares = uint256(depositReceipt.unredeemedShares);
+		// if there is already a receipt from a previous round then acknowledge and record it
+		if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
+			unredeemedShares += sharesForAmount(
+				depositReceipt.amount,
+				liquidityPool.epochPricePerShare(depositReceipt.epoch)
+			);
+		}
+		depositAmount = _amount;
+		// if there is a second deposit in the same round then increment this amount
+		if (currentEpoch == depositReceipt.epoch) {
+			depositAmount += uint256(depositReceipt.amount);
+		}
+		require(depositAmount <= type(uint128).max, "overflow");
+	}
+
+	function redeem(
+		address redeemer,
+		uint256 shares,
+		Types.DepositReceipt memory depositReceipt
+	) external view returns (uint256 toRedeem, Types.DepositReceipt memory) {
+		_isLiquidityPool();
+		uint256 currentEpoch = liquidityPool.epoch();
+		// check for any unredeemed shares
+		uint256 unredeemedShares = uint256(depositReceipt.unredeemedShares);
+		// if there is already a receipt from a previous round then acknowledge and record it
+		if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
+			unredeemedShares += sharesForAmount(
+				depositReceipt.amount,
+				liquidityPool.epochPricePerShare(depositReceipt.epoch)
+			);
+		}
+		// if the shares requested are greater than their unredeemedShares then floor to unredeemedShares, otherwise
+		// use their requested share number
+		toRedeem = shares > unredeemedShares ? unredeemedShares : shares;
+		if (toRedeem == 0) {
+			return (0, depositReceipt);
+		}
+		// if the deposit receipt is on this epoch and there are unredeemed shares then we leave amount as is,
+		// if the epoch has past then we set the amount to 0 and take from the unredeemedShares
+		if (depositReceipt.epoch < currentEpoch) {
+			depositReceipt.amount = 0;
+		}
+		depositReceipt.unredeemedShares = uint128(unredeemedShares - toRedeem);
+		console.log(depositReceipt.unredeemedShares);
+		return (toRedeem, depositReceipt);
+	}
+
 	/**
 	 * @notice get the number of shares for a given amount
 	 * @param _amount  the amount to convert to shares - assumed in collateral decimals
 	 * @return shares the number of shares based on the amount - assumed in e18
 	 */
 	function sharesForAmount(uint256 _amount, uint256 assetPerShare)
-		external
+		public
 		view
 		returns (uint256 shares)
 	{

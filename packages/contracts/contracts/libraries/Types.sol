@@ -36,4 +36,28 @@ library Types {
 		uint128 minExpiry;
 		uint128 maxExpiry;
 	}
+
+	struct UtilizationState {
+		uint256 totalOptionPrice; //e18
+		int256 totalDelta; // e18
+		uint256 collateralToAllocate; //collateral decimals
+		uint256 utilizationBefore; // e18
+		uint256 utilizationAfter; //e18
+		uint256 utilizationPrice; //e18
+		bool isDecreased;
+		uint256 deltaTiltAmount; //e18
+		uint256 underlyingPrice; // strike asset decimals
+		uint256 iv; // e18
+	}
+
+	struct DepositReceipt {
+		uint128 epoch;
+		uint128 amount; //collateral decimals
+		uint256 unredeemedShares; //e18
+	}
+
+	struct WithdrawalReceipt {
+		uint128 epoch;
+		uint128 shares; //e18
+	}
 }

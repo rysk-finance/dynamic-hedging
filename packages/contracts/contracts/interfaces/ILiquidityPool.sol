@@ -5,6 +5,19 @@ import { Types } from "../libraries/Types.sol";
 import "../interfaces/IOptionRegistry.sol";
 
 interface ILiquidityPool {
+	function collateralCap() external view returns (uint256);
+
+	function epoch() external view returns (uint256);
+
+	function depositReceipts(address depositor) external view returns (Types.DepositReceipt memory);
+
+	function withdrawalReceipts(address withdrawer)
+		external
+		view
+		returns (Types.WithdrawalReceipt memory);
+
+	function epochPricePerShare(uint256 epoch) external view returns (uint256 price);
+
 	function collateralAsset() external view returns (address);
 
 	function underlyingAsset() external view returns (address);
@@ -14,6 +27,8 @@ interface ILiquidityPool {
 	function handlerIssue(Types.OptionSeries memory optionSeries) external returns (address);
 
 	function resetEphemeralValues() external;
+
+	function getAssets() external view returns (uint256);
 
 	function handlerWriteOption(
 		Types.OptionSeries memory optionSeries,
