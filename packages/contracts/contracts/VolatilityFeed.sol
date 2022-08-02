@@ -2,6 +2,7 @@
 pragma solidity >=0.8.9;
 
 import "./libraries/AccessControl.sol";
+import "./libraries/CustomErrors.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
@@ -124,7 +125,7 @@ contract VolatilityFeed is AccessControl {
 		if (
 			!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()
 		) {
-			revert();
+			revert CustomErrors.NotKeeper();
 		}
 	}
 }

@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 import "prb-math/contracts/PRBMathSD59x18.sol";
-import "prb-math/contracts/PRBMathUD60x18.sol";
 
 /**
  *  @title Library used for approximating a normal distribution
  */
 library NormalDist {
 	using PRBMathSD59x18 for int256;
-	using PRBMathSD59x18 for int8;
-	using PRBMathUD60x18 for uint256;
 
 	int256 private constant ONE = 1000000000000000000;
 	int256 private constant ONE_HALF = 500000000000000000;
