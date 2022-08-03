@@ -15,6 +15,7 @@
 		"execute-epoch:testnet": "npx hardhat run scripts/executeEpochTestnet.ts --network arbitrumRinkeby",
 		"buyoption": "npx hardhat run scripts/buySample.ts --network arbitrumRinkeby",
 		"create-otc-order": "npx hardhat run scripts/createOTCOrder.ts --network arbitrumRinkeby",
+		"create-otc-strangle": "npx hardhat run scripts/createOTCStrangle.ts --network arbitrumRinkeby",
 		"fulfill": "npx hardhat run scripts/fulfill.ts --network arbitrumRinkeby"
 	},
 	"keywords": [],

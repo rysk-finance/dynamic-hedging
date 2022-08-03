@@ -75,6 +75,11 @@ export type Order = {
   seriesAddress: Address;
 };
 
+export type StrangleOrder = {
+  call: Order;
+  put: Order;
+};
+
 export type Events = {
   Approval: { owner: Address; spender: Address; value: BigNumber };
 };

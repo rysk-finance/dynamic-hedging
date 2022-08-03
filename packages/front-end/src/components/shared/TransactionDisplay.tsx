@@ -19,7 +19,12 @@ export const TransactionDisplay: React.FC<TransactionDisplayProps> = ({
         children.length - 4,
         children.length
       )}`}{" "}
-      <button onClick={handleCopy}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleCopy();
+        }}
+      >
         <img src="/icons/copy.svg" />
       </button>
     </>

@@ -229,6 +229,7 @@ function App() {
   }, [disconnect]);
 
   useEffect(() => {
+    
     const SUBGRAPH_URI =
       network?.id !== undefined ? SUBGRAPH_URL[network?.id] : "";
 
