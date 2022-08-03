@@ -22,6 +22,7 @@ import {
   WithdrawalReceipt,
 } from "../types";
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
+import { Button } from "./shared/Button";
 import { RadioButtonSlider } from "./shared/RadioButtonSlider";
 import { TextInput } from "./shared/TextInput";
 import { UserPosition } from "./UserPosition";
@@ -360,7 +361,8 @@ export const VaultDepositWithdraw = () => {
     }
   };
 
-  const approveIsDisabled = !inputValue || approvalState;
+  const approveIsDisabled =
+    !inputValue || !!approvalState || listeningForApproval;
   const depositIsDisabled =
     mode === Mode.DEPOSIT &&
     depositMode === DepositMode.USDC &&
@@ -632,27 +634,32 @@ export const VaultDepositWithdraw = () => {
           depositMode === DepositMode.USDC ? (
             // Deposit
             <>
-              <button
+              <Button
                 onClick={handleApproveSpend}
-                className={`w-full py-6 bg-black text-white mt-[-2px] ${
-                  approveIsDisabled ? "!bg-gray-300" : ""
-                }`}
+                className={`w-full !py-6 !border-0 bg-black text-white mt-[-2px]`}
+                disabled={approveIsDisabled}
+                color="black"
               >
-                {`${approvalState ? "Approved ✅" : "Approve"}`}
-              </button>
-              <button
+                {approvalState
+                  ? "✅ Approved"
+                  : listeningForApproval
+                  ? "⏱ Awaiting Approval"
+                  : "Approve"}
+              </Button>
+              <Button
                 onClick={() => {
                   if (inputValue) {
                     handleSubmit();
                   }
                 }}
-                className={`w-full py-6 bg-black text-white mt-[-2px] ${
+                className={`w-full !py-6 !border-0 bg-black text-white mt-[-2px]  ${
                   depositIsDisabled ? "!bg-gray-300" : ""
                 }`}
-                disabled={!(inputValue && account)}
+                disabled={depositIsDisabled}
+                color="black"
               >
-                Deposit
-              </button>
+                {listeningForDeposit ? "⏱ Awaiting deposit" : "Deposit"}
+              </Button>
             </>
           ) : (
             <button
