@@ -25,12 +25,14 @@ const APPROVAL_MARGIN = 0.1;
 
 export enum CHAINID {
   ETH_MAINNET = 1,
+  ARBITRUM_MAINNET = 42161,
   ARBITRUM_RINKEBY = 421611,
   LOCALHOST = 1337,
 }
 
 export const IDToNetwork: Record<CHAINID, ETHNetwork> = {
   [CHAINID.ETH_MAINNET]: ETHNetwork.MAINNET,
+  [CHAINID.ARBITRUM_MAINNET]: ETHNetwork.ARBITRUM_MAINNET,
   [CHAINID.ARBITRUM_RINKEBY]: ETHNetwork.ARBITRUM_RINKEBY,
   [CHAINID.LOCALHOST]: ETHNetwork.LOCALHOST,
 };
@@ -40,6 +42,7 @@ export const SUBGRAPH_URL = {
   [CHAINID.ETH_MAINNET]: "",
   [CHAINID.ARBITRUM_RINKEBY]:
     "https://api.thegraph.com/subgraphs/name/ugolino/rysktestnet",
+  [CHAINID.ARBITRUM_MAINNET]: "",
 };
 
 /**
