@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 
 pragma solidity >=0.8.9;
+
 import { Types } from "../libraries/Types.sol";
 import "../interfaces/IOptionRegistry.sol";
+import "../interfaces/IAccounting.sol";
 import "./IERC20.sol";
 
 interface ILiquidityPool is IERC20 {
@@ -10,12 +12,12 @@ interface ILiquidityPool is IERC20 {
 
 	function epoch() external view returns (uint256);
 
-	function depositReceipts(address depositor) external view returns (Types.DepositReceipt memory);
+	function depositReceipts(address depositor) external view returns (IAccounting.DepositReceipt memory);
 
 	function withdrawalReceipts(address withdrawer)
 		external
 		view
-		returns (Types.WithdrawalReceipt memory);
+		returns (IAccounting.WithdrawalReceipt memory);
 
 	function epochPricePerShare(uint256 epoch) external view returns (uint256 price);
 

@@ -50,14 +50,4 @@ library Types {
 		uint256 iv; // e18
 	}
 
-	struct DepositReceipt {
-		uint128 epoch;
-		uint128 amount; //collateral decimals
-		uint256 unredeemedShares; //e18
-	}
-
-	struct WithdrawalReceipt {
-		uint128 epoch;
-		uint128 shares; //e18
-	}
 }

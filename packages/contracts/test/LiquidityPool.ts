@@ -2474,9 +2474,9 @@ describe("Liquidity Pools", async () => {
 	it("protocol changes feeds", async () => {
 		await optionProtocol.changePortfolioValuesFeed(priceFeed.address)
 		await optionProtocol.changeVolatilityFeed(priceFeed.address)
-		await optionProtocol.changeDhvTokenCalculations(priceFeed.address)
+		await optionProtocol.changeAccounting(priceFeed.address)
 		await optionProtocol.changePriceFeed(volFeed.address)
-		expect(await optionProtocol.dhvTokenCalculations()).to.eq(priceFeed.address)
+		expect(await optionProtocol.accounting()).to.eq(priceFeed.address)
 		expect(await optionProtocol.portfolioValuesFeed()).to.eq(priceFeed.address)
 		expect(await optionProtocol.volatilityFeed()).to.eq(priceFeed.address)
 		expect(await optionProtocol.priceFeed()).to.eq(volFeed.address)

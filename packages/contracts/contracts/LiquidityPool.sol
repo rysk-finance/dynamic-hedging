@@ -4,8 +4,6 @@ pragma solidity >=0.8.0;
 import "./Protocol.sol";
 import "./PriceFeed.sol";
 import "./VolatilityFeed.sol";
-// import "./DhvTokenCalculations.sol";
-import "./DhvTokenAccountingUtilisation.sol";
 
 import "./tokens/ERC20.sol";
 import "./utils/ReentrancyGuard.sol";
@@ -16,6 +14,7 @@ import "./libraries/AccessControl.sol";
 import "./libraries/OptionsCompute.sol";
 import "./libraries/SafeTransferLib.sol";
 
+import "./interfaces/IAccounting.sol";
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IHedgingReactor.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
@@ -61,9 +60,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	// epoch PPS
 	mapping(uint256 => uint256) public epochPricePerShare;
 	// deposit receipts for users
-	mapping(address => Types.DepositReceipt) public depositReceipts;
+	mapping(address => IAccounting.DepositReceipt) public depositReceipts;
 	// withdrawal receipts for users
-	mapping(address => Types.WithdrawalReceipt) public withdrawalReceipts;
+	mapping(address => IAccounting.WithdrawalReceipt) public withdrawalReceipts;
 	// pending deposits for a round
 	uint256 public pendingDeposits;
 	// pending withdrawals for a round
@@ -541,7 +540,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		if (!isTradingPaused) {
 			revert CustomErrors.TradingNotPaused();
 		}
-		uint256 newPricePerShare = _getDhvTokenCalculations().calculateTokenPrice(
+		uint256 newPricePerShare = _getAccounting().calculateTokenPrice(
 			totalSupply,
 			_getAssets(),
 			_getLiabilities(),
@@ -549,7 +548,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			pendingDeposits,
 			pendingWithdrawals
 		);
-		uint256 sharesToMint = _getDhvTokenCalculations().sharesForAmount(
+		uint256 sharesToMint = _getAccounting().sharesForAmount(
 			pendingDeposits,
 			newPricePerShare
 		);
@@ -576,7 +575,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		if (_amount == 0) {
 			revert CustomErrors.InvalidAmount();
 		}
-		(uint256 depositAmount, uint256 unredeemedShares) = _getDhvTokenCalculations().deposit(
+		(uint256 depositAmount, uint256 unredeemedShares) = _getAccounting().deposit(
 			msg.sender,
 			_amount
 			// epoch,
@@ -585,7 +584,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 		emit Deposit(msg.sender, _amount, epoch);
 		// create the deposit receipt
-		depositReceipts[msg.sender] = Types.DepositReceipt({
+		depositReceipts[msg.sender] = IAccounting.DepositReceipt({
 			epoch: uint128(epoch),
 			amount: uint128(depositAmount),
 			unredeemedShares: unredeemedShares
@@ -617,13 +616,13 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		if (_shares == 0) {
 			revert CustomErrors.InvalidShareAmount();
 		}
-		Types.DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
+		IAccounting.DepositReceipt memory depositReceipt = depositReceipts[msg.sender];
 
 		if (depositReceipt.amount > 0 || depositReceipt.unredeemedShares > 0) {
 			// redeem so a user can use a completed deposit as shares for an initiation
 			_redeem(type(uint256).max);
 		}
-		Types.WithdrawalReceipt memory withdrawalReceipt = _getDhvTokenCalculations().initiatewithdraw(
+		IAccounting.WithdrawalReceipt memory withdrawalReceipt = _getAccounting().initiateWithdraw(
 			msg.sender,
 			_shares
 		);
@@ -643,8 +642,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			int256 amountNeeded,
 			uint256 withdrawalAmount,
 			uint256 withdrawalShares,
-			Types.WithdrawalReceipt memory withdrawalReceipt
-		) = _getDhvTokenCalculations().completeWithdraw(msg.sender, _shares, MAX_BPS);
+			IAccounting.WithdrawalReceipt memory withdrawalReceipt
+		) = _getAccounting().completeWithdraw(msg.sender, _shares);
 		withdrawalReceipts[msg.sender] = withdrawalReceipt;
 		// loop through the reactors and move funds if found
 		if (amountNeeded > 0) {
@@ -915,7 +914,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @return toRedeem the number of shares actually returned
 	 */
 	function _redeem(uint256 _shares) internal returns (uint256) {
-		(uint256 toRedeem, Types.DepositReceipt memory depositReceipt) = _getDhvTokenCalculations()
+		(uint256 toRedeem, IAccounting.DepositReceipt memory depositReceipt) = _getAccounting()
 			.redeem(msg.sender, _shares);
 		if (toRedeem == 0) {
 			return 0;
@@ -1177,11 +1176,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	/**
-	 * @notice get the DHV share token calculations contract used by the liquidity pool
-	 * @return the DHV token calculations contract
+	 * @notice get the DHV accounting calculations contract used by the liquidity pool
+	 * @return the Accounting contract
 	 */
-	function _getDhvTokenCalculations() internal view returns (DhvTokenAccountingUtilisation) {
-		return DhvTokenAccountingUtilisation(protocol.dhvTokenCalculations());
+	function _getAccounting() internal view returns (IAccounting) {
+		return IAccounting(protocol.accounting());
 	}
 
 	/**

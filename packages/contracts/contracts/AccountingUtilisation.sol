@@ -4,17 +4,16 @@ pragma solidity >=0.8.0;
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 
-import "./libraries/OptionsCompute.sol";
-import "./libraries/Types.sol";
 import "./tokens/ERC20.sol";
+import "./libraries/OptionsCompute.sol";
+
+import "./interfaces/IAccounting.sol";
 import "./interfaces/ILiquidityPool.sol";
 
 /**
- *  @title Modular contract used by the liquidity pool to calculate the value of its ERC20 ault token
- *  @dev Has a main external function, calculateTokenPrice() which will be called by the liquidity pool
- *  each time the token value is needed.
+ *  @title Modular contract used by the liquidity pool to conducting accounting logic
  */
-contract DhvTokenAccountingUtilisation {
+contract AccountingUtilisation is IAccounting {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
 
@@ -30,6 +29,8 @@ contract DhvTokenAccountingUtilisation {
 	address public immutable underlyingAsset;
 	// asset that is used for collateral asset
 	address public immutable collateralAsset;
+	// MAX_BPS
+	uint256 private constant MAX_BPS = 10000;
 
 	constructor(
 		address _liquidityPool,
@@ -43,9 +44,20 @@ contract DhvTokenAccountingUtilisation {
 		collateralAsset = _collateralAsset;
 	}
 
-	/*
-	 * @notice calculates the USDC value of the Liquidity pool's ERC20 vault share token denominated in e6
-	 */
+	///////////////////////
+	/// complex getters ///
+	///////////////////////
+	
+    /**
+     * @notice calculates the USDC value of the Liquidity pool's ERC20 vault share token denominated in e6
+     * @param  totalSupply the total supply of the liquidity pool's erc20
+     * @param  assets      the value of assets held by the pool
+     * @param  liabilities the value of liabilities held by the pool
+     * @param  collateralAllocated the amount of collateral allocated to option positions
+     * @param  pendingDeposits the amount of deposits queued for the current epoch
+     * @param  pendingWithdrawals the amount of withdrawals queued for the current epoch
+     * @return tokenPrice  the value of the token in e6 terms
+     */
 	function calculateTokenPrice(
 		uint256 totalSupply,
 		uint256 assets,
@@ -53,7 +65,7 @@ contract DhvTokenAccountingUtilisation {
 		uint256 collateralAllocated,
 		uint256 pendingDeposits,
 		uint256 pendingWithdrawals
-	) external returns (uint256 tokenPrice) {
+	) external view returns (uint256 tokenPrice) {
 		if (int256(assets) < liabilities) {revert CustomErrors.LiabilitiesGreaterThanAssets();}
 		uint256 NAV = uint256((int256(assets) - liabilities));
 		uint256 tokenPriceInitial = totalSupply > 0
@@ -76,14 +88,18 @@ contract DhvTokenAccountingUtilisation {
 		return tokenPrice.mul(1e18 - (utilization.powu(8)).mul(1e18 / 8));
 	}
 
-	// ------------------ Called functions from LP ----------------
-
+    /**
+     * @notice logic for adding liquidity to the options liquidity pool
+     * @param  depositor the address making the deposit
+     * @param  _amount amount of the collateral asset to deposit
+     * @return depositAmount the amount to deposit from the round
+     * @return unredeemedShares number of shares held in the deposit receipt that havent been redeemed
+     */
 	function deposit(address depositor, uint256 _amount)
 		external
 		view
 		returns (uint256 depositAmount, uint256 unredeemedShares)
 	{
-		_isLiquidityPool();
 		uint256 collateralCap = liquidityPool.collateralCap();
 		uint256 currentEpoch = liquidityPool.epoch();
 		// check the total allowed collateral amount isnt surpassed by incrementing the total assets with the amount denominated in e18
@@ -92,7 +108,7 @@ contract DhvTokenAccountingUtilisation {
 		if (totalAmountWithDeposit > collateralCap) {
 			revert CustomErrors.TotalSupplyReached();
 		}
-		Types.DepositReceipt memory depositReceipt = liquidityPool.depositReceipts(depositor);
+		IAccounting.DepositReceipt memory depositReceipt = liquidityPool.depositReceipts(depositor);
 		// check for any unredeemed shares
 		unredeemedShares = uint256(depositReceipt.unredeemedShares);
 		// if there is already a receipt from a previous round then acknowledge and record it
@@ -110,13 +126,19 @@ contract DhvTokenAccountingUtilisation {
 		require(depositAmount <= type(uint128).max, "overflow");
 	}
 
+    /**
+     * @notice logic for allowing a user to redeem their shares from a previous epoch
+     * @param  redeemer the address making the deposit
+     * @param  shares amount of the collateral asset to deposit
+     * @return toRedeem the amount to actually redeem
+     * @return depositReceipt the updated deposit receipt after the redeem has completed
+     */
 	function redeem(address redeemer, uint256 shares)
 		external
 		view
-		returns (uint256 toRedeem, Types.DepositReceipt memory)
+		returns (uint256 toRedeem, IAccounting.DepositReceipt memory)
 	{
-		_isLiquidityPool();
-		Types.DepositReceipt memory depositReceipt = liquidityPool.depositReceipts(redeemer);
+		IAccounting.DepositReceipt memory depositReceipt = liquidityPool.depositReceipts(redeemer);
 
 		uint256 currentEpoch = liquidityPool.epoch();
 		// check for any unredeemed shares
@@ -143,13 +165,17 @@ contract DhvTokenAccountingUtilisation {
 		return (toRedeem, depositReceipt);
 	}
 
-	function initiatewithdraw(address withdrawer, uint256 shares)
+    /**
+     * @notice logic for accounting a user to initiate a withdraw request from the pool
+     * @param  withdrawer the address carrying out the withdrawal
+     * @param  shares the amount of shares to withdraw for
+     * @return withdrawalReceipt the new withdrawal receipt to pass to the liquidityPool
+     */
+	function initiateWithdraw(address withdrawer, uint256 shares)
 		external
 		view
-		returns (Types.WithdrawalReceipt memory withdrawalReceipt)
+		returns (IAccounting.WithdrawalReceipt memory withdrawalReceipt)
 	{
-		_isLiquidityPool();
-
 		if (liquidityPool.balanceOf(withdrawer) < shares) {
 			revert CustomErrors.InsufficientShareBalance();
 		}
@@ -173,10 +199,18 @@ contract DhvTokenAccountingUtilisation {
 		withdrawalReceipt.shares = uint128(withdrawalShares);
 	}
 
+    /**
+     * @notice logic for accounting a user to complete a withdrawal
+     * @param  withdrawer the address carrying out the withdrawal
+     * @param  shares the amount of shares to withdraw for
+     * @return amountNeeded      the amount of funds needed to withdraw completely
+     * @return withdrawalAmount  the amount of collateral to withdraw 
+     * @return withdrawalShares  the number of shares to withdraw
+     * @return withdrawalReceipt the new withdrawal receipt to pass to the liquidityPool
+     */
 	function completeWithdraw(
 		address withdrawer,
-		uint256 shares,
-		uint256 MAX_BPS
+		uint256 shares
 	)
 		external
 		view
@@ -184,10 +218,9 @@ contract DhvTokenAccountingUtilisation {
 			int256 amountNeeded,
 			uint256 withdrawalAmount,
 			uint256 withdrawalShares,
-			Types.WithdrawalReceipt memory withdrawalReceipt
+			IAccounting.WithdrawalReceipt memory withdrawalReceipt
 		)
 	{
-		_isLiquidityPool();
 		if (shares == 0) {
 			revert CustomErrors.InvalidShareAmount();
 		}
@@ -225,6 +258,7 @@ contract DhvTokenAccountingUtilisation {
 	/**
 	 * @notice get the number of shares for a given amount
 	 * @param _amount  the amount to convert to shares - assumed in collateral decimals
+     * @param assetPerShare the amount of assets received per share
 	 * @return shares the number of shares based on the amount - assumed in e18
 	 */
 	function sharesForAmount(uint256 _amount, uint256 assetPerShare)
@@ -242,6 +276,7 @@ contract DhvTokenAccountingUtilisation {
 	/**
 	 * @notice get the amount for a given number of shares
 	 * @param _shares  the shares to convert to amount in e18
+	 * @param _assetPerShare the amount of assets received per share
 	 * @return amount the number of amount based on shares in collateral decimals
 	 */
 	function amountForShares(uint256 _shares, uint256 _assetPerShare)
@@ -253,11 +288,5 @@ contract DhvTokenAccountingUtilisation {
 			(_shares * _assetPerShare) / PRBMath.SCALE,
 			ERC20(collateralAsset).decimals()
 		);
-	}
-
-	function _isLiquidityPool() internal view {
-		if (msg.sender != address(liquidityPool)) {
-			revert CustomErrors.NotLiquidityPool();
-		}
 	}
 }

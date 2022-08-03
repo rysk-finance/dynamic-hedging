@@ -19,7 +19,7 @@ contract Protocol is AccessControl {
 
 	address public volatilityFeed;
 	address public portfolioValuesFeed;
-	address public dhvTokenCalculations;
+	address public accounting;
 	address public priceFeed;
 
 	constructor(
@@ -49,9 +49,9 @@ contract Protocol is AccessControl {
 		portfolioValuesFeed = _portfolioValuesFeed;
 	}
 
-	function changeDhvTokenCalculations(address _dhvTokenCalculations) external {
+	function changeAccounting(address _accounting) external {
 		_onlyGovernor();
-		dhvTokenCalculations = _dhvTokenCalculations;
+		accounting= _accounting;
 	}
 	
 	function changePriceFeed(address _priceFeed) external {
