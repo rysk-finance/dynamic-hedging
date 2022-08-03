@@ -27,6 +27,7 @@ export enum ETHNetwork {
   LOCALHOST = "localhost",
   ARBITRUM_RINKEBY = "arbitrumRinkeby",
   MAINNET = "mainnet",
+  ARBITRUM_MAINNET = "arbitrum",
 }
 
 export type RyskContractAddresses = {
@@ -50,6 +51,7 @@ export type RyskContractAddresses = {
 
 export type ExternalContractAddresses = {
   USDC: string;
+  WETH: string;
 };
 
 export type ContractAddresses = RyskContractAddresses &

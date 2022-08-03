@@ -66,7 +66,9 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
   const [network] = useState(
     process.env.REACT_APP_NETWORK as keyof typeof addresses | undefined
   );
-  const { provider } = useWalletContext();
+
+  const { signer, rpcURL } = useWalletContext();
+
   const [ethersContract, setEthersContract] = useState<ethers.Contract | null>(
     null
   );
@@ -130,19 +132,26 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
 
   // Instances the ethers contract in state.
   useEffect(() => {
-    const signerOrProvider = args.readOnly ? provider : provider?.getSigner();
-    if (signerOrProvider && network && !ethersContract) {
-      const address =
-        "contract" in args
-          ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
-              (args as useContractRyskContractArgs<T>).contract
-            ]
-          : (args as useContractExternalContractArgs<T>).contractAddress;
-      setEthersContract(
-        new ethers.Contract(address, args.ABI, signerOrProvider)
-      );
+    if (rpcURL) {
+      // If we don't require a signer, we just use a generic RPC provider
+      // which doesn't require the user to connect their address.
+      const rpcProvider = new ethers.providers.JsonRpcProvider(rpcURL);
+
+      const signerOrProvider = args.readOnly ? rpcProvider : signer;
+
+      if (signerOrProvider && network && !ethersContract) {
+        const address =
+          "contract" in args
+            ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
+                (args as useContractRyskContractArgs<T>).contract
+              ]
+            : (args as useContractExternalContractArgs<T>).contractAddress;
+        setEthersContract(
+          new ethers.Contract(address, args.ABI, signerOrProvider)
+        );
+      }
     }
-  }, [args, provider, network, ethersContract]);
+  }, [args, signer, network, ethersContract, rpcURL]);
 
   // Update the local events map. The event handlers attached to the contract
   // look up the appropriate handler on this object, meaning we can update the

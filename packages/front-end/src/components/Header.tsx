@@ -2,7 +2,6 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useWalletContext } from "../App";
 import { AppPaths } from "../config/appPaths";
-import { CHAINID, IDToNetwork } from "../config/constants";
 import { useGlobalContext } from "../state/GlobalContext";
 import { HeaderPopover } from "./HeaderPopover";
 import { Button } from "./shared/Button";
@@ -11,7 +10,7 @@ export const Header: React.FC = () => {
   const {
     state: { connectWalletIndicatorActive },
   } = useGlobalContext();
-  const { connectWallet, provider, disconnect, network } = useWalletContext();
+  const { connectWallet, signer, disconnect, network } = useWalletContext();
   const { pathname } = useLocation();
 
   const envChainID = process.env.REACT_APP_CHAIN_ID;
@@ -53,7 +52,7 @@ export const Header: React.FC = () => {
             </button>
           </Link>
         </div>
-        {!provider ? (
+        {!signer ? (
           <Button
             onClick={() => connectWallet?.()}
             className={`origin-center transition-transform ${

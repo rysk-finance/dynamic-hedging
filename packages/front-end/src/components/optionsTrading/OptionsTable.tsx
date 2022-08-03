@@ -27,6 +27,7 @@ import { PortfolioValuesFeed } from "../../types/PortfolioValuesFeed";
 import { PriceFeed } from "../../types/PriceFeed";
 import { LiquidityPool } from "../../types/LiquidityPool";
 import { OptionRegistry } from "../../types/OptionRegistry";
+import { ContractAddresses, ETHNetwork } from "../../types";
 
 const suggestedCallOptionPriceDiff = [-100, 0, 100, 200, 300, 400, 600, 800];
 const suggestedPutOptionPriceDiff = [
@@ -95,15 +96,19 @@ export const OptionsTable: React.FC = () => {
       ].sort((a, b) => a - b);
 
       const fetchPrices = async () => {
+        const typedAddresses = addresses as Record<
+          ETHNetwork,
+          ContractAddresses
+        >;
         const suggestions = await Promise.all(
           strikes.map(async (strike) => {
             const optionSeries = {
               expiration: Number(expiryDate?.getTime()) / 1000,
               strike: toWei(strike.toString()),
               isPut: optionType !== OptionType.CALL,
-              strikeAsset: addresses[network.name].USDC,
-              underlying: addresses[network.name].WETH,
-              collateral: addresses[network.name].USDC,
+              strikeAsset: typedAddresses[network.name].USDC,
+              underlying: typedAddresses[network.name].WETH,
+              collateral: typedAddresses[network.name].USDC,
             };
 
             console.log({ optionSeries });

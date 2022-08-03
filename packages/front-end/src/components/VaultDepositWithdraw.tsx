@@ -14,7 +14,13 @@ import addresses from "../contracts.json";
 import { useContract } from "../hooks/useContract";
 import { useQueryParams } from "../hooks/useQueryParams";
 import { useGlobalContext } from "../state/GlobalContext";
-import { DepositReceipt, Events, WithdrawalReceipt } from "../types";
+import {
+  ContractAddresses,
+  DepositReceipt,
+  ETHNetwork,
+  Events,
+  WithdrawalReceipt,
+} from "../types";
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
 import { RadioButtonSlider } from "./shared/RadioButtonSlider";
 import { TextInput } from "./shared/TextInput";
@@ -255,14 +261,18 @@ export const VaultDepositWithdraw = () => {
       const amount = BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(inputValue));
       const approvedAmount = (await usdcContract.allowance(
         account,
-        addresses[network.name]["liquidityPool"]
+        (addresses as Record<ETHNetwork, ContractAddresses>)[network.name][
+          "liquidityPool"
+        ]
       )) as BigNumber;
       try {
         if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
           await usdcContractCall({
             method: usdcContract.approve,
             args: [
-              addresses[network.name]["liquidityPool"],
+              (addresses as Record<ETHNetwork, ContractAddresses>)[
+                network.name
+              ]["liquidityPool"],
               settings.unlimitedApproval
                 ? ethers.BigNumber.from(MAX_UINT_256)
                 : amount,
