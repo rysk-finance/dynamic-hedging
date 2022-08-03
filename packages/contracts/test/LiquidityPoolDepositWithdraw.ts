@@ -667,13 +667,15 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	it("Succeeds: execute epoch", async () => {
 		const epochBefore = await liquidityPool.epoch()
 		const pendingDepositBefore = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
+		const pendingWithdrawBefore = await liquidityPool.pendingWithdrawals()
 		const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
 		const totalSupplyBefore = await liquidityPool.totalSupply()
-		const pendingWithdrawBefore = await liquidityPool.pendingWithdrawals()
 
 		await liquidityPool.executeEpochCalculation()
 		const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
+		const pendingDepositAfter = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
 		const pendingWithdrawAfter = await liquidityPool.pendingWithdrawals()
+
 		expect(await liquidityPool.epochPricePerShare(epochBefore)).to.equal(
 			toWei("1")
 				.mul((await liquidityPool.getNAV()).sub(pendingDepositBefore))
@@ -681,7 +683,9 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		)
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
 		expect(pendingWithdrawBefore).to.not.eq(0)
-		expect(pendingDepositBefore).to.eq(0)
+		expect(pendingDepositBefore).to.not.eq(0)
+		expect(pendingWithdrawAfter).to.eq(0)
+		expect(pendingDepositAfter).to.eq(0)
 		expect(await liquidityPool.isTradingPaused()).to.be.false
 		expect(await liquidityPool.epoch()).to.equal(epochBefore.add(1))
 		expect(
