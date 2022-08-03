@@ -28,11 +28,12 @@ import { ETHNetwork } from "./types";
 import { toHex } from "./utils";
 import { OTC } from "./pages/OTC";
 
-// TODO(HC): Move infura key to env variable
-const MAINNET_RPC_URL = `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
-const ROPSTEN_RPC_URL = `https://ropsten.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
-const RINKEBY_RPC_URL = `https://rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
-const ARBITRUM_RINKEBY_RPC_URL = `https://arbitrum-rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`;
+export const RPC_URL_MAP: Record<CHAINID, string> = {
+  [CHAINID.ETH_MAINNET]: `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
+  [CHAINID.ARBITRUM_MAINNET]: `https://arbitrum-mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
+  [CHAINID.ARBITRUM_RINKEBY]: `https://arbitrum-rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
+  [CHAINID.LOCALHOST]: "",
+};
 
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();
@@ -45,28 +46,21 @@ const onboard = init({
       token: "ETH", // main chain token
       namespace: "evm",
       label: "Ethereum Mainnet",
-      rpcUrl: MAINNET_RPC_URL,
+      rpcUrl: RPC_URL_MAP[CHAINID.ETH_MAINNET],
+    },
+    {
+      id: "0x2",
+      token: "ARETH",
+      namespace: "evm",
+      label: "Arbitrum Rinkeby Testnet",
+      rpcUrl: RPC_URL_MAP[CHAINID.ARBITRUM_RINKEBY],
     },
     {
       id: "0x3",
-      token: "tROP",
+      token: "ETH",
       namespace: "evm",
-      label: "Ethereum Ropsten Testnet",
-      rpcUrl: ROPSTEN_RPC_URL,
-    },
-    {
-      id: "0x4",
-      token: "rETH",
-      namespace: "evm",
-      label: "Ethereum Rinkeby Testnet",
-      rpcUrl: RINKEBY_RPC_URL,
-    },
-    {
-      id: "0x5",
-      token: "rETH",
-      namespace: "evm",
-      label: "Arbitrum Rinkeby Testnet",
-      rpcUrl: ARBITRUM_RINKEBY_RPC_URL,
+      label: "Arbitrum Mainnet",
+      rpcUrl: RPC_URL_MAP[CHAINID.ARBITRUM_MAINNET],
     },
   ],
   appMetadata: {
@@ -87,7 +81,8 @@ type WalletContext = {
   network: { name: ETHNetwork; id: CHAINID } | null;
   switchNetwork: (() => Promise<void>) | null;
   disconnect: (() => Promise<void>) | null;
-  provider: ethers.ethers.providers.Web3Provider | null;
+  signer: ethers.ethers.providers.JsonRpcSigner | null;
+  rpcURL: string | null;
   account: string | null;
   error: any | null;
   chainId: string | null;
@@ -99,7 +94,8 @@ const WalletContext = createContext<WalletContext>({
   switchNetwork: null,
   network: null,
   disconnect: null,
-  provider: null,
+  signer: null,
+  rpcURL: null,
   account: null,
   error: null,
   chainId: null,
@@ -115,12 +111,18 @@ function App() {
   const [walletUnsubscribe, setWalletUnsubscribe] = useState<
     (() => void) | null
   >(null);
-  const [provider, setProvider] =
-    useState<ethers.ethers.providers.Web3Provider | null>(null);
+  const [signer, setSigner] =
+    useState<ethers.ethers.providers.JsonRpcSigner | null>(null);
   const [account, setAccount] = useState<string | null>(null);
   const [error, setError] = useState<any>(null);
   const [chainId, setChainId] = useState<string | null>(null);
   const [network, setNetwork] = useState<WalletContext["network"] | null>(null);
+  //
+  const [rpcURL, setRPCURL] = useState<string>(
+    process.env.REACT_APP_ENV === "mainnet"
+      ? RPC_URL_MAP[CHAINID.ARBITRUM_MAINNET]
+      : RPC_URL_MAP[CHAINID.ARBITRUM_RINKEBY]
+  );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   // Initialising to a client with undefined URL, rather than just null, as ApolloProvider
   // expects client to always be non-null. We overwrite with a new client with a defined
@@ -165,7 +167,8 @@ function App() {
       setIsLoading(true);
       const { accounts, chains, provider } = wallets[0];
       const ethersProvider = new ethers.providers.Web3Provider(provider);
-      setProvider(ethersProvider);
+      const ethersSigner = ethersProvider.getSigner();
+      setSigner(ethersSigner);
       const network = await ethersProvider.getNetwork();
       const networkName =
         network.chainId in IDToNetwork
@@ -175,6 +178,8 @@ function App() {
         setNetwork({ id: network.chainId, name: networkName });
       }
       setAccount(accounts[0].address);
+      const networkRPCURL = RPC_URL_MAP[network.chainId as CHAINID];
+      setRPCURL(networkRPCURL);
       setChainId(chains[0].id);
       setIsLoading(false);
     } catch (error) {
@@ -205,7 +210,7 @@ function App() {
   const refreshState = () => {
     setAccount("");
     setChainId("");
-    setProvider(null);
+    setSigner(null);
     setNetwork(null);
   };
 
@@ -242,7 +247,8 @@ function App() {
         network,
         switchNetwork,
         disconnect,
-        provider,
+        signer,
+        rpcURL,
         account,
         error,
         chainId,
