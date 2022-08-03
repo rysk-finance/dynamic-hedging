@@ -6,6 +6,7 @@ import { useWalletContext } from "../App";
 import { TransactionDisplay } from "../components/shared/TransactionDisplay";
 import addresses from "../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../types";
+import { isRPCError, parseError } from "../utils/parseRPCError";
 
 type EventName = string;
 type EventData = any[];
@@ -112,19 +113,17 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
         onComplete?.();
         return;
       } catch (err) {
-        try {
-          // Might need to modify this is errors other than RPC errors are being thrown
-          // my contract function calls.
-          toast(`❌ ${(err as any).data.message}`, {
+        // Might need to modify this is errors other than RPC errors are being thrown
+        // my contract function calls.
+        if (isRPCError(err)) {
+          toast(`❌ ${parseError(err)}`, {
             autoClose: 5000,
           });
-          onFail?.();
-          return null;
-        } catch {
+        } else {
           toast(JSON.stringify(err));
-          onFail?.();
-          return null;
         }
+        onFail?.();
+        return null;
       }
     },
     []
