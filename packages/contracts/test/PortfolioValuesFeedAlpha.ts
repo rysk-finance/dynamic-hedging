@@ -277,8 +277,8 @@ describe("APVF gas tests", async () => {
 						underlying: weth.address,
 						collateral: usd.address
 					}
-					const orderId = await handler.callStatic.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress)
-					await handler.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress)
+					const orderId = await handler.callStatic.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress,false)
+					await handler.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress,false)
 					const order = await handler.orderStores(orderId)
 					const convertedSeries = {
 						expiration: Number(order.optionSeries.expiration),
@@ -404,8 +404,8 @@ describe("APVF gas tests", async () => {
 					underlying: weth.address,
 					collateral: usd.address
 				}
-				const orderId = await handler.callStatic.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress)
-				await handler.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress)
+				const orderId = await handler.callStatic.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress,false)
+				await handler.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress,false)
 				const order = await handler.orderStores(orderId)
 				const convertedSeries = {
 					expiration: Number(order.optionSeries.expiration),
@@ -447,8 +447,8 @@ describe("APVF gas tests", async () => {
 					underlying: weth.address,
 					collateral: usd.address
 				}
-				const orderId = await handler.callStatic.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress)
-				await handler.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress)
+				const orderId = await handler.callStatic.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress,false)
+				await handler.createOrder(proposedSeries,amount,toWei("1"),orderExpiry,receiverAddress,false)
 				const order = await handler.orderStores(orderId)
 				const convertedSeries = {
 					expiration: Number(order.optionSeries.expiration),

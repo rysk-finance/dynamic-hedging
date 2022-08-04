@@ -26,6 +26,8 @@ library Types {
 		uint256 orderExpiry;
 		address buyer;
 		address seriesAddress;
+		uint256 spotPrice;
+		bool isBuyBack;
 	}
 	// strike and expiry date range for options
 	struct OptionParams {

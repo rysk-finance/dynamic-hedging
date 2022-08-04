@@ -2,6 +2,7 @@
 pragma solidity >=0.8.0;
 
 import "./Protocol.sol";
+import "./PriceFeed.sol";
 
 import "./tokens/ERC20.sol";
 import "./libraries/Types.sol";
@@ -195,7 +196,9 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			_price, // in e18
 			block.timestamp + _orderExpiry,
 			_buyerAddress,
-			series
+			series,
+			_getUnderlyingPrice(underlyingAsset, strikeAsset),
+			false
 		);
 		uint256 orderIdCounter__ = orderIdCounter + 1;
 		// increment the orderId and store the order
@@ -554,5 +557,19 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	 */
 	function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
 		return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
+	}
+
+	/**
+	 * @notice get the underlying price with just the underlying asset and strike asset
+	 * @param underlying   the asset that is used as the reference asset
+	 * @param _strikeAsset the asset that the underlying value is denominated in
+	 * @return the underlying price
+	 */
+	function _getUnderlyingPrice(address underlying, address _strikeAsset)
+		internal
+		view
+		returns (uint256)
+	{
+		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
 }
