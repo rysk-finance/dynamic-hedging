@@ -7,6 +7,7 @@ interface CustomErrors {
 	error NotHandler();
 	error InvalidPrice();
 	error InvalidBuyer();
+	error InvalidOrder();
 	error OrderExpired();
 	error InvalidAmount();
 	error TradingPaused();

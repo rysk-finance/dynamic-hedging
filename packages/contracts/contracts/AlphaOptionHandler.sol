@@ -236,6 +236,10 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		if (block.timestamp > order.orderExpiry) {
 			revert CustomErrors.OrderExpired();
 		}
+		// check if the order is a buyback order
+		if (order.isBuyBack) {
+			revert CustomErrors.InvalidOrder();
+		}
 		uint256 priceDelta = OptionsCompute.calculatePercentageChange(
 			_getUnderlyingPrice(underlyingAsset, strikeAsset), 
 			order.spotPrice
@@ -302,6 +306,10 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		if (block.timestamp > order.orderExpiry) {
 			revert CustomErrors.OrderExpired();
 		}
+		// check if the order is a buyback order
+		if (!order.isBuyBack) {
+			revert CustomErrors.InvalidOrder();
+		}
 		uint256 priceDelta = OptionsCompute.calculatePercentageChange(
 			_getUnderlyingPrice(underlyingAsset, strikeAsset), 
 			order.spotPrice
@@ -324,7 +332,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			address(liquidityPool),
 			OptionsCompute.convertToDecimals(order.amount, ERC20(order.seriesAddress).decimals())
 		);
-		// write the option contract, includes sending the premium from the user to the pool, option series should be in e8
+		// buyback the option contract, includes sending the premium from the user to the pool, option series should be in e8
 		liquidityPool.handlerBuybackOption(
 			order.optionSeries,
 			order.amount,
