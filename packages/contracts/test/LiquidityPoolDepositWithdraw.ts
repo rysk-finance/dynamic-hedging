@@ -990,7 +990,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			pendingDepositBefore.mul(toWei("1")).div(await liquidityPool.epochPricePerShare(epochBefore))
 		).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
 	})
-	it("Reverts: User 1: cannot complete withdrawal because of epoch not closed", async () => {
+	it("Reverts: User 1: cannot complete withdrawal because of not enough liquidity", async () => {
 		await expect(
 			liquidityPool.completeWithdraw(await liquidityPool.balanceOf(senderAddress))
 		).to.be.revertedWith("WithdrawExceedsLiquidity()")

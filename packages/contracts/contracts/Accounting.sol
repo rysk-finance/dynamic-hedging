@@ -76,16 +76,7 @@ contract AccountingUtilisation is IAccounting {
 					OptionsCompute.convertFromDecimals(pendingDeposits, ERC20(collateralAsset).decimals()))) /
 				totalSupply
 			: 1e18;
-		// collateralAllocated needs to be converted to e18
 	}
-
-	// function _utilizationPremium(uint256 tokenPrice, uint256 utilization)
-	// 	internal
-	// 	pure
-	// 	returns (uint256 utilizationTokenPrice)
-	// {
-	// 	return tokenPrice.mul(1e18 - (utilization.powu(8)).mul(1e18 / 8));
-	// }
 
 	/**
 	 * @notice logic for adding liquidity to the options liquidity pool
