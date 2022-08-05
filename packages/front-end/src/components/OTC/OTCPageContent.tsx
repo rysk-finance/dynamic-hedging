@@ -6,13 +6,16 @@ import { ZERO_UINT_256 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { useQueryParams } from "../../hooks/useQueryParams";
 import { useGlobalContext } from "../../state/GlobalContext";
-import { Order } from "../../types";
+import { Currency, Order, StrangleOrder } from "../../types";
 import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import { ETHPriceIndicator } from "../shared/ETHPriceIndicator";
 import { OrderDetails } from "./OrderDetails";
 import ERC20ABI from "../../abis/erc20.json";
 import { BigNumber } from "ethers";
+import { BigNumberDisplay } from "../BigNumberDisplay";
+
+const STRANGLE_REGEX = /^([0-9]+)(-[0-9]+)$/;
 
 export const OTCPageContent = () => {
   const query = useQueryParams();
@@ -23,6 +26,9 @@ export const OTCPageContent = () => {
 
   const [orderId, setOrderId] = useState<string | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
+
+  const [strangleId, setStrangleId] = useState<string | null>(null);
+  const [strangle, setStrangle] = useState<StrangleOrder | null>(null);
 
   const [isApproved, setIsApproved] = useState(false);
   const [isListeningForApproval, setIsListeningForApproval] = useState(false);
@@ -72,25 +78,69 @@ export const OTCPageContent = () => {
     const fetchOrder = async () => {
       if (optionHandlerContract && network && account)
         try {
-          const orderId = query.get("id");
-          setOrderId(orderId);
+          const id = query.get("id");
 
-          if (!orderId) {
+          if (!id) {
             throw new Error("❌ Invalid order ID. Please contact the team.");
           }
 
-          const order = (await optionHandlerContract.orderStores(
-            orderId
-          )) as Order | null;
+          const isStrangle = STRANGLE_REGEX.test(id);
 
-          const orderIsEmpty = order?.price._hex === ZERO_UINT_256;
-
-          if (orderIsEmpty) {
-            throw new Error("❌ Invalid order ID. Please contact the team.");
+          if (isStrangle) {
+            setStrangleId(id);
+          } else {
+            setOrderId(id);
           }
 
-          setOrder(order);
-          setError(null);
+          if (isStrangle) {
+            const [id1, id2] = id
+              .split("-")
+              .map((numString) => Number(numString));
+
+            const order1 = (await optionHandlerContract.orderStores(
+              id1
+            )) as Order | null;
+
+            const order2 = (await optionHandlerContract.orderStores(
+              id2
+            )) as Order | null;
+
+            const orderIsEmpty =
+              order1?.price._hex === ZERO_UINT_256 ||
+              order2?.price._hex === ZERO_UINT_256;
+
+            if (orderIsEmpty) {
+              throw new Error("❌ Invalid order ID. Please contact the team.");
+            }
+
+            // Check we have one put and one call
+            const orderIsValid =
+              order1?.optionSeries.isPut !== order2?.optionSeries.isPut;
+
+            if (order1 && order2 && orderIsValid) {
+              setStrangle({
+                call: order1.optionSeries.isPut ? order2 : order1,
+                put: order1.optionSeries.isPut ? order1 : order2,
+              });
+              setError(null);
+            } else {
+              throw new Error("❌ Invalid order ID. Please contact the team.");
+            }
+          } else {
+            const parsedId = Number(id);
+            const order = (await optionHandlerContract.orderStores(
+              parsedId
+            )) as Order | null;
+
+            const orderIsEmpty = order?.price._hex === ZERO_UINT_256;
+
+            if (orderIsEmpty) {
+              throw new Error("❌ Invalid order ID. Please contact the team.");
+            }
+
+            setOrder(order);
+            setError(null);
+          }
         } catch (err: any) {
           setError(
             err.message ?? "❌ There was an error. Please contact our team."
@@ -111,32 +161,55 @@ export const OTCPageContent = () => {
   }, [account, order]);
 
   const handleApprove = useCallback(async () => {
-    if (usdcContract && optionHandlerContract && order) {
-      usdcContractCall({
-        method: usdcContract.approve,
-        args: [optionHandlerContract.address, order.amount],
-        onComplete: () => {
-          setIsListeningForApproval(true);
-        },
-      });
+    if (usdcContract && optionHandlerContract && (order || strangle)) {
+      const isStrangle = !!strangle;
+      const price = isStrangle
+        ? strangle.call.price.add(strangle.put.price)
+        : order
+        ? order.price
+        : null;
+      if (price) {
+        usdcContractCall({
+          method: usdcContract.approve,
+          args: [optionHandlerContract.address, price],
+          onComplete: () => {
+            setIsListeningForApproval(true);
+          },
+        });
+      } else {
+        toast("❌ There was an error. Please contact our team.");
+      }
     } else {
       toast("❌ There was an error. Please contact our team.");
     }
-  }, [optionHandlerContract, usdcContract, usdcContractCall, order]);
+  }, [optionHandlerContract, usdcContract, usdcContractCall, order, strangle]);
 
   const handleComplete = useCallback(async () => {
-    if (optionHandlerContract && orderId !== null) {
-      await optionHandlerContractCall({
-        method: optionHandlerContract.executeOrder,
-        args: [Number(orderId)],
-        onComplete: () => {
-          setIsListeningForComplete(true);
-        },
-      });
+    if (optionHandlerContract) {
+      if (orderId) {
+        await optionHandlerContractCall({
+          method: optionHandlerContract.executeOrder,
+          args: [Number(orderId)],
+          onComplete: () => {
+            setIsListeningForComplete(true);
+          },
+        });
+      } else if (strangleId) {
+        const [id1, id2] = strangleId
+          .split("-")
+          .map((numString) => Number(numString));
+        await optionHandlerContractCall({
+          method: optionHandlerContract.executeOrder,
+          args: [id1],
+          onComplete: () => {
+            setIsListeningForComplete(true);
+          },
+        });
+      }
     } else {
       toast("❌ There was an error. Please contact our team.");
     }
-  }, [optionHandlerContract, optionHandlerContractCall, orderId]);
+  }, [optionHandlerContract, optionHandlerContractCall, orderId, strangleId]);
 
   useEffect(() => {
     if (!network || !account) {
@@ -151,7 +224,7 @@ export const OTCPageContent = () => {
   return (
     <Card headerContent="OTC.optionOrder">
       <div className="w-full">
-        {order && isComplete ? (
+        {isComplete ? (
           <div className="p-4">
             <p>✅ Order complete</p>
           </div>
@@ -182,7 +255,49 @@ export const OTCPageContent = () => {
               </div>
               <div className="p-4">
                 <div className="flex flex-col">
-                  <OrderDetails order={order} />
+                  {order ? (
+                    <div>
+                      <div className="mb-4">
+                        <div className="mb-4">
+                          <OrderDetails order={order} />
+                        </div>
+                        <hr className="border-2 border-black" />
+                      </div>
+                      <p>
+                        <b>
+                          Total Price:{" "}
+                          <BigNumberDisplay
+                            currency={Currency.RYSK}
+                            suffix="USDC"
+                          >
+                            {order.price}
+                          </BigNumberDisplay>
+                        </b>
+                      </p>
+                    </div>
+                  ) : strangle ? (
+                    <>
+                      <div className="mb-4">
+                        <OrderDetails order={strangle.call} />
+                      </div>
+                      <hr className="mb-4 border-2 border-black" />
+                      <div className="mb-4">
+                        <OrderDetails order={strangle.put} />
+                      </div>
+                      <hr className="mb-4 border-2 border-black" />
+                      <p>
+                        <b>
+                          Total Price:{" "}
+                          <BigNumberDisplay
+                            currency={Currency.RYSK}
+                            suffix="USDC"
+                          >
+                            {strangle.call.price.add(strangle.put.price)}
+                          </BigNumberDisplay>
+                        </b>
+                      </p>
+                    </>
+                  ) : null}
                 </div>
               </div>
             </div>

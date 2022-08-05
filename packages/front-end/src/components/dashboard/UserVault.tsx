@@ -16,6 +16,7 @@ import { useContract } from "../../hooks/useContract";
 import { DepositReceipt } from "../../types";
 import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
+import ReactTooltip from "react-tooltip";
 
 export const UserVault = () => {
   const { account, network } = useWalletContext();
@@ -52,8 +53,8 @@ export const UserVault = () => {
     `,
     {
       onCompleted: (data) => {
-        const balance = data.data?.lpbalances[0]
-          ? data.data.lpbalances[0].balance
+        const balance = data?.lpbalances[0]
+          ? data.lpbalances[0].balance
           : 0;
 
         balance && setDepositBalance(balance);
@@ -139,13 +140,26 @@ export const UserVault = () => {
                     )}
                     displayType={"text"}
                     decimalScale={2}
-                    prefix="$"
+                    suffix=" USDC"
                   />
                 </h3>
-                <h4 className="mb-2">Position</h4>
-                <a href="#" className="underline">
-                  Learn more
-                </a>
+                <h4 className="mb-2">
+                  Position
+                  <button data-tip data-for="positionTip" className="cursor-help pl-2" >
+                    <img src="/icons/info.svg" />
+                  </button>
+                  <ReactTooltip 
+                    id="positionTip" 
+                    place="bottom"
+                    multiline={true}
+                    backgroundColor="#EDE9DD"
+                    textColor="black"
+                    border={true}
+                    borderColor="black"
+                    >
+                    Your DHV current position in USDC
+                  </ReactTooltip>
+                </h4>
               </div>
               <div className="flex flex-col items-center justify-center h-full">
                 <h3 className="mb-2">
@@ -159,13 +173,26 @@ export const UserVault = () => {
                     )}
                     displayType={"text"}
                     decimalScale={2}
-                    prefix="$"
+                    suffix=" USDC"
                   />
                 </h3>
-                <h4 className="mb-2">PNL</h4>
-                <a href="#" className="underline">
-                  Learn more
-                </a>
+                <h4 className="mb-2">
+                  PnL
+                  <button data-tip data-for="pnlTip" className="cursor-help pl-2" >
+                    <img src="/icons/info.svg" />
+                  </button>
+                  <ReactTooltip 
+                    id="pnlTip" 
+                    place="bottom"
+                    multiline={true}
+                    backgroundColor="#EDE9DD"
+                    textColor="black"
+                    border={true}
+                    borderColor="black"
+                    >
+                    Profit or Losses based on your current DHV position in USDC net of deposits and withdraws 
+                  </ReactTooltip>
+                </h4>
               </div>
               {unredeemableCollateral.gt(0) && (
                 <div className="flex flex-col items-center justify-center h-full">
@@ -174,15 +201,30 @@ export const UserVault = () => {
                       value={Number(unredeemableCollateral.toNumber() / 1e6)}
                       displayType={"text"}
                       decimalScale={2}
-                      prefix="$"
+                      suffix=" USDC"
                     />
                   </h3>
-                  <h4 className="mb-2">Queed Collateral</h4>
-                  <a href="#" className="underline">
-                    Learn more
-                  </a>
+                  <h4 className="mb-2">Queed Deposit</h4>
+                  <button data-tip data-for="queedTip" className="cursor-help pl-2" >
+                    <img src="/icons/info.svg" />
+                  </button>
+                  {/* TODO  update with epoch time */}
+                  <ReactTooltip 
+                    id="queedTip" 
+                    place="bottom"
+                    multiline={true}
+                    backgroundColor="#EDE9DD"
+                    textColor="black"
+                    border={true}
+                    borderColor="black"
+                    >
+                      Your USDC will be available to redeem as
+                      shares during our weekly strategy every Friday
+                      at 11am UTC
+                  </ReactTooltip>
                 </div>
               )}
+
               {unredeemedSharesValue.gt(0) && (
                 <div className="flex flex-col items-center justify-center h-full">
                   <h3 className="mb-2">
@@ -190,7 +232,6 @@ export const UserVault = () => {
                       value={Number(unredeemedSharesValue.toNumber() / 1e6)}
                       displayType={"text"}
                       decimalScale={2}
-                      prefix="$"
                     />
                   </h3>
                   <h4 className="mb-2">Shares to be reedemed</h4>

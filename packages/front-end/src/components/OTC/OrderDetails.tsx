@@ -1,4 +1,5 @@
 import React from "react";
+import { BIG_NUMBER_DECIMALS } from "../../config/constants";
 import { Currency, Order } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";
 import { AddressDisplay } from "../shared/AddressDisplay";
@@ -25,9 +26,9 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
             </BigNumberDisplay>
           </p>
           <p>
-            Total Price:{" "}
+            Price per option:{" "}
             <BigNumberDisplay currency={Currency.RYSK} suffix="USDC">
-              {order.price}
+              {order.price.div(order.amount.div(BIG_NUMBER_DECIMALS.RYSK))}
             </BigNumberDisplay>
           </p>
         </>
