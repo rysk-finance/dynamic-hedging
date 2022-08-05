@@ -400,7 +400,9 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 				amount,
 				toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
 				orderExpiry,
-				receiverAddress
+				receiverAddress,
+				false,
+				[toWei("1"), toWei("1")]
 			)
 			const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 			const lpUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
@@ -451,7 +453,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			await expect(
 				handler
 					.connect(receiver)
-					.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress)
+					.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress, false, [
+						toWei("1"),
+						toWei("1")
+					])
 			).to.be.reverted
 
 			const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -476,7 +481,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 				collateral: usd.address
 			}
 			await expect(
-				handler.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress)
+				handler.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress, false, [
+					toWei("1"),
+					toWei("1")
+				])
 			).to.be.revertedWith("InvalidPrice()")
 		})
 		it("REVERTS: Cant create buy order if order expiry too long", async () => {
@@ -495,7 +503,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 				collateral: usd.address
 			}
 			await expect(
-				handler.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress)
+				handler.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress, false, [
+					toWei("1"),
+					toWei("1")
+				])
 			).to.be.revertedWith("OrderExpiryTooLong()")
 		})
 		it("REVERTS: cant exercise order if not buyer", async () => {
@@ -859,7 +870,9 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 				toWei(customOrderPriceCall.toString()).mul(toWei("1")).div(amount),
 				toWei(customOrderPricePut.toString()).mul(toWei("1")).div(amount),
 				orderExpiry,
-				receiverAddress
+				receiverAddress,
+				[toWei("1"), toWei("1")],
+				[toWei("1"), toWei("1")]
 			)
 
 			const receipt = await createStrangle.wait()
