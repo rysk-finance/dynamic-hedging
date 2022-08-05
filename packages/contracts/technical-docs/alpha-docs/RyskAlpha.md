@@ -33,7 +33,6 @@ This function creates a custom option order receipt which contains the option se
 ### ``` createStrangle() external onlyRole```
 
 This function creates two custom orders, one put order and one call order. This is so delta neutral positions can be sold to certain market participants.
-### e
 
 ## Use of `LiquidityPool.sol`
 

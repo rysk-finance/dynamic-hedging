@@ -1,4 +1,4 @@
-![Rysk Architecture](../../../images/RyskAlphaArchitecture.png) 
+![Rysk Architecture](../../../../images/RyskAlphaArchitecture.png) 
 
 # The Dynamic Hedging Vault (DHV)
 
