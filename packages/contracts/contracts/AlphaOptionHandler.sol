@@ -136,6 +136,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	 * @param _orderExpiry the expiry of the custom order, after which the 
 	 *        buyer cannot use this order (if past the order is redundant)
 	 * @param _buyerAddress the agreed upon buyer address
+	 * @param _isBuyBack whether the order being created is buy back
+	 * @param _spotMovementRange min and max amount that the spot price can move during the order
 	 * @return orderId the unique id of the order
 	 */
 	function createOrder(
@@ -144,7 +146,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		uint256 _price,
 		uint256 _orderExpiry,
 		address _buyerAddress,
-		bool isBuyBack
+		bool _isBuyBack,
+		uint256[2] memory _spotMovementRange
 	) public returns (uint256) {
 		_onlyManager();
 		if (_price == 0) {
@@ -156,6 +159,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		// issue the option type, all checks of the option validity should happen in _issue
 		address series = liquidityPool.handlerIssue(_optionSeries);
+		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		// create the order struct, setting the series, amount, price, order expiry and buyer address
 		Types.Order memory order = Types.Order(
 			optionRegistry.getSeriesInfo(series), // strike in e8
@@ -164,8 +168,9 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			block.timestamp + _orderExpiry,
 			_buyerAddress,
 			series,
-			_getUnderlyingPrice(underlyingAsset, strikeAsset),
-			isBuyBack
+			uint128(spotPrice - _spotMovementRange[0]), 
+			uint128(spotPrice + _spotMovementRange[1]),
+			_isBuyBack
 		);
 		uint256 orderIdCounter__ = orderIdCounter + 1;
 		// increment the orderId and store the order
@@ -185,6 +190,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	 * @param _pricePut the price per unit to issue puts at
 	 * @param _orderExpiry the expiry of the order (if past the order is redundant)
 	 * @param _buyerAddress the agreed upon buyer address
+	 * @param _callSpotMovementRange min and max amount that the spot price can move during the order for the call
+	 * @param _putSpotMovementRange min and max amount that the spot price can move during the order for the call
 	 * @return putOrderId the unique id of the put part of the strangle
 	 * @return callOrderId the unique id of the call part of the strangle
 	 */
@@ -196,7 +203,9 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		uint256 _priceCall,
 		uint256 _pricePut,
 		uint256 _orderExpiry,
-		address _buyerAddress
+		address _buyerAddress,
+		uint256[2] memory _callSpotMovementRange,
+		uint256[2] memory _putSpotMovementRange
 	) external returns (uint256, uint256) {
 		_onlyManager();
 		uint256 callOrderId = createOrder(
@@ -205,7 +214,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			_priceCall,
 			_orderExpiry,
 			_buyerAddress,
-			false
+			false,
+			_callSpotMovementRange
 		);
 		uint256 putOrderId = createOrder(
 			_optionSeriesPut,
@@ -213,12 +223,17 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			_pricePut,
 			_orderExpiry,
 			_buyerAddress,
-			false
+			false,
+			_putSpotMovementRange
 		);
 		return (putOrderId, callOrderId);
 	}
 
-	/**
+	/////////////////////////////////////////////
+	/// external state changing functionality ///
+	/////////////////////////////////////////////
+
+/**
 	 * @notice fulfills an order for a number of options from the pool to a specified user. The function
 	 *      is intended to be used to issue options to market makers/ OTC market participants
 	 *      in order to have flexibility and customisability on option issuance and market
@@ -240,13 +255,10 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		if (order.isBuyBack) {
 			revert CustomErrors.InvalidOrder();
 		}
-		uint256 priceDelta = OptionsCompute.calculatePercentageChange(
-			_getUnderlyingPrice(underlyingAsset, strikeAsset), 
-			order.spotPrice
-			);
+		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		// If spot price has deviated too much we want to void the order
-		if (priceDelta > customOrderBounds.maxPriceRange) {
-			revert CustomErrors.PriceDeltaExceedsThreshold(priceDelta);
+		if (order.lowerSpotMovementRange > spotPrice || order.upperSpotMovementRange < spotPrice ) {
+			revert CustomErrors.SpotMovedBeyondRange();
 		}
 		// calculate the total premium
 		uint256 premium = order.amount.mul(order.price);
@@ -310,13 +322,10 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		if (!order.isBuyBack) {
 			revert CustomErrors.InvalidOrder();
 		}
-		uint256 priceDelta = OptionsCompute.calculatePercentageChange(
-			_getUnderlyingPrice(underlyingAsset, strikeAsset), 
-			order.spotPrice
-			);
+		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		// If spot price has deviated too much we want to void the order
-		if (priceDelta > customOrderBounds.maxPriceRange) {
-			revert CustomErrors.PriceDeltaExceedsThreshold(priceDelta);
+		if (order.lowerSpotMovementRange > spotPrice || order.upperSpotMovementRange < spotPrice ) {
+			revert CustomErrors.SpotMovedBeyondRange();
 		}
 		// calculate the total premium
 		uint256 premium = order.amount.mul(order.price);
@@ -365,11 +374,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		executeOrder(_orderId1);
 		executeOrder(_orderId2);
 	}
-
-	/////////////////////////////////////////////
-	/// external state changing functionality ///
-	/////////////////////////////////////////////
-
+	
 	///////////////////////////
 	/// non-complex getters ///
 	///////////////////////////

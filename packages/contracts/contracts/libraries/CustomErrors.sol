@@ -24,6 +24,7 @@ interface CustomErrors {
 	error OptionStrikeInvalid();
 	error OptionExpiryInvalid();
 	error NoExistingWithdrawal();
+	error SpotMovedBeyondRange();
 	error CollateralAssetInvalid();
 	error UnderlyingAssetInvalid();
 	error CollateralAmountInvalid();

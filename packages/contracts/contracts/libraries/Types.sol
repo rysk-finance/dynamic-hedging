@@ -26,7 +26,8 @@ library Types {
 		uint256 orderExpiry;
 		address buyer;
 		address seriesAddress;
-		uint256 spotPrice;
+		uint128 lowerSpotMovementRange;
+		uint128 upperSpotMovementRange;
 		bool isBuyBack;
 	}
 	// strike and expiry date range for options

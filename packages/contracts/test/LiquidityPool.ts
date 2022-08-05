@@ -1306,7 +1306,8 @@ describe("Liquidity Pools", async () => {
 			amount,
 			toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
 			orderExpiry,
-			receiverAddress
+			receiverAddress,
+			[toWei("1"), toWei("1")]
 		)
 
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -1400,7 +1401,9 @@ describe("Liquidity Pools", async () => {
 			toWei(customOrderPriceCall.toString()).mul(toWei("1")).div(amount),
 			toWei(customOrderPricePut.toString()).mul(toWei("1")).div(amount),
 			orderExpiry,
-			receiverAddress
+			receiverAddress,
+			[toWei("1"), toWei("1")],
+			[toWei("1"), toWei("1")]
 		)
 
 		const receipt = await createStrangle.wait()
@@ -1461,7 +1464,7 @@ describe("Liquidity Pools", async () => {
 		await expect(
 			handler
 				.connect(receiver)
-				.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress)
+				.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress, [toWei("1"), toWei("1")])
 		).to.be.reverted
 
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -1486,7 +1489,7 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await expect(
-			handler.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress)
+			handler.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress, [toWei("1"), toWei("1")])
 		).to.be.revertedWith("InvalidPrice()")
 	})
 	it("Create buy order reverts if order expiry too long", async () => {
@@ -1505,7 +1508,7 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await expect(
-			handler.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress)
+			handler.createOrder(proposedSeries, amount, pricePer, orderExpiry, receiverAddress, [toWei("1"), toWei("1")])
 		).to.be.revertedWith("OrderExpiryTooLong()")
 	})
 	it("cant exercise order if not buyer", async () => {
@@ -1861,7 +1864,8 @@ describe("Liquidity Pools", async () => {
 			amount,
 			pricePer,
 			orderExpiry,
-			receiverAddress
+			receiverAddress,
+			[toWei("1"), toWei("1")]
 		)
 		const receipt = await createOrdertx.wait(1)
 		const events = receipt.events
@@ -1976,7 +1980,8 @@ describe("Liquidity Pools", async () => {
 			amount,
 			toWei(customOrderPriceInvalidDeltaCall.toString()),
 			orderExpiry,
-			receiverAddress
+			receiverAddress,
+			[toWei("1"), toWei("1")]
 		)
 
 		const receipt = await createOrderInvalidDeltaCall.wait(1)
@@ -1990,7 +1995,8 @@ describe("Liquidity Pools", async () => {
 			amount,
 			toWei(customOrderPriceInvalidDeltaPut.toString()),
 			orderExpiry,
-			receiverAddress
+			receiverAddress,
+			[toWei("1"), toWei("1")]
 		)
 
 		const receipt3 = await createOrderInvalidDeltaPut.wait(1)
@@ -2004,7 +2010,8 @@ describe("Liquidity Pools", async () => {
 			amount,
 			toWei(customOrderPriceInvalidPrice.toString()),
 			orderExpiry,
-			receiverAddress
+			receiverAddress,
+			[toWei("1"), toWei("1")]
 		)
 
 		const receipt2 = await createOrderInvalidPrice.wait(1)
