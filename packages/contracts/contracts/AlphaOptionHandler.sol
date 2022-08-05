@@ -263,14 +263,13 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		// calculate the total premium
 		uint256 premium = order.amount.mul(order.price);
 
-		address collateralAsset_ = collateralAsset;
 		uint256 convertedPrem = OptionsCompute.convertToDecimals(
 			premium,
-			ERC20(collateralAsset_).decimals()
+			ERC20(collateralAsset).decimals()
 		);
 		// premium needs to adjusted for decimals of collateral asset
 		SafeTransferLib.safeTransferFrom(
-			collateralAsset_,
+			collateralAsset,
 			msg.sender,
 			address(liquidityPool),
 			convertedPrem
@@ -341,7 +340,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			address(liquidityPool),
 			OptionsCompute.convertToDecimals(order.amount, ERC20(order.seriesAddress).decimals())
 		);
-		// buyback the option contract, includes sending the premium from the user to the pool, option series should be in e8
+		// buyback the option contract, includes sending the premium from the pool to the user, option series should be in e8
 		liquidityPool.handlerBuybackOption(
 			order.optionSeries,
 			order.amount,
@@ -374,7 +373,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		executeOrder(_orderId1);
 		executeOrder(_orderId2);
 	}
-	
+
 	///////////////////////////
 	/// non-complex getters ///
 	///////////////////////////
