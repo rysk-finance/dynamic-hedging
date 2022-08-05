@@ -1,19 +1,45 @@
 // SPDX-License-Identifier: UNLICENSED
 
 pragma solidity >=0.8.9;
+
 import { Types } from "../libraries/Types.sol";
 import "../interfaces/IOptionRegistry.sol";
+import "../interfaces/IAccounting.sol";
+import "./IERC20.sol";
 
-interface ILiquidityPool {
+interface ILiquidityPool is IERC20 {
+	function collateralCap() external view returns (uint256);
+
+	function epoch() external view returns (uint256);
+
+	function depositReceipts(address depositor) external view returns (IAccounting.DepositReceipt memory);
+
+	function withdrawalReceipts(address withdrawer)
+		external
+		view
+		returns (IAccounting.WithdrawalReceipt memory);
+
+	function epochPricePerShare(uint256 epoch) external view returns (uint256 price);
+
 	function collateralAsset() external view returns (address);
 
 	function underlyingAsset() external view returns (address);
 
 	function strikeAsset() external view returns (address);
 
+	function collateralAllocated() external view returns (uint256);
+
+	function bufferPercentage() external view returns (uint256);
+
+	function MAX_BPS() external view returns (uint256);
+
 	function handlerIssue(Types.OptionSeries memory optionSeries) external returns (address);
 
 	function resetEphemeralValues() external;
+
+	function getAssets() external view returns (uint256);
+
+	function redeem(uint256) external returns (uint256);
 
 	function handlerWriteOption(
 		Types.OptionSeries memory optionSeries,

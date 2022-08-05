@@ -35,10 +35,10 @@ const { parseEther } = ethers.utils
 const chainId = 1
 // decimal representation of a percentage
 const rfr: string = "0.03"
-const belowUtilizationThresholdGradient = 0.1
-const aboveUtilizationThresholdGradient = 1.5
+const belowUtilizationThresholdGradient = 0
+const aboveUtilizationThresholdGradient = 1
 const utilizationFunctionThreshold = 0.6 // 60%
-const yIntercept = -0.84
+const yIntercept = -0.6
 
 export async function whitelistProduct(
 	underlying: string,

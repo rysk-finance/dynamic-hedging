@@ -27,6 +27,7 @@ import {
 } from "../test/constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { VolatilityFeed } from "../types/VolatilityFeed"
+import { Accounting } from "../types/Accounting"
 import { OptionHandler } from "../types/OptionHandler"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -180,10 +181,10 @@ export async function deployLiquidityPool(
 		}
 	})
 	const blackScholesDeploy = await blackScholesFactory.deploy()
-	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute",{
+	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}
 	})
-	const optionsCompute = (await optionsCompFactory.deploy())
+	const optionsCompute = await optionsCompFactory.deploy()
 	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
 		libraries: {
 			BlackScholes: blackScholesDeploy.address,
@@ -230,12 +231,20 @@ export async function deployLiquidityPool(
 		BigNumber.from(0),
 		BigNumber.from(0)
 	)
+	const AccountingFactory = await ethers.getContractFactory("Accounting")
+	const Accounting = (await AccountingFactory.deploy(
+		liquidityPool.address,
+		usd.address,
+		weth.address,
+		usd.address
+	)) as Accounting
+	await optionProtocol.changeAccounting(Accounting.address)
 	const handlerFactory = await ethers.getContractFactory("OptionHandler")
-	const handler = await handlerFactory.deploy(
+	const handler = (await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,
-		liquidityPool.address,
-	) as OptionHandler
+		liquidityPool.address
+	)) as OptionHandler
 	await liquidityPool.changeHandler(handler.address, true)
 	await pvFeed.setKeeper(handler.address, true)
 	await pvFeed.setKeeper(liquidityPool.address, true)

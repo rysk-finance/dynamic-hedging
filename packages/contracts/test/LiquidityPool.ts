@@ -252,7 +252,7 @@ describe("Liquidity Pools", async () => {
 		const oldAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
 		const oldAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
 		const oldUtilizationThreshold = await liquidityPool.utilizationFunctionThreshold()
-		await liquidityPool.setUtilizationSkewParams(toWei("0.1"), toWei("1.5"), toWei("0.6"))
+		await liquidityPool.setUtilizationSkewParams(toWei("0.0"), toWei("1"), toWei("0.6"))
 		const newBelowThesholdGradient = await liquidityPool.belowThresholdGradient()
 		const newAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
 		const newAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
@@ -1754,7 +1754,7 @@ describe("Liquidity Pools", async () => {
 		const ephemeralDeltaDiff =
 			tFormatEth(await liquidityPool.ephemeralDelta()) - tFormatEth(ephemeralDeltaBefore)
 		expect(ephemeralDeltaDiff - tFormatEth(localDelta)).to.be.within(-0.01, 0.01)
-		expect(percentDiff(ephemeralLiabilitiesDiff, localQuote)).to.be.within(-0.01, 0.01)
+		expect(percentDiff(ephemeralLiabilitiesDiff, localQuote)).to.be.within(-0.02, 0.02)
 		await portfolioValuesFeed.fulfill(
 			utils.formatBytes32String("1"),
 			weth.address,
@@ -2481,7 +2481,9 @@ describe("Liquidity Pools", async () => {
 	it("protocol changes feeds", async () => {
 		await optionProtocol.changePortfolioValuesFeed(priceFeed.address)
 		await optionProtocol.changeVolatilityFeed(priceFeed.address)
+		await optionProtocol.changeAccounting(priceFeed.address)
 		await optionProtocol.changePriceFeed(volFeed.address)
+		expect(await optionProtocol.accounting()).to.eq(priceFeed.address)
 		expect(await optionProtocol.portfolioValuesFeed()).to.eq(priceFeed.address)
 		expect(await optionProtocol.volatilityFeed()).to.eq(priceFeed.address)
 		expect(await optionProtocol.priceFeed()).to.eq(volFeed.address)
