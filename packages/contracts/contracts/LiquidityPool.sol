@@ -63,10 +63,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	mapping(address => IAccounting.DepositReceipt) public depositReceipts;
 	// withdrawal receipts for users
 	mapping(address => IAccounting.WithdrawalReceipt) public withdrawalReceipts;
-	// pending deposits for a round
+	// pending deposits for a round - collateral denominated (collateral decimals)
 	uint256 public pendingDeposits;
-	// pending withdrawals for a round
+	// pending withdrawals for a round - DHV token e18 denominated
 	uint256 public pendingWithdrawals;
+	// withdrawal amount that has been executed and is pending completion. These funds are to be excluded from all book balances.
+	uint256 public partitionedFunds;
 
 	/////////////////////////////////////
 	/// governance settable variables ///
@@ -670,7 +672,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function _getNormalizedBalance(address asset) internal view returns (uint256 normalizedBalance) {
 		normalizedBalance = OptionsCompute.convertFromDecimals(
-			ERC20(asset).balanceOf(address(this)),
+			ERC20(asset).balanceOf(address(this)) - partitionedFunds,
 			ERC20(asset).decimals()
 		);
 	}
@@ -926,7 +928,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		// liabilities: Options that we wrote in e18
 		assets =
 			OptionsCompute.convertFromDecimals(
-				ERC20(collateralAsset).balanceOf(address(this)),
+				ERC20(collateralAsset).balanceOf(address(this)) - partitionedFunds,
 				ERC20(collateralAsset).decimals()
 			) +
 			OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset).decimals());
