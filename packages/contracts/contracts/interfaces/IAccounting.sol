@@ -71,18 +71,12 @@ interface IAccounting {
 	 * @param  totalSupply the total supply of the liquidity pool's erc20
 	 * @param  assets      the value of assets held by the pool
 	 * @param  liabilities the value of liabilities held by the pool
-	 * @param  collateralAllocated the amount of collateral allocated to option positions
-	 * @param  pendingDeposits the amount of deposits queued for the current epoch
-	 * @param  pendingWithdrawals the amount of withdrawals queued for the current epoch
 	 * @return tokenPrice  the value of the token in e6 terms
 	 */
 	function calculateTokenPrice(
 		uint256 totalSupply,
 		uint256 assets,
-		int256 liabilities,
-		uint256 collateralAllocated,
-		uint256 pendingDeposits,
-		uint256 pendingWithdrawals
+		int256 liabilities
 	) external returns (uint256 tokenPrice);
 
 	/**
