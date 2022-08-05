@@ -548,10 +548,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			pendingDeposits,
 			pendingWithdrawals
 		);
-		uint256 sharesToMint = _getAccounting().sharesForAmount(
-			pendingDeposits,
-			newPricePerShare
-		);
+		uint256 sharesToMint = _getAccounting().sharesForAmount(pendingDeposits, newPricePerShare);
 		epochPricePerShare[epoch] = newPricePerShare;
 		delete pendingDeposits;
 		delete pendingWithdrawals;
@@ -575,12 +572,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		if (_amount == 0) {
 			revert CustomErrors.InvalidAmount();
 		}
-		(uint256 depositAmount, uint256 unredeemedShares) = _getAccounting().deposit(
-			msg.sender,
-			_amount
-			// epoch,
-			// collateralCap
-		);
+		(uint256 depositAmount, uint256 unredeemedShares) = _getAccounting().deposit(msg.sender, _amount);
 
 		emit Deposit(msg.sender, _amount, epoch);
 		// create the deposit receipt
@@ -638,6 +630,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @dev    entry point to remove liquidity to dynamic hedging vault
 	 */
 	function completeWithdraw(uint256 _shares) external whenNotPaused nonReentrant returns (uint256) {
+		if (_shares == 0) {
+			revert CustomErrors.InvalidShareAmount();
+		}
 		(
 			int256 amountNeeded,
 			uint256 withdrawalAmount,
@@ -884,38 +879,16 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/// internal utilities ///
 	//////////////////////////
 
-	// /**
-	//  * @notice function for queueing to add liquidity to the options liquidity pool and receiving storing interest
-	//  *         to receive shares when the next epoch is initiated.
-	//  * @param _amount    amount of the strike asset to deposit
-	//  * @dev    internal function for entry point to provide liquidity to dynamic hedging vault
-	//  */
-	// function _deposit(uint256 _amount) internal {
-	// 	(uint256 depositAmount, uint256 unredeemedShares) = _getDhvTokenCalculations().deposit(
-	// 		msg.sender,
-	// 		_amount,
-	// 		epoch,
-	// 		collateralCap
-	// 	);
-
-	// 	emit Deposit(msg.sender, _amount, epoch);
-	// 	// create the deposit receipt
-	// 	depositReceipts[msg.sender] = Types.DepositReceipt({
-	// 		epoch: uint128(epoch),
-	// 		amount: uint128(depositAmount),
-	// 		unredeemedShares: unredeemedShares
-	// 	});
-	// 	pendingDeposits += _amount;
-	// }
-
 	/**
 	 * @notice functionality for allowing a user to redeem their shares from a previous epoch
 	 * @param _shares the number of shares to redeem
 	 * @return toRedeem the number of shares actually returned
 	 */
 	function _redeem(uint256 _shares) internal returns (uint256) {
-		(uint256 toRedeem, IAccounting.DepositReceipt memory depositReceipt) = _getAccounting()
-			.redeem(msg.sender, _shares);
+		(uint256 toRedeem, IAccounting.DepositReceipt memory depositReceipt) = _getAccounting().redeem(
+			msg.sender,
+			_shares
+		);
 		if (toRedeem == 0) {
 			return 0;
 		}
@@ -938,7 +911,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint256 assets = _getAssets();
 		int256 liabilities = _getLiabilities();
 		// if this ever happens then something has gone very wrong so throw here
-		if (int256(assets) < liabilities) {revert CustomErrors.LiabilitiesGreaterThanAssets();}
+		if (int256(assets) < liabilities) {
+			revert CustomErrors.LiabilitiesGreaterThanAssets();
+		}
 		return uint256(int256(assets) - liabilities);
 	}
 

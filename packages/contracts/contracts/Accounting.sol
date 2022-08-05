@@ -13,7 +13,7 @@ import "./interfaces/ILiquidityPool.sol";
 /**
  *  @title Modular contract used by the liquidity pool to conducting accounting logic
  */
-contract AccountingUtilisation is IAccounting {
+contract Accounting is IAccounting {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
 
@@ -208,9 +208,6 @@ contract AccountingUtilisation is IAccounting {
 			IAccounting.WithdrawalReceipt memory withdrawalReceipt
 		)
 	{
-		if (shares == 0) {
-			revert CustomErrors.InvalidShareAmount();
-		}
 		withdrawalReceipt = liquidityPool.withdrawalReceipts(withdrawer);
 		// cache the storage variables
 		withdrawalShares = shares > withdrawalReceipt.shares ? withdrawalReceipt.shares : shares;

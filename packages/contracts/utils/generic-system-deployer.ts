@@ -27,7 +27,7 @@ import {
 } from "../test/constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { VolatilityFeed } from "../types/VolatilityFeed"
-import { AccountingUtilisation } from "../types/AccountingUtilisation"
+import { Accounting } from "../types/Accounting"
 import { OptionHandler } from "../types/OptionHandler"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -231,16 +231,14 @@ export async function deployLiquidityPool(
 		BigNumber.from(0),
 		BigNumber.from(0)
 	)
-	const dhvTokenAccountingUtilisationFactory = await ethers.getContractFactory(
-		"AccountingUtilisation"
-	)
-	const dhvTokenAccountingUtilisation = (await dhvTokenAccountingUtilisationFactory.deploy(
+	const AccountingFactory = await ethers.getContractFactory("Accounting")
+	const Accounting = (await AccountingFactory.deploy(
 		liquidityPool.address,
 		usd.address,
 		weth.address,
 		usd.address
-	)) as AccountingUtilisation
-	await optionProtocol.changeAccounting(dhvTokenAccountingUtilisation.address)
+	)) as Accounting
+	await optionProtocol.changeAccounting(Accounting.address)
 	const handlerFactory = await ethers.getContractFactory("OptionHandler")
 	const handler = (await handlerFactory.deploy(
 		authority,

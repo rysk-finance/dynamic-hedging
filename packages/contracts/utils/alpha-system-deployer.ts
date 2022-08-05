@@ -6,7 +6,7 @@ import { expect } from "chai"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
-import { AlphaPortfolioValuesFeed, } from "../types/AlphaPortfolioValuesFeed"
+import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
@@ -16,7 +16,7 @@ import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/Liquidity
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { AccountingUtilisation } from "../types/AccountingUtilisation"
+import { Accounting } from "../types/Accounting"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -129,12 +129,12 @@ export async function deploySystem(
 	})
 	const blackScholesDeploy = await blackScholesFactory.deploy()
 	const portfolioValuesFeedFactory = await ethers.getContractFactory("AlphaPortfolioValuesFeed", {
-        libraries: {
-            BlackScholes: blackScholesDeploy.address
-        }
-    })
+		libraries: {
+			BlackScholes: blackScholesDeploy.address
+		}
+	})
 	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
-		authority.address,
+		authority.address
 	)) as AlphaPortfolioValuesFeed
 
 	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
@@ -190,10 +190,10 @@ export async function deployLiquidityPool(
 		}
 	})
 	const blackScholesDeploy = await blackScholesFactory.deploy()
-	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute",{
+	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}
 	})
-	const optionsCompute = (await optionsCompFactory.deploy())
+	const optionsCompute = await optionsCompFactory.deploy()
 	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
 		libraries: {
 			BlackScholes: blackScholesDeploy.address,
@@ -226,34 +226,29 @@ export async function deployLiquidityPool(
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
 	await liquidityPool.setMaxPriceDeviationThreshold(toWei("0.03"))
 	await liquidityPool.setBidAskSpread(toWei("0.05"))
-    await liquidityPool.setKeeper(await signers[0].getAddress(), true)
+	await liquidityPool.setKeeper(await signers[0].getAddress(), true)
 	await pvFeed.setLiquidityPool(liquidityPool.address)
 	await pvFeed.setProtocol(optionProtocol.address)
-	await pvFeed.fulfill(
-		weth.address,
-		usd.address,
-	)
-	const dhvTokenAccountingUtilisationFactory = await ethers.getContractFactory(
-		"AccountingUtilisation"
-	)
-	const dhvTokenAccountingUtilisation = (await dhvTokenAccountingUtilisationFactory.deploy(
+	await pvFeed.fulfill(weth.address, usd.address)
+	const AccountingFactory = await ethers.getContractFactory("Accounting")
+	const Accounting = (await AccountingFactory.deploy(
 		liquidityPool.address,
 		usd.address,
 		weth.address,
 		usd.address
-	)) as AccountingUtilisation
-	await optionProtocol.changeAccounting(dhvTokenAccountingUtilisation.address)
+	)) as Accounting
+	await optionProtocol.changeAccounting(Accounting.address)
 	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
-	const handler = await handlerFactory.deploy(
+	const handler = (await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,
-		liquidityPool.address,
-	) as AlphaOptionHandler
+		liquidityPool.address
+	)) as AlphaOptionHandler
 	await liquidityPool.changeHandler(handler.address, true)
 	await pvFeed.setKeeper(handler.address, true)
 	await pvFeed.setKeeper(liquidityPool.address, true)
-    await pvFeed.setKeeper(await signers[0].getAddress(), true)
-    await pvFeed.setHandler(handler.address, true)
+	await pvFeed.setKeeper(await signers[0].getAddress(), true)
+	await pvFeed.setHandler(handler.address, true)
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,
