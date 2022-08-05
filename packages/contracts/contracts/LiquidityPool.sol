@@ -21,6 +21,8 @@ import "./interfaces/IPortfolioValuesFeed.sol";
 
 import "@openzeppelin/contracts/security/Pausable.sol";
 
+import "hardhat/console.sol";
+
 /**
  *  @title Contract used as the Dynamic Hedging Vault for storing funds, issuing shares and processing options transactions
  *  @dev Interacts with the OptionRegistry for options behaviour, Interacts with hedging reactors for alternative derivatives
@@ -55,10 +57,14 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	int256 public ephemeralLiabilities;
 	// ephemeral delta of the pool
 	int256 public ephemeralDelta;
-	// epoch of the price per share round
-	uint256 public epoch;
-	// epoch PPS
-	mapping(uint256 => uint256) public epochPricePerShare;
+	// epoch of the price per share round for deposits
+	uint256 public depositEpoch;
+	// epoch of the price per share round for withdrawals
+	uint256 public withdrawalEpoch;
+	// epoch PPS for deposits
+	mapping(uint256 => uint256) public depositEpochPricePerShare;
+	// epoch PPS for withdrawals
+	mapping(uint256 => uint256) public withdrawalEpochPricePerShare;
 	// deposit receipts for users
 	mapping(address => IAccounting.DepositReceipt) public depositReceipts;
 	// withdrawal receipts for users
@@ -120,7 +126,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/// structs && events ///
 	/////////////////////////
 
-	event EpochExecuted(uint256 epoch);
+	event DepositEpochExecuted(uint256 epoch);
+	event WithdrawalEpochExecuted(uint256 epoch);
 	event Withdraw(address recipient, uint256 amount, uint256 shares);
 	event Deposit(address recipient, uint256 amount, uint256 epoch);
 	event Redeem(address recipient, uint256 amount, uint256 epoch);
@@ -157,8 +164,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		collateralAsset = _collateralAsset;
 		protocol = Protocol(_protocol);
 		optionParams = _optionParams;
-		epochPricePerShare[0] = 1e18;
-		epoch++;
+		depositEpochPricePerShare[0] = 1e18;
+		withdrawalEpochPricePerShare[0] = 1e18;
+		depositEpoch++;
+		withdrawalEpoch++;
 	}
 
 	///////////////
@@ -542,17 +551,41 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		if (!isTradingPaused) {
 			revert CustomErrors.TradingNotPaused();
 		}
-		(uint256 newPricePerShare, uint256 sharesToMint) = _getAccounting().executeEpochCalculation(
-			totalSupply,
-			_getAssets(),
-			_getLiabilities()
-		);
-		epochPricePerShare[epoch] = newPricePerShare;
+		(
+			uint256 newPricePerShareDeposit,
+			uint256 newPricePerShareWithdrawal,
+			uint256 sharesToMint,
+			uint256 totalWithdrawAmount,
+			int256 amountNeeded
+		) = _getAccounting().executeEpochCalculation(totalSupply, _getAssets(), _getLiabilities());
+
+		// loop through the reactors and move funds if found
+		if (amountNeeded > 0) {
+			address[] memory hedgingReactors_ = hedgingReactors;
+			for (uint8 i = 0; i < hedgingReactors_.length; i++) {
+				amountNeeded -= int256(IHedgingReactor(hedgingReactors_[i]).withdraw(uint256(amountNeeded)));
+				if (amountNeeded <= 0) {
+					break;
+				}
+			}
+			if (amountNeeded > 0) {
+				depositEpochPricePerShare[depositEpoch] = newPricePerShareDeposit;
+				delete pendingDeposits;
+				emit DepositEpochExecuted(depositEpoch);
+				depositEpoch++;
+				isTradingPaused = false;
+				return;
+			}
+		}
+		depositEpochPricePerShare[depositEpoch] = newPricePerShareDeposit;
+		withdrawalEpochPricePerShare[withdrawalEpoch] = newPricePerShareWithdrawal;
+		emit DepositEpochExecuted(depositEpoch);
+		emit WithdrawalEpochExecuted(withdrawalEpoch);
 		delete pendingDeposits;
 		delete pendingWithdrawals;
+		depositEpoch++;
+		withdrawalEpoch++;
 		isTradingPaused = false;
-		emit EpochExecuted(epoch);
-		epoch++;
 		_mint(address(this), sharesToMint);
 	}
 
@@ -572,10 +605,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		}
 		(uint256 depositAmount, uint256 unredeemedShares) = _getAccounting().deposit(msg.sender, _amount);
 
-		emit Deposit(msg.sender, _amount, epoch);
+		emit Deposit(msg.sender, _amount, depositEpoch);
 		// create the deposit receipt
 		depositReceipts[msg.sender] = IAccounting.DepositReceipt({
-			epoch: uint128(epoch),
+			epoch: uint128(depositEpoch),
 			amount: uint128(depositAmount),
 			unredeemedShares: unredeemedShares
 		});
@@ -618,7 +651,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		);
 		withdrawalReceipts[msg.sender] = withdrawalReceipt;
 		pendingWithdrawals += _shares;
-		emit InitiateWithdraw(msg.sender, _shares, epoch);
+		emit InitiateWithdraw(msg.sender, _shares, withdrawalEpoch);
 		transfer(address(this), _shares);
 	}
 
@@ -632,27 +665,15 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			revert CustomErrors.InvalidShareAmount();
 		}
 		(
-			int256 amountNeeded,
 			uint256 withdrawalAmount,
 			uint256 withdrawalShares,
 			IAccounting.WithdrawalReceipt memory withdrawalReceipt
 		) = _getAccounting().completeWithdraw(msg.sender, _shares);
 		withdrawalReceipts[msg.sender] = withdrawalReceipt;
-		// loop through the reactors and move funds if found
-		if (amountNeeded > 0) {
-			address[] memory hedgingReactors_ = hedgingReactors;
-			for (uint8 i = 0; i < hedgingReactors_.length; i++) {
-				amountNeeded -= int256(IHedgingReactor(hedgingReactors_[i]).withdraw(uint256(amountNeeded)));
-				if (amountNeeded <= 0) {
-					break;
-				}
-			}
-			if (amountNeeded > 0) {
-				revert CustomErrors.WithdrawExceedsLiquidity();
-			}
-		}
 		emit Withdraw(msg.sender, withdrawalAmount, withdrawalShares);
 		_burn(address(this), withdrawalShares);
+		// these funds are taken from the partitioned funds
+		partitionedFunds -= withdrawalAmount;
 		SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, withdrawalAmount);
 		return withdrawalAmount;
 	}

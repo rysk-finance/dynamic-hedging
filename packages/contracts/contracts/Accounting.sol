@@ -10,6 +10,8 @@ import "./libraries/OptionsCompute.sol";
 import "./interfaces/IAccounting.sol";
 import "./interfaces/ILiquidityPool.sol";
 
+import "hardhat/console.sol";
+
 /**
  *  @title Modular contract used by the liquidity pool to conducting accounting logic
  */
@@ -87,7 +89,7 @@ contract Accounting is IAccounting {
 		returns (uint256 depositAmount, uint256 unredeemedShares)
 	{
 		uint256 collateralCap = liquidityPool.collateralCap();
-		uint256 currentEpoch = liquidityPool.epoch();
+		uint256 currentEpoch = liquidityPool.depositEpoch();
 		// check the total allowed collateral amount isnt surpassed by incrementing the total assets with the amount denominated in e18
 		uint256 totalAmountWithDeposit = liquidityPool.getAssets() +
 			OptionsCompute.convertFromDecimals(_amount, ERC20(collateralAsset).decimals());
@@ -126,7 +128,7 @@ contract Accounting is IAccounting {
 	{
 		IAccounting.DepositReceipt memory depositReceipt = liquidityPool.depositReceipts(redeemer);
 
-		uint256 currentEpoch = liquidityPool.epoch();
+		uint256 currentEpoch = liquidityPool.depositEpoch();
 		// check for any unredeemed shares
 		uint256 unredeemedShares = uint256(depositReceipt.unredeemedShares);
 		// if there is already a receipt from a previous round then acknowledge and record it
@@ -165,7 +167,7 @@ contract Accounting is IAccounting {
 		if (liquidityPool.balanceOf(withdrawer) < shares) {
 			revert CustomErrors.InsufficientShareBalance();
 		}
-		uint256 currentEpoch = liquidityPool.epoch();
+		uint256 currentEpoch = liquidityPool.withdrawalEpoch();
 		withdrawalReceipt = liquidityPool.withdrawalReceipts(withdrawer);
 
 		uint256 existingShares = withdrawalReceipt.shares;
@@ -189,7 +191,6 @@ contract Accounting is IAccounting {
 	 * @notice logic for accounting a user to complete a withdrawal
 	 * @param  withdrawer the address carrying out the withdrawal
 	 * @param  shares the amount of shares to withdraw for
-	 * @return amountNeeded      the amount of funds needed to withdraw completely
 	 * @return withdrawalAmount  the amount of collateral to withdraw
 	 * @return withdrawalShares  the number of shares to withdraw
 	 * @return withdrawalReceipt the new withdrawal receipt to pass to the liquidityPool
@@ -198,7 +199,6 @@ contract Accounting is IAccounting {
 		external
 		view
 		returns (
-			int256 amountNeeded,
 			uint256 withdrawalAmount,
 			uint256 withdrawalShares,
 			IAccounting.WithdrawalReceipt memory withdrawalReceipt
@@ -212,7 +212,7 @@ contract Accounting is IAccounting {
 		if (withdrawalShares == 0) {
 			revert CustomErrors.NoExistingWithdrawal();
 		}
-		if (withdrawalEpoch == liquidityPool.epoch()) {
+		if (withdrawalEpoch == liquidityPool.withdrawalEpoch()) {
 			revert CustomErrors.EpochNotClosed();
 		}
 		// reduced the stored share receipt by the shares requested
@@ -225,23 +225,45 @@ contract Accounting is IAccounting {
 		if (withdrawalAmount == 0) {
 			revert CustomErrors.InvalidAmount();
 		}
-		// get the liquidity that can be withdrawn from the pool without hitting the collateral requirement buffer
-		int256 buffer = int256(
-			(liquidityPool.collateralAllocated() * liquidityPool.bufferPercentage()) / MAX_BPS
-		);
-		int256 collatBalance = int256(ERC20(collateralAsset).balanceOf(address(liquidityPool)));
-		int256 bufferRemaining = collatBalance - buffer;
-		// get the extra liquidity that is needed
-		amountNeeded = int256(withdrawalAmount) - bufferRemaining;
 	}
 
 	function executeEpochCalculation(
 		uint256 totalSupply,
 		uint256 assets,
 		int256 liabilities
-	) external view returns (uint256 newPricePerShare, uint256 sharesToMint) {
-		newPricePerShare = calculateTokenPrice(totalSupply, assets, liabilities);
-		sharesToMint = sharesForAmount(liquidityPool.pendingDeposits(), newPricePerShare);
+	)
+		external
+		view
+		returns (
+			uint256 newPricePerShareDeposit,
+			uint256 newPricePerShareWithdrawal,
+			uint256 sharesToMint,
+			uint256 totalWithdrawAmount,
+			int256 amountNeeded
+		)
+	{
+		// get the liquidity that can be withdrawn from the pool without hitting the collateral requirement buffer
+		int256 buffer = int256(
+			(liquidityPool.collateralAllocated() * liquidityPool.bufferPercentage()) / MAX_BPS
+		);
+		int256 collatBalance = int256(
+			ERC20(collateralAsset).balanceOf(address(liquidityPool)) - liquidityPool.partitionedFunds()
+		);
+		int256 bufferRemaining = collatBalance + int256(liquidityPool.pendingDeposits()) - buffer;
+
+		newPricePerShareDeposit = newPricePerShareWithdrawal = calculateTokenPrice(
+			totalSupply,
+			assets,
+			liabilities
+		);
+		console.log("pps deposit:", newPricePerShareDeposit, "pps withdraw:", newPricePerShareDeposit);
+		sharesToMint = sharesForAmount(liquidityPool.pendingDeposits(), newPricePerShareDeposit);
+		totalWithdrawAmount = amountForShares(
+			liquidityPool.pendingWithdrawals(),
+			newPricePerShareWithdrawal
+		);
+		// get the extra liquidity that is needed from hedging reactors
+		amountNeeded = int256(totalWithdrawAmount) - bufferRemaining;
 	}
 
 	/**
