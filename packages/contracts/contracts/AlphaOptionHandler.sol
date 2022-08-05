@@ -2,6 +2,7 @@
 pragma solidity >=0.8.0;
 
 import "./Protocol.sol";
+import "./PriceFeed.sol";
 
 import "./tokens/ERC20.sol";
 import "./libraries/Types.sol";
@@ -54,7 +55,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	/////////////////////////////////////
 
 	// settings for the limits of a custom order
-	CustomOrderBounds public customOrderBounds = CustomOrderBounds(0, 25e16, -25e16, 0, 1000);
+	CustomOrderBounds public customOrderBounds = CustomOrderBounds(0, 25e16, -25e16, 0, 3e16);
 
 	//////////////////////////
 	/// constant variables ///
@@ -75,9 +76,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		uint128 callMaxDelta; // call delta will always be between 0 and 1 (e18)
 		int128 putMinDelta; // put delta will always be between 0 and -1 (e18)
 		int128 putMaxDelta; // put delta will always be between 0 and -1 (e18)
-		// maxPriceRange is the maximum percentage below the LP calculated price,
-		// measured in BPS, that the order may be sold for. 10% would mean maxPriceRange = 1000
-		uint32 maxPriceRange;
+		uint256 maxPriceRange; // maxPriceRange is the maximum percentage around the spot price in e18
 	}
 
 	event OrderCreated(uint256 orderId);
@@ -137,6 +136,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	 * @param _orderExpiry the expiry of the custom order, after which the 
 	 *        buyer cannot use this order (if past the order is redundant)
 	 * @param _buyerAddress the agreed upon buyer address
+	 * @param _isBuyBack whether the order being created is buy back
+	 * @param _spotMovementRange min and max amount that the spot price can move during the order
 	 * @return orderId the unique id of the order
 	 */
 	function createOrder(
@@ -144,7 +145,9 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		uint256 _amount,
 		uint256 _price,
 		uint256 _orderExpiry,
-		address _buyerAddress
+		address _buyerAddress,
+		bool _isBuyBack,
+		uint256[2] memory _spotMovementRange
 	) public returns (uint256) {
 		_onlyManager();
 		if (_price == 0) {
@@ -156,6 +159,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		// issue the option type, all checks of the option validity should happen in _issue
 		address series = liquidityPool.handlerIssue(_optionSeries);
+		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		// create the order struct, setting the series, amount, price, order expiry and buyer address
 		Types.Order memory order = Types.Order(
 			optionRegistry.getSeriesInfo(series), // strike in e8
@@ -163,7 +167,10 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			_price, // in e18
 			block.timestamp + _orderExpiry,
 			_buyerAddress,
-			series
+			series,
+			uint128(spotPrice - _spotMovementRange[0]), 
+			uint128(spotPrice + _spotMovementRange[1]),
+			_isBuyBack
 		);
 		uint256 orderIdCounter__ = orderIdCounter + 1;
 		// increment the orderId and store the order
@@ -183,6 +190,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	 * @param _pricePut the price per unit to issue puts at
 	 * @param _orderExpiry the expiry of the order (if past the order is redundant)
 	 * @param _buyerAddress the agreed upon buyer address
+	 * @param _callSpotMovementRange min and max amount that the spot price can move during the order for the call
+	 * @param _putSpotMovementRange min and max amount that the spot price can move during the order for the call
 	 * @return putOrderId the unique id of the put part of the strangle
 	 * @return callOrderId the unique id of the call part of the strangle
 	 */
@@ -194,7 +203,9 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		uint256 _priceCall,
 		uint256 _pricePut,
 		uint256 _orderExpiry,
-		address _buyerAddress
+		address _buyerAddress,
+		uint256[2] memory _callSpotMovementRange,
+		uint256[2] memory _putSpotMovementRange
 	) external returns (uint256, uint256) {
 		_onlyManager();
 		uint256 callOrderId = createOrder(
@@ -202,19 +213,27 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			_amountCall,
 			_priceCall,
 			_orderExpiry,
-			_buyerAddress
+			_buyerAddress,
+			false,
+			_callSpotMovementRange
 		);
 		uint256 putOrderId = createOrder(
 			_optionSeriesPut,
 			_amountPut,
 			_pricePut,
 			_orderExpiry,
-			_buyerAddress
+			_buyerAddress,
+			false,
+			_putSpotMovementRange
 		);
 		return (putOrderId, callOrderId);
 	}
 
-	/**
+	/////////////////////////////////////////////
+	/// external state changing functionality ///
+	/////////////////////////////////////////////
+
+/**
 	 * @notice fulfills an order for a number of options from the pool to a specified user. The function
 	 *      is intended to be used to issue options to market makers/ OTC market participants
 	 *      in order to have flexibility and customisability on option issuance and market
@@ -232,17 +251,25 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		if (block.timestamp > order.orderExpiry) {
 			revert CustomErrors.OrderExpired();
 		}
+		// check if the order is a buyback order
+		if (order.isBuyBack) {
+			revert CustomErrors.InvalidOrder();
+		}
+		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
+		// If spot price has deviated too much we want to void the order
+		if (order.lowerSpotMovementRange > spotPrice || order.upperSpotMovementRange < spotPrice ) {
+			revert CustomErrors.SpotMovedBeyondRange();
+		}
 		// calculate the total premium
 		uint256 premium = order.amount.mul(order.price);
 
-		address collateralAsset_ = collateralAsset;
 		uint256 convertedPrem = OptionsCompute.convertToDecimals(
 			premium,
-			ERC20(collateralAsset_).decimals()
+			ERC20(collateralAsset).decimals()
 		);
 		// premium needs to adjusted for decimals of collateral asset
 		SafeTransferLib.safeTransferFrom(
-			collateralAsset_,
+			collateralAsset,
 			msg.sender,
 			address(liquidityPool),
 			convertedPrem
@@ -273,6 +300,72 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	}
 
 	/**
+	 * @notice fulfills a buyback order for a number of options from the pool to a specified user. The function
+	 *      is intended to be used to issue options to market makers/ OTC market participants
+	 *      in order to have flexibility and customisability on option issuance and market
+	 *      participant UX.
+	 * @param  _orderId the id of the order for options purchase
+	 */
+	function executeBuyBackOrder(uint256 _orderId) public nonReentrant {
+		// get the order
+		Types.Order memory order = orderStores[_orderId];
+		// check that the sender is the authorised buyer of the order
+		if (msg.sender != order.buyer) {
+			revert CustomErrors.InvalidBuyer();
+		}
+		// check that the order is still valid
+		if (block.timestamp > order.orderExpiry) {
+			revert CustomErrors.OrderExpired();
+		}
+		// check if the order is a buyback order
+		if (!order.isBuyBack) {
+			revert CustomErrors.InvalidOrder();
+		}
+		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
+		// If spot price has deviated too much we want to void the order
+		if (order.lowerSpotMovementRange > spotPrice || order.upperSpotMovementRange < spotPrice ) {
+			revert CustomErrors.SpotMovedBeyondRange();
+		}
+		// calculate the total premium
+		uint256 premium = order.amount.mul(order.price);
+
+		uint256 convertedPrem = OptionsCompute.convertToDecimals(
+			premium,
+			ERC20(collateralAsset).decimals()
+		);
+		// transfer the oToken to the liquidityPool
+		SafeTransferLib.safeTransferFrom(
+			order.seriesAddress,
+			msg.sender,
+			address(liquidityPool),
+			OptionsCompute.convertToDecimals(order.amount, ERC20(order.seriesAddress).decimals())
+		);
+		// buyback the option contract, includes sending the premium from the pool to the user, option series should be in e8
+		liquidityPool.handlerBuybackOption(
+			order.optionSeries,
+			order.amount,
+			getOptionRegistry(),
+			order.seriesAddress,
+			convertedPrem,
+			0,					// delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
+			msg.sender
+		);
+		// convert the strike to e18 decimals for storage
+		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
+			order.optionSeries.expiration,
+			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike,  8)),
+			order.optionSeries.isPut,
+			underlyingAsset,
+			strikeAsset,
+			collateralAsset
+		);
+		getPortfolioValuesFeed().updateStores(seriesToStore, -int256(order.amount), 0, order.seriesAddress);
+		emit OrderExecuted(_orderId);
+		// invalidate the order
+		delete orderStores[_orderId];
+	}
+
+	/**
 	 * @notice fulfills a stored strangle order consisting of a stores call and a stored put.
 	 * This is intended to be called by market makers/OTC market participants.
 	 */
@@ -280,10 +373,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		executeOrder(_orderId1);
 		executeOrder(_orderId2);
 	}
-
-	/////////////////////////////////////////////
-	/// external state changing functionality ///
-	/////////////////////////////////////////////
 
 	///////////////////////////
 	/// non-complex getters ///
@@ -303,5 +392,19 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	 */
 	function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
 		return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
+	}
+
+	/**
+	 * @notice get the underlying price with just the underlying asset and strike asset
+	 * @param underlying   the asset that is used as the reference asset
+	 * @param _strikeAsset the asset that the underlying value is denominated in
+	 * @return the underlying price
+	 */
+	function _getUnderlyingPrice(address underlying, address _strikeAsset)
+		internal
+		view
+		returns (uint256)
+	{
+		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
 }

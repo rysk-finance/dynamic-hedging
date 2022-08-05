@@ -7,6 +7,7 @@ interface CustomErrors {
 	error NotHandler();
 	error InvalidPrice();
 	error InvalidBuyer();
+	error InvalidOrder();
 	error OrderExpired();
 	error InvalidAmount();
 	error TradingPaused();
@@ -24,6 +25,7 @@ interface CustomErrors {
 	error OptionStrikeInvalid();
 	error OptionExpiryInvalid();
 	error NoExistingWithdrawal();
+	error SpotMovedBeyondRange();
 	error CollateralAssetInvalid();
 	error UnderlyingAssetInvalid();
 	error CollateralAmountInvalid();

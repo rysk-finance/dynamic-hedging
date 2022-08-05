@@ -11,8 +11,28 @@ For full details see:
 ## `AlphaOptionHandler.sol` - this will describe major changes from `OptionHandler.sol`
 
 - `issueAndWriteOption`, `issue`, `writeOption` and `buybackOption` all removed.
-- In `executeOrder` all checks on the price and delta against the pool's pricing model are removed.
+- In `executeOrder` all checks on the price and delta against the pool's pricing model are removed, instead a spot price check is added.
 - In `executeOrder` the details of the option minted are pushed to the `AlphaPortfolioValuesFeed` in order to make sure that the option purchase is recorded.
+
+### ```executeOrder(orderId) external ``` ***Direct NonTrustedAccessible***
+
+This function gets a custom order using a orderId, this will revert if the sender is not the authorised buyer of the order. First the spot price will be checked against the customOrderBounds to make sure there hasnt been a big spot price move. If the order falls outside any of the allowed bounds then the transaction will revert. If all conditions are met then the option will be minted to the buyer. At the end of the transaction the order is invalidated.
+
+### ```executeBuyBackOrder(orderId) external ``` ***Direct NonTrustedAccessible***
+
+This function gets a custom order using a orderId, this will revert if the sender is not the authorised buyer of the order. First the spot price will be checked against the customOrderBounds to make sure there hasnt been a big spot price move. If the order falls outside any of the allowed bounds then the transaction will revert. If all conditions are met then the option will be burned and usdc will be returned to the buyer. At the end of the transaction the order is invalidated.
+
+### ```executeStrangle(orderId1, orderId2) external ``` ***Direct NonTrustedAccessible***
+
+This function executes two order executions and is intended for use with a strangle.
+
+### ``` createOrder() external onlyRole```
+
+This function creates a custom option order receipt which contains the option series, the amount, the price at which the order is settled at, the time after which the custom order expires and the authorised buyer of the custom order. This is managed by a manager and governance and is used for large market orders with participants such as market makers. This returns an orderId which is used by the market participant to access their custom order in executeOrder. Create order also requires passing in whether the order is a buyback or not.
+
+### ``` createStrangle() external onlyRole```
+
+This function creates two custom orders, one put order and one call order. This is so delta neutral positions can be sold to certain market participants.
 
 ## Use of `LiquidityPool.sol`
 
