@@ -66,18 +66,24 @@ interface IAccounting {
 			WithdrawalReceipt memory withdrawalReceipt
 		);
 
-	/**
-	 * @notice calculates the USDC value of the Liquidity pool's ERC20 vault share token denominated in e6
-	 * @param  totalSupply the total supply of the liquidity pool's erc20
-	 * @param  assets      the value of assets held by the pool
-	 * @param  liabilities the value of liabilities held by the pool
-	 * @return tokenPrice  the value of the token in e6 terms
-	 */
-	function calculateTokenPrice(
+	function executeEpochCalculation(
 		uint256 totalSupply,
 		uint256 assets,
 		int256 liabilities
-	) external returns (uint256 tokenPrice);
+	) external view returns (uint256 newPricePerShare, uint256 sharesToMint);
+
+	// /**
+	//  * @notice calculates the USDC value of the Liquidity pool's ERC20 vault share token denominated in e6
+	//  * @param  totalSupply the total supply of the liquidity pool's erc20
+	//  * @param  assets      the value of assets held by the pool
+	//  * @param  liabilities the value of liabilities held by the pool
+	//  * @return tokenPrice  the value of the token in e6 terms
+	//  */
+	// function calculateTokenPrice(
+	// 	uint256 totalSupply,
+	// 	uint256 assets,
+	// 	int256 liabilities
+	// ) internal returns (uint256 tokenPrice);
 
 	/**
 	 * @notice get the number of shares for a given amount

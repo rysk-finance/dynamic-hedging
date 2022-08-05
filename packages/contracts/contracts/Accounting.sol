@@ -59,7 +59,7 @@ contract Accounting is IAccounting {
 		uint256 totalSupply,
 		uint256 assets,
 		int256 liabilities
-	) external view returns (uint256 tokenPrice) {
+	) internal view returns (uint256 tokenPrice) {
 		if (int256(assets) < liabilities) {
 			revert CustomErrors.LiabilitiesGreaterThanAssets();
 		}
@@ -233,6 +233,15 @@ contract Accounting is IAccounting {
 		int256 bufferRemaining = collatBalance - buffer;
 		// get the extra liquidity that is needed
 		amountNeeded = int256(withdrawalAmount) - bufferRemaining;
+	}
+
+	function executeEpochCalculation(
+		uint256 totalSupply,
+		uint256 assets,
+		int256 liabilities
+	) external view returns (uint256 newPricePerShare, uint256 sharesToMint) {
+		newPricePerShare = calculateTokenPrice(totalSupply, assets, liabilities);
+		sharesToMint = sharesForAmount(liquidityPool.pendingDeposits(), newPricePerShare);
 	}
 
 	/**
