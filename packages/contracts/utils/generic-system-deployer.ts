@@ -251,6 +251,7 @@ export async function deployLiquidityPool(
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,
-		handler: handler
+		handler: handler,
+		accounting: Accounting
 	}
 }

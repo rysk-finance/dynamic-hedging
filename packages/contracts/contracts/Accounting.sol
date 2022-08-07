@@ -250,7 +250,6 @@ contract Accounting is IAccounting {
 			assets,
 			liabilities
 		);
-		console.log("pps deposit:", newPricePerShareDeposit, "pps withdraw:", newPricePerShareDeposit);
 		sharesToMint = sharesForAmount(liquidityPool.pendingDeposits(), newPricePerShareDeposit);
 		totalWithdrawAmount = amountForShares(
 			liquidityPool.pendingWithdrawals(),
