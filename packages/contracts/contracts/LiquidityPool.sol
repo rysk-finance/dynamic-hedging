@@ -988,7 +988,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function _checkBuffer() internal view returns (uint256 bufferRemaining) {
 		// calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
 		uint256 collateralBalance = getBalance(collateralAsset);
-		uint256 collateralBuffer = collateralAllocated * bufferPercentage;
+		uint256 collateralBuffer = (collateralAllocated * bufferPercentage) / MAX_BPS;
 		// revert if buffer allowance already hit
 		if (collateralBuffer > collateralBalance) {
 			revert CustomErrors.MaxLiquidityBufferReached();
