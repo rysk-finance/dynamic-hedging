@@ -448,7 +448,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 				optionRegistry,
 				premium, // in collat decimals
 				delta,
-				_checkBuffer(), // in e18
+				_checkBuffer(), // in e6
 				recipient
 			);
 	}
@@ -486,7 +486,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 				optionRegistry,
 				premium, // in collat decimals
 				delta,
-				_checkBuffer(), // in e18
+				_checkBuffer(), // in e6
 				recipient
 			),
 			seriesAddress
@@ -983,7 +983,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 	/**
 	 * @notice calculates amount of liquidity that can be used before hitting buffer
-	 * @return bufferRemaining the amount of liquidity available before reaching buffer in e18
+	 * @return bufferRemaining the amount of liquidity available before reaching buffer in e6
 	 */
 	function _checkBuffer() internal view returns (uint256 bufferRemaining) {
 		// calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
@@ -1056,7 +1056,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @param  optionRegistry the option registry of the pool
 	 * @param  premium the premium to charge the user - in collateral decimals
 	 * @param  delta the delta of the option position - in e18
-	 * @param  bufferRemaining the amount of buffer that can be used - in e18
+	 * @param  bufferRemaining the amount of buffer that can be used - in e6
 	 * @return the amount that was written
 	 */
 	function _writeOption(
