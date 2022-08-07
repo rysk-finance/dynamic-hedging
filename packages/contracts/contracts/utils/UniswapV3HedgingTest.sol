@@ -33,4 +33,8 @@ contract UniswapV3HedgingTest {
 	function update() public returns (uint256) {
 		return IHedgingReactor(uniswapV3HedgingReactor).update();
 	}
+
+	function getBalance(address collateralAsset) public view returns (uint256) {
+		return ERC20(collateralAsset).balanceOf(address(this));
+	}
 }

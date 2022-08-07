@@ -8,30 +8,60 @@ import "../interfaces/IAccounting.sol";
 import "./IERC20.sol";
 
 interface ILiquidityPool is IERC20 {
-	function collateralCap() external view returns (uint256);
+	///////////////////////////
+	/// immutable variables ///
+	///////////////////////////
+	function strikeAsset() external view returns (address);
 
-	function epoch() external view returns (uint256);
+	function underlyingAsset() external view returns (address);
 
-	function depositReceipts(address depositor) external view returns (IAccounting.DepositReceipt memory);
+	function collateralAsset() external view returns (address);
+
+	/////////////////////////
+	/// dynamic variables ///
+	/////////////////////////
+
+	function collateralAllocated() external view returns (uint256);
+
+	function ephemeralLiabilities() external view returns (int256);
+
+	function ephemeralDelta() external view returns (int256);
+
+	function depositEpoch() external view returns (uint256);
+
+	function withdrawalEpoch() external view returns (uint256);
+
+	function depositEpochPricePerShare(uint256 epoch) external view returns (uint256 price);
+
+	function withdrawalEpochPricePerShare(uint256 epoch) external view returns (uint256 price);
+
+	function depositReceipts(address depositor)
+		external
+		view
+		returns (IAccounting.DepositReceipt memory);
 
 	function withdrawalReceipts(address withdrawer)
 		external
 		view
 		returns (IAccounting.WithdrawalReceipt memory);
 
-	function epochPricePerShare(uint256 epoch) external view returns (uint256 price);
+	function pendingDeposits() external view returns (uint256);
 
-	function collateralAsset() external view returns (address);
+	function pendingWithdrawals() external view returns (uint256);
 
-	function underlyingAsset() external view returns (address);
+	function partitionedFunds() external view returns (uint256);
 
-	function strikeAsset() external view returns (address);
-
-	function collateralAllocated() external view returns (uint256);
+	/////////////////////////////////////
+	/// governance settable variables ///
+	/////////////////////////////////////
 
 	function bufferPercentage() external view returns (uint256);
 
-	function MAX_BPS() external view returns (uint256);
+	function collateralCap() external view returns (uint256);
+
+	/////////////////
+	/// functions ///
+	/////////////////
 
 	function handlerIssue(Types.OptionSeries memory optionSeries) external returns (address);
 
@@ -76,4 +106,8 @@ interface ILiquidityPool is IERC20 {
 		uint256 amount,
 		bool toBuy
 	) external view returns (uint256 quote, int256 delta);
+
+	function checkBuffer() external view returns (uint256 bufferRemaining);
+
+	function getBalance(address asset) external view returns (uint256);
 }

@@ -52,7 +52,6 @@ interface IAccounting {
 	 * @notice logic for accounting a user to complete a withdrawal
 	 * @param  withdrawer the address carrying out the withdrawal
 	 * @param  shares the amount of shares to withdraw for
-	 * @return amountNeeded      the amount of funds needed to withdraw completely
 	 * @return withdrawalAmount  the amount of collateral to withdraw
 	 * @return withdrawalShares  the number of shares to withdraw
 	 * @return withdrawalReceipt the new withdrawal receipt to pass to the liquidityPool
@@ -60,30 +59,36 @@ interface IAccounting {
 	function completeWithdraw(address withdrawer, uint256 shares)
 		external
 		returns (
-			int256 amountNeeded,
 			uint256 withdrawalAmount,
 			uint256 withdrawalShares,
 			WithdrawalReceipt memory withdrawalReceipt
 		);
 
 	/**
-	 * @notice calculates the USDC value of the Liquidity pool's ERC20 vault share token denominated in e6
-	 * @param  totalSupply the total supply of the liquidity pool's erc20
-	 * @param  assets      the value of assets held by the pool
-	 * @param  liabilities the value of liabilities held by the pool
-	 * @param  collateralAllocated the amount of collateral allocated to option positions
-	 * @param  pendingDeposits the amount of deposits queued for the current epoch
-	 * @param  pendingWithdrawals the amount of withdrawals queued for the current epoch
-	 * @return tokenPrice  the value of the token in e6 terms
+	 * @notice execute the next epoch
+	 * @param totalSupply  the total number of share tokens
+	 * @param assets the amount of collateral assets
+     * @param liabilities the amount of liabilities of the pool
+	 * @return newPricePerShareDeposit the price per share for deposits
+     * @return newPricePerShareWithdrawal the price per share for withdrawals
+     * @return sharesToMint the number of shares to mint this epoch
+     * @return totalWithdrawAmount the amount of collateral to set aside for partitioning
+     * @return amountNeeded the amount needed to reach the total withdraw amount if collateral balance of lp is insufficient
 	 */
-	function calculateTokenPrice(
+	function executeEpochCalculation(
 		uint256 totalSupply,
 		uint256 assets,
-		int256 liabilities,
-		uint256 collateralAllocated,
-		uint256 pendingDeposits,
-		uint256 pendingWithdrawals
-	) external returns (uint256 tokenPrice);
+		int256 liabilities
+	)
+		external
+		view
+		returns (
+			uint256 newPricePerShareDeposit,
+			uint256 newPricePerShareWithdrawal,
+			uint256 sharesToMint,
+			uint256 totalWithdrawAmount,
+			uint256 amountNeeded
+		);
 
 	/**
 	 * @notice get the number of shares for a given amount
