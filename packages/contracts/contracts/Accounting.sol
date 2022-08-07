@@ -103,7 +103,7 @@ contract Accounting is IAccounting {
 		if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
 			unredeemedShares += sharesForAmount(
 				depositReceipt.amount,
-				liquidityPool.epochPricePerShare(depositReceipt.epoch)
+				liquidityPool.depositEpochPricePerShare(depositReceipt.epoch)
 			);
 		}
 		depositAmount = _amount;
@@ -135,7 +135,7 @@ contract Accounting is IAccounting {
 		if (depositReceipt.epoch != 0 && depositReceipt.epoch < currentEpoch) {
 			unredeemedShares += sharesForAmount(
 				depositReceipt.amount,
-				liquidityPool.epochPricePerShare(depositReceipt.epoch)
+				liquidityPool.depositEpochPricePerShare(depositReceipt.epoch)
 			);
 		}
 		// if the shares requested are greater than their unredeemedShares then floor to unredeemedShares, otherwise
@@ -220,7 +220,7 @@ contract Accounting is IAccounting {
 		// get the withdrawal amount based on the shares and pps at the epoch
 		withdrawalAmount = amountForShares(
 			withdrawalShares,
-			liquidityPool.epochPricePerShare(withdrawalEpoch)
+			liquidityPool.withdrawalEpochPricePerShare(withdrawalEpoch)
 		);
 		if (withdrawalAmount == 0) {
 			revert CustomErrors.InvalidAmount();

@@ -31,7 +31,9 @@ interface ILiquidityPool is IERC20 {
 
 	function withdrawalEpoch() external view returns (uint256);
 
-	function epochPricePerShare(uint256 epoch) external view returns (uint256 price);
+	function depositEpochPricePerShare(uint256 epoch) external view returns (uint256 price);
+
+	function withdrawalEpochPricePerShare(uint256 epoch) external view returns (uint256 price);
 
 	function depositReceipts(address depositor)
 		external
