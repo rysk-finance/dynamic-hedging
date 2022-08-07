@@ -1105,7 +1105,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		})
 		it("Succeeds: execute epoch", async () => {
-			const epochBefore = await liquidityPool.depositEpoch()
+			const depositEpochBefore = await liquidityPool.depositEpoch()
+			const withdrawalEpochBefore = await liquidityPool.withdrawalEpoch()
 			const pendingDepositBefore = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
 			const pendingWithdrawBefore = await liquidityPool.pendingWithdrawals()
 			const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
@@ -1119,8 +1120,13 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			const partitionedFundsDiffe18 = toWeiFromUSDC(
 				partitionedFundsAfter.sub(partitionedFundsBefore).toString()
 			)
-
-			expect(await liquidityPool.depositEpochPricePerShare(epochBefore)).to.equal(
+			// check partitioned funds increased by pendingWithdrawals * price per share
+			expect(
+				parseFloat(fromWei(partitionedFundsDiffe18)) -
+					parseFloat(fromWei(pendingWithdrawBefore)) *
+						parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+			).to.be.within(-0.0001, 0.0001)
+			expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 				toWei("1")
 					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
 					.div(totalSupplyBefore)
@@ -1131,11 +1137,11 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			expect(pendingWithdrawAfter).to.eq(0)
 			expect(pendingDepositAfter).to.eq(0)
 			expect(await liquidityPool.isTradingPaused()).to.be.false
-			expect(await liquidityPool.depositEpoch()).to.equal(epochBefore.add(1))
+			expect(await liquidityPool.depositEpoch()).to.equal(depositEpochBefore.add(1))
 			expect(
 				pendingDepositBefore
 					.mul(toWei("1"))
-					.div(await liquidityPool.depositEpochPricePerShare(epochBefore))
+					.div(await liquidityPool.depositEpochPricePerShare(depositEpochBefore))
 			).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
 		})
 	})
@@ -1355,7 +1361,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		})
 		it("Succeeds: execute epoch", async () => {
-			const epochBefore = await liquidityPool.depositEpoch()
+			const depositEpochBefore = await liquidityPool.depositEpoch()
+			const withdrawalEpochBefore = await liquidityPool.withdrawalEpoch()
 			const pendingDepositBefore = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
 			const pendingWithdrawBefore = await liquidityPool.pendingWithdrawals()
 
@@ -1371,18 +1378,24 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			)
 			expect(pendingWithdrawBefore).to.not.eq(0)
 			expect(pendingWithdrawAfter).to.eq(0)
-			expect(await liquidityPool.depositEpochPricePerShare(epochBefore)).to.equal(
+			// check partitioned funds increased by pendingWithdrawals * price per share
+			expect(
+				parseFloat(fromWei(partitionedFundsDiffe18)) -
+					parseFloat(fromWei(pendingWithdrawBefore)) *
+						parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+			).to.be.within(-0.0001, 0.0001)
+			expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 				toWei("1")
 					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
 					.div(totalSupplyBefore)
 			)
 			expect(await liquidityPool.pendingDeposits()).to.equal(0)
 			expect(await liquidityPool.isTradingPaused()).to.be.false
-			expect(await liquidityPool.depositEpoch()).to.equal(epochBefore.add(1))
+			expect(await liquidityPool.depositEpoch()).to.equal(depositEpochBefore.add(1))
 			expect(
 				pendingDepositBefore
 					.mul(toWei("1"))
-					.div(await liquidityPool.depositEpochPricePerShare(epochBefore))
+					.div(await liquidityPool.depositEpochPricePerShare(depositEpochBefore))
 			).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
 		})
 	})

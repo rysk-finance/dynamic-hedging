@@ -574,6 +574,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 				emit DepositEpochExecuted(depositEpoch);
 				depositEpoch++;
 				isTradingPaused = false;
+				_mint(address(this), sharesToMint);
+
 				return;
 			}
 		}

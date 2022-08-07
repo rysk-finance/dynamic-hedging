@@ -249,19 +249,19 @@ contract Accounting is IAccounting {
 		int256 collatBalance = int256(
 			ERC20(collateralAsset).balanceOf(address(liquidityPool)) - liquidityPool.partitionedFunds()
 		);
-		int256 bufferRemaining = collatBalance + int256(liquidityPool.pendingDeposits()) - buffer;
+		int256 bufferRemaining = collatBalance - buffer;
 
 		newPricePerShareDeposit = newPricePerShareWithdrawal = calculateTokenPrice(
 			totalSupply,
 			assets,
 			liabilities
 		);
-		console.log("pps deposit:", newPricePerShareDeposit, "pps withdraw:", newPricePerShareDeposit);
 		sharesToMint = sharesForAmount(liquidityPool.pendingDeposits(), newPricePerShareDeposit);
 		totalWithdrawAmount = amountForShares(
 			liquidityPool.pendingWithdrawals(),
 			newPricePerShareWithdrawal
 		);
+
 		// get the extra liquidity that is needed from hedging reactors
 		amountNeeded = int256(totalWithdrawAmount) - bufferRemaining;
 	}
