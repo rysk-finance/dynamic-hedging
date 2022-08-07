@@ -579,6 +579,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		}
 		depositEpochPricePerShare[depositEpoch] = newPricePerShareDeposit;
 		withdrawalEpochPricePerShare[withdrawalEpoch] = newPricePerShareWithdrawal;
+		partitionedFunds += totalWithdrawAmount;
 		emit DepositEpochExecuted(depositEpoch);
 		emit WithdrawalEpochExecuted(withdrawalEpoch);
 		delete pendingDeposits;
