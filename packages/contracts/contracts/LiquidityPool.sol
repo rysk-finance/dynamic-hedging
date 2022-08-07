@@ -448,7 +448,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 				optionRegistry,
 				premium, // in collat decimals
 				delta,
-				_checkBuffer(), // in e18
+				_checkBuffer(), // in e6
 				recipient
 			);
 	}
@@ -486,7 +486,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 				optionRegistry,
 				premium, // in collat decimals
 				delta,
-				_checkBuffer(), // in e18
+				_checkBuffer(), // in e6
 				recipient
 			),
 			seriesAddress
@@ -697,6 +697,14 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		);
 	}
 
+	/**
+	 * @notice Returning balance in 1e6 format
+	 * @param asset address of the asset to get balance
+	 * @return balance of the address accounting for partitionedFunds
+	 */
+	function getBalance(address asset) public view returns (uint256) {
+		return ERC20(asset).balanceOf(address(this)) - partitionedFunds;
+	}
 	/**
 	 * @notice get the delta of the hedging reactors
 	 * @return externalDelta hedging reactor delta in e18 format
@@ -977,21 +985,17 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 	/**
 	 * @notice calculates amount of liquidity that can be used before hitting buffer
-	 * @return bufferRemaining the amount of liquidity available before reaching buffer in e18
+	 * @return bufferRemaining the amount of liquidity available before reaching buffer in e6
 	 */
-	function _checkBuffer() internal view returns (int256 bufferRemaining) {
+	function _checkBuffer() internal view returns (uint256 bufferRemaining) {
 		// calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
-		uint256 normalizedCollateralBalance = _getNormalizedBalance(collateralAsset);
-		bufferRemaining = int256(
-			normalizedCollateralBalance -
-				(OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset).decimals()) *
-					bufferPercentage) /
-				MAX_BPS
-		);
-		// revert CustomErrors.if buffer allowance already hit
-		if (bufferRemaining <= 0) {
+		uint256 collateralBalance = getBalance(collateralAsset);
+		uint256 collateralBuffer = (collateralAllocated * bufferPercentage) / MAX_BPS;
+		// revert if buffer allowance already hit
+		if (collateralBuffer > collateralBalance) {
 			revert CustomErrors.MaxLiquidityBufferReached();
 		}
+		bufferRemaining = collateralBalance - collateralBuffer;
 	}
 
 	/**
@@ -1054,7 +1058,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @param  optionRegistry the option registry of the pool
 	 * @param  premium the premium to charge the user - in collateral decimals
 	 * @param  delta the delta of the option position - in e18
-	 * @param  bufferRemaining the amount of buffer that can be used - in e18
+	 * @param  bufferRemaining the amount of buffer that can be used - in e6
 	 * @return the amount that was written
 	 */
 	function _writeOption(
@@ -1064,15 +1068,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		IOptionRegistry optionRegistry,
 		uint256 premium,
 		int256 delta,
-		int256 bufferRemaining,
+		uint256 bufferRemaining,
 		address recipient
 	) internal returns (uint256) {
 		// strike decimals come into this function as e8
 		uint256 collateralAmount = optionRegistry.getCollateral(optionSeries, amount);
-		if (
-			uint256(bufferRemaining) <
-			OptionsCompute.convertFromDecimals(collateralAmount, ERC20(collateralAsset).decimals())
-		) {
+		if (bufferRemaining < collateralAmount) {
 			revert CustomErrors.MaxLiquidityBufferReached();
 		}
 		ERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);
