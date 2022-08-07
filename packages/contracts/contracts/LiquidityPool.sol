@@ -556,7 +556,13 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			uint256 totalWithdrawAmount,
 			int256 amountNeeded
 		) = _getAccounting().executeEpochCalculation(totalSupply, _getAssets(), _getLiabilities());
-
+		// deposits always get executed
+		depositEpochPricePerShare[depositEpoch] = newPricePerShareDeposit;
+		delete pendingDeposits;
+		emit DepositEpochExecuted(depositEpoch);
+		depositEpoch++;
+		isTradingPaused = false;
+		_mint(address(this), sharesToMint);
 		// loop through the reactors and move funds if found
 		if (amountNeeded > 0) {
 			address[] memory hedgingReactors_ = hedgingReactors;
@@ -566,28 +572,16 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 					break;
 				}
 			}
+			// if not enough funds in liquidity pool and reactors, dont process withdrawals this epoch
 			if (amountNeeded > 0) {
-				depositEpochPricePerShare[depositEpoch] = newPricePerShareDeposit;
-				delete pendingDeposits;
-				emit DepositEpochExecuted(depositEpoch);
-				depositEpoch++;
-				isTradingPaused = false;
-				_mint(address(this), sharesToMint);
-
 				return;
 			}
 		}
-		depositEpochPricePerShare[depositEpoch] = newPricePerShareDeposit;
 		withdrawalEpochPricePerShare[withdrawalEpoch] = newPricePerShareWithdrawal;
 		partitionedFunds += totalWithdrawAmount;
-		emit DepositEpochExecuted(depositEpoch);
 		emit WithdrawalEpochExecuted(withdrawalEpoch);
-		delete pendingDeposits;
 		delete pendingWithdrawals;
-		depositEpoch++;
 		withdrawalEpoch++;
-		isTradingPaused = false;
-		_mint(address(this), sharesToMint);
 	}
 
 	/////////////////////////////////////////////
