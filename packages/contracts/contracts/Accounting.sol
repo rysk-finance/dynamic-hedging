@@ -239,17 +239,11 @@ contract Accounting is IAccounting {
 			uint256 newPricePerShareWithdrawal,
 			uint256 sharesToMint,
 			uint256 totalWithdrawAmount,
-			int256 amountNeeded
+			uint256 amountNeeded
 		)
 	{
 		// get the liquidity that can be withdrawn from the pool without hitting the collateral requirement buffer
-		int256 buffer = int256(
-			(liquidityPool.collateralAllocated() * liquidityPool.bufferPercentage()) / MAX_BPS
-		);
-		int256 collatBalance = int256(
-			ERC20(collateralAsset).balanceOf(address(liquidityPool)) - liquidityPool.partitionedFunds()
-		);
-		int256 bufferRemaining = collatBalance + int256(liquidityPool.pendingDeposits()) - buffer;
+		uint256 bufferRemaining = liquidityPool.checkBuffer();
 
 		newPricePerShareDeposit = newPricePerShareWithdrawal = calculateTokenPrice(
 			totalSupply,
@@ -262,8 +256,12 @@ contract Accounting is IAccounting {
 			liquidityPool.pendingWithdrawals(),
 			newPricePerShareWithdrawal
 		);
-		// get the extra liquidity that is needed from hedging reactors
-		amountNeeded = int256(totalWithdrawAmount) - bufferRemaining;
+		if (bufferRemaining > totalWithdrawAmount) {
+			amountNeeded = 0;
+		} else {
+			// get the extra liquidity that is needed from hedging reactors
+			amountNeeded = totalWithdrawAmount - bufferRemaining;
+		}
 	}
 
 	/**

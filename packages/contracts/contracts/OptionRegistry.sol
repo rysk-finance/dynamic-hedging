@@ -374,6 +374,9 @@ contract OptionRegistry is AccessControl {
 		}
 		if (isBelowMin) {
 			LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, false);
+			if (LiquidityPool(liquidityPool).getBalance(collateralAsset) < collateralAmount) {
+				revert CustomErrors.WithdrawExceedsLiquidity();
+			}
 			// transfer the needed collateral to this contract from the liquidityPool
 			SafeTransferLib.safeTransferFrom(
 				_collateralAsset,

@@ -106,4 +106,8 @@ interface ILiquidityPool is IERC20 {
 		uint256 amount,
 		bool toBuy
 	) external view returns (uint256 quote, int256 delta);
+
+	function checkBuffer() external view returns (uint256 bufferRemaining);
+
+	function getBalance(address asset) external view returns (uint256);
 }

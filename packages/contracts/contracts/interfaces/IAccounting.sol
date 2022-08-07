@@ -76,7 +76,7 @@ interface IAccounting {
 			uint256 newPricePerShareWithdrawal,
 			uint256 sharesToMint,
 			uint256 totalWithdrawAmount,
-			int256 amountNeeded
+			uint256 amountNeeded
 		);
 
 	/**

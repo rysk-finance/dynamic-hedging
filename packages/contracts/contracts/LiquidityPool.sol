@@ -448,7 +448,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 				optionRegistry,
 				premium, // in collat decimals
 				delta,
-				_checkBuffer(), // in e6
+				checkBuffer(), // in e6
 				recipient
 			);
 	}
@@ -486,7 +486,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 				optionRegistry,
 				premium, // in collat decimals
 				delta,
-				_checkBuffer(), // in e6
+				checkBuffer(), // in e6
 				recipient
 			),
 			seriesAddress
@@ -556,14 +556,14 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			uint256 newPricePerShareWithdrawal,
 			uint256 sharesToMint,
 			uint256 totalWithdrawAmount,
-			int256 amountNeeded
+			uint256 amountNeeded
 		) = _getAccounting().executeEpochCalculation(totalSupply, _getAssets(), _getLiabilities());
 
 		// loop through the reactors and move funds if found
 		if (amountNeeded > 0) {
 			address[] memory hedgingReactors_ = hedgingReactors;
 			for (uint8 i = 0; i < hedgingReactors_.length; i++) {
-				amountNeeded -= int256(IHedgingReactor(hedgingReactors_[i]).withdraw(uint256(amountNeeded)));
+				amountNeeded -= IHedgingReactor(hedgingReactors_[i]).withdraw(amountNeeded);
 				if (amountNeeded <= 0) {
 					break;
 				}
@@ -805,7 +805,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			// if selling options, we want to add the utilization premium
 			// Work out the utilization of the pool as a percentage
 			quoteState.utilizationBefore = collateralAllocated_.div(
-				collateralAllocated_ + ERC20(collateralAsset).balanceOf(address(this))
+				collateralAllocated_ + getBalance(collateralAsset)
 			);
 			// assumes strike is e18
 			// strike is not being used again so we dont care if format changes
@@ -814,7 +814,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			quoteState.collateralToAllocate = _getOptionRegistry().getCollateral(optionSeries, amount);
 
 			quoteState.utilizationAfter = (quoteState.collateralToAllocate + collateralAllocated_).div(
-				collateralAllocated_ + ERC20(collateralAsset).balanceOf(address(this))
+				collateralAllocated_ + getBalance(collateralAsset)
 			);
 			// get the price of the option with the utilization premium added
 			quoteState.utilizationPrice = OptionsCompute.getUtilizationPrice(
@@ -952,12 +952,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function _getAssets() internal view returns (uint256 assets) {
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
-		assets =
-			OptionsCompute.convertFromDecimals(
-				ERC20(collateralAsset).balanceOf(address(this)) - partitionedFunds,
-				ERC20(collateralAsset).decimals()
-			) +
-			OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset).decimals());
+		assets = _getNormalizedBalance(collateralAsset) + OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset).decimals());
 		address[] memory hedgingReactors_ = hedgingReactors;
 		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
 			// should always return value in e18 decimals
@@ -985,7 +980,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice calculates amount of liquidity that can be used before hitting buffer
 	 * @return bufferRemaining the amount of liquidity available before reaching buffer in e6
 	 */
-	function _checkBuffer() internal view returns (uint256 bufferRemaining) {
+	function checkBuffer() public view returns (uint256 bufferRemaining) {
 		// calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
 		uint256 collateralBalance = getBalance(collateralAsset);
 		uint256 collateralBuffer = (collateralAllocated * bufferPercentage) / MAX_BPS;
@@ -1123,6 +1118,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals())
 		);
 		_adjustVariables(collateralReturned, premium, delta, false);
+		if (getBalance(collateralAsset) < premium) {
+			revert CustomErrors.WithdrawExceedsLiquidity();
+		}
 		SafeTransferLib.safeTransfer(ERC20(collateralAsset), seller, premium);
 		return amount;
 	}
