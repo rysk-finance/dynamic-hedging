@@ -322,16 +322,44 @@ describe("Liquidity Pools", async () => {
 	})
 	it("Succeeds: execute epoch", async () => {
 		const depositEpochBefore = await liquidityPool.depositEpoch()
-		const withdrawalEpochBefore = await liquidityPool.depositEpoch()
-		const pendingDepositBefore = await liquidityPool.pendingDeposits()
+		const withdrawalEpochBefore = await liquidityPool.withdrawalEpoch()
+		const pendingDepositBefore = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
+		const pendingWithdrawBefore = await liquidityPool.pendingWithdrawals()
+		const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
+		const totalSupplyBefore = await liquidityPool.totalSupply()
+		const partitionedFundsBefore = await liquidityPool.partitionedFunds()
 		await liquidityPool.executeEpochCalculation()
 		const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
-		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(toWei("1"))
+		const pendingDepositAfter = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
+		const pendingWithdrawAfter = await liquidityPool.pendingWithdrawals()
+		const partitionedFundsAfter = await liquidityPool.partitionedFunds()
+		const partitionedFundsDiffe18 = toWeiFromUSDC(
+			partitionedFundsAfter.sub(partitionedFundsBefore).toString()
+		)
+		// check partitioned funds increased by pendingWithdrawals * price per share
+		expect(
+			parseFloat(fromWei(partitionedFundsDiffe18)) -
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+		).to.be.within(-0.0001, 0.0001)
+		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
+			totalSupplyBefore.eq(0)
+				? toWei("1")
+				: toWei("1")
+						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+						.div(totalSupplyBefore)
+		)
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
+		expect(pendingDepositBefore).to.not.eq(0)
+		expect(pendingWithdrawAfter).to.eq(0)
+		expect(pendingDepositAfter).to.eq(0)
 		expect(await liquidityPool.isTradingPaused()).to.be.false
 		expect(await liquidityPool.depositEpoch()).to.equal(depositEpochBefore.add(1))
-		expect(await liquidityPool.withdrawalEpoch()).to.equal(withdrawalEpochBefore.add(1))
-		expect(pendingDepositBefore.mul(collatDecimalShift)).to.equal(lplpBalanceAfter)
+		expect(
+			pendingDepositBefore
+				.mul(toWei("1"))
+				.div(await liquidityPool.depositEpochPricePerShare(depositEpochBefore))
+		).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
 	})
 	it("deploys the hedging reactor", async () => {
 		const uniswapV3HedgingReactorFactory = await ethers.getContractFactory(

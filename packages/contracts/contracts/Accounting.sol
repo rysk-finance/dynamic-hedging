@@ -10,8 +10,6 @@ import "./libraries/OptionsCompute.sol";
 import "./interfaces/IAccounting.sol";
 import "./interfaces/ILiquidityPool.sol";
 
-import "hardhat/console.sol";
-
 /**
  *  @title Modular contract used by the liquidity pool to conducting accounting logic
  */
