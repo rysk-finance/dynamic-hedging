@@ -337,9 +337,8 @@ describe("PerpHedgingReactor", () => {
 	})
 	it("hedges a positive delta with insufficient funds", async () => {
 		// attempts to hedge a very large amount should fail
-		const delta = ethers.utils.parseEther("380")
+		const delta = ethers.utils.parseEther("9000")
 		await expect((liquidityPoolDummy.hedgeDelta(delta))).to.be.revertedWith("WithdrawExceedsLiquidity()")
-
 	})
 	it("liquidates usdc held position", async () => {
 		const withdrawAmount = "1000"
@@ -507,21 +506,13 @@ describe("PerpHedgingReactor", () => {
 	})
 
 	it("updates healthFactor", async () => {
-		let healthFactor = await perpHedgingReactor.healthFactor()
-		expect(healthFactor).to.equal(12000)
 		const tx = await perpHedgingReactor.setHealthFactor(15000)
-		healthFactor = await perpHedgingReactor.healthFactor()
+		let healthFactor = await perpHedgingReactor.healthFactor()
 		expect(healthFactor).to.equal(15000)
 	})
 
 	it("update health factor reverts if not owner", async () => {
 		await expect(perpHedgingReactor.connect(signers[1]).setHealthFactor(10000)).to.be.reverted
-		let healthFactor = await perpHedgingReactor.healthFactor()
-		expect(healthFactor).to.equal(15000)
-	})
-
-	it("update health factor fails if too low", async () => {
-		await expect(perpHedgingReactor.setHealthFactor(9999)).to.be.revertedWith("InvalidHealthFactor()")
 		let healthFactor = await perpHedgingReactor.healthFactor()
 		expect(healthFactor).to.equal(15000)
 	})

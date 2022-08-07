@@ -56,7 +56,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	/// @notice address of the keeper of this pool
 	mapping(address => bool) public keeper;
 	/// @notice desired healthFactor of the pool
-	uint256 public healthFactor = 12_000;
+	uint256 public healthFactor = 5_000;
 	/// @notice should change position also sync state
 	bool public syncOnChange;
 
@@ -74,7 +74,6 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	//////////////
 
 	error ValueFailure();
-	error InvalidHealthFactor();
 	error IncorrectCollateral();
 	error IncorrectDeltaChange();
 	error InvalidTransactionNotEnoughMargin(int256 accountMarketValue, int256 totalRequiredMargin);
@@ -107,9 +106,6 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	/// @notice update the health factor parameter
 	function setHealthFactor(uint256 _healthFactor) external {
 		_onlyGovernor();
-		if (_healthFactor < MAX_BIPS) {
-			revert InvalidHealthFactor();
-		}
 		healthFactor = _healthFactor;
 	}
 

@@ -320,9 +320,8 @@ describe("PerpHedgingReactor Sc2", () => {
 	})
 	it("hedges a negative delta with insufficient funds", async () => {
 		// attempts to hedge a very large amount should fail
-		const delta = ethers.utils.parseEther("-380")
+		const delta = ethers.utils.parseEther("-9000")
 		await expect((liquidityPoolDummy.hedgeDelta(delta))).to.be.revertedWith("WithdrawExceedsLiquidity()")
-
 	})
 	it("syncs profits", async () => {
 		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
