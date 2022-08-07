@@ -21,8 +21,6 @@ import "./interfaces/IPortfolioValuesFeed.sol";
 
 import "@openzeppelin/contracts/security/Pausable.sol";
 
-import "hardhat/console.sol";
-
 /**
  *  @title Contract used as the Dynamic Hedging Vault for storing funds, issuing shares and processing options transactions
  *  @dev Interacts with the OptionRegistry for options behaviour, Interacts with hedging reactors for alternative derivatives
@@ -705,6 +703,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function getBalance(address asset) public view returns (uint256) {
 		return ERC20(asset).balanceOf(address(this)) - partitionedFunds;
 	}
+
 	/**
 	 * @notice get the delta of the hedging reactors
 	 * @return externalDelta hedging reactor delta in e18 format
