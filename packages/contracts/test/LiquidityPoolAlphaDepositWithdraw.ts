@@ -9,7 +9,8 @@ import {
 	fromOpyn,
 	percentDiff,
 	tFormatUSDC,
-	scaleNum
+	scaleNum,
+	toWeiFromUSDC
 } from "../utils/conversion-helper"
 import moment from "moment"
 import { expect } from "chai"
@@ -1109,15 +1110,19 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			const pendingWithdrawBefore = await liquidityPool.pendingWithdrawals()
 			const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
 			const totalSupplyBefore = await liquidityPool.totalSupply()
-
+			const partitionedFundsBefore = await liquidityPool.partitionedFunds()
 			await liquidityPool.executeEpochCalculation()
 			const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
 			const pendingDepositAfter = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
 			const pendingWithdrawAfter = await liquidityPool.pendingWithdrawals()
+			const partitionedFundsAfter = await liquidityPool.partitionedFunds()
+			const partitionedFundsDiffe18 = toWeiFromUSDC(
+				partitionedFundsAfter.sub(partitionedFundsBefore).toString()
+			)
 
 			expect(await liquidityPool.depositEpochPricePerShare(epochBefore)).to.equal(
 				toWei("1")
-					.mul((await liquidityPool.getNAV()).sub(pendingDepositBefore))
+					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
 					.div(totalSupplyBefore)
 			)
 			expect(await liquidityPool.pendingDeposits()).to.equal(0)
@@ -1128,7 +1133,9 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			expect(await liquidityPool.isTradingPaused()).to.be.false
 			expect(await liquidityPool.depositEpoch()).to.equal(epochBefore.add(1))
 			expect(
-				pendingDepositBefore.mul(toWei("1")).div(await liquidityPool.depositEpochPricePerShare(epochBefore))
+				pendingDepositBefore
+					.mul(toWei("1"))
+					.div(await liquidityPool.depositEpochPricePerShare(epochBefore))
 			).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
 		})
 	})
@@ -1354,21 +1361,28 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 
 			const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
 			const totalSupplyBefore = await liquidityPool.totalSupply()
+			const partitionedFundsBefore = await liquidityPool.partitionedFunds()
 			await liquidityPool.executeEpochCalculation()
 			const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
 			const pendingWithdrawAfter = await liquidityPool.pendingWithdrawals()
+			const partitionedFundsAfter = await liquidityPool.partitionedFunds()
+			const partitionedFundsDiffe18 = toWeiFromUSDC(
+				partitionedFundsAfter.sub(partitionedFundsBefore).toString()
+			)
 			expect(pendingWithdrawBefore).to.not.eq(0)
 			expect(pendingWithdrawAfter).to.eq(0)
 			expect(await liquidityPool.depositEpochPricePerShare(epochBefore)).to.equal(
 				toWei("1")
-					.mul((await liquidityPool.getNAV()).sub(pendingDepositBefore))
+					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
 					.div(totalSupplyBefore)
 			)
 			expect(await liquidityPool.pendingDeposits()).to.equal(0)
 			expect(await liquidityPool.isTradingPaused()).to.be.false
 			expect(await liquidityPool.depositEpoch()).to.equal(epochBefore.add(1))
 			expect(
-				pendingDepositBefore.mul(toWei("1")).div(await liquidityPool.depositEpochPricePerShare(epochBefore))
+				pendingDepositBefore
+					.mul(toWei("1"))
+					.div(await liquidityPool.depositEpochPricePerShare(epochBefore))
 			).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
 		})
 	})
