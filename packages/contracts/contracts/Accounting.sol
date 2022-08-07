@@ -225,6 +225,17 @@ contract Accounting is IAccounting {
 		}
 	}
 
+	/**
+	 * @notice execute the next epoch
+	 * @param totalSupply  the total number of share tokens
+	 * @param assets the amount of collateral assets
+     * @param liabilities the amount of liabilities of the pool
+	 * @return newPricePerShareDeposit the price per share for deposits
+     * @return newPricePerShareWithdrawal the price per share for withdrawals
+     * @return sharesToMint the number of shares to mint this epoch
+     * @return totalWithdrawAmount the amount of collateral to set aside for partitioning
+     * @return amountNeeded the amount needed to reach the total withdraw amount if collateral balance of lp is insufficient
+	 */
 	function executeEpochCalculation(
 		uint256 totalSupply,
 		uint256 assets,

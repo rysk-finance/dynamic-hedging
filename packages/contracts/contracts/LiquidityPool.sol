@@ -580,6 +580,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		withdrawalEpochPricePerShare[withdrawalEpoch] = newPricePerShareWithdrawal;
 		partitionedFunds += totalWithdrawAmount;
 		emit WithdrawalEpochExecuted(withdrawalEpoch);
+		_burn(address(this), pendingWithdrawals);
 		delete pendingWithdrawals;
 		withdrawalEpoch++;
 	}
@@ -666,7 +667,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		) = _getAccounting().completeWithdraw(msg.sender, _shares);
 		withdrawalReceipts[msg.sender] = withdrawalReceipt;
 		emit Withdraw(msg.sender, withdrawalAmount, withdrawalShares);
-		_burn(address(this), withdrawalShares);
 		// these funds are taken from the partitioned funds
 		partitionedFunds -= withdrawalAmount;
 		SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, withdrawalAmount);

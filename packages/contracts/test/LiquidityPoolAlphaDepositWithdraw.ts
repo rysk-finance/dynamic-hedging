@@ -1173,7 +1173,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 				pendingDepositBefore
 					.mul(toWei("1"))
 					.div(await liquidityPool.depositEpochPricePerShare(depositEpochBefore))
-			).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
+			).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore).add(pendingWithdrawBefore))
 		})
 	})
 	describe("more users deposit/withdraw", async () => {
@@ -1249,7 +1249,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			expect(usdBalanceAfter.sub(usdBalanceBefore)).to.equal(toWithdraw)
 			expect(lpBalanceBefore).to.equal(lpBalanceAfter)
 			expect(lpusdBalanceBefore.sub(lpusdBalanceAfter)).to.equal(toWithdraw)
-			expect(lplpBalanceBefore.sub(lplpBalanceAfter)).to.equal(withdrawReceiptBefore.shares)
+			expect(lplpBalanceBefore).to.equal(lplpBalanceBefore)
 			expect(epochBefore).to.equal(epochAfter)
 			expect(withdrawReceiptAfter.epoch).to.equal(withdrawReceiptBefore.epoch)
 			expect(withdrawReceiptAfter.shares).to.equal(0)
@@ -1430,7 +1430,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 				pendingDepositBefore
 					.mul(toWei("1"))
 					.div(await liquidityPool.depositEpochPricePerShare(depositEpochBefore))
-			).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
+			).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore).add(pendingWithdrawBefore))
 		})
 	})
 })

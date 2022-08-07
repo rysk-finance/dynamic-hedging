@@ -501,6 +501,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		const executeEpochTx = await liquidityPool.executeEpochCalculation()
 		await executeEpochTx.wait()
 		const withdrawalEpochAfter = await liquidityPool.withdrawalEpoch()
+		expect(withdrawalEpochBefore.add(1)).to.equal(withdrawalEpochAfter)
 	})
 	it("LP can redeem shares", async () => {
 		const totalShares = await liquidityPool.totalSupply()

@@ -738,7 +738,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			pendingDepositBefore
 				.mul(toWei("1"))
 				.div(await liquidityPool.depositEpochPricePerShare(depositEpochBefore))
-		).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
+		).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore).add(pendingWithdrawBefore))
 	})
 	it("Succeeds: User 3: Deposit to the liquidityPool", async () => {
 		const user = await signers[2].getAddress()
@@ -811,7 +811,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(usdBalanceAfter.sub(usdBalanceBefore)).to.equal(toWithdraw)
 		expect(lpBalanceBefore).to.equal(lpBalanceAfter)
 		expect(lpusdBalanceBefore.sub(lpusdBalanceAfter)).to.equal(toWithdraw)
-		expect(lplpBalanceBefore.sub(lplpBalanceAfter)).to.equal(withdrawReceiptBefore.shares)
+		expect(lplpBalanceBefore).to.equal(lplpBalanceAfter)
 		expect(epochBefore).to.equal(epochAfter)
 		expect(withdrawReceiptAfter.epoch).to.equal(withdrawReceiptBefore.epoch)
 		expect(withdrawReceiptAfter.shares).to.equal(0)
@@ -1190,7 +1190,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			toWeiFromUSDC(pendingDepositBefore.toString())
 				.mul(toWei("1"))
 				.div(await liquidityPool.depositEpochPricePerShare(depositEpochBefore))
-		).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
+		).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore).add(pendingWithdrawBefore))
 	})
 	it("Reverts: pauses trading from unauthorised", async () => {
 		await expect(liquidityPool.connect(signers[3]).pauseTradingAndRequest()).to.be.revertedWith(
