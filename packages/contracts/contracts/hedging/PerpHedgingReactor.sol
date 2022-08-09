@@ -284,6 +284,50 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		value = OptionsCompute.convertFromDecimals(value, ERC20(collateralAsset).decimals());
 	}
 
+	function checkVaultHealth() external view returns (
+		bool isBelowMin,
+		bool isAboveMax,
+		uint256 collatToTransfer
+	) {
+		int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
+		(, , IClearingHouse.CollateralDepositView[] memory collatDeposits, ) = clearingHouse
+			.getAccountInfo(accountId);
+		// just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
+		if (collatDeposits.length == 0) {
+			revert IncorrectCollateral();
+		}
+		if (address(collatDeposits[0].collateral) != collateralAsset) {
+			revert IncorrectCollateral();
+		}
+		uint256 collat = collatDeposits[0].balance;
+		// we want 1 wei at all times, so if there is only 1 wei of collat and the net position is 0 then just return
+		if (collat == 1 && netPosition == 0) {
+			return;
+		}
+		// get the current price of the underlying asset from chainlink to be used to calculate position sizing
+		uint256 currentPrice = OptionsCompute.convertToDecimals(
+			PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset),
+			ERC20(collateralAsset).decimals()
+		);
+		// check the collateral health of positions
+		// get the amount of collateral that should be expected for a given amount
+		uint256 collatRequired = netPosition >= 0
+			? (((uint256(netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS
+			: (((uint256(-netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS;
+		// if there is not enough collateral then request more
+		// if there is too much collateral then return some to the pool
+		if (collatRequired > collat) {
+			isBelowMin = true;
+			isAboveMax = false;
+			collatToTransfer = collatRequired - collat;
+		} else if (collatRequired < collat) {
+			isBelowMin = false;
+			isAboveMax = true;
+			collatToTransfer = collat - collatRequired;
+		} else {
+			return;
+		}
+	}
 	//////////////////////////
 	/// internal utilities ///
 	//////////////////////////
