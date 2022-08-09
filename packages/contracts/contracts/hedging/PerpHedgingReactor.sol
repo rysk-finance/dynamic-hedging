@@ -54,7 +54,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @notice address of the keeper of this pool
 	mapping(address => bool) public keeper;
-	/// @notice desired healthFactor of the pool
+	/// @notice desired margin ratio of the pool
 	uint256 public healthFactor = 12_000;
 	/// @notice should change position also sync state
 	bool public syncOnChange;
@@ -284,6 +284,12 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		value = OptionsCompute.convertFromDecimals(value, ERC20(collateralAsset).decimals());
 	}
 
+	/** @notice function to check the health of the margin account
+     *  @return isBelowMin is the margin below the health factor
+     *  @return isAboveMax is the margin above the health factor
+	 *  @return health     the health factor of the account currently
+	 *  @return collatToTransfer the amount of collateral required to return the margin account back to the health factor
+     */
 	function checkVaultHealth() external view returns (
 		bool isBelowMin,
 		bool isAboveMax,
@@ -291,6 +297,8 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		uint256 collatToTransfer
 	) {
 		int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
+		(int256 accountMarketValue,) = 
+			clearingHouse.getAccountMarketValueAndRequiredMargin(accountId, false);
 		(, , IClearingHouse.CollateralDepositView[] memory collatDeposits, ) = clearingHouse
 			.getAccountInfo(accountId);
 		// just make sure the collateral at index 0 is correct (this is unlikely to ever fail, but should be checked)
@@ -312,12 +320,12 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		);
 		// check the collateral health of positions
 		// get the amount of collateral that should be expected for a given amount
+		health = netPosition >= 0
+			? (uint256(accountMarketValue) * MAX_BIPS) / ((uint256(netPosition) * currentPrice) / 1e18)
+			: (uint256(accountMarketValue) * MAX_BIPS) / ((uint256(-netPosition) * currentPrice)/ 1e18);
 		uint256 collatRequired = netPosition >= 0
 			? (((uint256(netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS
 			: (((uint256(-netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS;
-		health = netPosition >= 0
-			? (collat * MAX_BIPS * 1e18) / (uint256(netPosition) * currentPrice)
-			: (collat * MAX_BIPS * 1e18) / (uint256(-netPosition) * currentPrice);
 		// if there is not enough collateral then request more
 		// if there is too much collateral then return some to the pool
 		if (collatRequired > collat) {
