@@ -302,7 +302,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		uint256 collat = collatDeposits[0].balance;
 		// we want 1 wei at all times, so if there is only 1 wei of collat and the net position is 0 then just return
 		if (collat == 1 && netPosition == 0) {
-			return;
+			return (false, false, 0);
 		}
 		// get the current price of the underlying asset from chainlink to be used to calculate position sizing
 		uint256 currentPrice = OptionsCompute.convertToDecimals(
@@ -324,8 +324,6 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 			isBelowMin = false;
 			isAboveMax = true;
 			collatToTransfer = collat - collatRequired;
-		} else {
-			return;
 		}
 	}
 	//////////////////////////
