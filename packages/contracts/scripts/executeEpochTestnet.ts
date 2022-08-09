@@ -14,8 +14,10 @@ async function main() {
 
 		const lpContract = await hre.ethers.getContractAt("LiquidityPool", arbitrumRinkeby.liquidityPool)
 
-		const initialEpoch = await lpContract.epoch()
-		console.log(`Current epoch is ${initialEpoch}`)
+		const initialDepositEpoch = await lpContract.depositEpoch()
+		const initialWithdrawalEpoch = await lpContract.withdrawalEpoch()
+		console.log(`Current depositEpoch is ${initialDepositEpoch}`)
+		console.log(`Current withdrawalEpoch is ${initialWithdrawalEpoch}`)
 
 		await lpContract.pauseTradingAndRequest()
 
@@ -41,10 +43,14 @@ async function main() {
 			price
 		)
 
-		await lpContract.executeEpochCalculation()
+		const transaction = await lpContract.executeEpochCalculation()
 
-		const newEpoch = await lpContract.epoch()
-		console.log(`New epoch is ${newEpoch}`)
+		await transaction.wait()
+
+		const newDepositEpoch = await lpContract.depositEpoch()
+		const newWithdrawalEpoch = await lpContract.withdrawalEpoch()
+		console.log(`New depositEpoch is ${newDepositEpoch}`)
+		console.log(`New withdrawalEpoch is ${newWithdrawalEpoch}`)
 	} catch (err) {
 		console.log(err)
 	}

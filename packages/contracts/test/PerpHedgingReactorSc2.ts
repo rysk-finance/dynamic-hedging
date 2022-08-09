@@ -218,7 +218,6 @@ describe("PerpHedgingReactor Sc2", () => {
 		)
 		await rageOracle.setSqrtPriceX96(realSqrtPrice);
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-		console.log(reactorDeltaBefore)
 		const collatRequired = ((price.mul(deltaHedge.add(reactorDeltaBefore)).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
 		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
 		console.log(await clearingHouse.getAccountNetProfit(0))
@@ -321,9 +320,8 @@ describe("PerpHedgingReactor Sc2", () => {
 	})
 	it("hedges a negative delta with insufficient funds", async () => {
 		// attempts to hedge a very large amount should fail
-		const delta = ethers.utils.parseEther("-380")
-		await expect((liquidityPoolDummy.hedgeDelta(delta))).to.be.revertedWith('ERC20: transfer amount exceeds balance')
-
+		const delta = ethers.utils.parseEther("-9000")
+		await expect((liquidityPoolDummy.hedgeDelta(delta))).to.be.revertedWith("WithdrawExceedsLiquidity()")
 	})
 	it("syncs profits", async () => {
 		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))

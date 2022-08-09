@@ -1,10 +1,12 @@
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import * as ethers from "ethers";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
+import { TransactionDisplay } from "../components/shared/TransactionDisplay";
 import addresses from "../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../types";
+import { isRPCError, parseError } from "../utils/parseRPCError";
 
 type EventName = string;
 type EventData = any[];
@@ -19,12 +21,17 @@ type IsListeningMap<T extends Partial<Record<EventName, EventData>>> = {
   [event in keyof T]: boolean;
 };
 
+type EventFilterMap<T extends Partial<Record<EventName, EventData>>> = {
+  [event in keyof T]: EventData[];
+};
+
 type useContractRyskContractArgs<T extends Record<EventName, EventData>> = {
   contract: keyof ContractAddresses;
   ABI: ethers.ContractInterface;
   readOnly?: boolean;
   events?: EventHandlerMap<T>;
   isListening?: IsListeningMap<T>;
+  filters?: EventFilterMap<T>;
 };
 
 type useContractExternalContractArgs<T extends Record<EventName, EventData>> = {
@@ -33,6 +40,7 @@ type useContractExternalContractArgs<T extends Record<EventName, EventData>> = {
   readOnly?: boolean;
   events?: EventHandlerMap<T>;
   isListening?: IsListeningMap<T>;
+  filters?: EventFilterMap<T>;
 };
 
 type useContractArgs<T extends Record<EventName, EventData>> =
@@ -59,7 +67,9 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
   const [network] = useState(
     process.env.REACT_APP_NETWORK as keyof typeof addresses | undefined
   );
-  const { provider } = useWalletContext();
+
+  const { signer, rpcURL } = useWalletContext();
+
   const [ethersContract, setEthersContract] = useState<ethers.Contract | null>(
     null
   );
@@ -87,24 +97,33 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
     }) => {
       try {
         const transaction = (await method(...args)) as TransactionResponse;
-        await transaction.wait();
-        toast(successMessage);
+        if (process.env.REACT_APP_ENV === "testnet") {
+          console.log(`TX HASH: ${transaction.hash}`);
+        }
+        toast(
+          <div>
+            <p>{successMessage}</p>
+            <p>
+              TX Hash:{" "}
+              <TransactionDisplay>{transaction.hash}</TransactionDisplay>
+            </p>
+          </div>,
+          { autoClose: false }
+        );
         onComplete?.();
         return;
       } catch (err) {
-        try {
-          // Might need to modify this is errors other than RPC errors are being thrown
-          // my contract function calls.
-          toast(`❌ ${(err as any).data.message}`, {
+        // Might need to modify this is errors other than RPC errors are being thrown
+        // my contract function calls.
+        if (isRPCError(err)) {
+          toast(`❌ ${parseError(err)}`, {
             autoClose: 5000,
           });
-          onFail?.();
-          return null;
-        } catch {
+        } else {
           toast(JSON.stringify(err));
-          onFail?.();
-          return null;
         }
+        onFail?.();
+        return null;
       }
     },
     []
@@ -112,19 +131,26 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
 
   // Instances the ethers contract in state.
   useEffect(() => {
-    const signerOrProvider = args.readOnly ? provider : provider?.getSigner();
-    if (signerOrProvider && network && !ethersContract) {
-      const address =
-        "contract" in args
-          ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
-              (args as useContractRyskContractArgs<T>).contract
-            ]
-          : (args as useContractExternalContractArgs<T>).contractAddress;
-      setEthersContract(
-        new ethers.Contract(address, args.ABI, signerOrProvider)
-      );
+    if (rpcURL) {
+      // If we don't require a signer, we just use a generic RPC provider
+      // which doesn't require the user to connect their address.
+      const rpcProvider = new ethers.providers.JsonRpcProvider(rpcURL);
+
+      const signerOrProvider = args.readOnly ? rpcProvider : signer;
+
+      if (signerOrProvider && network && !ethersContract) {
+        const address =
+          "contract" in args
+            ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
+                (args as useContractRyskContractArgs<T>).contract
+              ]
+            : (args as useContractExternalContractArgs<T>).contractAddress;
+        setEthersContract(
+          new ethers.Contract(address, args.ABI, signerOrProvider)
+        );
+      }
     }
-  }, [args, provider, network, ethersContract]);
+  }, [args, signer, network, ethersContract, rpcURL]);
 
   // Update the local events map. The event handlers attached to the contract
   // look up the appropriate handler on this object, meaning we can update the
@@ -148,7 +174,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
     if (ethersContract && contractEvents.current) {
       const eventNames = Object.keys(
         contractEvents.current
-      ) as (keyof EventHandlerMap<T>)[];
+      ) as (keyof EventHandlerMap<T>)[] as string[];
 
       eventNames.forEach((eventName) => {
         if (contractEvents.current) {
@@ -169,19 +195,25 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
               // handler on the contractEvents ref. This means we can update the function
               // inside of contractevents, and the updated handler will get called, without
               // us needing to remove then add a new listener.
-              ethersContract.on(eventName as string, (...args) => {
+              // TODO(HC): At the moment, if the inputted filter is updated, the listener
+              // won't be, until it is removed and added again by the isListening map.
+              // Can update here if this needs to be the case.
+              const filter = args.filters
+                ? ethersContract.filters[eventName](...args.filters[eventName])
+                : eventName;
+              ethersContract.on(filter, (...args) => {
                 const handler = contractEvents.current?.[eventName];
                 // @ts-ignore - unable to tell ethers that this handler
                 // takes specific args, and not just any[]
-                handler(args);
+                handler(...args);
               });
             }
             if (shouldRemoveListener) {
-              const handlers = ethersContract.listeners(eventName as string);
+              const handlers = ethersContract.listeners(eventName);
               // There should only ever be one. Using forEach just to be safe.
               handlers.forEach((handler) => {
                 // @ts-ignore - same as above
-                ethersContract.removeListener(eventName as string, handler);
+                ethersContract.removeListener(eventName, handler);
               });
             }
           }
@@ -192,7 +224,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
       );
       eventsWithListeners.current = new Set(activeEvents);
     }
-  }, [ethersContract, contractEvents, args.isListening]);
+  }, [ethersContract, contractEvents, args.isListening, args.filters]);
 
   // Cleanup effect. Remove all contract event listeners.
   useEffect(() => {

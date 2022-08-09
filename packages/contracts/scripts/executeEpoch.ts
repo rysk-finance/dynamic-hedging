@@ -15,14 +15,18 @@ async function main() {
 		const [signer] = await hre.ethers.getSigners()
 		const lpContract = new hre.ethers.Contract(localhost.liquidityPool, abi, signer)
 
-		const initialEpoch = await lpContract.epoch()
-		console.log(`Current epoch is ${initialEpoch}`)
+		const initialDepositEpoch = await lpContract.depositEpoch()
+		const initialWithdrawalEpoch = await lpContract.withdrawalEpoch()
+		console.log(`Current DepositEpoch is ${initialDepositEpoch}`)
+		console.log(`Current WithdrawalEpoch is ${initialWithdrawalEpoch}`)
 
 		await lpContract.pauseTradingAndRequest()
 		await lpContract.executeEpochCalculation()
 
-		const newEpoch = await lpContract.epoch()
-		console.log(`New epoch is ${newEpoch}`)
+		const newDepositEpoch = await lpContract.depositEpoch()
+		const newWithdrawalEpoch = await lpContract.withdrawalEpoch()
+		console.log(`New depositEpoch is ${newDepositEpoch}`)
+		console.log(`New withdrawalEpoch is ${newWithdrawalEpoch}`)
 	} catch (err) {
 		console.log(err)
 	}

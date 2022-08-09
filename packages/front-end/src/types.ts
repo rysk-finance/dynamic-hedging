@@ -27,6 +27,7 @@ export enum ETHNetwork {
   LOCALHOST = "localhost",
   ARBITRUM_RINKEBY = "arbitrumRinkeby",
   MAINNET = "mainnet",
+  ARBITRUM_MAINNET = "arbitrum",
 }
 
 export type RyskContractAddresses = {
@@ -50,6 +51,7 @@ export type RyskContractAddresses = {
 
 export type ExternalContractAddresses = {
   USDC: string;
+  WETH: string;
 };
 
 export type ContractAddresses = RyskContractAddresses &
@@ -64,6 +66,26 @@ export type OptionSeries = {
   collateral: Address;
 };
 
+export type Order = {
+  optionSeries: OptionSeries;
+  amount: BigNumber;
+  price: BigNumber;
+  orderExpiry: BigNumber;
+  buyer: Address;
+  seriesAddress: Address;
+};
+
+export type StrangleOrder = {
+  call: Order;
+  put: Order;
+};
+
 export type Events = {
   Approval: { owner: Address; spender: Address; value: BigNumber };
 };
+
+export enum Currency {
+  USDC = "USDC",
+  RYSK = "RYSK",
+  OPYN = "OPYN",
+}

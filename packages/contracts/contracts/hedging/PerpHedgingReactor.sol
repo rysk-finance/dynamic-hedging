@@ -7,6 +7,7 @@ import "../libraries/AccessControl.sol";
 import "../libraries/OptionsCompute.sol";
 import "../libraries/SafeTransferLib.sol";
 
+import "../interfaces/ILiquidityPool.sol";
 import "../interfaces/IHedgingReactor.sol";
 
 import "@rage/core/contracts/interfaces/IClearingHouse.sol";
@@ -55,7 +56,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	/// @notice address of the keeper of this pool
 	mapping(address => bool) public keeper;
 	/// @notice desired healthFactor of the pool
-	uint256 public healthFactor = 12_000;
+	uint256 public healthFactor = 5_000;
 	/// @notice should change position also sync state
 	bool public syncOnChange;
 
@@ -73,7 +74,6 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	//////////////
 
 	error ValueFailure();
-	error InvalidHealthFactor();
 	error IncorrectCollateral();
 	error IncorrectDeltaChange();
 	error InvalidTransactionNotEnoughMargin(int256 accountMarketValue, int256 totalRequiredMargin);
@@ -106,9 +106,6 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	/// @notice update the health factor parameter
 	function setHealthFactor(uint256 _healthFactor) external {
 		_onlyGovernor();
-		if (_healthFactor < MAX_BIPS) {
-			revert InvalidHealthFactor();
-		}
 		healthFactor = _healthFactor;
 	}
 
@@ -220,6 +217,9 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		// if there is not enough collateral then request more
 		// if there is too much collateral then return some to the pool
 		if (collatRequired > collat) {
+			if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < (collatRequired - collat)) {
+				revert CustomErrors.WithdrawExceedsLiquidity();
+			}
 			// transfer assets from the liquidityPool to here to collateralise the pool
 			SafeTransferLib.safeTransferFrom(
 				collateralAsset,
@@ -353,6 +353,9 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		// if the current margin held is larger than the new margin required then swap tokens out and
 		// withdraw the excess margin
 		if (collatToDeposit > 0) {
+			if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < collatToDeposit) {
+				revert CustomErrors.WithdrawExceedsLiquidity();
+			}
 			// transfer assets from the liquidityPool to here to collateralise the pool
 			SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collatToDeposit);
 			// deposit the collateral into the margin account

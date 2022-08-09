@@ -42,4 +42,8 @@ contract PerpHedgingTest {
 	function syncAndUpdate() public {
 		return PerpHedgingReactor(perpHedgingReactor).syncAndUpdate();
 	}
+
+	function getBalance(address collateralAsset) public view returns (uint256) {
+		return ERC20(collateralAsset).balanceOf(address(this));
+	}
 }

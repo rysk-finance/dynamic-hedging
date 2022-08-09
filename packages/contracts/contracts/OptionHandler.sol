@@ -2,6 +2,7 @@
 pragma solidity >=0.8.0;
 
 import "./Protocol.sol";
+import "./PriceFeed.sol";
 
 import "./tokens/ERC20.sol";
 import "./libraries/Types.sol";
@@ -68,6 +69,8 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
+	// custom order maximum time for liveness
+	uint256 private constant maxOrderExpiry = 1800;
 
 	/////////////////////////
 	/// structs && events ///
@@ -164,7 +167,8 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	 * @param _optionSeries the option token series to issue - strike in e18
 	 * @param _amount the number of options to issue - e18
 	 * @param _price the price per unit to issue at - in e18
-	 * @param _orderExpiry the expiry of the order (if past the order is redundant)
+	 * @param _orderExpiry the expiry of the custom order, after which the 
+	 *        buyer cannot use this order (if past the order is redundant)
 	 * @param _buyerAddress the agreed upon buyer address
 	 * @return orderId the unique id of the order
 	 */
@@ -173,18 +177,20 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		uint256 _amount,
 		uint256 _price,
 		uint256 _orderExpiry,
-		address _buyerAddress
+		address _buyerAddress,
+		uint256[2] memory _spotMovementRange
 	) public returns (uint256) {
 		_onlyManager();
 		if (_price == 0) {
 			revert CustomErrors.InvalidPrice();
 		}
-		if (_orderExpiry > 1800) {
+		if (_orderExpiry > maxOrderExpiry) {
 			revert CustomErrors.OrderExpiryTooLong();
 		}
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		// issue the option type, all checks of the option validity should happen in _issue
 		address series = liquidityPool.handlerIssue(_optionSeries);
+		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		// create the order struct, setting the series, amount, price, order expiry and buyer address
 		Types.Order memory order = Types.Order(
 			optionRegistry.getSeriesInfo(series), // strike in e8
@@ -192,7 +198,10 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			_price, // in e18
 			block.timestamp + _orderExpiry,
 			_buyerAddress,
-			series
+			series,
+			uint128(spotPrice - _spotMovementRange[0]), 
+			uint128(spotPrice + _spotMovementRange[1]),
+			false
 		);
 		uint256 orderIdCounter__ = orderIdCounter + 1;
 		// increment the orderId and store the order
@@ -223,7 +232,9 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		uint256 _priceCall,
 		uint256 _pricePut,
 		uint256 _orderExpiry,
-		address _buyerAddress
+		address _buyerAddress,
+		uint256[2] memory _callSpotMovementRange,
+		uint256[2] memory _putSpotMovementRange
 	) external returns (uint256, uint256) {
 		_onlyManager();
 		uint256 callOrderId = createOrder(
@@ -231,14 +242,16 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			_amountCall,
 			_priceCall,
 			_orderExpiry,
-			_buyerAddress
+			_buyerAddress,
+			_callSpotMovementRange
 		);
 		uint256 putOrderId = createOrder(
 			_optionSeriesPut,
 			_amountPut,
 			_pricePut,
 			_orderExpiry,
-			_buyerAddress
+			_buyerAddress,
+			_putSpotMovementRange
 		);
 		return (putOrderId, callOrderId);
 	}
@@ -260,6 +273,11 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		// check that the order is still valid
 		if (block.timestamp > order.orderExpiry) {
 			revert CustomErrors.OrderExpired();
+		}
+		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
+		// If spot price has deviated too much we want to void the order
+		if (order.lowerSpotMovementRange > spotPrice || order.upperSpotMovementRange < spotPrice ) {
+			revert CustomErrors.SpotMovedBeyondRange();
 		}
 		(uint256 poolCalculatedPremium, int256 delta) = liquidityPool.quotePriceWithUtilizationGreeks(
 			Types.OptionSeries({
@@ -551,5 +569,19 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	 */
 	function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
 		return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
+	}
+
+	/**
+	 * @notice get the underlying price with just the underlying asset and strike asset
+	 * @param underlying   the asset that is used as the reference asset
+	 * @param _strikeAsset the asset that the underlying value is denominated in
+	 * @return the underlying price
+	 */
+	function _getUnderlyingPrice(address underlying, address _strikeAsset)
+		internal
+		view
+		returns (uint256)
+	{
+		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
 }

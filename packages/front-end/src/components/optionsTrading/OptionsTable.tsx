@@ -11,35 +11,35 @@ import ORABI from "../../abis/OptionRegistry.json";
 import ERC20ABI from "../../abis/erc20.json";
 import PFABI from "../../abis/PriceFeed.json";
 import PVFABI from "../../abis/PortfolioValuesFeed.json";
-import { calculateOptionQuoteLocally, calculateOptionDeltaLocally, returnIVFromQuote } from "../../utils/helpers"
-import { USDC_ADDRESS, OPYN_OPTION_REGISTRY, LIQUIDITY_POOL, PRICE_FEED, WETH_ADDRESS, PORTFOLIO_VALUES_FEED  } from "../../config/constants";
+import {
+  calculateOptionQuoteLocally,
+  calculateOptionDeltaLocally,
+  returnIVFromQuote,
+} from "../../utils/helpers";
+import { USDC_ADDRESS, WETH_ADDRESS } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
-import { BigNumber, ethers } from "ethers";
-import { LiquidityPool } from "../../types/LiquidityPool"
-import { OptionRegistry } from "../../types/OptionRegistry";
-import { ERC20 } from "../../types/ERC20";
-import { PriceFeed } from "../../types/PriceFeed";
 import { toWei, fromWei } from "../../utils/conversion-helper";
-import NumberFormat from 'react-number-format';
+import NumberFormat from "react-number-format";
+import addresses from "../../contracts.json";
+import { useWalletContext } from "../../App";
+import { ERC20 } from "../../types/ERC20";
 import { PortfolioValuesFeed } from "../../types/PortfolioValuesFeed";
+import { PriceFeed } from "../../types/PriceFeed";
+import { LiquidityPool } from "../../types/LiquidityPool";
+import { OptionRegistry } from "../../types/OptionRegistry";
+import { ContractAddresses, ETHNetwork } from "../../types";
 
 const suggestedCallOptionPriceDiff = [-100, 0, 100, 200, 300, 400, 600, 800];
-const suggestedPutOptionPriceDiff = [-800, -600, -400, -300, -200, -100, 0, 100];
-
-// TODO add dynamic
-const networkId = 421611
-const provider = new ethers.providers.InfuraProvider(networkId, process.env.REACT_APP_INFURA_KEY);
-
-const liquidityPool = new ethers.Contract(LIQUIDITY_POOL[networkId], LPABI, provider) as LiquidityPool
-const optionRegistry = new ethers.Contract(OPYN_OPTION_REGISTRY[networkId], ORABI, provider) as OptionRegistry
-const priceFeed = new ethers.Contract(PRICE_FEED[networkId], PFABI, provider ) as PriceFeed
-const portfolioValuesFeed = new ethers.Contract(PORTFOLIO_VALUES_FEED[networkId], PVFABI, provider ) as PortfolioValuesFeed
-const usdc = new ethers.Contract(USDC_ADDRESS[networkId], ERC20ABI, provider) as ERC20
+const suggestedPutOptionPriceDiff = [
+  -800, -600, -400, -300, -200, -100, 0, 100,
+];
 
 export const OptionsTable: React.FC = () => {
   const {
     state: { ethPrice },
   } = useGlobalContext();
+
+  const { network } = useWalletContext();
 
   const [cachedEthPrice, setCachedEthPrice] = useState<number | null>(null);
 
@@ -56,8 +56,33 @@ export const OptionsTable: React.FC = () => {
 
   const [suggestions, setSuggestions] = useState<Option[] | null>(null);
 
+  const [liquidityPool] = useContract<any>({
+    contract: "liquidityPool",
+    ABI: LPABI,
+  });
+
+  const [optionRegistry] = useContract({
+    contract: "OpynOptionRegistry",
+    ABI: ORABI,
+  });
+
+  const [priceFeed] = useContract({
+    contract: "priceFeed",
+    ABI: PFABI,
+  });
+
+  const [portfolioValuesFeed] = useContract({
+    contract: "portfolioValuesFeed",
+    ABI: PVFABI,
+  });
+
+  const [usdc] = useContract({
+    contract: "USDC",
+    ABI: ERC20ABI,
+  });
+
   useEffect(() => {
-    if (cachedEthPrice) {
+    if (cachedEthPrice && network && liquidityPool) {
       const diffs =
         optionType === OptionType.CALL
           ? suggestedCallOptionPriceDiff
@@ -71,60 +96,76 @@ export const OptionsTable: React.FC = () => {
       ].sort((a, b) => a - b);
 
       const fetchPrices = async () => {
-        const suggestions = await Promise.all(strikes.map(async strike => {
-
-          const optionSeries = {
+        const typedAddresses = addresses as Record<
+          ETHNetwork,
+          ContractAddresses
+        >;
+        const suggestions = await Promise.all(
+          strikes.map(async (strike) => {
+            const optionSeries = {
               expiration: Number(expiryDate?.getTime()) / 1000,
-              strike: toWei((strike).toString()),
+              strike: toWei(strike.toString()),
               isPut: optionType !== OptionType.CALL,
-              strikeAsset: USDC_ADDRESS[networkId],
-              underlying: WETH_ADDRESS[networkId],
-              collateral: USDC_ADDRESS[networkId]
-            }
+              strikeAsset: typedAddresses[network.name].USDC,
+              underlying: typedAddresses[network.name].WETH,
+              collateral: typedAddresses[network.name].USDC,
+            };
 
-          console.log( optionSeries )
+            console.log({ optionSeries });
 
-          const localQuote = await calculateOptionQuoteLocally(
-            liquidityPool,
-            optionRegistry,
-            portfolioValuesFeed,
-            usdc,
-            priceFeed,
-            optionSeries,
-            toWei((1).toString()),
-            true
-          )
+            const localQuote = await calculateOptionQuoteLocally(
+              liquidityPool as LiquidityPool,
+              optionRegistry as OptionRegistry,
+              portfolioValuesFeed as PortfolioValuesFeed,
+              usdc as ERC20,
+              priceFeed as PriceFeed,
+              optionSeries,
+              toWei((1).toString()),
+              true
+            );
 
-          const localDelta = await calculateOptionDeltaLocally(
-            liquidityPool,
-            priceFeed,
-            optionSeries,
-            toWei((1).toString()),
-            false
-          )
+            const localDelta = await calculateOptionDeltaLocally(
+              liquidityPool as LiquidityPool,
+              priceFeed as PriceFeed,
+              optionSeries,
+              toWei((1).toString()),
+              false
+            );
 
-          const iv = await returnIVFromQuote(localQuote, priceFeed, optionSeries)
+            const iv = await returnIVFromQuote(
+              localQuote,
+              priceFeed as PriceFeed,
+              optionSeries
+            );
 
-          console.log(iv)
+            console.log(iv);
 
-          return {
-            strike: strike,
-            IV: iv * 100,
-            delta: Number(fromWei(localDelta).toString()),
-            price: localQuote,
-            type: optionType,
-          };
-        }));
-
+            return {
+              strike: strike,
+              IV: iv * 100,
+              delta: Number(fromWei(localDelta).toString()),
+              price: localQuote,
+              type: optionType,
+            };
+          })
+        );
         setSuggestions(suggestions);
+      };
 
-      }
-
-      fetchPrices()
-      .catch(console.error);
-
+      fetchPrices().catch(console.error);
     }
-  }, [cachedEthPrice, optionType, customOptionStrikes, expiryDate]);
+  }, [
+    network,
+    cachedEthPrice,
+    optionType,
+    customOptionStrikes,
+    expiryDate,
+    liquidityPool,
+    priceFeed,
+    portfolioValuesFeed,
+    optionRegistry,
+    usdc,
+  ]);
 
   const setSelectedOption = (option: Option) => {
     dispatch({ type: OptionsTradingActionType.SET_SELECTED_OPTION, option });
@@ -151,13 +192,26 @@ export const OptionsTable: React.FC = () => {
           >
             <td className="pl-4">{option.strike}</td>
             <td>
-              <NumberFormat value={option.IV} displayType={"text"} decimalScale={2} suffix={'%'} />
+              <NumberFormat
+                value={option.IV}
+                displayType={"text"}
+                decimalScale={2}
+                suffix={"%"}
+              />
             </td>
             <td>
-              <NumberFormat value={option.delta} displayType={"text"} decimalScale={2} />
+              <NumberFormat
+                value={option.delta}
+                displayType={"text"}
+                decimalScale={2}
+              />
             </td>
             <td className="pr-4">
-              <NumberFormat value={option.price} displayType={"text"} decimalScale={2} />
+              <NumberFormat
+                value={option.price}
+                displayType={"text"}
+                decimalScale={2}
+              />
             </td>
           </tr>
         ))}

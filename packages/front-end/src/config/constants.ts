@@ -1,5 +1,5 @@
 import { BigNumber } from "ethers";
-import { ETHNetwork } from "../types";
+import { Currency as Token, ETHNetwork } from "../types";
 
 export const MAX_UINT_256 =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -7,27 +7,32 @@ export const MAX_UINT_256 =
 export const ZERO_UINT_256 = "0x00";
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-export const DECIMALS = {
+export const DECIMALS: Record<Token, number> = {
   USDC: 6,
   OPYN: 8,
   RYSK: 18,
 };
 
 // Using strings in constructor to avoid JS max int issues.
-export const BIG_NUMBER_DECIMALS = {
+export const BIG_NUMBER_DECIMALS: Record<Token, BigNumber> = {
   USDC: BigNumber.from("1000000"),
   OPYN: BigNumber.from("100000000"),
   RYSK: BigNumber.from("1000000000000000000"),
 };
 
+// Proportion added to approval transaction to account for price moving.
+const APPROVAL_MARGIN = 0.1;
+
 export enum CHAINID {
   ETH_MAINNET = 1,
+  ARBITRUM_MAINNET = 42161,
   ARBITRUM_RINKEBY = 421611,
   LOCALHOST = 1337,
 }
 
 export const IDToNetwork: Record<CHAINID, ETHNetwork> = {
   [CHAINID.ETH_MAINNET]: ETHNetwork.MAINNET,
+  [CHAINID.ARBITRUM_MAINNET]: ETHNetwork.ARBITRUM_MAINNET,
   [CHAINID.ARBITRUM_RINKEBY]: ETHNetwork.ARBITRUM_RINKEBY,
   [CHAINID.LOCALHOST]: ETHNetwork.LOCALHOST,
 };
@@ -35,8 +40,10 @@ export const IDToNetwork: Record<CHAINID, ETHNetwork> = {
 export const SUBGRAPH_URL = {
   [CHAINID.LOCALHOST]: "",
   [CHAINID.ETH_MAINNET]: "",
-  [CHAINID.ARBITRUM_RINKEBY]: "https://api.thegraph.com/subgraphs/name/ugolino/rysktestnet",
-}
+  [CHAINID.ARBITRUM_RINKEBY]:
+    "https://api.thegraph.com/subgraphs/name/ugolino/rysktestnet",
+  [CHAINID.ARBITRUM_MAINNET]: "",
+};
 
 /**
  * Tokens and owners
