@@ -22,6 +22,7 @@ import {
   WithdrawalReceipt,
 } from "../types";
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
+import { RyskTooltip } from "./RyskTooltip";
 import { Button } from "./shared/Button";
 import { RadioButtonSlider } from "./shared/RadioButtonSlider";
 import { TextInput } from "./shared/TextInput";
@@ -485,25 +486,21 @@ export const VaultDepositWithdraw = () => {
                         }
                         {unredeemableCollateral &&
                           unredeemableCollateral?._hex !== ZERO_UINT_256 && (
-                            <div className="rounded-full bg-green-600 h-2 w-2 relative cursor-pointer group mr-2">
-                              <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
-                                {/* TODO(HC): Determine what this copy should be. */}
-                                <p>
-                                  Your USDC will be available to redeem as
-                                  shares during our weekly strategy every Friday
-                                  at 11am UTC
-                                </p>
-                              </div>
-                            </div>
+                            <RyskTooltip
+                              message="Your USDC will be available to redeem as
+                            shares during our weekly strategy every Friday
+                            at 11am UTC"
+                              id="epochTip"
+                              color="green"
+                            />
                           )}
                         {unredeemedShares &&
                           unredeemedShares?._hex !== ZERO_UINT_256 && (
-                            <div className="rounded-full bg-yellow-600 h-2 w-2 relative cursor-pointer group">
-                              <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
-                                {/* TODO(HC): Determine what this copy should be. */}
-                                <p>You have some shares available to redeem.</p>
-                              </div>
-                            </div>
+                            <RyskTooltip
+                              message="You have some shares available to redeem."
+                              id="redeemTip"
+                              color="yellow"
+                            />
                           )}
                       </RequiresWalletConnection>{" "}
                     </div>
@@ -541,18 +538,14 @@ export const VaultDepositWithdraw = () => {
                               RYSK
                             </b>
                           </h5>
-                          {unredeemedShares._hex !== ZERO_UINT_256 &&
-                            redeemedShares._hex !== ZERO_UINT_256 && (
-                              <div className="rounded-full bg-green-600 h-2 w-2 relative cursor-pointer group">
-                                <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
-                                  {/* TODO(HC): Determine what this copy should be. */}
-                                  <p>
-                                    This is the sum of your redeemed and
-                                    unredeemed shares
-                                  </p>
-                                </div>
-                              </div>
-                            )}
+                          {(unredeemedShares._hex !== ZERO_UINT_256 ||
+                            redeemedShares._hex !== ZERO_UINT_256) && (
+                            <RyskTooltip
+                              message="This is the sum of your redeemed and unredeemed shares"
+                              id="sumTip"
+                              color="green"
+                            />
+                          )}
                         </>
                       )}
                     </RequiresWalletConnection>{" "}
@@ -583,15 +576,11 @@ export const VaultDepositWithdraw = () => {
                         {withdrawalReceipt &&
                           withdrawEpochSharePrice &&
                           withdrawEpochSharePrice?._hex === ZERO_UINT_256 && (
-                            <div className="rounded-full bg-green-500 h-2 w-2 relative cursor-pointer group">
-                              <div className="absolute p-2 top-4 bg-bone border-2 border-black right-0 z-10 w-[320px] hidden group-hover:block">
-                                <p>
-                                  Your shares will be available to withdraw as
-                                  collateral during our weekly strategy every
-                                  Friday at 11am UTC
-                                </p>
-                              </div>
-                            </div>
+                            <RyskTooltip
+                              message="Your shares will be available to withdraw as collateral during our weekly strategy every Friday at 11am UTC"
+                              id="withdrawTip"
+                              color="green"
+                            />
                           )}
                       </>
                     </RequiresWalletConnection>{" "}
