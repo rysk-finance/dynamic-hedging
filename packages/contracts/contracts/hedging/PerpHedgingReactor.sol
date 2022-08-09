@@ -287,6 +287,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	function checkVaultHealth() external view returns (
 		bool isBelowMin,
 		bool isAboveMax,
+		uint256 health,
 		uint256 collatToTransfer
 	) {
 		int256 netPosition = clearingHouse.getAccountNetTokenPosition(accountId, poolId);
@@ -302,7 +303,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		uint256 collat = collatDeposits[0].balance;
 		// we want 1 wei at all times, so if there is only 1 wei of collat and the net position is 0 then just return
 		if (collat == 1 && netPosition == 0) {
-			return (false, false, 0);
+			return (false, false, healthFactor, 0);
 		}
 		// get the current price of the underlying asset from chainlink to be used to calculate position sizing
 		uint256 currentPrice = OptionsCompute.convertToDecimals(
@@ -314,6 +315,9 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		uint256 collatRequired = netPosition >= 0
 			? (((uint256(netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS
 			: (((uint256(-netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS;
+		health = netPosition >= 0
+			? (collat * MAX_BIPS * 1e18) / (uint256(netPosition) * currentPrice)
+			: (collat * MAX_BIPS * 1e18) / (uint256(-netPosition) * currentPrice);
 		// if there is not enough collateral then request more
 		// if there is too much collateral then return some to the pool
 		if (collatRequired > collat) {
@@ -358,10 +362,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		// get the new net position with the amount of the swap added
 		int256 newPosition = netPosition + _amount;
 		// get the current price of the underlying asset from chainlink to be used to calculate position sizing
-		uint256 currentPrice = OptionsCompute.convertToDecimals(
-			PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset),
-			ERC20(collateralAsset).decimals()
-		);
+		uint256 currentPrice = PriceFeed(priceFeed).getRate(wETH, collateralAsset);
 		// calculate the margin requirement for newPosition making sure to account for the health factor of the pool
 		// as we want the position to be overcollateralised
 		uint256 totalCollatNeeded = newPosition >= 0

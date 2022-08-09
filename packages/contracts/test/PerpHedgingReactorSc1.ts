@@ -201,6 +201,76 @@ describe("PerpHedgingReactor Sc1", () => {
 		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter.add(collatRequired))
 		expect(reactorCollatBalanceAfter).to.eq(reactorCollatBalanceBefore.add(collatRequired))
 	})
+	it("SUCCEEDS: checkvault health if price goes up", async () => {
+		const realSqrtPrice = await priceToSqrtPriceX96(3500, 6, 18);
+		await ethUSDAggregator.mock.latestRoundData.returns(
+			"55340232221128660932",
+			"3500000000",
+			"1607534965",
+			"1607535064",
+			"55340232221128660932"
+		)
+		await rageOracle.setSqrtPriceX96(realSqrtPrice);
+		const accountId = await perpHedgingReactor.accountId()
+		const poolId = await perpHedgingReactor.poolId()
+		const priceQuote = await priceFeed.getRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
+		const netPositon = (await clearingHouse.getAccountNetTokenPosition(accountId, poolId))
+		const healthFactor = await perpHedgingReactor.healthFactor()
+		const collat = (await clearingHouse.getAccountInfo(accountId))[2][0].balance
+		const expectedHealth = (collat.mul(10000).mul(toWei("1"))).div(netPositon.mul(priceQuote))
+		const collatToTransfer = (((netPositon.mul(priceQuote)).div(toWei("1")).mul(healthFactor)).div(10000)).sub(collat)
+		const healthStatus = await perpHedgingReactor.checkVaultHealth()
+		const realSqrt = await priceToSqrtPriceX96(2500, 6, 18);
+		console.log(healthStatus)
+		console.log(netPositon, healthFactor, collat, expectedHealth)
+		await ethUSDAggregator.mock.latestRoundData.returns(
+			"55340232221128660932",
+			"2500000000",
+			"1607534965",
+			"1607535064",
+			"55340232221128660932"
+		)
+		await rageOracle.setSqrtPriceX96(realSqrt);
+		expect(healthStatus[0]).to.equal(true)
+		expect(healthStatus[1]).to.equal(false)
+		expect(healthStatus[2]).to.equal(expectedHealth)
+		expect(healthStatus[3]).to.equal(collatToTransfer)
+	})
+	it("SUCCEEDS: checkvault health if price goes down", async () => {
+		const realSqrtPrice = await priceToSqrtPriceX96(1500, 6, 18);
+
+		await ethUSDAggregator.mock.latestRoundData.returns(
+			"55340232221128660932",
+			"1500000000",
+			"1607534965",
+			"1607535064",
+			"55340232221128660932"
+		)
+		await rageOracle.setSqrtPriceX96(realSqrtPrice);
+		const accountId = await perpHedgingReactor.accountId()
+		const poolId = await perpHedgingReactor.poolId()
+		const priceQuote = await priceFeed.getRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
+		const netPositon = (await clearingHouse.getAccountNetTokenPosition(accountId, poolId))
+		const healthFactor = await perpHedgingReactor.healthFactor()
+		const collat = (await clearingHouse.getAccountInfo(accountId))[2][0].balance
+		const expectedHealth = (collat.mul(10000).mul(toWei("1"))).div(netPositon.mul(priceQuote))
+		const collatToTransfer = collat.sub(((netPositon.mul(priceQuote)).div(toWei("1")).mul(healthFactor)).div(10000))
+		const healthStatus = await perpHedgingReactor.checkVaultHealth()
+		const realSqrt = await priceToSqrtPriceX96(2500, 6, 18);
+
+		await ethUSDAggregator.mock.latestRoundData.returns(
+			"55340232221128660932",
+			"2500000000",
+			"1607534965",
+			"1607535064",
+			"55340232221128660932"
+		)
+		await rageOracle.setSqrtPriceX96(realSqrt);
+		expect(healthStatus[0]).to.equal(false)
+		expect(healthStatus[1]).to.equal(true)
+		expect(healthStatus[2]).to.equal(expectedHealth)
+		expect(healthStatus[3]).to.equal(collatToTransfer)
+	})
 	it("hedges more negative delta", async () => {
 		const delta = ethers.utils.parseEther("-0.5")
 		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
