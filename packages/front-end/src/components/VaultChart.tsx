@@ -12,13 +12,25 @@ import {
   Label,
 } from "recharts";
 const data = [
-  { date: "jun 1", yield: 0.03, pv: 2400, amt: 2400 },
-  { date: "jun 2", yield: 0.07, pv: 2400, amt: 2400 },
-  { date: "jun 3", yield: 0.11, pv: 2400, amt: 2400 },
-  { date: "jun 4", yield: 0.07, pv: 2400, amt: 2400 },
-  { date: "jun 5", yield: 0.13, pv: 2400, amt: 2400 },
-  { date: "jun 6", yield: 0.13, pv: 2400, amt: 2400 },
+  { date: "Jul 1", cumulativeYield: 0.41, pv: 2400, amt: 2400 },
+  { date: "Jul 8", cumulativeYield: 0.94, pv: 2400, amt: 2400 },
+  { date: "Jul 15", cumulativeYield: 0.67, pv: 2400, amt: 2400 },
+  { date: "Jul 22", cumulativeYield: 1.20, pv: 2400, amt: 2400 },
+  { date: "Jul 29", cumulativeYield: 1.93, pv: 2400, amt: 2400 },
+  { date: "Aug 6", cumulativeYield: 2.24, pv: 2400, amt: 2400 },
 ];
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="custom-tooltip bg-bone bg-opacity-75 border-black p-4 border-2 border-b-2 rounded-xl border-black">
+        <p className="label">{`${label}: ${payload[0].value}%`}</p>
+      </div>
+    );
+  }
+
+  return null;
+};
 
 export const VaultChart = () => {
   return (
@@ -30,13 +42,15 @@ export const VaultChart = () => {
               data={data}
               margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
             >
-              <Line type="monotone" dataKey="yield" stroke="black" />
+              <Tooltip content={<CustomTooltip />} />
+              <Line type="monotone" dataKey="cumulativeYield" stroke="black" />
               <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
-              <XAxis dataKey="date" angle={0} />
+              <XAxis dataKey="date" angle={-45} />
               <YAxis>
+                
                 <Label
                   angle={-90}
-                  // value="Cumulative Yield (%)"
+                  value="Cumulative Yield (%)"
                   position="center"
                   dx={-20}
                 />
