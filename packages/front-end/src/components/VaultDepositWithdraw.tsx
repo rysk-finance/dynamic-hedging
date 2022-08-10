@@ -535,7 +535,7 @@ export const VaultDepositWithdraw = () => {
                                 ?.add(unredeemedShares)
                                 .div(BIG_NUMBER_DECIMALS.RYSK)
                                 .toString()}{" "}
-                              RYSK
+                              dhvUSDC
                             </b>
                           </h5>
                           {(unredeemedShares._hex !== ZERO_UINT_256 ||
@@ -553,7 +553,7 @@ export const VaultDepositWithdraw = () => {
                 </>
               ) : (
                 <>
-                  <h5>Collateral:</h5>
+                  <h5>USDC:</h5>
                   <div className="flex items-center h-[36px]">
                     <RequiresWalletConnection className="w-[120px] h-6 mr-2">
                       <>
