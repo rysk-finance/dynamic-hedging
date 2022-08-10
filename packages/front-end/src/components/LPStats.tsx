@@ -37,14 +37,14 @@ export const LPStats = () => {
         { depositedCollateral &&
           <div>
             <h4>
-                <NumberFormat 
+                {/* <NumberFormat 
                 value={ ethers.utils.formatUnits(depositedCollateral, DECIMALS.RYSK) } 
                 displayType={"text"}
                 suffix=" USDC"
                 decimalScale={0}
                 thousandSeparator={true}
-                />
-              {/* 60k USDC */}
+                /> */}
+              60k USDC
             </h4>
             <p>Deposited</p>
           </div>
