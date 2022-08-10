@@ -515,7 +515,7 @@ export const VaultDepositWithdraw = () => {
                             {unredeemedShares
                               ?.div(BIG_NUMBER_DECIMALS.RYSK)
                               .toString()}{" "}
-                            DHV USDC
+                            dhvUSDC
                           </b>
                         </h5>
                       </RequiresWalletConnection>{" "}

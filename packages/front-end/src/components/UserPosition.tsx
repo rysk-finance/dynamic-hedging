@@ -103,7 +103,7 @@ export const UserPosition = () => {
               decimalScale={2}
             />
           }{" "}
-          DHV USDC
+          USDC
         </b>
       </h4>
     </RequiresWalletConnection>
