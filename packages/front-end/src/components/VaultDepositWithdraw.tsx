@@ -195,6 +195,7 @@ export const VaultDepositWithdraw = () => {
           .mul(BIG_NUMBER_DECIMALS.RYSK);
         const sharesToRedeem =
           previousUnredeemedShares.add(newUnredeemedShares);
+
         setUnredeemedShares(sharesToRedeem);
       }
       getBalance(account);
@@ -512,9 +513,11 @@ export const VaultDepositWithdraw = () => {
                       <RequiresWalletConnection className="w-[120px] h-6 mr-2">
                         <h5 className="mr-2">
                           <b>
-                            {unredeemedShares
-                              ?.div(BIG_NUMBER_DECIMALS.RYSK)
-                              .toString()}{" "}
+                            { (Number( 
+                              unredeemedShares?.toString() 
+                              ) / Number(
+                                BIG_NUMBER_DECIMALS.RYSK.toString()
+                            )).toFixed(2) } {" "}
                             dhvUSDC
                           </b>
                         </h5>
@@ -531,10 +534,12 @@ export const VaultDepositWithdraw = () => {
                         <>
                           <h5 className="mr-2">
                             <b>
-                              {redeemedShares
-                                ?.add(unredeemedShares)
-                                .div(BIG_NUMBER_DECIMALS.RYSK)
-                                .toString()}{" "}
+                              { (Number( 
+                                  redeemedShares
+                                  ?.add(unredeemedShares)?.toString() 
+                              ) / Number(
+                                BIG_NUMBER_DECIMALS.RYSK.toString()
+                            )).toFixed(2) } {" "}
                               dhvUSDC
                             </b>
                           </h5>
