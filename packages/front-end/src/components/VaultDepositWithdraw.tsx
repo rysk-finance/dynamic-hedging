@@ -582,7 +582,7 @@ export const VaultDepositWithdraw = () => {
                           withdrawEpochSharePrice &&
                           withdrawEpochSharePrice?._hex === ZERO_UINT_256 && (
                             <RyskTooltip
-                              message="Your shares will be available to withdraw as collateral during our weekly strategy every Friday at 11am UTC"
+                              message="Your shares will be available to withdraw and converted to USDC every Friday at 11am UTC"
                               id="withdrawTip"
                               color="green"
                             />

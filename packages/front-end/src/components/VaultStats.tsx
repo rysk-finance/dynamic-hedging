@@ -12,7 +12,7 @@ export const VaultStats = () => {
           <div className="flex flex-col items-center justify-center h-full mb-8 lg:mb-0">
             <h3 className="mb-2">
               <NumberFormat
-                value={"13.47"}
+                value={"2.24"}
                 displayType={"text"}
                 decimalScale={2}
                 suffix="%"
