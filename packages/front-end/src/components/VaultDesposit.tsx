@@ -25,6 +25,7 @@ import { RequiresWalletConnection } from "./RequiresWalletConnection";
 import { Button } from "./shared/Button";
 import { TextInput } from "./shared/TextInput";
 import { BigNumberDisplay } from "./BigNumberDisplay";
+import { RyskTooltip } from "./RyskTooltip";
 
 enum DepositMode {
   USDC = "USDC",
@@ -372,7 +373,15 @@ export const VaultDeposit = () => {
           </div>
           <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
             <div className="flex justify-between">
-              <p>Pending USDC</p>
+              <div className="flex">
+                <p>Pending USDC</p>
+                <RyskTooltip
+                  message={
+                    "Your USDC will be deployed to our vault and converted to shares every Friday at 11am UTC"
+                  }
+                  id={"strategeyTip"}
+                />
+              </div>
               <p>
                 <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
                   <BigNumberDisplay currency={Currency.USDC}>
