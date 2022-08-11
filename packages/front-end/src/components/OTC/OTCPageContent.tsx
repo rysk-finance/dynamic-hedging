@@ -222,116 +222,123 @@ export const OTCPageContent = () => {
   const completeDisabled = !isApproved || isListeningForComplete;
 
   return (
-    <Card headerContent="OTC.optionOrder">
-      <div className="w-full">
-        {isComplete ? (
-          <div className="p-4">
-            <p>✅ Order complete</p>
-          </div>
-        ) : !error ? (
-          <>
-            <div className="flex justify-stretch items-stretch ">
-              <div className="px-6 py-4 border-r-2 border-black">
-                <img src="/icons/ethereum.svg" />
-              </div>
-              <div className="flex items-center justify-between grow px-4">
-                <div className="flex flex-col justify-around">
-                  <h4>
-                    <b>Ether</b>
-                  </h4>
-                  <p className="text-gray-600 text-xs">
-                    Late Update:{" "}
-                    {ethPriceUpdateTime?.toLocaleTimeString("en-US")}
-                  </p>
-                </div>
-                <ETHPriceIndicator />
-              </div>
-            </div>
+    <Card
+      tabs={[
+        {
+          label: "OTC.optionOrder",
+          content: (
             <div className="w-full">
-              <div className="bg-black p-2 text-white">
-                <p>
-                  <b>Details</b>
-                </p>
-              </div>
-              <div className="p-4">
-                <div className="flex flex-col">
-                  {order ? (
-                    <div>
-                      <div className="mb-4">
-                        <div className="mb-4">
-                          <OrderDetails order={order} />
-                        </div>
-                        <hr className="border-2 border-black" />
+              {isComplete ? (
+                <div className="p-4">
+                  <p>✅ Order complete</p>
+                </div>
+              ) : !error ? (
+                <>
+                  <div className="flex justify-stretch items-stretch ">
+                    <div className="px-6 py-4 border-r-2 border-black">
+                      <img src="/icons/ethereum.svg" />
+                    </div>
+                    <div className="flex items-center justify-between grow px-4">
+                      <div className="flex flex-col justify-around">
+                        <h4>
+                          <b>Ether</b>
+                        </h4>
+                        <p className="text-gray-600 text-xs">
+                          Late Update:{" "}
+                          {ethPriceUpdateTime?.toLocaleTimeString("en-US")}
+                        </p>
                       </div>
+                      <ETHPriceIndicator />
+                    </div>
+                  </div>
+                  <div className="w-full">
+                    <div className="bg-black p-2 text-white">
                       <p>
-                        <b>
-                          Total Price:{" "}
-                          <BigNumberDisplay
-                            currency={Currency.RYSK}
-                            suffix="USDC"
-                          >
-                            {order.price}
-                          </BigNumberDisplay>
-                        </b>
+                        <b>Details</b>
                       </p>
                     </div>
-                  ) : strangle ? (
-                    <>
-                      <div className="mb-4">
-                        <OrderDetails order={strangle.call} />
+                    <div className="p-4">
+                      <div className="flex flex-col">
+                        {order ? (
+                          <div>
+                            <div className="mb-4">
+                              <div className="mb-4">
+                                <OrderDetails order={order} />
+                              </div>
+                              <hr className="border-2 border-black" />
+                            </div>
+                            <p>
+                              <b>
+                                Total Price:{" "}
+                                <BigNumberDisplay
+                                  currency={Currency.RYSK}
+                                  suffix="USDC"
+                                >
+                                  {order.price}
+                                </BigNumberDisplay>
+                              </b>
+                            </p>
+                          </div>
+                        ) : strangle ? (
+                          <>
+                            <div className="mb-4">
+                              <OrderDetails order={strangle.call} />
+                            </div>
+                            <hr className="mb-4 border-2 border-black" />
+                            <div className="mb-4">
+                              <OrderDetails order={strangle.put} />
+                            </div>
+                            <hr className="mb-4 border-2 border-black" />
+                            <p>
+                              <b>
+                                Total Price:{" "}
+                                <BigNumberDisplay
+                                  currency={Currency.RYSK}
+                                  suffix="USDC"
+                                >
+                                  {strangle.call.price.add(strangle.put.price)}
+                                </BigNumberDisplay>
+                              </b>
+                            </p>
+                          </>
+                        ) : null}
                       </div>
-                      <hr className="mb-4 border-2 border-black" />
-                      <div className="mb-4">
-                        <OrderDetails order={strangle.put} />
-                      </div>
-                      <hr className="mb-4 border-2 border-black" />
-                      <p>
-                        <b>
-                          Total Price:{" "}
-                          <BigNumberDisplay
-                            currency={Currency.RYSK}
-                            suffix="USDC"
-                          >
-                            {strangle.call.price.add(strangle.put.price)}
-                          </BigNumberDisplay>
-                        </b>
-                      </p>
-                    </>
-                  ) : null}
+                    </div>
+                  </div>
+                  <div className="flex">
+                    <Button
+                      className={`w-full border-b-0 border-x-0 !py-4`}
+                      onClick={handleApprove}
+                      color="black"
+                      disabled={approveDisabled}
+                    >
+                      {isApproved
+                        ? "✅ Approved"
+                        : isListeningForApproval
+                        ? "⏱ Awaiting Approval"
+                        : "Approve"}
+                    </Button>
+                    <Button
+                      className={`w-full border-b-0 border-x-0 !py-4 `}
+                      color="black"
+                      onClick={handleComplete}
+                      disabled={completeDisabled}
+                    >
+                      {isListeningForComplete
+                        ? "⏱ Awaiting Completion"
+                        : "Complete Purchase"}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="p-4">
+                  <p>{error}</p>
                 </div>
-              </div>
+              )}
             </div>
-            <div className="flex">
-              <Button
-                className={`w-full border-b-0 border-x-0 !py-4`}
-                onClick={handleApprove}
-                color="black"
-                disabled={approveDisabled}
-              >
-                {isApproved
-                  ? "✅ Approved"
-                  : isListeningForApproval
-                  ? "⏱ Awaiting Approval"
-                  : "Approve"}
-              </Button>
-              <Button
-                className={`w-full border-b-0 border-x-0 !py-4 `}
-                color="black"
-                onClick={handleComplete}
-                disabled={completeDisabled}
-              >
-                {isListeningForComplete
-                  ? "⏱ Awaiting Completion"
-                  : "Complete Purchase"}
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="p-4">
-            <p>{error}</p>
-          </div>
-        )}
-      </div>
-    </Card>
+          ),
+        },
+      ]}
+    ></Card>
   );
 };
