@@ -42,7 +42,6 @@ export const vaultReducer: Reducer<VaultState, VaultAction> = (
 ) => {
   switch (action.type) {
     case VaultActionType.SET:
-      debugger;
       return {
         ...state,
         ...action.data,

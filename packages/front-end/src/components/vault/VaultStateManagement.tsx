@@ -19,9 +19,9 @@ export const VaultStateManagment = () => {
     ABI: LPABI.abi,
     readOnly: true,
     events: {
-      EpochExecuted: () => {
+      EpochExecuted: async () => {
         toast("✅ The epoch was advanced");
-        getEpochData();
+        EpochListener();
       },
     },
     isListening: {
@@ -38,6 +38,19 @@ export const VaultStateManagment = () => {
       return { currentEpoch, latestSharePrice };
     }
   }, [lpContract]);
+
+  const EpochListener = useCallback(async () => {
+    const epochData = await getEpochData();
+    if (epochData?.currentEpoch || epochData?.latestSharePrice) {
+      dispatch({
+        type: VaultActionType.SET,
+        data: {
+          currentPricePerShare: epochData.latestSharePrice,
+          currentEpoch: epochData.currentEpoch,
+        },
+      });
+    }
+  }, [dispatch, getEpochData]);
 
   const getUserRyskBalance = useCallback(async () => {
     if (lpContract && account) {
