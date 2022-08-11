@@ -94,28 +94,6 @@ export const Card: React.FC<CardProps> = ({
               <path
                 d={`m ${minorBorderRadius} ${lineWidth / 2}
               L ${tabWidth} ${lineWidth / 2}
-
-              C ${tabWidth + minorBorderRadius * 2} ${lineWidth / 2}, ${
-                  tabWidth + tabSlopeWidth - minorBorderRadius * 2
-                } ${tabHeight}, ${tabWidth + tabSlopeWidth} ${tabHeight}
-              
-              L ${rect.width - mainBorderRadius - lineWidth / 2} ${tabHeight}
-              A ${mainBorderRadius} ${mainBorderRadius} 1 0 1 ${
-                  rect.width - lineWidth / 2
-                } ${tabHeight + mainBorderRadius}
-              L ${lineWidth / 2} ${tabHeight + mainBorderRadius}
-              L ${lineWidth / 2} ${minorBorderRadius}
-              A ${minorBorderRadius} ${minorBorderRadius} 1 0 1 ${minorBorderRadius} ${
-                  lineWidth / 2
-                }`}
-                fill="transparent"
-                stroke="black"
-              ></path>
-            )}
-            {rect && (
-              <path
-                d={`m ${minorBorderRadius} ${lineWidth / 2}
-              L ${tabWidth} ${lineWidth / 2}
               
               C ${tabWidth + minorBorderRadius * 2} ${lineWidth / 2}, ${
                   tabWidth + tabSlopeWidth - minorBorderRadius * 2
