@@ -1,15 +1,106 @@
+import { BigNumber } from "ethers";
 import React from "react";
+import { useCallback, useEffect } from "react";
+import { toast } from "react-toastify";
+import { useWalletContext } from "../App";
+import LPABI from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
+import { BigNumberDisplay } from "../components/BigNumberDisplay";
 import { LPStats } from "../components/LPStats";
 import { Card } from "../components/shared/Card";
-import { UserPosition } from "../components/UserPosition";
 import { VaultChart } from "../components/VaultChart";
-import { VaultDepositWithdraw } from "../components/VaultDepositWithdraw";
 import { VaultDeposit } from "../components/VaultDesposit";
 import { VaultStats } from "../components/VaultStats";
+import { useContract } from "../hooks/useContract";
+import { VaultActionType } from "../state/types";
+import { useVaultContext, VaultProvider } from "../state/VaultContext";
+import { Currency } from "../types";
 
-export const Vault = () => {
+const VaultStateManagment = () => {
+  const { account } = useWalletContext();
+  const { dispatch } = useVaultContext();
+
+  const [lpContract] = useContract<{
+    EpochExecuted: [];
+  }>({
+    contract: "liquidityPool",
+    ABI: LPABI.abi,
+    readOnly: true,
+    events: {
+      EpochExecuted: () => {
+        toast("✅ The epoch was advanced");
+        getEpochData();
+      },
+    },
+    isListening: {
+      EpochExecuted: true,
+    },
+  });
+
+  const getEpochData = useCallback(async () => {
+    if (lpContract) {
+      const currentEpoch: BigNumber = await lpContract.epoch();
+      const latestSharePrice: BigNumber = await lpContract.epochPricePerShare(
+        currentEpoch.sub(1)
+      );
+      return { currentEpoch, latestSharePrice };
+    }
+  }, [lpContract]);
+
+  const getUserRyskBalance = useCallback(async () => {
+    if (lpContract && account) {
+      const balance: BigNumber = await lpContract.balanceOf(account);
+      return balance;
+    }
+  }, [lpContract, account]);
+
+  useEffect(() => {
+    const getInfo = async () => {
+      const epochData = await getEpochData();
+      const balance = await getUserRyskBalance();
+      if (epochData || balance) {
+        dispatch({
+          type: VaultActionType.SET,
+          data: {
+            currentEpoch: epochData?.currentEpoch,
+            currentPricePerShare: epochData?.latestSharePrice,
+            userRyskBalance: balance,
+          },
+        });
+      }
+    };
+
+    getInfo();
+  }, [dispatch, getEpochData, getUserRyskBalance]);
+
+  return null;
+};
+
+const VaultContent = () => {
+  const {
+    state: { currentEpoch, currentPricePerShare, userRyskBalance },
+  } = useVaultContext();
+
+  console.log(currentPricePerShare);
   return (
     <>
+      <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 mb-16">
+        <h4>
+          RYSK Balance:{" "}
+          <BigNumberDisplay currency={Currency.RYSK}>
+            {userRyskBalance}
+          </BigNumberDisplay>
+        </h4>
+        <h4>Epoch: {currentEpoch?.toString()}</h4>
+        <h4>
+          Epoch Price Per Share:{" "}
+          <BigNumberDisplay
+            currency={Currency.RYSK}
+            numberFormatProps={{ decimalScale: 18 }}
+          >
+            {currentPricePerShare}
+          </BigNumberDisplay>
+        </h4>
+      </div>
       <div className="col-start-1 col-end-8">
         <h2 className="mb-8">Earn Uncorrelated Returns</h2>
         <p>
@@ -152,5 +243,14 @@ export const Vault = () => {
         ></Card>
       </div>
     </>
+  );
+};
+
+export const Vault = () => {
+  return (
+    <VaultProvider>
+      <VaultStateManagment />
+      <VaultContent />
+    </VaultProvider>
   );
 };

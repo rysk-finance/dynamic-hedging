@@ -78,8 +78,6 @@ export const VaultDeposit = () => {
     readOnly: false,
     events: {
       EpochExecuted: () => {
-        // TODO: Update copy here
-        toast("✅ The epoch was advanced");
         epochListener();
       },
       Deposit: () => {

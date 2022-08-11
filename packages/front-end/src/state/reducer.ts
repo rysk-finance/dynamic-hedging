@@ -6,6 +6,9 @@ import {
   OptionsTradingState,
   OptionsTradingAction,
   OptionsTradingActionType,
+  VaultAction,
+  VaultState,
+  VaultActionType,
 } from "./types";
 
 export const globalReducer: Reducer<GlobalState, GlobalAction> = (
@@ -29,6 +32,20 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
       return {
         ...state,
         settings: { ...state.settings, ...action.settings },
+      };
+  }
+};
+
+export const vaultReducer: Reducer<VaultState, VaultAction> = (
+  state,
+  action
+) => {
+  switch (action.type) {
+    case VaultActionType.SET:
+      debugger;
+      return {
+        ...state,
+        ...action.data,
       };
   }
 };

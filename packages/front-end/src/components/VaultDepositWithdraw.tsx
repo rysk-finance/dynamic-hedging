@@ -98,7 +98,6 @@ export const VaultDepositWithdraw = () => {
 
   // Contracts
   const [lpContract, lpContractCall] = useContract<{
-    EpochExecuted: [];
     Deposit: [BigNumber, BigNumber, BigNumber];
     Redeem: [];
     InitiateWithdraw: [];
@@ -108,11 +107,6 @@ export const VaultDepositWithdraw = () => {
     ABI: LPABI.abi,
     readOnly: false,
     events: {
-      EpochExecuted: () => {
-        // TODO: Update copy here
-        toast("✅ The epoch was advanced");
-        epochListener();
-      },
       Deposit: () => {
         setListeningForDeposit(false);
         toast("✅ Deposit complete");
@@ -135,7 +129,6 @@ export const VaultDepositWithdraw = () => {
       },
     },
     isListening: {
-      EpochExecuted: true,
       Deposit: listeningForDeposit,
       Redeem: listeningForRedeem,
       InitiateWithdraw: listeningForWithdrawInit,
