@@ -101,4 +101,6 @@ interface IOptionRegistry {
 	///////////////////////////
 
 	function getSeriesInfo(address series) external view returns (Types.OptionSeries memory);
+	function vaultIds(address series) external view returns (uint256);
+	function gammaController() external view returns (address);
 }

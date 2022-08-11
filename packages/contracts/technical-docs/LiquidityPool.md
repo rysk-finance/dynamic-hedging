@@ -7,6 +7,8 @@ The Liquidity Pool holds most core functionality for the Rysk Dynamic Hedging Va
 Throughout the contract there are conversions between decimals, there are three decimals to be aware of e6 (USDC decimals) or collateral decimals, e8 otoken decimals and e18 share value, eth, and options calculation decimals. Where each decimal type is used is commented in each function.
 ## Oracle use
 
+**Chainlink oracle not used in Rysk Alpha**
+
 The contract uses Chainlink Price feed oracles. The contract also makes use of the Portfolio values feed request response oracle and may in the future make use of a volatility feed oracle. These are documented in the oracle documentation.
 
 ## Descriptions
@@ -33,7 +35,9 @@ These values are used to set the time and price thresholds for when an oracle up
 
 These are contracts that have the authority to issue, write, and buyback options from the liquidityPool. They must be authorised. This architecture allows for multiple handlers and upgradeability on the handlers.
 
-### Options pricing (quotePriceWithUtilizationGreeks, applyUtilizationPremium, applyDeltaPremium, getImpliedVolatility, OptionsCompute, utilisationSkewParams)
+### Options pricing (quotePriceWithUtilizationGreeks, applyUtilizationPremium, applyDeltaPremium, getImpliedVolatility, OptionsCompute, utilisationSkewParams) 
+
+**Not used in Rysk Alpha**
 
 An explainer of the option pricing methodology and processes can be seen here: https://bejewled-egret-22c.notion.site/QuotePriceWithUtilizationGreeks-e7fdfdc890cc4b55852a5901c099ef9a 
 
@@ -41,7 +45,11 @@ An explainer of the option pricing methodology and processes can be seen here: h
 
 An explainer of the mutual fund system or how deposits/withdraws/redeems/pauseTradingAndRequest and executeEpochCalculation work can be seen here: https://bejewled-egret-22c.notion.site/Mutual-Fund-Explainer-768912673cf946f4a99c3b833d830389 
 
+Accounting.sol descriptor: https://bejewled-egret-22c.notion.site/Accounting-sol-58deffac2d1a45e1986fd29d1aa752fb
+
 ### Issuing and Buying options back (handlerIssue, handlerWriteOption, handlerIssueAndWriteOption, handlerBuyBackOption, _issue, _writeOption, _buybackOption)
+
+**Only custom orders used in Rysk Alpha**
 
 An explainer of the options interaction experience from the liquidity pool and user side can be seen here: https://bejewled-egret-22c.notion.site/Liquidity-Pool-Options-Interactions-9558238986234e01bbeb066a1031eb6f 
 

@@ -29,7 +29,7 @@ contract OptionRegistry is AccessControl {
 	// address of the opyn oTokenFactory for oToken minting
 	address internal immutable oTokenFactory;
 	// address of the gammaController for oToken operations
-	address internal immutable gammaController;
+	address public immutable gammaController;
 	// address of the collateralAsset
 	address public immutable collateralAsset;
 	// address of the opyn addressBook for accessing important opyn modules
@@ -374,6 +374,9 @@ contract OptionRegistry is AccessControl {
 		}
 		if (isBelowMin) {
 			LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, false);
+			if (LiquidityPool(liquidityPool).getBalance(collateralAsset) < collateralAmount) {
+				revert CustomErrors.WithdrawExceedsLiquidity();
+			}
 			// transfer the needed collateral to this contract from the liquidityPool
 			SafeTransferLib.safeTransferFrom(
 				_collateralAsset,
