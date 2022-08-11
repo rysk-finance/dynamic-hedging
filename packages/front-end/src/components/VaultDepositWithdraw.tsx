@@ -363,11 +363,15 @@ export const VaultDepositWithdraw = () => {
     }
   };
 
-  const setMaxUnredeemedShares = async() => {
+  const setMaxUnredeemedShares = async () => {
     if (unredeemedShares && unredeemedShares?._hex !== ZERO_UINT_256) {
-      setInputValue( (Number(unredeemedShares) / Number(BIG_NUMBER_DECIMALS.RYSK.toString()) ).toString() )
+      setInputValue(
+        (
+          Number(unredeemedShares) / Number(BIG_NUMBER_DECIMALS.RYSK.toString())
+        ).toString()
+      );
     }
-  }
+  };
 
   const approveIsDisabled =
     !inputValue || !!approvalState || listeningForApproval;
@@ -517,14 +521,16 @@ export const VaultDepositWithdraw = () => {
                     <h5>Shares:</h5>
                     <div className="flex items-center h-[36px]">
                       <RequiresWalletConnection className="w-[120px] h-6 mr-2">
-                        <h5 className="mr-2 cursor-pointer" onClick={setMaxUnredeemedShares}>
-                          <span className="underline font-bold">MAX</span> {" "}
+                        <h5
+                          className="mr-2 cursor-pointer"
+                          onClick={setMaxUnredeemedShares}
+                        >
+                          <span className="underline font-bold">MAX</span>{" "}
                           <b>
-                            { (Number( 
-                              unredeemedShares?.toString() 
-                              ) / Number(
-                                BIG_NUMBER_DECIMALS.RYSK.toString()
-                            )).toFixed(2) } {" "}
+                            {(
+                              Number(unredeemedShares?.toString()) /
+                              Number(BIG_NUMBER_DECIMALS.RYSK.toString())
+                            ).toFixed(2)}{" "}
                             dhvUSDC
                           </b>
                         </h5>
@@ -541,12 +547,13 @@ export const VaultDepositWithdraw = () => {
                         <>
                           <h5 className="mr-2">
                             <b>
-                              { (Number( 
+                              {(
+                                Number(
                                   redeemedShares
-                                  ?.add(unredeemedShares)?.toString() 
-                              ) / Number(
-                                BIG_NUMBER_DECIMALS.RYSK.toString()
-                            )).toFixed(2) } {" "}
+                                    ?.add(unredeemedShares)
+                                    ?.toString()
+                                ) / Number(BIG_NUMBER_DECIMALS.RYSK.toString())
+                              ).toFixed(2)}{" "}
                               dhvUSDC
                             </b>
                           </h5>

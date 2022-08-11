@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 
-type CardTab = { label: string; content: React.ReactElement; title?: string };
+type CardTab = {
+  label: string;
+  content: React.ReactElement;
+  title?: React.ReactElement;
+};
 
 type CardProps = {
   tabs: CardTab[];
@@ -38,14 +42,16 @@ export const Card: React.FC<CardProps> = ({
           </div>
         ))}
       </div>
-      {tabs[selectedTabIndex].title ? (
+      {tabs[selectedTabIndex].title && (
         <div className="bg-black rounded-tr-lg h-[60px]">
           <p>{tabs[selectedTabIndex].title}</p>
         </div>
-      ) : (
-        <div className="border-t-[2px] border-x-[2px] border-black rounded-tr-lg h-[5px]" />
       )}
-      <div className="border-x-2 border-b-2 rounded-b-xl border-black overflow-hidden">
+      <div
+        className={`border-x-2 border-b-2 rounded-b-xl border-black overflow-hidden ${
+          !tabs[selectedTabIndex].title && "border-t-[2px] rounded-tr-lg"
+        }`}
+      >
         {tabs[selectedTabIndex].content}
       </div>
     </div>

@@ -1,8 +1,10 @@
 import React from "react";
 import { LPStats } from "../components/LPStats";
 import { Card } from "../components/shared/Card";
+import { UserPosition } from "../components/UserPosition";
 import { VaultChart } from "../components/VaultChart";
 import { VaultDepositWithdraw } from "../components/VaultDepositWithdraw";
+import { VaultDeposit } from "../components/VaultDesposit";
 import { VaultStats } from "../components/VaultStats";
 
 export const Vault = () => {
@@ -21,8 +23,11 @@ export const Vault = () => {
       <div className="col-start-9 col-end-17">
         <Card
           tabs={[
-            { label: "Withdraw", content: <VaultDepositWithdraw /> },
-            { label: "Deposit", content: <div>ello</div> },
+            {
+              label: "Deposit",
+              content: <VaultDeposit />,
+            },
+            { label: "Withdraw", content: <div>ello</div> },
           ]}
         ></Card>
       </div>

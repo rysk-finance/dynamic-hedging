@@ -53,8 +53,7 @@ export const RequiresWalletConnection: React.FC<
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       color="black"
-    >
-      Connect
-    </Button>
+      className={`${className}`}
+    ></Button>
   );
 };
