@@ -8,6 +8,7 @@
 		"test-coverage": "export NODE_OPTIONS='--max-old-space-size=8192' && hardhat coverage --testfiles 'test/*.ts'",
 		"deploy:rinkeby": "hardhat deploy --network rinkeby --tags testnet --deploy-scripts deploy/rinkeby",
 		"deploy:arbitrumRinkeby": "npx hardhat run deploy/arbitrum-rinkeby/ArbitrumRinkebyDeploy.ts --network arbitrumRinkeby",
+		"deployAlpha:arbitrumRinkeby": "npx hardhat run deploy/arbitrum-rinkeby/ArbitrumRinkebyAlphaDeploy.ts --network arbitrumRinkeby",
 		"deploy:localhost": "npx hardhat deploy --network localhost --tags localhost && ./copyAddressesToFrontEnd.sh --deploy-scripts deploy/localhost",
 		"compile": "hardhat clean && hardhat compile && hardhat typechain && ./copyABIsToFrontend.sh",
 		"mainnet-fork": "source .env && npx hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/$ALCHEMY_KEY --fork-block-number 12821000",
