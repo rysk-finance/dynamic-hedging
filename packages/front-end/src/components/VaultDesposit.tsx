@@ -307,23 +307,6 @@ export const VaultDeposit = () => {
     }
   };
 
-  // Coordinate the interactions on submit
-  const handleSubmit = async () => {
-    try {
-      if (account && lpContract && usdcContract) {
-        if (depositMode === DepositMode.USDC) {
-          await handleDepositCollateral();
-        } else if (depositMode === DepositMode.REDEEM) {
-          await handleRedeemShares();
-        }
-        await updateDepositState();
-        setInputValue("");
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const approveIsDisabled =
     !inputValue || !!approvalState || listeningForApproval;
   const depositIsDisabled =
@@ -409,7 +392,7 @@ export const VaultDeposit = () => {
               <Button
                 onClick={() => {
                   if (inputValue) {
-                    handleSubmit();
+                    handleDepositCollateral();
                   }
                 }}
                 className={`w-full !py-6 !border-0 bg-black text-white ${
@@ -458,7 +441,7 @@ export const VaultDeposit = () => {
                     onClick={() => {
                       handleRedeemShares();
                     }}
-                    className={`w-full !py-6 border-t-[2px] border-black bg-black text-white`}
+                    className={`w-full !py-6 !border-b-0 !border-x-0 border-t-[2px] border-black bg-black text-white`}
                     disabled={redeemIsDisabled}
                     color="black"
                   >
