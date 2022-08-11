@@ -26,30 +26,27 @@ import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { BigNumberDisplay } from "../BigNumberDisplay";
 import { RyskTooltip } from "../RyskTooltip";
-
-enum DepositMode {
-  USDC = "USDC",
-  REDEEM = "Redeem",
-}
+import { useVaultContext } from "../../state/VaultContext";
+import { VaultActionType } from "../../state/types";
 
 export const VaultDeposit = () => {
   const { account, network } = useWalletContext();
+  const {
+    state: { currentEpoch, currentPricePerShare },
+    dispatch,
+  } = useVaultContext();
 
   const {
     state: { settings },
   } = useGlobalContext();
 
   // UI State
-  const [depositMode, setDepositMode] = useState<DepositMode>(DepositMode.USDC);
   const [inputValue, setInputValue] = useState("");
   const [listeningForApproval, setListeningForApproval] = useState(false);
   const [listeningForDeposit, setListeningForDeposit] = useState(false);
   const [listeningForRedeem, setListeningForRedeem] = useState(false);
 
   // Chain state
-  const [epoch, setCurrentEpoch] = useState<BigNumber | null>(null);
-  const [currentEpochSharePrice, setCurrentEpochSharePrice] =
-    useState<BigNumber | null>(null);
   const [userUSDCBalance, setUserUSDCBalance] = useState<BigNumber | null>(
     null
   );
@@ -61,8 +58,7 @@ export const VaultDeposit = () => {
   const [unredeemedShares, setUnredeemedShares] = useState<BigNumber | null>(
     null
   );
-  const [redeemedSharesUSDC, setRedeemedSharesUSDC] =
-    useState<BigNumber | null>(null);
+
   const [approvalState, setApprovalState] = useState<Events["Approval"] | null>(
     null
   );
@@ -123,34 +119,18 @@ export const VaultDeposit = () => {
     [usdcContract]
   );
 
-  const getCurrentEpoch = useCallback(async () => {
-    const currentEpoch: BigNumber = await lpContract?.epoch();
-    setCurrentEpoch(currentEpoch);
-    return currentEpoch;
-  }, [lpContract]);
-
-  const getCurrentSharePrice = useCallback(
-    async (epoch: BigNumber) => {
-      const currentEpochSharePrice: BigNumber =
-        await lpContract?.epochPricePerShare(epoch.sub(1));
-      setCurrentEpochSharePrice(currentEpochSharePrice);
-      return currentEpochSharePrice;
-    },
-    [lpContract]
-  );
-
   const getRedeemedSharesUSDC = useCallback(
-    async (address: string, epochPricePerShare: BigNumber) => {
+    async (address: string) => {
       const sharesBalance: BigNumber | null = await lpContract?.balanceOf(
         address
       );
-      const sharesBalanceUSDCValue = sharesBalance?.div(
-        epochPricePerShare.div(BIG_NUMBER_DECIMALS.RYSK)
-      );
-      setRedeemedSharesUSDC(sharesBalanceUSDCValue ?? null);
+      dispatch({
+        type: VaultActionType.SET,
+        data: { userRyskBalance: sharesBalance },
+      });
       return sharesBalance;
     },
-    [lpContract]
+    [lpContract, dispatch]
   );
 
   const getDepositReceipt = useCallback(
@@ -203,23 +183,21 @@ export const VaultDeposit = () => {
   );
 
   const updateDepositState = useCallback(async () => {
-    if (account) {
+    if (account && currentPricePerShare && currentEpoch) {
       await getUSDCBalance(account);
-      const currentEpoch = await getCurrentEpoch();
-      const currentEpochSharePrice = await getCurrentSharePrice(currentEpoch);
       const depositReceipt = await getDepositReceipt(account);
-      await getRedeemedSharesUSDC(account, currentEpochSharePrice);
+      await getRedeemedSharesUSDC(account);
       await getUnredeemedShares(
         depositReceipt,
-        currentEpochSharePrice,
+        currentPricePerShare,
         currentEpoch
       );
       await getPendingDepositedUSDC(depositReceipt, currentEpoch);
     }
   }, [
     account,
-    getCurrentEpoch,
-    getCurrentSharePrice,
+    currentEpoch,
+    currentPricePerShare,
     getDepositReceipt,
     getRedeemedSharesUSDC,
     getPendingDepositedUSDC,
@@ -236,11 +214,6 @@ export const VaultDeposit = () => {
       await updateDepositState();
     })();
   }, [updateDepositState]);
-
-  // Reset input value when switching mode
-  useEffect(() => {
-    setInputValue("");
-  }, [depositMode]);
 
   // UI Handlers
   const handleInputChange = (value: string) => {
@@ -307,9 +280,7 @@ export const VaultDeposit = () => {
 
   const approveIsDisabled =
     !inputValue || !!approvalState || listeningForApproval;
-  const depositIsDisabled =
-    depositMode === DepositMode.USDC &&
-    !(inputValue && account && approvalState);
+  const depositIsDisabled = !(inputValue && account && approvalState);
   const redeemIsDisabled = listeningForRedeem;
 
   return (
@@ -346,7 +317,7 @@ export const VaultDeposit = () => {
               value={inputValue}
               iconLeft={
                 <div className="h-full flex items-center px-4 text-right text-gray-600">
-                  <p>{depositMode === DepositMode.USDC ? "USDC" : "Shares"}</p>
+                  <p>USDC</p>
                 </div>
               }
               numericOnly
