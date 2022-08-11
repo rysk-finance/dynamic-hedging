@@ -3,7 +3,7 @@ import { BigNumberDisplay } from "../../components/BigNumberDisplay";
 import { LPStats } from "../../components/LPStats";
 import { Card } from "../../components/shared/Card";
 import { VaultChart } from "../../components/VaultChart";
-import { VaultDeposit } from "../../components/VaultDesposit";
+import { VaultDeposit } from "./VaultDesposit";
 import { VaultStats } from "../../components/VaultStats";
 import { useVaultContext } from "../../state/VaultContext";
 import { Currency } from "../../types";

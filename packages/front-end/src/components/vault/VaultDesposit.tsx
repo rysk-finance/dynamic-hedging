@@ -2,30 +2,30 @@ import React from "react";
 import { BigNumber, ethers } from "ethers";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import ERC20ABI from "../abis/erc20.json";
-import { useWalletContext } from "../App";
-import LPABI from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
+import ERC20ABI from "../../abis/erc20.json";
+import { useWalletContext } from "../../App";
+import LPABI from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
 import {
   BIG_NUMBER_DECIMALS,
   DECIMALS,
   MAX_UINT_256,
   ZERO_UINT_256,
-} from "../config/constants";
-import addresses from "../contracts.json";
-import { useContract } from "../hooks/useContract";
-import { useGlobalContext } from "../state/GlobalContext";
+} from "../../config/constants";
+import addresses from "../../contracts.json";
+import { useContract } from "../../hooks/useContract";
+import { useGlobalContext } from "../../state/GlobalContext";
 import {
   ContractAddresses,
   Currency,
   DepositReceipt,
   ETHNetwork,
   Events,
-} from "../types";
-import { RequiresWalletConnection } from "./RequiresWalletConnection";
-import { Button } from "./shared/Button";
-import { TextInput } from "./shared/TextInput";
-import { BigNumberDisplay } from "./BigNumberDisplay";
-import { RyskTooltip } from "./RyskTooltip";
+} from "../../types";
+import { RequiresWalletConnection } from "../RequiresWalletConnection";
+import { Button } from "../shared/Button";
+import { TextInput } from "../shared/TextInput";
+import { BigNumberDisplay } from "../BigNumberDisplay";
+import { RyskTooltip } from "../RyskTooltip";
 
 enum DepositMode {
   USDC = "USDC",
