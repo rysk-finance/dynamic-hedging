@@ -29,7 +29,7 @@ export const RequiresWalletConnection: React.FC<
     });
   }, [dispatch]);
 
-  if (account) {
+  if (account && children) {
     return <>{children}</>;
   }
 
@@ -48,7 +48,9 @@ export const RequiresWalletConnection: React.FC<
   return (
     <Button
       onClick={() => {
-        connectWallet?.();
+        if (!account) {
+          connectWallet?.();
+        }
       }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

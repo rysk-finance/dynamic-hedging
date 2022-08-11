@@ -16,6 +16,7 @@ import { useContract } from "../hooks/useContract";
 import { useGlobalContext } from "../state/GlobalContext";
 import {
   ContractAddresses,
+  Currency,
   DepositReceipt,
   ETHNetwork,
   Events,
@@ -23,6 +24,7 @@ import {
 import { RequiresWalletConnection } from "./RequiresWalletConnection";
 import { Button } from "./shared/Button";
 import { TextInput } from "./shared/TextInput";
+import { BigNumberDisplay } from "./BigNumberDisplay";
 
 enum DepositMode {
   USDC = "USDC",
@@ -44,12 +46,21 @@ export const VaultDeposit = () => {
   const [listeningForRedeem, setListeningForRedeem] = useState(false);
 
   // Chain state
-  const [redeemedShares, setRedeemedShares] = useState<BigNumber | null>(null);
-  const [unredeemableCollateral, setUnredeemableCollateral] =
+  const [epoch, setCurrentEpoch] = useState<BigNumber | null>(null);
+  const [currentEpochSharePrice, setCurrentEpochSharePrice] =
     useState<BigNumber | null>(null);
-  const [unredeemedShares, setUnredeemedShares] = useState<BigNumber | null>(
+  const [userUSDCBalance, setUserUSDCBalance] = useState<BigNumber | null>(
     null
   );
+  const [depositReceipt, setDepositReceipt] = useState<DepositReceipt | null>(
+    null
+  );
+  const [pendingDepositedUSDC, setPendingDepositedUSDC] =
+    useState<BigNumber | null>(null);
+  const [unredeemedSharesUSDC, setUnredeemedShares] =
+    useState<BigNumber | null>(null);
+  const [redeemedSharesUSDC, setRedeemedSharesUSDC] =
+    useState<BigNumber | null>(null);
   const [approvalState, setApprovalState] = useState<Events["Approval"] | null>(
     null
   );
@@ -103,48 +114,121 @@ export const VaultDeposit = () => {
     isListening: { Approval: listeningForApproval },
   });
 
-  const getBalance = useCallback(
+  const getUSDCBalance = useCallback(
     async (address: string) => {
-      const balance = await lpContract?.balanceOf(address);
-      setRedeemedShares(balance);
+      const balance = await usdcContract?.balanceOf(address);
+      setUserUSDCBalance(balance);
+      return balance;
+    },
+    [usdcContract]
+  );
+
+  const getCurrentEpoch = useCallback(async () => {
+    const currentEpoch: BigNumber = await lpContract?.epoch();
+    setCurrentEpoch(currentEpoch);
+    return currentEpoch;
+  }, [lpContract]);
+
+  const getCurrentSharePrice = useCallback(
+    async (epoch: BigNumber) => {
+      const currentEpochSharePrice: BigNumber =
+        await lpContract?.epochPricePerShare(epoch.sub(1));
+      setCurrentEpochSharePrice(currentEpochSharePrice);
+      return currentEpochSharePrice;
     },
     [lpContract]
   );
 
-  const updateDepositState = useCallback(async () => {
-    if (lpContract && account) {
-      const depositReceipt: DepositReceipt = await lpContract.depositReceipts(
-        account
+  const getRedeemedSharesUSDC = useCallback(
+    async (address: string, epochPricePerShare: BigNumber) => {
+      const sharesBalance: BigNumber | null = await lpContract?.balanceOf(
+        address
       );
-      const currentEpoch: BigNumber = await lpContract.epoch();
-      const previousUnredeemedShares = depositReceipt.unredeemedShares;
-      // If true, the share price for the most recent deposit hasn't been calculated
-      // so we can only show the collateral balance, not the equivalent number of shares.
-      if (currentEpoch._hex === depositReceipt.epoch._hex) {
-        setUnredeemedShares(previousUnredeemedShares);
-        if (depositReceipt.amount.toNumber() !== 0) {
-          setUnredeemableCollateral(depositReceipt.amount);
-        }
-      } else {
-        setUnredeemableCollateral(null);
-        const pricePerShareAtEpoch: BigNumber =
-          await lpContract.epochPricePerShare(depositReceipt.epoch);
-        // TODO(HC): Price oracle is returning 1*10^18 for price so having to adjust price
-        // whilst building out to avoid share numbers being too small. Once price oracle is returning
-        // more accurate
-        const newUnredeemedShares = depositReceipt.amount
-          .div(BIG_NUMBER_DECIMALS.USDC)
-          .mul(BIG_NUMBER_DECIMALS.RYSK)
-          .div(pricePerShareAtEpoch)
-          .mul(BIG_NUMBER_DECIMALS.RYSK);
-        const sharesToRedeem =
-          previousUnredeemedShares.add(newUnredeemedShares);
+      const sharesBalanceUSDCValue = sharesBalance?.div(
+        epochPricePerShare.div(BIG_NUMBER_DECIMALS.RYSK)
+      );
+      setRedeemedSharesUSDC(sharesBalanceUSDCValue ?? null);
+      return sharesBalance;
+    },
+    [lpContract]
+  );
 
-        setUnredeemedShares(sharesToRedeem);
+  const getDepositReceipt = useCallback(
+    async (address: string) => {
+      const depositReceipt: DepositReceipt = await lpContract?.depositReceipts(
+        address
+      );
+      setDepositReceipt(depositReceipt);
+      return depositReceipt;
+    },
+    [lpContract]
+  );
+
+  const getPendingDepositedUSDC = useCallback(
+    async (depositReceipt: DepositReceipt, currentEpoch: BigNumber) => {
+      const isPendingUSDC = depositReceipt.epoch.eq(currentEpoch);
+      if (isPendingUSDC) {
+        setPendingDepositedUSDC(depositReceipt.amount);
+      } else {
+        setPendingDepositedUSDC(BigNumber.from(0));
       }
-      getBalance(account);
+    },
+    []
+  );
+
+  const getUnredeemedShares = useCallback(
+    (
+      depositReceipt: DepositReceipt,
+      currentEpochSharePrice: BigNumber,
+      currentEpoch: BigNumber
+    ) => {
+      const receiptEpochHasRun = depositReceipt.epoch.lt(currentEpoch);
+      debugger;
+      // When making conversion from amount (USDC) to RYSK, need to
+      // account for decimals. Hence scaling by BIG_NUMBER_DECIMALS values.
+      const receiptAmountInShares = receiptEpochHasRun
+        ? depositReceipt.amount
+            // Making e24
+            .mul(BIG_NUMBER_DECIMALS.RYSK)
+            // Now e6
+            .div(currentEpochSharePrice)
+            // Now back to e18
+            .mul(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC))
+        : BigNumber.from(0);
+      const totalRedeemableShares = receiptAmountInShares.add(
+        depositReceipt.unredeemedShares
+      );
+      setUnredeemedShares(totalRedeemableShares);
+    },
+    []
+  );
+
+  const updateDepositState = useCallback(async () => {
+    if (account) {
+      await getUSDCBalance(account);
+      const currentEpoch = await getCurrentEpoch();
+      const currentEpochSharePrice = await getCurrentSharePrice(currentEpoch);
+      const depositReceipt = await getDepositReceipt(account);
+      await getRedeemedSharesUSDC(account, currentEpochSharePrice);
+      await getUnredeemedShares(
+        depositReceipt,
+        currentEpochSharePrice,
+        currentEpoch
+      );
+      await getPendingDepositedUSDC(depositReceipt, currentEpoch);
+
+      console.log({ currentEpoch, depositReceipt });
     }
-  }, [account, lpContract, getBalance]);
+  }, [
+    account,
+    getCurrentEpoch,
+    getCurrentSharePrice,
+    getDepositReceipt,
+    getRedeemedSharesUSDC,
+    getPendingDepositedUSDC,
+    getUSDCBalance,
+    getUnredeemedShares,
+  ]);
 
   const epochListener = useCallback(async () => {
     updateDepositState();
@@ -152,12 +236,9 @@ export const VaultDeposit = () => {
 
   useEffect(() => {
     (async () => {
-      if (account) {
-        await getBalance(account);
-        await epochListener();
-      }
+      await updateDepositState();
     })();
-  }, [getBalance, account, epochListener]);
+  }, [updateDepositState]);
 
   // Reset input value when switching mode
   useEffect(() => {
@@ -237,7 +318,7 @@ export const VaultDeposit = () => {
         } else if (depositMode === DepositMode.REDEEM) {
           await handleRedeemShares();
         }
-        await getBalance(account);
+        await updateDepositState();
         setInputValue("");
       }
     } catch (err) {
@@ -254,7 +335,9 @@ export const VaultDeposit = () => {
   return (
     <div className="flex-col items-center justify-between h-full">
       <div className="w-full h-8 bg-black text-white px-2 flex items-center justify-start">
-        <p>1. Deposit USDC</p>
+        <p>
+          <b>1. Deposit USDC</b>
+        </p>
       </div>
       <div className="flex border-b-2 border-black">
         <div className="border-r-2 border-black w-16 flex justify-center items-center">
@@ -268,7 +351,9 @@ export const VaultDeposit = () => {
               <p className="text-xs">
                 Balance:{" "}
                 <RequiresWalletConnection className="w-[60px] h-[16px] mr-2 translate-y-[-2px]">
-                  500
+                  <BigNumberDisplay currency={Currency.USDC}>
+                    {userUSDCBalance}
+                  </BigNumberDisplay>
                 </RequiresWalletConnection>{" "}
                 USDC
               </p>
@@ -292,18 +377,22 @@ export const VaultDeposit = () => {
               <p>Pending USDC</p>
               <p>
                 <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                  500
+                  <BigNumberDisplay currency={Currency.USDC}>
+                    {pendingDepositedUSDC}
+                  </BigNumberDisplay>
                 </RequiresWalletConnection>{" "}
                 USDC
               </p>
             </div>
             <div className="flex justify-between">
-              <p>Deposited USDC</p>
+              <p>Unredeemed Shares</p>
               <p>
                 <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                  500
+                  <BigNumberDisplay currency={Currency.RYSK}>
+                    {unredeemedSharesUSDC}
+                  </BigNumberDisplay>
                 </RequiresWalletConnection>{" "}
-                USDC
+                RYSK
               </p>
             </div>
           </div>
@@ -341,7 +430,9 @@ export const VaultDeposit = () => {
       </div>
       <div>
         <div className="w-full h-8 bg-black text-white px-2 flex items-center justify-start">
-          <p>2. Redeem</p>
+          <p>
+            <b>2. Redeem</b>
+          </p>
         </div>
         <div className="p-2">
           <p className="text-xs">
