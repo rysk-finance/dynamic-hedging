@@ -57,8 +57,9 @@ export const VaultDeposit = () => {
   );
   const [pendingDepositedUSDC, setPendingDepositedUSDC] =
     useState<BigNumber | null>(null);
-  const [unredeemedSharesUSDC, setUnredeemedShares] =
-    useState<BigNumber | null>(null);
+  const [unredeemedShares, setUnredeemedShares] = useState<BigNumber | null>(
+    null
+  );
   const [redeemedSharesUSDC, setRedeemedSharesUSDC] =
     useState<BigNumber | null>(null);
   const [approvalState, setApprovalState] = useState<Events["Approval"] | null>(
@@ -183,7 +184,6 @@ export const VaultDeposit = () => {
       currentEpoch: BigNumber
     ) => {
       const receiptEpochHasRun = depositReceipt.epoch.lt(currentEpoch);
-      debugger;
       // When making conversion from amount (USDC) to RYSK, need to
       // account for decimals. Hence scaling by BIG_NUMBER_DECIMALS values.
       const receiptAmountInShares = receiptEpochHasRun
@@ -216,8 +216,6 @@ export const VaultDeposit = () => {
         currentEpoch
       );
       await getPendingDepositedUSDC(depositReceipt, currentEpoch);
-
-      console.log({ currentEpoch, depositReceipt });
     }
   }, [
     account,
@@ -303,8 +301,7 @@ export const VaultDeposit = () => {
 
   const handleRedeemShares = async () => {
     if (lpContract) {
-      const amount = ethers.utils.parseUnits(inputValue, DECIMALS.RYSK);
-      await lpContractCall({ method: lpContract.redeem, args: [amount] });
+      await lpContractCall({ method: lpContract.redeem, args: [MAX_UINT_256] });
       setListeningForRedeem(true);
     }
   };
@@ -331,6 +328,7 @@ export const VaultDeposit = () => {
   const depositIsDisabled =
     depositMode === DepositMode.USDC &&
     !(inputValue && account && approvalState);
+  const redeemIsDisabled = listeningForRedeem;
 
   return (
     <div className="flex-col items-center justify-between h-full">
@@ -372,8 +370,8 @@ export const VaultDeposit = () => {
               numericOnly
             />
           </div>
-          <div className="ml-[-2px] p-2 border-b-[2px] border-black text-[16px]">
-            <div className="flex justify-between mb-2">
+          <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
+            <div className="flex justify-between">
               <p>Pending USDC</p>
               <p>
                 <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
@@ -382,17 +380,6 @@ export const VaultDeposit = () => {
                   </BigNumberDisplay>
                 </RequiresWalletConnection>{" "}
                 USDC
-              </p>
-            </div>
-            <div className="flex justify-between">
-              <p>Unredeemed Shares</p>
-              <p>
-                <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                  <BigNumberDisplay currency={Currency.RYSK}>
-                    {unredeemedSharesUSDC}
-                  </BigNumberDisplay>
-                </RequiresWalletConnection>{" "}
-                RYSK
               </p>
             </div>
           </div>
@@ -429,16 +416,54 @@ export const VaultDeposit = () => {
         </div>
       </div>
       <div>
+        <div className="h-4" />
         <div className="w-full h-8 bg-black text-white px-2 flex items-center justify-start">
           <p>
             <b>2. Redeem</b>
           </p>
         </div>
-        <div className="p-2">
-          <p className="text-xs">
-            Your USDC will be available to redeem as shares during our weekly
-            strategy every Friday at 11am UTC
-          </p>
+        <div>
+          <div>
+            {unredeemedShares ? (
+              unredeemedShares._hex !== ZERO_UINT_256 ? (
+                <>
+                  <div className="px-2 py-4">
+                    <div className="flex justify-between">
+                      <p>Unredeemed Shares</p>
+                      <p>
+                        <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
+                          <BigNumberDisplay currency={Currency.RYSK}>
+                            {unredeemedShares}
+                          </BigNumberDisplay>
+                        </RequiresWalletConnection>{" "}
+                        RYSK
+                      </p>
+                    </div>
+                    <hr className="border-black mb-2 mt-1" />
+                    <div className="text-xs text-right">
+                      <p>100 RYSK @ 20.12 USDC per RYSK</p>
+                      <p>1000 RYSK @ 18.23 USDC per RYSK</p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      handleRedeemShares();
+                    }}
+                    className={`w-full !py-6 border-t-[2px] border-black bg-black text-white`}
+                    disabled={redeemIsDisabled}
+                    color="black"
+                  >
+                    {redeemIsDisabled ? "⏱ Awaiting redeem" : "Redeem"}
+                  </Button>
+                </>
+              ) : (
+                <p className="text-xs p-2">
+                  Your USDC will be available to redeem as shares during our
+                  weekly strategy every Friday at 11am UTC
+                </p>
+              )
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
