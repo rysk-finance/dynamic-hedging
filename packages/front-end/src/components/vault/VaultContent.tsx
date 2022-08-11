@@ -7,6 +7,7 @@ import { VaultDeposit } from "../../components/VaultDesposit";
 import { VaultStats } from "../../components/VaultStats";
 import { useVaultContext } from "../../state/VaultContext";
 import { Currency } from "../../types";
+import { RequiresWalletConnection } from "../RequiresWalletConnection";
 
 export const VaultContent = () => {
   const {
@@ -18,9 +19,11 @@ export const VaultContent = () => {
       <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 mb-16">
         <h4>
           RYSK Balance:{" "}
-          <BigNumberDisplay currency={Currency.RYSK}>
-            {userRyskBalance}
-          </BigNumberDisplay>
+          <RequiresWalletConnection className="bg-white h-8 w-[100px]">
+            <BigNumberDisplay currency={Currency.RYSK}>
+              {userRyskBalance}
+            </BigNumberDisplay>
+          </RequiresWalletConnection>
         </h4>
         <h4>Epoch: {currentEpoch?.toString()}</h4>
         <h4>
