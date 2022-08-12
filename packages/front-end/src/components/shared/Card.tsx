@@ -28,7 +28,7 @@ export const Card: React.FC<CardProps> = ({
             className={`bg-[url('./assets/CardTab.svg')] ${
               tabs.length > 1 && "cursor-pointer"
             } bg-[length:100%_100%] ${
-              index !== selectedTabIndex ? "contrast-[75%]" : ""
+              index !== selectedTabIndex ? "contrast-[50%]" : ""
             } px-2 flex items-center`}
             style={{
               transform: `translateX(-${index * 10}px)`,
