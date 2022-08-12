@@ -15,7 +15,7 @@ type CardProps = {
 export const Card: React.FC<CardProps> = ({
   tabs,
   tabWidth = 180,
-  tabHeight = 30,
+  tabHeight = 36,
 }) => {
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
 
