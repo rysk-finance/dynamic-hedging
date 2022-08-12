@@ -32,5 +32,7 @@ export const BigNumberDisplay: React.FC<BigNumberDisplayProps> = ({
       suffix={suffix ? ` ${suffix}` : undefined}
       {...numberFormatProps}
     />
-  ) : null;
+  ) : (
+    <>0.00</>
+  );
 };
