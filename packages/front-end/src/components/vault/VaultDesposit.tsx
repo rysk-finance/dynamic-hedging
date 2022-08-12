@@ -237,22 +237,30 @@ export const VaultDeposit = () => {
         ]
       )) as BigNumber;
       try {
-        if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
-          await usdcContractCall({
-            method: usdcContract.approve,
-            args: [
-              (addresses as Record<ETHNetwork, ContractAddresses>)[
-                network.name
-              ]["liquidityPool"],
-              settings.unlimitedApproval
-                ? ethers.BigNumber.from(MAX_UINT_256)
-                : amount,
-            ],
-            successMessage: "✅ Approval submitted",
-          });
-          setListeningForApproval(true);
-        } else {
-          toast("✅ Your transaction is already approved");
+        if (!settings.unlimitedApproval) {
+          if (approvedAmount.lt(amount)) {
+            await usdcContractCall({
+              method: usdcContract.approve,
+              args: [
+                (addresses as Record<ETHNetwork, ContractAddresses>)[
+                  network.name
+                ]["liquidityPool"],
+                settings.unlimitedApproval
+                  ? ethers.BigNumber.from(MAX_UINT_256)
+                  : amount,
+              ],
+              successMessage: "✅ Approval submitted",
+            });
+            setListeningForApproval(true);
+          } else {
+            if (account && lpContract)
+              setApprovalState({
+                owner: account,
+                spender: lpContract.address,
+                value: approvedAmount,
+              });
+            toast("✅ Your transaction is already approved");
+          }
         }
       } catch {
         toast("❌ There was an error approving your transaction.");
