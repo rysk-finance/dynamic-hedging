@@ -79,6 +79,7 @@ export const VaultDeposit = () => {
       Deposit: () => {
         setListeningForDeposit(false);
         toast("✅ Deposit complete");
+        setInputValue("");
         updateDepositState();
       },
       Redeem: () => {
@@ -277,9 +278,9 @@ export const VaultDeposit = () => {
         successMessage: "✅ Deposit submitted",
         onComplete: () => {
           setApprovalState(null);
+          setListeningForDeposit(true);
         },
       });
-      setListeningForDeposit(true);
     }
   };
 

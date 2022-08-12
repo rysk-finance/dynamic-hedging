@@ -183,9 +183,10 @@ export const VaultWithdraw = () => {
         method: lpContract.completeWithdraw,
         args: [MAX_UINT_256],
         successMessage: "✅ Withdraw completion submitted",
-        onComplete: () => {},
+        onComplete: () => {
+          setListeningForCompleteWithdraw(true);
+        },
       });
-      setListeningForCompleteWithdraw(true);
     }
   };
 
