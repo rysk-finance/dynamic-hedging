@@ -242,6 +242,17 @@ export const VaultWithdraw = () => {
                 maxNumDecimals={18}
                 maxValue={userRyskBalance ?? undefined}
                 maxValueDecimals={18}
+                maxButtonHandler={
+                  userRyskBalance
+                    ? () => {
+                        if (userRyskBalance) {
+                          setInputValue(
+                            ethers.utils.formatUnits(userRyskBalance, 18)
+                          );
+                        }
+                      }
+                    : undefined
+                }
               />
             </div>
             <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">

@@ -328,6 +328,17 @@ export const VaultDeposit = () => {
               numericOnly
               maxValue={userUSDCBalance ?? undefined}
               maxValueDecimals={6}
+              maxButtonHandler={
+                userUSDCBalance
+                  ? () => {
+                      if (userUSDCBalance) {
+                        setInputValue(
+                          ethers.utils.formatUnits(userUSDCBalance, 6)
+                        );
+                      }
+                    }
+                  : undefined
+              }
             />
           </div>
           <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
