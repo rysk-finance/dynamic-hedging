@@ -355,6 +355,7 @@ export const VaultDeposit = () => {
                 className={`w-full !py-6 !border-0 bg-black text-white`}
                 disabled={approveIsDisabled}
                 color="black"
+                requiresConnection
               >
                 {approvalState
                   ? "✅ Approved"
@@ -362,20 +363,22 @@ export const VaultDeposit = () => {
                   ? "⏱ Awaiting Approval"
                   : "Approve"}
               </Button>
-              <Button
-                onClick={() => {
-                  if (inputValue) {
-                    handleDepositCollateral();
-                  }
-                }}
-                className={`w-full !py-6 !border-0 bg-black text-white ${
-                  depositIsDisabled ? "!bg-gray-300" : ""
-                }`}
-                disabled={depositIsDisabled}
-                color="black"
-              >
-                {listeningForDeposit ? "⏱ Awaiting deposit" : "Deposit"}
-              </Button>
+              {account && (
+                <Button
+                  onClick={() => {
+                    if (inputValue) {
+                      handleDepositCollateral();
+                    }
+                  }}
+                  className={`w-full !py-6 !border-0 bg-black text-white ${
+                    depositIsDisabled ? "!bg-gray-300" : ""
+                  }`}
+                  disabled={depositIsDisabled}
+                  color="black"
+                >
+                  {listeningForDeposit ? "⏱ Awaiting deposit" : "Deposit"}
+                </Button>
+              )}
             </>
           </div>
         </div>

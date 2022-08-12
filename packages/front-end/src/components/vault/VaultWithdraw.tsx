@@ -276,6 +276,7 @@ export const VaultWithdraw = () => {
                   }`}
                   disabled={initiatedIsDisabled}
                   color="black"
+                  requiresConnection
                 >
                   {listeningForInitiation
                     ? "⏱ Awaiting initiation"
@@ -320,6 +321,7 @@ export const VaultWithdraw = () => {
                 className={`w-full !py-6 !border-b-0 !border-x-0 border-t-[2px] border-black bg-black text-white`}
                 disabled={completeIsDisabled}
                 color="black"
+                requiresConnection
               >
                 {completeIsDisabled ? "⏱ Awaiting complete" : "Complete"}
               </Button>
