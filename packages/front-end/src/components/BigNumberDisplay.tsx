@@ -12,7 +12,7 @@ const CURRENCY_TO_DP_MAP: Record<Currency, number> = {
 
 type BigNumberDisplayProps = {
   currency: Currency;
-  children: BigNumber;
+  children: BigNumber | null;
   numberFormatProps?: NumberFormatProps;
   suffix?: string;
 };
@@ -23,7 +23,7 @@ export const BigNumberDisplay: React.FC<BigNumberDisplayProps> = ({
   numberFormatProps = {},
   suffix,
 }) => {
-  return (
+  return children ? (
     <NumberFormat
       value={ethers.utils.formatUnits(children, DECIMALS[currency])}
       displayType={"text"}
@@ -32,5 +32,5 @@ export const BigNumberDisplay: React.FC<BigNumberDisplayProps> = ({
       suffix={suffix ? ` ${suffix}` : undefined}
       {...numberFormatProps}
     />
-  );
+  ) : null;
 };

@@ -41,6 +41,27 @@ export type GlobalContext = {
   dispatch: Dispatch<GlobalAction>;
 };
 
+// Vault context
+export type VaultState = {
+  userRyskBalance: BigNumber | null;
+  currentEpoch: BigNumber | null;
+  currentPricePerShare: BigNumber | null;
+};
+
+export enum VaultActionType {
+  SET,
+}
+
+export type VaultAction = {
+  type: VaultActionType.SET;
+  data: Partial<VaultState>;
+};
+
+export type VaultContext = {
+  state: VaultState;
+  dispatch: Dispatch<VaultAction>;
+};
+
 // Options trading context
 export type OptionsTradingState = {
   optionType: OptionType;
