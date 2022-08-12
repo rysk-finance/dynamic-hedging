@@ -13,6 +13,7 @@ import { PerpHedgingTest } from "../types/PerpHedgingTest"
 //@ts-ignore
 import { IUniswapV3Pool } from "../artifacts/@uniswap/v3-core-0.8-support/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json"
 import { ClearingHouse } from "../types/ClearingHouse"
+import { ClearingHouseLens } from "../types/ClearingHouseLens"
 import {OracleMock} from "../types/OracleMock"
 import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_SWAP_ROUTER } from "../test/constants"
 import { PriceFeed } from "../types/PriceFeed"
@@ -128,7 +129,7 @@ export async function updateRangeOrder(
 		).deploy();
 		let vPoolWrapperLogic = await (await hre.ethers.getContractFactory('VPoolWrapper')).deploy();
 		const insuranceFundLogic = await (await hre.ethers.getContractFactory('InsuranceFund')).deploy();
-	
+		const settlementTokenOracle = await (await hre.ethers.getContractFactory('SettlementTokenOracle')).deploy() as OracleMock;
 		const rageTradeFactory = await (
 		  await hre.ethers.getContractFactory('RageTradeFactory')
 		).deploy(
@@ -136,10 +137,11 @@ export async function updateRangeOrder(
 		  vPoolWrapperLogic.address,
 		  insuranceFundLogic.address,
 		  USDC_ADDRESS[chainId],
+      settlementTokenOracle.address
 		) as RageTradeFactory
 	
 		const clearingHouse = await hre.ethers.getContractAt('ClearingHouse', await rageTradeFactory.clearingHouse()) as ClearingHouse;
-	
+    const clearingHouseLens = await (await hre.ethers.getContractFactory('ClearingHouseLens')).deploy(clearingHouse.address) as ClearingHouseLens
 		const insuranceFund = await hre.ethers.getContractAt('InsuranceFund', await clearingHouse.insuranceFund());
 	
 		const vQuote = await hre.ethers.getContractAt('VQuote', await rageTradeFactory.vQuote());
@@ -166,7 +168,6 @@ export async function updateRangeOrder(
 		  out.vPool,
 		)) as IUniswapV3Pool;
 
-		const settlementTokenOracle = await (await hre.ethers.getContractFactory('OracleMock')).deploy() as OracleMock;
 		await clearingHouse.updateCollateralSettings(USDC_ADDRESS[chainId], {
 		  oracle: settlementTokenOracle.address,
 		  twapDuration: 300,
@@ -202,7 +203,8 @@ export async function updateRangeOrder(
           vQuoteAddress: vQuoteAddress, 
           vTokenAddress: vTokenAddress, 
           rageOracle: rageOracle, 
-          settlementTokenOracle: settlementTokenOracle
+          settlementTokenOracle: settlementTokenOracle,
+          clearingHouseLens: clearingHouseLens
         }
 	}
 
