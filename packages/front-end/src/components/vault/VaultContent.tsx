@@ -8,6 +8,7 @@ import { VaultStats } from "../../components/VaultStats";
 import { useVaultContext } from "../../state/VaultContext";
 import { Currency } from "../../types";
 import { RequiresWalletConnection } from "../RequiresWalletConnection";
+import { VaultWithdraw } from "./VaultWithdraw";
 
 export const VaultContent = () => {
   const {
@@ -27,10 +28,11 @@ export const VaultContent = () => {
         </h4>
         <h4>Epoch: {currentEpoch?.toString()}</h4>
         <h4>
-          Epoch Price Per Share:{" "}
+          RYSK Price:{" "}
           <BigNumberDisplay
             currency={Currency.RYSK}
             numberFormatProps={{ decimalScale: 18 }}
+            suffix="USDC"
           >
             {currentPricePerShare}
           </BigNumberDisplay>
@@ -53,7 +55,7 @@ export const VaultContent = () => {
               label: "Deposit",
               content: <VaultDeposit />,
             },
-            { label: "Withdraw", content: <div>ello</div> },
+            { label: "Withdraw", content: <VaultWithdraw /> },
           ]}
         ></Card>
       </div>

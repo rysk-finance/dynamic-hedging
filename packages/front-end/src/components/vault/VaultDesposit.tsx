@@ -85,6 +85,9 @@ export const VaultDeposit = () => {
         setListeningForRedeem(false);
         toast("✅ Redeem completed");
         updateDepositState();
+        if (account) {
+          getRedeemedShares(account);
+        }
       },
     },
     isListening: {
@@ -119,7 +122,7 @@ export const VaultDeposit = () => {
     [usdcContract]
   );
 
-  const getRedeemedSharesUSDC = useCallback(
+  const getRedeemedShares = useCallback(
     async (address: string) => {
       const sharesBalance: BigNumber | null = await lpContract?.balanceOf(
         address
@@ -186,7 +189,6 @@ export const VaultDeposit = () => {
     if (account && currentPricePerShare && currentEpoch) {
       await getUSDCBalance(account);
       const depositReceipt = await getDepositReceipt(account);
-      await getRedeemedSharesUSDC(account);
       await getUnredeemedShares(
         depositReceipt,
         currentPricePerShare,
@@ -199,7 +201,6 @@ export const VaultDeposit = () => {
     currentEpoch,
     currentPricePerShare,
     getDepositReceipt,
-    getRedeemedSharesUSDC,
     getPendingDepositedUSDC,
     getUSDCBalance,
     getUnredeemedShares,
@@ -207,7 +208,10 @@ export const VaultDeposit = () => {
 
   const epochListener = useCallback(async () => {
     updateDepositState();
-  }, [updateDepositState]);
+    if (account) {
+      getRedeemedShares(account);
+    }
+  }, [updateDepositState, account, getRedeemedShares]);
 
   useEffect(() => {
     (async () => {
