@@ -190,17 +190,17 @@ export const UserVault = () => {
                             suffix=" USDC"
                           />
                         </h3>
-                        <h4 className="mb-2">Queed Deposit</h4>
+                        <h4 className="mb-2">Queued Deposit</h4>
                         <button
                           data-tip
-                          data-for="queedTip"
+                          data-for="queuedTip"
                           className="cursor-help pl-2"
                         >
                           <img src="/icons/info.svg" />
                         </button>
                         {/* TODO  update with epoch time */}
                         <ReactTooltip
-                          id="queedTip"
+                          id="queuedTip"
                           place="bottom"
                           multiline={true}
                           backgroundColor="#EDE9DD"
