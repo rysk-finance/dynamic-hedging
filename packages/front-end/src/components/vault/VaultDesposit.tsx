@@ -228,7 +228,8 @@ export const VaultDeposit = () => {
   // Handlers for the different possible vault interactions.
   const handleApproveSpend = async () => {
     if (usdcContract && network) {
-      const amount = BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(inputValue));
+      const amount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
+      debugger;
       const approvedAmount = (await usdcContract.allowance(
         account,
         (addresses as Record<ETHNetwork, ContractAddresses>)[network.name][
