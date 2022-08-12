@@ -324,7 +324,10 @@ export const VaultDeposit = () => {
                   <p>USDC</p>
                 </div>
               }
+              maxNumDecimals={18}
               numericOnly
+              maxValue={userUSDCBalance ?? undefined}
+              maxValueDecimals={6}
             />
           </div>
           <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">

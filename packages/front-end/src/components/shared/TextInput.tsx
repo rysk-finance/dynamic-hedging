@@ -1,3 +1,4 @@
+import { BigNumber, ethers } from "ethers";
 import React from "react";
 
 type TextInputProps = React.DetailedHTMLProps<
@@ -9,6 +10,8 @@ type TextInputProps = React.DetailedHTMLProps<
   setValue: (value: string) => void;
   numericOnly?: boolean;
   maxNumDecimals?: number;
+  maxValue?: BigNumber;
+  maxValueDecimals?: number;
 };
 
 export const TextInput: React.FC<TextInputProps> = ({
@@ -17,6 +20,8 @@ export const TextInput: React.FC<TextInputProps> = ({
   iconLeft,
   numericOnly = false,
   maxNumDecimals,
+  maxValue,
+  maxValueDecimals,
   ...props
 }) => {
   const setter = (value: string) => {
@@ -25,7 +30,14 @@ export const TextInput: React.FC<TextInputProps> = ({
         maxNumDecimals && value.includes(".")
           ? value.split(".")[1].length <= maxNumDecimals
           : true;
-      if (value === "" || (!isNaN(Number(value)) && isWithinDecimalLimit)) {
+      const isSmallerThanMaxValue = maxValue
+        ? Number(value) <=
+          Number(ethers.utils.formatUnits(maxValue, maxValueDecimals))
+        : true;
+      if (
+        value === "" ||
+        (!isNaN(Number(value)) && isWithinDecimalLimit && isSmallerThanMaxValue)
+      ) {
         setValue(value);
       }
     } else {
