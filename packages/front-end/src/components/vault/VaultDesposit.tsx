@@ -284,7 +284,10 @@ export const VaultDeposit = () => {
   };
 
   const approveIsDisabled =
-    !inputValue || !!approvalState || listeningForApproval;
+    !inputValue ||
+    !!approvalState ||
+    listeningForApproval ||
+    ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256;
   const depositIsDisabled = !(inputValue && account && approvalState);
   const redeemIsDisabled = listeningForRedeem;
 

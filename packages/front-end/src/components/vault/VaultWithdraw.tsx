@@ -190,7 +190,9 @@ export const VaultWithdraw = () => {
   };
 
   const initiatedIsDisabled =
-    !(inputValue && account) || listeningForInitiation;
+    !(inputValue && account) ||
+    listeningForInitiation ||
+    ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256;
   const completeIsDisabled = listeningForCompleteWithdraw;
 
   return (
