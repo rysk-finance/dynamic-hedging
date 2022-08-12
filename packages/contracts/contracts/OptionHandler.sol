@@ -82,8 +82,8 @@ contract OptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		uint32 maxPriceRange;
 	}
 
-	event OrderCreated(uint256 orderId);
-	event OrderExecuted(uint256 orderId);
+	event OrderCreated(uint256 indexed orderId);
+	event OrderExecuted(uint256 indexed orderId);
 
 	constructor(
 		address _authority,

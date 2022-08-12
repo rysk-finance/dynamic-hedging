@@ -140,23 +140,29 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	event EpochExecuted(uint256 epoch);
-	event Withdraw(address recipient, uint256 amount, uint256 shares);
-	event Deposit(address recipient, uint256 amount, uint256 epoch);
-	event Redeem(address recipient, uint256 amount, uint256 epoch);
-	event InitiateWithdraw(address recipient, uint256 amount, uint256 epoch);
-	event WriteOption(address series, uint256 amount, uint256 premium, uint256 escrow, address buyer);
+	event Withdraw(address indexed recipient, uint256 indexed amount, uint256 shares);
+	event Deposit(address indexed recipient, uint256 indexed amount, uint256 epoch);
+	event Redeem(address indexed recipient, uint256 indexed amount, uint256 epoch);
+	event InitiateWithdraw(address indexed recipient, uint256 indexed amount, uint256 epoch);
+	event WriteOption(
+		address indexed series,
+		uint256 indexed amount,
+		uint256 premium,
+		uint256 escrow,
+		address indexed buyer
+	);
 	event SettleVault(
-		address series,
+		address indexed series,
 		uint256 collateralReturned,
 		uint256 collateralLost,
-		address closer
+		address indexed closer
 	);
 	event BuybackOption(
-		address series,
-		uint256 amount,
+		address indexed series,
+		uint256 indexed amount,
 		uint256 premium,
 		uint256 escrowReturned,
-		address seller
+		address indexed seller
 	);
 
 	constructor(
@@ -713,6 +719,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		_decimals = ERC20(asset).decimals();
 		normalizedBalance = OptionsCompute.convertFromDecimals(collateralBalance, _decimals);
 	}
+
 	/**
 	 * @notice get the delta of the hedging reactors
 	 * @return hedging reactor delta in e18 format
