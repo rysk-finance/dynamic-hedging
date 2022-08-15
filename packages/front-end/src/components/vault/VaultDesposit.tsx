@@ -430,13 +430,13 @@ export const VaultDeposit = () => {
                             {unredeemedShares}
                           </BigNumberDisplay>
                         </RequiresWalletConnection>{" "}
-                        RYSK
+                        DHV
                       </p>
                     </div>
                     <hr className="border-black mb-2 mt-1" />
                     <div className="text-xs text-right">
-                      <p>100 RYSK @ 20.12 USDC per RYSK</p>
-                      <p>1000 RYSK @ 18.23 USDC per RYSK</p>
+                      <p>100 DHV @ 20.12 USDC per DHV</p>
+                      <p>1000 DHV @ 18.23 USDC per DHV</p>
                     </div>
                   </div>
                   <Button

@@ -34,43 +34,33 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export const VaultChart = () => {
   return (
-    <Card
-      tabWidth={260}
-      tabs={[
-        {
-          label: "DHV.cumulativeYield(%)",
-          content: (
-            <div className="pb-8 py-12 px-8 flex flex-col lg:flex-row h-full">
-              <div className="flex h-full w-full justify-around">
-                <ResponsiveContainer width={"95%"} height={400}>
-                  <LineChart
-                    data={data}
-                    margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
-                  >
-                    <Tooltip content={<CustomTooltip />} />
-                    <Line
-                      type="monotone"
-                      dataKey="cumulativeYield"
-                      stroke="black"
-                    />
-                    <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
-                    <XAxis dataKey="date" angle={-45} />
-                    <YAxis>
-                      <Label
-                        angle={-90}
-                        value="Cumulative Yield (%)"
-                        position="center"
-                        dx={-20}
-                      />
-                    </YAxis>
-                    <Tooltip />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          ),
-        },
-      ]}
-    ></Card>
+    <div className="pb-8 py-12 px-8 flex flex-col lg:flex-row h-full">
+      <div className="flex h-full w-full justify-around">
+        <ResponsiveContainer width={"95%"} height={400}>
+          <LineChart
+            data={data}
+            margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+          >
+            <Tooltip content={<CustomTooltip />} />
+            <Line
+              type="monotone"
+              dataKey="cumulativeYield"
+              stroke="black"
+            />
+            <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
+            <XAxis dataKey="date" angle={-45} />
+            <YAxis>
+              <Label
+                angle={-90}
+                value="Cumulative Yield (%)"
+                position="center"
+                dx={-20}
+              />
+            </YAxis>
+            <Tooltip />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 };
