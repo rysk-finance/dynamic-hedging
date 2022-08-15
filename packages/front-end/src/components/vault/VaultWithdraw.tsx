@@ -261,7 +261,7 @@ export const VaultWithdraw = () => {
             <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
               <div className="flex justify-between">
                 <div className="flex">
-                  <p>Pending RYSK</p>
+                  <p>Pending withdraw</p>
                   <RyskTooltip
                     tooltipProps={{ className: "max-w-[350px]" }}
                     message={

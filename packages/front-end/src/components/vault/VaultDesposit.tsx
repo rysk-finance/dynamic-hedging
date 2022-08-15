@@ -356,7 +356,7 @@ export const VaultDeposit = () => {
           <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
             <div className="flex justify-between">
               <div className="flex">
-                <p>Pending USDC</p>
+                <p>Pending deposit</p>
                 <RyskTooltip
                   message={
                     "Your USDC will be deployed to our vault and converted to shares every Friday at 11am UTC"
