@@ -45,6 +45,16 @@ export const SUBGRAPH_URL = {
   [CHAINID.ARBITRUM_MAINNET]: "",
 };
 
+export const SCAN_URL = {
+  [CHAINID.LOCALHOST]: "",
+  [CHAINID.ETH_MAINNET]: "",
+  [CHAINID.ARBITRUM_RINKEBY]:
+    "https://testnet.arbiscan.io",
+  [CHAINID.ARBITRUM_MAINNET]: 
+    "https://arbiscan.io"
+  ,
+}
+
 /**
  * Tokens and owners
  */

@@ -356,7 +356,7 @@ export const VaultDeposit = () => {
           <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
             <div className="flex justify-between">
               <div className="flex">
-                <p>Pending USDC</p>
+                <p>Pending deposit</p>
                 <RyskTooltip
                   message={
                     "Your USDC will be deployed to our vault and converted to shares every Friday at 11am UTC"
@@ -430,13 +430,13 @@ export const VaultDeposit = () => {
                             {unredeemedShares}
                           </BigNumberDisplay>
                         </RequiresWalletConnection>{" "}
-                        RYSK
+                        DHV
                       </p>
                     </div>
                     <hr className="border-black mb-2 mt-1" />
                     <div className="text-xs text-right">
-                      <p>100 RYSK @ 20.12 USDC per RYSK</p>
-                      <p>1000 RYSK @ 18.23 USDC per RYSK</p>
+                      <p>100 DHV @ 20.12 USDC per DHV</p>
+                      <p>1000 DHV @ 18.23 USDC per DHV</p>
                     </div>
                   </div>
                   <Button
