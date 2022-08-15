@@ -5,9 +5,9 @@ pragma solidity >=0.8.9;
 import { Types } from "../libraries/Types.sol";
 import "../interfaces/IOptionRegistry.sol";
 import "../interfaces/IAccounting.sol";
-import "./IERC20.sol";
+import "../interfaces/I_ERC20.sol";
 
-interface ILiquidityPool is IERC20 {
+interface ILiquidityPool is I_ERC20 {
 	///////////////////////////
 	/// immutable variables ///
 	///////////////////////////
