@@ -49,8 +49,10 @@ export const SCAN_URL = {
   [CHAINID.LOCALHOST]: "",
   [CHAINID.ETH_MAINNET]: "",
   [CHAINID.ARBITRUM_RINKEBY]:
-    "https://testnet.arbiscan.io/",
-  [CHAINID.ARBITRUM_MAINNET]: "",
+    "https://testnet.arbiscan.io",
+  [CHAINID.ARBITRUM_MAINNET]: 
+    "https://arbiscan.io"
+  ,
 }
 
 /**

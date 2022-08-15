@@ -1,18 +1,19 @@
 import React from "react";
 import { useContract } from "../hooks/useContract";
 import LPABI from "../abis/LiquidityPool.json";
-import { SCAN_URL } from "../config/constants";
+import { CHAINID, SCAN_URL } from "../config/constants";
 import { useVaultContext } from "../state/VaultContext";
 import { BigNumberDisplay } from "./BigNumberDisplay";
 import { Currency } from "../types";
 import moment from "moment";
+import { useWalletContext } from "../App";
 
 
 export const VaultInfo = () => { 
 
   const {
     state: { currentEpoch, currentPricePerShare, userRyskBalance },
-  } = useVaultContext();
+  } = useVaultContext(); 
 
   function getNextFriday(date = new Date()) {
     const dateCopy = new Date(date.getTime());
@@ -27,12 +28,12 @@ export const VaultInfo = () => {
       ) :
       dateCopy
 
-
     return moment(nextDate).format('MMMM Do YYYY');
   }
 
   const [lpContract] = useContract({ contract: "liquidityPool", ABI: LPABI, readOnly: true });
 
+  
   return (
     <div className="pb-8 py-12 px-8">
       <div className="grid grid-cols-2">
@@ -66,7 +67,12 @@ export const VaultInfo = () => {
           <h4>Addresses</h4>
           <p className="mt-4">
             DHV: {" "} 
-            <a href={`${SCAN_URL}/address/${lpContract?.address}`} className="underline hover:font-medium"> { lpContract?.address } </a>
+            <a 
+              href={`${SCAN_URL[CHAINID.ARBITRUM_MAINNET]}/address/${lpContract?.address}`} 
+              target="blank"
+              className="underline hover:font-medium"> 
+              { lpContract?.address } 
+            </a>
           </p>
         </div>
 
