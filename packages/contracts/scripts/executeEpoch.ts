@@ -21,7 +21,7 @@ async function main() {
 		await lpContract.pauseTradingAndRequest()
 		await lpContract.executeEpochCalculation()
 
-		const newEpoch = await lpContract.epoch()
+		const newEpoch = await lpContract.depositpoch()
 		console.log(`New epoch is ${newEpoch}`)
 	} catch (err) {
 		console.log(err)
@@ -30,7 +30,7 @@ async function main() {
 
 main()
 	.then(() => process.exit())
-	.catch((error) => {
-		console.error(error);
+	.catch(error => {
+		console.error(error)
 		process.exit(1)
 	})
