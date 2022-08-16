@@ -21,9 +21,9 @@ export const VaultContent = () => {
     <>
       <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 mb-16">
         <h4>
-          DHV Balance:{" "}
+          Your Balance:{" "}
           <RequiresWalletConnection className="bg-white h-8 w-[100px]">
-            <BigNumberDisplay currency={Currency.RYSK}>
+            <BigNumberDisplay currency={Currency.RYSK} suffix="DHV">
               {userRyskBalance}
             </BigNumberDisplay>
           </RequiresWalletConnection>
