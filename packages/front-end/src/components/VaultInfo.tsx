@@ -1,7 +1,7 @@
 import React from "react";
 import { useContract } from "../hooks/useContract";
 import LPABI from "../abis/LiquidityPool.json";
-import { CHAINID, SCAN_URL } from "../config/constants";
+import { CHAINID, DHV_NAME, SCAN_URL } from "../config/constants";
 import { useVaultContext } from "../state/VaultContext";
 import { BigNumberDisplay } from "./BigNumberDisplay";
 import { Currency } from "../types";
@@ -33,13 +33,13 @@ export const VaultInfo = () => {
 
   const [lpContract] = useContract({ contract: "liquidityPool", ABI: LPABI, readOnly: true });
 
-  
+
   return (
     <div className="pb-8 py-12 px-8">
       <div className="grid grid-cols-2">
 
         <div>
-          <h4>DHV</h4>
+          <h4>{DHV_NAME}</h4>
           <p className="mt-4">
             Chain: Arbitrum
           </p>
@@ -47,7 +47,7 @@ export const VaultInfo = () => {
             Current Epoch: {currentEpoch?.toString()}
           </p>
           <p className="mt-4">
-            DHV Share Price:{" "}
+            {DHV_NAME} Share Price:{" "}
             <BigNumberDisplay
               currency={Currency.RYSK}
               numberFormatProps={{ decimalScale: 4 }}
@@ -66,7 +66,7 @@ export const VaultInfo = () => {
         <div>
           <h4>Addresses</h4>
           <p className="mt-4">
-            DHV: {" "} 
+            {DHV_NAME}: {" "} 
             <a 
               href={`${SCAN_URL[CHAINID.ARBITRUM_MAINNET]}/address/${lpContract?.address}`} 
               target="blank"

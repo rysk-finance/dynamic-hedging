@@ -8,6 +8,7 @@ import LPABI from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.jso
 import {
   BIG_NUMBER_DECIMALS,
   DECIMALS,
+  DHV_NAME,
   MAX_UINT_256,
   ZERO_UINT_256,
 } from "../../config/constants";
@@ -430,13 +431,13 @@ export const VaultDeposit = () => {
                             {unredeemedShares}
                           </BigNumberDisplay>
                         </RequiresWalletConnection>{" "}
-                        DHV
+                        {DHV_NAME}
                       </p>
                     </div>
                     <hr className="border-black mb-2 mt-1" />
                     <div className="text-xs text-right">
-                      <p>100 DHV @ 20.12 USDC per DHV</p>
-                      <p>1000 DHV @ 18.23 USDC per DHV</p>
+                      <p>100 {DHV_NAME} @ 20.12 USDC per {DHV_NAME}</p>
+                      <p>1000 {DHV_NAME} @ 18.23 USDC per {DHV_NAME}</p>
                     </div>
                   </div>
                   <Button
