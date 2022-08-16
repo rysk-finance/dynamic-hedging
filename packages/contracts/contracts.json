@@ -39,7 +39,7 @@
 		"optionsCompute": "0xed652E08488c0d02Ba8B108F5432Bee8F03fDcc9",
 		"accounting": "0x8DE2e57c48F7e6D12B4193311C2bC1d5e6C4C2bd",
 		"uniswapV3HedgingReactor": "0xaa5FcA49bd299E7A3fd1a4b0CB89039413D5580C",
-		"perpHedgingReactor": "0xaE5AFaA42aaeEFf8f603F897c583bd4D3e09355",
+		"perpHedgingReactor": "0xaE5AFaA42aaeEFf8f603F897c583bd4D3e09355b",
 
 		"USDC": "0x33a010E74A354bd784a62cca3A4047C1A84Ceeab",
 		"WETH": "0xFCfbfcC11d12bCf816415794E5dc1BBcc5304e01"
