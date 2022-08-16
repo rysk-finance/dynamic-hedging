@@ -1,6 +1,7 @@
 import { BigNumber, Signer, utils, BigNumberish, Contract } from "ethers"
 import { expect } from "chai"
 import fs from "fs"
+import { truncate } from "@ragetrade/sdk"
 import { toWei } from "../../utils/conversion-helper"
 import hre, { ethers } from "hardhat"
 import path from "path"
@@ -21,6 +22,9 @@ import { Accounting } from "../../types/Accounting"
 import { getBlackScholesQuote } from "../../test/helpers"
 import { BlackScholes } from "../../types/BlackScholes"
 import { NormalDist } from "../../types/NormalDist"
+import { RageTradeFactory } from "../../types/RageTradeFactory"
+import { PerpHedgingReactor } from "../../types/PerpHedgingReactor"
+import { UniswapV3HedgingReactor } from "../../types/UniswapV3HedgingReactor"
 
 /* To use for other chains:
 		- Change addresses below to deployed contracts on new chain
@@ -39,8 +43,17 @@ const opynAddressBookAddress = "0x2d3E178FFd961BD8C0b035C926F9f2363a436DdC"
 const opynNewCalculatorAddress = "0xa91B46bDDB891fED2cEE626FB03E2929702951A6"
 const oTokenFactoryAddress = "0xcBcC61d56bb2cD6076E2268Ea788F51309FA253B"
 const marginPoolAddress = "0xDD91EB7C3822552D89a5Cb8D4166B1EB19A36Ff2"
-const wethAddress = "0xE32513090f05ED2eE5F3c5819C9Cce6d020Fefe7"
-const usdcAddress = "0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737"
+// const usdcAddress = "0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737"
+
+// rage trade addresses for Arbitrum Rinkeby
+const clearingHouseAddress = "0xe3B8eF0C2Ed6d8318F0b1b50A072e0cB508CDB04"
+const rageTradeFactoryAddress = "0x172b070dc24D8f0a3Cd665e601a398419c5272E6"
+const vETHAddress = "0xF40A48619b095a3d40993b398f88723096563644"
+const usdcAddress = "0x33a010E74A354bd784a62cca3A4047C1A84Ceeab"
+const wethAddress = "0xFCfbfcC11d12bCf816415794E5dc1BBcc5304e01"
+
+// uniswap v3 addresses (SAME FOR ALL CHAINS)
+const uniswapV3SwapRouter = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 
 async function main() {
 	const [deployer] = await ethers.getSigners()
@@ -99,6 +112,8 @@ async function main() {
 	const handler = lpParams.handler
 	const optionsCompute = lpParams.optionsCompute
 	const accounting = lpParams.accounting
+	const uniswapV3HedgingReactor = lpParams.uniswapV3HedgingReactor
+	const perpHedgingReactor = lpParams.perpHedgingReactor
 	console.log("liquidity pool deployed")
 
 	liquidityPool.setMaxTimeDeviationThreshold(1000000000000000)
@@ -129,6 +144,8 @@ async function main() {
 	contractAddresses["arbitrumRinkeby"]["normDist"] = normDist.address
 	contractAddresses["arbitrumRinkeby"]["BlackScholes"] = blackScholes.address
 	contractAddresses["arbitrumRinkeby"]["accounting"] = accounting.address
+	contractAddresses["arbitrumRinkeby"]["uniswapV3HedgingReactor"] = uniswapV3HedgingReactor.address
+	contractAddresses["arbitrumRinkeby"]["perpHedgingReactor"] = perpHedgingReactor.address
 
 	fs.writeFileSync(addressPath, JSON.stringify(contractAddresses, null, 4))
 
@@ -149,7 +166,9 @@ async function main() {
 		normDist: normDist.address,
 		blackScholes: blackScholes.address,
 		optionsCompute: optionsCompute.address,
-		accounting: accounting.address
+		accounting: accounting.address,
+		uniswapV3HedgingReactor: uniswapV3HedgingReactor.address,
+		perpHedgingReactor: perpHedgingReactor.address
 	})
 	console.log(contractAddresses)
 }
@@ -297,13 +316,7 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	]
 	type number7 = [number, number, number, number, number, number, number]
 	const coefInts: number7 = [
-		1.42180236,
-		0,
-		-0.08626792,
-		0.07873822,
-		0.00650549,
-		0.02160918,
-		-0.1393287
+		1.42180236, 0, -0.08626792, 0.07873822, 0.00650549, 0.02160918, -0.1393287
 	]
 	//@ts-ignore
 	const coefs: int7 = coefInts.map(x => toWei(x.toString()))
@@ -579,7 +592,8 @@ export async function deployLiquidityPool(
 		}
 	}
 
-	await optionProtocol.changeAccounting(accounting.address)
+	const updateAccountingTx = await optionProtocol.changeAccounting(accounting.address)
+	await updateAccountingTx.wait()
 	expect(await optionProtocol.accounting()).to.eq(accounting.address)
 
 	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
@@ -607,6 +621,79 @@ export async function deployLiquidityPool(
 	await liquidityPool.changeHandler(handler.address, true)
 	console.log("lp handler set")
 
+	// deploy rage trade perpetual hedging reactor
+
+	const perpHedgingReactorFactory = await ethers.getContractFactory("PerpHedgingReactor")
+	const perpHedgingReactor = (await perpHedgingReactorFactory.deploy(
+		clearingHouseAddress,
+		usd.address,
+		weth.address,
+		liquidityPool.address,
+		truncate(vETHAddress),
+		truncate(usdcAddress),
+		priceFeed.address,
+		authority
+	)) as PerpHedgingReactor
+
+	console.log("perp hedging reactor deployed")
+
+	try {
+		await hre.run("verify:verify", {
+			address: perpHedgingReactor.address,
+			constructorArguments: [
+				clearingHouseAddress,
+				usd.address,
+				weth.address,
+				liquidityPool.address,
+				truncate(vETHAddress),
+				truncate(usdcAddress),
+				priceFeed.address,
+				authority
+			]
+		})
+		console.log("perp hedging reactor verified")
+	} catch (err: any) {
+		if (err.message.includes("Reason: Already Verified")) {
+			console.log("perp hedging reactor contract already verified")
+		}
+	}
+
+	// deploy uniswap hedging reactor
+	const uniswapV3HedgingReactorFactory = await ethers.getContractFactory("UniswapV3HedgingReactor")
+	const uniswapV3HedgingReactor = await uniswapV3HedgingReactorFactory.deploy(
+		uniswapV3SwapRouter,
+		usd.address,
+		weth.address,
+		liquidityPool.address,
+		3000,
+		priceFeed.address,
+		authority
+	)
+	console.log("Uniswap v3 hedging reactor verified")
+	try {
+		await hre.run("verify:verify", {
+			address: uniswapV3HedgingReactor.address,
+			constructorArguments: [
+				uniswapV3SwapRouter,
+				usd.address,
+				weth.address,
+				liquidityPool.address,
+				3000,
+				priceFeed.address,
+				authority
+			]
+		})
+		console.log("Uniswap v3 hedging reactor verified")
+	} catch (err: any) {
+		if (err.message.includes("Reason: Already Verified")) {
+			console.log("Uniswap v3 hedging reactor contract already verified")
+		}
+	}
+
+	await liquidityPool.setHedgingReactorAddress(uniswapV3HedgingReactor.address)
+	await liquidityPool.setHedgingReactorAddress(perpHedgingReactor.address)
+	console.log("hedging reactors added to liquidity pool")
+
 	return {
 		volatility: volatility,
 		normDist,
@@ -614,7 +701,9 @@ export async function deployLiquidityPool(
 		optionsCompute,
 		liquidityPool: liquidityPool,
 		handler: handler,
-		accounting
+		accounting,
+		uniswapV3HedgingReactor,
+		perpHedgingReactor
 	}
 }
 

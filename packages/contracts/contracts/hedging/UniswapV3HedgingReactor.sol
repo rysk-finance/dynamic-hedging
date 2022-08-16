@@ -125,7 +125,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 			) *
 				uint256(-_delta) *
 				(MAX_BPS + buySlippage)) / 1e22;
-			(deltaChange, ) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset_);
+			(deltaChange, ) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset);
 			internalDelta += deltaChange;
 			SafeTransferLib.safeTransfer(
 				ERC20(collateralAsset),

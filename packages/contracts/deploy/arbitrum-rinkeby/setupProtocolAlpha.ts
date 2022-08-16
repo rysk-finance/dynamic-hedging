@@ -17,12 +17,12 @@ import { PriceFeed } from "../../types/PriceFeed"
 dotenv.config()
 
 // arbitrum rinkeby alpha addresses
-const liquidityPoolAddress = "0xe166274bC1b03e937FB1686846dd4fb9021Cf9f9"
-const usdcAddress = "0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737"
-const pvFeedAddress = "0x82bb7aA3B36A8FB3e4bEEeF7cEf95312f632d14c"
-const priceFeedAddress = "0x961B1E21C48b5c137f96DEB0C1E8bdAcF4349526"
-const wethAddress = "0xE32513090f05ED2eE5F3c5819C9Cce6d020Fefe7"
-const handlerAddress = "0xe97c498985b84D4ADEa0230e6686249fB56Ec480"
+const liquidityPoolAddress = "0x022601eB546e007562A6dD4AE4840544E6B85c9B"
+const usdcAddress = "0x33a010E74A354bd784a62cca3A4047C1A84Ceeab"
+const pvFeedAddress = "0x4D2f15471F0d60474d7B1953a27f2c9d642B91C1"
+const priceFeedAddress = "0x27F70AC0453254B3CaA0A0400dB78387c474FAdD"
+const wethAddress = "0xFCfbfcC11d12bCf816415794E5dc1BBcc5304e01"
+const handlerAddress = "0x1c4dB5B6028EE95ad4E07cf83F3AcC797f478125"
 
 const deployer = new ethers.Wallet(
 	process.env.DEPLOYER_PRIVATE_KEY as string,
