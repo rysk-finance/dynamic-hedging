@@ -68,7 +68,7 @@ export const VaultContent = () => {
             to="overviewScroll" 
             spy={true} 
             smooth={true} 
-            offset={50} 
+            offset={-150} 
             duration={500}
             >
             Learn more
