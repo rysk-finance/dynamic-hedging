@@ -100,6 +100,15 @@ module.exports = {
 						runs: 200
 					}
 				}
+			},
+			{
+				version: "0.8.14",
+				settings: {
+					optimizer: {
+						enabled: true,
+						runs: 200
+					}
+				}
 			}
 		]
 	},
@@ -165,7 +174,9 @@ module.exports = {
 			"@rage/core/contracts/protocol/insurancefund/InsuranceFund.sol",
 			"@rage/core/contracts/protocol/tokens/VToken.sol",
 			"@rage/core/contracts/protocol/tokens/VQuote.sol",
-			"@rage/core/contracts/protocol/wrapper/VPoolWrapper.sol"
+			"@rage/core/contracts/protocol/wrapper/VPoolWrapper.sol",
+			"@rage/core/contracts/extsloads/ClearingHouseExtsload.sol",
+			"@rage/core/contracts/lens/ClearingHouseLens.sol"
 		]
 		// turn on for slither
 		// keep: true,

@@ -7,6 +7,7 @@ import "../libraries/AccessControl.sol";
 import "../libraries/OptionsCompute.sol";
 import "../libraries/SafeTransferLib.sol";
 
+import "../interfaces/ILiquidityPool.sol";
 import "../interfaces/IHedgingReactor.sol";
 
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
@@ -112,33 +113,29 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @inheritdoc IHedgingReactor
 	function hedgeDelta(int256 _delta) external returns (int256) {
-		address parentLiquidityPool_ = parentLiquidityPool;
-		address wETH_ = wETH;
-		require(msg.sender == parentLiquidityPool_, "!vault");
-		// cache
-		address collateralAsset_ = collateralAsset;
+		require(msg.sender == parentLiquidityPool, "!vault");
 		int256 deltaChange;
-		uint256 underlyingPrice = getUnderlyingPrice(wETH_, collateralAsset_);
+		uint256 underlyingPrice = getUnderlyingPrice(wETH, collateralAsset);
 		if (_delta < 0) {
 			// buy wETH
 			// get the current price convert it to collateral decimals multiply it by the amount, add 1% then make sure decimals are fine
 			uint256 amountInMaximum = (OptionsCompute.convertToDecimals(
 				underlyingPrice,
-				ERC20(collateralAsset_).decimals()
+				ERC20(collateralAsset).decimals()
 			) *
 				uint256(-_delta) *
 				(MAX_BPS + buySlippage)) / 1e22;
-			(deltaChange, ) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset_);
+			(deltaChange, ) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset);
 			internalDelta += deltaChange;
 			SafeTransferLib.safeTransfer(
-				ERC20(collateralAsset_),
-				parentLiquidityPool_,
-				ERC20(collateralAsset_).balanceOf(address(this))
+				ERC20(collateralAsset),
+				parentLiquidityPool,
+				ERC20(collateralAsset).balanceOf(address(this))
 			);
 			return deltaChange;
 		} else {
 			// sell wETH
-			uint256 ethBalance = ERC20(wETH_).balanceOf(address(this));
+			uint256 ethBalance = ERC20(wETH).balanceOf(address(this));
 			if (ethBalance < minAmount) {
 				return 0;
 			}
@@ -147,23 +144,23 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 				// get the current price convert it to collateral decimals multiply it by the amount, take away 1% then make sure the decimals are fine
 				uint256 amountOutMinimum = (OptionsCompute.convertToDecimals(
 					underlyingPrice,
-					ERC20(collateralAsset_).decimals()
+					ERC20(collateralAsset).decimals()
 				) * ethBalance * (MAX_BPS - sellSlippage)) / 1e22;
-				(deltaChange, ) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateralAsset_);
+				(deltaChange, ) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateralAsset);
 				internalDelta += deltaChange;
 			} else {
 				// get the current price convert it to collateral decimals multiply it by the amount, take away 1% then make sure the decimals are fine
 				uint256 amountOutMinimum = (OptionsCompute.convertToDecimals(
 					underlyingPrice,
-					ERC20(collateralAsset_).decimals()
+					ERC20(collateralAsset).decimals()
 				) * uint256(_delta) * (MAX_BPS - sellSlippage)) / 1e22;
-				(deltaChange, ) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateralAsset_);
+				(deltaChange, ) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateralAsset);
 				internalDelta += deltaChange;
 			}
 			SafeTransferLib.safeTransfer(
-				ERC20(collateralAsset_),
-				parentLiquidityPool_,
-				ERC20(collateralAsset_).balanceOf(address(this))
+				ERC20(collateralAsset),
+				parentLiquidityPool,
+				ERC20(collateralAsset).balanceOf(address(this))
 			);
 			return deltaChange;
 		}
@@ -172,18 +169,17 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 	/// @inheritdoc IHedgingReactor
 	function withdraw(uint256 _amount) external returns (uint256) {
 		require(msg.sender == parentLiquidityPool, "!vault");
-		address _token = collateralAsset;
 		// check the holdings if enough just lying around then transfer it
-		uint256 balance = ERC20(_token).balanceOf(address(this));
+		uint256 balance = ERC20(collateralAsset).balanceOf(address(this));
 		if (balance == 0) {
 			return 0;
 		}
 		if (_amount <= balance) {
-			SafeTransferLib.safeTransfer(ERC20(_token), msg.sender, _amount);
+			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, _amount);
 			// return in collat decimals format
 			return _amount;
 		} else {
-			SafeTransferLib.safeTransfer(ERC20(_token), msg.sender, balance);
+			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, balance);
 			// return in collatDecimals format
 			return balance;
 		}
@@ -209,16 +205,14 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @inheritdoc IHedgingReactor
 	function getPoolDenominatedValue() external view returns (uint256 value) {
-		address collateralAsset_ = collateralAsset;
-		address wETH_ = wETH;
 		return
 			OptionsCompute.convertFromDecimals(
-				ERC20(collateralAsset_).balanceOf(address(this)),
-				ERC20(collateralAsset_).decimals()
+				ERC20(collateralAsset).balanceOf(address(this)),
+				ERC20(collateralAsset).decimals()
 			) +
-			(PriceFeed(priceFeed).getNormalizedRate(wETH_, collateralAsset_) *
-				ERC20(wETH_).balanceOf(address(this))) /
-			10**ERC20(wETH_).decimals();
+			(PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset) *
+				ERC20(wETH).balanceOf(address(this))) /
+			10**ERC20(wETH).decimals();
 	}
 
 	//////////////////////////
@@ -235,6 +229,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 		uint256 _amountInMaximum,
 		address _sellToken
 	) internal returns (int256, uint256) {
+		if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < _amountInMaximum) {
+			revert CustomErrors.WithdrawExceedsLiquidity();
+		}
 		SafeTransferLib.safeTransferFrom(_sellToken, msg.sender, address(this), _amountInMaximum);
 
 		ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
