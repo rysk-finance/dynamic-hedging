@@ -1,5 +1,4 @@
 import "@nomiclabs/hardhat-ethers"
-import { BigNumber, ethers } from "ethers"
 import hre from "hardhat"
 // This file doesn't exist in CI, only exists locally (in git ignore)
 import { arbitrumRinkeby } from "../contracts.json"
@@ -11,26 +10,12 @@ async function main() {
 			process.exit()
 		}
 
-		const priceFeed = await hre.ethers.getContractAt("PriceFeed", arbitrumRinkeby.priceFeed)
-
 		const pvFeed = await hre.ethers.getContractAt(
-			"PortfolioValuesFeed",
+			"AlphaPortfolioValuesFeed",
 			arbitrumRinkeby.portfolioValuesFeed
 		)
 
-		const price = await priceFeed.getNormalizedRate(arbitrumRinkeby.WETH, arbitrumRinkeby.USDC)
-
-		const pvTransaction = await pvFeed.fulfill(
-			ethers.utils.formatBytes32String("1"),
-			arbitrumRinkeby.WETH,
-			arbitrumRinkeby.USDC,
-			BigNumber.from("0"),
-			BigNumber.from("0"),
-			BigNumber.from("0"),
-			BigNumber.from("0"),
-			BigNumber.from("0"),
-			price
-		)
+		const pvTransaction = await pvFeed.fulfill(arbitrumRinkeby.WETH, arbitrumRinkeby.USDC)
 
 		await pvTransaction.wait()
 
