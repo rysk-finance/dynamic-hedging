@@ -21,11 +21,13 @@ export const VaultStateManagment = () => {
     readOnly: true,
     events: {
       DepositEpochExecuted: async () => {
-        toast("✅ The epoch was advanced");
+        toast("✅ The deposit epoch was advanced");
         EpochListener();
       },
       WithdrawalEpochExecuted: async () => {
-        toast("✅ The epoch was advanced");
+        // Assuming that epochs get advanced separately, we have
+        // two separate toast messages. If not we can remove one listener.
+        toast("✅ The withdraw epoch was advanced");
         EpochListener();
       },
     },
@@ -42,7 +44,7 @@ export const VaultStateManagment = () => {
       const depositEpochPricePerShare: BigNumber =
         await lpContract.depositEpochPricePerShare(depositEpoch.sub(1));
       const withdrawalEpochPricePerShare: BigNumber =
-        await lpContract.depositEpochPricePerShare(withdrawalEpoch.sub(1));
+        await lpContract.withdrawalEpochPricePerShare(withdrawalEpoch.sub(1));
       return {
         depositEpoch,
         withdrawalEpoch,

@@ -26,7 +26,7 @@ async function main() {
 			arbitrumRinkeby.priceFeed
 		)) as PriceFeed
 		const pvFeed = await hre.ethers.getContractAt(
-			"PortfolioValuesFeed",
+			"AlphaPortfolioValuesFeed",
 			arbitrumRinkeby.portfolioValuesFeed
 		)
 		const price = await priceFeed.getNormalizedRate(arbitrumRinkeby.WETH, arbitrumRinkeby.USDC)
