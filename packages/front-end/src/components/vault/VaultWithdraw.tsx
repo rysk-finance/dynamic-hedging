@@ -123,13 +123,14 @@ export const VaultWithdraw = () => {
       setWithdrawReceipt(receipt);
       const isReceipt = receipt.shares._hex !== ZERO_UINT_256;
       if (isReceipt) {
+        debugger;
         if (
           currentEpoch.gt(receipt.epoch) &&
           receipt.shares._hex !== ZERO_UINT_256
         ) {
           setWithdrawEpochComplete(true);
           const receiptEpochSharePrice: BigNumber =
-            await lpContract.epochPricePerShare(receipt.epoch);
+            await lpContract.withdrawalEpochPricePerShare(receipt.epoch);
           // e18
           const usdcValue = receipt.shares
             // e36
