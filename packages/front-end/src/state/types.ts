@@ -45,7 +45,7 @@ export type GlobalContext = {
 export type VaultState = {
   userDHVBalance: BigNumber | null;
   depositEpoch: BigNumber | null;
-  withdrawEpoch: BigNumber | null;
+  withdrawalEpoch: BigNumber | null;
   depositPricePerShare: BigNumber | null;
   withdrawalPricePerShare: BigNumber | null;
 };

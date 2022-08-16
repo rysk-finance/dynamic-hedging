@@ -9,7 +9,12 @@ import { getClosestFridayToDate } from "../utils/getSuggestedExpiryDates";
 
 export const VaultInfo = () => {
   const {
-    state: { currentEpoch, currentPricePerShare },
+    state: {
+      depositEpoch,
+      depositPricePerShare,
+      withdrawalEpoch,
+      withdrawalPricePerShare,
+    },
   } = useVaultContext();
 
   const nextFriday = useMemo(() => getClosestFridayToDate(new Date()), []);
@@ -26,15 +31,30 @@ export const VaultInfo = () => {
         <div>
           <h4>DHV</h4>
           <p className="mt-4">Chain: Arbitrum</p>
-          <p className="mt-4">Current Epoch: {currentEpoch?.toString()}</p>
           <p className="mt-4">
-            DHV Share Price:{" "}
+            Current Deposit Epoch: {depositEpoch?.toString()}
+          </p>
+          <p className="mt-4">
+            DHV Deposit Share Price:{" "}
             <BigNumberDisplay
               currency={Currency.RYSK}
               numberFormatProps={{ decimalScale: 4 }}
               suffix="USDC"
             >
-              {currentPricePerShare}
+              {depositPricePerShare}
+            </BigNumberDisplay>
+          </p>
+          <p className="mt-4">
+            Current Withdrawal Epoch: {withdrawalEpoch?.toString()}
+          </p>
+          <p className="mt-4">
+            DHV Withdrawal Share Price:{" "}
+            <BigNumberDisplay
+              currency={Currency.RYSK}
+              numberFormatProps={{ decimalScale: 4 }}
+              suffix="USDC"
+            >
+              {withdrawalPricePerShare}
             </BigNumberDisplay>
           </p>
           <p className="mt-4">

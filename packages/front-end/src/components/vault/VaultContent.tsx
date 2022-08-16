@@ -14,7 +14,7 @@ import { VaultInfo } from "../VaultInfo";
 
 export const VaultContent = () => {
   const {
-    state: { currentEpoch, currentPricePerShare, userRyskBalance },
+    state: { userDHVBalance: userRyskBalance },
   } = useVaultContext();
 
   return (
@@ -27,17 +27,6 @@ export const VaultContent = () => {
               {userRyskBalance}
             </BigNumberDisplay>
           </RequiresWalletConnection>
-        </h4>
-        <h4>Current Epoch: {currentEpoch?.toString()}</h4>
-        <h4>
-          DHV Share Price:{" "}
-          <BigNumberDisplay
-            currency={Currency.RYSK}
-            numberFormatProps={{ decimalScale: 4 }}
-            suffix="USDC"
-          >
-            {currentPricePerShare}
-          </BigNumberDisplay>
         </h4>
       </div>
       <div className="col-start-1 col-end-8">
@@ -66,27 +55,25 @@ export const VaultContent = () => {
       <div className="col-start-1 col-end-17 mt-16">
         <Card
           tabs={[
-            { 
-              label: "Overview", 
-              content: <VaultStrategy /> 
+            {
+              label: "Overview",
+              content: <VaultStrategy />,
             },
             {
               label: "Performance",
               content: <VaultPerformance />,
             },
-            { 
-              label: "Risks", 
-              content: <VaultRisks /> 
+            {
+              label: "Risks",
+              content: <VaultRisks />,
             },
-            { 
-              label: "Info", 
-              content: <VaultInfo /> 
+            {
+              label: "Info",
+              content: <VaultInfo />,
             },
           ]}
         ></Card>
       </div>
-
-
     </>
   );
 };

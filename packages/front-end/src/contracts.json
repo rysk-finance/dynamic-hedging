@@ -41,8 +41,8 @@
     "uniswapV3HedgingReactor": "0xaa5FcA49bd299E7A3fd1a4b0CB89039413D5580C",
     "perpHedgingReactor": "0xaE5AFaA42aaeEFf8f603F897c583bd4D3e09355",
 
-    "USDC": "0x3c6c9b6b41b9e0d82fed45d9502edffd5ed3d737",
-    "WETH": "0xE32513090f05ED2eE5F3c5819C9Cce6d020Fefe7"
+    "USDC": "0x33a010E74A354bd784a62cca3A4047C1A84Ceeab",
+    "WETH": "0xFCfbfcC11d12bCf816415794E5dc1BBcc5304e01"
   },
   "mainnet": {
     "OpynController": "0x0000000000000000000000000000000000000000",

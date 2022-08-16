@@ -25,7 +25,11 @@ import { TextInput } from "../shared/TextInput";
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
   const {
-    state: { currentEpoch, currentPricePerShare, userRyskBalance },
+    state: {
+      depositEpoch: currentEpoch,
+      depositPricePerShare: currentPricePerShare,
+      userDHVBalance: userRyskBalance,
+    },
     dispatch,
   } = useVaultContext();
 
@@ -49,7 +53,7 @@ export const VaultWithdraw = () => {
 
   // Contracts
   const [lpContract, lpContractCall] = useContract<{
-    EpochExecuted: [];
+    WithdrawalEpochExecuted: [];
     InitiateWithdraw: [Address];
     Withdraw: [Address];
   }>({
@@ -57,7 +61,7 @@ export const VaultWithdraw = () => {
     ABI: LPABI.abi,
     readOnly: false,
     events: {
-      EpochExecuted: () => {
+      WithdrawalEpochExecuted: () => {
         epochListener();
       },
       InitiateWithdraw: (recipient) => {
@@ -79,7 +83,7 @@ export const VaultWithdraw = () => {
       },
     },
     isListening: {
-      EpochExecuted: true,
+      WithdrawalEpochExecuted: true,
       InitiateWithdraw: listeningForInitiation,
       Withdraw: listeningForCompleteWithdraw,
     },
@@ -96,7 +100,7 @@ export const VaultWithdraw = () => {
       const balance = await lpContract?.balanceOf(address);
       dispatch({
         type: VaultActionType.SET,
-        data: { userRyskBalance: balance },
+        data: { userDHVBalance: balance },
       });
       return balance;
     },

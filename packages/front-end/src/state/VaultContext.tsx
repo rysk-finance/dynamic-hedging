@@ -3,9 +3,11 @@ import { vaultReducer } from "./reducer";
 import { VaultContext, VaultState } from "./types";
 
 export const defaultVaultState: VaultState = {
-  currentEpoch: null,
-  currentPricePerShare: null,
-  userRyskBalance: null,
+  depositEpoch: null,
+  withdrawalEpoch: null,
+  depositPricePerShare: null,
+  withdrawalPricePerShare: null,
+  userDHVBalance: null,
 };
 
 export const VaultReactContext = createContext<VaultContext>({
