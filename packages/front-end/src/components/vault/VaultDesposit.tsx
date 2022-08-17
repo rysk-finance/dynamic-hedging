@@ -13,7 +13,6 @@ import {
 } from "../../config/constants";
 import addresses from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
-import { useGlobalContext } from "../../state/GlobalContext";
 import { VaultActionType } from "../../state/types";
 import { useVaultContext } from "../../state/VaultContext";
 import {
@@ -28,6 +27,7 @@ import { RequiresWalletConnection } from "../RequiresWalletConnection";
 import { RyskTooltip } from "../RyskTooltip";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
+import { Toggle } from "../shared/Toggle";
 
 export const VaultDeposit = () => {
   const { account, network } = useWalletContext();
@@ -38,10 +38,6 @@ export const VaultDeposit = () => {
     },
     dispatch,
   } = useVaultContext();
-
-  const {
-    state: { settings },
-  } = useGlobalContext();
 
   // UI State
   const [inputValue, setInputValue] = useState("");
@@ -62,6 +58,7 @@ export const VaultDeposit = () => {
     null
   );
 
+  const [unlimitedApproval, setUnlimitedApproval] = useState(false);
   const [isApproved, setIsApproved] = useState<boolean>(false);
 
   // Contracts
@@ -210,28 +207,24 @@ export const VaultDeposit = () => {
         ]
       )) as BigNumber;
       try {
-        if (!settings.unlimitedApproval) {
-          if (approvedAmount.lt(amount)) {
-            await usdcContractCall({
-              method: usdcContract.approve,
-              args: [
-                (addresses as Record<ETHNetwork, ContractAddresses>)[
-                  network.name
-                ]["liquidityPool"],
-                settings.unlimitedApproval
-                  ? ethers.BigNumber.from(MAX_UINT_256)
-                  : amount,
-              ],
-              submitMessage: "✅ Approval submitted",
-              onComplete: () => {
-                setIsApproved(true);
-              },
-              completeMessage: "✅ Approval complete",
-            });
-          } else {
-            if (account && lpContract) setIsApproved(true);
-            toast("✅ Your transaction is already approved");
-          }
+        if (approvedAmount.lt(amount)) {
+          await usdcContractCall({
+            method: usdcContract.approve,
+            args: [
+              (addresses as Record<ETHNetwork, ContractAddresses>)[
+                network.name
+              ]["liquidityPool"],
+              unlimitedApproval ? ethers.BigNumber.from(MAX_UINT_256) : amount,
+            ],
+            submitMessage: "✅ Approval submitted",
+            onComplete: () => {
+              setIsApproved(true);
+            },
+            completeMessage: "✅ Approval complete",
+          });
+        } else {
+          if (account && lpContract) setIsApproved(true);
+          toast("✅ Your transaction is already approved");
         }
       } catch {
         toast("❌ There was an error approving your transaction.");
@@ -333,7 +326,7 @@ export const VaultDeposit = () => {
                 userUSDCBalance
                   ? () => {
                       if (userUSDCBalance) {
-                        setInputValue(
+                        handleInputChange(
                           ethers.utils.formatUnits(userUSDCBalance, 6)
                         );
                       }
@@ -365,6 +358,14 @@ export const VaultDeposit = () => {
                 </p>
               </div>
             </div>
+          </div>
+          <div className="flex items-center border-b-2 border-black p-2 justify-between">
+            <p className="text-[12px] mr-2">Unlimited Approval: </p>
+            <Toggle
+              value={unlimitedApproval}
+              setValue={setUnlimitedApproval}
+              size="sm"
+            />
           </div>
           <div className="flex">
             <>
