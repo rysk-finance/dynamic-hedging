@@ -28,6 +28,7 @@ import { BigNumberDisplay } from "../BigNumberDisplay";
 import { RyskTooltip } from "../RyskTooltip";
 import { useVaultContext } from "../../state/VaultContext";
 import { VaultActionType } from "../../state/types";
+import { Loader } from "../Loader";
 
 export const VaultDeposit = () => {
   const { account, network } = useWalletContext();
@@ -357,7 +358,7 @@ export const VaultDeposit = () => {
             />
           </div>
           <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <div className="flex">
                 <p>Pending deposit</p>
                 <RyskTooltip
@@ -367,14 +368,17 @@ export const VaultDeposit = () => {
                   id={"strategeyTip"}
                 />
               </div>
-              <p>
-                <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                  <BigNumberDisplay currency={Currency.USDC}>
-                    {pendingDepositedUSDC}
-                  </BigNumberDisplay>
-                </RequiresWalletConnection>{" "}
-                USDC
-              </p>
+              <div className="h-4 flex items-center">
+                {listeningForDeposit && <Loader className="mr-2" />}
+                <p>
+                  <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
+                    <BigNumberDisplay currency={Currency.USDC}>
+                      {pendingDepositedUSDC}
+                    </BigNumberDisplay>
+                  </RequiresWalletConnection>{" "}
+                  USDC
+                </p>
+              </div>
             </div>
           </div>
           <div className="flex">
