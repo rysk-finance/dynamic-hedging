@@ -21,6 +21,7 @@ import { RequiresWalletConnection } from "../RequiresWalletConnection";
 import { RyskTooltip } from "../RyskTooltip";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
+import { Loader } from "../Loader";
 
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
@@ -54,8 +55,6 @@ export const VaultWithdraw = () => {
   // Contracts
   const [lpContract, lpContractCall] = useContract<{
     WithdrawalEpochExecuted: [];
-    InitiateWithdraw: [Address];
-    Withdraw: [Address];
   }>({
     contract: "liquidityPool",
     ABI: LPABI.abi,
@@ -64,28 +63,9 @@ export const VaultWithdraw = () => {
       WithdrawalEpochExecuted: () => {
         epochListener();
       },
-      InitiateWithdraw: (recipient) => {
-        if (recipient.toLowerCase() === account?.toLowerCase()) {
-          toast(
-            "✅ Your withdraw was initiated. You will be able to complete it when this epoch is executed."
-          );
-          setListeningForInitiation(false);
-          updateWithdrawState();
-          setInputValue("");
-        }
-      },
-      Withdraw: (recipient) => {
-        if (recipient.toLowerCase() === account?.toLowerCase()) {
-          toast("✅ Your withdraw was completed.");
-          setListeningForCompleteWithdraw(false);
-          updateWithdrawState();
-        }
-      },
     },
     isListening: {
       WithdrawalEpochExecuted: true,
-      InitiateWithdraw: listeningForInitiation,
-      Withdraw: listeningForCompleteWithdraw,
     },
   });
 
@@ -123,7 +103,6 @@ export const VaultWithdraw = () => {
       setWithdrawReceipt(receipt);
       const isReceipt = receipt.shares._hex !== ZERO_UINT_256;
       if (isReceipt) {
-        debugger;
         if (
           currentEpoch.gt(receipt.epoch) &&
           receipt.shares._hex !== ZERO_UINT_256
@@ -174,9 +153,18 @@ export const VaultWithdraw = () => {
       await lpContractCall({
         method: lpContract.initiateWithdraw,
         args: [amount],
-        successMessage: "✅ Withdraw initiation submitted",
-        onComplete: () => {
+        submitMessage: "✅ Withdraw initiation submitted",
+        onSubmit: () => {
           setListeningForInitiation(true);
+        },
+        completeMessage:
+          "✅ Your withdraw was initiated. You will be able to complete it when this epoch is executed.",
+
+        onComplete: () => {
+          setListeningForInitiation(false);
+          updateWithdrawState();
+          getUserRYSKBalance(account);
+          setInputValue("");
         },
       });
     }
@@ -187,9 +175,14 @@ export const VaultWithdraw = () => {
       await lpContractCall({
         method: lpContract.completeWithdraw,
         args: [MAX_UINT_256],
-        successMessage: "✅ Withdraw completion submitted",
-        onComplete: () => {
+        submitMessage: "✅ Withdraw completion submitted",
+        onSubmit: () => {
           setListeningForCompleteWithdraw(true);
+        },
+        completeMessage: "✅ Your withdraw was completed.",
+        onComplete: () => {
+          setListeningForCompleteWithdraw(false);
+          updateWithdrawState();
         },
       });
     }
@@ -275,14 +268,18 @@ export const VaultWithdraw = () => {
                     id={"strategeyTip"}
                   />
                 </div>
-                <p>
-                  <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                    <BigNumberDisplay currency={Currency.RYSK}>
-                      {withdrawReceipt?.shares ?? null}
-                    </BigNumberDisplay>
-                  </RequiresWalletConnection>{" "}
-                  RYSK
-                </p>
+
+                <div className="h-4 flex items-center">
+                  {listeningForInitiation && <Loader className="mr-2" />}
+                  <p>
+                    <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
+                      <BigNumberDisplay currency={Currency.RYSK}>
+                        {withdrawReceipt?.shares ?? null}
+                      </BigNumberDisplay>
+                    </RequiresWalletConnection>{" "}
+                    RYSK
+                  </p>
+                </div>
               </div>
             </div>
             <div className="flex">

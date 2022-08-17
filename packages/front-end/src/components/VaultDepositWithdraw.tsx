@@ -273,7 +273,7 @@ export const VaultDepositWithdraw = () => {
                 ? ethers.BigNumber.from(MAX_UINT_256)
                 : amount,
             ],
-            successMessage: "✅ Approval submitted",
+            submitMessage: "✅ Approval submitted",
           });
           setListeningForApproval(true);
         } else {
@@ -292,8 +292,8 @@ export const VaultDepositWithdraw = () => {
       await lpContractCall({
         method: lpContract.deposit,
         args: [amount],
-        successMessage: "✅ Deposit submitted",
-        onComplete: () => {
+        submitMessage: "✅ Deposit submitted",
+        onSubmit: () => {
           setApprovalState(null);
         },
       });
