@@ -14,8 +14,10 @@ async function main() {
 
 		const lpContract = await hre.ethers.getContractAt("LiquidityPool", arbitrumRinkeby.liquidityPool)
 
-		const initialEpoch = await lpContract.epoch()
-		console.log(`Current epoch is ${initialEpoch}`)
+		const initialDepositEpoch = await lpContract.depositEpoch()
+		const initialWithdrawalEpoch = await lpContract.withdrawalEpoch()
+		console.log(`Current depositEpoch is ${initialDepositEpoch}`)
+		console.log(`Current withdrawalEpoch is ${initialWithdrawalEpoch}`)
 
 		await lpContract.pauseTradingAndRequest()
 
@@ -24,29 +26,21 @@ async function main() {
 			arbitrumRinkeby.priceFeed
 		)) as PriceFeed
 		const pvFeed = await hre.ethers.getContractAt(
-			"PortfolioValuesFeed",
+			"AlphaPortfolioValuesFeed",
 			arbitrumRinkeby.portfolioValuesFeed
 		)
 		const price = await priceFeed.getNormalizedRate(arbitrumRinkeby.WETH, arbitrumRinkeby.USDC)
 		console.log({ price })
-		await pvFeed.fulfill(
-			utils.formatBytes32String("1"),
-			arbitrumRinkeby.WETH,
-			arbitrumRinkeby.USDC,
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			price
-		)
+		await pvFeed.fulfill(arbitrumRinkeby.WETH, arbitrumRinkeby.USDC)
 
 		const transaction = await lpContract.executeEpochCalculation()
 
 		await transaction.wait()
 
-		const newEpoch = await lpContract.epoch()
-		console.log(`New epoch is ${newEpoch}`)
+		const newDepositEpoch = await lpContract.depositEpoch()
+		const newWithdrawalEpoch = await lpContract.withdrawalEpoch()
+		console.log(`New depositEpoch is ${newDepositEpoch}`)
+		console.log(`New withdrawalEpoch is ${newWithdrawalEpoch}`)
 	} catch (err) {
 		console.log(err)
 	}

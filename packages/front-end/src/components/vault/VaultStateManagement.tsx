@@ -13,43 +13,53 @@ export const VaultStateManagment = () => {
   const { dispatch } = useVaultContext();
 
   const [lpContract] = useContract<{
-    EpochExecuted: [];
+    DepositEpochExecuted: [];
+    WithdrawalEpochExecuted: [];
   }>({
     contract: "liquidityPool",
     ABI: LPABI.abi,
     readOnly: true,
     events: {
-      EpochExecuted: async () => {
-        toast("✅ The epoch was advanced");
+      DepositEpochExecuted: async () => {
+        toast("✅ The deposit epoch was advanced");
+        EpochListener();
+      },
+      WithdrawalEpochExecuted: async () => {
+        // Assuming that epochs get advanced separately, we have
+        // two separate toast messages. If not we can remove one listener.
+        toast("✅ The withdraw epoch was advanced");
         EpochListener();
       },
     },
     isListening: {
-      EpochExecuted: true,
+      DepositEpochExecuted: true,
+      WithdrawalEpochExecuted: true,
     },
   });
 
   const getEpochData = useCallback(async () => {
     if (lpContract) {
-      const currentEpoch: BigNumber = await lpContract.epoch();
-      const latestSharePrice: BigNumber = await lpContract.epochPricePerShare(
-        currentEpoch.sub(1)
-      );
-      return { currentEpoch, latestSharePrice };
+      const depositEpoch: BigNumber = await lpContract.depositEpoch();
+      const withdrawalEpoch: BigNumber = await lpContract.withdrawalEpoch();
+      const depositEpochPricePerShare: BigNumber =
+        await lpContract.depositEpochPricePerShare(depositEpoch.sub(1));
+      const withdrawalEpochPricePerShare: BigNumber =
+        await lpContract.withdrawalEpochPricePerShare(withdrawalEpoch.sub(1));
+      return {
+        depositEpoch,
+        withdrawalEpoch,
+        depositEpochPricePerShare,
+        withdrawalEpochPricePerShare,
+      };
     }
   }, [lpContract]);
 
   const EpochListener = useCallback(async () => {
     const epochData = await getEpochData();
-    if (epochData?.currentEpoch || epochData?.latestSharePrice) {
-      dispatch({
-        type: VaultActionType.SET,
-        data: {
-          currentPricePerShare: epochData.latestSharePrice,
-          currentEpoch: epochData.currentEpoch,
-        },
-      });
-    }
+    dispatch({
+      type: VaultActionType.SET,
+      data: { ...epochData },
+    });
   }, [dispatch, getEpochData]);
 
   const getUserRyskBalance = useCallback(async () => {
@@ -67,9 +77,11 @@ export const VaultStateManagment = () => {
         dispatch({
           type: VaultActionType.SET,
           data: {
-            currentEpoch: epochData?.currentEpoch,
-            currentPricePerShare: epochData?.latestSharePrice,
-            userRyskBalance: balance,
+            depositEpoch: epochData?.depositEpoch,
+            withdrawalEpoch: epochData?.withdrawalEpoch,
+            depositPricePerShare: epochData?.depositEpochPricePerShare,
+            withdrawalPricePerShare: epochData?.withdrawalEpochPricePerShare,
+            userDHVBalance: balance,
           },
         });
       }

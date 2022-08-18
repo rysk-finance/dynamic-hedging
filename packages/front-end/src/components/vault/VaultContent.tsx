@@ -17,7 +17,7 @@ import * as Scroll from 'react-scroll';
 
 export const VaultContent = () => {
   const {
-    state: { currentEpoch, currentPricePerShare, userRyskBalance },
+    state: { userDHVBalance: userRyskBalance },
   } = useVaultContext();
 
   const Link = Scroll.Link;
@@ -25,28 +25,16 @@ export const VaultContent = () => {
 
   return (
     <>
-      {/* <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 mb-16">  
+      <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 mb-16">  
         <h4>
-          DHV Balance:{" "}
+          Your Balance:{" "}
           <RequiresWalletConnection className="bg-white h-8 w-[100px]">
-            <BigNumberDisplay currency={Currency.RYSK}>
+            <BigNumberDisplay currency={Currency.RYSK} suffix="DHV">
               {userRyskBalance}
             </BigNumberDisplay>
           </RequiresWalletConnection>
         </h4>
-        <h4>Current Epoch: {currentEpoch?.toString()}</h4>
-        <h4>
-          DHV Share Price:{" "}
-          <BigNumberDisplay
-            currency={Currency.RYSK}
-            numberFormatProps={{ decimalScale: 4 }}
-            suffix="USDC"
-          >
-            {currentPricePerShare}
-          </BigNumberDisplay>
-        </h4>
-      </div> */}
-
+      </div>
       <div className="col-start-1 col-end-8">
 
         <div className="font-parabole mb-8">

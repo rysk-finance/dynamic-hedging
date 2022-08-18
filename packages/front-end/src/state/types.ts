@@ -43,9 +43,11 @@ export type GlobalContext = {
 
 // Vault context
 export type VaultState = {
-  userRyskBalance: BigNumber | null;
-  currentEpoch: BigNumber | null;
-  currentPricePerShare: BigNumber | null;
+  userDHVBalance: BigNumber | null;
+  depositEpoch: BigNumber | null;
+  withdrawalEpoch: BigNumber | null;
+  depositPricePerShare: BigNumber | null;
+  withdrawalPricePerShare: BigNumber | null;
 };
 
 export enum VaultActionType {

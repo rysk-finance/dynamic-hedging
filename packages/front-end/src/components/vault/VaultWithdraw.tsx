@@ -25,7 +25,11 @@ import { TextInput } from "../shared/TextInput";
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
   const {
-    state: { currentEpoch, currentPricePerShare, userRyskBalance },
+    state: {
+      depositEpoch: currentEpoch,
+      depositPricePerShare: currentPricePerShare,
+      userDHVBalance: userRyskBalance,
+    },
     dispatch,
   } = useVaultContext();
 
@@ -49,7 +53,7 @@ export const VaultWithdraw = () => {
 
   // Contracts
   const [lpContract, lpContractCall] = useContract<{
-    EpochExecuted: [];
+    WithdrawalEpochExecuted: [];
     InitiateWithdraw: [Address];
     Withdraw: [Address];
   }>({
@@ -57,7 +61,7 @@ export const VaultWithdraw = () => {
     ABI: LPABI.abi,
     readOnly: false,
     events: {
-      EpochExecuted: () => {
+      WithdrawalEpochExecuted: () => {
         epochListener();
       },
       InitiateWithdraw: (recipient) => {
@@ -79,7 +83,7 @@ export const VaultWithdraw = () => {
       },
     },
     isListening: {
-      EpochExecuted: true,
+      WithdrawalEpochExecuted: true,
       InitiateWithdraw: listeningForInitiation,
       Withdraw: listeningForCompleteWithdraw,
     },
@@ -96,7 +100,7 @@ export const VaultWithdraw = () => {
       const balance = await lpContract?.balanceOf(address);
       dispatch({
         type: VaultActionType.SET,
-        data: { userRyskBalance: balance },
+        data: { userDHVBalance: balance },
       });
       return balance;
     },
@@ -119,13 +123,14 @@ export const VaultWithdraw = () => {
       setWithdrawReceipt(receipt);
       const isReceipt = receipt.shares._hex !== ZERO_UINT_256;
       if (isReceipt) {
+        debugger;
         if (
           currentEpoch.gt(receipt.epoch) &&
           receipt.shares._hex !== ZERO_UINT_256
         ) {
           setWithdrawEpochComplete(true);
           const receiptEpochSharePrice: BigNumber =
-            await lpContract.epochPricePerShare(receipt.epoch);
+            await lpContract.withdrawalEpochPricePerShare(receipt.epoch);
           // e18
           const usdcValue = receipt.shares
             // e36
@@ -261,7 +266,7 @@ export const VaultWithdraw = () => {
             <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
               <div className="flex justify-between">
                 <div className="flex">
-                  <p>Pending RYSK</p>
+                  <p>Pending withdraw</p>
                   <RyskTooltip
                     tooltipProps={{ className: "max-w-[350px]" }}
                     message={

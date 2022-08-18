@@ -27,6 +27,11 @@ import { GlobalContextProvider } from "./state/GlobalContext";
 import { ETHNetwork } from "./types";
 import { toHex } from "./utils";
 import { OTC } from "./pages/OTC";
+import {
+  updateFavicon,
+  CONNECTED_FAVICON,
+  DISCONNECTED_FAVICON,
+} from "./utils/updateFavicon";
 
 export const RPC_URL_MAP: Record<CHAINID, string> = {
   [CHAINID.ETH_MAINNET]: `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
@@ -182,6 +187,7 @@ function App() {
       setRPCURL(networkRPCURL);
       setChainId(chains[0].id);
       setIsLoading(false);
+      updateFavicon(CONNECTED_FAVICON);
     } catch (error) {
       setError(error);
     }
@@ -204,6 +210,7 @@ function App() {
     const [primaryWallet] = await onboard.state.get().wallets;
     if (!primaryWallet) return;
     await onboard.disconnectWallet({ label: primaryWallet.label });
+    updateFavicon(DISCONNECTED_FAVICON);
     refreshState();
   }, []);
 
@@ -229,7 +236,6 @@ function App() {
   }, [disconnect]);
 
   useEffect(() => {
-    
     const SUBGRAPH_URI =
       network?.id !== undefined ? SUBGRAPH_URL[network?.id] : "";
 

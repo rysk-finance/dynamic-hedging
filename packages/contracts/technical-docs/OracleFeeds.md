@@ -15,9 +15,13 @@ The volatility feed may change as this functionality moves to a more oracle base
 
 ## Portfolio Values Feed
 
+**Not used in Rysk Alpha, for PvFeed of rysk alpha refer to the alpha docs**
+
 This feed is responsible for passing in the pool's greek exposure (most importantly delta) and the portfolio's liabilities (or value of options contracts held) to the liquidity pool. It does this through an offchain request-response based chainlink oracle. The oracle currently gets the pool's options exposure via event emissions for writes, buybacks, settles and liquidations. The feed has a request function that can be called by anyone, including the liquidity pool, this will tell the oracle to update the pool's positions, it is assumed that the request will track events from the block of the request or earlier. The response or fulfill is also in this contract, this is called by the chainlink system and updates the pools ```portfolioValues```. To retrieve these values you can just call ```getPortfolioValues(underlying, strike)``` which returns a PortfolioValues struct. In addition to setting the portfolio values a fulfill also resets the ephemeralValues in the liquidity pool to 0. This is because the pool's positions should now be up to date at that point and the ephemeral values dont need to be counted at that point.
 
 ## Portfolio values oracle - request response chainlink external adaptor
+
+**Not used in Rysk Alpha**
 
 The final portfolio values oracle is not completely implemented as there has been some delay on the node operator side and external adaptor implementation but the liquidity pool assumes the following in terms of its behaviour :
 
