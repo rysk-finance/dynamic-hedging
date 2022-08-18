@@ -585,10 +585,10 @@ export async function deployLiquidityPool(
 			address: accounting.address,
 			constructorArguments: [liquidityPool.address, usd.address, weth.address, usd.address]
 		})
-		console.log("optionHandler verified")
+		console.log("Accounting verified")
 	} catch (err: any) {
 		if (err.message.includes("Reason: Already Verified")) {
-			console.log("optionHandler contract already verified")
+			console.log("Accounting contract already verified")
 		}
 	}
 
@@ -609,10 +609,10 @@ export async function deployLiquidityPool(
 			address: handler.address,
 			constructorArguments: [authority, optionProtocol.address, liquidityPool.address]
 		})
-		console.log("optionHander verified")
+		console.log("optionHandler verified")
 	} catch (err: any) {
 		if (err.message.includes("Reason: Already Verified")) {
-			console.log("optionHander contract already verified")
+			console.log("optionHandler contract already verified")
 		}
 	}
 
@@ -657,6 +657,9 @@ export async function deployLiquidityPool(
 			console.log("perp hedging reactor contract already verified")
 		}
 	}
+	await usd.approve(perpHedgingReactor.address, toWei("1"))
+	await perpHedgingReactor.initialiseReactor()
+	console.log("Perp hedging reactor initialised")
 
 	// deploy uniswap hedging reactor
 	const uniswapV3HedgingReactorFactory = await ethers.getContractFactory("UniswapV3HedgingReactor")
@@ -669,7 +672,7 @@ export async function deployLiquidityPool(
 		priceFeed.address,
 		authority
 	)
-	console.log("Uniswap v3 hedging reactor verified")
+	console.log("Uniswap v3 hedging reactor deployed")
 	try {
 		await hre.run("verify:verify", {
 			address: uniswapV3HedgingReactor.address,
