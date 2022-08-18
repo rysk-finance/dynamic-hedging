@@ -22,15 +22,15 @@ import { CHAINID, IDToNetwork, SUBGRAPH_URL } from "./config/constants";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { Dashboard } from "./pages/Dashboard";
 import { OptionsTrading } from "./pages/OptionsTrading";
+import { OTC } from "./pages/OTC";
 import { Vault } from "./pages/Vault";
 import { GlobalContextProvider } from "./state/GlobalContext";
 import { ETHNetwork } from "./types";
 import { toHex } from "./utils";
-import { OTC } from "./pages/OTC";
 import {
-  updateFavicon,
   CONNECTED_FAVICON,
   DISCONNECTED_FAVICON,
+  updateFavicon,
 } from "./utils/updateFavicon";
 
 export const RPC_URL_MAP: Record<CHAINID, string> = {
@@ -162,7 +162,7 @@ function App() {
     };
   }, [web3Onboard, setLocalStorage, walletUnsubscribe]);
 
-  const connectWallet = async (wallet?: string) => {
+  const connectWallet = useCallback(async (wallet?: string) => {
     try {
       const wallets = await onboard.connectWallet(
         wallet
@@ -174,7 +174,21 @@ function App() {
       const ethersProvider = new ethers.providers.Web3Provider(provider);
       const ethersSigner = ethersProvider.getSigner();
       setSigner(ethersSigner);
-      const network = await ethersProvider.getNetwork();
+      let network = await ethersProvider.getNetwork();
+      const isCorrectChain =
+        network.chainId ===
+        (process.env.REACT_APP_ENV === "production"
+          ? CHAINID.ARBITRUM_MAINNET
+          : CHAINID.ARBITRUM_RINKEBY);
+      if (!isCorrectChain) {
+        if (process.env.REACT_APP_ENV === "production") {
+          addArbitrum();
+        } else {
+          addArbitrumTestnet();
+        }
+        network = await ethersProvider.getNetwork();
+      }
+
       const networkName =
         network.chainId in IDToNetwork
           ? IDToNetwork[network.chainId as CHAINID]
@@ -191,14 +205,56 @@ function App() {
     } catch (error) {
       setError(error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const wallets = getLocalStorage<string[]>(WALLETS_LOCAL_STORAGE_KEY);
     if (wallets && wallets.length > 0) {
       connectWallet(wallets[0]);
     }
-  }, [getLocalStorage]);
+  }, [getLocalStorage, connectWallet]);
+
+  const addArbitrum = async () => {
+    if (window.ethereum) {
+      window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: "0xa4b1", // A 0x-prefixed hexadecimal string
+            chainName: "Arbitrum One",
+            nativeCurrency: {
+              name: "Ethereum",
+              symbol: "arETH",
+              decimals: 18,
+            },
+            rpcUrls: ["https://arb1.arbitrum.io/rpc"],
+            blockExplorerUrls: ["https://arbiscan.io/"],
+          },
+        ],
+      });
+    }
+  };
+
+  const addArbitrumTestnet = async () => {
+    if (window.ethereum) {
+      window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: "0x66EEB", // A 0x-prefixed hexadecimal string
+            chainName: "Arbitrum Testnet",
+            nativeCurrency: {
+              name: "Ethereum",
+              symbol: "arETH",
+              decimals: 18,
+            },
+            rpcUrls: ["https://rinkeby.arbitrum.io/rpc"],
+            blockExplorerUrls: ["https://rinkeby-explorer.arbitrum.io/"],
+          },
+        ],
+      });
+    }
+  };
 
   const switchNetwork = async () => {
     if (network) {
@@ -221,19 +277,33 @@ function App() {
     setNetwork(null);
   };
 
+  const handleChainChange = useCallback(
+    async (chainIdHex: string) => {
+      const chainId = parseInt(chainIdHex);
+      const correctChainID =
+        process.env.REACT_APP_ENV === "production"
+          ? CHAINID.ARBITRUM_MAINNET
+          : CHAINID.ARBITRUM_RINKEBY;
+      if (chainId !== correctChainID) {
+        disconnect();
+      }
+    },
+    [disconnect]
+  );
+
   useEffect(() => {
     if (window.ethereum) {
-      window.ethereum.on("chainChanged", disconnect);
+      window.ethereum.on("chainChanged", handleChainChange);
       window.ethereum.on("accountsChanged", disconnect);
     }
 
     return () => {
       if (window.ethereum) {
-        window.ethereum.removeListener("chainChanged", disconnect);
+        window.ethereum.removeListener("chainChanged", handleChainChange);
         window.ethereum.removeListener("accountsChanged", disconnect);
       }
     };
-  }, [disconnect]);
+  }, [disconnect, handleChainChange]);
 
   useEffect(() => {
     const SUBGRAPH_URI =
