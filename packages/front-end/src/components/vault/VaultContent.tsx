@@ -43,7 +43,13 @@ export const VaultContent = () => {
                   ? "Arbitrum Testnet"
                   : network?.name}{" "}
               </h4>
-              {<img src="/arbitrum_logo.svg" className="h-6 w-auto ml-2" />}
+              {
+                <img
+                  src="/arbitrum_logo.svg"
+                  className="h-6 w-auto ml-2"
+                  alt="Arbitrum"
+                />
+              }
             </div>
           ))}
       </div>
