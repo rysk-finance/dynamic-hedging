@@ -64,9 +64,9 @@ export const HeaderPopover: React.FC = () => {
             >
               Open in Etherscan
             </Button>
-            <div className="mb-4">
+            {/* <div className="mb-4">
               <Settings />
-            </div>
+            </div> */}
             <Button
               onClick={() => {
                 disconnect?.();
