@@ -6,7 +6,8 @@ import "prb-math/contracts/PRBMath.sol";
 
 library SABR {
 	using PRBMathSD59x18 for int256;
-	using PRBMathUD60x18 for uint256;
+
+	int256 private constant eps = 1e11;
 
 	function lognormalVol(
 		int256 k,
@@ -23,11 +24,10 @@ library SABR {
 		if (k <= 0 || f <= 0) {
 			return 0;
 		}
-		int256 eps = 1e11;
 		int256 logfk = (f.div(k)).ln();
 		int256 fkbeta = (f.mul(k)).pow(1e18 - beta);
 		int256 a = ((1e18 - beta).pow(2e18)).mul(alpha.pow(2e18)).div(int256(24e18).mul(fkbeta));
-		int256 b = int256(25e16).mul(rho).mul(beta).mul(volvol).mul(alpha).div(alpha.div(fkbeta.sqrt()));
+		int256 b = int256(25e16).mul(rho).mul(beta).mul(volvol).mul(alpha).div(fkbeta.sqrt());
 		int256 c = (2e18 - int256(3e18).mul(rho.pow(2e18))).mul(volvol.pow(2e18)).div(24e18);
 		int256 d = fkbeta.sqrt();
 		int256 v = ((1e18 - beta).pow(2e18)).mul(logfk.pow(2e18)).div(24e18);
@@ -46,7 +46,7 @@ library SABR {
 	}
 
 	function _x(int256 rho, int256 z) internal pure returns (int256) {
-		int256 a = (1e18 - 2 * rho.mul(z).sqrt() + z.pow(2e18));
+		int256 a = (1e18 - 2 * rho.mul(z) + z.pow(2e18)).sqrt() + z - rho;
 		int256 b = 1e18 - rho;
 		return (a.div(b)).ln();
 	}
