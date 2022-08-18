@@ -13,7 +13,7 @@ import {
   useState,
 } from "react";
 import { Route, Routes } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import { Header } from "./components/Header";
@@ -173,36 +173,42 @@ function App() {
       const { accounts, chains, provider } = wallets[0];
       const ethersProvider = new ethers.providers.Web3Provider(provider);
       const ethersSigner = ethersProvider.getSigner();
-      setSigner(ethersSigner);
-      let network = await ethersProvider.getNetwork();
+      const initialNetwork = await ethersProvider.getNetwork();
       const isCorrectChain =
-        network.chainId ===
+        initialNetwork.chainId ===
         (process.env.REACT_APP_ENV === "production"
           ? CHAINID.ARBITRUM_MAINNET
           : CHAINID.ARBITRUM_RINKEBY);
       if (!isCorrectChain) {
         if (process.env.REACT_APP_ENV === "production") {
-          addArbitrum();
+          await addArbitrum();
         } else {
-          addArbitrumTestnet();
+          await addArbitrumTestnet();
         }
-        network = await ethersProvider.getNetwork();
       }
 
-      const networkName =
-        network.chainId in IDToNetwork
-          ? IDToNetwork[network.chainId as CHAINID]
+      const networkId =
+        process.env.REACT_APP_ENV === "production"
+          ? CHAINID.ARBITRUM_MAINNET
+          : process.env.REACT_APP_ENV === "testnet"
+          ? CHAINID.ARBITRUM_RINKEBY
           : null;
-      if (networkName) {
-        setNetwork({ id: network.chainId, name: networkName });
+      if (networkId) {
+        const networkName =
+          networkId in IDToNetwork ? IDToNetwork[networkId as CHAINID] : null;
+        if (networkName) {
+          setNetwork({ id: networkId, name: networkName });
+        }
       }
+      setSigner(ethersSigner);
       setAccount(accounts[0].address);
-      const networkRPCURL = RPC_URL_MAP[network.chainId as CHAINID];
+      const networkRPCURL = RPC_URL_MAP[networkId as CHAINID];
       setRPCURL(networkRPCURL);
-      setChainId(chains[0].id);
+      setChainId(String(networkId));
       setIsLoading(false);
       updateFavicon(CONNECTED_FAVICON);
     } catch (error) {
+      setIsLoading(false);
       setError(error);
     }
   }, []);
@@ -216,28 +222,33 @@ function App() {
 
   const addArbitrum = async () => {
     if (window.ethereum) {
-      window.ethereum.request({
-        method: "wallet_addEthereumChain",
-        params: [
-          {
-            chainId: "0xa4b1", // A 0x-prefixed hexadecimal string
-            chainName: "Arbitrum One",
-            nativeCurrency: {
-              name: "Ethereum",
-              symbol: "arETH",
-              decimals: 18,
+      try {
+        const a = await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: "0xa4b1", // A 0x-prefixed hexadecimal string
+              chainName: "Arbitrum One",
+              nativeCurrency: {
+                name: "Ethereum",
+                symbol: "arETH",
+                decimals: 18,
+              },
+              rpcUrls: ["https://arb1.arbitrum.io/rpc"],
+              blockExplorerUrls: ["https://arbiscan.io/"],
             },
-            rpcUrls: ["https://arb1.arbitrum.io/rpc"],
-            blockExplorerUrls: ["https://arbiscan.io/"],
-          },
-        ],
-      });
+          ],
+        });
+        debugger;
+      } catch {
+        toast("❌ RYSK only works on Arbitrum");
+      }
     }
   };
 
   const addArbitrumTestnet = async () => {
     if (window.ethereum) {
-      window.ethereum.request({
+      await window.ethereum.request({
         method: "wallet_addEthereumChain",
         params: [
           {

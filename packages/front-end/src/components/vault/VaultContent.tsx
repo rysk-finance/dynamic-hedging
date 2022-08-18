@@ -11,8 +11,12 @@ import { VaultWithdraw } from "./VaultWithdraw";
 import { VaultStrategy } from "../VaultStrategy";
 import { VaultRisks } from "../VaultRisks";
 import { VaultInfo } from "../VaultInfo";
+import { useWalletContext } from "../../App";
+import { CHAINID } from "../../config/constants";
 
 export const VaultContent = () => {
+  const { chainId, network } = useWalletContext();
+
   const {
     state: { userDHVBalance: userRyskBalance },
   } = useVaultContext();
@@ -28,6 +32,20 @@ export const VaultContent = () => {
             </BigNumberDisplay>
           </RequiresWalletConnection>
         </h4>
+        {Number(chainId) === CHAINID.ARBITRUM_MAINNET ||
+          (Number(chainId) === CHAINID.ARBITRUM_RINKEBY && (
+            <div className="flex items-center">
+              <h4>
+                Network:{" "}
+                {Number(chainId) === CHAINID.ARBITRUM_MAINNET
+                  ? "Arbitrum"
+                  : Number(chainId) === CHAINID.ARBITRUM_RINKEBY
+                  ? "Arbitrum Testnet"
+                  : network?.name}{" "}
+              </h4>
+              {<img src="/arbitrum_logo.svg" className="h-6 w-auto ml-2" />}
+            </div>
+          ))}
       </div>
       <div className="col-start-1 col-end-8">
         <h2 className="mb-8">Earn Uncorrelated Returns</h2>
