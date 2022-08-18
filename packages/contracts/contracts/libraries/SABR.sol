@@ -9,6 +9,19 @@ library SABR {
 
 	int256 private constant eps = 1e11;
 
+	struct IntermediateVariables {
+		int256 a;
+		int256 b;
+		int256 c;
+		int256 d;
+		int256 v;
+		int256 w;
+		int256 z;
+		int256 k;
+		int256 f;
+		int256 t;
+	}
+
 	function lognormalVol(
 		int256 k,
 		int256 f,
@@ -24,25 +37,50 @@ library SABR {
 		if (k <= 0 || f <= 0) {
 			return 0;
 		}
-		int256 logfk = (f.div(k)).ln();
-		int256 fkbeta = (f.mul(k)).pow(1e18 - beta);
-		int256 a = ((1e18 - beta).pow(2e18)).mul(alpha.pow(2e18)).div(int256(24e18).mul(fkbeta));
-		int256 b = int256(25e16).mul(rho).mul(beta).mul(volvol).mul(alpha).div(fkbeta.sqrt());
-		int256 c = (2e18 - int256(3e18).mul(rho.pow(2e18))).mul(volvol.pow(2e18)).div(24e18);
-		int256 d = fkbeta.sqrt();
-		int256 v = ((1e18 - beta).pow(2e18)).mul(logfk.pow(2e18)).div(24e18);
-		int256 w = ((1e18 - beta).pow(4e18)).mul(logfk.pow(4e18)).div(1920e18);
-		int256 z = volvol.mul(fkbeta.sqrt()).mul(logfk).div(alpha);
+
+		IntermediateVariables memory vars;
+
+		vars.k = k;
+		vars.f = f;
+		vars.t = t;
+
+		vars.a = ((1e18 - beta).pow(2e18)).mul(alpha.pow(2e18)).div(
+			int256(24e18).mul(_fkbeta(vars.f, vars.k, beta))
+		);
+		vars.b = int256(25e16).mul(rho).mul(beta).mul(volvol).mul(alpha).div(
+			_fkbeta(vars.f, vars.k, beta).sqrt()
+		);
+		vars.c = (2e18 - int256(3e18).mul(rho.pow(2e18))).mul(volvol.pow(2e18)).div(24e18);
+		vars.d = _fkbeta(vars.f, vars.k, beta).sqrt();
+		vars.v = ((1e18 - beta).pow(2e18)).mul(_logfk(vars.f, vars.k).pow(2e18)).div(24e18);
+		vars.w = ((1e18 - beta).pow(4e18)).mul(_logfk(vars.f, vars.k).pow(4e18)).div(1920e18);
+		vars.z = volvol.mul(_fkbeta(vars.f, vars.k, beta).sqrt()).mul(_logfk(vars.f, vars.k)).div(alpha);
 
 		// if |z| > eps
-		if (z.abs() > eps) {
-			int256 vz = alpha.mul(z).mul(1e18 + (a + b + c).mul(t)).div(d.mul(1e18 + v + w).mul(_x(rho, z)));
+		if (vars.z.abs() > eps) {
+			int256 vz = alpha.mul(vars.z).mul(1e18 + (vars.a + vars.b + vars.c).mul(vars.t)).div(
+				vars.d.mul(1e18 + vars.v + vars.w).mul(_x(rho, vars.z))
+			);
 			return vz;
 			// if |z| <= eps
 		} else {
-			int256 v0 = alpha.mul(1e18 + (a + b + c).mul(t)).div(d.mul(1e18 + v + w));
+			int256 v0 = alpha.mul(1e18 + (vars.a + vars.b + vars.c).mul(vars.t)).div(
+				vars.d.mul(1e18 + vars.v + vars.w)
+			);
 			return v0;
 		}
+	}
+
+	function _logfk(int256 f, int256 k) internal pure returns (int256) {
+		return (f.div(k)).ln();
+	}
+
+	function _fkbeta(
+		int256 f,
+		int256 k,
+		int256 beta
+	) internal pure returns (int256) {
+		return (f.mul(k)).pow(1e18 - beta);
 	}
 
 	function _x(int256 rho, int256 z) internal pure returns (int256) {
