@@ -947,7 +947,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function _getAssets() internal view returns (uint256 assets) {
 		// assets: Any token such as eth usd, collateral sent to OptionRegistry, hedging reactor stuff in e18
 		// liabilities: Options that we wrote in e18
-		assets = _getNormalizedBalance(collateralAsset) + OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset).decimals());
+		assets =
+			_getNormalizedBalance(collateralAsset) +
+			OptionsCompute.convertFromDecimals(collateralAllocated, ERC20(collateralAsset).decimals());
 		address[] memory hedgingReactors_ = hedgingReactors;
 		for (uint8 i = 0; i < hedgingReactors_.length; i++) {
 			// should always return value in e18 decimals
@@ -981,7 +983,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint256 collateralBuffer = (collateralAllocated * bufferPercentage) / MAX_BPS;
 		// revert if buffer allowance already hit
 		if (collateralBuffer > collateralBalance) {
-			revert CustomErrors.MaxLiquidityBufferReached();
+			bufferRemaining = 0;
 		}
 		bufferRemaining = collateralBalance - collateralBuffer;
 	}
