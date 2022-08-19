@@ -3,6 +3,7 @@ pragma solidity >=0.8.9;
 
 import "./libraries/AccessControl.sol";
 import "./libraries/CustomErrors.sol";
+import "./libraries/SABR.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
@@ -15,14 +16,13 @@ contract VolatilityFeed is AccessControl {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
 
-	/////////////////////////////////////
-	/// governance settable variables ///
-	/////////////////////////////////////
+	//////////////////////////
+	/// settable variables ///
+	//////////////////////////
 
-	// skew parameters for calls
-	int256[7] public callsVolatilitySkew;
-	// skew parameters for puts
-	int256[7] public putsVolatilitySkew;
+	// Parameters for the sabr volatility model
+	SABRParams public callSabrParams;
+	SABRParams public putSabrParams;
 	// keeper mapping
 	mapping(address => bool) public keeper;
 
@@ -31,7 +31,14 @@ contract VolatilityFeed is AccessControl {
 	//////////////////////////
 
 	// number of seconds in a year used for calculations
-	uint256 private constant ONE_YEAR_SECONDS = 31557600;
+	int256 private constant ONE_YEAR_SECONDS = 31557600;
+
+	struct SABRParams{
+		int256 alpha;
+		int256 beta;
+		int256 rho;
+		int256 volvol;
+	}
 
 	constructor(address _authority) AccessControl(IAuthority(_authority)) {}
 
@@ -40,17 +47,17 @@ contract VolatilityFeed is AccessControl {
 	///////////////
 
 	/**
-	 * @notice set the volatility skew of the pool
-	 * @param values the parameters of the skew
+	 * @notice set the sabr volatility params
+	 * @param sabrParams set the SABR parameters
 	 * @param isPut the option type, put or call?
-	 * @dev   only governance can call this function
+	 * @dev   only keepers can call this function
 	 */
-	function setVolatilitySkew(int256[7] calldata values, bool isPut) external {
+	function setSabrParameters(SABRParams memory sabrParams, bool isPut) external {
 		_isKeeper();
 		if (!isPut) {
-			callsVolatilitySkew = values;
+			callSabrParams = sabrParams;
 		} else {
-			putsVolatilitySkew = values;
+			putSabrParams = sabrParams;
 		}
 	}
 
@@ -78,46 +85,33 @@ contract VolatilityFeed is AccessControl {
 		uint256 strikePrice,
 		uint256 expiration
 	) external view returns (uint256) {
-		uint256 time = (expiration - block.timestamp).div(ONE_YEAR_SECONDS);
-		int256 underlying = int256(underlyingPrice);
-		int256 spot_distance = (int256(strikePrice) - int256(underlying)).div(underlying);
-		int256[2] memory points = [spot_distance, int256(time)];
-		int256[7] memory coef = isPut ? putsVolatilitySkew : callsVolatilitySkew;
-		return uint256(computeIVFromSkew(coef, points));
-	}
-
-	/**
-	 * @notice get the volatility skew of the pool
-	 * @param isPut the option type, put or call?
-	 * @return the skew parameters
-	 */
-	function getVolatilitySkew(bool isPut) external view returns (int256[7] memory) {
+		int256 time = (int256(expiration) - int256(block.timestamp)).div(ONE_YEAR_SECONDS);
+		int256 vol;
 		if (!isPut) {
-			return callsVolatilitySkew;
+			vol = SABR.lognormalVol(
+				int256(strikePrice), 
+				int256(underlyingPrice),
+				time, 
+				callSabrParams.alpha, 
+				callSabrParams.beta, 
+				callSabrParams.rho, 
+				callSabrParams.volvol
+			);
 		} else {
-			return putsVolatilitySkew;
+			vol = SABR.lognormalVol(
+				int256(strikePrice), 
+				int256(underlyingPrice),
+				time, 
+				putSabrParams.alpha, 
+				putSabrParams.beta, 
+				putSabrParams.rho, 
+				putSabrParams.volvol
+			);
 		}
-	}
-
-	//////////////////////////
-	/// internal utilities ///
-	//////////////////////////
-
-	// @param points[0] spot distance
-	// @param points[1] expiration time
-	// @param coef degree-2 polynomial features are [intercept, 1, a, b, a^2, ab, b^2]
-	// a == spot_distance, b == expiration time
-	// spot_distance: (strike - spot_price) / spot_price
-	// expiration: years to expiration
-	function computeIVFromSkew(int256[7] memory coef, int256[2] memory points)
-		internal
-		pure
-		returns (int256)
-	{
-		int256 iPlusC1 = coef[0] + coef[1];
-		int256 c2PlusC3 = coef[2].mul(points[0]) + (coef[3].mul(points[1]));
-		int256 c4PlusC5 = coef[4].mul(points[0].mul(points[0])) + (coef[5].mul(points[0]).mul(points[1]));
-		return iPlusC1 + c2PlusC3 + c4PlusC5 + (coef[6].mul(points[1].mul(points[1])));
+		if (vol <= 0){
+			revert CustomErrors.IVNotFound();
+		}
+		return uint256(vol);	
 	}
 
 	/// @dev keepers, managers or governors can access
