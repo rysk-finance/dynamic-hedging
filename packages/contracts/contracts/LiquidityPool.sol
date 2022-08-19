@@ -983,7 +983,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint256 collateralBuffer = (collateralAllocated * bufferPercentage) / MAX_BPS;
 		// revert if buffer allowance already hit
 		if (collateralBuffer > collateralBalance) {
-			bufferRemaining = 0;
+			return 0;
 		}
 		bufferRemaining = collateralBalance - collateralBuffer;
 	}
