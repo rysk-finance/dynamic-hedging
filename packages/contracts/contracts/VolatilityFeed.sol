@@ -21,8 +21,7 @@ contract VolatilityFeed is AccessControl {
 	//////////////////////////
 
 	// Parameters for the sabr volatility model
-	SABRParams public callSabrParams;
-	SABRParams public putSabrParams;
+	mapping(uint256 => SABRParams) public sabrParams;
 	// keeper mapping
 	mapping(address => bool) public keeper;
 
@@ -34,10 +33,14 @@ contract VolatilityFeed is AccessControl {
 	int256 private constant ONE_YEAR_SECONDS = 31557600;
 
 	struct SABRParams{
-		int256 alpha;
-		int256 beta;
-		int256 rho;
-		int256 volvol;
+		int32 callAlpha;
+		int32 callBeta;
+		int32 callRho;
+		int32 callVolvol;
+		int32 putAlpha;
+		int32 putBeta;
+		int32 putRho;
+		int32 putVolvol;
 	}
 
 	constructor(address _authority) AccessControl(IAuthority(_authority)) {}
@@ -48,17 +51,13 @@ contract VolatilityFeed is AccessControl {
 
 	/**
 	 * @notice set the sabr volatility params
-	 * @param sabrParams set the SABR parameters
-	 * @param isPut the option type, put or call?
+	 * @param _sabrParams set the SABR parameters
+	 * @param _expiry the expiry that the SABR parameters represent
 	 * @dev   only keepers can call this function
 	 */
-	function setSabrParameters(SABRParams memory sabrParams, bool isPut) external {
+	function setSabrParameters(SABRParams memory _sabrParams, uint256 _expiry) external {
 		_isKeeper();
-		if (!isPut) {
-			callSabrParams = sabrParams;
-		} else {
-			putSabrParams = sabrParams;
-		}
+		sabrParams[_expiry] = _sabrParams;
 	}
 
 	/// @notice update the keepers
@@ -87,25 +86,26 @@ contract VolatilityFeed is AccessControl {
 	) external view returns (uint256) {
 		int256 time = (int256(expiration) - int256(block.timestamp)).div(ONE_YEAR_SECONDS);
 		int256 vol;
+		SABRParams memory sabrParams_ = sabrParams[expiration];
 		if (!isPut) {
 			vol = SABR.lognormalVol(
 				int256(strikePrice), 
 				int256(underlyingPrice),
 				time, 
-				callSabrParams.alpha, 
-				callSabrParams.beta, 
-				callSabrParams.rho, 
-				callSabrParams.volvol
+				sabrParams_.callAlpha, 
+				sabrParams_.callBeta, 
+				sabrParams_.callRho, 
+				sabrParams_.callVolvol
 			);
 		} else {
 			vol = SABR.lognormalVol(
 				int256(strikePrice), 
 				int256(underlyingPrice),
 				time, 
-				putSabrParams.alpha, 
-				putSabrParams.beta, 
-				putSabrParams.rho, 
-				putSabrParams.volvol
+				sabrParams_.putAlpha, 
+				sabrParams_.putBeta, 
+				sabrParams_.putRho, 
+				sabrParams_.putVolvol
 			);
 		}
 		if (vol <= 0){
