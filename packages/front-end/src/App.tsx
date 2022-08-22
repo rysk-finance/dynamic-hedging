@@ -239,7 +239,6 @@ function App() {
             },
           ],
         });
-        debugger;
       } catch {
         toast("❌ RYSK only works on Arbitrum");
       }

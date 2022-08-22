@@ -16,18 +16,18 @@ import * as Scroll from "react-scroll";
 
 import { useWalletContext } from "../../App";
 import { CHAINID } from "../../config/constants";
+import { useGlobalContext } from "../../state/GlobalContext";
+import { useUserPosition } from "../../hooks/useUserPosition";
 
 export const VaultContent = () => {
   const { chainId, network } = useWalletContext();
-
-  const {
-    state: { userDHVBalance: userRyskBalance },
-  } = useVaultContext();
 
   const Link = Scroll.Link;
   const Element = Scroll.Element;
 
   const envChainID = process.env.REACT_APP_CHAIN_ID;
+
+  const { userPositionValue } = useUserPosition();
 
   return (
     <>
@@ -47,9 +47,15 @@ export const VaultContent = () => {
 
         <p>
           Your Position:{" "}
-          <RequiresWalletConnection className="bg-white h-8 w-[100px]">
-            <BigNumberDisplay currency={Currency.RYSK} suffix="USDC">
-              {userRyskBalance}
+          <RequiresWalletConnection className="bg-white h-4 w-[100px] translate-y-[-2px]">
+            <BigNumberDisplay
+              currency={Currency.USDC}
+              suffix="USDC"
+              loaderProps={{
+                className: "invert h-4 w-auto translate-y-[-2px]",
+              }}
+            >
+              {userPositionValue}
             </BigNumberDisplay>
           </RequiresWalletConnection>
         </p>

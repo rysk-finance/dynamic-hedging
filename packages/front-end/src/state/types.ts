@@ -10,12 +10,14 @@ export type GlobalState = {
   ethPrice: number | null;
   eth24hChange: number | null;
   ethPriceUpdateTime: Date | null;
+  userPositionValue: BigNumber | null;
   connectWalletIndicatorActive: boolean;
   settings: AppSettings;
 };
 
 export enum ActionType {
   SET_ETH_PRICE,
+  SET_POSITION_VALUE,
   SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
   SET_SETTINGS,
 }
@@ -26,6 +28,10 @@ export type GlobalAction =
       price: number;
       change?: number;
       date: Date;
+    }
+  | {
+      type: ActionType.SET_POSITION_VALUE;
+      value: BigNumber;
     }
   | {
       type: ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE;

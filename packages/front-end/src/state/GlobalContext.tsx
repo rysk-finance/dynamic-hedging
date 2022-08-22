@@ -15,6 +15,7 @@ const defaultGlobalState: GlobalState = {
   ethPrice: null,
   eth24hChange: null,
   ethPriceUpdateTime: null,
+  userPositionValue: null,
   connectWalletIndicatorActive: false,
   settings: { unlimitedApproval: false },
 };

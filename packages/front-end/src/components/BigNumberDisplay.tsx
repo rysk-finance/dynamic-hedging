@@ -3,6 +3,7 @@ import React from "react";
 import NumberFormat, { NumberFormatProps } from "react-number-format";
 import { DECIMALS } from "../config/constants";
 import { Currency } from "../types";
+import { Loader } from "./Loader";
 
 const CURRENCY_TO_DP_MAP: Record<Currency, number> = {
   [Currency.USDC]: 2,
@@ -14,6 +15,7 @@ type BigNumberDisplayProps = {
   currency: Currency;
   children: BigNumber | null;
   numberFormatProps?: NumberFormatProps;
+  loaderProps?: React.HTMLProps<HTMLImageElement>;
   suffix?: string;
 };
 
@@ -22,6 +24,7 @@ export const BigNumberDisplay: React.FC<BigNumberDisplayProps> = ({
   currency,
   numberFormatProps = {},
   suffix,
+  loaderProps: { className: loaderClassName, ...restLoaderProps } = {},
 }) => {
   return children ? (
     <NumberFormat
@@ -33,6 +36,9 @@ export const BigNumberDisplay: React.FC<BigNumberDisplayProps> = ({
       {...numberFormatProps}
     />
   ) : (
-    <>0.00</>
+    <Loader
+      className={`inline mr-2 h-4 ${loaderClassName}`}
+      {...restLoaderProps}
+    />
   );
 };
