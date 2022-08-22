@@ -11,6 +11,7 @@ import "hardhat-gas-reporter"
 import "hardhat-tracer"
 import path from "path"
 import "solidity-coverage"
+import "solidity-docgen"
 // Task imports
 import "./tasks/seedUSDC"
 // import "./tasks/executeEpoch"
@@ -180,5 +181,6 @@ module.exports = {
 		]
 		// turn on for slither
 		// keep: true,
-	}
+	},
+	docgen: {}
 }
