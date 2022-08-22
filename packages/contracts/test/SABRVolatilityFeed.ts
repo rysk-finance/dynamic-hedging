@@ -82,14 +82,14 @@ describe("Volatility Feed", async () => {
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = 
 			{
-				callAlpha:1,
-				callBeta:1,
-				callRho:-1,
-				callVolvol:2,
-				putAlpha:1,
-				putBeta:1,
-				putRho:-1,
-				putVolvol:2
+				callAlpha:1000000,
+				callBeta:1000000,
+				callRho:500000,
+				callVolvol:2000000,
+				putAlpha:1000000,
+				putBeta:1000000,
+				putRho:500000,
+				putVolvol:2000000
 			}
 			await volFeed.setSabrParameters(
 				proposedSabrParams, 
@@ -109,12 +109,13 @@ describe("Volatility Feed", async () => {
 	describe("VolatilityFeed: get implied volatility", async () => {
 		it("SUCCEEDS: get implied volatility", async () => {
 			const underlyingPrice = toWei("2000")
-			await volFeed.getImpliedVolatility(
+			const iv = await volFeed.getImpliedVolatility(
 				true, 
 				underlyingPrice, 
 				underlyingPrice.sub(toWei("100")), 
 				expiration
 			)
+			console.log(iv)
 		})
 	})
     describe("VolatilityFeed: setters", async () => {

@@ -31,6 +31,7 @@ contract VolatilityFeed is AccessControl {
 
 	// number of seconds in a year used for calculations
 	int256 private constant ONE_YEAR_SECONDS = 31557600;
+	int256 private constant BIPS_SCALE = 1e12;
 
 	struct SABRParams{
 		int32 callAlpha;
@@ -57,6 +58,7 @@ contract VolatilityFeed is AccessControl {
 	 */
 	function setSabrParameters(SABRParams memory _sabrParams, uint256 _expiry) external {
 		_isKeeper();
+		// TODO: add checks on parameters to make sure they are range bound
 		sabrParams[_expiry] = _sabrParams;
 	}
 
@@ -92,20 +94,20 @@ contract VolatilityFeed is AccessControl {
 				int256(strikePrice), 
 				int256(underlyingPrice),
 				time, 
-				sabrParams_.callAlpha, 
-				sabrParams_.callBeta, 
-				sabrParams_.callRho, 
-				sabrParams_.callVolvol
+				sabrParams_.callAlpha * BIPS_SCALE, 
+				sabrParams_.callBeta * BIPS_SCALE, 
+				sabrParams_.callRho * BIPS_SCALE, 
+				sabrParams_.callVolvol * BIPS_SCALE
 			);
 		} else {
 			vol = SABR.lognormalVol(
 				int256(strikePrice), 
 				int256(underlyingPrice),
 				time, 
-				sabrParams_.putAlpha, 
-				sabrParams_.putBeta, 
-				sabrParams_.putRho, 
-				sabrParams_.putVolvol
+				sabrParams_.putAlpha * BIPS_SCALE, 
+				sabrParams_.putBeta * BIPS_SCALE, 
+				sabrParams_.putRho * BIPS_SCALE, 
+				sabrParams_.putVolvol * BIPS_SCALE
 			);
 		}
 		if (vol <= 0){
