@@ -172,7 +172,7 @@ export const OTCPageContent = () => {
         usdcContractCall({
           method: usdcContract.approve,
           args: [optionHandlerContract.address, price],
-          onComplete: () => {
+          onSubmit: () => {
             setIsListeningForApproval(true);
           },
         });
@@ -190,7 +190,7 @@ export const OTCPageContent = () => {
         await optionHandlerContractCall({
           method: optionHandlerContract.executeOrder,
           args: [Number(orderId)],
-          onComplete: () => {
+          onSubmit: () => {
             setIsListeningForComplete(true);
           },
         });
@@ -201,7 +201,7 @@ export const OTCPageContent = () => {
         await optionHandlerContractCall({
           method: optionHandlerContract.executeOrder,
           args: [id1],
-          onComplete: () => {
+          onSubmit: () => {
             setIsListeningForComplete(true);
           },
         });

@@ -14,8 +14,12 @@ import { VaultInfo } from "../VaultInfo";
 import { DHV_NAME } from "../../config/constants";
 import * as Scroll from 'react-scroll';
 
+import { useWalletContext } from "../../App";
+import { CHAINID } from "../../config/constants";
 
 export const VaultContent = () => {
+  const { chainId, network } = useWalletContext();
+
   const {
     state: { userDHVBalance: userRyskBalance },
   } = useVaultContext();
@@ -23,17 +27,47 @@ export const VaultContent = () => {
   const Link = Scroll.Link;
   const Element   = Scroll.Element;
 
+  const envChainID = process.env.REACT_APP_CHAIN_ID;
+
   return (
     <>
       <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 mb-16">  
-        <h4>
-          Your Balance:{" "}
+        
+        {/* {Number(chainId) === CHAINID.ARBITRUM_MAINNET ||
+          (Number(chainId) === CHAINID.ARBITRUM_RINKEBY && (
+            <div className="flex items-center">
+              <p>
+                {Number(chainId) === CHAINID.ARBITRUM_MAINNET
+                  ? "Arbitrum"
+                  : Number(chainId) === CHAINID.ARBITRUM_RINKEBY
+                  ? "Arbitrum Testnet"
+                  : network?.name}{" "}
+              </p>
+              {<img src="/arbitrum_logo.svg" className="h-6 w-auto ml-2" />}
+            </div>
+          ))} */}
+
+          { envChainID && (
+            <div className="flex items-center">
+              <p>
+                {Number(envChainID) === CHAINID.ARBITRUM_MAINNET
+                  ? "Arbitrum"
+                  : Number(envChainID) === CHAINID.ARBITRUM_RINKEBY
+                  ? "Arbitrum Testnet"
+                  : network?.name}{" "}
+              </p>
+              {<img src="/arbitrum_logo.svg" className="h-6 w-auto ml-2" />}
+            </div>
+          )}
+
+        <p>
+          Your Position:{" "}
           <RequiresWalletConnection className="bg-white h-8 w-[100px]">
             <BigNumberDisplay currency={Currency.RYSK} suffix="DHV">
               {userRyskBalance}
             </BigNumberDisplay>
           </RequiresWalletConnection>
-        </h4>
+        </p>
       </div>
       <div className="col-start-1 col-end-8">
 
@@ -41,8 +75,9 @@ export const VaultContent = () => {
           <h1>{DHV_NAME}</h1>
           <h3 className="pt-4">Dynamic Hedging Vault</h3>
         </div>
-        
-        <p>
+      
+
+        <p className="mt-8">
           {DHV_NAME} generates uncorrelated returns on USDC by
           running short options strategies (such as strangles, straddles, or single legs) targeting delta neutrality
           to reduce the directional risk associated with price movements in the underlying asset. 
@@ -62,7 +97,7 @@ export const VaultContent = () => {
             Learn more
           </Link>
         </p>
-        
+
         <LPStats />
         
       </div>

@@ -100,7 +100,7 @@ export const Purchase: React.FC = () => {
                 ? ethers.BigNumber.from(MAX_UINT_256)
                 : amount,
             ],
-            successMessage: "✅ Approval successful",
+            submitMessage: "✅ Approval successful",
           });
         } else {
           toast("✅ Your transaction is already approved");
@@ -137,7 +137,7 @@ export const Purchase: React.FC = () => {
           await optionHandlerContractCall({
             method: optionHandlerContract.issueAndWriteOption,
             args: [DUMMY_OPTION_SERIES, amount],
-            onComplete: () => {
+            onSubmit: () => {
               setUIOrderSize("");
               setIsApproved(false);
             },
@@ -150,7 +150,7 @@ export const Purchase: React.FC = () => {
           await optionHandlerContractCall({
             method: optionHandlerContract.writeOption,
             args: [seriesAddress, amount],
-            onComplete: () => {
+            onSubmit: () => {
               setUIOrderSize("");
               setIsApproved(false);
             },

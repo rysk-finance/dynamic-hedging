@@ -25,7 +25,7 @@ export const VaultStrategy = () => {
     { 
       'name': 'options',
       'src': '/images/bento.png',
-      'description': "Rysk could buy back options to reduce the delta and gamma exposure of the pool" 
+      'description': "Rysk could buy back options to reduce the gamma exposure of the pool and rebalance delta" 
     },
     { 
       'name': 'spot',
@@ -87,7 +87,7 @@ export const VaultStrategy = () => {
           <h4 className="pt-8">Hedging</h4>
           <p className="pt-4 pr-4">
             If the portfolio delta moves far away from zero the {DHV_NAME} position will be hedged by trading options, 
-            spot or perpetuals. The {DHV_NAME} gamma exposure will be also hedged.
+            spot or perpetuals. The {DHV_NAME} could also buy back options and to reduce the gamma exposure.
 
             <div className="rounded-lg mt-8 mr-8">
               <div className="pb-4">
@@ -121,7 +121,7 @@ export const VaultStrategy = () => {
             <ul className="list-decimal px-8">
               <li>Deposit USDC into {DHV_NAME} vault.</li>
               <li>
-                Your USDC deposit will be queued till the next epoch. At
+                Your USDC deposit will be queued till the next epoch start. At
                 this stage you can also deposit additional USDC.
               </li>
               <li>
@@ -129,7 +129,7 @@ export const VaultStrategy = () => {
                 to shares which can then be redeemed.
               </li>
               <li>
-                Your shares will appreciate over-time as the {DHV_NAME}
+                Your shares value could appreciate over-time as the {DHV_NAME}
                 generates returns.
               </li>
             </ul>

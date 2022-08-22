@@ -14,21 +14,21 @@ import {
 } from "../../config/constants";
 import addresses from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
-import { useGlobalContext } from "../../state/GlobalContext";
+import { VaultActionType } from "../../state/types";
+import { useVaultContext } from "../../state/VaultContext";
 import {
   ContractAddresses,
   Currency,
   DepositReceipt,
   ETHNetwork,
-  Events,
 } from "../../types";
+import { BigNumberDisplay } from "../BigNumberDisplay";
+import { Loader } from "../Loader";
 import { RequiresWalletConnection } from "../RequiresWalletConnection";
+import { RyskTooltip } from "../RyskTooltip";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
-import { BigNumberDisplay } from "../BigNumberDisplay";
-import { RyskTooltip } from "../RyskTooltip";
-import { useVaultContext } from "../../state/VaultContext";
-import { VaultActionType } from "../../state/types";
+import { Toggle } from "../shared/Toggle";
 
 export const VaultDeposit = () => {
   const { account, network } = useWalletContext();
@@ -39,10 +39,6 @@ export const VaultDeposit = () => {
     },
     dispatch,
   } = useVaultContext();
-
-  const {
-    state: { settings },
-  } = useGlobalContext();
 
   // UI State
   const [inputValue, setInputValue] = useState("");
@@ -63,15 +59,12 @@ export const VaultDeposit = () => {
     null
   );
 
-  const [approvalState, setApprovalState] = useState<Events["Approval"] | null>(
-    null
-  );
+  const [unlimitedApproval, setUnlimitedApproval] = useState(false);
+  const [isApproved, setIsApproved] = useState<boolean>(false);
 
   // Contracts
   const [lpContract, lpContractCall] = useContract<{
     DepositEpochExecuted: [];
-    Deposit: [BigNumber, BigNumber, BigNumber];
-    Redeem: [];
   }>({
     contract: "liquidityPool",
     ABI: LPABI.abi,
@@ -80,42 +73,16 @@ export const VaultDeposit = () => {
       DepositEpochExecuted: () => {
         epochListener();
       },
-      Deposit: () => {
-        setListeningForDeposit(false);
-        toast("✅ Deposit complete");
-        setInputValue("");
-        updateDepositState();
-      },
-      Redeem: () => {
-        setListeningForRedeem(false);
-        toast("✅ Redeem completed");
-        updateDepositState();
-        if (account) {
-          getRedeemedShares(account);
-        }
-      },
     },
     isListening: {
       DepositEpochExecuted: true,
-      Deposit: listeningForDeposit,
-      Redeem: listeningForRedeem,
     },
   });
 
-  const [usdcContract, usdcContractCall] = useContract<{
-    Approval: [string, string, BigNumber];
-  }>({
+  const [usdcContract, usdcContractCall] = useContract({
     contract: "USDC",
     ABI: ERC20ABI,
     readOnly: false,
-    events: {
-      Approval: (owner, spender, value) => {
-        setApprovalState({ owner, spender, value });
-        setListeningForApproval(false);
-        toast("✅ Approval complete");
-      },
-    },
-    isListening: { Approval: listeningForApproval },
   });
 
   const getUSDCBalance = useCallback(
@@ -227,7 +194,7 @@ export const VaultDeposit = () => {
   // UI Handlers
   const handleInputChange = (value: string) => {
     setInputValue(value);
-    setApprovalState(null);
+    setIsApproved(false);
   };
 
   // Handlers for the different possible vault interactions.
@@ -241,30 +208,24 @@ export const VaultDeposit = () => {
         ]
       )) as BigNumber;
       try {
-        if (!settings.unlimitedApproval) {
-          if (approvedAmount.lt(amount)) {
-            await usdcContractCall({
-              method: usdcContract.approve,
-              args: [
-                (addresses as Record<ETHNetwork, ContractAddresses>)[
-                  network.name
-                ]["liquidityPool"],
-                settings.unlimitedApproval
-                  ? ethers.BigNumber.from(MAX_UINT_256)
-                  : amount,
-              ],
-              successMessage: "✅ Approval submitted",
-            });
-            setListeningForApproval(true);
-          } else {
-            if (account && lpContract)
-              setApprovalState({
-                owner: account,
-                spender: lpContract.address,
-                value: approvedAmount,
-              });
-            toast("✅ Your transaction is already approved");
-          }
+        if (approvedAmount.lt(amount)) {
+          await usdcContractCall({
+            method: usdcContract.approve,
+            args: [
+              (addresses as Record<ETHNetwork, ContractAddresses>)[
+                network.name
+              ]["liquidityPool"],
+              unlimitedApproval ? ethers.BigNumber.from(MAX_UINT_256) : amount,
+            ],
+            submitMessage: "✅ Approval submitted",
+            onComplete: () => {
+              setIsApproved(true);
+            },
+            completeMessage: "✅ Approval complete",
+          });
+        } else {
+          if (account && lpContract) setIsApproved(true);
+          toast("✅ Your transaction is already approved");
         }
       } catch {
         toast("❌ There was an error approving your transaction.");
@@ -279,10 +240,17 @@ export const VaultDeposit = () => {
       await lpContractCall({
         method: lpContract.deposit,
         args: [amount],
-        successMessage: "✅ Deposit submitted",
-        onComplete: () => {
-          setApprovalState(null);
+        submitMessage: "✅ Deposit submitted",
+        onSubmit: () => {
+          setIsApproved(false);
           setListeningForDeposit(true);
+        },
+        completeMessage:
+          "✅ Deposit complete. You can redeem your shares once this epoch is executed.",
+        onComplete: () => {
+          setInputValue("");
+          updateDepositState();
+          setListeningForDeposit(false);
         },
       });
     }
@@ -290,17 +258,28 @@ export const VaultDeposit = () => {
 
   const handleRedeemShares = async () => {
     if (lpContract) {
-      await lpContractCall({ method: lpContract.redeem, args: [MAX_UINT_256] });
-      setListeningForRedeem(true);
+      await lpContractCall({
+        method: lpContract.redeem,
+        args: [MAX_UINT_256],
+        submitMessage: "✅ Redeem submitted",
+        onSubmit: () => {
+          setListeningForRedeem(true);
+        },
+        completeMessage: "✅ Redeem complete.",
+        onComplete: () => {
+          updateDepositState();
+          setListeningForRedeem(false);
+        },
+      });
     }
   };
 
   const approveIsDisabled =
     !inputValue ||
-    !!approvalState ||
+    !!isApproved ||
     listeningForApproval ||
     ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256;
-  const depositIsDisabled = !(inputValue && account && approvalState);
+  const depositIsDisabled = !(inputValue && account && isApproved);
   const redeemIsDisabled = listeningForRedeem;
 
   return (
@@ -348,7 +327,7 @@ export const VaultDeposit = () => {
                 userUSDCBalance
                   ? () => {
                       if (userUSDCBalance) {
-                        setInputValue(
+                        handleInputChange(
                           ethers.utils.formatUnits(userUSDCBalance, 6)
                         );
                       }
@@ -358,9 +337,9 @@ export const VaultDeposit = () => {
             />
           </div>
           <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <div className="flex">
-                <p>Pending deposit</p>
+                <p>Deposits on hold</p>
                 <RyskTooltip
                   message={
                     "Your USDC will be deployed to our vault and converted to shares every Friday at 11am UTC"
@@ -368,15 +347,26 @@ export const VaultDeposit = () => {
                   id={"strategeyTip"}
                 />
               </div>
-              <p>
-                <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                  <BigNumberDisplay currency={Currency.USDC}>
-                    {pendingDepositedUSDC}
-                  </BigNumberDisplay>
-                </RequiresWalletConnection>{" "}
-                USDC
-              </p>
+              <div className="h-4 flex items-center">
+                {listeningForDeposit && <Loader className="mr-2" />}
+                <p>
+                  <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
+                    <BigNumberDisplay currency={Currency.USDC}>
+                      {pendingDepositedUSDC}
+                    </BigNumberDisplay>
+                  </RequiresWalletConnection>{" "}
+                  USDC
+                </p>
+              </div>
             </div>
+          </div>
+          <div className="flex items-center border-b-2 border-black p-2 justify-between">
+            <p className="text-[12px] mr-2">Unlimited Approval: </p>
+            <Toggle
+              value={unlimitedApproval}
+              setValue={setUnlimitedApproval}
+              size="sm"
+            />
           </div>
           <div className="flex">
             <>
@@ -387,7 +377,7 @@ export const VaultDeposit = () => {
                 color="black"
                 requiresConnection
               >
-                {approvalState
+                {isApproved
                   ? "✅ Approved"
                   : listeningForApproval
                   ? "⏱ Awaiting Approval"

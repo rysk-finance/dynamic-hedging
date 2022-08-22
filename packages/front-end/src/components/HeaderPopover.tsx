@@ -35,7 +35,12 @@ export const HeaderPopover: React.FC = () => {
 
   return (
     <div className="flex items-center" ref={containerRef}>
-      <Button type="button" onClick={() => setIsOpen((old) => !old)}>
+      <Button
+        type="button"
+        onClick={() => setIsOpen((old) => !old)}
+        className="flex items-center"
+      >
+        <img src="/arbitrum_logo.svg" className="h-4 w-auto mr-2" />
         {`${account?.slice(0, 4)}...${account?.slice(
           account.length - 4,
           account.length
@@ -64,9 +69,9 @@ export const HeaderPopover: React.FC = () => {
             >
               Open in Etherscan
             </Button>
-            <div className="mb-4">
+            {/* <div className="mb-4">
               <Settings />
-            </div>
+            </div> */}
             <Button
               onClick={() => {
                 disconnect?.();
