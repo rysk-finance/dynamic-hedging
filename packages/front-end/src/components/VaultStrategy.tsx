@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { DHV_NAME } from "../config/constants";
 import { Button } from "./shared/Button";
 
-const strategyDetails = [
+const STRATEGY_DETAILS = [
   {
     name: "strangles",
     src: "/images/strangles.png",
@@ -17,7 +17,7 @@ const strategyDetails = [
   },
 ];
 
-const strategyHedging = [
+const STRATEGY_HEDGING = [
   {
     name: "options",
     src: "/images/bento.png",
@@ -80,7 +80,7 @@ export const VaultStrategy = () => {
             <div className="rounded-t-lg bg-black text-white flex justify-center py-2 mt-16 md:mt-0">
               <p>
                 {
-                  strategyDetails.filter((item) => item.name === strategy)[0]
+                  STRATEGY_DETAILS.filter((item) => item.name === strategy)[0]
                     .name
                 }
                 .png
@@ -91,7 +91,7 @@ export const VaultStrategy = () => {
                 <div className="flex justify-center">
                   <img
                     src={
-                      strategyDetails.filter(
+                      STRATEGY_DETAILS.filter(
                         (item) => item.name === strategy
                       )[0].src
                     }
@@ -99,7 +99,7 @@ export const VaultStrategy = () => {
                   />
                   <p>
                     {
-                      strategyDetails.filter(
+                      STRATEGY_DETAILS.filter(
                         (item) => item.name === strategy
                       )[0].description
                     }
@@ -127,7 +127,7 @@ export const VaultStrategy = () => {
               <div className="rounded-t-lg bg-black text-white flex justify-center py-2 mt-16 md:mt-0">
                 <p>
                   {
-                    strategyHedging.filter((item) => item.name === hedging)[0]
+                    STRATEGY_HEDGING.filter((item) => item.name === hedging)[0]
                       .name
                   }
                   .png
@@ -138,7 +138,7 @@ export const VaultStrategy = () => {
                   <div className="flex justify-center">
                     <img
                       src={
-                        strategyHedging.filter(
+                        STRATEGY_HEDGING.filter(
                           (item) => item.name === hedging
                         )[0].src
                       }
@@ -146,7 +146,7 @@ export const VaultStrategy = () => {
                     />
                     <p>
                       {
-                        strategyHedging.filter(
+                        STRATEGY_HEDGING.filter(
                           (item) => item.name === hedging
                         )[0].description
                       }
