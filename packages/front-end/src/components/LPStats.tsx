@@ -32,11 +32,11 @@ export const LPStats = () => {
   }, [lpContract]);
 
   return (
-    <div className="mt-12">
+    <div className="mt-8">
       <div className="flex justify-between mb-4">
         { depositedCollateral &&
           <div>
-            <h4>
+            <p className="text-xl font-medium">
                 {/* <NumberFormat 
                 value={ ethers.utils.formatUnits(depositedCollateral, DECIMALS.RYSK) } 
                 displayType={"text"}
@@ -45,27 +45,27 @@ export const LPStats = () => {
                 thousandSeparator={true}
                 /> */}
               60k USDC
-            </h4>
-            <p>Deposited</p>
+            </p>
+            <p>Total Deposits</p>
           </div>
         }
         <div className="text-right">
-          <h4>
+          <p className="text-xl font-medium">
             {/* TODO(HC): Switch back to contract collateral cap once placeholder max256 value isn't used */}
             {/* {collateralCap &&
               ethers.utils.formatUnits(collateralCap, DECIMALS.RYSK)}{" "} */}
             100k USDC
-          </h4>
-          <p>Max Capacity</p>
+          </p>
+          <p>Vault Max Capacity</p>
         </div>
       </div>
       <ProgressBar
         completed={60}
         bgColor={"#000"}
-        height={"30px"}
+        height={"24px"}
         baseBgColor={"#ebebeb"}
         animateOnRender={true}
-        borderRadius={"10px"}
+        borderRadius={"9px"}
         className={"border-2 border-2 rounded-xl border-black"}
       />
     </div>

@@ -7,6 +7,7 @@ import LPABI from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
 import {
   BIG_NUMBER_DECIMALS,
   DECIMALS,
+  DHV_NAME,
   MAX_UINT_256,
   ZERO_UINT_256,
 } from "../config/constants";
@@ -524,7 +525,7 @@ export const VaultDepositWithdraw = () => {
                               Number(unredeemedShares?.toString()) /
                               Number(BIG_NUMBER_DECIMALS.RYSK.toString())
                             ).toFixed(2)}{" "}
-                            dhvUSDC
+                            { DHV_NAME }
                           </b>
                         </h5>
                       </RequiresWalletConnection>{" "}
@@ -547,7 +548,7 @@ export const VaultDepositWithdraw = () => {
                                     ?.toString()
                                 ) / Number(BIG_NUMBER_DECIMALS.RYSK.toString())
                               ).toFixed(2)}{" "}
-                              dhvUSDC
+                              { DHV_NAME }
                             </b>
                           </h5>
                           {(unredeemedShares._hex !== ZERO_UINT_256 ||

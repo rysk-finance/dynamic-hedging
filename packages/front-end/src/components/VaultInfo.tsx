@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { useContract } from "../hooks/useContract";
 import LPABI from "../abis/LiquidityPool.json";
-import { CHAINID, SCAN_URL } from "../config/constants";
+import { CHAINID, DHV_NAME, SCAN_URL } from "../config/constants";
 import { useVaultContext } from "../state/VaultContext";
 import { BigNumberDisplay } from "./BigNumberDisplay";
 import { Currency } from "../types";
@@ -29,8 +29,7 @@ export const VaultInfo = () => {
     <div className="pb-8 py-12 px-8">
       <div className="grid grid-cols-2">
         <div>
-          <h4>DHV</h4>
-          <p className="mt-4">Chain: Arbitrum</p>
+          <h4>{DHV_NAME}</h4>
           <p className="mt-4">
             Current Deposit Epoch: {depositEpoch?.toString()}
           </p>
@@ -45,10 +44,7 @@ export const VaultInfo = () => {
             </BigNumberDisplay>
           </p>
           <p className="mt-4">
-            Current Withdrawal Epoch: {withdrawalEpoch?.toString()}
-          </p>
-          <p className="mt-4">
-            DHV Withdrawal Share Price:{" "}
+            {DHV_NAME} Share Price:{" "}
             <BigNumberDisplay
               currency={Currency.RYSK}
               numberFormatProps={{ decimalScale: 4 }}
@@ -66,11 +62,9 @@ export const VaultInfo = () => {
         <div>
           <h4>Addresses</h4>
           <p className="mt-4">
-            DHV:{" "}
-            <a
-              href={`${SCAN_URL[CHAINID.ARBITRUM_MAINNET]}/address/${
-                lpContract?.address
-              }`}
+            {DHV_NAME}: {" "} 
+            <a 
+              href={`${SCAN_URL[CHAINID.ARBITRUM_MAINNET]}/address/${lpContract?.address}`} 
               target="blank"
               className="underline hover:font-medium"
             >

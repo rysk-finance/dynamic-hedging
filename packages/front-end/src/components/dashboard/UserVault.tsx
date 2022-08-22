@@ -9,6 +9,7 @@ import { useWalletContext } from "../../App";
 import { AppPaths } from "../../config/appPaths";
 import {
   BIG_NUMBER_DECIMALS,
+  DHV_NAME,
   SUBGRAPH_URL,
   ZERO_UINT_256,
 } from "../../config/constants";
@@ -150,7 +151,7 @@ export const UserVault = () => {
                       <h4 className="mb-2">
                         Position
                         <RyskTooltip
-                          message="Your DHV current position in USDC"
+                          message={`Your current ${DHV_NAME} position in USDC`}
                           id="positionTip"
                         />
                       </h4>
@@ -173,7 +174,7 @@ export const UserVault = () => {
                       <h4 className="mb-2">
                         PnL
                         <RyskTooltip
-                          message="Profit or Losses based on your current DHV position in USDC net of deposits and withdraws"
+                          message={`Profit or Losses based on your current ${DHV_NAME} position in USDC net of deposits and withdraws`}
                           id="pnlTip"
                         />
                       </h4>

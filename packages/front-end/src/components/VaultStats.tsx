@@ -3,6 +3,7 @@ import NumberFormat from "react-number-format";
 import { Card } from "./shared/Card";
 import ReactTooltip from "react-tooltip";
 import { RyskTooltip } from "./RyskTooltip";
+import { DHV_NAME } from "../config/constants";
 
 export const VaultStats = () => {
   return (
@@ -20,7 +21,7 @@ export const VaultStats = () => {
             />
             <RyskTooltip
               id="yieldTip"
-              message="Sum of DHV returns since inception (Jul 1st 2022)"
+              message={`Sum of ${DHV_NAME} returns since inception (Jul 1st 2022)`}
             />
           </p>
           <a
@@ -44,7 +45,7 @@ export const VaultStats = () => {
             />
             <RyskTooltip
               id="apyTip"
-              message="Based on DHV historical returns and the current DHV options exposure"
+              message="Based on historical returns and the current options exposure"
             />
           </p>
           <a

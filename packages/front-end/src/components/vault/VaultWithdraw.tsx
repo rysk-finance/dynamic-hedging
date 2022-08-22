@@ -8,6 +8,7 @@ import LPABI from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.jso
 import {
   BIG_NUMBER_DECIMALS,
   DECIMALS,
+  DHV_NAME,
   MAX_UINT_256,
   ZERO_UINT_256,
 } from "../../config/constants";
@@ -225,7 +226,7 @@ export const VaultWithdraw = () => {
                       {userRyskBalance}
                     </BigNumberDisplay>
                   </RequiresWalletConnection>{" "}
-                  RYSK
+                  {DHV_NAME}
                 </p>
               </div>
             </div>
@@ -236,7 +237,7 @@ export const VaultWithdraw = () => {
                 value={inputValue}
                 iconLeft={
                   <div className="h-full flex items-center px-4 text-right text-gray-600">
-                    <p>RYSK</p>
+                    <p>{DHV_NAME}</p>
                   </div>
                 }
                 numericOnly
@@ -259,11 +260,11 @@ export const VaultWithdraw = () => {
             <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
               <div className="flex justify-between">
                 <div className="flex">
-                  <p>Pending withdraw</p>
+                  <p>Withdraw on hold</p>
                   <RyskTooltip
                     tooltipProps={{ className: "max-w-[350px]" }}
                     message={
-                      "Your RYSK will be withdrawn from the vault and converted to USDC every Friday at 11am UTC"
+                      `Your ${DHV_NAME} shares will be withdrawn from the vault and converted to USDC every Friday at 11am UTC`
                     }
                     id={"strategeyTip"}
                   />
@@ -277,7 +278,7 @@ export const VaultWithdraw = () => {
                         {withdrawReceipt?.shares ?? null}
                       </BigNumberDisplay>
                     </RequiresWalletConnection>{" "}
-                    RYSK
+                    {DHV_NAME}
                   </p>
                 </div>
               </div>
@@ -330,7 +331,7 @@ export const VaultWithdraw = () => {
                 </div>
                 <hr className="border-black mb-2 mt-1" />
                 <div className="text-xs text-right">
-                  <p>100 RYSK @ 20.12 USDC per RYSK</p>
+                  <p>100 {DHV_NAME} @ 20.12 USDC per {DHV_NAME}</p>
                 </div>
               </div>
               <Button

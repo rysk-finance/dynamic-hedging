@@ -11,6 +11,9 @@ import { VaultWithdraw } from "./VaultWithdraw";
 import { VaultStrategy } from "../VaultStrategy";
 import { VaultRisks } from "../VaultRisks";
 import { VaultInfo } from "../VaultInfo";
+import { DHV_NAME } from "../../config/constants";
+import * as Scroll from "react-scroll";
+
 import { useWalletContext } from "../../App";
 import { CHAINID } from "../../config/constants";
 
@@ -21,46 +24,64 @@ export const VaultContent = () => {
     state: { userDHVBalance: userRyskBalance },
   } = useVaultContext();
 
+  const Link = Scroll.Link;
+  const Element = Scroll.Element;
+
+  const envChainID = process.env.REACT_APP_CHAIN_ID;
+
   return (
     <>
       <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 mb-16">
-        <h4>
-          Your Balance:{" "}
+        {envChainID && (
+          <div className="flex items-center">
+            <p>
+              {Number(envChainID) === CHAINID.ARBITRUM_MAINNET
+                ? "Arbitrum"
+                : Number(envChainID) === CHAINID.ARBITRUM_RINKEBY
+                ? "Arbitrum Testnet"
+                : network?.name}{" "}
+            </p>
+            {<img src="/arbitrum_logo.svg" className="h-6 w-auto ml-2" />}
+          </div>
+        )}
+
+        <p>
+          Your Position:{" "}
           <RequiresWalletConnection className="bg-white h-8 w-[100px]">
-            <BigNumberDisplay currency={Currency.RYSK} suffix="DHV">
+            <BigNumberDisplay currency={Currency.RYSK} suffix="USDC">
               {userRyskBalance}
             </BigNumberDisplay>
           </RequiresWalletConnection>
-        </h4>
-        {Number(chainId) === CHAINID.ARBITRUM_MAINNET ||
-          (Number(chainId) === CHAINID.ARBITRUM_RINKEBY && (
-            <div className="flex items-center">
-              <h4>
-                Network:{" "}
-                {Number(chainId) === CHAINID.ARBITRUM_MAINNET
-                  ? "Arbitrum"
-                  : Number(chainId) === CHAINID.ARBITRUM_RINKEBY
-                  ? "Arbitrum Testnet"
-                  : network?.name}{" "}
-              </h4>
-              {
-                <img
-                  src="/arbitrum_logo.svg"
-                  className="h-6 w-auto ml-2"
-                  alt="Arbitrum"
-                />
-              }
-            </div>
-          ))}
+        </p>
       </div>
       <div className="col-start-1 col-end-8">
-        <h2 className="mb-8">Earn Uncorrelated Returns</h2>
-        <p>
-          Rysk DHV (Dynamic Hedging Vault) generates uncorrelated returns by
-          trading options. <br />
-          The DHV targets market neutrality aiming to reduce the directional
-          risk associated with price movements in the underlying asset. <br />
+        <div className="font-parabole mb-8">
+          <h1>{DHV_NAME}</h1>
+          <h3 className="pt-4">Dynamic Hedging Vault</h3>
+        </div>
+
+        <p className="mt-8">
+          {DHV_NAME} generates uncorrelated returns on USDC by running short
+          options strategies (such as strangles, straddles, or single legs)
+          targeting delta neutrality to reduce the directional risk associated
+          with price movements in the underlying asset.
+          <br />
+          If the portfolio delta moves far away from zero the {DHV_NAME}{" "}
+          position will be hedged by trading options, spot or perpetuals.
+          <br />
+          <Link
+            className="underline hover:font-medium cursor-pointer"
+            activeClass="active"
+            to="overviewScroll"
+            spy={true}
+            smooth={true}
+            offset={-150}
+            duration={500}
+          >
+            Learn more
+          </Link>
         </p>
+
         <LPStats />
       </div>
 
@@ -76,7 +97,7 @@ export const VaultContent = () => {
         ></Card>
       </div>
 
-      <div className="col-start-1 col-end-17 mt-16">
+      <Element name="overviewScroll" className="col-start-1 col-end-17 mt-16">
         <Card
           tabs={[
             {
@@ -97,7 +118,7 @@ export const VaultContent = () => {
             },
           ]}
         ></Card>
-      </div>
+      </Element>
     </>
   );
 };
