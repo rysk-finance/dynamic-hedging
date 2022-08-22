@@ -40,7 +40,11 @@ export const HeaderPopover: React.FC = () => {
         onClick={() => setIsOpen((old) => !old)}
         className="flex items-center"
       >
-        <img src="/arbitrum_logo.svg" className="h-4 w-auto mr-2" />
+        <img
+          src="/arbitrum_logo.svg"
+          className="h-4 w-auto mr-2"
+          alt="Arbitrum"
+        />
         {`${account?.slice(0, 4)}...${account?.slice(
           account.length - 4,
           account.length
