@@ -32,20 +32,6 @@ export const VaultContent = () => {
   return (
     <>
       <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 mb-16">  
-        
-        {/* {Number(chainId) === CHAINID.ARBITRUM_MAINNET ||
-          (Number(chainId) === CHAINID.ARBITRUM_RINKEBY && (
-            <div className="flex items-center">
-              <p>
-                {Number(chainId) === CHAINID.ARBITRUM_MAINNET
-                  ? "Arbitrum"
-                  : Number(chainId) === CHAINID.ARBITRUM_RINKEBY
-                  ? "Arbitrum Testnet"
-                  : network?.name}{" "}
-              </p>
-              {<img src="/arbitrum_logo.svg" className="h-6 w-auto ml-2" />}
-            </div>
-          ))} */}
 
           { envChainID && (
             <div className="flex items-center">
@@ -63,7 +49,7 @@ export const VaultContent = () => {
         <p>
           Your Position:{" "}
           <RequiresWalletConnection className="bg-white h-8 w-[100px]">
-            <BigNumberDisplay currency={Currency.RYSK} suffix="DHV">
+            <BigNumberDisplay currency={Currency.RYSK} suffix="USDC">
               {userRyskBalance}
             </BigNumberDisplay>
           </RequiresWalletConnection>
