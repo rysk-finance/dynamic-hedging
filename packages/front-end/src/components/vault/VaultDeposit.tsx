@@ -323,12 +323,7 @@ export const VaultDeposit = () => {
   const amountIsApproved =
     (inputValue && approvedAmount
       ? ethers.utils.parseUnits(inputValue, 6).lte(approvedAmount)
-      : false) &&
-    // Kinda arbitrary condition to check if the user has previously
-    // enabled unlimited approval.
-    (settings.vaultDepositUnlimitedApproval
-      ? approvedAmount?.gt(BigNumber.from(MAX_UINT_256).div(2))
-      : true);
+      : false;
 
   const approveIsDisabled =
     !inputValue ||
