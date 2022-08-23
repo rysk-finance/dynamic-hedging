@@ -4,7 +4,6 @@ pragma solidity >=0.8.0;
 import "prb-math/contracts/PRBMath.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 
-import "hardhat/console.sol";
 
 library SABR {
 	using PRBMathSD59x18 for int256;
