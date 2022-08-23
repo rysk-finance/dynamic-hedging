@@ -24,6 +24,7 @@ import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { Loader } from "../Loader";
 import { useUserPosition } from "../../hooks/useUserPosition";
+import ReactSlider from "react-slider";
 
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
@@ -51,6 +52,7 @@ export const VaultWithdraw = () => {
   const [withdrawableUSDC, setWithdrawableUSDC] = useState<BigNumber | null>(
     null
   );
+  const [sliderPercentage, setSlidePercentage] = useState(50);
 
   // Chain state
   const [withdrawReceipt, setWithdrawReceipt] =
@@ -151,6 +153,31 @@ export const VaultWithdraw = () => {
     })();
   }, [updateWithdrawState]);
 
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+    if (userRyskBalance) {
+      // e18
+      const bigNumberPercentage = ethers.utils
+        .parseUnits(value, 18)
+        .mul(BIG_NUMBER_DECIMALS.RYSK)
+        .div(userRyskBalance);
+      const percentage = Math.round(
+        Number(ethers.utils.formatUnits(bigNumberPercentage, 18)) * 100
+      );
+      setSlidePercentage(percentage);
+    }
+  };
+
+  const handleSliderChange = (value: number) => {
+    setSlidePercentage(value);
+    if (userRyskBalance) {
+      const inputValue = ethers.utils.formatUnits(
+        userRyskBalance.mul(value).div(100)
+      );
+      setInputValue(inputValue);
+    }
+  };
+
   const handleInitiateWithdraw = async () => {
     if (usdcContract && lpContract && account && network) {
       const amount = ethers.utils.parseUnits(inputValue, DECIMALS.RYSK);
@@ -242,7 +269,7 @@ export const VaultWithdraw = () => {
             <div className="ml-[-2px]">
               <TextInput
                 className="text-right p-4 text-xl border-r-0"
-                setValue={(value) => setInputValue(value)}
+                setValue={(value) => handleInputChange(value)}
                 value={inputValue}
                 iconLeft={
                   <div className="h-full flex items-center px-4 text-right text-gray-600">
@@ -254,17 +281,69 @@ export const VaultWithdraw = () => {
                 maxValue={userRyskBalance ?? undefined}
                 maxValueDecimals={18}
                 maxButtonHandler={
-                  userRyskBalance
-                    ? () => {
-                        if (userRyskBalance) {
-                          setInputValue(
-                            ethers.utils.formatUnits(userRyskBalance, 18)
-                          );
-                        }
-                      }
-                    : undefined
+                  userRyskBalance ? () => handleSliderChange(100) : undefined
                 }
               />
+            </div>
+            <div className="ml-[-2px] py-2 px-4 border-b-2 border-black h-12">
+              <ReactSlider
+                className="horizontal-slider"
+                value={sliderPercentage}
+                onChange={handleSliderChange}
+                renderTrack={(
+                  { className: trackClassName, ...trackProps },
+                  { index, value }
+                ) => {
+                  return (
+                    <div
+                      className={`${
+                        index === 0 &&
+                        "bg-black h-1 w-full rounded-full translate-y-[6px]"
+                      } ${trackClassName}`}
+                      {...trackProps}
+                    ></div>
+                  );
+                }}
+                marks
+                renderThumb={({ className: thumbClassName, ...thumbProps }) => (
+                  <div
+                    {...thumbProps}
+                    className={`${thumbClassName} p-2 flex items-center justify-center bg-bone rounded-full border-2 border-black translate-y-[-1px] cursor-pointer`}
+                  ></div>
+                )}
+              />
+              <div className="w-full flex justify-between items-center mt-5 text-xs">
+                <p
+                  className="w-0 translate-x-[-50%] cursor-pointer"
+                  onClick={() => handleSliderChange(0)}
+                >
+                  0%
+                </p>
+                <p
+                  className="w-0 translate-x-[-4px] cursor-pointer"
+                  onClick={() => handleSliderChange(25)}
+                >
+                  25%
+                </p>
+                <p
+                  className="w-0 translate-x-[-8px] cursor-pointer"
+                  onClick={() => handleSliderChange(50)}
+                >
+                  50%
+                </p>
+                <p
+                  className="w-0 translate-x-[-16px] cursor-pointer"
+                  onClick={() => handleSliderChange(75)}
+                >
+                  75%
+                </p>
+                <p
+                  className="w-0 translate-x-[-22px] cursor-pointer"
+                  onClick={() => handleSliderChange(100)}
+                >
+                  100%
+                </p>
+              </div>
             </div>
             <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
               <div className="flex justify-between items-center">
