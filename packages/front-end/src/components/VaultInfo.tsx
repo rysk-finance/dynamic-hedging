@@ -25,6 +25,10 @@ export const VaultInfo = () => {
     readOnly: true,
   });
 
+  const chainId = Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_RINKEBY 
+                  ? CHAINID.ARBITRUM_RINKEBY 
+                  : CHAINID.ARBITRUM_MAINNET;
+
   return (
     <div className="pb-8 py-12 px-8">
       <div className="grid grid-cols-2">
@@ -64,7 +68,7 @@ export const VaultInfo = () => {
           <p className="mt-4">
             {DHV_NAME}: {" "} 
             <a 
-              href={`${SCAN_URL[CHAINID.ARBITRUM_MAINNET]}/address/${lpContract?.address}`} 
+              href={`${SCAN_URL[chainId]}/address/${lpContract?.address}`} 
               target="blank"
               className="underline hover:font-medium"
             >

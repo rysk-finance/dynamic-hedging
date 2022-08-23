@@ -10,19 +10,19 @@ export const VaultOverview = () => {
           <h4>Deposit</h4>
           <p className="pt-4">
             <ul className="list-decimal px-8">
-              <li>Deposit USDC into {DHV_NAME} vault.</li>
-              <li>
+              <li className="pb-2">Deposit USDC into {DHV_NAME} vault.</li>
+              <li className="pb-2">
                 Your USDC deposit will be queued till the next epoch start. At
                 this stage you can also deposit additional USDC
               </li>
-              <li>
+              <li className="pb-2">
                 Once the new epoch starts your deposit will be converted to
                 shares which can then be redeemed
               </li>
-              <li>
+              <li className="pb-2">
                 The deposited USDC are used as collateral to run short options strategies and generates returns
               </li>
-              <li>
+              <li className="pb-2">
                 Your shares value could appreciate over-time as the {DHV_NAME} {" "}
                 generates returns
               </li>
@@ -63,12 +63,12 @@ export const VaultOverview = () => {
           <h4>Withdraw</h4>
           <p className="pt-4">
             <ul className="list-decimal px-8">
-              <li>
+              <li className="pb-2">
                 You can withdraw all of part of your shares. You can initiate a
                 withdrawal at any time
               </li>
-              <li>Your withdraw will be queued till the next epoch</li>
-              <li>
+              <li className="pb-2">Your withdraw will be queued till the next epoch</li>
+              <li className="pb-2">
                 Once the new epoch starts you can complete your withdraw and
                 redeem your USDC
               </li>
