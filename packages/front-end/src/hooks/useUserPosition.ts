@@ -77,7 +77,6 @@ export const useUserPosition = () => {
           .mul(latestEpochSharePrice)
           .div(BIG_NUMBER_DECIMALS.RYSK);
         receiptUSDCValue = receiptUSDCValue.add(sharesCurrentValue);
-        debugger;
 
         setPositionBreakdown({
           usdcOnHold: BigNumber.from(0),
