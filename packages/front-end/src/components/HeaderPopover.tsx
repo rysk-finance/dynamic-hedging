@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
-import { Settings } from "./dashboard/Settings";
+import { useGlobalContext } from "../state/GlobalContext";
+import { ActionType } from "../state/types";
 import { Button } from "./shared/Button";
 
 export const HeaderPopover: React.FC = () => {
@@ -9,6 +10,7 @@ export const HeaderPopover: React.FC = () => {
   const isOpenRef = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const { dispatch } = useGlobalContext();
   const { account, disconnect } = useWalletContext();
 
   const handleClickOutside = (event: MouseEvent) => {
@@ -79,6 +81,7 @@ export const HeaderPopover: React.FC = () => {
             <Button
               onClick={() => {
                 disconnect?.();
+                dispatch({ type: ActionType.RESET_GLOBAL_STATE });
               }}
             >
               Disconnect

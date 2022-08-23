@@ -31,6 +31,7 @@ export enum ActionType {
   SET_POSITION_BREAKDOWN,
   SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
   SET_SETTINGS,
+  RESET_GLOBAL_STATE,
 }
 
 export type GlobalAction =
@@ -55,6 +56,9 @@ export type GlobalAction =
   | {
       type: ActionType.SET_SETTINGS;
       settings: Partial<AppSettings>;
+    }
+  | {
+      type: ActionType.RESET_GLOBAL_STATE;
     };
 
 export type GlobalContext = {

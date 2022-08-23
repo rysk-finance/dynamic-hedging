@@ -43,6 +43,18 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ...state,
         settings: { ...state.settings, ...action.settings },
       };
+    case ActionType.RESET_GLOBAL_STATE:
+      return {
+        ...state,
+        userPositionValue: null,
+        positionBreakdown: {
+          currentWithdrawSharePrice: null,
+          pendingWithdrawShares: null,
+          redeemedShares: null,
+          unredeemedShares: null,
+          usdcOnHold: null,
+        },
+      };
   }
 };
 
