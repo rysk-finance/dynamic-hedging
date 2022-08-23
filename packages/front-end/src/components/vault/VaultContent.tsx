@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { BigNumberDisplay } from "../../components/BigNumberDisplay";
 import { LPStats } from "../../components/LPStats";
 import { Card } from "../../components/shared/Card";
-import { VaultDeposit } from "./VaultDesposit";
+import { VaultDeposit } from "./VaultDeposit";
 import { VaultPerformance } from "../../components/VaultPerformance";
 import { Currency } from "../../types";
 import { RequiresWalletConnection } from "../RequiresWalletConnection";
@@ -17,6 +17,7 @@ import { useWalletContext } from "../../App";
 import { CHAINID } from "../../config/constants";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { PositionTooltip } from "./PositionTooltip";
+import { VaultOverview } from "../VaultOverview";
 
 export const VaultContent = () => {
   const { chainId, network, account } = useWalletContext();
@@ -115,8 +116,12 @@ export const VaultContent = () => {
         <Card
           tabs={[
             {
-              label: "Overview",
+              label: "Strategy",
               content: <VaultStrategy />,
+            },
+            {
+              label: "How it works",
+              content: <VaultOverview />,
             },
             {
               label: "Performance",
