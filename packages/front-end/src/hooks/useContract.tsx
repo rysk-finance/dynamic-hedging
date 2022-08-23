@@ -112,7 +112,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
               <TransactionDisplay>{transaction.hash}</TransactionDisplay>
             </p>
           </div>,
-          { autoClose: false }
+          { autoClose: 5000 }
         );
         onSubmit?.();
         await transaction.wait();
@@ -122,7 +122,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
             <div>
               <p>{completeMessage}</p>
             </div>,
-            { autoClose: false }
+            { autoClose: 5000 }
           );
         return;
       } catch (err) {
@@ -133,7 +133,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
             autoClose: 5000,
           });
         } else {
-          toast(JSON.stringify(err));
+          toast(JSON.stringify(err), { autoClose: 5000 });
         }
         onFail?.();
         return null;

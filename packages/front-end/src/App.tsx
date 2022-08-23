@@ -361,6 +361,7 @@ function App() {
             toastClassName="bg-bone rounded-none border-2 border-black font-dm-mono text-black max-w-xl w-fit"
             hideProgressBar
             position="bottom-center"
+            autoClose={5000}
           />
         </ApolloProvider>
       </GlobalContextProvider>
