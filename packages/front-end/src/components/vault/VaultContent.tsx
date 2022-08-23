@@ -64,8 +64,8 @@ export const VaultContent = () => {
             >
               {userPositionValue}
             </BigNumberDisplay>
+            <PositionTooltip />
           </RequiresWalletConnection>
-          <PositionTooltip />
         </p>
       </div>
       <div className="col-start-1 col-end-8">
