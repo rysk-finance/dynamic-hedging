@@ -16,6 +16,13 @@ const defaultGlobalState: GlobalState = {
   eth24hChange: null,
   ethPriceUpdateTime: null,
   userPositionValue: null,
+  positionBreakdown: {
+    redeemedShares: null,
+    usdcOnHold: null,
+    pendingWithdrawShares: null,
+    unredeemedShares: null,
+    currentWithdrawSharePrice: null,
+  },
   connectWalletIndicatorActive: false,
   settings: { unlimitedApproval: false },
 };

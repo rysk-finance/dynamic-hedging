@@ -28,6 +28,11 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ...state,
         userPositionValue: action.value,
       };
+    case ActionType.SET_POSITION_BREAKDOWN:
+      return {
+        ...state,
+        positionBreakdown: { ...state.positionBreakdown, ...action.values },
+      };
     case ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE:
       return {
         ...state,

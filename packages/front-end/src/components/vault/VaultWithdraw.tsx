@@ -23,6 +23,7 @@ import { RyskTooltip } from "../RyskTooltip";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { Loader } from "../Loader";
+import { useUserPosition } from "../../hooks/useUserPosition";
 
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
@@ -38,6 +39,8 @@ export const VaultWithdraw = () => {
   const {
     state: { settings },
   } = useGlobalContext();
+
+  const { updatePosition } = useUserPosition();
 
   // UI State
   const [inputValue, setInputValue] = useState("");
@@ -163,6 +166,9 @@ export const VaultWithdraw = () => {
 
         onComplete: () => {
           setListeningForInitiation(false);
+          if (account) {
+            updatePosition(account);
+          }
           updateWithdrawState();
           getUserRYSKBalance(account);
           setInputValue("");
@@ -184,6 +190,9 @@ export const VaultWithdraw = () => {
         onComplete: () => {
           setListeningForCompleteWithdraw(false);
           updateWithdrawState();
+          if (account) {
+            updatePosition(account);
+          }
         },
       });
     }
@@ -258,14 +267,12 @@ export const VaultWithdraw = () => {
               />
             </div>
             <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <div className="flex">
                   <p>Withdraw on hold</p>
                   <RyskTooltip
                     tooltipProps={{ className: "max-w-[350px]" }}
-                    message={
-                      `Your ${DHV_NAME} shares will be withdrawn from the vault and converted to USDC every Friday at 11am UTC`
-                    }
+                    message={`Your ${DHV_NAME} shares will be withdrawn from the vault and converted to USDC every Friday at 11am UTC`}
                     id={"strategeyTip"}
                   />
                 </div>
@@ -331,7 +338,9 @@ export const VaultWithdraw = () => {
                 </div>
                 <hr className="border-black mb-2 mt-1" />
                 <div className="text-xs text-right">
-                  <p>100 {DHV_NAME} @ 20.12 USDC per {DHV_NAME}</p>
+                  <p>
+                    100 {DHV_NAME} @ 20.12 USDC per {DHV_NAME}
+                  </p>
                 </div>
               </div>
               <Button

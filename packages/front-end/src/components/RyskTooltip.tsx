@@ -2,11 +2,12 @@ import React from "react";
 import ReactTooltip, { TooltipProps } from "react-tooltip";
 
 type RyskTooltipProps = {
-  message: string;
+  message: React.ReactChild;
   id: string;
-  color?: "green" | "yellow" | "red";
+  color?: "green" | "yellow" | "red" | "white";
   tooltipProps?: TooltipProps;
   icon?: React.ReactElement;
+  iconProps?: React.HTMLProps<HTMLDivElement>;
 };
 
 export const RyskTooltip: React.FC<RyskTooltipProps> = ({
@@ -15,6 +16,7 @@ export const RyskTooltip: React.FC<RyskTooltipProps> = ({
   color,
   tooltipProps = {},
   icon,
+  iconProps: { className: iconClassName, ...restIconProps } = {},
 }) => {
   return (
     <>
@@ -34,7 +36,12 @@ export const RyskTooltip: React.FC<RyskTooltipProps> = ({
         {icon ? (
           icon
         ) : (
-          <div className={`${color ? `bg-${color}-500` : ""} rounded-lg`}>
+          <div
+            className={`${
+              color ? (color === "white" ? "bg-white" : `bg-${color}-500`) : ""
+            } rounded-lg ${iconClassName}`}
+            {...restIconProps}
+          >
             <svg
               width="15"
               height="15"

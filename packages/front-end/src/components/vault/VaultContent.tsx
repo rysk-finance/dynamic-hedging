@@ -1,10 +1,9 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BigNumberDisplay } from "../../components/BigNumberDisplay";
 import { LPStats } from "../../components/LPStats";
 import { Card } from "../../components/shared/Card";
 import { VaultDeposit } from "./VaultDesposit";
 import { VaultPerformance } from "../../components/VaultPerformance";
-import { useVaultContext } from "../../state/VaultContext";
 import { Currency } from "../../types";
 import { RequiresWalletConnection } from "../RequiresWalletConnection";
 import { VaultWithdraw } from "./VaultWithdraw";
@@ -16,18 +15,26 @@ import * as Scroll from "react-scroll";
 
 import { useWalletContext } from "../../App";
 import { CHAINID } from "../../config/constants";
-import { useGlobalContext } from "../../state/GlobalContext";
 import { useUserPosition } from "../../hooks/useUserPosition";
+import { PositionTooltip } from "./PositionTooltip";
 
 export const VaultContent = () => {
-  const { chainId, network } = useWalletContext();
+  const { chainId, network, account } = useWalletContext();
 
   const Link = Scroll.Link;
   const Element = Scroll.Element;
 
   const envChainID = process.env.REACT_APP_CHAIN_ID;
 
-  const { userPositionValue } = useUserPosition();
+  const { userPositionValue, updatePosition } = useUserPosition();
+
+  useEffect(() => {
+    if (account) {
+      (() => {
+        updatePosition(account);
+      })();
+    }
+  }, [account, updatePosition]);
 
   return (
     <>
@@ -58,6 +65,7 @@ export const VaultContent = () => {
               {userPositionValue}
             </BigNumberDisplay>
           </RequiresWalletConnection>
+          <PositionTooltip />
         </p>
       </div>
       <div className="col-start-1 col-end-8">

@@ -29,6 +29,7 @@ import { RyskTooltip } from "../RyskTooltip";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { Toggle } from "../shared/Toggle";
+import { useUserPosition } from "../../hooks/useUserPosition";
 
 export const VaultDeposit = () => {
   const { account, network } = useWalletContext();
@@ -39,6 +40,7 @@ export const VaultDeposit = () => {
     },
     dispatch,
   } = useVaultContext();
+  const { updatePosition } = useUserPosition();
 
   // UI State
   const [inputValue, setInputValue] = useState("");
@@ -182,8 +184,9 @@ export const VaultDeposit = () => {
     updateDepositState();
     if (account) {
       getRedeemedShares(account);
+      updatePosition(account);
     }
-  }, [updateDepositState, account, getRedeemedShares]);
+  }, [updateDepositState, account, getRedeemedShares, updatePosition]);
 
   useEffect(() => {
     (async () => {
@@ -251,6 +254,9 @@ export const VaultDeposit = () => {
           setInputValue("");
           updateDepositState();
           setListeningForDeposit(false);
+          if (account) {
+            updatePosition(account);
+          }
         },
       });
     }
@@ -269,6 +275,9 @@ export const VaultDeposit = () => {
         onComplete: () => {
           updateDepositState();
           setListeningForRedeem(false);
+          if (account) {
+            updatePosition(account);
+          }
         },
       });
     }
@@ -429,8 +438,12 @@ export const VaultDeposit = () => {
                     </div>
                     <hr className="border-black mb-2 mt-1" />
                     <div className="text-xs text-right">
-                      <p>100 {DHV_NAME} @ 20.12 USDC per {DHV_NAME}</p>
-                      <p>1000 {DHV_NAME} @ 18.23 USDC per {DHV_NAME}</p>
+                      <p>
+                        100 {DHV_NAME} @ 20.12 USDC per {DHV_NAME}
+                      </p>
+                      <p>
+                        1000 {DHV_NAME} @ 18.23 USDC per {DHV_NAME}
+                      </p>
                     </div>
                   </div>
                   <Button

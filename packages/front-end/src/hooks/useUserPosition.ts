@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback } from "react";
 import { useContract } from "./useContract";
 import LPABI from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
 import { BigNumber } from "ethers";
@@ -6,7 +6,7 @@ import { useWalletContext } from "../App";
 import { BIG_NUMBER_DECIMALS } from "../config/constants";
 import { DepositReceipt, WithdrawalReceipt } from "../types";
 import { useGlobalContext } from "../state/GlobalContext";
-import { ActionType } from "../state/types";
+import { ActionType, GlobalState } from "../state/types";
 
 export const useUserPosition = () => {
   const { account } = useWalletContext();
@@ -19,12 +19,19 @@ export const useUserPosition = () => {
 
   const {
     dispatch,
-    state: { userPositionValue },
+    state: { userPositionValue, positionBreakdown },
   } = useGlobalContext();
 
   const setPositionValue = useCallback(
     (value: BigNumber) => {
       dispatch({ type: ActionType.SET_POSITION_VALUE, value });
+    },
+    [dispatch]
+  );
+
+  const setPositionBreakdown = useCallback(
+    (values: Partial<GlobalState["positionBreakdown"]>) => {
+      dispatch({ type: ActionType.SET_POSITION_BREAKDOWN, values });
     },
     [dispatch]
   );
@@ -46,6 +53,10 @@ export const useUserPosition = () => {
       if (currentDepositEpoch._hex === receipt.epoch._hex) {
         receiptEpochSharePrice = latestEpochSharePrice;
         receiptUSDCValue = receiptUSDCValue.add(receipt.amount);
+        setPositionBreakdown({
+          usdcOnHold: receipt.amount,
+          unredeemedShares: receipt.unredeemedShares,
+        });
       } else {
         receiptEpochSharePrice = await lpContract?.withdrawalEpochPricePerShare(
           receipt.epoch
@@ -63,19 +74,25 @@ export const useUserPosition = () => {
           .mul(latestEpochSharePrice)
           .div(BIG_NUMBER_DECIMALS.RYSK);
         receiptUSDCValue = receiptUSDCValue.add(sharesCurrentValue);
+
+        setPositionBreakdown({
+          usdcOnHold: BigNumber.from(0),
+          unredeemedShares: receipt.unredeemedShares.add(amountInShares),
+        });
       }
 
       if (receiptEpochSharePrice) {
         const unredeemedSharesValue = receipt.unredeemedShares
           .mul(receiptEpochSharePrice)
-          .div(BIG_NUMBER_DECIMALS.RYSK);
+          .div(BIG_NUMBER_DECIMALS.RYSK)
+          .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC));
 
         receiptUSDCValue = receiptUSDCValue.add(unredeemedSharesValue);
       }
 
       return receiptUSDCValue;
     },
-    [lpContract]
+    [lpContract, setPositionBreakdown]
   );
 
   const parseWithdrawalReceipt = useCallback(
@@ -94,24 +111,35 @@ export const useUserPosition = () => {
         const epochSharePrice = await lpContract?.withdrawalEpochPricePerShare(
           withdrawalReceipt.epoch
         );
+        setPositionBreakdown({
+          pendingWithdrawShares: {
+            amount: withdrawalReceipt.shares,
+            epochPrice: epochSharePrice,
+          },
+        });
         return withdrawalReceipt.shares
           .mul(epochSharePrice)
           .div(BIG_NUMBER_DECIMALS.RYSK)
           .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC));
       }
     },
-    [lpContract]
+    [lpContract, setPositionBreakdown]
   );
 
   const getCurrentPosition = useCallback(
     async (address: string) => {
       const balance: BigNumber = await lpContract?.balanceOf(address);
+      setPositionBreakdown({ redeemedShares: balance });
+
       const currentDepositEpoch = await lpContract?.depositEpoch();
       const currentWithdrawalEpoch = await lpContract?.depositEpoch();
       const latestWithdrawalSharePrice =
         await lpContract?.withdrawalEpochPricePerShare(
           currentWithdrawalEpoch.sub(1)
         );
+      setPositionBreakdown({
+        currentWithdrawSharePrice: latestWithdrawalSharePrice,
+      });
       const balanceValue = balance
         .mul(latestWithdrawalSharePrice)
         .div(BIG_NUMBER_DECIMALS.RYSK)
@@ -147,13 +175,9 @@ export const useUserPosition = () => {
     ]
   );
 
-  useEffect(() => {
-    (async () => {
-      if (account && lpContract) {
-        await getCurrentPosition(account);
-      }
-    })();
-  }, [getCurrentPosition, account, lpContract]);
-
-  return { userPositionValue, updatePosition: getCurrentPosition };
+  return {
+    userPositionValue,
+    positionBreakdown,
+    updatePosition: getCurrentPosition,
+  };
 };

@@ -11,6 +11,16 @@ export type GlobalState = {
   eth24hChange: number | null;
   ethPriceUpdateTime: Date | null;
   userPositionValue: BigNumber | null;
+  positionBreakdown: {
+    redeemedShares: BigNumber | null;
+    usdcOnHold: BigNumber | null;
+    unredeemedShares: BigNumber | null;
+    pendingWithdrawShares: {
+      amount: BigNumber;
+      epochPrice: BigNumber;
+    } | null;
+    currentWithdrawSharePrice: BigNumber | null;
+  };
   connectWalletIndicatorActive: boolean;
   settings: AppSettings;
 };
@@ -18,6 +28,7 @@ export type GlobalState = {
 export enum ActionType {
   SET_ETH_PRICE,
   SET_POSITION_VALUE,
+  SET_POSITION_BREAKDOWN,
   SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
   SET_SETTINGS,
 }
@@ -32,6 +43,10 @@ export type GlobalAction =
   | {
       type: ActionType.SET_POSITION_VALUE;
       value: BigNumber;
+    }
+  | {
+      type: ActionType.SET_POSITION_BREAKDOWN;
+      values: Partial<GlobalState["positionBreakdown"]>;
     }
   | {
       type: ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE;
