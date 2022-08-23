@@ -54,7 +54,7 @@ export const VaultContent = () => {
 
         <p>
           Your Position:{" "}
-          <RequiresWalletConnection className="bg-white h-4 w-[100px] translate-y-[-2px]">
+          <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
             <BigNumberDisplay
               currency={Currency.USDC}
               suffix="USDC"

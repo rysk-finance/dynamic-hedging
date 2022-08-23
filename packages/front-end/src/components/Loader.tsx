@@ -5,5 +5,5 @@ type LoaderProps = {
 };
 
 export const Loader: React.FC<LoaderProps> = ({ className }) => {
-  return <img src="/kite.gif" className={`h-full w-auto ${className}`} />;
+  return <img src="/kite.gif" className={`w-auto ${className}`} />;
 };

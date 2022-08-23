@@ -37,7 +37,7 @@ export const BigNumberDisplay: React.FC<BigNumberDisplayProps> = ({
     />
   ) : (
     <Loader
-      className={`inline mr-2 h-[24px] ${loaderClassName}`}
+      className={`inline mr-2 !h-[24px] ${loaderClassName}`}
       {...restLoaderProps}
     />
   );
