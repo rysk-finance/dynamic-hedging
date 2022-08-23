@@ -24,7 +24,10 @@ const defaultGlobalState: GlobalState = {
     currentWithdrawSharePrice: null,
   },
   connectWalletIndicatorActive: false,
-  settings: { unlimitedApproval: false },
+  settings: {
+    vaultDepositUnlimitedApproval: false,
+    optionsTradingUnlimitedApproval: false,
+  },
 };
 
 export const GlobalReactContext = createContext<GlobalContext>({

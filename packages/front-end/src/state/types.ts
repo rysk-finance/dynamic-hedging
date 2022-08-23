@@ -2,7 +2,8 @@ import { BigNumber } from "ethers";
 import { Dispatch } from "react";
 
 export type AppSettings = {
-  unlimitedApproval: boolean;
+  vaultDepositUnlimitedApproval: boolean;
+  optionsTradingUnlimitedApproval: boolean;
 };
 
 // Global context

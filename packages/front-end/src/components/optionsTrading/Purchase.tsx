@@ -91,12 +91,15 @@ export const Purchase: React.FC = () => {
         addresses.localhost.optionHandler
       )) as BigNumber;
       try {
-        if (!settings.unlimitedApproval || approvedAmount.lt(amount)) {
+        if (
+          !settings.optionsTradingUnlimitedApproval ||
+          approvedAmount.lt(amount)
+        ) {
           await usdcContractCall({
             method: usdcContract.approve,
             args: [
               addresses.localhost.optionHandler,
-              settings.unlimitedApproval
+              settings.optionsTradingUnlimitedApproval
                 ? ethers.BigNumber.from(MAX_UINT_256)
                 : amount,
             ],

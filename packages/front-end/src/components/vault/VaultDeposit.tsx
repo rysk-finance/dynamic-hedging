@@ -1,5 +1,5 @@
 import React from "react";
-import { BigNumber, ethers, utils } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import ERC20ABI from "../../abis/erc20.json";
@@ -14,7 +14,8 @@ import {
 } from "../../config/constants";
 import addresses from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
-import { VaultActionType } from "../../state/types";
+import { useUserPosition } from "../../hooks/useUserPosition";
+import { ActionType, AppSettings, VaultActionType } from "../../state/types";
 import { useVaultContext } from "../../state/VaultContext";
 import {
   ContractAddresses,
@@ -29,8 +30,9 @@ import { RyskTooltip } from "../RyskTooltip";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { Toggle } from "../shared/Toggle";
-import { useUserPosition } from "../../hooks/useUserPosition";
-import { createFalse } from "typescript";
+import { useGlobalContext } from "../../state/GlobalContext";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
 
 export const VaultDeposit = () => {
   const { account, network } = useWalletContext();
@@ -41,6 +43,11 @@ export const VaultDeposit = () => {
     },
     dispatch,
   } = useVaultContext();
+  const [_, setLocalStorage] = useLocalStorage();
+  const {
+    dispatch: globalDispatch,
+    state: { settings },
+  } = useGlobalContext();
   const { updatePosition } = useUserPosition();
 
   // UI State
@@ -62,7 +69,6 @@ export const VaultDeposit = () => {
     null
   );
 
-  const [unlimitedApproval, setUnlimitedApproval] = useState(false);
   const [approvedAmount, setApprovedAmount] = useState<BigNumber | null>(null);
 
   // Contracts
@@ -87,6 +93,18 @@ export const VaultDeposit = () => {
     ABI: ERC20ABI,
     readOnly: false,
   });
+
+  const setUnlimitedApproval = (value: boolean) => {
+    const updatedSettings: AppSettings = {
+      ...settings,
+      vaultDepositUnlimitedApproval: value,
+    };
+    setLocalStorage(LOCAL_STORAGE_SETTINGS_KEY, updatedSettings);
+    globalDispatch({
+      type: ActionType.SET_SETTINGS,
+      settings: updatedSettings,
+    });
+  };
 
   const getUSDCBalance = useCallback(
     async (address: string) => {
@@ -222,14 +240,19 @@ export const VaultDeposit = () => {
         ]
       )) as BigNumber;
       try {
-        if (approvedAmount.lt(amount) || unlimitedApproval) {
+        if (
+          approvedAmount.lt(amount) ||
+          settings.vaultDepositUnlimitedApproval
+        ) {
           await usdcContractCall({
             method: usdcContract.approve,
             args: [
               (addresses as Record<ETHNetwork, ContractAddresses>)[
                 network.name
               ]["liquidityPool"],
-              unlimitedApproval ? ethers.BigNumber.from(MAX_UINT_256) : amount,
+              settings.vaultDepositUnlimitedApproval
+                ? ethers.BigNumber.from(MAX_UINT_256)
+                : amount,
             ],
             submitMessage: "✅ Approval submitted",
             onComplete: async () => {
@@ -295,13 +318,15 @@ export const VaultDeposit = () => {
     }
   };
 
+  console.log(settings.vaultDepositUnlimitedApproval);
+
   const amountIsApproved =
     (inputValue && approvedAmount
       ? ethers.utils.parseUnits(inputValue, 6).lte(approvedAmount)
       : false) &&
     // Kinda arbitrary condition to check if the user has previously
     // enabled unlimited approval.
-    (unlimitedApproval
+    (settings.vaultDepositUnlimitedApproval
       ? approvedAmount?.gt(BigNumber.from(MAX_UINT_256).div(2))
       : true);
 
@@ -394,7 +419,7 @@ export const VaultDeposit = () => {
           <div className="flex items-center border-b-2 border-black p-2 justify-between">
             <p className="text-[12px] mr-2">Unlimited Approval: </p>
             <Toggle
-              value={unlimitedApproval}
+              value={settings.vaultDepositUnlimitedApproval}
               setValue={setUnlimitedApproval}
               size="sm"
             />
