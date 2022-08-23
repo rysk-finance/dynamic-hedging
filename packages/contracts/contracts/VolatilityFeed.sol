@@ -32,12 +32,13 @@ contract VolatilityFeed is AccessControl {
 	// number of seconds in a year used for calculations
 	int256 private constant ONE_YEAR_SECONDS = 31557600;
 	int256 private constant BIPS_SCALE = 1e12;
+	int256 private constant BIPS = 1e6;
 
 	struct SABRParams{
-		int32 callAlpha;
-		int32 callBeta;
-		int32 callRho;
-		int32 callVolvol;
+		int32 callAlpha;  // not bigger or less than an int32 and above 0
+		int32 callBeta;   // greater than 0 and less than or equal to 1
+		int32 callRho;    // between 1 and -1
+		int32 callVolvol; // not bigger or less than an int32 and above 0
 		int32 putAlpha;
 		int32 putBeta;
 		int32 putRho;
@@ -50,6 +51,11 @@ contract VolatilityFeed is AccessControl {
 	/// setters ///
 	///////////////
 
+	error AlphaError();
+	error BetaError();
+	error RhoError();
+	error VolvolError();
+
 	/**
 	 * @notice set the sabr volatility params
 	 * @param _sabrParams set the SABR parameters
@@ -58,7 +64,22 @@ contract VolatilityFeed is AccessControl {
 	 */
 	function setSabrParameters(SABRParams memory _sabrParams, uint256 _expiry) external {
 		_isKeeper();
-		// TODO: add checks on parameters to make sure they are range bound
+		if (_sabrParams.callAlpha <= 0 || _sabrParams.callAlpha >= type(int32).max ||
+			_sabrParams.putAlpha <= 0 || _sabrParams.putAlpha >= type(int32).max){
+			revert AlphaError();
+		}
+		if (_sabrParams.callVolvol <= 0 || _sabrParams.callVolvol >= type(int32).max ||
+			_sabrParams.putVolvol <= 0 || _sabrParams.putVolvol >= type(int32).max){
+			revert VolvolError();
+		}
+		if (_sabrParams.callBeta <= 0 || _sabrParams.callBeta > BIPS||
+			_sabrParams.putBeta <= 0 || _sabrParams.putBeta > BIPS){
+			revert BetaError();
+		}
+		if (_sabrParams.callRho <= -BIPS || _sabrParams.callRho >= BIPS||
+			_sabrParams.putRho <= -BIPS || _sabrParams.putRho >= BIPS){
+			revert RhoError();
+		}
 		sabrParams[_expiry] = _sabrParams;
 	}
 

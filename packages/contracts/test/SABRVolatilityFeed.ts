@@ -63,11 +63,7 @@ describe("Volatility Feed", async () => {
 		// deploy libraries
 		const sabrFactory = await hre.ethers.getContractFactory("SABR")
 		const sabr = await sabrFactory.deploy()
-        const volFeedFactory = await ethers.getContractFactory("VolatilityFeed", {
-			libraries: {
-				SABR: sabr.address
-			}
-		})
+        const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
         volFeed = (await volFeedFactory.deploy(authority.address)) as VolatilityFeed
 		await increaseTo(start)
 	})
