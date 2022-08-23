@@ -222,7 +222,7 @@ export const VaultDeposit = () => {
         ]
       )) as BigNumber;
       try {
-        if (approvedAmount.lt(amount)) {
+        if (approvedAmount.lt(amount) || unlimitedApproval) {
           await usdcContractCall({
             method: usdcContract.approve,
             args: [
@@ -296,9 +296,14 @@ export const VaultDeposit = () => {
   };
 
   const amountIsApproved =
-    inputValue && approvedAmount
+    (inputValue && approvedAmount
       ? ethers.utils.parseUnits(inputValue, 6).lte(approvedAmount)
-      : false;
+      : false) &&
+    // Kinda arbitrary condition to check if the user has previously
+    // enabled unlimited approval.
+    (unlimitedApproval
+      ? approvedAmount?.gt(BigNumber.from(MAX_UINT_256).div(2))
+      : true);
 
   const approveIsDisabled =
     !inputValue ||
