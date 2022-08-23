@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { BigNumberDisplay } from "../../components/BigNumberDisplay";
 import { LPStats } from "../../components/LPStats";
 import { Card } from "../../components/shared/Card";
-import { VaultDeposit } from "./VaultDesposit";
+import { VaultDeposit } from "./VaultDeposit";
 import { VaultPerformance } from "../../components/VaultPerformance";
 import { Currency } from "../../types";
 import { RequiresWalletConnection } from "../RequiresWalletConnection";
