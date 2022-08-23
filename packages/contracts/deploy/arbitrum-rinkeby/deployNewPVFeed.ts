@@ -22,7 +22,7 @@ export async function deployNewPVFeed(
 		linkTokenAddress,
 		authorityAddress
 	)) as PortfolioValuesFeed
-	console.log("mock portfolio values feed deployed")
+	console.log("portfolio values feed deployed")
 
 	try {
 		await hre.run("verify:verify", {
