@@ -66,18 +66,27 @@ export const useUserPosition = () => {
         // If the receipt epoch was executed, but the user hasn't redeemed or deposited since,
         // we need to calculate the latest usdc value of the "amount" field
         // at the current epoch, with the withdraw epoch share price.
-        // e18
+        // TODO(HC): Clear up / label decimals here. Also make a function for operating on numbers
+        // with different decimals.
+        // e6
         const amountInShares = receipt.amount
           .mul(BIG_NUMBER_DECIMALS.RYSK)
           .div(depositEpochSharePrice);
+        // e6
         const sharesCurrentValue = amountInShares
           .mul(latestEpochSharePrice)
           .div(BIG_NUMBER_DECIMALS.RYSK);
         receiptUSDCValue = receiptUSDCValue.add(sharesCurrentValue);
+        debugger;
 
         setPositionBreakdown({
           usdcOnHold: BigNumber.from(0),
-          unredeemedShares: receipt.unredeemedShares.add(amountInShares),
+          // e18
+          unredeemedShares: receipt.unredeemedShares.add(
+            amountInShares.mul(
+              BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC)
+            )
+          ),
         });
       }
 
@@ -172,6 +181,7 @@ export const useUserPosition = () => {
       parseDepositReceipt,
       parseWithdrawalReceipt,
       setPositionValue,
+      setPositionBreakdown,
     ]
   );
 

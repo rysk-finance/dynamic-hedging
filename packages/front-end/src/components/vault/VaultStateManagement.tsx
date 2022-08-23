@@ -7,10 +7,12 @@ import LPABI from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.jso
 import { useContract } from "../../hooks/useContract";
 import { VaultActionType } from "../../state/types";
 import { useVaultContext } from "../../state/VaultContext";
+import { useUserPosition } from "../../hooks/useUserPosition";
 
 export const VaultStateManagment = () => {
   const { account } = useWalletContext();
   const { dispatch } = useVaultContext();
+  const { updatePosition } = useUserPosition();
 
   const [lpContract] = useContract<{
     DepositEpochExecuted: [];
@@ -60,7 +62,10 @@ export const VaultStateManagment = () => {
       type: VaultActionType.SET,
       data: { ...epochData },
     });
-  }, [dispatch, getEpochData]);
+    if (account) {
+      updatePosition(account);
+    }
+  }, [dispatch, getEpochData, updatePosition, account]);
 
   const getUserRyskBalance = useCallback(async () => {
     if (lpContract && account) {
