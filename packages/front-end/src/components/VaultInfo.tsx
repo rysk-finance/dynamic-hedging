@@ -75,6 +75,7 @@ export const VaultInfo = () => {
               {lpContract?.address}
             </a>
           </p>
+
         </div>
       </div>
     </div>
