@@ -9,8 +9,11 @@ import { VolatilityFeed } from "../types/VolatilityFeed"
 import { SABR } from "../types/SABR"
 import { WETH } from "../types/WETH"
 import { USDC_ADDRESS, WETH_ADDRESS } from "./constants"
-import { toWei } from "../utils/conversion-helper"
+import { toWei, tFormatEth } from "../utils/conversion-helper"
 import moment from "moment"
+import {
+	increaseTo,
+} from "./helpers"
 let usd: MintableERC20
 let weth: WETH
 let signers: Signer[]
@@ -23,7 +26,8 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const chainId = 1
 // get the expiration to use
 const expiryDate: string = "2022-04-05"
-let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
+let start = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
+let expiration = moment.utc(expiryDate).add(30, "d").add(8, "h").valueOf() / 1000
 
 describe("Volatility Feed", async () => {
 	before(async function () {
@@ -65,10 +69,11 @@ describe("Volatility Feed", async () => {
 			}
 		})
         volFeed = (await volFeedFactory.deploy(authority.address)) as VolatilityFeed
+		await increaseTo(start)
 	})
 	describe("VolatilityFeed: setup", async () => {
 		it("SETUP: set price quote", async () => {
-			const rate = "200000000000"
+			const rate = "10000000000"
 			await ethUSDAggregator.mock.latestRoundData.returns(
 				"55340232221128660932",
 				rate,
@@ -82,14 +87,14 @@ describe("Volatility Feed", async () => {
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = 
 			{
-				callAlpha:1000000,
-				callBeta:1000000,
-				callRho:500000,
-				callVolvol:2000000,
-				putAlpha:1000000,
-				putBeta:1000000,
-				putRho:500000,
-				putVolvol:2000000
+				callAlpha:250000,
+				callBeta:1_000000,
+				callRho:-300000,
+				callVolvol:1_500000,
+				putAlpha:250000,
+				putBeta:1_000000,
+				putRho:300000,
+				putVolvol:1_500000
 			}
 			await volFeed.setSabrParameters(
 				proposedSabrParams, 
@@ -107,15 +112,21 @@ describe("Volatility Feed", async () => {
         })
 	})
 	describe("VolatilityFeed: get implied volatility", async () => {
-		it("SUCCEEDS: get implied volatility", async () => {
-			const underlyingPrice = toWei("2000")
-			const iv = await volFeed.getImpliedVolatility(
-				true, 
-				underlyingPrice, 
-				underlyingPrice.sub(toWei("100")), 
-				expiration
-			)
-			console.log(iv)
+		it("SUCCEEDS: get implied volatility for different strikes", async () => {
+			
+			const underlyingPrice = toWei("100")
+			const strikePrices = [60,80,100,120,140,160]
+			const ivs = [0.4657, 0.3383, 0.2528, 0.2591, 0.3073, 0.3550]
+			for (let i=0; i < strikePrices.length; i++) {
+				const iv = await volFeed.getImpliedVolatility(
+					false, 
+					underlyingPrice, 
+					toWei(strikePrices[i].toString()), 
+					expiration
+				)
+				expect(tFormatEth(iv) - ivs[i]).to.be.within(-0.0011, 0.0011)
+			}
+
 		})
 	})
     describe("VolatilityFeed: setters", async () => {

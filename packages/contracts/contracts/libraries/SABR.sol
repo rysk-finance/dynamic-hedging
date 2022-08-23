@@ -4,6 +4,8 @@ pragma solidity >=0.8.0;
 import "prb-math/contracts/PRBMath.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 
+import "hardhat/console.sol";
+
 library SABR {
 	using PRBMathSD59x18 for int256;
 
@@ -30,7 +32,7 @@ library SABR {
 		int256 beta,
 		int256 rho,
 		int256 volvol
-	) external pure returns (int256 iv) {
+	) external view returns (int256 iv) {
 		// Hagan's 2002 SABR lognormal vol expansion.
 
 		// negative strikes or forwards
@@ -43,17 +45,22 @@ library SABR {
 		vars.k = k;
 		vars.f = f;
 		vars.t = t;
-
-		vars.a = ((1e18 - beta).pow(2e18)).mul(alpha.pow(2e18)).div(
-			int256(24e18).mul(_fkbeta(vars.f, vars.k, beta))
-		);
+		if (beta == 1e18) {
+			vars.a = 0;
+			vars.v = 0;
+			vars.w = 0;
+		} else {
+			vars.a = ((1e18 - beta).pow(2e18)).mul(alpha.pow(2e18)).div(
+				int256(24e18).mul(_fkbeta(vars.f, vars.k, beta))
+			);
+			vars.v = ((1e18 - beta).pow(2e18)).mul(_logfk(vars.f, vars.k).pow(2e18)).div(24e18);
+			vars.w = ((1e18 - beta).pow(4e18)).mul(_logfk(vars.f, vars.k).pow(4e18)).div(1920e18);
+		}
 		vars.b = int256(25e16).mul(rho).mul(beta).mul(volvol).mul(alpha).div(
 			_fkbeta(vars.f, vars.k, beta).sqrt()
 		);
-		vars.c = (2e18 - int256(3e18).mul(rho.pow(2e18))).mul(volvol.pow(2e18)).div(24e18);
+		vars.c = (2e18 - int256(3e18).mul(rho.powu(2))).mul(volvol.pow(2e18)).div(24e18);
 		vars.d = _fkbeta(vars.f, vars.k, beta).sqrt();
-		vars.v = ((1e18 - beta).pow(2e18)).mul(_logfk(vars.f, vars.k).pow(2e18)).div(24e18);
-		vars.w = ((1e18 - beta).pow(4e18)).mul(_logfk(vars.f, vars.k).pow(4e18)).div(1920e18);
 		vars.z = volvol.mul(_fkbeta(vars.f, vars.k, beta).sqrt()).mul(_logfk(vars.f, vars.k)).div(alpha);
 
 		// if |z| > eps
@@ -83,8 +90,8 @@ library SABR {
 		return (f.mul(k)).pow(1e18 - beta);
 	}
 
-	function _x(int256 rho, int256 z) internal pure returns (int256) {
-		int256 a = (1e18 - 2 * rho.mul(z) + z.pow(2e18)).sqrt() + z - rho;
+	function _x(int256 rho, int256 z) internal view returns (int256) {
+		int256 a = (1e18 - 2 * rho.mul(z) + z.powu(2)).sqrt() + z - rho;
 		int256 b = 1e18 - rho;
 		return (a.div(b)).ln();
 	}
