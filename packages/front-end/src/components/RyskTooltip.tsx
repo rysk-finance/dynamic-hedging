@@ -24,6 +24,7 @@ export const RyskTooltip: React.FC<RyskTooltipProps> = ({
         id={id}
         place="bottom"
         multiline={true}
+        html={true}
         backgroundColor="#EDE9DD"
         textColor="black"
         border={true}

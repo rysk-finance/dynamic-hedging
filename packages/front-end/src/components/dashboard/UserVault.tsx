@@ -209,8 +209,7 @@ export const UserVault = () => {
                           border={true}
                           borderColor="black"
                         >
-                          Your USDC will be available to redeem as shares during
-                          our weekly strategy every Friday at 11am UTC
+                          Your USDC will be available to redeem as shares every Friday at 11am UTC
                         </ReactTooltip>
                       </div>
                     )}

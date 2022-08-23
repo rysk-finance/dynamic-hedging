@@ -24,6 +24,7 @@ import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { Loader } from "../Loader";
 import { useUserPosition } from "../../hooks/useUserPosition";
+import { WITHDRAW_ON_HOLD, WITHDRAW_SHARES_EPOCH } from "../../config/messages";
 
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
@@ -272,7 +273,7 @@ export const VaultWithdraw = () => {
                   <p>Withdraw on hold</p>
                   <RyskTooltip
                     tooltipProps={{ className: "max-w-[350px]" }}
-                    message={`Your ${DHV_NAME} shares will be withdrawn from the vault and converted to USDC every Friday at 11am UTC`}
+                    message={WITHDRAW_ON_HOLD}
                     id={"strategeyTip"}
                   />
                 </div>
@@ -359,8 +360,7 @@ export const VaultWithdraw = () => {
         ) : (
           <div className="p-2">
             <p className="text-xs">
-              Your USDC will be available to withdraw during our weekly strategy
-              every Friday at 11am
+              { WITHDRAW_SHARES_EPOCH }
             </p>
           </div>
         )}

@@ -493,8 +493,7 @@ export const VaultDepositWithdraw = () => {
                           unredeemableCollateral?._hex !== ZERO_UINT_256 && (
                             <RyskTooltip
                               message="Your USDC will be available to redeem as
-                            shares during our weekly strategy every Friday
-                            at 11am UTC"
+                              shares every Friday at 11am UTC"
                               id="epochTip"
                               color="green"
                             />

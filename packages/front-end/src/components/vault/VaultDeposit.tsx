@@ -30,6 +30,7 @@ import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { Toggle } from "../shared/Toggle";
 import { useUserPosition } from "../../hooks/useUserPosition";
+import { DEPOSIT_ON_HOLD, DEPOSIT_SHARES_EPOCH } from "../../config/messages";
 
 export const VaultDeposit = () => {
   const { account, network } = useWalletContext();
@@ -350,9 +351,7 @@ export const VaultDeposit = () => {
               <div className="flex">
                 <p>Deposits on hold</p>
                 <RyskTooltip
-                  message={
-                    "Your USDC will be deployed to our vault and converted to shares every Friday at 11am UTC"
-                  }
+                  message={DEPOSIT_ON_HOLD}
                   id={"strategeyTip"}
                 />
               </div>
@@ -459,8 +458,7 @@ export const VaultDeposit = () => {
                 </>
               ) : (
                 <p className="text-xs p-2">
-                  Your USDC will be available to redeem as shares during our
-                  weekly strategy every Friday at 11am UTC
+                  {DEPOSIT_SHARES_EPOCH}
                 </p>
               )
             ) : null}
