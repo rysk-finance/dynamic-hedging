@@ -32,6 +32,7 @@ import {
   DISCONNECTED_FAVICON,
   updateFavicon,
 } from "./utils/updateFavicon";
+import { Footer } from "./components/Footer";
 
 export const RPC_URL_MAP: Record<CHAINID, string> = {
   [CHAINID.ETH_MAINNET]: `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
@@ -356,6 +357,7 @@ function App() {
                 </Routes>
               </div>
             </div>
+            <Footer />
           </div>
           <ToastContainer
             toastClassName="bg-bone rounded-none border-2 border-black font-dm-mono text-black max-w-xl w-fit"
