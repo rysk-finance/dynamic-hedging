@@ -52,7 +52,7 @@ export const VaultWithdrawBalanceTooltip = () => {
   return (
     <RyskTooltip
       message={<TooltipMessage />}
-      id={"positionTip"}
+      id={"withdrawBalanceTip"}
       tooltipProps={{ place: "bottom" }}
       iconProps={{ className: "translate-y-[3px] translate-x-[-2px]" }}
     ></RyskTooltip>
