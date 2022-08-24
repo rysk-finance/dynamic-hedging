@@ -357,7 +357,9 @@ export const VaultWithdraw = () => {
                 </div>
 
                 <div className="h-4 flex items-center">
-                  {listeningForInitiation && <Loader className="mr-2" />}
+                  {listeningForInitiation && (
+                    <Loader className="mr-2 !h-[24px]" />
+                  )}
                   <p>
                     <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
                       <BigNumberDisplay currency={Currency.RYSK}>
