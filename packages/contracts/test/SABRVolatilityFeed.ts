@@ -89,13 +89,14 @@ describe("Volatility Feed", async () => {
 				callVolvol:1_500000,
 				putAlpha:250000,
 				putBeta:1_000000,
-				putRho:300000,
+				putRho:-300000,
 				putVolvol:1_500000
 			}
 			await volFeed.setSabrParameters(
 				proposedSabrParams, 
 				expiration
 			)
+			console.log(expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)

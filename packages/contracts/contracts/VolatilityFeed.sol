@@ -64,12 +64,12 @@ contract VolatilityFeed is AccessControl {
 	 */
 	function setSabrParameters(SABRParams memory _sabrParams, uint256 _expiry) external {
 		_isKeeper();
-		if (_sabrParams.callAlpha <= 0 || _sabrParams.callAlpha >= type(int32).max ||
-			_sabrParams.putAlpha <= 0 || _sabrParams.putAlpha >= type(int32).max){
+		if (_sabrParams.callAlpha <= 0 || _sabrParams.callAlpha > type(int32).max ||
+			_sabrParams.putAlpha <= 0 || _sabrParams.putAlpha > type(int32).max){
 			revert AlphaError();
 		}
-		if (_sabrParams.callVolvol <= 0 || _sabrParams.callVolvol >= type(int32).max ||
-			_sabrParams.putVolvol <= 0 || _sabrParams.putVolvol >= type(int32).max){
+		if (_sabrParams.callVolvol <= 0 || _sabrParams.callVolvol > type(int32).max ||
+			_sabrParams.putVolvol <= 0 || _sabrParams.putVolvol > type(int32).max){
 			revert VolvolError();
 		}
 		if (_sabrParams.callBeta <= 0 || _sabrParams.callBeta > BIPS||
@@ -110,6 +110,9 @@ contract VolatilityFeed is AccessControl {
 		int256 time = (int256(expiration) - int256(block.timestamp)).div(ONE_YEAR_SECONDS);
 		int256 vol;
 		SABRParams memory sabrParams_ = sabrParams[expiration];
+		if (sabrParams_.callAlpha == 0) {
+			revert CustomErrors.IVNotFound();
+		}
 		if (!isPut) {
 			vol = SABR.lognormalVol(
 				int256(strikePrice), 
