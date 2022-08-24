@@ -25,6 +25,7 @@ import { TextInput } from "../shared/TextInput";
 import { Loader } from "../Loader";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import ReactSlider from "react-slider";
+import { VaultWithdrawBalanceTooltip } from "./VaultWithdrawBalanceTooltip";
 
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
@@ -32,7 +33,6 @@ export const VaultWithdraw = () => {
     state: {
       depositEpoch: currentEpoch,
       depositPricePerShare: currentPricePerShare,
-      userDHVBalance: userRyskBalance,
     },
     dispatch,
   } = useVaultContext();
@@ -41,7 +41,10 @@ export const VaultWithdraw = () => {
     state: { settings },
   } = useGlobalContext();
 
-  const { updatePosition } = useUserPosition();
+  const {
+    updatePosition,
+    positionBreakdown: { unredeemedShares, redeemedShares },
+  } = useUserPosition();
 
   // UI State
   const [inputValue, setInputValue] = useState("");
@@ -81,17 +84,8 @@ export const VaultWithdraw = () => {
     readOnly: false,
   });
 
-  const getUserRYSKBalance = useCallback(
-    async (address: string) => {
-      const balance = await lpContract?.balanceOf(address);
-      dispatch({
-        type: VaultActionType.SET,
-        data: { userDHVBalance: balance },
-      });
-      return balance;
-    },
-    [lpContract, dispatch]
-  );
+  const withdrawableDHV =
+    redeemedShares && unredeemedShares && redeemedShares?.add(unredeemedShares);
 
   const getWithdrawalReceipt = useCallback(
     async (address: string) => {
@@ -143,9 +137,9 @@ export const VaultWithdraw = () => {
   const epochListener = useCallback(async () => {
     updateWithdrawState();
     if (account) {
-      getUserRYSKBalance(account);
+      updatePosition(account);
     }
-  }, [updateWithdrawState, account, getUserRYSKBalance]);
+  }, [updateWithdrawState, account, updatePosition]);
 
   useEffect(() => {
     (async () => {
@@ -155,12 +149,12 @@ export const VaultWithdraw = () => {
 
   const handleInputChange = (value: string) => {
     setInputValue(value);
-    if (userRyskBalance) {
+    if (withdrawableDHV) {
       // e18
       const bigNumberPercentage = ethers.utils
         .parseUnits(value, 18)
         .mul(BIG_NUMBER_DECIMALS.RYSK)
-        .div(userRyskBalance);
+        .div(withdrawableDHV);
       const percentage = Math.round(
         Number(ethers.utils.formatUnits(bigNumberPercentage, 18)) * 100
       );
@@ -170,9 +164,9 @@ export const VaultWithdraw = () => {
 
   const handleSliderChange = (value: number) => {
     setSlidePercentage(value);
-    if (userRyskBalance) {
+    if (withdrawableDHV) {
       const inputValue = ethers.utils.formatUnits(
-        userRyskBalance.mul(value).div(100)
+        withdrawableDHV.mul(value).div(100)
       );
       setInputValue(inputValue);
     }
@@ -197,7 +191,7 @@ export const VaultWithdraw = () => {
             updatePosition(account);
           }
           updateWithdrawState();
-          getUserRYSKBalance(account);
+          updatePosition(account);
           setInputValue("");
         },
       });
@@ -259,10 +253,13 @@ export const VaultWithdraw = () => {
                   Balance:{" "}
                   <RequiresWalletConnection className="w-[60px] h-[16px] mr-2 translate-y-[-2px]">
                     <BigNumberDisplay currency={Currency.RYSK}>
-                      {userRyskBalance}
+                      {redeemedShares && unredeemedShares
+                        ? redeemedShares?.add(unredeemedShares)
+                        : null}
                     </BigNumberDisplay>
                   </RequiresWalletConnection>{" "}
                   {DHV_NAME}
+                  <VaultWithdrawBalanceTooltip />
                 </p>
               </div>
             </div>
@@ -278,10 +275,10 @@ export const VaultWithdraw = () => {
                 }
                 numericOnly
                 maxNumDecimals={18}
-                maxValue={userRyskBalance ?? undefined}
+                maxValue={withdrawableDHV ?? undefined}
                 maxValueDecimals={18}
                 maxButtonHandler={
-                  userRyskBalance ? () => handleSliderChange(100) : undefined
+                  withdrawableDHV ? () => handleSliderChange(100) : undefined
                 }
               />
             </div>

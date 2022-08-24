@@ -293,6 +293,9 @@ export const VaultDeposit = () => {
             updatePosition(account);
           }
         },
+        onFail: () => {
+          setListeningForDeposit(false);
+        },
       });
     }
   };
@@ -318,12 +321,15 @@ export const VaultDeposit = () => {
     }
   };
 
-  console.log(settings.vaultDepositUnlimitedApproval);
-
   const amountIsApproved =
     (inputValue && approvedAmount
       ? ethers.utils.parseUnits(inputValue, 6).lte(approvedAmount)
-      : false;
+      : false) &&
+    // Kinda arbitrary condition to check if the user has previously
+    // enabled unlimited approval.
+    (settings.vaultDepositUnlimitedApproval
+      ? approvedAmount?.gt(BigNumber.from(MAX_UINT_256).div(2))
+      : true);
 
   const approveIsDisabled =
     !inputValue ||

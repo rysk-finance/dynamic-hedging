@@ -57,3 +57,7 @@
 .custom-date-picker .react-datepicker .react-datepicker__day--selected {
   background-color: #6ABD00;
 }
+
+.__react_component_tooltip {
+  opacity: 1 !important;
+}
