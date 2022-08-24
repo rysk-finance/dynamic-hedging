@@ -345,7 +345,7 @@ function App() {
     >
       <GlobalContextProvider>
         <ApolloProvider client={apolloClient}>
-          <div className="App min-h-screen bg-bone font-dm-mono">
+          <div className="App bg-bone font-dm-mono flex flex-col min-h-screen">
             <Header />
             <div className="pt-16 px-16">
               <div className="root-grid py-24">

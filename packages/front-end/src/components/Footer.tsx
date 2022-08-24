@@ -4,7 +4,7 @@ import { BLOG_LINK, DISCORD_LINK, DOCS_LINK, GITHUB_LINK, TWITTER_LINK } from '.
 
 export const Footer: React.FC = () => {
   return (
-    <div className="w-full bg-bone-dark px-8 md:px-24 py-6 flex justify-between">
+    <div className="w-full bg-bone-dark px-8 md:px-24 py-6 flex justify-between mt-auto">
       <p className="uppercase">Rysk - Crypto Uncorrelated Returns</p>
       <div className="flex">
         <button
