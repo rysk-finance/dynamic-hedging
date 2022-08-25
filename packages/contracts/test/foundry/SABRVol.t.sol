@@ -73,28 +73,28 @@ contract SABRTest is Test {
 		assertEq(putVolvol, _sabrParams.putVolvol);
 	}
 
-	// function testFuzzAlpha(int32 var_) public {
-	// 	vm.assume(var_ > 0);
-	// 	VolatilityFeed.SABRParams memory _sabrParams = VolatilityFeed.SABRParams(
-	// 		var_,
-	// 		1000000,
-	// 		-300000,
-	// 		1500000,
-	// 		var_,
-	// 		1000000,
-	// 		-300000,
-	// 		1500000
-	// 	);
-	// 	uint256 expiration = startExpiry;
-	// 	volFeed.setSabrParameters(_sabrParams, expiration);
-	// 	(int32 _var1, , , , int32 _var2, , , ) = volFeed.sabrParams(expiration);
-	// 	assertEq(_var1, var_);
-	// 	assertEq(_var2, var_);
-	// 	bool isPut = false;
-	// 	uint256 underlyingPrice = 100e18;
-	// 	uint256 strikePrice = 120e18;
-	// 	uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
-	// }
+	function testFuzzAlpha(int32 var_) public {
+		vm.assume(var_ > 0);
+		VolatilityFeed.SABRParams memory _sabrParams = VolatilityFeed.SABRParams(
+			var_,
+			1000000,
+			-300000,
+			1500000,
+			var_,
+			1000000,
+			-300000,
+			1500000
+		);
+		uint256 expiration = startExpiry;
+		volFeed.setSabrParameters(_sabrParams, expiration);
+		(int32 _var1, , , , int32 _var2, , , ) = volFeed.sabrParams(expiration);
+		assertEq(_var1, var_);
+		assertEq(_var2, var_);
+		bool isPut = false;
+		uint256 underlyingPrice = 100e18;
+		uint256 strikePrice = 120e18;
+		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+	}
 
 	function testFuzzRho(int32 var_) public {
 		vm.assume(var_ > -1000000);
