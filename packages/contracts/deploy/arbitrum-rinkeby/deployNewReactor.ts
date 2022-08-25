@@ -73,16 +73,7 @@ export async function deployNewHedgingReactor() {
 
 	await liquidityPool.setHedgingReactorAddress(perpHedgingReactor.address)
 	console.log("hedging reactors added to liquidity pool")
-
-	const portfolioValuesFeed = await ethers.getContractAt("AlphaPortfolioValuesFeed", pvFeedAddress)
-	await optionProtocol.changePortfolioValuesFeed(portfolioValuesFeed.address)
-	await portfolioValuesFeed.setAddressStringMapping(wethAddress, wethAddress)
-	await portfolioValuesFeed.setAddressStringMapping(usdcAddress, usdcAddress)
-	await portfolioValuesFeed.setLiquidityPool(liquidityPoolAddress)
-	await portfolioValuesFeed.setKeeper(liquidityPoolAddress, true)
-
-	expect(await optionProtocol.portfolioValuesFeed()).to.eq(portfolioValuesFeed.address)
-	console.log({ newPortfolioValuesFeed: portfolioValuesFeed.address })
+	console.log({ newReactorAddress: perpHedgingReactor.address })
 }
 
 deployNewHedgingReactor()

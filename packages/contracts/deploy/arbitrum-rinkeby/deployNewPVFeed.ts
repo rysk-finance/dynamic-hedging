@@ -4,6 +4,8 @@ import { expect } from "chai"
 import { utils } from "ethers"
 import { PortfolioValuesFeed } from "../../types/PortfolioValuesFeed"
 
+// deploys a non-alpha PV feed contract
+
 const linkTokenAddress = "0x615fBe6372676474d9e6933d310469c9b68e9726"
 const wethAddress = "0xE32513090f05ED2eE5F3c5819C9Cce6d020Fefe7"
 const usdcAddress = "0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737"
