@@ -17,6 +17,7 @@ import { DepositReceipt } from "../../types";
 import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import ReactTooltip from "react-tooltip";
+import { RyskTooltip } from "../RyskTooltip";
 
 export const UserVault = () => {
   const { account, network } = useWalletContext();
@@ -53,9 +54,7 @@ export const UserVault = () => {
     `,
     {
       onCompleted: (data) => {
-        const balance = data?.lpbalances[0]
-          ? data.lpbalances[0].balance
-          : 0;
+        const balance = data?.lpbalances[0] ? data.lpbalances[0].balance : 0;
 
         balance && setDepositBalance(balance);
       },
@@ -145,20 +144,10 @@ export const UserVault = () => {
                 </h3>
                 <h4 className="mb-2">
                   Position
-                  <button data-tip data-for="positionTip" className="cursor-help pl-2" >
-                    <img src="/icons/info.svg" />
-                  </button>
-                  <ReactTooltip 
-                    id="positionTip" 
-                    place="bottom"
-                    multiline={true}
-                    backgroundColor="#EDE9DD"
-                    textColor="black"
-                    border={true}
-                    borderColor="black"
-                    >
-                    Your DHV current position in USDC
-                  </ReactTooltip>
+                  <RyskTooltip
+                    message="Your DHV current position in USDC"
+                    id="positionTip"
+                  />
                 </h4>
               </div>
               <div className="flex flex-col items-center justify-center h-full">
@@ -178,20 +167,10 @@ export const UserVault = () => {
                 </h3>
                 <h4 className="mb-2">
                   PnL
-                  <button data-tip data-for="pnlTip" className="cursor-help pl-2" >
-                    <img src="/icons/info.svg" />
-                  </button>
-                  <ReactTooltip 
-                    id="pnlTip" 
-                    place="bottom"
-                    multiline={true}
-                    backgroundColor="#EDE9DD"
-                    textColor="black"
-                    border={true}
-                    borderColor="black"
-                    >
-                    Profit or Losses based on your current DHV position in USDC net of deposits and withdraws 
-                  </ReactTooltip>
+                  <RyskTooltip
+                    message="Profit or Losses based on your current DHV position in USDC net of deposits and withdraws"
+                    id="pnlTip"
+                  />
                 </h4>
               </div>
               {unredeemableCollateral.gt(0) && (
@@ -205,22 +184,25 @@ export const UserVault = () => {
                     />
                   </h3>
                   <h4 className="mb-2">Queed Deposit</h4>
-                  <button data-tip data-for="queedTip" className="cursor-help pl-2" >
+                  <button
+                    data-tip
+                    data-for="queedTip"
+                    className="cursor-help pl-2"
+                  >
                     <img src="/icons/info.svg" />
                   </button>
                   {/* TODO  update with epoch time */}
-                  <ReactTooltip 
-                    id="queedTip" 
+                  <ReactTooltip
+                    id="queedTip"
                     place="bottom"
                     multiline={true}
                     backgroundColor="#EDE9DD"
                     textColor="black"
                     border={true}
                     borderColor="black"
-                    >
-                      Your USDC will be available to redeem as
-                      shares during our weekly strategy every Friday
-                      at 11am UTC
+                  >
+                    Your USDC will be available to redeem as shares during our
+                    weekly strategy every Friday at 11am UTC
                   </ReactTooltip>
                 </div>
               )}

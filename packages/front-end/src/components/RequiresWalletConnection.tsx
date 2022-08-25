@@ -2,6 +2,7 @@ import React, { useCallback } from "react";
 import { useWalletContext } from "../App";
 import { useGlobalContext } from "../state/GlobalContext";
 import { ActionType } from "../state/types";
+import { Button } from "./shared/Button";
 
 type RequiresWalletConnectionProps = {
   className?: string;
@@ -45,13 +46,15 @@ export const RequiresWalletConnection: React.FC<
   }
 
   return (
-    <div
+    <Button
       onClick={() => {
         connectWallet?.();
       }}
-      className={`border-2 border-black bg-yellow-500 w-full h-full cursor-pointer ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-    ></div>
+      color="black"
+    >
+      Connect
+    </Button>
   );
 };
