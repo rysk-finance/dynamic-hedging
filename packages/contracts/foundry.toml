@@ -2,6 +2,6 @@
 src = 'contracts'
 out = 'out'
 libs = ['lib']
-fuzz_runs = 10000
+fuzz_runs = 1000
 fuzz_max_local_rejects=10000000
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

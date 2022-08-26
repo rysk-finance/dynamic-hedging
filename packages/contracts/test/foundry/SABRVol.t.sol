@@ -165,7 +165,7 @@ contract SABRTest is Test {
         assertApproxEqAbs(vol, expectedVol, 1e4);
 	}
 
-	function testFuzzGetImpliedVolatility(uint128 underlyingPrice) public {
+	function testFuzzPriceGetImpliedVolatility(uint128 underlyingPrice) public {
 		vm.assume(underlyingPrice > 10e18);
 		uint256 expiration = startExpiry;
 		bool isPut = false;
@@ -176,6 +176,32 @@ contract SABRTest is Test {
         console.log(vol);
         console.log(expectedVol);
         assertApproxEqAbs(vol, expectedVol, 1e8);
+	}
+
+	function testStrikeGetImpliedVolatility() public {
+		uint256 expiration = startExpiry;
+		bool isPut = false;
+        uint256 underlyingPrice = 100e18;
+        uint256 strikePrice = 2000e18;
+		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+        (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
+        uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu);
+        console.log(vol);
+        console.log(expectedVol);
+        assertApproxEqAbs(vol, expectedVol, 1e8);
+	}
+
+	function testFuzzStrikeGetImpliedVolatility(uint128 strikePrice) public {
+        bound(strikePrice, 10e18, 1000e18);
+		uint256 expiration = startExpiry;
+		bool isPut = false;
+        uint256 underlyingPrice = 100e18;
+		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+        (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
+        uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu);
+        console.log(vol);
+        console.log(expectedVol);
+        assertApproxEqAbs(vol, expectedVol, 1e9);
 	}
 
 	function calculateVol(
