@@ -34,6 +34,7 @@ import { DEPOSIT_ON_HOLD, DEPOSIT_SHARES_EPOCH } from "../../config/messages";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
+import { UnredeemedDepositBreakdown } from "./UnredeemedDepositBreakdown";
 
 export const VaultDeposit = () => {
   const { account, network } = useWalletContext();
@@ -257,7 +258,6 @@ export const VaultDeposit = () => {
             ],
             submitMessage: "✅ Approval submitted",
             onComplete: async () => {
-              debugger;
               await getAllowance();
             },
             completeMessage: "✅ Approval complete",
@@ -481,14 +481,7 @@ export const VaultDeposit = () => {
                       </p>
                     </div>
                     <hr className="border-black mb-2 mt-1" />
-                    <div className="text-xs text-right">
-                      <p>
-                        100 {DHV_NAME} @ 20.12 USDC per {DHV_NAME}
-                      </p>
-                      <p>
-                        1000 {DHV_NAME} @ 18.23 USDC per {DHV_NAME}
-                      </p>
-                    </div>
+                    <UnredeemedDepositBreakdown />
                   </div>
                   <Button
                     onClick={() => {
