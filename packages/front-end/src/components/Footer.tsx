@@ -10,7 +10,7 @@ export const Footer: React.FC = () => {
         <button
           className="mr-4"
           onClick={() => {
-            window.open(DOCS_LINK)
+            window.open(DOCS_LINK, "_blank")
           }}
         >
           DOCS
@@ -18,7 +18,7 @@ export const Footer: React.FC = () => {
         <button
           className="mr-4"
           onClick={() => {
-            window.open(BLOG_LINK)
+            window.open(BLOG_LINK, "_blank")
           }}
         >
           BLOG
@@ -29,7 +29,7 @@ export const Footer: React.FC = () => {
         <button
           className="mr-4"
           onClick={() => {
-            window.open(DISCORD_LINK)
+            window.open(DISCORD_LINK, "_blank")
           }}
         >
           <img src="/icons/discord.svg" className="w-6 h-6" />
@@ -37,14 +37,14 @@ export const Footer: React.FC = () => {
         <button
           className="mr-4"
           onClick={() => {
-            window.open(GITHUB_LINK)
+            window.open(GITHUB_LINK, "_blank")
           }}
         >
           <img src="/icons/github.svg" className="w-6 h-6" />
         </button>
         <button
           onClick={() => {
-            window.open(TWITTER_LINK)
+            window.open(TWITTER_LINK, "_blank")
           }}
         >
           <img src="/icons/twitter.svg" className="w-6 h-6" />
