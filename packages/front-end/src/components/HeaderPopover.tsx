@@ -69,11 +69,15 @@ export const HeaderPopover: React.FC = () => {
             <Button
               onClick={() => {
                 account &&
-                  window.open(`https://etherscan.io/address/${account}`);
+                  window.open(
+                    process.env.REACT_APP_ENV === "production"
+                      ? `https://arbiscan.io/address/${account}`
+                      : `https://testnet.arbiscan.io/address/${account}`
+                  );
               }}
               className="mb-4"
             >
-              Open in Etherscan
+              Open in Arbiscan
             </Button>
             {/* <div className="mb-4">
               <Settings />
