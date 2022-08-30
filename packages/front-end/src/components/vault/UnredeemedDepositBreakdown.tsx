@@ -67,7 +67,7 @@ export const UnredeemedDepositBreakdown: React.FC = () => {
         depositActions(
           where: {
             address: "${account}",
-            epoch_gt: ${latestRedeemEpoch},
+            epoch_gte: ${latestRedeemEpoch},
             epoch_lt: ${currentDepositEpoch}
           }, 
           orderBy: epoch, 
