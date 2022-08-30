@@ -14,7 +14,7 @@ import {
 } from "../../config/constants";
 import addresses from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
-import { VaultActionType } from "../../state/types";
+import { ActionType, AppSettings, VaultActionType } from "../../state/types";
 import { useVaultContext } from "../../state/VaultContext";
 import {
   ContractAddresses,
@@ -41,6 +41,11 @@ export const VaultDeposit = () => {
     },
     dispatch,
   } = useVaultContext();
+  const [_, setLocalStorage] = useLocalStorage();
+  const {
+    dispatch: globalDispatch,
+    state: { settings },
+  } = useGlobalContext();
   const { updatePosition } = useUserPosition();
 
   // UI State
@@ -62,8 +67,7 @@ export const VaultDeposit = () => {
     null
   );
 
-  const [unlimitedApproval, setUnlimitedApproval] = useState(false);
-  const [isApproved, setIsApproved] = useState<boolean>(false);
+  const [approvedAmount, setApprovedAmount] = useState<BigNumber | null>(null);
 
   // Contracts
   const [lpContract, lpContractCall] = useContract<{
@@ -87,6 +91,18 @@ export const VaultDeposit = () => {
     ABI: ERC20ABI,
     readOnly: false,
   });
+
+  const setUnlimitedApproval = (value: boolean) => {
+    const updatedSettings: AppSettings = {
+      ...settings,
+      vaultDepositUnlimitedApproval: value,
+    };
+    setLocalStorage(LOCAL_STORAGE_SETTINGS_KEY, updatedSettings);
+    globalDispatch({
+      type: ActionType.SET_SETTINGS,
+      settings: updatedSettings,
+    });
+  };
 
   const getUSDCBalance = useCallback(
     async (address: string) => {
@@ -189,16 +205,26 @@ export const VaultDeposit = () => {
     }
   }, [updateDepositState, account, getRedeemedShares, updatePosition]);
 
+  const getAllowance = useCallback(async () => {
+    if (account) {
+      const allowance = await usdcContract?.allowance(
+        account,
+        lpContract?.address
+      );
+      setApprovedAmount(allowance);
+    }
+  }, [account, usdcContract, lpContract]);
+
   useEffect(() => {
     (async () => {
       await updateDepositState();
+      await getAllowance();
     })();
-  }, [updateDepositState]);
+  }, [updateDepositState, getAllowance]);
 
   // UI Handlers
   const handleInputChange = (value: string) => {
     setInputValue(value);
-    setIsApproved(false);
   };
 
   // Handlers for the different possible vault interactions.
@@ -212,24 +238,31 @@ export const VaultDeposit = () => {
         ]
       )) as BigNumber;
       try {
-        if (approvedAmount.lt(amount)) {
+        if (
+          approvedAmount.lt(amount) ||
+          settings.vaultDepositUnlimitedApproval
+        ) {
           await usdcContractCall({
             method: usdcContract.approve,
             args: [
               (addresses as Record<ETHNetwork, ContractAddresses>)[
                 network.name
               ]["liquidityPool"],
-              unlimitedApproval ? ethers.BigNumber.from(MAX_UINT_256) : amount,
+              settings.vaultDepositUnlimitedApproval
+                ? ethers.BigNumber.from(MAX_UINT_256)
+                : amount,
             ],
             submitMessage: "✅ Approval submitted",
-            onComplete: () => {
-              setIsApproved(true);
+            onComplete: async () => {
+              debugger;
+              await getAllowance();
             },
             completeMessage: "✅ Approval complete",
           });
         } else {
-          if (account && lpContract) setIsApproved(true);
-          toast("✅ Your transaction is already approved");
+          if (account && lpContract) {
+            toast("✅ Your transaction is already approved");
+          }
         }
       } catch {
         toast("❌ There was an error approving your transaction.");
@@ -246,7 +279,6 @@ export const VaultDeposit = () => {
         args: [amount],
         submitMessage: "✅ Deposit submitted",
         onSubmit: () => {
-          setIsApproved(false);
           setListeningForDeposit(true);
         },
         completeMessage:
@@ -258,6 +290,9 @@ export const VaultDeposit = () => {
           if (account) {
             updatePosition(account);
           }
+        },
+        onFail: () => {
+          setListeningForDeposit(false);
         },
       });
     }
@@ -284,12 +319,22 @@ export const VaultDeposit = () => {
     }
   };
 
+  const amountIsApproved =
+    (inputValue && approvedAmount
+      ? ethers.utils.parseUnits(inputValue, 6).lte(approvedAmount)
+      : false) &&
+    // Kinda arbitrary condition to check if the user has previously
+    // enabled unlimited approval.
+    (settings.vaultDepositUnlimitedApproval
+      ? approvedAmount?.gt(BigNumber.from(MAX_UINT_256).div(2))
+      : true);
+
   const approveIsDisabled =
     !inputValue ||
-    !!isApproved ||
+    amountIsApproved ||
     listeningForApproval ||
     ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256;
-  const depositIsDisabled = !(inputValue && account && isApproved);
+  const depositIsDisabled = !(inputValue && account && approveIsDisabled);
   const redeemIsDisabled = listeningForRedeem;
 
   return (
@@ -350,13 +395,10 @@ export const VaultDeposit = () => {
             <div className="flex justify-between items-center">
               <div className="flex">
                 <p>Deposits on hold</p>
-                <RyskTooltip
-                  message={DEPOSIT_ON_HOLD}
-                  id={"strategeyTip"}
-                />
+                <RyskTooltip message={DEPOSIT_ON_HOLD} id={"strategeyTip"} />
               </div>
               <div className="h-4 flex items-center">
-                {listeningForDeposit && <Loader className="mr-2" />}
+                {listeningForDeposit && <Loader className="mr-2 !h-[24px]" />}
                 <p>
                   <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
                     <BigNumberDisplay currency={Currency.USDC}>
@@ -371,7 +413,7 @@ export const VaultDeposit = () => {
           <div className="flex items-center border-b-2 border-black p-2 justify-between">
             <p className="text-[12px] mr-2">Unlimited Approval: </p>
             <Toggle
-              value={unlimitedApproval}
+              value={settings.vaultDepositUnlimitedApproval}
               setValue={setUnlimitedApproval}
               size="sm"
             />
@@ -385,7 +427,7 @@ export const VaultDeposit = () => {
                 color="black"
                 requiresConnection
               >
-                {isApproved
+                {amountIsApproved
                   ? "✅ Approved"
                   : listeningForApproval
                   ? "⏱ Awaiting Approval"
@@ -457,9 +499,7 @@ export const VaultDeposit = () => {
                   </Button>
                 </>
               ) : (
-                <p className="text-xs p-2">
-                  {DEPOSIT_SHARES_EPOCH}
-                </p>
+                <p className="text-xs p-2">{DEPOSIT_SHARES_EPOCH}</p>
               )
             ) : null}
           </div>

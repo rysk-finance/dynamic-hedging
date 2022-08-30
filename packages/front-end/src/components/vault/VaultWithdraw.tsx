@@ -24,7 +24,8 @@ import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { Loader } from "../Loader";
 import { useUserPosition } from "../../hooks/useUserPosition";
-import { WITHDRAW_ON_HOLD, WITHDRAW_SHARES_EPOCH } from "../../config/messages";
+import ReactSlider from "react-slider";
+import { VaultWithdrawBalanceTooltip } from "./VaultWithdrawBalanceTooltip";
 
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
@@ -32,7 +33,6 @@ export const VaultWithdraw = () => {
     state: {
       depositEpoch: currentEpoch,
       depositPricePerShare: currentPricePerShare,
-      userDHVBalance: userRyskBalance,
     },
     dispatch,
   } = useVaultContext();
@@ -41,7 +41,10 @@ export const VaultWithdraw = () => {
     state: { settings },
   } = useGlobalContext();
 
-  const { updatePosition } = useUserPosition();
+  const {
+    updatePosition,
+    positionBreakdown: { unredeemedShares, redeemedShares },
+  } = useUserPosition();
 
   // UI State
   const [inputValue, setInputValue] = useState("");
@@ -52,6 +55,7 @@ export const VaultWithdraw = () => {
   const [withdrawableUSDC, setWithdrawableUSDC] = useState<BigNumber | null>(
     null
   );
+  const [sliderPercentage, setSlidePercentage] = useState(50);
 
   // Chain state
   const [withdrawReceipt, setWithdrawReceipt] =
@@ -80,17 +84,8 @@ export const VaultWithdraw = () => {
     readOnly: false,
   });
 
-  const getUserRYSKBalance = useCallback(
-    async (address: string) => {
-      const balance = await lpContract?.balanceOf(address);
-      dispatch({
-        type: VaultActionType.SET,
-        data: { userDHVBalance: balance },
-      });
-      return balance;
-    },
-    [lpContract, dispatch]
-  );
+  const withdrawableDHV =
+    redeemedShares && unredeemedShares && redeemedShares?.add(unredeemedShares);
 
   const getWithdrawalReceipt = useCallback(
     async (address: string) => {
@@ -142,15 +137,40 @@ export const VaultWithdraw = () => {
   const epochListener = useCallback(async () => {
     updateWithdrawState();
     if (account) {
-      getUserRYSKBalance(account);
+      updatePosition(account);
     }
-  }, [updateWithdrawState, account, getUserRYSKBalance]);
+  }, [updateWithdrawState, account, updatePosition]);
 
   useEffect(() => {
     (async () => {
       await updateWithdrawState();
     })();
   }, [updateWithdrawState]);
+
+  const handleInputChange = (value: string) => {
+    setInputValue(value);
+    if (withdrawableDHV) {
+      // e18
+      const bigNumberPercentage = ethers.utils
+        .parseUnits(value, 18)
+        .mul(BIG_NUMBER_DECIMALS.RYSK)
+        .div(withdrawableDHV);
+      const percentage = Math.round(
+        Number(ethers.utils.formatUnits(bigNumberPercentage, 18)) * 100
+      );
+      setSlidePercentage(percentage);
+    }
+  };
+
+  const handleSliderChange = (value: number) => {
+    setSlidePercentage(value);
+    if (withdrawableDHV) {
+      const inputValue = ethers.utils.formatUnits(
+        withdrawableDHV.mul(value).div(100)
+      );
+      setInputValue(inputValue);
+    }
+  };
 
   const handleInitiateWithdraw = async () => {
     if (usdcContract && lpContract && account && network) {
@@ -171,7 +191,7 @@ export const VaultWithdraw = () => {
             updatePosition(account);
           }
           updateWithdrawState();
-          getUserRYSKBalance(account);
+          updatePosition(account);
           setInputValue("");
         },
       });
@@ -233,17 +253,20 @@ export const VaultWithdraw = () => {
                   Balance:{" "}
                   <RequiresWalletConnection className="w-[60px] h-[16px] mr-2 translate-y-[-2px]">
                     <BigNumberDisplay currency={Currency.RYSK}>
-                      {userRyskBalance}
+                      {redeemedShares && unredeemedShares
+                        ? redeemedShares?.add(unredeemedShares)
+                        : null}
                     </BigNumberDisplay>
                   </RequiresWalletConnection>{" "}
                   {DHV_NAME}
+                  <VaultWithdrawBalanceTooltip />
                 </p>
               </div>
             </div>
             <div className="ml-[-2px]">
               <TextInput
                 className="text-right p-4 text-xl border-r-0"
-                setValue={(value) => setInputValue(value)}
+                setValue={(value) => handleInputChange(value)}
                 value={inputValue}
                 iconLeft={
                   <div className="h-full flex items-center px-4 text-right text-gray-600">
@@ -252,20 +275,72 @@ export const VaultWithdraw = () => {
                 }
                 numericOnly
                 maxNumDecimals={18}
-                maxValue={userRyskBalance ?? undefined}
+                maxValue={withdrawableDHV ?? undefined}
                 maxValueDecimals={18}
                 maxButtonHandler={
-                  userRyskBalance
-                    ? () => {
-                        if (userRyskBalance) {
-                          setInputValue(
-                            ethers.utils.formatUnits(userRyskBalance, 18)
-                          );
-                        }
-                      }
-                    : undefined
+                  withdrawableDHV ? () => handleSliderChange(100) : undefined
                 }
               />
+            </div>
+            <div className="ml-[-2px] py-2 px-4 border-b-2 border-black h-12">
+              <ReactSlider
+                className="horizontal-slider"
+                value={sliderPercentage}
+                onChange={handleSliderChange}
+                renderTrack={(
+                  { className: trackClassName, ...trackProps },
+                  { index, value }
+                ) => {
+                  return (
+                    <div
+                      className={`${
+                        index === 0 &&
+                        "bg-black h-1 w-full rounded-full translate-y-[6px]"
+                      } ${trackClassName}`}
+                      {...trackProps}
+                    ></div>
+                  );
+                }}
+                marks
+                renderThumb={({ className: thumbClassName, ...thumbProps }) => (
+                  <div
+                    {...thumbProps}
+                    className={`${thumbClassName} p-2 flex items-center justify-center bg-bone rounded-full border-2 border-black translate-y-[-1px] cursor-pointer`}
+                  ></div>
+                )}
+              />
+              <div className="w-full flex justify-between items-center mt-5 text-xs">
+                <p
+                  className="w-0 translate-x-[-50%] cursor-pointer"
+                  onClick={() => handleSliderChange(0)}
+                >
+                  0%
+                </p>
+                <p
+                  className="w-0 translate-x-[-4px] cursor-pointer"
+                  onClick={() => handleSliderChange(25)}
+                >
+                  25%
+                </p>
+                <p
+                  className="w-0 translate-x-[-8px] cursor-pointer"
+                  onClick={() => handleSliderChange(50)}
+                >
+                  50%
+                </p>
+                <p
+                  className="w-0 translate-x-[-16px] cursor-pointer"
+                  onClick={() => handleSliderChange(75)}
+                >
+                  75%
+                </p>
+                <p
+                  className="w-0 translate-x-[-22px] cursor-pointer"
+                  onClick={() => handleSliderChange(100)}
+                >
+                  100%
+                </p>
+              </div>
             </div>
             <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
               <div className="flex justify-between items-center">
@@ -279,7 +354,9 @@ export const VaultWithdraw = () => {
                 </div>
 
                 <div className="h-4 flex items-center">
-                  {listeningForInitiation && <Loader className="mr-2" />}
+                  {listeningForInitiation && (
+                    <Loader className="mr-2 !h-[24px]" />
+                  )}
                   <p>
                     <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
                       <BigNumberDisplay currency={Currency.RYSK}>
@@ -359,9 +436,7 @@ export const VaultWithdraw = () => {
           </div>
         ) : (
           <div className="p-2">
-            <p className="text-xs">
-              { WITHDRAW_SHARES_EPOCH }
-            </p>
+            <p className="text-xs">{WITHDRAW_SHARES_EPOCH}</p>
           </div>
         )}
       </div>

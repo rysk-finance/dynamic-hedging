@@ -108,13 +108,20 @@ export const useUserPosition = () => {
       withdrawalReceipt: WithdrawalReceipt,
       currentWithdrawalEpoch: BigNumber
     ) => {
-      if (currentWithdrawalEpoch === withdrawalReceipt.epoch) {
+      if (currentWithdrawalEpoch._hex === withdrawalReceipt.epoch._hex) {
         const epochSharePrice = await lpContract?.withdrawalEpochPricePerShare(
           currentWithdrawalEpoch.sub(1)
         );
+        setPositionBreakdown({
+          pendingWithdrawShares: {
+            amount: withdrawalReceipt.shares,
+            epochPrice: epochSharePrice,
+          },
+        });
         return withdrawalReceipt.shares
           .mul(epochSharePrice)
-          .div(BIG_NUMBER_DECIMALS.RYSK);
+          .div(BIG_NUMBER_DECIMALS.RYSK)
+          .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC));
       } else {
         const epochSharePrice = await lpContract?.withdrawalEpochPricePerShare(
           withdrawalReceipt.epoch
