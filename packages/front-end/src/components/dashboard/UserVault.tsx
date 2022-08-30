@@ -14,11 +14,14 @@ import {
   ZERO_UINT_256,
 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
-import { DepositReceipt } from "../../types";
+import { Currency, DepositReceipt } from "../../types";
 import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import ReactTooltip from "react-tooltip";
 import { RyskTooltip } from "../RyskTooltip";
+import { BigNumberDisplay } from "../BigNumberDisplay";
+import { PositionTooltip } from "../vault/PositionTooltip";
+import { useUserPosition } from "../../hooks/useUserPosition";
 
 export const UserVault = () => {
   const { account, network } = useWalletContext();
@@ -43,6 +46,16 @@ export const UserVault = () => {
     ABI: LPABI,
     readOnly: true,
   });
+
+  const { userPositionValue, updatePosition } = useUserPosition();
+
+  useEffect(() => {
+    if (account) {
+      (() => {
+        updatePosition(account);
+      })();
+    }
+  }, [account, updatePosition]);
 
   useQuery(
     gql`
@@ -136,40 +149,36 @@ export const UserVault = () => {
                   <div className="flex h-full w-full lg:w-[70%] justify-around">
                     <div className="flex flex-col items-center justify-center h-full mb-8 lg:mb-0">
                       <h3 className="mb-2">
-                        <NumberFormat
-                          value={Number(
-                            currentPosition
-                              ?.add(unredeemableCollateral)
-                              .add(unredeemedSharesValue)
-                              .toNumber() / 1e6
-                          )}
-                          displayType={"text"}
-                          decimalScale={2}
-                          suffix=" USDC"
-                        />
+                          <BigNumberDisplay
+                            currency={Currency.USDC}
+                            suffix="USDC"
+                            loaderProps={{
+                              className: "invert h-4 w-auto translate-y-[-2px]",
+                            }}
+                          >
+                            {userPositionValue}
+                          </BigNumberDisplay>  
                       </h3>
+
                       <h4 className="mb-2">
-                        Position
-                        <RyskTooltip
-                          message={`Your current ${DHV_NAME} position in USDC`}
-                          id="positionTip"
-                        />
+                        Your Position
+                        <PositionTooltip />
                       </h4>
                     </div>
                     <div className="flex flex-col items-center justify-center h-full">
                       <h3 className="mb-2">
                         {/* TODO make sure if there is an error with subgraph this will not load */}
+                        { ( depositBalance !== undefined && userPositionValue !== null ) &&                                               
                         <NumberFormat
                           value={Number(
-                            currentPosition
-                              ?.add(unredeemableCollateral)
-                              .sub(depositBalance)
-                              .toNumber() / 1e6
-                          )}
+                            userPositionValue.sub(depositBalance)
+                            .toNumber() / 1e6
+                          ).toFixed(2)}
                           displayType={"text"}
                           decimalScale={2}
                           suffix=" USDC"
                         />
+                        }
                       </h3>
                       <h4 className="mb-2">
                         PnL
@@ -239,22 +248,17 @@ export const UserVault = () => {
                     >
                       <Button className="w-full mb-8">Deposit</Button>
                     </Link>
-                    {unredeemedSharesValue &&
-                    unredeemedSharesValue._hex !== ZERO_UINT_256 ? (
-                      <Link
-                        className="w-full"
-                        to={{
-                          pathname: AppPaths.VAULT,
-                          search: "?type=withdraw",
-                        }}
-                      >
-                        <Button className="w-full">Withdraw</Button>
-                      </Link>
-                    ) : (
-                      <Button className="w-full !bg-gray-300 text-white cursor-default">
-                        Withdraw
-                      </Button>
-                    )}
+
+                    <Link
+                      className="w-full"
+                      to={{
+                        pathname: AppPaths.VAULT,
+                        search: "?type=withdraw",
+                      }}
+                    >
+                      <Button className="w-full">Withdraw</Button>
+                    </Link>
+                   
                   </div>
                 </div>
               ),

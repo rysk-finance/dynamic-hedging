@@ -7,10 +7,10 @@ import { ActionType } from "../state/types";
 import { Button } from "./shared/Button";
 
 export const HeaderPopover: React.FC = () => {
-
-  const chainId = Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_RINKEBY 
-                  ? CHAINID.ARBITRUM_RINKEBY 
-                  : CHAINID.ARBITRUM_MAINNET;
+  const chainId =
+    Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_RINKEBY
+      ? CHAINID.ARBITRUM_RINKEBY
+      : CHAINID.ARBITRUM_MAINNET;
 
   const [isOpen, setIsOpen] = useState(false);
   const isOpenRef = useRef(false);
@@ -76,14 +76,17 @@ export const HeaderPopover: React.FC = () => {
             <Button
               onClick={() => {
                 account &&
-                  window.open(`${SCAN_URL[chainId]}/address/${account}`);
+                  window.open(
+                    process.env.REACT_APP_ENV === "production"
+                      ? `https://arbiscan.io/address/${account}`
+                      : `https://testnet.arbiscan.io/address/${account}`
+                  );
               }}
               className="mb-4"
             >
               Open in Explorer
-
             </Button>
-            
+
             {/* <div className="mb-4">
               <Settings />
             </div> */}
