@@ -34,8 +34,6 @@ async function main() {
 			arbitrumRinkeby.optionHandler
 		)
 
-		console.log(optionHandler)
-
 		const option = {
 			expiration: "1663315200",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
@@ -48,11 +46,9 @@ async function main() {
 
 		const orderAmount = RYSK_DECIMAL.mul(2)
 
-		console.log(option)
-
 		const orderTransaction = await optionHandler.createOrder(
-			option, 
-			orderAmount, 
+			option,
+			orderAmount,
 			BigNumber.from(50000000),
 			BigNumber.from(1800),
 			"0xAD5B468F6Fb897461E388396877fD5E3c5114539",
