@@ -24,7 +24,7 @@ export const PositionTooltip = () => {
           )}
         </div>
         <div className="flex justify-between items-center">
-          <p className="mr-12">Withdraw on hold: </p>
+          <p className="mr-12">Withdrawals on hold: </p>
           {positionBreakdown.pendingWithdrawShares?.amount._hex !==
           ZERO_UINT_256 ? (
             <p>

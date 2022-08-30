@@ -1,11 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
+import { CHAINID, SCAN_URL } from "../config/constants";
 import { useGlobalContext } from "../state/GlobalContext";
 import { ActionType } from "../state/types";
 import { Button } from "./shared/Button";
 
 export const HeaderPopover: React.FC = () => {
+  const chainId =
+    Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_RINKEBY
+      ? CHAINID.ARBITRUM_RINKEBY
+      : CHAINID.ARBITRUM_MAINNET;
+
   const [isOpen, setIsOpen] = useState(false);
   const isOpenRef = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -66,6 +72,7 @@ export const HeaderPopover: React.FC = () => {
             >
               Copy address
             </Button>
+
             <Button
               onClick={() => {
                 account &&
@@ -77,8 +84,9 @@ export const HeaderPopover: React.FC = () => {
               }}
               className="mb-4"
             >
-              Open in Arbiscan
+              Open in Explorer
             </Button>
+
             {/* <div className="mb-4">
               <Settings />
             </div> */}

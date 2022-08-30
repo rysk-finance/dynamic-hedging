@@ -14,7 +14,6 @@ import {
 } from "../../config/constants";
 import addresses from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
-import { useUserPosition } from "../../hooks/useUserPosition";
 import { ActionType, AppSettings, VaultActionType } from "../../state/types";
 import { useVaultContext } from "../../state/VaultContext";
 import {
@@ -30,8 +29,10 @@ import { RyskTooltip } from "../RyskTooltip";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { Toggle } from "../shared/Toggle";
-import { useGlobalContext } from "../../state/GlobalContext";
+import { useUserPosition } from "../../hooks/useUserPosition";
+import { DEPOSIT_ON_HOLD, DEPOSIT_SHARES_EPOCH } from "../../config/messages";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useGlobalContext } from "../../state/GlobalContext";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
 
 export const VaultDeposit = () => {
@@ -397,12 +398,7 @@ export const VaultDeposit = () => {
             <div className="flex justify-between items-center">
               <div className="flex">
                 <p>Deposits on hold</p>
-                <RyskTooltip
-                  message={
-                    "Your USDC will be deployed to our vault and converted to shares every Friday at 11am UTC"
-                  }
-                  id={"strategeyTip"}
-                />
+                <RyskTooltip message={DEPOSIT_ON_HOLD} id={"strategeyTip"} />
               </div>
               <div className="h-4 flex items-center">
                 {listeningForDeposit && <Loader className="mr-2 !h-[24px]" />}
@@ -506,10 +502,7 @@ export const VaultDeposit = () => {
                   </Button>
                 </>
               ) : (
-                <p className="text-xs p-2">
-                  Your USDC will be available to redeem as shares during our
-                  weekly strategy every Friday at 11am UTC
-                </p>
+                <p className="text-xs p-2">{DEPOSIT_SHARES_EPOCH}</p>
               )
             ) : null}
           </div>
