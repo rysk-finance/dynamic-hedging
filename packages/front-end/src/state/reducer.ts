@@ -6,6 +6,9 @@ import {
   OptionsTradingState,
   OptionsTradingAction,
   OptionsTradingActionType,
+  VaultAction,
+  VaultState,
+  VaultActionType,
 } from "./types";
 
 export const globalReducer: Reducer<GlobalState, GlobalAction> = (
@@ -20,6 +23,16 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         eth24hChange: action.change ?? state.eth24hChange,
         ethPriceUpdateTime: action.date,
       };
+    case ActionType.SET_POSITION_VALUE:
+      return {
+        ...state,
+        userPositionValue: action.value,
+      };
+    case ActionType.SET_POSITION_BREAKDOWN:
+      return {
+        ...state,
+        positionBreakdown: { ...state.positionBreakdown, ...action.values },
+      };
     case ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE:
       return {
         ...state,
@@ -29,6 +42,31 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
       return {
         ...state,
         settings: { ...state.settings, ...action.settings },
+      };
+    case ActionType.RESET_GLOBAL_STATE:
+      return {
+        ...state,
+        userPositionValue: null,
+        positionBreakdown: {
+          currentWithdrawSharePrice: null,
+          pendingWithdrawShares: null,
+          redeemedShares: null,
+          unredeemedShares: null,
+          usdcOnHold: null,
+        },
+      };
+  }
+};
+
+export const vaultReducer: Reducer<VaultState, VaultAction> = (
+  state,
+  action
+) => {
+  switch (action.type) {
+    case VaultActionType.SET:
+      return {
+        ...state,
+        ...action.data,
       };
   }
 };

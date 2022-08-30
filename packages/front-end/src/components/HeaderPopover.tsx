@@ -1,14 +1,22 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
-import { Settings } from "./dashboard/Settings";
+import { CHAINID, SCAN_URL } from "../config/constants";
+import { useGlobalContext } from "../state/GlobalContext";
+import { ActionType } from "../state/types";
 import { Button } from "./shared/Button";
 
 export const HeaderPopover: React.FC = () => {
+  const chainId =
+    Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_RINKEBY
+      ? CHAINID.ARBITRUM_RINKEBY
+      : CHAINID.ARBITRUM_MAINNET;
+
   const [isOpen, setIsOpen] = useState(false);
   const isOpenRef = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const { dispatch } = useGlobalContext();
   const { account, disconnect } = useWalletContext();
 
   const handleClickOutside = (event: MouseEvent) => {
@@ -35,7 +43,16 @@ export const HeaderPopover: React.FC = () => {
 
   return (
     <div className="flex items-center" ref={containerRef}>
-      <Button type="button" onClick={() => setIsOpen((old) => !old)}>
+      <Button
+        type="button"
+        onClick={() => setIsOpen((old) => !old)}
+        className="flex items-center"
+      >
+        <img
+          src="/arbitrum_logo.svg"
+          className="h-4 w-auto mr-2"
+          alt="Arbitrum"
+        />
         {`${account?.slice(0, 4)}...${account?.slice(
           account.length - 4,
           account.length
@@ -55,21 +72,28 @@ export const HeaderPopover: React.FC = () => {
             >
               Copy address
             </Button>
+
             <Button
               onClick={() => {
                 account &&
-                  window.open(`https://etherscan.io/address/${account}`);
+                  window.open(
+                    process.env.REACT_APP_ENV === "production"
+                      ? `https://arbiscan.io/address/${account}`
+                      : `https://testnet.arbiscan.io/address/${account}`
+                  );
               }}
               className="mb-4"
             >
-              Open in Etherscan
+              Open in Explorer
             </Button>
-            <div className="mb-4">
+
+            {/* <div className="mb-4">
               <Settings />
-            </div>
+            </div> */}
             <Button
               onClick={() => {
                 disconnect?.();
+                dispatch({ type: ActionType.RESET_GLOBAL_STATE });
               }}
             >
               Disconnect

@@ -15,9 +15,7 @@ tmp
 
 # Build
 public/css/main.css
-artifacts
 deployments
-types
 
 # Cache
 cache

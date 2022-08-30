@@ -3,6 +3,7 @@ import React from "react";
 import NumberFormat, { NumberFormatProps } from "react-number-format";
 import { DECIMALS } from "../config/constants";
 import { Currency } from "../types";
+import { Loader } from "./Loader";
 
 const CURRENCY_TO_DP_MAP: Record<Currency, number> = {
   [Currency.USDC]: 2,
@@ -12,8 +13,9 @@ const CURRENCY_TO_DP_MAP: Record<Currency, number> = {
 
 type BigNumberDisplayProps = {
   currency: Currency;
-  children: BigNumber;
+  children: BigNumber | null;
   numberFormatProps?: NumberFormatProps;
+  loaderProps?: React.HTMLProps<HTMLImageElement>;
   suffix?: string;
 };
 
@@ -22,8 +24,9 @@ export const BigNumberDisplay: React.FC<BigNumberDisplayProps> = ({
   currency,
   numberFormatProps = {},
   suffix,
+  loaderProps: { className: loaderClassName, ...restLoaderProps } = {},
 }) => {
-  return (
+  return children ? (
     <NumberFormat
       value={ethers.utils.formatUnits(children, DECIMALS[currency])}
       displayType={"text"}
@@ -31,6 +34,11 @@ export const BigNumberDisplay: React.FC<BigNumberDisplayProps> = ({
       fixedDecimalScale
       suffix={suffix ? ` ${suffix}` : undefined}
       {...numberFormatProps}
+    />
+  ) : (
+    <Loader
+      className={`inline mr-2 !h-[24px] ${loaderClassName}`}
+      {...restLoaderProps}
     />
   );
 };

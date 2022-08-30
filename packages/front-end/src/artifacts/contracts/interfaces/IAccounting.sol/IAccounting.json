@@ -1,0 +1,241 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IAccounting",
+  "sourceName": "contracts/interfaces/IAccounting.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "withdrawer",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "shares",
+          "type": "uint256"
+        }
+      ],
+      "name": "completeWithdraw",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "withdrawalAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "withdrawalShares",
+          "type": "uint256"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint128",
+              "name": "epoch",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "shares",
+              "type": "uint128"
+            }
+          ],
+          "internalType": "struct IAccounting.WithdrawalReceipt",
+          "name": "withdrawalReceipt",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "depositor",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "deposit",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "depositAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "unredeemedShares",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "totalSupply",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "assets",
+          "type": "uint256"
+        },
+        {
+          "internalType": "int256",
+          "name": "liabilities",
+          "type": "int256"
+        }
+      ],
+      "name": "executeEpochCalculation",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "newPricePerShareDeposit",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "newPricePerShareWithdrawal",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "sharesToMint",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalWithdrawAmount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amountNeeded",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "withdrawer",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "shares",
+          "type": "uint256"
+        }
+      ],
+      "name": "initiateWithdraw",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint128",
+              "name": "epoch",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "shares",
+              "type": "uint128"
+            }
+          ],
+          "internalType": "struct IAccounting.WithdrawalReceipt",
+          "name": "withdrawalReceipt",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "redeemer",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "shares",
+          "type": "uint256"
+        }
+      ],
+      "name": "redeem",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "toRedeem",
+          "type": "uint256"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint128",
+              "name": "epoch",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint128",
+              "name": "amount",
+              "type": "uint128"
+            },
+            {
+              "internalType": "uint256",
+              "name": "unredeemedShares",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct IAccounting.DepositReceipt",
+          "name": "depositReceipt",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "assetPerShare",
+          "type": "uint256"
+        }
+      ],
+      "name": "sharesForAmount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "shares",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

@@ -26,22 +26,12 @@ async function main() {
 			arbitrumRinkeby.priceFeed
 		)) as PriceFeed
 		const pvFeed = await hre.ethers.getContractAt(
-			"PortfolioValuesFeed",
+			"AlphaPortfolioValuesFeed",
 			arbitrumRinkeby.portfolioValuesFeed
 		)
 		const price = await priceFeed.getNormalizedRate(arbitrumRinkeby.WETH, arbitrumRinkeby.USDC)
 		console.log({ price })
-		await pvFeed.fulfill(
-			utils.formatBytes32String("1"),
-			arbitrumRinkeby.WETH,
-			arbitrumRinkeby.USDC,
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			price
-		)
+		await pvFeed.fulfill(arbitrumRinkeby.WETH, arbitrumRinkeby.USDC)
 
 		const transaction = await lpContract.executeEpochCalculation()
 
