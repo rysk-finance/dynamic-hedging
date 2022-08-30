@@ -86,7 +86,7 @@ export const PositionTooltip = () => {
     <RyskTooltip
       message={<TooltipMessage />}
       id={"positionTip"}
-      tooltipProps={{ place: "bottom" }}
+      tooltipProps={{ place: "bottom", className: "w-fit" }}
       color="white"
       iconProps={{ className: "translate-y-[2px]" }}
     ></RyskTooltip>
