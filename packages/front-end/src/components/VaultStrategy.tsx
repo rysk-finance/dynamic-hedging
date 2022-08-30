@@ -28,8 +28,7 @@ const STRATEGY_DETAILS = [
     name: "Put",
     title: "Short Put",
     src: "/images/put.png",
-    description:
-      "Short Put strategy involves the selling of the Put Options",
+    description: "Short Put strategy involves the selling of the Put Options",
   },
 ];
 
@@ -61,7 +60,7 @@ export const VaultStrategy = () => {
 
   return (
     <div className="pb-8 py-12 px-8">
-      <div className="grid grid-cols-2">
+      <div className="grid grid-cols-2 mb-16">
         <div>
           <h4>Strategy</h4>
           <p className="pt-4 mr-8">
@@ -77,32 +76,35 @@ export const VaultStrategy = () => {
               portfolio delta
             </a>{" "}
             close to zero.
-            <br /><br />
+            <br />
+            <br />
             By running the short options strategies the {DHV_NAME} is able to
             generate uncorrelated returns whilst targeting market neutrality.
             <br />
           </p>
         </div>
 
-        <div className="rounded-lg mt-8 mr-8">
+        <div className="rounded-lg mr-8">
           <div className="pb-4">
-
-          {STRATEGY_DETAILS.map( (item, index) => {
+            {STRATEGY_DETAILS.map((item, index) => {
               return (
-              <Button onClick={() => setStrategy(item.name)} key={index} className="mr-4" color={item.name === strategy ? "black" : "white" }>
-                {item.title}
-              </Button>
-              )
-          })}
-
+                <Button
+                  onClick={() => setStrategy(item.name)}
+                  key={index}
+                  className="mr-4 mb-4"
+                  color={item.name === strategy ? "black" : "white"}
+                >
+                  {item.title}
+                </Button>
+              );
+            })}
           </div>
 
           <div className="rounded-t-lg bg-black text-white flex justify-center py-2 mt-16 md:mt-0">
             <p>
-              {
-                STRATEGY_DETAILS.filter((item) => item.name === strategy)[0]
-                  .title.replace(/\s/g, '_').toLowerCase()
-              }
+              {STRATEGY_DETAILS.filter((item) => item.name === strategy)[0]
+                .title.replace(/\s/g, "_")
+                .toLowerCase()}
               .png
             </p>
           </div>
@@ -111,25 +113,23 @@ export const VaultStrategy = () => {
               <div className="flex justify-around items-center">
                 <img
                   src={
-                    STRATEGY_DETAILS.filter(
-                      (item) => item.name === strategy
-                    )[0].src
+                    STRATEGY_DETAILS.filter((item) => item.name === strategy)[0]
+                      .src
                   }
                   className="mr-8 h-[150px]"
                 />
                 <p>
                   {
-                    STRATEGY_DETAILS.filter(
-                      (item) => item.name === strategy
-                    )[0].description
+                    STRATEGY_DETAILS.filter((item) => item.name === strategy)[0]
+                      .description
                   }
                 </p>
               </div>
             </div>
           </div>
         </div>
-
       </div>
+      <hr className="mb-8 border-gray-600" />
       <div className="grid grid-cols-2">
         <div>
           <h4 className="pt-8">Hedging</h4>
@@ -140,53 +140,51 @@ export const VaultStrategy = () => {
             exposure.
           </p>
         </div>
-          <div className="rounded-lg mt-8 mr-8">
-            <div className="pb-4">
-              {STRATEGY_HEDGING.map( (item, index) => {
-                  return (
-                  <Button onClick={() => setHedging(item.name)} key={index} className="mr-4" color={item.name === hedging ? "black" : "white" }>
-                    {item.name}
-                  </Button>
-                  )
-              })}
-            </div>
+        <div className="rounded-lg mt-8 mr-8 mb-8">
+          <div className="pb-4">
+            {STRATEGY_HEDGING.map((item, index) => {
+              return (
+                <Button
+                  onClick={() => setHedging(item.name)}
+                  key={index}
+                  className="mr-4"
+                  color={item.name === hedging ? "black" : "white"}
+                >
+                  {item.name}
+                </Button>
+              );
+            })}
+          </div>
 
-            
-
-            <div className="rounded-t-lg bg-black text-white flex justify-center py-2 mt-16 md:mt-0">
-              <p>
-                {
-                  STRATEGY_HEDGING.filter((item) => item.name === hedging)[0]
-                    .name.toLowerCase()
-                }
-                .png
-              </p>
-            </div>
-            <div>
-              <div className="border-black border-2 rounded-b-lg p-8 overflow-hidden bg-bone">
-                <div className="flex justify-around items-center">
-                  <img
-                    src={
-                      STRATEGY_HEDGING.filter(
-                        (item) => item.name === hedging
-                      )[0].src
-                    }
-                    className="mr-8 h-[150px]"
-                  />
-                  <p>
-                    {
-                      STRATEGY_HEDGING.filter(
-                        (item) => item.name === hedging
-                      )[0].description
-                    }
-                  </p>
-                </div>
+          <div className="rounded-t-lg bg-black text-white flex justify-center py-2 mt-16 md:mt-0">
+            <p>
+              {STRATEGY_HEDGING.filter(
+                (item) => item.name === hedging
+              )[0].name.toLowerCase()}
+              .png
+            </p>
+          </div>
+          <div>
+            <div className="border-black border-2 rounded-b-lg p-8 overflow-hidden bg-bone">
+              <div className="flex justify-around items-center">
+                <img
+                  src={
+                    STRATEGY_HEDGING.filter((item) => item.name === hedging)[0]
+                      .src
+                  }
+                  className="mr-8 h-[150px]"
+                />
+                <p>
+                  {
+                    STRATEGY_HEDGING.filter((item) => item.name === hedging)[0]
+                      .description
+                  }
+                </p>
               </div>
             </div>
           </div>
-
         </div>
-      
+      </div>
     </div>
   );
 };
