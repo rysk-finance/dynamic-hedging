@@ -91,7 +91,7 @@ export const VaultStrategy = () => {
                 <Button
                   onClick={() => setStrategy(item.name)}
                   key={index}
-                  className="mr-4 mb-4"
+                  className="mr-2 mb-2"
                   color={item.name === strategy ? "black" : "white"}
                 >
                   {item.title}
@@ -147,7 +147,7 @@ export const VaultStrategy = () => {
                 <Button
                   onClick={() => setHedging(item.name)}
                   key={index}
-                  className="mr-4"
+                  className="mr-2 mb-2"
                   color={item.name === hedging ? "black" : "white"}
                 >
                   {item.name}
