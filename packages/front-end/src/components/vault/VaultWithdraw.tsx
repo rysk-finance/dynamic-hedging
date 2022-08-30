@@ -26,6 +26,7 @@ import { Loader } from "../Loader";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import ReactSlider from "react-slider";
 import { VaultWithdrawBalanceTooltip } from "./VaultWithdrawBalanceTooltip";
+import { WITHDRAW_ON_HOLD, WITHDRAW_SHARES_EPOCH } from "../../config/messages";
 
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();

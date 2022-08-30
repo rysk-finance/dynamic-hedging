@@ -31,6 +31,9 @@ import { TextInput } from "../shared/TextInput";
 import { Toggle } from "../shared/Toggle";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { DEPOSIT_ON_HOLD, DEPOSIT_SHARES_EPOCH } from "../../config/messages";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useGlobalContext } from "../../state/GlobalContext";
+import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
 
 export const VaultDeposit = () => {
   const { account, network } = useWalletContext();
