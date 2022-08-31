@@ -19,7 +19,8 @@ export const VaultMechanism = () => {
               </li>
               <li className="pb-2">
                 Once the new epoch starts your deposit will be converted to
-                shares which can then be redeemed
+                shares which can then be redeemed. 
+                You will need your redeemed shares to withdraw from {DHV_NAME}
               </li>
               <li className="pb-2">
                 The deposited funds are used to fund ETH options strategies
