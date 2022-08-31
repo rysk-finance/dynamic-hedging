@@ -15,7 +15,7 @@ export const VaultMechanism = () => {
               </li>
               <li className="pb-2">
                 Your USDC deposit will be queued till the next epoch start. 
-                At this , you can also deposit additional USDC
+                At this stage, you can also deposit additional USDC
               </li>
               <li className="pb-2">
                 Once the new epoch starts your deposit will be converted to
