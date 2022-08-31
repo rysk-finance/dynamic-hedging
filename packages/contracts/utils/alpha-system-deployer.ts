@@ -6,7 +6,7 @@ import { expect } from "chai"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
-import { MockPortfolioValuesFeed, PortfolioValuesStruct } from "../types/MockPortfolioValuesFeed"
+import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
@@ -16,6 +16,7 @@ import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/Liquidity
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
+import { Accounting } from "../types/Accounting"
 import moment from "moment"
 import {
 	ADDRESS_BOOK,
@@ -28,8 +29,7 @@ import {
 } from "../test/constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { VolatilityFeed } from "../types/VolatilityFeed"
-import { Accounting } from "../types/Accounting"
-import { OptionHandler } from "../types/OptionHandler"
+import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 // edit depending on the chain id to be tested on
@@ -113,15 +113,24 @@ export async function deploySystem(
 		proposedSabrParams, 
 		expiration
 	)
-
-	const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
+	const normDistFactory = await ethers.getContractFactory("NormalDist", {
+		libraries: {}
+	})
+	const normDist = await normDistFactory.deploy()
+	const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+		libraries: {
+			NormalDist: normDist.address
+		}
+	})
+	const blackScholesDeploy = await blackScholesFactory.deploy()
+	const portfolioValuesFeedFactory = await ethers.getContractFactory("AlphaPortfolioValuesFeed", {
+		libraries: {
+			BlackScholes: blackScholesDeploy.address
+		}
+	})
 	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
-		senderAddress,
-		utils.formatBytes32String("jobId"),
-		toWei("1"),
-		ZERO_ADDRESS,
 		authority.address
-	)) as MockPortfolioValuesFeed
+	)) as AlphaPortfolioValuesFeed
 
 	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
 	const optionProtocol = (await protocolFactory.deploy(
@@ -159,7 +168,7 @@ export async function deployLiquidityPool(
 	minExpiry: any,
 	maxExpiry: any,
 	optionRegistry: OptionRegistry,
-	pvFeed: MockPortfolioValuesFeed,
+	pvFeed: AlphaPortfolioValuesFeed,
 	authority: string
 ) {
 	const normDistFactory = await ethers.getContractFactory("NormalDist", {
@@ -212,20 +221,10 @@ export async function deployLiquidityPool(
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
 	await liquidityPool.setMaxPriceDeviationThreshold(toWei("0.03"))
 	await liquidityPool.setBidAskSpread(toWei("0.05"))
-	await pvFeed.setAddressStringMapping(WETH_ADDRESS[chainId], WETH_ADDRESS[chainId])
-	await pvFeed.setAddressStringMapping(USDC_ADDRESS[chainId], USDC_ADDRESS[chainId])
+	await liquidityPool.setKeeper(await signers[0].getAddress(), true)
 	await pvFeed.setLiquidityPool(liquidityPool.address)
-	await pvFeed.fulfill(
-		utils.formatBytes32String("1"),
-		weth.address,
-		usd.address,
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0),
-		BigNumber.from(0)
-	)
+	await pvFeed.setProtocol(optionProtocol.address)
+	await pvFeed.fulfill(weth.address, usd.address)
 	const AccountingFactory = await ethers.getContractFactory("Accounting")
 	const Accounting = (await AccountingFactory.deploy(
 		liquidityPool.address,
@@ -234,15 +233,17 @@ export async function deployLiquidityPool(
 		usd.address
 	)) as Accounting
 	await optionProtocol.changeAccounting(Accounting.address)
-	const handlerFactory = await ethers.getContractFactory("OptionHandler")
+	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
 	const handler = (await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,
 		liquidityPool.address
-	)) as OptionHandler
+	)) as AlphaOptionHandler
 	await liquidityPool.changeHandler(handler.address, true)
 	await pvFeed.setKeeper(handler.address, true)
 	await pvFeed.setKeeper(liquidityPool.address, true)
+	await pvFeed.setKeeper(await signers[0].getAddress(), true)
+	await pvFeed.setHandler(handler.address, true)
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,

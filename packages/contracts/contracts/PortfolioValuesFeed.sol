@@ -48,7 +48,7 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 		int256 gamma,
 		int256 vega,
 		int256 theta,
-		uint256 callPutsValue
+		int256 callPutsValue
 	);
 	event SetJobId(bytes32 jobId);
 	event SetFee(uint256 fee);
@@ -154,7 +154,7 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 		int256 _gamma,
 		int256 _vega,
 		int256 _theta,
-		uint256 _callPutsValue,
+		int256 _callPutsValue,
 		uint256 _spotPrice
 	) external recordChainlinkFulfillment(_requestId) {
 		Types.PortfolioValues memory portfolioValue = Types.PortfolioValues({

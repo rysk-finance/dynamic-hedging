@@ -99,7 +99,11 @@ contract LiquidityPoolAdjustCollateralTest {
 		}
 	}
 
+	function getBalance(address collateralAsset) external view returns (uint256){
+		return ERC20(usd).balanceOf(address(this));
+	}
 	function setCollateralAllocated(uint256 amount) external {
 		collateralAllocated = amount;
 	}
+
 }
