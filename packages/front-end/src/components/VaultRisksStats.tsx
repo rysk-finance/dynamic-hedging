@@ -5,23 +5,26 @@ import ReactTooltip from "react-tooltip";
 import { RyskTooltip } from "./RyskTooltip";
 import { DHV_NAME } from "../config/constants";
 
-export const VaultStats = () => {
+export const VaultRisksStats = () => {
   return (
     <div className="pb-8 py-12 px-8 flex flex-col lg:flex-row h-full">
       <div className="flex h-full w-full justify-around">
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
-            Cumulative Yield: {" "}
+            Current Delta: {" "}
             <NumberFormat
-              value={"2.24"}
+              value={"13.78"}
               displayType={"text"}
               decimalScale={2}
               suffix="%"
               className="font-medium"
             />
             <RyskTooltip
-              id="yieldTip"
-              message={`Sum of ${DHV_NAME} returns since inception (Jul 1st 2022)`}
+              id="deltaTip"
+              message="
+                Delta, Δ, measures the rate of change in the value of the portfolio with respect to a change in the price of ETH. <br />
+                A Delta close to zero means that the exposure is neutral to market movements.
+              "
             />
           </p>
           <a
@@ -35,17 +38,18 @@ export const VaultStats = () => {
         </div>
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
-            Projected APY: {" "}
+            Max Drawdown: {" "}
             <NumberFormat
-              value={"23.45%"}
+              value={"2.45"}
               displayType={"text"}
               decimalScale={2}
               suffix="%"
               className="font-medium"
             />
             <RyskTooltip
-              id="apyTip"
-              message="Based on historical returns and the current options exposure"
+              id="drawdownTip"
+              message="Maximum drawdown indicates the downside risk of the vault since inceptions. <br />
+                A low maximum drawdown is preferred as it indicates that losses from investment were small."
             />
           </p>
           <a

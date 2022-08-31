@@ -17,7 +17,7 @@ import { useWalletContext } from "../../App";
 import { CHAINID } from "../../config/constants";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { PositionTooltip } from "./PositionTooltip";
-import { VaultOverview } from "../VaultOverview";
+import { VaultMechanism } from "../VaultMechanism";
 
 export const VaultContent = () => {
   const { chainId, network, account } = useWalletContext();
@@ -76,16 +76,19 @@ export const VaultContent = () => {
         </div>
 
         <p className="mt-8">
-          {DHV_NAME} generates uncorrelated returns on USDC by running short
-          options strategies (such as strangles, straddles, or single legs)
-          targeting delta neutrality to reduce the directional risk associated
-          with price movements in the underlying asset.
-          <br />
-          If the portfolio delta moves far away from zero the {DHV_NAME}{" "}
-          position will be hedged by trading options, spot or perpetuals.
+          {/* DHV-USDC generates uncorrelated returns on USDC by running short options strategies 
+          (such as strangles, straddles, or single legs) targeting delta neutrality 
+          to reduce the directional risk associated with price movements in the underlying asset.
+          If the portfolio delta moves far away from zero the DHV-USDC 
+          position will be hedged by trading options, spot or perpetuals. */}
+          
+          {DHV_NAME} generates uncorrelated returns on USDC by market making ETH options strategies. 
+          < br />
+          The {DHV_NAME} exposure is dynamically hedged to target market neutrality 
+          in order reduce the directional risk associated with ETH price movements.
           <br />
           <Link
-            className="underline hover:font-medium cursor-pointer"
+            className="underline hover:font-medium cursor-pointer pt-4 "
             activeClass="active"
             to="overviewScroll"
             spy={true}
@@ -116,12 +119,12 @@ export const VaultContent = () => {
         <Card
           tabs={[
             {
-              label: "Strategy",
+              label: "Overview",
               content: <VaultStrategy />,
             },
             {
               label: "How it works",
-              content: <VaultOverview />,
+              content: <VaultMechanism />,
             },
             {
               label: "Performance",
