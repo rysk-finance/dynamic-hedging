@@ -6,7 +6,6 @@ import { expect } from "chai"
 import { MintableERC20 } from "../types/MintableERC20"
 import { PriceFeed } from "../types/PriceFeed"
 import { VolatilityFeed } from "../types/VolatilityFeed"
-import { SABR } from "../types/SABR"
 import { WETH } from "../types/WETH"
 import { USDC_ADDRESS, WETH_ADDRESS } from "./constants"
 import { toWei, tFormatEth } from "../utils/conversion-helper"
@@ -96,7 +95,6 @@ describe("Volatility Feed", async () => {
 				proposedSabrParams, 
 				expiration
 			)
-			console.log(expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)

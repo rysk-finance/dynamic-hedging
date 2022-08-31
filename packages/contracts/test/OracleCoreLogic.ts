@@ -101,11 +101,11 @@ let portfolioValueArgs: [LiquidityPool, NewController, OptionRegistry, PriceFeed
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 // delta of first put written
-const expected_put_delta = 0.401771025305072
+const expected_put_delta = 0.433
 // delta of first call written
-const expected_call_delta = -0.5793846314710722
+const expected_call_delta = -0.457
 const expected_portfolio_delta = expected_put_delta + expected_call_delta
-const expected_portfolio_delta_two_calls = expected_put_delta + expected_call_delta * 2
+const expected_portfolio_delta_two_calls = -0.483
 
 /* --- variables to change --- */
 
@@ -204,7 +204,6 @@ describe("Oracle core logic", async () => {
 			to: signer.address,
 			value: ethers.utils.parseEther("10.0") // Sends exactly 10.0 ether
 		})
-
 		const forceSendContract = await ethers.getContractFactory("ForceSend")
 		const forceSend = await forceSendContract.deploy() // force Send is a contract that forces the sending of Ether to WBTC minter (which is a contract with no receive() function)
 		await forceSend
@@ -248,7 +247,32 @@ describe("Oracle core logic", async () => {
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
 	})
-
+	it("SETUP: set sabrParams", async () => {
+		const proposedSabrParams = 
+		{
+			callAlpha:250000,
+			callBeta:1_000000,
+			callRho:-300000,
+			callVolvol:1_500000,
+			putAlpha:250000,
+			putBeta:1_000000,
+			putRho:-300000,
+			putVolvol:1_500000
+		}
+		await volFeed.setSabrParameters(
+			proposedSabrParams, 
+			expiration
+		)
+		const volFeedSabrParams = await volFeed.sabrParams(expiration)
+		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+	})
 	it("Sets state with written options", async () => {
 		// deposit to the liquidity pool
 		const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
@@ -497,7 +521,32 @@ describe("Oracle core logic", async () => {
 		expect(portfolioValues.callsPutsValue).to.eq(0)
 		expect(portfolioValues.portfolioDelta).to.eq(0)
 	})
-
+	it("SETUP: set sabrParams", async () => {
+		const proposedSabrParams = 
+		{
+			callAlpha:250000,
+			callBeta:1_000000,
+			callRho:-300000,
+			callVolvol:1_500000,
+			putAlpha:250000,
+			putBeta:1_000000,
+			putRho:-300000,
+			putVolvol:1_500000
+		}
+		await volFeed.setSabrParameters(
+			proposedSabrParams, 
+			expiration
+		)
+		const volFeedSabrParams = await volFeed.sabrParams(expiration)
+		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+	})
 	it("properly computes portfolio value with expired ITM options", async () => {
 		const [sender] = signers
 		const senderAddress: string = await sender.getAddress()
@@ -507,6 +556,19 @@ describe("Oracle core logic", async () => {
 		priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		let strikePrice = priceQuote.add(toWei(strike))
 		let expiration = Date.parse("30 July 2022 08:00:00 UTC") / 1000
+		await volFeed.setSabrParameters(
+			{
+				callAlpha:250000,
+				callBeta:1_000000,
+				callRho:-300000,
+				callVolvol:1_500000,
+				putAlpha:250000,
+				putBeta:1_000000,
+				putRho:-300000,
+				putVolvol:1_500000
+			}, 
+			expiration
+		)
 		const proposedPutSeries = {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
