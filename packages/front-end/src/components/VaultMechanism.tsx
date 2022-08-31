@@ -15,7 +15,7 @@ export const VaultMechanism = () => {
               </li>
               <li className="pb-2">
                 Your USDC deposit will be queued till the next epoch start. 
-                At this stage you can also deposit additional USDC
+                At this , you can also deposit additional USDC
               </li>
               <li className="pb-2">
                 Once the new epoch starts your deposit will be converted to
@@ -25,7 +25,7 @@ export const VaultMechanism = () => {
                 The deposited funds are used to fund ETH options strategies
               </li>
               <li className="pb-2">
-                Your shares value could appreciate over-time as the {DHV_NAME} {" "}
+                Your shares value could appreciate over time as the {DHV_NAME} {" "}
                 generates returns
               </li>
             </ul>
@@ -35,14 +35,14 @@ export const VaultMechanism = () => {
           <p className="pt-4">
             <ul className="list-decimal px-8">
               <li className="pb-2">
-                You can withdraw all of part of your shares. 
+                You can withdraw all or part of your shares. 
                 You can initiate a withdrawal at any time
               </li>
               <li className="pb-2">
-                Your withdraw will be queued till the next epoch
+                Your withdrawal will be queued till the next epoch
               </li>
               <li className="pb-2">
-                Once the new epoch starts you can complete your withdraw and
+                Once the new epoch starts you can complete your withdrawal and
                 redeem your USDC
               </li>
             </ul>
