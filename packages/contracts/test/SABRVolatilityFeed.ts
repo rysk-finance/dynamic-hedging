@@ -174,7 +174,7 @@ describe("Volatility Feed", async () => {
 				callRho: -300000,
 				callVolvol: 1_500000,
 				putAlpha: 250000,
-				putBeta: 1_000000,
+				putBeta: 800000,
 				putRho: -300000,
 				putVolvol: 1_500000
 			}
