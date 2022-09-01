@@ -51,8 +51,8 @@ library SABR {
 			vars.a = ((1e18 - beta).pow(2e18)).mul(alpha.pow(2e18)).div(
 				int256(24e18).mul(_fkbeta(vars.f, vars.k, beta))
 			);
-			vars.v = ((1e18 - beta).pow(2e18)).mul(_logfk(vars.f, vars.k).pow(2e18)).div(24e18);
-			vars.w = ((1e18 - beta).pow(4e18)).mul(_logfk(vars.f, vars.k).pow(4e18)).div(1920e18);
+			vars.v = ((1e18 - beta).pow(2e18)).mul(_logfk(vars.f, vars.k).powu(2)).div(24e18);
+			vars.w = ((1e18 - beta).pow(4e18)).mul(_logfk(vars.f, vars.k).powu(4)).div(1920e18);
 		}
 		vars.b = int256(25e16).mul(rho).mul(beta).mul(volvol).mul(alpha).div(
 			_fkbeta(vars.f, vars.k, beta).sqrt()

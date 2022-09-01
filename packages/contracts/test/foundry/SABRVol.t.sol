@@ -121,7 +121,7 @@ contract SABRTest is Test {
 	}
 
 	function testSABRFuzzBeta(int32 var_) public {
-		vm.assume(var_ >  800000);
+		vm.assume(var_ >  0);
 		vm.assume(var_ <= 1000000);
 		VolatilityFeed.SABRParams memory _sabrParams = VolatilityFeed.SABRParams(
 			250000,
