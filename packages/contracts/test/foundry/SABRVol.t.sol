@@ -235,8 +235,8 @@ contract SABRTest is Test {
         assertApproxEqAbs(vol, expectedVol, 1e8);
 	}
 
-	function testSABRFuzzStrikeGetImpliedVolatility(uint128 strikePrice) public {
-        bound(strikePrice, 10e18, 1000e18);
+	function testSABRFuzzStrikeGetImpliedVolatility(uint80 strikePrice) public {
+        vm.assume(strikePrice > 10e18);
 		uint256 expiration = startExpiry;
 		bool isPut = false;
         uint256 underlyingPrice = 100e18;
