@@ -29,18 +29,18 @@ contract SABRTest is Test {
 		volFeed.setSabrParameters(_sabrParams, startExpiry);
 	}
 
-	function testGetKeeper() public {
+	function testSABRGetKeeper() public {
 		bool isKeeper = volFeed.keeper(msg.sender);
 		assertEq(isKeeper, false);
 	}
 
-	function testSetKeeper() public {
+	function testSABRSetKeeper() public {
 		volFeed.setKeeper(msg.sender, true);
 		bool isKeeper = volFeed.keeper(msg.sender);
 		assertEq(isKeeper, true);
 	}
 
-	function testSetSabrParams() public {
+	function testSABRSetSabrParams() public {
 		VolatilityFeed.SABRParams memory _sabrParams = VolatilityFeed.SABRParams(
 			250000,
 			1000000,
@@ -73,7 +73,7 @@ contract SABRTest is Test {
 		assertEq(putVolvol, _sabrParams.putVolvol);
 	}
 
-	function testFuzzAlpha(int32 var_) public {
+	function testSABRFuzzAlpha(int32 var_) public {
 		vm.assume(var_ > 0);
 		VolatilityFeed.SABRParams memory _sabrParams = VolatilityFeed.SABRParams(
 			var_,
@@ -96,7 +96,7 @@ contract SABRTest is Test {
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
 	}
 
-	function testFuzzRho(int32 var_) public {
+	function testSABRFuzzRho(int32 var_) public {
 		vm.assume(var_ > -1000000);
 		vm.assume(var_ < 1000000);
 		VolatilityFeed.SABRParams memory _sabrParams = VolatilityFeed.SABRParams(
@@ -120,7 +120,50 @@ contract SABRTest is Test {
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
 	}
 
-	function testFuzzVolvol(int32 var_) public {
+	function testSABRFuzzBeta(int32 var_) public {
+		vm.assume(var_ >  800000);
+		vm.assume(var_ <= 1000000);
+		VolatilityFeed.SABRParams memory _sabrParams = VolatilityFeed.SABRParams(
+			250000,
+			var_,
+			-300000,
+			1500000,
+			250000,
+			var_,
+			-300000,
+			1500000
+		);
+		uint256 expiration = startExpiry;
+		volFeed.setSabrParameters(_sabrParams, expiration);
+		(, int32 _var1, , , , int32 _var2, , ) = volFeed.sabrParams(expiration);
+		assertEq(_var1, var_);
+		assertEq(_var2, var_);
+		bool isPut = false;
+		uint256 underlyingPrice = 100e18;
+		uint256 strikePrice = 120e18;
+		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+	}
+
+	function testSABRBeta() public {
+		VolatilityFeed.SABRParams memory _sabrParams = VolatilityFeed.SABRParams(
+			250000,
+			900000,
+			-300000,
+			1500000,
+			250000,
+			900000,
+			-300000,
+			1500000
+		);
+		uint256 expiration = startExpiry;
+		volFeed.setSabrParameters(_sabrParams, expiration);
+		bool isPut = false;
+		uint256 underlyingPrice = 100e18;
+		uint256 strikePrice = 120e18;
+		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+	}
+
+	function testSABRFuzzVolvol(int32 var_) public {
 		vm.assume(var_ > 0);
 		VolatilityFeed.SABRParams memory _sabrParams = VolatilityFeed.SABRParams(
 			250000,
@@ -143,7 +186,7 @@ contract SABRTest is Test {
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
 	}
 
-	function testFuzzPrice(uint256 underlyingPrice) public {
+	function testSABRFuzzPrice(uint256 underlyingPrice) public {
 		underlyingPrice = bound(underlyingPrice, 1e18, 1e26);
 		bool isPut = false;
 		uint256 strikePrice = 120e18;
@@ -151,7 +194,7 @@ contract SABRTest is Test {
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
 	}
 
-	function testGetImpliedVolatility() public {
+	function testSABRGetImpliedVolatility() public {
 		uint256 expiration = startExpiry;
 		bool isPut = false;
 		uint256 underlyingPrice = 100e18;
@@ -165,7 +208,7 @@ contract SABRTest is Test {
         assertApproxEqAbs(vol, expectedVol, 1e4);
 	}
 
-	function testFuzzPriceGetImpliedVolatility(uint128 underlyingPrice) public {
+	function testSABRFuzzPriceGetImpliedVolatility(uint128 underlyingPrice) public {
 		vm.assume(underlyingPrice > 10e18);
 		uint256 expiration = startExpiry;
 		bool isPut = false;
@@ -178,7 +221,7 @@ contract SABRTest is Test {
         assertApproxEqAbs(vol, expectedVol, 1e8);
 	}
 
-	function testStrikeGetImpliedVolatility() public {
+	function testSABRStrikeGetImpliedVolatility() public {
 		uint256 expiration = startExpiry;
 		bool isPut = false;
         uint256 underlyingPrice = 100e18;
@@ -191,7 +234,7 @@ contract SABRTest is Test {
         assertApproxEqAbs(vol, expectedVol, 1e8);
 	}
 
-	function testFuzzStrikeGetImpliedVolatility(uint128 strikePrice) public {
+	function testSABRFuzzStrikeGetImpliedVolatility(uint128 strikePrice) public {
         bound(strikePrice, 10e18, 1000e18);
 		uint256 expiration = startExpiry;
 		bool isPut = false;
