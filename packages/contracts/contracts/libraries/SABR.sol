@@ -4,7 +4,6 @@ pragma solidity >=0.8.0;
 import "prb-math/contracts/PRBMath.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 
-
 library SABR {
 	using PRBMathSD59x18 for int256;
 
@@ -89,7 +88,7 @@ library SABR {
 		return (f.mul(k)).pow(1e18 - beta);
 	}
 
-	function _x(int256 rho, int256 z) internal view returns (int256) {
+	function _x(int256 rho, int256 z) internal pure returns (int256) {
 		int256 a = (1e18 - 2 * rho.mul(z) + z.powu(2)).sqrt() + z - rho;
 		int256 b = 1e18 - rho;
 		return (a.div(b)).ln();
