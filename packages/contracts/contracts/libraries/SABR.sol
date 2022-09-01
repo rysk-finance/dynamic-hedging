@@ -30,7 +30,7 @@ library SABR {
 		int256 beta,
 		int256 rho,
 		int256 volvol
-	) internal view returns (int256 iv) {
+	) internal pure returns (int256 iv) {
 		// Hagan's 2002 SABR lognormal vol expansion.
 
 		// negative strikes or forwards
