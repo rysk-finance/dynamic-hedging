@@ -42,7 +42,7 @@ export const VaultRisks = () => {
                 <li className="pb-2">
                   Rysk prioritises security. Our {DHV_NAME} smart contracts have
                   been audited by Dedaub and Akira, however, smart contracts are an
-                  experimental technology and we encourage caution only
+                  experimental technology and we encourage caution, only
                   risking funds you can afford to lose.{" "}
                 </li>
                 <li className="pb-2">
@@ -52,7 +52,7 @@ export const VaultRisks = () => {
                 </li>
               </ul>
               <a href="#" className="underline">
-                Learn more on Rysk security
+                Learn more about Rysk's security
               </a>
             </p>
           </div>
