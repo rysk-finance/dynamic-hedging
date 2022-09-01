@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from "react";
-import { useContract } from "../../hooks/useContract";
-import LPABI from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
-import { BigNumber, utils } from "ethers";
 import { gql, useQuery } from "@apollo/client";
+import { BigNumber } from "ethers";
+import React, { useEffect, useMemo, useState } from "react";
 import { useWalletContext } from "../../App";
+import LPABI from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
+import { DHV_NAME } from "../../config/constants";
+import { useContract } from "../../hooks/useContract";
 import { useVaultContext } from "../../state/VaultContext";
-import { BIG_NUMBER_DECIMALS, DHV_NAME } from "../../config/constants";
-import { BigNumberDisplay } from "../BigNumberDisplay";
 import { Currency } from "../../types";
+import { BigNumberDisplay } from "../BigNumberDisplay";
 
 type WithdrawAction = {
   amount: number;
+  epoch: number;
   pricePerShare: BigNumber;
 };
 
@@ -26,70 +27,116 @@ export const PendingWithdrawBreakdown: React.FC = () => {
   } = useVaultContext();
   const { account } = useWalletContext();
 
-  const [withdrawAction, setWithdrawAction] = useState<
-    (Omit<WithdrawAction, "pricePerShare"> | WithdrawAction) | null
+  const [latestCompleteWithdrawTimestamp, setLatestCompleteWithdrawTimestamp] =
+    useState<string | null>(null);
+
+  const [initiateWithdrawActions, setInitiateWithdrawActions] = useState<
+    (Omit<WithdrawAction, "pricePerShare">[] | WithdrawAction[]) | null
   >(null);
 
-  // Fetch actions that ocurred after the most recent redeem (unredeemed actions)
-  // that have also had their epoch price calculated (aren't on hold).
+  useQuery(
+    gql`
+    query {
+      withdrawActions(
+        where: { address: "${account}" }
+        orderBy: timestamp
+        orderDirection: desc
+        first: 1
+      ) {
+        timestamp
+      }
+    }
+  `,
+    {
+      onCompleted: (data) => {
+        if (data.withdrawActions && data.withdrawActions[0]) {
+          setLatestCompleteWithdrawTimestamp(data.withdrawActions[0].timestamp);
+        } else {
+          setLatestCompleteWithdrawTimestamp("0");
+        }
+      },
+    }
+  );
+
   useQuery(
     gql`
       query {
         initiateWithdrawActions(
-          where: { address: "${account}" }
+          where: { address: "${account}", timestamp_gt: "${latestCompleteWithdrawTimestamp}" }
           orderBy: timestamp
           orderDirection: desc
-          first: 1
         ) {
           amount
+          epoch
         }
       }
     `,
     {
       onCompleted: (data) => {
-        if (data.initiateWithdrawActions && data.initiateWithdrawActions[0]) {
-          setWithdrawAction(data.initiateWithdrawActions[0]);
+        if (data.initiateWithdrawActions) {
+          setInitiateWithdrawActions(data.initiateWithdrawActions);
         }
       },
       onError: (err) => {
         console.error(err);
       },
-      skip: !account,
+      skip: !account || !latestCompleteWithdrawTimestamp,
     }
   );
 
   useEffect(() => {
     // If we haven't fetched the prices from chain yet.
     if (
-      withdrawAction &&
-      !("pricePerShare" in withdrawAction) &&
+      initiateWithdrawActions &&
+      initiateWithdrawActions.length > 0 &&
+      !("pricePerShare" in initiateWithdrawActions) &&
       currentWithdrawalEpoch
     ) {
       const getPrice = async (
-        action: Omit<WithdrawAction, "pricePerShare">
+        initiateWithdrawActions: Omit<WithdrawAction, "pricePerShare">[]
       ) => {
+        // All initiateWithdrawActions returned should occur within same epoch in
+        // this case as they occured since the latest completeWithdraw.
         const pricePerShare = await lpContract?.withdrawalEpochPricePerShare(
-          currentWithdrawalEpoch?.sub(1)
+          initiateWithdrawActions[0].epoch
         );
-        setWithdrawAction({
-          ...action,
-          pricePerShare,
-        });
+        setInitiateWithdrawActions(
+          initiateWithdrawActions.map<WithdrawAction>((action) => ({
+            ...action,
+            pricePerShare,
+          }))
+        );
       };
 
-      getPrice(withdrawAction);
+      getPrice(initiateWithdrawActions);
     }
-  }, [withdrawAction, lpContract, currentWithdrawalEpoch]);
+  }, [initiateWithdrawActions, lpContract, currentWithdrawalEpoch]);
+
+  const accumulatedWithdrawalsAmount = useMemo(() => {
+    if (
+      initiateWithdrawActions &&
+      "pricePerShare" in initiateWithdrawActions[0]
+    ) {
+      let total = BigNumber.from(0);
+      initiateWithdrawActions.forEach((action) => {
+        total = total.add(action.amount);
+      });
+      return total;
+    }
+    return null;
+  }, [initiateWithdrawActions]);
 
   return (
     <div className="text-xs text-right">
-      {withdrawAction && (
-        <p key={withdrawAction.amount}>
-          {utils.formatUnits(BigNumber.from(withdrawAction.amount))} {DHV_NAME}{" "}
-          @{" "}
+      {initiateWithdrawActions && accumulatedWithdrawalsAmount && (
+        <p>
           <BigNumberDisplay currency={Currency.RYSK}>
-            {"pricePerShare" in withdrawAction
-              ? withdrawAction.pricePerShare
+            {accumulatedWithdrawalsAmount}
+          </BigNumberDisplay>{" "}
+          {DHV_NAME} @{" "}
+          <BigNumberDisplay currency={Currency.RYSK}>
+            {"pricePerShare" in initiateWithdrawActions[0]
+              ? initiateWithdrawActions[0].pricePerShare
               : BigNumber.from(0)}
           </BigNumberDisplay>{" "}
           USDC per {DHV_NAME}

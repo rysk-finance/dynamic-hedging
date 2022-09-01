@@ -120,7 +120,10 @@ export const UnredeemedDepositBreakdown: React.FC = () => {
     <div className="text-xs text-right">
       {unredeemedDepositActions?.map((action) => (
         <p key={action.epoch}>
-          {action.amount / BIG_NUMBER_DECIMALS.USDC.toNumber()} {DHV_NAME} @{" "}
+          <BigNumberDisplay currency={Currency.USDC}>
+            {BigNumber.from(action.amount)}
+          </BigNumberDisplay>{" "}
+          {DHV_NAME} @{" "}
           <BigNumberDisplay currency={Currency.RYSK}>
             {"pricePerShare" in action ? action.pricePerShare : null}
           </BigNumberDisplay>{" "}
