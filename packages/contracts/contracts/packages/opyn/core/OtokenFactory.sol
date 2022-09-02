@@ -5,7 +5,6 @@ import {SafeMath} from "../packages/oz/SafeMath.sol";
 import {AddressBookInterface} from "../interfaces/AddressBookInterface.sol";
 import {OtokenInterface} from "../interfaces/OtokenInterface.sol";
 import {WhitelistInterface} from "../interfaces/WhitelistInterface.sol";
-import "hardhat/console.sol";
 
 /**
  * SPDX-License-Identifier: UNLICENSED

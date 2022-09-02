@@ -475,7 +475,6 @@ function calculateOptionQuote(
 		localBS,
 		utilizationCurve
 	)
-	console.log({ utilizationBefore, utilizationAfter, utilizationPrice })
 	// if delta exposure reduces, subtract delta skew from  pricequotes
 	if (portfolioDeltaIsDecreased) return utilizationPrice - utilizationPrice * deltaTiltAmount
 	return utilizationPrice + utilizationPrice * deltaTiltAmount
