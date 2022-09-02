@@ -118,6 +118,20 @@ describe("Volatility Feed", async () => {
 				expect(tFormatEth(iv) - ivs[i]).to.be.within(-0.0011, 0.0011)
 			}
 		})
+		it("REVERTS: when strike is zero", async () => {
+			const underlyingPrice = toWei("100")
+			const strikePrice = 0
+			await expect(
+				volFeed.getImpliedVolatility(false, underlyingPrice, toWei(strikePrice.toString()), expiration)
+			).to.be.revertedWith("IVNotFound()")
+		})
+		it("REVERTS: when strike is zero", async () => {
+			const underlyingPrice = toWei("0")
+			const strikePrice = 160
+			await expect(
+				volFeed.getImpliedVolatility(false, underlyingPrice, toWei(strikePrice.toString()), expiration)
+			).to.be.revertedWith("IVNotFound()")
+		})
 	})
 	describe("VolatilityFeed: setters", async () => {
 		it("SUCCEEDS: set keeper", async () => {
@@ -170,11 +184,11 @@ describe("Volatility Feed", async () => {
 		it("SUCCEEDS: set sabrParams", async () => {
 			const proposedSabrParams = {
 				callAlpha: 250000,
-				callBeta: 800000,
+				callBeta: 900000,
 				callRho: -300000,
 				callVolvol: 1_500000,
 				putAlpha: 250000,
-				putBeta: 800000,
+				putBeta: 900000,
 				putRho: -300000,
 				putVolvol: 1_500000
 			}
