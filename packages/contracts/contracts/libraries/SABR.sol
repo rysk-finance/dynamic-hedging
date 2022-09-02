@@ -4,7 +4,6 @@ pragma solidity >=0.8.0;
 import "prb-math/contracts/PRBMath.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 
-
 library SABR {
 	using PRBMathSD59x18 for int256;
 
@@ -31,7 +30,7 @@ library SABR {
 		int256 beta,
 		int256 rho,
 		int256 volvol
-	) internal view returns (int256 iv) {
+	) internal pure returns (int256 iv) {
 		// Hagan's 2002 SABR lognormal vol expansion.
 
 		// negative strikes or forwards
@@ -52,8 +51,8 @@ library SABR {
 			vars.a = ((1e18 - beta).pow(2e18)).mul(alpha.pow(2e18)).div(
 				int256(24e18).mul(_fkbeta(vars.f, vars.k, beta))
 			);
-			vars.v = ((1e18 - beta).pow(2e18)).mul(_logfk(vars.f, vars.k).pow(2e18)).div(24e18);
-			vars.w = ((1e18 - beta).pow(4e18)).mul(_logfk(vars.f, vars.k).pow(4e18)).div(1920e18);
+			vars.v = ((1e18 - beta).pow(2e18)).mul(_logfk(vars.f, vars.k).powu(2)).div(24e18);
+			vars.w = ((1e18 - beta).pow(4e18)).mul(_logfk(vars.f, vars.k).powu(4)).div(1920e18);
 		}
 		vars.b = int256(25e16).mul(rho).mul(beta).mul(volvol).mul(alpha).div(
 			_fkbeta(vars.f, vars.k, beta).sqrt()
@@ -89,7 +88,7 @@ library SABR {
 		return (f.mul(k)).pow(1e18 - beta);
 	}
 
-	function _x(int256 rho, int256 z) internal view returns (int256) {
+	function _x(int256 rho, int256 z) internal pure returns (int256) {
 		int256 a = (1e18 - 2 * rho.mul(z) + z.powu(2)).sqrt() + z - rho;
 		int256 b = 1e18 - rho;
 		return (a.div(b)).ln();
