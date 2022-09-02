@@ -85,13 +85,17 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
     async ({
       method,
       args,
-      successMessage: successMessage = "✅ Transaction created",
+      submitMessage,
+      onSubmit,
+      completeMessage,
       onComplete,
       onFail,
     }: {
       method: ethers.ContractFunction;
       args: any[];
-      successMessage?: string;
+      submitMessage?: string;
+      onSubmit?: () => void;
+      completeMessage?: string;
       onComplete?: () => void;
       onFail?: () => void;
     }) => {
@@ -102,15 +106,24 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
         }
         toast(
           <div>
-            <p>{successMessage}</p>
+            <p>{submitMessage}</p>
             <p>
               TX Hash:{" "}
               <TransactionDisplay>{transaction.hash}</TransactionDisplay>
             </p>
           </div>,
-          { autoClose: false }
+          { autoClose: 5000 }
         );
+        onSubmit?.();
+        await transaction.wait();
         onComplete?.();
+        completeMessage &&
+          toast(
+            <div>
+              <p>{completeMessage}</p>
+            </div>,
+            { autoClose: 5000 }
+          );
         return;
       } catch (err) {
         // Might need to modify this is errors other than RPC errors are being thrown
@@ -120,7 +133,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
             autoClose: 5000,
           });
         } else {
-          toast(JSON.stringify(err));
+          toast(JSON.stringify(err), { autoClose: 5000 });
         }
         onFail?.();
         return null;

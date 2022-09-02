@@ -45,6 +45,16 @@ export const SUBGRAPH_URL = {
   [CHAINID.ARBITRUM_MAINNET]: "",
 };
 
+export const SCAN_URL = {
+  [CHAINID.LOCALHOST]: "",
+  [CHAINID.ETH_MAINNET]: "",
+  [CHAINID.ARBITRUM_RINKEBY]:
+    "https://testnet.arbiscan.io",
+  [CHAINID.ARBITRUM_MAINNET]: 
+    "https://arbiscan.io"
+  ,
+}
+
 /**
  * Tokens and owners
  */
@@ -149,3 +159,5 @@ export const ADDRESS_BOOK = {
 };
 export const ORACLE_DISPUTE_PERIOD = 7200;
 export const ORACLE_LOCKING_PERIOD = 300;
+
+export const DHV_NAME = "DHV-USDC"
