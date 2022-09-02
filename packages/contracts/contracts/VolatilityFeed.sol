@@ -34,10 +34,10 @@ contract VolatilityFeed is AccessControl {
 	int256 private constant BIPS_SCALE = 1e12;
 	int256 private constant BIPS = 1e6;
 
-	struct SABRParams{
-		int32 callAlpha;  // not bigger or less than an int32 and above 0
-		int32 callBeta;   // greater than 0 and less than or equal to 1
-		int32 callRho;    // between 1 and -1
+	struct SABRParams {
+		int32 callAlpha; // not bigger or less than an int32 and above 0
+		int32 callBeta; // greater than 0 and less than or equal to 1
+		int32 callRho; // between 1 and -1
 		int32 callVolvol; // not bigger or less than an int32 and above 0
 		int32 putAlpha;
 		int32 putBeta;
@@ -64,20 +64,26 @@ contract VolatilityFeed is AccessControl {
 	 */
 	function setSabrParameters(SABRParams memory _sabrParams, uint256 _expiry) external {
 		_isKeeper();
-		if (_sabrParams.callAlpha <= 0 || _sabrParams.callAlpha > type(int32).max ||
-			_sabrParams.putAlpha <= 0 || _sabrParams.putAlpha > type(int32).max){
+		if (_sabrParams.callAlpha <= 0 || _sabrParams.putAlpha <= 0) {
 			revert AlphaError();
 		}
-		if (_sabrParams.callVolvol <= 0 || _sabrParams.callVolvol > type(int32).max ||
-			_sabrParams.putVolvol <= 0 || _sabrParams.putVolvol > type(int32).max){
+		if (_sabrParams.callVolvol <= 0 || _sabrParams.putVolvol <= 0) {
 			revert VolvolError();
 		}
-		if (_sabrParams.callBeta <= 0 || _sabrParams.callBeta > BIPS||
-			_sabrParams.putBeta <= 0 || _sabrParams.putBeta > BIPS){
+		if (
+			_sabrParams.callBeta <= 0 ||
+			_sabrParams.callBeta > BIPS ||
+			_sabrParams.putBeta <= 0 ||
+			_sabrParams.putBeta > BIPS
+		) {
 			revert BetaError();
 		}
-		if (_sabrParams.callRho <= -BIPS || _sabrParams.callRho >= BIPS||
-			_sabrParams.putRho <= -BIPS || _sabrParams.putRho >= BIPS){
+		if (
+			_sabrParams.callRho <= -BIPS ||
+			_sabrParams.callRho >= BIPS ||
+			_sabrParams.putRho <= -BIPS ||
+			_sabrParams.putRho >= BIPS
+		) {
 			revert RhoError();
 		}
 		sabrParams[_expiry] = _sabrParams;
@@ -115,29 +121,29 @@ contract VolatilityFeed is AccessControl {
 		}
 		if (!isPut) {
 			vol = SABR.lognormalVol(
-				int256(strikePrice), 
+				int256(strikePrice),
 				int256(underlyingPrice),
-				time, 
-				sabrParams_.callAlpha * BIPS_SCALE, 
-				sabrParams_.callBeta * BIPS_SCALE, 
-				sabrParams_.callRho * BIPS_SCALE, 
+				time,
+				sabrParams_.callAlpha * BIPS_SCALE,
+				sabrParams_.callBeta * BIPS_SCALE,
+				sabrParams_.callRho * BIPS_SCALE,
 				sabrParams_.callVolvol * BIPS_SCALE
 			);
 		} else {
 			vol = SABR.lognormalVol(
-				int256(strikePrice), 
+				int256(strikePrice),
 				int256(underlyingPrice),
-				time, 
-				sabrParams_.putAlpha * BIPS_SCALE, 
-				sabrParams_.putBeta * BIPS_SCALE, 
-				sabrParams_.putRho * BIPS_SCALE, 
+				time,
+				sabrParams_.putAlpha * BIPS_SCALE,
+				sabrParams_.putBeta * BIPS_SCALE,
+				sabrParams_.putRho * BIPS_SCALE,
 				sabrParams_.putVolvol * BIPS_SCALE
 			);
 		}
-		if (vol <= 0){
+		if (vol <= 0) {
 			revert CustomErrors.IVNotFound();
 		}
-		return uint256(vol);	
+		return uint256(vol);
 	}
 
 	/// @dev keepers, managers or governors can access
