@@ -3,6 +3,7 @@ pragma solidity >=0.8.9;
 
 import "./libraries/AccessControl.sol";
 import "./libraries/CustomErrors.sol";
+import "./libraries/SABR.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
@@ -15,14 +16,12 @@ contract VolatilityFeed is AccessControl {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
 
-	/////////////////////////////////////
-	/// governance settable variables ///
-	/////////////////////////////////////
+	//////////////////////////
+	/// settable variables ///
+	//////////////////////////
 
-	// skew parameters for calls
-	int256[7] public callsVolatilitySkew;
-	// skew parameters for puts
-	int256[7] public putsVolatilitySkew;
+	// Parameters for the sabr volatility model
+	mapping(uint256 => SABRParams) public sabrParams;
 	// keeper mapping
 	mapping(address => bool) public keeper;
 
@@ -31,7 +30,20 @@ contract VolatilityFeed is AccessControl {
 	//////////////////////////
 
 	// number of seconds in a year used for calculations
-	uint256 private constant ONE_YEAR_SECONDS = 31557600;
+	int256 private constant ONE_YEAR_SECONDS = 31557600;
+	int256 private constant BIPS_SCALE = 1e12;
+	int256 private constant BIPS = 1e6;
+
+	struct SABRParams{
+		int32 callAlpha;  // not bigger or less than an int32 and above 0
+		int32 callBeta;   // greater than 0 and less than or equal to 1
+		int32 callRho;    // between 1 and -1
+		int32 callVolvol; // not bigger or less than an int32 and above 0
+		int32 putAlpha;
+		int32 putBeta;
+		int32 putRho;
+		int32 putVolvol;
+	}
 
 	constructor(address _authority) AccessControl(IAuthority(_authority)) {}
 
@@ -39,19 +51,36 @@ contract VolatilityFeed is AccessControl {
 	/// setters ///
 	///////////////
 
+	error AlphaError();
+	error BetaError();
+	error RhoError();
+	error VolvolError();
+
 	/**
-	 * @notice set the volatility skew of the pool
-	 * @param values the parameters of the skew
-	 * @param isPut the option type, put or call?
-	 * @dev   only governance can call this function
+	 * @notice set the sabr volatility params
+	 * @param _sabrParams set the SABR parameters
+	 * @param _expiry the expiry that the SABR parameters represent
+	 * @dev   only keepers can call this function
 	 */
-	function setVolatilitySkew(int256[7] calldata values, bool isPut) external {
+	function setSabrParameters(SABRParams memory _sabrParams, uint256 _expiry) external {
 		_isKeeper();
-		if (!isPut) {
-			callsVolatilitySkew = values;
-		} else {
-			putsVolatilitySkew = values;
+		if (_sabrParams.callAlpha <= 0 || _sabrParams.callAlpha > type(int32).max ||
+			_sabrParams.putAlpha <= 0 || _sabrParams.putAlpha > type(int32).max){
+			revert AlphaError();
 		}
+		if (_sabrParams.callVolvol <= 0 || _sabrParams.callVolvol > type(int32).max ||
+			_sabrParams.putVolvol <= 0 || _sabrParams.putVolvol > type(int32).max){
+			revert VolvolError();
+		}
+		if (_sabrParams.callBeta <= 0 || _sabrParams.callBeta > BIPS||
+			_sabrParams.putBeta <= 0 || _sabrParams.putBeta > BIPS){
+			revert BetaError();
+		}
+		if (_sabrParams.callRho <= -BIPS || _sabrParams.callRho >= BIPS||
+			_sabrParams.putRho <= -BIPS || _sabrParams.putRho >= BIPS){
+			revert RhoError();
+		}
+		sabrParams[_expiry] = _sabrParams;
 	}
 
 	/// @notice update the keepers
@@ -78,46 +107,37 @@ contract VolatilityFeed is AccessControl {
 		uint256 strikePrice,
 		uint256 expiration
 	) external view returns (uint256) {
-		uint256 time = (expiration - block.timestamp).div(ONE_YEAR_SECONDS);
-		int256 underlying = int256(underlyingPrice);
-		int256 spot_distance = (int256(strikePrice) - int256(underlying)).div(underlying);
-		int256[2] memory points = [spot_distance, int256(time)];
-		int256[7] memory coef = isPut ? putsVolatilitySkew : callsVolatilitySkew;
-		return uint256(computeIVFromSkew(coef, points));
-	}
-
-	/**
-	 * @notice get the volatility skew of the pool
-	 * @param isPut the option type, put or call?
-	 * @return the skew parameters
-	 */
-	function getVolatilitySkew(bool isPut) external view returns (int256[7] memory) {
-		if (!isPut) {
-			return callsVolatilitySkew;
-		} else {
-			return putsVolatilitySkew;
+		int256 time = (int256(expiration) - int256(block.timestamp)).div(ONE_YEAR_SECONDS);
+		int256 vol;
+		SABRParams memory sabrParams_ = sabrParams[expiration];
+		if (sabrParams_.callAlpha == 0) {
+			revert CustomErrors.IVNotFound();
 		}
-	}
-
-	//////////////////////////
-	/// internal utilities ///
-	//////////////////////////
-
-	// @param points[0] spot distance
-	// @param points[1] expiration time
-	// @param coef degree-2 polynomial features are [intercept, 1, a, b, a^2, ab, b^2]
-	// a == spot_distance, b == expiration time
-	// spot_distance: (strike - spot_price) / spot_price
-	// expiration: years to expiration
-	function computeIVFromSkew(int256[7] memory coef, int256[2] memory points)
-		internal
-		pure
-		returns (int256)
-	{
-		int256 iPlusC1 = coef[0] + coef[1];
-		int256 c2PlusC3 = coef[2].mul(points[0]) + (coef[3].mul(points[1]));
-		int256 c4PlusC5 = coef[4].mul(points[0].mul(points[0])) + (coef[5].mul(points[0]).mul(points[1]));
-		return iPlusC1 + c2PlusC3 + c4PlusC5 + (coef[6].mul(points[1].mul(points[1])));
+		if (!isPut) {
+			vol = SABR.lognormalVol(
+				int256(strikePrice), 
+				int256(underlyingPrice),
+				time, 
+				sabrParams_.callAlpha * BIPS_SCALE, 
+				sabrParams_.callBeta * BIPS_SCALE, 
+				sabrParams_.callRho * BIPS_SCALE, 
+				sabrParams_.callVolvol * BIPS_SCALE
+			);
+		} else {
+			vol = SABR.lognormalVol(
+				int256(strikePrice), 
+				int256(underlyingPrice),
+				time, 
+				sabrParams_.putAlpha * BIPS_SCALE, 
+				sabrParams_.putBeta * BIPS_SCALE, 
+				sabrParams_.putRho * BIPS_SCALE, 
+				sabrParams_.putVolvol * BIPS_SCALE
+			);
+		}
+		if (vol <= 0){
+			revert CustomErrors.IVNotFound();
+		}
+		return uint256(vol);	
 	}
 
 	/// @dev keepers, managers or governors can access
