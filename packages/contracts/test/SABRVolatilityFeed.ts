@@ -184,11 +184,11 @@ describe("Volatility Feed", async () => {
 		it("SUCCEEDS: set sabrParams", async () => {
 			const proposedSabrParams = {
 				callAlpha: 250000,
-				callBeta: 900000,
+				callBeta: 800000,
 				callRho: -300000,
 				callVolvol: 1_500000,
 				putAlpha: 250000,
-				putBeta: 900000,
+				putBeta: 800000,
 				putRho: -300000,
 				putVolvol: 1_500000
 			}
@@ -206,7 +206,7 @@ describe("Volatility Feed", async () => {
 		it("SUCCEEDS: get implied volatility for different strikes", async () => {
 			const underlyingPrice = toWei("100")
 			const strikePrices = [60, 80, 100, 120, 140, 160]
-			const ivs = [0.4657, 0.3383, 0.2528, 0.2591, 0.3073, 0.355]
+			const ivs = [0.31462, 0.19636, 0.10078, 0.13845, 0.19229, 0.23648]
 			for (let i = 0; i < strikePrices.length; i++) {
 				const iv = await volFeed.getImpliedVolatility(
 					false,
