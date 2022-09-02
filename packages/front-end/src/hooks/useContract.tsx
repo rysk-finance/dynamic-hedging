@@ -145,13 +145,11 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
   // Instances the ethers contract in state.
   useEffect(() => {
     if (rpcURL) {
-      // If we don't require a signer, we just use a generic RPC provider
-      // which doesn't require the user to connect their address.
-      const rpcProvider = new ethers.providers.JsonRpcProvider(rpcURL);
-
-      const signerOrProvider = args.readOnly ? rpcProvider : signer;
-
-      if (signerOrProvider && network && !ethersContract) {
+      if (signer && network && !ethersContract) {
+        // If we don't require a signer, we just use a generic RPC provider
+        // which doesn't require the user to connect their address.
+        const rpcProvider = new ethers.providers.JsonRpcProvider(rpcURL);
+        const signerOrProvider = args.readOnly ? rpcProvider : signer;
         const address =
           "contract" in args
             ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
