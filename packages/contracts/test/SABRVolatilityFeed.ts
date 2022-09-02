@@ -162,6 +162,158 @@ describe("Volatility Feed", async () => {
 			expect((await volFeed.sabrParams(10)).callAlpha).to.equal(1)
 			expect((await volFeed.sabrParams(10)).callAlpha).to.equal(1)
 		})
+		it("REVERTS: cannot set invalid sabrParams", async () => {
+			await expect(
+				volFeed.setSabrParameters(
+					{
+						callAlpha: 0,
+						callBeta: 1,
+						callRho: 1,
+						callVolvol: 1,
+						putAlpha: 1,
+						putBeta: 1,
+						putRho: 1,
+						putVolvol: 1
+					},
+					10
+				)
+			).to.be.revertedWith("AlphaError()")
+			await expect(
+				volFeed.setSabrParameters(
+					{
+						callAlpha: 2 ** 31, // max value is 2 ** 31 - 1
+						callBeta: 1,
+						callRho: 1,
+						callVolvol: 1,
+						putAlpha: 1,
+						putBeta: 1,
+						putRho: 1,
+						putVolvol: 1
+					},
+					10
+				)
+			).to.be.reverted
+			await expect(
+				volFeed.setSabrParameters(
+					{
+						callAlpha: 1,
+						callBeta: 1,
+						callRho: 1,
+						callVolvol: 1,
+						putAlpha: 2 ** 31, // max value is 2 ** 31 - 1
+						putBeta: 1,
+						putRho: 1,
+						putVolvol: 1
+					},
+					10
+				)
+			).to.be.reverted
+			await expect(
+				volFeed.setSabrParameters(
+					{
+						callAlpha: 1,
+						callBeta: 1,
+						callRho: 1,
+						callVolvol: -2,
+						putAlpha: 1,
+						putBeta: 1,
+						putRho: 1,
+						putVolvol: 1
+					},
+					10
+				)
+			).to.be.revertedWith("VolvolError()")
+			await expect(
+				volFeed.setSabrParameters(
+					{
+						callAlpha: 1,
+						callBeta: 1,
+						callRho: 1,
+						callVolvol: 1,
+						putAlpha: 1,
+						putBeta: 1_100000,
+						putRho: 1,
+						putVolvol: 1
+					},
+					10
+				)
+			).to.be.revertedWith("BetaError()")
+			await expect(
+				volFeed.setSabrParameters(
+					{
+						callAlpha: 1,
+						callBeta: 1,
+						callRho: 1,
+						callVolvol: 1,
+						putAlpha: 1,
+						putBeta: 0,
+						putRho: 1,
+						putVolvol: 1
+					},
+					10
+				)
+			).to.be.revertedWith("BetaError()")
+			await expect(
+				volFeed.setSabrParameters(
+					{
+						callAlpha: 1,
+						callBeta: 1,
+						callRho: 1,
+						callVolvol: 0,
+						putAlpha: 1,
+						putBeta: 1,
+						putRho: 1,
+						putVolvol: 1
+					},
+					10
+				)
+			).to.be.revertedWith("VolvolError()")
+			await expect(
+				volFeed.setSabrParameters(
+					{
+						callAlpha: 1,
+						callBeta: 1,
+						callRho: 1,
+						callVolvol: 1,
+						putAlpha: 1,
+						putBeta: 1,
+						putRho: 1,
+						putVolvol: -1
+					},
+					10
+				)
+			).to.be.revertedWith("VolvolError()")
+			await expect(
+				volFeed.setSabrParameters(
+					{
+						callAlpha: 1,
+						callBeta: 1,
+						callRho: -1_000000,
+						callVolvol: 1,
+						putAlpha: 1,
+						putBeta: 1,
+						putRho: 1,
+						putVolvol: 1
+					},
+					10
+				)
+			).to.be.revertedWith("RhoError()")
+			await expect(
+				volFeed.setSabrParameters(
+					{
+						callAlpha: 1,
+						callBeta: 1,
+						callRho: 1,
+						callVolvol: 1,
+						putAlpha: 1,
+						putBeta: 1,
+						putRho: 1_000001,
+						putVolvol: 1
+					},
+					10
+				)
+			).to.be.revertedWith("RhoError()")
+		})
 		it("REVERTS: cannot set sabrParams if not keeper", async () => {
 			await expect(
 				volFeed.connect(signers[2]).setSabrParameters(
