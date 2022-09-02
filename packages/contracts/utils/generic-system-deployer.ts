@@ -162,7 +162,7 @@ export async function deployLiquidityPool(
 	pvFeed: MockPortfolioValuesFeed,
 	authority: string
 ) {
-	const normDistFactory = await ethers.getContractFactory("NormalDist", {
+	const normDistFactory = await ethers.getContractFactory("contracts/libraries/NormalDist.sol:NormalDist", {
 		libraries: {}
 	})
 	const normDist = await normDistFactory.deploy()
@@ -170,7 +170,7 @@ export async function deployLiquidityPool(
 		libraries: {}
 	})
 	const volatility = (await volFactory.deploy()) as Volatility
-	const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+	const blackScholesFactory = await ethers.getContractFactory("contracts/libraries/BlackScholes.sol:BlackScholes", {
 		libraries: {
 			NormalDist: normDist.address
 		}
