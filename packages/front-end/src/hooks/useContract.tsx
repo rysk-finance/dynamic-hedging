@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
 import { TransactionDisplay } from "../components/shared/TransactionDisplay";
+import { CHAINID, RPC_URL_MAP } from "../config/constants";
 import addresses from "../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../types";
 import { isRPCError, parseError } from "../utils/parseRPCError";
@@ -46,6 +47,11 @@ type useContractExternalContractArgs<T extends Record<EventName, EventData>> = {
 type useContractArgs<T extends Record<EventName, EventData>> =
   | useContractRyskContractArgs<T>
   | useContractExternalContractArgs<T>;
+
+const CHAIN_ID = Number(process.env.REACT_APP_CHAIN_ID) as CHAINID;
+const DEFAULT_RPC_URL = RPC_URL_MAP[CHAIN_ID];
+const DEFAULT_RPC = new ethers.providers.JsonRpcProvider(DEFAULT_RPC_URL);
+DEFAULT_RPC.pollingInterval = 20000;
 
 /**
  *
@@ -148,8 +154,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
       if (signer && network && !ethersContract) {
         // If we don't require a signer, we just use a generic RPC provider
         // which doesn't require the user to connect their address.
-        const rpcProvider = new ethers.providers.JsonRpcProvider(rpcURL);
-        const signerOrProvider = args.readOnly ? rpcProvider : signer;
+        const signerOrProvider = args.readOnly ? DEFAULT_RPC : signer;
         const address =
           "contract" in args
             ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
@@ -186,7 +191,6 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
       const eventNames = Object.keys(
         contractEvents.current
       ) as (keyof EventHandlerMap<T>)[] as string[];
-
       eventNames.forEach((eventName) => {
         if (contractEvents.current) {
           const handler = contractEvents.current?.[eventName];
