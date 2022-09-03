@@ -329,11 +329,11 @@ describe("APVF gas tests", async () => {
 	describe("Try a migration with all the options", async () => {
 		let migratePortfolioValuesFeed: AlphaPortfolioValuesFeed;
 		it("SETUP: Make a new portfolio values feed", async () => {
-			const normDistFactory = await ethers.getContractFactory("NormalDist", {
+			const normDistFactory = await ethers.getContractFactory("contracts/libraries/NormalDist.sol:NormalDist", {
 				libraries: {}
 			})
 			const normDist = await normDistFactory.deploy()
-			const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+			const blackScholesFactory = await ethers.getContractFactory("contracts/libraries/BlackScholes.sol:BlackScholes", {
 				libraries: {
 					NormalDist: normDist.address
 				}
