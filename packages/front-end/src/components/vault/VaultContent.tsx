@@ -81,14 +81,15 @@ export const VaultContent = () => {
           to reduce the directional risk associated with price movements in the underlying asset.
           If the portfolio delta moves far away from zero the DHV-USDC 
           position will be hedged by trading options, spot or perpetuals. */}
-          
-          {DHV_NAME} generates uncorrelated returns on USDC by market making ETH options strategies. 
-          < br />
-          The {DHV_NAME} exposure is dynamically hedged to target market neutrality 
-          in order reduce the directional risk associated with ETH price movements.
+          {DHV_NAME} generates uncorrelated returns on USDC by market making ETH
+          options strategies.
+          <br />
+          The {DHV_NAME} exposure is dynamically hedged to target market
+          neutrality in order reduce the directional risk associated with ETH
+          price movements.
           <br />
           <Link
-            className="underline hover:font-medium cursor-pointer pt-4 "
+            className="underline hover:font-medium cursor-pointer pt-4 text-cyan-dark"
             activeClass="active"
             to="overviewScroll"
             spy={true}
