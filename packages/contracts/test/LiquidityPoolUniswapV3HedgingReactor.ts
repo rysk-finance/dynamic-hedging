@@ -224,7 +224,58 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
 	})
-
+	it("SETUP: set sabrParams", async () => {
+		const proposedSabrParams = 
+		{
+			callAlpha:250000,
+			callBeta:1_000000,
+			callRho:-300000,
+			callVolvol:1_500000,
+			putAlpha:250000,
+			putBeta:1_000000,
+			putRho:-300000,
+			putVolvol:1_500000
+		}
+		await volFeed.setSabrParameters(
+			proposedSabrParams, 
+			expiration
+		)
+		const volFeedSabrParams = await volFeed.sabrParams(expiration)
+		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+	})
+	it("SETUP: set sabrParams", async () => {
+		const proposedSabrParams = 
+		{
+			callAlpha:250000,
+			callBeta:1_000000,
+			callRho:-300000,
+			callVolvol:1_500000,
+			putAlpha:250000,
+			putBeta:1_000000,
+			putRho:-300000,
+			putVolvol:1_500000
+		}
+		await volFeed.setSabrParameters(
+			proposedSabrParams, 
+			expiration2
+		)
+		const volFeedSabrParams = await volFeed.sabrParams(expiration2)
+		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+	})
 	it("Deposit to the liquidityPool", async () => {
 		const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
 		await hre.network.provider.request({

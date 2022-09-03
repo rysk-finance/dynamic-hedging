@@ -15,8 +15,19 @@ const defaultGlobalState: GlobalState = {
   ethPrice: null,
   eth24hChange: null,
   ethPriceUpdateTime: null,
+  userPositionValue: null,
+  positionBreakdown: {
+    redeemedShares: null,
+    usdcOnHold: null,
+    pendingWithdrawShares: null,
+    unredeemedShares: null,
+    currentWithdrawSharePrice: null,
+  },
   connectWalletIndicatorActive: false,
-  settings: { unlimitedApproval: false },
+  settings: {
+    vaultDepositUnlimitedApproval: false,
+    optionsTradingUnlimitedApproval: false,
+  },
 };
 
 export const GlobalReactContext = createContext<GlobalContext>({

@@ -44,7 +44,7 @@ export const BuyBack: React.FC<{ selectedOption: string }> = ({
         await optionHandlerContractCall({
           method: optionHandlerContract.buybackOption,
           args: [selectedOption, amount],
-          onComplete: () => {
+          onSubmit: () => {
             setUIOrderSize("");
             console.log("completed");
           },

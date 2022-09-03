@@ -16,6 +16,7 @@ import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/Liquidity
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
+import moment from "moment"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -95,29 +96,23 @@ export async function deploySystem(
 	const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
 	const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
 	const volFeed = (await volFeedFactory.deploy(authority.address)) as VolatilityFeed
-	type int7 = [
-		BigNumberish,
-		BigNumberish,
-		BigNumberish,
-		BigNumberish,
-		BigNumberish,
-		BigNumberish,
-		BigNumberish
-	]
-	type number7 = [number, number, number, number, number, number, number]
-	const coefInts: number7 = [
-		1.42180236,
-		0,
-		-0.08626792,
-		0.07873822,
-		0.00650549,
-		0.02160918,
-		-0.1393287
-	]
-	//@ts-ignore
-	const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-	await volFeed.setVolatilitySkew(coefs, true)
-	await volFeed.setVolatilitySkew(coefs, false)
+	const expiryDate: string = "2022-04-05"
+	let expiration = moment.utc(expiryDate).add(30, "d").add(8, "h").valueOf() / 1000
+	const proposedSabrParams = 
+	{
+		callAlpha:250000,
+		callBeta:1_000000,
+		callRho:-300000,
+		callVolvol:1_500000,
+		putAlpha:250000,
+		putBeta:1_000000,
+		putRho:-300000,
+		putVolvol:1_500000
+	}
+	await volFeed.setSabrParameters(
+		proposedSabrParams, 
+		expiration
+	)
 
 	const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
 	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
