@@ -220,7 +220,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			reactor.withdraw(type(uint256).max);
 		}
 		SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors_[_index], 0);
-		for (uint256 i = _index; i < hedgingReactors.length - 1; i++) {
+		uint256 maxIndex = hedgingReactors_.length - 1;
+		for (uint256 i = _index; i < maxIndex; i++) {
 			hedgingReactors[i] = hedgingReactors[i + 1];
 		}
 		hedgingReactors.pop();
