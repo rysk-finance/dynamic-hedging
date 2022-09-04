@@ -13,6 +13,7 @@ interface CustomErrors {
 	error TradingPaused();
 	error IssuanceFailed();
 	error EpochNotClosed();
+	error InvalidDecimals();
 	error TradingNotPaused();
 	error NotLiquidityPool();
 	error DeltaNotDecreased();

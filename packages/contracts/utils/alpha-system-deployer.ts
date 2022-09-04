@@ -98,21 +98,17 @@ export async function deploySystem(
 	const volFeed = (await volFeedFactory.deploy(authority.address)) as VolatilityFeed
 	const expiryDate: string = "2022-04-05"
 	let expiration = moment.utc(expiryDate).add(30, "d").add(8, "h").valueOf() / 1000
-	const proposedSabrParams = 
-	{
-		callAlpha:250000,
-		callBeta:1_000000,
-		callRho:-300000,
-		callVolvol:1_500000,
-		putAlpha:250000,
-		putBeta:1_000000,
-		putRho:-300000,
-		putVolvol:1_500000
+	const proposedSabrParams = {
+		callAlpha: 250000,
+		callBeta: 1_000000,
+		callRho: -300000,
+		callVolvol: 1_500000,
+		putAlpha: 250000,
+		putBeta: 1_000000,
+		putRho: -300000,
+		putVolvol: 1_500000
 	}
-	await volFeed.setSabrParameters(
-		proposedSabrParams, 
-		expiration
-	)
+	await volFeed.setSabrParameters(proposedSabrParams, expiration)
 	const normDistFactory = await ethers.getContractFactory("NormalDist", {
 		libraries: {}
 	})
@@ -226,12 +222,7 @@ export async function deployLiquidityPool(
 	await pvFeed.setProtocol(optionProtocol.address)
 	await pvFeed.fulfill(weth.address, usd.address)
 	const AccountingFactory = await ethers.getContractFactory("Accounting")
-	const Accounting = (await AccountingFactory.deploy(
-		liquidityPool.address,
-		usd.address,
-		weth.address,
-		usd.address
-	)) as Accounting
+	const Accounting = (await AccountingFactory.deploy(liquidityPool.address)) as Accounting
 	await optionProtocol.changeAccounting(Accounting.address)
 	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
 	const handler = (await handlerFactory.deploy(

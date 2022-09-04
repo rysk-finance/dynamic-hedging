@@ -92,13 +92,13 @@ const now = moment().utc().unix()
 let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 
 const optionParams = {
-            minCallStrikePrice: 0,
-            maxCallStrikePrice: toWei("100000000000"),
-            minPutStrikePrice: 0,
-            maxPutStrikePrice: toWei("1000000000000"),
-            minExpiry:0,
-            maxExpiry:99999999999,
-		}
+	minCallStrikePrice: 0,
+	maxCallStrikePrice: toWei("100000000000"),
+	minPutStrikePrice: 0,
+	maxPutStrikePrice: toWei("1000000000000"),
+	minExpiry: 0,
+	maxExpiry: 99999999999
+}
 describe("Options protocol", function () {
 	before(async function () {
 		await hre.network.provider.request({
@@ -186,9 +186,7 @@ describe("Options protocol", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: USDC_ADDRESS[chainId]
 		}
-		const issue = await optionRegistry.issue(
-			proposedSeries
-		)
+		const issue = await optionRegistry.issue(proposedSeries)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
 		const events = receipt.events
@@ -198,13 +196,13 @@ describe("Options protocol", function () {
 		optionTokenUSDC = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 	})
 	it("Reverts: Tries to close oToken series that doesnt have a vault", async () => {
-		await expect(optionRegistry.close(optionTokenUSDC.address, toWei("2"))).to.be.revertedWith("NoVault()")
+		await expect(optionRegistry.close(optionTokenUSDC.address, toWei("2"))).to.be.revertedWith(
+			"NoVault()"
+		)
 	})
 	it("Returns correct oToken when calling getOrDeployOtoken", async () => {
 		const [sender] = signers
-		const issue = await optionRegistry.issue(
-			proposedSeries
-		)
+		const issue = await optionRegistry.issue(proposedSeries)
 		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
 		const events = receipt.events
@@ -223,7 +221,7 @@ describe("Options protocol", function () {
 			USDC_ADDRESS[chainId]
 		)
 		expect(issue).to.equal(optionTokenUSDC.address)
-	})	
+	})
 	it("Returns zero addy if option doesnt exist", async () => {
 		const [sender] = signers
 		const issue = await optionRegistry.getOtoken(
@@ -235,7 +233,7 @@ describe("Options protocol", function () {
 			USDC_ADDRESS[chainId]
 		)
 		expect(issue).to.equal(ZERO_ADDRESS)
-	})		
+	})
 	it("Creates a ETH collataralised call option token series", async () => {
 		const [sender] = signers
 		proposedSeriesETH = {
@@ -246,9 +244,7 @@ describe("Options protocol", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: WETH_ADDRESS[chainId]
 		}
-		const issue = await optionRegistryETH.issue(
-			proposedSeriesETH
-		)
+		const issue = await optionRegistryETH.issue(proposedSeriesETH)
 		await expect(issue).to.emit(optionRegistryETH, "OptionTokenCreated")
 		const receipt = await issue.wait(1)
 		const events = receipt.events
@@ -449,7 +445,9 @@ describe("Options protocol", function () {
 			false
 		)
 		marginReq = (await optionRegistryETH.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
-		await expect(optionRegistrySender.close(weth.address, value)).to.be.revertedWith("NonExistentSeries()")
+		await expect(optionRegistrySender.close(weth.address, value)).to.be.revertedWith(
+			"NonExistentSeries()"
+		)
 	})
 	it("liquidityPool close and transaction succeeds ETH options", async () => {
 		const [sender, receiver] = signers
@@ -510,35 +508,34 @@ describe("Options protocol", function () {
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
 		// set the option expiry price, make sure the option has now expired
 		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
-	})	
+	})
 	it("Fails to create a USDC collataralised call option token series when expired", async () => {
 		const [sender] = signers
-		await  expect(optionRegistry.issue(
-			proposedSeries
-		)).to.be.revertedWith("AlreadyExpired()")
+		await expect(optionRegistry.issue(proposedSeries)).to.be.revertedWith("AlreadyExpired()")
 	})
 	it("Fails to open a USDC collataralised call option token series when expired", async () => {
 		const [sender] = signers
-		await  expect(optionRegistry.open(
-				optionTokenUSDC.address,
-				toWei('1'),
-				toWei('1')
-		)).to.be.revertedWith("AlreadyExpired()")
+		await expect(
+			optionRegistry.open(optionTokenUSDC.address, toWei("1"), toWei("1"))
+		).to.be.revertedWith("AlreadyExpired()")
 	})
 	it("Fails to close a USDC collataralised call option token series when expired", async () => {
 		const [sender] = signers
-		await  expect(optionRegistry.close(
-				optionTokenUSDC.address,
-				toWei('1')
-		)).to.be.revertedWith("AlreadyExpired()")
+		await expect(optionRegistry.close(optionTokenUSDC.address, toWei("1"))).to.be.revertedWith(
+			"AlreadyExpired()"
+		)
 	})
 	it("settles when option expires ITM USD collateral", async () => {
 		const [sender, receiver] = signers
 		// get balance before
 		const balanceUSD = await usd.balanceOf(senderAddress)
 		const diff = 200
-		const opUSDbal = (await controller.getVault(optionRegistry.address, await optionRegistry.vaultCount())).shortAmounts[0]
-		const collatBal = (await controller.getVault(optionRegistry.address, await optionRegistry.vaultCount())).collateralAmounts[0]
+		const opUSDbal = (
+			await controller.getVault(optionRegistry.address, await optionRegistry.vaultCount())
+		).shortAmounts[0]
+		const collatBal = (
+			await controller.getVault(optionRegistry.address, await optionRegistry.vaultCount())
+		).collateralAmounts[0]
 		// call redeem from the options registry
 		await optionRegistry.settle(optionTokenUSDC.address)
 		// check balances are in order
@@ -593,7 +590,9 @@ describe("Options protocol", function () {
 		expect(opBalSender).to.equal(0)
 	})
 	it("Fails when writer redeems twice", async () => {
-		await expect(optionRegistry.redeem(optionTokenUSDC.address)).to.be.revertedWith("InsufficientBalance()")
+		await expect(optionRegistry.redeem(optionTokenUSDC.address)).to.be.revertedWith(
+			"InsufficientBalance()"
+		)
 	})
 	it("writer redeems when option expires ITM ETH collateral", async () => {
 		// get balance before
@@ -627,9 +626,7 @@ describe("Options protocol", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: USDC_ADDRESS[chainId]
 		}
-		const issueCall = await optionRegistry.issue(
-			proposedSeries
-		)
+		const issueCall = await optionRegistry.issue(proposedSeries)
 		await expect(issueCall).to.emit(optionRegistry, "OptionTokenCreated")
 		const receipt = await issueCall.wait(1)
 		const events = receipt.events
@@ -649,9 +646,7 @@ describe("Options protocol", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: WETH_ADDRESS[chainId]
 		}
-		const issueCall = await optionRegistryETH.issue(
-			proposedSeriesETH
-		)
+		const issueCall = await optionRegistryETH.issue(proposedSeriesETH)
 		await expect(issueCall).to.emit(optionRegistryETH, "OptionTokenCreated")
 		const receipt = await issueCall.wait(1)
 		const events = receipt.events
@@ -671,9 +666,7 @@ describe("Options protocol", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: USDC_ADDRESS[chainId]
 		}
-		const issuePut = await optionRegistry.issue(
-			proposedSeries
-		)
+		const issuePut = await optionRegistry.issue(proposedSeries)
 		await expect(issuePut).to.emit(optionRegistry, "OptionTokenCreated")
 		let receipt = await (await issuePut).wait(1)
 		let events = receipt.events
@@ -693,9 +686,7 @@ describe("Options protocol", function () {
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: WETH_ADDRESS[chainId]
 		}
-		const issuePut = await optionRegistryETH.issue(
-			proposedSeriesETH
-		)
+		const issuePut = await optionRegistryETH.issue(proposedSeriesETH)
 		await expect(issuePut).to.emit(optionRegistryETH, "OptionTokenCreated")
 		let receipt = await (await issuePut).wait(1)
 		let events = receipt.events
@@ -796,7 +787,9 @@ describe("Options protocol", function () {
 		// get the desired settlement price
 		const settlePrice = strike.sub(toWei("200")).div(oTokenDecimalShift18)
 		// collateralBalance
-		const collatBalance = (await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()))).collateralAmounts[0]
+		const collatBalance = (
+			await controller.getVault(optionRegistry.address, await optionRegistry.vaultCount())
+		).collateralAmounts[0]
 		// get the oracle
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
 		// set the option expiry price, make sure the option has now expired
@@ -838,8 +831,12 @@ describe("Options protocol", function () {
 		const diff = 200
 		// get the desired settlement price
 		const settlePrice = strike.sub(toWei(diff.toString())).div(oTokenDecimalShift18)
-		const opUSDbal = (await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()).sub(1))).shortAmounts[0]
-		const collatBal = (await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()).sub(1))).collateralAmounts[0]
+		const opUSDbal = (
+			await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()).sub(1))
+		).shortAmounts[0]
+		const collatBal = (
+			await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()).sub(1))
+		).collateralAmounts[0]
 		// call settle from the options registry
 		await optionRegistry.settle(erc20PutOptionUSDC.address)
 		// check balances are in order
@@ -875,20 +872,25 @@ describe("Options protocol", function () {
 		expect(opBalSender).to.equal(0)
 	})
 	it("sets the health threshold", async () => {
-		await optionRegistry.setHealthThresholds(1000,1000,1000,1000)
+		await optionRegistry.setHealthThresholds(1000, 1000, 1000, 1000)
 		expect(await optionRegistry.putLowerHealthFactor()).to.equal(1000)
 		expect(await optionRegistry.putUpperHealthFactor()).to.equal(1000)
 		expect(await optionRegistry.callLowerHealthFactor()).to.equal(1000)
 		expect(await optionRegistry.callUpperHealthFactor()).to.equal(1000)
-		await expect(optionRegistry.connect(receiverAddress).setHealthThresholds(1000,1000,1000,1000)).to.be.reverted
+		await expect(optionRegistry.connect(receiverAddress).setHealthThresholds(1000, 1000, 1000, 1000))
+			.to.be.reverted
 	})
 	it("gets the series via issuance hash", async () => {
-		const issuance = await optionRegistry.getIssuanceHash(await optionRegistry.getSeriesInfo(optionTokenUSDC.address))
+		const issuance = await optionRegistry.getIssuanceHash(
+			await optionRegistry.getSeriesInfo(optionTokenUSDC.address)
+		)
 		const series = await optionRegistry.getSeriesAddress(issuance)
 		expect(series).to.equal(optionTokenUSDC.address)
 	})
 	it("gets the series via series", async () => {
-		const series = await optionRegistry.getSeries(await optionRegistry.getSeriesInfo(optionTokenUSDC.address))
+		const series = await optionRegistry.getSeries(
+			await optionRegistry.getSeriesInfo(optionTokenUSDC.address)
+		)
 		expect(series).to.equal(optionTokenUSDC.address)
 	})
 })

@@ -156,6 +156,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		Types.OptionParams memory _optionParams,
 		address _authority
 	) ERC20(name, symbol, 18) AccessControl(IAuthority(_authority)) {
+		if (ERC20(_collateralAsset).decimals() > 18) {
+			revert CustomErrors.InvalidDecimals();
+		}
 		strikeAsset = _strikeAsset;
 		riskFreeRate = rfr;
 		underlyingAsset = _underlyingAsset;

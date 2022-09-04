@@ -32,16 +32,11 @@ contract Accounting is IAccounting {
 	// MAX_BPS
 	uint256 private constant MAX_BPS = 10000;
 
-	constructor(
-		address _liquidityPool,
-		address _strikeAsset,
-		address _underlyingAsset,
-		address _collateralAsset
-	) {
+	constructor(address _liquidityPool) {
 		liquidityPool = ILiquidityPool(_liquidityPool);
-		strikeAsset = _strikeAsset;
-		underlyingAsset = _underlyingAsset;
-		collateralAsset = _collateralAsset;
+		strikeAsset = liquidityPool.strikeAsset();
+		underlyingAsset = liquidityPool.underlyingAsset();
+		collateralAsset = liquidityPool.collateralAsset();
 	}
 
 	///////////////////////

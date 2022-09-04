@@ -269,14 +269,8 @@ describe("Options protocol Vault Health", function () {
 		expect(balance).to.equal(value.div(oTokenDecimalShift18))
 		expect(USDbalanceBefore.sub(USDbalance)).to.equal(marginReqUSD)
 
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(1)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
@@ -316,14 +310,8 @@ describe("Options protocol Vault Health", function () {
 		const balance = await optionTokenETH.balanceOf(senderAddress)
 		expect(balance).to.equal(value.div(oTokenDecimalShift18))
 		expect(ETHbalanceBefore.sub(ETHbalance)).to.equal(marginReqETH)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistryETH.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistryETH.checkVaultHealth(1)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
@@ -361,14 +349,8 @@ describe("Options protocol Vault Health", function () {
 		expect(balance).to.equal(oBalanceBef.add(value.div(oTokenDecimalShift18)))
 		expect(USDbalanceBefore.sub(USDbalance)).to.equal(marginReq)
 		expect(marginReqUSD).to.equal(marginReq)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(1)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
@@ -406,14 +388,8 @@ describe("Options protocol Vault Health", function () {
 		expect(balance).to.equal(oBalanceBef.add(value.div(oTokenDecimalShift18)))
 		expect(ETHbalanceBefore.sub(ETHbalance)).to.equal(marginReq)
 		expect(marginReqETH).to.equal(marginReq)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistryETH.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistryETH.checkVaultHealth(1)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
@@ -452,14 +428,8 @@ describe("Options protocol Vault Health", function () {
 		] = await optionRegistry.checkVaultHealth(1)
 		await optionRegistrySender.close(optionTokenUSDC.address, value)
 
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(1)
 		const balance = await optionTokenUSDC.balanceOf(senderAddress)
 		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
 		const usdBalance = await usd.balanceOf(senderAddress)
@@ -520,14 +490,8 @@ describe("Options protocol Vault Health", function () {
 			false
 		)
 		const healthF = collatAmounts.mul(10000).div(marginReq)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(1)
 		expect(healthF).to.not.equal(healthFBefore)
 		expect(healthFactor).to.not.equal(healthFBefore)
 		expect(healthF).to.equal(healthFactor)
@@ -568,14 +532,8 @@ describe("Options protocol Vault Health", function () {
 		const redeem = collatAmounts.mul(valAdapt).div(valueTot)
 		await optionRegistrySender.close(optionTokenUSDC.address, value)
 
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(1)
 
 		const balance = await optionTokenUSDC.balanceOf(senderAddress)
 		expect(balanceBef.sub(balance)).to.equal(value.div(oTokenDecimalShift18))
@@ -610,14 +568,8 @@ describe("Options protocol Vault Health", function () {
 			false
 		)
 		const healthF = collatAmounts.mul(10000).div(marginReq)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistryETH.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistryETH.checkVaultHealth(1)
 		expect(healthF).to.not.equal(healthFBefore)
 		expect(healthFactor).to.not.equal(healthFBefore)
 		expect(healthF).to.equal(healthFactor)
@@ -648,14 +600,8 @@ describe("Options protocol Vault Health", function () {
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
 		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(1)
 
 		expect(isBelowMin).to.be.true
 		expect(isAboveMax).to.be.false
@@ -696,14 +642,8 @@ describe("Options protocol Vault Health", function () {
 		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
 
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(1)
 		expect(isBelowMin).to.be.true
 		expect(isAboveMax).to.be.false
 		expect(neededCollat).to.equal(collateralAmount)
@@ -753,14 +693,8 @@ describe("Options protocol Vault Health", function () {
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
 		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(1)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(neededCollat).to.equal(collateralAmount)
@@ -797,14 +731,8 @@ describe("Options protocol Vault Health", function () {
 		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
 
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(1)
 		expect(isBelowMin).to.be.true
 		expect(isAboveMax).to.be.false
 		expect(neededCollat).to.equal(collateralAmount)
@@ -846,14 +774,8 @@ describe("Options protocol Vault Health", function () {
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
 		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(1)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(neededCollat).to.equal(collateralAmount)
@@ -894,14 +816,8 @@ describe("Options protocol Vault Health", function () {
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
 		marginReq = (await optionRegistryETH.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistryETH.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistryETH.checkVaultHealth(1)
 		expect(isBelowMin).to.be.true
 		expect(isAboveMax).to.be.false
 		expect(neededCollat).to.equal(collateralAmount)
@@ -937,14 +853,8 @@ describe("Options protocol Vault Health", function () {
 
 		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = collatAmounts.sub(marginReq)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(1)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.true
 		expect(neededCollat).to.equal(collateralAmount)
@@ -986,14 +896,8 @@ describe("Options protocol Vault Health", function () {
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
 		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(1)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(neededCollat).to.equal(collateralAmount)
@@ -1028,14 +932,8 @@ describe("Options protocol Vault Health", function () {
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
 		marginReq = (await optionRegistryETH.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = collatAmounts.sub(marginReq)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistryETH.checkVaultHealth(1)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistryETH.checkVaultHealth(1)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.true
 		expect(neededCollat).to.equal(collateralAmount)
@@ -1196,14 +1094,8 @@ describe("Options protocol Vault Health", function () {
 		const newBalance = await erc20PutOptionETH.balanceOf(senderAddress)
 		expect(newBalance).to.be.equal(toWei("4").div(oTokenDecimalShift18))
 		const uhf = await optionRegistry.putUpperHealthFactor()
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(2)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(2)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.false
 		expect(healthFactor.sub(uhf)).to.be.within(-1, 1)
@@ -1246,14 +1138,8 @@ describe("Options protocol Vault Health", function () {
 			true
 		)
 		const healthF = collatAmounts.mul(10000).div(marginReq)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(2)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(2)
 
 		expect(healthF).to.not.equal(healthFBefore)
 		expect(healthFactor).to.not.equal(healthFBefore)
@@ -1284,14 +1170,8 @@ describe("Options protocol Vault Health", function () {
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
 		marginReq = (await optionRegistry.putUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(2)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(2)
 
 		expect(isBelowMin).to.be.true
 		expect(isAboveMax).to.be.false
@@ -1326,14 +1206,8 @@ describe("Options protocol Vault Health", function () {
 
 		marginReq = (await optionRegistry.putUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = collatAmounts.sub(marginReq)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(2)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(2)
 		expect(isBelowMin).to.be.false
 		expect(isAboveMax).to.be.true
 		expect(neededCollat).to.equal(collateralAmount)
@@ -1460,14 +1334,8 @@ describe("Options protocol Vault Health", function () {
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
 		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(3)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(3)
 
 		expect(isBelowMin).to.be.true
 		expect(isAboveMax).to.be.false
@@ -1507,7 +1375,10 @@ describe("Options protocol Vault Health", function () {
 		const collatAmountsNew = vaultDetailsNew.collateralAmounts[0]
 		const liqBalAf = await usd.balanceOf(senderAddress)
 		const liqOpBalAf = await optionTokenUSDC.balanceOf(senderAddress)
-		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef.mul(liqMultip).div(10000))).to.be.within(-3, 3)
+		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef.mul(liqMultip).div(10000))).to.be.within(
+			-3,
+			3
+		)
 		expect(liqOpBalAf).to.eq(0)
 		expect(valueNew).to.eq(0)
 		expect(collatAmountsNew.mul(BigNumber.from(10000).sub(liqMultip).div(10000))).to.be.within(-3, 3)
@@ -1582,14 +1453,8 @@ describe("Options protocol Vault Health", function () {
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
 		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(3)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(3)
 
 		expect(isBelowMin).to.be.true
 		expect(isAboveMax).to.be.false
@@ -1629,10 +1494,16 @@ describe("Options protocol Vault Health", function () {
 		const collatAmountsNew = vaultDetailsNew.collateralAmounts[0]
 		const liqBalAf = await usd.balanceOf(senderAddress)
 		const liqOpBalAf = await optionTokenUSDC.balanceOf(senderAddress)
-		expect(liqBalAf.sub(liqBalBef).sub(collatAmountsBef.div(2).mul(liqMultip).div(10000))).to.be.within(-3, 3)
+		expect(
+			liqBalAf.sub(liqBalBef).sub(collatAmountsBef.div(2).mul(liqMultip).div(10000))
+		).to.be.within(-3, 3)
 		expect(liqOpBalAf).to.eq(value)
 		expect(valueNew).to.eq(value)
-		expect(collatAmountsNew.sub(collatAmountsBef.div(2)).mul(BigNumber.from(10000).sub(liqMultip).div(10000))).to.be.within(-3, 3)
+		expect(
+			collatAmountsNew
+				.sub(collatAmountsBef.div(2))
+				.mul(BigNumber.from(10000).sub(liqMultip).div(10000))
+		).to.be.within(-3, 3)
 		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
 		expect(vld[0]).to.equal(optionTokenUSDC.address)
@@ -1640,7 +1511,9 @@ describe("Options protocol Vault Health", function () {
 		expect(vld[2]).to.equal(collatAmountsBef.sub(collatAmountsNew))
 		const vaultDetails3 = await controller.getVault(optionRegistry.address, 3)
 		const collatAmounts3 = vaultDetails3.collateralAmounts[0]
-		expect(collatAmounts3.sub(collatAmountsBef.div(2)).mul(BigNumber.from(10000).sub(liqMultip).div(10000))).to.be.within(-2, 2)
+		expect(
+			collatAmounts3.sub(collatAmountsBef.div(2)).mul(BigNumber.from(10000).sub(liqMultip).div(10000))
+		).to.be.within(-2, 2)
 		const usdBalAft = await usd.balanceOf(senderAddress)
 		expect(usdBalAft.sub(liqBalAf)).to.eq(0)
 	})
@@ -1653,7 +1526,7 @@ describe("Options protocol Vault Health", function () {
 		expect(liqOpBalBef).to.be.gt(0)
 		const abiCode = new AbiCoder()
 		const liquidatable = (await controller.isLiquidatable(optionRegistry.address, 3))[0]
-		if (!liquidatable){
+		if (!liquidatable) {
 			return
 		}
 		const vldBef = await controller.getVaultLiquidationDetails(optionRegistry.address, 3)
@@ -1760,14 +1633,8 @@ describe("Options protocol Vault Health", function () {
 		const healthF = collatAmounts.mul(MAX_BPS).div(marginReq)
 		marginReq = (await optionRegistry.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
 		const neededCollat = marginReq.sub(collatAmounts)
-		let [
-			isBelowMin,
-			isAboveMax,
-			healthFactor,
-			upperHealthFactor,
-			collateralAmount,
-			collateralAsset
-		] = await optionRegistry.checkVaultHealth(4)
+		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
+			await optionRegistry.checkVaultHealth(4)
 
 		expect(isBelowMin).to.be.true
 		expect(isAboveMax).to.be.false
@@ -1852,11 +1719,15 @@ describe("Options protocol Vault Health", function () {
 		const liqBalAf = await usd.balanceOf(receiverAddress)
 		const liqBalAft = await usd.balanceOf(senderAddress)
 		const liqOpBalAf = await optionTokenUSDC.balanceOf(receiverAddress)
-		expect(liqBalBef.sub(liqBalAf).sub(marginReq.sub(collatAmountsBef.mul(liqMultip).div(10000)))).to.be.within(-3, 3)
+		expect(
+			liqBalBef.sub(liqBalAf).sub(marginReq.sub(collatAmountsBef.mul(liqMultip).div(10000)))
+		).to.be.within(-3, 3)
 		expect(liqOpBalBef).to.equal(liqOpBalAf)
 		expect(liqOpBalAf).to.eq(0)
 		expect(valueNew).to.eq(0)
-		expect(collatAmountsNew.sub(collatAmountsBef.mul(BigNumber.from(10000).sub(liqMultip)).div(10000))).to.be.within(-3, 3)
+		expect(
+			collatAmountsNew.sub(collatAmountsBef.mul(BigNumber.from(10000).sub(liqMultip)).div(10000))
+		).to.be.within(-3, 3)
 		await optionRegistry.setLiquidityPool(liquidityPool.address)
 		const vld = await controller.getVaultLiquidationDetails(optionRegistry.address, 4)
 		await optionRegistry.wCollatLiquidatedVault(4)

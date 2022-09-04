@@ -120,6 +120,9 @@ contract OptionRegistry is AccessControl {
 		address _authority
 	) AccessControl(IAuthority(_authority)) {
 		collateralAsset = _collateralAsset;
+		if (ERC20(_collateralAsset).decimals() > 18) {
+			revert CustomErrors.InvalidDecimals();
+		}
 		oTokenFactory = _oTokenFactory;
 		gammaController = _gammaController;
 		marginPool = _marginPool;
