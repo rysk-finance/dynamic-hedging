@@ -51,12 +51,11 @@ interface IAccounting {
 	/**
 	 * @notice logic for accounting a user to complete a withdrawal
 	 * @param  withdrawer the address carrying out the withdrawal
-	 * @param  shares the amount of shares to withdraw for
 	 * @return withdrawalAmount  the amount of collateral to withdraw
 	 * @return withdrawalShares  the number of shares to withdraw
 	 * @return withdrawalReceipt the new withdrawal receipt to pass to the liquidityPool
 	 */
-	function completeWithdraw(address withdrawer, uint256 shares)
+	function completeWithdraw(address withdrawer)
 		external
 		returns (
 			uint256 withdrawalAmount,
@@ -68,12 +67,12 @@ interface IAccounting {
 	 * @notice execute the next epoch
 	 * @param totalSupply  the total number of share tokens
 	 * @param assets the amount of collateral assets
-     * @param liabilities the amount of liabilities of the pool
+	 * @param liabilities the amount of liabilities of the pool
 	 * @return newPricePerShareDeposit the price per share for deposits
-     * @return newPricePerShareWithdrawal the price per share for withdrawals
-     * @return sharesToMint the number of shares to mint this epoch
-     * @return totalWithdrawAmount the amount of collateral to set aside for partitioning
-     * @return amountNeeded the amount needed to reach the total withdraw amount if collateral balance of lp is insufficient
+	 * @return newPricePerShareWithdrawal the price per share for withdrawals
+	 * @return sharesToMint the number of shares to mint this epoch
+	 * @return totalWithdrawAmount the amount of collateral to set aside for partitioning
+	 * @return amountNeeded the amount needed to reach the total withdraw amount if collateral balance of lp is insufficient
 	 */
 	function executeEpochCalculation(
 		uint256 totalSupply,

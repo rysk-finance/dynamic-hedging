@@ -653,18 +653,14 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 	/**
 	 * @notice function for completing the withdraw from a pool
-	 * @param _shares    amount of shares to return
 	 * @dev    entry point to remove liquidity to dynamic hedging vault
 	 */
-	function completeWithdraw(uint256 _shares) external whenNotPaused nonReentrant returns (uint256) {
-		if (_shares == 0) {
-			revert CustomErrors.InvalidShareAmount();
-		}
+	function completeWithdraw() external whenNotPaused nonReentrant returns (uint256) {
 		(
 			uint256 withdrawalAmount,
 			uint256 withdrawalShares,
 			IAccounting.WithdrawalReceipt memory withdrawalReceipt
-		) = _getAccounting().completeWithdraw(msg.sender, _shares);
+		) = _getAccounting().completeWithdraw(msg.sender);
 		withdrawalReceipts[msg.sender] = withdrawalReceipt;
 		emit Withdraw(msg.sender, withdrawalAmount, withdrawalShares);
 		// these funds are taken from the partitioned funds

@@ -327,7 +327,6 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 			await expect(liquidityPool.deposit(0)).to.be.revertedWith("InvalidAmount()")
 			await expect(liquidityPool.redeem(0)).to.be.revertedWith("InvalidShareAmount()")
 			await expect(liquidityPool.initiateWithdraw(0)).to.be.revertedWith("InvalidShareAmount()")
-			await expect(liquidityPool.completeWithdraw(0)).to.be.revertedWith("InvalidShareAmount()")
 		})
 		it("Reverts: User 1: Attempts to redeem before epoch initiation", async () => {
 			const user = senderAddress
@@ -341,9 +340,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 		})
 		it("Reverts: User 1: Attempts to complete withdraw before epoch initiation", async () => {
 			const user = senderAddress
-			await expect(liquidityPool.completeWithdraw(toWei("100000"))).to.be.revertedWith(
-				"NoExistingWithdrawal()"
-			)
+			await expect(liquidityPool.completeWithdraw()).to.be.revertedWith("NoExistingWithdrawal()")
 		})
 		it("Reverts: execute epoch before pause", async () => {
 			await expect(liquidityPool.executeEpochCalculation()).to.be.revertedWith("TradingNotPaused()")
@@ -401,21 +398,17 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 		let customOrderPrice: number
 		let customOrderId: number
 		it("SETUP: set sabrParams", async () => {
-			const proposedSabrParams = 
-			{
-				callAlpha:250000,
-				callBeta:1_000000,
-				callRho:-300000,
-				callVolvol:1_500000,
-				putAlpha:250000,
-				putBeta:1_000000,
-				putRho:-300000,
-				putVolvol:1_500000
+			const proposedSabrParams = {
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000
 			}
-			await volFeed.setSabrParameters(
-				proposedSabrParams, 
-				expiration
-			)
+			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -737,9 +730,9 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 			).to.be.revertedWith("InsufficientShareBalance()")
 		})
 		it("Reverts: User 3: Attempts to complete withdraw before epoch initiation", async () => {
-			await expect(
-				liquidityPool.connect(signers[2]).completeWithdraw(toWei("100000"))
-			).to.be.revertedWith("NoExistingWithdrawal()")
+			await expect(liquidityPool.connect(signers[2]).completeWithdraw()).to.be.revertedWith(
+				"NoExistingWithdrawal()"
+			)
 		})
 		it("Succeed: User 1: redeems all shares", async () => {
 			const user = senderAddress
@@ -1255,10 +1248,8 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 			const depositReceiptBefore = await liquidityPool.depositReceipts(user)
 			const withdrawReceiptBefore = await liquidityPool.withdrawalReceipts(user)
 			const pendingWithdrawBefore = await liquidityPool.pendingWithdrawals()
-			const toWithdraw = await liquidityPool
-				.connect(signers[0])
-				.callStatic.completeWithdraw(lpBalanceBefore)
-			const withdraw = await liquidityPool.completeWithdraw(lpBalanceBefore)
+			const toWithdraw = await liquidityPool.connect(signers[0]).callStatic.completeWithdraw()
+			const withdraw = await liquidityPool.completeWithdraw()
 			const usdBalanceAfter = await usd.balanceOf(user)
 			const lpBalanceAfter = await liquidityPool.balanceOf(user)
 			const lpusdBalanceAfter = await usd.balanceOf(liquidityPool.address)
@@ -1406,9 +1397,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 		})
 
 		it("Reverts: User 1: cannot complete withdrawal because of epoch not closed", async () => {
-			await expect(
-				liquidityPool.completeWithdraw(await liquidityPool.balanceOf(senderAddress))
-			).to.be.revertedWith("EpochNotClosed()")
+			await expect(liquidityPool.completeWithdraw()).to.be.revertedWith("EpochNotClosed()")
 		})
 		it("Succeeds: pauses trading", async () => {
 			await liquidityPool.pauseTradingAndRequest()

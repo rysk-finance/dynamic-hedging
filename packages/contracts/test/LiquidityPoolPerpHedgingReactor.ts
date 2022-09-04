@@ -234,21 +234,17 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		receiverAddress = await signers[1].getAddress()
 	})
 	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = 
-		{
-			callAlpha:250000,
-			callBeta:1_000000,
-			callRho:-300000,
-			callVolvol:1_500000,
-			putAlpha:250000,
-			putBeta:1_000000,
-			putRho:-300000,
-			putVolvol:1_500000
+		const proposedSabrParams = {
+			callAlpha: 250000,
+			callBeta: 1_000000,
+			callRho: -300000,
+			callVolvol: 1_500000,
+			putAlpha: 250000,
+			putBeta: 1_000000,
+			putRho: -300000,
+			putVolvol: 1_500000
 		}
-		await volFeed.setSabrParameters(
-			proposedSabrParams, 
-			expiration
-		)
+		await volFeed.setSabrParameters(proposedSabrParams, expiration)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -260,21 +256,17 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 	})
 	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = 
-		{
-			callAlpha:250000,
-			callBeta:1_000000,
-			callRho:-300000,
-			callVolvol:1_500000,
-			putAlpha:250000,
-			putBeta:1_000000,
-			putRho:-300000,
-			putVolvol:1_500000
+		const proposedSabrParams = {
+			callAlpha: 250000,
+			callBeta: 1_000000,
+			callRho: -300000,
+			callVolvol: 1_500000,
+			putAlpha: 250000,
+			putBeta: 1_000000,
+			putRho: -300000,
+			putVolvol: 1_500000
 		}
-		await volFeed.setSabrParameters(
-			proposedSabrParams, 
-			expiration2
-		)
+		await volFeed.setSabrParameters(proposedSabrParams, expiration2)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -491,7 +483,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 	it("hedges positive delta in perp hedging reactor", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		const reactorDelta = await perpHedgingReactor.internalDelta()
-		await liquidityPool.rebalancePortfolioDelta(delta, 0, {gasLimit: 999999999999})
+		await liquidityPool.rebalancePortfolioDelta(delta, 0, { gasLimit: 999999999999 })
 		const newReactorDelta = await perpHedgingReactor.internalDelta()
 		const newDelta = await liquidityPool.getPortfolioDelta()
 		expect(newDelta).to.be.within(0, 1e13)
@@ -559,7 +551,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		//@ts-ignore
 		const ratio = 1 / fromWei(totalShares)
 		const usdBalance = await usd.balanceOf(liquidityPool.address)
-		const withdraw = await liquidityPool.completeWithdraw(toWei("1000000000000"))
+		const withdraw = await liquidityPool.completeWithdraw()
 		const receipt = await withdraw.wait(1)
 		const events = receipt.events
 		const removeEvent = events?.find(x => x.event == "Withdraw")
