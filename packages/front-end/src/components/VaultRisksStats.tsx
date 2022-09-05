@@ -11,7 +11,7 @@ export const VaultRisksStats = () => {
       <div className="flex h-full w-full justify-around">
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
-            Current Delta: {" "}
+            Current Delta:{" "}
             <NumberFormat
               value={"13.78"}
               displayType={"text"}
@@ -47,7 +47,7 @@ export const VaultRisksStats = () => {
           </p>
           {/* <a
             href="https://docs.rysk.finance"
-            className="underline"
+            className="underline text-center"
             target="_blank"
             rel="noreferrer"
           >

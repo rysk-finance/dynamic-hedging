@@ -7,21 +7,19 @@ const STRATEGY_STEPS = [
     name: "Trade",
     title: "1. Trade Options",
     src: "/images/strangles.png",
-    description:
-      [
-        `${DHV_NAME} trade ETH options targeting delta close to zero.`,
-        "A Delta zero means that the exposure is neutral to ETH market movements.",
-      ]
+    description: [
+      `${DHV_NAME} trade ETH options targeting delta close to zero.`,
+      "A Delta zero means that the exposure is neutral to ETH market movements.",
+    ],
   },
   {
     name: "Hedge",
     title: "2. Dynamically Hedge",
     src: "/images/hedge.png",
-    description:
-    [
+    description: [
       `As the market conditions change the delta exposure of ${DHV_NAME} moves from zero.`,
-      `The ${DHV_NAME} dynamically hedges the positions to reduce the directionality.`, 
-    ]
+      `The ${DHV_NAME} dynamically hedges the positions to reduce the directionality.`,
+    ],
   },
 ];
 
@@ -34,12 +32,12 @@ export const VaultStrategy = () => {
         <div className="pr-8">
           <h4>Dynamic Hedging Overview</h4>
           <p className="pt-4">
-            The USDC deposited into {DHV_NAME} vault is used to fund ETH options strategies.
+            The USDC deposited into {DHV_NAME} vault is used to fund ETH options
+            strategies.
           </p>
           <p className="pt-4">
-            The {DHV_NAME} runs short ETH options strategies
-            such as strangles, straddles, or single legs
-            (naked calls and short puts) targeting a{" "}
+            The {DHV_NAME} runs short ETH options strategies such as strangles,
+            straddles, or single legs (naked calls and short puts) targeting a{" "}
             <a
               href="https://medium.com/@rysk-finance/looking-under-the-hood-of-rysks-dynamic-hedging-vault-e059e1b87e41"
               target="_blank"
@@ -52,11 +50,10 @@ export const VaultStrategy = () => {
             <br />
           </p>
           <p className="pt-4">
-            If the {DHV_NAME} delta moves far from zero the
-            position will be dynamically hedged by trading spot, 
-            other derivatives (such as perpetuals), 
-            or buying options to minimize the market exposure 
-            and reduce directionality.
+            If the {DHV_NAME} delta moves far from zero the position will be
+            dynamically hedged by trading spot, other derivatives (such as
+            perpetuals), or buying options to minimize the market exposure and
+            reduce directionality.
           </p>
         </div>
 
@@ -94,17 +91,12 @@ export const VaultStrategy = () => {
                   }
                   className="mr-8 h-[150px]"
                 />
-                <div >
-                  {
-                    STRATEGY_STEPS.filter((item) => item.name === strategy)[0]
-                      .description.map((listItem, index) => {
-                        return(
-                          <p key={index}>
-                            { listItem}
-                          </p>
-                        )
-                      })
-                  }
+                <div>
+                  {STRATEGY_STEPS.filter(
+                    (item) => item.name === strategy
+                  )[0].description.map((listItem, index) => {
+                    return <p key={index}>{listItem}</p>;
+                  })}
                 </div>
               </div>
             </div>

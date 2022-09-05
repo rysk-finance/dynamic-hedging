@@ -14,7 +14,7 @@ module.exports = {
         bone: "#EDE9DD",
         "bone-dark": "#D1CDBF",
         cyan: "#05f7e7",
-        "cyan-dark": "#00DBFF",
+        "cyan-dark": "#02c5e6",
         red: {
           100: "#FFF0EF",
           300: "#FF9991",
