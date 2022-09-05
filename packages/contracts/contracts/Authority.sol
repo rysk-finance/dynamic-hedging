@@ -66,7 +66,7 @@ contract Authority is IAuthority, AccessControl {
 
 	function revokeGuardian(address _guardian) external {
 		_onlyGovernor();
-		emit GuardianPulled(_guardian);
+		emit GuardianRevoked(_guardian);
 		guardian[_guardian] = false;
 	}
 

@@ -9,7 +9,7 @@ interface IAuthority {
 	event ManagerPushed(address indexed from, address indexed to, bool _effectiveImmediately);
 
 	event GovernorPulled(address indexed from, address indexed to);
-	event GuardianPulled(address indexed to);
+	event GuardianRevoked(address indexed to);
 	event ManagerPulled(address indexed from, address indexed to);
 
 	/* ========== VIEW ========== */
