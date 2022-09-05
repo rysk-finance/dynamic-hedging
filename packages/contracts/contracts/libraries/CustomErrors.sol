@@ -5,12 +5,14 @@ interface CustomErrors {
 	error NotKeeper();
 	error IVNotFound();
 	error NotHandler();
+	error InvalidInput();
 	error InvalidPrice();
 	error InvalidBuyer();
 	error InvalidOrder();
 	error OrderExpired();
 	error InvalidAmount();
 	error TradingPaused();
+	error InvalidAddress();
 	error IssuanceFailed();
 	error EpochNotClosed();
 	error InvalidDecimals();
@@ -27,6 +29,7 @@ interface CustomErrors {
 	error OptionExpiryInvalid();
 	error NoExistingWithdrawal();
 	error SpotMovedBeyondRange();
+	error ReactorAlreadyExists();
 	error CollateralAssetInvalid();
 	error UnderlyingAssetInvalid();
 	error CollateralAmountInvalid();

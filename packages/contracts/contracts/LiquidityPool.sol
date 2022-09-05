@@ -197,6 +197,16 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function setHedgingReactorAddress(address _reactorAddress) external {
 		_onlyGovernor();
+		if (_reactorAddress == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
+		address[] memory hedgingReactors_ = hedgingReactors;
+		uint256 maxIndex = hedgingReactors_.length;
+		for (uint256 i = 0; i < maxIndex; i++) {
+			if (hedgingReactors_[i] == _reactorAddress) {
+				revert CustomErrors.ReactorAlreadyExists();
+			}
+		}
 		hedgingReactors.push(_reactorAddress);
 		SafeTransferLib.safeApprove(ERC20(collateralAsset), _reactorAddress, type(uint256).max);
 	}
@@ -286,6 +296,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function setBufferPercentage(uint256 _bufferPercentage) external {
 		_onlyGovernor();
+		if (_bufferPercentage == 0) {
+			revert CustomErrors.InvalidInput();
+		}
 		bufferPercentage = _bufferPercentage;
 	}
 
@@ -303,6 +316,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external {
 		_onlyGovernor();
+		if (_maxTimeDeviationThreshold == 0) {
+			revert CustomErrors.InvalidInput();
+		}
 		maxTimeDeviationThreshold = _maxTimeDeviationThreshold;
 	}
 
@@ -311,6 +327,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold) external {
 		_onlyGovernor();
+		if (_maxPriceDeviationThreshold == 0) {
+			revert CustomErrors.InvalidInput();
+		}
 		maxPriceDeviationThreshold = _maxPriceDeviationThreshold;
 	}
 
@@ -319,6 +338,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function changeHandler(address _handler, bool auth) external {
 		_onlyGovernor();
+		if (_handler == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
 		handler[_handler] = auth;
 	}
 
@@ -327,6 +349,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function setKeeper(address _keeper, bool _auth) external {
 		_onlyGovernor();
+		if (_keeper == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
 		keeper[_keeper] = _auth;
 	}
 
