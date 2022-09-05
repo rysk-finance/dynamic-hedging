@@ -48,6 +48,7 @@ contract Authority is IAuthority, AccessControl {
 	function pushGuardian(address _newGuardian) external {
 		_onlyGovernor();
 		guardian[_newGuardian] = true;
+		emit GuardianPushed(_newGuardian, true);
 	}
 
 	function pushManager(address _newManager, bool _effectiveImmediately) external {
