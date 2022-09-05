@@ -119,7 +119,7 @@ const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
 
-describe("Liquidity Pools Deposit Withdraw", async () => {
+describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 	before(async function () {
 		await hre.network.provider.request({
 			method: "hardhat_reset",
@@ -400,6 +400,32 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		let optionToken: IOToken
 		let customOrderPrice: number
 		let customOrderId: number
+		it("SETUP: set sabrParams", async () => {
+			const proposedSabrParams = 
+			{
+				callAlpha:250000,
+				callBeta:1_000000,
+				callRho:-300000,
+				callVolvol:1_500000,
+				putAlpha:250000,
+				putBeta:1_000000,
+				putRho:-300000,
+				putVolvol:1_500000
+			}
+			await volFeed.setSabrParameters(
+				proposedSabrParams, 
+				expiration
+			)
+			const volFeedSabrParams = await volFeed.sabrParams(expiration)
+			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+			expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+			expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+			expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+		})
 		it("SUCCEEDS: Creates a buy order", async () => {
 			let customOrderPriceMultiplier = 1
 			const [sender, receiver] = signers

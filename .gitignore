@@ -15,9 +15,7 @@ tmp
 
 # Build
 public/css/main.css
-artifacts
 deployments
-types
 
 # Cache
 cache
@@ -49,3 +47,12 @@ dist/**/*
 yarn.lock
 
 build/
+
+# Compiler files
+cache/
+out/
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*
+/broadcast/*/31337/

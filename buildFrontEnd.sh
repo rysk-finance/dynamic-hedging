@@ -1,10 +1,4 @@
-cd packages/contracts
-npm install
-echo "contracts installed"
-npm run compile
-echo "contracts compiled"
-cd ../front-end
-pwd
+cd packages/front-end
 npm install --force
 echo "front-end installed"
 npm run build

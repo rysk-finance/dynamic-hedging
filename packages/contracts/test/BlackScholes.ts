@@ -17,31 +17,14 @@ import bs from "black-scholes"
 //@ts-ignore
 import greeks from "greeks"
 import { expect } from "chai"
-import { BlackScholes as IBlackScholes } from "../types/BlackScholes"
 import { BlackScholesTest as IBlackScholesTest } from "../types/BlackScholesTest"
 import { bsParamsApply } from "./BlackScholesUtils"
 
 describe("Pricing options", function () {
-	let BlackScholes: IBlackScholes
 	let BlackScholesTest: IBlackScholesTest
 
 	it("Should deploy Black Scholes library", async function () {
-		const normDistFactory = await ethers.getContractFactory("NormalDist", {
-			libraries: {}
-		})
-		const normDist = await normDistFactory.deploy()
-		const bsFactory = await ethers.getContractFactory("BlackScholes", {
-			libraries: {
-				NormalDist: normDist.address
-			}
-		})
-		const blackScholes = (await bsFactory.deploy()) as IBlackScholes
-		BlackScholes = blackScholes
-		const bsTestFactory = await ethers.getContractFactory("BlackScholesTest", {
-			libraries: {
-				BlackScholes: BlackScholes.address
-			}
-		})
+		const bsTestFactory = await ethers.getContractFactory("BlackScholesTest")
 		BlackScholesTest = (await bsTestFactory.deploy()) as IBlackScholesTest
 	})
 

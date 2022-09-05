@@ -2,9 +2,9 @@ import hre from "hardhat"
 import "@nomiclabs/hardhat-ethers"
 // This is a circular reference
 // Hardhat cannot compile because it relies on this file which is the output of a compile
-import { abi } from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
+import { value abi } from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 // This file doesn't exist in CI, only exists locally (in git ignore)
-import { localhost } from "../contracts.json"
+import { value localhost } from "../contracts.json"
 
 async function main() {
 	try {
@@ -23,10 +23,8 @@ async function main() {
 		await lpContract.pauseTradingAndRequest()
 		await lpContract.executeEpochCalculation()
 
-		const newDepositEpoch = await lpContract.depositEpoch()
-		const newWithdrawalEpoch = await lpContract.withdrawalEpoch()
-		console.log(`New depositEpoch is ${newDepositEpoch}`)
-		console.log(`New withdrawalEpoch is ${newWithdrawalEpoch}`)
+		const newEpoch = await lpContract.depositEpoch()
+		console.log(`New epoch is ${newEpoch}`)
 	} catch (err) {
 		console.log(err)
 	}
