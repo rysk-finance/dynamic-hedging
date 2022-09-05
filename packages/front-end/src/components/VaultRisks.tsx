@@ -7,6 +7,9 @@ export const VaultRisks = () => {
   return (
     <div>
       <VaultRisksStats />
+
+      <hr/>
+
       <div className="pb-8 py-12 px-8">
         <div className="grid grid-cols-2">
           <div>
@@ -38,19 +41,19 @@ export const VaultRisks = () => {
               <ul className="list-disc px-8">
                 <li className="pb-2">
                   Rysk prioritises security. Our {DHV_NAME} smart contracts have
-                  been audited, however, smart contracts are an experimental
-                  technology and we encourage caution only risking funds you can
-                  afford to lose.{" "}
+                  been audited by Dedaub and Akira, however, smart contracts are an
+                  experimental technology and we encourage caution, only
+                  risking funds you can afford to lose.{" "}
                 </li>
                 <li className="pb-2">
                   {DHV_NAME} interacts with multiple protocols with a focus on
                   security, however {DHV_NAME} is exposed to other smart
                   contract security as well.
                 </li>
-                <a href="#" className="underline">
-                  Learn more on Rysk security
-                </a>
               </ul>
+              <a href="#" className="underline">
+                Learn more about Rysk's security
+              </a>
             </p>
           </div>
         </div>

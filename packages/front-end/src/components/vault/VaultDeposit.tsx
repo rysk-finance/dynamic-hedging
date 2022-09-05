@@ -30,7 +30,7 @@ import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { Toggle } from "../shared/Toggle";
 import { useUserPosition } from "../../hooks/useUserPosition";
-import { DEPOSIT_ON_HOLD, DEPOSIT_SHARES_EPOCH } from "../../config/messages";
+import { DEPOSIT_SHARES_EPOCH } from "../../config/messages";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
@@ -398,7 +398,7 @@ export const VaultDeposit = () => {
             <div className="flex justify-between items-center">
               <div className="flex">
                 <p>Deposits on hold</p>
-                <RyskTooltip message={DEPOSIT_ON_HOLD} id={"strategeyTip"} />
+                <RyskTooltip message={DEPOSIT_SHARES_EPOCH} id={"strategeyTip"} />
               </div>
               <div className="h-4 flex items-center">
                 {listeningForDeposit && <Loader className="mr-2 !h-[24px]" />}
@@ -502,7 +502,7 @@ export const VaultDeposit = () => {
                   </Button>
                 </>
               ) : (
-                <p className="text-xs p-2">{DEPOSIT_SHARES_EPOCH}</p>
+                <p className="text-sm p-2">{DEPOSIT_SHARES_EPOCH}</p>
               )
             ) : null}
           </div>
