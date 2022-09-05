@@ -32,8 +32,7 @@ export type TokenPositionChangedEvent = TypedEvent<
   }
 >;
 
-export type TokenPositionChangedEventFilter =
-  TypedEventFilter<TokenPositionChangedEvent>;
+export type TokenPositionChangedEventFilter = TypedEventFilter<TokenPositionChangedEvent>;
 
 export type TokenPositionFundingPaymentRealizedEvent = TypedEvent<
   [BigNumber, number, BigNumber, BigNumber],
@@ -45,8 +44,7 @@ export type TokenPositionFundingPaymentRealizedEvent = TypedEvent<
   }
 >;
 
-export type TokenPositionFundingPaymentRealizedEventFilter =
-  TypedEventFilter<TokenPositionFundingPaymentRealizedEvent>;
+export type TokenPositionFundingPaymentRealizedEventFilter = TypedEventFilter<TokenPositionFundingPaymentRealizedEvent>;
 
 export interface VTokenPositionSet extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

@@ -185,47 +185,40 @@ export interface WhitelistInterface extends utils.Interface {
 
 export type CalleeBlacklistedEvent = TypedEvent<[string], { _callee: string }>;
 
-export type CalleeBlacklistedEventFilter =
-  TypedEventFilter<CalleeBlacklistedEvent>;
+export type CalleeBlacklistedEventFilter = TypedEventFilter<CalleeBlacklistedEvent>;
 
 export type CalleeWhitelistedEvent = TypedEvent<[string], { _callee: string }>;
 
-export type CalleeWhitelistedEventFilter =
-  TypedEventFilter<CalleeWhitelistedEvent>;
+export type CalleeWhitelistedEventFilter = TypedEventFilter<CalleeWhitelistedEvent>;
 
 export type CollateralBlacklistedEvent = TypedEvent<
   [string],
   { collateral: string }
 >;
 
-export type CollateralBlacklistedEventFilter =
-  TypedEventFilter<CollateralBlacklistedEvent>;
+export type CollateralBlacklistedEventFilter = TypedEventFilter<CollateralBlacklistedEvent>;
 
 export type CollateralWhitelistedEvent = TypedEvent<
   [string],
   { collateral: string }
 >;
 
-export type CollateralWhitelistedEventFilter =
-  TypedEventFilter<CollateralWhitelistedEvent>;
+export type CollateralWhitelistedEventFilter = TypedEventFilter<CollateralWhitelistedEvent>;
 
 export type OtokenBlacklistedEvent = TypedEvent<[string], { otoken: string }>;
 
-export type OtokenBlacklistedEventFilter =
-  TypedEventFilter<OtokenBlacklistedEvent>;
+export type OtokenBlacklistedEventFilter = TypedEventFilter<OtokenBlacklistedEvent>;
 
 export type OtokenWhitelistedEvent = TypedEvent<[string], { otoken: string }>;
 
-export type OtokenWhitelistedEventFilter =
-  TypedEventFilter<OtokenWhitelistedEvent>;
+export type OtokenWhitelistedEventFilter = TypedEventFilter<OtokenWhitelistedEvent>;
 
 export type OwnershipTransferredEvent = TypedEvent<
   [string, string],
   { previousOwner: string; newOwner: string }
 >;
 
-export type OwnershipTransferredEventFilter =
-  TypedEventFilter<OwnershipTransferredEvent>;
+export type OwnershipTransferredEventFilter = TypedEventFilter<OwnershipTransferredEvent>;
 
 export type ProductBlacklistedEvent = TypedEvent<
   [string, string, string, string, boolean],
@@ -238,8 +231,7 @@ export type ProductBlacklistedEvent = TypedEvent<
   }
 >;
 
-export type ProductBlacklistedEventFilter =
-  TypedEventFilter<ProductBlacklistedEvent>;
+export type ProductBlacklistedEventFilter = TypedEventFilter<ProductBlacklistedEvent>;
 
 export type ProductWhitelistedEvent = TypedEvent<
   [string, string, string, string, boolean],
@@ -252,8 +244,7 @@ export type ProductWhitelistedEvent = TypedEvent<
   }
 >;
 
-export type ProductWhitelistedEventFilter =
-  TypedEventFilter<ProductWhitelistedEvent>;
+export type ProductWhitelistedEventFilter = TypedEventFilter<ProductWhitelistedEvent>;
 
 export interface Whitelist extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

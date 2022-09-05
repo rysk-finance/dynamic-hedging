@@ -285,16 +285,14 @@ export type CollateralDustUpdatedEvent = TypedEvent<
   { collateral: string; dust: BigNumber }
 >;
 
-export type CollateralDustUpdatedEventFilter =
-  TypedEventFilter<CollateralDustUpdatedEvent>;
+export type CollateralDustUpdatedEventFilter = TypedEventFilter<CollateralDustUpdatedEvent>;
 
 export type LiquidationMultiplierUpdatedEvent = TypedEvent<
   [BigNumber],
   { liquidationMultiplier: BigNumber }
 >;
 
-export type LiquidationMultiplierUpdatedEventFilter =
-  TypedEventFilter<LiquidationMultiplierUpdatedEvent>;
+export type LiquidationMultiplierUpdatedEventFilter = TypedEventFilter<LiquidationMultiplierUpdatedEvent>;
 
 export type MaxPriceAddedEvent = TypedEvent<
   [string, BigNumber, BigNumber],
@@ -320,32 +318,28 @@ export type OracleDeviationUpdatedEvent = TypedEvent<
   { oracleDeviation: BigNumber }
 >;
 
-export type OracleDeviationUpdatedEventFilter =
-  TypedEventFilter<OracleDeviationUpdatedEvent>;
+export type OracleDeviationUpdatedEventFilter = TypedEventFilter<OracleDeviationUpdatedEvent>;
 
 export type OwnershipTransferredEvent = TypedEvent<
   [string, string],
   { previousOwner: string; newOwner: string }
 >;
 
-export type OwnershipTransferredEventFilter =
-  TypedEventFilter<OwnershipTransferredEvent>;
+export type OwnershipTransferredEventFilter = TypedEventFilter<OwnershipTransferredEvent>;
 
 export type SpotShockUpdatedEvent = TypedEvent<
   [string, BigNumber],
   { product: string; spotShock: BigNumber }
 >;
 
-export type SpotShockUpdatedEventFilter =
-  TypedEventFilter<SpotShockUpdatedEvent>;
+export type SpotShockUpdatedEventFilter = TypedEventFilter<SpotShockUpdatedEvent>;
 
 export type TimeToExpiryAddedEvent = TypedEvent<
   [string, BigNumber],
   { productHash: string; timeToExpiry: BigNumber }
 >;
 
-export type TimeToExpiryAddedEventFilter =
-  TypedEventFilter<TimeToExpiryAddedEvent>;
+export type TimeToExpiryAddedEventFilter = TypedEventFilter<TimeToExpiryAddedEvent>;
 
 export interface NewMarginCalculator extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

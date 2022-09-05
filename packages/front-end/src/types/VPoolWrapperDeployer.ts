@@ -118,14 +118,12 @@ export interface VPoolWrapperDeployerInterface extends utils.Interface {
   events: {
     "GovernancePending(address,address)": EventFragment;
     "GovernanceTransferred(address,address)": EventFragment;
-    "Initialized(uint8)": EventFragment;
     "TeamMultisigPending(address,address)": EventFragment;
     "TeamMultisigTransferred(address,address)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "GovernancePending"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "GovernanceTransferred"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "Initialized"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "TeamMultisigPending"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "TeamMultisigTransferred"): EventFragment;
 }
@@ -135,36 +133,28 @@ export type GovernancePendingEvent = TypedEvent<
   { previousGovernancePending: string; newGovernancePending: string }
 >;
 
-export type GovernancePendingEventFilter =
-  TypedEventFilter<GovernancePendingEvent>;
+export type GovernancePendingEventFilter = TypedEventFilter<GovernancePendingEvent>;
 
 export type GovernanceTransferredEvent = TypedEvent<
   [string, string],
   { previousGovernance: string; newGovernance: string }
 >;
 
-export type GovernanceTransferredEventFilter =
-  TypedEventFilter<GovernanceTransferredEvent>;
-
-export type InitializedEvent = TypedEvent<[number], { version: number }>;
-
-export type InitializedEventFilter = TypedEventFilter<InitializedEvent>;
+export type GovernanceTransferredEventFilter = TypedEventFilter<GovernanceTransferredEvent>;
 
 export type TeamMultisigPendingEvent = TypedEvent<
   [string, string],
   { previousTeamMultisigPending: string; newTeamMultisigPending: string }
 >;
 
-export type TeamMultisigPendingEventFilter =
-  TypedEventFilter<TeamMultisigPendingEvent>;
+export type TeamMultisigPendingEventFilter = TypedEventFilter<TeamMultisigPendingEvent>;
 
 export type TeamMultisigTransferredEvent = TypedEvent<
   [string, string],
   { previousTeamMultisig: string; newTeamMultisig: string }
 >;
 
-export type TeamMultisigTransferredEventFilter =
-  TypedEventFilter<TeamMultisigTransferredEvent>;
+export type TeamMultisigTransferredEventFilter = TypedEventFilter<TeamMultisigTransferredEvent>;
 
 export interface VPoolWrapperDeployer extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -315,9 +305,6 @@ export interface VPoolWrapperDeployer extends BaseContract {
       previousGovernance?: string | null,
       newGovernance?: string | null
     ): GovernanceTransferredEventFilter;
-
-    "Initialized(uint8)"(version?: null): InitializedEventFilter;
-    Initialized(version?: null): InitializedEventFilter;
 
     "TeamMultisigPending(address,address)"(
       previousTeamMultisigPending?: string | null,

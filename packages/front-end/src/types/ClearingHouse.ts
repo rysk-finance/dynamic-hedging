@@ -491,7 +491,6 @@ export interface ClearingHouseInterface extends utils.Interface {
     "CollateralSettingsUpdated(address,tuple)": EventFragment;
     "GovernancePending(address,address)": EventFragment;
     "GovernanceTransferred(address,address)": EventFragment;
-    "Initialized(uint8)": EventFragment;
     "Paused(address)": EventFragment;
     "PausedUpdated(bool)": EventFragment;
     "PoolSettingsUpdated(uint32,tuple)": EventFragment;
@@ -505,7 +504,6 @@ export interface ClearingHouseInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "CollateralSettingsUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "GovernancePending"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "GovernanceTransferred"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "Initialized"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Paused"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "PausedUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "PoolSettingsUpdated"): EventFragment;
@@ -527,28 +525,21 @@ export type CollateralSettingsUpdatedEvent = TypedEvent<
   { cToken: string; cTokenInfo: CollateralSettingsStructOutput }
 >;
 
-export type CollateralSettingsUpdatedEventFilter =
-  TypedEventFilter<CollateralSettingsUpdatedEvent>;
+export type CollateralSettingsUpdatedEventFilter = TypedEventFilter<CollateralSettingsUpdatedEvent>;
 
 export type GovernancePendingEvent = TypedEvent<
   [string, string],
   { previousGovernancePending: string; newGovernancePending: string }
 >;
 
-export type GovernancePendingEventFilter =
-  TypedEventFilter<GovernancePendingEvent>;
+export type GovernancePendingEventFilter = TypedEventFilter<GovernancePendingEvent>;
 
 export type GovernanceTransferredEvent = TypedEvent<
   [string, string],
   { previousGovernance: string; newGovernance: string }
 >;
 
-export type GovernanceTransferredEventFilter =
-  TypedEventFilter<GovernanceTransferredEvent>;
-
-export type InitializedEvent = TypedEvent<[number], { version: number }>;
-
-export type InitializedEventFilter = TypedEventFilter<InitializedEvent>;
+export type GovernanceTransferredEventFilter = TypedEventFilter<GovernanceTransferredEvent>;
 
 export type PausedEvent = TypedEvent<[string], { account: string }>;
 
@@ -563,8 +554,7 @@ export type PoolSettingsUpdatedEvent = TypedEvent<
   { poolId: number; settings: PoolSettingsStructOutput }
 >;
 
-export type PoolSettingsUpdatedEventFilter =
-  TypedEventFilter<PoolSettingsUpdatedEvent>;
+export type PoolSettingsUpdatedEventFilter = TypedEventFilter<PoolSettingsUpdatedEvent>;
 
 export type ProtocolSettingsUpdatedEvent = TypedEvent<
   [LiquidationParamsStructOutput, BigNumber, BigNumber, BigNumber],
@@ -576,24 +566,21 @@ export type ProtocolSettingsUpdatedEvent = TypedEvent<
   }
 >;
 
-export type ProtocolSettingsUpdatedEventFilter =
-  TypedEventFilter<ProtocolSettingsUpdatedEvent>;
+export type ProtocolSettingsUpdatedEventFilter = TypedEventFilter<ProtocolSettingsUpdatedEvent>;
 
 export type TeamMultisigPendingEvent = TypedEvent<
   [string, string],
   { previousTeamMultisigPending: string; newTeamMultisigPending: string }
 >;
 
-export type TeamMultisigPendingEventFilter =
-  TypedEventFilter<TeamMultisigPendingEvent>;
+export type TeamMultisigPendingEventFilter = TypedEventFilter<TeamMultisigPendingEvent>;
 
 export type TeamMultisigTransferredEvent = TypedEvent<
   [string, string],
   { previousTeamMultisig: string; newTeamMultisig: string }
 >;
 
-export type TeamMultisigTransferredEventFilter =
-  TypedEventFilter<TeamMultisigTransferredEvent>;
+export type TeamMultisigTransferredEventFilter = TypedEventFilter<TeamMultisigTransferredEvent>;
 
 export type UnpausedEvent = TypedEvent<[string], { account: string }>;
 
@@ -1263,9 +1250,6 @@ export interface ClearingHouse extends BaseContract {
       previousGovernance?: string | null,
       newGovernance?: string | null
     ): GovernanceTransferredEventFilter;
-
-    "Initialized(uint8)"(version?: null): InitializedEventFilter;
-    Initialized(version?: null): InitializedEventFilter;
 
     "Paused(address)"(account?: null): PausedEventFilter;
     Paused(account?: null): PausedEventFilter;

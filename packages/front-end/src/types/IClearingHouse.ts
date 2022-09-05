@@ -448,8 +448,7 @@ export type CollateralSettingsUpdatedEvent = TypedEvent<
   { cToken: string; cTokenInfo: CollateralSettingsStructOutput }
 >;
 
-export type CollateralSettingsUpdatedEventFilter =
-  TypedEventFilter<CollateralSettingsUpdatedEvent>;
+export type CollateralSettingsUpdatedEventFilter = TypedEventFilter<CollateralSettingsUpdatedEvent>;
 
 export type PausedUpdatedEvent = TypedEvent<[boolean], { paused: boolean }>;
 
@@ -460,8 +459,7 @@ export type PoolSettingsUpdatedEvent = TypedEvent<
   { poolId: number; settings: PoolSettingsStructOutput }
 >;
 
-export type PoolSettingsUpdatedEventFilter =
-  TypedEventFilter<PoolSettingsUpdatedEvent>;
+export type PoolSettingsUpdatedEventFilter = TypedEventFilter<PoolSettingsUpdatedEvent>;
 
 export type ProtocolSettingsUpdatedEvent = TypedEvent<
   [LiquidationParamsStructOutput, BigNumber, BigNumber, BigNumber],
@@ -473,8 +471,7 @@ export type ProtocolSettingsUpdatedEvent = TypedEvent<
   }
 >;
 
-export type ProtocolSettingsUpdatedEventFilter =
-  TypedEventFilter<ProtocolSettingsUpdatedEvent>;
+export type ProtocolSettingsUpdatedEventFilter = TypedEventFilter<ProtocolSettingsUpdatedEvent>;
 
 export interface IClearingHouse extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

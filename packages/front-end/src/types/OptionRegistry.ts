@@ -318,29 +318,25 @@ export interface OptionRegistryInterface extends utils.Interface {
 
 export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
 
-export type AuthorityUpdatedEventFilter =
-  TypedEventFilter<AuthorityUpdatedEvent>;
+export type AuthorityUpdatedEventFilter = TypedEventFilter<AuthorityUpdatedEvent>;
 
 export type OptionTokenCreatedEvent = TypedEvent<[string], { token: string }>;
 
-export type OptionTokenCreatedEventFilter =
-  TypedEventFilter<OptionTokenCreatedEvent>;
+export type OptionTokenCreatedEventFilter = TypedEventFilter<OptionTokenCreatedEvent>;
 
 export type OptionsContractClosedEvent = TypedEvent<
   [string, BigNumber, BigNumber],
   { series: string; vaultId: BigNumber; closedAmount: BigNumber }
 >;
 
-export type OptionsContractClosedEventFilter =
-  TypedEventFilter<OptionsContractClosedEvent>;
+export type OptionsContractClosedEventFilter = TypedEventFilter<OptionsContractClosedEvent>;
 
 export type OptionsContractOpenedEvent = TypedEvent<
   [string, BigNumber, BigNumber],
   { series: string; vaultId: BigNumber; optionsAmount: BigNumber }
 >;
 
-export type OptionsContractOpenedEventFilter =
-  TypedEventFilter<OptionsContractOpenedEvent>;
+export type OptionsContractOpenedEventFilter = TypedEventFilter<OptionsContractOpenedEvent>;
 
 export type OptionsContractSettledEvent = TypedEvent<
   [string, BigNumber, BigNumber, BigNumber],
@@ -352,8 +348,7 @@ export type OptionsContractSettledEvent = TypedEvent<
   }
 >;
 
-export type OptionsContractSettledEventFilter =
-  TypedEventFilter<OptionsContractSettledEvent>;
+export type OptionsContractSettledEventFilter = TypedEventFilter<OptionsContractSettledEvent>;
 
 export type SeriesRedeemedEvent = TypedEvent<
   [string, BigNumber, BigNumber],
@@ -372,8 +367,7 @@ export type VaultLiquidationRegisteredEvent = TypedEvent<
   }
 >;
 
-export type VaultLiquidationRegisteredEventFilter =
-  TypedEventFilter<VaultLiquidationRegisteredEvent>;
+export type VaultLiquidationRegisteredEventFilter = TypedEventFilter<VaultLiquidationRegisteredEvent>;
 
 export interface OptionRegistry extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

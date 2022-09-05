@@ -75,8 +75,7 @@ export type FeeAmountEnabledEvent = TypedEvent<
   { fee: number; tickSpacing: number }
 >;
 
-export type FeeAmountEnabledEventFilter =
-  TypedEventFilter<FeeAmountEnabledEvent>;
+export type FeeAmountEnabledEventFilter = TypedEventFilter<FeeAmountEnabledEvent>;
 
 export type OwnerChangedEvent = TypedEvent<
   [string, string],

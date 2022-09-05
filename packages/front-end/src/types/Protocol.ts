@@ -115,8 +115,7 @@ export interface ProtocolInterface extends utils.Interface {
 
 export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
 
-export type AuthorityUpdatedEventFilter =
-  TypedEventFilter<AuthorityUpdatedEvent>;
+export type AuthorityUpdatedEventFilter = TypedEventFilter<AuthorityUpdatedEvent>;
 
 export interface Protocol extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

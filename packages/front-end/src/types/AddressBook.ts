@@ -216,8 +216,7 @@ export type OwnershipTransferredEvent = TypedEvent<
   { previousOwner: string; newOwner: string }
 >;
 
-export type OwnershipTransferredEventFilter =
-  TypedEventFilter<OwnershipTransferredEvent>;
+export type OwnershipTransferredEventFilter = TypedEventFilter<OwnershipTransferredEvent>;
 
 export type ProxyCreatedEvent = TypedEvent<
   [string, string],

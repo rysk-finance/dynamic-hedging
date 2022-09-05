@@ -49,8 +49,7 @@ export type LiquidityChangedEvent = TypedEvent<
   }
 >;
 
-export type LiquidityChangedEventFilter =
-  TypedEventFilter<LiquidityChangedEvent>;
+export type LiquidityChangedEventFilter = TypedEventFilter<LiquidityChangedEvent>;
 
 export type LiquidityPositionEarningsRealizedEvent = TypedEvent<
   [BigNumber, number, number, number, BigNumber],
@@ -63,8 +62,7 @@ export type LiquidityPositionEarningsRealizedEvent = TypedEvent<
   }
 >;
 
-export type LiquidityPositionEarningsRealizedEventFilter =
-  TypedEventFilter<LiquidityPositionEarningsRealizedEvent>;
+export type LiquidityPositionEarningsRealizedEventFilter = TypedEventFilter<LiquidityPositionEarningsRealizedEvent>;
 
 export type LiquidityPositionFundingPaymentRealizedEvent = TypedEvent<
   [
@@ -91,8 +89,7 @@ export type LiquidityPositionFundingPaymentRealizedEvent = TypedEvent<
   }
 >;
 
-export type LiquidityPositionFundingPaymentRealizedEventFilter =
-  TypedEventFilter<LiquidityPositionFundingPaymentRealizedEvent>;
+export type LiquidityPositionFundingPaymentRealizedEventFilter = TypedEventFilter<LiquidityPositionFundingPaymentRealizedEvent>;
 
 export interface LiquidityPosition extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

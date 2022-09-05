@@ -45,10 +45,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ENSResolver__factory>;
     getContractFactory(
-      name: "Initializable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Initializable__factory>;
-    getContractFactory(
       name: "PausableUpgradeable",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.PausableUpgradeable__factory>;
@@ -64,10 +60,6 @@ declare module "hardhat/types/runtime" {
       name: "IERC20Upgradeable",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC20Upgradeable__factory>;
-    getContractFactory(
-      name: "ContextUpgradeable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ContextUpgradeable__factory>;
     getContractFactory(
       name: "AccessControl",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -88,10 +80,6 @@ declare module "hardhat/types/runtime" {
       name: "Ownable",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Ownable__factory>;
-    getContractFactory(
-      name: "IERC1822Proxiable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC1822Proxiable__factory>;
     getContractFactory(
       name: "IBeacon",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -124,10 +112,6 @@ declare module "hardhat/types/runtime" {
       name: "ERC20",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ERC20__factory>;
-    getContractFactory(
-      name: "IERC20Permit",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC20Permit__factory>;
     getContractFactory(
       name: "ERC20Burnable",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -509,6 +493,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.LiquidityPool__factory>;
     getContractFactory(
+      name: "ForceSend",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ForceSend__factory>;
+    getContractFactory(
+      name: "MockChainlinkAggregator",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.MockChainlinkAggregator__factory>;
+    getContractFactory(
       name: "MockPortfolioValuesFeed",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.MockPortfolioValuesFeed__factory>;
@@ -629,70 +621,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Migrations__factory>;
     getContractFactory(
-      name: "Mock0xERC20Proxy",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Mock0xERC20Proxy__factory>;
-    getContractFactory(
-      name: "Mock0xExchange",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Mock0xExchange__factory>;
-    getContractFactory(
-      name: "MockAddressBook",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockAddressBook__factory>;
-    getContractFactory(
-      name: "MockChainlinkAggregator",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockChainlinkAggregator__factory>;
-    getContractFactory(
-      name: "MockController",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockController__factory>;
-    getContractFactory(
-      name: "MockCToken",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockCToken__factory>;
-    getContractFactory(
-      name: "MockCUSDC",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockCUSDC__factory>;
-    getContractFactory(
-      name: "MockDumbERC20",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockDumbERC20__factory>;
-    getContractFactory(
-      name: "MockERC20",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockERC20__factory>;
-    getContractFactory(
-      name: "MockOracle",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockOracle__factory>;
-    getContractFactory(
-      name: "MockOtoken",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockOtoken__factory>;
-    getContractFactory(
-      name: "MockPermitERC20",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockPermitERC20__factory>;
-    getContractFactory(
-      name: "MockPricer",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockPricer__factory>;
-    getContractFactory(
-      name: "MockWhitelistModule",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockWhitelistModule__factory>;
-    getContractFactory(
-      name: "MockWSTETHToken",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockWSTETHToken__factory>;
-    getContractFactory(
-      name: "MockYToken",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MockYToken__factory>;
-    getContractFactory(
       name: "NewMarginCalculator",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.NewMarginCalculator__factory>;
@@ -768,54 +696,6 @@ declare module "hardhat/types/runtime" {
       name: "YearnPricer",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.YearnPricer__factory>;
-    getContractFactory(
-      name: "ActionTester",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ActionTester__factory>;
-    getContractFactory(
-      name: "CalculatorTester",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.CalculatorTester__factory>;
-    getContractFactory(
-      name: "CalleeAllowanceTester",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.CalleeAllowanceTester__factory>;
-    getContractFactory(
-      name: "CallTester",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.CallTester__factory>;
-    getContractFactory(
-      name: "FixedPointInt256Tester",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.FixedPointInt256Tester__factory>;
-    getContractFactory(
-      name: "FlashUnwrap",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.FlashUnwrap__factory>;
-    getContractFactory(
-      name: "ForceSend",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ForceSend__factory>;
-    getContractFactory(
-      name: "MarginVaultTester",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.MarginVaultTester__factory>;
-    getContractFactory(
-      name: "OtokenImplV1",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.OtokenImplV1__factory>;
-    getContractFactory(
-      name: "SignedConverterTester",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.SignedConverterTester__factory>;
-    getContractFactory(
-      name: "UpgradeableContractV1",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.UpgradeableContractV1__factory>;
-    getContractFactory(
-      name: "UpgradeableContractV2",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.UpgradeableContractV2__factory>;
     getContractFactory(
       name: "PortfolioValuesFeed",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -918,11 +798,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.ENSResolver>;
     getContractAt(
-      name: "Initializable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Initializable>;
-    getContractAt(
       name: "PausableUpgradeable",
       address: string,
       signer?: ethers.Signer
@@ -942,11 +817,6 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.IERC20Upgradeable>;
-    getContractAt(
-      name: "ContextUpgradeable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ContextUpgradeable>;
     getContractAt(
       name: "AccessControl",
       address: string,
@@ -972,11 +842,6 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Ownable>;
-    getContractAt(
-      name: "IERC1822Proxiable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IERC1822Proxiable>;
     getContractAt(
       name: "IBeacon",
       address: string,
@@ -1017,11 +882,6 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.ERC20>;
-    getContractAt(
-      name: "IERC20Permit",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IERC20Permit>;
     getContractAt(
       name: "ERC20Burnable",
       address: string,
@@ -1498,6 +1358,16 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.LiquidityPool>;
     getContractAt(
+      name: "ForceSend",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ForceSend>;
+    getContractAt(
+      name: "MockChainlinkAggregator",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.MockChainlinkAggregator>;
+    getContractAt(
       name: "MockPortfolioValuesFeed",
       address: string,
       signer?: ethers.Signer
@@ -1648,86 +1518,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Migrations>;
     getContractAt(
-      name: "Mock0xERC20Proxy",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Mock0xERC20Proxy>;
-    getContractAt(
-      name: "Mock0xExchange",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Mock0xExchange>;
-    getContractAt(
-      name: "MockAddressBook",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockAddressBook>;
-    getContractAt(
-      name: "MockChainlinkAggregator",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockChainlinkAggregator>;
-    getContractAt(
-      name: "MockController",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockController>;
-    getContractAt(
-      name: "MockCToken",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockCToken>;
-    getContractAt(
-      name: "MockCUSDC",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockCUSDC>;
-    getContractAt(
-      name: "MockDumbERC20",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockDumbERC20>;
-    getContractAt(
-      name: "MockERC20",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockERC20>;
-    getContractAt(
-      name: "MockOracle",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockOracle>;
-    getContractAt(
-      name: "MockOtoken",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockOtoken>;
-    getContractAt(
-      name: "MockPermitERC20",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockPermitERC20>;
-    getContractAt(
-      name: "MockPricer",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockPricer>;
-    getContractAt(
-      name: "MockWhitelistModule",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockWhitelistModule>;
-    getContractAt(
-      name: "MockWSTETHToken",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockWSTETHToken>;
-    getContractAt(
-      name: "MockYToken",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MockYToken>;
-    getContractAt(
       name: "NewMarginCalculator",
       address: string,
       signer?: ethers.Signer
@@ -1822,66 +1612,6 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.YearnPricer>;
-    getContractAt(
-      name: "ActionTester",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ActionTester>;
-    getContractAt(
-      name: "CalculatorTester",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.CalculatorTester>;
-    getContractAt(
-      name: "CalleeAllowanceTester",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.CalleeAllowanceTester>;
-    getContractAt(
-      name: "CallTester",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.CallTester>;
-    getContractAt(
-      name: "FixedPointInt256Tester",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.FixedPointInt256Tester>;
-    getContractAt(
-      name: "FlashUnwrap",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.FlashUnwrap>;
-    getContractAt(
-      name: "ForceSend",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ForceSend>;
-    getContractAt(
-      name: "MarginVaultTester",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.MarginVaultTester>;
-    getContractAt(
-      name: "OtokenImplV1",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.OtokenImplV1>;
-    getContractAt(
-      name: "SignedConverterTester",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.SignedConverterTester>;
-    getContractAt(
-      name: "UpgradeableContractV1",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.UpgradeableContractV1>;
-    getContractAt(
-      name: "UpgradeableContractV2",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.UpgradeableContractV2>;
     getContractAt(
       name: "PortfolioValuesFeed",
       address: string,

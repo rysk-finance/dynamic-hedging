@@ -91,8 +91,7 @@ export type IncreaseObservationCardinalityNextEvent = TypedEvent<
   }
 >;
 
-export type IncreaseObservationCardinalityNextEventFilter =
-  TypedEventFilter<IncreaseObservationCardinalityNextEvent>;
+export type IncreaseObservationCardinalityNextEventFilter = TypedEventFilter<IncreaseObservationCardinalityNextEvent>;
 
 export type InitializeEvent = TypedEvent<
   [BigNumber, number],

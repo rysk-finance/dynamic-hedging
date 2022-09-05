@@ -803,8 +803,7 @@ export type ApprovalEventFilter = TypedEventFilter<ApprovalEvent>;
 
 export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
 
-export type AuthorityUpdatedEventFilter =
-  TypedEventFilter<AuthorityUpdatedEvent>;
+export type AuthorityUpdatedEventFilter = TypedEventFilter<AuthorityUpdatedEvent>;
 
 export type BuybackOptionEvent = TypedEvent<
   [string, BigNumber, BigNumber, BigNumber, string],
@@ -831,16 +830,14 @@ export type DepositEpochExecutedEvent = TypedEvent<
   { epoch: BigNumber }
 >;
 
-export type DepositEpochExecutedEventFilter =
-  TypedEventFilter<DepositEpochExecutedEvent>;
+export type DepositEpochExecutedEventFilter = TypedEventFilter<DepositEpochExecutedEvent>;
 
 export type InitiateWithdrawEvent = TypedEvent<
   [string, BigNumber, BigNumber],
   { recipient: string; amount: BigNumber; epoch: BigNumber }
 >;
 
-export type InitiateWithdrawEventFilter =
-  TypedEventFilter<InitiateWithdrawEvent>;
+export type InitiateWithdrawEventFilter = TypedEventFilter<InitiateWithdrawEvent>;
 
 export type PausedEvent = TypedEvent<[string], { account: string }>;
 
@@ -888,8 +885,7 @@ export type WithdrawalEpochExecutedEvent = TypedEvent<
   { epoch: BigNumber }
 >;
 
-export type WithdrawalEpochExecutedEventFilter =
-  TypedEventFilter<WithdrawalEpochExecutedEvent>;
+export type WithdrawalEpochExecutedEventFilter = TypedEventFilter<WithdrawalEpochExecutedEvent>;
 
 export type WriteOptionEvent = TypedEvent<
   [string, BigNumber, BigNumber, BigNumber, string],

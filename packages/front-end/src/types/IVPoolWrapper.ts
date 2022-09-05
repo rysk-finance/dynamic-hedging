@@ -220,8 +220,7 @@ export type AccruedProtocolFeeCollectedEvent = TypedEvent<
   { amount: BigNumber }
 >;
 
-export type AccruedProtocolFeeCollectedEventFilter =
-  TypedEventFilter<AccruedProtocolFeeCollectedEvent>;
+export type AccruedProtocolFeeCollectedEventFilter = TypedEventFilter<AccruedProtocolFeeCollectedEvent>;
 
 export type BurnEvent = TypedEvent<
   [number, number, BigNumber, BigNumber, BigNumber],
@@ -241,16 +240,14 @@ export type FundingRateOverrideUpdatedEvent = TypedEvent<
   { fundingRateOverrideX128: BigNumber }
 >;
 
-export type FundingRateOverrideUpdatedEventFilter =
-  TypedEventFilter<FundingRateOverrideUpdatedEvent>;
+export type FundingRateOverrideUpdatedEventFilter = TypedEventFilter<FundingRateOverrideUpdatedEvent>;
 
 export type LiquidityFeeUpdatedEvent = TypedEvent<
   [number],
   { liquidityFeePips: number }
 >;
 
-export type LiquidityFeeUpdatedEventFilter =
-  TypedEventFilter<LiquidityFeeUpdatedEvent>;
+export type LiquidityFeeUpdatedEventFilter = TypedEventFilter<LiquidityFeeUpdatedEvent>;
 
 export type MintEvent = TypedEvent<
   [number, number, BigNumber, BigNumber, BigNumber],
@@ -270,8 +267,7 @@ export type ProtocolFeeUpdatedEvent = TypedEvent<
   { protocolFeePips: number }
 >;
 
-export type ProtocolFeeUpdatedEventFilter =
-  TypedEventFilter<ProtocolFeeUpdatedEvent>;
+export type ProtocolFeeUpdatedEventFilter = TypedEventFilter<ProtocolFeeUpdatedEvent>;
 
 export type SwapEvent = TypedEvent<
   [SwapResultStructOutput],

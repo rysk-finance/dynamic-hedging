@@ -262,8 +262,7 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
 
 export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
 
-export type AuthorityUpdatedEventFilter =
-  TypedEventFilter<AuthorityUpdatedEvent>;
+export type AuthorityUpdatedEventFilter = TypedEventFilter<AuthorityUpdatedEvent>;
 
 export type DataFullfilledEvent = TypedEvent<
   [string, string, BigNumber, BigNumber, BigNumber, BigNumber, BigNumber],

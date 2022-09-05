@@ -39,8 +39,7 @@ export type FundingPaymentStateUpdatedEvent = TypedEvent<
   }
 >;
 
-export type FundingPaymentStateUpdatedEventFilter =
-  TypedEventFilter<FundingPaymentStateUpdatedEvent>;
+export type FundingPaymentStateUpdatedEventFilter = TypedEventFilter<FundingPaymentStateUpdatedEvent>;
 
 export interface FundingPayment extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

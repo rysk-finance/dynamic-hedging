@@ -1,5755 +1,5 @@
 # Solidity API
 
-## MockWhitelistModule
-
-### _isWhitelistedOtoken
-
-```solidity
-mapping(address => bool) _isWhitelistedOtoken
-```
-
-### _isWhitelistedProduct
-
-```solidity
-mapping(bytes32 => bool) _isWhitelistedProduct
-```
-
-### whitelistedCollateral
-
-```solidity
-mapping(address => bool) whitelistedCollateral
-```
-
-### whitelistedCallee
-
-```solidity
-mapping(address => bool) whitelistedCallee
-```
-
-### whitelistProduct
-
-```solidity
-function whitelistProduct(address _underlying, address _strike, address _collateral, bool _isPut) external returns (bytes32 id)
-```
-
-### isWhitelistedProduct
-
-```solidity
-function isWhitelistedProduct(address _underlying, address _strike, address _collateral, bool _isPut) external view returns (bool isValid)
-```
-
-### whitelistOtoken
-
-```solidity
-function whitelistOtoken(address _otoken) external
-```
-
-### isWhitelistedOtoken
-
-```solidity
-function isWhitelistedOtoken(address _otoken) external view returns (bool)
-```
-
-### isWhitelistedCollateral
-
-```solidity
-function isWhitelistedCollateral(address _collateral) external view returns (bool)
-```
-
-### whitelistCollateral
-
-```solidity
-function whitelistCollateral(address _collateral) external
-```
-
-### isWhitelistedCallee
-
-```solidity
-function isWhitelistedCallee(address _callee) external view returns (bool)
-```
-
-### whitelistCallee
-
-```solidity
-function whitelistCallee(address _callee) external
-```
-
-### blacklistCallee
-
-```solidity
-function blacklistCallee(address _callee) external
-```
-
-## CallTester
-
-Call action testing contract
-
-### CallFunction
-
-```solidity
-event CallFunction(address sender, bytes data)
-```
-
-### callFunction
-
-```solidity
-function callFunction(address _sender, bytes _data) external
-```
-
-## WETH
-
-### balanceOf
-
-```solidity
-function balanceOf(address ady) external returns (uint256)
-```
-
-### deposit
-
-```solidity
-function deposit() external payable
-```
-
-### approve
-
-```solidity
-function approve(address, uint256) external
-```
-
-### withdraw
-
-```solidity
-function withdraw(uint256 wad) external
-```
-
-### transfer
-
-```solidity
-function transfer(address dst, uint256 wad) external returns (bool)
-```
-
-### transferFrom
-
-```solidity
-function transferFrom(address src, address dst, uint256 wad) external returns (bool)
-```
-
-### Deposit
-
-```solidity
-event Deposit(address dst, uint256 wad)
-```
-
-### Withdrawal
-
-```solidity
-event Withdrawal(address src, uint256 wad)
-```
-
-## MockAddressBook
-
-### _otokenImpl
-
-```solidity
-address _otokenImpl
-```
-
-### _whitelist
-
-```solidity
-address _whitelist
-```
-
-### _otokenFactoryImpl
-
-```solidity
-address _otokenFactoryImpl
-```
-
-### _oracle
-
-```solidity
-address _oracle
-```
-
-### _controllerImpl
-
-```solidity
-address _controllerImpl
-```
-
-### _oracleImpl
-
-```solidity
-address _oracleImpl
-```
-
-### _calculatorImpl
-
-```solidity
-address _calculatorImpl
-```
-
-### _marginPool
-
-```solidity
-address _marginPool
-```
-
-### setOtokenImpl
-
-```solidity
-function setOtokenImpl(address _newImpl) external
-```
-
-### setWhitelist
-
-```solidity
-function setWhitelist(address _newImpl) external
-```
-
-### setOtokenFactory
-
-```solidity
-function setOtokenFactory(address _otokenFactory) external
-```
-
-### setController
-
-```solidity
-function setController(address _controller) external
-```
-
-### setOracle
-
-```solidity
-function setOracle(address _oracleAddr) external
-```
-
-### setMarginCalculator
-
-```solidity
-function setMarginCalculator(address _calculator) external
-```
-
-### setMarginPool
-
-```solidity
-function setMarginPool(address _pool) external
-```
-
-### getOtokenImpl
-
-```solidity
-function getOtokenImpl() external view returns (address)
-```
-
-### getWhitelist
-
-```solidity
-function getWhitelist() external view returns (address)
-```
-
-### getOtokenFactory
-
-```solidity
-function getOtokenFactory() external view returns (address)
-```
-
-### getOracle
-
-```solidity
-function getOracle() external view returns (address)
-```
-
-### getController
-
-```solidity
-function getController() external view returns (address)
-```
-
-### getMarginCalculator
-
-```solidity
-function getMarginCalculator() external view returns (address)
-```
-
-### getMarginPool
-
-```solidity
-function getMarginPool() external view returns (address)
-```
-
-## MockChainlinkAggregator
-
-Chainlink oracle mock
-
-### decimals
-
-```solidity
-uint256 decimals
-```
-
-### roundTimestamp
-
-```solidity
-mapping(uint256 => uint256) roundTimestamp
-```
-
-_mock for round timestmap_
-
-### roundAnswer
-
-```solidity
-mapping(uint256 => int256) roundAnswer
-```
-
-_mock for round price_
-
-### lastAnswer
-
-```solidity
-int256 lastAnswer
-```
-
-### getRoundData
-
-```solidity
-function getRoundData(uint80 _roundId) external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
-```
-
-### latestRoundData
-
-```solidity
-function latestRoundData() external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
-```
-
-### setRoundTimestamp
-
-```solidity
-function setRoundTimestamp(uint256 _roundId) external
-```
-
-_function to mock setting round timestamp_
-
-### setRoundAnswer
-
-```solidity
-function setRoundAnswer(uint256 _roundId, int256 _answer) external
-```
-
-_function to mock setting round timestamp_
-
-### setLatestAnswer
-
-```solidity
-function setLatestAnswer(int256 _answer) external
-```
-
-## WETH
-
-### name
-
-```solidity
-string name
-```
-
-### symbol
-
-```solidity
-string symbol
-```
-
-### decimals
-
-```solidity
-uint8 decimals
-```
-
-### Approval
-
-```solidity
-event Approval(address src, address guy, uint256 wad)
-```
-
-### Transfer
-
-```solidity
-event Transfer(address src, address dst, uint256 wad)
-```
-
-### Deposit
-
-```solidity
-event Deposit(address dst, uint256 wad)
-```
-
-### Withdrawal
-
-```solidity
-event Withdrawal(address src, uint256 wad)
-```
-
-### balanceOf
-
-```solidity
-mapping(address => uint256) balanceOf
-```
-
-### allowance
-
-```solidity
-mapping(address => mapping(address => uint256)) allowance
-```
-
-### deposit
-
-```solidity
-function deposit() public payable
-```
-
-### withdraw
-
-```solidity
-function withdraw(uint256 wad) public
-```
-
-### totalSupply
-
-```solidity
-function totalSupply() public view returns (uint256)
-```
-
-### approve
-
-```solidity
-function approve(address guy, uint256 wad) public returns (bool)
-```
-
-### transfer
-
-```solidity
-function transfer(address dst, uint256 wad) public returns (bool)
-```
-
-### transferFrom
-
-```solidity
-function transferFrom(address src, address dst, uint256 wad) public returns (bool)
-```
-
-## MintableERC20
-
-Modern and gas efficient ERC20 + EIP-2612 implementation.
-
-_Do not manually set balances without updating totalSupply, as the sum of all user balances must not exceed it._
-
-### Transfer
-
-```solidity
-event Transfer(address from, address to, uint256 amount)
-```
-
-### Approval
-
-```solidity
-event Approval(address owner, address spender, uint256 amount)
-```
-
-### name
-
-```solidity
-string name
-```
-
-### symbol
-
-```solidity
-string symbol
-```
-
-### decimals
-
-```solidity
-uint8 decimals
-```
-
-### totalSupply
-
-```solidity
-uint256 totalSupply
-```
-
-### balanceOf
-
-```solidity
-mapping(address => uint256) balanceOf
-```
-
-### allowance
-
-```solidity
-mapping(address => mapping(address => uint256)) allowance
-```
-
-### INITIAL_CHAIN_ID
-
-```solidity
-uint256 INITIAL_CHAIN_ID
-```
-
-### INITIAL_DOMAIN_SEPARATOR
-
-```solidity
-bytes32 INITIAL_DOMAIN_SEPARATOR
-```
-
-### nonces
-
-```solidity
-mapping(address => uint256) nonces
-```
-
-### constructor
-
-```solidity
-constructor(string _name, string _symbol, uint8 _decimals) internal
-```
-
-### approve
-
-```solidity
-function approve(address spender, uint256 amount) public virtual returns (bool)
-```
-
-### transfer
-
-```solidity
-function transfer(address to, uint256 amount) public virtual returns (bool)
-```
-
-### transferFrom
-
-```solidity
-function transferFrom(address from, address to, uint256 amount) public virtual returns (bool)
-```
-
-### permit
-
-```solidity
-function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) public virtual
-```
-
-### DOMAIN_SEPARATOR
-
-```solidity
-function DOMAIN_SEPARATOR() public view virtual returns (bytes32)
-```
-
-### computeDomainSeparator
-
-```solidity
-function computeDomainSeparator() internal view virtual returns (bytes32)
-```
-
-### mint
-
-```solidity
-function mint(address to, uint256 amount) external returns (bool)
-```
-
-### _mint
-
-```solidity
-function _mint(address to, uint256 amount) internal virtual
-```
-
-### _burn
-
-```solidity
-function _burn(address from, uint256 amount) internal virtual
-```
-
-## WETH9Interface
-
-### deposit
-
-```solidity
-function deposit() external payable
-```
-
-### withdraw
-
-```solidity
-function withdraw(uint256 wad) external
-```
-
-### totalSupply
-
-```solidity
-function totalSupply() external view returns (uint256)
-```
-
-### approve
-
-```solidity
-function approve(address guy, uint256 wad) external returns (bool)
-```
-
-### transfer
-
-```solidity
-function transfer(address dst, uint256 wad) external returns (bool)
-```
-
-### transferFrom
-
-```solidity
-function transferFrom(address src, address dst, uint256 wad) external returns (bool)
-```
-
-## Migrations
-
-### owner
-
-```solidity
-address owner
-```
-
-### last_completed_migration
-
-```solidity
-uint256 last_completed_migration
-```
-
-### constructor
-
-```solidity
-constructor() public
-```
-
-### restricted
-
-```solidity
-modifier restricted()
-```
-
-### setCompleted
-
-```solidity
-function setCompleted(uint256 completed) public
-```
-
-## AlphaOptionHandler
-
-@title Contract used for all user facing options interactions
- @dev Interacts with liquidityPool to write options and quote their prices.
-
-### liquidityPool
-
-```solidity
-contract ILiquidityPool liquidityPool
-```
-
-immutable variables ///
-
-### protocol
-
-```solidity
-contract Protocol protocol
-```
-
-### strikeAsset
-
-```solidity
-address strikeAsset
-```
-
-### underlyingAsset
-
-```solidity
-address underlyingAsset
-```
-
-### collateralAsset
-
-```solidity
-address collateralAsset
-```
-
-### orderIdCounter
-
-```solidity
-uint256 orderIdCounter
-```
-
-dynamic variables ///
-
-### orderStores
-
-```solidity
-mapping(uint256 => struct Types.Order) orderStores
-```
-
-### customOrderBounds
-
-```solidity
-struct AlphaOptionHandler.CustomOrderBounds customOrderBounds
-```
-
-governance settable variables ///
-
-### MAX_BPS
-
-```solidity
-uint256 MAX_BPS
-```
-
-constant variables ///
-
-### maxOrderExpiry
-
-```solidity
-uint256 maxOrderExpiry
-```
-
-### CustomOrderBounds
-
-```solidity
-struct CustomOrderBounds {
-  uint128 callMinDelta;
-  uint128 callMaxDelta;
-  int128 putMinDelta;
-  int128 putMaxDelta;
-  uint256 maxPriceRange;
-}
-```
-
-### OrderCreated
-
-```solidity
-event OrderCreated(uint256 orderId)
-```
-
-### OrderExecuted
-
-```solidity
-event OrderExecuted(uint256 orderId)
-```
-
-### constructor
-
-```solidity
-constructor(address _authority, address _protocol, address _liquidityPool) public
-```
-
-### setCustomOrderBounds
-
-```solidity
-function setCustomOrderBounds(uint128 _callMinDelta, uint128 _callMaxDelta, int128 _putMinDelta, int128 _putMaxDelta, uint32 _maxPriceRange) external
-```
-
-set new custom order parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _callMinDelta | uint128 | the minimum delta value a sold custom call option can have (e18 format - for 0.05 enter 5e16). Must be positive or 0. |
-| _callMaxDelta | uint128 | the maximum delta value a sold custom call option can have. Must be positive and have greater magnitude than _callMinDelta. |
-| _putMinDelta | int128 | the minimum delta value a sold custom put option can have. Must be negative and have greater magnitude than _putMaxDelta |
-| _putMaxDelta | int128 | the maximum delta value a sold custom put option can have. Must be negative or 0. |
-| _maxPriceRange | uint32 | the max percentage below the LP calculated premium that the order may be sold for. Measured in BPS - for 10% enter 1000 |
-
-### createOrder
-
-```solidity
-function createOrder(struct Types.OptionSeries _optionSeries, uint256 _amount, uint256 _price, uint256 _orderExpiry, address _buyerAddress, bool _isBuyBack, uint256[2] _spotMovementRange) public returns (uint256)
-```
-
-creates an order for a number of options from the pool to a specified user. The function
-     is intended to be used to issue options to market makers/ OTC market participants
-     in order to have flexibility and customisability on option issuance and market
-     participant UX.
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _optionSeries | struct Types.OptionSeries | the option token series to issue - strike in e18 |
-| _amount | uint256 | the number of options to issue - e18 |
-| _price | uint256 | the price per unit to issue at - in e18 |
-| _orderExpiry | uint256 | the expiry of the custom order, after which the         buyer cannot use this order (if past the order is redundant) |
-| _buyerAddress | address | the agreed upon buyer address |
-| _isBuyBack | bool | whether the order being created is buy back |
-| _spotMovementRange | uint256[2] | min and max amount that the spot price can move during the order |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | orderId the unique id of the order |
-
-### createStrangle
-
-```solidity
-function createStrangle(struct Types.OptionSeries _optionSeriesCall, struct Types.OptionSeries _optionSeriesPut, uint256 _amountCall, uint256 _amountPut, uint256 _priceCall, uint256 _pricePut, uint256 _orderExpiry, address _buyerAddress, uint256[2] _callSpotMovementRange, uint256[2] _putSpotMovementRange) external returns (uint256, uint256)
-```
-
-creates a strangle order. One custom put and one custom call order to be executed simultaneously.
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _optionSeriesCall | struct Types.OptionSeries | the option token series to issue for the call part of the strangle - strike in e18 |
-| _optionSeriesPut | struct Types.OptionSeries | the option token series to issue for the put part of the strangle - strike in e18 |
-| _amountCall | uint256 | the number of call options to issue |
-| _amountPut | uint256 | the number of put options to issue |
-| _priceCall | uint256 | the price per unit to issue calls at |
-| _pricePut | uint256 | the price per unit to issue puts at |
-| _orderExpiry | uint256 | the expiry of the order (if past the order is redundant) |
-| _buyerAddress | address | the agreed upon buyer address |
-| _callSpotMovementRange | uint256[2] | min and max amount that the spot price can move during the order for the call |
-| _putSpotMovementRange | uint256[2] | min and max amount that the spot price can move during the order for the call |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | putOrderId the unique id of the put part of the strangle |
-| [1] | uint256 | callOrderId the unique id of the call part of the strangle |
-
-### executeOrder
-
-```solidity
-function executeOrder(uint256 _orderId) public
-```
-
-fulfills an order for a number of options from the pool to a specified user. The function
-     is intended to be used to issue options to market makers/ OTC market participants
-     in order to have flexibility and customisability on option issuance and market
-     participant UX.
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _orderId | uint256 | the id of the order for options purchase |
-
-### executeBuyBackOrder
-
-```solidity
-function executeBuyBackOrder(uint256 _orderId) public
-```
-
-fulfills a buyback order for a number of options from the pool to a specified user. The function
-     is intended to be used to issue options to market makers/ OTC market participants
-     in order to have flexibility and customisability on option issuance and market
-     participant UX.
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _orderId | uint256 | the id of the order for options purchase |
-
-### executeStrangle
-
-```solidity
-function executeStrangle(uint256 _orderId1, uint256 _orderId2) external
-```
-
-fulfills a stored strangle order consisting of a stores call and a stored put.
-This is intended to be called by market makers/OTC market participants.
-
-### getOptionRegistry
-
-```solidity
-function getOptionRegistry() internal view returns (contract IOptionRegistry)
-```
-
-get the option registry used for storing and managing the options
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | contract IOptionRegistry | the option registry contract |
-
-### getPortfolioValuesFeed
-
-```solidity
-function getPortfolioValuesFeed() internal view returns (contract IPortfolioValuesFeed)
-```
-
-get the portfolio values feed used by the liquidity pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | contract IPortfolioValuesFeed | the portfolio values feed contract |
-
-### _getUnderlyingPrice
-
-```solidity
-function _getUnderlyingPrice(address underlying, address _strikeAsset) internal view returns (uint256)
-```
-
-get the underlying price with just the underlying asset and strike asset
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| underlying | address | the asset that is used as the reference asset |
-| _strikeAsset | address | the asset that the underlying value is denominated in |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | the underlying price |
-
-## AlphaPortfolioValuesFeed
-
-Options portfolio storage and calculations
-
-### OptionStores
-
-```solidity
-struct OptionStores {
-  struct Types.OptionSeries optionSeries;
-  int256 shortExposure;
-  int256 longExposure;
-}
-```
-
-### oTokenDecimals
-
-```solidity
-uint256 oTokenDecimals
-```
-
-immutable variables ///
-
-### storesForAddress
-
-```solidity
-mapping(address => struct AlphaPortfolioValuesFeed.OptionStores) storesForAddress
-```
-
-dynamic variables ///
-
-### addressSet
-
-```solidity
-struct EnumerableSet.AddressSet addressSet
-```
-
-### portfolioValues
-
-```solidity
-mapping(address => mapping(address => struct Types.PortfolioValues)) portfolioValues
-```
-
-### protocol
-
-```solidity
-contract Protocol protocol
-```
-
-govern settable variables ///
-
-### liquidityPool
-
-```solidity
-contract ILiquidityPool liquidityPool
-```
-
-### handler
-
-```solidity
-mapping(address => bool) handler
-```
-
-### keeper
-
-```solidity
-mapping(address => bool) keeper
-```
-
-### rfr
-
-```solidity
-uint256 rfr
-```
-
-### DataFullfilled
-
-```solidity
-event DataFullfilled(address underlying, address strike, int256 delta, int256 gamma, int256 vega, int256 theta, int256 callPutsValue)
-```
-
-events ///
-
-### RequestedUpdate
-
-```solidity
-event RequestedUpdate(address _underlying, address _strike)
-```
-
-### StoresUpdated
-
-```solidity
-event StoresUpdated(address seriesAddress, int256 shortExposure, int256 longExposure, struct Types.OptionSeries optionSeries)
-```
-
-### OptionHasExpiredInStores
-
-```solidity
-error OptionHasExpiredInStores(uint256 index, address seriesAddress)
-```
-
-### NoVaultForShortPositions
-
-```solidity
-error NoVaultForShortPositions()
-```
-
-### IncorrectSeriesToRemove
-
-```solidity
-error IncorrectSeriesToRemove()
-```
-
-### SeriesNotExpired
-
-```solidity
-error SeriesNotExpired()
-```
-
-### NoShortPositions
-
-```solidity
-error NoShortPositions()
-```
-
-### constructor
-
-```solidity
-constructor(address _authority) public
-```
-
-Executes once when a contract is created to initialize state variables
-	   Make sure the protocol is configured after deployment
-
-### setLiquidityPool
-
-```solidity
-function setLiquidityPool(address _liquidityPool) external
-```
-
-setters ///
-
-### setProtocol
-
-```solidity
-function setProtocol(address _protocol) external
-```
-
-### setRFR
-
-```solidity
-function setRFR(uint256 _rfr) external
-```
-
-### setKeeper
-
-```solidity
-function setKeeper(address _keeper, bool _auth) external
-```
-
-change the status of a keeper
-
-### setHandler
-
-```solidity
-function setHandler(address _handler, bool _auth) external
-```
-
-change the status of a handler
-
-### fulfill
-
-```solidity
-function fulfill(address _underlying, address _strikeAsset) external
-```
-
-Fulfills the portfolio delta and portfolio value by doing a for loop over the stores.  This is then used to
-        update the portfolio values for external contracts to know what the liquidity pool's value is
-	   1/ Make sure any expired options are settled, otherwise this fulfillment will fail
-	   2/ Once the addressSet is cleared of any
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _underlying | address | - response; underlying address |
-| _strikeAsset | address | - response; strike address |
-
-### updateStores
-
-```solidity
-function updateStores(struct Types.OptionSeries _optionSeries, int256 shortExposure, int256 longExposure, address _seriesAddress) external
-```
-
-Updates the option series stores to be used for portfolio value calculation
-
-_callable by the handler and also during migration_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _optionSeries | struct Types.OptionSeries | the option series that was created, strike in e18 |
-| shortExposure | int256 | the amount of short to increment the short exposure by |
-| longExposure | int256 | the amount of long to increment the long exposure by |
-| _seriesAddress | address | the address of the series represented by the oToken |
-
-### addyList
-
-```solidity
-address[] addyList
-```
-
-LOOP CLEANING - FOR ALPHA
-  This is necessary to reduce the size of the foor loop when its not necessary to.
-  - Make sure the option has been settled!
-
-### syncLooper
-
-```solidity
-function syncLooper() external
-```
-
-function to clean all expired series from the options storage to remove them from the looped array.
-
-_FOLLOW THE LOOP CLEANING INSTRUCTIONS ABOVE WHEN CALLING THIS FUNCTION_
-
-### cleanLooperManually
-
-```solidity
-function cleanLooperManually(address _series) external
-```
-
-function to clean an expired series from the portfolio values feed, this function will make sure the series and index match
-		and will also check if the series has expired before any cleaning happens.
-
-_FOLLOW THE LOOP CLEANING INSTRUCTIONS ABOVE WHEN CALLING THIS FUNCTION_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _series | address | the series at the index input above |
-
-### _cleanLooper
-
-```solidity
-function _cleanLooper(address _series) internal
-```
-
-internal function for removing an address from the address set and clearing all option stores for that series
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _series | address | the option series address to be cleared |
-
-### accountLiquidatedSeries
-
-```solidity
-function accountLiquidatedSeries(address _series) external
-```
-
-if a vault has been liquidated we need to account for it, so adjust our short positions to reality
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _series | address | the option series address to be cleared |
-
-### migrate
-
-```solidity
-function migrate(contract IPortfolioValuesFeed _migrateContract) external
-```
-
-migrate all stored options data to a new contract that has the IPortfolioValuesFeed interface
-
-_FOLLOW THE MIGRATION PROCESS INSTRUCTIONS WHEN CALLING THIS FUNCTION_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _migrateContract | contract IPortfolioValuesFeed | the new portfolio values feed contract to migrate option values too |
-
-### requestPortfolioData
-
-```solidity
-function requestPortfolioData(address _underlying, address _strike) external returns (bytes32 id)
-```
-
-requests a portfolio data update
-
-### getPortfolioValues
-
-```solidity
-function getPortfolioValues(address underlying, address strike) external view returns (struct Types.PortfolioValues)
-```
-
-non-complex getters ///
-
-### _isKeeper
-
-```solidity
-function _isKeeper() internal view
-```
-
-_keepers, managers or governors can access_
-
-### _isHandler
-
-```solidity
-function _isHandler() internal view
-```
-
-_handlers can access_
-
-### isAddressInSet
-
-```solidity
-function isAddressInSet(address _a) external view returns (bool)
-```
-
-get the address set details
-
-### addressAtIndexInSet
-
-```solidity
-function addressAtIndexInSet(uint256 _i) external view returns (address)
-```
-
-### addressSetLength
-
-```solidity
-function addressSetLength() external view returns (uint256)
-```
-
-### getAddressSet
-
-```solidity
-function getAddressSet() external view returns (address[])
-```
-
-### _getVolatilityFeed
-
-```solidity
-function _getVolatilityFeed() internal view returns (contract VolatilityFeed)
-```
-
-get the volatility feed used by the liquidity pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | contract VolatilityFeed | the volatility feed contract interface |
-
-### _getOptionRegistry
-
-```solidity
-function _getOptionRegistry() internal view returns (contract IOptionRegistry)
-```
-
-get the option registry used for storing and managing the options
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | contract IOptionRegistry | the option registry contract |
-
-### _getUnderlyingPrice
-
-```solidity
-function _getUnderlyingPrice(address underlying, address _strikeAsset) internal view returns (uint256)
-```
-
-get the underlying price with just the underlying asset and strike asset
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| underlying | address | the asset that is used as the reference asset |
-| _strikeAsset | address | the asset that the underlying value is denominated in |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | the underlying price |
-
-## LiquidityPool
-
-@title Contract used as the Dynamic Hedging Vault for storing funds, issuing shares and processing options transactions
- @dev Interacts with the OptionRegistry for options behaviour, Interacts with hedging reactors for alternative derivatives
-      Interacts with Handlers for periphary user options interactions. Interacts with Chainlink price feeds throughout.
-      Interacts with Volatility Feed via getImpliedVolatility(), interacts with a chainlink PortfolioValues external adaptor
-      oracle via PortfolioValuesFeed.
-
-### protocol
-
-```solidity
-contract Protocol protocol
-```
-
-immutable variables ///
-
-### strikeAsset
-
-```solidity
-address strikeAsset
-```
-
-### underlyingAsset
-
-```solidity
-address underlyingAsset
-```
-
-### collateralAsset
-
-```solidity
-address collateralAsset
-```
-
-### collateralAllocated
-
-```solidity
-uint256 collateralAllocated
-```
-
-dynamic variables ///
-
-### ephemeralLiabilities
-
-```solidity
-int256 ephemeralLiabilities
-```
-
-### ephemeralDelta
-
-```solidity
-int256 ephemeralDelta
-```
-
-### depositEpoch
-
-```solidity
-uint256 depositEpoch
-```
-
-### withdrawalEpoch
-
-```solidity
-uint256 withdrawalEpoch
-```
-
-### depositEpochPricePerShare
-
-```solidity
-mapping(uint256 => uint256) depositEpochPricePerShare
-```
-
-### withdrawalEpochPricePerShare
-
-```solidity
-mapping(uint256 => uint256) withdrawalEpochPricePerShare
-```
-
-### depositReceipts
-
-```solidity
-mapping(address => struct IAccounting.DepositReceipt) depositReceipts
-```
-
-### withdrawalReceipts
-
-```solidity
-mapping(address => struct IAccounting.WithdrawalReceipt) withdrawalReceipts
-```
-
-### pendingDeposits
-
-```solidity
-uint256 pendingDeposits
-```
-
-### pendingWithdrawals
-
-```solidity
-uint256 pendingWithdrawals
-```
-
-### partitionedFunds
-
-```solidity
-uint256 partitionedFunds
-```
-
-### bufferPercentage
-
-```solidity
-uint256 bufferPercentage
-```
-
-governance settable variables ///
-
-### hedgingReactors
-
-```solidity
-address[] hedgingReactors
-```
-
-### collateralCap
-
-```solidity
-uint256 collateralCap
-```
-
-### maxDiscount
-
-```solidity
-uint256 maxDiscount
-```
-
-### bidAskIVSpread
-
-```solidity
-uint256 bidAskIVSpread
-```
-
-### optionParams
-
-```solidity
-struct Types.OptionParams optionParams
-```
-
-### riskFreeRate
-
-```solidity
-uint256 riskFreeRate
-```
-
-### handler
-
-```solidity
-mapping(address => bool) handler
-```
-
-### isTradingPaused
-
-```solidity
-bool isTradingPaused
-```
-
-### maxTimeDeviationThreshold
-
-```solidity
-uint256 maxTimeDeviationThreshold
-```
-
-### maxPriceDeviationThreshold
-
-```solidity
-uint256 maxPriceDeviationThreshold
-```
-
-### belowThresholdGradient
-
-```solidity
-uint256 belowThresholdGradient
-```
-
-### aboveThresholdGradient
-
-```solidity
-uint256 aboveThresholdGradient
-```
-
-### aboveThresholdYIntercept
-
-```solidity
-uint256 aboveThresholdYIntercept
-```
-
-### utilizationFunctionThreshold
-
-```solidity
-uint256 utilizationFunctionThreshold
-```
-
-### keeper
-
-```solidity
-mapping(address => bool) keeper
-```
-
-### MAX_BPS
-
-```solidity
-uint256 MAX_BPS
-```
-
-constant variables ///
-
-### DepositEpochExecuted
-
-```solidity
-event DepositEpochExecuted(uint256 epoch)
-```
-
-structs && events ///
-
-### WithdrawalEpochExecuted
-
-```solidity
-event WithdrawalEpochExecuted(uint256 epoch)
-```
-
-### Withdraw
-
-```solidity
-event Withdraw(address recipient, uint256 amount, uint256 shares)
-```
-
-### Deposit
-
-```solidity
-event Deposit(address recipient, uint256 amount, uint256 epoch)
-```
-
-### Redeem
-
-```solidity
-event Redeem(address recipient, uint256 amount, uint256 epoch)
-```
-
-### InitiateWithdraw
-
-```solidity
-event InitiateWithdraw(address recipient, uint256 amount, uint256 epoch)
-```
-
-### WriteOption
-
-```solidity
-event WriteOption(address series, uint256 amount, uint256 premium, uint256 escrow, address buyer)
-```
-
-### SettleVault
-
-```solidity
-event SettleVault(address series, uint256 collateralReturned, uint256 collateralLost, address closer)
-```
-
-### BuybackOption
-
-```solidity
-event BuybackOption(address series, uint256 amount, uint256 premium, uint256 escrowReturned, address seller)
-```
-
-### constructor
-
-```solidity
-constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint256 rfr, string name, string symbol, struct Types.OptionParams _optionParams, address _authority) public
-```
-
-### pause
-
-```solidity
-function pause() external
-```
-
-setters ///
-
-### pauseUnpauseTrading
-
-```solidity
-function pauseUnpauseTrading(bool _pause) external
-```
-
-### unpause
-
-```solidity
-function unpause() external
-```
-
-### setHedgingReactorAddress
-
-```solidity
-function setHedgingReactorAddress(address _reactorAddress) external
-```
-
-set a new hedging reactor
-
-_only governance can call this function_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _reactorAddress | address | append a new hedging reactor |
-
-### removeHedgingReactorAddress
-
-```solidity
-function removeHedgingReactorAddress(uint256 _index, bool _override) external
-```
-
-remove a new hedging reactor by index
-
-_only governance can call this function_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _index | uint256 | remove a hedging reactor |
-| _override | bool | whether to override whether the reactor is wound down  	 		 			(THE REACTOR SHOULD BE WOUND DOWN SEPERATELY) |
-
-### setNewOptionParams
-
-```solidity
-function setNewOptionParams(uint128 _newMinCallStrike, uint128 _newMaxCallStrike, uint128 _newMinPutStrike, uint128 _newMaxPutStrike, uint128 _newMinExpiry, uint128 _newMaxExpiry) external
-```
-
-update all optionParam variables for max and min strikes and max and
-        min expiries for options that the DHV can issue
-
-_only management or above can call this function_
-
-### setBidAskSpread
-
-```solidity
-function setBidAskSpread(uint256 _bidAskSpread) external
-```
-
-set the bid ask spread used to price option buying
-
-_only management or above can call this function_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _bidAskSpread | uint256 | the bid ask spread to update to |
-
-### setMaxDiscount
-
-```solidity
-function setMaxDiscount(uint256 _maxDiscount) external
-```
-
-set the maximum percentage discount for an option
-
-_only management or above can call this function_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _maxDiscount | uint256 | of the option as a percentage in 1e18 format. ie: 1*e18 == 1% |
-
-### setCollateralCap
-
-```solidity
-function setCollateralCap(uint256 _collateralCap) external
-```
-
-set the maximum collateral amount allowed in the pool
-
-_only governance can call this function_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _collateralCap | uint256 | of the collateral held |
-
-### setBufferPercentage
-
-```solidity
-function setBufferPercentage(uint256 _bufferPercentage) external
-```
-
-update the liquidity pool buffer limit
-
-_only governance can call this function_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _bufferPercentage | uint256 | the minimum balance the liquidity pool must have as a percentage of collateral allocated to options. (for 20% enter 2000) |
-
-### setRiskFreeRate
-
-```solidity
-function setRiskFreeRate(uint256 _riskFreeRate) external
-```
-
-update the liquidity pool risk free rate
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _riskFreeRate | uint256 | the risk free rate of the market |
-
-### setMaxTimeDeviationThreshold
-
-```solidity
-function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external
-```
-
-update the max oracle time deviation threshold
-
-### setMaxPriceDeviationThreshold
-
-```solidity
-function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold) external
-```
-
-update the max oracle price deviation threshold
-
-### changeHandler
-
-```solidity
-function changeHandler(address _handler, bool auth) external
-```
-
-change the status of a handler
-
-### setKeeper
-
-```solidity
-function setKeeper(address _keeper, bool _auth) external
-```
-
-change the status of a keeper
-
-### setUtilizationSkewParams
-
-```solidity
-function setUtilizationSkewParams(uint256 _belowThresholdGradient, uint256 _aboveThresholdGradient, uint256 _utilizationFunctionThreshold) external
-```
-
-@notice sets the parameters for the function that determines the utilization price factor
- The function is made up of two parts, both linear. The line to the left of the utilisation threshold has a low gradient
- while the gradient to the right of the threshold is much steeper. The aim of this function is to make options much more
- expensive near full utilization while not having much effect at low utilizations.
- @param _belowThresholdGradient the gradient of the function where utiization is below function threshold. e18
- @param _aboveThresholdGradient the gradient of the line above the utilization threshold. e18
- @param _utilizationFunctionThreshold the percentage utilization above which the function moves from its shallow line to its steep line
-
-### rebalancePortfolioDelta
-
-```solidity
-function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex) external
-```
-
-function for hedging portfolio delta through external means
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| delta | int256 | the current portfolio delta |
-| reactorIndex | uint256 | the index of the reactor in the hedgingReactors array to use |
-
-### adjustCollateral
-
-```solidity
-function adjustCollateral(uint256 lpCollateralDifference, bool addToLpBalance) external
-```
-
-adjust the collateral held in a specific vault because of health
-
-_called by the option registry only_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| lpCollateralDifference | uint256 | amount of collateral taken from or given to the liquidity pool in collateral decimals |
-| addToLpBalance | bool | true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool |
-
-### settleVault
-
-```solidity
-function settleVault(address seriesAddress) external returns (uint256)
-```
-
-closes an oToken vault, returning collateral (minus ITM option expiry value) back to the pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| seriesAddress | address | the address of the oToken vault to close |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | collatReturned the amount of collateral returned to the liquidity pool, assumes in collateral decimals |
-
-### handlerIssue
-
-```solidity
-function handlerIssue(struct Types.OptionSeries optionSeries) external returns (address)
-```
-
-issue an option
-
-_only callable by a handler contract_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | the series detail of the option - strike decimals in e18 |
-
-### handlerWriteOption
-
-```solidity
-function handlerWriteOption(struct Types.OptionSeries optionSeries, address seriesAddress, uint256 amount, contract IOptionRegistry optionRegistry, uint256 premium, int256 delta, address recipient) external returns (uint256)
-```
-
-write an option that already exists
-
-_only callable by a handler contract_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | the series detail of the option - strike decimals in e8 |
-| seriesAddress | address | the series address of the oToken |
-| amount | uint256 | the number of options to write - in e18 |
-| optionRegistry | contract IOptionRegistry | the registry used for options writing |
-| premium | uint256 | the premium of the option - in collateral decimals |
-| delta | int256 | the delta of the option - in e18 |
-| recipient | address | the receiver of the option |
-
-### handlerIssueAndWriteOption
-
-```solidity
-function handlerIssueAndWriteOption(struct Types.OptionSeries optionSeries, uint256 amount, uint256 premium, int256 delta, address recipient) external returns (uint256, address)
-```
-
-write an option that doesnt exist
-
-_only callable by a handler contract_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | the series detail of the option - strike decimals in e18 |
-| amount | uint256 | the number of options to write - in e18 |
-| premium | uint256 | the premium of the option - in collateral decimals |
-| delta | int256 | the delta of the option - in e18 |
-| recipient | address | the receiver of the option |
-
-### handlerBuybackOption
-
-```solidity
-function handlerBuybackOption(struct Types.OptionSeries optionSeries, uint256 amount, contract IOptionRegistry optionRegistry, address seriesAddress, uint256 premium, int256 delta, address seller) external returns (uint256)
-```
-
-buy back an option that already exists
-
-_only callable by a handler contract_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | the series detail of the option - strike decimals in e8 |
-| amount | uint256 | the number of options to buyback - in e18 |
-| optionRegistry | contract IOptionRegistry | the registry used for options writing |
-| seriesAddress | address | the series address of the oToken |
-| premium | uint256 | the premium of the option - in collateral decimals |
-| delta | int256 | the delta of the option - in e18 |
-| seller | address | the receiver of the option |
-
-### resetEphemeralValues
-
-```solidity
-function resetEphemeralValues() external
-```
-
-reset the temporary portfolio and delta values that have been changed since the last oracle update
-
-_only callable by the portfolio values feed oracle contract_
-
-### pauseTradingAndRequest
-
-```solidity
-function pauseTradingAndRequest() external returns (bytes32)
-```
-
-reset the temporary portfolio and delta values that have been changed since the last oracle update
-
-_this function must be called in order to execute an epoch calculation_
-
-### executeEpochCalculation
-
-```solidity
-function executeEpochCalculation() external
-```
-
-execute the epoch and set all the price per shares
-
-_this function must be called in order to execute an epoch calculation and batch a mutual fund epoch_
-
-### deposit
-
-```solidity
-function deposit(uint256 _amount) external returns (bool)
-```
-
-function for adding liquidity to the options liquidity pool
-
-_entry point to provide liquidity to dynamic hedging vault_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _amount | uint256 | amount of the strike asset to deposit |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | success |
-
-### redeem
-
-```solidity
-function redeem(uint256 _shares) external returns (uint256)
-```
-
-function for allowing a user to redeem their shares from a previous epoch
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _shares | uint256 | the number of shares to redeem |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | the number of shares actually returned |
-
-### initiateWithdraw
-
-```solidity
-function initiateWithdraw(uint256 _shares) external
-```
-
-function for initiating a withdraw request from the pool
-
-_entry point to remove liquidity to dynamic hedging vault_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _shares | uint256 | amount of shares to return |
-
-### completeWithdraw
-
-```solidity
-function completeWithdraw(uint256 _shares) external returns (uint256)
-```
-
-function for completing the withdraw from a pool
-
-_entry point to remove liquidity to dynamic hedging vault_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _shares | uint256 | amount of shares to return |
-
-### _getNormalizedBalance
-
-```solidity
-function _getNormalizedBalance(address asset) internal view returns (uint256 normalizedBalance)
-```
-
-Returning balance in 1e18 format
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| asset | address | address of the asset to get balance and normalize |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| normalizedBalance | uint256 | balance in 1e18 format |
-
-### getBalance
-
-```solidity
-function getBalance(address asset) public view returns (uint256)
-```
-
-Returning balance in 1e6 format
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| asset | address | address of the asset to get balance |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | balance of the address accounting for partitionedFunds |
-
-### getExternalDelta
-
-```solidity
-function getExternalDelta() public view returns (int256 externalDelta)
-```
-
-get the delta of the hedging reactors
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| externalDelta | int256 | hedging reactor delta in e18 format |
-
-### getPortfolioDelta
-
-```solidity
-function getPortfolioDelta() public view returns (int256)
-```
-
-get the delta of the portfolio
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | int256 | portfolio delta |
-
-### quotePriceWithUtilizationGreeks
-
-```solidity
-function quotePriceWithUtilizationGreeks(struct Types.OptionSeries optionSeries, uint256 amount, bool toBuy) external view returns (uint256 quote, int256 delta)
-```
-
-get the quote price and delta for a given option
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | option type to quote - strike assumed in e18 |
-| amount | uint256 | the number of options to mint  - assumed in e18 |
-| toBuy | bool | whether the protocol is buying the option |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| quote | uint256 | the price of the options - returns in e18 |
-| delta | int256 | the delta of the options - returns in e18 |
-
-### addUtilizationPremium
-
-```solidity
-function addUtilizationPremium(struct Types.UtilizationState quoteState, struct Types.OptionSeries optionSeries, uint256 amount, bool toBuy) internal view
-```
-
-applies a utilization premium when the protocol is selling options.
-Stores the utilization price in quoteState.utilizationPrice for use in quotePriceWithUtilizationGreeks
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| quoteState | struct Types.UtilizationState | the struct created in quoteStateWithUtilizationGreeks to store memory variables |
-| optionSeries | struct Types.OptionSeries | the option type for which we are quoting a price |
-| amount | uint256 | the amount of options. e18 |
-| toBuy | bool | whether we are buying an option. False if selling |
-
-### applyDeltaPremium
-
-```solidity
-function applyDeltaPremium(struct Types.UtilizationState quoteState, bool toBuy) internal view returns (uint256 quote)
-```
-
-Applies a discount or premium based on the liquidity pool's delta exposure
-Gives discount if the transaction results in a lower delta exposure for the liquidity pool.
-Prices option more richly if the transaction results in higher delta exposure for liquidity pool.
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| quoteState | struct Types.UtilizationState | the struct created in quoteStateWithUtilizationGreeks to store memory variables |
-| toBuy | bool | whether we are buying an option. False if selling |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| quote | uint256 | the quote for the option with the delta skew applied |
-
-### getImpliedVolatility
-
-```solidity
-function getImpliedVolatility(bool isPut, uint256 underlyingPrice, uint256 strikePrice, uint256 expiration) public view returns (uint256)
-```
-
-get the current implied volatility from the feed
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| isPut | bool | Is the option a call or put? |
-| underlyingPrice | uint256 | The underlying price - assumed in e18 |
-| strikePrice | uint256 | The strike price of the option - assumed in e18 |
-| expiration | uint256 | expiration timestamp of option as a PRBMath Float |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | Implied volatility adjusted for volatility surface - assumed in e18 |
-
-### getAssets
-
-```solidity
-function getAssets() external view returns (uint256)
-```
-
-### getNAV
-
-```solidity
-function getNAV() external view returns (uint256)
-```
-
-### _redeem
-
-```solidity
-function _redeem(uint256 _shares) internal returns (uint256)
-```
-
-functionality for allowing a user to redeem their shares from a previous epoch
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _shares | uint256 | the number of shares to redeem |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | toRedeem the number of shares actually returned |
-
-### _getNAV
-
-```solidity
-function _getNAV() internal view returns (uint256)
-```
-
-get the Net Asset Value
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | Net Asset Value in e18 decimal format |
-
-### _getAssets
-
-```solidity
-function _getAssets() internal view returns (uint256 assets)
-```
-
-get the Asset Value
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| assets | uint256 | Asset Value in e18 decimal format |
-
-### _getLiabilities
-
-```solidity
-function _getLiabilities() internal view returns (int256 liabilities)
-```
-
-### checkBuffer
-
-```solidity
-function checkBuffer() public view returns (uint256 bufferRemaining)
-```
-
-calculates amount of liquidity that can be used before hitting buffer
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| bufferRemaining | uint256 | the amount of liquidity available before reaching buffer in e6 |
-
-### _issue
-
-```solidity
-function _issue(struct Types.OptionSeries optionSeries, contract IOptionRegistry optionRegistry) internal returns (address series)
-```
-
-create the option contract in the options registry
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | option type to mint - option series strike in e18 |
-| optionRegistry | contract IOptionRegistry | interface for the options issuer |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| series | address | the address of the option series minted |
-
-### _writeOption
-
-```solidity
-function _writeOption(struct Types.OptionSeries optionSeries, address seriesAddress, uint256 amount, contract IOptionRegistry optionRegistry, uint256 premium, int256 delta, uint256 bufferRemaining, address recipient) internal returns (uint256)
-```
-
-write a number of options for a given OptionSeries
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | option type to mint - strike in e8 |
-| seriesAddress | address | the address of the options series |
-| amount | uint256 | the amount to be written - in e18 |
-| optionRegistry | contract IOptionRegistry | the option registry of the pool |
-| premium | uint256 | the premium to charge the user - in collateral decimals |
-| delta | int256 | the delta of the option position - in e18 |
-| bufferRemaining | uint256 | the amount of buffer that can be used - in e6 |
-| recipient | address |  |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | the amount that was written |
-
-### _buybackOption
-
-```solidity
-function _buybackOption(struct Types.OptionSeries optionSeries, uint256 amount, contract IOptionRegistry optionRegistry, address seriesAddress, uint256 premium, int256 delta, address seller) internal returns (uint256)
-```
-
-buys a number of options back and burns the tokens
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | the option token series to buyback - strike passed in as e8 |
-| amount | uint256 | the number of options to buyback expressed in 1e18 |
-| optionRegistry | contract IOptionRegistry | the registry |
-| seriesAddress | address | the series being sold |
-| premium | uint256 | the premium to be sent back to the owner (in collat decimals) |
-| delta | int256 | the delta of the option |
-| seller | address | the address |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | the number of options burned in e18 |
-
-### _adjustVariables
-
-```solidity
-function _adjustVariables(uint256 collateralAmount, uint256 optionsValue, int256 delta, bool isSale) internal
-```
-
-adjust the variables of the pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| collateralAmount | uint256 | the amount of collateral transferred to change on collateral allocated in collateral decimals |
-| optionsValue | uint256 | the value of the options in e18 decimals |
-| delta | int256 | the delta of the options in e18 decimals |
-| isSale | bool | whether the action was an option sale or not |
-
-### _getVolatilityFeed
-
-```solidity
-function _getVolatilityFeed() internal view returns (contract VolatilityFeed)
-```
-
-get the volatility feed used by the liquidity pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | contract VolatilityFeed | the volatility feed contract interface |
-
-### _getPortfolioValuesFeed
-
-```solidity
-function _getPortfolioValuesFeed() internal view returns (contract IPortfolioValuesFeed)
-```
-
-get the portfolio values feed used by the liquidity pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | contract IPortfolioValuesFeed | the portfolio values feed contract |
-
-### _getAccounting
-
-```solidity
-function _getAccounting() internal view returns (contract IAccounting)
-```
-
-get the DHV accounting calculations contract used by the liquidity pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | contract IAccounting | the Accounting contract |
-
-### _getOptionRegistry
-
-```solidity
-function _getOptionRegistry() internal view returns (contract IOptionRegistry)
-```
-
-get the option registry used for storing and managing the options
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | contract IOptionRegistry | the option registry contract |
-
-### _getUnderlyingPrice
-
-```solidity
-function _getUnderlyingPrice(address underlying, address _strikeAsset) internal view returns (uint256)
-```
-
-get the underlying price with just the underlying asset and strike asset
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| underlying | address | the asset that is used as the reference asset |
-| _strikeAsset | address | the asset that the underlying value is denominated in |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | the underlying price |
-
-### _isTradingNotPaused
-
-```solidity
-function _isTradingNotPaused() internal view
-```
-
-### _isHandler
-
-```solidity
-function _isHandler() internal view
-```
-
-### _isKeeper
-
-```solidity
-function _isKeeper() internal view
-```
-
-_keepers, managers or governors can access_
-
-## OptionHandler
-
-@title Contract used for all user facing options interactions
- @dev Interacts with liquidityPool to write options and quote their prices.
-
-### liquidityPool
-
-```solidity
-contract ILiquidityPool liquidityPool
-```
-
-immutable variables ///
-
-### protocol
-
-```solidity
-contract Protocol protocol
-```
-
-### strikeAsset
-
-```solidity
-address strikeAsset
-```
-
-### underlyingAsset
-
-```solidity
-address underlyingAsset
-```
-
-### collateralAsset
-
-```solidity
-address collateralAsset
-```
-
-### orderIdCounter
-
-```solidity
-uint256 orderIdCounter
-```
-
-dynamic variables ///
-
-### orderStores
-
-```solidity
-mapping(uint256 => struct Types.Order) orderStores
-```
-
-### customOrderBounds
-
-```solidity
-struct OptionHandler.CustomOrderBounds customOrderBounds
-```
-
-governance settable variables ///
-
-### buybackWhitelist
-
-```solidity
-mapping(address => bool) buybackWhitelist
-```
-
-### minDeltaForRequest
-
-```solidity
-uint256 minDeltaForRequest
-```
-
-### MAX_BPS
-
-```solidity
-uint256 MAX_BPS
-```
-
-constant variables ///
-
-### maxOrderExpiry
-
-```solidity
-uint256 maxOrderExpiry
-```
-
-### CustomOrderBounds
-
-```solidity
-struct CustomOrderBounds {
-  uint128 callMinDelta;
-  uint128 callMaxDelta;
-  int128 putMinDelta;
-  int128 putMaxDelta;
-  uint32 maxPriceRange;
-}
-```
-
-### OrderCreated
-
-```solidity
-event OrderCreated(uint256 orderId)
-```
-
-### OrderExecuted
-
-```solidity
-event OrderExecuted(uint256 orderId)
-```
-
-### constructor
-
-```solidity
-constructor(address _authority, address _protocol, address _liquidityPool) public
-```
-
-### setCustomOrderBounds
-
-```solidity
-function setCustomOrderBounds(uint128 _callMinDelta, uint128 _callMaxDelta, int128 _putMinDelta, int128 _putMaxDelta, uint32 _maxPriceRange) external
-```
-
-set new custom order parameters
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _callMinDelta | uint128 | the minimum delta value a sold custom call option can have (e18 format - for 0.05 enter 5e16). Must be positive or 0. |
-| _callMaxDelta | uint128 | the maximum delta value a sold custom call option can have. Must be positive and have greater magnitude than _callMinDelta. |
-| _putMinDelta | int128 | the minimum delta value a sold custom put option can have. Must be negative and have greater magnitude than _putMaxDelta |
-| _putMaxDelta | int128 | the maximum delta value a sold custom put option can have. Must be negative or 0. |
-| _maxPriceRange | uint32 | the max percentage below the LP calculated premium that the order may be sold for. Measured in BPS - for 10% enter 1000 |
-
-### pause
-
-```solidity
-function pause() external
-```
-
-### unpause
-
-```solidity
-function unpause() external
-```
-
-### addOrRemoveBuybackAddress
-
-```solidity
-function addOrRemoveBuybackAddress(address _addressToWhitelist, bool toAdd) external
-```
-
-add or remove addresses who have no restrictions on the options they can sell back to the pool
-
-### setMinDeltaForRequest
-
-```solidity
-function setMinDeltaForRequest(uint256 _minDeltaForRequest) external
-```
-
-the minimum required delta of the trade to trigger a request
-
-### createOrder
-
-```solidity
-function createOrder(struct Types.OptionSeries _optionSeries, uint256 _amount, uint256 _price, uint256 _orderExpiry, address _buyerAddress, uint256[2] _spotMovementRange) public returns (uint256)
-```
-
-creates an order for a number of options from the pool to a specified user. The function
-     is intended to be used to issue options to market makers/ OTC market participants
-     in order to have flexibility and customisability on option issuance and market
-     participant UX.
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _optionSeries | struct Types.OptionSeries | the option token series to issue - strike in e18 |
-| _amount | uint256 | the number of options to issue - e18 |
-| _price | uint256 | the price per unit to issue at - in e18 |
-| _orderExpiry | uint256 | the expiry of the custom order, after which the         buyer cannot use this order (if past the order is redundant) |
-| _buyerAddress | address | the agreed upon buyer address |
-| _spotMovementRange | uint256[2] |  |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | orderId the unique id of the order |
-
-### createStrangle
-
-```solidity
-function createStrangle(struct Types.OptionSeries _optionSeriesCall, struct Types.OptionSeries _optionSeriesPut, uint256 _amountCall, uint256 _amountPut, uint256 _priceCall, uint256 _pricePut, uint256 _orderExpiry, address _buyerAddress, uint256[2] _callSpotMovementRange, uint256[2] _putSpotMovementRange) external returns (uint256, uint256)
-```
-
-creates a strangle order. One custom put and one custom call order to be executed simultaneously.
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _optionSeriesCall | struct Types.OptionSeries | the option token series to issue for the call part of the strangle - strike in e18 |
-| _optionSeriesPut | struct Types.OptionSeries | the option token series to issue for the put part of the strangle - strike in e18 |
-| _amountCall | uint256 | the number of call options to issue |
-| _amountPut | uint256 | the number of put options to issue |
-| _priceCall | uint256 | the price per unit to issue calls at |
-| _pricePut | uint256 | the price per unit to issue puts at |
-| _orderExpiry | uint256 | the expiry of the order (if past the order is redundant) |
-| _buyerAddress | address | the agreed upon buyer address |
-| _callSpotMovementRange | uint256[2] |  |
-| _putSpotMovementRange | uint256[2] |  |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | putOrderId the unique id of the put part of the strangle |
-| [1] | uint256 | callOrderId the unique id of the call part of the strangle |
-
-### executeOrder
-
-```solidity
-function executeOrder(uint256 _orderId) public
-```
-
-fulfills an order for a number of options from the pool to a specified user. The function
-     is intended to be used to issue options to market makers/ OTC market participants
-     in order to have flexibility and customisability on option issuance and market
-     participant UX.
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _orderId | uint256 | the id of the order for options purchase |
-
-### executeStrangle
-
-```solidity
-function executeStrangle(uint256 _orderId1, uint256 _orderId2) external
-```
-
-fulfills a stored strangle order consisting of a stores call and a stored put.
-This is intended to be called by market makers/OTC market participants.
-
-### issueAndWriteOption
-
-```solidity
-function issueAndWriteOption(struct Types.OptionSeries optionSeries, uint256 amount) external returns (uint256 optionAmount, address series)
-```
-
-write a number of options for a given series addres
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | option type to mint - strike in e18 |
-| amount | uint256 | the number of options to mint in e18 |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionAmount | uint256 | the number of options minted in 2 |
-| series | address | the address of the option series minted |
-
-### issue
-
-```solidity
-function issue(struct Types.OptionSeries optionSeries) external returns (address series)
-```
-
-issue a series
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | option type to mint - strike in e18 |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| series | address | the address of the option series minted |
-
-### writeOption
-
-```solidity
-function writeOption(address seriesAddress, uint256 amount) external returns (uint256)
-```
-
-write a number of options for a given series address
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| seriesAddress | address | the option token series address |
-| amount | uint256 | the number of options to mint expressed as 1e18 |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | number of options minted |
-
-### buybackOption
-
-```solidity
-function buybackOption(address seriesAddress, uint256 amount) external returns (uint256)
-```
-
-buys a number of options back and burns the tokens
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| seriesAddress | address | the option token series address to buyback |
-| amount | uint256 | the number of options to buyback expressed in 1e18 |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | the number of options bought and burned |
-
-### getOptionRegistry
-
-```solidity
-function getOptionRegistry() internal view returns (contract IOptionRegistry)
-```
-
-get the option registry used for storing and managing the options
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | contract IOptionRegistry | the option registry contract |
-
-### getPortfolioValuesFeed
-
-```solidity
-function getPortfolioValuesFeed() internal view returns (contract IPortfolioValuesFeed)
-```
-
-get the portfolio values feed used by the liquidity pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | contract IPortfolioValuesFeed | the portfolio values feed contract |
-
-### _getUnderlyingPrice
-
-```solidity
-function _getUnderlyingPrice(address underlying, address _strikeAsset) internal view returns (uint256)
-```
-
-get the underlying price with just the underlying asset and strike asset
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| underlying | address | the asset that is used as the reference asset |
-| _strikeAsset | address | the asset that the underlying value is denominated in |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | the underlying price |
-
-## OptionRegistry
-
-@title Contract used for conducting options issuance and settlement as well as collateral management
- @dev Interacts with the opyn-rysk gamma protocol via OpynInteractions for options activity. Interacts with
-      the liquidity pool for collateral and instructions.
-
-### oTokenFactory
-
-```solidity
-address oTokenFactory
-```
-
-immutable variables ///
-
-### gammaController
-
-```solidity
-address gammaController
-```
-
-### collateralAsset
-
-```solidity
-address collateralAsset
-```
-
-### addressBook
-
-```solidity
-contract AddressBookInterface addressBook
-```
-
-### marginPool
-
-```solidity
-address marginPool
-```
-
-### seriesInfo
-
-```solidity
-mapping(address => struct Types.OptionSeries) seriesInfo
-```
-
-dynamic variables ///
-
-### vaultIds
-
-```solidity
-mapping(address => uint256) vaultIds
-```
-
-### seriesAddress
-
-```solidity
-mapping(bytes32 => address) seriesAddress
-```
-
-### vaultCount
-
-```solidity
-uint64 vaultCount
-```
-
-### liquidityPool
-
-```solidity
-address liquidityPool
-```
-
-governance settable variables ///
-
-### callUpperHealthFactor
-
-```solidity
-uint64 callUpperHealthFactor
-```
-
-### callLowerHealthFactor
-
-```solidity
-uint64 callLowerHealthFactor
-```
-
-### putUpperHealthFactor
-
-```solidity
-uint64 putUpperHealthFactor
-```
-
-### putLowerHealthFactor
-
-```solidity
-uint64 putLowerHealthFactor
-```
-
-### keeper
-
-```solidity
-mapping(address => bool) keeper
-```
-
-### MAX_BPS
-
-```solidity
-uint256 MAX_BPS
-```
-
-constant variables ///
-
-### SCALE_FROM
-
-```solidity
-uint256 SCALE_FROM
-```
-
-### OPYN_DECIMALS
-
-```solidity
-uint8 OPYN_DECIMALS
-```
-
-### OptionTokenCreated
-
-```solidity
-event OptionTokenCreated(address token)
-```
-
-events && errors && modifiers ///
-
-### SeriesRedeemed
-
-```solidity
-event SeriesRedeemed(address series, uint256 underlyingAmount, uint256 strikeAmount)
-```
-
-### OptionsContractOpened
-
-```solidity
-event OptionsContractOpened(address series, uint256 vaultId, uint256 optionsAmount)
-```
-
-### OptionsContractClosed
-
-```solidity
-event OptionsContractClosed(address series, uint256 vaultId, uint256 closedAmount)
-```
-
-### OptionsContractSettled
-
-```solidity
-event OptionsContractSettled(address series, uint256 collateralReturned, uint256 collateralLost, uint256 amountLost)
-```
-
-### VaultLiquidationRegistered
-
-```solidity
-event VaultLiquidationRegistered(address series, uint256 vaultId, uint256 amountLiquidated, uint256 collateralLiquidated)
-```
-
-### NoVault
-
-```solidity
-error NoVault()
-```
-
-### NotKeeper
-
-```solidity
-error NotKeeper()
-```
-
-### NotExpired
-
-```solidity
-error NotExpired()
-```
-
-### HealthyVault
-
-```solidity
-error HealthyVault()
-```
-
-### AlreadyExpired
-
-```solidity
-error AlreadyExpired()
-```
-
-### NotLiquidityPool
-
-```solidity
-error NotLiquidityPool()
-```
-
-### NonExistentSeries
-
-```solidity
-error NonExistentSeries()
-```
-
-### InvalidCollateral
-
-```solidity
-error InvalidCollateral()
-```
-
-### VaultNotLiquidated
-
-```solidity
-error VaultNotLiquidated()
-```
-
-### InsufficientBalance
-
-```solidity
-error InsufficientBalance()
-```
-
-### constructor
-
-```solidity
-constructor(address _collateralAsset, address _oTokenFactory, address _gammaController, address _marginPool, address _liquidityPool, address _addressBook, address _authority) public
-```
-
-### setLiquidityPool
-
-```solidity
-function setLiquidityPool(address _newLiquidityPool) external
-```
-
-Set the liquidity pool address
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _newLiquidityPool | address | set the liquidityPool address |
-
-### setKeeper
-
-```solidity
-function setKeeper(address _target, bool _auth) external
-```
-
-Set or revoke a keeper
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _target | address | address to become a keeper |
-| _auth | bool | accept or revoke |
-
-### setHealthThresholds
-
-```solidity
-function setHealthThresholds(uint64 _putLower, uint64 _putUpper, uint64 _callLower, uint64 _callUpper) external
-```
-
-Set the health thresholds of the pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _putLower | uint64 | the lower health threshold for puts |
-| _putUpper | uint64 | the upper health threshold for puts |
-| _callLower | uint64 | the lower health threshold for calls |
-| _callUpper | uint64 | the upper health threshold for calls |
-
-### issue
-
-```solidity
-function issue(struct Types.OptionSeries optionSeries) external returns (address)
-```
-
-Either retrieves the option token if it already exists, or deploy it
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | the series used for the mint - strike passed in as e18 |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | address | the address of the option |
-
-### open
-
-```solidity
-function open(address _series, uint256 amount, uint256 collateralAmount) external returns (bool, uint256)
-```
-
-Open an options contract using collateral from the liquidity pool
-
-_only callable by the liquidityPool_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _series | address | the address of the option token to be created |
-| amount | uint256 | the amount of options to deploy - assume in e18 |
-| collateralAmount | uint256 | the collateral required for the option - assumes in collateral decimals |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | if the transaction succeeded |
-| [1] | uint256 | the amount of collateral taken from the liquidityPool |
-
-### close
-
-```solidity
-function close(address _series, uint256 amount) external returns (bool, uint256)
-```
-
-Close an options contract (oToken) before it has expired
-
-_only callable by the liquidityPool_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _series | address | the address of the option token to be burnt |
-| amount | uint256 | the amount of options to burn - assumes in e18 |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | if the transaction succeeded |
-| [1] | uint256 |  |
-
-### settle
-
-```solidity
-function settle(address _series) external returns (bool, uint256, uint256, uint256)
-```
-
-Settle an options vault
-
-_callable by the liquidityPool so that local variables can also be updated_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _series | address | the address of the option token to be burnt |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | if the transaction succeeded |
-| [1] | uint256 | the amount of collateral returned from the vault |
-| [2] | uint256 | the amount of collateral used to pay ITM options on vault settle |
-| [3] | uint256 | number of oTokens that the vault was short |
-
-### adjustCollateral
-
-```solidity
-function adjustCollateral(uint256 vaultId) external
-```
-
-adjust the collateral held in a specific vault because of health
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| vaultId | uint256 | the id of the vault to check |
-
-### adjustCollateralCaller
-
-```solidity
-function adjustCollateralCaller(uint256 vaultId) external
-```
-
-adjust the collateral held in a specific vault because of health, using collateral from the caller. Only takes
-        from msg.sender, doesnt give them if vault is above the max.
-
-_this is a safety function, if worst comes to worse any caller can collateralise a vault to save it._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| vaultId | uint256 | the id of the vault to check |
-
-### wCollatLiquidatedVault
-
-```solidity
-function wCollatLiquidatedVault(uint256 vaultId) external
-```
-
-withdraw collateral from a fully liquidated vault
-
-_this is a safety function, if a vault is liquidated._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| vaultId | uint256 | the id of the vault to check |
-
-### registerLiquidatedVault
-
-```solidity
-function registerLiquidatedVault(uint256 vaultId) external
-```
-
-register a liquidated vault so the collateral allocated is managed
-
-_this is a safety function, if a vault is liquidated to update the collateral assets in the pool_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| vaultId | uint256 | the id of the vault to register liquidation for |
-
-### redeem
-
-```solidity
-function redeem(address _series) external returns (uint256)
-```
-
-Redeem oTokens for the locked collateral
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _series | address | the address of the option token to be burnt and redeemed |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | amount returned |
-
-### getCollateral
-
-```solidity
-function getCollateral(struct Types.OptionSeries series, uint256 amount) external view returns (uint256)
-```
-
-Send collateral funds for an option to be minted
-
-_series.strike should be scaled by 1e8._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| series | struct Types.OptionSeries | details of the option series |
-| amount | uint256 | amount of options to mint always in e18 |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | amount transferred |
-
-### getOtoken
-
-```solidity
-function getOtoken(address underlying, address strikeAsset, uint256 expiration, bool isPut, uint256 strike, address collateral) external view returns (address)
-```
-
-Retrieves the option token if it exists
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| underlying | address | is the address of the underlying asset of the option |
-| strikeAsset | address | is the address of the collateral asset of the option |
-| expiration | uint256 | is the expiry timestamp of the option |
-| isPut | bool | the type of option |
-| strike | uint256 | is the strike price of the option - 1e18 format |
-| collateral | address | is the address of the asset to collateralize the option with |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | address | the address of the option |
-
-### checkVaultHealth
-
-```solidity
-function checkVaultHealth(uint256 vaultId) public view returns (bool isBelowMin, bool isAboveMax, uint256 healthFactor, uint256 upperHealthFactor, uint256 collatRequired, address collatAsset)
-```
-
-check the health of a specific vault to see if it requires collateral
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| vaultId | uint256 | the id of the vault to check |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| isBelowMin | bool | bool to determine whether the vault needs topping up |
-| isAboveMax | bool | bool to determine whether the vault is too overcollateralised |
-| healthFactor | uint256 | the health factor of the vault in MAX_BPS format |
-| upperHealthFactor | uint256 | the upper bound of the acceptable health facor range in MAX_BPS format |
-| collatRequired | uint256 | the amount of collateral required to return the vault back to normal |
-| collatAsset | address | the address of the collateral asset |
-
-### getSeriesAddress
-
-```solidity
-function getSeriesAddress(bytes32 issuanceHash) external view returns (address)
-```
-
-non-complex getters ///
-
-### getSeries
-
-```solidity
-function getSeries(struct Types.OptionSeries _series) external view returns (address)
-```
-
-### getSeriesInfo
-
-```solidity
-function getSeriesInfo(address series) external view returns (struct Types.OptionSeries)
-```
-
-### getIssuanceHash
-
-```solidity
-function getIssuanceHash(struct Types.OptionSeries _series) public pure returns (bytes32)
-```
-
-### getIssuanceHash
-
-```solidity
-function getIssuanceHash(address underlying, address strikeAsset, address collateral, uint256 expiration, bool isPut, uint256 strike) internal pure returns (bytes32)
-```
-
-Helper function for computing the hash of a given issuance.
-
-### formatStrikePrice
-
-```solidity
-function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256)
-```
-
-Converts strike price to 1e8 format and floors least significant digits if needed
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| strikePrice | uint256 | strikePrice in 1e18 format |
-| collateral | address | address of collateral asset |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | if the transaction succeeded |
-
-### _isLiquidityPool
-
-```solidity
-function _isLiquidityPool() internal view
-```
-
-### _isKeeper
-
-```solidity
-function _isKeeper() internal view
-```
-
-_keepers, managers or governors can access_
-
-## PriceFeed
-
-@title Contract used for accessing exchange rates using chainlink price feeds
- @dev Interacts with chainlink price feeds and services all contracts in the system for price data.
-
-### priceFeeds
-
-```solidity
-mapping(address => mapping(address => address)) priceFeeds
-```
-
-governance settable variables ///
-
-### SCALE_DECIMALS
-
-```solidity
-uint8 SCALE_DECIMALS
-```
-
-constant variables ///
-
-### constructor
-
-```solidity
-constructor(address _authority) public
-```
-
-### addPriceFeed
-
-```solidity
-function addPriceFeed(address underlying, address strike, address feed) public
-```
-
-setters ///
-
-### getRate
-
-```solidity
-function getRate(address underlying, address strike) external view returns (uint256)
-```
-
-complex getters ///
-
-### getNormalizedRate
-
-```solidity
-function getNormalizedRate(address underlying, address strike) external view returns (uint256)
-```
-
-_get the rate from chainlink and convert it to e18 decimals_
-
-## Protocol
-
-@title Contract used for storage of important contracts for the liquidity pool
-
-### optionRegistry
-
-```solidity
-address optionRegistry
-```
-
-static variables ///
-
-### volatilityFeed
-
-```solidity
-address volatilityFeed
-```
-
-governance settable variables ///
-
-### portfolioValuesFeed
-
-```solidity
-address portfolioValuesFeed
-```
-
-### accounting
-
-```solidity
-address accounting
-```
-
-### priceFeed
-
-```solidity
-address priceFeed
-```
-
-### constructor
-
-```solidity
-constructor(address _optionRegistry, address _priceFeed, address _volatilityFeed, address _portfolioValuesFeed, address _authority) public
-```
-
-### changeVolatilityFeed
-
-```solidity
-function changeVolatilityFeed(address _volFeed) external
-```
-
-setters ///
-
-### changePortfolioValuesFeed
-
-```solidity
-function changePortfolioValuesFeed(address _portfolioValuesFeed) external
-```
-
-### changeAccounting
-
-```solidity
-function changeAccounting(address _accounting) external
-```
-
-### changePriceFeed
-
-```solidity
-function changePriceFeed(address _priceFeed) external
-```
-
-## VolatilityFeed
-
-@title Contract used as the Dynamic Hedging Vault for storing funds, issuing shares and processing options transactions
- @dev Interacts with liquidity pool to feed in volatility data.
-
-### callsVolatilitySkew
-
-```solidity
-int256[7] callsVolatilitySkew
-```
-
-governance settable variables ///
-
-### putsVolatilitySkew
-
-```solidity
-int256[7] putsVolatilitySkew
-```
-
-### keeper
-
-```solidity
-mapping(address => bool) keeper
-```
-
-### ONE_YEAR_SECONDS
-
-```solidity
-uint256 ONE_YEAR_SECONDS
-```
-
-constant variables ///
-
-### constructor
-
-```solidity
-constructor(address _authority) public
-```
-
-### setVolatilitySkew
-
-```solidity
-function setVolatilitySkew(int256[7] values, bool isPut) external
-```
-
-set the volatility skew of the pool
-
-_only governance can call this function_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| values | int256[7] | the parameters of the skew |
-| isPut | bool | the option type, put or call? |
-
-### setKeeper
-
-```solidity
-function setKeeper(address _keeper, bool _auth) external
-```
-
-update the keepers
-
-### getImpliedVolatility
-
-```solidity
-function getImpliedVolatility(bool isPut, uint256 underlyingPrice, uint256 strikePrice, uint256 expiration) external view returns (uint256)
-```
-
-get the current implied volatility from the feed
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| isPut | bool | Is the option a call or put? |
-| underlyingPrice | uint256 | The underlying price |
-| strikePrice | uint256 | The strike price of the option |
-| expiration | uint256 | expiration timestamp of option as a PRBMath Float |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | Implied volatility adjusted for volatility surface |
-
-### getVolatilitySkew
-
-```solidity
-function getVolatilitySkew(bool isPut) external view returns (int256[7])
-```
-
-get the volatility skew of the pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| isPut | bool | the option type, put or call? |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | int256[7] | the skew parameters |
-
-### computeIVFromSkew
-
-```solidity
-function computeIVFromSkew(int256[7] coef, int256[2] points) internal pure returns (int256)
-```
-
-internal utilities ///
-
-### _isKeeper
-
-```solidity
-function _isKeeper() internal view
-```
-
-_keepers, managers or governors can access_
-
-## AddressBookInterface
-
-### getOtokenImpl
-
-```solidity
-function getOtokenImpl() external view returns (address)
-```
-
-### getOtokenFactory
-
-```solidity
-function getOtokenFactory() external view returns (address)
-```
-
-### getWhitelist
-
-```solidity
-function getWhitelist() external view returns (address)
-```
-
-### getController
-
-```solidity
-function getController() external view returns (address)
-```
-
-### getOracle
-
-```solidity
-function getOracle() external view returns (address)
-```
-
-### getMarginPool
-
-```solidity
-function getMarginPool() external view returns (address)
-```
-
-### getMarginCalculator
-
-```solidity
-function getMarginCalculator() external view returns (address)
-```
-
-### getLiquidationManager
-
-```solidity
-function getLiquidationManager() external view returns (address)
-```
-
-### getAddress
-
-```solidity
-function getAddress(bytes32 _id) external view returns (address)
-```
-
-### setOtokenImpl
-
-```solidity
-function setOtokenImpl(address _otokenImpl) external
-```
-
-### setOtokenFactory
-
-```solidity
-function setOtokenFactory(address _factory) external
-```
-
-### setOracleImpl
-
-```solidity
-function setOracleImpl(address _otokenImpl) external
-```
-
-### setWhitelist
-
-```solidity
-function setWhitelist(address _whitelist) external
-```
-
-### setController
-
-```solidity
-function setController(address _controller) external
-```
-
-### setMarginPool
-
-```solidity
-function setMarginPool(address _marginPool) external
-```
-
-### setMarginCalculator
-
-```solidity
-function setMarginCalculator(address _calculator) external
-```
-
-### setLiquidationManager
-
-```solidity
-function setLiquidationManager(address _liquidationManager) external
-```
-
-### setAddress
-
-```solidity
-function setAddress(bytes32 _id, address _newImpl) external
-```
-
-## AggregatorV3Interface
-
-### decimals
-
-```solidity
-function decimals() external view returns (uint8)
-```
-
-### description
-
-```solidity
-function description() external view returns (string)
-```
-
-### version
-
-```solidity
-function version() external view returns (uint256)
-```
-
-### getRoundData
-
-```solidity
-function getRoundData(uint80 _roundId) external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
-```
-
-### latestRoundData
-
-```solidity
-function latestRoundData() external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
-```
-
-## GammaTypes
-
-### Vault
-
-```solidity
-struct Vault {
-  address[] shortOtokens;
-  address[] longOtokens;
-  address[] collateralAssets;
-  uint256[] shortAmounts;
-  uint256[] longAmounts;
-  uint256[] collateralAmounts;
-}
-```
-
-### VaultLiquidationDetails
-
-```solidity
-struct VaultLiquidationDetails {
-  address series;
-  uint128 shortAmount;
-  uint128 collateralAmount;
-}
-```
-
-## IOtoken
-
-### underlyingAsset
-
-```solidity
-function underlyingAsset() external view returns (address)
-```
-
-### strikeAsset
-
-```solidity
-function strikeAsset() external view returns (address)
-```
-
-### collateralAsset
-
-```solidity
-function collateralAsset() external view returns (address)
-```
-
-### strikePrice
-
-```solidity
-function strikePrice() external view returns (uint256)
-```
-
-### expiryTimestamp
-
-```solidity
-function expiryTimestamp() external view returns (uint256)
-```
-
-### isPut
-
-```solidity
-function isPut() external view returns (bool)
-```
-
-## IOtokenFactory
-
-### getOtoken
-
-```solidity
-function getOtoken(address _underlyingAsset, address _strikeAsset, address _collateralAsset, uint256 _strikePrice, uint256 _expiry, bool _isPut) external view returns (address)
-```
-
-### createOtoken
-
-```solidity
-function createOtoken(address _underlyingAsset, address _strikeAsset, address _collateralAsset, uint256 _strikePrice, uint256 _expiry, bool _isPut) external returns (address)
-```
-
-### getTargetOtokenAddress
-
-```solidity
-function getTargetOtokenAddress(address _underlyingAsset, address _strikeAsset, address _collateralAsset, uint256 _strikePrice, uint256 _expiry, bool _isPut) external view returns (address)
-```
-
-### OtokenCreated
-
-```solidity
-event OtokenCreated(address tokenAddress, address creator, address underlying, address strike, address collateral, uint256 strikePrice, uint256 expiry, bool isPut)
-```
-
-## IController
-
-### ActionType
-
-```solidity
-enum ActionType {
-  OpenVault,
-  MintShortOption,
-  BurnShortOption,
-  DepositLongOption,
-  WithdrawLongOption,
-  DepositCollateral,
-  WithdrawCollateral,
-  SettleVault,
-  Redeem,
-  Call,
-  Liquidate
-}
-```
-
-### ActionArgs
-
-```solidity
-struct ActionArgs {
-  enum IController.ActionType actionType;
-  address owner;
-  address secondAddress;
-  address asset;
-  uint256 vaultId;
-  uint256 amount;
-  uint256 index;
-  bytes data;
-}
-```
-
-### RedeemArgs
-
-```solidity
-struct RedeemArgs {
-  address receiver;
-  address otoken;
-  uint256 amount;
-}
-```
-
-### getPayout
-
-```solidity
-function getPayout(address _otoken, uint256 _amount) external view returns (uint256)
-```
-
-### operate
-
-```solidity
-function operate(struct IController.ActionArgs[] _actions) external
-```
-
-### getAccountVaultCounter
-
-```solidity
-function getAccountVaultCounter(address owner) external view returns (uint256)
-```
-
-### oracle
-
-```solidity
-function oracle() external view returns (address)
-```
-
-### getVault
-
-```solidity
-function getVault(address _owner, uint256 _vaultId) external view returns (struct GammaTypes.Vault)
-```
-
-### getProceed
-
-```solidity
-function getProceed(address _owner, uint256 _vaultId) external view returns (uint256)
-```
-
-### isSettlementAllowed
-
-```solidity
-function isSettlementAllowed(address _underlying, address _strike, address _collateral, uint256 _expiry) external view returns (bool)
-```
-
-### clearVaultLiquidationDetails
-
-```solidity
-function clearVaultLiquidationDetails(uint256 _vaultId) external
-```
-
-### getVaultLiquidationDetails
-
-```solidity
-function getVaultLiquidationDetails(address _owner, uint256 _vaultId) external view returns (address, uint256, uint256)
-```
-
-## IAccounting
-
-### DepositReceipt
-
-```solidity
-struct DepositReceipt {
-  uint128 epoch;
-  uint128 amount;
-  uint256 unredeemedShares;
-}
-```
-
-### WithdrawalReceipt
-
-```solidity
-struct WithdrawalReceipt {
-  uint128 epoch;
-  uint128 shares;
-}
-```
-
-### deposit
-
-```solidity
-function deposit(address depositor, uint256 _amount) external returns (uint256 depositAmount, uint256 unredeemedShares)
-```
-
-logic for adding liquidity to the options liquidity pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| depositor | address | the address making the deposit |
-| _amount | uint256 | amount of the collateral asset to deposit |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| depositAmount | uint256 | the amount to deposit from the round |
-| unredeemedShares | uint256 | number of shares held in the deposit receipt that havent been redeemed |
-
-### redeem
-
-```solidity
-function redeem(address redeemer, uint256 shares) external returns (uint256 toRedeem, struct IAccounting.DepositReceipt depositReceipt)
-```
-
-logic for allowing a user to redeem their shares from a previous epoch
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| redeemer | address | the address making the deposit |
-| shares | uint256 | amount of the collateral asset to deposit |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| toRedeem | uint256 | the amount to actually redeem |
-| depositReceipt | struct IAccounting.DepositReceipt | the updated deposit receipt after the redeem has completed |
-
-### initiateWithdraw
-
-```solidity
-function initiateWithdraw(address withdrawer, uint256 shares) external returns (struct IAccounting.WithdrawalReceipt withdrawalReceipt)
-```
-
-logic for accounting a user to initiate a withdraw request from the pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| withdrawer | address | the address carrying out the withdrawal |
-| shares | uint256 | the amount of shares to withdraw for |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| withdrawalReceipt | struct IAccounting.WithdrawalReceipt | the new withdrawal receipt to pass to the liquidityPool |
-
-### completeWithdraw
-
-```solidity
-function completeWithdraw(address withdrawer, uint256 shares) external returns (uint256 withdrawalAmount, uint256 withdrawalShares, struct IAccounting.WithdrawalReceipt withdrawalReceipt)
-```
-
-logic for accounting a user to complete a withdrawal
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| withdrawer | address | the address carrying out the withdrawal |
-| shares | uint256 | the amount of shares to withdraw for |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| withdrawalAmount | uint256 | the amount of collateral to withdraw |
-| withdrawalShares | uint256 | the number of shares to withdraw |
-| withdrawalReceipt | struct IAccounting.WithdrawalReceipt | the new withdrawal receipt to pass to the liquidityPool |
-
-### executeEpochCalculation
-
-```solidity
-function executeEpochCalculation(uint256 totalSupply, uint256 assets, int256 liabilities) external view returns (uint256 newPricePerShareDeposit, uint256 newPricePerShareWithdrawal, uint256 sharesToMint, uint256 totalWithdrawAmount, uint256 amountNeeded)
-```
-
-execute the next epoch
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| totalSupply | uint256 | the total number of share tokens |
-| assets | uint256 | the amount of collateral assets |
-| liabilities | int256 | the amount of liabilities of the pool |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| newPricePerShareDeposit | uint256 | the price per share for deposits |
-| newPricePerShareWithdrawal | uint256 | the price per share for withdrawals |
-| sharesToMint | uint256 | the number of shares to mint this epoch |
-| totalWithdrawAmount | uint256 | the amount of collateral to set aside for partitioning |
-| amountNeeded | uint256 | the amount needed to reach the total withdraw amount if collateral balance of lp is insufficient |
-
-### sharesForAmount
-
-```solidity
-function sharesForAmount(uint256 _amount, uint256 assetPerShare) external view returns (uint256 shares)
-```
-
-get the number of shares for a given amount
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _amount | uint256 | the amount to convert to shares - assumed in collateral decimals |
-| assetPerShare | uint256 | the amount of assets received per share |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| shares | uint256 | the number of shares based on the amount - assumed in e18 |
-
-## IAuthority
-
-### GovernorPushed
-
-```solidity
-event GovernorPushed(address from, address to, bool _effectiveImmediately)
-```
-
-### GuardianPushed
-
-```solidity
-event GuardianPushed(address to, bool _effectiveImmediately)
-```
-
-### ManagerPushed
-
-```solidity
-event ManagerPushed(address from, address to, bool _effectiveImmediately)
-```
-
-### GovernorPulled
-
-```solidity
-event GovernorPulled(address from, address to)
-```
-
-### GuardianPulled
-
-```solidity
-event GuardianPulled(address to)
-```
-
-### ManagerPulled
-
-```solidity
-event ManagerPulled(address from, address to)
-```
-
-### governor
-
-```solidity
-function governor() external view returns (address)
-```
-
-### guardian
-
-```solidity
-function guardian(address _target) external view returns (bool)
-```
-
-### manager
-
-```solidity
-function manager() external view returns (address)
-```
-
-## IHedgingReactor
-
-### hedgeDelta
-
-```solidity
-function hedgeDelta(int256 delta) external returns (int256)
-```
-
-Execute a strategy to hedge delta exposure
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| delta | int256 | The exposure of the liquidity pool that the reactor needs to hedge against |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | int256 | deltaChange The difference in delta exposure as a result of strategy execution |
-
-### getDelta
-
-```solidity
-function getDelta() external view returns (int256 delta)
-```
-
-Returns the delta exposure of the reactor
-
-### getPoolDenominatedValue
-
-```solidity
-function getPoolDenominatedValue() external view returns (uint256 value)
-```
-
-Returns the value of the reactor denominated in the liquidity pool asset
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| value | uint256 | the value of the reactor in the liquidity pool asset |
-
-### withdraw
-
-```solidity
-function withdraw(uint256 amount) external returns (uint256)
-```
-
-Withdraw a given asset from the hedging reactor to the calling liquidity pool.
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| amount | uint256 | The amount to withdraw |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | the amount actually withdrawn from the reactor denominated in the liquidity pool asset |
-
-### update
-
-```solidity
-function update() external returns (uint256)
-```
-
-Handle events such as collateralisation rebalancing
-
-## ILiquidityPool
-
-### strikeAsset
-
-```solidity
-function strikeAsset() external view returns (address)
-```
-
-immutable variables ///
-
-### underlyingAsset
-
-```solidity
-function underlyingAsset() external view returns (address)
-```
-
-### collateralAsset
-
-```solidity
-function collateralAsset() external view returns (address)
-```
-
-### collateralAllocated
-
-```solidity
-function collateralAllocated() external view returns (uint256)
-```
-
-dynamic variables ///
-
-### ephemeralLiabilities
-
-```solidity
-function ephemeralLiabilities() external view returns (int256)
-```
-
-### ephemeralDelta
-
-```solidity
-function ephemeralDelta() external view returns (int256)
-```
-
-### depositEpoch
-
-```solidity
-function depositEpoch() external view returns (uint256)
-```
-
-### withdrawalEpoch
-
-```solidity
-function withdrawalEpoch() external view returns (uint256)
-```
-
-### depositEpochPricePerShare
-
-```solidity
-function depositEpochPricePerShare(uint256 epoch) external view returns (uint256 price)
-```
-
-### withdrawalEpochPricePerShare
-
-```solidity
-function withdrawalEpochPricePerShare(uint256 epoch) external view returns (uint256 price)
-```
-
-### depositReceipts
-
-```solidity
-function depositReceipts(address depositor) external view returns (struct IAccounting.DepositReceipt)
-```
-
-### withdrawalReceipts
-
-```solidity
-function withdrawalReceipts(address withdrawer) external view returns (struct IAccounting.WithdrawalReceipt)
-```
-
-### pendingDeposits
-
-```solidity
-function pendingDeposits() external view returns (uint256)
-```
-
-### pendingWithdrawals
-
-```solidity
-function pendingWithdrawals() external view returns (uint256)
-```
-
-### partitionedFunds
-
-```solidity
-function partitionedFunds() external view returns (uint256)
-```
-
-### bufferPercentage
-
-```solidity
-function bufferPercentage() external view returns (uint256)
-```
-
-governance settable variables ///
-
-### collateralCap
-
-```solidity
-function collateralCap() external view returns (uint256)
-```
-
-### handlerIssue
-
-```solidity
-function handlerIssue(struct Types.OptionSeries optionSeries) external returns (address)
-```
-
-functions ///
-
-### resetEphemeralValues
-
-```solidity
-function resetEphemeralValues() external
-```
-
-### getAssets
-
-```solidity
-function getAssets() external view returns (uint256)
-```
-
-### redeem
-
-```solidity
-function redeem(uint256) external returns (uint256)
-```
-
-### handlerWriteOption
-
-```solidity
-function handlerWriteOption(struct Types.OptionSeries optionSeries, address seriesAddress, uint256 amount, contract IOptionRegistry optionRegistry, uint256 premium, int256 delta, address recipient) external returns (uint256)
-```
-
-### handlerBuybackOption
-
-```solidity
-function handlerBuybackOption(struct Types.OptionSeries optionSeries, uint256 amount, contract IOptionRegistry optionRegistry, address seriesAddress, uint256 premium, int256 delta, address seller) external returns (uint256)
-```
-
-### handlerIssueAndWriteOption
-
-```solidity
-function handlerIssueAndWriteOption(struct Types.OptionSeries optionSeries, uint256 amount, uint256 premium, int256 delta, address recipient) external returns (uint256, address)
-```
-
-### getPortfolioDelta
-
-```solidity
-function getPortfolioDelta() external view returns (int256)
-```
-
-### quotePriceWithUtilizationGreeks
-
-```solidity
-function quotePriceWithUtilizationGreeks(struct Types.OptionSeries optionSeries, uint256 amount, bool toBuy) external view returns (uint256 quote, int256 delta)
-```
-
-### checkBuffer
-
-```solidity
-function checkBuffer() external view returns (uint256 bufferRemaining)
-```
-
-### getBalance
-
-```solidity
-function getBalance(address asset) external view returns (uint256)
-```
-
-## IMarginCalculator
-
-### getNakedMarginRequired
-
-```solidity
-function getNakedMarginRequired(address _underlying, address _strike, address _collateral, uint256 _shortAmount, uint256 _strikePrice, uint256 _underlyingPrice, uint256 _shortExpiryTimestamp, uint256 _collateralDecimals, bool _isPut) external view returns (uint256)
-```
-
-## IOptionRegistry
-
-### issue
-
-```solidity
-function issue(struct Types.OptionSeries optionSeries) external returns (address)
-```
-
-Either retrieves the option token if it already exists, or deploy it
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | option series to issue |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | address | the address of the option |
-
-### open
-
-```solidity
-function open(address _series, uint256 amount, uint256 collateralAmount) external returns (bool, uint256)
-```
-
-Open an options contract using collateral from the liquidity pool
-
-_only callable by the liquidityPool_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _series | address | the address of the option token to be created |
-| amount | uint256 | the amount of options to deploy |
-| collateralAmount | uint256 | the collateral required for the option |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | if the transaction succeeded |
-| [1] | uint256 | the amount of collateral taken from the liquidityPool |
-
-### close
-
-```solidity
-function close(address _series, uint256 amount) external returns (bool, uint256)
-```
-
-Close an options contract (oToken) before it has expired
-
-_only callable by the liquidityPool_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _series | address | the address of the option token to be burnt |
-| amount | uint256 | the amount of options to burn |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | if the transaction succeeded |
-| [1] | uint256 |  |
-
-### settle
-
-```solidity
-function settle(address _series) external returns (bool success, uint256 collatReturned, uint256 collatLost, uint256 amountShort)
-```
-
-Settle an options vault
-
-_callable by anyone but returns funds to the liquidityPool_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _series | address | the address of the option token to be burnt |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| success | bool | if the transaction succeeded |
-| collatReturned | uint256 | the amount of collateral returned from the vault |
-| collatLost | uint256 | the amount of collateral used to pay ITM options on vault settle |
-| amountShort | uint256 | number of oTokens that the vault was short |
-
-### getCollateral
-
-```solidity
-function getCollateral(struct Types.OptionSeries series, uint256 amount) external view returns (uint256)
-```
-
-Send collateral funds for an option to be minted
-
-_series.strike should be scaled by 1e8._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| series | struct Types.OptionSeries | details of the option series |
-| amount | uint256 | amount of options to mint |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | amount transferred |
-
-### getOtoken
-
-```solidity
-function getOtoken(address underlying, address strikeAsset, uint256 expiration, bool isPut, uint256 strike, address collateral) external view returns (address)
-```
-
-Retrieves the option token if it exists
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| underlying | address | is the address of the underlying asset of the option |
-| strikeAsset | address | is the address of the collateral asset of the option |
-| expiration | uint256 | is the expiry timestamp of the option |
-| isPut | bool | the type of option |
-| strike | uint256 | is the strike price of the option - 1e18 format |
-| collateral | address | is the address of the asset to collateralize the option with |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | address | the address of the option |
-
-### getSeriesInfo
-
-```solidity
-function getSeriesInfo(address series) external view returns (struct Types.OptionSeries)
-```
-
-non-complex getters ///
-
-### vaultIds
-
-```solidity
-function vaultIds(address series) external view returns (uint256)
-```
-
-### gammaController
-
-```solidity
-function gammaController() external view returns (address)
-```
-
-## IOracle
-
-### getPrice
-
-```solidity
-function getPrice(address _asset) external view returns (uint256)
-```
-
-## IPortfolioValuesFeed
-
-### requestPortfolioData
-
-```solidity
-function requestPortfolioData(address _underlying, address _strike) external returns (bytes32 requestId)
-```
-
-Creates a Chainlink request to update portfolio values
-data, then multiply by 1000000000000000000 (to remove decimal places from data).
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| requestId | bytes32 | - id of the request |
-
-### updateStores
-
-```solidity
-function updateStores(struct Types.OptionSeries _optionSeries, int256 _shortExposure, int256 _longExposure, address _seriesAddress) external
-```
-
-### getPortfolioValues
-
-```solidity
-function getPortfolioValues(address underlying, address strike) external view returns (struct Types.PortfolioValues)
-```
-
-non-complex getters ///
-
-## I_ERC20
-
-_Interface of the ERC20 standard as defined in the EIP._
-
-### totalSupply
-
-```solidity
-function totalSupply() external view returns (uint256)
-```
-
-_Returns the amount of tokens in existence._
-
-### balanceOf
-
-```solidity
-function balanceOf(address account) external view returns (uint256)
-```
-
-_Returns the amount of tokens owned by `account`._
-
-### transfer
-
-```solidity
-function transfer(address recipient, uint256 amount) external returns (bool)
-```
-
-_Moves `amount` tokens from the caller's account to `recipient`.
-
-Returns a boolean value indicating whether the operation succeeded.
-
-Emits a {Transfer} event._
-
-### allowance
-
-```solidity
-function allowance(address owner, address spender) external view returns (uint256)
-```
-
-_Returns the remaining number of tokens that `spender` will be
-allowed to spend on behalf of `owner` through {transferFrom}. This is
-zero by default.
-
-This value changes when {approve} or {transferFrom} are called._
-
-### approve
-
-```solidity
-function approve(address spender, uint256 amount) external returns (bool)
-```
-
-_Sets `amount` as the allowance of `spender` over the caller's tokens.
-
-Returns a boolean value indicating whether the operation succeeded.
-
-IMPORTANT: Beware that changing an allowance with this method brings the risk
-that someone may use both the old and the new allowance by unfortunate
-transaction ordering. One possible solution to mitigate this race
-condition is to first reduce the spender's allowance to 0 and set the
-desired value afterwards:
-https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
-
-Emits an {Approval} event._
-
-### transferFrom
-
-```solidity
-function transferFrom(address sender, address recipient, uint256 amount) external returns (bool)
-```
-
-_Moves `amount` tokens from `sender` to `recipient` using the
-allowance mechanism. `amount` is then deducted from the caller's
-allowance.
-
-Returns a boolean value indicating whether the operation succeeded.
-
-Emits a {Transfer} event._
-
-### Transfer
-
-```solidity
-event Transfer(address from, address to, uint256 value)
-```
-
-_Emitted when `value` tokens are moved from one account (`from`) to
-another (`to`).
-
-Note that `value` may be zero._
-
-### Approval
-
-```solidity
-event Approval(address owner, address spender, uint256 value)
-```
-
-_Emitted when the allowance of a `spender` for an `owner` is set by
-a call to {approve}. `value` is the new allowance._
-
-## UNAUTHORIZED
-
-```solidity
-error UNAUTHORIZED()
-```
-
-## AccessControl
-
-@title Contract used for access control functionality, based off of OlympusDao Access Control
-
-### AuthorityUpdated
-
-```solidity
-event AuthorityUpdated(contract IAuthority authority)
-```
-
-### authority
-
-```solidity
-contract IAuthority authority
-```
-
-### constructor
-
-```solidity
-constructor(contract IAuthority _authority) internal
-```
-
-### setAuthority
-
-```solidity
-function setAuthority(contract IAuthority _newAuthority) external
-```
-
-### _onlyGovernor
-
-```solidity
-function _onlyGovernor() internal view
-```
-
-### _onlyGuardian
-
-```solidity
-function _onlyGuardian() internal view
-```
-
-### _onlyManager
-
-```solidity
-function _onlyManager() internal view
-```
-
-## BlackScholes
-
-@title Library used to calculate an option price using Black Scholes
-
-### ONE_YEAR_SECONDS
-
-```solidity
-uint256 ONE_YEAR_SECONDS
-```
-
-### ONE
-
-```solidity
-uint256 ONE
-```
-
-### TWO
-
-```solidity
-uint256 TWO
-```
-
-### Intermediates
-
-```solidity
-struct Intermediates {
-  uint256 d1Denominator;
-  int256 d1;
-  int256 eToNegRT;
-}
-```
-
-### callOptionPrice
-
-```solidity
-function callOptionPrice(int256 d1, int256 d1Denominator, int256 price, int256 strike, int256 eToNegRT) public pure returns (uint256)
-```
-
-### callOptionPriceGreeks
-
-```solidity
-function callOptionPriceGreeks(int256 d1, int256 d1Denominator, int256 price, int256 strike, int256 eToNegRT) public pure returns (uint256 quote, int256 delta)
-```
-
-### putOptionPriceGreeks
-
-```solidity
-function putOptionPriceGreeks(int256 d1, int256 d1Denominator, int256 price, int256 strike, int256 eToNegRT) public pure returns (uint256 quote, int256 delta)
-```
-
-### putOptionPrice
-
-```solidity
-function putOptionPrice(int256 d1, int256 d1Denominator, int256 price, int256 strike, int256 eToNegRT) public pure returns (uint256)
-```
-
-### getTimeStamp
-
-```solidity
-function getTimeStamp() private view returns (uint256)
-```
-
-### getD1
-
-```solidity
-function getD1(uint256 price, uint256 strike, uint256 time, uint256 vol, uint256 rfr) private pure returns (int256 d1, uint256 d1Denominator)
-```
-
-### getIntermediates
-
-```solidity
-function getIntermediates(uint256 price, uint256 strike, uint256 time, uint256 vol, uint256 rfr) private pure returns (struct BlackScholes.Intermediates)
-```
-
-### blackScholesCalc
-
-```solidity
-function blackScholesCalc(uint256 price, uint256 strike, uint256 expiration, uint256 vol, uint256 rfr, bool isPut) public view returns (uint256)
-```
-
-### blackScholesCalcGreeks
-
-```solidity
-function blackScholesCalcGreeks(uint256 price, uint256 strike, uint256 expiration, uint256 vol, uint256 rfr, bool isPut) public view returns (uint256 quote, int256 delta)
-```
-
-### getDelta
-
-```solidity
-function getDelta(uint256 price, uint256 strike, uint256 expiration, uint256 vol, uint256 rfr, bool isPut) public view returns (int256)
-```
-
-## CustomErrors
-
-### NotKeeper
-
-```solidity
-error NotKeeper()
-```
-
-### IVNotFound
-
-```solidity
-error IVNotFound()
-```
-
-### NotHandler
-
-```solidity
-error NotHandler()
-```
-
-### InvalidPrice
-
-```solidity
-error InvalidPrice()
-```
-
-### InvalidBuyer
-
-```solidity
-error InvalidBuyer()
-```
-
-### InvalidOrder
-
-```solidity
-error InvalidOrder()
-```
-
-### OrderExpired
-
-```solidity
-error OrderExpired()
-```
-
-### InvalidAmount
-
-```solidity
-error InvalidAmount()
-```
-
-### TradingPaused
-
-```solidity
-error TradingPaused()
-```
-
-### IssuanceFailed
-
-```solidity
-error IssuanceFailed()
-```
-
-### EpochNotClosed
-
-```solidity
-error EpochNotClosed()
-```
-
-### TradingNotPaused
-
-```solidity
-error TradingNotPaused()
-```
-
-### NotLiquidityPool
-
-```solidity
-error NotLiquidityPool()
-```
-
-### DeltaNotDecreased
-
-```solidity
-error DeltaNotDecreased()
-```
-
-### NonExistentOtoken
-
-```solidity
-error NonExistentOtoken()
-```
-
-### OrderExpiryTooLong
-
-```solidity
-error OrderExpiryTooLong()
-```
-
-### InvalidShareAmount
-
-```solidity
-error InvalidShareAmount()
-```
-
-### ExistingWithdrawal
-
-```solidity
-error ExistingWithdrawal()
-```
-
-### TotalSupplyReached
-
-```solidity
-error TotalSupplyReached()
-```
-
-### StrikeAssetInvalid
-
-```solidity
-error StrikeAssetInvalid()
-```
-
-### OptionStrikeInvalid
-
-```solidity
-error OptionStrikeInvalid()
-```
-
-### OptionExpiryInvalid
-
-```solidity
-error OptionExpiryInvalid()
-```
-
-### NoExistingWithdrawal
-
-```solidity
-error NoExistingWithdrawal()
-```
-
-### SpotMovedBeyondRange
-
-```solidity
-error SpotMovedBeyondRange()
-```
-
-### CollateralAssetInvalid
-
-```solidity
-error CollateralAssetInvalid()
-```
-
-### UnderlyingAssetInvalid
-
-```solidity
-error UnderlyingAssetInvalid()
-```
-
-### CollateralAmountInvalid
-
-```solidity
-error CollateralAmountInvalid()
-```
-
-### WithdrawExceedsLiquidity
-
-```solidity
-error WithdrawExceedsLiquidity()
-```
-
-### InsufficientShareBalance
-
-```solidity
-error InsufficientShareBalance()
-```
-
-### MaxLiquidityBufferReached
-
-```solidity
-error MaxLiquidityBufferReached()
-```
-
-### LiabilitiesGreaterThanAssets
-
-```solidity
-error LiabilitiesGreaterThanAssets()
-```
-
-### CustomOrderInsufficientPrice
-
-```solidity
-error CustomOrderInsufficientPrice()
-```
-
-### CustomOrderInvalidDeltaValue
-
-```solidity
-error CustomOrderInvalidDeltaValue()
-```
-
-### DeltaQuoteError
-
-```solidity
-error DeltaQuoteError(uint256 quote, int256 delta)
-```
-
-### TimeDeltaExceedsThreshold
-
-```solidity
-error TimeDeltaExceedsThreshold(uint256 timeDelta)
-```
-
-### PriceDeltaExceedsThreshold
-
-```solidity
-error PriceDeltaExceedsThreshold(uint256 priceDelta)
-```
-
-### StrikeAmountExceedsLiquidity
-
-```solidity
-error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity)
-```
-
-### MinStrikeAmountExceedsLiquidity
-
-```solidity
-error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin)
-```
-
-### UnderlyingAmountExceedsLiquidity
-
-```solidity
-error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity)
-```
-
-### MinUnderlyingAmountExceedsLiquidity
-
-```solidity
-error MinUnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingAmountMin)
-```
-
-## EnumerableSet
-
-_Library for managing
-https://en.wikipedia.org/wiki/Set_(abstract_data_type)[sets] of primitive
-types.
-
-Sets have the following properties:
-
-- Elements are added, removed, and checked for existence in constant time
-(O(1)).
-- Elements are enumerated in O(n). No guarantees are made on the ordering.
-
-```
-contract Example {
-    // Add the library methods
-    using EnumerableSet for EnumerableSet.AddressSet;
-
-    // Declare a set state variable
-    EnumerableSet.AddressSet private mySet;
-}
-```
-
-As of v3.3.0, sets of type `bytes32` (`Bytes32Set`), `address` (`AddressSet`)
-and `uint256` (`UintSet`) are supported.
-
-[WARNING]
-====
- Trying to delete such a structure from storage will likely result in data corruption, rendering the structure unusable.
- See https://github.com/ethereum/solidity/pull/11843[ethereum/solidity#11843] for more info.
-
- In order to clean an EnumerableSet, you can either remove all elements one by one or create a fresh instance using an array of EnumerableSet.
-====_
-
-### Set
-
-```solidity
-struct Set {
-  bytes32[] _values;
-  mapping(bytes32 => uint256) _indexes;
-}
-```
-
-### _add
-
-```solidity
-function _add(struct EnumerableSet.Set set, bytes32 value) private returns (bool)
-```
-
-_Add a value to a set. O(1).
-
-Returns true if the value was added to the set, that is if it was not
-already present._
-
-### _remove
-
-```solidity
-function _remove(struct EnumerableSet.Set set, bytes32 value) private returns (bool)
-```
-
-_Removes a value from a set. O(1).
-
-Returns true if the value was removed from the set, that is if it was
-present._
-
-### _contains
-
-```solidity
-function _contains(struct EnumerableSet.Set set, bytes32 value) private view returns (bool)
-```
-
-_Returns true if the value is in the set. O(1)._
-
-### _length
-
-```solidity
-function _length(struct EnumerableSet.Set set) private view returns (uint256)
-```
-
-_Returns the number of values on the set. O(1)._
-
-### _at
-
-```solidity
-function _at(struct EnumerableSet.Set set, uint256 index) private view returns (bytes32)
-```
-
-_Returns the value stored at position `index` in the set. O(1).
-
-Note that there are no guarantees on the ordering of values inside the
-array, and it may change when more values are added or removed.
-
-Requirements:
-
-- `index` must be strictly less than {length}._
-
-### _values
-
-```solidity
-function _values(struct EnumerableSet.Set set) private view returns (bytes32[])
-```
-
-_Return the entire set in an array
-
-WARNING: This operation will copy the entire storage to memory, which can be quite expensive. This is designed
-to mostly be used by view accessors that are queried without any gas fees. Developers should keep in mind that
-this function has an unbounded cost, and using it as part of a state-changing function may render the function
-uncallable if the set grows to a point where copying to memory consumes too much gas to fit in a block._
-
-### AddressSet
-
-```solidity
-struct AddressSet {
-  struct EnumerableSet.Set _inner;
-}
-```
-
-### add
-
-```solidity
-function add(struct EnumerableSet.AddressSet set, address value) internal returns (bool)
-```
-
-_Add a value to a set. O(1).
-
-Returns true if the value was added to the set, that is if it was not
-already present._
-
-### remove
-
-```solidity
-function remove(struct EnumerableSet.AddressSet set, address value) internal returns (bool)
-```
-
-_Removes a value from a set. O(1).
-
-Returns true if the value was removed from the set, that is if it was
-present._
-
-### contains
-
-```solidity
-function contains(struct EnumerableSet.AddressSet set, address value) internal view returns (bool)
-```
-
-_Returns true if the value is in the set. O(1)._
-
-### length
-
-```solidity
-function length(struct EnumerableSet.AddressSet set) internal view returns (uint256)
-```
-
-_Returns the number of values in the set. O(1)._
-
-### at
-
-```solidity
-function at(struct EnumerableSet.AddressSet set, uint256 index) internal view returns (address)
-```
-
-_Returns the value stored at position `index` in the set. O(1).
-
-Note that there are no guarantees on the ordering of values inside the
-array, and it may change when more values are added or removed.
-
-Requirements:
-
-- `index` must be strictly less than {length}._
-
-### values
-
-```solidity
-function values(struct EnumerableSet.AddressSet set) internal view returns (address[])
-```
-
-_Return the entire set in an array
-
-WARNING: This operation will copy the entire storage to memory, which can be quite expensive. This is designed
-to mostly be used by view accessors that are queried without any gas fees. Developers should keep in mind that
-this function has an unbounded cost, and using it as part of a state-changing function may render the function
-uncallable if the set grows to a point where copying to memory consumes too much gas to fit in a block._
-
-## NormalDist
-
-@title Library used for approximating a normal distribution
-
-### ONE
-
-```solidity
-int256 ONE
-```
-
-### ONE_HALF
-
-```solidity
-int256 ONE_HALF
-```
-
-### SQRT_TWO
-
-```solidity
-int256 SQRT_TWO
-```
-
-### A1
-
-```solidity
-int256 A1
-```
-
-### A2
-
-```solidity
-int256 A2
-```
-
-### A3
-
-```solidity
-int256 A3
-```
-
-### A4
-
-```solidity
-int256 A4
-```
-
-### A5
-
-```solidity
-int256 A5
-```
-
-### P
-
-```solidity
-int256 P
-```
-
-### cdf
-
-```solidity
-function cdf(int256 x) public pure returns (int256)
-```
-
-### phi
-
-```solidity
-function phi(int256 x) public pure returns (int256)
-```
-
-### getScoresFromT
-
-```solidity
-function getScoresFromT(int256 t) public pure returns (int256)
-```
-
-## OptionsCompute
-
-@title Library used for various helper functionality for the Liquidity Pool
-
-### SCALE_DECIMALS
-
-```solidity
-uint8 SCALE_DECIMALS
-```
-
-### convertToDecimals
-
-```solidity
-function convertToDecimals(uint256 value, uint256 decimals) internal pure returns (uint256)
-```
-
-_assumes decimals are coming in as e18_
-
-### convertFromDecimals
-
-```solidity
-function convertFromDecimals(uint256 value, uint256 decimals) internal pure returns (uint256)
-```
-
-_converts from specified decimals to e18_
-
-### convertToCollateralDenominated
-
-```solidity
-function convertToCollateralDenominated(uint256 quote, uint256 underlyingPrice, struct Types.OptionSeries optionSeries) internal pure returns (uint256 convertedQuote)
-```
-
-### calculatePercentageChange
-
-```solidity
-function calculatePercentageChange(uint256 n, uint256 o) internal pure returns (uint256 pC)
-```
-
-_computes the percentage change between two integers_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| n | uint256 | new value in e18 |
-| o | uint256 | old value in e18 |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| pC | uint256 | uint256 the percentage change in e18 |
-
-### validatePortfolioValues
-
-```solidity
-function validatePortfolioValues(uint256 spotPrice, struct Types.PortfolioValues portfolioValues, uint256 maxTimeDeviationThreshold, uint256 maxPriceDeviationThreshold) public view
-```
-
-get the latest oracle fed portfolio values and check when they were last updated and make sure this is within a reasonable window in
-	   terms of price and time
-
-### getUtilizationPrice
-
-```solidity
-function getUtilizationPrice(uint256 _utilizationBefore, uint256 _utilizationAfter, uint256 _totalOptionPrice, uint256 _utilizationFunctionThreshold, uint256 _belowThresholdGradient, uint256 _aboveThresholdGradient, uint256 _aboveThresholdYIntercept) internal pure returns (uint256 utilizationPrice)
-```
-
-calculates the utilization price of an option using the liquidity pool's utilisation skew algorithm
-
-### quotePriceGreeks
-
-```solidity
-function quotePriceGreeks(struct Types.OptionSeries optionSeries, bool isBuying, uint256 bidAskIVSpread, uint256 riskFreeRate, uint256 iv, uint256 underlyingPrice) internal view returns (uint256 quote, int256 delta)
-```
-
-get the greeks of a quotePrice for a given optionSeries
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| optionSeries | struct Types.OptionSeries | Types.OptionSeries struct for describing the option to price greeks - strike in e18 |
-| isBuying | bool |  |
-| bidAskIVSpread | uint256 |  |
-| riskFreeRate | uint256 |  |
-| iv | uint256 |  |
-| underlyingPrice | uint256 |  |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| quote | uint256 | Quote price of the option - in e18 |
-| delta | int256 | delta of the option being priced - in e18 |
-
-## OpynInteractions
-
-@title Library used for standard interactions with the opyn-rysk gamma protocol
-  @dev inherited by the options registry to complete base opyn-rysk gamma protocol interactions
-       Interacts with the opyn-rysk gamma protocol in all functions
-
-### SCALE_FROM
-
-```solidity
-uint256 SCALE_FROM
-```
-
-### NoShort
-
-```solidity
-error NoShort()
-```
-
-### getOrDeployOtoken
-
-```solidity
-function getOrDeployOtoken(address oTokenFactory, address collateral, address underlying, address strikeAsset, uint256 strike, uint256 expiration, bool isPut) external returns (address)
-```
-
-Either retrieves the option token if it already exists, or deploy it
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| oTokenFactory | address | is the address of the opyn oTokenFactory |
-| collateral | address | asset that is held as collateral against short/written options |
-| underlying | address | is the address of the underlying asset of the option |
-| strikeAsset | address | is the address of the collateral asset of the option |
-| strike | uint256 | is the strike price of the option in 1e8 format |
-| expiration | uint256 | is the expiry timestamp of the option |
-| isPut | bool | the type of option |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | address | the address of the option |
-
-### getOtoken
-
-```solidity
-function getOtoken(address oTokenFactory, address collateral, address underlying, address strikeAsset, uint256 strike, uint256 expiration, bool isPut) external view returns (address otokenFromFactory)
-```
-
-Retrieves the option token if it already exists
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| oTokenFactory | address | is the address of the opyn oTokenFactory |
-| collateral | address | asset that is held as collateral against short/written options |
-| underlying | address | is the address of the underlying asset of the option |
-| strikeAsset | address | is the address of the collateral asset of the option |
-| strike | uint256 | is the strike price of the option in 1e8 format |
-| expiration | uint256 | is the expiry timestamp of the option |
-| isPut | bool | the type of option |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| otokenFromFactory | address | the address of the option |
-
-### createShort
-
-```solidity
-function createShort(address gammaController, address marginPool, address oTokenAddress, uint256 depositAmount, uint256 vaultId, uint256 amount, uint256 vaultType) external returns (uint256)
-```
-
-Creates the actual Opyn short position by depositing collateral and minting otokens
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| gammaController | address | is the address of the opyn controller contract |
-| marginPool | address | is the address of the opyn margin contract which holds the collateral |
-| oTokenAddress | address | is the address of the otoken to mint |
-| depositAmount | uint256 | is the amount of collateral to deposit |
-| vaultId | uint256 | is the vault id to use for creating this short |
-| amount | uint256 | is the mint amount in 1e18 format |
-| vaultType | uint256 | is the type of vault to be created |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | the otoken mint amount |
-
-### depositCollat
-
-```solidity
-function depositCollat(address gammaController, address marginPool, address collateralAsset, uint256 depositAmount, uint256 vaultId) external
-```
-
-Deposits Collateral to a specific vault
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| gammaController | address | is the address of the opyn controller contract |
-| marginPool | address | is the address of the opyn margin contract which holds the collateral |
-| collateralAsset | address | is the address of the collateral asset to deposit |
-| depositAmount | uint256 | is the amount of collateral to deposit |
-| vaultId | uint256 | is the vault id to access |
-
-### withdrawCollat
-
-```solidity
-function withdrawCollat(address gammaController, address collateralAsset, uint256 withdrawAmount, uint256 vaultId) external
-```
-
-Withdraws Collateral from a specific vault
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| gammaController | address | is the address of the opyn controller contract |
-| collateralAsset | address | is the address of the collateral asset to withdraw |
-| withdrawAmount | uint256 | is the amount of collateral to withdraw |
-| vaultId | uint256 | is the vault id to access |
-
-### burnShort
-
-```solidity
-function burnShort(address gammaController, address oTokenAddress, uint256 burnAmount, uint256 vaultId) external returns (uint256)
-```
-
-Burns an opyn short position and returns collateral back to OptionRegistry
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| gammaController | address | is the address of the opyn controller contract |
-| oTokenAddress | address | is the address of the otoken to burn |
-| burnAmount | uint256 | is the amount of options to burn |
-| vaultId | uint256 | is the vault id used that holds the short |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | the collateral returned amount |
-
-### settle
-
-```solidity
-function settle(address gammaController, uint256 vaultId) external returns (uint256 collateralRedeemed, uint256 collateralLost, uint256 shortAmount)
-```
-
-Close the existing short otoken position.
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| gammaController | address | is the address of the opyn controller contract |
-| vaultId | uint256 | is the id of the vault to be settled |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| collateralRedeemed | uint256 | collateral redeemed from the vault |
-| collateralLost | uint256 | collateral left behind in vault used to pay ITM expired options |
-| shortAmount | uint256 | number of options that were written |
-
-### redeem
-
-```solidity
-function redeem(address gammaController, address marginPool, address series, uint256 amount) external returns (uint256)
-```
-
-Exercises an ITM option
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| gammaController | address | is the address of the opyn controller contract |
-| marginPool | address | is the address of the opyn margin pool |
-| series | address | is the address of the option to redeem |
-| amount | uint256 | is the number of oTokens to redeem - passed in as e8 |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | uint256 | amount of asset received by exercising the option |
-
-## SafeTransferLib
-
-Safe ETH and ERC20 transfer library that gracefully handles missing return values.
-
-_Use with caution! Some functions in this library knowingly create dirty bits at the destination of the free memory pointer._
-
-### safeTransferETH
-
-```solidity
-function safeTransferETH(address to, uint256 amount) internal
-```
-
-### safeTransferFrom
-
-```solidity
-function safeTransferFrom(address tokenAddress, address from, address to, uint256 amount) internal
-```
-
-### safeTransfer
-
-```solidity
-function safeTransfer(contract ERC20 token, address to, uint256 amount) internal
-```
-
-### safeApprove
-
-```solidity
-function safeApprove(contract ERC20 token, address to, uint256 amount) internal
-```
-
-### didLastOptionalReturnCallSucceed
-
-```solidity
-function didLastOptionalReturnCallSucceed(bool callStatus) private pure returns (bool success)
-```
-
-## Types
-
-### OptionSeries
-
-```solidity
-struct OptionSeries {
-  uint64 expiration;
-  uint128 strike;
-  bool isPut;
-  address underlying;
-  address strikeAsset;
-  address collateral;
-}
-```
-
-### PortfolioValues
-
-```solidity
-struct PortfolioValues {
-  int256 delta;
-  int256 gamma;
-  int256 vega;
-  int256 theta;
-  int256 callPutsValue;
-  uint256 timestamp;
-  uint256 spotPrice;
-}
-```
-
-### Order
-
-```solidity
-struct Order {
-  struct Types.OptionSeries optionSeries;
-  uint256 amount;
-  uint256 price;
-  uint256 orderExpiry;
-  address buyer;
-  address seriesAddress;
-  uint128 lowerSpotMovementRange;
-  uint128 upperSpotMovementRange;
-  bool isBuyBack;
-}
-```
-
-### OptionParams
-
-```solidity
-struct OptionParams {
-  uint128 minCallStrikePrice;
-  uint128 maxCallStrikePrice;
-  uint128 minPutStrikePrice;
-  uint128 maxPutStrikePrice;
-  uint128 minExpiry;
-  uint128 maxExpiry;
-}
-```
-
-### UtilizationState
-
-```solidity
-struct UtilizationState {
-  uint256 totalOptionPrice;
-  int256 totalDelta;
-  uint256 collateralToAllocate;
-  uint256 utilizationBefore;
-  uint256 utilizationAfter;
-  uint256 utilizationPrice;
-  bool isDecreased;
-  uint256 deltaTiltAmount;
-  uint256 underlyingPrice;
-  uint256 iv;
-}
-```
-
-## ERC20
-
-Modern and gas efficient ERC20 + EIP-2612 implementation.
-
-_Do not manually set balances without updating totalSupply, as the sum of all user balances must not exceed it._
-
-### Transfer
-
-```solidity
-event Transfer(address from, address to, uint256 amount)
-```
-
-### Approval
-
-```solidity
-event Approval(address owner, address spender, uint256 amount)
-```
-
-### name
-
-```solidity
-string name
-```
-
-### symbol
-
-```solidity
-string symbol
-```
-
-### decimals
-
-```solidity
-uint8 decimals
-```
-
-### totalSupply
-
-```solidity
-uint256 totalSupply
-```
-
-### balanceOf
-
-```solidity
-mapping(address => uint256) balanceOf
-```
-
-### allowance
-
-```solidity
-mapping(address => mapping(address => uint256)) allowance
-```
-
-### INITIAL_CHAIN_ID
-
-```solidity
-uint256 INITIAL_CHAIN_ID
-```
-
-### INITIAL_DOMAIN_SEPARATOR
-
-```solidity
-bytes32 INITIAL_DOMAIN_SEPARATOR
-```
-
-### nonces
-
-```solidity
-mapping(address => uint256) nonces
-```
-
-### constructor
-
-```solidity
-constructor(string _name, string _symbol, uint8 _decimals) internal
-```
-
-### approve
-
-```solidity
-function approve(address spender, uint256 amount) public virtual returns (bool)
-```
-
-### transfer
-
-```solidity
-function transfer(address to, uint256 amount) public virtual returns (bool)
-```
-
-### transferFrom
-
-```solidity
-function transferFrom(address from, address to, uint256 amount) public virtual returns (bool)
-```
-
-### permit
-
-```solidity
-function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) public virtual
-```
-
-### DOMAIN_SEPARATOR
-
-```solidity
-function DOMAIN_SEPARATOR() public view virtual returns (bytes32)
-```
-
-### computeDomainSeparator
-
-```solidity
-function computeDomainSeparator() internal view virtual returns (bytes32)
-```
-
-### _mint
-
-```solidity
-function _mint(address to, uint256 amount) internal virtual
-```
-
-### _burn
-
-```solidity
-function _burn(address from, uint256 amount) internal virtual
-```
-
-## LiquidityPoolAdjustCollateralTest
-
-### optionRegistry
-
-```solidity
-address optionRegistry
-```
-
-### usd
-
-```solidity
-address usd
-```
-
-### collateralAllocated
-
-```solidity
-uint256 collateralAllocated
-```
-
-### constructor
-
-```solidity
-constructor(address _optionRegistry, address _usd) public
-```
-
-### issue
-
-```solidity
-function issue(address underlying, address strikeAsset, uint64 expiration, bool isPut, uint128 strike, address collateral) external returns (address)
-```
-
-Either retrieves the option token if it already exists, or deploy it
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| underlying | address | is the address of the underlying asset of the option |
-| strikeAsset | address | is the address of the collateral asset of the option |
-| expiration | uint64 | is the expiry timestamp of the option |
-| isPut | bool | the type of option |
-| strike | uint128 | is the strike price of the option - 1e18 format |
-| collateral | address | is the address of the asset to collateralize the option with |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | address | the address of the option |
-
-### open
-
-```solidity
-function open(address _series, uint256 amount, uint256 collateralAmount) external returns (bool, uint256)
-```
-
-Open an options contract using collateral from the liquidity pool
-
-_only callable by the liquidityPool_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _series | address | the address of the option token to be created |
-| amount | uint256 | the amount of options to deploy |
-| collateralAmount | uint256 | the collateral required for the option |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | if the transaction succeeded |
-| [1] | uint256 | the amount of collateral taken from the liquidityPool |
-
-### close
-
-```solidity
-function close(address _series, uint256 amount) external returns (bool, uint256)
-```
-
-Close an options contract (oToken) before it has expired
-
-_only callable by the liquidityPool_
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _series | address | the address of the option token to be burnt |
-| amount | uint256 | the amount of options to burn |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | if the transaction succeeded |
-| [1] | uint256 |  |
-
-### settle
-
-```solidity
-function settle(address _series) external returns (bool, uint256, uint256, uint256)
-```
-
-### adjustCollateral
-
-```solidity
-function adjustCollateral(uint256 lpCollateralDifference, bool addToLpBalance) external
-```
-
-adjust the collateral held in a specific vault because of health
-    @param lpCollateralDifference amount of collateral taken from or given to the liquidity pool
-    @param addToLpBalance true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool
-
-### getBalance
-
-```solidity
-function getBalance(address collateralAsset) external view returns (uint256)
-```
-
-### setCollateralAllocated
-
-```solidity
-function setCollateralAllocated(uint256 amount) external
-```
-
-## ReentrancyGuard
-
-_Contract module that helps prevent reentrant calls to a function.
-
-Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier
-available, which can be applied to functions to make sure there are no nested
-(reentrant) calls to them.
-
-Note that because there is a single `nonReentrant` guard, functions marked as
-`nonReentrant` may not call one another. This can be worked around by making
-those functions `private`, and then adding `external` `nonReentrant` entry
-points to them.
-
-TIP: If you would like to learn more about reentrancy and alternative ways
-to protect against it, check out our blog post
-https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul]._
-
-### _NOT_ENTERED
-
-```solidity
-uint256 _NOT_ENTERED
-```
-
-### _ENTERED
-
-```solidity
-uint256 _ENTERED
-```
-
-### _status
-
-```solidity
-uint256 _status
-```
-
-### constructor
-
-```solidity
-constructor() public
-```
-
-### nonReentrant
-
-```solidity
-modifier nonReentrant()
-```
-
-_Prevents a contract from calling itself, directly or indirectly.
-Calling a `nonReentrant` function from another `nonReentrant`
-function is not supported. It is possible to prevent this from happening
-by making the `nonReentrant` function external, and make it call a
-`private` function that does the actual work._
-
 ## AddressBook
 
 ### OTOKEN_IMPL
@@ -10222,60 +4472,6 @@ function deposit(uint256) external
 function withdraw(uint256) external
 ```
 
-## ZeroXExchangeInterface
-
-_ZeroX Exchange contract interface._
-
-### LimitOrder
-
-```solidity
-struct LimitOrder {
-  address makerToken;
-  address takerToken;
-  uint128 makerAmount;
-  uint128 takerAmount;
-  uint128 takerTokenFeeAmount;
-  address maker;
-  address taker;
-  address sender;
-  address feeRecipient;
-  bytes32 pool;
-  uint64 expiry;
-  uint256 salt;
-}
-```
-
-### Signature
-
-```solidity
-struct Signature {
-  uint8 signatureType;
-  uint8 v;
-  bytes32 r;
-  bytes32 s;
-}
-```
-
-### batchFillLimitOrders
-
-```solidity
-function batchFillLimitOrders(struct ZeroXExchangeInterface.LimitOrder[] orders, struct ZeroXExchangeInterface.Signature[] signatures, uint128[] takerTokenFillAmounts, bool revertIfIncomplete) external payable returns (uint128[] takerTokenFilledAmounts, uint128[] makerTokenFilledAmounts)
-```
-
-_Executes multiple calls of fillLimitOrder._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| orders | struct ZeroXExchangeInterface.LimitOrder[] | Array of order specifications. |
-| signatures | struct ZeroXExchangeInterface.Signature[] | Array of proofs that orders have been created by makers. |
-| takerTokenFillAmounts | uint128[] | Array of desired amounts of takerToken to sell in orders. |
-| revertIfIncomplete | bool |  |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| takerTokenFilledAmounts | uint128[] | Array of amount of takerToken(s) filled. |
-| makerTokenFilledAmounts | uint128[] | Array of amount of makerToken(s) filled. |
-
 ## Actions
 
 A library that provides a ActionArgs struct, sub types of Action structs, and functions to parse ActionArgs into specific Actions.
@@ -10994,739 +5190,6 @@ convert a signed integer to an unsigned integer
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | uint256 | converted unsigned integer |
-
-## Mock0xERC20Proxy
-
-Mock 0x ERC20 Proxy
-
-### transferToken
-
-```solidity
-function transferToken(address token, address from, address to, uint256 amount) external
-```
-
-## Mock0xExchange
-
-Mock 0x Exchange
-
-### called
-
-```solidity
-uint256 called
-```
-
-### takerAmount
-
-```solidity
-uint256 takerAmount
-```
-
-### makerAmount
-
-```solidity
-uint256 makerAmount
-```
-
-### signature
-
-```solidity
-bytes signature
-```
-
-### fillAmount
-
-```solidity
-uint256 fillAmount
-```
-
-### proxy
-
-```solidity
-contract Mock0xERC20Proxy proxy
-```
-
-### constructor
-
-```solidity
-constructor() public
-```
-
-### fillLimitOrder
-
-```solidity
-function fillLimitOrder(struct ZeroXExchangeInterface.LimitOrder _order, struct ZeroXExchangeInterface.Signature _signature, uint128 _takerTokenFillAmount) public payable returns (uint128 takerTokenFilledAmount, uint128 makerTokenFilledAmount)
-```
-
-### batchFillLimitOrders
-
-```solidity
-function batchFillLimitOrders(struct ZeroXExchangeInterface.LimitOrder[] _orders, struct ZeroXExchangeInterface.Signature[] _signatures, uint128[] _takerTokenFillAmounts, bool _revertIfIncomplete) external payable returns (uint128[] takerTokenFilledAmounts, uint128[] makerTokenFilledAmounts)
-```
-
-## MockCToken
-
-### exchangeRateStored
-
-```solidity
-uint256 exchangeRateStored
-```
-
-### constructor
-
-```solidity
-constructor(string _name, string _symbol) public
-```
-
-### mint
-
-```solidity
-function mint(address account, uint256 amount) public
-```
-
-### setExchangeRate
-
-```solidity
-function setExchangeRate(uint256 _exchangeRateStored) external
-```
-
-## MockCUSDC
-
-### exchangeRateStored
-
-```solidity
-uint256 exchangeRateStored
-```
-
-### underlying
-
-```solidity
-address underlying
-```
-
-### scale
-
-```solidity
-uint256 scale
-```
-
-### constructor
-
-```solidity
-constructor(string _name, string _symbol, address _underlying, uint256 _initExchangeRateStored) public
-```
-
-### mint
-
-```solidity
-function mint(uint256 amount) public returns (uint256)
-```
-
-### redeem
-
-```solidity
-function redeem(uint256 amount) public returns (uint256)
-```
-
-### setExchangeRate
-
-```solidity
-function setExchangeRate(uint256 _exchangeRateStored) external
-```
-
-## MockController
-
-Upgradeable Controller that can mock minting and burning calls from controller.
-
-### addressBook
-
-```solidity
-address addressBook
-```
-
-addressbook address
-
-### owner
-
-```solidity
-address owner
-```
-
-### initialize
-
-```solidity
-function initialize(address _addressBook, address _owner) external
-```
-
-_this function is invoked by the proxy contract when this contract is added to the
-AddressBook._
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _addressBook | address | the address of the AddressBook |
-| _owner | address |  |
-
-### testMintOtoken
-
-```solidity
-function testMintOtoken(address _otoken, address _account, uint256 _amount) external
-```
-
-_this function is used to test if controller can mint otokens_
-
-### testBurnOtoken
-
-```solidity
-function testBurnOtoken(address _otoken, address _account, uint256 _amount) external
-```
-
-_this function is used to test if controller can burn otokens_
-
-### test0xCallee
-
-```solidity
-function test0xCallee(address _callee, bytes _data) external
-```
-
-_this function is used to test if controller can be the only msg.sender to the 0xcallee_
-
-## MockDumbERC20
-
-ERC20 Token that return false when operation failed
-
-### _locked
-
-```solidity
-bool _locked
-```
-
-### _balances
-
-```solidity
-mapping(address => uint256) _balances
-```
-
-### _allowances
-
-```solidity
-mapping(address => mapping(address => uint256)) _allowances
-```
-
-### _totalSupply
-
-```solidity
-uint256 _totalSupply
-```
-
-### _name
-
-```solidity
-string _name
-```
-
-### _symbol
-
-```solidity
-string _symbol
-```
-
-### _decimals
-
-```solidity
-uint8 _decimals
-```
-
-### constructor
-
-```solidity
-constructor(string name_, string symbol_, uint8 decimals_) public
-```
-
-### name
-
-```solidity
-function name() public view returns (string)
-```
-
-### symbol
-
-```solidity
-function symbol() public view returns (string)
-```
-
-### decimals
-
-```solidity
-function decimals() public view returns (uint8)
-```
-
-### totalSupply
-
-```solidity
-function totalSupply() public view returns (uint256)
-```
-
-### balanceOf
-
-```solidity
-function balanceOf(address account) public view returns (uint256)
-```
-
-### transfer
-
-```solidity
-function transfer(address recipient, uint256 amount) public virtual returns (bool)
-```
-
-### allowance
-
-```solidity
-function allowance(address owner, address spender) public view virtual returns (uint256)
-```
-
-### approve
-
-```solidity
-function approve(address spender, uint256 amount) public virtual returns (bool)
-```
-
-### transferFrom
-
-```solidity
-function transferFrom(address sender, address recipient, uint256 amount) public virtual returns (bool)
-```
-
-### mint
-
-```solidity
-function mint(address recipient, uint256 amount) public
-```
-
-### burn
-
-```solidity
-function burn(address recipient, uint256 amount) public
-```
-
-### setLocked
-
-```solidity
-function setLocked(bool locked_) public
-```
-
-## MockERC20
-
-### constructor
-
-```solidity
-constructor(string _name, string _symbol, uint8 _decimals) public
-```
-
-### mint
-
-```solidity
-function mint(address account, uint256 amount) public
-```
-
-## MockOracle
-
-SPDX-License-Identifier: UNLICENSED
-
-_The MockOracle contract let us easily manipulate the oracle state in testings._
-
-### Price
-
-```solidity
-struct Price {
-  uint256 price;
-  uint256 timestamp;
-}
-```
-
-### realTimePrice
-
-```solidity
-mapping(address => uint256) realTimePrice
-```
-
-### storedPrice
-
-```solidity
-mapping(address => mapping(uint256 => uint256)) storedPrice
-```
-
-### stablePrice
-
-```solidity
-mapping(address => uint256) stablePrice
-```
-
-### isFinalized
-
-```solidity
-mapping(address => mapping(uint256 => bool)) isFinalized
-```
-
-### pricerLockingPeriod
-
-```solidity
-mapping(address => uint256) pricerLockingPeriod
-```
-
-### pricerDisputePeriod
-
-```solidity
-mapping(address => uint256) pricerDisputePeriod
-```
-
-### assetPricer
-
-```solidity
-mapping(address => address) assetPricer
-```
-
-### _isDisputePeriodOver
-
-```solidity
-mapping(address => mapping(uint256 => bool)) _isDisputePeriodOver
-```
-
-### _isLockingPeriodOver
-
-```solidity
-mapping(address => mapping(uint256 => bool)) _isLockingPeriodOver
-```
-
-### _roundPrice
-
-```solidity
-mapping(address => mapping(uint80 => uint256)) _roundPrice
-```
-
-### _roundTimestamp
-
-```solidity
-mapping(address => mapping(uint80 => uint256)) _roundTimestamp
-```
-
-### setRealTimePrice
-
-```solidity
-function setRealTimePrice(address _asset, uint256 _price) external
-```
-
-### getChainlinkRoundData
-
-```solidity
-function getChainlinkRoundData(address _asset, uint80 _roundId) external view returns (uint256, uint256)
-```
-
-### getPrice
-
-```solidity
-function getPrice(address _asset) external view returns (uint256)
-```
-
-### setChainlinkRoundData
-
-```solidity
-function setChainlinkRoundData(address _asset, uint80 _roundId, uint256 _price, uint256 _timestamp) external returns (uint256, uint256)
-```
-
-### setExpiryPriceFinalizedAllPeiodOver
-
-```solidity
-function setExpiryPriceFinalizedAllPeiodOver(address _asset, uint256 _expiryTimestamp, uint256 _price, bool _isFinalized) external
-```
-
-### setExpiryPrice
-
-```solidity
-function setExpiryPrice(address _asset, uint256 _expiryTimestamp, uint256 _price) external
-```
-
-### setIsFinalized
-
-```solidity
-function setIsFinalized(address _asset, uint256 _expiryTimestamp, bool _isFinalized) external
-```
-
-### getExpiryPrice
-
-```solidity
-function getExpiryPrice(address _asset, uint256 _expiryTimestamp) external view returns (uint256, bool)
-```
-
-### getPricer
-
-```solidity
-function getPricer(address _asset) external view returns (address)
-```
-
-### getPricerLockingPeriod
-
-```solidity
-function getPricerLockingPeriod(address _pricer) external view returns (uint256)
-```
-
-### getPricerDisputePeriod
-
-```solidity
-function getPricerDisputePeriod(address _pricer) external view returns (uint256)
-```
-
-### isLockingPeriodOver
-
-```solidity
-function isLockingPeriodOver(address _asset, uint256 _expiryTimestamp) public view returns (bool)
-```
-
-### setIsLockingPeriodOver
-
-```solidity
-function setIsLockingPeriodOver(address _asset, uint256 _expiryTimestamp, bool _result) external
-```
-
-### isDisputePeriodOver
-
-```solidity
-function isDisputePeriodOver(address _asset, uint256 _expiryTimestamp) external view returns (bool)
-```
-
-### setIsDisputePeriodOver
-
-```solidity
-function setIsDisputePeriodOver(address _asset, uint256 _expiryTimestamp, bool _result) external
-```
-
-### setAssetPricer
-
-```solidity
-function setAssetPricer(address _asset, address _pricer) external
-```
-
-### setLockingPeriod
-
-```solidity
-function setLockingPeriod(address _pricer, uint256 _lockingPeriod) external
-```
-
-### setDisputePeriod
-
-```solidity
-function setDisputePeriod(address _pricer, uint256 _disputePeriod) external
-```
-
-### setStablePrice
-
-```solidity
-function setStablePrice(address _asset, uint256 _price) external
-```
-
-## MockOtoken
-
-SPDX-License-Identifier: UNLICENSED
-
-_The Otoken inherits ERC20PermitUpgradeable because we need to use the init instead of constructor._
-
-### addressBook
-
-```solidity
-address addressBook
-```
-
-### controller
-
-```solidity
-address controller
-```
-
-### underlyingAsset
-
-```solidity
-address underlyingAsset
-```
-
-### strikeAsset
-
-```solidity
-address strikeAsset
-```
-
-### collateralAsset
-
-```solidity
-address collateralAsset
-```
-
-### strikePrice
-
-```solidity
-uint256 strikePrice
-```
-
-### expiryTimestamp
-
-```solidity
-uint256 expiryTimestamp
-```
-
-### isPut
-
-```solidity
-bool isPut
-```
-
-### inited
-
-```solidity
-bool inited
-```
-
-### init
-
-```solidity
-function init(address _addressBook, address _underlyingAsset, address _strikeAsset, address _collateralAsset, uint256 _strikePrice, uint256 _expiryTimestamp, bool _isPut) external
-```
-
-### getOtokenDetails
-
-```solidity
-function getOtokenDetails() external view returns (address, address, address, uint256, uint256, bool)
-```
-
-### mintOtoken
-
-```solidity
-function mintOtoken(address _to, uint256 _amount) external
-```
-
-### burnOtoken
-
-```solidity
-function burnOtoken(address account, uint256 amount) external
-```
-
-### getChainId
-
-```solidity
-function getChainId() external view returns (uint256 chainId)
-```
-
-## MockPermitERC20
-
-### constructor
-
-```solidity
-constructor(string _name, string _symbol, uint8 _decimals) public
-```
-
-### mint
-
-```solidity
-function mint(address account, uint256 amount) public
-```
-
-## MockPricer
-
-### oracle
-
-```solidity
-contract OracleInterface oracle
-```
-
-### price
-
-```solidity
-uint256 price
-```
-
-### asset
-
-```solidity
-address asset
-```
-
-### constructor
-
-```solidity
-constructor(address _asset, address _oracle) public
-```
-
-### setPrice
-
-```solidity
-function setPrice(uint256 _price) external
-```
-
-### getPrice
-
-```solidity
-function getPrice() external view returns (uint256)
-```
-
-### setExpiryPriceInOracle
-
-```solidity
-function setExpiryPriceInOracle(uint256 _expiryTimestamp, uint256 _price) external
-```
-
-### getHistoricalPrice
-
-```solidity
-function getHistoricalPrice(uint80 _roundId) external view returns (uint256, uint256)
-```
-
-## MockWSTETHToken
-
-### stEthPerToken
-
-```solidity
-uint256 stEthPerToken
-```
-
-### constructor
-
-```solidity
-constructor(string _name, string _symbol) public
-```
-
-### mint
-
-```solidity
-function mint(address account, uint256 amount) public
-```
-
-### setStEthPerToken
-
-```solidity
-function setStEthPerToken(uint256 _stEthPerToken) external
-```
-
-## MockYToken
-
-### pricePerShare
-
-```solidity
-uint256 pricePerShare
-```
-
-### constructor
-
-```solidity
-constructor(string _name, string _symbol) public
-```
-
-### mint
-
-```solidity
-function mint(address account, uint256 amount) public
-```
-
-### setPricePerShare
-
-```solidity
-function setPricePerShare(uint256 _pricePerShare) external
-```
 
 ## NewMarginCalculator
 
@@ -16421,428 +9884,23 @@ _convert underlying price to yToken price with the yToken to underlying exchange
 function getHistoricalPrice(uint80 _roundId) external view returns (uint256, uint256)
 ```
 
-## ActionTester
+## AlphaOptionHandler
 
-### openVaultArgs
+@title Contract used for all user facing options interactions
+ @dev Interacts with liquidityPool to write options and quote their prices.
 
-```solidity
-struct Actions.OpenVaultArgs openVaultArgs
-```
-
-### depositArgs
-
-```solidity
-struct Actions.DepositArgs depositArgs
-```
-
-### withdrawArgs
-
-```solidity
-struct Actions.WithdrawArgs withdrawArgs
-```
-
-### mintArgs
-
-```solidity
-struct Actions.MintArgs mintArgs
-```
-
-### burnArgs
-
-```solidity
-struct Actions.BurnArgs burnArgs
-```
-
-### redeemArgs
-
-```solidity
-struct Actions.RedeemArgs redeemArgs
-```
-
-### settleVaultArgs
-
-```solidity
-struct Actions.SettleVaultArgs settleVaultArgs
-```
-
-### callArgs
-
-```solidity
-struct Actions.CallArgs callArgs
-```
-
-### liquidateArgs
-
-```solidity
-struct Actions.LiquidateArgs liquidateArgs
-```
-
-### testParseDespositAction
-
-```solidity
-function testParseDespositAction(struct Actions.ActionArgs _args) external
-```
-
-### getDepositArgs
-
-```solidity
-function getDepositArgs() external view returns (struct Actions.DepositArgs)
-```
-
-### testParseWithdrawAction
-
-```solidity
-function testParseWithdrawAction(struct Actions.ActionArgs _args) external
-```
-
-### getWithdrawArgs
-
-```solidity
-function getWithdrawArgs() external view returns (struct Actions.WithdrawArgs)
-```
-
-### testParseOpenVaultAction
-
-```solidity
-function testParseOpenVaultAction(struct Actions.ActionArgs _args) external
-```
-
-### getOpenVaultArgs
-
-```solidity
-function getOpenVaultArgs() external view returns (struct Actions.OpenVaultArgs)
-```
-
-### testParseRedeemAction
-
-```solidity
-function testParseRedeemAction(struct Actions.ActionArgs _args) external
-```
-
-### getRedeemArgs
-
-```solidity
-function getRedeemArgs() external view returns (struct Actions.RedeemArgs)
-```
-
-### testParseSettleVaultAction
-
-```solidity
-function testParseSettleVaultAction(struct Actions.ActionArgs _args) external
-```
-
-### testParseLiquidateActions
-
-```solidity
-function testParseLiquidateActions(struct Actions.ActionArgs _args) external
-```
-
-### getSettleVaultArgs
-
-```solidity
-function getSettleVaultArgs() external view returns (struct Actions.SettleVaultArgs)
-```
-
-### testParseMintAction
-
-```solidity
-function testParseMintAction(struct Actions.ActionArgs _args) external
-```
-
-### getMintArgs
-
-```solidity
-function getMintArgs() external view returns (struct Actions.MintArgs)
-```
-
-### testParseBurnAction
-
-```solidity
-function testParseBurnAction(struct Actions.ActionArgs _args) external
-```
-
-### getBurnArgs
-
-```solidity
-function getBurnArgs() external view returns (struct Actions.BurnArgs)
-```
-
-### testParseCallAction
-
-```solidity
-function testParseCallAction(struct Actions.ActionArgs _args) external
-```
-
-### getCallArgs
-
-```solidity
-function getCallArgs() external view returns (struct Actions.CallArgs)
-```
-
-### getLiquidateArgs
-
-```solidity
-function getLiquidateArgs() external view returns (struct Actions.LiquidateArgs)
-```
-
-## CalculatorTester
-
-### constructor
-
-```solidity
-constructor(address _addressBook) public
-```
-
-### getExpiredCashValue
-
-```solidity
-function getExpiredCashValue(address _underlying, address _strike, uint256 _expiryTimestamp, uint256 _strikePrice, bool _isPut) external view returns (uint256)
-```
-
-### findUpperBoundValue
-
-```solidity
-function findUpperBoundValue(address _underlying, address _strike, address _collateral, bool _isPut, uint256 _expiryTimestamp) external view returns (uint256)
-```
-
-### price
-
-```solidity
-function price(uint256 _vaultCollateral, uint256 _vaultDebt, uint256 _cv, uint256 _spotPrice, uint256 _auctionStartingTime, uint256 _collateralDecimals, bool _isPut) external view returns (uint256)
-```
-
-## CalleeAllowanceTester
-
-contract test if we can successfully pull weth from the payable proxy
-
-### weth
-
-```solidity
-contract ERC20Interface weth
-```
-
-### constructor
-
-```solidity
-constructor(address _weth) public
-```
-
-### callFunction
-
-```solidity
-function callFunction(address payable, bytes _data) external
-```
-
-## FixedPointInt256Tester
-
-FixedPointInt256 contract tester
-
-### testFromUnscaledInt
-
-```solidity
-function testFromUnscaledInt(int256 a) external pure returns (struct FixedPointInt256.FixedPointInt)
-```
-
-### testAdd
-
-```solidity
-function testAdd(struct FixedPointInt256.FixedPointInt a, struct FixedPointInt256.FixedPointInt b) external pure returns (struct FixedPointInt256.FixedPointInt)
-```
-
-### testSub
-
-```solidity
-function testSub(struct FixedPointInt256.FixedPointInt a, struct FixedPointInt256.FixedPointInt b) external pure returns (struct FixedPointInt256.FixedPointInt)
-```
-
-### testMul
-
-```solidity
-function testMul(struct FixedPointInt256.FixedPointInt a, struct FixedPointInt256.FixedPointInt b) external pure returns (struct FixedPointInt256.FixedPointInt)
-```
-
-### testDiv
-
-```solidity
-function testDiv(struct FixedPointInt256.FixedPointInt a, struct FixedPointInt256.FixedPointInt b) external pure returns (struct FixedPointInt256.FixedPointInt)
-```
-
-### testMin
-
-```solidity
-function testMin(struct FixedPointInt256.FixedPointInt a, struct FixedPointInt256.FixedPointInt b) external pure returns (struct FixedPointInt256.FixedPointInt)
-```
-
-### testMax
-
-```solidity
-function testMax(struct FixedPointInt256.FixedPointInt a, struct FixedPointInt256.FixedPointInt b) external pure returns (struct FixedPointInt256.FixedPointInt)
-```
-
-### testIsEqual
-
-```solidity
-function testIsEqual(struct FixedPointInt256.FixedPointInt a, struct FixedPointInt256.FixedPointInt b) external pure returns (bool)
-```
-
-### testIsGreaterThan
-
-```solidity
-function testIsGreaterThan(struct FixedPointInt256.FixedPointInt a, struct FixedPointInt256.FixedPointInt b) external pure returns (bool)
-```
-
-### testIsGreaterThanOrEqual
-
-```solidity
-function testIsGreaterThanOrEqual(struct FixedPointInt256.FixedPointInt a, struct FixedPointInt256.FixedPointInt b) external pure returns (bool)
-```
-
-### testIsLessThan
-
-```solidity
-function testIsLessThan(struct FixedPointInt256.FixedPointInt a, struct FixedPointInt256.FixedPointInt b) external pure returns (bool)
-```
-
-### testIsLessThanOrEqual
-
-```solidity
-function testIsLessThanOrEqual(struct FixedPointInt256.FixedPointInt a, struct FixedPointInt256.FixedPointInt b) external pure returns (bool)
-```
-
-## FlashUnwrap
-
-contract To unwrap WETH. This is just a contract to test the Call action
-
-### NUM_CALLFUNCTIONDATA_BYTES
-
-```solidity
-uint256 NUM_CALLFUNCTIONDATA_BYTES
-```
-
-### WETH
-
-```solidity
-contract WETH9 WETH
-```
+### liquidityPool
 
-### CallFunctionData
-
-```solidity
-struct CallFunctionData {
-  uint256 amount;
-}
-```
-
-### constructor
-
-```solidity
-constructor(address payable weth) public
-```
-
-### WrappedETH
-
-```solidity
-event WrappedETH(address to, uint256 amount)
-```
-
-### UnwrappedETH
-
-```solidity
-event UnwrappedETH(address to, uint256 amount)
-```
-
-### receive
-
-```solidity
-receive() external payable
-```
-
-### callFunction
-
-```solidity
-function callFunction(address payable _sender, bytes _data) external
-```
-
-Allows users to send this contract arbitrary data.
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _sender | address payable | The msg.sender to Controller |
-| _data | bytes | Arbitrary data given by the sender |
-
-## MarginVaultTester
-
-### vault
-
-```solidity
-mapping(address => mapping(uint256 => struct MarginVault.Vault)) vault
-```
-
-### getVault
-
-```solidity
-function getVault(uint256 _vaultIndex) external view returns (struct MarginVault.Vault)
-```
-
-### testAddShort
-
-```solidity
-function testAddShort(uint256 _vaultIndex, address _shortOtoken, uint256 _amount, uint256 _index) external
-```
-
-### testRemoveShort
-
-```solidity
-function testRemoveShort(uint256 _vaultIndex, address _shortOtoken, uint256 _amount, uint256 _index) external
-```
-
-### testAddLong
-
-```solidity
-function testAddLong(uint256 _vaultIndex, address _longOtoken, uint256 _amount, uint256 _index) external
-```
-
-### testRemoveLong
-
-```solidity
-function testRemoveLong(uint256 _vaultIndex, address _longOtoken, uint256 _amount, uint256 _index) external
-```
-
-### testAddCollateral
-
-```solidity
-function testAddCollateral(uint256 _vaultIndex, address _collateralAsset, uint256 _amount, uint256 _index) external
-```
-
-### testRemoveCollateral
-
-```solidity
-function testRemoveCollateral(uint256 _vaultIndex, address _collateralAsset, uint256 _amount, uint256 _index) external
-```
-
-## OtokenImplV1
-
-SPDX-License-Identifier: UNLICENSED
-
-_The Otoken inherits ERC20PermitUpgradeable because we need to use the init instead of constructor
-This is V1 implementation, with no getOtokenDetails()_
-
-### addressBook
-
 ```solidity
-address addressBook
+contract ILiquidityPool liquidityPool
 ```
 
-### controller
-
-```solidity
-address controller
-```
+immutable variables ///
 
-### underlyingAsset
+### protocol
 
 ```solidity
-address underlyingAsset
+contract Protocol protocol
 ```
 
 ### strikeAsset
@@ -16851,127 +9909,3708 @@ address underlyingAsset
 address strikeAsset
 ```
 
+### underlyingAsset
+
+```solidity
+address underlyingAsset
+```
+
 ### collateralAsset
 
 ```solidity
 address collateralAsset
 ```
 
+### orderIdCounter
+
+```solidity
+uint256 orderIdCounter
+```
+
+dynamic variables ///
+
+### orderStores
+
+```solidity
+mapping(uint256 => struct Types.Order) orderStores
+```
+
+### customOrderBounds
+
+```solidity
+struct AlphaOptionHandler.CustomOrderBounds customOrderBounds
+```
+
+governance settable variables ///
+
+### MAX_BPS
+
+```solidity
+uint256 MAX_BPS
+```
+
+constant variables ///
+
+### maxOrderExpiry
+
+```solidity
+uint256 maxOrderExpiry
+```
+
+### CustomOrderBounds
+
+```solidity
+struct CustomOrderBounds {
+  uint128 callMinDelta;
+  uint128 callMaxDelta;
+  int128 putMinDelta;
+  int128 putMaxDelta;
+  uint256 maxPriceRange;
+}
+```
+
+### OrderCreated
+
+```solidity
+event OrderCreated(uint256 orderId)
+```
+
+### OrderExecuted
+
+```solidity
+event OrderExecuted(uint256 orderId)
+```
+
+### constructor
+
+```solidity
+constructor(address _authority, address _protocol, address _liquidityPool) public
+```
+
+### setCustomOrderBounds
+
+```solidity
+function setCustomOrderBounds(uint128 _callMinDelta, uint128 _callMaxDelta, int128 _putMinDelta, int128 _putMaxDelta, uint32 _maxPriceRange) external
+```
+
+set new custom order parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _callMinDelta | uint128 | the minimum delta value a sold custom call option can have (e18 format - for 0.05 enter 5e16). Must be positive or 0. |
+| _callMaxDelta | uint128 | the maximum delta value a sold custom call option can have. Must be positive and have greater magnitude than _callMinDelta. |
+| _putMinDelta | int128 | the minimum delta value a sold custom put option can have. Must be negative and have greater magnitude than _putMaxDelta |
+| _putMaxDelta | int128 | the maximum delta value a sold custom put option can have. Must be negative or 0. |
+| _maxPriceRange | uint32 | the max percentage below the LP calculated premium that the order may be sold for. Measured in BPS - for 10% enter 1000 |
+
+### createOrder
+
+```solidity
+function createOrder(struct Types.OptionSeries _optionSeries, uint256 _amount, uint256 _price, uint256 _orderExpiry, address _buyerAddress, bool _isBuyBack, uint256[2] _spotMovementRange) public returns (uint256)
+```
+
+creates an order for a number of options from the pool to a specified user. The function
+     is intended to be used to issue options to market makers/ OTC market participants
+     in order to have flexibility and customisability on option issuance and market
+     participant UX.
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _optionSeries | struct Types.OptionSeries | the option token series to issue - strike in e18 |
+| _amount | uint256 | the number of options to issue - e18 |
+| _price | uint256 | the price per unit to issue at - in e18 |
+| _orderExpiry | uint256 | the expiry of the custom order, after which the         buyer cannot use this order (if past the order is redundant) |
+| _buyerAddress | address | the agreed upon buyer address |
+| _isBuyBack | bool | whether the order being created is buy back |
+| _spotMovementRange | uint256[2] | min and max amount that the spot price can move during the order |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | orderId the unique id of the order |
+
+### createStrangle
+
+```solidity
+function createStrangle(struct Types.OptionSeries _optionSeriesCall, struct Types.OptionSeries _optionSeriesPut, uint256 _amountCall, uint256 _amountPut, uint256 _priceCall, uint256 _pricePut, uint256 _orderExpiry, address _buyerAddress, uint256[2] _callSpotMovementRange, uint256[2] _putSpotMovementRange) external returns (uint256, uint256)
+```
+
+creates a strangle order. One custom put and one custom call order to be executed simultaneously.
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _optionSeriesCall | struct Types.OptionSeries | the option token series to issue for the call part of the strangle - strike in e18 |
+| _optionSeriesPut | struct Types.OptionSeries | the option token series to issue for the put part of the strangle - strike in e18 |
+| _amountCall | uint256 | the number of call options to issue |
+| _amountPut | uint256 | the number of put options to issue |
+| _priceCall | uint256 | the price per unit to issue calls at |
+| _pricePut | uint256 | the price per unit to issue puts at |
+| _orderExpiry | uint256 | the expiry of the order (if past the order is redundant) |
+| _buyerAddress | address | the agreed upon buyer address |
+| _callSpotMovementRange | uint256[2] | min and max amount that the spot price can move during the order for the call |
+| _putSpotMovementRange | uint256[2] | min and max amount that the spot price can move during the order for the call |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | putOrderId the unique id of the put part of the strangle |
+| [1] | uint256 | callOrderId the unique id of the call part of the strangle |
+
+### executeOrder
+
+```solidity
+function executeOrder(uint256 _orderId) public
+```
+
+fulfills an order for a number of options from the pool to a specified user. The function
+     is intended to be used to issue options to market makers/ OTC market participants
+     in order to have flexibility and customisability on option issuance and market
+     participant UX.
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _orderId | uint256 | the id of the order for options purchase |
+
+### executeBuyBackOrder
+
+```solidity
+function executeBuyBackOrder(uint256 _orderId) public
+```
+
+fulfills a buyback order for a number of options from the pool to a specified user. The function
+     is intended to be used to issue options to market makers/ OTC market participants
+     in order to have flexibility and customisability on option issuance and market
+     participant UX.
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _orderId | uint256 | the id of the order for options purchase |
+
+### executeStrangle
+
+```solidity
+function executeStrangle(uint256 _orderId1, uint256 _orderId2) external
+```
+
+fulfills a stored strangle order consisting of a stores call and a stored put.
+This is intended to be called by market makers/OTC market participants.
+
+### getOptionRegistry
+
+```solidity
+function getOptionRegistry() internal view returns (contract IOptionRegistry)
+```
+
+get the option registry used for storing and managing the options
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | contract IOptionRegistry | the option registry contract |
+
+### getPortfolioValuesFeed
+
+```solidity
+function getPortfolioValuesFeed() internal view returns (contract IPortfolioValuesFeed)
+```
+
+get the portfolio values feed used by the liquidity pool
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | contract IPortfolioValuesFeed | the portfolio values feed contract |
+
+### _getUnderlyingPrice
+
+```solidity
+function _getUnderlyingPrice(address underlying, address _strikeAsset) internal view returns (uint256)
+```
+
+get the underlying price with just the underlying asset and strike asset
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| underlying | address | the asset that is used as the reference asset |
+| _strikeAsset | address | the asset that the underlying value is denominated in |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | the underlying price |
+
+## AlphaPortfolioValuesFeed
+
+Options portfolio storage and calculations
+
+### OptionStores
+
+```solidity
+struct OptionStores {
+  struct Types.OptionSeries optionSeries;
+  int256 shortExposure;
+  int256 longExposure;
+}
+```
+
+### oTokenDecimals
+
+```solidity
+uint256 oTokenDecimals
+```
+
+immutable variables ///
+
+### storesForAddress
+
+```solidity
+mapping(address => struct AlphaPortfolioValuesFeed.OptionStores) storesForAddress
+```
+
+dynamic variables ///
+
+### addressSet
+
+```solidity
+struct EnumerableSet.AddressSet addressSet
+```
+
+### portfolioValues
+
+```solidity
+mapping(address => mapping(address => struct Types.PortfolioValues)) portfolioValues
+```
+
+### protocol
+
+```solidity
+contract Protocol protocol
+```
+
+govern settable variables ///
+
+### liquidityPool
+
+```solidity
+contract ILiquidityPool liquidityPool
+```
+
+### handler
+
+```solidity
+mapping(address => bool) handler
+```
+
+### keeper
+
+```solidity
+mapping(address => bool) keeper
+```
+
+### rfr
+
+```solidity
+uint256 rfr
+```
+
+### DataFullfilled
+
+```solidity
+event DataFullfilled(address underlying, address strike, int256 delta, int256 gamma, int256 vega, int256 theta, int256 callPutsValue)
+```
+
+events ///
+
+### RequestedUpdate
+
+```solidity
+event RequestedUpdate(address _underlying, address _strike)
+```
+
+### StoresUpdated
+
+```solidity
+event StoresUpdated(address seriesAddress, int256 shortExposure, int256 longExposure, struct Types.OptionSeries optionSeries)
+```
+
+### OptionHasExpiredInStores
+
+```solidity
+error OptionHasExpiredInStores(uint256 index, address seriesAddress)
+```
+
+### NoVaultForShortPositions
+
+```solidity
+error NoVaultForShortPositions()
+```
+
+### IncorrectSeriesToRemove
+
+```solidity
+error IncorrectSeriesToRemove()
+```
+
+### SeriesNotExpired
+
+```solidity
+error SeriesNotExpired()
+```
+
+### NoShortPositions
+
+```solidity
+error NoShortPositions()
+```
+
+### constructor
+
+```solidity
+constructor(address _authority) public
+```
+
+Executes once when a contract is created to initialize state variables
+	   Make sure the protocol is configured after deployment
+
+### setLiquidityPool
+
+```solidity
+function setLiquidityPool(address _liquidityPool) external
+```
+
+setters ///
+
+### setProtocol
+
+```solidity
+function setProtocol(address _protocol) external
+```
+
+### setRFR
+
+```solidity
+function setRFR(uint256 _rfr) external
+```
+
+### setKeeper
+
+```solidity
+function setKeeper(address _keeper, bool _auth) external
+```
+
+change the status of a keeper
+
+### setHandler
+
+```solidity
+function setHandler(address _handler, bool _auth) external
+```
+
+change the status of a handler
+
+### fulfill
+
+```solidity
+function fulfill(address _underlying, address _strikeAsset) external
+```
+
+Fulfills the portfolio delta and portfolio value by doing a for loop over the stores.  This is then used to
+        update the portfolio values for external contracts to know what the liquidity pool's value is
+	   1/ Make sure any expired options are settled, otherwise this fulfillment will fail
+	   2/ Once the addressSet is cleared of any
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _underlying | address | - response; underlying address |
+| _strikeAsset | address | - response; strike address |
+
+### updateStores
+
+```solidity
+function updateStores(struct Types.OptionSeries _optionSeries, int256 shortExposure, int256 longExposure, address _seriesAddress) external
+```
+
+Updates the option series stores to be used for portfolio value calculation
+
+_callable by the handler and also during migration_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _optionSeries | struct Types.OptionSeries | the option series that was created, strike in e18 |
+| shortExposure | int256 | the amount of short to increment the short exposure by |
+| longExposure | int256 | the amount of long to increment the long exposure by |
+| _seriesAddress | address | the address of the series represented by the oToken |
+
+### addyList
+
+```solidity
+address[] addyList
+```
+
+LOOP CLEANING - FOR ALPHA
+  This is necessary to reduce the size of the foor loop when its not necessary to.
+  - Make sure the option has been settled!
+
+### syncLooper
+
+```solidity
+function syncLooper() external
+```
+
+function to clean all expired series from the options storage to remove them from the looped array.
+
+_FOLLOW THE LOOP CLEANING INSTRUCTIONS ABOVE WHEN CALLING THIS FUNCTION_
+
+### cleanLooperManually
+
+```solidity
+function cleanLooperManually(address _series) external
+```
+
+function to clean an expired series from the portfolio values feed, this function will make sure the series and index match
+		and will also check if the series has expired before any cleaning happens.
+
+_FOLLOW THE LOOP CLEANING INSTRUCTIONS ABOVE WHEN CALLING THIS FUNCTION_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _series | address | the series at the index input above |
+
+### _cleanLooper
+
+```solidity
+function _cleanLooper(address _series) internal
+```
+
+internal function for removing an address from the address set and clearing all option stores for that series
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _series | address | the option series address to be cleared |
+
+### accountLiquidatedSeries
+
+```solidity
+function accountLiquidatedSeries(address _series) external
+```
+
+if a vault has been liquidated we need to account for it, so adjust our short positions to reality
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _series | address | the option series address to be cleared |
+
+### migrate
+
+```solidity
+function migrate(contract IPortfolioValuesFeed _migrateContract) external
+```
+
+migrate all stored options data to a new contract that has the IPortfolioValuesFeed interface
+
+_FOLLOW THE MIGRATION PROCESS INSTRUCTIONS WHEN CALLING THIS FUNCTION_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _migrateContract | contract IPortfolioValuesFeed | the new portfolio values feed contract to migrate option values too |
+
+### requestPortfolioData
+
+```solidity
+function requestPortfolioData(address _underlying, address _strike) external returns (bytes32 id)
+```
+
+requests a portfolio data update
+
+### getPortfolioValues
+
+```solidity
+function getPortfolioValues(address underlying, address strike) external view returns (struct Types.PortfolioValues)
+```
+
+non-complex getters ///
+
+### _isKeeper
+
+```solidity
+function _isKeeper() internal view
+```
+
+_keepers, managers or governors can access_
+
+### _isHandler
+
+```solidity
+function _isHandler() internal view
+```
+
+_handlers can access_
+
+### isAddressInSet
+
+```solidity
+function isAddressInSet(address _a) external view returns (bool)
+```
+
+get the address set details
+
+### addressAtIndexInSet
+
+```solidity
+function addressAtIndexInSet(uint256 _i) external view returns (address)
+```
+
+### addressSetLength
+
+```solidity
+function addressSetLength() external view returns (uint256)
+```
+
+### getAddressSet
+
+```solidity
+function getAddressSet() external view returns (address[])
+```
+
+### _getVolatilityFeed
+
+```solidity
+function _getVolatilityFeed() internal view returns (contract VolatilityFeed)
+```
+
+get the volatility feed used by the liquidity pool
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | contract VolatilityFeed | the volatility feed contract interface |
+
+### _getOptionRegistry
+
+```solidity
+function _getOptionRegistry() internal view returns (contract IOptionRegistry)
+```
+
+get the option registry used for storing and managing the options
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | contract IOptionRegistry | the option registry contract |
+
+### _getUnderlyingPrice
+
+```solidity
+function _getUnderlyingPrice(address underlying, address _strikeAsset) internal view returns (uint256)
+```
+
+get the underlying price with just the underlying asset and strike asset
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| underlying | address | the asset that is used as the reference asset |
+| _strikeAsset | address | the asset that the underlying value is denominated in |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | the underlying price |
+
+## LiquidityPool
+
+@title Contract used as the Dynamic Hedging Vault for storing funds, issuing shares and processing options transactions
+ @dev Interacts with the OptionRegistry for options behaviour, Interacts with hedging reactors for alternative derivatives
+      Interacts with Handlers for periphary user options interactions. Interacts with Chainlink price feeds throughout.
+      Interacts with Volatility Feed via getImpliedVolatility(), interacts with a chainlink PortfolioValues external adaptor
+      oracle via PortfolioValuesFeed.
+
+### protocol
+
+```solidity
+contract Protocol protocol
+```
+
+immutable variables ///
+
+### strikeAsset
+
+```solidity
+address strikeAsset
+```
+
+### underlyingAsset
+
+```solidity
+address underlyingAsset
+```
+
+### collateralAsset
+
+```solidity
+address collateralAsset
+```
+
+### collateralAllocated
+
+```solidity
+uint256 collateralAllocated
+```
+
+dynamic variables ///
+
+### ephemeralLiabilities
+
+```solidity
+int256 ephemeralLiabilities
+```
+
+### ephemeralDelta
+
+```solidity
+int256 ephemeralDelta
+```
+
+### depositEpoch
+
+```solidity
+uint256 depositEpoch
+```
+
+### withdrawalEpoch
+
+```solidity
+uint256 withdrawalEpoch
+```
+
+### depositEpochPricePerShare
+
+```solidity
+mapping(uint256 => uint256) depositEpochPricePerShare
+```
+
+### withdrawalEpochPricePerShare
+
+```solidity
+mapping(uint256 => uint256) withdrawalEpochPricePerShare
+```
+
+### depositReceipts
+
+```solidity
+mapping(address => struct IAccounting.DepositReceipt) depositReceipts
+```
+
+### withdrawalReceipts
+
+```solidity
+mapping(address => struct IAccounting.WithdrawalReceipt) withdrawalReceipts
+```
+
+### pendingDeposits
+
+```solidity
+uint256 pendingDeposits
+```
+
+### pendingWithdrawals
+
+```solidity
+uint256 pendingWithdrawals
+```
+
+### partitionedFunds
+
+```solidity
+uint256 partitionedFunds
+```
+
+### bufferPercentage
+
+```solidity
+uint256 bufferPercentage
+```
+
+governance settable variables ///
+
+### hedgingReactors
+
+```solidity
+address[] hedgingReactors
+```
+
+### collateralCap
+
+```solidity
+uint256 collateralCap
+```
+
+### maxDiscount
+
+```solidity
+uint256 maxDiscount
+```
+
+### bidAskIVSpread
+
+```solidity
+uint256 bidAskIVSpread
+```
+
+### optionParams
+
+```solidity
+struct Types.OptionParams optionParams
+```
+
+### riskFreeRate
+
+```solidity
+uint256 riskFreeRate
+```
+
+### handler
+
+```solidity
+mapping(address => bool) handler
+```
+
+### isTradingPaused
+
+```solidity
+bool isTradingPaused
+```
+
+### maxTimeDeviationThreshold
+
+```solidity
+uint256 maxTimeDeviationThreshold
+```
+
+### maxPriceDeviationThreshold
+
+```solidity
+uint256 maxPriceDeviationThreshold
+```
+
+### belowThresholdGradient
+
+```solidity
+uint256 belowThresholdGradient
+```
+
+### aboveThresholdGradient
+
+```solidity
+uint256 aboveThresholdGradient
+```
+
+### aboveThresholdYIntercept
+
+```solidity
+uint256 aboveThresholdYIntercept
+```
+
+### utilizationFunctionThreshold
+
+```solidity
+uint256 utilizationFunctionThreshold
+```
+
+### keeper
+
+```solidity
+mapping(address => bool) keeper
+```
+
+### MAX_BPS
+
+```solidity
+uint256 MAX_BPS
+```
+
+constant variables ///
+
+### DepositEpochExecuted
+
+```solidity
+event DepositEpochExecuted(uint256 epoch)
+```
+
+structs && events ///
+
+### WithdrawalEpochExecuted
+
+```solidity
+event WithdrawalEpochExecuted(uint256 epoch)
+```
+
+### Withdraw
+
+```solidity
+event Withdraw(address recipient, uint256 amount, uint256 shares)
+```
+
+### Deposit
+
+```solidity
+event Deposit(address recipient, uint256 amount, uint256 epoch)
+```
+
+### Redeem
+
+```solidity
+event Redeem(address recipient, uint256 amount, uint256 epoch)
+```
+
+### InitiateWithdraw
+
+```solidity
+event InitiateWithdraw(address recipient, uint256 amount, uint256 epoch)
+```
+
+### WriteOption
+
+```solidity
+event WriteOption(address series, uint256 amount, uint256 premium, uint256 escrow, address buyer)
+```
+
+### SettleVault
+
+```solidity
+event SettleVault(address series, uint256 collateralReturned, uint256 collateralLost, address closer)
+```
+
+### BuybackOption
+
+```solidity
+event BuybackOption(address series, uint256 amount, uint256 premium, uint256 escrowReturned, address seller)
+```
+
+### constructor
+
+```solidity
+constructor(address _protocol, address _strikeAsset, address _underlyingAsset, address _collateralAsset, uint256 rfr, string name, string symbol, struct Types.OptionParams _optionParams, address _authority) public
+```
+
+### pause
+
+```solidity
+function pause() external
+```
+
+setters ///
+
+### pauseUnpauseTrading
+
+```solidity
+function pauseUnpauseTrading(bool _pause) external
+```
+
+### unpause
+
+```solidity
+function unpause() external
+```
+
+### setHedgingReactorAddress
+
+```solidity
+function setHedgingReactorAddress(address _reactorAddress) external
+```
+
+set a new hedging reactor
+
+_only governance can call this function_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _reactorAddress | address | append a new hedging reactor |
+
+### removeHedgingReactorAddress
+
+```solidity
+function removeHedgingReactorAddress(uint256 _index, bool _override) external
+```
+
+remove a new hedging reactor by index
+
+_only governance can call this function_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _index | uint256 | remove a hedging reactor |
+| _override | bool | whether to override whether the reactor is wound down  	 		 			(THE REACTOR SHOULD BE WOUND DOWN SEPERATELY) |
+
+### setNewOptionParams
+
+```solidity
+function setNewOptionParams(uint128 _newMinCallStrike, uint128 _newMaxCallStrike, uint128 _newMinPutStrike, uint128 _newMaxPutStrike, uint128 _newMinExpiry, uint128 _newMaxExpiry) external
+```
+
+update all optionParam variables for max and min strikes and max and
+        min expiries for options that the DHV can issue
+
+_only management or above can call this function_
+
+### setBidAskSpread
+
+```solidity
+function setBidAskSpread(uint256 _bidAskSpread) external
+```
+
+set the bid ask spread used to price option buying
+
+_only management or above can call this function_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _bidAskSpread | uint256 | the bid ask spread to update to |
+
+### setMaxDiscount
+
+```solidity
+function setMaxDiscount(uint256 _maxDiscount) external
+```
+
+set the maximum percentage discount for an option
+
+_only management or above can call this function_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _maxDiscount | uint256 | of the option as a percentage in 1e18 format. ie: 1*e18 == 1% |
+
+### setCollateralCap
+
+```solidity
+function setCollateralCap(uint256 _collateralCap) external
+```
+
+set the maximum collateral amount allowed in the pool
+
+_only governance can call this function_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _collateralCap | uint256 | of the collateral held |
+
+### setBufferPercentage
+
+```solidity
+function setBufferPercentage(uint256 _bufferPercentage) external
+```
+
+update the liquidity pool buffer limit
+
+_only governance can call this function_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _bufferPercentage | uint256 | the minimum balance the liquidity pool must have as a percentage of collateral allocated to options. (for 20% enter 2000) |
+
+### setRiskFreeRate
+
+```solidity
+function setRiskFreeRate(uint256 _riskFreeRate) external
+```
+
+update the liquidity pool risk free rate
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _riskFreeRate | uint256 | the risk free rate of the market |
+
+### setMaxTimeDeviationThreshold
+
+```solidity
+function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external
+```
+
+update the max oracle time deviation threshold
+
+### setMaxPriceDeviationThreshold
+
+```solidity
+function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold) external
+```
+
+update the max oracle price deviation threshold
+
+### changeHandler
+
+```solidity
+function changeHandler(address _handler, bool auth) external
+```
+
+change the status of a handler
+
+### setKeeper
+
+```solidity
+function setKeeper(address _keeper, bool _auth) external
+```
+
+change the status of a keeper
+
+### setUtilizationSkewParams
+
+```solidity
+function setUtilizationSkewParams(uint256 _belowThresholdGradient, uint256 _aboveThresholdGradient, uint256 _utilizationFunctionThreshold) external
+```
+
+@notice sets the parameters for the function that determines the utilization price factor
+ The function is made up of two parts, both linear. The line to the left of the utilisation threshold has a low gradient
+ while the gradient to the right of the threshold is much steeper. The aim of this function is to make options much more
+ expensive near full utilization while not having much effect at low utilizations.
+ @param _belowThresholdGradient the gradient of the function where utiization is below function threshold. e18
+ @param _aboveThresholdGradient the gradient of the line above the utilization threshold. e18
+ @param _utilizationFunctionThreshold the percentage utilization above which the function moves from its shallow line to its steep line
+
+### rebalancePortfolioDelta
+
+```solidity
+function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex) external
+```
+
+function for hedging portfolio delta through external means
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| delta | int256 | the current portfolio delta |
+| reactorIndex | uint256 | the index of the reactor in the hedgingReactors array to use |
+
+### adjustCollateral
+
+```solidity
+function adjustCollateral(uint256 lpCollateralDifference, bool addToLpBalance) external
+```
+
+adjust the collateral held in a specific vault because of health
+
+_called by the option registry only_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| lpCollateralDifference | uint256 | amount of collateral taken from or given to the liquidity pool in collateral decimals |
+| addToLpBalance | bool | true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool |
+
+### settleVault
+
+```solidity
+function settleVault(address seriesAddress) external returns (uint256)
+```
+
+closes an oToken vault, returning collateral (minus ITM option expiry value) back to the pool
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| seriesAddress | address | the address of the oToken vault to close |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | collatReturned the amount of collateral returned to the liquidity pool, assumes in collateral decimals |
+
+### handlerIssue
+
+```solidity
+function handlerIssue(struct Types.OptionSeries optionSeries) external returns (address)
+```
+
+issue an option
+
+_only callable by a handler contract_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | the series detail of the option - strike decimals in e18 |
+
+### handlerWriteOption
+
+```solidity
+function handlerWriteOption(struct Types.OptionSeries optionSeries, address seriesAddress, uint256 amount, contract IOptionRegistry optionRegistry, uint256 premium, int256 delta, address recipient) external returns (uint256)
+```
+
+write an option that already exists
+
+_only callable by a handler contract_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | the series detail of the option - strike decimals in e8 |
+| seriesAddress | address | the series address of the oToken |
+| amount | uint256 | the number of options to write - in e18 |
+| optionRegistry | contract IOptionRegistry | the registry used for options writing |
+| premium | uint256 | the premium of the option - in collateral decimals |
+| delta | int256 | the delta of the option - in e18 |
+| recipient | address | the receiver of the option |
+
+### handlerIssueAndWriteOption
+
+```solidity
+function handlerIssueAndWriteOption(struct Types.OptionSeries optionSeries, uint256 amount, uint256 premium, int256 delta, address recipient) external returns (uint256, address)
+```
+
+write an option that doesnt exist
+
+_only callable by a handler contract_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | the series detail of the option - strike decimals in e18 |
+| amount | uint256 | the number of options to write - in e18 |
+| premium | uint256 | the premium of the option - in collateral decimals |
+| delta | int256 | the delta of the option - in e18 |
+| recipient | address | the receiver of the option |
+
+### handlerBuybackOption
+
+```solidity
+function handlerBuybackOption(struct Types.OptionSeries optionSeries, uint256 amount, contract IOptionRegistry optionRegistry, address seriesAddress, uint256 premium, int256 delta, address seller) external returns (uint256)
+```
+
+buy back an option that already exists
+
+_only callable by a handler contract_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | the series detail of the option - strike decimals in e8 |
+| amount | uint256 | the number of options to buyback - in e18 |
+| optionRegistry | contract IOptionRegistry | the registry used for options writing |
+| seriesAddress | address | the series address of the oToken |
+| premium | uint256 | the premium of the option - in collateral decimals |
+| delta | int256 | the delta of the option - in e18 |
+| seller | address | the receiver of the option |
+
+### resetEphemeralValues
+
+```solidity
+function resetEphemeralValues() external
+```
+
+reset the temporary portfolio and delta values that have been changed since the last oracle update
+
+_only callable by the portfolio values feed oracle contract_
+
+### pauseTradingAndRequest
+
+```solidity
+function pauseTradingAndRequest() external returns (bytes32)
+```
+
+reset the temporary portfolio and delta values that have been changed since the last oracle update
+
+_this function must be called in order to execute an epoch calculation_
+
+### executeEpochCalculation
+
+```solidity
+function executeEpochCalculation() external
+```
+
+execute the epoch and set all the price per shares
+
+_this function must be called in order to execute an epoch calculation and batch a mutual fund epoch_
+
+### deposit
+
+```solidity
+function deposit(uint256 _amount) external returns (bool)
+```
+
+function for adding liquidity to the options liquidity pool
+
+_entry point to provide liquidity to dynamic hedging vault_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _amount | uint256 | amount of the strike asset to deposit |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | success |
+
+### redeem
+
+```solidity
+function redeem(uint256 _shares) external returns (uint256)
+```
+
+function for allowing a user to redeem their shares from a previous epoch
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _shares | uint256 | the number of shares to redeem |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | the number of shares actually returned |
+
+### initiateWithdraw
+
+```solidity
+function initiateWithdraw(uint256 _shares) external
+```
+
+function for initiating a withdraw request from the pool
+
+_entry point to remove liquidity to dynamic hedging vault_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _shares | uint256 | amount of shares to return |
+
+### completeWithdraw
+
+```solidity
+function completeWithdraw(uint256 _shares) external returns (uint256)
+```
+
+function for completing the withdraw from a pool
+
+_entry point to remove liquidity to dynamic hedging vault_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _shares | uint256 | amount of shares to return |
+
+### _getNormalizedBalance
+
+```solidity
+function _getNormalizedBalance(address asset) internal view returns (uint256 normalizedBalance)
+```
+
+Returning balance in 1e18 format
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| asset | address | address of the asset to get balance and normalize |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| normalizedBalance | uint256 | balance in 1e18 format |
+
+### getBalance
+
+```solidity
+function getBalance(address asset) public view returns (uint256)
+```
+
+Returning balance in 1e6 format
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| asset | address | address of the asset to get balance |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | balance of the address accounting for partitionedFunds |
+
+### getExternalDelta
+
+```solidity
+function getExternalDelta() public view returns (int256 externalDelta)
+```
+
+get the delta of the hedging reactors
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| externalDelta | int256 | hedging reactor delta in e18 format |
+
+### getPortfolioDelta
+
+```solidity
+function getPortfolioDelta() public view returns (int256)
+```
+
+get the delta of the portfolio
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | int256 | portfolio delta |
+
+### quotePriceWithUtilizationGreeks
+
+```solidity
+function quotePriceWithUtilizationGreeks(struct Types.OptionSeries optionSeries, uint256 amount, bool toBuy) external view returns (uint256 quote, int256 delta)
+```
+
+get the quote price and delta for a given option
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | option type to quote - strike assumed in e18 |
+| amount | uint256 | the number of options to mint  - assumed in e18 |
+| toBuy | bool | whether the protocol is buying the option |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| quote | uint256 | the price of the options - returns in e18 |
+| delta | int256 | the delta of the options - returns in e18 |
+
+### addUtilizationPremium
+
+```solidity
+function addUtilizationPremium(struct Types.UtilizationState quoteState, struct Types.OptionSeries optionSeries, uint256 amount, bool toBuy) internal view
+```
+
+applies a utilization premium when the protocol is selling options.
+Stores the utilization price in quoteState.utilizationPrice for use in quotePriceWithUtilizationGreeks
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| quoteState | struct Types.UtilizationState | the struct created in quoteStateWithUtilizationGreeks to store memory variables |
+| optionSeries | struct Types.OptionSeries | the option type for which we are quoting a price |
+| amount | uint256 | the amount of options. e18 |
+| toBuy | bool | whether we are buying an option. False if selling |
+
+### applyDeltaPremium
+
+```solidity
+function applyDeltaPremium(struct Types.UtilizationState quoteState, bool toBuy) internal view returns (uint256 quote)
+```
+
+Applies a discount or premium based on the liquidity pool's delta exposure
+Gives discount if the transaction results in a lower delta exposure for the liquidity pool.
+Prices option more richly if the transaction results in higher delta exposure for liquidity pool.
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| quoteState | struct Types.UtilizationState | the struct created in quoteStateWithUtilizationGreeks to store memory variables |
+| toBuy | bool | whether we are buying an option. False if selling |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| quote | uint256 | the quote for the option with the delta skew applied |
+
+### getImpliedVolatility
+
+```solidity
+function getImpliedVolatility(bool isPut, uint256 underlyingPrice, uint256 strikePrice, uint256 expiration) public view returns (uint256)
+```
+
+get the current implied volatility from the feed
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| isPut | bool | Is the option a call or put? |
+| underlyingPrice | uint256 | The underlying price - assumed in e18 |
+| strikePrice | uint256 | The strike price of the option - assumed in e18 |
+| expiration | uint256 | expiration timestamp of option as a PRBMath Float |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | Implied volatility adjusted for volatility surface - assumed in e18 |
+
+### getAssets
+
+```solidity
+function getAssets() external view returns (uint256)
+```
+
+### getNAV
+
+```solidity
+function getNAV() external view returns (uint256)
+```
+
+### _redeem
+
+```solidity
+function _redeem(uint256 _shares) internal returns (uint256)
+```
+
+functionality for allowing a user to redeem their shares from a previous epoch
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _shares | uint256 | the number of shares to redeem |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | toRedeem the number of shares actually returned |
+
+### _getNAV
+
+```solidity
+function _getNAV() internal view returns (uint256)
+```
+
+get the Net Asset Value
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | Net Asset Value in e18 decimal format |
+
+### _getAssets
+
+```solidity
+function _getAssets() internal view returns (uint256 assets)
+```
+
+get the Asset Value
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| assets | uint256 | Asset Value in e18 decimal format |
+
+### _getLiabilities
+
+```solidity
+function _getLiabilities() internal view returns (int256 liabilities)
+```
+
+### checkBuffer
+
+```solidity
+function checkBuffer() public view returns (uint256 bufferRemaining)
+```
+
+calculates amount of liquidity that can be used before hitting buffer
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| bufferRemaining | uint256 | the amount of liquidity available before reaching buffer in e6 |
+
+### _issue
+
+```solidity
+function _issue(struct Types.OptionSeries optionSeries, contract IOptionRegistry optionRegistry) internal returns (address series)
+```
+
+create the option contract in the options registry
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | option type to mint - option series strike in e18 |
+| optionRegistry | contract IOptionRegistry | interface for the options issuer |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| series | address | the address of the option series minted |
+
+### _writeOption
+
+```solidity
+function _writeOption(struct Types.OptionSeries optionSeries, address seriesAddress, uint256 amount, contract IOptionRegistry optionRegistry, uint256 premium, int256 delta, uint256 bufferRemaining, address recipient) internal returns (uint256)
+```
+
+write a number of options for a given OptionSeries
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | option type to mint - strike in e8 |
+| seriesAddress | address | the address of the options series |
+| amount | uint256 | the amount to be written - in e18 |
+| optionRegistry | contract IOptionRegistry | the option registry of the pool |
+| premium | uint256 | the premium to charge the user - in collateral decimals |
+| delta | int256 | the delta of the option position - in e18 |
+| bufferRemaining | uint256 | the amount of buffer that can be used - in e6 |
+| recipient | address |  |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | the amount that was written |
+
+### _buybackOption
+
+```solidity
+function _buybackOption(struct Types.OptionSeries optionSeries, uint256 amount, contract IOptionRegistry optionRegistry, address seriesAddress, uint256 premium, int256 delta, address seller) internal returns (uint256)
+```
+
+buys a number of options back and burns the tokens
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | the option token series to buyback - strike passed in as e8 |
+| amount | uint256 | the number of options to buyback expressed in 1e18 |
+| optionRegistry | contract IOptionRegistry | the registry |
+| seriesAddress | address | the series being sold |
+| premium | uint256 | the premium to be sent back to the owner (in collat decimals) |
+| delta | int256 | the delta of the option |
+| seller | address | the address |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | the number of options burned in e18 |
+
+### _adjustVariables
+
+```solidity
+function _adjustVariables(uint256 collateralAmount, uint256 optionsValue, int256 delta, bool isSale) internal
+```
+
+adjust the variables of the pool
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| collateralAmount | uint256 | the amount of collateral transferred to change on collateral allocated in collateral decimals |
+| optionsValue | uint256 | the value of the options in e18 decimals |
+| delta | int256 | the delta of the options in e18 decimals |
+| isSale | bool | whether the action was an option sale or not |
+
+### _getVolatilityFeed
+
+```solidity
+function _getVolatilityFeed() internal view returns (contract VolatilityFeed)
+```
+
+get the volatility feed used by the liquidity pool
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | contract VolatilityFeed | the volatility feed contract interface |
+
+### _getPortfolioValuesFeed
+
+```solidity
+function _getPortfolioValuesFeed() internal view returns (contract IPortfolioValuesFeed)
+```
+
+get the portfolio values feed used by the liquidity pool
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | contract IPortfolioValuesFeed | the portfolio values feed contract |
+
+### _getAccounting
+
+```solidity
+function _getAccounting() internal view returns (contract IAccounting)
+```
+
+get the DHV accounting calculations contract used by the liquidity pool
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | contract IAccounting | the Accounting contract |
+
+### _getOptionRegistry
+
+```solidity
+function _getOptionRegistry() internal view returns (contract IOptionRegistry)
+```
+
+get the option registry used for storing and managing the options
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | contract IOptionRegistry | the option registry contract |
+
+### _getUnderlyingPrice
+
+```solidity
+function _getUnderlyingPrice(address underlying, address _strikeAsset) internal view returns (uint256)
+```
+
+get the underlying price with just the underlying asset and strike asset
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| underlying | address | the asset that is used as the reference asset |
+| _strikeAsset | address | the asset that the underlying value is denominated in |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | the underlying price |
+
+### _isTradingNotPaused
+
+```solidity
+function _isTradingNotPaused() internal view
+```
+
+### _isHandler
+
+```solidity
+function _isHandler() internal view
+```
+
+### _isKeeper
+
+```solidity
+function _isKeeper() internal view
+```
+
+_keepers, managers or governors can access_
+
+## OptionHandler
+
+@title Contract used for all user facing options interactions
+ @dev Interacts with liquidityPool to write options and quote their prices.
+
+### liquidityPool
+
+```solidity
+contract ILiquidityPool liquidityPool
+```
+
+immutable variables ///
+
+### protocol
+
+```solidity
+contract Protocol protocol
+```
+
+### strikeAsset
+
+```solidity
+address strikeAsset
+```
+
+### underlyingAsset
+
+```solidity
+address underlyingAsset
+```
+
+### collateralAsset
+
+```solidity
+address collateralAsset
+```
+
+### orderIdCounter
+
+```solidity
+uint256 orderIdCounter
+```
+
+dynamic variables ///
+
+### orderStores
+
+```solidity
+mapping(uint256 => struct Types.Order) orderStores
+```
+
+### customOrderBounds
+
+```solidity
+struct OptionHandler.CustomOrderBounds customOrderBounds
+```
+
+governance settable variables ///
+
+### buybackWhitelist
+
+```solidity
+mapping(address => bool) buybackWhitelist
+```
+
+### minDeltaForRequest
+
+```solidity
+uint256 minDeltaForRequest
+```
+
+### MAX_BPS
+
+```solidity
+uint256 MAX_BPS
+```
+
+constant variables ///
+
+### maxOrderExpiry
+
+```solidity
+uint256 maxOrderExpiry
+```
+
+### CustomOrderBounds
+
+```solidity
+struct CustomOrderBounds {
+  uint128 callMinDelta;
+  uint128 callMaxDelta;
+  int128 putMinDelta;
+  int128 putMaxDelta;
+  uint32 maxPriceRange;
+}
+```
+
+### OrderCreated
+
+```solidity
+event OrderCreated(uint256 orderId)
+```
+
+### OrderExecuted
+
+```solidity
+event OrderExecuted(uint256 orderId)
+```
+
+### constructor
+
+```solidity
+constructor(address _authority, address _protocol, address _liquidityPool) public
+```
+
+### setCustomOrderBounds
+
+```solidity
+function setCustomOrderBounds(uint128 _callMinDelta, uint128 _callMaxDelta, int128 _putMinDelta, int128 _putMaxDelta, uint32 _maxPriceRange) external
+```
+
+set new custom order parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _callMinDelta | uint128 | the minimum delta value a sold custom call option can have (e18 format - for 0.05 enter 5e16). Must be positive or 0. |
+| _callMaxDelta | uint128 | the maximum delta value a sold custom call option can have. Must be positive and have greater magnitude than _callMinDelta. |
+| _putMinDelta | int128 | the minimum delta value a sold custom put option can have. Must be negative and have greater magnitude than _putMaxDelta |
+| _putMaxDelta | int128 | the maximum delta value a sold custom put option can have. Must be negative or 0. |
+| _maxPriceRange | uint32 | the max percentage below the LP calculated premium that the order may be sold for. Measured in BPS - for 10% enter 1000 |
+
+### pause
+
+```solidity
+function pause() external
+```
+
+### unpause
+
+```solidity
+function unpause() external
+```
+
+### addOrRemoveBuybackAddress
+
+```solidity
+function addOrRemoveBuybackAddress(address _addressToWhitelist, bool toAdd) external
+```
+
+add or remove addresses who have no restrictions on the options they can sell back to the pool
+
+### setMinDeltaForRequest
+
+```solidity
+function setMinDeltaForRequest(uint256 _minDeltaForRequest) external
+```
+
+the minimum required delta of the trade to trigger a request
+
+### createOrder
+
+```solidity
+function createOrder(struct Types.OptionSeries _optionSeries, uint256 _amount, uint256 _price, uint256 _orderExpiry, address _buyerAddress, uint256[2] _spotMovementRange) public returns (uint256)
+```
+
+creates an order for a number of options from the pool to a specified user. The function
+     is intended to be used to issue options to market makers/ OTC market participants
+     in order to have flexibility and customisability on option issuance and market
+     participant UX.
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _optionSeries | struct Types.OptionSeries | the option token series to issue - strike in e18 |
+| _amount | uint256 | the number of options to issue - e18 |
+| _price | uint256 | the price per unit to issue at - in e18 |
+| _orderExpiry | uint256 | the expiry of the custom order, after which the         buyer cannot use this order (if past the order is redundant) |
+| _buyerAddress | address | the agreed upon buyer address |
+| _spotMovementRange | uint256[2] |  |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | orderId the unique id of the order |
+
+### createStrangle
+
+```solidity
+function createStrangle(struct Types.OptionSeries _optionSeriesCall, struct Types.OptionSeries _optionSeriesPut, uint256 _amountCall, uint256 _amountPut, uint256 _priceCall, uint256 _pricePut, uint256 _orderExpiry, address _buyerAddress, uint256[2] _callSpotMovementRange, uint256[2] _putSpotMovementRange) external returns (uint256, uint256)
+```
+
+creates a strangle order. One custom put and one custom call order to be executed simultaneously.
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _optionSeriesCall | struct Types.OptionSeries | the option token series to issue for the call part of the strangle - strike in e18 |
+| _optionSeriesPut | struct Types.OptionSeries | the option token series to issue for the put part of the strangle - strike in e18 |
+| _amountCall | uint256 | the number of call options to issue |
+| _amountPut | uint256 | the number of put options to issue |
+| _priceCall | uint256 | the price per unit to issue calls at |
+| _pricePut | uint256 | the price per unit to issue puts at |
+| _orderExpiry | uint256 | the expiry of the order (if past the order is redundant) |
+| _buyerAddress | address | the agreed upon buyer address |
+| _callSpotMovementRange | uint256[2] |  |
+| _putSpotMovementRange | uint256[2] |  |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | putOrderId the unique id of the put part of the strangle |
+| [1] | uint256 | callOrderId the unique id of the call part of the strangle |
+
+### executeOrder
+
+```solidity
+function executeOrder(uint256 _orderId) public
+```
+
+fulfills an order for a number of options from the pool to a specified user. The function
+     is intended to be used to issue options to market makers/ OTC market participants
+     in order to have flexibility and customisability on option issuance and market
+     participant UX.
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _orderId | uint256 | the id of the order for options purchase |
+
+### executeStrangle
+
+```solidity
+function executeStrangle(uint256 _orderId1, uint256 _orderId2) external
+```
+
+fulfills a stored strangle order consisting of a stores call and a stored put.
+This is intended to be called by market makers/OTC market participants.
+
+### issueAndWriteOption
+
+```solidity
+function issueAndWriteOption(struct Types.OptionSeries optionSeries, uint256 amount) external returns (uint256 optionAmount, address series)
+```
+
+write a number of options for a given series addres
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | option type to mint - strike in e18 |
+| amount | uint256 | the number of options to mint in e18 |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionAmount | uint256 | the number of options minted in 2 |
+| series | address | the address of the option series minted |
+
+### issue
+
+```solidity
+function issue(struct Types.OptionSeries optionSeries) external returns (address series)
+```
+
+issue a series
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | option type to mint - strike in e18 |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| series | address | the address of the option series minted |
+
+### writeOption
+
+```solidity
+function writeOption(address seriesAddress, uint256 amount) external returns (uint256)
+```
+
+write a number of options for a given series address
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| seriesAddress | address | the option token series address |
+| amount | uint256 | the number of options to mint expressed as 1e18 |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | number of options minted |
+
+### buybackOption
+
+```solidity
+function buybackOption(address seriesAddress, uint256 amount) external returns (uint256)
+```
+
+buys a number of options back and burns the tokens
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| seriesAddress | address | the option token series address to buyback |
+| amount | uint256 | the number of options to buyback expressed in 1e18 |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | the number of options bought and burned |
+
+### getOptionRegistry
+
+```solidity
+function getOptionRegistry() internal view returns (contract IOptionRegistry)
+```
+
+get the option registry used for storing and managing the options
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | contract IOptionRegistry | the option registry contract |
+
+### getPortfolioValuesFeed
+
+```solidity
+function getPortfolioValuesFeed() internal view returns (contract IPortfolioValuesFeed)
+```
+
+get the portfolio values feed used by the liquidity pool
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | contract IPortfolioValuesFeed | the portfolio values feed contract |
+
+### _getUnderlyingPrice
+
+```solidity
+function _getUnderlyingPrice(address underlying, address _strikeAsset) internal view returns (uint256)
+```
+
+get the underlying price with just the underlying asset and strike asset
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| underlying | address | the asset that is used as the reference asset |
+| _strikeAsset | address | the asset that the underlying value is denominated in |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | the underlying price |
+
+## OptionRegistry
+
+@title Contract used for conducting options issuance and settlement as well as collateral management
+ @dev Interacts with the opyn-rysk gamma protocol via OpynInteractions for options activity. Interacts with
+      the liquidity pool for collateral and instructions.
+
+### oTokenFactory
+
+```solidity
+address oTokenFactory
+```
+
+immutable variables ///
+
+### gammaController
+
+```solidity
+address gammaController
+```
+
+### collateralAsset
+
+```solidity
+address collateralAsset
+```
+
+### addressBook
+
+```solidity
+contract AddressBookInterface addressBook
+```
+
+### marginPool
+
+```solidity
+address marginPool
+```
+
+### seriesInfo
+
+```solidity
+mapping(address => struct Types.OptionSeries) seriesInfo
+```
+
+dynamic variables ///
+
+### vaultIds
+
+```solidity
+mapping(address => uint256) vaultIds
+```
+
+### seriesAddress
+
+```solidity
+mapping(bytes32 => address) seriesAddress
+```
+
+### vaultCount
+
+```solidity
+uint64 vaultCount
+```
+
+### liquidityPool
+
+```solidity
+address liquidityPool
+```
+
+governance settable variables ///
+
+### callUpperHealthFactor
+
+```solidity
+uint64 callUpperHealthFactor
+```
+
+### callLowerHealthFactor
+
+```solidity
+uint64 callLowerHealthFactor
+```
+
+### putUpperHealthFactor
+
+```solidity
+uint64 putUpperHealthFactor
+```
+
+### putLowerHealthFactor
+
+```solidity
+uint64 putLowerHealthFactor
+```
+
+### keeper
+
+```solidity
+mapping(address => bool) keeper
+```
+
+### MAX_BPS
+
+```solidity
+uint256 MAX_BPS
+```
+
+constant variables ///
+
+### SCALE_FROM
+
+```solidity
+uint256 SCALE_FROM
+```
+
+### OPYN_DECIMALS
+
+```solidity
+uint8 OPYN_DECIMALS
+```
+
+### OptionTokenCreated
+
+```solidity
+event OptionTokenCreated(address token)
+```
+
+events && errors && modifiers ///
+
+### SeriesRedeemed
+
+```solidity
+event SeriesRedeemed(address series, uint256 underlyingAmount, uint256 strikeAmount)
+```
+
+### OptionsContractOpened
+
+```solidity
+event OptionsContractOpened(address series, uint256 vaultId, uint256 optionsAmount)
+```
+
+### OptionsContractClosed
+
+```solidity
+event OptionsContractClosed(address series, uint256 vaultId, uint256 closedAmount)
+```
+
+### OptionsContractSettled
+
+```solidity
+event OptionsContractSettled(address series, uint256 collateralReturned, uint256 collateralLost, uint256 amountLost)
+```
+
+### VaultLiquidationRegistered
+
+```solidity
+event VaultLiquidationRegistered(address series, uint256 vaultId, uint256 amountLiquidated, uint256 collateralLiquidated)
+```
+
+### NoVault
+
+```solidity
+error NoVault()
+```
+
+### NotKeeper
+
+```solidity
+error NotKeeper()
+```
+
+### NotExpired
+
+```solidity
+error NotExpired()
+```
+
+### HealthyVault
+
+```solidity
+error HealthyVault()
+```
+
+### AlreadyExpired
+
+```solidity
+error AlreadyExpired()
+```
+
+### NotLiquidityPool
+
+```solidity
+error NotLiquidityPool()
+```
+
+### NonExistentSeries
+
+```solidity
+error NonExistentSeries()
+```
+
+### InvalidCollateral
+
+```solidity
+error InvalidCollateral()
+```
+
+### VaultNotLiquidated
+
+```solidity
+error VaultNotLiquidated()
+```
+
+### InsufficientBalance
+
+```solidity
+error InsufficientBalance()
+```
+
+### constructor
+
+```solidity
+constructor(address _collateralAsset, address _oTokenFactory, address _gammaController, address _marginPool, address _liquidityPool, address _addressBook, address _authority) public
+```
+
+### setLiquidityPool
+
+```solidity
+function setLiquidityPool(address _newLiquidityPool) external
+```
+
+Set the liquidity pool address
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _newLiquidityPool | address | set the liquidityPool address |
+
+### setKeeper
+
+```solidity
+function setKeeper(address _target, bool _auth) external
+```
+
+Set or revoke a keeper
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _target | address | address to become a keeper |
+| _auth | bool | accept or revoke |
+
+### setHealthThresholds
+
+```solidity
+function setHealthThresholds(uint64 _putLower, uint64 _putUpper, uint64 _callLower, uint64 _callUpper) external
+```
+
+Set the health thresholds of the pool
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _putLower | uint64 | the lower health threshold for puts |
+| _putUpper | uint64 | the upper health threshold for puts |
+| _callLower | uint64 | the lower health threshold for calls |
+| _callUpper | uint64 | the upper health threshold for calls |
+
+### issue
+
+```solidity
+function issue(struct Types.OptionSeries optionSeries) external returns (address)
+```
+
+Either retrieves the option token if it already exists, or deploy it
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | the series used for the mint - strike passed in as e18 |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | address | the address of the option |
+
+### open
+
+```solidity
+function open(address _series, uint256 amount, uint256 collateralAmount) external returns (bool, uint256)
+```
+
+Open an options contract using collateral from the liquidity pool
+
+_only callable by the liquidityPool_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _series | address | the address of the option token to be created |
+| amount | uint256 | the amount of options to deploy - assume in e18 |
+| collateralAmount | uint256 | the collateral required for the option - assumes in collateral decimals |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | if the transaction succeeded |
+| [1] | uint256 | the amount of collateral taken from the liquidityPool |
+
+### close
+
+```solidity
+function close(address _series, uint256 amount) external returns (bool, uint256)
+```
+
+Close an options contract (oToken) before it has expired
+
+_only callable by the liquidityPool_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _series | address | the address of the option token to be burnt |
+| amount | uint256 | the amount of options to burn - assumes in e18 |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | if the transaction succeeded |
+| [1] | uint256 |  |
+
+### settle
+
+```solidity
+function settle(address _series) external returns (bool, uint256, uint256, uint256)
+```
+
+Settle an options vault
+
+_callable by the liquidityPool so that local variables can also be updated_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _series | address | the address of the option token to be burnt |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | if the transaction succeeded |
+| [1] | uint256 | the amount of collateral returned from the vault |
+| [2] | uint256 | the amount of collateral used to pay ITM options on vault settle |
+| [3] | uint256 | number of oTokens that the vault was short |
+
+### adjustCollateral
+
+```solidity
+function adjustCollateral(uint256 vaultId) external
+```
+
+adjust the collateral held in a specific vault because of health
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| vaultId | uint256 | the id of the vault to check |
+
+### adjustCollateralCaller
+
+```solidity
+function adjustCollateralCaller(uint256 vaultId) external
+```
+
+adjust the collateral held in a specific vault because of health, using collateral from the caller. Only takes
+        from msg.sender, doesnt give them if vault is above the max.
+
+_this is a safety function, if worst comes to worse any caller can collateralise a vault to save it._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| vaultId | uint256 | the id of the vault to check |
+
+### wCollatLiquidatedVault
+
+```solidity
+function wCollatLiquidatedVault(uint256 vaultId) external
+```
+
+withdraw collateral from a fully liquidated vault
+
+_this is a safety function, if a vault is liquidated._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| vaultId | uint256 | the id of the vault to check |
+
+### registerLiquidatedVault
+
+```solidity
+function registerLiquidatedVault(uint256 vaultId) external
+```
+
+register a liquidated vault so the collateral allocated is managed
+
+_this is a safety function, if a vault is liquidated to update the collateral assets in the pool_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| vaultId | uint256 | the id of the vault to register liquidation for |
+
+### redeem
+
+```solidity
+function redeem(address _series) external returns (uint256)
+```
+
+Redeem oTokens for the locked collateral
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _series | address | the address of the option token to be burnt and redeemed |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | amount returned |
+
+### getCollateral
+
+```solidity
+function getCollateral(struct Types.OptionSeries series, uint256 amount) external view returns (uint256)
+```
+
+Send collateral funds for an option to be minted
+
+_series.strike should be scaled by 1e8._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| series | struct Types.OptionSeries | details of the option series |
+| amount | uint256 | amount of options to mint always in e18 |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | amount transferred |
+
+### getOtoken
+
+```solidity
+function getOtoken(address underlying, address strikeAsset, uint256 expiration, bool isPut, uint256 strike, address collateral) external view returns (address)
+```
+
+Retrieves the option token if it exists
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| underlying | address | is the address of the underlying asset of the option |
+| strikeAsset | address | is the address of the collateral asset of the option |
+| expiration | uint256 | is the expiry timestamp of the option |
+| isPut | bool | the type of option |
+| strike | uint256 | is the strike price of the option - 1e18 format |
+| collateral | address | is the address of the asset to collateralize the option with |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | address | the address of the option |
+
+### checkVaultHealth
+
+```solidity
+function checkVaultHealth(uint256 vaultId) public view returns (bool isBelowMin, bool isAboveMax, uint256 healthFactor, uint256 upperHealthFactor, uint256 collatRequired, address collatAsset)
+```
+
+check the health of a specific vault to see if it requires collateral
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| vaultId | uint256 | the id of the vault to check |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| isBelowMin | bool | bool to determine whether the vault needs topping up |
+| isAboveMax | bool | bool to determine whether the vault is too overcollateralised |
+| healthFactor | uint256 | the health factor of the vault in MAX_BPS format |
+| upperHealthFactor | uint256 | the upper bound of the acceptable health facor range in MAX_BPS format |
+| collatRequired | uint256 | the amount of collateral required to return the vault back to normal |
+| collatAsset | address | the address of the collateral asset |
+
+### getSeriesAddress
+
+```solidity
+function getSeriesAddress(bytes32 issuanceHash) external view returns (address)
+```
+
+non-complex getters ///
+
+### getSeries
+
+```solidity
+function getSeries(struct Types.OptionSeries _series) external view returns (address)
+```
+
+### getSeriesInfo
+
+```solidity
+function getSeriesInfo(address series) external view returns (struct Types.OptionSeries)
+```
+
+### getIssuanceHash
+
+```solidity
+function getIssuanceHash(struct Types.OptionSeries _series) public pure returns (bytes32)
+```
+
+### getIssuanceHash
+
+```solidity
+function getIssuanceHash(address underlying, address strikeAsset, address collateral, uint256 expiration, bool isPut, uint256 strike) internal pure returns (bytes32)
+```
+
+Helper function for computing the hash of a given issuance.
+
+### formatStrikePrice
+
+```solidity
+function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256)
+```
+
+Converts strike price to 1e8 format and floors least significant digits if needed
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| strikePrice | uint256 | strikePrice in 1e18 format |
+| collateral | address | address of collateral asset |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | if the transaction succeeded |
+
+### _isLiquidityPool
+
+```solidity
+function _isLiquidityPool() internal view
+```
+
+### _isKeeper
+
+```solidity
+function _isKeeper() internal view
+```
+
+_keepers, managers or governors can access_
+
+## PriceFeed
+
+@title Contract used for accessing exchange rates using chainlink price feeds
+ @dev Interacts with chainlink price feeds and services all contracts in the system for price data.
+
+### priceFeeds
+
+```solidity
+mapping(address => mapping(address => address)) priceFeeds
+```
+
+governance settable variables ///
+
+### SCALE_DECIMALS
+
+```solidity
+uint8 SCALE_DECIMALS
+```
+
+constant variables ///
+
+### constructor
+
+```solidity
+constructor(address _authority) public
+```
+
+### addPriceFeed
+
+```solidity
+function addPriceFeed(address underlying, address strike, address feed) public
+```
+
+setters ///
+
+### getRate
+
+```solidity
+function getRate(address underlying, address strike) external view returns (uint256)
+```
+
+complex getters ///
+
+### getNormalizedRate
+
+```solidity
+function getNormalizedRate(address underlying, address strike) external view returns (uint256)
+```
+
+_get the rate from chainlink and convert it to e18 decimals_
+
+## Protocol
+
+@title Contract used for storage of important contracts for the liquidity pool
+
+### optionRegistry
+
+```solidity
+address optionRegistry
+```
+
+static variables ///
+
+### volatilityFeed
+
+```solidity
+address volatilityFeed
+```
+
+governance settable variables ///
+
+### portfolioValuesFeed
+
+```solidity
+address portfolioValuesFeed
+```
+
+### accounting
+
+```solidity
+address accounting
+```
+
+### priceFeed
+
+```solidity
+address priceFeed
+```
+
+### constructor
+
+```solidity
+constructor(address _optionRegistry, address _priceFeed, address _volatilityFeed, address _portfolioValuesFeed, address _authority) public
+```
+
+### changeVolatilityFeed
+
+```solidity
+function changeVolatilityFeed(address _volFeed) external
+```
+
+setters ///
+
+### changePortfolioValuesFeed
+
+```solidity
+function changePortfolioValuesFeed(address _portfolioValuesFeed) external
+```
+
+### changeAccounting
+
+```solidity
+function changeAccounting(address _accounting) external
+```
+
+### changePriceFeed
+
+```solidity
+function changePriceFeed(address _priceFeed) external
+```
+
+## VolatilityFeed
+
+@title Contract used as the Dynamic Hedging Vault for storing funds, issuing shares and processing options transactions
+ @dev Interacts with liquidity pool to feed in volatility data.
+
+### sabrParams
+
+```solidity
+mapping(uint256 => struct VolatilityFeed.SABRParams) sabrParams
+```
+
+settable variables ///
+
+### keeper
+
+```solidity
+mapping(address => bool) keeper
+```
+
+### ONE_YEAR_SECONDS
+
+```solidity
+int256 ONE_YEAR_SECONDS
+```
+
+constant variables ///
+
+### BIPS_SCALE
+
+```solidity
+int256 BIPS_SCALE
+```
+
+### BIPS
+
+```solidity
+int256 BIPS
+```
+
+### SABRParams
+
+```solidity
+struct SABRParams {
+  int32 callAlpha;
+  int32 callBeta;
+  int32 callRho;
+  int32 callVolvol;
+  int32 putAlpha;
+  int32 putBeta;
+  int32 putRho;
+  int32 putVolvol;
+}
+```
+
+### constructor
+
+```solidity
+constructor(address _authority) public
+```
+
+### AlphaError
+
+```solidity
+error AlphaError()
+```
+
+setters ///
+
+### BetaError
+
+```solidity
+error BetaError()
+```
+
+### RhoError
+
+```solidity
+error RhoError()
+```
+
+### VolvolError
+
+```solidity
+error VolvolError()
+```
+
+### setSabrParameters
+
+```solidity
+function setSabrParameters(struct VolatilityFeed.SABRParams _sabrParams, uint256 _expiry) external
+```
+
+set the sabr volatility params
+
+_only keepers can call this function_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _sabrParams | struct VolatilityFeed.SABRParams | set the SABR parameters |
+| _expiry | uint256 | the expiry that the SABR parameters represent |
+
+### setKeeper
+
+```solidity
+function setKeeper(address _keeper, bool _auth) external
+```
+
+update the keepers
+
+### getImpliedVolatility
+
+```solidity
+function getImpliedVolatility(bool isPut, uint256 underlyingPrice, uint256 strikePrice, uint256 expiration) external view returns (uint256)
+```
+
+get the current implied volatility from the feed
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| isPut | bool | Is the option a call or put? |
+| underlyingPrice | uint256 | The underlying price |
+| strikePrice | uint256 | The strike price of the option |
+| expiration | uint256 | expiration timestamp of option as a PRBMath Float |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | Implied volatility adjusted for volatility surface |
+
+### _isKeeper
+
+```solidity
+function _isKeeper() internal view
+```
+
+_keepers, managers or governors can access_
+
+## AddressBookInterface
+
+### getOtokenImpl
+
+```solidity
+function getOtokenImpl() external view returns (address)
+```
+
+### getOtokenFactory
+
+```solidity
+function getOtokenFactory() external view returns (address)
+```
+
+### getWhitelist
+
+```solidity
+function getWhitelist() external view returns (address)
+```
+
+### getController
+
+```solidity
+function getController() external view returns (address)
+```
+
+### getOracle
+
+```solidity
+function getOracle() external view returns (address)
+```
+
+### getMarginPool
+
+```solidity
+function getMarginPool() external view returns (address)
+```
+
+### getMarginCalculator
+
+```solidity
+function getMarginCalculator() external view returns (address)
+```
+
+### getLiquidationManager
+
+```solidity
+function getLiquidationManager() external view returns (address)
+```
+
+### getAddress
+
+```solidity
+function getAddress(bytes32 _id) external view returns (address)
+```
+
+### setOtokenImpl
+
+```solidity
+function setOtokenImpl(address _otokenImpl) external
+```
+
+### setOtokenFactory
+
+```solidity
+function setOtokenFactory(address _factory) external
+```
+
+### setOracleImpl
+
+```solidity
+function setOracleImpl(address _otokenImpl) external
+```
+
+### setWhitelist
+
+```solidity
+function setWhitelist(address _whitelist) external
+```
+
+### setController
+
+```solidity
+function setController(address _controller) external
+```
+
+### setMarginPool
+
+```solidity
+function setMarginPool(address _marginPool) external
+```
+
+### setMarginCalculator
+
+```solidity
+function setMarginCalculator(address _calculator) external
+```
+
+### setLiquidationManager
+
+```solidity
+function setLiquidationManager(address _liquidationManager) external
+```
+
+### setAddress
+
+```solidity
+function setAddress(bytes32 _id, address _newImpl) external
+```
+
+## AggregatorV3Interface
+
+### decimals
+
+```solidity
+function decimals() external view returns (uint8)
+```
+
+### description
+
+```solidity
+function description() external view returns (string)
+```
+
+### version
+
+```solidity
+function version() external view returns (uint256)
+```
+
+### getRoundData
+
+```solidity
+function getRoundData(uint80 _roundId) external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+```
+
+### latestRoundData
+
+```solidity
+function latestRoundData() external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+```
+
+## GammaTypes
+
+### Vault
+
+```solidity
+struct Vault {
+  address[] shortOtokens;
+  address[] longOtokens;
+  address[] collateralAssets;
+  uint256[] shortAmounts;
+  uint256[] longAmounts;
+  uint256[] collateralAmounts;
+}
+```
+
+### VaultLiquidationDetails
+
+```solidity
+struct VaultLiquidationDetails {
+  address series;
+  uint128 shortAmount;
+  uint128 collateralAmount;
+}
+```
+
+## IOtoken
+
+### underlyingAsset
+
+```solidity
+function underlyingAsset() external view returns (address)
+```
+
+### strikeAsset
+
+```solidity
+function strikeAsset() external view returns (address)
+```
+
+### collateralAsset
+
+```solidity
+function collateralAsset() external view returns (address)
+```
+
 ### strikePrice
 
 ```solidity
-uint256 strikePrice
+function strikePrice() external view returns (uint256)
 ```
 
 ### expiryTimestamp
 
 ```solidity
-uint256 expiryTimestamp
+function expiryTimestamp() external view returns (uint256)
 ```
 
 ### isPut
 
 ```solidity
-bool isPut
+function isPut() external view returns (bool)
 ```
 
-### inited
+## IOtokenFactory
+
+### getOtoken
 
 ```solidity
-bool inited
+function getOtoken(address _underlyingAsset, address _strikeAsset, address _collateralAsset, uint256 _strikePrice, uint256 _expiry, bool _isPut) external view returns (address)
 ```
 
-### init
+### createOtoken
 
 ```solidity
-function init(address _addressBook, address _underlyingAsset, address _strikeAsset, address _collateralAsset, uint256 _strikePrice, uint256 _expiryTimestamp, bool _isPut) external
+function createOtoken(address _underlyingAsset, address _strikeAsset, address _collateralAsset, uint256 _strikePrice, uint256 _expiry, bool _isPut) external returns (address)
 ```
 
-### mintOtoken
+### getTargetOtokenAddress
 
 ```solidity
-function mintOtoken(address _to, uint256 _amount) external
+function getTargetOtokenAddress(address _underlyingAsset, address _strikeAsset, address _collateralAsset, uint256 _strikePrice, uint256 _expiry, bool _isPut) external view returns (address)
 ```
 
-### burnOtoken
+### OtokenCreated
 
 ```solidity
-function burnOtoken(address account, uint256 amount) external
+event OtokenCreated(address tokenAddress, address creator, address underlying, address strike, address collateral, uint256 strikePrice, uint256 expiry, bool isPut)
 ```
 
-### getChainId
+## IController
+
+### ActionType
 
 ```solidity
-function getChainId() external view returns (uint256 chainId)
+enum ActionType {
+  OpenVault,
+  MintShortOption,
+  BurnShortOption,
+  DepositLongOption,
+  WithdrawLongOption,
+  DepositCollateral,
+  WithdrawCollateral,
+  SettleVault,
+  Redeem,
+  Call,
+  Liquidate
+}
 ```
 
-## SignedConverterTester
-
-SignedConverter contract tester
-
-### testFromInt
+### ActionArgs
 
 ```solidity
-function testFromInt(int256 a) external pure returns (uint256)
+struct ActionArgs {
+  enum IController.ActionType actionType;
+  address owner;
+  address secondAddress;
+  address asset;
+  uint256 vaultId;
+  uint256 amount;
+  uint256 index;
+  bytes data;
+}
 ```
 
-### testFromUint
+### RedeemArgs
 
 ```solidity
-function testFromUint(uint256 a) external pure returns (int256)
+struct RedeemArgs {
+  address receiver;
+  address otoken;
+  uint256 amount;
+}
 ```
 
-## UpgradeableContractV1
-
-Upgradeable testing contract
-
-### addressBook
+### getPayout
 
 ```solidity
-address addressBook
+function getPayout(address _otoken, uint256 _amount) external view returns (uint256)
 ```
 
-addressbook address
-
-### owner
+### operate
 
 ```solidity
-address owner
+function operate(struct IController.ActionArgs[] _actions) external
 ```
 
-owner address
-
-### initialize
+### getAccountVaultCounter
 
 ```solidity
-function initialize(address _addressBook, address _owner) public
+function getAccountVaultCounter(address owner) external view returns (uint256)
 ```
 
-_this function is invoked by the proxy contract when this contract is added to the
-AddressBook._
+### oracle
+
+```solidity
+function oracle() external view returns (address)
+```
+
+### getVault
+
+```solidity
+function getVault(address _owner, uint256 _vaultId) external view returns (struct GammaTypes.Vault)
+```
+
+### getProceed
+
+```solidity
+function getProceed(address _owner, uint256 _vaultId) external view returns (uint256)
+```
+
+### isSettlementAllowed
+
+```solidity
+function isSettlementAllowed(address _underlying, address _strike, address _collateral, uint256 _expiry) external view returns (bool)
+```
+
+### clearVaultLiquidationDetails
+
+```solidity
+function clearVaultLiquidationDetails(uint256 _vaultId) external
+```
+
+### getVaultLiquidationDetails
+
+```solidity
+function getVaultLiquidationDetails(address _owner, uint256 _vaultId) external view returns (address, uint256, uint256)
+```
+
+## IAccounting
+
+### DepositReceipt
+
+```solidity
+struct DepositReceipt {
+  uint128 epoch;
+  uint128 amount;
+  uint256 unredeemedShares;
+}
+```
+
+### WithdrawalReceipt
+
+```solidity
+struct WithdrawalReceipt {
+  uint128 epoch;
+  uint128 shares;
+}
+```
+
+### deposit
+
+```solidity
+function deposit(address depositor, uint256 _amount) external returns (uint256 depositAmount, uint256 unredeemedShares)
+```
+
+logic for adding liquidity to the options liquidity pool
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| _addressBook | address | the address of the AddressBook |
-| _owner | address |  |
+| depositor | address | the address making the deposit |
+| _amount | uint256 | amount of the collateral asset to deposit |
 
-### getV1Version
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| depositAmount | uint256 | the amount to deposit from the round |
+| unredeemedShares | uint256 | number of shares held in the deposit receipt that havent been redeemed |
 
-```solidity
-function getV1Version() external pure returns (uint256)
-```
-
-## UpgradeableContractV2
-
-Upgradeable testing contract
-
-### getV2Version
+### redeem
 
 ```solidity
-function getV2Version() external pure returns (uint256)
+function redeem(address redeemer, uint256 shares) external returns (uint256 toRedeem, struct IAccounting.DepositReceipt depositReceipt)
 ```
 
-## IERC20
+logic for allowing a user to redeem their shares from a previous epoch
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| redeemer | address | the address making the deposit |
+| shares | uint256 | amount of the collateral asset to deposit |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| toRedeem | uint256 | the amount to actually redeem |
+| depositReceipt | struct IAccounting.DepositReceipt | the updated deposit receipt after the redeem has completed |
+
+### initiateWithdraw
+
+```solidity
+function initiateWithdraw(address withdrawer, uint256 shares) external returns (struct IAccounting.WithdrawalReceipt withdrawalReceipt)
+```
+
+logic for accounting a user to initiate a withdraw request from the pool
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| withdrawer | address | the address carrying out the withdrawal |
+| shares | uint256 | the amount of shares to withdraw for |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| withdrawalReceipt | struct IAccounting.WithdrawalReceipt | the new withdrawal receipt to pass to the liquidityPool |
+
+### completeWithdraw
+
+```solidity
+function completeWithdraw(address withdrawer, uint256 shares) external returns (uint256 withdrawalAmount, uint256 withdrawalShares, struct IAccounting.WithdrawalReceipt withdrawalReceipt)
+```
+
+logic for accounting a user to complete a withdrawal
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| withdrawer | address | the address carrying out the withdrawal |
+| shares | uint256 | the amount of shares to withdraw for |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| withdrawalAmount | uint256 | the amount of collateral to withdraw |
+| withdrawalShares | uint256 | the number of shares to withdraw |
+| withdrawalReceipt | struct IAccounting.WithdrawalReceipt | the new withdrawal receipt to pass to the liquidityPool |
+
+### executeEpochCalculation
+
+```solidity
+function executeEpochCalculation(uint256 totalSupply, uint256 assets, int256 liabilities) external view returns (uint256 newPricePerShareDeposit, uint256 newPricePerShareWithdrawal, uint256 sharesToMint, uint256 totalWithdrawAmount, uint256 amountNeeded)
+```
+
+execute the next epoch
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| totalSupply | uint256 | the total number of share tokens |
+| assets | uint256 | the amount of collateral assets |
+| liabilities | int256 | the amount of liabilities of the pool |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| newPricePerShareDeposit | uint256 | the price per share for deposits |
+| newPricePerShareWithdrawal | uint256 | the price per share for withdrawals |
+| sharesToMint | uint256 | the number of shares to mint this epoch |
+| totalWithdrawAmount | uint256 | the amount of collateral to set aside for partitioning |
+| amountNeeded | uint256 | the amount needed to reach the total withdraw amount if collateral balance of lp is insufficient |
+
+### sharesForAmount
+
+```solidity
+function sharesForAmount(uint256 _amount, uint256 assetPerShare) external view returns (uint256 shares)
+```
+
+get the number of shares for a given amount
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _amount | uint256 | the amount to convert to shares - assumed in collateral decimals |
+| assetPerShare | uint256 | the amount of assets received per share |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| shares | uint256 | the number of shares based on the amount - assumed in e18 |
+
+## IAuthority
+
+### GovernorPushed
+
+```solidity
+event GovernorPushed(address from, address to, bool _effectiveImmediately)
+```
+
+### GuardianPushed
+
+```solidity
+event GuardianPushed(address to, bool _effectiveImmediately)
+```
+
+### ManagerPushed
+
+```solidity
+event ManagerPushed(address from, address to, bool _effectiveImmediately)
+```
+
+### GovernorPulled
+
+```solidity
+event GovernorPulled(address from, address to)
+```
+
+### GuardianPulled
+
+```solidity
+event GuardianPulled(address to)
+```
+
+### ManagerPulled
+
+```solidity
+event ManagerPulled(address from, address to)
+```
+
+### governor
+
+```solidity
+function governor() external view returns (address)
+```
+
+### guardian
+
+```solidity
+function guardian(address _target) external view returns (bool)
+```
+
+### manager
+
+```solidity
+function manager() external view returns (address)
+```
+
+## IHedgingReactor
+
+### hedgeDelta
+
+```solidity
+function hedgeDelta(int256 delta) external returns (int256)
+```
+
+Execute a strategy to hedge delta exposure
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| delta | int256 | The exposure of the liquidity pool that the reactor needs to hedge against |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | int256 | deltaChange The difference in delta exposure as a result of strategy execution |
+
+### getDelta
+
+```solidity
+function getDelta() external view returns (int256 delta)
+```
+
+Returns the delta exposure of the reactor
+
+### getPoolDenominatedValue
+
+```solidity
+function getPoolDenominatedValue() external view returns (uint256 value)
+```
+
+Returns the value of the reactor denominated in the liquidity pool asset
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| value | uint256 | the value of the reactor in the liquidity pool asset |
+
+### withdraw
+
+```solidity
+function withdraw(uint256 amount) external returns (uint256)
+```
+
+Withdraw a given asset from the hedging reactor to the calling liquidity pool.
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| amount | uint256 | The amount to withdraw |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | the amount actually withdrawn from the reactor denominated in the liquidity pool asset |
+
+### update
+
+```solidity
+function update() external returns (uint256)
+```
+
+Handle events such as collateralisation rebalancing
+
+## ILiquidityPool
+
+### strikeAsset
+
+```solidity
+function strikeAsset() external view returns (address)
+```
+
+immutable variables ///
+
+### underlyingAsset
+
+```solidity
+function underlyingAsset() external view returns (address)
+```
+
+### collateralAsset
+
+```solidity
+function collateralAsset() external view returns (address)
+```
+
+### collateralAllocated
+
+```solidity
+function collateralAllocated() external view returns (uint256)
+```
+
+dynamic variables ///
+
+### ephemeralLiabilities
+
+```solidity
+function ephemeralLiabilities() external view returns (int256)
+```
+
+### ephemeralDelta
+
+```solidity
+function ephemeralDelta() external view returns (int256)
+```
+
+### depositEpoch
+
+```solidity
+function depositEpoch() external view returns (uint256)
+```
+
+### withdrawalEpoch
+
+```solidity
+function withdrawalEpoch() external view returns (uint256)
+```
+
+### depositEpochPricePerShare
+
+```solidity
+function depositEpochPricePerShare(uint256 epoch) external view returns (uint256 price)
+```
+
+### withdrawalEpochPricePerShare
+
+```solidity
+function withdrawalEpochPricePerShare(uint256 epoch) external view returns (uint256 price)
+```
+
+### depositReceipts
+
+```solidity
+function depositReceipts(address depositor) external view returns (struct IAccounting.DepositReceipt)
+```
+
+### withdrawalReceipts
+
+```solidity
+function withdrawalReceipts(address withdrawer) external view returns (struct IAccounting.WithdrawalReceipt)
+```
+
+### pendingDeposits
+
+```solidity
+function pendingDeposits() external view returns (uint256)
+```
+
+### pendingWithdrawals
+
+```solidity
+function pendingWithdrawals() external view returns (uint256)
+```
+
+### partitionedFunds
+
+```solidity
+function partitionedFunds() external view returns (uint256)
+```
+
+### bufferPercentage
+
+```solidity
+function bufferPercentage() external view returns (uint256)
+```
+
+governance settable variables ///
+
+### collateralCap
+
+```solidity
+function collateralCap() external view returns (uint256)
+```
+
+### handlerIssue
+
+```solidity
+function handlerIssue(struct Types.OptionSeries optionSeries) external returns (address)
+```
+
+functions ///
+
+### resetEphemeralValues
+
+```solidity
+function resetEphemeralValues() external
+```
+
+### getAssets
+
+```solidity
+function getAssets() external view returns (uint256)
+```
+
+### redeem
+
+```solidity
+function redeem(uint256) external returns (uint256)
+```
+
+### handlerWriteOption
+
+```solidity
+function handlerWriteOption(struct Types.OptionSeries optionSeries, address seriesAddress, uint256 amount, contract IOptionRegistry optionRegistry, uint256 premium, int256 delta, address recipient) external returns (uint256)
+```
+
+### handlerBuybackOption
+
+```solidity
+function handlerBuybackOption(struct Types.OptionSeries optionSeries, uint256 amount, contract IOptionRegistry optionRegistry, address seriesAddress, uint256 premium, int256 delta, address seller) external returns (uint256)
+```
+
+### handlerIssueAndWriteOption
+
+```solidity
+function handlerIssueAndWriteOption(struct Types.OptionSeries optionSeries, uint256 amount, uint256 premium, int256 delta, address recipient) external returns (uint256, address)
+```
+
+### getPortfolioDelta
+
+```solidity
+function getPortfolioDelta() external view returns (int256)
+```
+
+### quotePriceWithUtilizationGreeks
+
+```solidity
+function quotePriceWithUtilizationGreeks(struct Types.OptionSeries optionSeries, uint256 amount, bool toBuy) external view returns (uint256 quote, int256 delta)
+```
+
+### checkBuffer
+
+```solidity
+function checkBuffer() external view returns (uint256 bufferRemaining)
+```
+
+### getBalance
+
+```solidity
+function getBalance(address asset) external view returns (uint256)
+```
+
+## IMarginCalculator
+
+### getNakedMarginRequired
+
+```solidity
+function getNakedMarginRequired(address _underlying, address _strike, address _collateral, uint256 _shortAmount, uint256 _strikePrice, uint256 _underlyingPrice, uint256 _shortExpiryTimestamp, uint256 _collateralDecimals, bool _isPut) external view returns (uint256)
+```
+
+## IOptionRegistry
+
+### issue
+
+```solidity
+function issue(struct Types.OptionSeries optionSeries) external returns (address)
+```
+
+Either retrieves the option token if it already exists, or deploy it
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | option series to issue |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | address | the address of the option |
+
+### open
+
+```solidity
+function open(address _series, uint256 amount, uint256 collateralAmount) external returns (bool, uint256)
+```
+
+Open an options contract using collateral from the liquidity pool
+
+_only callable by the liquidityPool_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _series | address | the address of the option token to be created |
+| amount | uint256 | the amount of options to deploy |
+| collateralAmount | uint256 | the collateral required for the option |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | if the transaction succeeded |
+| [1] | uint256 | the amount of collateral taken from the liquidityPool |
+
+### close
+
+```solidity
+function close(address _series, uint256 amount) external returns (bool, uint256)
+```
+
+Close an options contract (oToken) before it has expired
+
+_only callable by the liquidityPool_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _series | address | the address of the option token to be burnt |
+| amount | uint256 | the amount of options to burn |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | if the transaction succeeded |
+| [1] | uint256 |  |
+
+### settle
+
+```solidity
+function settle(address _series) external returns (bool success, uint256 collatReturned, uint256 collatLost, uint256 amountShort)
+```
+
+Settle an options vault
+
+_callable by anyone but returns funds to the liquidityPool_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _series | address | the address of the option token to be burnt |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| success | bool | if the transaction succeeded |
+| collatReturned | uint256 | the amount of collateral returned from the vault |
+| collatLost | uint256 | the amount of collateral used to pay ITM options on vault settle |
+| amountShort | uint256 | number of oTokens that the vault was short |
+
+### getCollateral
+
+```solidity
+function getCollateral(struct Types.OptionSeries series, uint256 amount) external view returns (uint256)
+```
+
+Send collateral funds for an option to be minted
+
+_series.strike should be scaled by 1e8._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| series | struct Types.OptionSeries | details of the option series |
+| amount | uint256 | amount of options to mint |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | amount transferred |
+
+### getOtoken
+
+```solidity
+function getOtoken(address underlying, address strikeAsset, uint256 expiration, bool isPut, uint256 strike, address collateral) external view returns (address)
+```
+
+Retrieves the option token if it exists
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| underlying | address | is the address of the underlying asset of the option |
+| strikeAsset | address | is the address of the collateral asset of the option |
+| expiration | uint256 | is the expiry timestamp of the option |
+| isPut | bool | the type of option |
+| strike | uint256 | is the strike price of the option - 1e18 format |
+| collateral | address | is the address of the asset to collateralize the option with |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | address | the address of the option |
+
+### getSeriesInfo
+
+```solidity
+function getSeriesInfo(address series) external view returns (struct Types.OptionSeries)
+```
+
+non-complex getters ///
+
+### vaultIds
+
+```solidity
+function vaultIds(address series) external view returns (uint256)
+```
+
+### gammaController
+
+```solidity
+function gammaController() external view returns (address)
+```
+
+## IOracle
+
+### getPrice
+
+```solidity
+function getPrice(address _asset) external view returns (uint256)
+```
+
+## IPortfolioValuesFeed
+
+### requestPortfolioData
+
+```solidity
+function requestPortfolioData(address _underlying, address _strike) external returns (bytes32 requestId)
+```
+
+Creates a Chainlink request to update portfolio values
+data, then multiply by 1000000000000000000 (to remove decimal places from data).
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| requestId | bytes32 | - id of the request |
+
+### updateStores
+
+```solidity
+function updateStores(struct Types.OptionSeries _optionSeries, int256 _shortExposure, int256 _longExposure, address _seriesAddress) external
+```
+
+### getPortfolioValues
+
+```solidity
+function getPortfolioValues(address underlying, address strike) external view returns (struct Types.PortfolioValues)
+```
+
+non-complex getters ///
+
+## I_ERC20
 
 _Interface of the ERC20 standard as defined in the EIP._
 
@@ -17068,12 +13707,1769 @@ event Approval(address owner, address spender, uint256 value)
 _Emitted when the allowance of a `spender` for an `owner` is set by
 a call to {approve}. `value` is the new allowance._
 
+## UNAUTHORIZED
+
+```solidity
+error UNAUTHORIZED()
+```
+
+## AccessControl
+
+@title Contract used for access control functionality, based off of OlympusDao Access Control
+
+### AuthorityUpdated
+
+```solidity
+event AuthorityUpdated(contract IAuthority authority)
+```
+
+### authority
+
+```solidity
+contract IAuthority authority
+```
+
+### constructor
+
+```solidity
+constructor(contract IAuthority _authority) internal
+```
+
+### setAuthority
+
+```solidity
+function setAuthority(contract IAuthority _newAuthority) external
+```
+
+### _onlyGovernor
+
+```solidity
+function _onlyGovernor() internal view
+```
+
+### _onlyGuardian
+
+```solidity
+function _onlyGuardian() internal view
+```
+
+### _onlyManager
+
+```solidity
+function _onlyManager() internal view
+```
+
+## BlackScholes
+
+@title Library used to calculate an option price using Black Scholes
+
+### ONE_YEAR_SECONDS
+
+```solidity
+uint256 ONE_YEAR_SECONDS
+```
+
+### ONE
+
+```solidity
+uint256 ONE
+```
+
+### TWO
+
+```solidity
+uint256 TWO
+```
+
+### Intermediates
+
+```solidity
+struct Intermediates {
+  uint256 d1Denominator;
+  int256 d1;
+  int256 eToNegRT;
+}
+```
+
+### callOptionPrice
+
+```solidity
+function callOptionPrice(int256 d1, int256 d1Denominator, int256 price, int256 strike, int256 eToNegRT) public pure returns (uint256)
+```
+
+### callOptionPriceGreeks
+
+```solidity
+function callOptionPriceGreeks(int256 d1, int256 d1Denominator, int256 price, int256 strike, int256 eToNegRT) public pure returns (uint256 quote, int256 delta)
+```
+
+### putOptionPriceGreeks
+
+```solidity
+function putOptionPriceGreeks(int256 d1, int256 d1Denominator, int256 price, int256 strike, int256 eToNegRT) public pure returns (uint256 quote, int256 delta)
+```
+
+### putOptionPrice
+
+```solidity
+function putOptionPrice(int256 d1, int256 d1Denominator, int256 price, int256 strike, int256 eToNegRT) public pure returns (uint256)
+```
+
+### getTimeStamp
+
+```solidity
+function getTimeStamp() private view returns (uint256)
+```
+
+### getD1
+
+```solidity
+function getD1(uint256 price, uint256 strike, uint256 time, uint256 vol, uint256 rfr) private pure returns (int256 d1, uint256 d1Denominator)
+```
+
+### getIntermediates
+
+```solidity
+function getIntermediates(uint256 price, uint256 strike, uint256 time, uint256 vol, uint256 rfr) private pure returns (struct BlackScholes.Intermediates)
+```
+
+### blackScholesCalc
+
+```solidity
+function blackScholesCalc(uint256 price, uint256 strike, uint256 expiration, uint256 vol, uint256 rfr, bool isPut) public view returns (uint256)
+```
+
+### blackScholesCalcGreeks
+
+```solidity
+function blackScholesCalcGreeks(uint256 price, uint256 strike, uint256 expiration, uint256 vol, uint256 rfr, bool isPut) public view returns (uint256 quote, int256 delta)
+```
+
+### getDelta
+
+```solidity
+function getDelta(uint256 price, uint256 strike, uint256 expiration, uint256 vol, uint256 rfr, bool isPut) public view returns (int256)
+```
+
+## CustomErrors
+
+### NotKeeper
+
+```solidity
+error NotKeeper()
+```
+
+### IVNotFound
+
+```solidity
+error IVNotFound()
+```
+
+### NotHandler
+
+```solidity
+error NotHandler()
+```
+
+### InvalidPrice
+
+```solidity
+error InvalidPrice()
+```
+
+### InvalidBuyer
+
+```solidity
+error InvalidBuyer()
+```
+
+### InvalidOrder
+
+```solidity
+error InvalidOrder()
+```
+
+### OrderExpired
+
+```solidity
+error OrderExpired()
+```
+
+### InvalidAmount
+
+```solidity
+error InvalidAmount()
+```
+
+### TradingPaused
+
+```solidity
+error TradingPaused()
+```
+
+### IssuanceFailed
+
+```solidity
+error IssuanceFailed()
+```
+
+### EpochNotClosed
+
+```solidity
+error EpochNotClosed()
+```
+
+### TradingNotPaused
+
+```solidity
+error TradingNotPaused()
+```
+
+### NotLiquidityPool
+
+```solidity
+error NotLiquidityPool()
+```
+
+### DeltaNotDecreased
+
+```solidity
+error DeltaNotDecreased()
+```
+
+### NonExistentOtoken
+
+```solidity
+error NonExistentOtoken()
+```
+
+### OrderExpiryTooLong
+
+```solidity
+error OrderExpiryTooLong()
+```
+
+### InvalidShareAmount
+
+```solidity
+error InvalidShareAmount()
+```
+
+### ExistingWithdrawal
+
+```solidity
+error ExistingWithdrawal()
+```
+
+### TotalSupplyReached
+
+```solidity
+error TotalSupplyReached()
+```
+
+### StrikeAssetInvalid
+
+```solidity
+error StrikeAssetInvalid()
+```
+
+### OptionStrikeInvalid
+
+```solidity
+error OptionStrikeInvalid()
+```
+
+### OptionExpiryInvalid
+
+```solidity
+error OptionExpiryInvalid()
+```
+
+### NoExistingWithdrawal
+
+```solidity
+error NoExistingWithdrawal()
+```
+
+### SpotMovedBeyondRange
+
+```solidity
+error SpotMovedBeyondRange()
+```
+
+### CollateralAssetInvalid
+
+```solidity
+error CollateralAssetInvalid()
+```
+
+### UnderlyingAssetInvalid
+
+```solidity
+error UnderlyingAssetInvalid()
+```
+
+### CollateralAmountInvalid
+
+```solidity
+error CollateralAmountInvalid()
+```
+
+### WithdrawExceedsLiquidity
+
+```solidity
+error WithdrawExceedsLiquidity()
+```
+
+### InsufficientShareBalance
+
+```solidity
+error InsufficientShareBalance()
+```
+
+### MaxLiquidityBufferReached
+
+```solidity
+error MaxLiquidityBufferReached()
+```
+
+### LiabilitiesGreaterThanAssets
+
+```solidity
+error LiabilitiesGreaterThanAssets()
+```
+
+### CustomOrderInsufficientPrice
+
+```solidity
+error CustomOrderInsufficientPrice()
+```
+
+### CustomOrderInvalidDeltaValue
+
+```solidity
+error CustomOrderInvalidDeltaValue()
+```
+
+### DeltaQuoteError
+
+```solidity
+error DeltaQuoteError(uint256 quote, int256 delta)
+```
+
+### TimeDeltaExceedsThreshold
+
+```solidity
+error TimeDeltaExceedsThreshold(uint256 timeDelta)
+```
+
+### PriceDeltaExceedsThreshold
+
+```solidity
+error PriceDeltaExceedsThreshold(uint256 priceDelta)
+```
+
+### StrikeAmountExceedsLiquidity
+
+```solidity
+error StrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeLiquidity)
+```
+
+### MinStrikeAmountExceedsLiquidity
+
+```solidity
+error MinStrikeAmountExceedsLiquidity(uint256 strikeAmount, uint256 strikeAmountMin)
+```
+
+### UnderlyingAmountExceedsLiquidity
+
+```solidity
+error UnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingLiquidity)
+```
+
+### MinUnderlyingAmountExceedsLiquidity
+
+```solidity
+error MinUnderlyingAmountExceedsLiquidity(uint256 underlyingAmount, uint256 underlyingAmountMin)
+```
+
+## EnumerableSet
+
+_Library for managing
+https://en.wikipedia.org/wiki/Set_(abstract_data_type)[sets] of primitive
+types.
+
+Sets have the following properties:
+
+- Elements are added, removed, and checked for existence in constant time
+(O(1)).
+- Elements are enumerated in O(n). No guarantees are made on the ordering.
+
+```
+contract Example {
+    // Add the library methods
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    // Declare a set state variable
+    EnumerableSet.AddressSet private mySet;
+}
+```
+
+As of v3.3.0, sets of type `bytes32` (`Bytes32Set`), `address` (`AddressSet`)
+and `uint256` (`UintSet`) are supported.
+
+[WARNING]
+====
+ Trying to delete such a structure from storage will likely result in data corruption, rendering the structure unusable.
+ See https://github.com/ethereum/solidity/pull/11843[ethereum/solidity#11843] for more info.
+
+ In order to clean an EnumerableSet, you can either remove all elements one by one or create a fresh instance using an array of EnumerableSet.
+====_
+
+### Set
+
+```solidity
+struct Set {
+  bytes32[] _values;
+  mapping(bytes32 => uint256) _indexes;
+}
+```
+
+### _add
+
+```solidity
+function _add(struct EnumerableSet.Set set, bytes32 value) private returns (bool)
+```
+
+_Add a value to a set. O(1).
+
+Returns true if the value was added to the set, that is if it was not
+already present._
+
+### _remove
+
+```solidity
+function _remove(struct EnumerableSet.Set set, bytes32 value) private returns (bool)
+```
+
+_Removes a value from a set. O(1).
+
+Returns true if the value was removed from the set, that is if it was
+present._
+
+### _contains
+
+```solidity
+function _contains(struct EnumerableSet.Set set, bytes32 value) private view returns (bool)
+```
+
+_Returns true if the value is in the set. O(1)._
+
+### _length
+
+```solidity
+function _length(struct EnumerableSet.Set set) private view returns (uint256)
+```
+
+_Returns the number of values on the set. O(1)._
+
+### _at
+
+```solidity
+function _at(struct EnumerableSet.Set set, uint256 index) private view returns (bytes32)
+```
+
+_Returns the value stored at position `index` in the set. O(1).
+
+Note that there are no guarantees on the ordering of values inside the
+array, and it may change when more values are added or removed.
+
+Requirements:
+
+- `index` must be strictly less than {length}._
+
+### _values
+
+```solidity
+function _values(struct EnumerableSet.Set set) private view returns (bytes32[])
+```
+
+_Return the entire set in an array
+
+WARNING: This operation will copy the entire storage to memory, which can be quite expensive. This is designed
+to mostly be used by view accessors that are queried without any gas fees. Developers should keep in mind that
+this function has an unbounded cost, and using it as part of a state-changing function may render the function
+uncallable if the set grows to a point where copying to memory consumes too much gas to fit in a block._
+
+### AddressSet
+
+```solidity
+struct AddressSet {
+  struct EnumerableSet.Set _inner;
+}
+```
+
+### add
+
+```solidity
+function add(struct EnumerableSet.AddressSet set, address value) internal returns (bool)
+```
+
+_Add a value to a set. O(1).
+
+Returns true if the value was added to the set, that is if it was not
+already present._
+
+### remove
+
+```solidity
+function remove(struct EnumerableSet.AddressSet set, address value) internal returns (bool)
+```
+
+_Removes a value from a set. O(1).
+
+Returns true if the value was removed from the set, that is if it was
+present._
+
+### contains
+
+```solidity
+function contains(struct EnumerableSet.AddressSet set, address value) internal view returns (bool)
+```
+
+_Returns true if the value is in the set. O(1)._
+
+### length
+
+```solidity
+function length(struct EnumerableSet.AddressSet set) internal view returns (uint256)
+```
+
+_Returns the number of values in the set. O(1)._
+
+### at
+
+```solidity
+function at(struct EnumerableSet.AddressSet set, uint256 index) internal view returns (address)
+```
+
+_Returns the value stored at position `index` in the set. O(1).
+
+Note that there are no guarantees on the ordering of values inside the
+array, and it may change when more values are added or removed.
+
+Requirements:
+
+- `index` must be strictly less than {length}._
+
+### values
+
+```solidity
+function values(struct EnumerableSet.AddressSet set) internal view returns (address[])
+```
+
+_Return the entire set in an array
+
+WARNING: This operation will copy the entire storage to memory, which can be quite expensive. This is designed
+to mostly be used by view accessors that are queried without any gas fees. Developers should keep in mind that
+this function has an unbounded cost, and using it as part of a state-changing function may render the function
+uncallable if the set grows to a point where copying to memory consumes too much gas to fit in a block._
+
+## NormalDist
+
+@title Library used for approximating a normal distribution
+
+### ONE
+
+```solidity
+int256 ONE
+```
+
+### ONE_HALF
+
+```solidity
+int256 ONE_HALF
+```
+
+### SQRT_TWO
+
+```solidity
+int256 SQRT_TWO
+```
+
+### A1
+
+```solidity
+int256 A1
+```
+
+### A2
+
+```solidity
+int256 A2
+```
+
+### A3
+
+```solidity
+int256 A3
+```
+
+### A4
+
+```solidity
+int256 A4
+```
+
+### A5
+
+```solidity
+int256 A5
+```
+
+### P
+
+```solidity
+int256 P
+```
+
+### cdf
+
+```solidity
+function cdf(int256 x) public pure returns (int256)
+```
+
+### phi
+
+```solidity
+function phi(int256 x) public pure returns (int256)
+```
+
+### getScoresFromT
+
+```solidity
+function getScoresFromT(int256 t) public pure returns (int256)
+```
+
+## OptionsCompute
+
+@title Library used for various helper functionality for the Liquidity Pool
+
+### SCALE_DECIMALS
+
+```solidity
+uint8 SCALE_DECIMALS
+```
+
+### convertToDecimals
+
+```solidity
+function convertToDecimals(uint256 value, uint256 decimals) internal pure returns (uint256)
+```
+
+_assumes decimals are coming in as e18_
+
+### convertFromDecimals
+
+```solidity
+function convertFromDecimals(uint256 value, uint256 decimals) internal pure returns (uint256)
+```
+
+_converts from specified decimals to e18_
+
+### convertToCollateralDenominated
+
+```solidity
+function convertToCollateralDenominated(uint256 quote, uint256 underlyingPrice, struct Types.OptionSeries optionSeries) internal pure returns (uint256 convertedQuote)
+```
+
+### calculatePercentageChange
+
+```solidity
+function calculatePercentageChange(uint256 n, uint256 o) internal pure returns (uint256 pC)
+```
+
+_computes the percentage change between two integers_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| n | uint256 | new value in e18 |
+| o | uint256 | old value in e18 |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| pC | uint256 | uint256 the percentage change in e18 |
+
+### validatePortfolioValues
+
+```solidity
+function validatePortfolioValues(uint256 spotPrice, struct Types.PortfolioValues portfolioValues, uint256 maxTimeDeviationThreshold, uint256 maxPriceDeviationThreshold) public view
+```
+
+get the latest oracle fed portfolio values and check when they were last updated and make sure this is within a reasonable window in
+	   terms of price and time
+
+### getUtilizationPrice
+
+```solidity
+function getUtilizationPrice(uint256 _utilizationBefore, uint256 _utilizationAfter, uint256 _totalOptionPrice, uint256 _utilizationFunctionThreshold, uint256 _belowThresholdGradient, uint256 _aboveThresholdGradient, uint256 _aboveThresholdYIntercept) internal pure returns (uint256 utilizationPrice)
+```
+
+calculates the utilization price of an option using the liquidity pool's utilisation skew algorithm
+
+### quotePriceGreeks
+
+```solidity
+function quotePriceGreeks(struct Types.OptionSeries optionSeries, bool isBuying, uint256 bidAskIVSpread, uint256 riskFreeRate, uint256 iv, uint256 underlyingPrice) internal view returns (uint256 quote, int256 delta)
+```
+
+get the greeks of a quotePrice for a given optionSeries
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| optionSeries | struct Types.OptionSeries | Types.OptionSeries struct for describing the option to price greeks - strike in e18 |
+| isBuying | bool |  |
+| bidAskIVSpread | uint256 |  |
+| riskFreeRate | uint256 |  |
+| iv | uint256 |  |
+| underlyingPrice | uint256 |  |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| quote | uint256 | Quote price of the option - in e18 |
+| delta | int256 | delta of the option being priced - in e18 |
+
+## OpynInteractions
+
+@title Library used for standard interactions with the opyn-rysk gamma protocol
+  @dev inherited by the options registry to complete base opyn-rysk gamma protocol interactions
+       Interacts with the opyn-rysk gamma protocol in all functions
+
+### SCALE_FROM
+
+```solidity
+uint256 SCALE_FROM
+```
+
+### NoShort
+
+```solidity
+error NoShort()
+```
+
+### getOrDeployOtoken
+
+```solidity
+function getOrDeployOtoken(address oTokenFactory, address collateral, address underlying, address strikeAsset, uint256 strike, uint256 expiration, bool isPut) external returns (address)
+```
+
+Either retrieves the option token if it already exists, or deploy it
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| oTokenFactory | address | is the address of the opyn oTokenFactory |
+| collateral | address | asset that is held as collateral against short/written options |
+| underlying | address | is the address of the underlying asset of the option |
+| strikeAsset | address | is the address of the collateral asset of the option |
+| strike | uint256 | is the strike price of the option in 1e8 format |
+| expiration | uint256 | is the expiry timestamp of the option |
+| isPut | bool | the type of option |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | address | the address of the option |
+
+### getOtoken
+
+```solidity
+function getOtoken(address oTokenFactory, address collateral, address underlying, address strikeAsset, uint256 strike, uint256 expiration, bool isPut) external view returns (address otokenFromFactory)
+```
+
+Retrieves the option token if it already exists
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| oTokenFactory | address | is the address of the opyn oTokenFactory |
+| collateral | address | asset that is held as collateral against short/written options |
+| underlying | address | is the address of the underlying asset of the option |
+| strikeAsset | address | is the address of the collateral asset of the option |
+| strike | uint256 | is the strike price of the option in 1e8 format |
+| expiration | uint256 | is the expiry timestamp of the option |
+| isPut | bool | the type of option |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| otokenFromFactory | address | the address of the option |
+
+### createShort
+
+```solidity
+function createShort(address gammaController, address marginPool, address oTokenAddress, uint256 depositAmount, uint256 vaultId, uint256 amount, uint256 vaultType) external returns (uint256)
+```
+
+Creates the actual Opyn short position by depositing collateral and minting otokens
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| gammaController | address | is the address of the opyn controller contract |
+| marginPool | address | is the address of the opyn margin contract which holds the collateral |
+| oTokenAddress | address | is the address of the otoken to mint |
+| depositAmount | uint256 | is the amount of collateral to deposit |
+| vaultId | uint256 | is the vault id to use for creating this short |
+| amount | uint256 | is the mint amount in 1e18 format |
+| vaultType | uint256 | is the type of vault to be created |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | the otoken mint amount |
+
+### depositCollat
+
+```solidity
+function depositCollat(address gammaController, address marginPool, address collateralAsset, uint256 depositAmount, uint256 vaultId) external
+```
+
+Deposits Collateral to a specific vault
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| gammaController | address | is the address of the opyn controller contract |
+| marginPool | address | is the address of the opyn margin contract which holds the collateral |
+| collateralAsset | address | is the address of the collateral asset to deposit |
+| depositAmount | uint256 | is the amount of collateral to deposit |
+| vaultId | uint256 | is the vault id to access |
+
+### withdrawCollat
+
+```solidity
+function withdrawCollat(address gammaController, address collateralAsset, uint256 withdrawAmount, uint256 vaultId) external
+```
+
+Withdraws Collateral from a specific vault
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| gammaController | address | is the address of the opyn controller contract |
+| collateralAsset | address | is the address of the collateral asset to withdraw |
+| withdrawAmount | uint256 | is the amount of collateral to withdraw |
+| vaultId | uint256 | is the vault id to access |
+
+### burnShort
+
+```solidity
+function burnShort(address gammaController, address oTokenAddress, uint256 burnAmount, uint256 vaultId) external returns (uint256)
+```
+
+Burns an opyn short position and returns collateral back to OptionRegistry
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| gammaController | address | is the address of the opyn controller contract |
+| oTokenAddress | address | is the address of the otoken to burn |
+| burnAmount | uint256 | is the amount of options to burn |
+| vaultId | uint256 | is the vault id used that holds the short |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | the collateral returned amount |
+
+### settle
+
+```solidity
+function settle(address gammaController, uint256 vaultId) external returns (uint256 collateralRedeemed, uint256 collateralLost, uint256 shortAmount)
+```
+
+Close the existing short otoken position.
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| gammaController | address | is the address of the opyn controller contract |
+| vaultId | uint256 | is the id of the vault to be settled |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| collateralRedeemed | uint256 | collateral redeemed from the vault |
+| collateralLost | uint256 | collateral left behind in vault used to pay ITM expired options |
+| shortAmount | uint256 | number of options that were written |
+
+### redeem
+
+```solidity
+function redeem(address gammaController, address marginPool, address series, uint256 amount) external returns (uint256)
+```
+
+Exercises an ITM option
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| gammaController | address | is the address of the opyn controller contract |
+| marginPool | address | is the address of the opyn margin pool |
+| series | address | is the address of the option to redeem |
+| amount | uint256 | is the number of oTokens to redeem - passed in as e8 |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | uint256 | amount of asset received by exercising the option |
+
+## SABR
+
+### eps
+
+```solidity
+int256 eps
+```
+
+### IntermediateVariables
+
+```solidity
+struct IntermediateVariables {
+  int256 a;
+  int256 b;
+  int256 c;
+  int256 d;
+  int256 v;
+  int256 w;
+  int256 z;
+  int256 k;
+  int256 f;
+  int256 t;
+}
+```
+
+### lognormalVol
+
+```solidity
+function lognormalVol(int256 k, int256 f, int256 t, int256 alpha, int256 beta, int256 rho, int256 volvol) internal pure returns (int256 iv)
+```
+
+### _logfk
+
+```solidity
+function _logfk(int256 f, int256 k) internal pure returns (int256)
+```
+
+### _fkbeta
+
+```solidity
+function _fkbeta(int256 f, int256 k, int256 beta) internal pure returns (int256)
+```
+
+### _x
+
+```solidity
+function _x(int256 rho, int256 z) internal pure returns (int256)
+```
+
+## SafeTransferLib
+
+Safe ETH and ERC20 transfer library that gracefully handles missing return values.
+
+_Use with caution! Some functions in this library knowingly create dirty bits at the destination of the free memory pointer._
+
+### safeTransferETH
+
+```solidity
+function safeTransferETH(address to, uint256 amount) internal
+```
+
+### safeTransferFrom
+
+```solidity
+function safeTransferFrom(address tokenAddress, address from, address to, uint256 amount) internal
+```
+
+### safeTransfer
+
+```solidity
+function safeTransfer(contract ERC20 token, address to, uint256 amount) internal
+```
+
+### safeApprove
+
+```solidity
+function safeApprove(contract ERC20 token, address to, uint256 amount) internal
+```
+
+### didLastOptionalReturnCallSucceed
+
+```solidity
+function didLastOptionalReturnCallSucceed(bool callStatus) private pure returns (bool success)
+```
+
+## Types
+
+### OptionSeries
+
+```solidity
+struct OptionSeries {
+  uint64 expiration;
+  uint128 strike;
+  bool isPut;
+  address underlying;
+  address strikeAsset;
+  address collateral;
+}
+```
+
+### PortfolioValues
+
+```solidity
+struct PortfolioValues {
+  int256 delta;
+  int256 gamma;
+  int256 vega;
+  int256 theta;
+  int256 callPutsValue;
+  uint256 timestamp;
+  uint256 spotPrice;
+}
+```
+
+### Order
+
+```solidity
+struct Order {
+  struct Types.OptionSeries optionSeries;
+  uint256 amount;
+  uint256 price;
+  uint256 orderExpiry;
+  address buyer;
+  address seriesAddress;
+  uint128 lowerSpotMovementRange;
+  uint128 upperSpotMovementRange;
+  bool isBuyBack;
+}
+```
+
+### OptionParams
+
+```solidity
+struct OptionParams {
+  uint128 minCallStrikePrice;
+  uint128 maxCallStrikePrice;
+  uint128 minPutStrikePrice;
+  uint128 maxPutStrikePrice;
+  uint128 minExpiry;
+  uint128 maxExpiry;
+}
+```
+
+### UtilizationState
+
+```solidity
+struct UtilizationState {
+  uint256 totalOptionPrice;
+  int256 totalDelta;
+  uint256 collateralToAllocate;
+  uint256 utilizationBefore;
+  uint256 utilizationAfter;
+  uint256 utilizationPrice;
+  bool isDecreased;
+  uint256 deltaTiltAmount;
+  uint256 underlyingPrice;
+  uint256 iv;
+}
+```
+
+## ERC20
+
+Modern and gas efficient ERC20 + EIP-2612 implementation.
+
+_Do not manually set balances without updating totalSupply, as the sum of all user balances must not exceed it._
+
+### Transfer
+
+```solidity
+event Transfer(address from, address to, uint256 amount)
+```
+
+### Approval
+
+```solidity
+event Approval(address owner, address spender, uint256 amount)
+```
+
+### name
+
+```solidity
+string name
+```
+
+### symbol
+
+```solidity
+string symbol
+```
+
+### decimals
+
+```solidity
+uint8 decimals
+```
+
+### totalSupply
+
+```solidity
+uint256 totalSupply
+```
+
+### balanceOf
+
+```solidity
+mapping(address => uint256) balanceOf
+```
+
+### allowance
+
+```solidity
+mapping(address => mapping(address => uint256)) allowance
+```
+
+### INITIAL_CHAIN_ID
+
+```solidity
+uint256 INITIAL_CHAIN_ID
+```
+
+### INITIAL_DOMAIN_SEPARATOR
+
+```solidity
+bytes32 INITIAL_DOMAIN_SEPARATOR
+```
+
+### nonces
+
+```solidity
+mapping(address => uint256) nonces
+```
+
+### constructor
+
+```solidity
+constructor(string _name, string _symbol, uint8 _decimals) internal
+```
+
+### approve
+
+```solidity
+function approve(address spender, uint256 amount) public virtual returns (bool)
+```
+
+### transfer
+
+```solidity
+function transfer(address to, uint256 amount) public virtual returns (bool)
+```
+
+### transferFrom
+
+```solidity
+function transferFrom(address from, address to, uint256 amount) public virtual returns (bool)
+```
+
+### permit
+
+```solidity
+function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) public virtual
+```
+
+### DOMAIN_SEPARATOR
+
+```solidity
+function DOMAIN_SEPARATOR() public view virtual returns (bytes32)
+```
+
+### computeDomainSeparator
+
+```solidity
+function computeDomainSeparator() internal view virtual returns (bytes32)
+```
+
+### _mint
+
+```solidity
+function _mint(address to, uint256 amount) internal virtual
+```
+
+### _burn
+
+```solidity
+function _burn(address from, uint256 amount) internal virtual
+```
+
+## LiquidityPoolAdjustCollateralTest
+
+### optionRegistry
+
+```solidity
+address optionRegistry
+```
+
+### usd
+
+```solidity
+address usd
+```
+
+### collateralAllocated
+
+```solidity
+uint256 collateralAllocated
+```
+
+### constructor
+
+```solidity
+constructor(address _optionRegistry, address _usd) public
+```
+
+### issue
+
+```solidity
+function issue(address underlying, address strikeAsset, uint64 expiration, bool isPut, uint128 strike, address collateral) external returns (address)
+```
+
+Either retrieves the option token if it already exists, or deploy it
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| underlying | address | is the address of the underlying asset of the option |
+| strikeAsset | address | is the address of the collateral asset of the option |
+| expiration | uint64 | is the expiry timestamp of the option |
+| isPut | bool | the type of option |
+| strike | uint128 | is the strike price of the option - 1e18 format |
+| collateral | address | is the address of the asset to collateralize the option with |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | address | the address of the option |
+
+### open
+
+```solidity
+function open(address _series, uint256 amount, uint256 collateralAmount) external returns (bool, uint256)
+```
+
+Open an options contract using collateral from the liquidity pool
+
+_only callable by the liquidityPool_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _series | address | the address of the option token to be created |
+| amount | uint256 | the amount of options to deploy |
+| collateralAmount | uint256 | the collateral required for the option |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | if the transaction succeeded |
+| [1] | uint256 | the amount of collateral taken from the liquidityPool |
+
+### close
+
+```solidity
+function close(address _series, uint256 amount) external returns (bool, uint256)
+```
+
+Close an options contract (oToken) before it has expired
+
+_only callable by the liquidityPool_
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| _series | address | the address of the option token to be burnt |
+| amount | uint256 | the amount of options to burn |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| [0] | bool | if the transaction succeeded |
+| [1] | uint256 |  |
+
+### settle
+
+```solidity
+function settle(address _series) external returns (bool, uint256, uint256, uint256)
+```
+
+### adjustCollateral
+
+```solidity
+function adjustCollateral(uint256 lpCollateralDifference, bool addToLpBalance) external
+```
+
+adjust the collateral held in a specific vault because of health
+    @param lpCollateralDifference amount of collateral taken from or given to the liquidity pool
+    @param addToLpBalance true if collateral is returned to liquidity pool, false if collateral is withdrawn from liquidity pool
+
+### getBalance
+
+```solidity
+function getBalance(address collateralAsset) external view returns (uint256)
+```
+
+### setCollateralAllocated
+
+```solidity
+function setCollateralAllocated(uint256 amount) external
+```
+
+## ReentrancyGuard
+
+_Contract module that helps prevent reentrant calls to a function.
+
+Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier
+available, which can be applied to functions to make sure there are no nested
+(reentrant) calls to them.
+
+Note that because there is a single `nonReentrant` guard, functions marked as
+`nonReentrant` may not call one another. This can be worked around by making
+those functions `private`, and then adding `external` `nonReentrant` entry
+points to them.
+
+TIP: If you would like to learn more about reentrancy and alternative ways
+to protect against it, check out our blog post
+https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul]._
+
+### _NOT_ENTERED
+
+```solidity
+uint256 _NOT_ENTERED
+```
+
+### _ENTERED
+
+```solidity
+uint256 _ENTERED
+```
+
+### _status
+
+```solidity
+uint256 _status
+```
+
+### constructor
+
+```solidity
+constructor() public
+```
+
+### nonReentrant
+
+```solidity
+modifier nonReentrant()
+```
+
+_Prevents a contract from calling itself, directly or indirectly.
+Calling a `nonReentrant` function from another `nonReentrant`
+function is not supported. It is possible to prevent this from happening
+by making the `nonReentrant` function external, and make it call a
+`private` function that does the actual work._
+
+## ZeroXExchangeInterface
+
+_ZeroX Exchange contract interface._
+
+### LimitOrder
+
+```solidity
+struct LimitOrder {
+  address makerToken;
+  address takerToken;
+  uint128 makerAmount;
+  uint128 takerAmount;
+  uint128 takerTokenFeeAmount;
+  address maker;
+  address taker;
+  address sender;
+  address feeRecipient;
+  bytes32 pool;
+  uint64 expiry;
+  uint256 salt;
+}
+```
+
+### Signature
+
+```solidity
+struct Signature {
+  uint8 signatureType;
+  uint8 v;
+  bytes32 r;
+  bytes32 s;
+}
+```
+
+### batchFillLimitOrders
+
+```solidity
+function batchFillLimitOrders(struct ZeroXExchangeInterface.LimitOrder[] orders, struct ZeroXExchangeInterface.Signature[] signatures, uint128[] takerTokenFillAmounts, bool revertIfIncomplete) external payable returns (uint128[] takerTokenFilledAmounts, uint128[] makerTokenFilledAmounts)
+```
+
+_Executes multiple calls of fillLimitOrder._
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| orders | struct ZeroXExchangeInterface.LimitOrder[] | Array of order specifications. |
+| signatures | struct ZeroXExchangeInterface.Signature[] | Array of proofs that orders have been created by makers. |
+| takerTokenFillAmounts | uint128[] | Array of desired amounts of takerToken to sell in orders. |
+| revertIfIncomplete | bool |  |
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| takerTokenFilledAmounts | uint128[] | Array of amount of takerToken(s) filled. |
+| makerTokenFilledAmounts | uint128[] | Array of amount of makerToken(s) filled. |
+
+## WETH
+
+### balanceOf
+
+```solidity
+function balanceOf(address ady) external returns (uint256)
+```
+
+### deposit
+
+```solidity
+function deposit() external payable
+```
+
+### approve
+
+```solidity
+function approve(address, uint256) external
+```
+
+### withdraw
+
+```solidity
+function withdraw(uint256 wad) external
+```
+
+### transfer
+
+```solidity
+function transfer(address dst, uint256 wad) external returns (bool)
+```
+
+### transferFrom
+
+```solidity
+function transferFrom(address src, address dst, uint256 wad) external returns (bool)
+```
+
+### Deposit
+
+```solidity
+event Deposit(address dst, uint256 wad)
+```
+
+### Withdrawal
+
+```solidity
+event Withdrawal(address src, uint256 wad)
+```
+
 ## ForceSend
 
 ### go
 
 ```solidity
 function go(address payable victim) external payable
+```
+
+## WETH
+
+### name
+
+```solidity
+string name
+```
+
+### symbol
+
+```solidity
+string symbol
+```
+
+### decimals
+
+```solidity
+uint8 decimals
+```
+
+### Approval
+
+```solidity
+event Approval(address src, address guy, uint256 wad)
+```
+
+### Transfer
+
+```solidity
+event Transfer(address src, address dst, uint256 wad)
+```
+
+### Deposit
+
+```solidity
+event Deposit(address dst, uint256 wad)
+```
+
+### Withdrawal
+
+```solidity
+event Withdrawal(address src, uint256 wad)
+```
+
+### balanceOf
+
+```solidity
+mapping(address => uint256) balanceOf
+```
+
+### allowance
+
+```solidity
+mapping(address => mapping(address => uint256)) allowance
+```
+
+### deposit
+
+```solidity
+function deposit() public payable
+```
+
+### withdraw
+
+```solidity
+function withdraw(uint256 wad) public
+```
+
+### totalSupply
+
+```solidity
+function totalSupply() public view returns (uint256)
+```
+
+### approve
+
+```solidity
+function approve(address guy, uint256 wad) public returns (bool)
+```
+
+### transfer
+
+```solidity
+function transfer(address dst, uint256 wad) public returns (bool)
+```
+
+### transferFrom
+
+```solidity
+function transferFrom(address src, address dst, uint256 wad) public returns (bool)
+```
+
+## MintableERC20
+
+Modern and gas efficient ERC20 + EIP-2612 implementation.
+
+_Do not manually set balances without updating totalSupply, as the sum of all user balances must not exceed it._
+
+### Transfer
+
+```solidity
+event Transfer(address from, address to, uint256 amount)
+```
+
+### Approval
+
+```solidity
+event Approval(address owner, address spender, uint256 amount)
+```
+
+### name
+
+```solidity
+string name
+```
+
+### symbol
+
+```solidity
+string symbol
+```
+
+### decimals
+
+```solidity
+uint8 decimals
+```
+
+### totalSupply
+
+```solidity
+uint256 totalSupply
+```
+
+### balanceOf
+
+```solidity
+mapping(address => uint256) balanceOf
+```
+
+### allowance
+
+```solidity
+mapping(address => mapping(address => uint256)) allowance
+```
+
+### INITIAL_CHAIN_ID
+
+```solidity
+uint256 INITIAL_CHAIN_ID
+```
+
+### INITIAL_DOMAIN_SEPARATOR
+
+```solidity
+bytes32 INITIAL_DOMAIN_SEPARATOR
+```
+
+### nonces
+
+```solidity
+mapping(address => uint256) nonces
+```
+
+### constructor
+
+```solidity
+constructor(string _name, string _symbol, uint8 _decimals) internal
+```
+
+### approve
+
+```solidity
+function approve(address spender, uint256 amount) public virtual returns (bool)
+```
+
+### transfer
+
+```solidity
+function transfer(address to, uint256 amount) public virtual returns (bool)
+```
+
+### transferFrom
+
+```solidity
+function transferFrom(address from, address to, uint256 amount) public virtual returns (bool)
+```
+
+### permit
+
+```solidity
+function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) public virtual
+```
+
+### DOMAIN_SEPARATOR
+
+```solidity
+function DOMAIN_SEPARATOR() public view virtual returns (bytes32)
+```
+
+### computeDomainSeparator
+
+```solidity
+function computeDomainSeparator() internal view virtual returns (bytes32)
+```
+
+### mint
+
+```solidity
+function mint(address to, uint256 amount) external returns (bool)
+```
+
+### _mint
+
+```solidity
+function _mint(address to, uint256 amount) internal virtual
+```
+
+### _burn
+
+```solidity
+function _burn(address from, uint256 amount) internal virtual
+```
+
+## WETH9Interface
+
+### deposit
+
+```solidity
+function deposit() external payable
+```
+
+### withdraw
+
+```solidity
+function withdraw(uint256 wad) external
+```
+
+### totalSupply
+
+```solidity
+function totalSupply() external view returns (uint256)
+```
+
+### approve
+
+```solidity
+function approve(address guy, uint256 wad) external returns (bool)
+```
+
+### transfer
+
+```solidity
+function transfer(address dst, uint256 wad) external returns (bool)
+```
+
+### transferFrom
+
+```solidity
+function transferFrom(address src, address dst, uint256 wad) external returns (bool)
+```
+
+## Migrations
+
+### owner
+
+```solidity
+address owner
+```
+
+### last_completed_migration
+
+```solidity
+uint256 last_completed_migration
+```
+
+### constructor
+
+```solidity
+constructor() public
+```
+
+### restricted
+
+```solidity
+modifier restricted()
+```
+
+### setCompleted
+
+```solidity
+function setCompleted(uint256 completed) public
 ```
 
 ## Accounting
@@ -17346,20 +15742,6 @@ An external adapter Consumer contract that makes requests to obtain portfolio va
 
 _Interacts with the chainlink external adaptor for tracking portfolio values and the liquidityPool for feeding these values._
 
-### jobId
-
-```solidity
-bytes32 jobId
-```
-
-immutable variables ///
-
-### fee
-
-```solidity
-uint256 fee
-```
-
 ### portfolioValues
 
 ```solidity
@@ -17368,13 +15750,25 @@ mapping(address => mapping(address => struct Types.PortfolioValues)) portfolioVa
 
 oracle settable variables ///
 
+### jobId
+
+```solidity
+bytes32 jobId
+```
+
+govern settable variables ///
+
+### fee
+
+```solidity
+uint256 fee
+```
+
 ### link
 
 ```solidity
 address link
 ```
-
-govern settable variables ///
 
 ### oracle
 
@@ -17408,6 +15802,18 @@ event DataFullfilled(address underlying, address strike, int256 delta, int256 ga
 
 events ///
 
+### SetJobId
+
+```solidity
+event SetJobId(bytes32 jobId)
+```
+
+### SetFee
+
+```solidity
+event SetFee(uint256 fee)
+```
+
 ### SetOracle
 
 ```solidity
@@ -17429,7 +15835,7 @@ event SetAddressStringMapping(address asset, string stringVersion)
 ### constructor
 
 ```solidity
-constructor(address _oracle, bytes32 _jobId, uint256 _fee, address _link, address _authority) public
+constructor(address _oracle, string _jobId, uint256 _fee, address _link, address _authority) public
 ```
 
 Executes once when a contract is created to initialize state variables
@@ -17437,18 +15843,30 @@ Executes once when a contract is created to initialize state variables
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | _oracle | address | - address of the specific Chainlink node that a contract makes an API call from |
-| _jobId | bytes32 | - specific job for :_oracle: to run; each job is unique and returns different types of data |
+| _jobId | string | - specific job for :_oracle: to run; each job is unique and returns different types of data |
 | _fee | uint256 | - node operator price per API call / data request |
 | _link | address | - LINK token address on the corresponding network |
 | _authority | address |  |
+
+### setjobId
+
+```solidity
+function setjobId(string _jobId) external
+```
+
+setters ///
+
+### setFee
+
+```solidity
+function setFee(uint256 _fee) external
+```
 
 ### setOracle
 
 ```solidity
 function setOracle(address _oracle) external
 ```
-
-setters ///
 
 ### setLiquidityPool
 
@@ -17534,6 +15952,14 @@ function _isKeeper() internal view
 ```
 
 _keepers, managers or governors can access_
+
+### stringToBytes32
+
+```solidity
+function stringToBytes32(string source) private pure returns (bytes32 result)
+```
+
+internal helpers //
 
 ## PriceFeed
 
@@ -17661,19 +16087,13 @@ function changePriceFeed(address _priceFeed) external
 @title Contract used as the Dynamic Hedging Vault for storing funds, issuing shares and processing options transactions
  @dev Interacts with liquidity pool to feed in volatility data.
 
-### callsVolatilitySkew
+### sabrParams
 
 ```solidity
-int256[7] callsVolatilitySkew
+mapping(uint256 => struct VolatilityFeed.SABRParams) sabrParams
 ```
 
-governance settable variables ///
-
-### putsVolatilitySkew
-
-```solidity
-int256[7] putsVolatilitySkew
-```
+settable variables ///
 
 ### keeper
 
@@ -17684,10 +16104,37 @@ mapping(address => bool) keeper
 ### ONE_YEAR_SECONDS
 
 ```solidity
-uint256 ONE_YEAR_SECONDS
+int256 ONE_YEAR_SECONDS
 ```
 
 constant variables ///
+
+### BIPS_SCALE
+
+```solidity
+int256 BIPS_SCALE
+```
+
+### BIPS
+
+```solidity
+int256 BIPS
+```
+
+### SABRParams
+
+```solidity
+struct SABRParams {
+  int32 callAlpha;
+  int32 callBeta;
+  int32 callRho;
+  int32 callVolvol;
+  int32 putAlpha;
+  int32 putBeta;
+  int32 putRho;
+  int32 putVolvol;
+}
+```
 
 ### constructor
 
@@ -17695,20 +16142,46 @@ constant variables ///
 constructor(address _authority) public
 ```
 
-### setVolatilitySkew
+### AlphaError
 
 ```solidity
-function setVolatilitySkew(int256[7] values, bool isPut) external
+error AlphaError()
 ```
 
-set the volatility skew of the pool
+setters ///
 
-_only governance can call this function_
+### BetaError
+
+```solidity
+error BetaError()
+```
+
+### RhoError
+
+```solidity
+error RhoError()
+```
+
+### VolvolError
+
+```solidity
+error VolvolError()
+```
+
+### setSabrParameters
+
+```solidity
+function setSabrParameters(struct VolatilityFeed.SABRParams _sabrParams, uint256 _expiry) external
+```
+
+set the sabr volatility params
+
+_only keepers can call this function_
 
 | Name | Type | Description |
 | ---- | ---- | ----------- |
-| values | int256[7] | the parameters of the skew |
-| isPut | bool | the option type, put or call? |
+| _sabrParams | struct VolatilityFeed.SABRParams | set the SABR parameters |
+| _expiry | uint256 | the expiry that the SABR parameters represent |
 
 ### setKeeper
 
@@ -17736,30 +16209,6 @@ get the current implied volatility from the feed
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 | [0] | uint256 | Implied volatility adjusted for volatility surface |
-
-### getVolatilitySkew
-
-```solidity
-function getVolatilitySkew(bool isPut) external view returns (int256[7])
-```
-
-get the volatility skew of the pool
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| isPut | bool | the option type, put or call? |
-
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | int256[7] | the skew parameters |
-
-### computeIVFromSkew
-
-```solidity
-function computeIVFromSkew(int256[7] coef, int256[2] points) internal pure returns (int256)
-```
-
-internal utilities ///
 
 ### _isKeeper
 
@@ -20084,6 +18533,55 @@ Exercises an ITM option
 | ---- | ---- | ----------- |
 | [0] | uint256 | amount of asset received by exercising the option |
 
+## SABR
+
+### eps
+
+```solidity
+int256 eps
+```
+
+### IntermediateVariables
+
+```solidity
+struct IntermediateVariables {
+  int256 a;
+  int256 b;
+  int256 c;
+  int256 d;
+  int256 v;
+  int256 w;
+  int256 z;
+  int256 k;
+  int256 f;
+  int256 t;
+}
+```
+
+### lognormalVol
+
+```solidity
+function lognormalVol(int256 k, int256 f, int256 t, int256 alpha, int256 beta, int256 rho, int256 volvol) internal pure returns (int256 iv)
+```
+
+### _logfk
+
+```solidity
+function _logfk(int256 f, int256 k) internal pure returns (int256)
+```
+
+### _fkbeta
+
+```solidity
+function _fkbeta(int256 f, int256 k, int256 beta) internal pure returns (int256)
+```
+
+### _x
+
+```solidity
+function _x(int256 rho, int256 z) internal pure returns (int256)
+```
+
 ## SafeTransferLib
 
 Safe ETH and ERC20 transfer library that gracefully handles missing return values.
@@ -20485,6 +18983,174 @@ function _mint(address to, uint256 amount) internal virtual
 function _burn(address from, uint256 amount) internal virtual
 ```
 
+## NormalDist
+
+@title Library used for approximating a normal distribution
+
+### ONE
+
+```solidity
+int256 ONE
+```
+
+### ONE_HALF
+
+```solidity
+int256 ONE_HALF
+```
+
+### SQRT_TWO
+
+```solidity
+int256 SQRT_TWO
+```
+
+### A1
+
+```solidity
+int256 A1
+```
+
+### A2
+
+```solidity
+int256 A2
+```
+
+### A3
+
+```solidity
+int256 A3
+```
+
+### A4
+
+```solidity
+int256 A4
+```
+
+### A5
+
+```solidity
+int256 A5
+```
+
+### P
+
+```solidity
+int256 P
+```
+
+### cdf
+
+```solidity
+function cdf(int256 x) internal pure returns (int256)
+```
+
+### phi
+
+```solidity
+function phi(int256 x) internal pure returns (int256)
+```
+
+### getScoresFromT
+
+```solidity
+function getScoresFromT(int256 t) internal pure returns (int256)
+```
+
+## BlackScholes
+
+@title Library used to calculate an option price using Black Scholes
+
+### ONE_YEAR_SECONDS
+
+```solidity
+uint256 ONE_YEAR_SECONDS
+```
+
+### ONE
+
+```solidity
+uint256 ONE
+```
+
+### TWO
+
+```solidity
+uint256 TWO
+```
+
+### Intermediates
+
+```solidity
+struct Intermediates {
+  uint256 d1Denominator;
+  int256 d1;
+  int256 eToNegRT;
+}
+```
+
+### callOptionPrice
+
+```solidity
+function callOptionPrice(int256 d1, int256 d1Denominator, int256 price, int256 strike, int256 eToNegRT) internal pure returns (uint256)
+```
+
+### callOptionPriceGreeks
+
+```solidity
+function callOptionPriceGreeks(int256 d1, int256 d1Denominator, int256 price, int256 strike, int256 eToNegRT) internal pure returns (uint256 quote, int256 delta)
+```
+
+### putOptionPriceGreeks
+
+```solidity
+function putOptionPriceGreeks(int256 d1, int256 d1Denominator, int256 price, int256 strike, int256 eToNegRT) internal pure returns (uint256 quote, int256 delta)
+```
+
+### putOptionPrice
+
+```solidity
+function putOptionPrice(int256 d1, int256 d1Denominator, int256 price, int256 strike, int256 eToNegRT) internal pure returns (uint256)
+```
+
+### getTimeStamp
+
+```solidity
+function getTimeStamp() private view returns (uint256)
+```
+
+### getD1
+
+```solidity
+function getD1(uint256 price, uint256 strike, uint256 time, uint256 vol, uint256 rfr) private pure returns (int256 d1, uint256 d1Denominator)
+```
+
+### getIntermediates
+
+```solidity
+function getIntermediates(uint256 price, uint256 strike, uint256 time, uint256 vol, uint256 rfr) private pure returns (struct BlackScholes.Intermediates)
+```
+
+### blackScholesCalc
+
+```solidity
+function blackScholesCalc(uint256 price, uint256 strike, uint256 expiration, uint256 vol, uint256 rfr, bool isPut) internal view returns (uint256)
+```
+
+### blackScholesCalcGreeks
+
+```solidity
+function blackScholesCalcGreeks(uint256 price, uint256 strike, uint256 expiration, uint256 vol, uint256 rfr, bool isPut) internal view returns (uint256 quote, int256 delta)
+```
+
+### getDelta
+
+```solidity
+function getDelta(uint256 price, uint256 strike, uint256 expiration, uint256 vol, uint256 rfr, bool isPut) internal view returns (int256)
+```
+
 ## BlackScholesTest
 
 ### retBlackScholesCalc
@@ -20722,5 +19388,168 @@ function computeIVFromSkewInts(int256[7] coef, int256[2] points) public pure ret
 
 ```solidity
 function computeIVFromSkew(int256[7] coef, int256[2] points) internal pure returns (int256)
+```
+
+## IERC20
+
+_Interface of the ERC20 standard as defined in the EIP._
+
+### totalSupply
+
+```solidity
+function totalSupply() external view returns (uint256)
+```
+
+_Returns the amount of tokens in existence._
+
+### balanceOf
+
+```solidity
+function balanceOf(address account) external view returns (uint256)
+```
+
+_Returns the amount of tokens owned by `account`._
+
+### transfer
+
+```solidity
+function transfer(address recipient, uint256 amount) external returns (bool)
+```
+
+_Moves `amount` tokens from the caller's account to `recipient`.
+
+Returns a boolean value indicating whether the operation succeeded.
+
+Emits a {Transfer} event._
+
+### allowance
+
+```solidity
+function allowance(address owner, address spender) external view returns (uint256)
+```
+
+_Returns the remaining number of tokens that `spender` will be
+allowed to spend on behalf of `owner` through {transferFrom}. This is
+zero by default.
+
+This value changes when {approve} or {transferFrom} are called._
+
+### approve
+
+```solidity
+function approve(address spender, uint256 amount) external returns (bool)
+```
+
+_Sets `amount` as the allowance of `spender` over the caller's tokens.
+
+Returns a boolean value indicating whether the operation succeeded.
+
+IMPORTANT: Beware that changing an allowance with this method brings the risk
+that someone may use both the old and the new allowance by unfortunate
+transaction ordering. One possible solution to mitigate this race
+condition is to first reduce the spender's allowance to 0 and set the
+desired value afterwards:
+https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+
+Emits an {Approval} event._
+
+### transferFrom
+
+```solidity
+function transferFrom(address sender, address recipient, uint256 amount) external returns (bool)
+```
+
+_Moves `amount` tokens from `sender` to `recipient` using the
+allowance mechanism. `amount` is then deducted from the caller's
+allowance.
+
+Returns a boolean value indicating whether the operation succeeded.
+
+Emits a {Transfer} event._
+
+### Transfer
+
+```solidity
+event Transfer(address from, address to, uint256 value)
+```
+
+_Emitted when `value` tokens are moved from one account (`from`) to
+another (`to`).
+
+Note that `value` may be zero._
+
+### Approval
+
+```solidity
+event Approval(address owner, address spender, uint256 value)
+```
+
+_Emitted when the allowance of a `spender` for an `owner` is set by
+a call to {approve}. `value` is the new allowance._
+
+## MockChainlinkAggregator
+
+Chainlink oracle mock
+
+### decimals
+
+```solidity
+uint256 decimals
+```
+
+### roundTimestamp
+
+```solidity
+mapping(uint256 => uint256) roundTimestamp
+```
+
+_mock for round timestmap_
+
+### roundAnswer
+
+```solidity
+mapping(uint256 => int256) roundAnswer
+```
+
+_mock for round price_
+
+### lastAnswer
+
+```solidity
+int256 lastAnswer
+```
+
+### getRoundData
+
+```solidity
+function getRoundData(uint80 _roundId) external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+```
+
+### latestRoundData
+
+```solidity
+function latestRoundData() external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)
+```
+
+### setRoundTimestamp
+
+```solidity
+function setRoundTimestamp(uint256 _roundId) external
+```
+
+_function to mock setting round timestamp_
+
+### setRoundAnswer
+
+```solidity
+function setRoundAnswer(uint256 _roundId, int256 _answer) external
+```
+
+_function to mock setting round timestamp_
+
+### setLatestAnswer
+
+```solidity
+function setLatestAnswer(int256 _answer) external
 ```
 

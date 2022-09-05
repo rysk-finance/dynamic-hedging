@@ -309,7 +309,6 @@ export interface VPoolWrapperInterface extends utils.Interface {
     "AccruedProtocolFeeCollected(uint256)": EventFragment;
     "Burn(int24,int24,uint128,uint256,uint256)": EventFragment;
     "FundingRateOverrideUpdated(int256)": EventFragment;
-    "Initialized(uint8)": EventFragment;
     "LiquidityFeeUpdated(uint24)": EventFragment;
     "Mint(int24,int24,uint128,uint256,uint256)": EventFragment;
     "ProtocolFeeUpdated(uint24)": EventFragment;
@@ -321,7 +320,6 @@ export interface VPoolWrapperInterface extends utils.Interface {
   ): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Burn"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "FundingRateOverrideUpdated"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "Initialized"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "LiquidityFeeUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Mint"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "ProtocolFeeUpdated"): EventFragment;
@@ -333,8 +331,7 @@ export type AccruedProtocolFeeCollectedEvent = TypedEvent<
   { amount: BigNumber }
 >;
 
-export type AccruedProtocolFeeCollectedEventFilter =
-  TypedEventFilter<AccruedProtocolFeeCollectedEvent>;
+export type AccruedProtocolFeeCollectedEventFilter = TypedEventFilter<AccruedProtocolFeeCollectedEvent>;
 
 export type BurnEvent = TypedEvent<
   [number, number, BigNumber, BigNumber, BigNumber],
@@ -354,20 +351,14 @@ export type FundingRateOverrideUpdatedEvent = TypedEvent<
   { fundingRateOverrideX128: BigNumber }
 >;
 
-export type FundingRateOverrideUpdatedEventFilter =
-  TypedEventFilter<FundingRateOverrideUpdatedEvent>;
-
-export type InitializedEvent = TypedEvent<[number], { version: number }>;
-
-export type InitializedEventFilter = TypedEventFilter<InitializedEvent>;
+export type FundingRateOverrideUpdatedEventFilter = TypedEventFilter<FundingRateOverrideUpdatedEvent>;
 
 export type LiquidityFeeUpdatedEvent = TypedEvent<
   [number],
   { liquidityFeePips: number }
 >;
 
-export type LiquidityFeeUpdatedEventFilter =
-  TypedEventFilter<LiquidityFeeUpdatedEvent>;
+export type LiquidityFeeUpdatedEventFilter = TypedEventFilter<LiquidityFeeUpdatedEvent>;
 
 export type MintEvent = TypedEvent<
   [number, number, BigNumber, BigNumber, BigNumber],
@@ -387,8 +378,7 @@ export type ProtocolFeeUpdatedEvent = TypedEvent<
   { protocolFeePips: number }
 >;
 
-export type ProtocolFeeUpdatedEventFilter =
-  TypedEventFilter<ProtocolFeeUpdatedEvent>;
+export type ProtocolFeeUpdatedEventFilter = TypedEventFilter<ProtocolFeeUpdatedEvent>;
 
 export type SwapEvent = TypedEvent<
   [SwapResultStructOutput],
@@ -894,9 +884,6 @@ export interface VPoolWrapper extends BaseContract {
     FundingRateOverrideUpdated(
       fundingRateOverrideX128?: null
     ): FundingRateOverrideUpdatedEventFilter;
-
-    "Initialized(uint8)"(version?: null): InitializedEventFilter;
-    Initialized(version?: null): InitializedEventFilter;
 
     "LiquidityFeeUpdated(uint24)"(
       liquidityFeePips?: null

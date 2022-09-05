@@ -426,8 +426,7 @@ export type AccountOperatorUpdatedEvent = TypedEvent<
   { accountOwner: string; operator: string; isSet: boolean }
 >;
 
-export type AccountOperatorUpdatedEventFilter =
-  TypedEventFilter<AccountOperatorUpdatedEvent>;
+export type AccountOperatorUpdatedEventFilter = TypedEventFilter<AccountOperatorUpdatedEvent>;
 
 export type CallExecutedEvent = TypedEvent<
   [string, string, string],
@@ -454,8 +453,7 @@ export type CollateralAssetDepositedEvent = TypedEvent<
   }
 >;
 
-export type CollateralAssetDepositedEventFilter =
-  TypedEventFilter<CollateralAssetDepositedEvent>;
+export type CollateralAssetDepositedEventFilter = TypedEventFilter<CollateralAssetDepositedEvent>;
 
 export type CollateralAssetWithdrawedEvent = TypedEvent<
   [string, string, string, BigNumber, BigNumber],
@@ -468,8 +466,7 @@ export type CollateralAssetWithdrawedEvent = TypedEvent<
   }
 >;
 
-export type CollateralAssetWithdrawedEventFilter =
-  TypedEventFilter<CollateralAssetWithdrawedEvent>;
+export type CollateralAssetWithdrawedEventFilter = TypedEventFilter<CollateralAssetWithdrawedEvent>;
 
 export type DonatedEvent = TypedEvent<
   [string, string, BigNumber],
@@ -483,8 +480,7 @@ export type FullPauserUpdatedEvent = TypedEvent<
   { oldFullPauser: string; newFullPauser: string }
 >;
 
-export type FullPauserUpdatedEventFilter =
-  TypedEventFilter<FullPauserUpdatedEvent>;
+export type FullPauserUpdatedEventFilter = TypedEventFilter<FullPauserUpdatedEvent>;
 
 export type LongOtokenDepositedEvent = TypedEvent<
   [string, string, string, BigNumber, BigNumber],
@@ -497,8 +493,7 @@ export type LongOtokenDepositedEvent = TypedEvent<
   }
 >;
 
-export type LongOtokenDepositedEventFilter =
-  TypedEventFilter<LongOtokenDepositedEvent>;
+export type LongOtokenDepositedEventFilter = TypedEventFilter<LongOtokenDepositedEvent>;
 
 export type LongOtokenWithdrawedEvent = TypedEvent<
   [string, string, string, BigNumber, BigNumber],
@@ -511,8 +506,7 @@ export type LongOtokenWithdrawedEvent = TypedEvent<
   }
 >;
 
-export type LongOtokenWithdrawedEventFilter =
-  TypedEventFilter<LongOtokenWithdrawedEvent>;
+export type LongOtokenWithdrawedEventFilter = TypedEventFilter<LongOtokenWithdrawedEvent>;
 
 export type NakedCapUpdatedEvent = TypedEvent<
   [string, BigNumber],
@@ -526,16 +520,14 @@ export type OwnershipTransferredEvent = TypedEvent<
   { previousOwner: string; newOwner: string }
 >;
 
-export type OwnershipTransferredEventFilter =
-  TypedEventFilter<OwnershipTransferredEvent>;
+export type OwnershipTransferredEventFilter = TypedEventFilter<OwnershipTransferredEvent>;
 
 export type PartialPauserUpdatedEvent = TypedEvent<
   [string, string],
   { oldPartialPauser: string; newPartialPauser: string }
 >;
 
-export type PartialPauserUpdatedEventFilter =
-  TypedEventFilter<PartialPauserUpdatedEvent>;
+export type PartialPauserUpdatedEventFilter = TypedEventFilter<PartialPauserUpdatedEvent>;
 
 export type RedeemEvent = TypedEvent<
   [string, string, string, string, BigNumber, BigNumber],
@@ -562,8 +554,7 @@ export type ShortOtokenBurnedEvent = TypedEvent<
   }
 >;
 
-export type ShortOtokenBurnedEventFilter =
-  TypedEventFilter<ShortOtokenBurnedEvent>;
+export type ShortOtokenBurnedEventFilter = TypedEventFilter<ShortOtokenBurnedEvent>;
 
 export type ShortOtokenMintedEvent = TypedEvent<
   [string, string, string, BigNumber, BigNumber],
@@ -576,24 +567,21 @@ export type ShortOtokenMintedEvent = TypedEvent<
   }
 >;
 
-export type ShortOtokenMintedEventFilter =
-  TypedEventFilter<ShortOtokenMintedEvent>;
+export type ShortOtokenMintedEventFilter = TypedEventFilter<ShortOtokenMintedEvent>;
 
 export type SystemFullyPausedEvent = TypedEvent<
   [boolean],
   { isPaused: boolean }
 >;
 
-export type SystemFullyPausedEventFilter =
-  TypedEventFilter<SystemFullyPausedEvent>;
+export type SystemFullyPausedEventFilter = TypedEventFilter<SystemFullyPausedEvent>;
 
 export type SystemPartiallyPausedEvent = TypedEvent<
   [boolean],
   { isPaused: boolean }
 >;
 
-export type SystemPartiallyPausedEventFilter =
-  TypedEventFilter<SystemPartiallyPausedEvent>;
+export type SystemPartiallyPausedEventFilter = TypedEventFilter<SystemPartiallyPausedEvent>;
 
 export type VaultLiquidatedEvent = TypedEvent<
   [string, string, string, BigNumber, BigNumber, BigNumber, BigNumber, string],

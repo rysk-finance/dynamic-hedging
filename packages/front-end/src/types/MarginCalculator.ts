@@ -254,8 +254,7 @@ export type CollateralDustUpdatedEvent = TypedEvent<
   { collateral: string; dust: BigNumber }
 >;
 
-export type CollateralDustUpdatedEventFilter =
-  TypedEventFilter<CollateralDustUpdatedEvent>;
+export type CollateralDustUpdatedEventFilter = TypedEventFilter<CollateralDustUpdatedEvent>;
 
 export type MaxPriceAddedEvent = TypedEvent<
   [string, BigNumber, BigNumber],
@@ -281,32 +280,28 @@ export type OracleDeviationUpdatedEvent = TypedEvent<
   { oracleDeviation: BigNumber }
 >;
 
-export type OracleDeviationUpdatedEventFilter =
-  TypedEventFilter<OracleDeviationUpdatedEvent>;
+export type OracleDeviationUpdatedEventFilter = TypedEventFilter<OracleDeviationUpdatedEvent>;
 
 export type OwnershipTransferredEvent = TypedEvent<
   [string, string],
   { previousOwner: string; newOwner: string }
 >;
 
-export type OwnershipTransferredEventFilter =
-  TypedEventFilter<OwnershipTransferredEvent>;
+export type OwnershipTransferredEventFilter = TypedEventFilter<OwnershipTransferredEvent>;
 
 export type SpotShockUpdatedEvent = TypedEvent<
   [string, BigNumber],
   { product: string; spotShock: BigNumber }
 >;
 
-export type SpotShockUpdatedEventFilter =
-  TypedEventFilter<SpotShockUpdatedEvent>;
+export type SpotShockUpdatedEventFilter = TypedEventFilter<SpotShockUpdatedEvent>;
 
 export type TimeToExpiryAddedEvent = TypedEvent<
   [string, BigNumber],
   { productHash: string; timeToExpiry: BigNumber }
 >;
 
-export type TimeToExpiryAddedEventFilter =
-  TypedEventFilter<TimeToExpiryAddedEvent>;
+export type TimeToExpiryAddedEventFilter = TypedEventFilter<TimeToExpiryAddedEvent>;
 
 export interface MarginCalculator extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

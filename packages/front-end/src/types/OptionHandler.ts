@@ -290,8 +290,7 @@ export interface OptionHandlerInterface extends utils.Interface {
 
 export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
 
-export type AuthorityUpdatedEventFilter =
-  TypedEventFilter<AuthorityUpdatedEvent>;
+export type AuthorityUpdatedEventFilter = TypedEventFilter<AuthorityUpdatedEvent>;
 
 export type OrderCreatedEvent = TypedEvent<[BigNumber], { orderId: BigNumber }>;
 

@@ -29,8 +29,7 @@ export type TokenPositionChangedDueToLiquidityChangedEvent = TypedEvent<
   }
 >;
 
-export type TokenPositionChangedDueToLiquidityChangedEventFilter =
-  TypedEventFilter<TokenPositionChangedDueToLiquidityChangedEvent>;
+export type TokenPositionChangedDueToLiquidityChangedEventFilter = TypedEventFilter<TokenPositionChangedDueToLiquidityChangedEvent>;
 
 export interface LiquidityPositionSet extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

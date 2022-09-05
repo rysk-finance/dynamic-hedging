@@ -168,23 +168,19 @@ export interface MockPortfolioValuesFeedInterface extends utils.Interface {
 
 export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
 
-export type AuthorityUpdatedEventFilter =
-  TypedEventFilter<AuthorityUpdatedEvent>;
+export type AuthorityUpdatedEventFilter = TypedEventFilter<AuthorityUpdatedEvent>;
 
 export type ChainlinkCancelledEvent = TypedEvent<[string], { id: string }>;
 
-export type ChainlinkCancelledEventFilter =
-  TypedEventFilter<ChainlinkCancelledEvent>;
+export type ChainlinkCancelledEventFilter = TypedEventFilter<ChainlinkCancelledEvent>;
 
 export type ChainlinkFulfilledEvent = TypedEvent<[string], { id: string }>;
 
-export type ChainlinkFulfilledEventFilter =
-  TypedEventFilter<ChainlinkFulfilledEvent>;
+export type ChainlinkFulfilledEventFilter = TypedEventFilter<ChainlinkFulfilledEvent>;
 
 export type ChainlinkRequestedEvent = TypedEvent<[string], { id: string }>;
 
-export type ChainlinkRequestedEventFilter =
-  TypedEventFilter<ChainlinkRequestedEvent>;
+export type ChainlinkRequestedEventFilter = TypedEventFilter<ChainlinkRequestedEvent>;
 
 export type DataFullfilledEvent = TypedEvent<
   [string, string, BigNumber, BigNumber, BigNumber, BigNumber, BigNumber],

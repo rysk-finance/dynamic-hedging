@@ -73,8 +73,7 @@ export interface PriceFeedInterface extends utils.Interface {
 
 export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
 
-export type AuthorityUpdatedEventFilter =
-  TypedEventFilter<AuthorityUpdatedEvent>;
+export type AuthorityUpdatedEventFilter = TypedEventFilter<AuthorityUpdatedEvent>;
 
 export interface PriceFeed extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

@@ -22,18 +22,15 @@ export interface ChainlinkClientInterface extends utils.Interface {
 
 export type ChainlinkCancelledEvent = TypedEvent<[string], { id: string }>;
 
-export type ChainlinkCancelledEventFilter =
-  TypedEventFilter<ChainlinkCancelledEvent>;
+export type ChainlinkCancelledEventFilter = TypedEventFilter<ChainlinkCancelledEvent>;
 
 export type ChainlinkFulfilledEvent = TypedEvent<[string], { id: string }>;
 
-export type ChainlinkFulfilledEventFilter =
-  TypedEventFilter<ChainlinkFulfilledEvent>;
+export type ChainlinkFulfilledEventFilter = TypedEventFilter<ChainlinkFulfilledEvent>;
 
 export type ChainlinkRequestedEvent = TypedEvent<[string], { id: string }>;
 
-export type ChainlinkRequestedEventFilter =
-  TypedEventFilter<ChainlinkRequestedEvent>;
+export type ChainlinkRequestedEventFilter = TypedEventFilter<ChainlinkRequestedEvent>;
 
 export interface ChainlinkClient extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

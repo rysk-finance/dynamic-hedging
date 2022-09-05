@@ -36,8 +36,7 @@ export type LiquidityPositionsLiquidatedEvent = TypedEvent<
   }
 >;
 
-export type LiquidityPositionsLiquidatedEventFilter =
-  TypedEventFilter<LiquidityPositionsLiquidatedEvent>;
+export type LiquidityPositionsLiquidatedEventFilter = TypedEventFilter<LiquidityPositionsLiquidatedEvent>;
 
 export type MarginUpdatedEvent = TypedEvent<
   [BigNumber, number, BigNumber, boolean],
@@ -69,8 +68,7 @@ export type TokenPositionLiquidatedEvent = TypedEvent<
   }
 >;
 
-export type TokenPositionLiquidatedEventFilter =
-  TypedEventFilter<TokenPositionLiquidatedEvent>;
+export type TokenPositionLiquidatedEventFilter = TypedEventFilter<TokenPositionLiquidatedEvent>;
 
 export interface Account extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

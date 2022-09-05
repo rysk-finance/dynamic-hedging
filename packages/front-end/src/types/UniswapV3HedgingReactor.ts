@@ -161,8 +161,7 @@ export interface UniswapV3HedgingReactorInterface extends utils.Interface {
 
 export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
 
-export type AuthorityUpdatedEventFilter =
-  TypedEventFilter<AuthorityUpdatedEvent>;
+export type AuthorityUpdatedEventFilter = TypedEventFilter<AuthorityUpdatedEvent>;
 
 export interface UniswapV3HedgingReactor extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

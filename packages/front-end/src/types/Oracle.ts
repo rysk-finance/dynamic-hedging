@@ -230,8 +230,7 @@ export type ExpiryPriceDisputedEvent = TypedEvent<
   }
 >;
 
-export type ExpiryPriceDisputedEventFilter =
-  TypedEventFilter<ExpiryPriceDisputedEvent>;
+export type ExpiryPriceDisputedEventFilter = TypedEventFilter<ExpiryPriceDisputedEvent>;
 
 export type ExpiryPriceUpdatedEvent = TypedEvent<
   [string, BigNumber, BigNumber, BigNumber],
@@ -243,32 +242,28 @@ export type ExpiryPriceUpdatedEvent = TypedEvent<
   }
 >;
 
-export type ExpiryPriceUpdatedEventFilter =
-  TypedEventFilter<ExpiryPriceUpdatedEvent>;
+export type ExpiryPriceUpdatedEventFilter = TypedEventFilter<ExpiryPriceUpdatedEvent>;
 
 export type OwnershipTransferredEvent = TypedEvent<
   [string, string],
   { previousOwner: string; newOwner: string }
 >;
 
-export type OwnershipTransferredEventFilter =
-  TypedEventFilter<OwnershipTransferredEvent>;
+export type OwnershipTransferredEventFilter = TypedEventFilter<OwnershipTransferredEvent>;
 
 export type PricerDisputePeriodUpdatedEvent = TypedEvent<
   [string, BigNumber],
   { pricer: string; disputePeriod: BigNumber }
 >;
 
-export type PricerDisputePeriodUpdatedEventFilter =
-  TypedEventFilter<PricerDisputePeriodUpdatedEvent>;
+export type PricerDisputePeriodUpdatedEventFilter = TypedEventFilter<PricerDisputePeriodUpdatedEvent>;
 
 export type PricerLockingPeriodUpdatedEvent = TypedEvent<
   [string, BigNumber],
   { pricer: string; lockingPeriod: BigNumber }
 >;
 
-export type PricerLockingPeriodUpdatedEventFilter =
-  TypedEventFilter<PricerLockingPeriodUpdatedEvent>;
+export type PricerLockingPeriodUpdatedEventFilter = TypedEventFilter<PricerLockingPeriodUpdatedEvent>;
 
 export type PricerUpdatedEvent = TypedEvent<
   [string, string],
@@ -282,8 +277,7 @@ export type StablePriceUpdatedEvent = TypedEvent<
   { asset: string; price: BigNumber }
 >;
 
-export type StablePriceUpdatedEventFilter =
-  TypedEventFilter<StablePriceUpdatedEvent>;
+export type StablePriceUpdatedEventFilter = TypedEventFilter<StablePriceUpdatedEvent>;
 
 export interface Oracle extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;

@@ -111,8 +111,7 @@ export type RoleAdminChangedEvent = TypedEvent<
   { role: string; previousAdminRole: string; newAdminRole: string }
 >;
 
-export type RoleAdminChangedEventFilter =
-  TypedEventFilter<RoleAdminChangedEvent>;
+export type RoleAdminChangedEventFilter = TypedEventFilter<RoleAdminChangedEvent>;
 
 export type RoleGrantedEvent = TypedEvent<
   [string, string, string],
