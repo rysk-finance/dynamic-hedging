@@ -1128,10 +1128,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	})
 
 	it("Succeeds: execute epoch from keeper", async () => {
-		// deposit more funds to allow withdrawal epoch to execute
+		// deposit more funds to allow withdrawal withdrawal epoch to execute
 		const user = await signers[2].getAddress()
-		await usd.connect(signers[2]).approve(liquidityPool.address, toUSDC("150000"))
-		await liquidityPool.connect(signers[2]).deposit(toUSDC("150000"))
+		await usd.connect(signers[2]).approve(liquidityPool.address, toUSDC("200000"))
+		await liquidityPool.connect(signers[2]).deposit(toUSDC("200000"))
 		const lpUsdBalance = await usd.balanceOf(liquidityPool.address)
 		const bufferRemaining = parseFloat(
 			fromUSDC(
@@ -1147,17 +1147,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const lpAssets = await liquidityPool.getAssets()
 		const lpNav = await liquidityPool.getNAV()
 		// liabilities = assets - NAV
-		const totalWithdrawAmount = parseFloat(
-			fromUSDC(
-				(
-					await accounting.executeEpochCalculation(
-						await liquidityPool.totalSupply(),
-						lpAssets,
-						lpAssets.sub(lpNav)
-					)
-				).totalWithdrawAmount
-			)
-		)
+
 		const depositEpochBefore = await liquidityPool.depositEpoch()
 		const withdrawalEpochBefore = await liquidityPool.withdrawalEpoch()
 		const pendingDepositBefore = await liquidityPool.pendingDeposits()
@@ -1180,7 +1170,6 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 				parseFloat(fromWei(pendingWithdrawBefore)) *
 					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
-
 		expect(pendingWithdrawAfter).to.eq(0)
 		// check depositEpochPricePerShare is correct
 		expect(fromWei(await liquidityPool.depositEpochPricePerShare(depositEpochBefore))).to.equal(
