@@ -36,6 +36,10 @@
   line-height: 20px;
 }
 
+.root-grid a {
+  color: #02c5e6;
+}
+
 .custom-date-picker .react-datepicker{
   font-family: "DM Mono";
   background-color: #EDE9DD;
