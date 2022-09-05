@@ -29,39 +29,40 @@ contract Authority is IAuthority, AccessControl {
 		address _manager
 	) AccessControl(IAuthority(address(this))) {
 		governor = _governor;
-		emit GovernorPushed(address(0), governor, true);
+		emit GovernorPushed(address(0), governor);
+		emit GovernorPulled(address(0), governor);
 		guardian[_guardian] = true;
-		emit GuardianPushed(_guardian, true);
+		emit GuardianPushed(_guardian);
 		manager = _manager;
-		emit ManagerPushed(address(0), manager, true);
+		emit ManagerPushed(address(0), manager);
+		emit ManagerPulled(address(0), manager);
 	}
 
 	/* ========== GOV ONLY ========== */
 
-	function pushGovernor(address _newGovernor, bool _effectiveImmediately) external {
+	function pushGovernor(address _newGovernor) external {
 		_onlyGovernor();
-		if (_effectiveImmediately) governor = _newGovernor;
 		newGovernor = _newGovernor;
-		emit GovernorPushed(governor, newGovernor, _effectiveImmediately);
+		emit GovernorPushed(governor, newGovernor);
 	}
 
 	function pushGuardian(address _newGuardian) external {
 		_onlyGovernor();
 		guardian[_newGuardian] = true;
-		emit GuardianPushed(_newGuardian, true);
+		emit GuardianPushed(_newGuardian);
 	}
 
-	function pushManager(address _newManager, bool _effectiveImmediately) external {
+	function pushManager(address _newManager) external {
 		_onlyGovernor();
-		if (_effectiveImmediately) manager = _newManager;
 		newManager = _newManager;
-		emit ManagerPushed(manager, newManager, _effectiveImmediately);
+		emit ManagerPushed(manager, newManager);
 	}
 
 	function pullGovernor() external {
 		require(msg.sender == newGovernor, "!newGovernor");
 		emit GovernorPulled(governor, newGovernor);
 		governor = newGovernor;
+		newGovernor = address(0);
 	}
 
 	function revokeGuardian(address _guardian) external {
@@ -74,5 +75,6 @@ contract Authority is IAuthority, AccessControl {
 		require(msg.sender == newManager, "!newManager");
 		emit ManagerPulled(manager, newManager);
 		manager = newManager;
+		newManager = address(0);
 	}
 }

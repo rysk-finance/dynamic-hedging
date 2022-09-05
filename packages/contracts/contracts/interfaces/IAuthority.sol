@@ -4,9 +4,9 @@ pragma solidity >=0.8.0;
 interface IAuthority {
 	/* ========== EVENTS ========== */
 
-	event GovernorPushed(address indexed from, address indexed to, bool _effectiveImmediately);
-	event GuardianPushed(address indexed to, bool _effectiveImmediately);
-	event ManagerPushed(address indexed from, address indexed to, bool _effectiveImmediately);
+	event GovernorPushed(address indexed from, address indexed to);
+	event GuardianPushed(address indexed to);
+	event ManagerPushed(address indexed from, address indexed to);
 
 	event GovernorPulled(address indexed from, address indexed to);
 	event GuardianRevoked(address indexed to);
