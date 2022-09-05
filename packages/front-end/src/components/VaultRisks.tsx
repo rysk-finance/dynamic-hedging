@@ -28,10 +28,10 @@ export const VaultRisks = () => {
                   In this case the {DHV_NAME} could dynamically hedge trading
                   other instruments reducing the directionality
                 </li>
-                <a href="#" className="underline">
-                  Learn more on Financial Risks
-                </a>
               </ul>
+              <a href="#" className="underline">
+                { `Learn more about Rysk's Financial risks` }
+              </a>
             </p>
           </div>
 
@@ -52,7 +52,7 @@ export const VaultRisks = () => {
                 </li>
               </ul>
               <a href="#" className="underline">
-                Learn more about Rysk's security
+                { `Learn more about Rysk's security` }
               </a>
             </p>
           </div>
