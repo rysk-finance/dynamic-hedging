@@ -32,13 +32,13 @@ contract Authority is IAuthority, AccessControl {
 			revert CustomErrors.InvalidAddress();
 		}
 		governor = _governor;
-		emit GovernorPushed(address(0), governor);
-		emit GovernorPulled(address(0), governor);
+		emit GovernorPushed(address(0), _governor);
+		emit GovernorPulled(address(0), _governor);
 		guardian[_guardian] = true;
 		emit GuardianPushed(_guardian);
 		manager = _manager;
-		emit ManagerPushed(address(0), manager);
-		emit ManagerPulled(address(0), manager);
+		emit ManagerPushed(address(0), _manager);
+		emit ManagerPulled(address(0), _manager);
 	}
 
 	/* ========== GOV ONLY ========== */
