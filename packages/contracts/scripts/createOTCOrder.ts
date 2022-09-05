@@ -34,9 +34,6 @@ async function main() {
 			arbitrumRinkeby.optionHandler
 		)
 
-		console.log(arbitrumRinkeby.WETH)
-		console.log(arbitrumRinkeby.USDC)
-
 		const option = {
 			expiration: "1663315200",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
@@ -54,14 +51,14 @@ async function main() {
 		const orderTransaction = await optionHandler.createOrder(
 			option, // series
 			orderAmount, // amount 
-			BigNumber.from(25).mul(USDC_DECIMAL), // price
+			BigNumber.from(25).mul(RYSK_DECIMAL), // price
 			BigNumber.from(1800), // expiry
 			"0xAD5B468F6Fb897461E388396877fD5E3c5114539",
 			false,
 			[toWei("100"), toWei("100")]
 		)
 
-		// console.log(orderTransaction)
+		console.log(orderTransaction)
 	} catch (err) {
 		console.log(err)
 	}
