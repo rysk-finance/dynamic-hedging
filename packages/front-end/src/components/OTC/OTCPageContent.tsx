@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { useWalletContext } from "../../App";
 // import OptionHandler from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json";
 import AlphaOptionHandler from "../../artifacts/contracts/AlphaOptionHandler.sol/AlphaOptionHandler.json";
-import { ZERO_UINT_256 } from "../../config/constants";
+import { BIG_NUMBER_DECIMALS, ZERO_UINT_256 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { useQueryParams } from "../../hooks/useQueryParams";
 import { useGlobalContext } from "../../state/GlobalContext";
@@ -169,10 +169,12 @@ export const OTCPageContent = () => {
         : order
         ? order.price
         : null;
-      if (price) {
+      if (order) {
+        // 1e12 cause usdc is 1e6 and price is 1e18
+        const totAmountInUsdc = order.price.mul(order.amount).div(BIG_NUMBER_DECIMALS.RYSK).div(1e12)
         usdcContractCall({
           method: usdcContract.approve,
-          args: [alphaOptionHandlerContract.address, price],
+          args: [alphaOptionHandlerContract.address, totAmountInUsdc],
           onSubmit: () => {
             setIsListeningForApproval(true);
           },
@@ -275,7 +277,7 @@ export const OTCPageContent = () => {
                                   currency={Currency.RYSK}
                                   suffix="USDC"
                                 >
-                                  {order.price}
+                                  {order.price.mul(order.amount).div(BIG_NUMBER_DECIMALS.RYSK)}
                                 </BigNumberDisplay>
                               </b>
                             </p>

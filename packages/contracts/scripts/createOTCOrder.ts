@@ -44,14 +44,14 @@ async function main() {
 			collateral: arbitrumRinkeby.USDC
 		}
 
-		const orderAmount = RYSK_DECIMAL.mul(2)
+		const orderAmount = RYSK_DECIMAL.mul(5)
 
-		// const customOrderPrice = "25"
+		const pricePerOptionInUsdc = "25"
 
 		const orderTransaction = await optionHandler.createOrder(
 			option, // series
 			orderAmount, // amount 
-			BigNumber.from(25).mul(RYSK_DECIMAL), // price
+			BigNumber.from(pricePerOptionInUsdc).mul(RYSK_DECIMAL), // price
 			BigNumber.from(1800), // expiry
 			"0xAD5B468F6Fb897461E388396877fD5E3c5114539",
 			false,

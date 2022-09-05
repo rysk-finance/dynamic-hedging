@@ -20,7 +20,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
             Buyer Address: <AddressDisplay>{order.buyer}</AddressDisplay>
           </p>
           <p>
-            Amount:{" "}
+            Size:{" "}
             <BigNumberDisplay currency={Currency.RYSK}>
               {order.amount}
             </BigNumberDisplay>
@@ -28,7 +28,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
           <p>
             Price per option:{" "}
             <BigNumberDisplay currency={Currency.RYSK} suffix="USDC">
-              {order.price.div(order.amount.div(BIG_NUMBER_DECIMALS.USDC ))}
+              {order.price}
             </BigNumberDisplay>
           </p>
         </>
