@@ -42,6 +42,7 @@ export type RyskContractAddresses = {
   liquidityPool: string;
   authority: string;
   portfolioValuesFeed: string;
+  alphaOptionHandler: string;
   optionHandler: string;
   opynInteractions: string;
   normDist: string;

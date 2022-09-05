@@ -9,7 +9,7 @@ import { TransactionDescription } from "ethers/lib/utils"
 import { toWei } from "../utils/conversion-helper"
 import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
 
-const ADDRESS = "0xed9d4593a9BD1aeDBA8C5F9013EF3323FEC5e4dC"
+// const ADDRESS = "0xed9d4593a9BD1aeDBA8C5F9013EF3323FEC5e4dC"
 
 const RYSK_DECIMAL = BigNumber.from("1000000000000000000")
 const USDC_DECIMAL = BigNumber.from("1000000")
@@ -34,6 +34,9 @@ async function main() {
 			arbitrumRinkeby.optionHandler
 		)
 
+		console.log(arbitrumRinkeby.WETH)
+		console.log(arbitrumRinkeby.USDC)
+
 		const option = {
 			expiration: "1663315200",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
@@ -46,17 +49,19 @@ async function main() {
 
 		const orderAmount = RYSK_DECIMAL.mul(2)
 
+		// const customOrderPrice = "25"
+
 		const orderTransaction = await optionHandler.createOrder(
-			option,
-			orderAmount,
-			BigNumber.from(50000000),
-			BigNumber.from(1800),
+			option, // series
+			orderAmount, // amount 
+			BigNumber.from(25).mul(USDC_DECIMAL), // price
+			BigNumber.from(1800), // expiry
 			"0xAD5B468F6Fb897461E388396877fD5E3c5114539",
 			false,
-			[toWei("1"), toWei("1")]
+			[toWei("100"), toWei("100")]
 		)
 
-		console.log(orderTransaction)
+		// console.log(orderTransaction)
 	} catch (err) {
 		console.log(err)
 	}

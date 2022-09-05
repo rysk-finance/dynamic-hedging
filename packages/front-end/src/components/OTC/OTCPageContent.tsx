@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../../App";
-import OptionHandler from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json";
+// import OptionHandler from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json";
+import AlphaOptionHandler from "../../artifacts/contracts/AlphaOptionHandler.sol/AlphaOptionHandler.json";
 import { ZERO_UINT_256 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { useQueryParams } from "../../hooks/useQueryParams";
@@ -40,11 +41,11 @@ export const OTCPageContent = () => {
     "Please connect your wallet"
   );
 
-  const [optionHandlerContract, optionHandlerContractCall] = useContract<{
+  const [alphaOptionHandlerContract, alphaOptionHandlerContractCall] = useContract<{
     OrderExecuted: [BigNumber];
   }>({
-    contract: "optionHandler",
-    ABI: OptionHandler.abi,
+    contract: "alphaOptionHandler",
+    ABI: AlphaOptionHandler.abi,
     events: {
       OrderExecuted: (id) => {
         if (orderId && orderId === id.toString()) {
@@ -76,7 +77,7 @@ export const OTCPageContent = () => {
 
   useEffect(() => {
     const fetchOrder = async () => {
-      if (optionHandlerContract && network && account)
+      if (alphaOptionHandlerContract && network && account)
         try {
           const id = query.get("id");
 
@@ -97,11 +98,11 @@ export const OTCPageContent = () => {
               .split("-")
               .map((numString) => Number(numString));
 
-            const order1 = (await optionHandlerContract.orderStores(
+            const order1 = (await alphaOptionHandlerContract.orderStores(
               id1
             )) as Order | null;
 
-            const order2 = (await optionHandlerContract.orderStores(
+            const order2 = (await alphaOptionHandlerContract.orderStores(
               id2
             )) as Order | null;
 
@@ -128,7 +129,7 @@ export const OTCPageContent = () => {
             }
           } else {
             const parsedId = Number(id);
-            const order = (await optionHandlerContract.orderStores(
+            const order = (await alphaOptionHandlerContract.orderStores(
               parsedId
             )) as Order | null;
 
@@ -150,7 +151,7 @@ export const OTCPageContent = () => {
     };
 
     fetchOrder();
-  }, [optionHandlerContract, query, account, network]);
+  }, [alphaOptionHandlerContract, query, account, network]);
 
   useEffect(() => {
     if (account && order) {
@@ -161,7 +162,7 @@ export const OTCPageContent = () => {
   }, [account, order]);
 
   const handleApprove = useCallback(async () => {
-    if (usdcContract && optionHandlerContract && (order || strangle)) {
+    if (usdcContract && alphaOptionHandlerContract && (order || strangle)) {
       const isStrangle = !!strangle;
       const price = isStrangle
         ? strangle.call.price.add(strangle.put.price)
@@ -171,7 +172,7 @@ export const OTCPageContent = () => {
       if (price) {
         usdcContractCall({
           method: usdcContract.approve,
-          args: [optionHandlerContract.address, price],
+          args: [alphaOptionHandlerContract.address, price],
           onSubmit: () => {
             setIsListeningForApproval(true);
           },
@@ -182,13 +183,13 @@ export const OTCPageContent = () => {
     } else {
       toast("❌ There was an error. Please contact our team.");
     }
-  }, [optionHandlerContract, usdcContract, usdcContractCall, order, strangle]);
+  }, [alphaOptionHandlerContract, usdcContract, usdcContractCall, order, strangle]);
 
   const handleComplete = useCallback(async () => {
-    if (optionHandlerContract) {
+    if (alphaOptionHandlerContract) {
       if (orderId) {
-        await optionHandlerContractCall({
-          method: optionHandlerContract.executeOrder,
+        await alphaOptionHandlerContractCall({
+          method: alphaOptionHandlerContract.executeOrder,
           args: [Number(orderId)],
           onSubmit: () => {
             setIsListeningForComplete(true);
@@ -198,8 +199,8 @@ export const OTCPageContent = () => {
         const [id1, id2] = strangleId
           .split("-")
           .map((numString) => Number(numString));
-        await optionHandlerContractCall({
-          method: optionHandlerContract.executeOrder,
+        await alphaOptionHandlerContractCall({
+          method: alphaOptionHandlerContract.executeOrder,
           args: [id1],
           onSubmit: () => {
             setIsListeningForComplete(true);
@@ -209,7 +210,7 @@ export const OTCPageContent = () => {
     } else {
       toast("❌ There was an error. Please contact our team.");
     }
-  }, [optionHandlerContract, optionHandlerContractCall, orderId, strangleId]);
+  }, [alphaOptionHandlerContract, alphaOptionHandlerContractCall, orderId, strangleId]);
 
   useEffect(() => {
     if (!network || !account) {

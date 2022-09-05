@@ -1,0 +1,37 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Constants",
+  "sourceName": "contracts/libraries/Constants.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "decimalPlace",
+      "outputs": [
+        {
+          "internalType": "bytes16",
+          "name": "",
+          "type": "bytes16"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ethAddress",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60b6610039600b82828239805160001a60731461002c57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe7300000000000000000000000000000000000000003014608060405260043610603d5760003560e01c806341398b15146042578063e32cb7fc146069575b600080fd5b60405173eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee81526020015b60405180910390f35b604051668075782dace9d960c71b8152602001606056fea264697066735822122034db1758a9aa1bf2b429d594bdcc8c6a8cebc7a0930e7887dcd2d8cae217545464736f6c63430008090033",
+  "deployedBytecode": "0x7300000000000000000000000000000000000000003014608060405260043610603d5760003560e01c806341398b15146042578063e32cb7fc146069575b600080fd5b60405173eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee81526020015b60405180910390f35b604051668075782dace9d960c71b8152602001606056fea264697066735822122034db1758a9aa1bf2b429d594bdcc8c6a8cebc7a0930e7887dcd2d8cae217545464736f6c63430008090033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

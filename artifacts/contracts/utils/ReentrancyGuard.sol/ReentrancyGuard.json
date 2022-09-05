@@ -1,0 +1,16 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "ReentrancyGuard",
+  "sourceName": "contracts/utils/ReentrancyGuard.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    }
+  ],
+  "bytecode": "0x6080604052348015600f57600080fd5b506001600055603f8060226000396000f3fe6080604052600080fdfea264697066735822122004cd47bc0eedae428c648dc4be65561b33d906077e0c8c22cc2e375d5851553064736f6c63430008090033",
+  "deployedBytecode": "0x6080604052600080fdfea264697066735822122004cd47bc0eedae428c648dc4be65561b33d906077e0c8c22cc2e375d5851553064736f6c63430008090033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
