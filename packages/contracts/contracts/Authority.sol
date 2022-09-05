@@ -28,6 +28,9 @@ contract Authority is IAuthority, AccessControl {
 		address _guardian,
 		address _manager
 	) AccessControl(IAuthority(address(this))) {
+		if (_governor == address(0) || _guardian == address(0) || _manager == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
 		governor = _governor;
 		emit GovernorPushed(address(0), governor);
 		emit GovernorPulled(address(0), governor);
