@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 
 import "./interfaces/IAuthority.sol";
-
+import "./libraries/CustomErrors.sol";
 import "./libraries/AccessControl.sol";
 
 /**
@@ -42,18 +42,27 @@ contract Authority is IAuthority, AccessControl {
 
 	function pushGovernor(address _newGovernor) external {
 		_onlyGovernor();
+		if (_newGovernor == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
 		newGovernor = _newGovernor;
 		emit GovernorPushed(governor, newGovernor);
 	}
 
 	function pushGuardian(address _newGuardian) external {
 		_onlyGovernor();
+		if (_newGuardian == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
 		guardian[_newGuardian] = true;
 		emit GuardianPushed(_newGuardian);
 	}
 
 	function pushManager(address _newManager) external {
 		_onlyGovernor();
+		if (_newManager == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
 		newManager = _newManager;
 		emit ManagerPushed(manager, newManager);
 	}

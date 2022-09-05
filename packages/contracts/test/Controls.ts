@@ -305,5 +305,14 @@ describe("Authority tests", async () => {
 		it("FAILS: rando tries to pull manager rank", async () => {
 			await expect(authority.connect(signers[2]).pullManager()).to.be.revertedWith("!newManager")
 		})
+		it("FAILS: set Governor to zero address", async () => {
+			await expect(authority.pushGovernor(ZERO_ADDRESS)).to.be.revertedWith("InvalidAddress()")
+		})
+		it("FAILS: set manager to zero address", async () => {
+			await expect(authority.pushManager(ZERO_ADDRESS)).to.be.revertedWith("InvalidAddress()")
+		})
+		it("FAILS: set manager to zero address", async () => {
+			await expect(authority.pushGuardian(ZERO_ADDRESS)).to.be.revertedWith("InvalidAddress()")
+		})
 	})
 })
