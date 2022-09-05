@@ -131,6 +131,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	event Redeem(address recipient, uint256 amount, uint256 epoch);
 	event InitiateWithdraw(address recipient, uint256 amount, uint256 epoch);
 	event WriteOption(address series, uint256 amount, uint256 premium, uint256 escrow, address buyer);
+	event TradingPaused();
+	event TradingUnpaused();
 	event SettleVault(
 		address series,
 		uint256 collateralReturned,
@@ -183,6 +185,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function pauseUnpauseTrading(bool _pause) external {
 		_onlyGuardian();
 		isTradingPaused = _pause;
+		if (_pause) {
+			emit TradingPaused();
+		} else {
+			emit TradingUnpaused();
+		}
 	}
 
 	function unpause() external {
@@ -201,8 +208,8 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			revert CustomErrors.InvalidAddress();
 		}
 		address[] memory hedgingReactors_ = hedgingReactors;
-		uint256 maxIndex = hedgingReactors_.length;
-		for (uint256 i = 0; i < maxIndex; i++) {
+		uint256 arrayLength = hedgingReactors_.length;
+		for (uint256 i = 0; i < arrayLength; i++) {
 			if (hedgingReactors_[i] == _reactorAddress) {
 				revert CustomErrors.ReactorAlreadyExists();
 			}
@@ -221,15 +228,16 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function removeHedgingReactorAddress(uint256 _index, bool _override) external {
 		_onlyGovernor();
 		address[] memory hedgingReactors_ = hedgingReactors;
+		address reactorAddress = hedgingReactors_[_index];
 		if (!_override) {
-			IHedgingReactor reactor = IHedgingReactor(hedgingReactors_[_index]);
+			IHedgingReactor reactor = IHedgingReactor(reactorAddress);
 			int256 delta = reactor.getDelta();
 			if (delta != 0) {
 				reactor.hedgeDelta(delta);
 			}
 			reactor.withdraw(type(uint256).max);
 		}
-		SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors_[_index], 0);
+		SafeTransferLib.safeApprove(ERC20(collateralAsset), reactorAddress, 0);
 		uint256 maxIndex = hedgingReactors_.length - 1;
 		for (uint256 i = _index; i < maxIndex; i++) {
 			hedgingReactors[i] = hedgingReactors[i + 1];
@@ -565,6 +573,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		_isKeeper();
 		// pause trading
 		isTradingPaused = true;
+		emit TradingPaused();
 		// make an oracle request
 		return _getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
 	}
@@ -591,6 +600,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		emit DepositEpochExecuted(depositEpoch);
 		depositEpoch++;
 		isTradingPaused = false;
+		emit TradingUnpaused();
 		_mint(address(this), sharesToMint);
 		// loop through the reactors and move funds if found
 		if (amountNeeded > 0) {
