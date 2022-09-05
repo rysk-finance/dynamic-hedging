@@ -29,7 +29,7 @@ export const VaultRisksStats = () => {
           </p>
           {/* <a
             href="https://docs.rysk.finance"
-            className="underline"
+            className="underline text-center"
             target="_blank"
             rel="noreferrer"
           >
@@ -59,6 +59,15 @@ export const VaultRisksStats = () => {
             Max Drawdown: {" "}
             TBC
             {/* <RyskTooltip
+            Max Drawdown:{" "}
+            <NumberFormat
+              value={"2.45"}
+              displayType={"text"}
+              decimalScale={2}
+              suffix="%"
+              className="font-medium"
+            />
+            <RyskTooltip
               id="drawdownTip"
               message="Maximum drawdown indicates the downside risk of the vault since inceptions. <br />
                 A low maximum drawdown is preferred as it indicates that losses from investment were small."
@@ -66,7 +75,7 @@ export const VaultRisksStats = () => {
           </p>
           {/* <a
             href="https://docs.rysk.finance"
-            className="underline"
+            className="underline text-center"
             target="_blank"
             rel="noreferrer"
           >

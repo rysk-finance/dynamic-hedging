@@ -264,6 +264,19 @@ describe("APVF gas tests", async () => {
 			for (let i = 0; i < noOfExpiries; i++) {
 				// get a new expiry
 				expiration += 3*24*60*60
+				await volFeed.setSabrParameters(
+					{
+						callAlpha:250000,
+						callBeta:1_000000,
+						callRho:-300000,
+						callVolvol:1_500000,
+						putAlpha:250000,
+						putBeta:1_000000,
+						putRho:-300000,
+						putVolvol:1_500000
+					}, 
+					expiration
+				)
 				// set the option type
 				const flavour = i & 1 ? true : false
 				let strike = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -316,11 +329,11 @@ describe("APVF gas tests", async () => {
 	describe("Try a migration with all the options", async () => {
 		let migratePortfolioValuesFeed: AlphaPortfolioValuesFeed;
 		it("SETUP: Make a new portfolio values feed", async () => {
-			const normDistFactory = await ethers.getContractFactory("NormalDist", {
+			const normDistFactory = await ethers.getContractFactory("contracts/libraries/NormalDist.sol:NormalDist", {
 				libraries: {}
 			})
 			const normDist = await normDistFactory.deploy()
-			const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+			const blackScholesFactory = await ethers.getContractFactory("contracts/libraries/BlackScholes.sol:BlackScholes", {
 				libraries: {
 					NormalDist: normDist.address
 				}
@@ -390,6 +403,19 @@ describe("APVF gas tests", async () => {
 			const amount = toWei("2")
 			const orderExpiry = 10
 			let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000 + 6*60*60*24
+			await volFeed.setSabrParameters(
+				{
+					callAlpha:250000,
+					callBeta:1_000000,
+					callRho:-300000,
+					callVolvol:1_500000,
+					putAlpha:250000,
+					putBeta:1_000000,
+					putRho:-300000,
+					putVolvol:1_500000
+				}, 
+				expiration
+			)
 			// set the option type
 			const flavour = CALL_FLAVOR
 			let strike = await priceFeed.getNormalizedRate(weth.address, usd.address)
