@@ -1,26 +1,11 @@
 import "@nomiclabs/hardhat-ethers"
-import { BigNumber, ethers, utils } from "ethers"
+import { BigNumber } from "ethers"
 import hre from "hardhat"
-// This file doesn't exist in CI, only exists locally (in git ignore)
-import { arbitrumRinkeby, localhost } from "../contracts.json"
-import { PriceFeed } from "../types/PriceFeed"
-import ERC20 from "../abis/erc20.json"
-import { TransactionDescription } from "ethers/lib/utils"
+import { arbitrumRinkeby } from "../contracts.json"
 import { toWei } from "../utils/conversion-helper"
-import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
-
-// const ADDRESS = "0xed9d4593a9BD1aeDBA8C5F9013EF3323FEC5e4dC"
 
 const RYSK_DECIMAL = BigNumber.from("1000000000000000000")
-const USDC_DECIMAL = BigNumber.from("1000000")
-
-type OrderBounds = {
-	callMinDelta: BigNumber
-	callMaxDelta: BigNumber
-	putMinDelta: BigNumber
-	putMaxDelta: BigNumber
-	maxPriceRange: BigNumber
-}
+const RYSK_EXP = 1e18
 
 async function main() {
 	try {
@@ -29,9 +14,9 @@ async function main() {
 			process.exit()
 		}
 
-		const optionHandler = await hre.ethers.getContractAt(
+		const alphaOptionHandler = await hre.ethers.getContractAt(
 			"AlphaOptionHandler",
-			arbitrumRinkeby.optionHandler
+			arbitrumRinkeby.alphaOptionHandler
 		)
 
 		const option = {
@@ -44,17 +29,17 @@ async function main() {
 			collateral: arbitrumRinkeby.USDC
 		}
 
-		const orderAmount = RYSK_DECIMAL.mul(5)
+		const orderAmount = 2.33
 
-		const pricePerOptionInUsdc = "25"
+		const pricePerOptionInUsdc = 7.45
 
-		const orderTransaction = await optionHandler.createOrder(
+		const orderTransaction = await alphaOptionHandler.createOrder(
 			option, // series
-			orderAmount, // amount 
-			BigNumber.from(pricePerOptionInUsdc).mul(RYSK_DECIMAL), // price
+			BigNumber.from( (orderAmount * RYSK_EXP).toString() ), // amount 
+			BigNumber.from( (pricePerOptionInUsdc * RYSK_EXP).toString() ), // price
 			BigNumber.from(1800), // expiry
 			"0xAD5B468F6Fb897461E388396877fD5E3c5114539",
-			false,
+			false, // is_buyback
 			[toWei("100"), toWei("100")]
 		)
 
