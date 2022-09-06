@@ -266,7 +266,7 @@ export const VaultWithdraw = () => {
             </div>
             <div className="ml-[-2px]">
               <TextInput
-                className="text-right p-4 text-xl border-r-0"
+                className="pl-[100px] p-4 text-xl border-r-0"
                 setValue={(value) => handleInputChange(value)}
                 value={inputValue}
                 iconLeft={
@@ -281,6 +281,7 @@ export const VaultWithdraw = () => {
                 maxButtonHandler={
                   withdrawableDHV ? () => handleSliderChange(100) : undefined
                 }
+                maxLength={30}
               />
             </div>
             <div className="ml-[-2px] py-2 px-4 border-b-2 border-black h-12">
