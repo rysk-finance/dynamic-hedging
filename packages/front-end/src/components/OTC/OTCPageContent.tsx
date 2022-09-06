@@ -164,17 +164,20 @@ export const OTCPageContent = () => {
   const handleApprove = useCallback(async () => {
     if (usdcContract && alphaOptionHandlerContract && (order || strangle)) {
       const isStrangle = !!strangle;
-      const price = isStrangle
-        ? strangle.call.price.add(strangle.put.price)
+      // 1e12 cause usdc is 1e6 and price is 1e18
+      const totalPrice = isStrangle
+        ? (strangle.call.price.mul(strangle.call.amount))
+          .add(strangle.put.price.mul(strangle.put.amount))
+          .div(BIG_NUMBER_DECIMALS.RYSK)
+          .div(1e12)
         : order
-        ? order.price
+        ? order.price.mul(order.amount).div(BIG_NUMBER_DECIMALS.RYSK).div(1e12)
         : null;
-      if (order) {
-        // 1e12 cause usdc is 1e6 and price is 1e18
-        const totAmountInUsdc = order.price.mul(order.amount).div(BIG_NUMBER_DECIMALS.RYSK).div(1e12)
+      
+      if (totalPrice) {
         usdcContractCall({
           method: usdcContract.approve,
-          args: [alphaOptionHandlerContract.address, totAmountInUsdc],
+          args: [alphaOptionHandlerContract.address, totalPrice],
           onSubmit: () => {
             setIsListeningForApproval(true);
           },
@@ -201,9 +204,10 @@ export const OTCPageContent = () => {
         const [id1, id2] = strangleId
           .split("-")
           .map((numString) => Number(numString));
+
         await alphaOptionHandlerContractCall({
-          method: alphaOptionHandlerContract.executeOrder,
-          args: [id1],
+          method: alphaOptionHandlerContract.executeStrangle,
+          args: [Number(id1), Number(id2)],
           onSubmit: () => {
             setIsListeningForComplete(true);
           },
@@ -299,7 +303,10 @@ export const OTCPageContent = () => {
                                   currency={Currency.RYSK}
                                   suffix="USDC"
                                 >
-                                  {strangle.call.price.add(strangle.put.price)}
+                                  { (strangle.call.price.mul(strangle.call.amount))
+                                    .add(strangle.put.price.mul(strangle.put.amount))
+                                    .div(BIG_NUMBER_DECIMALS.RYSK)
+                                    }
                                 </BigNumberDisplay>
                               </b>
                             </p>
