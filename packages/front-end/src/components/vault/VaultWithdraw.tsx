@@ -14,9 +14,8 @@ import {
 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { useGlobalContext } from "../../state/GlobalContext";
-import { VaultActionType } from "../../state/types";
 import { useVaultContext } from "../../state/VaultContext";
-import { Address, Currency, WithdrawalReceipt } from "../../types";
+import { Currency, WithdrawalReceipt } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";
 import { RequiresWalletConnection } from "../RequiresWalletConnection";
 import { RyskTooltip } from "../RyskTooltip";
@@ -27,6 +26,8 @@ import { useUserPosition } from "../../hooks/useUserPosition";
 import ReactSlider from "react-slider";
 import { VaultWithdrawBalanceTooltip } from "./VaultWithdrawBalanceTooltip";
 import { WITHDRAW_SHARES_EPOCH } from "../../config/messages";
+import { PendingWithdrawBreakdown } from "./PendingWithdrawBreakdown";
+
 
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
@@ -35,12 +36,7 @@ export const VaultWithdraw = () => {
       depositEpoch: currentEpoch,
       depositPricePerShare: currentPricePerShare,
     },
-    dispatch,
   } = useVaultContext();
-
-  const {
-    state: { settings },
-  } = useGlobalContext();
 
   const {
     updatePosition,
@@ -417,9 +413,7 @@ export const VaultWithdraw = () => {
                 </div>
                 <hr className="border-black mb-2 mt-1" />
                 <div className="text-xs text-right">
-                  <p>
-                    100 {DHV_NAME} @ 20.12 USDC per {DHV_NAME}
-                  </p>
+                  <PendingWithdrawBreakdown />
                 </div>
               </div>
               <Button
