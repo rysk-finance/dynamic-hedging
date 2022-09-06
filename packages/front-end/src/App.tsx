@@ -18,7 +18,12 @@ import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 import { Header } from "./components/Header";
 import { AppPaths } from "./config/appPaths";
-import { CHAINID, IDToNetwork, SUBGRAPH_URL } from "./config/constants";
+import {
+  CHAINID,
+  IDToNetwork,
+  RPC_URL_MAP,
+  SUBGRAPH_URL,
+} from "./config/constants";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { Dashboard } from "./pages/Dashboard";
 import { OptionsTrading } from "./pages/OptionsTrading";
@@ -33,13 +38,6 @@ import {
   updateFavicon,
 } from "./utils/updateFavicon";
 import { Footer } from "./components/Footer";
-
-export const RPC_URL_MAP: Record<CHAINID, string> = {
-  [CHAINID.ETH_MAINNET]: `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
-  [CHAINID.ARBITRUM_MAINNET]: `https://arbitrum-mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
-  [CHAINID.ARBITRUM_RINKEBY]: `https://arbitrum-rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
-  [CHAINID.LOCALHOST]: "",
-};
 
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();

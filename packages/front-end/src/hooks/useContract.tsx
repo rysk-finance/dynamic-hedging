@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
 import { TransactionDisplay } from "../components/shared/TransactionDisplay";
+import { CHAINID, IDToNetwork, RPC_URL_MAP } from "../config/constants";
 import addresses from "../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../types";
 import { isRPCError, parseError } from "../utils/parseRPCError";
@@ -46,6 +47,14 @@ type useContractExternalContractArgs<T extends Record<EventName, EventData>> = {
 type useContractArgs<T extends Record<EventName, EventData>> =
   | useContractRyskContractArgs<T>
   | useContractExternalContractArgs<T>;
+
+const CHAIN_ID = Number(process.env.REACT_APP_CHAIN_ID) as CHAINID;
+const DEFAULT_NETWORK = IDToNetwork[CHAIN_ID];
+const DEFAULT_RPC_URL = RPC_URL_MAP[CHAIN_ID];
+const DEFAULT_RPC_PROVIDER = new ethers.providers.JsonRpcProvider(
+  DEFAULT_RPC_URL
+);
+DEFAULT_RPC_PROVIDER.pollingInterval = 20000;
 
 /**
  *
@@ -191,7 +200,9 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
 
       eventNames.forEach((eventName) => {
         if (contractEvents.current) {
-          const handler = contractEvents.current?.[eventName];
+          const handler = contractEvents.current
+            ? contractEvents.current[eventName]
+            : null;
           // Attach listener if no isListening argument present, or if that Event isn't in
           // the isListening map, or if it is present and its value is true.
           const shouldAttachListener =

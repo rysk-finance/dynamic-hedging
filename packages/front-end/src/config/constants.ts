@@ -37,6 +37,13 @@ export const IDToNetwork: Record<CHAINID, ETHNetwork> = {
   [CHAINID.LOCALHOST]: ETHNetwork.LOCALHOST,
 };
 
+export const RPC_URL_MAP: Record<CHAINID, string> = {
+  [CHAINID.ETH_MAINNET]: `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
+  [CHAINID.ARBITRUM_MAINNET]: `https://arbitrum-mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
+  [CHAINID.ARBITRUM_RINKEBY]: `https://arbitrum-rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
+  [CHAINID.LOCALHOST]: "",
+};
+
 export const SUBGRAPH_URL = {
   [CHAINID.LOCALHOST]: "",
   [CHAINID.ETH_MAINNET]: "",
@@ -48,12 +55,9 @@ export const SUBGRAPH_URL = {
 export const SCAN_URL = {
   [CHAINID.LOCALHOST]: "",
   [CHAINID.ETH_MAINNET]: "",
-  [CHAINID.ARBITRUM_RINKEBY]:
-    "https://testnet.arbiscan.io",
-  [CHAINID.ARBITRUM_MAINNET]: 
-    "https://arbiscan.io"
-  ,
-}
+  [CHAINID.ARBITRUM_RINKEBY]: "https://testnet.arbiscan.io",
+  [CHAINID.ARBITRUM_MAINNET]: "https://arbiscan.io",
+};
 
 /**
  * Tokens and owners
@@ -160,4 +164,4 @@ export const ADDRESS_BOOK = {
 export const ORACLE_DISPUTE_PERIOD = 7200;
 export const ORACLE_LOCKING_PERIOD = 300;
 
-export const DHV_NAME = "DHV-USDC"
+export const DHV_NAME = "DHV-USDC";
