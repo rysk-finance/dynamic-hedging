@@ -43,7 +43,7 @@
 		"hardhat-gas-reporter": "^1.0.3",
 		"path": "^0.12.7",
 		"solidity-coverage": "^0.7.20",
-		"ts-node": "^10.9.1",
+		"ts-node": "^10.1.1",
 		"typechain": "^6.1.0",
 		"typescript": "^4.0.2"
 	},

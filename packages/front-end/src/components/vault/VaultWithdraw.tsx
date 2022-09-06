@@ -25,8 +25,9 @@ import { Loader } from "../Loader";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import ReactSlider from "react-slider";
 import { VaultWithdrawBalanceTooltip } from "./VaultWithdrawBalanceTooltip";
-import { WITHDRAW_ON_HOLD, WITHDRAW_SHARES_EPOCH } from "../../config/messages";
+import { WITHDRAW_SHARES_EPOCH } from "../../config/messages";
 import { PendingWithdrawBreakdown } from "./PendingWithdrawBreakdown";
+
 
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
@@ -344,7 +345,7 @@ export const VaultWithdraw = () => {
                   <p>Withdraw on hold</p>
                   <RyskTooltip
                     tooltipProps={{ className: "max-w-[350px]" }}
-                    message={WITHDRAW_ON_HOLD}
+                    message={WITHDRAW_SHARES_EPOCH}
                     id={"strategeyTip"}
                   />
                 </div>
@@ -430,7 +431,7 @@ export const VaultWithdraw = () => {
           </div>
         ) : (
           <div className="p-2">
-            <p className="text-xs">{WITHDRAW_SHARES_EPOCH}</p>
+            <p className="text-sm">{WITHDRAW_SHARES_EPOCH}</p>
           </div>
         )}
       </div>

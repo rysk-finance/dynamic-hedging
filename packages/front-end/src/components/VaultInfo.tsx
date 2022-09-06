@@ -38,7 +38,7 @@ export const VaultInfo = () => {
             Current Deposit Epoch: {depositEpoch?.toString()}
           </p>
           <p className="mt-4">
-            DHV Deposit Share Price:{" "}
+            {DHV_NAME} Deposit Current Share Price:{" "}
             <BigNumberDisplay
               currency={Currency.RYSK}
               numberFormatProps={{ decimalScale: 4 }}
@@ -48,7 +48,7 @@ export const VaultInfo = () => {
             </BigNumberDisplay>
           </p>
           <p className="mt-4">
-            {DHV_NAME} Share Price:{" "}
+            {DHV_NAME} Withdraw Current Share Price:{" "}
             <BigNumberDisplay
               currency={Currency.RYSK}
               numberFormatProps={{ decimalScale: 4 }}

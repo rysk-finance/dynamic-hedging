@@ -26,7 +26,7 @@ export const Header: React.FC = () => {
         <div className="mr-4">
           <Link to={AppPaths.VAULT}>
             <button
-              className={`mr-2 border-none bg-transparent p-2 underline-offset-2	${
+              className={`mr-2 border-none bg-transparent p-2 underline-offset-2 ${
                 pathname === AppPaths.VAULT ? "underline" : ""
               }`}
             >

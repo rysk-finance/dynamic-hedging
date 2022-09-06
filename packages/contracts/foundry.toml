@@ -1,0 +1,8 @@
+[profile.default]
+src = 'contracts'
+out = 'out'
+libs = ['lib']
+[fuzz]
+runs = 1000
+max_local_rejects=10000000
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
