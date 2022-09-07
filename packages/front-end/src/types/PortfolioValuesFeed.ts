@@ -48,8 +48,10 @@ export type PortfolioValuesStructOutput = [
 export interface PortfolioValuesFeedInterface extends utils.Interface {
   functions: {
     "authority()": FunctionFragment;
+    "fee()": FunctionFragment;
     "fulfill(bytes32,address,address,int256,int256,int256,int256,int256,uint256)": FunctionFragment;
     "getPortfolioValues(address,address)": FunctionFragment;
+    "jobId()": FunctionFragment;
     "keeper(address)": FunctionFragment;
     "link()": FunctionFragment;
     "liquidityPool()": FunctionFragment;
@@ -57,15 +59,18 @@ export interface PortfolioValuesFeedInterface extends utils.Interface {
     "requestPortfolioData(address,address)": FunctionFragment;
     "setAddressStringMapping(address,string)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
+    "setFee(uint256)": FunctionFragment;
     "setKeeper(address,bool)": FunctionFragment;
     "setLink(address)": FunctionFragment;
     "setLiquidityPool(address)": FunctionFragment;
     "setOracle(address)": FunctionFragment;
+    "setjobId(string)": FunctionFragment;
     "stringedAddresses(address)": FunctionFragment;
     "withdrawLink(uint256,address)": FunctionFragment;
   };
 
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
+  encodeFunctionData(functionFragment: "fee", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "fulfill",
     values: [
@@ -84,6 +89,7 @@ export interface PortfolioValuesFeedInterface extends utils.Interface {
     functionFragment: "getPortfolioValues",
     values: [string, string]
   ): string;
+  encodeFunctionData(functionFragment: "jobId", values?: undefined): string;
   encodeFunctionData(functionFragment: "keeper", values: [string]): string;
   encodeFunctionData(functionFragment: "link", values?: undefined): string;
   encodeFunctionData(
@@ -104,6 +110,10 @@ export interface PortfolioValuesFeedInterface extends utils.Interface {
     values: [string]
   ): string;
   encodeFunctionData(
+    functionFragment: "setFee",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setKeeper",
     values: [string, boolean]
   ): string;
@@ -113,6 +123,7 @@ export interface PortfolioValuesFeedInterface extends utils.Interface {
     values: [string]
   ): string;
   encodeFunctionData(functionFragment: "setOracle", values: [string]): string;
+  encodeFunctionData(functionFragment: "setjobId", values: [string]): string;
   encodeFunctionData(
     functionFragment: "stringedAddresses",
     values: [string]
@@ -123,11 +134,13 @@ export interface PortfolioValuesFeedInterface extends utils.Interface {
   ): string;
 
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "fee", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "fulfill", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getPortfolioValues",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "jobId", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "keeper", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "link", data: BytesLike): Result;
   decodeFunctionResult(
@@ -147,6 +160,7 @@ export interface PortfolioValuesFeedInterface extends utils.Interface {
     functionFragment: "setAuthority",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "setFee", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "setKeeper", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "setLink", data: BytesLike): Result;
   decodeFunctionResult(
@@ -154,6 +168,7 @@ export interface PortfolioValuesFeedInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setOracle", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "setjobId", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "stringedAddresses",
     data: BytesLike
@@ -170,6 +185,8 @@ export interface PortfolioValuesFeedInterface extends utils.Interface {
     "ChainlinkRequested(bytes32)": EventFragment;
     "DataFullfilled(address,address,int256,int256,int256,int256,int256)": EventFragment;
     "SetAddressStringMapping(address,string)": EventFragment;
+    "SetFee(uint256)": EventFragment;
+    "SetJobId(bytes32)": EventFragment;
     "SetLiquidityPool(address)": EventFragment;
     "SetOracle(address)": EventFragment;
   };
@@ -180,6 +197,8 @@ export interface PortfolioValuesFeedInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "ChainlinkRequested"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "DataFullfilled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "SetAddressStringMapping"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "SetFee"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "SetJobId"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "SetLiquidityPool"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "SetOracle"): EventFragment;
 }
@@ -227,6 +246,14 @@ export type SetAddressStringMappingEvent = TypedEvent<
 export type SetAddressStringMappingEventFilter =
   TypedEventFilter<SetAddressStringMappingEvent>;
 
+export type SetFeeEvent = TypedEvent<[BigNumber], { fee: BigNumber }>;
+
+export type SetFeeEventFilter = TypedEventFilter<SetFeeEvent>;
+
+export type SetJobIdEvent = TypedEvent<[string], { jobId: string }>;
+
+export type SetJobIdEventFilter = TypedEventFilter<SetJobIdEvent>;
+
 export type SetLiquidityPoolEvent = TypedEvent<
   [string],
   { liquidityPool: string }
@@ -268,6 +295,8 @@ export interface PortfolioValuesFeed extends BaseContract {
   functions: {
     authority(overrides?: CallOverrides): Promise<[string]>;
 
+    fee(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     fulfill(
       _requestId: BytesLike,
       _underlying: string,
@@ -286,6 +315,8 @@ export interface PortfolioValuesFeed extends BaseContract {
       strike: string,
       overrides?: CallOverrides
     ): Promise<[PortfolioValuesStructOutput]>;
+
+    jobId(overrides?: CallOverrides): Promise<[string]>;
 
     keeper(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
 
@@ -312,6 +343,11 @@ export interface PortfolioValuesFeed extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    setFee(
+      _fee: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     setKeeper(
       _keeper: string,
       _auth: boolean,
@@ -333,6 +369,11 @@ export interface PortfolioValuesFeed extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    setjobId(
+      _jobId: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     stringedAddresses(
       arg0: string,
       overrides?: CallOverrides
@@ -346,6 +387,8 @@ export interface PortfolioValuesFeed extends BaseContract {
   };
 
   authority(overrides?: CallOverrides): Promise<string>;
+
+  fee(overrides?: CallOverrides): Promise<BigNumber>;
 
   fulfill(
     _requestId: BytesLike,
@@ -365,6 +408,8 @@ export interface PortfolioValuesFeed extends BaseContract {
     strike: string,
     overrides?: CallOverrides
   ): Promise<PortfolioValuesStructOutput>;
+
+  jobId(overrides?: CallOverrides): Promise<string>;
 
   keeper(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
@@ -391,6 +436,11 @@ export interface PortfolioValuesFeed extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  setFee(
+    _fee: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   setKeeper(
     _keeper: string,
     _auth: boolean,
@@ -412,6 +462,11 @@ export interface PortfolioValuesFeed extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  setjobId(
+    _jobId: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   stringedAddresses(arg0: string, overrides?: CallOverrides): Promise<string>;
 
   withdrawLink(
@@ -422,6 +477,8 @@ export interface PortfolioValuesFeed extends BaseContract {
 
   callStatic: {
     authority(overrides?: CallOverrides): Promise<string>;
+
+    fee(overrides?: CallOverrides): Promise<BigNumber>;
 
     fulfill(
       _requestId: BytesLike,
@@ -441,6 +498,8 @@ export interface PortfolioValuesFeed extends BaseContract {
       strike: string,
       overrides?: CallOverrides
     ): Promise<PortfolioValuesStructOutput>;
+
+    jobId(overrides?: CallOverrides): Promise<string>;
 
     keeper(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
@@ -467,6 +526,8 @@ export interface PortfolioValuesFeed extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setFee(_fee: BigNumberish, overrides?: CallOverrides): Promise<void>;
+
     setKeeper(
       _keeper: string,
       _auth: boolean,
@@ -481,6 +542,8 @@ export interface PortfolioValuesFeed extends BaseContract {
     ): Promise<void>;
 
     setOracle(_oracle: string, overrides?: CallOverrides): Promise<void>;
+
+    setjobId(_jobId: string, overrides?: CallOverrides): Promise<void>;
 
     stringedAddresses(arg0: string, overrides?: CallOverrides): Promise<string>;
 
@@ -538,6 +601,12 @@ export interface PortfolioValuesFeed extends BaseContract {
       stringVersion?: null
     ): SetAddressStringMappingEventFilter;
 
+    "SetFee(uint256)"(fee?: null): SetFeeEventFilter;
+    SetFee(fee?: null): SetFeeEventFilter;
+
+    "SetJobId(bytes32)"(jobId?: null): SetJobIdEventFilter;
+    SetJobId(jobId?: null): SetJobIdEventFilter;
+
     "SetLiquidityPool(address)"(
       liquidityPool?: null
     ): SetLiquidityPoolEventFilter;
@@ -549,6 +618,8 @@ export interface PortfolioValuesFeed extends BaseContract {
 
   estimateGas: {
     authority(overrides?: CallOverrides): Promise<BigNumber>;
+
+    fee(overrides?: CallOverrides): Promise<BigNumber>;
 
     fulfill(
       _requestId: BytesLike,
@@ -568,6 +639,8 @@ export interface PortfolioValuesFeed extends BaseContract {
       strike: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    jobId(overrides?: CallOverrides): Promise<BigNumber>;
 
     keeper(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -594,6 +667,11 @@ export interface PortfolioValuesFeed extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    setFee(
+      _fee: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     setKeeper(
       _keeper: string,
       _auth: boolean,
@@ -615,6 +693,11 @@ export interface PortfolioValuesFeed extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    setjobId(
+      _jobId: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     stringedAddresses(
       arg0: string,
       overrides?: CallOverrides
@@ -629,6 +712,8 @@ export interface PortfolioValuesFeed extends BaseContract {
 
   populateTransaction: {
     authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    fee(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     fulfill(
       _requestId: BytesLike,
@@ -648,6 +733,8 @@ export interface PortfolioValuesFeed extends BaseContract {
       strike: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    jobId(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     keeper(
       arg0: string,
@@ -677,6 +764,11 @@ export interface PortfolioValuesFeed extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
+    setFee(
+      _fee: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
     setKeeper(
       _keeper: string,
       _auth: boolean,
@@ -695,6 +787,11 @@ export interface PortfolioValuesFeed extends BaseContract {
 
     setOracle(
       _oracle: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setjobId(
+      _jobId: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
