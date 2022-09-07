@@ -41,7 +41,7 @@ async function main() {
 		const callOption = {
 			expiration: "1663315200",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
-			strike: BigNumber.from("2500").mul(RYSK_DECIMAL),
+			strike: BigNumber.from("1600").mul(RYSK_DECIMAL),
 			isPut: false,
 			underlying: arbitrumRinkeby.WETH,
 			strikeAsset: arbitrumRinkeby.USDC,
@@ -53,16 +53,16 @@ async function main() {
 		const putOption = {
 			expiration: "1663315200",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
-			strike: BigNumber.from("1000").mul(RYSK_DECIMAL),
+			strike: BigNumber.from("1600").mul(RYSK_DECIMAL),
 			isPut: true,
 			underlying: arbitrumRinkeby.WETH,
 			strikeAsset: arbitrumRinkeby.USDC,
 			collateral: arbitrumRinkeby.USDC
 		}
 
-		const putQuote = BigNumber.from((7.45 * RYSK_EXP).toString())
+		const putQuote = BigNumber.from((17.45 * RYSK_EXP).toString())
 
-		const orderAmount = BigNumber.from((1 * RYSK_EXP).toString())
+		const orderAmount = BigNumber.from((5 * RYSK_EXP).toString())
 
 		const orderTransaction = await alphaOptionHandler.createStrangle(
 			callOption,
@@ -73,7 +73,7 @@ async function main() {
 			putQuote,
 			BigNumber.from(1800),
 			// Update to order reciever address.
-			"0x939f39468b34E985d5Faa8d044569cfeC9E6CA69",
+			"0xAD5B468F6Fb897461E388396877fD5E3c5114539",
 			[toWei("100"), toWei("100")],
 			[toWei("100"), toWei("100")]
 		)

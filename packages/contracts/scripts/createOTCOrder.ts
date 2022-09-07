@@ -32,16 +32,16 @@ async function main() {
 		const option = {
 			expiration: "1663315200",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
-			strike: BigNumber.from("2500").mul(RYSK_DECIMAL),
+			strike: BigNumber.from("2000").mul(RYSK_DECIMAL),
 			isPut: false,
 			underlying: arbitrumRinkeby.WETH,
 			strikeAsset: arbitrumRinkeby.USDC,
 			collateral: arbitrumRinkeby.USDC
 		}
 
-		const orderAmount = 2.33
+		const orderAmount = 10
 
-		const pricePerOptionInUsdc = 7.45
+		const pricePerOptionInUsdc = 350
 
 		const orderTransaction = await alphaOptionHandler.createOrder(
 			option, // series
