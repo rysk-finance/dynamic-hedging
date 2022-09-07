@@ -2650,15 +2650,6 @@ describe("Liquidity Pools", async () => {
 		expect(await optionProtocol.volatilityFeed()).to.eq(priceFeed.address)
 		expect(await optionProtocol.priceFeed()).to.eq(volFeed.address)
 	})
-	it("reverts when setting buffer percentage to zero", async () => {
-		await expect(liquidityPool.setBufferPercentage(0)).to.be.revertedWith("InvalidInput()")
-	})
-	it("reverts when setting maxTimeDeviationThreshold to zero", async () => {
-		await expect(liquidityPool.setMaxTimeDeviationThreshold(0)).to.be.revertedWith("InvalidInput()")
-	})
-	it("reverts when setting maxPriceDeviationThreshold to zero", async () => {
-		await expect(liquidityPool.setMaxPriceDeviationThreshold(0)).to.be.revertedWith("InvalidInput()")
-	})
 	it("reverts when setting new handler address to zero", async () => {
 		await expect(liquidityPool.changeHandler(ZERO_ADDRESS, true)).to.be.revertedWith(
 			"InvalidAddress()"
