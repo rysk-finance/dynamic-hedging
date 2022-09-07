@@ -10,7 +10,6 @@ import "./libraries/AccessControl.sol";
  *  @dev Interacts with chainlink price feeds and services all contracts in the system for price data.
  */
 contract PriceFeed is AccessControl {
-
 	/////////////////////////////////////
 	/// governance settable variables ///
 	/////////////////////////////////////
@@ -22,6 +21,8 @@ contract PriceFeed is AccessControl {
 	//////////////////////////
 
 	uint8 private constant SCALE_DECIMALS = 18;
+	// seconds since the last price feed update until we deem the data to be stale
+	uint32 private constant STALE_PRICE_DELAY = 3600;
 
 	constructor(address _authority) AccessControl(IAuthority(_authority)) {}
 
@@ -46,7 +47,12 @@ contract PriceFeed is AccessControl {
 		address feedAddress = priceFeeds[underlying][strike];
 		require(feedAddress != address(0), "Price feed does not exist");
 		AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
-		(, int256 rate, , , ) = feed.latestRoundData();
+		(uint80 roundId, int256 rate, , uint256 timestamp, uint80 answeredInRound) = feed
+			.latestRoundData();
+		require(rate > 0, "ChainLinkPricer: price is lower than 0");
+		require(timestamp != 0, "ROUND_NOT_COMPLETE");
+		require(block.timestamp <= timestamp + STALE_PRICE_DELAY, "STALE_PRICE");
+		require(answeredInRound >= roundId, "STALE_PRICE");
 		return uint256(rate);
 	}
 
@@ -56,7 +62,12 @@ contract PriceFeed is AccessControl {
 		require(feedAddress != address(0), "Price feed does not exist");
 		AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
 		uint8 feedDecimals = feed.decimals();
-		(, int256 rate, , , ) = feed.latestRoundData();
+		(uint80 roundId, int256 rate, , uint256 timestamp, uint80 answeredInRound) = feed
+			.latestRoundData();
+		require(rate > 0, "ChainLinkPricer: price is lower than 0");
+		require(timestamp != 0, "ROUND_NOT_COMPLETE");
+		require(block.timestamp <= timestamp + STALE_PRICE_DELAY, "STALE_PRICE");
+		require(answeredInRound >= roundId, "STALE_PRICE");
 		uint8 difference;
 		if (SCALE_DECIMALS > feedDecimals) {
 			difference = SCALE_DECIMALS - feedDecimals;
