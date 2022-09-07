@@ -304,9 +304,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function setBufferPercentage(uint256 _bufferPercentage) external {
 		_onlyGovernor();
-		if (_bufferPercentage == 0) {
-			revert CustomErrors.InvalidInput();
-		}
 		bufferPercentage = _bufferPercentage;
 	}
 
@@ -324,9 +321,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function setMaxTimeDeviationThreshold(uint256 _maxTimeDeviationThreshold) external {
 		_onlyGovernor();
-		if (_maxTimeDeviationThreshold == 0) {
-			revert CustomErrors.InvalidInput();
-		}
 		maxTimeDeviationThreshold = _maxTimeDeviationThreshold;
 	}
 
@@ -335,9 +329,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function setMaxPriceDeviationThreshold(uint256 _maxPriceDeviationThreshold) external {
 		_onlyGovernor();
-		if (_maxPriceDeviationThreshold == 0) {
-			revert CustomErrors.InvalidInput();
-		}
 		maxPriceDeviationThreshold = _maxPriceDeviationThreshold;
 	}
 
