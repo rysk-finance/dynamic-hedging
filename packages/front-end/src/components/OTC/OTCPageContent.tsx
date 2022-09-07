@@ -42,38 +42,15 @@ export const OTCPageContent = () => {
   );
 
   const [alphaOptionHandlerContract, alphaOptionHandlerContractCall] =
-    useContract<{
-      OrderExecuted: [BigNumber];
-    }>({
+    useContract({
       contract: "optionHandler",
       ABI: AlphaOptionHandler.abi,
-      events: {
-        OrderExecuted: (id) => {
-          if (orderId && orderId === id.toString()) {
-            setIsListeningForComplete(false);
-            setIsComplete(true);
-            toast("✅ Order complete");
-          }
-        },
-      },
-      isListening: { OrderExecuted: isListeningForComplete },
     });
 
-  const [usdcContract, usdcContractCall] = useContract<{
-    Approval: [string, string, BigNumber];
-  }>({
+  const [usdcContract, usdcContractCall] = useContract({
     contract: "USDC",
     ABI: ERC20ABI,
     readOnly: false,
-    events: {
-      Approval: () => {
-        setIsApproved(true);
-        setIsListeningForApproval(false);
-        toast("✅ Approval complete");
-      },
-    },
-    isListening: { Approval: isListeningForApproval },
-    filters: { Approval: [[account]] },
   });
 
   useEffect(() => {
@@ -183,6 +160,11 @@ export const OTCPageContent = () => {
           onSubmit: () => {
             setIsListeningForApproval(true);
           },
+          onComplete: () => {
+            setIsApproved(true);
+            setIsListeningForApproval(false);
+            toast("✅ Approval complete");
+          },
         });
       } else {
         toast("❌ There was an error. Please contact our team.");
@@ -207,6 +189,11 @@ export const OTCPageContent = () => {
           onSubmit: () => {
             setIsListeningForComplete(true);
           },
+          onComplete: () => {
+            setIsListeningForComplete(false);
+            setIsComplete(true);
+            toast("✅ Order complete");
+          },
         });
       } else if (strangleId) {
         const [id1, id2] = strangleId
@@ -219,6 +206,11 @@ export const OTCPageContent = () => {
           onSubmit: () => {
             setIsListeningForComplete(true);
           },
+          onComplete: () => {
+            setIsListeningForComplete(false);
+            setIsComplete(true);
+            toast("✅ Order complete");
+          },
         });
       }
     } else {
@@ -230,6 +222,38 @@ export const OTCPageContent = () => {
     orderId,
     strangleId,
   ]);
+
+  const getAllowance = useCallback(async () => {
+    if (account) {
+      const allowance = await usdcContract?.allowance(
+        account,
+        alphaOptionHandlerContract?.address
+      );
+      return allowance;
+    }
+  }, [account, usdcContract, alphaOptionHandlerContract]);
+
+  useEffect(() => {
+    const getIsApproved = async () => {
+      if (account && (order || strangle)) {
+        // e6
+        const allowance = await getAllowance();
+        // e18
+        const scaledAllowance = allowance
+          .mul(BIG_NUMBER_DECIMALS.RYSK)
+          .div(BIG_NUMBER_DECIMALS.USDC);
+        const totalPrice =
+          order?.price ?? strangle?.call.price.add(strangle?.put.price);
+        if (scaledAllowance.gte(totalPrice)) {
+          setIsApproved(true);
+        }
+      }
+    };
+
+    getIsApproved();
+  }, [getAllowance, account, order, strangle]);
+
+  useEffect(() => {}, []);
 
   useEffect(() => {
     if (!network || !account) {
