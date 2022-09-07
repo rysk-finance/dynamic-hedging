@@ -3,11 +3,7 @@ import { toast } from "react-toastify";
 import { useWalletContext } from "../../App";
 // import OptionHandler from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json";
 import AlphaOptionHandler from "../../artifacts/contracts/AlphaOptionHandler.sol/AlphaOptionHandler.json";
-import {
-  BIG_NUMBER_DECIMALS,
-  BIG_NUMBER_DECIMALS,
-  ZERO_UINT_256,
-} from "../../config/constants";
+import { BIG_NUMBER_DECIMALS, ZERO_UINT_256 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { useQueryParams } from "../../hooks/useQueryParams";
 import { useGlobalContext } from "../../state/GlobalContext";
@@ -49,7 +45,7 @@ export const OTCPageContent = () => {
     useContract<{
       OrderExecuted: [BigNumber];
     }>({
-      contract: "alphaOptionHandler",
+      contract: "optionHandler",
       ABI: AlphaOptionHandler.abi,
       events: {
         OrderExecuted: (id) => {
