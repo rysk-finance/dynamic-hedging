@@ -3,6 +3,7 @@ import { BigNumber } from "ethers"
 import hre from "hardhat"
 import { arbitrumRinkeby } from "../contracts.json"
 import { toWei } from "../utils/conversion-helper"
+import { abi as optionHandlerABI } from "../artifacts/contracts/AlphaOptionHandler.sol/AlphaOptionHandler.json"
 
 const RYSK_DECIMAL = BigNumber.from("1000000000000000000")
 const RYSK_EXP = 1e18
@@ -14,9 +15,18 @@ async function main() {
 			process.exit()
 		}
 
-		const alphaOptionHandler = await hre.ethers.getContractAt(
-			"AlphaOptionHandler",
-			arbitrumRinkeby.alphaOptionHandler
+		// Not using this method to instance contract because seems to
+		// generated an outdated inferface.
+		// const alphaOptionHandler = await hre.ethers.getContractAt(
+		// 	"OptionHandler",
+		// 	arbitrumRinkeby.optionHandler
+		// )
+
+		const signers = await hre.ethers.getSigners()
+		const alphaOptionHandler = new hre.ethers.Contract(
+			arbitrumRinkeby.optionHandler,
+			optionHandlerABI,
+			signers[0]
 		)
 
 		const option = {
