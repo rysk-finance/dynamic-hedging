@@ -132,6 +132,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
           );
         return;
       } catch (err) {
+        debugger;
         // Might need to modify this is errors other than RPC errors are being thrown
         // my contract function calls.
         if (isRPCError(err)) {
