@@ -36,6 +36,7 @@ library BlackScholes {
 		int256 cdfD2 = NormalDist.cdf(d2);
 		int256 priceCdf = price.mul(cdfD1);
 		int256 strikeBy = strike.mul(eToNegRT).mul(cdfD2);
+		assert(priceCdf >= strikeBy);
 		return uint256(priceCdf - strikeBy);
 	}
 
@@ -51,6 +52,7 @@ library BlackScholes {
 		int256 cdfD2 = NormalDist.cdf(d2);
 		int256 priceCdf = price.mul(cdfD1);
 		int256 strikeBy = strike.mul(eToNegRT).mul(cdfD2);
+		assert(priceCdf >= strikeBy);
 		quote = uint256(priceCdf - strikeBy);
 		delta = cdfD1;
 	}
@@ -67,6 +69,7 @@ library BlackScholes {
 		int256 cdfD2 = NormalDist.cdf(d2);
 		int256 priceCdf = price.mul(cdfD1);
 		int256 strikeBy = strike.mul(eToNegRT).mul(cdfD2);
+		assert(strikeBy >= priceCdf);
 		quote = uint256(strikeBy - priceCdf);
 		delta = -cdfD1;
 	}
@@ -83,6 +86,7 @@ library BlackScholes {
 		int256 cdfD2 = NormalDist.cdf(d2);
 		int256 priceCdf = price.mul(cdfD1);
 		int256 strikeBy = strike.mul(eToNegRT).mul(cdfD2);
+		assert(strikeBy >= priceCdf);
 		return uint256(strikeBy - priceCdf);
 	}
 
