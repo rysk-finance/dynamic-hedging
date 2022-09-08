@@ -426,9 +426,7 @@ export const OTCPageContent = () => {
   }, [network, account]);
 
   const approveDisabled = isListeningForApproval || isApproved;
-  const completeDisabled = order?.isBuyBack
-    ? false
-    : !isApproved || isListeningForComplete;
+  const completeDisabled = !isApproved || isListeningForComplete;
 
   return (
     <Card

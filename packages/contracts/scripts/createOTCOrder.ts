@@ -38,14 +38,14 @@ async function main() {
 		const option = {
 			expiration: "1663315200",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
-			strike: BigNumber.from("2009").mul(RYSK_DECIMAL),
+			strike: BigNumber.from("2010").mul(RYSK_DECIMAL),
 			isPut: false,
 			underlying: arbitrumRinkeby.WETH,
 			strikeAsset: arbitrumRinkeby.USDC,
 			collateral: arbitrumRinkeby.USDC
 		}
 
-		const orderAmount = 1.5
+		const orderAmount = 1.66
 
 		const pricePerOptionInUsdc = 350
 
@@ -55,7 +55,7 @@ async function main() {
 			BigNumber.from((pricePerOptionInUsdc * RYSK_EXP).toString()), // price
 			BigNumber.from(1800), // expiry
 			"0x939f39468b34E985d5Faa8d044569cfeC9E6CA69",
-			true, // is_buyback
+			false, // is_buyback
 			[toWei("100"), toWei("100")]
 		)
 
