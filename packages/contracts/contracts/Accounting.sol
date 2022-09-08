@@ -34,9 +34,9 @@ contract Accounting is IAccounting {
 
 	constructor(address _liquidityPool) {
 		liquidityPool = ILiquidityPool(_liquidityPool);
-		strikeAsset = liquidityPool.strikeAsset();
-		underlyingAsset = liquidityPool.underlyingAsset();
-		collateralAsset = liquidityPool.collateralAsset();
+		strikeAsset = ILiquidityPool(_liquidityPool).strikeAsset();
+		underlyingAsset = ILiquidityPool(_liquidityPool).underlyingAsset();
+		collateralAsset = ILiquidityPool(_liquidityPool).collateralAsset();
 	}
 
 	///////////////////////
