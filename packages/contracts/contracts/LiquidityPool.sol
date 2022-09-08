@@ -131,6 +131,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	event Redeem(address recipient, uint256 amount, uint256 epoch);
 	event InitiateWithdraw(address recipient, uint256 amount, uint256 epoch);
 	event WriteOption(address series, uint256 amount, uint256 premium, uint256 escrow, address buyer);
+	event RebalancePortfolioDelta(uint256 nav, int256 deltaChange);
 	event TradingPaused();
 	event TradingUnpaused();
 	event SettleVault(
@@ -207,10 +208,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		if (_reactorAddress == address(0)) {
 			revert CustomErrors.InvalidAddress();
 		}
-		address[] memory hedgingReactors_ = hedgingReactors;
-		uint256 arrayLength = hedgingReactors_.length;
+		uint256 arrayLength = hedgingReactors.length;
 		for (uint256 i = 0; i < arrayLength; i++) {
-			if (hedgingReactors_[i] == _reactorAddress) {
+			if (hedgingReactors[i] == _reactorAddress) {
 				revert CustomErrors.ReactorAlreadyExists();
 			}
 		}
@@ -240,7 +240,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		SafeTransferLib.safeApprove(ERC20(collateralAsset), reactorAddress, 0);
 		uint256 maxIndex = hedgingReactors_.length - 1;
 		for (uint256 i = _index; i < maxIndex; i++) {
-			hedgingReactors[i] = hedgingReactors[i + 1];
+			hedgingReactors[i] = hedgingReactors_[i + 1];
 		}
 		hedgingReactors.pop();
 	}
@@ -390,6 +390,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex) external {
 		_onlyManager();
 		IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
+		emit RebalancePortfolioDelta(_getNAV(), delta);
 	}
 
 	/**
