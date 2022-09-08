@@ -14,9 +14,8 @@ import {
 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { useGlobalContext } from "../../state/GlobalContext";
-import { VaultActionType } from "../../state/types";
 import { useVaultContext } from "../../state/VaultContext";
-import { Address, Currency, WithdrawalReceipt } from "../../types";
+import { Currency, WithdrawalReceipt } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";
 import { RequiresWalletConnection } from "../RequiresWalletConnection";
 import { RyskTooltip } from "../RyskTooltip";
@@ -26,7 +25,9 @@ import { Loader } from "../Loader";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import ReactSlider from "react-slider";
 import { VaultWithdrawBalanceTooltip } from "./VaultWithdrawBalanceTooltip";
-import { WITHDRAW_ON_HOLD, WITHDRAW_SHARES_EPOCH } from "../../config/messages";
+import { WITHDRAW_SHARES_EPOCH } from "../../config/messages";
+import { PendingWithdrawBreakdown } from "./PendingWithdrawBreakdown";
+
 
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
@@ -35,12 +36,7 @@ export const VaultWithdraw = () => {
       depositEpoch: currentEpoch,
       depositPricePerShare: currentPricePerShare,
     },
-    dispatch,
   } = useVaultContext();
-
-  const {
-    state: { settings },
-  } = useGlobalContext();
 
   const {
     updatePosition,
@@ -350,7 +346,7 @@ export const VaultWithdraw = () => {
                   <p>Withdraw on hold</p>
                   <RyskTooltip
                     tooltipProps={{ className: "max-w-[350px]" }}
-                    message={WITHDRAW_ON_HOLD}
+                    message={WITHDRAW_SHARES_EPOCH}
                     id={"strategeyTip"}
                   />
                 </div>
@@ -418,9 +414,7 @@ export const VaultWithdraw = () => {
                 </div>
                 <hr className="border-black mb-2 mt-1" />
                 <div className="text-xs text-right">
-                  <p>
-                    100 {DHV_NAME} @ 20.12 USDC per {DHV_NAME}
-                  </p>
+                  <PendingWithdrawBreakdown />
                 </div>
               </div>
               <Button
@@ -438,7 +432,7 @@ export const VaultWithdraw = () => {
           </div>
         ) : (
           <div className="p-2">
-            <p className="text-xs">{WITHDRAW_SHARES_EPOCH}</p>
+            <p className="text-sm">{WITHDRAW_SHARES_EPOCH}</p>
           </div>
         )}
       </div>

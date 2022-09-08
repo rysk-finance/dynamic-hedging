@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../../App";
-import OptionHandler from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json";
-import { ZERO_UINT_256 } from "../../config/constants";
+// import OptionHandler from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json";
+import AlphaOptionHandler from "../../artifacts/contracts/AlphaOptionHandler.sol/AlphaOptionHandler.json";
+import { BIG_NUMBER_DECIMALS, ZERO_UINT_256 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { useQueryParams } from "../../hooks/useQueryParams";
 import { useGlobalContext } from "../../state/GlobalContext";
@@ -40,43 +41,21 @@ export const OTCPageContent = () => {
     "Please connect your wallet"
   );
 
-  const [optionHandlerContract, optionHandlerContractCall] = useContract<{
-    OrderExecuted: [BigNumber];
-  }>({
-    contract: "optionHandler",
-    ABI: OptionHandler.abi,
-    events: {
-      OrderExecuted: (id) => {
-        if (orderId && orderId === id.toString()) {
-          setIsListeningForComplete(false);
-          setIsComplete(true);
-          toast("✅ Order complete");
-        }
-      },
-    },
-    isListening: { OrderExecuted: isListeningForComplete },
-  });
+  const [alphaOptionHandlerContract, alphaOptionHandlerContractCall] =
+    useContract({
+      contract: "optionHandler",
+      ABI: AlphaOptionHandler.abi,
+    });
 
-  const [usdcContract, usdcContractCall] = useContract<{
-    Approval: [string, string, BigNumber];
-  }>({
+  const [usdcContract, usdcContractCall] = useContract({
     contract: "USDC",
     ABI: ERC20ABI,
     readOnly: false,
-    events: {
-      Approval: () => {
-        setIsApproved(true);
-        setIsListeningForApproval(false);
-        toast("✅ Approval complete");
-      },
-    },
-    isListening: { Approval: isListeningForApproval },
-    filters: { Approval: [[account]] },
   });
 
   useEffect(() => {
     const fetchOrder = async () => {
-      if (optionHandlerContract && network && account)
+      if (alphaOptionHandlerContract && network && account)
         try {
           const id = query.get("id");
 
@@ -97,11 +76,11 @@ export const OTCPageContent = () => {
               .split("-")
               .map((numString) => Number(numString));
 
-            const order1 = (await optionHandlerContract.orderStores(
+            const order1 = (await alphaOptionHandlerContract.orderStores(
               id1
             )) as Order | null;
 
-            const order2 = (await optionHandlerContract.orderStores(
+            const order2 = (await alphaOptionHandlerContract.orderStores(
               id2
             )) as Order | null;
 
@@ -128,7 +107,7 @@ export const OTCPageContent = () => {
             }
           } else {
             const parsedId = Number(id);
-            const order = (await optionHandlerContract.orderStores(
+            const order = (await alphaOptionHandlerContract.orderStores(
               parsedId
             )) as Order | null;
 
@@ -150,7 +129,7 @@ export const OTCPageContent = () => {
     };
 
     fetchOrder();
-  }, [optionHandlerContract, query, account, network]);
+  }, [alphaOptionHandlerContract, query, account, network]);
 
   useEffect(() => {
     if (account && order) {
@@ -161,19 +140,30 @@ export const OTCPageContent = () => {
   }, [account, order]);
 
   const handleApprove = useCallback(async () => {
-    if (usdcContract && optionHandlerContract && (order || strangle)) {
+    if (usdcContract && alphaOptionHandlerContract && (order || strangle)) {
       const isStrangle = !!strangle;
-      const price = isStrangle
-        ? strangle.call.price.add(strangle.put.price)
+      // 1e12 cause usdc is 1e6 and price is 1e18
+      const totalPrice = isStrangle
+        ? strangle.call.price
+            .mul(strangle.call.amount)
+            .add(strangle.put.price.mul(strangle.put.amount))
+            .div(BIG_NUMBER_DECIMALS.RYSK)
+            .div(1e12)
         : order
-        ? order.price
+        ? order.price.mul(order.amount).div(BIG_NUMBER_DECIMALS.RYSK).div(1e12)
         : null;
-      if (price) {
+
+      if (totalPrice) {
         usdcContractCall({
           method: usdcContract.approve,
-          args: [optionHandlerContract.address, price],
+          args: [alphaOptionHandlerContract.address, totalPrice],
           onSubmit: () => {
             setIsListeningForApproval(true);
+          },
+          onComplete: () => {
+            setIsApproved(true);
+            setIsListeningForApproval(false);
+            toast("✅ Approval complete");
           },
         });
       } else {
@@ -182,34 +172,88 @@ export const OTCPageContent = () => {
     } else {
       toast("❌ There was an error. Please contact our team.");
     }
-  }, [optionHandlerContract, usdcContract, usdcContractCall, order, strangle]);
+  }, [
+    alphaOptionHandlerContract,
+    usdcContract,
+    usdcContractCall,
+    order,
+    strangle,
+  ]);
 
   const handleComplete = useCallback(async () => {
-    if (optionHandlerContract) {
+    if (alphaOptionHandlerContract) {
       if (orderId) {
-        await optionHandlerContractCall({
-          method: optionHandlerContract.executeOrder,
+        await alphaOptionHandlerContractCall({
+          method: alphaOptionHandlerContract.executeOrder,
           args: [Number(orderId)],
           onSubmit: () => {
             setIsListeningForComplete(true);
+          },
+          onComplete: () => {
+            setIsListeningForComplete(false);
+            setIsComplete(true);
+            toast("✅ Order complete");
           },
         });
       } else if (strangleId) {
         const [id1, id2] = strangleId
           .split("-")
           .map((numString) => Number(numString));
-        await optionHandlerContractCall({
-          method: optionHandlerContract.executeOrder,
-          args: [id1],
+
+        await alphaOptionHandlerContractCall({
+          method: alphaOptionHandlerContract.executeStrangle,
+          args: [Number(id1), Number(id2)],
           onSubmit: () => {
             setIsListeningForComplete(true);
+          },
+          onComplete: () => {
+            setIsListeningForComplete(false);
+            setIsComplete(true);
+            toast("✅ Order complete");
           },
         });
       }
     } else {
       toast("❌ There was an error. Please contact our team.");
     }
-  }, [optionHandlerContract, optionHandlerContractCall, orderId, strangleId]);
+  }, [
+    alphaOptionHandlerContract,
+    alphaOptionHandlerContractCall,
+    orderId,
+    strangleId,
+  ]);
+
+  const getAllowance = useCallback(async () => {
+    if (account) {
+      const allowance = await usdcContract?.allowance(
+        account,
+        alphaOptionHandlerContract?.address
+      );
+      return allowance;
+    }
+  }, [account, usdcContract, alphaOptionHandlerContract]);
+
+  useEffect(() => {
+    const getIsApproved = async () => {
+      if (account && (order || strangle)) {
+        // e6
+        const allowance = await getAllowance();
+        // e18
+        const scaledAllowance = allowance
+          .mul(BIG_NUMBER_DECIMALS.RYSK)
+          .div(BIG_NUMBER_DECIMALS.USDC);
+        const totalPrice =
+          order?.price ?? strangle?.call.price.add(strangle?.put.price);
+        if (scaledAllowance.gte(totalPrice)) {
+          setIsApproved(true);
+        }
+      }
+    };
+
+    getIsApproved();
+  }, [getAllowance, account, order, strangle]);
+
+  useEffect(() => {}, []);
 
   useEffect(() => {
     if (!network || !account) {
@@ -274,7 +318,9 @@ export const OTCPageContent = () => {
                                   currency={Currency.RYSK}
                                   suffix="USDC"
                                 >
-                                  {order.price}
+                                  {order.price
+                                    .mul(order.amount)
+                                    .div(BIG_NUMBER_DECIMALS.RYSK)}
                                 </BigNumberDisplay>
                               </b>
                             </p>
@@ -296,7 +342,14 @@ export const OTCPageContent = () => {
                                   currency={Currency.RYSK}
                                   suffix="USDC"
                                 >
-                                  {strangle.call.price.add(strangle.put.price)}
+                                  {strangle.call.price
+                                    .mul(strangle.call.amount)
+                                    .add(
+                                      strangle.put.price.mul(
+                                        strangle.put.amount
+                                      )
+                                    )
+                                    .div(BIG_NUMBER_DECIMALS.RYSK)}
                                 </BigNumberDisplay>
                               </b>
                             </p>

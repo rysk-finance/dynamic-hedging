@@ -11,7 +11,7 @@ export const VaultStats = () => {
       <div className="flex h-full w-full justify-around">
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
-            Cumulative Yield: {" "}
+            Cumulative Yield:{" "}
             <NumberFormat
               value={"2.24"}
               displayType={"text"}
@@ -26,7 +26,7 @@ export const VaultStats = () => {
           </p>
           <a
             href="https://docs.rysk.finance"
-            className="underline"
+            className="underline text-center"
             target="_blank"
             rel="noreferrer"
           >
@@ -35,7 +35,7 @@ export const VaultStats = () => {
         </div>
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
-            Projected APY: {" "}
+            Projected APY:{" "}
             <NumberFormat
               value={"23.45%"}
               displayType={"text"}
@@ -50,7 +50,7 @@ export const VaultStats = () => {
           </p>
           <a
             href="https://docs.rysk.finance"
-            className="underline"
+            className="underline text-center"
             target="_blank"
             rel="noreferrer"
           >

@@ -17,13 +17,6 @@ import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	using Chainlink for Chainlink.Request;
 
-	///////////////////////////
-	/// immutable variables ///
-	///////////////////////////
-
-	bytes32 private immutable jobId;
-	uint256 private immutable fee;
-
 	/////////////////////////////////
 	/// oracle settable variables ///
 	/////////////////////////////////
@@ -34,6 +27,8 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	/// govern settable variables ///
 	/////////////////////////////////
 
+	bytes32 public jobId;
+	uint256 public fee;
 	address public link;
 	address public oracle;
 	ILiquidityPool public liquidityPool;
@@ -55,6 +50,8 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 		int256 theta,
 		int256 callPutsValue
 	);
+	event SetJobId(bytes32 jobId);
+	event SetFee(uint256 fee);
   	event SetOracle(address oracle);
   	event SetLiquidityPool(address liquidityPool);
   	event SetAddressStringMapping(address asset, string stringVersion);
@@ -69,7 +66,7 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	 */
 	constructor(
 		address _oracle,
-		bytes32 _jobId,
+		string memory _jobId,
 		uint256 _fee,
 		address _link,
 		address _authority
@@ -80,7 +77,7 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 			setChainlinkToken(_link);
 		}
 		oracle = _oracle;
-		jobId = _jobId;
+		jobId = stringToBytes32(_jobId);
 		fee = _fee;
 		link = _link;
 	}
@@ -88,6 +85,18 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	///////////////
 	/// setters ///
 	///////////////
+  	
+	function setjobId(string memory _jobId) external {
+    	_onlyGovernor();
+		jobId = stringToBytes32(_jobId);
+    	emit SetJobId(jobId);
+  	}
+
+	function setFee(uint256 _fee) external {
+    	_onlyGovernor();
+		fee = _fee;
+		emit SetFee(_fee);
+  	}
 
   	function setOracle(address _oracle) external {
     	_onlyGovernor();
@@ -196,13 +205,8 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 		request.add("endpoint", "portfolio-values");
 		request.add("underlying", underlyingString);
 		request.add("strike", strikeString);
-
-		// Multiply the result by 1000000000000000000 to remove decimals
-		int256 timesAmount = 10**18;
-		request.addInt("times", timesAmount);
-
 		// Sends the request
-		return sendChainlinkRequestTo(oracle, request, fee);
+		return sendOperatorRequest(request, fee);
 	}
 
 	///////////////////////////
@@ -225,4 +229,24 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 			revert CustomErrors.NotKeeper();
 		}
 	}
+
+	////////////////////////
+	/// internal helpers //
+	///////////////////////
+
+	function stringToBytes32(string memory source)
+        private
+        pure
+        returns (bytes32 result)
+    {
+        bytes memory tempEmptyStringTest = bytes(source);
+        if (tempEmptyStringTest.length == 0) {
+            return 0x0;
+        }
+
+        assembly {
+            // solhint-disable-line no-inline-assembly
+            result := mload(add(source, 32))
+        }
+    }
 }

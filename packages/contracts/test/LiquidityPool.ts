@@ -196,13 +196,11 @@ describe("Liquidity Pools", async () => {
 			to: signer.address,
 			value: ethers.utils.parseEther("10.0") // Sends exactly 10.0 ether
 		})
-
 		const forceSendContract = await ethers.getContractFactory("ForceSend")
 		const forceSend = await forceSendContract.deploy() // force Send is a contract that forces the sending of Ether to WBTC minter (which is a contract with no receive() function)
 		await forceSend
 			.connect(signer)
 			.go(CHAINLINK_WETH_PRICER[chainId], { value: utils.parseEther("0.5") })
-
 		// get the oracle
 		const res = await setupTestOracle(await sender.getAddress())
 		oracle = res[0] as Oracle
@@ -248,6 +246,32 @@ describe("Liquidity Pools", async () => {
 		const usdWhaleConnect = await usd.connect(usdcWhale)
 		await usdWhaleConnect.transfer(senderAddress, toUSDC("1000000"))
 		await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
+	})
+	it("SETUP: set sabrParams", async () => {
+		const proposedSabrParams = 
+		{
+			callAlpha:250000,
+			callBeta:1_000000,
+			callRho:-300000,
+			callVolvol:1_500000,
+			putAlpha:250000,
+			putBeta:1_000000,
+			putRho:-300000,
+			putVolvol:1_500000
+		}
+		await volFeed.setSabrParameters(
+			proposedSabrParams, 
+			expiration
+		)
+		const volFeedSabrParams = await volFeed.sabrParams(expiration)
+		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 	})
 	it("Succeeds: sets utilization skew params correctly", async () => {
 		const oldBelowThesholdGradient = await liquidityPool.belowThresholdGradient()
@@ -410,7 +434,6 @@ describe("Liquidity Pools", async () => {
 			amount,
 			false
 		)
-
 		const quote = (
 			await liquidityPool.quotePriceWithUtilizationGreeks(
 				{
@@ -525,6 +548,19 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
+		await volFeed.setSabrParameters(
+			{
+				callAlpha:250000,
+				callBeta:1_000000,
+				callRho:-300000,
+				callVolvol:1_500000,
+				putAlpha:250000,
+				putBeta:1_000000,
+				putRho:-300000,
+				putVolvol:1_500000
+			}, 
+			invalidExpirationLong
+		)
 		await portfolioValuesFeed.fulfill(
 			utils.formatBytes32String("2"),
 			weth.address,
@@ -548,6 +584,19 @@ describe("Liquidity Pools", async () => {
 		await usd.approve(handler.address, toWei("1000000000"))
 		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
 			"OptionExpiryInvalid()"
+		)
+		await volFeed.setSabrParameters(
+			{
+				callAlpha:250000,
+				callBeta:1_000000,
+				callRho:-300000,
+				callVolvol:1_500000,
+				putAlpha:250000,
+				putBeta:1_000000,
+				putRho:-300000,
+				putVolvol:1_500000
+			}, 
+			invalidExpirationShort
 		)
 		// series with expiry too short
 		const proposedSeries2 = {
@@ -613,7 +662,19 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.add(toWei(strike))
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
-
+		await volFeed.setSabrParameters(
+			{
+				callAlpha:250000,
+				callBeta:1_000000,
+				callRho:-300000,
+				callVolvol:1_500000,
+				putAlpha:250000,
+				putBeta:1_000000,
+				putRho:-300000,
+				putVolvol:1_500000
+			}, 
+			invalidExpirationLong
+		)
 		// series with expiry too long
 		const proposedSeries1 = {
 			expiration: invalidExpirationLong,
@@ -626,6 +687,19 @@ describe("Liquidity Pools", async () => {
 		await usd.approve(handler.address, toWei("1000000000"))
 		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
 			"OptionExpiryInvalid()"
+		)
+		await volFeed.setSabrParameters(
+			{
+				callAlpha:250000,
+				callBeta:1_000000,
+				callRho:-300000,
+				callVolvol:1_500000,
+				putAlpha:250000,
+				putBeta:1_000000,
+				putRho:-300000,
+				putVolvol:1_500000
+			}, 
+			invalidExpirationShort
 		)
 		// series with expiry too short
 		const proposedSeries2 = {
@@ -689,6 +763,32 @@ describe("Liquidity Pools", async () => {
 		const delta = await liquidityPool.getPortfolioDelta()
 		// no options have been written yet
 		expect(delta).to.equal(0)
+	})
+	it("SETUP: set sabrParams", async () => {
+		const proposedSabrParams = 
+		{
+			callAlpha:250000,
+			callBeta:1_000000,
+			callRho:-300000,
+			callVolvol:1_500000,
+			putAlpha:250000,
+			putBeta:1_000000,
+			putRho:-300000,
+			putVolvol:1_500000
+		}
+		await volFeed.setSabrParameters(
+			proposedSabrParams, 
+			expiration
+		)
+		const volFeedSabrParams = await volFeed.sabrParams(expiration)
+		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 	})
 	it("LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
@@ -773,6 +873,32 @@ describe("Liquidity Pools", async () => {
 		const issuance = await optionRegistry.getIssuanceHash(await optionRegistry.getSeriesInfo(series))
 		const seriesAddy = await optionRegistry.getSeriesAddress(issuance)
 		expect(seriesAddy).to.equal(series)
+	})
+	it("SETUP: set sabrParams", async () => {
+		const proposedSabrParams = 
+		{
+			callAlpha:250000,
+			callBeta:1_000000,
+			callRho:-300000,
+			callVolvol:1_500000,
+			putAlpha:250000,
+			putBeta:1_000000,
+			putRho:-300000,
+			putVolvol:1_500000
+		}
+		await volFeed.setSabrParameters(
+			proposedSabrParams, 
+			expiration
+		)
+		const volFeedSabrParams = await volFeed.sabrParams(expiration)
+		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 	})
 	it("can issue a call series", async function () {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -901,6 +1027,32 @@ describe("Liquidity Pools", async () => {
 
 		await handler.unpause()
 		expect(await handler.paused()).to.eq(false)
+	})
+	it("SETUP: set sabrParams", async () => {
+		const proposedSabrParams = 
+		{
+			callAlpha:250000,
+			callBeta:1_000000,
+			callRho:-300000,
+			callVolvol:1_500000,
+			putAlpha:250000,
+			putBeta:1_000000,
+			putRho:-300000,
+			putVolvol:1_500000
+		}
+		await volFeed.setSabrParameters(
+			proposedSabrParams, 
+			expiration2
+		)
+		const volFeedSabrParams = await volFeed.sabrParams(expiration2)
+		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
 		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
@@ -1141,7 +1293,7 @@ describe("Liquidity Pools", async () => {
 		expect(
 			tFormatUSDC(lpUSDBalanceBefore.sub(lpUSDBalanceAfter)) -
 				(tFormatEth(quote) - collateralAllocatedDiff)
-		).to.be.within(-0.001, 0.001)
+		).to.be.within(-0.0011, 0.0011)
 		// expect collateral allocated in LP reduces by correct amount
 		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.0011, 0.0011)
 		// expect portfolio delta to change
@@ -1314,7 +1466,7 @@ describe("Liquidity Pools", async () => {
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const strikePrice = priceQuote.sub(toWei("600"))
-		const amount = toWei("10")
+		const amount = toWei("5")
 		const orderExpiry = 10
 		const proposedSeries = {
 			expiration: expiration,
@@ -1387,7 +1539,6 @@ describe("Liquidity Pools", async () => {
 		const strikePriceCall = priceQuote.add(toWei("1400"))
 		const strikePricePut = priceQuote.sub(toWei("900"))
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-
 		const amount = toWei("10")
 		const orderExpiry = 600 // 10 minutes
 		const proposedSeriesCall = {
@@ -1422,7 +1573,7 @@ describe("Liquidity Pools", async () => {
 			proposedSeriesPut,
 			amount
 		)
-		customOrderPriceCall = localQuoteCall * customOrderPriceMultiplier
+		customOrderPriceCall = (localQuoteCall * customOrderPriceMultiplier)
 		customOrderPricePut = localQuotePut * customOrderPriceMultiplier
 		customStranglePrice = customOrderPriceCall + customOrderPricePut
 		const createStrangle = await handler.createStrangle(
@@ -1437,7 +1588,6 @@ describe("Liquidity Pools", async () => {
 			[toWei("1"), toWei("1")],
 			[toWei("1"), toWei("1")]
 		)
-
 		const receipt = await createStrangle.wait()
 		const events = receipt.events
 		const createOrderEvents = events?.filter(x => x.event == "OrderCreated") as any
@@ -2049,7 +2199,7 @@ describe("Liquidity Pools", async () => {
 		const createOrderInvalidPrice = await handler.createOrder(
 			proposedSeriesInvalidPrice,
 			amount,
-			toWei(customOrderPriceInvalidPrice.toString()),
+			toWei(customOrderPriceInvalidPrice.toFixed(17)),
 			orderExpiry,
 			receiverAddress,
 			[toWei("1"), toWei("1")]
@@ -2499,44 +2649,6 @@ describe("Liquidity Pools", async () => {
 				senderAddress
 			)
 		).to.be.reverted
-	})
-	it("returns a volatility skew", async () => {
-		type int7 = [
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish,
-			BigNumberish
-		]
-		type number7 = [number, number, number, number, number, number, number]
-		const coefInts: number7 = [
-			1.42180236,
-			0,
-			-0.08626792,
-			0.07873822,
-			0.00650549,
-			0.02160918,
-			-0.1393287
-		]
-		//@ts-ignore
-		const coefs: int7 = coefInts.map(x => toWei(x.toString()))
-		const putVol = await volFeed.getVolatilitySkew(true)
-		const callVol = await volFeed.getVolatilitySkew(false)
-		expect(putVol[0]).to.eq(coefs[0])
-		expect(putVol[1]).to.eq(coefs[1])
-		expect(putVol[2]).to.eq(coefs[2])
-		expect(putVol[3]).to.eq(coefs[3])
-		expect(putVol[4]).to.eq(coefs[4])
-		expect(putVol[5]).to.eq(coefs[5])
-		expect(putVol[6]).to.eq(coefs[6])
-		expect(callVol[1]).to.eq(coefs[1])
-		expect(callVol[2]).to.eq(coefs[2])
-		expect(callVol[3]).to.eq(coefs[3])
-		expect(callVol[4]).to.eq(coefs[4])
-		expect(callVol[5]).to.eq(coefs[5])
-		expect(callVol[6]).to.eq(coefs[6])
 	})
 	// have as final test as this just sets things wrong
 	it("protocol changes feeds", async () => {

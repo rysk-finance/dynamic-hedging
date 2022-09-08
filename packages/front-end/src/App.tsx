@@ -20,6 +20,7 @@ import { Header } from "./components/Header";
 import { AppPaths } from "./config/appPaths";
 import {
   CHAINID,
+  DEFAULT_POLLING_INTERVAL,
   IDToNetwork,
   RPC_URL_MAP,
   SUBGRAPH_URL,
@@ -171,6 +172,7 @@ function App() {
       setIsLoading(true);
       const { accounts, chains, provider } = wallets[0];
       const ethersProvider = new ethers.providers.Web3Provider(provider);
+      ethersProvider.pollingInterval = DEFAULT_POLLING_INTERVAL;
       const ethersSigner = ethersProvider.getSigner();
       const initialNetwork = await ethersProvider.getNetwork();
       const isCorrectChain =

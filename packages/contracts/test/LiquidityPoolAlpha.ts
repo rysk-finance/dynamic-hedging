@@ -349,6 +349,32 @@ describe("Liquidity Pool with alpha tests", async () => {
 		let optionToken: IOToken
 		let customOrderPrice: number
 		let customOrderId: number
+		it("SETUP: set sabrParams", async () => {
+			const proposedSabrParams = 
+			{
+				callAlpha:250000,
+				callBeta:1_000000,
+				callRho:-300000,
+				callVolvol:1_500000,
+				putAlpha:250000,
+				putBeta:1_000000,
+				putRho:-300000,
+				putVolvol:1_500000
+			}
+			await volFeed.setSabrParameters(
+				proposedSabrParams, 
+				expiration
+			)
+			const volFeedSabrParams = await volFeed.sabrParams(expiration)
+			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+			expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+			expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+			expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+		})
 		it("SUCCEEDS: Creates a buy order", async () => {
 			let customOrderPriceMultiplier = 1
 			const [sender, receiver] = signers
@@ -1092,7 +1118,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 						tFormatUSDC(expectedCollateralAllocated))
 			).to.be.within(-0.015, 0.015)
 			// check delta changes by expected amount
-			expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
+			expect(deltaAfter.toPrecision(2)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(2))
 			expect(await portfolioValuesFeed.addressSetLength()).to.equal(4)
 		})
 		it("SUCCEEDS: Creates a buyback order", async () => {
@@ -1354,7 +1380,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 						tFormatUSDC(expectedCollateralAllocated))
 			).to.be.within(-0.015, 0.015)
 			// check delta changes by expected amount
-			expect((deltaAfter + tFormatEth(localDelta)).toPrecision(3)).to.eq(deltaBefore.toPrecision(3))
+			expect((deltaAfter + tFormatEth(localDelta)).toPrecision(2)).to.eq(deltaBefore.toPrecision(2))
 			expect(await portfolioValuesFeed.addressSetLength()).to.equal(4)
 		})
 		it("SUCCEEDS: Creates a buyback order on the same option", async () => {

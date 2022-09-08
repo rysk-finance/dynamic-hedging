@@ -19,6 +19,8 @@ export const BIG_NUMBER_DECIMALS: Record<Token, BigNumber> = {
   OPYN: BigNumber.from("100000000"),
   RYSK: BigNumber.from("1000000000000000000"),
 };
+// Ethers event polling interval
+export const DEFAULT_POLLING_INTERVAL = 20000;
 
 // Proportion added to approval transaction to account for price moving.
 const APPROVAL_MARGIN = 0.1;

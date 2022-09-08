@@ -15,11 +15,13 @@ export const VaultMechanism = () => {
               </li>
               <li className="pb-2">
                 Your USDC deposit will be queued till the next epoch start. 
-                At this , you can also deposit additional USDC
+                At this stage, you can continue to deposit additional USDC for this epoch.
               </li>
               <li className="pb-2">
                 Once the new epoch starts your deposit will be converted to
-                shares which can then be redeemed
+                shares which can then be redeemed. 
+                After have redeemed, you have full control of your {DHV_NAME} shares 
+                and you will be able to see them in your wallet as ERC20 token.
               </li>
               <li className="pb-2">
                 The deposited funds are used to fund ETH options strategies

@@ -18,7 +18,7 @@ import {OracleInterface} from "../interfaces/OracleInterface.sol";
 import {WhitelistInterface} from "../interfaces/WhitelistInterface.sol";
 import {MarginPoolInterface} from "../interfaces/MarginPoolInterface.sol";
 import {CalleeInterface} from "../interfaces/CalleeInterface.sol";
-import "hardhat/console.sol";
+
 /**
  * Controller Error Codes
  * C1: sender is not full pauser
