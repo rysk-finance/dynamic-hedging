@@ -81,6 +81,10 @@ export const parseTokenAmount = (value: BigNumberish, decimals: number) =>
   BigNumber.from(value).mul(BigNumber.from(10).pow(BigNumber.from(decimals)));
 
 export const renameOtoken = (string: string) => {
-	const isPut = string.slice(-1) === "P";
-	return  string.substring(string.indexOf('-') + 1).slice(0, -1) + " " + `${isPut ? "Put" : "Call" }`
-} 
+
+	const isPut = string.slice(-1) === "P" ? "Put" : "Call";
+	const expiry = string.substring(string.indexOf('-') + 1).split('-')[0];
+	const strike = `$${string.split('-').pop()?.slice(0, -1)}`;
+
+	return "ETH " + expiry + " " + strike + " " + isPut
+}

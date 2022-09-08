@@ -10,6 +10,7 @@ import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import { RadioButtonSlider } from "../shared/RadioButtonSlider";
 import { BuyBack } from "./BuyBack";
+import { RFQ_FORM } from "../../config/links";
 
 enum OptionState {
   OPEN = "Open",
@@ -20,8 +21,8 @@ interface Position {
   id: string;
   expired: boolean;
   symbol: string;
-  amount: number;
-  entryPrice: number;
+  amount: string;
+  entryPrice: string;
   otokenId: string;
 }
 
@@ -48,11 +49,12 @@ export const UserOptionsList = () => {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   const parsePositions = (data: any) => {
+
     const positions: Position[] = [];
     const timeNow = Date.now() / 1000;
 
     // TODO: Add typings here
-    data.data?.positions.forEach((position: any) => {
+    data?.positions.forEach((position: any) => {
       const expired = timeNow > position.oToken.expiryTimestamp;
 
       // 1e18
@@ -79,7 +81,7 @@ export const UserOptionsList = () => {
 
       // premium converted to 1e18
       const entryPrice =
-        totBought > 0 && totPremium > 0 ? (totPremium * 1e10) / totBought : 0;
+        totBought > 0 && totPremium > 0 ? (totPremium * 1e12) / totBought : 0;
 
       // TODO add current price and PNL
 
@@ -87,10 +89,11 @@ export const UserOptionsList = () => {
         id: position.id,
         expired: expired,
         symbol: position.oToken.symbol,
-        amount: position.amount / 1e18,
-        entryPrice: entryPrice,
+        amount: Number(position.amount / 1e18).toFixed(2),
+        entryPrice: Number(entryPrice).toFixed(2),
         otokenId: position.oToken.id,
       });
+
       setPositions(positions);
     });
   };
@@ -106,6 +109,8 @@ export const UserOptionsList = () => {
           id
           symbol
           expiryTimestamp
+          strikePrice
+          isPut
         }
         writeOptionsTransactions {
           id
@@ -143,25 +148,97 @@ export const UserOptionsList = () => {
                   {listedOptionState === OptionState.OPEN && (
                     <div className="p-4">
                       <div className="w-full">
-                        <div className="grid grid-cols-12 text-left text-lg pb-4">
-                          <div className="col-span-3">Option</div>
-                          <div className="col-span-1">Size</div>
-                          <div className="col-span-2">Avg. Price</div>
-                          <div className="col-span-2">Mark Price</div>
-                          <div className="col-span-2">PNL</div>
-                          <div className="col-span-2">Actions</div>
+                        <div className="grid grid-cols-12 text-lg pb-4">
+                          <div className="col-span-1">Side</div>
+                          <div className="col-span-4">Option</div>
+                          <div className="col-span-2 text-right">Size</div>
+                          <div className="col-span-2 text-right">Entry Price</div>
+                          <div className="col-span-3 text-center">Actions</div>
                         </div>
+                        <p>{positions.length }</p>
                         <div>
                           {positions &&
                             positions
                               .filter((position) => !position.expired)
                               .map((position) => (
                                 <div key={position.id} className="w-full">
-                                  <div className="grid grid-cols-12">
-                                    <div className="col-span-3">
+                                  <div className="grid grid-cols-12 py-2">
+                                    <div className="col-span-1 text-green-700">
+                                      LONG
+                                    </div>
+                                    <div className="col-span-4">
                                       {renameOtoken(position.symbol)}
                                     </div>
-                                    <div className="col-span-1">
+                                    <div className="col-span-2 text-right">
+                                      <NumberFormat
+                                        value={position.amount}
+                                        displayType={"text"}
+                                        decimalScale={2}
+                                      />
+                                    </div>
+                                    <div className="col-span-2 text-right">
+                                      <NumberFormat
+                                        value={position.entryPrice}
+                                        displayType={"text"}
+                                        prefix="$"
+                                        decimalScale={2}
+                                      />
+                                    </div>
+                                    <div className="col-span-3 text-center">
+                                      {/* <Button
+                                        onClick={() =>
+                                          setSelectedOption(position.otokenId)
+                                        }
+                                        className=""
+                                      >
+                                        Sell
+                                      </Button> */}
+                                      <Button onClick={() => {
+                                        window.open(RFQ_FORM, "_blank")
+                                      }} >
+                                      RFQ to close position  
+                                      </Button>
+                                    </div>
+                                  </div>
+                                  {/* {selectedOption !== null && (
+                                    <div className="pt-6 grid grid-cols-12">
+                                      <div className="col-start-4 col-span-6">
+                                        <h4 className="mb-4 text-center">
+                                          Sell Option
+                                        </h4>
+                                        <BuyBack
+                                          selectedOption={selectedOption}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}*/}
+                                </div>
+                              ))} 
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {listedOptionState === OptionState.EXPIRED && (
+                    <div className="p-4">
+
+                        <div className="grid grid-cols-12 text-left text-lg pb-4">
+                          <div className="col-span-4">Option</div>
+                          <div className="col-span-2">Size</div>
+                          <div className="col-span-2">Entry Price</div>
+                          <div className="col-span-4">Actions</div>
+                        </div>
+                        <div>
+                          {positions &&
+                            positions
+                              .filter((position) => position.expired)
+                              .map((position) => (
+                                <div key={position.id} className="w-full">
+                                  <div className="grid grid-cols-12">
+                                    <div className="col-span-4">
+                                      {renameOtoken(position.symbol)}
+                                    </div>
+                                    <div className="col-span-2">
                                       <NumberFormat
                                         value={position.amount}
                                         displayType={"text"}
@@ -172,12 +249,11 @@ export const UserOptionsList = () => {
                                       <NumberFormat
                                         value={position.entryPrice}
                                         displayType={"text"}
+                                        prefix="$"
                                         decimalScale={2}
                                       />
                                     </div>
-                                    <div className="col-span-2">$</div>
-                                    <div className="col-span-2">-</div>
-                                    <div className="col-span-2">
+                                    <div className="col-span-4">
                                       <Button
                                         onClick={() =>
                                           setSelectedOption(position.otokenId)
@@ -203,54 +279,7 @@ export const UserOptionsList = () => {
                                 </div>
                               ))}
                         </div>
-                      </div>
-                    </div>
-                  )}
 
-                  {listedOptionState === OptionState.EXPIRED && (
-                    <div className="p-4">
-                      <table className="w-full">
-                        <thead className="text-left text-lg">
-                          <tr>
-                            <th className="pl-4">Option</th>
-                            <th>Size</th>
-                            <th>Entry. Price</th>
-                            <th className="pr-4">Mark Price</th>
-                            <th className="pr-4">PNL</th>
-                            <th className="pr-4">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {positions &&
-                            positions
-                              .filter((position) => position.expired)
-                              .map((position) => (
-                                <tr className={`h-12`} key={position.id}>
-                                  <td className="pl-4">
-                                    {renameOtoken(position.symbol)}
-                                  </td>
-                                  <td className="pl-4">
-                                    <NumberFormat
-                                      value={position.amount}
-                                      displayType={"text"}
-                                      decimalScale={2}
-                                    />
-                                  </td>
-                                  <td className="pl-4">
-                                    <NumberFormat
-                                      value={
-                                        position.entryPrice > 0
-                                          ? position.entryPrice
-                                          : "-"
-                                      }
-                                      displayType={"text"}
-                                      decimalScale={2}
-                                    />
-                                  </td>
-                                </tr>
-                              ))}
-                        </tbody>
-                      </table>
                     </div>
                   )}
                 </>
