@@ -74,7 +74,7 @@ contract Authority is IAuthority, AccessControl {
 		require(msg.sender == newGovernor, "!newGovernor");
 		emit GovernorPulled(governor, newGovernor);
 		governor = newGovernor;
-		newGovernor = address(0);
+		delete newGovernor;
 	}
 
 	function revokeGuardian(address _guardian) external {
@@ -87,6 +87,6 @@ contract Authority is IAuthority, AccessControl {
 		require(msg.sender == newManager, "!newManager");
 		emit ManagerPulled(manager, newManager);
 		manager = newManager;
-		newManager = address(0);
+		delete newManager;
 	}
 }
