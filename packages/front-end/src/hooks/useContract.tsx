@@ -54,6 +54,7 @@ type useContractArgs<T extends Record<EventName, EventData>> =
   | useContractExternalContractArgs<T>;
 
 const CHAIN_ID = Number(process.env.REACT_APP_CHAIN_ID) as CHAINID;
+const DEFAULT_NETWORK = IDToNetwork[CHAIN_ID];
 const DEFAULT_RPC_URL = RPC_URL_MAP[CHAIN_ID];
 const DEFAULT_RPC_PROVIDER = new ethers.providers.JsonRpcProvider(
   DEFAULT_RPC_URL
@@ -157,20 +158,27 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
 
   // Instances the ethers contract in state.
   useEffect(() => {
-    if (rpcURL) {
-      if (signer && network && !ethersContract) {
-        // If we don't require a signer, we just use a generic RPC provider
-        // which doesn't require the user to connect their address.
-        const signerOrProvider = args.readOnly ? DEFAULT_RPC_URL : signer;
+    if (rpcURL && !ethersContract) {
+      if (args.readOnly) {
         const address =
           "contract" in args
-            ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
-                (args as useContractRyskContractArgs<T>).contract
-              ]
+            ? (addresses as Record<ETHNetwork, ContractAddresses>)[
+                DEFAULT_NETWORK
+              ][(args as useContractRyskContractArgs<T>).contract]
             : (args as useContractExternalContractArgs<T>).contractAddress;
         setEthersContract(
-          new ethers.Contract(address, args.ABI, signerOrProvider)
+          new ethers.Contract(address, args.ABI, DEFAULT_RPC_PROVIDER)
         );
+      } else {
+        if (signer && network) {
+          const address =
+            "contract" in args
+              ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
+                  (args as useContractRyskContractArgs<T>).contract
+                ]
+              : (args as useContractExternalContractArgs<T>).contractAddress;
+          setEthersContract(new ethers.Contract(address, args.ABI, signer));
+        }
       }
     }
   }, [args, signer, network, ethersContract, rpcURL]);
