@@ -14,7 +14,7 @@ export const getSuggestedExpiryDates = () => {
   return [nextFriday, nextMonthFriday, threeMonthsFriday];
 };
 
-const getClosestFridayToDate = (date: Date) => {
+export const getClosestFridayToDate = (date: Date) => {
   const dateCopy = new Date(date);
   const dayOfMonth = dateCopy.getDate();
   const dayOfWeek = dateCopy.getDay();

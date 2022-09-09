@@ -9,15 +9,19 @@ import { useWalletContext } from "../../App";
 import { AppPaths } from "../../config/appPaths";
 import {
   BIG_NUMBER_DECIMALS,
+  DHV_NAME,
   SUBGRAPH_URL,
   ZERO_UINT_256,
 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
-import { DepositReceipt } from "../../types";
+import { Currency, DepositReceipt } from "../../types";
 import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import ReactTooltip from "react-tooltip";
 import { RyskTooltip } from "../RyskTooltip";
+import { BigNumberDisplay } from "../BigNumberDisplay";
+import { PositionTooltip } from "../vault/PositionTooltip";
+import { useUserPosition } from "../../hooks/useUserPosition";
 
 export const UserVault = () => {
   const { account, network } = useWalletContext();
@@ -42,6 +46,16 @@ export const UserVault = () => {
     ABI: LPABI,
     readOnly: true,
   });
+
+  const { userPositionValue, updatePosition } = useUserPosition();
+
+  useEffect(() => {
+    if (account) {
+      (() => {
+        updatePosition(account);
+      })();
+    }
+  }, [account, updatePosition]);
 
   useQuery(
     gql`
@@ -125,127 +139,132 @@ export const UserVault = () => {
   return (
     <div>
       <div className="mb-24">
-        <Card tabPunchColor="black" headerContent="RYSK.dynamicHedgingVault">
-          <div className="pb-8 py-12 px-8 flex flex-col lg:flex-row h-full">
-            <div className="flex h-full w-full lg:w-[70%] justify-around">
-              <div className="flex flex-col items-center justify-center h-full mb-8 lg:mb-0">
-                <h3 className="mb-2">
-                  <NumberFormat
-                    value={Number(
-                      currentPosition
-                        ?.add(unredeemableCollateral)
-                        .add(unredeemedSharesValue)
-                        .toNumber() / 1e6
-                    )}
-                    displayType={"text"}
-                    decimalScale={2}
-                    suffix=" USDC"
-                  />
-                </h3>
-                <h4 className="mb-2">
-                  Position
-                  <RyskTooltip
-                    message="Your DHV current position in USDC"
-                    id="positionTip"
-                  />
-                </h4>
-              </div>
-              <div className="flex flex-col items-center justify-center h-full">
-                <h3 className="mb-2">
-                  {/* TODO make sure if there is an error with subgraph this will not load */}
-                  <NumberFormat
-                    value={Number(
-                      currentPosition
-                        ?.add(unredeemableCollateral)
-                        .sub(depositBalance)
-                        .toNumber() / 1e6
-                    )}
-                    displayType={"text"}
-                    decimalScale={2}
-                    suffix=" USDC"
-                  />
-                </h3>
-                <h4 className="mb-2">
-                  PnL
-                  <RyskTooltip
-                    message="Profit or Losses based on your current DHV position in USDC net of deposits and withdraws"
-                    id="pnlTip"
-                  />
-                </h4>
-              </div>
-              {unredeemableCollateral.gt(0) && (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <h3 className="mb-2">
-                    <NumberFormat
-                      value={Number(unredeemableCollateral.toNumber() / 1e6)}
-                      displayType={"text"}
-                      decimalScale={2}
-                      suffix=" USDC"
-                    />
-                  </h3>
-                  <h4 className="mb-2">Queed Deposit</h4>
-                  <button
-                    data-tip
-                    data-for="queedTip"
-                    className="cursor-help pl-2"
-                  >
-                    <img src="/icons/info.svg" />
-                  </button>
-                  {/* TODO  update with epoch time */}
-                  <ReactTooltip
-                    id="queedTip"
-                    place="bottom"
-                    multiline={true}
-                    backgroundColor="#EDE9DD"
-                    textColor="black"
-                    border={true}
-                    borderColor="black"
-                  >
-                    Your USDC will be available to redeem as shares during our
-                    weekly strategy every Friday at 11am UTC
-                  </ReactTooltip>
-                </div>
-              )}
+        <Card
+          tabWidth={280}
+          tabs={[
+            {
+              label: "RYSK.dynamicHedgingVault",
+              content: (
+                <div className="pb-8 py-12 px-8 flex flex-col lg:flex-row h-full">
+                  <div className="flex h-full w-full lg:w-[70%] justify-around">
+                    <div className="flex flex-col items-center justify-center h-full mb-8 lg:mb-0">
+                      <h3 className="mb-2">
+                          <BigNumberDisplay
+                            currency={Currency.USDC}
+                            suffix="USDC"
+                            loaderProps={{
+                              className: "invert h-4 w-auto translate-y-[-2px]",
+                            }}
+                          >
+                            {userPositionValue}
+                          </BigNumberDisplay>  
+                      </h3>
 
-              {unredeemedSharesValue.gt(0) && (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <h3 className="mb-2">
-                    <NumberFormat
-                      value={Number(unredeemedSharesValue.toNumber() / 1e6)}
-                      displayType={"text"}
-                      decimalScale={2}
-                    />
-                  </h3>
-                  <h4 className="mb-2">Shares to be reedemed</h4>
-                  <a href="#" className="underline">
-                    Learn more
-                  </a>
+                      <h4 className="mb-2">
+                        Your Position
+                        <PositionTooltip />
+                      </h4>
+                    </div>
+                    <div className="flex flex-col items-center justify-center h-full">
+                      <h3 className="mb-2">
+                        {/* TODO make sure if there is an error with subgraph this will not load */}
+                        { ( depositBalance !== undefined && userPositionValue !== null ) &&                                               
+                        <NumberFormat
+                          value={Number(
+                            userPositionValue.sub(depositBalance)
+                            .toNumber() / 1e6
+                          ).toFixed(2)}
+                          displayType={"text"}
+                          decimalScale={2}
+                          suffix=" USDC"
+                        />
+                        }
+                      </h3>
+                      <h4 className="mb-2">
+                        PnL
+                        <RyskTooltip
+                          message={`Profit or Losses based on your current ${DHV_NAME} position in USDC net of deposits and withdraws`}
+                          id="pnlTip"
+                        />
+                      </h4>
+                    </div>
+                    {unredeemableCollateral.gt(0) && (
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <h3 className="mb-2">
+                          <NumberFormat
+                            value={Number(
+                              unredeemableCollateral.toNumber() / 1e6
+                            )}
+                            displayType={"text"}
+                            decimalScale={2}
+                            suffix=" USDC"
+                          />
+                        </h3>
+                        <h4 className="mb-2">Queued Deposit</h4>
+                        <button
+                          data-tip
+                          data-for="queuedTip"
+                          className="cursor-help pl-2"
+                        >
+                          <img src="/icons/info.svg" />
+                        </button>
+                        {/* TODO  update with epoch time */}
+                        <ReactTooltip
+                          id="queuedTip"
+                          place="bottom"
+                          multiline={true}
+                          backgroundColor="#EDE9DD"
+                          textColor="black"
+                          border={true}
+                          borderColor="black"
+                        >
+                          Your USDC will be available to redeem as shares every Friday at 11am UTC
+                        </ReactTooltip>
+                      </div>
+                    )}
+
+                    {unredeemedSharesValue.gt(0) && (
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <h3 className="mb-2">
+                          <NumberFormat
+                            value={Number(
+                              unredeemedSharesValue.toNumber() / 1e6
+                            )}
+                            displayType={"text"}
+                            decimalScale={2}
+                          />
+                        </h3>
+                        <h4 className="mb-2">Shares to be reedemed</h4>
+                        <a href="#" className="underline">
+                          Learn more
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col w-full lg:w-[30%] h-full justify-around items-center">
+                    <Link
+                      className="w-full"
+                      to={{ pathname: AppPaths.VAULT, search: "?type=deposit" }}
+                    >
+                      <Button className="w-full mb-8">Deposit</Button>
+                    </Link>
+
+                    <Link
+                      className="w-full"
+                      to={{
+                        pathname: AppPaths.VAULT,
+                        search: "?type=withdraw",
+                      }}
+                    >
+                      <Button className="w-full">Withdraw</Button>
+                    </Link>
+                   
+                  </div>
                 </div>
-              )}
-            </div>
-            <div className="flex flex-col w-full lg:w-[30%] h-full justify-around items-center">
-              <Link
-                className="w-full"
-                to={{ pathname: AppPaths.VAULT, search: "?type=deposit" }}
-              >
-                <Button className="w-full mb-8">Deposit</Button>
-              </Link>
-              {unredeemedSharesValue &&
-              unredeemedSharesValue._hex !== ZERO_UINT_256 ? (
-                <Link
-                  className="w-full"
-                  to={{ pathname: AppPaths.VAULT, search: "?type=withdraw" }}
-                >
-                  <Button className="w-full">Withdraw</Button>
-                </Link>
-              ) : (
-                <Button className="w-full !bg-gray-300 text-white cursor-default">
-                  Withdraw
-                </Button>
-              )}
-            </div>
-          </div>
-        </Card>
+              ),
+            },
+          ]}
+        ></Card>
       </div>
     </div>
   );

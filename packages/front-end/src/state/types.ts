@@ -2,7 +2,8 @@ import { BigNumber } from "ethers";
 import { Dispatch } from "react";
 
 export type AppSettings = {
-  unlimitedApproval: boolean;
+  vaultDepositUnlimitedApproval: boolean;
+  optionsTradingUnlimitedApproval: boolean;
 };
 
 // Global context
@@ -10,14 +11,28 @@ export type GlobalState = {
   ethPrice: number | null;
   eth24hChange: number | null;
   ethPriceUpdateTime: Date | null;
+  userPositionValue: BigNumber | null;
+  positionBreakdown: {
+    redeemedShares: BigNumber | null;
+    usdcOnHold: BigNumber | null;
+    unredeemedShares: BigNumber | null;
+    pendingWithdrawShares: {
+      amount: BigNumber;
+      epochPrice: BigNumber;
+    } | null;
+    currentWithdrawSharePrice: BigNumber | null;
+  };
   connectWalletIndicatorActive: boolean;
   settings: AppSettings;
 };
 
 export enum ActionType {
   SET_ETH_PRICE,
+  SET_POSITION_VALUE,
+  SET_POSITION_BREAKDOWN,
   SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
   SET_SETTINGS,
+  RESET_GLOBAL_STATE,
 }
 
 export type GlobalAction =
@@ -28,17 +43,51 @@ export type GlobalAction =
       date: Date;
     }
   | {
+      type: ActionType.SET_POSITION_VALUE;
+      value: BigNumber;
+    }
+  | {
+      type: ActionType.SET_POSITION_BREAKDOWN;
+      values: Partial<GlobalState["positionBreakdown"]>;
+    }
+  | {
       type: ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE;
       isActive: boolean;
     }
   | {
       type: ActionType.SET_SETTINGS;
       settings: Partial<AppSettings>;
+    }
+  | {
+      type: ActionType.RESET_GLOBAL_STATE;
     };
 
 export type GlobalContext = {
   state: GlobalState;
   dispatch: Dispatch<GlobalAction>;
+};
+
+// Vault context
+export type VaultState = {
+  userDHVBalance: BigNumber | null;
+  depositEpoch: BigNumber | null;
+  withdrawalEpoch: BigNumber | null;
+  depositPricePerShare: BigNumber | null;
+  withdrawalPricePerShare: BigNumber | null;
+};
+
+export enum VaultActionType {
+  SET,
+}
+
+export type VaultAction = {
+  type: VaultActionType.SET;
+  data: Partial<VaultState>;
+};
+
+export type VaultContext = {
+  state: VaultState;
+  dispatch: Dispatch<VaultAction>;
 };
 
 // Options trading context

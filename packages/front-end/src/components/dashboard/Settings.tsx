@@ -32,12 +32,12 @@ export const Settings = () => {
         <div className="w-full flex-column">
           <div className="flex justify-between items-center">
             <span>Unlimited Approval</span>
-            <Toggle
+            {/* <Toggle
               value={settings.unlimitedApproval}
               setValue={(value: boolean) =>
                 setSetting("unlimitedApproval", value)
               }
-            />
+            /> */}
           </div>
         </div>
       </div>
