@@ -11,7 +11,7 @@ export const WIPPopup = () => {
           <div className="fixed bg-black opacity-[0.5] w-full h-full top-24 left-0 z-10" />
           <div
             className="fixed w-full h-full flex justify-center items-center top-24 left-0 z-[100] p-64"
-            onClick={() => setIsOpen(false)}
+            // onClick={() => setIsOpen(false)}
           >
             <Card
               tabs={[
@@ -19,12 +19,10 @@ export const WIPPopup = () => {
                   label: "Coming soon",
                   content: (
                     <div className="p-8 bg-bone">
-                      {/* TODO(HC) */}
+                      {/* TODO(HC): Update copy */}
                       <p className="mb-4">
-                        Our options trading platform isn&apos;t ready yet, but
-                        feel free to test out the UI.
+                        Our options trading platform isn&apos;t ready yet.
                       </p>
-                      <p>Click anywhere to close this popup</p>
                     </div>
                   ),
                 },
