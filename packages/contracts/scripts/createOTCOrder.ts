@@ -28,14 +28,11 @@ async function main() {
 			optionHandlerABI,
 			signers[0]
 		)
-		const optionRegistry = new hre.ethers.Contract(
-			arbitrumRinkeby.OpynOptionRegistry,
-			optionRegistryABI,
-			signers[0]
-		)
+
+		const EXIPRY = new Date("2022-09-23T08:00:00Z")
 
 		const option = {
-			expiration: "1663920000",
+			expiration: EXIPRY.getTime() / 1000,
 			// Need to update to give a value in the orderBounds defined on optionHandler.
 			strike: BigNumber.from("2100").mul(RYSK_DECIMAL),
 			isPut: false,
