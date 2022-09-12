@@ -369,7 +369,7 @@ export const VaultDeposit = () => {
           </div>
           <div className="ml-[-2px]">
             <TextInput
-              className="text-right p-4 text-xl border-r-0"
+              className="pl-[64px] p-4 text-xl border-r-0"
               setValue={handleInputChange}
               value={inputValue}
               iconLeft={
@@ -392,6 +392,7 @@ export const VaultDeposit = () => {
                     }
                   : undefined
               }
+              maxLength={30}
             />
           </div>
           <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">

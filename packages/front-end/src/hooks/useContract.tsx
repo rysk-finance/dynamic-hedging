@@ -4,7 +4,12 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
 import { TransactionDisplay } from "../components/shared/TransactionDisplay";
-import { CHAINID, RPC_URL_MAP } from "../config/constants";
+import {
+  CHAINID,
+  DEFAULT_POLLING_INTERVAL,
+  IDToNetwork,
+  RPC_URL_MAP,
+} from "../config/constants";
 import addresses from "../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../types";
 import { isRPCError, parseError } from "../utils/parseRPCError";
@@ -49,9 +54,12 @@ type useContractArgs<T extends Record<EventName, EventData>> =
   | useContractExternalContractArgs<T>;
 
 const CHAIN_ID = Number(process.env.REACT_APP_CHAIN_ID) as CHAINID;
+const DEFAULT_NETWORK = IDToNetwork[CHAIN_ID];
 const DEFAULT_RPC_URL = RPC_URL_MAP[CHAIN_ID];
-const DEFAULT_RPC = new ethers.providers.JsonRpcProvider(DEFAULT_RPC_URL);
-DEFAULT_RPC.pollingInterval = 20000;
+const DEFAULT_RPC_PROVIDER = new ethers.providers.JsonRpcProvider(
+  DEFAULT_RPC_URL
+);
+DEFAULT_RPC_PROVIDER.pollingInterval = DEFAULT_POLLING_INTERVAL;
 
 /**
  *
@@ -150,20 +158,27 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
 
   // Instances the ethers contract in state.
   useEffect(() => {
-    if (rpcURL) {
-      if (signer && network && !ethersContract) {
-        // If we don't require a signer, we just use a generic RPC provider
-        // which doesn't require the user to connect their address.
-        const signerOrProvider = args.readOnly ? DEFAULT_RPC : signer;
+    if (rpcURL && !ethersContract) {
+      if (args.readOnly) {
         const address =
           "contract" in args
-            ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
-                (args as useContractRyskContractArgs<T>).contract
-              ]
+            ? (addresses as Record<ETHNetwork, ContractAddresses>)[
+                DEFAULT_NETWORK
+              ][(args as useContractRyskContractArgs<T>).contract]
             : (args as useContractExternalContractArgs<T>).contractAddress;
         setEthersContract(
-          new ethers.Contract(address, args.ABI, signerOrProvider)
+          new ethers.Contract(address, args.ABI, DEFAULT_RPC_PROVIDER)
         );
+      } else {
+        if (signer && network) {
+          const address =
+            "contract" in args
+              ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
+                  (args as useContractRyskContractArgs<T>).contract
+                ]
+              : (args as useContractExternalContractArgs<T>).contractAddress;
+          setEthersContract(new ethers.Contract(address, args.ABI, signer));
+        }
       }
     }
   }, [args, signer, network, ethersContract, rpcURL]);
@@ -193,7 +208,9 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
       ) as (keyof EventHandlerMap<T>)[] as string[];
       eventNames.forEach((eventName) => {
         if (contractEvents.current) {
-          const handler = contractEvents.current?.[eventName];
+          const handler = contractEvents.current
+            ? contractEvents.current[eventName]
+            : null;
           // Attach listener if no isListening argument present, or if that Event isn't in
           // the isListening map, or if it is present and its value is true.
           const shouldAttachListener =
