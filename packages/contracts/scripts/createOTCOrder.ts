@@ -29,10 +29,10 @@ async function main() {
 			signers[0]
 		)
 
-		const EXIPRY = new Date("2022-09-23T08:00:00Z")
+		const EXPIRY = new Date("2022-09-23T08:00:00Z")
 
 		const option = {
-			expiration: EXIPRY.getTime() / 1000,
+			expiration: EXPIRY.getTime() / 1000,
 			// Need to update to give a value in the orderBounds defined on optionHandler.
 			strike: BigNumber.from("2100").mul(RYSK_DECIMAL),
 			isPut: false,
