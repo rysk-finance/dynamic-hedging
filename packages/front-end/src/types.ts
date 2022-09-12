@@ -73,6 +73,7 @@ export type Order = {
   orderExpiry: BigNumber;
   buyer: Address;
   seriesAddress: Address;
+  isBuyBack: boolean;
 };
 
 export type StrangleOrder = {
