@@ -12,7 +12,7 @@ import {
 } from "../config/constants";
 import addresses from "../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../types";
-import { isRPCError, parseError } from "../utils/parseRPCError";
+import { DEFAULT_ERROR, isRPCError, parseError } from "../utils/parseRPCError";
 
 type EventName = string;
 type EventData = any[];
@@ -148,7 +148,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
             autoClose: 5000,
           });
         } else {
-          toast(JSON.stringify(err), { autoClose: 5000 });
+          toast(`❌ ${DEFAULT_ERROR}`, { autoClose: 5000 });
         }
         onFail?.();
         return null;
