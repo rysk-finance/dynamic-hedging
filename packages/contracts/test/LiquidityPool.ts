@@ -62,7 +62,6 @@ import exp from "constants"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { OptionHandler } from "../types/OptionHandler"
-import { Console } from "console"
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: ERC20Interface

@@ -145,7 +145,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 				uint256 amountOutMinimum = (OptionsCompute.convertToDecimals(
 					underlyingPrice,
 					ERC20(collateralAsset).decimals()
-				) * ethBalance * (MAX_BPS - sellSlippage)) / 1e22;
+				) *
+					ethBalance *
+					(MAX_BPS - sellSlippage)) / 1e22;
 				(deltaChange, ) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateralAsset);
 				internalDelta += deltaChange;
 			} else {
@@ -153,7 +155,9 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 				uint256 amountOutMinimum = (OptionsCompute.convertToDecimals(
 					underlyingPrice,
 					ERC20(collateralAsset).decimals()
-				) * uint256(_delta) * (MAX_BPS - sellSlippage)) / 1e22;
+				) *
+					uint256(_delta) *
+					(MAX_BPS - sellSlippage)) / 1e22;
 				(deltaChange, ) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateralAsset);
 				internalDelta += deltaChange;
 			}

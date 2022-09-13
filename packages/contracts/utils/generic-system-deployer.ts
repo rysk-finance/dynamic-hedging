@@ -88,7 +88,6 @@ export async function deploySystem(
 	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
 	const _priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
 	const priceFeed = _priceFeed
-	await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
 	await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
 	// oracle returns price denominated in 1e8
 	const oraclePrice = await oracle.getPrice(weth.address)
