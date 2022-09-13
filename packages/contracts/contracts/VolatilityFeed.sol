@@ -24,6 +24,8 @@ contract VolatilityFeed is AccessControl {
 	mapping(uint256 => SABRParams) public sabrParams;
 	// keeper mapping
 	mapping(address => bool) public keeper;
+	// expiry array
+	uint256[] public expiries;
 
 	//////////////////////////
 	/// constant variables ///
@@ -56,6 +58,18 @@ contract VolatilityFeed is AccessControl {
 	error RhoError();
 	error VolvolError();
 
+	event SabrParamsSet(
+		uint256 indexed _expiry,
+		int32 callAlpha,
+		int32 callBeta,
+		int32 callRho,
+		int32 callVolvol,
+		int32 putAlpha,
+		int32 putBeta,
+		int32 putRho,
+		int32 putVolvol
+	);
+
 	/**
 	 * @notice set the sabr volatility params
 	 * @param _sabrParams set the SABR parameters
@@ -86,7 +100,22 @@ contract VolatilityFeed is AccessControl {
 		) {
 			revert RhoError();
 		}
+		// if the expiry is not already a registered expiry then add it to the expiry list
+		if(sabrParams[_expiry].callAlpha == 0) {
+			expiries.push(_expiry);
+		}
 		sabrParams[_expiry] = _sabrParams;
+		emit SabrParamsSet(
+			_expiry,
+			_sabrParams.callAlpha,
+			_sabrParams.callBeta,
+			_sabrParams.callRho,
+			_sabrParams.callVolvol,
+			_sabrParams.putAlpha,
+			_sabrParams.putBeta,
+			_sabrParams.putRho,
+			_sabrParams.putVolvol
+		);
 	}
 
 	/// @notice update the keepers
@@ -144,6 +173,14 @@ contract VolatilityFeed is AccessControl {
 			revert CustomErrors.IVNotFound();
 		}
 		return uint256(vol);
+	}
+
+	/**
+	 @notice get the expiry array
+	 @return the expiry array
+	 */
+	function getExpiries() external view returns (uint256[] memory) {
+		return expiries;
 	}
 
 	/// @dev keepers, managers or governors can access
