@@ -67,7 +67,7 @@ contract PriceFeed is AccessControl {
 		require(rate > 0, "ChainLinkPricer: price is lower than 0");
 		require(timestamp != 0, "ROUND_NOT_COMPLETE");
 		require(block.timestamp <= timestamp + STALE_PRICE_DELAY, "STALE_PRICE");
-		require(answeredInRound >= roundId, "STALE_PRICE");
+		require(answeredInRound >= roundId, "STALE_PRICE_ROUND");
 		uint8 difference;
 		if (SCALE_DECIMALS > feedDecimals) {
 			difference = SCALE_DECIMALS - feedDecimals;
