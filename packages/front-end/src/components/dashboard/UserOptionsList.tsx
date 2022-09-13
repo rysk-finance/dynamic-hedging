@@ -57,11 +57,10 @@ export const UserOptionsList = () => {
   const [listedOptionState, setListedOptionState] = useState(OptionState.OPEN);
 
   const parsePositions = (data: any) => {
-    const positions: Position[] = [];
     const timeNow = Date.now() / 1000;
 
     // TODO: Add typings here
-    data?.positions.forEach((position: any) => {
+    const parsedPositions = data?.positions.map((position: any) => {
       const expired = timeNow > position.oToken.expiryTimestamp;
 
       const otokenBalance = position.account.balances.filter(
@@ -90,7 +89,7 @@ export const UserOptionsList = () => {
 
       // TODO add current price and PNL
 
-      positions.push({
+      return {
         id: position.id,
         expiryTimestamp: position.oToken.expiryTimestamp,
         strikePrice: position.oToken.strikePrice,
@@ -99,14 +98,14 @@ export const UserOptionsList = () => {
         amount: otokenBalance,
         entryPrice: Number(entryPrice).toFixed(2),
         otokenId: position.oToken.id,
-      });
-
-      setPositions(positions);
+      };
     });
+
+    setPositions(parsedPositions);
   };
 
   // TODO: Add typings here
-  const { loading, error, data } = useQuery(
+  useQuery(
     gql`
     query($account: String) {
       positions(first: 1000, where: { account_contains: "${account?.toLowerCase()}" }) {
