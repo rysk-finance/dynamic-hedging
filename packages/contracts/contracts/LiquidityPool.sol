@@ -1004,15 +1004,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice calculates amount of liquidity that can be used before hitting buffer
 	 * @return bufferRemaining the amount of liquidity available before reaching buffer in e6
 	 */
-	function checkBuffer() public view returns (uint256 bufferRemaining) {
+	function checkBuffer() public view returns (int256 bufferRemaining) {
 		// calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
 		uint256 collateralBalance = getBalance(collateralAsset);
 		uint256 collateralBuffer = (collateralAllocated * bufferPercentage) / MAX_BPS;
-		// revert if buffer allowance already hit
-		if (collateralBuffer > collateralBalance) {
-			return 0;
-		}
-		bufferRemaining = collateralBalance - collateralBuffer;
+
+		bufferRemaining = int256(collateralBalance) - int256(collateralBuffer);
 	}
 
 	/**
@@ -1085,12 +1082,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		IOptionRegistry optionRegistry,
 		uint256 premium,
 		int256 delta,
-		uint256 bufferRemaining,
+		int256 bufferRemaining,
 		address recipient
 	) internal returns (uint256) {
 		// strike decimals come into this function as e8
 		uint256 collateralAmount = optionRegistry.getCollateral(optionSeries, amount);
-		if (bufferRemaining < collateralAmount) {
+		if (bufferRemaining < int256(collateralAmount)) {
 			revert CustomErrors.MaxLiquidityBufferReached();
 		}
 		ERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);

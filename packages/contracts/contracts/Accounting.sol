@@ -246,7 +246,7 @@ contract Accounting is IAccounting {
 		)
 	{
 		// get the liquidity that can be withdrawn from the pool without hitting the collateral requirement buffer
-		uint256 bufferRemaining = liquidityPool.checkBuffer();
+		int256 bufferRemaining = gitliquidityPool.checkBuffer();
 
 		newPricePerShareDeposit = newPricePerShareWithdrawal = calculateTokenPrice(
 			totalSupply,
@@ -258,11 +258,11 @@ contract Accounting is IAccounting {
 			liquidityPool.pendingWithdrawals(),
 			newPricePerShareWithdrawal
 		);
-		if (bufferRemaining > totalWithdrawAmount) {
+		if (bufferRemaining > int256(totalWithdrawAmount)) {
 			amountNeeded = 0;
 		} else {
 			// get the extra liquidity that is needed from hedging reactors
-			amountNeeded = totalWithdrawAmount - bufferRemaining;
+			amountNeeded = uint256(int256(totalWithdrawAmount) - bufferRemaining);
 		}
 	}
 
