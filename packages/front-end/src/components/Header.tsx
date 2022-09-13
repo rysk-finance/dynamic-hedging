@@ -21,7 +21,9 @@ export const Header: React.FC = () => {
 
   return (
     <div className="fixed w-full h-24 t-0 flex items-center px-16 justify-between border-b-2 border-black bg-bone z-10">
-      <img src={"/logo.png"} alt="logo" className="h-[50%]" />
+      <Link to={AppPaths.VAULT}>
+        <img src={"/logo.png"} alt="logo" className="w-20" />
+      </Link>
       <div className="flex items-center">
         <div className="mr-4">
           <Link to={AppPaths.VAULT}>
