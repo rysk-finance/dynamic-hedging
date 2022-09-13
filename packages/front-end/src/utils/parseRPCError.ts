@@ -24,3 +24,6 @@ export const parseError = (err: any) => {
   }
   return err;
 };
+
+export const DEFAULT_ERROR =
+  "There was an error making your transaction. Please try again later or get in contact with the team if it persists.";
