@@ -32,18 +32,22 @@ export const VaultWithdrawBalanceTooltip = () => {
         </div>
         <div className="flex justify-between items-center">
           <p className="mr-12">Unredeemed shares: </p>
-          <p>
-            <BigNumberDisplay currency={Currency.RYSK} suffix={DHV_NAME}>
-              {positionBreakdown.unredeemedShares}
-            </BigNumberDisplay>{" "}
-            @{" "}
-            <BigNumberDisplay
-              currency={Currency.RYSK}
-              suffix={`USDC per ${DHV_NAME}`}
-            >
-              {positionBreakdown.currentWithdrawSharePrice}
-            </BigNumberDisplay>
-          </p>
+          {positionBreakdown.unredeemedShares?._hex !== ZERO_UINT_256 ? (
+            <p>
+              <BigNumberDisplay currency={Currency.RYSK} suffix={DHV_NAME}>
+                {positionBreakdown.unredeemedShares}
+              </BigNumberDisplay>{" "}
+              @{" "}
+              <BigNumberDisplay
+                currency={Currency.RYSK}
+                suffix={`USDC per ${DHV_NAME}`}
+              >
+                {positionBreakdown.currentWithdrawSharePrice}
+              </BigNumberDisplay>
+            </p>
+          ) : (
+            <p>-</p>
+          )}
         </div>
       </div>
     );
