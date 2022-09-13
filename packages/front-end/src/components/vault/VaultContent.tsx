@@ -60,7 +60,7 @@ export const VaultContent = () => {
               currency={Currency.USDC}
               suffix="USDC"
               loaderProps={{
-                className: "invert h-4 w-auto translate-y-[-2px]",
+                className: "h-4 w-auto translate-y-[-2px]",
               }}
             >
               {userPositionValue}
