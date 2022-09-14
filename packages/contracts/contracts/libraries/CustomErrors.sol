@@ -5,6 +5,7 @@ interface CustomErrors {
 	error NotKeeper();
 	error IVNotFound();
 	error NotHandler();
+	error VaultExpired();
 	error InvalidInput();
 	error InvalidPrice();
 	error InvalidBuyer();

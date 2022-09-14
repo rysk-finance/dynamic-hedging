@@ -611,6 +611,9 @@ contract OptionRegistry is AccessControl {
 		GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
 		// get the series
 		Types.OptionSeries memory series = seriesInfo[vault.shortOtokens[0]];
+		if (series.expiration < block.timestamp) {
+			revert CustomErrors.VaultExpired();
+		}
 		// get the MarginRequired
 		IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
 
