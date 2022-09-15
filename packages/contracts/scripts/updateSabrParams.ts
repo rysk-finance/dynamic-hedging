@@ -26,7 +26,7 @@ async function main() {
             putVolvol: 1_500000
         }
         // this should be configured properly
-        const expiration = 1663142400
+        const expiration = 1663920000
 		const vfTransaction = await vfFeed.setSabrParameters(proposedSabrParams, expiration)
 		console.log("sabr parameters set")
 	} catch (err) {
