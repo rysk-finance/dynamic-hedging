@@ -6,9 +6,6 @@ import { VolatilityFeed } from "../../types/VolatilityFeed"
 
 // deploys a SABR vol feed contract
 
-const linkTokenAddress = "0x615fBe6372676474d9e6933d310469c9b68e9726" //arb rinkeby
-const wethAddress = "0xFCfbfcC11d12bCf816415794E5dc1BBcc5304e01"
-const usdcAddress = "0x33a010E74A354bd784a62cca3A4047C1A84Ceeab"
 const authorityAddress = "0x96AC14eE2CeEE2328f13B095A52613319d678Dd1"
 const optionProtocolAddress = "0xf44a3def943c781543A7bC3Dd4127Ec435c1fd39"
 
