@@ -34,23 +34,24 @@ import { UniswapV3HedgingReactor } from "../../types/UniswapV3HedgingReactor"
 
 const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
 
-//	Arbitrum rinkeby specific contract addresses. Change for other networks
-const chainlinkOracleAddress = "0x5f0423B1a6935dc5596e7A24d98532b67A0AeFd8"
-const linkTokenAddress = "0x615fBe6372676474d9e6933d310469c9b68e9726"
-const gammaOracleAddress = "0xe4d64aed5e76bCcE2C255f3c819f4C3817D42f19"
-const opynControllerProxyAddress = "0x2acb561509a082bf2c58ce86cd30df6c2c2017f6"
-const opynAddressBookAddress = "0x2d3E178FFd961BD8C0b035C926F9f2363a436DdC"
-const opynNewCalculatorAddress = "0xa91B46bDDB891fED2cEE626FB03E2929702951A6"
-const oTokenFactoryAddress = "0xcBcC61d56bb2cD6076E2268Ea788F51309FA253B"
-const marginPoolAddress = "0xDD91EB7C3822552D89a5Cb8D4166B1EB19A36Ff2"
-// const usdcAddress = "0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737"
+//	Arbitrum mainnet specific contract addresses. Change for other networks
+const chainlinkOracleAddress = "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612"
+const linkTokenAddress = "0xf97f4df75117a78c1A5a0DBb814Af92458539FB4"
+const gammaOracleAddress = "0xBA1880CFFE38DD13771CB03De896460baf7dA1E7"
+const opynControllerProxyAddress = "0x594bD4eC29F7900AE29549c140Ac53b5240d4019"
+const opynAddressBookAddress = "0xCa19F26c52b11186B4b1e76a662a14DA5149EA5a"
+const opynNewCalculatorAddress = "0x749a3624ad2a001F935E3319743f53Ecc7466358"
+const oTokenFactoryAddress = "0xBa1952eCdbA02de66fCf73f29068e8cf072644ec"
+const marginPoolAddress = "0xb9F33349db1d0711d95c1198AcbA9511B8269626"
+const multisig = "0xFBdE2e477Ed031f54ed5Ad52f35eE43CD82cF2A6"
 
-// rage trade addresses for Arbitrum Rinkeby
-const clearingHouseAddress = "0xe3B8eF0C2Ed6d8318F0b1b50A072e0cB508CDB04"
-const rageTradeFactoryAddress = "0x172b070dc24D8f0a3Cd665e601a398419c5272E6"
-const vETHAddress = "0xF40A48619b095a3d40993b398f88723096563644"
-const usdcAddress = "0x33a010E74A354bd784a62cca3A4047C1A84Ceeab"
-const wethAddress = "0xFCfbfcC11d12bCf816415794E5dc1BBcc5304e01"
+const usdcAddress = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
+const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
+
+// rage trade addresses for Arbitrum
+const clearingHouseAddress = "0x4521916972A76D5BFA65Fb539Cf7a0C2592050Ac"
+const rageTradeFactoryAddress = "0x14FcC60f9be14087FAC729df48fF33f2b3052C12"
+const vETHAddress = "0x7ab08069a6ee445703116E4E09049E88a237af5E"
 
 // uniswap v3 addresses (SAME FOR ALL CHAINS)
 const uniswapV3SwapRouter = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
@@ -128,24 +129,24 @@ async function main() {
 	}
 
 	// @ts-ignore
-	contractAddresses["arbitrumRinkeby"]["OpynController"] = opynControllerProxyAddress
-	contractAddresses["arbitrumRinkeby"]["OpynAddressBook"] = opynAddressBookAddress
-	contractAddresses["arbitrumRinkeby"]["OpynOracle"] = gammaOracleAddress
-	contractAddresses["arbitrumRinkeby"]["OpynNewCalculator"] = opynNewCalculatorAddress
-	contractAddresses["arbitrumRinkeby"]["OpynOptionRegistry"] = optionRegistry.address
-	contractAddresses["arbitrumRinkeby"]["priceFeed"] = priceFeed.address
-	contractAddresses["arbitrumRinkeby"]["volFeed"] = volFeed.address
-	contractAddresses["arbitrumRinkeby"]["optionProtocol"] = optionProtocol.address
-	contractAddresses["arbitrumRinkeby"]["liquidityPool"] = liquidityPool.address
-	contractAddresses["arbitrumRinkeby"]["authority"] = authority.address
-	contractAddresses["arbitrumRinkeby"]["portfolioValuesFeed"] = portfolioValuesFeed.address
-	contractAddresses["arbitrumRinkeby"]["optionHandler"] = handler.address
-	contractAddresses["arbitrumRinkeby"]["opynInteractions"] = interactions.address
-	contractAddresses["arbitrumRinkeby"]["normDist"] = normDist.address
-	contractAddresses["arbitrumRinkeby"]["BlackScholes"] = blackScholes.address
-	contractAddresses["arbitrumRinkeby"]["accounting"] = accounting.address
-	contractAddresses["arbitrumRinkeby"]["uniswapV3HedgingReactor"] = uniswapV3HedgingReactor.address
-	contractAddresses["arbitrumRinkeby"]["perpHedgingReactor"] = perpHedgingReactor.address
+	contractAddresses["arbitrum"]["OpynController"] = opynControllerProxyAddress
+	contractAddresses["arbitrum"]["OpynAddressBook"] = opynAddressBookAddress
+	contractAddresses["arbitrum"]["OpynOracle"] = gammaOracleAddress
+	contractAddresses["arbitrum"]["OpynNewCalculator"] = opynNewCalculatorAddress
+	contractAddresses["arbitrum"]["OpynOptionRegistry"] = optionRegistry.address
+	contractAddresses["arbitrum"]["priceFeed"] = priceFeed.address
+	contractAddresses["arbitrum"]["volFeed"] = volFeed.address
+	contractAddresses["arbitrum"]["optionProtocol"] = optionProtocol.address
+	contractAddresses["arbitrum"]["liquidityPool"] = liquidityPool.address
+	contractAddresses["arbitrum"]["authority"] = authority.address
+	contractAddresses["arbitrum"]["portfolioValuesFeed"] = portfolioValuesFeed.address
+	contractAddresses["arbitrum"]["optionHandler"] = handler.address
+	contractAddresses["arbitrum"]["opynInteractions"] = interactions.address
+	contractAddresses["arbitrum"]["normDist"] = normDist.address
+	contractAddresses["arbitrum"]["BlackScholes"] = blackScholes.address
+	contractAddresses["arbitrum"]["accounting"] = accounting.address
+	contractAddresses["arbitrum"]["uniswapV3HedgingReactor"] = uniswapV3HedgingReactor.address
+	contractAddresses["arbitrum"]["perpHedgingReactor"] = perpHedgingReactor.address
 
 	fs.writeFileSync(addressPath, JSON.stringify(contractAddresses, null, 4))
 
@@ -192,12 +193,12 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		}
 	}
 	const authorityFactory = await ethers.getContractFactory("Authority")
-	const authority = await authorityFactory.deploy(deployerAddress, deployerAddress, deployerAddress)
+	const authority = await authorityFactory.deploy(multisig, multisig, multisig)
 	console.log("authority deployed")
 	try {
 		await hre.run("verify:verify", {
 			address: authority.address,
-			constructorArguments: [deployerAddress, deployerAddress, deployerAddress]
+			constructorArguments: [multisig, multisig, multisig]
 		})
 		console.log("authority verified")
 	} catch (err: any) {
@@ -443,7 +444,7 @@ export async function deployLiquidityPool(
 		}
 	}
 
-	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute", {
+	const optionsCompFactory = await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}
 	})
 	const optionsCompute = await optionsCompFactory.deploy()
@@ -560,7 +561,6 @@ export async function deployLiquidityPool(
 
 	const updateAccountingTx = await optionProtocol.changeAccounting(accounting.address)
 	await updateAccountingTx.wait()
-	expect(await optionProtocol.accounting()).to.eq(accounting.address)
 
 	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
 	const handler = (await handlerFactory.deploy(
