@@ -1,24 +1,14 @@
 import "@nomiclabs/hardhat-ethers"
-import { BigNumber, ethers, utils } from "ethers"
+import { BigNumber } from "ethers"
 import hre from "hardhat"
-// This file doesn't exist in CI, only exists locally (in git ignore)
-import { arbitrumRinkeby, localhost } from "../contracts.json"
-import { PriceFeed } from "../types/PriceFeed"
-import ERC20 from "../abis/erc20.json"
-import { TransactionDescription } from "ethers/lib/utils"
-
-const ADDRESS = "0xed9d4593a9BD1aeDBA8C5F9013EF3323FEC5e4dC"
+import { arbitrumRinkeby } from "../contracts.json"
+import { toWei } from "../utils/conversion-helper"
+import { abi as optionHandlerABI } from "../artifacts/contracts/AlphaOptionHandler.sol/AlphaOptionHandler.json"
+import { abi as optionRegistryABI } from "../artifacts/contracts/OptionRegistry.sol/OptionRegistry.json"
+import { delay } from "./utils"
 
 const RYSK_DECIMAL = BigNumber.from("1000000000000000000")
-const USDC_DECIMAL = BigNumber.from("1000000")
-
-type OrderBounds = {
-	callMinDelta: BigNumber
-	callMaxDelta: BigNumber
-	putMinDelta: BigNumber
-	putMaxDelta: BigNumber
-	maxPriceRange: BigNumber
-}
+const RYSK_EXP = 1e18
 
 async function main() {
 	try {
@@ -26,77 +16,54 @@ async function main() {
 			console.log("can't find private key")
 			process.exit()
 		}
-
-		const optionHandler = await hre.ethers.getContractAt(
-			"OptionHandler",
-			arbitrumRinkeby.optionHandler
+		// Not using this method to instance contract because seems to
+		// generated an outdated inferface.
+		// const alphaOptionHandler = await hre.ethers.getContractAt(
+		// 	"OptionHandler",
+		// 	arbitrumRinkeby.optionHandler
+		// )
+		const signers = await hre.ethers.getSigners()
+		const alphaOptionHandler = new hre.ethers.Contract(
+			arbitrumRinkeby.optionHandler,
+			optionHandlerABI,
+			signers[0]
 		)
 
-		const priceFeed = await hre.ethers.getContractAt("PriceFeed", arbitrumRinkeby.priceFeed)
-
-		const pvFeed = await hre.ethers.getContractAt(
-			"PortfolioValuesFeed",
-			arbitrumRinkeby.portfolioValuesFeed
-		)
-
-		const liquidityPool = await hre.ethers.getContractAt(
-			"LiquidityPool",
-			arbitrumRinkeby.liquidityPool
-		)
-
-		const price = await priceFeed.getNormalizedRate(arbitrumRinkeby.WETH, arbitrumRinkeby.USDC)
-
-		const pvTransaction = await pvFeed.fulfill(
-			ethers.utils.formatBytes32String("1"),
-			arbitrumRinkeby.WETH,
-			arbitrumRinkeby.USDC,
-			BigNumber.from("0"),
-			BigNumber.from("0"),
-			BigNumber.from("0"),
-			BigNumber.from("0"),
-			BigNumber.from("0"),
-			price
-		)
-
-		await pvTransaction.wait()
-
-		const orderBounds: OrderBounds = await optionHandler.customOrderBounds()
+		const EXPIRY = new Date("2022-09-23T08:00:00Z")
 
 		const option = {
-			expiration: "1661068800",
+			expiration: EXPIRY.getTime() / 1000,
 			// Need to update to give a value in the orderBounds defined on optionHandler.
-			strike: BigNumber.from("2936").mul(RYSK_DECIMAL),
+			strike: BigNumber.from("2100").mul(RYSK_DECIMAL),
 			isPut: false,
 			underlying: arbitrumRinkeby.WETH,
 			strikeAsset: arbitrumRinkeby.USDC,
 			collateral: arbitrumRinkeby.USDC
 		}
 
-		const orderAmount = RYSK_DECIMAL.mul(2)
+		const orderAmount = 10
+		const pricePerOptionInUsdc = 350
 
-		const [quote, delta]: BigNumber[] = await liquidityPool.quotePriceWithUtilizationGreeks(
-			option,
-			orderAmount,
-			false
-		)
-
-		if (delta.lt(orderBounds.callMinDelta) || delta.gt(orderBounds.callMaxDelta)) {
-			console.log(`Option has invalid delta of ${ethers.utils.formatEther(delta)}`)
+		alphaOptionHandler.on("OrderCreated", orderId => {
+			console.log(`Created order ID: ${orderId}`)
 			process.exit()
-		}
+		})
 
-		console.log(delta, quote)
-
-		const orderTransaction = await optionHandler.createOrder(
-			option,
-			orderAmount,
-			quote,
-			BigNumber.from(1800),
-			// Update to order reciever address.
-			"0x939f39468b34E985d5Faa8d044569cfeC9E6CA69"
+		const orderTransaction = await alphaOptionHandler.createOrder(
+			{ ...option, strike: option.strike }, // series
+			BigNumber.from((orderAmount * RYSK_EXP).toString()), // amount
+			BigNumber.from((pricePerOptionInUsdc * RYSK_EXP).toString()), // price
+			BigNumber.from(1800), // expiry
+			"0x939f39468b34E985d5Faa8d044569cfeC9E6CA69",
+			false, // is_buyback
+			[toWei("100"), toWei("100")]
 		)
 
-		console.log(orderTransaction)
+		await delay(() => {
+			console.log(orderTransaction)
+			console.log("Could not get orderID. Cheeck the transaction above for more details.")
+			process.exit()
+		}, 30000)
 	} catch (err) {
 		console.log(err)
 	}

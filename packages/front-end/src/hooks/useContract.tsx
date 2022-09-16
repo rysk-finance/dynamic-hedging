@@ -4,9 +4,15 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
 import { TransactionDisplay } from "../components/shared/TransactionDisplay";
+import {
+  CHAINID,
+  DEFAULT_POLLING_INTERVAL,
+  IDToNetwork,
+  RPC_URL_MAP,
+} from "../config/constants";
 import addresses from "../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../types";
-import { isRPCError, parseError } from "../utils/parseRPCError";
+import { DEFAULT_ERROR, isRPCError, parseError } from "../utils/parseRPCError";
 
 type EventName = string;
 type EventData = any[];
@@ -46,6 +52,14 @@ type useContractExternalContractArgs<T extends Record<EventName, EventData>> = {
 type useContractArgs<T extends Record<EventName, EventData>> =
   | useContractRyskContractArgs<T>
   | useContractExternalContractArgs<T>;
+
+const CHAIN_ID = Number(process.env.REACT_APP_CHAIN_ID) as CHAINID;
+const DEFAULT_NETWORK = IDToNetwork[CHAIN_ID];
+const DEFAULT_RPC_URL = RPC_URL_MAP[CHAIN_ID];
+const DEFAULT_RPC_PROVIDER = new ethers.providers.JsonRpcProvider(
+  DEFAULT_RPC_URL
+);
+DEFAULT_RPC_PROVIDER.pollingInterval = DEFAULT_POLLING_INTERVAL;
 
 /**
  *
@@ -126,6 +140,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
           );
         return;
       } catch (err) {
+        debugger;
         // Might need to modify this is errors other than RPC errors are being thrown
         // my contract function calls.
         if (isRPCError(err)) {
@@ -133,7 +148,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
             autoClose: 5000,
           });
         } else {
-          toast(JSON.stringify(err), { autoClose: 5000 });
+          toast(`❌ ${DEFAULT_ERROR}`, { autoClose: 5000 });
         }
         onFail?.();
         return null;
@@ -144,23 +159,27 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
 
   // Instances the ethers contract in state.
   useEffect(() => {
-    if (rpcURL) {
-      // If we don't require a signer, we just use a generic RPC provider
-      // which doesn't require the user to connect their address.
-      const rpcProvider = new ethers.providers.JsonRpcProvider(rpcURL);
-
-      const signerOrProvider = args.readOnly ? rpcProvider : signer;
-
-      if (signerOrProvider && network && !ethersContract) {
+    if (rpcURL && !ethersContract) {
+      if (args.readOnly) {
         const address =
           "contract" in args
-            ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
-                (args as useContractRyskContractArgs<T>).contract
-              ]
+            ? (addresses as Record<ETHNetwork, ContractAddresses>)[
+                DEFAULT_NETWORK
+              ][(args as useContractRyskContractArgs<T>).contract]
             : (args as useContractExternalContractArgs<T>).contractAddress;
         setEthersContract(
-          new ethers.Contract(address, args.ABI, signerOrProvider)
+          new ethers.Contract(address, args.ABI, DEFAULT_RPC_PROVIDER)
         );
+      } else {
+        if (signer && network) {
+          const address =
+            "contract" in args
+              ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
+                  (args as useContractRyskContractArgs<T>).contract
+                ]
+              : (args as useContractExternalContractArgs<T>).contractAddress;
+          setEthersContract(new ethers.Contract(address, args.ABI, signer));
+        }
       }
     }
   }, [args, signer, network, ethersContract, rpcURL]);
@@ -188,10 +207,11 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
       const eventNames = Object.keys(
         contractEvents.current
       ) as (keyof EventHandlerMap<T>)[] as string[];
-
       eventNames.forEach((eventName) => {
         if (contractEvents.current) {
-          const handler = contractEvents.current?.[eventName];
+          const handler = contractEvents.current
+            ? contractEvents.current[eventName]
+            : null;
           // Attach listener if no isListening argument present, or if that Event isn't in
           // the isListening map, or if it is present and its value is true.
           const shouldAttachListener =

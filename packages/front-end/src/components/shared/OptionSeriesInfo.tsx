@@ -1,5 +1,7 @@
 import { ethers } from "ethers";
+import moment from "moment";
 import React from "react";
+import { BIG_NUMBER_DECIMALS } from "../../config/constants";
 import { Currency, OptionSeries } from "../../types";
 import { parseTimestamp } from "../../utils/parseTimestamp";
 import { BigNumberDisplay } from "../BigNumberDisplay";
@@ -11,12 +13,24 @@ type OptionSeriesInfoProps = {
 export const OptionSeriesInfo: React.FC<OptionSeriesInfoProps> = ({
   option,
 }) => {
+
+  const returnType = option?.isPut ? "PUT" : "CALL"
+  const returnExpiry = parseTimestamp(Number(option?.expiration) * 1000)
+  const optionSymbol = `ETH 
+                        ${moment.unix(Number(option?.expiration) ).format("DD-MMM-YY").toUpperCase()} 
+                        $${option?.strike.div(BIG_NUMBER_DECIMALS.OPYN)}
+                        ${returnType}`
+
   return option ? (
     <div className="w-full">
       <div className="flex items-center">
-        <h4 className="font-parabole mr-2 pb-2">Option:</h4>
-        {option && <p className="pb-1">{option.isPut ? "PUT" : "CALL"}</p>}
+        <h4 className="font-parabole mr-2 pb-2">
+           {optionSymbol}
+        </h4>
       </div>
+      <p>
+        Type: {returnType}
+      </p>
       <p>
         Strike:{" "}
         <BigNumberDisplay currency={Currency.OPYN} suffix="USDC">
@@ -24,7 +38,7 @@ export const OptionSeriesInfo: React.FC<OptionSeriesInfoProps> = ({
         </BigNumberDisplay>
       </p>
       {/* Converting s to ms */}
-      <p>Expiration: {parseTimestamp(Number(option.expiration) * 1000)}</p>
+      <p>Expiration: {returnExpiry}</p>
     </div>
   ) : null;
 };

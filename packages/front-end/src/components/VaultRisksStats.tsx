@@ -11,7 +11,7 @@ export const VaultRisksStats = () => {
       <div className="flex h-full w-full justify-around">
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
-            Current Delta: {" "}
+            Current Delta:{" "}
             <NumberFormat
               value={"13.78"}
               displayType={"text"}
@@ -27,18 +27,39 @@ export const VaultRisksStats = () => {
               "
             />
           </p>
-          <a
+          {/* <a
             href="https://docs.rysk.finance"
-            className="underline"
+            className="underline text-center"
             target="_blank"
             rel="noreferrer"
           >
             Learn more
-          </a>
+          </a> */}
+        </div>
+        <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
+          <p className="mb-2 text-xl">
+            Sharpe Ratio: {" "}
+            TBC
+            {/* <RyskTooltip
+              id="sharpeTip"
+              message=""
+            /> */}
+          </p>
+          {/* <a
+            href="https://docs.rysk.finance"
+            className="underline text-center"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Learn more
+          </a> */}
         </div>
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
             Max Drawdown: {" "}
+            TBC
+            {/* <RyskTooltip
+            Max Drawdown:{" "}
             <NumberFormat
               value={"2.45"}
               displayType={"text"}
@@ -50,16 +71,16 @@ export const VaultRisksStats = () => {
               id="drawdownTip"
               message="Maximum drawdown indicates the downside risk of the vault since inceptions. <br />
                 A low maximum drawdown is preferred as it indicates that losses from investment were small."
-            />
+            /> */}
           </p>
-          <a
+          {/* <a
             href="https://docs.rysk.finance"
-            className="underline"
+            className="underline text-center"
             target="_blank"
             rel="noreferrer"
           >
             Learn more
-          </a>
+          </a> */}
         </div>
       </div>
     </div>

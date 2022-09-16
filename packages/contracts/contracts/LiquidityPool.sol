@@ -79,7 +79,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/////////////////////////////////////
 
 	// buffer of funds to not be used to write new options in case of margin requirements (as percentage - for 20% enter 2000)
-	uint256 public bufferPercentage = 2000;
+	uint256 public bufferPercentage = 5000;
 	// list of addresses for hedging reactors
 	address[] public hedgingReactors;
 	// max total supply of collateral, denominated in e18

@@ -22,6 +22,7 @@ import { RyskTooltip } from "../RyskTooltip";
 import { BigNumberDisplay } from "../BigNumberDisplay";
 import { PositionTooltip } from "../vault/PositionTooltip";
 import { useUserPosition } from "../../hooks/useUserPosition";
+import { RequiresWalletConnection } from "../RequiresWalletConnection";
 
 export const UserVault = () => {
   const { account, network } = useWalletContext();
@@ -32,6 +33,10 @@ export const UserVault = () => {
   );
   const [pricePerShare, setPricePerShare] = useState<BigNumber | null>(null);
   const [depositBalance, setDepositBalance] = useState<BigNumber>(
+    BigNumber.from(0)
+  );
+
+  const [withdrawBalance, setWithdrawBalance] = useState<BigNumber>(
     BigNumber.from(0)
   );
 
@@ -145,45 +150,59 @@ export const UserVault = () => {
             {
               label: "RYSK.dynamicHedgingVault",
               content: (
-                <div className="pb-8 py-12 px-8 flex flex-col lg:flex-row h-full">
+                <div className="py-12 px-8 flex flex-col lg:flex-row h-full">
                   <div className="flex h-full w-full lg:w-[70%] justify-around">
                     <div className="flex flex-col items-center justify-center h-full mb-8 lg:mb-0">
-                      <h3 className="mb-2">
+                      <h4 className="mb-4">
+                        <RequiresWalletConnection className="w-[60px] h-[16px] mr-2 translate-y-[-2px]">
                           <BigNumberDisplay
                             currency={Currency.USDC}
                             suffix="USDC"
                             loaderProps={{
-                              className: "invert h-4 w-auto translate-y-[-2px]",
+                              className: "h-4 w-auto translate-y-[-2px]",
                             }}
                           >
                             {userPositionValue}
-                          </BigNumberDisplay>  
-                      </h3>
-
+                          </BigNumberDisplay>
+                        </RequiresWalletConnection>
+                      </h4>
                       <h4 className="mb-2">
                         Your Position
                         <PositionTooltip />
                       </h4>
                     </div>
                     <div className="flex flex-col items-center justify-center h-full">
-                      <h3 className="mb-2">
+                      <h4 className="mb-4">
                         {/* TODO make sure if there is an error with subgraph this will not load */}
-                        { ( depositBalance !== undefined && userPositionValue !== null ) &&                                               
-                        <NumberFormat
-                          value={Number(
-                            userPositionValue.sub(depositBalance)
-                            .toNumber() / 1e6
-                          ).toFixed(2)}
-                          displayType={"text"}
-                          decimalScale={2}
-                          suffix=" USDC"
-                        />
-                        }
-                      </h3>
+                        <RequiresWalletConnection className="w-[60px] h-[16px] mr-2 translate-y-[-2px]">
+                          {depositBalance !== undefined &&
+                          depositBalance.toString() !== "0" &&
+                          userPositionValue !== null ? (
+                            <NumberFormat
+                              value={Number(
+                                userPositionValue
+                                  .sub(depositBalance)
+                                  .toNumber() / 1e6
+                              ).toFixed(2)}
+                              displayType={"text"}
+                              decimalScale={2}
+                              suffix=" USDC"
+                            />
+                          ) : (
+                            <NumberFormat
+                              value={(0).toFixed(2)}
+                              displayType={"text"}
+                              decimalScale={2}
+                              suffix=" USDC"
+                            />
+                          )}
+                        </RequiresWalletConnection>
+                      </h4>
                       <h4 className="mb-2">
                         PnL
                         <RyskTooltip
                           message={`Profit or Losses based on your current ${DHV_NAME} position in USDC net of deposits and withdraws`}
+                          color="white"
                           id="pnlTip"
                         />
                       </h4>
@@ -218,7 +237,8 @@ export const UserVault = () => {
                           border={true}
                           borderColor="black"
                         >
-                          Your USDC will be available to redeem as shares every Friday at 11am UTC
+                          Your USDC will be available to redeem as shares every
+                          Friday at 11am UTC
                         </ReactTooltip>
                       </div>
                     )}
@@ -246,7 +266,7 @@ export const UserVault = () => {
                       className="w-full"
                       to={{ pathname: AppPaths.VAULT, search: "?type=deposit" }}
                     >
-                      <Button className="w-full mb-8">Deposit</Button>
+                      <Button className="w-full mb-4">Deposit</Button>
                     </Link>
 
                     <Link
@@ -258,7 +278,6 @@ export const UserVault = () => {
                     >
                       <Button className="w-full">Withdraw</Button>
                     </Link>
-                   
                   </div>
                 </div>
               ),

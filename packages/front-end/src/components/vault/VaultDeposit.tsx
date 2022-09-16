@@ -30,10 +30,11 @@ import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { Toggle } from "../shared/Toggle";
 import { useUserPosition } from "../../hooks/useUserPosition";
-import { DEPOSIT_ON_HOLD, DEPOSIT_SHARES_EPOCH } from "../../config/messages";
+import { DEPOSIT_SHARES_EPOCH } from "../../config/messages";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
+import { UnredeemedDepositBreakdown } from "./UnredeemedDepositBreakdown";
 
 export const VaultDeposit = () => {
   const { account, network } = useWalletContext();
@@ -257,7 +258,6 @@ export const VaultDeposit = () => {
             ],
             submitMessage: "✅ Approval submitted",
             onComplete: async () => {
-              debugger;
               await getAllowance();
             },
             completeMessage: "✅ Approval complete",
@@ -369,7 +369,7 @@ export const VaultDeposit = () => {
           </div>
           <div className="ml-[-2px]">
             <TextInput
-              className="text-right p-4 text-xl border-r-0"
+              className="pl-[64px] p-4 text-xl border-r-0"
               setValue={handleInputChange}
               value={inputValue}
               iconLeft={
@@ -392,13 +392,18 @@ export const VaultDeposit = () => {
                     }
                   : undefined
               }
+              maxLength={30}
             />
           </div>
           <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
             <div className="flex justify-between items-center">
               <div className="flex">
                 <p>Deposits on hold</p>
-                <RyskTooltip message={DEPOSIT_ON_HOLD} id={"strategeyTip"} />
+                <RyskTooltip
+                  message={DEPOSIT_SHARES_EPOCH}
+                  id={"strategeyTip"}
+                  tooltipProps={{ className: "max-w-[350px]" }}
+                />
               </div>
               <div className="h-4 flex items-center">
                 {listeningForDeposit && <Loader className="mr-2 !h-[24px]" />}
@@ -481,14 +486,7 @@ export const VaultDeposit = () => {
                       </p>
                     </div>
                     <hr className="border-black mb-2 mt-1" />
-                    <div className="text-xs text-right">
-                      <p>
-                        100 {DHV_NAME} @ 20.12 USDC per {DHV_NAME}
-                      </p>
-                      <p>
-                        1000 {DHV_NAME} @ 18.23 USDC per {DHV_NAME}
-                      </p>
-                    </div>
+                    <UnredeemedDepositBreakdown />
                   </div>
                   <Button
                     onClick={() => {
@@ -502,7 +500,7 @@ export const VaultDeposit = () => {
                   </Button>
                 </>
               ) : (
-                <p className="text-xs p-2">{DEPOSIT_SHARES_EPOCH}</p>
+                <p className="text-sm p-2">{DEPOSIT_SHARES_EPOCH}</p>
               )
             ) : null}
           </div>

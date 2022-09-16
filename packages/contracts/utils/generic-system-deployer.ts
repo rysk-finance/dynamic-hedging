@@ -88,7 +88,6 @@ export async function deploySystem(
 	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
 	const _priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
 	const priceFeed = _priceFeed
-	await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
 	await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
 	// oracle returns price denominated in 1e8
 	const oraclePrice = await oracle.getPrice(weth.address)
@@ -158,7 +157,7 @@ export async function deployLiquidityPool(
 	pvFeed: MockPortfolioValuesFeed,
 	authority: string
 ) {
-	const normDistFactory = await ethers.getContractFactory("NormalDist", {
+	const normDistFactory = await ethers.getContractFactory("contracts/libraries/NormalDist.sol:NormalDist", {
 		libraries: {}
 	})
 	const normDist = await normDistFactory.deploy()
@@ -166,7 +165,7 @@ export async function deployLiquidityPool(
 		libraries: {}
 	})
 	const volatility = (await volFactory.deploy()) as Volatility
-	const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
+	const blackScholesFactory = await ethers.getContractFactory("contracts/libraries/BlackScholes.sol:BlackScholes", {
 		libraries: {
 			NormalDist: normDist.address
 		}

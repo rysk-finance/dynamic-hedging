@@ -109,15 +109,21 @@ export async function deploySystem(
 		putVolvol: 1_500000
 	}
 	await volFeed.setSabrParameters(proposedSabrParams, expiration)
-	const normDistFactory = await ethers.getContractFactory("NormalDist", {
-		libraries: {}
-	})
-	const normDist = await normDistFactory.deploy()
-	const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
-		libraries: {
-			NormalDist: normDist.address
+	const normDistFactory = await ethers.getContractFactory(
+		"contracts/libraries/NormalDist.sol:NormalDist",
+		{
+			libraries: {}
 		}
-	})
+	)
+	const normDist = await normDistFactory.deploy()
+	const blackScholesFactory = await ethers.getContractFactory(
+		"contracts/libraries/BlackScholes.sol:BlackScholes",
+		{
+			libraries: {
+				NormalDist: normDist.address
+			}
+		}
+	)
 	const blackScholesDeploy = await blackScholesFactory.deploy()
 	const portfolioValuesFeedFactory = await ethers.getContractFactory("AlphaPortfolioValuesFeed", {
 		libraries: {
@@ -167,19 +173,25 @@ export async function deployLiquidityPool(
 	pvFeed: AlphaPortfolioValuesFeed,
 	authority: string
 ) {
-	const normDistFactory = await ethers.getContractFactory("NormalDist", {
-		libraries: {}
-	})
+	const normDistFactory = await ethers.getContractFactory(
+		"contracts/libraries/NormalDist.sol:NormalDist",
+		{
+			libraries: {}
+		}
+	)
 	const normDist = await normDistFactory.deploy()
 	const volFactory = await ethers.getContractFactory("Volatility", {
 		libraries: {}
 	})
 	const volatility = (await volFactory.deploy()) as Volatility
-	const blackScholesFactory = await ethers.getContractFactory("BlackScholes", {
-		libraries: {
-			NormalDist: normDist.address
+	const blackScholesFactory = await ethers.getContractFactory(
+		"contracts/libraries/BlackScholes.sol:BlackScholes",
+		{
+			libraries: {
+				NormalDist: normDist.address
+			}
 		}
-	})
+	)
 	const blackScholesDeploy = await blackScholesFactory.deploy()
 	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}
