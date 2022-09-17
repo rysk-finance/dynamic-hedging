@@ -76,11 +76,6 @@ export const VaultContent = () => {
         </div>
 
         <p className="mt-8">
-          {/* DHV-USDC generates uncorrelated returns on USDC by running short options strategies 
-          (such as strangles, straddles, or single legs) targeting delta neutrality 
-          to reduce the directional risk associated with price movements in the underlying asset.
-          If the portfolio delta moves far away from zero the DHV-USDC 
-          position will be hedged by trading options, spot or perpetuals. */}
           {DHV_NAME} generates uncorrelated returns on USDC by market making ETH
           options strategies.
           <br />
