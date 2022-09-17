@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import ProgressBar from "@ramonak/react-progress-bar";
 import { useContract } from "../hooks/useContract";
 import LPABI from "../abis/LiquidityPool.json";
-import { BigNumber } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import { Loader } from "./Loader";
+import { BIG_NUMBER_DECIMALS, DECIMALS } from "../config/constants";
+import NumberFormat from "react-number-format";
 
 export const LPStats = () => {
   const [depositedCollateral, setDepositedCollateral] =
@@ -24,10 +26,14 @@ export const LPStats = () => {
       }
     };
     const getCollateralCap = async () => {
-      if (lpContract) {
-        const cap = await lpContract.collateralCap();
-        setCollateralCap(cap);
-      }
+      // TODO uncomment this before production and remove lines below
+      // if (lpContract) {
+      //   const cap = await lpContract.collateralCap();
+      //   setCollateralCap(cap);
+      // }
+      const cap = BigNumber.from(10).mul(1e6).mul(BIG_NUMBER_DECIMALS.RYSK) 
+      console.log(cap.toString())
+      setCollateralCap(cap);
     };
 
     getDepositedCollateral();
@@ -41,23 +47,30 @@ export const LPStats = () => {
           <>
             <div>
               <p className="text-xl font-medium">
-                {/* <NumberFormat 
+                <NumberFormat 
                 value={ ethers.utils.formatUnits(depositedCollateral, DECIMALS.RYSK) } 
                 displayType={"text"}
                 suffix=" USDC"
                 decimalScale={0}
                 thousandSeparator={true}
-                /> */}
-                60k USDC
+                />
+                {/* 60k USDC */}
               </p>
               <p>Total Deposits</p>
             </div>
             <div className="text-right">
               <p className="text-xl font-medium">
                 {/* TODO(HC): Switch back to contract collateral cap once placeholder max256 value isn't used */}
-                {/* {collateralCap &&
-              ethers.utils.formatUnits(collateralCap, DECIMALS.RYSK)}{" "} */}
-                100k USDC
+                {collateralCap &&
+                  <NumberFormat 
+                    value={ ethers.utils.formatUnits(collateralCap, DECIMALS.RYSK) } 
+                    displayType={"text"}
+                    suffix=" USDC"
+                    decimalScale={0}
+                    thousandSeparator={true}
+                  />
+                }
+                {/* 100k USDC */}
               </p>
               <p>Vault Max Capacity</p>
             </div>
@@ -69,7 +82,7 @@ export const LPStats = () => {
         )}
       </div>
       <ProgressBar
-        completed={60}
+        completed={ Math.round(Number(depositedCollateral) / Number(collateralCap) * 100)  }
         bgColor={"#000"}
         height={"24px"}
         baseBgColor={"#ebebeb"}
