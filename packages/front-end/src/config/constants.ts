@@ -54,6 +54,14 @@ export const SUBGRAPH_URL = {
   [CHAINID.ARBITRUM_MAINNET]: "",
 };
 
+export const OPYN_SUBGRAPH_URL = {
+  [CHAINID.LOCALHOST]: "",
+  [CHAINID.ETH_MAINNET]: "",
+  [CHAINID.ARBITRUM_RINKEBY]:
+    "https://api.thegraph.com/subgraphs/name/ugolino/ryskopyntestnet",
+  [CHAINID.ARBITRUM_MAINNET]: "",
+};
+
 export const SCAN_URL = {
   [CHAINID.LOCALHOST]: "",
   [CHAINID.ETH_MAINNET]: "",
