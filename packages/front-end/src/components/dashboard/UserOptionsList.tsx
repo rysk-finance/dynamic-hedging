@@ -30,7 +30,7 @@ interface Position {
   id: string;
   expiryTimestamp: string;
   strikePrice: string;
-  isPut: string;
+  isPut: boolean;
   expired: boolean;
   symbol: string;
   amount: string;
@@ -45,8 +45,6 @@ export const UserOptionsList = () => {
   const { account } = useWalletContext();
 
   const { allOracleAssets } = useExpiryPriceData()
-
-  console.log(allOracleAssets)
 
   const OPTIONS_BUTTONS: Option<OptionState>[] = [
     {
@@ -388,7 +386,7 @@ export const UserOptionsList = () => {
                                       }
                                       className="min-w-[50%]"
                                     >
-                                      redeem
+                                      Redeem
                                     </Button>
                                     }
                                    <Button
