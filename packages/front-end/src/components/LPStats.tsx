@@ -31,8 +31,7 @@ export const LPStats = () => {
       //   const cap = await lpContract.collateralCap();
       //   setCollateralCap(cap);
       // }
-      const cap = BigNumber.from(10).mul(1e6).mul(BIG_NUMBER_DECIMALS.RYSK) 
-      console.log(cap.toString())
+      const cap = BigNumber.from(10).mul(1e6).mul(BIG_NUMBER_DECIMALS.RYSK)
       setCollateralCap(cap);
     };
 
@@ -54,13 +53,11 @@ export const LPStats = () => {
                 decimalScale={0}
                 thousandSeparator={true}
                 />
-                {/* 60k USDC */}
               </p>
               <p>Total Deposits</p>
             </div>
             <div className="text-right">
               <p className="text-xl font-medium">
-                {/* TODO(HC): Switch back to contract collateral cap once placeholder max256 value isn't used */}
                 {collateralCap &&
                   <NumberFormat 
                     value={ ethers.utils.formatUnits(collateralCap, DECIMALS.RYSK) } 
@@ -70,7 +67,6 @@ export const LPStats = () => {
                     thousandSeparator={true}
                   />
                 }
-                {/* 100k USDC */}
               </p>
               <p>Vault Max Capacity</p>
             </div>
