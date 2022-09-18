@@ -166,4 +166,4 @@ export const ADDRESS_BOOK = {
 export const ORACLE_DISPUTE_PERIOD = 7200;
 export const ORACLE_LOCKING_PERIOD = 300;
 
-export const DHV_NAME = "DHV-USDC";
+export const DHV_NAME = "ryUSDC";
