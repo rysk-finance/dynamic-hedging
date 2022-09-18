@@ -1,5 +1,5 @@
 import React from "react";
-import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
+import { ApolloClient, ApolloLink, ApolloProvider, HttpLink, InMemoryCache } from "@apollo/client";
 import { OnboardAPI } from "@web3-onboard/core";
 import injectedModule from "@web3-onboard/injected-wallets";
 import { init } from "@web3-onboard/react";
@@ -22,6 +22,7 @@ import {
   CHAINID,
   DEFAULT_POLLING_INTERVAL,
   IDToNetwork,
+  OPYN_SUBGRAPH_URL,
   RPC_URL_MAP,
   SUBGRAPH_URL,
 } from "./config/constants";
@@ -320,9 +321,29 @@ function App() {
     const SUBGRAPH_URI =
       network?.id !== undefined ? SUBGRAPH_URL[network?.id] : "";
 
-    const client = new ApolloClient({
+    const OPYN_SUBGRAPH_URI =
+      network?.id !== undefined ? OPYN_SUBGRAPH_URL[network?.id] : "";
+
+    // const client = new ApolloClient({
+    //   uri: SUBGRAPH_URI,
+    //   cache: new InMemoryCache(),
+    // });
+
+    const ryskSubgraph = new HttpLink({
       uri: SUBGRAPH_URI,
-      cache: new InMemoryCache(),
+    });
+
+    const opynSubgraph = new HttpLink({
+      uri: OPYN_SUBGRAPH_URI,
+    });
+
+    const client = new ApolloClient({
+      link: ApolloLink.split(
+        operation => operation.getContext().clientName === "opyn",
+        opynSubgraph, // <= apollo will send to this if clientName is "opyn"
+        ryskSubgraph // <= otherwise will send to this
+      ),
+      cache: new InMemoryCache()
     });
 
     setApolloClient(client);
