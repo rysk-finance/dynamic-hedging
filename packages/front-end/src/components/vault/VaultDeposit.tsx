@@ -324,7 +324,7 @@ export const VaultDeposit = () => {
 
   const amountIsApproved =
     (inputValue && approvedAmount
-      ? ethers.utils.parseUnits(inputValue, 6).lte(approvedAmount)
+      ? ethers.utils.parseUnits(inputValue, DECIMALS.USDC).lte(approvedAmount)
       : false) &&
     // Kinda arbitrary condition to check if the user has previously
     // enabled unlimited approval.
@@ -377,7 +377,7 @@ export const VaultDeposit = () => {
                   <p>USDC</p>
                 </div>
               }
-              maxNumDecimals={18}
+              maxNumDecimals={DECIMALS.USDC}
               numericOnly
               maxValue={userUSDCBalance ?? undefined}
               maxValueDecimals={6}
@@ -386,7 +386,10 @@ export const VaultDeposit = () => {
                   ? () => {
                       if (userUSDCBalance) {
                         handleInputChange(
-                          ethers.utils.formatUnits(userUSDCBalance, 6)
+                          ethers.utils.formatUnits(
+                            userUSDCBalance,
+                            DECIMALS.USDC
+                          )
                         );
                       }
                     }

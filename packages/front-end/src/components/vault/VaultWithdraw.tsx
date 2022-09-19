@@ -28,7 +28,6 @@ import { VaultWithdrawBalanceTooltip } from "./VaultWithdrawBalanceTooltip";
 import { WITHDRAW_SHARES_EPOCH } from "../../config/messages";
 import { PendingWithdrawBreakdown } from "./PendingWithdrawBreakdown";
 
-
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
   const {
@@ -149,11 +148,12 @@ export const VaultWithdraw = () => {
     if (withdrawableDHV) {
       // e18
       const bigNumberPercentage = ethers.utils
-        .parseUnits(value, 18)
+        .parseUnits(value, DECIMALS.RYSK)
         .mul(BIG_NUMBER_DECIMALS.RYSK)
         .div(withdrawableDHV);
       const percentage = Math.round(
-        Number(ethers.utils.formatUnits(bigNumberPercentage, 18)) * 100
+        Number(ethers.utils.formatUnits(bigNumberPercentage, DECIMALS.RYSK)) *
+          100
       );
       setSlidePercentage(percentage);
     }
@@ -271,9 +271,9 @@ export const VaultWithdraw = () => {
                   </div>
                 }
                 numericOnly
-                maxNumDecimals={18}
+                maxNumDecimals={DECIMALS.RYSK}
                 maxValue={withdrawableDHV ?? undefined}
-                maxValueDecimals={18}
+                maxValueDecimals={DECIMALS.RYSK}
                 maxButtonHandler={
                   withdrawableDHV ? () => handleSliderChange(100) : undefined
                 }
