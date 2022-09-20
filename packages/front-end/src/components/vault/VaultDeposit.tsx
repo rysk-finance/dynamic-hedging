@@ -337,7 +337,8 @@ export const VaultDeposit = () => {
     amountIsApproved ||
     listeningForApproval ||
     ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256;
-  const depositIsDisabled = !(inputValue && account && approveIsDisabled);
+  const depositIsDisabled =
+    !(inputValue && account && approveIsDisabled) || listeningForDeposit;
   const redeemIsDisabled = listeningForRedeem;
 
   return (
