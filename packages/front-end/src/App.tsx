@@ -181,7 +181,6 @@ function App() {
       const { accounts, chains, provider } = wallets[0];
       const ethersProvider = new ethers.providers.Web3Provider(provider);
       ethersProvider.pollingInterval = DEFAULT_POLLING_INTERVAL;
-      const ethersSigner = ethersProvider.getSigner();
       const initialNetwork = await ethersProvider.getNetwork();
       const isCorrectChain =
         initialNetwork.chainId ===
@@ -191,8 +190,12 @@ function App() {
       if (!isCorrectChain) {
         if (process.env.REACT_APP_ENV === "production") {
           await addArbitrum();
+          connectWallet();
+          return;
         } else {
           await addArbitrumTestnet();
+          connectWallet();
+          return;
         }
       }
 
@@ -209,6 +212,7 @@ function App() {
           setNetwork({ id: networkId, name: networkName });
         }
       }
+      const ethersSigner = ethersProvider.getSigner();
       setSigner(ethersSigner);
       setAccount(accounts[0].address);
       const networkRPCURL = RPC_URL_MAP[networkId as CHAINID];
@@ -232,7 +236,7 @@ function App() {
   const addArbitrum = async () => {
     if (window.ethereum) {
       try {
-        const a = await window.ethereum.request({
+        await window.ethereum.request({
           method: "wallet_addEthereumChain",
           params: [
             {
