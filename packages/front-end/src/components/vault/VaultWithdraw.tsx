@@ -262,7 +262,7 @@ export const VaultWithdraw = () => {
             </div>
             <div className="ml-[-2px]">
               <TextInput
-                className="pl-[100px] p-4 text-xl border-r-0"
+                className="pl-[80px] p-4 text-xl border-r-0"
                 setValue={(value) => handleInputChange(value)}
                 value={inputValue}
                 iconLeft={
