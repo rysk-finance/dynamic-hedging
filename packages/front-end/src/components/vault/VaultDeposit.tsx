@@ -473,39 +473,37 @@ export const VaultDeposit = () => {
         </div>
         <div>
           <div>
-            {unredeemedShares ? (
-              unredeemedShares._hex !== ZERO_UINT_256 ? (
-                <>
-                  <div className="px-2 py-4">
-                    <div className="flex justify-between">
-                      <p>Unredeemed Shares</p>
-                      <p>
-                        <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                          <BigNumberDisplay currency={Currency.RYSK}>
-                            {unredeemedShares}
-                          </BigNumberDisplay>
-                        </RequiresWalletConnection>{" "}
-                        {DHV_NAME}
-                      </p>
-                    </div>
-                    <hr className="border-black mb-2 mt-1" />
-                    <UnredeemedDepositBreakdown />
+            {unredeemedShares && unredeemedShares._hex !== ZERO_UINT_256 ? (
+              <>
+                <div className="px-2 py-4">
+                  <div className="flex justify-between">
+                    <p>Unredeemed Shares</p>
+                    <p>
+                      <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
+                        <BigNumberDisplay currency={Currency.RYSK}>
+                          {unredeemedShares}
+                        </BigNumberDisplay>
+                      </RequiresWalletConnection>{" "}
+                      {DHV_NAME}
+                    </p>
                   </div>
-                  <Button
-                    onClick={() => {
-                      handleRedeemShares();
-                    }}
-                    className={`w-full !py-6 !border-b-0 !border-x-0 border-t-[2px] border-black bg-black text-white`}
-                    disabled={redeemIsDisabled}
-                    color="black"
-                  >
-                    {redeemIsDisabled ? "⏱ Awaiting redeem" : "Redeem"}
-                  </Button>
-                </>
-              ) : (
-                <p className="text-sm p-2">{DEPOSIT_SHARES_EPOCH}</p>
-              )
-            ) : null}
+                  <hr className="border-black mb-2 mt-1" />
+                  <UnredeemedDepositBreakdown />
+                </div>
+                <Button
+                  onClick={() => {
+                    handleRedeemShares();
+                  }}
+                  className={`w-full !py-6 !border-b-0 !border-x-0 border-t-[2px] border-black bg-black text-white`}
+                  disabled={redeemIsDisabled}
+                  color="black"
+                >
+                  {redeemIsDisabled ? "⏱ Awaiting redeem" : "Redeem"}
+                </Button>
+              </>
+            ) : (
+              <p className="text-sm p-2">{DEPOSIT_SHARES_EPOCH}</p>
+            )}
           </div>
         </div>
       </div>
