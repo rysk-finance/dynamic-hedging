@@ -163,8 +163,8 @@ const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").va
 
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
-let predictedQuote = BigNumber.from(0);
-let predictedDelta = BigNumber.from(0);
+let predictedQuote = BigNumber.from(0)
+let predictedDelta = BigNumber.from(0)
 
 describe("Authority tests", async () => {
 	before(async function () {
@@ -253,60 +253,66 @@ describe("Authority tests", async () => {
 	})
 	describe("Authority push effective immediately", async () => {
 		it("SUCCEEDS: set governor", async () => {
-			await authority.pushGovernor(receiverAddress, true)
+			await authority.pushGovernor(receiverAddress)
+			expect(await authority.newGovernor()).to.equal(receiverAddress)
+			expect(await authority.governor()).to.not.equal(receiverAddress)
+			await authority.connect(signers[1]).pullGovernor()
 			expect(await authority.governor()).to.equal(receiverAddress)
-            await authority.connect(signers[1]).pushGovernor(senderAddress, true)
-            expect(await authority.governor()).to.equal(senderAddress)
+			expect(await authority.newGovernor()).to.equal(ZERO_ADDRESS)
+			// reset governer back to original
+			await authority.connect(signers[1]).pushGovernor(senderAddress)
+			await authority.pullGovernor()
 		})
-        it("SUCCEEDS: set manager", async () => {
-			await authority.pushManager(receiverAddress, true)
+		it("SUCCEEDS: set manager", async () => {
+			await authority.pushManager(receiverAddress)
+			expect(await authority.newManager()).to.equal(receiverAddress)
+			expect(await authority.manager()).to.not.equal(receiverAddress)
+			await authority.connect(signers[1]).pullManager()
 			expect(await authority.manager()).to.equal(receiverAddress)
+			expect(await authority.newManager()).to.equal(ZERO_ADDRESS)
 		})
-        it("SUCCEEDS: set guardian", async () => {
+		it("SUCCEEDS: set guardian", async () => {
 			await authority.pushGuardian(receiverAddress)
 			expect(await authority.guardian(receiverAddress)).to.be.true
 		})
-        it("SUCCEEDS: revoke guardian", async () => {
+		it("SUCCEEDS: revoke guardian", async () => {
 			await authority.revokeGuardian(receiverAddress)
 			expect(await authority.guardian(receiverAddress)).to.be.false
 		})
-        it("FAILS: revoke guardian when not auth", async () => {
-			await expect(authority.connect(signers[1]).revokeGuardian(senderAddress)).to.be.revertedWith("UNAUTHORIZED()")
+		it("FAILS: revoke guardian when not auth", async () => {
+			await expect(authority.connect(signers[1]).revokeGuardian(senderAddress)).to.be.revertedWith(
+				"UNAUTHORIZED()"
+			)
 		})
 		it("FAILS: set governor when not auth", async () => {
-			await expect(authority.connect(signers[1]).pushGovernor(receiverAddress, true)).to.be.revertedWith("UNAUTHORIZED()")
+			await expect(authority.connect(signers[1]).pushGovernor(receiverAddress)).to.be.revertedWith(
+				"UNAUTHORIZED()"
+			)
 		})
-        it("FAILS: set manager when not auth", async () => {
-			await expect(authority.connect(signers[1]).pushManager(receiverAddress, true)).to.be.revertedWith("UNAUTHORIZED()")
+		it("FAILS: set manager when not auth", async () => {
+			await expect(authority.connect(signers[1]).pushManager(receiverAddress)).to.be.revertedWith(
+				"UNAUTHORIZED()"
+			)
 		})
-        it("FAILS: set guardian when not auth", async () => {
-			await expect(authority.connect(signers[1]).pushGuardian(receiverAddress)).to.be.revertedWith("UNAUTHORIZED()")
+		it("FAILS: set guardian when not auth", async () => {
+			await expect(authority.connect(signers[1]).pushGuardian(receiverAddress)).to.be.revertedWith(
+				"UNAUTHORIZED()"
+			)
 		})
-	})
-	describe("Authority push and pull", async () => {
-		it("SUCCEEDS: push governor", async () => {
-			await authority.pushGovernor(receiverAddress, false)
-			expect(await authority.newGovernor()).to.equal(receiverAddress)
+		it("FAILS: rando tries to pull governor rank", async () => {
+			await expect(authority.connect(signers[2]).pullGovernor()).to.be.revertedWith("!newGovernor")
 		})
-        it("FAILS: rando tries to pull governor rank", async () => {
-			await expect(authority.pullGovernor()).to.be.revertedWith("!newGovernor")
-		})
-        it("SUCCEEDS: pull governor rank", async () => {
-			await authority.connect(signers[1]).pullGovernor()
-            expect(await authority.governor()).to.equal(receiverAddress)
-            await authority.connect(signers[1]).pushGovernor(senderAddress, true)
-            expect(await authority.governor()).to.equal(senderAddress)
-		}) 
-        it("SUCCEEDS: push manager", async () => {
-			await authority.pushManager(senderAddress, false)
-			expect(await authority.newManager()).to.equal(senderAddress)
-		})
-        it("FAILS: rando tries to pull manager rank", async () => {
+		it("FAILS: rando tries to pull manager rank", async () => {
 			await expect(authority.connect(signers[2]).pullManager()).to.be.revertedWith("!newManager")
-		}) 
-        it("SUCCEEDS: pull manager rank", async () => {
-			await authority.pullManager()
-            expect(await authority.manager()).to.equal(senderAddress)
-		}) 
+		})
+		it("FAILS: set Governor to zero address", async () => {
+			await expect(authority.pushGovernor(ZERO_ADDRESS)).to.be.revertedWith("InvalidAddress()")
+		})
+		it("FAILS: set manager to zero address", async () => {
+			await expect(authority.pushManager(ZERO_ADDRESS)).to.be.revertedWith("InvalidAddress()")
+		})
+		it("FAILS: set manager to zero address", async () => {
+			await expect(authority.pushGuardian(ZERO_ADDRESS)).to.be.revertedWith("InvalidAddress()")
+		})
 	})
 })

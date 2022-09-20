@@ -79,7 +79,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/////////////////////////////////////
 
 	// buffer of funds to not be used to write new options in case of margin requirements (as percentage - for 20% enter 2000)
-	uint256 public bufferPercentage = 5000;
+	uint256 public bufferPercentage = 2000;
 	// list of addresses for hedging reactors
 	address[] public hedgingReactors;
 	// max total supply of collateral, denominated in e18
@@ -131,6 +131,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	event Redeem(address recipient, uint256 amount, uint256 epoch);
 	event InitiateWithdraw(address recipient, uint256 amount, uint256 epoch);
 	event WriteOption(address series, uint256 amount, uint256 premium, uint256 escrow, address buyer);
+	event RebalancePortfolioDelta(uint256 nav, int256 deltaChange);
+	event TradingPaused();
+	event TradingUnpaused();
 	event SettleVault(
 		address series,
 		uint256 collateralReturned,
@@ -156,6 +159,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		Types.OptionParams memory _optionParams,
 		address _authority
 	) ERC20(name, symbol, 18) AccessControl(IAuthority(_authority)) {
+		if (ERC20(_collateralAsset).decimals() > 18) {
+			revert CustomErrors.InvalidDecimals();
+		}
 		strikeAsset = _strikeAsset;
 		riskFreeRate = rfr;
 		underlyingAsset = _underlyingAsset;
@@ -180,6 +186,11 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function pauseUnpauseTrading(bool _pause) external {
 		_onlyGuardian();
 		isTradingPaused = _pause;
+		if (_pause) {
+			emit TradingPaused();
+		} else {
+			emit TradingUnpaused();
+		}
 	}
 
 	function unpause() external {
@@ -194,6 +205,15 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function setHedgingReactorAddress(address _reactorAddress) external {
 		_onlyGovernor();
+		if (_reactorAddress == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
+		uint256 arrayLength = hedgingReactors.length;
+		for (uint256 i = 0; i < arrayLength; i++) {
+			if (hedgingReactors[i] == _reactorAddress) {
+				revert CustomErrors.ReactorAlreadyExists();
+			}
+		}
 		hedgingReactors.push(_reactorAddress);
 		SafeTransferLib.safeApprove(ERC20(collateralAsset), _reactorAddress, type(uint256).max);
 	}
@@ -208,17 +228,19 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function removeHedgingReactorAddress(uint256 _index, bool _override) external {
 		_onlyGovernor();
 		address[] memory hedgingReactors_ = hedgingReactors;
+		address reactorAddress = hedgingReactors_[_index];
 		if (!_override) {
-			IHedgingReactor reactor = IHedgingReactor(hedgingReactors_[_index]);
+			IHedgingReactor reactor = IHedgingReactor(reactorAddress);
 			int256 delta = reactor.getDelta();
 			if (delta != 0) {
 				reactor.hedgeDelta(delta);
 			}
 			reactor.withdraw(type(uint256).max);
 		}
-		SafeTransferLib.safeApprove(ERC20(collateralAsset), hedgingReactors_[_index], 0);
-		for (uint256 i = _index; i < hedgingReactors.length - 1; i++) {
-			hedgingReactors[i] = hedgingReactors[i + 1];
+		SafeTransferLib.safeApprove(ERC20(collateralAsset), reactorAddress, 0);
+		uint256 maxIndex = hedgingReactors_.length - 1;
+		for (uint256 i = _index; i < maxIndex; i++) {
+			hedgingReactors[i] = hedgingReactors_[i + 1];
 		}
 		hedgingReactors.pop();
 	}
@@ -315,6 +337,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function changeHandler(address _handler, bool auth) external {
 		_onlyGovernor();
+		if (_handler == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
 		handler[_handler] = auth;
 	}
 
@@ -323,6 +348,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 */
 	function setKeeper(address _keeper, bool _auth) external {
 		_onlyGovernor();
+		if (_keeper == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
 		keeper[_keeper] = _auth;
 	}
 
@@ -362,6 +390,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex) external {
 		_onlyManager();
 		IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
+		emit RebalancePortfolioDelta(_getNAV(), delta);
 	}
 
 	/**
@@ -536,6 +565,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		_isKeeper();
 		// pause trading
 		isTradingPaused = true;
+		emit TradingPaused();
 		// make an oracle request
 		return _getPortfolioValuesFeed().requestPortfolioData(underlyingAsset, strikeAsset);
 	}
@@ -562,6 +592,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		emit DepositEpochExecuted(depositEpoch);
 		depositEpoch++;
 		isTradingPaused = false;
+		emit TradingUnpaused();
 		_mint(address(this), sharesToMint);
 		// loop through the reactors and move funds if found
 		if (amountNeeded > 0) {
@@ -653,18 +684,14 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 	/**
 	 * @notice function for completing the withdraw from a pool
-	 * @param _shares    amount of shares to return
 	 * @dev    entry point to remove liquidity to dynamic hedging vault
 	 */
-	function completeWithdraw(uint256 _shares) external whenNotPaused nonReentrant returns (uint256) {
-		if (_shares == 0) {
-			revert CustomErrors.InvalidShareAmount();
-		}
+	function completeWithdraw() external whenNotPaused nonReentrant returns (uint256) {
 		(
 			uint256 withdrawalAmount,
 			uint256 withdrawalShares,
 			IAccounting.WithdrawalReceipt memory withdrawalReceipt
-		) = _getAccounting().completeWithdraw(msg.sender, _shares);
+		) = _getAccounting().completeWithdraw(msg.sender);
 		withdrawalReceipts[msg.sender] = withdrawalReceipt;
 		emit Withdraw(msg.sender, withdrawalAmount, withdrawalShares);
 		// these funds are taken from the partitioned funds
@@ -977,15 +1004,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice calculates amount of liquidity that can be used before hitting buffer
 	 * @return bufferRemaining the amount of liquidity available before reaching buffer in e6
 	 */
-	function checkBuffer() public view returns (uint256 bufferRemaining) {
+	function checkBuffer() public view returns (int256 bufferRemaining) {
 		// calculate max amount of liquidity pool funds that can be used before reaching max buffer allowance
 		uint256 collateralBalance = getBalance(collateralAsset);
 		uint256 collateralBuffer = (collateralAllocated * bufferPercentage) / MAX_BPS;
-		// revert if buffer allowance already hit
-		if (collateralBuffer > collateralBalance) {
-			revert CustomErrors.MaxLiquidityBufferReached();
-		}
-		bufferRemaining = collateralBalance - collateralBuffer;
+
+		bufferRemaining = int256(collateralBalance) - int256(collateralBuffer);
 	}
 
 	/**
@@ -1058,12 +1082,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		IOptionRegistry optionRegistry,
 		uint256 premium,
 		int256 delta,
-		uint256 bufferRemaining,
+		int256 bufferRemaining,
 		address recipient
 	) internal returns (uint256) {
 		// strike decimals come into this function as e8
 		uint256 collateralAmount = optionRegistry.getCollateral(optionSeries, amount);
-		if (bufferRemaining < collateralAmount) {
+		if (bufferRemaining < int256(collateralAmount)) {
 			revert CustomErrors.MaxLiquidityBufferReached();
 		}
 		ERC20(collateralAsset).approve(address(optionRegistry), collateralAmount);

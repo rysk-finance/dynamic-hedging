@@ -59,8 +59,8 @@ describe("Price Feed", async () => {
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			rate,
-			"1607534965",
-			"1607535064",
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
 		const quote = await priceFeed.getRate(weth.address, usd.address)
@@ -79,8 +79,8 @@ describe("Price Feed", async () => {
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			rate,
-			"1607534965",
-			"1607535064",
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
 		await ethUSDAggregator.mock.decimals.returns(

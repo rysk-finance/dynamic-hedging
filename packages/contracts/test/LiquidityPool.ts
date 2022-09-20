@@ -62,6 +62,7 @@ import exp from "constants"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { OptionHandler } from "../types/OptionHandler"
+
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: ERC20Interface
@@ -247,21 +248,17 @@ describe("Liquidity Pools", async () => {
 		await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
 	})
 	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = 
-		{
-			callAlpha:250000,
-			callBeta:1_000000,
-			callRho:-300000,
-			callVolvol:1_500000,
-			putAlpha:250000,
-			putBeta:1_000000,
-			putRho:-300000,
-			putVolvol:1_500000
+		const proposedSabrParams = {
+			callAlpha: 250000,
+			callBeta: 1_000000,
+			callRho: -300000,
+			callVolvol: 1_500000,
+			putAlpha: 250000,
+			putBeta: 1_000000,
+			putRho: -300000,
+			putVolvol: 1_500000
 		}
-		await volFeed.setSabrParameters(
-			proposedSabrParams, 
-			expiration
-		)
+		await volFeed.setSabrParameters(proposedSabrParams, expiration)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -549,15 +546,15 @@ describe("Liquidity Pools", async () => {
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
 		await volFeed.setSabrParameters(
 			{
-				callAlpha:250000,
-				callBeta:1_000000,
-				callRho:-300000,
-				callVolvol:1_500000,
-				putAlpha:250000,
-				putBeta:1_000000,
-				putRho:-300000,
-				putVolvol:1_500000
-			}, 
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000
+			},
 			invalidExpirationLong
 		)
 		await portfolioValuesFeed.fulfill(
@@ -586,15 +583,15 @@ describe("Liquidity Pools", async () => {
 		)
 		await volFeed.setSabrParameters(
 			{
-				callAlpha:250000,
-				callBeta:1_000000,
-				callRho:-300000,
-				callVolvol:1_500000,
-				putAlpha:250000,
-				putBeta:1_000000,
-				putRho:-300000,
-				putVolvol:1_500000
-			}, 
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000
+			},
 			invalidExpirationShort
 		)
 		// series with expiry too short
@@ -663,15 +660,15 @@ describe("Liquidity Pools", async () => {
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
 		await volFeed.setSabrParameters(
 			{
-				callAlpha:250000,
-				callBeta:1_000000,
-				callRho:-300000,
-				callVolvol:1_500000,
-				putAlpha:250000,
-				putBeta:1_000000,
-				putRho:-300000,
-				putVolvol:1_500000
-			}, 
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000
+			},
 			invalidExpirationLong
 		)
 		// series with expiry too long
@@ -689,15 +686,15 @@ describe("Liquidity Pools", async () => {
 		)
 		await volFeed.setSabrParameters(
 			{
-				callAlpha:250000,
-				callBeta:1_000000,
-				callRho:-300000,
-				callVolvol:1_500000,
-				putAlpha:250000,
-				putBeta:1_000000,
-				putRho:-300000,
-				putVolvol:1_500000
-			}, 
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000
+			},
 			invalidExpirationShort
 		)
 		// series with expiry too short
@@ -764,21 +761,17 @@ describe("Liquidity Pools", async () => {
 		expect(delta).to.equal(0)
 	})
 	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = 
-		{
-			callAlpha:250000,
-			callBeta:1_000000,
-			callRho:-300000,
-			callVolvol:1_500000,
-			putAlpha:250000,
-			putBeta:1_000000,
-			putRho:-300000,
-			putVolvol:1_500000
+		const proposedSabrParams = {
+			callAlpha: 250000,
+			callBeta: 1_000000,
+			callRho: -300000,
+			callVolvol: 1_500000,
+			putAlpha: 250000,
+			putBeta: 1_000000,
+			putRho: -300000,
+			putVolvol: 1_500000
 		}
-		await volFeed.setSabrParameters(
-			proposedSabrParams, 
-			expiration
-		)
+		await volFeed.setSabrParameters(proposedSabrParams, expiration)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -874,21 +867,17 @@ describe("Liquidity Pools", async () => {
 		expect(seriesAddy).to.equal(series)
 	})
 	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = 
-		{
-			callAlpha:250000,
-			callBeta:1_000000,
-			callRho:-300000,
-			callVolvol:1_500000,
-			putAlpha:250000,
-			putBeta:1_000000,
-			putRho:-300000,
-			putVolvol:1_500000
+		const proposedSabrParams = {
+			callAlpha: 250000,
+			callBeta: 1_000000,
+			callRho: -300000,
+			callVolvol: 1_500000,
+			putAlpha: 250000,
+			putBeta: 1_000000,
+			putRho: -300000,
+			putVolvol: 1_500000
 		}
-		await volFeed.setSabrParameters(
-			proposedSabrParams, 
-			expiration
-		)
+		await volFeed.setSabrParameters(proposedSabrParams, expiration)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -1028,21 +1017,17 @@ describe("Liquidity Pools", async () => {
 		expect(await handler.paused()).to.eq(false)
 	})
 	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = 
-		{
-			callAlpha:250000,
-			callBeta:1_000000,
-			callRho:-300000,
-			callVolvol:1_500000,
-			putAlpha:250000,
-			putBeta:1_000000,
-			putRho:-300000,
-			putVolvol:1_500000
+		const proposedSabrParams = {
+			callAlpha: 250000,
+			callBeta: 1_000000,
+			callRho: -300000,
+			callVolvol: 1_500000,
+			putAlpha: 250000,
+			putBeta: 1_000000,
+			putRho: -300000,
+			putVolvol: 1_500000
 		}
-		await volFeed.setSabrParameters(
-			proposedSabrParams, 
-			expiration2
-		)
+		await volFeed.setSabrParameters(proposedSabrParams, expiration2)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -1572,7 +1557,7 @@ describe("Liquidity Pools", async () => {
 			proposedSeriesPut,
 			amount
 		)
-		customOrderPriceCall = (localQuoteCall * customOrderPriceMultiplier)
+		customOrderPriceCall = localQuoteCall * customOrderPriceMultiplier
 		customOrderPricePut = localQuotePut * customOrderPriceMultiplier
 		customStranglePrice = customOrderPriceCall + customOrderPricePut
 		const createStrangle = await handler.createStrangle(
@@ -2526,15 +2511,18 @@ describe("Liquidity Pools", async () => {
 		await liquidityPool.removeHedgingReactorAddress(0, false)
 		// check no hedging reactors exist
 		await expect(liquidityPool.hedgingReactors(0)).to.be.reverted
+		await expect(liquidityPool.hedgingReactors(1)).to.be.reverted
+
 		// restore hedging reactor
 		await liquidityPool.setHedgingReactorAddress(reactorAddress)
 		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
 
 		await liquidityPool.setHedgingReactorAddress(ETH_ADDRESS)
-		await liquidityPool.setHedgingReactorAddress(ETH_ADDRESS)
+		await liquidityPool.setHedgingReactorAddress(WETH_ADDRESS[chainId])
 
 		// check added addresses show
-		expect(await liquidityPool.hedgingReactors(2)).to.equal(ETH_ADDRESS)
+		expect(await liquidityPool.hedgingReactors(1)).to.equal(ETH_ADDRESS)
+		expect(await liquidityPool.hedgingReactors(2)).to.equal(WETH_ADDRESS[chainId])
 		// delete two added reactors
 		// should remove middle element (element 1)
 		await liquidityPool.removeHedgingReactorAddress(1, true)
@@ -2542,6 +2530,14 @@ describe("Liquidity Pools", async () => {
 		await liquidityPool.removeHedgingReactorAddress(1, true)
 		expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
 		await expect(liquidityPool.hedgingReactors(1)).to.be.reverted
+	})
+	it("reverts when adding invalid reactor address", async () => {
+		await expect(
+			liquidityPool.setHedgingReactorAddress(uniswapV3HedgingReactor.address)
+		).to.be.revertedWith("ReactorAlreadyExists()")
+		await expect(liquidityPool.setHedgingReactorAddress(ZERO_ADDRESS)).to.be.revertedWith(
+			"InvalidAddress()"
+		)
 	})
 	it("sets new custom order bounds", async () => {
 		const customOrderBoundsBefore = await handler.customOrderBounds()
@@ -2659,5 +2655,13 @@ describe("Liquidity Pools", async () => {
 		expect(await optionProtocol.portfolioValuesFeed()).to.eq(priceFeed.address)
 		expect(await optionProtocol.volatilityFeed()).to.eq(priceFeed.address)
 		expect(await optionProtocol.priceFeed()).to.eq(volFeed.address)
+	})
+	it("reverts when setting new handler address to zero", async () => {
+		await expect(liquidityPool.changeHandler(ZERO_ADDRESS, true)).to.be.revertedWith(
+			"InvalidAddress()"
+		)
+	})
+	it("reverts when setting new keeper address to zero", async () => {
+		await expect(liquidityPool.setKeeper(ZERO_ADDRESS, true)).to.be.revertedWith("InvalidAddress()")
 	})
 })
