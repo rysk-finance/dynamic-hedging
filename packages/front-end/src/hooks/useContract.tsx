@@ -15,6 +15,7 @@ import addresses from "../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../types";
 import { trackRPCError } from "../utils/fathomEvents";
 import { DEFAULT_ERROR, isRPCError, parseError } from "../utils/parseRPCError";
+import * as Sentry from "@sentry/react";
 
 type EventName = string;
 type EventData = any[];
@@ -164,18 +165,19 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
       } catch (err: any) {
         // Might need to modify this is errors other than RPC errors are being thrown
         // my contract function calls.
-        console.error(err);
         if (isRPCError(err)) {
           toast(`❌ ${parseError(err)}`, {
             autoClose: 5000,
           });
           trackRPCError(err.code);
+          Sentry.captureException(new Error(err.message));
           return;
         } else {
           toast(`❌ ${DEFAULT_ERROR}`, { autoClose: 5000 });
           if ("code" in err) {
             // Will create an UNTRACKED_ERROR event in fathom.
             trackRPCError(err.code);
+            Sentry.captureException(new Error(JSON.stringify(err)));
             return;
           }
         }
