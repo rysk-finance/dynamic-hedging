@@ -280,6 +280,8 @@ export const VaultDeposit = () => {
       await lpContractCall({
         method: lpContract.deposit,
         args: [amount],
+        scaleGasLimit: true,
+        methodName: "deposit",
         submitMessage: "✅ Deposit submitted",
         onSubmit: () => {
           setListeningForDeposit(true);
@@ -290,6 +292,7 @@ export const VaultDeposit = () => {
           setInputValue("");
           updateDepositState();
           setListeningForDeposit(false);
+          getAllowance();
           if (account) {
             updatePosition(account);
           }
@@ -306,6 +309,8 @@ export const VaultDeposit = () => {
       await lpContractCall({
         method: lpContract.redeem,
         args: [MAX_UINT_256],
+        scaleGasLimit: true,
+        methodName: "redeem",
         submitMessage: "✅ Redeem submitted",
         onSubmit: () => {
           setListeningForRedeem(true);
@@ -324,7 +329,7 @@ export const VaultDeposit = () => {
 
   const amountIsApproved =
     (inputValue && approvedAmount
-      ? ethers.utils.parseUnits(inputValue, 6).lte(approvedAmount)
+      ? ethers.utils.parseUnits(inputValue, DECIMALS.USDC).lte(approvedAmount)
       : false) &&
     // Kinda arbitrary condition to check if the user has previously
     // enabled unlimited approval.
@@ -337,7 +342,8 @@ export const VaultDeposit = () => {
     amountIsApproved ||
     listeningForApproval ||
     ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256;
-  const depositIsDisabled = !(inputValue && account && approveIsDisabled);
+  const depositIsDisabled =
+    !(inputValue && account && approveIsDisabled) || listeningForDeposit;
   const redeemIsDisabled = listeningForRedeem;
 
   return (
@@ -373,11 +379,11 @@ export const VaultDeposit = () => {
               setValue={handleInputChange}
               value={inputValue}
               iconLeft={
-                <div className="h-full flex items-center px-4 text-right text-gray-600">
+                <div className="h-full flex items-center px-4 text-right text-cyan-dark cursor-default">
                   <p>USDC</p>
                 </div>
               }
-              maxNumDecimals={18}
+              maxNumDecimals={DECIMALS.USDC}
               numericOnly
               maxValue={userUSDCBalance ?? undefined}
               maxValueDecimals={6}
@@ -386,7 +392,10 @@ export const VaultDeposit = () => {
                   ? () => {
                       if (userUSDCBalance) {
                         handleInputChange(
-                          ethers.utils.formatUnits(userUSDCBalance, 6)
+                          ethers.utils.formatUnits(
+                            userUSDCBalance,
+                            DECIMALS.USDC
+                          )
                         );
                       }
                     }
@@ -470,39 +479,37 @@ export const VaultDeposit = () => {
         </div>
         <div>
           <div>
-            {unredeemedShares ? (
-              unredeemedShares._hex !== ZERO_UINT_256 ? (
-                <>
-                  <div className="px-2 py-4">
-                    <div className="flex justify-between">
-                      <p>Unredeemed Shares</p>
-                      <p>
-                        <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                          <BigNumberDisplay currency={Currency.RYSK}>
-                            {unredeemedShares}
-                          </BigNumberDisplay>
-                        </RequiresWalletConnection>{" "}
-                        {DHV_NAME}
-                      </p>
-                    </div>
-                    <hr className="border-black mb-2 mt-1" />
-                    <UnredeemedDepositBreakdown />
+            {unredeemedShares && unredeemedShares._hex !== ZERO_UINT_256 ? (
+              <>
+                <div className="px-2 py-4">
+                  <div className="flex justify-between">
+                    <p>Unredeemed Shares</p>
+                    <p>
+                      <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
+                        <BigNumberDisplay currency={Currency.RYSK}>
+                          {unredeemedShares}
+                        </BigNumberDisplay>
+                      </RequiresWalletConnection>{" "}
+                      {DHV_NAME}
+                    </p>
                   </div>
-                  <Button
-                    onClick={() => {
-                      handleRedeemShares();
-                    }}
-                    className={`w-full !py-6 !border-b-0 !border-x-0 border-t-[2px] border-black bg-black text-white`}
-                    disabled={redeemIsDisabled}
-                    color="black"
-                  >
-                    {redeemIsDisabled ? "⏱ Awaiting redeem" : "Redeem"}
-                  </Button>
-                </>
-              ) : (
-                <p className="text-sm p-2">{DEPOSIT_SHARES_EPOCH}</p>
-              )
-            ) : null}
+                  <hr className="border-black mb-2 mt-1" />
+                  <UnredeemedDepositBreakdown />
+                </div>
+                <Button
+                  onClick={() => {
+                    handleRedeemShares();
+                  }}
+                  className={`w-full !py-6 !border-b-0 !border-x-0 border-t-[2px] border-black bg-black text-white`}
+                  disabled={redeemIsDisabled}
+                  color="black"
+                >
+                  {redeemIsDisabled ? "⏱ Awaiting redeem" : "Redeem"}
+                </Button>
+              </>
+            ) : (
+              <p className="text-sm p-2">{DEPOSIT_SHARES_EPOCH}</p>
+            )}
           </div>
         </div>
       </div>

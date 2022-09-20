@@ -28,7 +28,6 @@ import { VaultWithdrawBalanceTooltip } from "./VaultWithdrawBalanceTooltip";
 import { WITHDRAW_SHARES_EPOCH } from "../../config/messages";
 import { PendingWithdrawBreakdown } from "./PendingWithdrawBreakdown";
 
-
 export const VaultWithdraw = () => {
   const { account, network } = useWalletContext();
   const {
@@ -149,11 +148,12 @@ export const VaultWithdraw = () => {
     if (withdrawableDHV) {
       // e18
       const bigNumberPercentage = ethers.utils
-        .parseUnits(value, 18)
+        .parseUnits(value, DECIMALS.RYSK)
         .mul(BIG_NUMBER_DECIMALS.RYSK)
         .div(withdrawableDHV);
       const percentage = Math.round(
-        Number(ethers.utils.formatUnits(bigNumberPercentage, 18)) * 100
+        Number(ethers.utils.formatUnits(bigNumberPercentage, DECIMALS.RYSK)) *
+          100
       );
       setSlidePercentage(percentage);
     }
@@ -175,6 +175,8 @@ export const VaultWithdraw = () => {
       await lpContractCall({
         method: lpContract.initiateWithdraw,
         args: [amount],
+        scaleGasLimit: true,
+        methodName: "initiateWithdraw",
         submitMessage: "✅ Withdraw initiation submitted",
         onSubmit: () => {
           setListeningForInitiation(true);
@@ -200,6 +202,8 @@ export const VaultWithdraw = () => {
       await lpContractCall({
         method: lpContract.completeWithdraw,
         args: [MAX_UINT_256],
+        scaleGasLimit: true,
+        methodName: "completeWithdraw",
         submitMessage: "✅ Withdraw completion submitted",
         onSubmit: () => {
           setListeningForCompleteWithdraw(true);
@@ -262,18 +266,18 @@ export const VaultWithdraw = () => {
             </div>
             <div className="ml-[-2px]">
               <TextInput
-                className="pl-[100px] p-4 text-xl border-r-0"
+                className="pl-[80px] p-4 text-xl border-r-0"
                 setValue={(value) => handleInputChange(value)}
                 value={inputValue}
                 iconLeft={
-                  <div className="h-full flex items-center px-4 text-right text-gray-600">
+                  <div className="h-full flex items-center px-4 text-right text-cyan-dark cursor-default">
                     <p>{DHV_NAME}</p>
                   </div>
                 }
                 numericOnly
-                maxNumDecimals={18}
+                maxNumDecimals={DECIMALS.RYSK}
                 maxValue={withdrawableDHV ?? undefined}
-                maxValueDecimals={18}
+                maxValueDecimals={DECIMALS.RYSK}
                 maxButtonHandler={
                   withdrawableDHV ? () => handleSliderChange(100) : undefined
                 }

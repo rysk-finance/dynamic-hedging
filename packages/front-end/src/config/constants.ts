@@ -25,6 +25,9 @@ export const DEFAULT_POLLING_INTERVAL = 20000;
 // Proportion added to approval transaction to account for price moving.
 const APPROVAL_MARGIN = 0.1;
 
+// Storing as percent to avoid BigNumber issues.
+export const GAS_LIMIT_MULTIPLIER_PERCENTAGE = BigNumber.from(120);
+
 export enum CHAINID {
   ETH_MAINNET = 1,
   ARBITRUM_MAINNET = 42161,
