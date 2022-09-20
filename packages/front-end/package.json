@@ -19,6 +19,7 @@
     "dotenv": "^16.0.0",
     "env-cmd": "^10.1.0",
     "ethers": "^5.6.4",
+    "fathom-client": "^3.5.0",
     "graphql": "^16.5.0",
     "greeks": "^1.0.0",
     "implied-volatility": "^1.0.0",
