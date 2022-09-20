@@ -373,7 +373,7 @@ export const VaultDeposit = () => {
               setValue={handleInputChange}
               value={inputValue}
               iconLeft={
-                <div className="h-full flex items-center px-4 text-right text-gray-600">
+                <div className="h-full flex items-center px-4 text-right text-cyan-dark cursor-default">
                   <p>USDC</p>
                 </div>
               }

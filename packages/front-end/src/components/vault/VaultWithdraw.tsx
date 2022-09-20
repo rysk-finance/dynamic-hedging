@@ -266,7 +266,7 @@ export const VaultWithdraw = () => {
                 setValue={(value) => handleInputChange(value)}
                 value={inputValue}
                 iconLeft={
-                  <div className="h-full flex items-center px-4 text-right text-gray-600">
+                  <div className="h-full flex items-center px-4 text-right text-cyan-dark cursor-default">
                     <p>{DHV_NAME}</p>
                   </div>
                 }
