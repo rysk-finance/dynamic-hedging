@@ -175,6 +175,8 @@ export const VaultWithdraw = () => {
       await lpContractCall({
         method: lpContract.initiateWithdraw,
         args: [amount],
+        scaleGasLimit: true,
+        methodName: "initiateWithdraw",
         submitMessage: "✅ Withdraw initiation submitted",
         onSubmit: () => {
           setListeningForInitiation(true);
@@ -200,6 +202,8 @@ export const VaultWithdraw = () => {
       await lpContractCall({
         method: lpContract.completeWithdraw,
         args: [MAX_UINT_256],
+        scaleGasLimit: true,
+        methodName: "completeWithdraw",
         submitMessage: "✅ Withdraw completion submitted",
         onSubmit: () => {
           setListeningForCompleteWithdraw(true);

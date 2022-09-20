@@ -280,6 +280,8 @@ export const VaultDeposit = () => {
       await lpContractCall({
         method: lpContract.deposit,
         args: [amount],
+        scaleGasLimit: true,
+        methodName: "deposit",
         submitMessage: "✅ Deposit submitted",
         onSubmit: () => {
           setListeningForDeposit(true);
@@ -306,6 +308,8 @@ export const VaultDeposit = () => {
       await lpContractCall({
         method: lpContract.redeem,
         args: [MAX_UINT_256],
+        scaleGasLimit: true,
+        methodName: "redeem",
         submitMessage: "✅ Redeem submitted",
         onSubmit: () => {
           setListeningForRedeem(true);

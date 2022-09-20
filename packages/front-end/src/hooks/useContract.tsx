@@ -7,6 +7,7 @@ import { TransactionDisplay } from "../components/shared/TransactionDisplay";
 import {
   CHAINID,
   DEFAULT_POLLING_INTERVAL,
+  GAS_LIMIT_MULTIPLIER_PERCENTAGE,
   IDToNetwork,
   RPC_URL_MAP,
 } from "../config/constants";
@@ -100,6 +101,8 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
     async ({
       method,
       args,
+      scaleGasLimit = false,
+      methodName,
       submitMessage,
       onSubmit,
       completeMessage,
@@ -108,6 +111,11 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
     }: {
       method: ethers.ContractFunction;
       args: any[];
+      scaleGasLimit?: boolean;
+      // Must provide the method name when requiring gas estimate, because of how
+      // ethers contract api interface is built. Not a big inconveince for now, but worth
+      // updating our API at a later date.
+      methodName?: string;
       submitMessage?: string;
       onSubmit?: () => void;
       completeMessage?: string;
@@ -115,34 +123,48 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
       onFail?: () => void;
     }) => {
       try {
-        const transaction = (await method(...args)) as TransactionResponse;
-        if (process.env.REACT_APP_ENV === "testnet") {
-          console.log(`TX HASH: ${transaction.hash}`);
-        }
-        toast(
-          <div>
-            <p>{submitMessage}</p>
-            <p>
-              TX Hash:{" "}
-              <TransactionDisplay>{transaction.hash}</TransactionDisplay>
-            </p>
-          </div>,
-          { autoClose: 5000 }
-        );
-        onSubmit?.();
-        await transaction.wait();
-        onComplete?.();
-        completeMessage &&
+        if (ethersContract) {
+          let estimatedGasLimit = undefined;
+          if (scaleGasLimit && methodName) {
+            estimatedGasLimit = await ethersContract.estimateGas[methodName](
+              ...args
+            );
+          }
+          const scaledGasLimit = estimatedGasLimit
+            ? estimatedGasLimit.mul(GAS_LIMIT_MULTIPLIER_PERCENTAGE).div(100)
+            : undefined;
+          const transaction = (await method(...args, {
+            gasLimit: scaledGasLimit,
+          })) as TransactionResponse;
+          if (process.env.REACT_APP_ENV === "testnet") {
+            console.log(`TX HASH: ${transaction.hash}`);
+          }
           toast(
             <div>
-              <p>{completeMessage}</p>
+              <p>{submitMessage}</p>
+              <p>
+                TX Hash:{" "}
+                <TransactionDisplay>{transaction.hash}</TransactionDisplay>
+              </p>
             </div>,
             { autoClose: 5000 }
           );
-        return;
+          onSubmit?.();
+          await transaction.wait();
+          onComplete?.();
+          completeMessage &&
+            toast(
+              <div>
+                <p>{completeMessage}</p>
+              </div>,
+              { autoClose: 5000 }
+            );
+          return;
+        }
       } catch (err: any) {
         // Might need to modify this is errors other than RPC errors are being thrown
         // my contract function calls.
+        console.error(err);
         if (isRPCError(err)) {
           toast(`❌ ${parseError(err)}`, {
             autoClose: 5000,
@@ -163,7 +185,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
         return null;
       }
     },
-    []
+    [ethersContract]
   );
 
   // Instances the ethers contract in state.
