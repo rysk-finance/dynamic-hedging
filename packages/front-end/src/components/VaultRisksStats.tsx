@@ -25,6 +25,7 @@ export const VaultRisksStats = () => {
                 Delta, Δ, measures the rate of change in the value of the portfolio with respect to a change in the price of ETH. <br />
                 A Delta close to zero means that the exposure is neutral to market movements.
               "
+              tooltipProps={{ className: "max-w-[300px]" }}
             />
           </p>
           {/* <a
@@ -38,8 +39,7 @@ export const VaultRisksStats = () => {
         </div>
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
-            Sharpe Ratio: {" "}
-            TBC
+            Sharpe Ratio: TBC
             {/* <RyskTooltip
               id="sharpeTip"
               message=""
@@ -56,8 +56,7 @@ export const VaultRisksStats = () => {
         </div>
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
-            Max Drawdown: {" "}
-            TBC
+            Max Drawdown: TBC
             {/* <RyskTooltip
             Max Drawdown:{" "}
             <NumberFormat

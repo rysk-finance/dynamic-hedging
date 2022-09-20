@@ -25,9 +25,10 @@ export const VaultInfo = () => {
     readOnly: true,
   });
 
-  const chainId = Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_RINKEBY 
-                  ? CHAINID.ARBITRUM_RINKEBY 
-                  : CHAINID.ARBITRUM_MAINNET;
+  const chainId =
+    Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_RINKEBY
+      ? CHAINID.ARBITRUM_RINKEBY
+      : CHAINID.ARBITRUM_MAINNET;
 
   return (
     <div className="pb-8 py-12 px-8">
@@ -36,6 +37,9 @@ export const VaultInfo = () => {
           <h4>{DHV_NAME}</h4>
           <p className="mt-4">
             Current Deposit Epoch: {depositEpoch?.toString()}
+          </p>
+          <p className="mt-4">
+            Current Withdraw Epoch: {withdrawalEpoch?.toString()}
           </p>
           <p className="mt-4">
             {DHV_NAME} Deposit Current Share Price:{" "}
@@ -66,16 +70,15 @@ export const VaultInfo = () => {
         <div>
           <h4>Addresses</h4>
           <p className="mt-4">
-            {DHV_NAME}: {" "} 
-            <a 
-              href={`${SCAN_URL[chainId]}/address/${lpContract?.address}`} 
+            {DHV_NAME}:{" "}
+            <a
+              href={`${SCAN_URL[chainId]}/address/${lpContract?.address}`}
               target="blank"
               className="underline hover:font-medium"
             >
               {lpContract?.address}
             </a>
           </p>
-
         </div>
       </div>
     </div>
