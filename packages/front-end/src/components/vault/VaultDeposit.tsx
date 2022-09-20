@@ -292,6 +292,7 @@ export const VaultDeposit = () => {
           setInputValue("");
           updateDepositState();
           setListeningForDeposit(false);
+          getAllowance();
           if (account) {
             updatePosition(account);
           }
