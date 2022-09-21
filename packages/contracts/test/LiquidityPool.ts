@@ -104,7 +104,7 @@ const expiryDate: string = "2022-04-05"
 const invalidExpiryDateLong: string = "2022-04-22"
 const invalidExpiryDateShort: string = "2022-03-01"
 // decimal representation of a percentage
-const rfr: string = "0.03"
+const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
@@ -118,7 +118,7 @@ const invalidStrikeHigh = utils.parseEther("12500")
 const invalidStrikeLow = utils.parseEther("200")
 
 // balances to deposit into the LP
-const liquidityPoolUsdcDeposit = "60000"
+const liquidityPoolUsdcDeposit = "100000"
 const liquidityPoolWethDeposit = "1"
 
 // balance to withdraw after deposit
@@ -2576,7 +2576,7 @@ describe("Liquidity Pools", async () => {
 	})
 	it("updates bufferPercentage variable", async () => {
 		const beforeValue = await liquidityPool.bufferPercentage()
-		expect(beforeValue).to.equal(2000)
+		expect(beforeValue).to.equal(5000)
 		const expectedValue = 1500
 		await liquidityPool.setBufferPercentage(expectedValue)
 		const afterValue = await liquidityPool.bufferPercentage()
@@ -2585,7 +2585,7 @@ describe("Liquidity Pools", async () => {
 	})
 	it("updates riskFreeRate variable", async () => {
 		const beforeValue = await liquidityPool.riskFreeRate()
-		expect(beforeValue).to.equal(toWei("0.03"))
+		expect(beforeValue).to.equal(toWei("0"))
 		const expectedValue = toWei("0.06")
 		await liquidityPool.setRiskFreeRate(expectedValue)
 		const afterValue = await liquidityPool.riskFreeRate()

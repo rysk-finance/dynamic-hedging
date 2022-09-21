@@ -101,7 +101,7 @@ const expiryDate: string = "2022-04-05"
 const invalidExpiryDateLong: string = "2024-09-03"
 const invalidExpiryDateShort: string = "2022-03-01"
 // decimal representation of a percentage
-const rfr: string = "0.03"
+const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000

@@ -5,7 +5,6 @@ import { truncate } from "@ragetrade/sdk"
 import { toWei } from "../../utils/conversion-helper"
 import hre, { ethers } from "hardhat"
 import path from "path"
-import { Oracle } from "../../types/Oracle"
 import { WETH } from "../../types/WETH"
 import { ERC20Interface } from "../../types/ERC20Interface"
 import { MintableERC20 } from "../../types/MintableERC20"
@@ -14,7 +13,6 @@ import { PriceFeed } from "../../types/PriceFeed"
 import { VolatilityFeed } from "../../types/VolatilityFeed"
 import { AlphaOptionHandler } from "../../types/AlphaOptionHandler"
 import { Protocol } from "../../types/Protocol"
-import { Volatility } from "../../types/Volatility"
 import { LiquidityPool } from "../../types/LiquidityPool"
 import LiquidityPoolSol from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 import { AlphaPortfolioValuesFeed } from "../../types/AlphaPortfolioValuesFeed"
@@ -45,22 +43,22 @@ const vETHAddress = "0x7ab08069a6ee445703116E4E09049E88a237af5E"
 // uniswap v3 addresses (SAME FOR ALL CHAINS)
 const uniswapV3SwapRouter = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 
-const rfr: string = "0.03"
+const rfr: string = "0"
 const minCallStrikePrice = utils.parseEther("500")
-const maxCallStrikePrice = utils.parseEther("10000")
+const maxCallStrikePrice = utils.parseEther("5000")
 const minPutStrikePrice = utils.parseEther("500")
-const maxPutStrikePrice = utils.parseEther("10000")
+const maxPutStrikePrice = utils.parseEther("5000")
 const bidAskSpread = toWei("0.05")
 const maxTimeDeviationThreshold = 600
 const maxPriceDeviationThreshold = toWei("1")
 
-const liquidityPoolTokenName = "ETH/USDC"
-const liquidityPoolTokenTicker = "ryUSDC"
+const liquidityPoolTokenName = "Rysk DHV ETH/USDC"
+const liquidityPoolTokenTicker = "ryUSDC-ETH"
 
 // one week in seconds
 const minExpiry = 86400 * 7
 // 365 days in seconds
-const maxExpiry = 86400 * 365
+const maxExpiry = 86400 * 90
 
 async function main() {
 	const [deployer] = await ethers.getSigners()
@@ -117,7 +115,7 @@ async function main() {
 		// @ts-ignore
 		contractAddresses = JSON.parse(fs.readFileSync(addressPath))
 	} catch {
-		contractAddresses = { localhost: {}, arbitrumRinkeby: {} }
+		contractAddresses = { localhost: {}, arbitrum: {} }
 	}
 
 	// @ts-ignore
@@ -319,7 +317,6 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 			OpynInteractions: interactions.address
 		}
 	})
-	console.log(deployerAddress, authority.address)
 	const optionRegistry = (await optionRegistryFactory.deploy(
 		usd.address, // usdc
 		oTokenFactoryAddress,
@@ -418,24 +415,6 @@ export async function deployLiquidityPool(
 	blackScholes: BlackScholes,
 	normDist: NormalDist
 ) {
-	const volFactory = await ethers.getContractFactory("Volatility", {
-		libraries: {}
-	})
-	const volatility = (await volFactory.deploy()) as Volatility
-	console.log("volatility deployed")
-
-	try {
-		await hre.run("verify:verify", {
-			address: volatility.address,
-			constructorArguments: []
-		})
-		console.log("volatility verified")
-	} catch (err: any) {
-		if (err.message.includes("Reason: Already Verified")) {
-			console.log("volatility contract already verified")
-		}
-	}
-
 	const optionsCompFactory = await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}
 	})
@@ -517,16 +496,12 @@ export async function deployLiquidityPool(
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	console.log("registry lp set")
 
-	await liquidityPool.setMaxTimeDeviationThreshold(maxTimeDeviationThreshold)
-	await liquidityPool.setMaxPriceDeviationThreshold(maxPriceDeviationThreshold)
 	await liquidityPool.setBidAskSpread(bidAskSpread)
 	await pvFeed.setLiquidityPool(liquidityPool.address)
 	await pvFeed.setProtocol(optionProtocol.address)
 	await pvFeed.setKeeper(liquidityPool.address, true)
 	console.log("pv feed lp set")
 
-	const price = await priceFeed.getNormalizedRate(weth.address, usd.address)
-	console.log({ price })
 	await pvFeed.fulfill(weth.address, usd.address)
 	console.log("pv feed fulfilled")
 
@@ -610,7 +585,7 @@ export async function deployLiquidityPool(
 			console.log("perp hedging reactor contract already verified")
 		}
 	}
-	await usd.approve(perpHedgingReactor.address, toWei("1"))
+	await usd.approve(perpHedgingReactor.address, 1)
 	await perpHedgingReactor.initialiseReactor()
 	console.log("Perp hedging reactor initialised")
 
@@ -651,7 +626,6 @@ export async function deployLiquidityPool(
 	console.log("hedging reactors added to liquidity pool")
 
 	return {
-		volatility: volatility,
 		normDist,
 		blackScholes,
 		optionsCompute,

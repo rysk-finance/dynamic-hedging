@@ -60,7 +60,7 @@ async function main() {
 	const authority = deployParams.authority
 	const interactions = deployParams.opynInteractions
 
-	const rfr: string = "0.03"
+	const rfr: string = "0"
 	const minCallStrikePrice = utils.parseEther("500")
 	const maxCallStrikePrice = utils.parseEther("10000")
 	const minPutStrikePrice = utils.parseEther("500")

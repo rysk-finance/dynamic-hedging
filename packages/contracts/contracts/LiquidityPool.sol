@@ -79,7 +79,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/////////////////////////////////////
 
 	// buffer of funds to not be used to write new options in case of margin requirements (as percentage - for 20% enter 2000)
-	uint256 public bufferPercentage = 2000;
+	uint256 public bufferPercentage = 5000;
 	// list of addresses for hedging reactors
 	address[] public hedgingReactors;
 	// max total supply of collateral, denominated in e18
@@ -103,7 +103,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	uint256 public maxPriceDeviationThreshold;
 	// variables relating to the utilization skew function:
 	// the gradient of the function where utiization is below function threshold. e18
-	uint256 public belowThresholdGradient = 0; // 0.1
+	uint256 public belowThresholdGradient = 0; // 0
 	// the gradient of the line above the utilization threshold. e18
 	uint256 public aboveThresholdGradient = 1e18; // 1
 	// the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold.  Will always be negative but enter the absolute value

@@ -105,7 +105,7 @@ const expiryDate: string = "2022-04-05"
 const invalidExpiryDateLong: string = "2022-04-22"
 const invalidExpiryDateShort: string = "2022-03-01"
 // decimal representation of a percentage
-const rfr: string = "0.03"
+const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
@@ -350,21 +350,17 @@ describe("Liquidity Pool with alpha tests", async () => {
 		let customOrderPrice: number
 		let customOrderId: number
 		it("SETUP: set sabrParams", async () => {
-			const proposedSabrParams = 
-			{
-				callAlpha:250000,
-				callBeta:1_000000,
-				callRho:-300000,
-				callVolvol:1_500000,
-				putAlpha:250000,
-				putBeta:1_000000,
-				putRho:-300000,
-				putVolvol:1_500000
+			const proposedSabrParams = {
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000
 			}
-			await volFeed.setSabrParameters(
-				proposedSabrParams, 
-				expiration
-			)
+			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
