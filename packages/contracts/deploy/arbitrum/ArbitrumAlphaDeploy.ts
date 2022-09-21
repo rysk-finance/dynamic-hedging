@@ -109,6 +109,8 @@ async function main() {
 	const perpHedgingReactor = lpParams.perpHedgingReactor
 	console.log("liquidity pool deployed")
 
+	await authority.pushGovernor(multisig)
+
 	let contractAddresses
 
 	try {
@@ -178,17 +180,18 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		})
 		console.log("opynInterections verified")
 	} catch (err: any) {
+		console.log(err)
 		if (err.message.includes("Reason: Already Verified")) {
 			console.log("opynInteractions contract already verified")
 		}
 	}
 	const authorityFactory = await ethers.getContractFactory("Authority")
-	const authority = await authorityFactory.deploy(multisig, multisig, multisig)
+	const authority = await authorityFactory.deploy(deployerAddress, multisig, multisig)
 	console.log("authority deployed")
 	try {
 		await hre.run("verify:verify", {
 			address: authority.address,
-			constructorArguments: [multisig, multisig, multisig]
+			constructorArguments: [deployerAddress, multisig, multisig]
 		})
 		console.log("authority verified")
 	} catch (err: any) {

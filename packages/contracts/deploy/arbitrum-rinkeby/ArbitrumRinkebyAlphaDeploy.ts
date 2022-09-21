@@ -176,6 +176,7 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		})
 		console.log("opynInterections verified")
 	} catch (err: any) {
+		console.log(err)
 		if (err.message.includes("Reason: Already Verified")) {
 			console.log("opynInteractions contract already verified")
 		}
@@ -190,6 +191,7 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		})
 		console.log("authority verified")
 	} catch (err: any) {
+		console.log(err)
 		if (err.message.includes("Reason: Already Verified")) {
 			console.log("Authority contract already verified")
 		}
