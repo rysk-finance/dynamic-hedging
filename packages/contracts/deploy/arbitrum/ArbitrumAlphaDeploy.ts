@@ -33,12 +33,11 @@ const oTokenFactoryAddress = "0xBa1952eCdbA02de66fCf73f29068e8cf072644ec"
 const marginPoolAddress = "0xb9F33349db1d0711d95c1198AcbA9511B8269626"
 const multisig = "0xFBdE2e477Ed031f54ed5Ad52f35eE43CD82cF2A6"
 
-const usdcAddress = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
-const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
-
 // rage trade addresses for Arbitrum
 const clearingHouseAddress = "0x4521916972A76D5BFA65Fb539Cf7a0C2592050Ac"
 const vETHAddress = "0x7ab08069a6ee445703116E4E09049E88a237af5E"
+const usdcAddress = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
+const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
 
 // uniswap v3 addresses (SAME FOR ALL CHAINS)
 const uniswapV3SwapRouter = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
@@ -135,6 +134,7 @@ async function main() {
 	contractAddresses["arbitrum"]["optionHandler"] = handler.address
 	contractAddresses["arbitrum"]["opynInteractions"] = interactions.address
 	contractAddresses["arbitrum"]["normDist"] = normDist.address
+	contractAddresses["arbitrum"]["optionsCompute"] = optionsCompute.address
 	contractAddresses["arbitrum"]["BlackScholes"] = blackScholes.address
 	contractAddresses["arbitrum"]["accounting"] = accounting.address
 	contractAddresses["arbitrum"]["uniswapV3HedgingReactor"] = uniswapV3HedgingReactor.address
@@ -170,21 +170,6 @@ async function main() {
 
 export async function deploySystem(deployer: Signer, chainlinkOracleAddress: string) {
 	const deployerAddress = await deployer.getAddress()
-	// deploy libraries
-	const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
-	const interactions = await interactionsFactory.deploy()
-	try {
-		await hre.run("verify:verify", {
-			address: interactions.address,
-			constructorArguments: []
-		})
-		console.log("opynInterections verified")
-	} catch (err: any) {
-		console.log(err)
-		if (err.message.includes("Reason: Already Verified")) {
-			console.log("opynInteractions contract already verified")
-		}
-	}
 	const authorityFactory = await ethers.getContractFactory("Authority")
 	const authority = await authorityFactory.deploy(deployerAddress, multisig, multisig)
 	console.log("authority deployed")
@@ -195,11 +180,26 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		})
 		console.log("authority verified")
 	} catch (err: any) {
+		console.log(err)
 		if (err.message.includes("Reason: Already Verified")) {
 			console.log("Authority contract already verified")
 		}
 	}
 
+	// deploy libraries
+	const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
+	const interactions = await interactionsFactory.deploy()
+	try {
+		await hre.run("verify:verify", {
+			address: interactions.address
+		})
+		console.log("opynInterections verified")
+	} catch (err: any) {
+		console.log(err)
+		if (err.message.includes("Reason: Already Verified")) {
+			console.log("opynInteractions contract already verified")
+		}
+	}
 	const normDistFactory = await ethers.getContractFactory(
 		"contracts/libraries/NormalDist.sol:NormalDist",
 		{
