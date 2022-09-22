@@ -515,7 +515,7 @@ export async function deployLiquidityPool(
 	try {
 		await hre.run("verify:verify", {
 			address: accounting.address,
-			constructorArguments: [liquidityPool.address, usd.address, weth.address, usd.address]
+			constructorArguments: [liquidityPool.address]
 		})
 		console.log("Accounting verified")
 	} catch (err: any) {
