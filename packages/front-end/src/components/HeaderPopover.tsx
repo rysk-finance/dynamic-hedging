@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
-import { CHAINID, SCAN_URL } from "../config/constants";
+import { CHAINID, EXPLORER_URL, SCAN_URL } from "../config/constants";
 import { useGlobalContext } from "../state/GlobalContext";
 import { ActionType } from "../state/types";
 import { Button } from "./shared/Button";
@@ -75,12 +75,7 @@ export const HeaderPopover: React.FC = () => {
 
             <Button
               onClick={() => {
-                account &&
-                  window.open(
-                    process.env.REACT_APP_ENV === "production"
-                      ? `https://arbiscan.io/address/${account}`
-                      : `https://testnet.arbiscan.io/address/${account}`
-                  );
+                account && window.open(`${EXPLORER_URL}address/${account}`);
               }}
               className="mb-4"
             >
