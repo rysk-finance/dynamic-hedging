@@ -182,19 +182,26 @@ describe("PerpHedgingReactor", () => {
 		await perpHedgingReactor.initialiseReactor()
 		await expect(perpHedgingReactor.initialiseReactor()).to.be.reverted
 	})
-
+	it("SETUP: ping price", async () => {
+		await ethUSDAggregator.mock.latestRoundData.returns(
+			"55340232221128660932",
+			"2500000000",
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
+			"55340232221128660932"
+		)
+	})
 	it("hedges a positive delta when position is zero", async () => {
 		const delta = ethers.utils.parseEther("20")
 		const deltaHedge = ethers.utils.parseEther("-20")
 
 		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const realSqrtPrice = await priceToSqrtPriceX96(2500, 6, 18);
-
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			"2500000000",
-			"1607534965",
-			"1607535064",
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
 		await rageOracle.setSqrtPriceX96(realSqrtPrice);
@@ -288,8 +295,8 @@ describe("PerpHedgingReactor", () => {
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			"3500000000",
-			"1607534965",
-			"1607535064",
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
 		await rageOracle.setSqrtPriceX96(realSqrtPrice);
@@ -332,8 +339,8 @@ describe("PerpHedgingReactor", () => {
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			"1500000000",
-			"1607534965",
-			"1607535064",
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
 		await rageOracle.setSqrtPriceX96(realSqrtPrice);
@@ -353,8 +360,8 @@ describe("PerpHedgingReactor", () => {
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			"2500000000",
-			"1607534965",
-			"1607535064",
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
 		await rageOracle.setSqrtPriceX96(realSqrt);
@@ -386,8 +393,8 @@ describe("PerpHedgingReactor", () => {
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			"2500000000",
-			"1607534965",
-			"1607535064",
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
 		await rageOracle.setSqrtPriceX96(realSqrt);
@@ -528,8 +535,8 @@ describe("PerpHedgingReactor", () => {
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			"2510000000",
-			"1607534965",
-			"1607535064",
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
 		await rageOracle.setSqrtPriceX96(realSqrtPrice);
@@ -560,8 +567,8 @@ describe("PerpHedgingReactor", () => {
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			"2500000000",
-			"1607534965",
-			"1607535064",
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
+			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
 		await rageOracle.setSqrtPriceX96(realSqrtPrice);

@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 
 import "./interfaces/IAuthority.sol";
-
+import "./libraries/CustomErrors.sol";
 import "./libraries/AccessControl.sol";
 
 /**
@@ -28,44 +28,58 @@ contract Authority is IAuthority, AccessControl {
 		address _guardian,
 		address _manager
 	) AccessControl(IAuthority(address(this))) {
+		if (_governor == address(0) || _guardian == address(0) || _manager == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
 		governor = _governor;
-		emit GovernorPushed(address(0), governor, true);
+		emit GovernorPushed(address(0), _governor);
+		emit GovernorPulled(address(0), _governor);
 		guardian[_guardian] = true;
-		emit GuardianPushed(_guardian, true);
+		emit GuardianPushed(_guardian);
 		manager = _manager;
-		emit ManagerPushed(address(0), manager, true);
+		emit ManagerPushed(address(0), _manager);
+		emit ManagerPulled(address(0), _manager);
 	}
 
 	/* ========== GOV ONLY ========== */
 
-	function pushGovernor(address _newGovernor, bool _effectiveImmediately) external {
+	function pushGovernor(address _newGovernor) external {
 		_onlyGovernor();
-		if (_effectiveImmediately) governor = _newGovernor;
+		if (_newGovernor == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
 		newGovernor = _newGovernor;
-		emit GovernorPushed(governor, newGovernor, _effectiveImmediately);
+		emit GovernorPushed(governor, newGovernor);
 	}
 
 	function pushGuardian(address _newGuardian) external {
 		_onlyGovernor();
+		if (_newGuardian == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
 		guardian[_newGuardian] = true;
+		emit GuardianPushed(_newGuardian);
 	}
 
-	function pushManager(address _newManager, bool _effectiveImmediately) external {
+	function pushManager(address _newManager) external {
 		_onlyGovernor();
-		if (_effectiveImmediately) manager = _newManager;
+		if (_newManager == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
 		newManager = _newManager;
-		emit ManagerPushed(manager, newManager, _effectiveImmediately);
+		emit ManagerPushed(manager, newManager);
 	}
 
 	function pullGovernor() external {
 		require(msg.sender == newGovernor, "!newGovernor");
 		emit GovernorPulled(governor, newGovernor);
 		governor = newGovernor;
+		delete newGovernor;
 	}
 
 	function revokeGuardian(address _guardian) external {
 		_onlyGovernor();
-		emit GuardianPulled(_guardian);
+		emit GuardianRevoked(_guardian);
 		guardian[_guardian] = false;
 	}
 
@@ -73,5 +87,6 @@ contract Authority is IAuthority, AccessControl {
 		require(msg.sender == newManager, "!newManager");
 		emit ManagerPulled(manager, newManager);
 		manager = newManager;
+		delete newManager;
 	}
 }

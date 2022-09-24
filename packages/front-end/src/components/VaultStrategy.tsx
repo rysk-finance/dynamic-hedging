@@ -32,7 +32,7 @@ export const VaultStrategy = () => {
         <div className="pr-8">
           <h4>Dynamic Hedging Overview</h4>
           <p className="pt-4">
-            The USDC deposited into {DHV_NAME} vault is used to fund ETH options
+            USDC deposited into {DHV_NAME} vault is used to fund ETH options
             strategies.
           </p>
           <p className="pt-4">
@@ -50,8 +50,8 @@ export const VaultStrategy = () => {
             <br />
           </p>
           <p className="pt-4">
-            If the {DHV_NAME} delta moves far from zero the position will be
-            dynamically hedged by trading spot, other derivatives (such as
+            If the {DHV_NAME} delta moves too far from zero, the position will
+            be dynamically hedged by trading spot, other derivatives (such as
             perpetuals), or buying options to minimize the market exposure and
             reduce directionality.
           </p>
@@ -76,7 +76,9 @@ export const VaultStrategy = () => {
           <div className="rounded-t-lg bg-black text-white flex justify-center py-2 mt-16 md:mt-0">
             <p>
               {STRATEGY_STEPS.filter((item) => item.name === strategy)[0]
-                .title.split('.').join("").replace(/\s/g, "_")
+                .title.split(".")
+                .join("")
+                .replace(/\s/g, "_")
                 .toLowerCase()}
               .png
             </p>

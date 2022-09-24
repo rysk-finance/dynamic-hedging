@@ -1,4 +1,4 @@
-enum ErrorCode {
+export enum ErrorCode {
   RPC_PARSE = -32603,
   RPC_USER_DENIED = 4001,
   CALL_EXCEPTION = "CALL_EXCEPTION",

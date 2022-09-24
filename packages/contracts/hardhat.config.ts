@@ -43,6 +43,8 @@ const rinkeby = process.env.RINKEBY || new ethers.providers.InfuraProvider("rink
 const arbitrumRinkeby =
 	process.env.ARBITRUM_RINKEBY ||
 	new ethers.providers.InfuraProvider("arbitrum-rinkeby").connection.url
+const arbitrum =
+	process.env.ARBITRUM || new ethers.providers.InfuraProvider("arbitrum").connection.url
 
 module.exports = {
 	typechain: {
@@ -140,6 +142,13 @@ module.exports = {
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
 			chainId: 4,
 			saveDeployments: true
+		},
+		arbitrum: {
+			url: arbitrum,
+			chainId: 42161,
+			saveDeployments: true,
+			accounts: [process.env.MAINNET_PRIVATE_KEY],
+			gas: 500000000
 		},
 		arbitrumRinkeby: {
 			url: arbitrumRinkeby,

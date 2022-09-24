@@ -89,7 +89,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const expiryDate: string = "2022-04-05"
 
 // decimal representation of a percentage
-const rfr: string = "0.03"
+const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
@@ -99,7 +99,7 @@ const collatDecimalShift = BigNumber.from(1000000000000)
 const strike = "20"
 
 // balances to deposit into the LP
-const liquidityPoolUsdcDeposit = "100000"
+const liquidityPoolUsdcDeposit = "150000"
 const liquidityPoolUsdcWithdraw = "1000"
 
 const minCallStrikePrice = utils.parseEther("500")
@@ -200,21 +200,17 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		await usdWhaleConnect.transfer(await signers[2].getAddress(), toUSDC("1000000"))
 	})
 	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = 
-		{
-			callAlpha:250000,
-			callBeta:1_000000,
-			callRho:-300000,
-			callVolvol:1_500000,
-			putAlpha:250000,
-			putBeta:1_000000,
-			putRho:-300000,
-			putVolvol:1_500000
+		const proposedSabrParams = {
+			callAlpha: 250000,
+			callBeta: 1_000000,
+			callRho: -300000,
+			callVolvol: 1_500000,
+			putAlpha: 250000,
+			putBeta: 1_000000,
+			putRho: -300000,
+			putVolvol: 1_500000
 		}
-		await volFeed.setSabrParameters(
-			proposedSabrParams, 
-			expiration
-		)
+		await volFeed.setSabrParameters(proposedSabrParams, expiration)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -365,7 +361,6 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		await expect(liquidityPool.deposit(0)).to.be.revertedWith("InvalidAmount()")
 		await expect(liquidityPool.redeem(0)).to.be.revertedWith("InvalidShareAmount()")
 		await expect(liquidityPool.initiateWithdraw(0)).to.be.revertedWith("InvalidShareAmount()")
-		await expect(liquidityPool.completeWithdraw(0)).to.be.revertedWith("InvalidShareAmount()")
 	})
 	it("Reverts: User 1: Attempts to redeem before epoch initiation", async () => {
 		const user = senderAddress
@@ -379,9 +374,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	})
 	it("Reverts: User 1: Attempts to complete withdraw before epoch initiation", async () => {
 		const user = senderAddress
-		await expect(liquidityPool.completeWithdraw(toWei("100000"))).to.be.revertedWith(
-			"NoExistingWithdrawal()"
-		)
+		await expect(liquidityPool.completeWithdraw()).to.be.revertedWith("NoExistingWithdrawal()")
 	})
 	it("Reverts: execute epoch before pause", async () => {
 		await expect(liquidityPool.executeEpochCalculation()).to.be.revertedWith("TradingNotPaused()")
@@ -509,9 +502,9 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		).to.be.revertedWith("InsufficientShareBalance()")
 	})
 	it("Reverts: User 3: Attempts to complete withdraw before epoch initiation", async () => {
-		await expect(
-			liquidityPool.connect(signers[2]).completeWithdraw(toWei("100000"))
-		).to.be.revertedWith("NoExistingWithdrawal()")
+		await expect(liquidityPool.connect(signers[2]).completeWithdraw()).to.be.revertedWith(
+			"NoExistingWithdrawal()"
+		)
 	})
 	it("Succeed: User 1: redeems all shares", async () => {
 		const user = senderAddress
@@ -817,10 +810,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const epochBefore = await liquidityPool.withdrawalEpoch()
 		const withdrawReceiptBefore = await liquidityPool.withdrawalReceipts(user)
 		const pendingWithdrawBefore = await liquidityPool.pendingWithdrawals()
-		const toWithdraw = await liquidityPool
-			.connect(signers[0])
-			.callStatic.completeWithdraw(toWei("1000000000"))
-		const withdraw = await liquidityPool.completeWithdraw(lpBalanceBefore)
+		const toWithdraw = await liquidityPool.connect(signers[0]).callStatic.completeWithdraw()
+		const withdraw = await liquidityPool.completeWithdraw()
 		const usdBalanceAfter = await usd.balanceOf(user)
 		const lpBalanceAfter = await liquidityPool.balanceOf(user)
 		const lpusdBalanceAfter = await usd.balanceOf(liquidityPool.address)
@@ -1017,9 +1008,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(tFormatUSDC(balance.sub(balanceNew), 0)).to.eq(tFormatEth(singleQ, 0))
 	})
 	it("Reverts: User 1: cannot complete withdrawal because of epoch not closed", async () => {
-		await expect(
-			liquidityPool.completeWithdraw(await liquidityPool.balanceOf(senderAddress))
-		).to.be.revertedWith("EpochNotClosed()")
+		await expect(liquidityPool.completeWithdraw()).to.be.revertedWith("EpochNotClosed()")
 	})
 	it("Succeeds: pauses trading", async () => {
 		await liquidityPool.pauseTradingAndRequest()
@@ -1104,9 +1093,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
 	})
 	it("Reverts: User 1: still cannot complete withdrawal because of withdrawal epoch not closed", async () => {
-		await expect(
-			liquidityPool.completeWithdraw(await liquidityPool.balanceOf(senderAddress))
-		).to.be.revertedWith("EpochNotClosed()")
+		await expect(liquidityPool.completeWithdraw()).to.be.revertedWith("EpochNotClosed()")
 	})
 	it("Succeeds: Reduces collateral cap", async () => {
 		await liquidityPool.setCollateralCap(toUSDC("100"))
@@ -1141,10 +1128,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	})
 
 	it("Succeeds: execute epoch from keeper", async () => {
-		// deposit more funds to allow withdrawal epoch to execute
+		// deposit more funds to allow withdrawal withdrawal epoch to execute
 		const user = await signers[2].getAddress()
-		await usd.connect(signers[2]).approve(liquidityPool.address, toUSDC("150000"))
-		await liquidityPool.connect(signers[2]).deposit(toUSDC("150000"))
+		await usd.connect(signers[2]).approve(liquidityPool.address, toUSDC("200000"))
+		await liquidityPool.connect(signers[2]).deposit(toUSDC("200000"))
 		const lpUsdBalance = await usd.balanceOf(liquidityPool.address)
 		const bufferRemaining = parseFloat(
 			fromUSDC(
@@ -1160,17 +1147,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const lpAssets = await liquidityPool.getAssets()
 		const lpNav = await liquidityPool.getNAV()
 		// liabilities = assets - NAV
-		const totalWithdrawAmount = parseFloat(
-			fromUSDC(
-				(
-					await accounting.executeEpochCalculation(
-						await liquidityPool.totalSupply(),
-						lpAssets,
-						lpAssets.sub(lpNav)
-					)
-				).totalWithdrawAmount
-			)
-		)
+
 		const depositEpochBefore = await liquidityPool.depositEpoch()
 		const withdrawalEpochBefore = await liquidityPool.withdrawalEpoch()
 		const pendingDepositBefore = await liquidityPool.pendingDeposits()
@@ -1193,7 +1170,6 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 				parseFloat(fromWei(pendingWithdrawBefore)) *
 					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
-
 		expect(pendingWithdrawAfter).to.eq(0)
 		// check depositEpochPricePerShare is correct
 		expect(fromWei(await liquidityPool.depositEpochPricePerShare(depositEpochBefore))).to.equal(

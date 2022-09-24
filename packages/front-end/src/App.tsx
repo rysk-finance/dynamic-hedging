@@ -1,5 +1,11 @@
 import React from "react";
-import { ApolloClient, ApolloLink, ApolloProvider, HttpLink, InMemoryCache } from "@apollo/client";
+import {
+  ApolloClient,
+  ApolloLink,
+  ApolloProvider,
+  HttpLink,
+  InMemoryCache,
+} from "@apollo/client";
 import { OnboardAPI } from "@web3-onboard/core";
 import injectedModule from "@web3-onboard/injected-wallets";
 import { init } from "@web3-onboard/react";
@@ -40,6 +46,7 @@ import {
   updateFavicon,
 } from "./utils/updateFavicon";
 import { Footer } from "./components/Footer";
+import * as Fathom from "fathom-client";
 
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();
@@ -174,7 +181,6 @@ function App() {
       const { accounts, chains, provider } = wallets[0];
       const ethersProvider = new ethers.providers.Web3Provider(provider);
       ethersProvider.pollingInterval = DEFAULT_POLLING_INTERVAL;
-      const ethersSigner = ethersProvider.getSigner();
       const initialNetwork = await ethersProvider.getNetwork();
       const isCorrectChain =
         initialNetwork.chainId ===
@@ -184,8 +190,12 @@ function App() {
       if (!isCorrectChain) {
         if (process.env.REACT_APP_ENV === "production") {
           await addArbitrum();
+          connectWallet();
+          return;
         } else {
           await addArbitrumTestnet();
+          connectWallet();
+          return;
         }
       }
 
@@ -202,6 +212,7 @@ function App() {
           setNetwork({ id: networkId, name: networkName });
         }
       }
+      const ethersSigner = ethersProvider.getSigner();
       setSigner(ethersSigner);
       setAccount(accounts[0].address);
       const networkRPCURL = RPC_URL_MAP[networkId as CHAINID];
@@ -225,7 +236,7 @@ function App() {
   const addArbitrum = async () => {
     if (window.ethereum) {
       try {
-        const a = await window.ethereum.request({
+        await window.ethereum.request({
           method: "wallet_addEthereumChain",
           params: [
             {
@@ -339,15 +350,24 @@ function App() {
 
     const client = new ApolloClient({
       link: ApolloLink.split(
-        operation => operation.getContext().clientName === "opyn",
+        (operation) => operation.getContext().clientName === "opyn",
         opynSubgraph, // <= apollo will send to this if clientName is "opyn"
         ryskSubgraph // <= otherwise will send to this
       ),
-      cache: new InMemoryCache()
+      cache: new InMemoryCache(),
     });
 
     setApolloClient(client);
   }, [network?.id]);
+
+  useEffect(() => {
+    // Initialize Fathom when the app loads
+    // Example: yourdomain.com
+    //  - Do not include https://
+    //  - This must be an exact match of your domain.
+    //  - If you're using www. for your domain, make sure you include that here.
+    Fathom.load("SMDEXJZR", { excludedDomains: ["localhost:3000"] });
+  }, []);
 
   return (
     <WalletContext.Provider

@@ -37,9 +37,13 @@ export const TextInput: React.FC<TextInputProps> = ({
         ? Number(value) <=
           Number(ethers.utils.formatUnits(maxValue, maxValueDecimals))
         : true;
+      const containsSpaces = value.includes(" ");
       if (
         value === "" ||
-        (!isNaN(Number(value)) && isWithinDecimalLimit && isSmallerThanMaxValue)
+        (!isNaN(Number(value)) &&
+          isWithinDecimalLimit &&
+          isSmallerThanMaxValue &&
+          !containsSpaces)
       ) {
         setValue(value);
       }

@@ -78,23 +78,23 @@ export const VaultContent = () => {
         <p className="mt-8">
           {DHV_NAME} generates uncorrelated returns on USDC by market making ETH
           options strategies.
-          <br />
+        </p>
+        <p className="py-4">
           The {DHV_NAME} exposure is dynamically hedged to target market
           neutrality in order reduce the directional risk associated with ETH
           price movements.
-          <br />
-          <Link
-            className="underline hover:font-medium cursor-pointer pt-4 text-cyan-dark"
-            activeClass="active"
-            to="overviewScroll"
-            spy={true}
-            smooth={true}
-            offset={-150}
-            duration={500}
-          >
-            Learn more
-          </Link>
         </p>
+        <Link
+          className="underline hover:font-medium cursor-pointer text-cyan-dark"
+          activeClass="active"
+          to="overviewScroll"
+          spy={true}
+          smooth={true}
+          offset={-150}
+          duration={500}
+        >
+          Learn more
+        </Link>
 
         <LPStats />
       </div>

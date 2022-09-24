@@ -1,11 +1,10 @@
-import { BigNumber, Signer, utils, BigNumberish, Contract } from "ethers"
+import { BigNumber, Signer, utils, Contract } from "ethers"
 import { expect } from "chai"
 import fs from "fs"
 import { truncate } from "@ragetrade/sdk"
 import { toWei } from "../../utils/conversion-helper"
 import hre, { ethers } from "hardhat"
 import path from "path"
-import { Oracle } from "../../types/Oracle"
 import { WETH } from "../../types/WETH"
 import { ERC20Interface } from "../../types/ERC20Interface"
 import { MintableERC20 } from "../../types/MintableERC20"
@@ -14,29 +13,18 @@ import { PriceFeed } from "../../types/PriceFeed"
 import { VolatilityFeed } from "../../types/VolatilityFeed"
 import { AlphaOptionHandler } from "../../types/AlphaOptionHandler"
 import { Protocol } from "../../types/Protocol"
-import { Volatility } from "../../types/Volatility"
 import { LiquidityPool } from "../../types/LiquidityPool"
 import LiquidityPoolSol from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 import { AlphaPortfolioValuesFeed } from "../../types/AlphaPortfolioValuesFeed"
 import { Accounting } from "../../types/Accounting"
-import { getBlackScholesQuote } from "../../test/helpers"
 import { BlackScholes } from "../../types/BlackScholes"
 import { NormalDist } from "../../types/NormalDist"
-import { RageTradeFactory } from "../../types/RageTradeFactory"
 import { PerpHedgingReactor } from "../../types/PerpHedgingReactor"
-import { UniswapV3HedgingReactor } from "../../types/UniswapV3HedgingReactor"
-
-/* To use for other chains:
-		- Change addresses below to deployed contracts on new chain
-		- Swap out Mock portfolio values feed factory for real one
-		- Check liquidity pool deploy params
-*/
 
 const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
 
 //	Arbitrum mainnet specific contract addresses. Change for other networks
 const chainlinkOracleAddress = "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612"
-const linkTokenAddress = "0xf97f4df75117a78c1A5a0DBb814Af92458539FB4"
 const gammaOracleAddress = "0xBA1880CFFE38DD13771CB03De896460baf7dA1E7"
 const opynControllerProxyAddress = "0x594bD4eC29F7900AE29549c140Ac53b5240d4019"
 const opynAddressBookAddress = "0xCa19F26c52b11186B4b1e76a662a14DA5149EA5a"
@@ -45,16 +33,31 @@ const oTokenFactoryAddress = "0xBa1952eCdbA02de66fCf73f29068e8cf072644ec"
 const marginPoolAddress = "0xb9F33349db1d0711d95c1198AcbA9511B8269626"
 const multisig = "0xFBdE2e477Ed031f54ed5Ad52f35eE43CD82cF2A6"
 
+// rage trade addresses for Arbitrum
+const clearingHouseAddress = "0x4521916972A76D5BFA65Fb539Cf7a0C2592050Ac"
+const vETHAddress = "0x7ab08069a6ee445703116E4E09049E88a237af5E"
 const usdcAddress = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
 const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
 
-// rage trade addresses for Arbitrum
-const clearingHouseAddress = "0x4521916972A76D5BFA65Fb539Cf7a0C2592050Ac"
-const rageTradeFactoryAddress = "0x14FcC60f9be14087FAC729df48fF33f2b3052C12"
-const vETHAddress = "0x7ab08069a6ee445703116E4E09049E88a237af5E"
-
 // uniswap v3 addresses (SAME FOR ALL CHAINS)
 const uniswapV3SwapRouter = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+
+const rfr: string = "0"
+const minCallStrikePrice = utils.parseEther("500")
+const maxCallStrikePrice = utils.parseEther("5000")
+const minPutStrikePrice = utils.parseEther("500")
+const maxPutStrikePrice = utils.parseEther("5000")
+const bidAskSpread = toWei("0.05")
+const maxTimeDeviationThreshold = 600
+const maxPriceDeviationThreshold = toWei("1")
+
+const liquidityPoolTokenName = "Rysk DHV ETH/USDC"
+const liquidityPoolTokenTicker = "ryUSDC-ETH"
+
+// one week in seconds
+const minExpiry = 86400 * 7
+// 365 days in seconds
+const maxExpiry = 86400 * 90
 
 async function main() {
 	const [deployer] = await ethers.getSigners()
@@ -62,8 +65,6 @@ async function main() {
 	console.log("Deploying contracts with the account:", deployer.address)
 
 	console.log("Account balance:", (await deployer.getBalance()).toString())
-
-	const gammaOracle = (await ethers.getContractAt("Oracle", gammaOracleAddress)) as Oracle
 
 	// deploy system
 	let deployParams = await deploySystem(deployer, chainlinkOracleAddress)
@@ -79,16 +80,6 @@ async function main() {
 	const interactions = deployParams.opynInteractions
 	const blackScholes = deployParams.blackScholes
 	const normDist = deployParams.normDist
-
-	const rfr: string = "0.03"
-	const minCallStrikePrice = utils.parseEther("500")
-	const maxCallStrikePrice = utils.parseEther("10000")
-	const minPutStrikePrice = utils.parseEther("500")
-	const maxPutStrikePrice = utils.parseEther("10000")
-	// one week in seconds
-	const minExpiry = 86400 * 7
-	// 365 days in seconds
-	const maxExpiry = 86400 * 365
 
 	let lpParams = await deployLiquidityPool(
 		deployer,
@@ -117,7 +108,7 @@ async function main() {
 	const perpHedgingReactor = lpParams.perpHedgingReactor
 	console.log("liquidity pool deployed")
 
-	liquidityPool.setMaxTimeDeviationThreshold(1000000000000000)
+	await authority.pushGovernor(multisig)
 
 	let contractAddresses
 
@@ -125,7 +116,7 @@ async function main() {
 		// @ts-ignore
 		contractAddresses = JSON.parse(fs.readFileSync(addressPath))
 	} catch {
-		contractAddresses = { localhost: {}, arbitrumRinkeby: {} }
+		contractAddresses = { localhost: {}, arbitrum: {} }
 	}
 
 	// @ts-ignore
@@ -143,6 +134,7 @@ async function main() {
 	contractAddresses["arbitrum"]["optionHandler"] = handler.address
 	contractAddresses["arbitrum"]["opynInteractions"] = interactions.address
 	contractAddresses["arbitrum"]["normDist"] = normDist.address
+	contractAddresses["arbitrum"]["optionsCompute"] = optionsCompute.address
 	contractAddresses["arbitrum"]["BlackScholes"] = blackScholes.address
 	contractAddresses["arbitrum"]["accounting"] = accounting.address
 	contractAddresses["arbitrum"]["uniswapV3HedgingReactor"] = uniswapV3HedgingReactor.address
@@ -178,35 +170,36 @@ async function main() {
 
 export async function deploySystem(deployer: Signer, chainlinkOracleAddress: string) {
 	const deployerAddress = await deployer.getAddress()
-	// deploy libraries
-	const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
-	const interactions = await interactionsFactory.deploy()
-	try {
-		await hre.run("verify:verify", {
-			address: interactions.address,
-			constructorArguments: []
-		})
-		console.log("opynInterections verified")
-	} catch (err: any) {
-		if (err.message.includes("Reason: Already Verified")) {
-			console.log("opynInteractions contract already verified")
-		}
-	}
 	const authorityFactory = await ethers.getContractFactory("Authority")
-	const authority = await authorityFactory.deploy(multisig, multisig, multisig)
+	const authority = await authorityFactory.deploy(deployerAddress, multisig, multisig)
 	console.log("authority deployed")
 	try {
 		await hre.run("verify:verify", {
 			address: authority.address,
-			constructorArguments: [multisig, multisig, multisig]
+			constructorArguments: [deployerAddress, multisig, multisig]
 		})
 		console.log("authority verified")
 	} catch (err: any) {
+		console.log(err)
 		if (err.message.includes("Reason: Already Verified")) {
 			console.log("Authority contract already verified")
 		}
 	}
 
+	// deploy libraries
+	const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
+	const interactions = await interactionsFactory.deploy()
+	try {
+		await hre.run("verify:verify", {
+			address: interactions.address
+		})
+		console.log("opynInterections verified")
+	} catch (err: any) {
+		console.log(err)
+		if (err.message.includes("Reason: Already Verified")) {
+			console.log("opynInteractions contract already verified")
+		}
+	}
 	const normDistFactory = await ethers.getContractFactory(
 		"contracts/libraries/NormalDist.sol:NormalDist",
 		{
@@ -327,7 +320,6 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 			OpynInteractions: interactions.address
 		}
 	})
-	console.log(deployerAddress, authority.address)
 	const optionRegistry = (await optionRegistryFactory.deploy(
 		usd.address, // usdc
 		oTokenFactoryAddress,
@@ -426,24 +418,6 @@ export async function deployLiquidityPool(
 	blackScholes: BlackScholes,
 	normDist: NormalDist
 ) {
-	const volFactory = await ethers.getContractFactory("Volatility", {
-		libraries: {}
-	})
-	const volatility = (await volFactory.deploy()) as Volatility
-	console.log("volatility deployed")
-
-	try {
-		await hre.run("verify:verify", {
-			address: volatility.address,
-			constructorArguments: []
-		})
-		console.log("volatility verified")
-	} catch (err: any) {
-		if (err.message.includes("Reason: Already Verified")) {
-			console.log("volatility contract already verified")
-		}
-	}
-
 	const optionsCompFactory = await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}
 	})
@@ -474,8 +448,8 @@ export async function deployLiquidityPool(
 		weth.address,
 		usd.address,
 		toWei(rfr),
-		"ETH/USDC",
-		"EDP",
+		liquidityPoolTokenName,
+		liquidityPoolTokenTicker,
 		{
 			minCallStrikePrice,
 			maxCallStrikePrice,
@@ -503,8 +477,8 @@ export async function deployLiquidityPool(
 				weth.address,
 				usd.address,
 				toWei(rfr),
-				"ETH/USDC",
-				"EDP",
+				liquidityPoolTokenName,
+				liquidityPoolTokenTicker,
 				{
 					minCallStrikePrice,
 					maxCallStrikePrice,
@@ -525,32 +499,23 @@ export async function deployLiquidityPool(
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	console.log("registry lp set")
 
-	await liquidityPool.setMaxTimeDeviationThreshold(600)
-	await liquidityPool.setMaxPriceDeviationThreshold(toWei("1"))
-	await liquidityPool.setBidAskSpread(toWei("0.05"))
+	await liquidityPool.setBidAskSpread(bidAskSpread)
 	await pvFeed.setLiquidityPool(liquidityPool.address)
 	await pvFeed.setProtocol(optionProtocol.address)
 	await pvFeed.setKeeper(liquidityPool.address, true)
 	console.log("pv feed lp set")
 
-	const price = await priceFeed.getNormalizedRate(weth.address, usd.address)
-	console.log({ price })
 	await pvFeed.fulfill(weth.address, usd.address)
 	console.log("pv feed fulfilled")
 
 	const accountingFactory = await ethers.getContractFactory("Accounting")
-	const accounting = (await accountingFactory.deploy(
-		liquidityPool.address,
-		usd.address,
-		weth.address,
-		usd.address
-	)) as Accounting
+	const accounting = (await accountingFactory.deploy(liquidityPool.address)) as Accounting
 	console.log("Accounting deployed")
 
 	try {
 		await hre.run("verify:verify", {
 			address: accounting.address,
-			constructorArguments: [liquidityPool.address, usd.address, weth.address, usd.address]
+			constructorArguments: [liquidityPool.address]
 		})
 		console.log("Accounting verified")
 	} catch (err: any) {
@@ -623,7 +588,7 @@ export async function deployLiquidityPool(
 			console.log("perp hedging reactor contract already verified")
 		}
 	}
-	await usd.approve(perpHedgingReactor.address, toWei("1"))
+	await usd.approve(perpHedgingReactor.address, 1)
 	await perpHedgingReactor.initialiseReactor()
 	console.log("Perp hedging reactor initialised")
 
@@ -664,7 +629,6 @@ export async function deployLiquidityPool(
 	console.log("hedging reactors added to liquidity pool")
 
 	return {
-		volatility: volatility,
 		normDist,
 		blackScholes,
 		optionsCompute,

@@ -120,6 +120,9 @@ contract OptionRegistry is AccessControl {
 		address _authority
 	) AccessControl(IAuthority(_authority)) {
 		collateralAsset = _collateralAsset;
+		if (ERC20(_collateralAsset).decimals() > 18) {
+			revert CustomErrors.InvalidDecimals();
+		}
 		oTokenFactory = _oTokenFactory;
 		gammaController = _gammaController;
 		marginPool = _marginPool;
@@ -608,6 +611,9 @@ contract OptionRegistry is AccessControl {
 		GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
 		// get the series
 		Types.OptionSeries memory series = seriesInfo[vault.shortOtokens[0]];
+		if (series.expiration < block.timestamp) {
+			revert CustomErrors.VaultExpired();
+		}
 		// get the MarginRequired
 		IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
 
