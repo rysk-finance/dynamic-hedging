@@ -35,13 +35,14 @@ import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
 import { UnredeemedDepositBreakdown } from "./UnredeemedDepositBreakdown";
+import { PositionTooltip } from "./PositionTooltip";
 
 export const VaultDeposit = () => {
   const { account, network } = useWalletContext();
   const {
     state: {
       depositEpoch: currentEpoch,
-      depositPricePerShare: currentPricePerShare,
+      withdrawPricePerShare: currentPricePerShare,
     },
     dispatch,
   } = useVaultContext();
@@ -50,7 +51,7 @@ export const VaultDeposit = () => {
     dispatch: globalDispatch,
     state: { settings },
   } = useGlobalContext();
-  const { updatePosition } = useUserPosition();
+  const { updatePosition, userPositionValue } = useUserPosition();
 
   // UI State
   const [inputValue, setInputValue] = useState("");
@@ -348,12 +349,35 @@ export const VaultDeposit = () => {
 
   return (
     <div className="flex-col items-center justify-between h-full">
+      <div className="p-2 bg-black text-white mb-2">
+        <p>
+          Your Position:{" "}
+          <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
+            <BigNumberDisplay
+              currency={Currency.USDC}
+              suffix="USDC"
+              loaderProps={{
+                className: "h-4 w-auto translate-y-[-2px]",
+              }}
+            >
+              {userPositionValue}
+            </BigNumberDisplay>
+            <PositionTooltip />
+          </RequiresWalletConnection>
+        </p>
+      </div>
       <div className="w-full h-8 bg-black text-white px-2 flex items-center justify-start">
         <p>
           <b>1. Deposit USDC</b>
         </p>
       </div>
-      <div className="flex border-b-2 border-black">
+      <div
+        className={`flex ${
+          pendingDepositedUSDC &&
+          pendingDepositedUSDC?._hex !== ZERO_UINT_256 &&
+          "border-black border-b-2"
+        }`}
+      >
         <div className="border-r-2 border-black w-16 flex justify-center items-center">
           <div className="w-7 h-7 rounded-full border-black border-2 flex justify-center items-center">
             <div className="w-4 h-4 rounded-full border-black border-2" />
@@ -363,7 +387,7 @@ export const VaultDeposit = () => {
           <div className="w-full">
             <div className="p-2 text-right">
               <p className="text-xs">
-                Balance:{" "}
+                Wallet Balance:{" "}
                 <RequiresWalletConnection className="w-[60px] h-[16px] mr-2 translate-y-[-2px]">
                   <BigNumberDisplay currency={Currency.USDC}>
                     {userUSDCBalance}
@@ -403,29 +427,6 @@ export const VaultDeposit = () => {
               }
               maxLength={30}
             />
-          </div>
-          <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
-            <div className="flex justify-between items-center">
-              <div className="flex">
-                <p>Deposits on hold</p>
-                <RyskTooltip
-                  message={DEPOSIT_SHARES_EPOCH}
-                  id={"strategeyTip"}
-                  tooltipProps={{ className: "max-w-[350px]" }}
-                />
-              </div>
-              <div className="h-4 flex items-center">
-                {listeningForDeposit && <Loader className="mr-2 !h-[24px]" />}
-                <p>
-                  <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                    <BigNumberDisplay currency={Currency.USDC}>
-                      {pendingDepositedUSDC}
-                    </BigNumberDisplay>
-                  </RequiresWalletConnection>{" "}
-                  USDC
-                </p>
-              </div>
-            </div>
           </div>
           <div className="flex items-center border-b-2 border-black p-2 justify-between">
             <p className="text-[12px] mr-2">Unlimited Approval: </p>
@@ -470,7 +471,7 @@ export const VaultDeposit = () => {
           </div>
         </div>
       </div>
-      <div>
+      {/* <div>
         <div className="h-4" />
         <div className="w-full h-8 bg-black text-white px-2 flex items-center justify-start">
           <p>
@@ -512,7 +513,37 @@ export const VaultDeposit = () => {
             )}
           </div>
         </div>
-      </div>
+      </div> */}
+      {pendingDepositedUSDC && pendingDepositedUSDC?._hex !== ZERO_UINT_256 && (
+        <div>
+          <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
+            <div className="flex justify-between items-center">
+              <div className="flex">
+                <p>Undeployed deposits</p>
+                <RyskTooltip
+                  message={DEPOSIT_SHARES_EPOCH}
+                  id={"strategeyTip"}
+                  tooltipProps={{ className: "max-w-[350px]" }}
+                />
+              </div>
+              <div className="h-4 flex items-center">
+                {listeningForDeposit && <Loader className="mr-2 !h-[24px]" />}
+                <p>
+                  <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
+                    <BigNumberDisplay currency={Currency.USDC}>
+                      {pendingDepositedUSDC}
+                    </BigNumberDisplay>
+                  </RequiresWalletConnection>{" "}
+                  USDC
+                </p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs p-2">{DEPOSIT_SHARES_EPOCH}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

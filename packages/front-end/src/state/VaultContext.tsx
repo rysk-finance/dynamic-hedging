@@ -5,7 +5,7 @@ import { VaultContext, VaultState } from "./types";
 export const defaultVaultState: VaultState = {
   depositEpoch: null,
   withdrawalEpoch: null,
-  depositPricePerShare: null,
+  withdrawPricePerShare: null,
   withdrawalPricePerShare: null,
   userDHVBalance: null,
 };

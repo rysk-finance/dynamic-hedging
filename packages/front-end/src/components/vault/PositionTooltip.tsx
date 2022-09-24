@@ -1,5 +1,9 @@
 import React from "react";
-import { DHV_NAME, ZERO_UINT_256 } from "../../config/constants";
+import {
+  BIG_NUMBER_DECIMALS,
+  DHV_NAME,
+  ZERO_UINT_256,
+} from "../../config/constants";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { Currency } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";
@@ -12,7 +16,7 @@ export const PositionTooltip = () => {
     return (
       <div className="text-right">
         <div className="flex justify-between items-center">
-          <p className="mr-12">Deposits on hold: </p>
+          <p className="mr-12">Undeployed Deposits: </p>
           {positionBreakdown.usdcOnHold?._hex !== ZERO_UINT_256 ? (
             <p>
               <BigNumberDisplay currency={Currency.USDC} suffix={"USDC"}>
@@ -23,59 +27,41 @@ export const PositionTooltip = () => {
             <p>-</p>
           )}
         </div>
+        <div className="flex justify-between items-center bold">
+          <p className="mr-12">Deployed Vault Balance: </p>
+          {positionBreakdown.redeemedShares &&
+          positionBreakdown.unredeemedShares &&
+          positionBreakdown.redeemedShares.add(
+            positionBreakdown.unredeemedShares
+          )._hex !== ZERO_UINT_256 &&
+          positionBreakdown.currentWithdrawSharePrice ? (
+            <p>
+              <BigNumberDisplay currency={Currency.USDC} suffix={"USDC"}>
+                {positionBreakdown.unredeemedShares
+                  .add(positionBreakdown.redeemedShares)
+                  .mul(positionBreakdown.currentWithdrawSharePrice)
+                  .div(BIG_NUMBER_DECIMALS.RYSK)
+                  .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC))}
+              </BigNumberDisplay>
+            </p>
+          ) : (
+            <p>-</p>
+          )}
+        </div>
         <div className="flex justify-between items-center">
           <p className="mr-12">Withdrawals on hold: </p>
-          {positionBreakdown.pendingWithdrawShares?.amount._hex !==
-          ZERO_UINT_256 ? (
+          {positionBreakdown.currentWithdrawSharePrice &&
+          positionBreakdown.pendingWithdrawShares &&
+          positionBreakdown.pendingWithdrawShares.amount._hex !==
+            ZERO_UINT_256 ? (
             <p>
-              <BigNumberDisplay currency={Currency.RYSK} suffix={DHV_NAME}>
-                {positionBreakdown.pendingWithdrawShares?.amount ?? null}
-              </BigNumberDisplay>{" "}
-              @{" "}
-              <BigNumberDisplay
-                currency={Currency.RYSK}
-                suffix={`USDC per ${DHV_NAME}`}
-              >
-                {positionBreakdown.pendingWithdrawShares?.epochPrice ?? null}
-              </BigNumberDisplay>
-            </p>
-          ) : (
-            <p>-</p>
-          )}
-        </div>
-        <hr className="border-black border-1 my-2" />
-        <div className="flex justify-between items-center">
-          <p className="mr-12">Redeemed shares: </p>
-          {positionBreakdown.redeemedShares?._hex !== ZERO_UINT_256 ? (
-            <p>
-              <BigNumberDisplay currency={Currency.RYSK} suffix={DHV_NAME}>
-                {positionBreakdown.redeemedShares}
-              </BigNumberDisplay>{" "}
-              @{" "}
-              <BigNumberDisplay
-                currency={Currency.RYSK}
-                suffix={`USDC per ${DHV_NAME}`}
-              >
-                {positionBreakdown.currentWithdrawSharePrice}
-              </BigNumberDisplay>
-            </p>
-          ) : (
-            <p>-</p>
-          )}
-        </div>
-        <div className="flex justify-between items-center">
-          <p className="mr-12">Unredeemed shares: </p>
-          {positionBreakdown.unredeemedShares?._hex !== ZERO_UINT_256 ? (
-            <p>
-              <BigNumberDisplay currency={Currency.RYSK} suffix={DHV_NAME}>
-                {positionBreakdown.unredeemedShares}
-              </BigNumberDisplay>{" "}
-              @{" "}
-              <BigNumberDisplay
-                currency={Currency.RYSK}
-                suffix={`USDC per ${DHV_NAME}`}
-              >
-                {positionBreakdown.currentWithdrawSharePrice}
+              <BigNumberDisplay currency={Currency.USDC} suffix={"USDC"}>
+                {positionBreakdown.pendingWithdrawShares.amount
+                  .mul(positionBreakdown.currentWithdrawSharePrice)
+                  .div(BIG_NUMBER_DECIMALS.RYSK)
+                  .div(
+                    BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC)
+                  ) ?? null}
               </BigNumberDisplay>
             </p>
           ) : (

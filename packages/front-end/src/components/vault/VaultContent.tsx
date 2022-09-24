@@ -52,22 +52,6 @@ export const VaultContent = () => {
             {<img src="/arbitrum_logo.svg" className="h-6 w-auto ml-2" />}
           </div>
         )}
-
-        <p>
-          Your Position:{" "}
-          <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
-            <BigNumberDisplay
-              currency={Currency.USDC}
-              suffix="USDC"
-              loaderProps={{
-                className: "h-4 w-auto translate-y-[-2px]",
-              }}
-            >
-              {userPositionValue}
-            </BigNumberDisplay>
-            <PositionTooltip />
-          </RequiresWalletConnection>
-        </p>
       </div>
       <div className="col-start-1 col-end-8">
         <div className="font-parabole mb-8">

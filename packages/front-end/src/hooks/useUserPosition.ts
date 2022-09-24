@@ -147,7 +147,7 @@ export const useUserPosition = () => {
       setPositionBreakdown({ redeemedShares: balance });
 
       const currentDepositEpoch = await lpContract?.depositEpoch();
-      const currentWithdrawalEpoch = await lpContract?.depositEpoch();
+      const currentWithdrawalEpoch = await lpContract?.withdrawalEpoch();
       const latestWithdrawalSharePrice =
         await lpContract?.withdrawalEpochPricePerShare(
           currentWithdrawalEpoch.sub(1)

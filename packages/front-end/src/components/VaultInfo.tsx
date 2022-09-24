@@ -11,7 +11,7 @@ export const VaultInfo = () => {
   const {
     state: {
       depositEpoch,
-      depositPricePerShare,
+      withdrawPricePerShare: depositPricePerShare,
       withdrawalEpoch,
       withdrawalPricePerShare,
     },
