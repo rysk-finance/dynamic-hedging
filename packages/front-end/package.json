@@ -24,6 +24,7 @@
     "fathom-client": "^3.5.0",
     "graphql": "^16.5.0",
     "greeks": "^1.0.0",
+    "humanize-duration": "^3.27.3",
     "implied-volatility": "^1.0.0",
     "moment": "^2.29.3",
     "react": "^17.0.2",
@@ -69,6 +70,7 @@
     ]
   },
   "devDependencies": {
+    "@types/humanize-duration": "^3.27.1",
     "@types/node": "^16.11.27",
     "@types/react-datepicker": "^4.4.1",
     "@types/react-scroll": "^1.8.4",
