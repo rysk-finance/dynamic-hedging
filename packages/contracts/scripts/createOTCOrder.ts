@@ -29,12 +29,12 @@ async function main() {
 			signers[0]
 		)
 
-		const EXPIRY = new Date("2022-09-23T08:00:00Z")
+		const EXPIRY = new Date("2022-10-28T08:00:00Z")
 
 		const option = {
 			expiration: EXPIRY.getTime() / 1000,
 			// Need to update to give a value in the orderBounds defined on optionHandler.
-			strike: BigNumber.from("2100").mul(RYSK_DECIMAL),
+			strike: BigNumber.from("1600").mul(RYSK_DECIMAL),
 			isPut: false,
 			underlying: arbitrumRinkeby.WETH,
 			strikeAsset: arbitrumRinkeby.USDC,
@@ -42,7 +42,7 @@ async function main() {
 		}
 
 		const orderAmount = 10
-		const pricePerOptionInUsdc = 350
+		const pricePerOptionInUsdc = 42
 
 		alphaOptionHandler.on("OrderCreated", orderId => {
 			console.log(`Created order ID: ${orderId}`)
@@ -54,7 +54,7 @@ async function main() {
 			BigNumber.from((orderAmount * RYSK_EXP).toString()), // amount
 			BigNumber.from((pricePerOptionInUsdc * RYSK_EXP).toString()), // price
 			BigNumber.from(1800), // expiry
-			"0x939f39468b34E985d5Faa8d044569cfeC9E6CA69",
+			"0xAD5B468F6Fb897461E388396877fD5E3c5114539",
 			false, // is_buyback
 			[toWei("100"), toWei("100")]
 		)

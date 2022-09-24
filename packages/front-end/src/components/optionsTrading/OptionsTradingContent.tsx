@@ -60,7 +60,7 @@ export const OptionsTradingContent = () => {
                           <b>Ether</b>
                         </h4>
                         <p className="text-gray-600 text-xs">
-                          Late Update:{" "}
+                          Latest Update:{" "}
                           {ethPriceUpdateTime?.toLocaleTimeString("en-US")}
                         </p>
                       </div>
