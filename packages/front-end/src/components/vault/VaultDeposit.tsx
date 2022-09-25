@@ -350,7 +350,7 @@ export const VaultDeposit = () => {
   return (
     <div className="flex-col items-center justify-between h-full">
       <div className="p-2 bg-black text-white mb-2">
-        <p>
+        <p className="text-right">
           Your Position:{" "}
           <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
             <BigNumberDisplay
@@ -519,7 +519,7 @@ export const VaultDeposit = () => {
           <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
             <div className="flex justify-between items-center">
               <div className="flex">
-                <p>Undeployed deposits</p>
+                <p>Deposits on hold</p>
                 <RyskTooltip
                   message={DEPOSIT_SHARES_EPOCH}
                   id={"strategeyTip"}
