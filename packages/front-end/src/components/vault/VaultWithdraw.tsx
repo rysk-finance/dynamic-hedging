@@ -13,6 +13,7 @@ import {
   ZERO_UINT_256,
 } from "../../config/constants";
 import {
+  WITHDRAW_COMPLETE,
   WITHDRAW_ESTIMATE_MESSAGE,
   WITHDRAW_SHARES_EPOCH,
 } from "../../config/messages";
@@ -418,7 +419,7 @@ export const VaultWithdraw = () => {
               <div className="p-4 border-b-2 border-black">
                 <div className="flex justify-between items-center">
                   <p className="text-[16px] mr-2">
-                    Projected amount to withdraw
+                    Estimated amount
                     <RyskTooltip
                       tooltipProps={{ className: "max-w-[350px]" }}
                       message={WITHDRAW_ESTIMATE_MESSAGE}
@@ -562,7 +563,7 @@ export const VaultWithdraw = () => {
           </div>
         ) : (
           <div className="p-2">
-            <p className="text-xs">{WITHDRAW_SHARES_EPOCH}</p>
+            <p className="text-xs">{WITHDRAW_COMPLETE}</p>
           </div>
         )}
       </div>
