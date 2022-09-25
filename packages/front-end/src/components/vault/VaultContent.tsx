@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { BigNumberDisplay } from "../../components/BigNumberDisplay";
 import { LPStats } from "../../components/LPStats";
 import { Card } from "../../components/shared/Card";
@@ -18,6 +18,7 @@ import { CHAINID } from "../../config/constants";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { PositionTooltip } from "./PositionTooltip";
 import { VaultMechanism } from "../VaultMechanism";
+import { useLocation } from "react-router-dom";
 
 export const VaultContent = () => {
   const { chainId, network, account } = useWalletContext();
@@ -28,6 +29,18 @@ export const VaultContent = () => {
   const envChainID = process.env.REACT_APP_CHAIN_ID;
 
   const { userPositionValue, updatePosition } = useUserPosition();
+
+  const { search } = useLocation();
+
+  const initialTabIndex = useMemo(() => {
+    if (search) {
+      const params = new URLSearchParams(search);
+      if (params.get("type") === "withdraw") {
+        return 1;
+      }
+      return 0;
+    }
+  }, [search]);
 
   useEffect(() => {
     if (account) {
@@ -108,6 +121,7 @@ export const VaultContent = () => {
             },
             { label: "Withdraw", content: <VaultWithdraw /> },
           ]}
+          initialTabIndex={initialTabIndex}
         ></Card>
       </div>
 
