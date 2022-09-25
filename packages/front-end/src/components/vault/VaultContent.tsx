@@ -55,8 +55,8 @@ export const VaultContent = () => {
         )}
 
         <p className="text-sm">
-          Rysk is currently in Alpha Version. Use with cautions and 
-          <a href={DISCORD_LINK} target="blank"> let us know any feedback!</a> 
+          Rysk is currently in Alpha Version. Use with caution and 
+          <a href={DISCORD_LINK} target="blank"> let us know any feedback</a> 
         </p>
 
         <p>
