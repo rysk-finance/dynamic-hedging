@@ -2,7 +2,7 @@ import { gql, useQuery } from "@apollo/client";
 import { BigNumber } from "ethers";
 import React, { useEffect, useMemo, useState } from "react";
 import { useWalletContext } from "../../App";
-import LPABI from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
+import LPABI from "../../abis/LiquidityPool.json";
 import { DHV_NAME } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { useVaultContext } from "../../state/VaultContext";
@@ -18,7 +18,7 @@ type WithdrawAction = {
 export const PendingWithdrawBreakdown: React.FC = () => {
   const [lpContract] = useContract({
     contract: "liquidityPool",
-    ABI: LPABI.abi,
+    ABI: LPABI,
     readOnly: true,
   });
 

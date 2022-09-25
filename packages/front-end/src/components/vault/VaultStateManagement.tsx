@@ -3,7 +3,7 @@ import { BigNumber } from "ethers";
 import { useCallback, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../../App";
-import LPABI from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
+import LPABI from "../../abis/LiquidityPool.json";
 import { useContract } from "../../hooks/useContract";
 import { VaultActionType } from "../../state/types";
 import { useVaultContext } from "../../state/VaultContext";
@@ -19,7 +19,7 @@ export const VaultStateManagment = () => {
     WithdrawalEpochExecuted: [];
   }>({
     contract: "liquidityPool",
-    ABI: LPABI.abi,
+    ABI: LPABI,
     readOnly: true,
     events: {
       DepositEpochExecuted: async () => {

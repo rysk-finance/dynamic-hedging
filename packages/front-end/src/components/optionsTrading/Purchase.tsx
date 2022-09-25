@@ -5,8 +5,8 @@ import React, { useState } from "react";
 import { toast } from "react-toastify";
 import ERC20ABI from "../../abis/erc20.json";
 import { useWalletContext } from "../../App";
-import OptionHandlerABI from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json";
-import OptionRegistryABI from "../../artifacts/contracts/OptionRegistry.sol/OptionRegistry.json";
+import OptionHandlerABI from "../../abis/OptionHandler.json";
+import OptionRegistryABI from "../../abis/OptionRegistry.json";
 import {
   BIG_NUMBER_DECIMALS,
   CHAINID,
@@ -62,13 +62,13 @@ export const Purchase: React.FC = () => {
   // Contracts
   const [optionRegistryContract, optionRegistryContractCall] = useContract({
     contract: "OpynOptionRegistry",
-    ABI: OptionRegistryABI.abi,
+    ABI: OptionRegistryABI,
     readOnly: false,
   });
 
   const [optionHandlerContract, optionHandlerContractCall] = useContract({
     contract: "optionHandler",
-    ABI: OptionHandlerABI.abi,
+    ABI: OptionHandlerABI,
     readOnly: false,
   });
 
