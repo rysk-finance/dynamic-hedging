@@ -18,6 +18,7 @@ import { CHAINID } from "../../config/constants";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { PositionTooltip } from "./PositionTooltip";
 import { VaultMechanism } from "../VaultMechanism";
+import { DISCORD_LINK } from "../../config/links";
 
 export const VaultContent = () => {
   const { chainId, network, account } = useWalletContext();
@@ -52,6 +53,11 @@ export const VaultContent = () => {
             {<img src="/arbitrum_logo.svg" className="h-6 w-auto ml-2" />}
           </div>
         )}
+
+        <p className="text-sm">
+          Rysk is currently in Alpha Version. Use with cautions and 
+          <a href={DISCORD_LINK} target="blank"> let us know any feedback!</a> 
+        </p>
 
         <p>
           Your Position:{" "}
