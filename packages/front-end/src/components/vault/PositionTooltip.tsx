@@ -16,7 +16,7 @@ export const PositionTooltip = () => {
     return (
       <div className="text-right">
         <div className="flex justify-between items-center">
-          <p className="mr-12">Undeployed Deposits: </p>
+          <p className="mr-12">Deposits on hold: </p>
           {positionBreakdown.usdcOnHold?._hex !== ZERO_UINT_256 ? (
             <p>
               <BigNumberDisplay currency={Currency.USDC} suffix={"USDC"}>
@@ -28,7 +28,7 @@ export const PositionTooltip = () => {
           )}
         </div>
         <div className="flex justify-between items-center bold">
-          <p className="mr-12">Deployed Vault Balance: </p>
+          <p className="mr-12">Current Vault Balance: </p>
           {positionBreakdown.redeemedShares &&
           positionBreakdown.unredeemedShares &&
           positionBreakdown.redeemedShares.add(
