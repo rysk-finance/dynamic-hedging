@@ -19,7 +19,7 @@ import { useUserPosition } from "../../hooks/useUserPosition";
 import { PositionTooltip } from "./PositionTooltip";
 import { VaultMechanism } from "../VaultMechanism";
 import { useLocation } from "react-router-dom";
-import { DISCORD_LINK } from "../../config/links";
+import { DISCORD_LINK, TWITTER_LINK } from "../../config/links";
 
 export const VaultContent = () => {
   const { chainId, network, account } = useWalletContext();
@@ -74,21 +74,24 @@ export const VaultContent = () => {
           </a>
         </p>
 
-        <p className="min-w-[240px]">
-          Your Position:{" "}
-          <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
-            <BigNumberDisplay
-              currency={Currency.USDC}
-              suffix="USDC"
-              loaderProps={{
-                className: "h-4 w-auto translate-y-[-2px]",
-              }}
-            >
-              {userPositionValue}
-            </BigNumberDisplay>
-            <PositionTooltip />
-          </RequiresWalletConnection>
-        </p>
+        <div className="min-w-[240px] flex justify-end items-center">
+          {" "}
+          <button
+            className="mr-4"
+            onClick={() => {
+              window.open(DISCORD_LINK, "_blank");
+            }}
+          >
+            <img src="/icons/discord.svg" className="w-6 h-6 invert" />
+          </button>
+          <button
+            onClick={() => {
+              window.open(TWITTER_LINK, "_blank");
+            }}
+          >
+            <img src="/icons/twitter.svg" className="w-6 h-6 invert" />
+          </button>
+        </div>
       </div>
       <div className="col-start-1 col-end-8">
         <div className="font-parabole mb-8">
