@@ -132,7 +132,7 @@ function App() {
   const [network, setNetwork] = useState<WalletContext["network"] | null>(null);
   //
   const [rpcURL, setRPCURL] = useState<string>(
-    process.env.REACT_APP_ENV === "mainnet"
+    process.env.REACT_APP_ENV === "production"
       ? RPC_URL_MAP[CHAINID.ARBITRUM_MAINNET]
       : RPC_URL_MAP[CHAINID.ARBITRUM_RINKEBY]
   );

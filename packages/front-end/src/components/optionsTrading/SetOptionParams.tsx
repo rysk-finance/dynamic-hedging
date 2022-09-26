@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import LPABI from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
+import LPABI from "../../abis/LiquidityPool.json";
 import addresses from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
@@ -13,7 +13,7 @@ export const SetOptionParams = () => {
 
   const [lpContract] = useContract({
     contract: "liquidityPool",
-    ABI: LPABI.abi,
+    ABI: LPABI,
     readOnly: false,
   });
 

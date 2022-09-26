@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useContract } from "../../hooks/useContract";
-import LPABI from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
+import LPABI from "../../abis/LiquidityPool.json";
 import { BigNumber } from "ethers";
 import { gql, useQuery } from "@apollo/client";
 import { useWalletContext } from "../../App";
@@ -18,7 +18,7 @@ type DepositAction = {
 export const UnredeemedDepositBreakdown: React.FC = () => {
   const [lpContract] = useContract({
     contract: "liquidityPool",
-    ABI: LPABI.abi,
+    ABI: LPABI,
     readOnly: true,
   });
 

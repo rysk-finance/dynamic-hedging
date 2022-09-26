@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { useContract } from "./useContract";
-import LPABI from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
+import LPABI from "../abis/LiquidityPool.json";
 import { BigNumber } from "ethers";
 import { useWalletContext } from "../App";
 import { BIG_NUMBER_DECIMALS } from "../config/constants";
@@ -13,7 +13,7 @@ export const useUserPosition = () => {
 
   const [lpContract] = useContract({
     contract: "liquidityPool",
-    ABI: LPABI.abi,
+    ABI: LPABI,
     readOnly: true,
   });
 

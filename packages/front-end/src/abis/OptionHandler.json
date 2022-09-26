@@ -24,27 +24,6 @@
       "inputs":[
          
       ],
-      "name":"CustomOrderInsufficientPrice",
-      "type":"error"
-   },
-   {
-      "inputs":[
-         
-      ],
-      "name":"CustomOrderInvalidDeltaValue",
-      "type":"error"
-   },
-   {
-      "inputs":[
-         
-      ],
-      "name":"DeltaNotDecreased",
-      "type":"error"
-   },
-   {
-      "inputs":[
-         
-      ],
       "name":"InvalidBuyer",
       "type":"error"
    },
@@ -52,21 +31,14 @@
       "inputs":[
          
       ],
+      "name":"InvalidOrder",
+      "type":"error"
+   },
+   {
+      "inputs":[
+         
+      ],
       "name":"InvalidPrice",
-      "type":"error"
-   },
-   {
-      "inputs":[
-         
-      ],
-      "name":"NonExistentOtoken",
-      "type":"error"
-   },
-   {
-      "inputs":[
-         
-      ],
-      "name":"OptionExpiryInvalid",
       "type":"error"
    },
    {
@@ -85,43 +57,20 @@
    },
    {
       "inputs":[
-         
-      ],
-      "name":"PRBMathSD59x18__AbsInputTooSmall",
-      "type":"error"
-   },
-   {
-      "inputs":[
-         
-      ],
-      "name":"PRBMathSD59x18__DivInputTooSmall",
-      "type":"error"
-   },
-   {
-      "inputs":[
-         {
-            "internalType":"uint256",
-            "name":"rAbs",
-            "type":"uint256"
-         }
-      ],
-      "name":"PRBMathSD59x18__DivOverflow",
-      "type":"error"
-   },
-   {
-      "inputs":[
          {
             "internalType":"uint256",
             "name":"prod1",
             "type":"uint256"
-         },
-         {
-            "internalType":"uint256",
-            "name":"denominator",
-            "type":"uint256"
          }
       ],
-      "name":"PRBMath__MulDivOverflow",
+      "name":"PRBMath__MulDivFixedPointOverflow",
+      "type":"error"
+   },
+   {
+      "inputs":[
+         
+      ],
+      "name":"SpotMovedBeyondRange",
       "type":"error"
    },
    {
@@ -171,52 +120,6 @@
       "type":"event"
    },
    {
-      "anonymous":false,
-      "inputs":[
-         {
-            "indexed":false,
-            "internalType":"address",
-            "name":"account",
-            "type":"address"
-         }
-      ],
-      "name":"Paused",
-      "type":"event"
-   },
-   {
-      "anonymous":false,
-      "inputs":[
-         {
-            "indexed":false,
-            "internalType":"address",
-            "name":"account",
-            "type":"address"
-         }
-      ],
-      "name":"Unpaused",
-      "type":"event"
-   },
-   {
-      "inputs":[
-         {
-            "internalType":"address",
-            "name":"_addressToWhitelist",
-            "type":"address"
-         },
-         {
-            "internalType":"bool",
-            "name":"toAdd",
-            "type":"bool"
-         }
-      ],
-      "name":"addOrRemoveBuybackAddress",
-      "outputs":[
-         
-      ],
-      "stateMutability":"nonpayable",
-      "type":"function"
-   },
-   {
       "inputs":[
          
       ],
@@ -226,49 +129,6 @@
             "internalType":"contract IAuthority",
             "name":"",
             "type":"address"
-         }
-      ],
-      "stateMutability":"view",
-      "type":"function"
-   },
-   {
-      "inputs":[
-         {
-            "internalType":"address",
-            "name":"seriesAddress",
-            "type":"address"
-         },
-         {
-            "internalType":"uint256",
-            "name":"amount",
-            "type":"uint256"
-         }
-      ],
-      "name":"buybackOption",
-      "outputs":[
-         {
-            "internalType":"uint256",
-            "name":"",
-            "type":"uint256"
-         }
-      ],
-      "stateMutability":"nonpayable",
-      "type":"function"
-   },
-   {
-      "inputs":[
-         {
-            "internalType":"address",
-            "name":"",
-            "type":"address"
-         }
-      ],
-      "name":"buybackWhitelist",
-      "outputs":[
-         {
-            "internalType":"bool",
-            "name":"",
-            "type":"bool"
          }
       ],
       "stateMutability":"view",
@@ -347,6 +207,16 @@
             "internalType":"address",
             "name":"_buyerAddress",
             "type":"address"
+         },
+         {
+            "internalType":"bool",
+            "name":"_isBuyBack",
+            "type":"bool"
+         },
+         {
+            "internalType":"uint256[2]",
+            "name":"_spotMovementRange",
+            "type":"uint256[2]"
          }
       ],
       "name":"createOrder",
@@ -465,6 +335,16 @@
             "internalType":"address",
             "name":"_buyerAddress",
             "type":"address"
+         },
+         {
+            "internalType":"uint256[2]",
+            "name":"_callSpotMovementRange",
+            "type":"uint256[2]"
+         },
+         {
+            "internalType":"uint256[2]",
+            "name":"_putSpotMovementRange",
+            "type":"uint256[2]"
          }
       ],
       "name":"createStrangle",
@@ -485,37 +365,17 @@
    },
    {
       "inputs":[
-         
-      ],
-      "name":"customOrderBounds",
-      "outputs":[
          {
-            "internalType":"uint128",
-            "name":"callMinDelta",
-            "type":"uint128"
-         },
-         {
-            "internalType":"uint128",
-            "name":"callMaxDelta",
-            "type":"uint128"
-         },
-         {
-            "internalType":"int128",
-            "name":"putMinDelta",
-            "type":"int128"
-         },
-         {
-            "internalType":"int128",
-            "name":"putMaxDelta",
-            "type":"int128"
-         },
-         {
-            "internalType":"uint32",
-            "name":"maxPriceRange",
-            "type":"uint32"
+            "internalType":"uint256",
+            "name":"_orderId",
+            "type":"uint256"
          }
       ],
-      "stateMutability":"view",
+      "name":"executeBuyBackOrder",
+      "outputs":[
+         
+      ],
+      "stateMutability":"nonpayable",
       "type":"function"
    },
    {
@@ -549,118 +409,6 @@
       "name":"executeStrangle",
       "outputs":[
          
-      ],
-      "stateMutability":"nonpayable",
-      "type":"function"
-   },
-   {
-      "inputs":[
-         {
-            "components":[
-               {
-                  "internalType":"uint64",
-                  "name":"expiration",
-                  "type":"uint64"
-               },
-               {
-                  "internalType":"uint128",
-                  "name":"strike",
-                  "type":"uint128"
-               },
-               {
-                  "internalType":"bool",
-                  "name":"isPut",
-                  "type":"bool"
-               },
-               {
-                  "internalType":"address",
-                  "name":"underlying",
-                  "type":"address"
-               },
-               {
-                  "internalType":"address",
-                  "name":"strikeAsset",
-                  "type":"address"
-               },
-               {
-                  "internalType":"address",
-                  "name":"collateral",
-                  "type":"address"
-               }
-            ],
-            "internalType":"struct Types.OptionSeries",
-            "name":"optionSeries",
-            "type":"tuple"
-         }
-      ],
-      "name":"issue",
-      "outputs":[
-         {
-            "internalType":"address",
-            "name":"series",
-            "type":"address"
-         }
-      ],
-      "stateMutability":"nonpayable",
-      "type":"function"
-   },
-   {
-      "inputs":[
-         {
-            "components":[
-               {
-                  "internalType":"uint64",
-                  "name":"expiration",
-                  "type":"uint64"
-               },
-               {
-                  "internalType":"uint128",
-                  "name":"strike",
-                  "type":"uint128"
-               },
-               {
-                  "internalType":"bool",
-                  "name":"isPut",
-                  "type":"bool"
-               },
-               {
-                  "internalType":"address",
-                  "name":"underlying",
-                  "type":"address"
-               },
-               {
-                  "internalType":"address",
-                  "name":"strikeAsset",
-                  "type":"address"
-               },
-               {
-                  "internalType":"address",
-                  "name":"collateral",
-                  "type":"address"
-               }
-            ],
-            "internalType":"struct Types.OptionSeries",
-            "name":"optionSeries",
-            "type":"tuple"
-         },
-         {
-            "internalType":"uint256",
-            "name":"amount",
-            "type":"uint256"
-         }
-      ],
-      "name":"issueAndWriteOption",
-      "outputs":[
-         {
-            "internalType":"uint256",
-            "name":"optionAmount",
-            "type":"uint256"
-         },
-         {
-            "internalType":"address",
-            "name":"series",
-            "type":"address"
-         }
       ],
       "stateMutability":"nonpayable",
       "type":"function"
@@ -766,31 +514,20 @@
             "internalType":"address",
             "name":"seriesAddress",
             "type":"address"
-         }
-      ],
-      "stateMutability":"view",
-      "type":"function"
-   },
-   {
-      "inputs":[
-         
-      ],
-      "name":"pauseContract",
-      "outputs":[
-         
-      ],
-      "stateMutability":"nonpayable",
-      "type":"function"
-   },
-   {
-      "inputs":[
-         
-      ],
-      "name":"paused",
-      "outputs":[
+         },
+         {
+            "internalType":"uint128",
+            "name":"lowerSpotMovementRange",
+            "type":"uint128"
+         },
+         {
+            "internalType":"uint128",
+            "name":"upperSpotMovementRange",
+            "type":"uint128"
+         },
          {
             "internalType":"bool",
-            "name":"",
+            "name":"isBuyBack",
             "type":"bool"
          }
       ],
@@ -829,41 +566,6 @@
    },
    {
       "inputs":[
-         {
-            "internalType":"uint128",
-            "name":"_callMinDelta",
-            "type":"uint128"
-         },
-         {
-            "internalType":"uint128",
-            "name":"_callMaxDelta",
-            "type":"uint128"
-         },
-         {
-            "internalType":"int128",
-            "name":"_putMinDelta",
-            "type":"int128"
-         },
-         {
-            "internalType":"int128",
-            "name":"_putMaxDelta",
-            "type":"int128"
-         },
-         {
-            "internalType":"uint32",
-            "name":"_maxPriceRange",
-            "type":"uint32"
-         }
-      ],
-      "name":"setCustomOrderBounds",
-      "outputs":[
-         
-      ],
-      "stateMutability":"nonpayable",
-      "type":"function"
-   },
-   {
-      "inputs":[
          
       ],
       "name":"strikeAsset",
@@ -890,41 +592,6 @@
          }
       ],
       "stateMutability":"view",
-      "type":"function"
-   },
-   {
-      "inputs":[
-         
-      ],
-      "name":"unpause",
-      "outputs":[
-         
-      ],
-      "stateMutability":"nonpayable",
-      "type":"function"
-   },
-   {
-      "inputs":[
-         {
-            "internalType":"address",
-            "name":"seriesAddress",
-            "type":"address"
-         },
-         {
-            "internalType":"uint256",
-            "name":"amount",
-            "type":"uint256"
-         }
-      ],
-      "name":"writeOption",
-      "outputs":[
-         {
-            "internalType":"uint256",
-            "name":"",
-            "type":"uint256"
-         }
-      ],
-      "stateMutability":"nonpayable",
       "type":"function"
    }
 ]

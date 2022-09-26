@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../../App";
-// import OptionHandler from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json";
-import AlphaOptionHandler from "../../artifacts/contracts/AlphaOptionHandler.sol/AlphaOptionHandler.json";
-import OptionRegistry from "../../artifacts/contracts/OptionRegistry.sol/OptionRegistry.json";
+import OptionHandler from "../../abis/OptionHandler.json";
+import OptionRegistry from "../../abis/OptionRegistry.json";
 import { BIG_NUMBER_DECIMALS, ZERO_UINT_256 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { useQueryParams } from "../../hooks/useQueryParams";
@@ -48,15 +47,15 @@ export const OTCPageContent = () => {
     "Please connect your wallet"
   );
 
-  const [alphaOptionHandlerContract, alphaOptionHandlerContractCall] =
+  const [optionHandlerContract, optionHandlerContractCall] =
     useContract({
       contract: "optionHandler",
-      ABI: AlphaOptionHandler.abi,
+      ABI: OptionHandler,
     });
 
   const [optionRegistryContract, optionRegistryContractCall] = useContract({
     contract: "OpynOptionRegistry",
-    ABI: OptionRegistry.abi,
+    ABI: OptionRegistry,
   });
 
   const [usdcContract, usdcContractCall] = useContract({
@@ -68,7 +67,7 @@ export const OTCPageContent = () => {
   // Parse order query param and fetch order / strangle from chain.
   useEffect(() => {
     const fetchOrder = async () => {
-      if (alphaOptionHandlerContract && network && account)
+      if (optionHandlerContract && network && account)
         try {
           const id = query.get("id");
 
@@ -89,11 +88,11 @@ export const OTCPageContent = () => {
               .split("-")
               .map((numString) => Number(numString));
 
-            const order1 = (await alphaOptionHandlerContract.orderStores(
+            const order1 = (await optionHandlerContract.orderStores(
               id1
             )) as Order | null;
 
-            const order2 = (await alphaOptionHandlerContract.orderStores(
+            const order2 = (await optionHandlerContract.orderStores(
               id2
             )) as Order | null;
 
@@ -120,7 +119,7 @@ export const OTCPageContent = () => {
             }
           } else {
             const parsedId = Number(id);
-            const order = (await alphaOptionHandlerContract.orderStores(
+            const order = (await optionHandlerContract.orderStores(
               parsedId
             )) as Order | null;
 
@@ -156,7 +155,7 @@ export const OTCPageContent = () => {
 
     fetchOrder();
   }, [
-    alphaOptionHandlerContract,
+    optionHandlerContract,
     query,
     account,
     network,
@@ -174,7 +173,7 @@ export const OTCPageContent = () => {
 
   // Regular order handlers
   const handleApprove = useCallback(async () => {
-    if (usdcContract && alphaOptionHandlerContract && (order || strangle)) {
+    if (usdcContract && optionHandlerContract && (order || strangle)) {
       const isStrangle = !!strangle;
       const totalPrice = isStrangle
         ? strangle.call.price
@@ -190,7 +189,7 @@ export const OTCPageContent = () => {
       if (totalPrice) {
         usdcContractCall({
           method: usdcContract.approve,
-          args: [alphaOptionHandlerContract.address, totalPrice],
+          args: [optionHandlerContract.address, totalPrice],
           onSubmit: () => {
             setIsListeningForApproval(true);
           },
@@ -207,7 +206,7 @@ export const OTCPageContent = () => {
       toast("❌ There was an error. Please contact our team.");
     }
   }, [
-    alphaOptionHandlerContract,
+    optionHandlerContract,
     usdcContract,
     usdcContractCall,
     order,
@@ -215,10 +214,10 @@ export const OTCPageContent = () => {
   ]);
 
   const handleComplete = useCallback(async () => {
-    if (alphaOptionHandlerContract) {
+    if (optionHandlerContract) {
       if (orderId) {
-        await alphaOptionHandlerContractCall({
-          method: alphaOptionHandlerContract.executeOrder,
+        await optionHandlerContractCall({
+          method: optionHandlerContract.executeOrder,
           args: [Number(orderId)],
           onSubmit: () => {
             setIsListeningForComplete(true);
@@ -234,8 +233,8 @@ export const OTCPageContent = () => {
           .split("-")
           .map((numString) => Number(numString));
 
-        await alphaOptionHandlerContractCall({
-          method: alphaOptionHandlerContract.executeStrangle,
+        await optionHandlerContractCall({
+          method: optionHandlerContract.executeStrangle,
           args: [Number(id1), Number(id2)],
           onSubmit: () => {
             setIsListeningForComplete(true);
@@ -251,8 +250,8 @@ export const OTCPageContent = () => {
       toast("❌ There was an error. Please contact our team.");
     }
   }, [
-    alphaOptionHandlerContract,
-    alphaOptionHandlerContractCall,
+    optionHandlerContract,
+    optionHandlerContractCall,
     orderId,
     strangleId,
   ]);
@@ -260,7 +259,7 @@ export const OTCPageContent = () => {
   // BuyBack order handlers
   const handleApproveBuyBack = useCallback(async () => {
     if (
-      alphaOptionHandlerContract &&
+      optionHandlerContract &&
       optionRegistryContract &&
       order &&
       orderId &&
@@ -269,7 +268,7 @@ export const OTCPageContent = () => {
       try {
         if (optionSeriesContract) {
           const tx = await optionSeriesContract.approve(
-            alphaOptionHandlerContract.address,
+            optionHandlerContract.address,
             // Need to approve in e8. order.amount is e18
             order.amount.div(1e10)
           );
@@ -283,7 +282,7 @@ export const OTCPageContent = () => {
       }
     }
   }, [
-    alphaOptionHandlerContract,
+    optionHandlerContract,
     optionSeriesContract,
     optionRegistryContract,
     order,
@@ -292,9 +291,9 @@ export const OTCPageContent = () => {
   ]);
 
   const handleCompleteBuyBack = useCallback(async () => {
-    if (alphaOptionHandlerContract) {
-      await alphaOptionHandlerContractCall({
-        method: alphaOptionHandlerContract.executeBuyBackOrder,
+    if (optionHandlerContract) {
+      await optionHandlerContractCall({
+        method: optionHandlerContract.executeBuyBackOrder,
         args: [Number(orderId)],
         onSubmit: () => {
           setIsListeningForComplete(true);
@@ -306,17 +305,17 @@ export const OTCPageContent = () => {
         },
       });
     }
-  }, [alphaOptionHandlerContract, alphaOptionHandlerContractCall, orderId]);
+  }, [optionHandlerContract, optionHandlerContractCall, orderId]);
 
   const getAllowance = useCallback(async () => {
-    if (account && order && alphaOptionHandlerContract) {
+    if (account && order && optionHandlerContract) {
       // BuyBack order
       if (order.isBuyBack) {
         if (optionSeriesContract) {
           debugger;
           const allowance = await optionSeriesContract.allowance(
             account,
-            alphaOptionHandlerContract.address
+            optionHandlerContract.address
           );
           setApprovedAmount(allowance);
         }
@@ -324,7 +323,7 @@ export const OTCPageContent = () => {
       } else {
         const allowance = await usdcContract?.allowance(
           account,
-          alphaOptionHandlerContract.address
+          optionHandlerContract.address
         );
         setApprovedAmount(allowance);
       }
@@ -332,7 +331,7 @@ export const OTCPageContent = () => {
   }, [
     account,
     usdcContract,
-    alphaOptionHandlerContract,
+    optionHandlerContract,
     order,
     optionSeriesContract,
   ]);

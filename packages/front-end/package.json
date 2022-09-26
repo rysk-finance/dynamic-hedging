@@ -46,7 +46,7 @@
   "scripts": {
     "start": "env-cmd -f .env -f .env.local react-scripts start",
     "start:testnet": "env-cmd -f .env -f .env.testnet react-scripts start",
-    "start:mainnet": "env-cmd -f .env -f .env.mainnet react-scripts start",
+    "start:arbitrum": "env-cmd -f .env -f .env.arbitrum react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
