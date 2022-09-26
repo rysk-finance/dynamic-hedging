@@ -77,7 +77,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const expiryDate: string = "2022-04-05"
 
 // decimal representation of a percentage
-const rfr: string = "0.03"
+const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000

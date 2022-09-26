@@ -248,21 +248,17 @@ describe("Oracle core logic", async () => {
 		receiverAddress = await signers[1].getAddress()
 	})
 	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = 
-		{
-			callAlpha:250000,
-			callBeta:1_000000,
-			callRho:-300000,
-			callVolvol:1_500000,
-			putAlpha:250000,
-			putBeta:1_000000,
-			putRho:-300000,
-			putVolvol:1_500000
+		const proposedSabrParams = {
+			callAlpha: 250000,
+			callBeta: 1_000000,
+			callRho: -300000,
+			callVolvol: 1_500000,
+			putAlpha: 250000,
+			putBeta: 1_000000,
+			putRho: -300000,
+			putVolvol: 1_500000
 		}
-		await volFeed.setSabrParameters(
-			proposedSabrParams, 
-			expiration
-		)
+		await volFeed.setSabrParameters(proposedSabrParams, expiration)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -345,7 +341,7 @@ describe("Oracle core logic", async () => {
 			BigNumber.from(0),
 			priceQuote
 		)
-		
+
 		let quote = (
 			await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount, false)
 		)[0]
@@ -522,21 +518,17 @@ describe("Oracle core logic", async () => {
 		expect(portfolioValues.portfolioDelta).to.eq(0)
 	})
 	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = 
-		{
-			callAlpha:250000,
-			callBeta:1_000000,
-			callRho:-300000,
-			callVolvol:1_500000,
-			putAlpha:250000,
-			putBeta:1_000000,
-			putRho:-300000,
-			putVolvol:1_500000
+		const proposedSabrParams = {
+			callAlpha: 250000,
+			callBeta: 1_000000,
+			callRho: -300000,
+			callVolvol: 1_500000,
+			putAlpha: 250000,
+			putBeta: 1_000000,
+			putRho: -300000,
+			putVolvol: 1_500000
 		}
-		await volFeed.setSabrParameters(
-			proposedSabrParams, 
-			expiration
-		)
+		await volFeed.setSabrParameters(proposedSabrParams, expiration)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -558,15 +550,15 @@ describe("Oracle core logic", async () => {
 		let expiration = Date.parse("30 July 2022 08:00:00 UTC") / 1000
 		await volFeed.setSabrParameters(
 			{
-				callAlpha:250000,
-				callBeta:1_000000,
-				callRho:-300000,
-				callVolvol:1_500000,
-				putAlpha:250000,
-				putBeta:1_000000,
-				putRho:-300000,
-				putVolvol:1_500000
-			}, 
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000
+			},
 			expiration
 		)
 		const proposedPutSeries = {

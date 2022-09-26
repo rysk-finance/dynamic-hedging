@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import ERC20ABI from "../../abis/erc20.json";
 import { useWalletContext } from "../../App";
-import LPABI from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json";
+import LPABI from "../../abis/LiquidityPool.json";
 import {
   BIG_NUMBER_DECIMALS,
   DECIMALS,
@@ -79,7 +79,7 @@ export const VaultDeposit = () => {
     DepositEpochExecuted: [];
   }>({
     contract: "liquidityPool",
-    ABI: LPABI.abi,
+    ABI: LPABI,
     readOnly: false,
     events: {
       DepositEpochExecuted: () => {

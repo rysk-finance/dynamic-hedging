@@ -74,7 +74,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	const optionProtocol = deployParams.optionProtocol
 	const authority = deployParams.authority
 
-	const rfr: string = "0.03"
+	const rfr: string = "0"
 	const minCallStrikePrice = utils.parseEther("500")
 	const maxCallStrikePrice = utils.parseEther("10000")
 	const minPutStrikePrice = utils.parseEther("500")

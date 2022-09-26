@@ -79,7 +79,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	/////////////////////////////////////
 
 	// buffer of funds to not be used to write new options in case of margin requirements (as percentage - for 20% enter 2000)
-	uint256 public bufferPercentage = 2000;
+	uint256 public bufferPercentage = 5000;
 	// list of addresses for hedging reactors
 	address[] public hedgingReactors;
 	// max total supply of collateral, denominated in e18
@@ -98,12 +98,12 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	// is the purchase and sale of options paused
 	bool public isTradingPaused;
 	// max time to allow between oracle updates for an underlying and strike
-	uint256 public maxTimeDeviationThreshold;
+	uint256 public maxTimeDeviationThreshold = 600;
 	// max price difference to allow between oracle updates for an underlying and strike
-	uint256 public maxPriceDeviationThreshold;
+	uint256 public maxPriceDeviationThreshold = 1e18;
 	// variables relating to the utilization skew function:
 	// the gradient of the function where utiization is below function threshold. e18
-	uint256 public belowThresholdGradient = 0; // 0.1
+	uint256 public belowThresholdGradient = 0; // 0
 	// the gradient of the line above the utilization threshold. e18
 	uint256 public aboveThresholdGradient = 1e18; // 1
 	// the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold.  Will always be negative but enter the absolute value
@@ -131,7 +131,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	event Redeem(address recipient, uint256 amount, uint256 epoch);
 	event InitiateWithdraw(address recipient, uint256 amount, uint256 epoch);
 	event WriteOption(address series, uint256 amount, uint256 premium, uint256 escrow, address buyer);
-	event RebalancePortfolioDelta(uint256 nav, int256 deltaChange);
+	event RebalancePortfolioDelta(int256 deltaChange);
 	event TradingPaused();
 	event TradingUnpaused();
 	event SettleVault(
@@ -245,6 +245,9 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		hedgingReactors.pop();
 	}
 
+	function getHedgingReactors() external view returns (address[] memory) {
+		return hedgingReactors;
+	}
 	/**
 	 * @notice update all optionParam variables for max and min strikes and max and
 	 *         min expiries for options that the DHV can issue
@@ -390,7 +393,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex) external {
 		_onlyManager();
 		IHedgingReactor(hedgingReactors[reactorIndex]).hedgeDelta(delta);
-		emit RebalancePortfolioDelta(_getNAV(), delta);
+		emit RebalancePortfolioDelta(delta);
 	}
 
 	/**

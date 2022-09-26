@@ -50,13 +50,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	// custom option orders
 	mapping(uint256 => Types.Order) public orderStores;
 
-	/////////////////////////////////////
-	/// governance settable variables ///
-	/////////////////////////////////////
-
-	// settings for the limits of a custom order
-	CustomOrderBounds public customOrderBounds = CustomOrderBounds(0, 25e16, -25e16, 0, 3e16);
-
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
@@ -69,15 +62,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	/////////////////////////
 	/// structs && events ///
 	/////////////////////////
-
-	// delta and price boundaries for custom orders
-	struct CustomOrderBounds {
-		uint128 callMinDelta; // call delta will always be between 0 and 1 (e18)
-		uint128 callMaxDelta; // call delta will always be between 0 and 1 (e18)
-		int128 putMinDelta; // put delta will always be between 0 and -1 (e18)
-		int128 putMaxDelta; // put delta will always be between 0 and -1 (e18)
-		uint256 maxPriceRange; // maxPriceRange is the maximum percentage around the spot price in e18
-	}
 
 	event OrderCreated(uint256 orderId);
 	event OrderExecuted(uint256 orderId);
@@ -94,33 +78,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		strikeAsset = liquidityPool.strikeAsset();
 	}
 
-	///////////////
-	/// setters ///
-	///////////////
-
-	/**
-	 * @notice set new custom order parameters
-	 * @param _callMinDelta the minimum delta value a sold custom call option can have (e18 format - for 0.05 enter 5e16). Must be positive or 0.
-	 * @param _callMaxDelta the maximum delta value a sold custom call option can have. Must be positive and have greater magnitude than _callMinDelta.
-	 * @param _putMinDelta the minimum delta value a sold custom put option can have. Must be negative and have greater magnitude than _putMaxDelta
-	 * @param _putMaxDelta the maximum delta value a sold custom put option can have. Must be negative or 0.
-	 * @param _maxPriceRange the max percentage below the LP calculated premium that the order may be sold for. Measured in BPS - for 10% enter 1000
-	 */
-	function setCustomOrderBounds(
-		uint128 _callMinDelta,
-		uint128 _callMaxDelta,
-		int128 _putMinDelta,
-		int128 _putMaxDelta,
-		uint32 _maxPriceRange
-	) external {
-		_onlyGovernor();
-		customOrderBounds.callMinDelta = _callMinDelta;
-		customOrderBounds.callMaxDelta = _callMaxDelta;
-		customOrderBounds.putMinDelta = _putMinDelta;
-		customOrderBounds.putMaxDelta = _putMaxDelta;
-		customOrderBounds.maxPriceRange = _maxPriceRange;
-	}
-
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
@@ -133,7 +90,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	 * @param _optionSeries the option token series to issue - strike in e18
 	 * @param _amount the number of options to issue - e18
 	 * @param _price the price per unit to issue at - in e18
-	 * @param _orderExpiry the expiry of the custom order, after which the 
+	 * @param _orderExpiry the expiry of the custom order, after which the
 	 *        buyer cannot use this order (if past the order is redundant)
 	 * @param _buyerAddress the agreed upon buyer address
 	 * @param _isBuyBack whether the order being created is buy back
@@ -168,7 +125,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			block.timestamp + _orderExpiry,
 			_buyerAddress,
 			series,
-			uint128(spotPrice - _spotMovementRange[0]), 
+			uint128(spotPrice - _spotMovementRange[0]),
 			uint128(spotPrice + _spotMovementRange[1]),
 			_isBuyBack
 		);
@@ -233,7 +190,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	/// external state changing functionality ///
 	/////////////////////////////////////////////
 
-/**
+	/**
 	 * @notice fulfills an order for a number of options from the pool to a specified user. The function
 	 *      is intended to be used to issue options to market makers/ OTC market participants
 	 *      in order to have flexibility and customisability on option issuance and market
@@ -257,7 +214,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		}
 		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		// If spot price has deviated too much we want to void the order
-		if (order.lowerSpotMovementRange > spotPrice || order.upperSpotMovementRange < spotPrice ) {
+		if (order.lowerSpotMovementRange > spotPrice || order.upperSpotMovementRange < spotPrice) {
 			revert CustomErrors.SpotMovedBeyondRange();
 		}
 		// calculate the total premium
@@ -281,19 +238,24 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			order.amount,
 			getOptionRegistry(),
 			convertedPrem,
-			0, 						// delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
+			0, // delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
 			msg.sender
 		);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			order.optionSeries.expiration,
-			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike,  8)),
+			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, 8)),
 			order.optionSeries.isPut,
 			underlyingAsset,
 			strikeAsset,
 			collateralAsset
 		);
-		getPortfolioValuesFeed().updateStores(seriesToStore, int256(order.amount), 0, order.seriesAddress);
+		getPortfolioValuesFeed().updateStores(
+			seriesToStore,
+			int256(order.amount),
+			0,
+			order.seriesAddress
+		);
 		emit OrderExecuted(_orderId);
 		// invalidate the order
 		delete orderStores[_orderId];
@@ -323,7 +285,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		}
 		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		// If spot price has deviated too much we want to void the order
-		if (order.lowerSpotMovementRange > spotPrice || order.upperSpotMovementRange < spotPrice ) {
+		if (order.lowerSpotMovementRange > spotPrice || order.upperSpotMovementRange < spotPrice) {
 			revert CustomErrors.SpotMovedBeyondRange();
 		}
 		// calculate the total premium
@@ -347,19 +309,24 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			getOptionRegistry(),
 			order.seriesAddress,
 			convertedPrem,
-			0,					// delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
+			0, // delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
 			msg.sender
 		);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			order.optionSeries.expiration,
-			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike,  8)),
+			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, 8)),
 			order.optionSeries.isPut,
 			underlyingAsset,
 			strikeAsset,
 			collateralAsset
 		);
-		getPortfolioValuesFeed().updateStores(seriesToStore, -int256(order.amount), 0, order.seriesAddress);
+		getPortfolioValuesFeed().updateStores(
+			seriesToStore,
+			-int256(order.amount),
+			0,
+			order.seriesAddress
+		);
 		emit OrderExecuted(_orderId);
 		// invalidate the order
 		delete orderStores[_orderId];

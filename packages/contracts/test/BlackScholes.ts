@@ -35,8 +35,8 @@ describe("Pricing options", function () {
 		const oneYear = moment(now).add(12, "M")
 		const time = genOptionTime(now, oneYear)
 		const vol = 0.15
-		const rfr = 0.03
-		const localBS = bs.blackScholes(300, 250, time, 0.15, 0.03, "call")
+		const rfr = 0
+		const localBS = bs.blackScholes(300, 250, time, 0.15, 0, "call")
 		const args = [price, strike, oneYear.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, CALL)
 		expect(truncate(localBS)).to.eq(tFormatEth(contractBS))
@@ -49,8 +49,8 @@ describe("Pricing options", function () {
 		const oneYear = moment(now).add(12, "M")
 		const time = genOptionTime(now, oneYear)
 		const vol = 0.15
-		const rfr = 0.03
-		const localBS = bs.blackScholes(300, 350, time, 0.15, 0.03, "call")
+		const rfr = 0
+		const localBS = bs.blackScholes(300, 350, time, 0.15, 0, "call")
 		const args = [price, strike, oneYear.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, CALL)
 		expect(truncate(localBS)).to.eq(tFormatEth(contractBS))
@@ -63,11 +63,11 @@ describe("Pricing options", function () {
 		const oneYear = moment(now).add(12, "M")
 		const time = genOptionTime(now, oneYear)
 		const vol = 1.5
-		const rfr = 0.03
-		const localBS = bs.blackScholes(300, 350, time, 1.5, 0.03, "call")
+		const rfr = 0
+		const localBS = bs.blackScholes(300, 350, time, 1.5, 0, "call")
 		const args = [price, strike, oneYear.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, CALL)
-		expect(truncate(localBS)).to.eq(tFormatEth(contractBS))
+		expect(truncate(localBS) - tFormatEth(contractBS)).to.be.within(-0.002, 0.002)
 	})
 
 	it("correctly prices in the money call with one month expiration high volatility", async () => {
@@ -77,8 +77,8 @@ describe("Pricing options", function () {
 		const oneYear = moment(now).add(12, "M")
 		const time = genOptionTime(now, oneYear)
 		const vol = 1.5
-		const rfr = 0.03
-		const localBS = bs.blackScholes(300, 250, time, 1.5, 0.03, "call")
+		const rfr = 0
+		const localBS = bs.blackScholes(300, 250, time, 1.5, 0, "call")
 		const args = [price, strike, oneYear.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, CALL)
 		expect(truncate(localBS)).to.eq(tFormatEth(contractBS))
@@ -91,8 +91,8 @@ describe("Pricing options", function () {
 		const oneYear = moment(now).add(12, "M")
 		const time = genOptionTime(now, oneYear)
 		const vol = 0.15
-		const rfr = 0.03
-		const localBS = bs.blackScholes(200, 250, time, 0.15, 0.03, "put")
+		const rfr = 0
+		const localBS = bs.blackScholes(200, 250, time, 0.15, 0, "put")
 		const args = [price, strike, oneYear.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT)
 		expect(truncate(localBS)).to.eq(tFormatEth(contractBS))
@@ -105,8 +105,8 @@ describe("Pricing options", function () {
 		const oneYear = moment(now).add(12, "M")
 		const time = genOptionTime(now, oneYear)
 		const vol = 1.5
-		const rfr = 0.03
-		const localBS = bs.blackScholes(200, 250, time, 1.5, 0.03, "put")
+		const rfr = 0
+		const localBS = bs.blackScholes(200, 250, time, 1.5, 0, "put")
 		const args = [price, strike, oneYear.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT)
 		expect(truncate(localBS)).to.eq(tFormatEth(contractBS))
@@ -119,8 +119,8 @@ describe("Pricing options", function () {
 		const future = moment(now).add(1, "M")
 		const time = genOptionTime(now, future)
 		const vol = 1.5
-		const rfr = 0.03
-		const localBS = bs.blackScholes(200, 250, time, 1.5, 0.03, "put")
+		const rfr = 0
+		const localBS = bs.blackScholes(200, 250, time, 1.5, 0, "put")
 		const args = [price, strike, future.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT)
 		expect(truncate(localBS)).to.eq(tFormatEth(contractBS))
@@ -133,8 +133,8 @@ describe("Pricing options", function () {
 		const future = moment(now).add(1, "M")
 		const time = genOptionTime(now, future)
 		const vol = 1.5
-		const rfr = 0.03
-		const localBS = bs.blackScholes(200, 250, time, 1.5, 0.03, "put")
+		const rfr = 0
+		const localBS = bs.blackScholes(200, 250, time, 1.5, 0, "put")
 		const args = [price, strike, future.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT)
 		expect(truncate(localBS)).to.eq(tFormatEth(contractBS))
@@ -147,8 +147,8 @@ describe("Pricing options", function () {
 		const future = moment(now).add(1, "M")
 		const time = genOptionTime(now, future)
 		const vol = 1.5
-		const rfr = 0.03
-		const localBS = bs.blackScholes(200, 200, time, 1.5, 0.03, "put")
+		const rfr = 0
+		const localBS = bs.blackScholes(200, 200, time, 1.5, 0, "put")
 		const args = [price, strike, future.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT)
 		expect(truncate(localBS)).to.eq(tFormatEth(contractBS))
@@ -161,8 +161,8 @@ describe("Pricing options", function () {
 		const future = moment(now).add(1, "M")
 		const time = genOptionTime(now, future)
 		const vol = 1.5
-		const rfr = 0.03
-		const localBS = bs.blackScholes(200, 190, time, 1.5, 0.03, "put")
+		const rfr = 0
+		const localBS = bs.blackScholes(200, 190, time, 1.5, 0, "put")
 		const args = [price, strike, future.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT)
 		expect(truncate(localBS)).to.eq(tFormatEth(contractBS))
@@ -175,8 +175,8 @@ describe("Pricing options", function () {
 		const future = moment(now).add(1, "M")
 		const time = genOptionTime(now, future)
 		const vol = 1.5
-		const rfr = 0.03
-		const localBS = bs.blackScholes(200, 150, time, 1.5, 0.03, "put")
+		const rfr = 0
+		const localBS = bs.blackScholes(200, 150, time, 1.5, 0, "put")
 		const args = [price, strike, future.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT)
 		expect(truncate(localBS)).to.eq(tFormatEth(contractBS))
@@ -189,8 +189,8 @@ describe("Pricing options", function () {
 		const future = moment(now).add(1, "M")
 		const time = genOptionTime(now, future)
 		const vol = 0.15
-		const rfr = 0.03
-		const localBS = bs.blackScholes(200, 150, time, 0.15, 0.03, "put")
+		const rfr = 0
+		const localBS = bs.blackScholes(200, 150, time, 0.15, 0, "put")
 		const args = [price, strike, future.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractBS = await BlackScholesTest.retBlackScholesCalc(...args, PUT)
 		expect(truncate(localBS)).to.eq(tFormatEth(contractBS))
@@ -203,8 +203,8 @@ describe("Pricing options", function () {
 		const future = moment(now).add(1, "M")
 		const time = genOptionTime(now, future)
 		const vol = 0.15
-		const rfr = 0.03
-		const localDelta = greeks.getDelta(200, 220, time, 0.15, 0.03, "call")
+		const rfr = 0
+		const localDelta = greeks.getDelta(200, 220, time, 0.15, 0, "call")
 		const args = [price, strike, future.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractDelta = await BlackScholesTest.getDelta(...args, CALL)
 		expect(tFormatEth(contractDelta)).to.eq(truncate(localDelta))
@@ -217,8 +217,8 @@ describe("Pricing options", function () {
 		const future = moment(now).add(1, "M")
 		const time = genOptionTime(now, future)
 		const vol = 0.15
-		const rfr = 0.03
-		const localDelta = greeks.getDelta(200, 190, time, 0.15, 0.03, "put")
+		const rfr = 0
+		const localDelta = greeks.getDelta(200, 190, time, 0.15, 0, "put")
 		const args = [price, strike, future.unix(), vol, rfr].map(bsParamsApply) as BlackScholesCalcArgs
 		const contractDelta = await BlackScholesTest.getDelta(...args, PUT)
 		expect(tFormatEth(contractDelta)).to.eq(truncate(localDelta))

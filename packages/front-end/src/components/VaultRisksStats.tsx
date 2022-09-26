@@ -21,6 +21,7 @@ export const VaultRisksStats = () => {
             />
             <RyskTooltip
               id="deltaTip"
+              html={true}
               message="
                 Delta, Δ, measures the rate of change in the value of the portfolio with respect to a change in the price of ETH. <br />
                 A Delta close to zero means that the exposure is neutral to market movements.
