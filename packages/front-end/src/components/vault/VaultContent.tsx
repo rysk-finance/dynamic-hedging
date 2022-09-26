@@ -19,6 +19,7 @@ import { useUserPosition } from "../../hooks/useUserPosition";
 import { PositionTooltip } from "./PositionTooltip";
 import { VaultMechanism } from "../VaultMechanism";
 import { useLocation } from "react-router-dom";
+import { DISCORD_LINK } from "../../config/links";
 
 export const VaultContent = () => {
   const { chainId, network, account } = useWalletContext();
@@ -54,7 +55,7 @@ export const VaultContent = () => {
     <>
       <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 mb-16">
         {envChainID && (
-          <div className="flex items-center">
+          <div className="flex items-center w-[240px]">
             <p>
               {Number(envChainID) === CHAINID.ARBITRUM_MAINNET
                 ? "Arbitrum"
@@ -65,6 +66,29 @@ export const VaultContent = () => {
             {<img src="/arbitrum_logo.svg" className="h-6 w-auto ml-2" />}
           </div>
         )}
+
+        <p className="text-sm">
+          Rysk is in Mainnet Alpha. Use with caution and{" "}
+          <a href={DISCORD_LINK} target="blank" className="underline">
+            send us any feedback
+          </a>
+        </p>
+
+        <p className="min-w-[240px]">
+          Your Position:{" "}
+          <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
+            <BigNumberDisplay
+              currency={Currency.USDC}
+              suffix="USDC"
+              loaderProps={{
+                className: "h-4 w-auto translate-y-[-2px]",
+              }}
+            >
+              {userPositionValue}
+            </BigNumberDisplay>
+            <PositionTooltip />
+          </RequiresWalletConnection>
+        </p>
       </div>
       <div className="col-start-1 col-end-8">
         <div className="font-parabole mb-8">
