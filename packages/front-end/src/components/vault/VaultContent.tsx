@@ -89,8 +89,8 @@ export const VaultContent = () => {
       </div>
       <div className="col-start-1 col-end-8">
         <div className="font-parabole mb-8">
+          <h4 className="pb-4">Dynamic Hedging Vault</h4>
           <h1>{DHV_NAME}</h1>
-          <h3 className="pt-4">Dynamic Hedging Vault</h3>
         </div>
 
         <p className="mt-8">
@@ -148,10 +148,6 @@ export const VaultContent = () => {
             {
               label: "Risks",
               content: <VaultRisks />,
-            },
-            {
-              label: "Info",
-              content: <VaultInfo />,
             },
           ]}
         ></Card>
