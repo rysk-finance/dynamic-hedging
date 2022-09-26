@@ -37,6 +37,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { OptionsTrading } from "./pages/OptionsTrading";
 import { OTC } from "./pages/OTC";
 import { Vault } from "./pages/Vault";
+import { Terms } from "./pages/Terms";
 import { GlobalContextProvider } from "./state/GlobalContext";
 import { ETHNetwork } from "./types";
 import { toHex } from "./utils";
@@ -395,6 +396,7 @@ function App() {
                   <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
                   <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
                   <Route path={AppPaths.OTC} element={<OTC />} />
+                  <Route path={AppPaths.TERMS} element={<Terms />} />
                 </Routes>
               </div>
             </div>
