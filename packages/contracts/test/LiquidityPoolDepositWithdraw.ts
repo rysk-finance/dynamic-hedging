@@ -89,7 +89,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const expiryDate: string = "2022-04-05"
 
 // decimal representation of a percentage
-const rfr: string = "0.03"
+const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
@@ -99,7 +99,7 @@ const collatDecimalShift = BigNumber.from(1000000000000)
 const strike = "20"
 
 // balances to deposit into the LP
-const liquidityPoolUsdcDeposit = "100000"
+const liquidityPoolUsdcDeposit = "150000"
 const liquidityPoolUsdcWithdraw = "1000"
 
 const minCallStrikePrice = utils.parseEther("500")

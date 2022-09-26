@@ -10,14 +10,16 @@ type CardProps = {
   tabs: CardTab[];
   tabWidth?: number;
   tabHeight?: number;
+  initialTabIndex?: number;
 };
 
 export const Card: React.FC<CardProps> = ({
   tabs,
   tabWidth = 180,
   tabHeight = 36,
+  initialTabIndex = 0,
 }) => {
-  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+  const [selectedTabIndex, setSelectedTabIndex] = useState(initialTabIndex);
 
   return (
     <div className="w-full h-full relative">

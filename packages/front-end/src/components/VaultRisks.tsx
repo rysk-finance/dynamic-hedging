@@ -19,17 +19,18 @@ export const VaultRisks = () => {
                 <li className="pb-2">
                   {DHV_NAME} could sell options that expire in-the-money,
                   meaning that the counterparty can exercise and redeem part of
-                  collateral, generating a loss for the {DHV_NAME}
+                  the collateral, generating a loss for the {DHV_NAME}.
                 </li>
                 <li className="pb-2">
                   {DHV_NAME} targets a delta of zero to achieve market
                   neutrality, but the delta can deviate far from 0, meaning that
                   the {DHV_NAME} could have directional exposure. <br />
-                  In this case the {DHV_NAME} can dynamically hedge, trading
-                  other instruments to reduce the directionality
+                  In this case, however, {DHV_NAME} can dynamically hedge,
+                  trading other instruments to reduce the directionality,
+                  mitigting the risk.
                 </li>
               </ul>
-              <a href="#" className="underline">
+              <a href="#" className="underline ml-8 mt-4">
                 {`Learn more about Rysk's Financial risks`}
               </a>
             </p>
@@ -51,7 +52,7 @@ export const VaultRisks = () => {
                   contract&apos;s security standards as well.
                 </li>
               </ul>
-              <a href="#" className="underline">
+              <a href="#" className="underline ml-8 mt-4">
                 {`Learn more about Rysk's security`}
               </a>
             </p>

@@ -34,7 +34,7 @@ const { provider } = ethers
 const { parseEther } = ethers.utils
 const chainId = 1
 // decimal representation of a percentage
-const rfr: string = "0.03"
+const rfr: string = "0"
 const belowUtilizationThresholdGradient = 0
 const aboveUtilizationThresholdGradient = 1
 const utilizationFunctionThreshold = 0.6 // 60%

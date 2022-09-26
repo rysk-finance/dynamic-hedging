@@ -7,6 +7,7 @@ type RyskTooltipProps = {
   color?: "green" | "yellow" | "red" | "white";
   tooltipProps?: TooltipProps;
   icon?: React.ReactElement;
+  html?: boolean,
   iconProps?: React.HTMLProps<HTMLDivElement>;
 };
 
@@ -16,6 +17,7 @@ export const RyskTooltip: React.FC<RyskTooltipProps> = ({
   color,
   tooltipProps = {},
   icon,
+  html,
   iconProps: { className: iconClassName, ...restIconProps } = {},
 }) => {
   return (
@@ -24,6 +26,7 @@ export const RyskTooltip: React.FC<RyskTooltipProps> = ({
         id={id}
         place="bottom"
         multiline={true}
+        html={html}
         backgroundColor="#EDE9DD"
         textColor="black"
         border={true}

@@ -147,7 +147,7 @@ module.exports = {
 			url: arbitrum,
 			chainId: 42161,
 			saveDeployments: true,
-			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
+			accounts: [process.env.MAINNET_PRIVATE_KEY],
 			gas: 500000000
 		},
 		arbitrumRinkeby: {
