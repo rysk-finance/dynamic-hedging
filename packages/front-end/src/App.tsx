@@ -48,6 +48,7 @@ import {
 } from "./utils/updateFavicon";
 import { Footer } from "./components/Footer";
 import * as Fathom from "fathom-client";
+import { LegalDisclaimer } from "./components/LegalDisclaimer";
 
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();
@@ -388,6 +389,7 @@ function App() {
       <GlobalContextProvider>
         <ApolloProvider client={apolloClient}>
           <div className="App bg-bone font-dm-mono flex flex-col min-h-screen">
+            <LegalDisclaimer />
             <Header />
             <div className="pt-16 px-16">
               <div className="root-grid py-24">
