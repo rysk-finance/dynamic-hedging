@@ -36,7 +36,6 @@ export const LPStats = () => {
           setCollateralCap( cap );
         }
       }
-      }
     };
 
     getDepositedCollateral();
