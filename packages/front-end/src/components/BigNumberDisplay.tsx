@@ -31,6 +31,7 @@ export const BigNumberDisplay: React.FC<BigNumberDisplayProps> = ({
       value={ethers.utils.formatUnits(children, DECIMALS[currency])}
       displayType={"text"}
       decimalScale={CURRENCY_TO_DP_MAP[currency]}
+      thousandSeparator={true}
       fixedDecimalScale
       suffix={suffix ? ` ${suffix}` : undefined}
       {...numberFormatProps}

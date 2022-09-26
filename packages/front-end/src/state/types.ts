@@ -72,7 +72,7 @@ export type VaultState = {
   userDHVBalance: BigNumber | null;
   depositEpoch: BigNumber | null;
   withdrawalEpoch: BigNumber | null;
-  depositPricePerShare: BigNumber | null;
+  withdrawPricePerShare: BigNumber | null;
   withdrawalPricePerShare: BigNumber | null;
 };
 

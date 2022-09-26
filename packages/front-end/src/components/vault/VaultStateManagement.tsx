@@ -84,7 +84,7 @@ export const VaultStateManagment = () => {
           data: {
             depositEpoch: epochData?.depositEpoch,
             withdrawalEpoch: epochData?.withdrawalEpoch,
-            depositPricePerShare: epochData?.depositEpochPricePerShare,
+            withdrawPricePerShare: epochData?.depositEpochPricePerShare,
             withdrawalPricePerShare: epochData?.withdrawalEpochPricePerShare,
             userDHVBalance: balance,
           },

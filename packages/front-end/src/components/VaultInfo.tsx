@@ -11,7 +11,7 @@ export const VaultInfo = () => {
   const {
     state: {
       depositEpoch,
-      depositPricePerShare,
+      withdrawPricePerShare: depositPricePerShare,
       withdrawalEpoch,
       withdrawalPricePerShare,
     },
@@ -35,32 +35,7 @@ export const VaultInfo = () => {
       <div className="grid grid-cols-2">
         <div>
           <h4>{DHV_NAME}</h4>
-          <p className="mt-4">
-            Current Deposit Epoch: {depositEpoch?.toString()}
-          </p>
-          <p className="mt-4">
-            Current Withdraw Epoch: {withdrawalEpoch?.toString()}
-          </p>
-          <p className="mt-4">
-            {DHV_NAME} Deposit Current Share Price:{" "}
-            <BigNumberDisplay
-              currency={Currency.RYSK}
-              numberFormatProps={{ decimalScale: 4 }}
-              suffix="USDC"
-            >
-              {depositPricePerShare}
-            </BigNumberDisplay>
-          </p>
-          <p className="mt-4">
-            {DHV_NAME} Withdraw Current Share Price:{" "}
-            <BigNumberDisplay
-              currency={Currency.RYSK}
-              numberFormatProps={{ decimalScale: 4 }}
-              suffix="USDC"
-            >
-              {withdrawalPricePerShare}
-            </BigNumberDisplay>
-          </p>
+          <p className="mt-4">Current Epoch: {withdrawalEpoch?.toString()}</p>
           <p className="mt-4">
             {/* TODO add next epoch start */}
             Next Epoch Start: {nextFriday.toDateString()} 11:00 UTC
