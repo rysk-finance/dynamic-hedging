@@ -315,107 +315,94 @@ export const VaultWithdraw = () => {
                 </p>
               </div>
             </div>
-
-            <div className="ml-[-2px]">
-              <TextInput
-                className="pl-[80px] p-4 text-xl border-r-0"
-                setValue={(value) => handleSliderChange(Number(value))}
-                value={sliderPercentage.toString()}
-                iconLeft={
-                  <div className="h-full flex items-center px-4 text-right text-cyan-dark cursor-default">
-                    <p>%</p>
-                  </div>
-                }
-                numericOnly
-                // maxNumDecimals={}
-                maxValue={BigNumber.from(1000)}
-                maxValueDecimals={1}
-                maxButtonHandler={
-                  withdrawableDHV ? () => handleSliderChange(100) : undefined
-                }
-                // maxLength={30}
-              />
-            </div>
-
-            <div className="ml-[-2px] py-2 px-4 h-16 border-black border-b-2 border-l-2 bg-white pt-4">
-              <ReactSlider
-                className="horizontal-slider"
-                value={sliderPercentage}
-                onChange={handleSliderChange}
-                renderTrack={(
-                  { className: trackClassName, ...trackProps },
-                  { index, value }
-                ) => {
-                  return (
+            <div className="flex border-y-2 border-black bg-white">
+              <div className="ml-[-2px] py-2 px-4 h-16 border-l-2 border-black pt-4 w-full">
+                <ReactSlider
+                  className="horizontal-slider"
+                  value={sliderPercentage}
+                  onChange={handleSliderChange}
+                  renderTrack={(
+                    { className: trackClassName, ...trackProps },
+                    { index, value }
+                  ) => {
+                    return (
+                      <div
+                        className={`${
+                          index === 0 &&
+                          "bg-black h-1 w-full rounded-full translate-y-[6px]"
+                        } ${trackClassName}`}
+                        {...trackProps}
+                      ></div>
+                    );
+                  }}
+                  marks
+                  renderThumb={({
+                    className: thumbClassName,
+                    ...thumbProps
+                  }) => (
                     <div
-                      className={`${
-                        index === 0 &&
-                        "bg-black h-1 w-full rounded-full translate-y-[6px]"
-                      } ${trackClassName}`}
-                      {...trackProps}
+                      {...thumbProps}
+                      className={`${thumbClassName} p-2 flex items-center justify-center bg-cyan-dark rounded-full border-2 border-black translate-y-[-1px] cursor-pointer`}
                     ></div>
-                  );
-                }}
-                marks
-                renderThumb={({ className: thumbClassName, ...thumbProps }) => (
-                  <div
-                    {...thumbProps}
-                    className={`${thumbClassName} p-2 flex items-center justify-center bg-cyan-dark rounded-full border-2 border-black translate-y-[-1px] cursor-pointer`}
-                  ></div>
-                )}
-              />
-              <div className="w-full flex justify-between items-center mt-5 text-xs">
-                <p
-                  className="w-0 translate-x-[-50%] cursor-pointer"
-                  onClick={() => handleSliderChange(0)}
-                >
-                  0%
-                </p>
-                <p
-                  className="w-0 translate-x-[-4px] cursor-pointer"
-                  onClick={() => handleSliderChange(25)}
-                >
-                  25%
-                </p>
-                <p
-                  className="w-0 translate-x-[-8px] cursor-pointer"
-                  onClick={() => handleSliderChange(50)}
-                >
-                  50%
-                </p>
-                <p
-                  className="w-0 translate-x-[-16px] cursor-pointer"
-                  onClick={() => handleSliderChange(75)}
-                >
-                  75%
-                </p>
-                <p
-                  className="w-0 translate-x-[-22px] cursor-pointer"
-                  onClick={() => handleSliderChange(100)}
-                >
-                  100%
-                </p>
+                  )}
+                />
+                <div className="w-full flex justify-between items-center mt-5 text-xs">
+                  <p
+                    className="w-0 translate-x-[-50%] cursor-pointer"
+                    onClick={() => handleSliderChange(0)}
+                  >
+                    0%
+                  </p>
+                  <p
+                    className="w-0 translate-x-[-4px] cursor-pointer"
+                    onClick={() => handleSliderChange(25)}
+                  >
+                    25%
+                  </p>
+                  <p
+                    className="w-0 translate-x-[-8px] cursor-pointer"
+                    onClick={() => handleSliderChange(50)}
+                  >
+                    50%
+                  </p>
+                  <p
+                    className="w-0 translate-x-[-16px] cursor-pointer"
+                    onClick={() => handleSliderChange(75)}
+                  >
+                    75%
+                  </p>
+                  <p
+                    className="w-0 translate-x-[-22px] cursor-pointer"
+                    onClick={() => handleSliderChange(100)}
+                  >
+                    100%
+                  </p>
+                </div>
+              </div>
+              <div className="ml-[-2px] w-[120px] border-black border-l-2">
+                <TextInput
+                  className="pl-[36px] p-4 text-xl border-0"
+                  setValue={(value) => {
+                    try {
+                      if (Number(value) <= 100) {
+                        handleSliderChange(Number(value));
+                      }
+                    } catch {
+                      //
+                    }
+                  }}
+                  value={sliderPercentage.toString()}
+                  iconLeft={
+                    <div className="h-full flex items-center px-4 text-right text-cyan-dark cursor-default">
+                      <p>%</p>
+                    </div>
+                  }
+                  maxLength={3}
+                  numericOnly
+                />
               </div>
             </div>
             <div className="ml-[-2px]">
-              {/* <TextInput
-                className="pl-[80px] p-4 text-xl border-r-0"
-                setValue={(value) => handleInputChange(value)}
-                value={inputValue}
-                iconLeft={
-                  <div className="h-full flex items-center px-4 text-right text-cyan-dark cursor-default">
-                    <p>{DHV_NAME}</p>
-                  </div>
-                }
-                numericOnly
-                maxNumDecimals={DECIMALS.RYSK}
-                maxValue={withdrawableDHV ?? undefined}
-                maxValueDecimals={DECIMALS.RYSK}
-                maxButtonHandler={
-                  withdrawableDHV ? () => handleSliderChange(100) : undefined
-                }
-                maxLength={30}
-              /> */}
               <div className="p-4 border-b-2 border-black">
                 <div className="flex justify-between items-center">
                   <p className="text-[16px] mr-2">
