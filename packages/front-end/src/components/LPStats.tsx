@@ -28,8 +28,13 @@ export const LPStats = () => {
     const getCollateralCap = async () => {
       // TODO uncomment this before production and remove lines below
       if (lpContract) {
-        const cap = await lpContract.collateralCap();
-        setCollateralCap(cap);
+        if (process.env.REACT_APP_ENV === "production" ) {
+          const cap = await lpContract.collateralCap();
+          setCollateralCap(cap);
+        } else {
+          const cap = BigNumber.from(10).mul(1e6).mul(BIG_NUMBER_DECIMALS.RYSK)
+          setCollateralCap( cap );
+        }
       }
     };
 
