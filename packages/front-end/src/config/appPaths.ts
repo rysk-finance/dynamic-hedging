@@ -3,4 +3,5 @@ export enum AppPaths {
   TRADE = "/options",
   DASHBOARD = "/dashboard",
   OTC = "/otc",
+  TERMS = "/terms",
 }
