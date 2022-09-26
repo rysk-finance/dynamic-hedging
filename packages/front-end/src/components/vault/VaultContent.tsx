@@ -55,7 +55,7 @@ export const VaultContent = () => {
     <>
       <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 mb-16">
         {envChainID && (
-          <div className="flex items-center">
+          <div className="flex items-center w-[240px]">
             <p>
               {Number(envChainID) === CHAINID.ARBITRUM_MAINNET
                 ? "Arbitrum"
@@ -68,14 +68,13 @@ export const VaultContent = () => {
         )}
 
         <p className="text-sm">
-          Rysk is currently in Alpha Version. Use with caution and
-          <a href={DISCORD_LINK} target="blank">
-            {" "}
-            let us know any feedback
+          Rysk is in Mainnet Alpha. Use with caution and{" "}
+          <a href={DISCORD_LINK} target="blank" className="underline">
+            send us any feedback
           </a>
         </p>
 
-        <p>
+        <p className="min-w-[240px]">
           Your Position:{" "}
           <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
             <BigNumberDisplay
