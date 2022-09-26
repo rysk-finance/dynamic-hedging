@@ -39,9 +39,9 @@ async function main() {
 		)
 
 		const callOption = {
-			expiration: "1663315200",
+			expiration: "1663920000",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
-			strike: BigNumber.from("1600").mul(RYSK_DECIMAL),
+			strike: BigNumber.from("1300").mul(RYSK_DECIMAL),
 			isPut: false,
 			underlying: arbitrumRinkeby.WETH,
 			strikeAsset: arbitrumRinkeby.USDC,
@@ -51,9 +51,9 @@ async function main() {
 		const callQuote = BigNumber.from((7.45 * RYSK_EXP).toString())
 
 		const putOption = {
-			expiration: "1663315200",
+			expiration: "1663920000",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
-			strike: BigNumber.from("1600").mul(RYSK_DECIMAL),
+			strike: BigNumber.from("1300").mul(RYSK_DECIMAL),
 			isPut: true,
 			underlying: arbitrumRinkeby.WETH,
 			strikeAsset: arbitrumRinkeby.USDC,
@@ -75,7 +75,8 @@ async function main() {
 			// Update to order reciever address.
 			"0xAD5B468F6Fb897461E388396877fD5E3c5114539",
 			[toWei("100"), toWei("100")],
-			[toWei("100"), toWei("100")]
+			[toWei("100"), toWei("100")],
+			{gasPrice: ethers.utils.parseUnits('100', 'gwei'), gasLimit: 5000000}
 		)
 
 		console.log(orderTransaction)

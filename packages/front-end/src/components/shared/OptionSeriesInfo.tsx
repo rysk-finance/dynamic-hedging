@@ -28,17 +28,17 @@ export const OptionSeriesInfo: React.FC<OptionSeriesInfoProps> = ({
            {optionSymbol}
         </h4>
       </div>
-      <p>
+      <p className="pt-2">
         Type: {returnType}
       </p>
-      <p>
+      <p className="pt-2">
         Strike:{" "}
         <BigNumberDisplay currency={Currency.OPYN} suffix="USDC">
           {option.strike}
         </BigNumberDisplay>
       </p>
       {/* Converting s to ms */}
-      <p>Expiration: {returnExpiry}</p>
+      <p className="pt-2">Expiration: {returnExpiry}</p>
     </div>
   ) : null;
 };
