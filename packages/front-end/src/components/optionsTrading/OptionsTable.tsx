@@ -16,7 +16,6 @@ import {
   calculateOptionDeltaLocally,
   returnIVFromQuote,
 } from "../../utils/helpers";
-import { USDC_ADDRESS, WETH_ADDRESS } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { toWei, fromWei } from "../../utils/conversion-helper";
 import NumberFormat from "react-number-format";

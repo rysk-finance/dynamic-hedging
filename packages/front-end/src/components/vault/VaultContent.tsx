@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { BigNumberDisplay } from "../../components/BigNumberDisplay";
 import { LPStats } from "../../components/LPStats";
 import { Card } from "../../components/shared/Card";
@@ -18,6 +18,7 @@ import { CHAINID } from "../../config/constants";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { PositionTooltip } from "./PositionTooltip";
 import { VaultMechanism } from "../VaultMechanism";
+import { useLocation } from "react-router-dom";
 import { DISCORD_LINK } from "../../config/links";
 
 export const VaultContent = () => {
@@ -29,6 +30,18 @@ export const VaultContent = () => {
   const envChainID = process.env.REACT_APP_CHAIN_ID;
 
   const { userPositionValue, updatePosition } = useUserPosition();
+
+  const { search } = useLocation();
+
+  const initialTabIndex = useMemo(() => {
+    if (search) {
+      const params = new URLSearchParams(search);
+      if (params.get("type") === "withdraw") {
+        return 1;
+      }
+      return 0;
+    }
+  }, [search]);
 
   useEffect(() => {
     if (account) {
@@ -55,8 +68,11 @@ export const VaultContent = () => {
         )}
 
         <p className="text-sm">
-          Rysk is currently in Alpha Version. Use with caution and 
-          <a href={DISCORD_LINK} target="blank"> let us know any feedback</a> 
+          Rysk is currently in Alpha Version. Use with caution and
+          <a href={DISCORD_LINK} target="blank">
+            {" "}
+            let us know any feedback
+          </a>
         </p>
 
         <p>
@@ -114,6 +130,7 @@ export const VaultContent = () => {
             },
             { label: "Withdraw", content: <VaultWithdraw /> },
           ]}
+          initialTabIndex={initialTabIndex}
         ></Card>
       </div>
 

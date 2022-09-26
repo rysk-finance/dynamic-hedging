@@ -5,17 +5,15 @@ import React, { useState } from "react";
 import { toast } from "react-toastify";
 import ERC20ABI from "../../abis/erc20.json";
 import { useWalletContext } from "../../App";
-import OptionHandlerABI from "../../artifacts/contracts/OptionHandler.sol/OptionHandler.json";
-import OptionRegistryABI from "../../artifacts/contracts/OptionRegistry.sol/OptionRegistry.json";
+import OptionHandlerABI from "../../abis/OptionHandler.json";
+import OptionRegistryABI from "../../abis/OptionRegistry.json";
 import {
   BIG_NUMBER_DECIMALS,
   CHAINID,
   MAX_UINT_256,
-  USDC_ADDRESS,
-  WETH_ADDRESS,
   ZERO_ADDRESS,
 } from "../../config/constants";
-import addresses from "../../contracts.json";
+import contracts from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
@@ -25,23 +23,12 @@ import { TextInput } from "../shared/TextInput";
 
 const DUMMY_OPTION_SERIES: OptionSeries = {
   strike: BigNumber.from("2000").mul(BIG_NUMBER_DECIMALS.RYSK),
-  strikeAsset: USDC_ADDRESS[CHAINID.ETH_MAINNET],
-  collateral: USDC_ADDRESS[CHAINID.ETH_MAINNET],
-  underlying: WETH_ADDRESS[CHAINID.ETH_MAINNET],
+  strikeAsset: contracts.arbitrum.USDC,
+  collateral: contracts.arbitrum.USDC,
+  underlying: contracts.arbitrum.WETH,
   expiration: "1657267200",
   isPut: false,
 };
-
-// TODO(HC): Make this not dummy data...
-const DUMMY_DATA: Serie[] = [
-  {
-    id: "return",
-    data: Array.from(Array(100).keys()).map((x) => ({
-      x: x,
-      y: Math.max(50, x),
-    })),
-  },
-];
 
 export const Purchase: React.FC = () => {
   // Context state
@@ -62,13 +49,13 @@ export const Purchase: React.FC = () => {
   // Contracts
   const [optionRegistryContract, optionRegistryContractCall] = useContract({
     contract: "OpynOptionRegistry",
-    ABI: OptionRegistryABI.abi,
+    ABI: OptionRegistryABI,
     readOnly: false,
   });
 
   const [optionHandlerContract, optionHandlerContractCall] = useContract({
     contract: "optionHandler",
-    ABI: OptionHandlerABI.abi,
+    ABI: OptionHandlerABI,
     readOnly: false,
   });
 
@@ -88,7 +75,7 @@ export const Purchase: React.FC = () => {
       const amount = BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(uiOrderSize));
       const approvedAmount = (await usdcContract.allowance(
         account,
-        addresses.localhost.optionHandler
+        contracts.arbitrum.optionHandler
       )) as BigNumber;
       try {
         if (
@@ -98,7 +85,7 @@ export const Purchase: React.FC = () => {
           await usdcContractCall({
             method: usdcContract.approve,
             args: [
-              addresses.localhost.optionHandler,
+              contracts.arbitrum.optionHandler,
               settings.optionsTradingUnlimitedApproval
                 ? ethers.BigNumber.from(MAX_UINT_256)
                 : amount,

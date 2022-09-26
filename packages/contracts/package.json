@@ -12,14 +12,11 @@
 		"deployAlpha:mainnet": "npx hardhat run deploy/arbitrum/ArbitrumAlphaDeploy.ts --network arbitrum",
 		"deploy:localhost": "npx hardhat deploy --network localhost --tags localhost && ./copyAddressesToFrontEnd.sh --deploy-scripts deploy/localhost",
 		"compile": "hardhat clean && hardhat compile && hardhat typechain && ./copyABIsToFrontend.sh",
-		"mainnet-fork": "source .env && npx hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/$ALCHEMY_KEY --fork-block-number 12821000",
-		"seed-usdc": "npx hardhat seedUSDC --network localhost  --address ",
-		"execute-epoch": "npx hardhat run scripts/executeEpoch.ts --network localhost",
 		"execute-epoch:testnet": "npx hardhat run scripts/executeEpochTestnet.ts --network arbitrumRinkeby",
-		"buyoption": "npx hardhat run scripts/buySample.ts --network arbitrumRinkeby",
-		"create-otc-order": "npx hardhat run scripts/createOTCOrder.ts --network arbitrumRinkeby",
-		"create-otc-strangle": "npx hardhat run scripts/createOTCStrangle.ts --network arbitrumRinkeby",
-		"fulfill": "npx hardhat run scripts/fulfill.ts --network arbitrumRinkeby"
+		"buyoption:testnet": "npx hardhat run scripts/buySample.ts --network arbitrumRinkeby",
+		"create-otc-order:testnet": "npx hardhat run scripts/createOTCOrder.ts --network arbitrumRinkeby",
+		"create-otc-strangle:testnet": "npx hardhat run scripts/createOTCStrangle.ts --network arbitrumRinkeby",
+		"fulfill:testnet": "npx hardhat run scripts/fulfill.ts --network arbitrumRinkeby"
 	},
 	"keywords": [],
 	"author": "",
