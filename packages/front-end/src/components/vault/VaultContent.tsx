@@ -10,7 +10,7 @@ import { VaultWithdraw } from "./VaultWithdraw";
 import { VaultStrategy } from "../VaultStrategy";
 import { VaultRisks } from "../VaultRisks";
 import { VaultInfo } from "../VaultInfo";
-import { DHV_NAME } from "../../config/constants";
+import { DHV_NAME, SCAN_URL } from "../../config/constants";
 import * as Scroll from "react-scroll";
 
 import { useWalletContext } from "../../App";
@@ -19,6 +19,7 @@ import { useUserPosition } from "../../hooks/useUserPosition";
 import { PositionTooltip } from "./PositionTooltip";
 import { VaultMechanism } from "../VaultMechanism";
 import { useLocation } from "react-router-dom";
+import addresses from "../../contracts.json";
 import { DISCORD_LINK } from "../../config/links";
 
 export const VaultContent = () => {
@@ -74,21 +75,17 @@ export const VaultContent = () => {
           </a>
         </p>
 
-        <p className="min-w-[240px]">
-          Your Position:{" "}
-          <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
-            <BigNumberDisplay
-              currency={Currency.USDC}
-              suffix="USDC"
-              loaderProps={{
-                className: "h-4 w-auto translate-y-[-2px]",
-              }}
-            >
-              {userPositionValue}
-            </BigNumberDisplay>
-            <PositionTooltip />
-          </RequiresWalletConnection>
-        </p>
+        <a
+          href={`${SCAN_URL[CHAINID.ARBITRUM_MAINNET]}/address/${
+            addresses.arbitrum.liquidityPool
+          }`}
+          target="_blank"
+          rel="noreferrer"
+          className="min-w-[240px] flex justify-end items-center"
+        >
+          <p className="mr-2">Contract</p>{" "}
+          <img src="/icons/link_cyan.svg" className="" />
+        </a>
       </div>
       <div className="col-start-1 col-end-8">
         <div className="font-parabole mb-8">
