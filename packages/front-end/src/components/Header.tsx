@@ -57,9 +57,10 @@ export const Header: React.FC = () => {
         {!signer ? (
           <Button
             onClick={() => connectWallet?.()}
-            className={`origin-center transition-transform ${
+            className={`origin-center transition-transform hover:scale-110 ${
               connectWalletIndicatorActive ? "scale-110" : ""
             }`}
+            color="black"
           >
             Connect
           </Button>
