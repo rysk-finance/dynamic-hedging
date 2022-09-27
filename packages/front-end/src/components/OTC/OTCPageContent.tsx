@@ -366,10 +366,16 @@ export const OTCPageContent = () => {
           .mul(strangle.call.amount)
           .div(BIG_NUMBER_DECIMALS.RYSK)
           .div(1e12);
+
+        console.log(callTotalPrice)
+
         const putTotalPrice = strangle.put.price
           .mul(strangle.put.amount)
           .div(BIG_NUMBER_DECIMALS.RYSK)
           .div(1e12);
+
+        console.log(putTotalPrice)
+
         const totalStranglePrice = callTotalPrice.add(putTotalPrice);
         if (approvedAmount.gte(totalStranglePrice)) {
           setIsApproved(true);
@@ -528,7 +534,7 @@ export const OTCPageContent = () => {
                           ? order.isBuyBack
                             ? handleApproveBuyBack
                             : handleApprove
-                          : () => {}
+                          : handleApprove
                       }
                       color="black"
                       disabled={approveDisabled}
