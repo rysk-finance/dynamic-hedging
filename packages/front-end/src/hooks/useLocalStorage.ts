@@ -9,7 +9,11 @@ export const useLocalStorage = () => {
   const set = useCallback(
     (
       key: string,
-      value: string | Record<string, string | boolean | number> | string[]
+      value:
+        | string
+        | Record<string, string | boolean | number>
+        | string[]
+        | boolean
     ) => {
       window.localStorage.setItem(key, JSON.stringify(value));
     },

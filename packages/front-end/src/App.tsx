@@ -18,7 +18,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
@@ -48,6 +48,8 @@ import {
 } from "./utils/updateFavicon";
 import { Footer } from "./components/Footer";
 import * as Fathom from "fathom-client";
+import { LegalDisclaimer } from "./components/LegalDisclaimer";
+import { Privacy } from "./pages/Privacy";
 
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();
@@ -370,6 +372,9 @@ function App() {
     Fathom.load("SMDEXJZR", { excludedDomains: ["localhost:3000"] });
   }, []);
 
+  const { pathname } = useLocation();
+  const showLegal = !(pathname === AppPaths.TERMS || pathname === AppPaths.PRIVACY_POLICY)
+
   return (
     <WalletContext.Provider
       value={{
@@ -388,6 +393,7 @@ function App() {
       <GlobalContextProvider>
         <ApolloProvider client={apolloClient}>
           <div className="App bg-bone font-dm-mono flex flex-col min-h-screen">
+            { showLegal && <LegalDisclaimer /> }
             <Header />
             <div className="pt-16 px-16">
               <div className="root-grid py-24">
@@ -397,6 +403,7 @@ function App() {
                   <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
                   <Route path={AppPaths.OTC} element={<OTC />} />
                   <Route path={AppPaths.TERMS} element={<Terms />} />
+                  <Route path={AppPaths.PRIVACY_POLICY} element={<Privacy />} />
                 </Routes>
               </div>
             </div>
