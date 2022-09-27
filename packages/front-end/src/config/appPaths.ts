@@ -4,4 +4,5 @@ export enum AppPaths {
   DASHBOARD = "/dashboard",
   OTC = "/otc",
   TERMS = "/terms",
+  PRIVACY_POLICY = "/privacy",
 }

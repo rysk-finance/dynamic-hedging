@@ -32,6 +32,13 @@ export const Footer: React.FC = () => {
             TERMS
           </button>
         </Link>
+        <Link to={AppPaths.PRIVACY_POLICY}>
+          <button
+            className="mr-4"
+          >
+            PRIVACY POLICY
+          </button>
+        </Link>
 
 
       </div>

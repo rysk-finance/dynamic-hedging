@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { AppPaths } from "../config/appPaths";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { Button } from "./shared/Button";
 import { Card } from "./shared/Card";
@@ -59,7 +61,7 @@ export const LegalDisclaimer = () => {
               label: "Disclaimer",
               content: (
                 <div className="bg-bone">
-                  <div className="p-4 flex items-start">
+                  <div className="p-8 flex items-start">
                     <div className="mr-4 pt-[2px]">
                       <button
                         className={`w-6 h-6 border-black rounded-md border-2 ${
@@ -77,11 +79,15 @@ export const LegalDisclaimer = () => {
                       </button>
                     </div>
                     <p>
-                      Lorem Ipsum is simply dummy text of the printing and
-                      typesetting industry. Lorem Ipsum has been the
-                      industry&apos;s standard dummy text ever since the 1500s,
-                      when an unknown printer took a galley of type and
-                      scrambled it to make a type specimen book.
+                      You have read and understand, and do hereby agree to the Rysk Alpha User
+                      <Link to={AppPaths.TERMS} className="cursor-pointer text-cyan-dark" target="_blank">
+                        { " " }Terms of Service{ " " }
+                      </Link>
+                      and acknowledge that you have read and understand the Rysk Alpha 
+                      <Link to={AppPaths.PRIVACY_POLICY} className="cursor-pointer text-cyan-dark" target="_blank">
+                        { " " }Privacy Policy
+                      </Link>
+                      . 
                     </p>
                   </div>
                   <Button
