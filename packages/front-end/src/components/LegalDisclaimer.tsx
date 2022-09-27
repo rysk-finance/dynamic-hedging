@@ -79,15 +79,25 @@ export const LegalDisclaimer = () => {
                       </button>
                     </div>
                     <p>
-                      You have read and understand, and do hereby agree to the Rysk Alpha User
-                      <Link to={AppPaths.TERMS} className="cursor-pointer text-cyan-dark" target="_blank">
-                        { " " }Terms of Service{ " " }
+                      You have read and understand, and do hereby agree to the
+                      Rysk Alpha User{" "}
+                      <Link
+                        to={AppPaths.TERMS}
+                        className="cursor-pointer text-cyan-dark underline"
+                        target="_blank"
+                      >
+                        Terms of Service
+                      </Link>{" "}
+                      and acknowledge that you have read and understand the Rysk
+                      Alpha{" "}
+                      <Link
+                        to={AppPaths.PRIVACY_POLICY}
+                        className="cursor-pointer text-cyan-dark underline"
+                        target="_blank"
+                      >
+                        Privacy Policy
                       </Link>
-                      and acknowledge that you have read and understand the Rysk Alpha 
-                      <Link to={AppPaths.PRIVACY_POLICY} className="cursor-pointer text-cyan-dark" target="_blank">
-                        { " " }Privacy Policy
-                      </Link>
-                      . 
+                      .
                     </p>
                   </div>
                   <Button
