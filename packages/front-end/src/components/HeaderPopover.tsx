@@ -46,6 +46,7 @@ export const HeaderPopover: React.FC = () => {
       <Button
         type="button"
         onClick={() => setIsOpen((old) => !old)}
+        color="black"
         className="flex items-center"
       >
         <img
@@ -66,9 +67,9 @@ export const HeaderPopover: React.FC = () => {
             <Button
               onClick={() => {
                 account && navigator.clipboard.writeText(account);
-                toast("Address coppied to clipboard", { autoClose: 1000 });
+                toast("✅ Address copied to clipboard", { autoClose: 1000 });
               }}
-              className="mb-[-2px] bg-bone"
+              className="mb-[-2px] bg-bone mb-[2px]"
             >
               Copy address
             </Button>
