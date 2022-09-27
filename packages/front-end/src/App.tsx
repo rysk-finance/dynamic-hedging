@@ -80,10 +80,9 @@ const onboard = init({
     },
   ],
   appMetadata: {
-    // TODO(HC): Update icon
     name: "Rysk",
-    icon: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg",
+    icon: "/logo.png",
+    logo: "/logo.png",
     description: "Uncorrelated returns",
     recommendedInjectedWallets: [
       { name: "Coinbase", url: "https://wallet.coinbase.com/" },
@@ -373,7 +372,9 @@ function App() {
   }, []);
 
   const { pathname } = useLocation();
-  const showLegal = !(pathname === AppPaths.TERMS || pathname === AppPaths.PRIVACY_POLICY)
+  const showLegal = !(
+    pathname === AppPaths.TERMS || pathname === AppPaths.PRIVACY_POLICY
+  );
 
   return (
     <WalletContext.Provider
@@ -393,7 +394,7 @@ function App() {
       <GlobalContextProvider>
         <ApolloProvider client={apolloClient}>
           <div className="App bg-bone font-dm-mono flex flex-col min-h-screen">
-            { showLegal && <LegalDisclaimer /> }
+            {showLegal && <LegalDisclaimer />}
             <Header />
             <div className="pt-16 px-16">
               <div className="root-grid py-24">
