@@ -69,3 +69,17 @@
 .overflow-hidden {
   overflow: hidden
 }
+
+:root {
+  --onboard-connect-sidebar-background: #D1CDBF;
+  --onboard-main-scroll-container-background: #EDE9DD;
+  --onboard-connect-header-background: #EDE9DD;
+  --onboard-connect-sidebar-progress-color: #02c5e6;
+  --onboard-connect-sidebar-progress-background: black;
+  --onboard-wallet-button-background: white;
+  --onboard-wallet-button-background-hover: #F5F5F5;
+  --onboard-wallet-button-border-color: black;
+  --onboard-wallet-button-color: black;
+  --onboard-wallet-app-icon-border-color: black;
+  --onboard-font-family-normal: "DM Mono"
+}
