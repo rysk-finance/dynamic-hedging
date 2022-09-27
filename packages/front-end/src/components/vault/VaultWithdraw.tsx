@@ -217,7 +217,7 @@ export const VaultWithdraw = () => {
     if (lpContract) {
       await lpContractCall({
         method: lpContract.completeWithdraw,
-        args: [MAX_UINT_256],
+        args: [],
         scaleGasLimit: true,
         methodName: "completeWithdraw",
         submitMessage: "✅ Withdraw completion submitted",
