@@ -530,7 +530,7 @@ export const OTCPageContent = () => {
                           ? order.isBuyBack
                             ? handleApproveBuyBack
                             : handleApprove
-                          : handleApprove
+                          : strangle ? handleApprove : () => {}
                       }
                       color="black"
                       disabled={approveDisabled}
