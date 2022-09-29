@@ -45,7 +45,7 @@ export const VaultWithdraw = () => {
   } = useUserPosition();
 
   // UI State
-  const [sliderPercentage, setSlidePercentage] = useState(25);
+  const [sliderPercentage, setSlidePercentage] = useState(0);
   const [withdrawValue, setWithdrawValue] = useState("");
   const [listeningForInitiation, setListeningForInitiation] = useState(false);
   const [listeningForCompleteWithdraw, setListeningForCompleteWithdraw] =
@@ -238,7 +238,7 @@ export const VaultWithdraw = () => {
 
   useEffect(() => {
     if (withdrawableDHV) {
-      handleSliderChange(25);
+      handleSliderChange(0);
     }
   }, [withdrawableDHV, handleSliderChange]);
 
