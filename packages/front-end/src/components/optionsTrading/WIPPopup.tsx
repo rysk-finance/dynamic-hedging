@@ -17,18 +17,24 @@ export const WIPPopup = () => {
             <Card
               tabs={[
                 {
-                  label: "Soon ™",
+                  label: "Soon™",
                   content: (
                     <div className="p-8 bg-bone">
                       {/* TODO(HC): Update copy */}
                       <p className="text-lg mb-4">
-                        Options trading platform will be available on Rysk Beyond!
+                        Options trading platform will be available on Rysk
+                        Beyond!
                       </p>
                       <p className="mb-4">
-                        If you are interested in trading options { " " }
-                        <a href={DISCORD_LINK} target="blank" className="underline">
+                        If you are interested in trading options{" "}
+                        <a
+                          href={DISCORD_LINK}
+                          target="blank"
+                          className="underline"
+                        >
                           get in contact with us
-                        </a>.
+                        </a>
+                        .
                       </p>
                     </div>
                   ),
