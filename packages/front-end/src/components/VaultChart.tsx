@@ -11,14 +11,19 @@ import {
   ResponsiveContainer,
   Label,
 } from "recharts";
+// const data = [
+//   { date: "Jul 1", cumulativeYield: 0.41, pv: 2400, amt: 2400 },
+//   { date: "Jul 8", cumulativeYield: 0.94, pv: 2400, amt: 2400 },
+//   { date: "Jul 15", cumulativeYield: 0.67, pv: 2400, amt: 2400 },
+//   { date: "Jul 22", cumulativeYield: 1.2, pv: 2400, amt: 2400 },
+//   { date: "Jul 29", cumulativeYield: 1.93, pv: 2400, amt: 2400 },
+//   { date: "Aug 6", cumulativeYield: 2.24, pv: 2400, amt: 2400 },
+// ];
+
 const data = [
-  { date: "Jul 1", cumulativeYield: 0.41, pv: 2400, amt: 2400 },
-  { date: "Jul 8", cumulativeYield: 0.94, pv: 2400, amt: 2400 },
-  { date: "Jul 15", cumulativeYield: 0.67, pv: 2400, amt: 2400 },
-  { date: "Jul 22", cumulativeYield: 1.2, pv: 2400, amt: 2400 },
-  { date: "Jul 29", cumulativeYield: 1.93, pv: 2400, amt: 2400 },
-  { date: "Aug 6", cumulativeYield: 2.24, pv: 2400, amt: 2400 },
+  { date: "", cumulativeYield: 0, pv: 2400, amt: 2400 }
 ];
+
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {

@@ -13,7 +13,7 @@ export const VaultRisksStats = () => {
           <p className="mb-2 text-xl">
             Current Delta:{" "}
             <NumberFormat
-              value={"13.78"}
+              value={"0"}
               displayType={"text"}
               decimalScale={2}
               suffix="%"
@@ -40,7 +40,7 @@ export const VaultRisksStats = () => {
         </div>
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
-            Sharpe Ratio: TBC
+            Sharpe Ratio: Soon™️
             {/* <RyskTooltip
               id="sharpeTip"
               message=""
@@ -57,7 +57,7 @@ export const VaultRisksStats = () => {
         </div>
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
-            Max Drawdown: TBC
+            Max Drawdown: Soon™️
             {/* <RyskTooltip
             Max Drawdown:{" "}
             <NumberFormat
