@@ -288,7 +288,7 @@ export const VaultDeposit = () => {
           setListeningForDeposit(true);
         },
         completeMessage:
-          "✅ Deposit complete. You can redeem your shares once this epoch is executed.",
+          "✅ Deposit complete!",
         onComplete: () => {
           setInputValue("");
           updateDepositState();
