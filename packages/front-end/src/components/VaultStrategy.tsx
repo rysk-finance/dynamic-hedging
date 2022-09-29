@@ -17,7 +17,7 @@ const STRATEGY_STEPS = [
     title: "2. Dynamically Hedge",
     src: "/images/hedge.png",
     description: [
-      `The ${DHV_NAME} dynamically hedges it's positions as market conditions move delta exposure away from it's target`
+      `The ${DHV_NAME} dynamically hedges its positions as market conditions cause its delta exposure to move away from the target`
     ],
   },
 ];

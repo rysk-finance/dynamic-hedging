@@ -17,7 +17,7 @@ export const WIPPopup = () => {
             <Card
               tabs={[
                 {
-                  label: "Soon ™ ",
+                  label: "Soon ™",
                   content: (
                     <div className="p-8 bg-bone">
                       {/* TODO(HC): Update copy */}
