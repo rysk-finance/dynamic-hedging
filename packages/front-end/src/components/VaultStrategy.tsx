@@ -35,8 +35,8 @@ export const VaultStrategy = () => {
             strategies.
           </p>
           <p className="pt-4">
-            The {DHV_NAME} runs short ETH options strategies such as strangles,
-            straddles, or single legs (naked calls and short puts) targeting a{" "}
+            The {DHV_NAME} runs ETH options strategies such as strangles,
+            straddles, or single legs (calls and puts) targeting a{" "}
             <a
               href="https://medium.com/@rysk-finance/looking-under-the-hood-of-rysks-dynamic-hedging-vault-e059e1b87e41"
               target="_blank"
