@@ -7,8 +7,9 @@ import { VaultRisksStats } from "./VaultRisksStats";
 export const VaultRisks = () => {
   return (
     <div>
-
-      <AlphaBanner />
+      <div className="px-8 mt-8">
+        <AlphaBanner />
+      </div>
 
       <VaultRisksStats />
 
@@ -34,7 +35,10 @@ export const VaultRisks = () => {
                   mitigting the risk.
                 </li>
               </ul>
-              <a href="https://docs.rysk.finance/protocol/risks#financial-risks" className="underline ml-8 mt-4">
+              <a
+                href="https://docs.rysk.finance/protocol/risks#financial-risks"
+                className="underline ml-8 mt-4"
+              >
                 {`Learn more about Rysk's Financial risks`}
               </a>
             </p>
@@ -56,7 +60,10 @@ export const VaultRisks = () => {
                   contract&apos;s security standards as well.
                 </li>
               </ul>
-              <a href="https://docs.rysk.finance/protocol/risks#smart-contract-risks" className="underline ml-8 mt-4">
+              <a
+                href="https://docs.rysk.finance/protocol/risks#smart-contract-risks"
+                className="underline ml-8 mt-4"
+              >
                 {`Learn more about Rysk's Smart Contract risks`}
               </a>
             </p>
