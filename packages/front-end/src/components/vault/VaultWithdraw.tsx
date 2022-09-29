@@ -344,8 +344,7 @@ export const VaultWithdraw = () => {
                       <div
                         {...thumbProps}
                         className={`${thumbClassName} p-2 flex items-center justify-center bg-cyan-dark rounded-full border-2 border-black translate-y-[-1px] cursor-pointer`}
-                      >
-                      </div>
+                      ></div>
                     </div>
                   )}
                 />
@@ -409,7 +408,7 @@ export const VaultWithdraw = () => {
               <div className="p-4 border-b-2 border-black">
                 <div className="flex justify-between items-center">
                   <p className="text-[16px] mr-2">
-                    Estimated amount you are withdrawing
+                    Estimated withdrawal amount
                     <RyskTooltip
                       tooltipProps={{ className: "max-w-[350px]" }}
                       message={WITHDRAW_ESTIMATE_MESSAGE}
