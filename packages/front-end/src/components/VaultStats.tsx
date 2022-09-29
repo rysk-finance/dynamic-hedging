@@ -12,8 +12,8 @@ export const VaultStats = () => {
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
             Cumulative Yield:{" "}
-            <NumberFormat
-              value={"2.24"}
+            {/* <NumberFormat
+              value={""}
               displayType={"text"}
               decimalScale={2}
               suffix="%"
@@ -22,22 +22,23 @@ export const VaultStats = () => {
             <RyskTooltip
               id="yieldTip"
               message={`Sum of ${DHV_NAME} returns since inception (Jul 1st 2022)`}
-            />
+            /> */}
+            Soon™️
           </p>
-          <a
+          {/* <a
             href="https://docs.rysk.finance"
             className="underline text-center"
             target="_blank"
             rel="noreferrer"
           >
             Learn more
-          </a>
+          </a> */}
         </div>
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
             Projected APY:{" "}
-            <NumberFormat
-              value={"23.45%"}
+            {/* <NumberFormat
+              value={"%"}
               displayType={"text"}
               decimalScale={2}
               suffix="%"
@@ -46,16 +47,17 @@ export const VaultStats = () => {
             <RyskTooltip
               id="apyTip"
               message="Based on historical returns and the current options exposure"
-            />
+            /> */}
+            Soon™️
           </p>
-          <a
+          {/* <a
             href="https://docs.rysk.finance"
             className="underline text-center"
             target="_blank"
             rel="noreferrer"
           >
             Learn more
-          </a>
+          </a> */}
         </div>
       </div>
     </div>

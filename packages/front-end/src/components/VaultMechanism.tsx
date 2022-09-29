@@ -36,8 +36,7 @@ export const VaultMechanism = () => {
                 point your funds will be released from the vault.
               </li>
               <li className="pb-2">
-                At this point you can complete your withdrawal to recieve your
-                returns.
+                At this point you can complete your withdrawal.
               </li>
             </ul>
           </p>

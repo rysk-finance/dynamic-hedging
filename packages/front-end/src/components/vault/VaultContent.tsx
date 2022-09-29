@@ -102,7 +102,7 @@ export const VaultContent = () => {
           neutrality in order reduce the directional risk associated with ETH
           price movements.
         </p>
-        <Link
+        {/* <Link
           className="underline hover:font-medium cursor-pointer text-cyan-dark"
           activeClass="active"
           to="overviewScroll"
@@ -112,7 +112,7 @@ export const VaultContent = () => {
           duration={500}
         >
           Learn more
-        </Link>
+        </Link> */}
 
         <LPStats />
       </div>

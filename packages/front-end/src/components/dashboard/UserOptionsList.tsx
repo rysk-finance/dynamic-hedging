@@ -10,7 +10,6 @@ import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import { RadioButtonSlider } from "../shared/RadioButtonSlider";
 import { BuyBack } from "./BuyBack";
-import { RFQ_FORM } from "../../config/links";
 import { useContract } from "../../hooks/useContract";
 import OpynController from "../../abis/OpynController.json";
 import { toast } from "react-toastify";
@@ -298,13 +297,7 @@ export const UserOptionsList = () => {
                                       />
                                     </div>
                                     <div className="col-span-3 text-center">
-                                      <Button
-                                        onClick={() => {
-                                          window.open(RFQ_FORM, "_blank");
-                                        }}
-                                      >
-                                        RFQ to close position
-                                      </Button>
+                                      <p className="text-sm">Contact team to close position</p>
                                     </div>
                                   </div>
                                 </div>

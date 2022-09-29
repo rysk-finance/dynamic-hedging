@@ -8,8 +8,8 @@ const STRATEGY_STEPS = [
     title: "1. Trade Options",
     src: "/images/strangles.png",
     description: [
-      `${DHV_NAME} trade ETH options targeting delta close to zero.`,
-      "A Delta zero means that the exposure is neutral to ETH market movements.",
+      `The ${DHV_NAME} trades ETH options to target a delta of zero.`,
+      "A zero delta is exposure neutral to ETH market movements.",
     ],
   },
   {
@@ -17,8 +17,7 @@ const STRATEGY_STEPS = [
     title: "2. Dynamically Hedge",
     src: "/images/hedge.png",
     description: [
-      `As the market conditions change the delta exposure of ${DHV_NAME} moves from zero.`,
-      `The ${DHV_NAME} dynamically hedges the positions to reduce the directionality.`,
+      `The ${DHV_NAME} dynamically hedges its positions as market conditions cause its delta exposure to move away from the target`
     ],
   },
 ];

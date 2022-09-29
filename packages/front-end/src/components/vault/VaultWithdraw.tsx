@@ -251,7 +251,7 @@ export const VaultWithdraw = () => {
   return (
     <div className="flex-col items-center justify-between h-full">
       <div className="p-2 bg-black text-white mb-2">
-        <p className="text-right">
+        <p className="text-right font-medium text-lg">
           Your Position:{" "}
           <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
             <BigNumberDisplay
@@ -340,10 +340,13 @@ export const VaultWithdraw = () => {
                     className: thumbClassName,
                     ...thumbProps
                   }) => (
-                    <div
-                      {...thumbProps}
-                      className={`${thumbClassName} p-2 flex items-center justify-center bg-cyan-dark rounded-full border-2 border-black translate-y-[-1px] cursor-pointer`}
-                    ></div>
+                    <div className="items-center">
+                      <div
+                        {...thumbProps}
+                        className={`${thumbClassName} p-2 flex items-center justify-center bg-cyan-dark rounded-full border-2 border-black translate-y-[-1px] cursor-pointer`}
+                      >
+                      </div>
+                    </div>
                   )}
                 />
                 <div className="w-full flex justify-between items-center mt-5 text-xs">
@@ -406,7 +409,7 @@ export const VaultWithdraw = () => {
               <div className="p-4 border-b-2 border-black">
                 <div className="flex justify-between items-center">
                   <p className="text-[16px] mr-2">
-                    Estimated amount
+                    Estimated amount you are withdrawing
                     <RyskTooltip
                       tooltipProps={{ className: "max-w-[350px]" }}
                       message={WITHDRAW_ESTIMATE_MESSAGE}
