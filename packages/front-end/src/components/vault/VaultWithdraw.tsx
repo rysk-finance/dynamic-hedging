@@ -406,7 +406,7 @@ export const VaultWithdraw = () => {
               <div className="p-4 border-b-2 border-black">
                 <div className="flex justify-between items-center">
                   <p className="text-[16px] mr-2">
-                    Estimated amount
+                    Estimated based on percentage
                     <RyskTooltip
                       tooltipProps={{ className: "max-w-[350px]" }}
                       message={WITHDRAW_ESTIMATE_MESSAGE}
