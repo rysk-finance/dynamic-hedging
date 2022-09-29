@@ -6,7 +6,9 @@ import { AlphaBanner } from "./shared/AlphaBanner";
 export const VaultPerformance = () => {
   return (
     <div>
-      <AlphaBanner />
+      <div className="px-8 mt-8">
+        <AlphaBanner />
+      </div>
       <VaultStats />
       <VaultChart />
     </div>
