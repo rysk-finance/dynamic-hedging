@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from "react";
 import { gql, useQuery } from "@apollo/client";
-import { BigNumber } from "ethers";
+import { BigNumber, utils } from "ethers";
 import { useState } from "react";
 import NumberFormat from "react-number-format";
 import { useWalletContext } from "../../App";
@@ -276,9 +276,11 @@ export const UserOptionsList = () => {
                                     </div>
                                     <div className="col-span-2 text-right">
                                       <NumberFormat
-                                        value={(
-                                          Number(position.amount) /
-                                          10 ** DECIMALS.OPYN
+                                        value={Number(
+                                          utils.formatUnits(
+                                            BigNumber.from(position.amount),
+                                            DECIMALS.OPYN
+                                          )
                                         ).toFixed(2)}
                                         displayType={"text"}
                                         decimalScale={2}
