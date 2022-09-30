@@ -32,7 +32,7 @@ export const VaultRisks = () => {
                   the {DHV_NAME} could have directional exposure. <br />
                   In this case, however, {DHV_NAME} can dynamically hedge,
                   trading other instruments to reduce the directionality,
-                  mitigting the risk.
+                  mitigating the risk.
                 </li>
               </ul>
               <a
