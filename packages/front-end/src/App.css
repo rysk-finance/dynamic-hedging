@@ -11,6 +11,10 @@
   grid-template-columns: repeat(16, 1fr);
 }
 
+#root {
+  overflow-x: hidden;
+}
+
 #root h1 {
   font-size: 64px;
   line-height: 64px;
