@@ -464,51 +464,53 @@ export const VaultWithdraw = () => {
         )}
       </div>
 
-      {!withdrawEpochComplete && (
-        <>
-          <div>
-            <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
-              <div className="flex justify-between items-center">
-                <div className="flex">
-                  <p>Withdraw on hold</p>
-                  <RyskTooltip
-                    tooltipProps={{ className: "max-w-[350px]" }}
-                    message={WITHDRAW_SHARES_EPOCH}
-                    id={"strategeyTip"}
-                  />
-                </div>
+      {!withdrawEpochComplete &&
+        withdrawReceipt &&
+        withdrawReceipt.shares._hex !== ZERO_UINT_256 && (
+          <>
+            <div>
+              <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
+                <div className="flex justify-between items-center">
+                  <div className="flex">
+                    <p>Withdraw on hold</p>
+                    <RyskTooltip
+                      tooltipProps={{ className: "max-w-[350px]" }}
+                      message={WITHDRAW_SHARES_EPOCH}
+                      id={"strategeyTip"}
+                    />
+                  </div>
 
-                <div className="h-4 flex items-center">
-                  {listeningForInitiation && (
-                    <Loader className="mr-2 !h-[24px]" />
-                  )}
-                  <p>
-                    <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                      <BigNumberDisplay currency={Currency.USDC}>
-                        {(withdrawReceipt &&
-                          currentPricePerShare &&
-                          withdrawReceipt?.shares
-                            .mul(currentPricePerShare)
-                            .div(BIG_NUMBER_DECIMALS.RYSK)
-                            .div(
-                              BIG_NUMBER_DECIMALS.RYSK.div(
-                                BIG_NUMBER_DECIMALS.USDC
-                              )
-                            )) ??
-                          null}
-                      </BigNumberDisplay>
-                    </RequiresWalletConnection>{" "}
-                    USDC
-                  </p>
+                  <div className="h-4 flex items-center">
+                    {listeningForInitiation && (
+                      <Loader className="mr-2 !h-[24px]" />
+                    )}
+                    <p>
+                      <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
+                        <BigNumberDisplay currency={Currency.USDC}>
+                          {(withdrawReceipt &&
+                            currentPricePerShare &&
+                            withdrawReceipt?.shares
+                              .mul(currentPricePerShare)
+                              .div(BIG_NUMBER_DECIMALS.RYSK)
+                              .div(
+                                BIG_NUMBER_DECIMALS.RYSK.div(
+                                  BIG_NUMBER_DECIMALS.USDC
+                                )
+                              )) ??
+                            null}
+                        </BigNumberDisplay>
+                      </RequiresWalletConnection>{" "}
+                      USDC
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          {/* <div className="p-2 border-b-2 border-black">
+            {/* <div className="p-2 border-b-2 border-black">
           <p className="text-xs">{WITHDRAW_ESTIMATE_MESSAGE}</p>
         </div> */}
-        </>
-      )}
+          </>
+        )}
 
       <div>
         <div className="h-4" />
