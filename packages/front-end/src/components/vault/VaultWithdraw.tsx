@@ -416,17 +416,19 @@ export const VaultWithdraw = () => {
                     />
                   </p>
                   <p className="">
-                    {withdrawValue ? (
-                      <NumberFormat
-                        value={withdrawValue}
-                        displayType={"text"}
-                        thousandSeparator={true}
-                        fixedDecimalScale
-                        suffix=" USDC"
-                      />
-                    ) : (
-                      <Loader className="h-6 ml-2" />
-                    )}{" "}
+                    <RequiresWalletConnection className="translate-y-[-4px]">
+                      {withdrawValue ? (
+                        <NumberFormat
+                          value={withdrawValue}
+                          displayType={"text"}
+                          thousandSeparator={true}
+                          fixedDecimalScale
+                          suffix=" USDC"
+                        />
+                      ) : (
+                        <Loader className="h-6 ml-2" />
+                      )}{" "}
+                    </RequiresWalletConnection>
                   </p>
                 </div>
                 {/* <RyskTooltip
