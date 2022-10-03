@@ -192,10 +192,25 @@ export const UserOptionsList = () => {
     readOnly: false,
   });
 
+  enum ActionType {
+    OpenVault,
+    MintShortOption,
+    BurnShortOption,
+    DepositLongOption,
+    WithdrawLongOption,
+    DepositCollateral,
+    WithdrawCollateral,
+    SettleVault,
+    Redeem,
+    Call,
+    Liquidate,
+    InvalidAction,
+  }
+
   const completeRedeem = useCallback(
     async (otokenId: string, amount: string) => {
       const args = {
-        actionType: 8,
+        actionType: ActionType.Redeem,
         owner: ZERO_ADDRESS,
         secondAddress: account,
         asset: otokenId,
@@ -216,7 +231,7 @@ export const UserOptionsList = () => {
         },
       });
     },
-    [account, opynControllerContract, opynControllerContractCall]
+    [ActionType.Redeem, account, opynControllerContract, opynControllerContractCall]
   );
 
   return (
@@ -383,6 +398,18 @@ export const UserOptionsList = () => {
                                       Redeem
                                     </Button>
                                     }
+
+                                    <Button
+                                      onClick={() =>
+                                        completeRedeem(
+                                          position.otokenId,
+                                          position.amount
+                                        )
+                                      }
+                                      className="min-w-[50%]"
+                                    >
+                                      Redeem
+                                    </Button>
                                   
                                   </div>
                                 </div>
