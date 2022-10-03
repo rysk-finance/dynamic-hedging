@@ -398,18 +398,6 @@ export const UserOptionsList = () => {
                                       Redeem
                                     </Button>
                                     }
-
-                                    <Button
-                                      onClick={() =>
-                                        completeRedeem(
-                                          position.otokenId,
-                                          position.amount
-                                        )
-                                      }
-                                      className="min-w-[50%]"
-                                    >
-                                      Redeem
-                                    </Button>
                                   
                                   </div>
                                 </div>
