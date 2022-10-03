@@ -1,6 +1,8 @@
+import { link, linkSync } from "fs";
 import React, { useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { AppPaths } from "../config/appPaths";
+import { PP_LINK, TERMS_LINK } from "../config/links";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { Button } from "./shared/Button";
 import { Card } from "./shared/Card";
@@ -81,22 +83,24 @@ export const LegalDisclaimer = () => {
                     <p>
                       You have read and understand, and do hereby agree to the
                       Rysk Alpha User{" "}
-                      <Link
-                        to={AppPaths.TERMS}
+                      <a
+                        href={TERMS_LINK}
                         className="cursor-pointer text-cyan-dark underline"
                         target="_blank"
+                        rel="noreferrer"
                       >
                         Terms of Service
-                      </Link>{" "}
+                      </a>{" "}
                       and acknowledge that you have read and understand the Rysk
                       Alpha{" "}
-                      <Link
-                        to={AppPaths.PRIVACY_POLICY}
+                      <a
+                        href={PP_LINK}
                         className="cursor-pointer text-cyan-dark underline"
                         target="_blank"
+                        rel="noreferrer"
                       >
                         Privacy Policy
-                      </Link>
+                      </a>
                       .
                     </p>
                   </div>

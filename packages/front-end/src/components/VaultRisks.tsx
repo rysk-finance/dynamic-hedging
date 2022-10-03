@@ -1,11 +1,16 @@
 import React from "react";
 import { DHV_NAME } from "../config/constants";
+import { AlphaBanner } from "./shared/AlphaBanner";
 import { Card } from "./shared/Card";
 import { VaultRisksStats } from "./VaultRisksStats";
 
 export const VaultRisks = () => {
   return (
     <div>
+      <div className="px-8 mt-8">
+        <AlphaBanner />
+      </div>
+
       <VaultRisksStats />
 
       <hr />
@@ -27,10 +32,13 @@ export const VaultRisks = () => {
                   the {DHV_NAME} could have directional exposure. <br />
                   In this case, however, {DHV_NAME} can dynamically hedge,
                   trading other instruments to reduce the directionality,
-                  mitigting the risk.
+                  mitigating the risk.
                 </li>
               </ul>
-              <a href="#" className="underline ml-8 mt-4">
+              <a
+                href="https://docs.rysk.finance/protocol/risks#financial-risks"
+                className="underline ml-8 mt-4"
+              >
                 {`Learn more about Rysk's Financial risks`}
               </a>
             </p>
@@ -52,8 +60,11 @@ export const VaultRisks = () => {
                   contract&apos;s security standards as well.
                 </li>
               </ul>
-              <a href="#" className="underline ml-8 mt-4">
-                {`Learn more about Rysk's security`}
+              <a
+                href="https://docs.rysk.finance/protocol/risks#smart-contract-risks"
+                className="underline ml-8 mt-4"
+              >
+                {`Learn more about Rysk's Smart Contract risks`}
               </a>
             </p>
           </div>

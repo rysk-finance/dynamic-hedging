@@ -288,7 +288,7 @@ export const VaultDeposit = () => {
           setListeningForDeposit(true);
         },
         completeMessage:
-          "✅ Deposit complete. You can redeem your shares once this epoch is executed.",
+          "✅ Deposit complete!",
         onComplete: () => {
           setInputValue("");
           updateDepositState();
@@ -350,7 +350,7 @@ export const VaultDeposit = () => {
   return (
     <div className="flex-col items-center justify-between h-full">
       <div className="p-2 bg-black text-white mb-2">
-        <p className="text-right">
+        <p className="text-right font-medium text-lg">
           Your Position:{" "}
           <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
             <BigNumberDisplay

@@ -39,30 +39,30 @@ async function main() {
 		)
 
 		const callOption = {
-			expiration: "1663920000",
+			expiration: "1665820800",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
-			strike: BigNumber.from("1300").mul(RYSK_DECIMAL),
+			strike: BigNumber.from("1350").mul(RYSK_DECIMAL),
 			isPut: false,
 			underlying: arbitrumRinkeby.WETH,
 			strikeAsset: arbitrumRinkeby.USDC,
 			collateral: arbitrumRinkeby.USDC
 		}
 
-		const callQuote = BigNumber.from((7.45 * RYSK_EXP).toString())
+		const callQuote = BigNumber.from((25 * RYSK_EXP).toString())
 
 		const putOption = {
-			expiration: "1663920000",
+			expiration: "1665820800",
 			// Need to update to give a value in the orderBounds defined on optionHandler.
-			strike: BigNumber.from("1300").mul(RYSK_DECIMAL),
+			strike: BigNumber.from("1350").mul(RYSK_DECIMAL),
 			isPut: true,
 			underlying: arbitrumRinkeby.WETH,
 			strikeAsset: arbitrumRinkeby.USDC,
 			collateral: arbitrumRinkeby.USDC
 		}
 
-		const putQuote = BigNumber.from((17.45 * RYSK_EXP).toString())
+		const putQuote = BigNumber.from((50 * RYSK_EXP).toString())
 
-		const orderAmount = BigNumber.from((5 * RYSK_EXP).toString())
+		const orderAmount = BigNumber.from((1 * RYSK_EXP).toString())
 
 		const orderTransaction = await alphaOptionHandler.createStrangle(
 			callOption,

@@ -1,7 +1,7 @@
 import { DHV_NAME } from "./constants";
 
 export const DEPOSIT_SHARES_EPOCH = `Your deposit will be deployed to the vault on Friday at 11am UTC.
-                                     You can start earning returns and initiate a withdraw from this time onwards.`;
+                                     You will start earning returns and initiate a withdraw from this time onwards.`;
 
 export const WITHDRAW_SHARES_EPOCH = `Your withdraw on hold will be converted to USDC on Friday at 11am UTC.
                                       You can then complete your withdraw to get your USDC.`;

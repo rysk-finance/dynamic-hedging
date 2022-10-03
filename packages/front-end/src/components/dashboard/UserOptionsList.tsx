@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from "react";
 import { gql, useQuery } from "@apollo/client";
-import { BigNumber } from "ethers";
+import { BigNumber, utils } from "ethers";
 import { useState } from "react";
 import NumberFormat from "react-number-format";
 import { useWalletContext } from "../../App";
@@ -10,7 +10,6 @@ import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import { RadioButtonSlider } from "../shared/RadioButtonSlider";
 import { BuyBack } from "./BuyBack";
-import { RFQ_FORM } from "../../config/links";
 import { useContract } from "../../hooks/useContract";
 import OpynController from "../../abis/OpynController.json";
 import { toast } from "react-toastify";
@@ -96,8 +95,6 @@ export const UserOptionsList = () => {
 
       // TODO add current price and PNL
 
-      console.log(position.oToken.underlyingAsset.id)
-
       return {
         id: position.id,
         expiryTimestamp: position.oToken.expiryTimestamp,
@@ -168,8 +165,6 @@ export const UserOptionsList = () => {
 
         const expiryPrice = asset.prices.find( 
           (item: { expiry: string; }) => {
-            console.log('otoken_expiry:', position.expiryTimestamp)
-            console.log('oracle_expiry:', item.expiry)
             return item.expiry === position.expiryTimestamp
           }
         )?.price 
@@ -177,8 +172,8 @@ export const UserOptionsList = () => {
         position.expiryPrice = expiryPrice
 
         position.isRedeemable = position.isPut 
-                                ? expiryPrice <= position.strikePrice 
-                                : expiryPrice >= position.strikePrice
+                                ? Number(expiryPrice) <= Number(position.strikePrice) 
+                                : Number(expiryPrice) >= Number(position.strikePrice)
 
       }) 
     };
@@ -281,9 +276,11 @@ export const UserOptionsList = () => {
                                     </div>
                                     <div className="col-span-2 text-right">
                                       <NumberFormat
-                                        value={(
-                                          Number(position.amount) /
-                                          10 ** DECIMALS.OPYN
+                                        value={Number(
+                                          utils.formatUnits(
+                                            BigNumber.from(position.amount),
+                                            DECIMALS.OPYN
+                                          )
                                         ).toFixed(2)}
                                         displayType={"text"}
                                         decimalScale={2}
@@ -298,13 +295,7 @@ export const UserOptionsList = () => {
                                       />
                                     </div>
                                     <div className="col-span-3 text-center">
-                                      <Button
-                                        onClick={() => {
-                                          window.open(RFQ_FORM, "_blank");
-                                        }}
-                                      >
-                                        RFQ to close position
-                                      </Button>
+                                      <p className="text-sm">Contact team to close position</p>
                                     </div>
                                   </div>
                                 </div>
@@ -370,7 +361,10 @@ export const UserOptionsList = () => {
                                   </div>
                                   <div className="col-span-2 text-right">
                                     <NumberFormat
-                                      value={position.expiryPrice}
+                                      value={( 
+                                        Number(position.expiryPrice) /
+                                        10 ** DECIMALS.OPYN
+                                      ).toFixed(2)}
                                       displayType={"text"}
                                       prefix="$"
                                       decimalScale={2}
@@ -389,17 +383,6 @@ export const UserOptionsList = () => {
                                       Redeem
                                     </Button>
                                     }
-                                   <Button
-                                      onClick={() =>
-                                        completeRedeem(
-                                          position.otokenId,
-                                          position.amount
-                                        )
-                                      }
-                                      className="min-w-[50%]"
-                                    >
-                                      redeem
-                                    </Button>
                                   
                                   </div>
                                 </div>

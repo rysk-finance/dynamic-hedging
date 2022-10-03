@@ -45,7 +45,7 @@ export const VaultWithdraw = () => {
   } = useUserPosition();
 
   // UI State
-  const [sliderPercentage, setSlidePercentage] = useState(25);
+  const [sliderPercentage, setSlidePercentage] = useState(0);
   const [withdrawValue, setWithdrawValue] = useState("");
   const [listeningForInitiation, setListeningForInitiation] = useState(false);
   const [listeningForCompleteWithdraw, setListeningForCompleteWithdraw] =
@@ -217,7 +217,7 @@ export const VaultWithdraw = () => {
     if (lpContract) {
       await lpContractCall({
         method: lpContract.completeWithdraw,
-        args: [MAX_UINT_256],
+        args: [],
         scaleGasLimit: true,
         methodName: "completeWithdraw",
         submitMessage: "✅ Withdraw completion submitted",
@@ -238,7 +238,7 @@ export const VaultWithdraw = () => {
 
   useEffect(() => {
     if (withdrawableDHV) {
-      handleSliderChange(25);
+      handleSliderChange(0);
     }
   }, [withdrawableDHV, handleSliderChange]);
 
@@ -251,7 +251,7 @@ export const VaultWithdraw = () => {
   return (
     <div className="flex-col items-center justify-between h-full">
       <div className="p-2 bg-black text-white mb-2">
-        <p className="text-right">
+        <p className="text-right font-medium text-lg">
           Your Position:{" "}
           <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
             <BigNumberDisplay
@@ -340,10 +340,12 @@ export const VaultWithdraw = () => {
                     className: thumbClassName,
                     ...thumbProps
                   }) => (
-                    <div
-                      {...thumbProps}
-                      className={`${thumbClassName} p-2 flex items-center justify-center bg-cyan-dark rounded-full border-2 border-black translate-y-[-1px] cursor-pointer`}
-                    ></div>
+                    <div className="items-center">
+                      <div
+                        {...thumbProps}
+                        className={`${thumbClassName} p-2 flex items-center justify-center bg-cyan-dark rounded-full border-2 border-black translate-y-[-1px] cursor-pointer`}
+                      ></div>
+                    </div>
                   )}
                 />
                 <div className="w-full flex justify-between items-center mt-5 text-xs">
@@ -406,7 +408,7 @@ export const VaultWithdraw = () => {
               <div className="p-4 border-b-2 border-black">
                 <div className="flex justify-between items-center">
                   <p className="text-[16px] mr-2">
-                    Estimated amount
+                    Estimated withdrawal amount
                     <RyskTooltip
                       tooltipProps={{ className: "max-w-[350px]" }}
                       message={WITHDRAW_ESTIMATE_MESSAGE}
@@ -414,17 +416,19 @@ export const VaultWithdraw = () => {
                     />
                   </p>
                   <p className="">
-                    {withdrawValue ? (
-                      <NumberFormat
-                        value={withdrawValue}
-                        displayType={"text"}
-                        thousandSeparator={true}
-                        fixedDecimalScale
-                        suffix=" USDC"
-                      />
-                    ) : (
-                      <Loader className="h-6 ml-2" />
-                    )}{" "}
+                    <RequiresWalletConnection className="translate-y-[-4px]">
+                      {withdrawValue ? (
+                        <NumberFormat
+                          value={withdrawValue}
+                          displayType={"text"}
+                          thousandSeparator={true}
+                          fixedDecimalScale
+                          suffix=" USDC"
+                        />
+                      ) : (
+                        <Loader className="h-6 ml-2" />
+                      )}{" "}
+                    </RequiresWalletConnection>
                   </p>
                 </div>
                 {/* <RyskTooltip
@@ -460,51 +464,53 @@ export const VaultWithdraw = () => {
         )}
       </div>
 
-      {!withdrawEpochComplete && (
-        <>
-          <div>
-            <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
-              <div className="flex justify-between items-center">
-                <div className="flex">
-                  <p>Withdraw on hold</p>
-                  <RyskTooltip
-                    tooltipProps={{ className: "max-w-[350px]" }}
-                    message={WITHDRAW_SHARES_EPOCH}
-                    id={"strategeyTip"}
-                  />
-                </div>
+      {!withdrawEpochComplete &&
+        withdrawReceipt &&
+        withdrawReceipt.shares._hex !== ZERO_UINT_256 && (
+          <>
+            <div>
+              <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
+                <div className="flex justify-between items-center">
+                  <div className="flex">
+                    <p>Withdraw on hold</p>
+                    <RyskTooltip
+                      tooltipProps={{ className: "max-w-[350px]" }}
+                      message={WITHDRAW_SHARES_EPOCH}
+                      id={"strategeyTip"}
+                    />
+                  </div>
 
-                <div className="h-4 flex items-center">
-                  {listeningForInitiation && (
-                    <Loader className="mr-2 !h-[24px]" />
-                  )}
-                  <p>
-                    <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                      <BigNumberDisplay currency={Currency.USDC}>
-                        {(withdrawReceipt &&
-                          currentPricePerShare &&
-                          withdrawReceipt?.shares
-                            .mul(currentPricePerShare)
-                            .div(BIG_NUMBER_DECIMALS.RYSK)
-                            .div(
-                              BIG_NUMBER_DECIMALS.RYSK.div(
-                                BIG_NUMBER_DECIMALS.USDC
-                              )
-                            )) ??
-                          null}
-                      </BigNumberDisplay>
-                    </RequiresWalletConnection>{" "}
-                    USDC
-                  </p>
+                  <div className="h-4 flex items-center">
+                    {listeningForInitiation && (
+                      <Loader className="mr-2 !h-[24px]" />
+                    )}
+                    <p>
+                      <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
+                        <BigNumberDisplay currency={Currency.USDC}>
+                          {(withdrawReceipt &&
+                            currentPricePerShare &&
+                            withdrawReceipt?.shares
+                              .mul(currentPricePerShare)
+                              .div(BIG_NUMBER_DECIMALS.RYSK)
+                              .div(
+                                BIG_NUMBER_DECIMALS.RYSK.div(
+                                  BIG_NUMBER_DECIMALS.USDC
+                                )
+                              )) ??
+                            null}
+                        </BigNumberDisplay>
+                      </RequiresWalletConnection>{" "}
+                      USDC
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          {/* <div className="p-2 border-b-2 border-black">
+            {/* <div className="p-2 border-b-2 border-black">
           <p className="text-xs">{WITHDRAW_ESTIMATE_MESSAGE}</p>
         </div> */}
-        </>
-      )}
+          </>
+        )}
 
       <div>
         <div className="h-4" />

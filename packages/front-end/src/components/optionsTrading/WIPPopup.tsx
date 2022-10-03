@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { DISCORD_LINK } from "../../config/links";
 import { Card } from "../shared/Card";
 
 export const WIPPopup = () => {
@@ -16,12 +17,24 @@ export const WIPPopup = () => {
             <Card
               tabs={[
                 {
-                  label: "Coming soon",
+                  label: "Soon™",
                   content: (
                     <div className="p-8 bg-bone">
                       {/* TODO(HC): Update copy */}
+                      <p className="text-lg mb-4">
+                        Options trading platform will be available on Rysk
+                        Beyond!
+                      </p>
                       <p className="mb-4">
-                        Our options trading platform isn&apos;t ready yet.
+                        If you are interested in trading options{" "}
+                        <a
+                          href={DISCORD_LINK}
+                          target="blank"
+                          className="underline"
+                        >
+                          get in contact with us
+                        </a>
+                        .
                       </p>
                     </div>
                   ),

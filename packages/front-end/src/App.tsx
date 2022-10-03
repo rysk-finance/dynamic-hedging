@@ -37,7 +37,6 @@ import { Dashboard } from "./pages/Dashboard";
 import { OptionsTrading } from "./pages/OptionsTrading";
 import { OTC } from "./pages/OTC";
 import { Vault } from "./pages/Vault";
-import { Terms } from "./pages/Terms";
 import { GlobalContextProvider } from "./state/GlobalContext";
 import { ETHNetwork } from "./types";
 import { toHex } from "./utils";
@@ -49,7 +48,7 @@ import {
 import { Footer } from "./components/Footer";
 import * as Fathom from "fathom-client";
 import { LegalDisclaimer } from "./components/LegalDisclaimer";
-import { Privacy } from "./pages/Privacy";
+import { MobileWarning } from "./components/MobileWarning";
 
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();
@@ -371,11 +370,6 @@ function App() {
     Fathom.load("SMDEXJZR", { excludedDomains: ["localhost:3000"] });
   }, []);
 
-  const { pathname } = useLocation();
-  const showLegal = !(
-    pathname === AppPaths.TERMS || pathname === AppPaths.PRIVACY_POLICY
-  );
-
   return (
     <WalletContext.Provider
       value={{
@@ -394,7 +388,8 @@ function App() {
       <GlobalContextProvider>
         <ApolloProvider client={apolloClient}>
           <div className="App bg-bone font-dm-mono flex flex-col min-h-screen">
-            {showLegal && <LegalDisclaimer />}
+            <LegalDisclaimer />
+            <MobileWarning />
             <Header />
             <div className="pt-16 px-16">
               <div className="root-grid py-24">
@@ -403,8 +398,6 @@ function App() {
                   <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
                   <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
                   <Route path={AppPaths.OTC} element={<OTC />} />
-                  <Route path={AppPaths.TERMS} element={<Terms />} />
-                  <Route path={AppPaths.PRIVACY_POLICY} element={<Privacy />} />
                 </Routes>
               </div>
             </div>

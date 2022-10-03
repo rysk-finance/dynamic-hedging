@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { AppPaths } from '../config/appPaths'
-import { BLOG_LINK, DISCORD_LINK, DOCS_LINK, GITHUB_LINK, TWITTER_LINK } from '../config/links'
+import { BLOG_LINK, DISCORD_LINK, DOCS_LINK, GITHUB_LINK, PP_LINK, TERMS_LINK, TWITTER_LINK } from '../config/links'
 
 
 export const Footer: React.FC = () => {
@@ -25,20 +25,20 @@ export const Footer: React.FC = () => {
         >
           BLOG
         </button>
-        <Link to={AppPaths.TERMS}>
+        <a href={TERMS_LINK} target="_blank" rel="noreferrer">
           <button
             className="mr-4"
           >
             TERMS
           </button>
-        </Link>
-        <Link to={AppPaths.PRIVACY_POLICY}>
+        </a>
+        <a href={PP_LINK} target="_blank" rel="noreferrer">
           <button
             className="mr-4"
           >
             PRIVACY POLICY
           </button>
-        </Link>
+        </a>
 
 
       </div>
