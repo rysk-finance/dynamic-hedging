@@ -90,7 +90,7 @@ export const UserOptionsList = () => {
       // premium converted to 1e18
       const entryPrice =
         otokenBalance > 0 && totPremium > 0
-          ? (totPremium * 10 ** (DECIMALS.OPYN - DECIMALS.USDC)) / otokenBalance
+          ? totPremium / ( otokenBalance * 10 ** (DECIMALS.RYSK - DECIMALS.OPYN) )
           : 0;
 
       // TODO add current price and PNL
