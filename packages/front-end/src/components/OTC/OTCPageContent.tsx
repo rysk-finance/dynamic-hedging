@@ -549,7 +549,7 @@ export const OTCPageContent = () => {
                           ? order.isBuyBack
                             ? handleCompleteBuyBack
                             : handleComplete
-                          : () => {}
+                          : strangle ? handleComplete : () => {}
                       }
                       disabled={completeDisabled}
                     >
