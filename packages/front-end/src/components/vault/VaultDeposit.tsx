@@ -287,8 +287,7 @@ export const VaultDeposit = () => {
         onSubmit: () => {
           setListeningForDeposit(true);
         },
-        completeMessage:
-          "✅ Deposit complete!",
+        completeMessage: "✅ Deposit complete!",
         onComplete: () => {
           setInputValue("");
           updateDepositState();
