@@ -34,21 +34,18 @@ const APPROVAL_MARGIN = 0.1;
 export const GAS_LIMIT_MULTIPLIER_PERCENTAGE = BigNumber.from(120);
 
 export enum CHAINID {
-  ETH_MAINNET = 1,
   ARBITRUM_MAINNET = 42161,
   ARBITRUM_RINKEBY = 421611,
   LOCALHOST = 1337,
 }
 
 export const IDToNetwork: Record<CHAINID, ETHNetwork> = {
-  [CHAINID.ETH_MAINNET]: ETHNetwork.MAINNET,
   [CHAINID.ARBITRUM_MAINNET]: ETHNetwork.ARBITRUM_MAINNET,
   [CHAINID.ARBITRUM_RINKEBY]: ETHNetwork.ARBITRUM_RINKEBY,
   [CHAINID.LOCALHOST]: ETHNetwork.LOCALHOST,
 };
 
 export const RPC_URL_MAP: Record<CHAINID, string> = {
-  [CHAINID.ETH_MAINNET]: `https://mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
   [CHAINID.ARBITRUM_MAINNET]: `https://arbitrum-mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
   [CHAINID.ARBITRUM_RINKEBY]: `https://arbitrum-rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
   [CHAINID.LOCALHOST]: "",
@@ -56,7 +53,6 @@ export const RPC_URL_MAP: Record<CHAINID, string> = {
 
 export const SUBGRAPH_URL = {
   [CHAINID.LOCALHOST]: "",
-  [CHAINID.ETH_MAINNET]: "",
   [CHAINID.ARBITRUM_RINKEBY]:
     "https://api.thegraph.com/subgraphs/name/ugolino/rysktestnet",
   [CHAINID.ARBITRUM_MAINNET]:
@@ -65,7 +61,6 @@ export const SUBGRAPH_URL = {
 
 export const OPYN_SUBGRAPH_URL = {
   [CHAINID.LOCALHOST]: "",
-  [CHAINID.ETH_MAINNET]: "",
   [CHAINID.ARBITRUM_RINKEBY]:
     "https://api.thegraph.com/subgraphs/name/ugolino/ryskopyntestnet",
   [CHAINID.ARBITRUM_MAINNET]:
@@ -74,13 +69,11 @@ export const OPYN_SUBGRAPH_URL = {
 
 export const SCAN_URL = {
   [CHAINID.LOCALHOST]: "",
-  [CHAINID.ETH_MAINNET]: "",
   [CHAINID.ARBITRUM_RINKEBY]: "https://testnet.arbiscan.io",
   [CHAINID.ARBITRUM_MAINNET]: "https://arbiscan.io",
 };
 
 export const ORACLE_DISPUTE_PERIOD = 7200;
 export const ORACLE_LOCKING_PERIOD = 300;
-
 
 export const DHV_NAME = "Rysk DHV ETH/USDC";

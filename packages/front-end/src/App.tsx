@@ -57,13 +57,6 @@ const onboard = init({
   wallets: [injectedWallets, walletConnect],
   chains: [
     {
-      id: "0x1", // chain ID must be in hexadecimel
-      token: "ETH", // main chain token
-      namespace: "evm",
-      label: "Ethereum Mainnet",
-      rpcUrl: RPC_URL_MAP[CHAINID.ETH_MAINNET],
-    },
-    {
       id: "0x2",
       token: "ARETH",
       namespace: "evm",
@@ -90,6 +83,7 @@ const onboard = init({
   },
 });
 
+// Stores information relating to browser <-> wallet connect.
 type WalletContext = {
   connectWallet: (() => Promise<void>) | null;
   network: { name: ETHNetwork; id: CHAINID } | null;
