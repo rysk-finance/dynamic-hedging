@@ -84,7 +84,7 @@ export const VaultTrades = () => {
         <div className="col-span-2">Trade Type</div>
         <div className="col-span-3">Option</div>
         <div className="col-span-1 text-right">Size</div>
-        <div className="col-span-1 text-right">Amount</div>
+        <div className="col-span-2 text-right">Premium Received</div>
         <div className="col-span-2 text-right">Delta Change</div>
       </div>
 
@@ -122,7 +122,7 @@ export const VaultTrades = () => {
                   />
                 }
               </div>
-              <div className="col-span-1 text-right">
+              <div className="col-span-2 text-right">
                 { trade.premium && 
                   <NumberFormat
                     value={(
