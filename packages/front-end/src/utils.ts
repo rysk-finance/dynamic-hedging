@@ -1,3 +1,7 @@
+import { BigNumber } from "ethers";
+import moment from "moment";
+import { BIG_NUMBER_DECIMALS } from "./config/constants";
+
 export const truncateAddress = (address: string) => {
   if (!address) return "No Account";
   const match = address.match(
@@ -25,3 +29,18 @@ export const toHex = (num: number): string => {
   const val = Number(num);
   return "0x" + val.toString(16);
 };
+
+export const optionSymbolFormat = (
+  isPut: boolean,
+  expiryTimestamp: string,
+  strikePrice: string
+) => {
+
+  const returnType = isPut ? "PUT" : "CALL"
+  const optionSymbol = `ETH 
+                      ${moment.unix(Number(expiryTimestamp) ).format("DD-MMM-YY").toUpperCase()} 
+                      $${BigNumber.from(strikePrice).div(BIG_NUMBER_DECIMALS.OPYN)}
+                      ${returnType}`
+                      
+  return optionSymbol
+}

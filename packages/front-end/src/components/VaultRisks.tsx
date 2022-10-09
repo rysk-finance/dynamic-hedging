@@ -1,15 +1,15 @@
 import React from "react";
 import { DHV_NAME } from "../config/constants";
-import { AlphaBanner } from "./shared/AlphaBanner";
-import { Card } from "./shared/Card";
+// import { AlphaBanner } from "./shared/AlphaBanner";
+// import { Card } from "./shared/Card";
 import { VaultRisksStats } from "./VaultRisksStats";
 
 export const VaultRisks = () => {
   return (
     <div>
-      <div className="px-8 mt-8">
+      {/* <div className="px-8 mt-8">
         <AlphaBanner />
-      </div>
+      </div> */}
 
       <VaultRisksStats />
 
