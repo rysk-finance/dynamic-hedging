@@ -79,10 +79,10 @@ export const VaultTrades = () => {
   return (
     <div className="pb-8 py-12 px-8">
 
-      <div className="grid grid-cols-12 text-left text-lg pb-4">
+      <div className="grid grid-cols-12 text-left text-lg pb-4 px-2">
         <div className="col-span-2">Date</div>
         <div className="col-span-2">Trade Type</div>
-        <div className="col-span-3">Option</div>
+        <div className="col-span-3">Product</div>
         <div className="col-span-1 text-right">Size</div>
         <div className="col-span-2 text-right">Premium Received</div>
         <div className="col-span-2 text-right">Delta Change</div>
@@ -99,8 +99,11 @@ export const VaultTrades = () => {
         ).map(trade => (
 
         <div key={trade.id} className="w-full">
-          <a href={`${SCAN_URL[chainId]}/tx/${trade.transactionHash}`} target="_blank" rel="noreferrer">
-            <div className="grid grid-cols-12 py-2 text-black">
+          <a  href={`${SCAN_URL[chainId]}/tx/${trade.transactionHash}`} 
+              target="_blank" 
+              rel="noreferrer"
+              >
+            <div className="grid grid-cols-12 py-2 text-black hover:bg-black hover:text-white px-2">
               <div className="col-span-2">
                 {moment.utc(trade.timestamp * 1000).format("DD-MMM-YY HH:mm")} UTC
               </div>
@@ -139,7 +142,7 @@ export const VaultTrades = () => {
                 { trade.deltaChange && 
                   <NumberFormat
                     value={(
-                      Number(trade.deltaChange) /
+                      Number(-trade.deltaChange) /
                       10 ** DECIMALS.RYSK
                     ).toFixed(2)}
                     displayType={"text"}
