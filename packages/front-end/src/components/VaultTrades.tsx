@@ -6,6 +6,33 @@ import NumberFormat from "react-number-format";
 import { utils } from "ethers";
 import { optionSymbolFormat } from "../utils";
 
+const parseTrades = (data: any) => {
+
+  const writeOptionsActions = data?.writeOptionsActions
+  const rebalanceDeltaActions = data?.rebalanceDeltaActions
+
+  const allTrades = [...writeOptionsActions, ...rebalanceDeltaActions].map( trade => {
+
+    const tradeType = trade.__typename === "WriteOptionsAction" ? "optionsTrade" : "deltaRebalance";
+
+    return {
+      id: trade.id,
+      tradeType: tradeType,
+      optionSymbol: tradeType === "optionsTrade" 
+                                  ? optionSymbolFormat(trade.otoken.isPut, trade.otoken.expiryTimestamp, trade.otoken.strikePrice) 
+                                  : "",
+      amount: tradeType === "optionsTrade" ? trade.amount : null,
+      premium: tradeType === "optionsTrade" ? trade.premium : null,
+      deltaChange: tradeType === "optionsTrade" ? null : trade.deltaChange,
+      timestamp: trade.timestamp,
+      transactionHash: trade.transactionHash
+    }
+  })
+
+  return allTrades
+
+}
+
 export const VaultTrades = () => {
 
   const [trades, setTrades] = useState<any[]>();
@@ -15,33 +42,8 @@ export const VaultTrades = () => {
       ? CHAINID.ARBITRUM_RINKEBY
       : CHAINID.ARBITRUM_MAINNET;
 
-  const parseTrades = (data: any) => {
 
-    const writeOptionsActions = data?.writeOptionsActions
-    const rebalanceDeltaActions = data?.rebalanceDeltaActions
-
-    const allTrades = [...writeOptionsActions, ...rebalanceDeltaActions].map( trade => {
-
-      const tradeType = trade.__typename === "WriteOptionsAction" ? "optionsTrade" : "deltaRebalance";
-
-      return {
-        id: trade.id,
-        tradeType: tradeType,
-        optionSymbol: tradeType === "optionsTrade" 
-                                    ? optionSymbolFormat(trade.otoken.isPut, trade.otoken.expiryTimestamp, trade.otoken.strikePrice) 
-                                    : "",
-        amount: tradeType === "optionsTrade" ? trade.amount : null,
-        premium: tradeType === "optionsTrade" ? trade.premium : null,
-        deltaChange: tradeType === "optionsTrade" ? null : trade.deltaChange,
-        timestamp: trade.timestamp,
-        transactionHash: trade.transactionHash
-      }
-    })
-
-    setTrades(allTrades)
-
-  }
-
+  // exclude test trades
   const startTimestamp = 1664553600
 
   useQuery(
@@ -69,7 +71,10 @@ export const VaultTrades = () => {
     }
   `,
     {
-      onCompleted: parseTrades,
+      onCompleted: (data) => {
+        const allTrades = parseTrades(data)
+        setTrades(allTrades)
+      },
       onError: (err) => {
         console.log(err);
       },
