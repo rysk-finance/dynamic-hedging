@@ -1,9 +1,9 @@
 import React from "react";
-import NumberFormat from "react-number-format";
-import { Card } from "./shared/Card";
-import ReactTooltip from "react-tooltip";
-import { RyskTooltip } from "./RyskTooltip";
-import { DHV_NAME } from "../config/constants";
+// import NumberFormat from "react-number-format";
+// import { Card } from "./shared/Card";
+// import ReactTooltip from "react-tooltip";
+// import { RyskTooltip } from "./RyskTooltip";
+// import { DHV_NAME } from "../config/constants";
 
 export const VaultRisksStats = () => {
   return (
@@ -12,6 +12,7 @@ export const VaultRisksStats = () => {
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
             Current Delta: Soon™️
+            {/* // TODO Reinstate or remove */}
             {/* <NumberFormat
               value={"0"}
               displayType={"text"}

@@ -6,9 +6,10 @@ import {VaultChart} from './VaultChart'
 export const VaultPerformance = () => {
   return (
     <div>
-      {/* <div className="px-8 mt-8">
-        <AlphaBanner />
-      </div> */}
+      {/* // TODO Review and remove  */}
+      {/*<div className="px-8 mt-8">*/}
+      {/*  <AlphaBanner />*/}
+      {/*</div>*/}
       <VaultStats />
       <VaultChart />
     </div>
