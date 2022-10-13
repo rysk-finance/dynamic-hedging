@@ -41,10 +41,12 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
     <div className="w-full">
       {order && (
         <>
+          { order.isBuyBack ? "Close Position" : "Buy" }
           <OptionSeriesInfo option={order.optionSeries} />
           <hr className="my-2 border-black" />
           <p className="pt-2">
-            Buyer Address: <AddressDisplay>{order.buyer}</AddressDisplay>
+            { order.isBuyBack ? "Seller" : "Buyer" } Address: 
+            <AddressDisplay>{order.buyer}</AddressDisplay>
           </p>
           <p className="pt-2">
             Order Expiry: { parseTimestamp(Number(order.orderExpiry) * 1000) } { " "}

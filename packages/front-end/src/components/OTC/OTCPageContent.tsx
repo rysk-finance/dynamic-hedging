@@ -556,7 +556,7 @@ export const OTCPageContent = () => {
                       {isListeningForComplete
                         ? "⏱ Awaiting Completion"
                         : order?.isBuyBack
-                        ? "Complete Sale"
+                        ? "Complete"
                         : "Complete Purchase"}
                     </Button>
                   </div>
