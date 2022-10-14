@@ -9,6 +9,7 @@ import {gql, useQuery} from "@apollo/client";
 export const VaultStats = () => {
   const [cumulativePricePerShares, setCumulativeSinceFirstEpoch] = useState<number>();
 
+  // TODO Could remove as We are also querying all of the price per shares in Vault Chart
   useQuery(
       gql`
         query {
