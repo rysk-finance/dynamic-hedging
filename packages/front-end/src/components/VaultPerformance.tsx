@@ -1,6 +1,6 @@
 import React from "react";
-import {VaultStats} from './VaultStats'
-import {VaultChart} from './VaultChart'
+import { VaultStats } from "./VaultStats";
+import { VaultChart } from "./VaultChart";
 // import { AlphaBanner } from "./shared/AlphaBanner";
 
 export const VaultPerformance = () => {

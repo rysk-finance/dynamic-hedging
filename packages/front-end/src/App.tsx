@@ -324,20 +324,19 @@ function App() {
   }, [disconnect, handleChainChange]);
 
   useEffect(() => {
-
     const SUBGRAPH_URI =
-      network?.id !== undefined 
-        ? SUBGRAPH_URL[network?.id] 
-        : process.env.REACT_APP_ENV === "production" 
-        ? SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET] 
+      network?.id !== undefined
+        ? SUBGRAPH_URL[network?.id]
+        : process.env.REACT_APP_ENV === "production"
+        ? SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
         : SUBGRAPH_URL[CHAINID.ARBITRUM_RINKEBY];
 
     const OPYN_SUBGRAPH_URI =
-      network?.id !== undefined ? 
-      OPYN_SUBGRAPH_URL[network?.id] 
-      : process.env.REACT_APP_ENV === "production" 
-      ? OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET] 
-      : OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_RINKEBY];
+      network?.id !== undefined
+        ? OPYN_SUBGRAPH_URL[network?.id]
+        : process.env.REACT_APP_ENV === "production"
+        ? OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
+        : OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_RINKEBY];
 
     const ryskSubgraph = new HttpLink({
       uri: SUBGRAPH_URI,

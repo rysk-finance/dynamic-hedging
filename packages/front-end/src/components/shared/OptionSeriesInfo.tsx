@@ -13,24 +13,22 @@ type OptionSeriesInfoProps = {
 export const OptionSeriesInfo: React.FC<OptionSeriesInfoProps> = ({
   option,
 }) => {
-
-  const returnType = option?.isPut ? "PUT" : "CALL"
-  const returnExpiry = parseTimestamp(Number(option?.expiration) * 1000)
+  const returnType = option?.isPut ? "PUT" : "CALL";
+  const returnExpiry = parseTimestamp(Number(option?.expiration) * 1000);
   const optionSymbol = `ETH 
-                        ${moment.unix(Number(option?.expiration) ).format("DD-MMM-YY").toUpperCase()} 
+                        ${moment
+                          .unix(Number(option?.expiration))
+                          .format("DD-MMM-YY")
+                          .toUpperCase()} 
                         $${option?.strike.div(BIG_NUMBER_DECIMALS.OPYN)}
-                        ${returnType}`
+                        ${returnType}`;
 
   return option ? (
     <div className="w-full">
       <div className="flex items-center">
-        <h4 className="font-parabole mr-2 pb-2">
-           {optionSymbol}
-        </h4>
+        <h4 className="font-parabole mr-2 pb-2">{optionSymbol}</h4>
       </div>
-      <p className="pt-2">
-        Type: {returnType}
-      </p>
+      <p className="pt-2">Type: {returnType}</p>
       <p className="pt-2">
         Strike:{" "}
         <BigNumberDisplay currency={Currency.OPYN} suffix="USDC">

@@ -47,11 +47,10 @@ export const OTCPageContent = () => {
     "Please connect your wallet"
   );
 
-  const [optionHandlerContract, optionHandlerContractCall] =
-    useContract({
-      contract: "optionHandler",
-      ABI: OptionHandler,
-    });
+  const [optionHandlerContract, optionHandlerContractCall] = useContract({
+    contract: "optionHandler",
+    ABI: OptionHandler,
+  });
 
   const [optionRegistryContract, optionRegistryContractCall] = useContract({
     contract: "OpynOptionRegistry",
@@ -205,13 +204,7 @@ export const OTCPageContent = () => {
     } else {
       toast("❌ There was an error. Please contact our team.");
     }
-  }, [
-    optionHandlerContract,
-    usdcContract,
-    usdcContractCall,
-    order,
-    strangle,
-  ]);
+  }, [optionHandlerContract, usdcContract, usdcContractCall, order, strangle]);
 
   const handleComplete = useCallback(async () => {
     if (optionHandlerContract) {
@@ -249,12 +242,7 @@ export const OTCPageContent = () => {
     } else {
       toast("❌ There was an error. Please contact our team.");
     }
-  }, [
-    optionHandlerContract,
-    optionHandlerContractCall,
-    orderId,
-    strangleId,
-  ]);
+  }, [optionHandlerContract, optionHandlerContractCall, orderId, strangleId]);
 
   // BuyBack order handlers
   const handleApproveBuyBack = useCallback(async () => {
@@ -530,7 +518,9 @@ export const OTCPageContent = () => {
                           ? order.isBuyBack
                             ? handleApproveBuyBack
                             : handleApprove
-                          : strangle ? handleApprove : () => {}
+                          : strangle
+                          ? handleApprove
+                          : () => {}
                       }
                       color="black"
                       disabled={approveDisabled}
@@ -549,7 +539,9 @@ export const OTCPageContent = () => {
                           ? order.isBuyBack
                             ? handleCompleteBuyBack
                             : handleComplete
-                          : strangle ? handleComplete : () => {}
+                          : strangle
+                          ? handleComplete
+                          : () => {}
                       }
                       disabled={completeDisabled}
                     >
