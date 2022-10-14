@@ -79,6 +79,7 @@
     "@typescript-eslint/parser": "^5.21.0",
     "black-scholes": "^1.1.0",
     "eslint": "^8.14.0",
-    "eslint-plugin-react": "^7.29.4"
+    "eslint-plugin-react": "^7.29.4",
+    "prettier": "2.7.1"
   }
 }
