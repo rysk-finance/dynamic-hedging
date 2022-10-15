@@ -4,6 +4,7 @@ import { LPStats } from "../../components/LPStats";
 import { Card } from "../../components/shared/Card";
 import { VaultDeposit } from "./VaultDeposit";
 import { VaultPerformance } from "../../components/VaultPerformance";
+import { VaultTrades } from "../../components/VaultTrades";
 import { Currency } from "../../types";
 import { RequiresWalletConnection } from "../RequiresWalletConnection";
 import { VaultWithdraw } from "./VaultWithdraw";
@@ -148,6 +149,10 @@ export const VaultContent = () => {
             {
               label: "Risks",
               content: <VaultRisks />,
+            },
+            {
+              label: "Trades",
+              content: <VaultTrades />,
             },
           ]}
         ></Card>

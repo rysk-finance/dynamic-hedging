@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import ProgressBar from "@ramonak/react-progress-bar";
 import { useContract } from "../hooks/useContract";
 import LPABI from "../abis/LiquidityPool.json";
@@ -42,6 +42,15 @@ export const LPStats = () => {
     getCollateralCap();
   }, [lpContract]);
 
+  const showDeposit = useMemo(() => {
+
+    if (depositedCollateral && collateralCap ) {
+      return depositedCollateral?.gte(collateralCap) ? collateralCap : depositedCollateral
+    } 
+    
+
+  }, [depositedCollateral, collateralCap]);
+
   return (
     <div className="mt-8">
       <div className="flex justify-between mb-4">
@@ -50,7 +59,7 @@ export const LPStats = () => {
             <div>
               <p className="text-xl font-medium">
                 <NumberFormat 
-                value={ ethers.utils.formatUnits(depositedCollateral, DECIMALS.RYSK) } 
+                value={ ethers.utils.formatUnits(showDeposit ? showDeposit : depositedCollateral, DECIMALS.RYSK) } 
                 displayType={"text"}
                 suffix=" USDC"
                 decimalScale={0}
@@ -81,7 +90,7 @@ export const LPStats = () => {
         )}
       </div>
       <ProgressBar
-        completed={ Math.round(Number(depositedCollateral) / Number(collateralCap) * 100)  }
+        completed={ Math.round(Number( showDeposit ? showDeposit : depositedCollateral ) / Number(collateralCap) * 100)  }
         bgColor={"#000"}
         height={"24px"}
         baseBgColor={"#ebebeb"}

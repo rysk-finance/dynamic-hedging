@@ -90,7 +90,7 @@ export const UserOptionsList = () => {
       // premium converted to 1e18
       const entryPrice =
         otokenBalance > 0 && totPremium > 0
-          ? (totPremium * 10 ** (DECIMALS.OPYN - DECIMALS.USDC)) / otokenBalance
+          ? totPremium / ( otokenBalance * 10 ** (DECIMALS.RYSK - DECIMALS.OPYN) )
           : 0;
 
       // TODO add current price and PNL
@@ -192,10 +192,25 @@ export const UserOptionsList = () => {
     readOnly: false,
   });
 
+  enum ActionType {
+    OpenVault,
+    MintShortOption,
+    BurnShortOption,
+    DepositLongOption,
+    WithdrawLongOption,
+    DepositCollateral,
+    WithdrawCollateral,
+    SettleVault,
+    Redeem,
+    Call,
+    Liquidate,
+    InvalidAction,
+  }
+
   const completeRedeem = useCallback(
     async (otokenId: string, amount: string) => {
       const args = {
-        actionType: 8,
+        actionType: ActionType.Redeem,
         owner: ZERO_ADDRESS,
         secondAddress: account,
         asset: otokenId,
@@ -216,7 +231,7 @@ export const UserOptionsList = () => {
         },
       });
     },
-    [account, opynControllerContract, opynControllerContractCall]
+    [ActionType.Redeem, account, opynControllerContract, opynControllerContractCall]
   );
 
   return (

@@ -57,13 +57,6 @@ const onboard = init({
   wallets: [injectedWallets, walletConnect],
   chains: [
     {
-      id: "0x1", // chain ID must be in hexadecimel
-      token: "ETH", // main chain token
-      namespace: "evm",
-      label: "Ethereum Mainnet",
-      rpcUrl: RPC_URL_MAP[CHAINID.ETH_MAINNET],
-    },
-    {
       id: "0x2",
       token: "ARETH",
       namespace: "evm",
@@ -90,6 +83,7 @@ const onboard = init({
   },
 });
 
+// Stores information relating to browser <-> wallet connect.
 type WalletContext = {
   connectWallet: (() => Promise<void>) | null;
   network: { name: ETHNetwork; id: CHAINID } | null;
@@ -330,16 +324,20 @@ function App() {
   }, [disconnect, handleChainChange]);
 
   useEffect(() => {
+
     const SUBGRAPH_URI =
-      network?.id !== undefined ? SUBGRAPH_URL[network?.id] : "";
+      network?.id !== undefined 
+        ? SUBGRAPH_URL[network?.id] 
+        : process.env.REACT_APP_ENV === "production" 
+        ? SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET] 
+        : SUBGRAPH_URL[CHAINID.ARBITRUM_RINKEBY];
 
     const OPYN_SUBGRAPH_URI =
-      network?.id !== undefined ? OPYN_SUBGRAPH_URL[network?.id] : "";
-
-    // const client = new ApolloClient({
-    //   uri: SUBGRAPH_URI,
-    //   cache: new InMemoryCache(),
-    // });
+      network?.id !== undefined ? 
+      OPYN_SUBGRAPH_URL[network?.id] 
+      : process.env.REACT_APP_ENV === "production" 
+      ? OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET] 
+      : OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_RINKEBY];
 
     const ryskSubgraph = new HttpLink({
       uri: SUBGRAPH_URI,

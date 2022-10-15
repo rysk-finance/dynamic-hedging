@@ -112,6 +112,9 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
     }: {
       method: ethers.ContractFunction;
       args: any[];
+      // This bumps up the gas limit for the transaction as metamask can
+      // sometimes underestimate.
+      // https://github.com/MetaMask/metamask-extension/issues/7286
       scaleGasLimit?: boolean;
       // Must provide the method name when requiring gas estimate, because of how
       // ethers contract api interface is built. Not a big inconveince for now, but worth
