@@ -67,6 +67,8 @@ interface ILiquidityPool is I_ERC20 {
 
 	function resetEphemeralValues() external;
 
+	function rebalancePortfolioDelta(int256 delta, uint256 index) external;
+	
 	function getAssets() external view returns (uint256);
 
 	function redeem(uint256) external returns (uint256);

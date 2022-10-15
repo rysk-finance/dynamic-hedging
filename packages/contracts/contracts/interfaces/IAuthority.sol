@@ -19,4 +19,6 @@ interface IAuthority {
 	function guardian(address _target) external view returns (bool);
 
 	function manager() external view returns (address);
+
+	function pullManager() external;
 }
