@@ -19,25 +19,26 @@ contract Manager is AccessControl {
 
 	// delta limit for an address
 	mapping(address => uint256) public deltaLimit;
-    // option handler address
-    IAlphaOptionHandler public optionHandler;
-    // liquidity pool address
-    ILiquidityPool public liquidityPool;
+	// option handler address
+	IAlphaOptionHandler public optionHandler;
+	// liquidity pool address
+	ILiquidityPool public liquidityPool;
 
 	// keeper mapping
 	mapping(address => bool) public keeper;
-    // proxy manager 
+	// proxy manager
 	address public proxyManager;
 
-    error ExceedsDeltaLimit();
-    error NotProxyManager(); 
+	error ExceedsDeltaLimit();
+	error NotProxyManager();
+
 	constructor(
 		address _authority,
 		address _liquidityPool,
-        address _optionHandler
+		address _optionHandler
 	) AccessControl(IAuthority(_authority)) {
 		liquidityPool = ILiquidityPool(_liquidityPool);
-        optionHandler = IAlphaOptionHandler(_optionHandler);
+		optionHandler = IAlphaOptionHandler(_optionHandler);
 	}
 
 	///////////////
@@ -69,10 +70,14 @@ contract Manager is AccessControl {
 	/**
 	 * @notice set the delta limit on a keeper
 	 */
-    function setDeltaLimit(uint256 _delta, address _keeper) external {
-        _isProxyManager();
-        deltaLimit[_keeper] = _delta;
-    }
+	function setDeltaLimit(uint256[] calldata _delta, address[] calldata _keeper) external {
+		_isProxyManager();
+        for (uint i = 0; i < _delta.length; i++) {
+		    deltaLimit[_keeper[i]] = _delta[i];
+        }
+
+	}
+
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
@@ -85,7 +90,7 @@ contract Manager is AccessControl {
 	 * @param _optionSeries the option token series to issue - strike in e18
 	 * @param _amount the number of options to issue - e18
 	 * @param _price the price per unit to issue at - in e18
-	 * @param _orderExpiry the expiry of the custom order, after which the 
+	 * @param _orderExpiry the expiry of the custom order, after which the
 	 *        buyer cannot use this order (if past the order is redundant)
 	 * @param _buyerAddress the agreed upon buyer address
 	 * @return orderId the unique id of the order
@@ -100,15 +105,15 @@ contract Manager is AccessControl {
 		uint256[2] memory _spotMovementRange
 	) public returns (uint256) {
 		_isProxyManager();
-        optionHandler.createOrder(
-            _optionSeries, 
-            _amount, 
-            _price, 
-            _orderExpiry,
-            _buyerAddress, 
-            _isBuyBack, 
-            _spotMovementRange
-            );
+		optionHandler.createOrder(
+			_optionSeries,
+			_amount,
+			_price,
+			_orderExpiry,
+			_buyerAddress,
+			_isBuyBack,
+			_spotMovementRange
+		);
 	}
 
 	/**
@@ -137,55 +142,51 @@ contract Manager is AccessControl {
 		uint256[2] memory _putSpotMovementRange
 	) external returns (uint256, uint256) {
 		_isProxyManager();
-        optionHandler.createStrangle(
-            _optionSeriesCall, 
-            _optionSeriesPut, 
-            _amountCall,
-            _amountPut,
-            _priceCall,
-            _pricePut,
-            _orderExpiry,
-            _buyerAddress, 
-            _callSpotMovementRange,
-            _putSpotMovementRange
-            );
-    }
-    /**
+		optionHandler.createStrangle(
+			_optionSeriesCall,
+			_optionSeriesPut,
+			_amountCall,
+			_amountPut,
+			_priceCall,
+			_pricePut,
+			_orderExpiry,
+			_buyerAddress,
+			_callSpotMovementRange,
+			_putSpotMovementRange
+		);
+	}
+
+	/**
 	 * @notice function for hedging portfolio delta through external means
 	 * @param delta the current portfolio delta
 	 * @param reactorIndex the index of the reactor in the hedgingReactors array to use
 	 */
 	function rebalancePortfolioDelta(int256 delta, uint256 reactorIndex) external {
 		_isKeeper();
-        uint256 absoluteDelta = uint256(PRBMathSD59x18.abs(delta));
-        if ( absoluteDelta > deltaLimit[msg.sender]){
-            revert ExceedsDeltaLimit();
-        }
-        deltaLimit[msg.sender] -= absoluteDelta;
-        liquidityPool.rebalancePortfolioDelta(delta, reactorIndex);
+		uint256 absoluteDelta = uint256(PRBMathSD59x18.abs(delta));
+		if (absoluteDelta > deltaLimit[msg.sender]) {
+			revert ExceedsDeltaLimit();
+		}
+		deltaLimit[msg.sender] -= absoluteDelta;
+		liquidityPool.rebalancePortfolioDelta(delta, reactorIndex);
 	}
 
-    function pullManager() external {
-        _onlyGovernor();
-        authority.pullManager();
-    }
+	function pullManager() external {
+		_onlyGovernor();
+		authority.pullManager();
+	}
 
 	/// @dev keepers, managers or governors can access
 	function _isKeeper() internal view {
-		if (
-			!keeper[msg.sender] && msg.sender != authority.governor()
-		) {
+		if (!keeper[msg.sender] && msg.sender != authority.governor()) {
 			revert CustomErrors.NotKeeper();
 		}
 	}
 
-    /// @dev proxy managers, managers or governors can access
+	/// @dev proxy managers, managers or governors can access
 	function _isProxyManager() internal view {
-		if (
-			msg.sender != proxyManager && msg.sender != authority.governor()
-		) {
+		if (msg.sender != proxyManager && msg.sender != authority.governor()) {
 			revert NotProxyManager();
 		}
 	}
-
 }

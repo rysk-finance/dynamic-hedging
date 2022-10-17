@@ -447,12 +447,17 @@ describe("Liquidity Pool with alpha tests", async () => {
 			await expect(manager.connect(receiver).rebalancePortfolioDelta(delta, 0, { gasLimit: 999999999999 })).to.be.revertedWith("ExceedsDeltaLimit()")
 		})
 		it("SUCCEEDS: proxy manager sets delta limit", async() => {
-			await manager.setDeltaLimit(toWei("1"), receiverAddress)
+			await manager.setDeltaLimit([toWei("1")], [receiverAddress])
 			expect( await manager.deltaLimit(receiverAddress)).to.equal(toWei("1"))
+		})
+		it("SUCCEEDS: proxy manager sets multiple delta limit", async() => {
+			await manager.setDeltaLimit([toWei("1"), toWei("2")], [receiverAddress, senderAddress])
+			expect( await manager.deltaLimit(receiverAddress)).to.equal(toWei("1"))
+			expect( await manager.deltaLimit(senderAddress)).to.equal(toWei("2"))
 		})
 		it("REVERTS: non proxy manager sets delta limit", async() => {
 			const [sender, receiver] = signers
-			await expect(manager.connect(receiver).setDeltaLimit(toWei("1"), receiverAddress)).to.be.revertedWith("NotProxyManager()")
+			await expect(manager.connect(receiver).setDeltaLimit([toWei("1")], [receiverAddress])).to.be.revertedWith("NotProxyManager()")
 		})
 		it("SUCCEEDS: hedges positive delta as keeper with a delta limit", async () => {
 			const [sender, receiver] = signers
