@@ -470,6 +470,17 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(reactorDelta.sub(newReactorDelta)).to.equal(delta)
 			expect(await manager.deltaLimit(receiverAddress)).to.equal(toWei("0.5"))
 		})
+		it("SUCCEEDS: hedges negative delta as keeper with a delta limit", async () => {
+			const [sender, receiver] = signers
+			const delta = toWei("-0.2")
+			const reactorDelta = await perpHedgingReactor.internalDelta()
+			await manager.connect(receiver).rebalancePortfolioDelta(delta, 0, { gasLimit: 999999999999 })
+			const newReactorDelta = await perpHedgingReactor.internalDelta()
+			const newDelta = await liquidityPool.getPortfolioDelta()
+			expect(newDelta).to.equal(toWei("-2.3"))
+			expect(reactorDelta.sub(newReactorDelta)).to.equal(delta)
+			expect(await manager.deltaLimit(receiverAddress)).to.equal(toWei("0.3"))
+		})
 		it("REVERTS: tries to surpass a delta limit", async () => {
 			const [sender, receiver] = signers
 			const delta = toWei("0.6")
