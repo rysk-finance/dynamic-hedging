@@ -41,7 +41,6 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
     <div className="w-full">
       {order && (
         <>
-          { order.isBuyBack ? "Close Position" : "Buy" }
           <OptionSeriesInfo option={order.optionSeries} />
           <hr className="my-2 border-black" />
           <p className="pt-2">

@@ -462,7 +462,7 @@ export const OTCPageContent = () => {
                   <div className="w-full">
                     <div className="bg-black p-2 text-white">
                       <p>
-                        <b>Details</b>
+                        <b>{ order && order.isBuyBack ? "Close Position" : "Buy" }</b>
                       </p>
                     </div>
                     <div className="p-4">
@@ -556,7 +556,7 @@ export const OTCPageContent = () => {
                       {isListeningForComplete
                         ? "⏱ Awaiting Completion"
                         : order?.isBuyBack
-                        ? "Complete"
+                        ? "Complete Sale"
                         : "Complete Purchase"}
                     </Button>
                   </div>
