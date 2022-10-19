@@ -29,7 +29,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="custom-tooltip bg-bone bg-opacity-75 border-black p-4 border-2 border-b-2 rounded-xl border-black">
-        <p className="label">{`${label}: ${payload[0].value}%`}</p>
+        {/* <p className="label">{`${label}: ${payload[0].value}%`}</p> */}
+        <p className="label">
+          Soon™️
+        </p>
       </div>
     );
   }

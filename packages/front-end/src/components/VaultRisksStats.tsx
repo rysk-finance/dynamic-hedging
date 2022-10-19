@@ -1,9 +1,9 @@
 import React from "react";
-import NumberFormat from "react-number-format";
-import { Card } from "./shared/Card";
-import ReactTooltip from "react-tooltip";
-import { RyskTooltip } from "./RyskTooltip";
-import { DHV_NAME } from "../config/constants";
+// import NumberFormat from "react-number-format";
+// import { Card } from "./shared/Card";
+// import ReactTooltip from "react-tooltip";
+// import { RyskTooltip } from "./RyskTooltip";
+// import { DHV_NAME } from "../config/constants";
 
 export const VaultRisksStats = () => {
   return (
@@ -11,8 +11,9 @@ export const VaultRisksStats = () => {
       <div className="flex h-full w-full justify-around">
         <div className="flex flex-col items-left justify-center h-full mb-8 lg:mb-0">
           <p className="mb-2 text-xl">
-            Current Delta:{" "}
-            <NumberFormat
+            Current Delta: Soon™️
+            {/* // TODO Reinstate or remove */}
+            {/* <NumberFormat
               value={"0"}
               displayType={"text"}
               decimalScale={2}
@@ -27,7 +28,7 @@ export const VaultRisksStats = () => {
                 A Delta close to zero means that the exposure is neutral to market movements.
               "
               tooltipProps={{ className: "max-w-[300px]" }}
-            />
+            /> */}
           </p>
           {/* <a
             href="https://docs.rysk.finance"

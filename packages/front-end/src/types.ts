@@ -26,7 +26,6 @@ export type WithdrawalReceipt = {
 export enum ETHNetwork {
   LOCALHOST = "localhost",
   ARBITRUM_RINKEBY = "arbitrumRinkeby",
-  MAINNET = "mainnet",
   ARBITRUM_MAINNET = "arbitrum",
 }
 
