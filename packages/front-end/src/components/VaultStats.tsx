@@ -47,7 +47,7 @@ export const VaultStats = () => {
             />
             <RyskTooltip
               id="yieldTip"
-              message={`Sum of ${DHV_NAME} returns since inception (Jul 1st 2022)`}
+              message={`${DHV_NAME} price per share change since inception (September 29th,  2022)`}
             />
           </p>
           {/* <a
