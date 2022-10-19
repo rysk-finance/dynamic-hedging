@@ -49,7 +49,7 @@ export const VaultChart = () => {
   useQuery(
       gql`
         query {
-            pricePerShares(first: 30) {
+            pricePerShares(first: 1000) {
               id
               epoch
               value
