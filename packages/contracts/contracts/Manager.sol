@@ -67,15 +67,22 @@ contract Manager is AccessControl {
 		proxyManager = _proxyManager;
 	}
 
+	function setOptionHandler(address _optionHandler) external {
+		_onlyGovernor();
+		if (_optionHandler == address(0)) {
+			revert CustomErrors.InvalidAddress();
+		}
+		optionHandler = IAlphaOptionHandler(_optionHandler);
+	}
+
 	/**
 	 * @notice set the delta limit on a keeper
 	 */
 	function setDeltaLimit(uint256[] calldata _delta, address[] calldata _keeper) external {
 		_isProxyManager();
-        for (uint i = 0; i < _delta.length; i++) {
-		    deltaLimit[_keeper[i]] = _delta[i];
-        }
-
+		for (uint256 i = 0; i < _delta.length; i++) {
+			deltaLimit[_keeper[i]] = _delta[i];
+		}
 	}
 
 	//////////////////////////////////////////////////////
