@@ -83,13 +83,14 @@ export const VaultChart = () => {
         <ResponsiveContainer width={"95%"} height={400}>
           <LineChart
             data={pricePerShares}
-            margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+            margin={{ top: 5, right: 40, bottom: 5, left: 20 }}
           >
             <Line
               type="monotone"
               dataKey="growthSinceFirstEpoch"
               // TODO access color throw Tailwind helpers
               stroke="black"
+              strokeWidth={2}
             />
             <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
             <XAxis dataKey="timestamp" angle={0} tickFormatter={(value: string) => {
