@@ -1205,3 +1205,44 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		)
 	})
 })
+
+describe("bug: stuck after initiating a withdrawal with shares amount less than 1e12", async () => {
+	it("should not be stuck", async () => {
+		const user = signers[2]
+		const amount = utils.parseUnits("1000", 6)
+
+		console.log("deposit...")
+		await usd.connect(user).approve(liquidityPool.address, amount)
+		await liquidityPool.connect(user).deposit(amount, { gasLimit: 1000000 })
+		console.log("deposit done")
+
+		await liquidityPool.pauseTradingAndRequest()
+		await liquidityPool.executeEpochCalculation()
+
+		const shareFraction = "99999999999" // 1e12 - 1
+		console.log("initiateWithdraw, shares:", shareFraction)
+		await liquidityPool.connect(user).initiateWithdraw(shareFraction, { gasLimit: 1000000 })
+		console.log("initiateWithdraw done")
+
+		await liquidityPool.pauseTradingAndRequest()
+		await liquidityPool.executeEpochCalculation()
+		console.log("new epoch started")
+
+		// this should not fail
+		console.log("completeWithdraw...")
+		await expect(liquidityPool.connect(user).completeWithdraw()).to.not.be.reverted
+		console.log("completeWithdraw executed")
+
+		// this is expected to execute since there is no pending withdrawal because completewithdraw executed
+		const sharesInRegularRange = utils.parseUnits("10")
+		console.log("second initiateWithdraw, shares:")
+		await expect(liquidityPool.connect(user).initiateWithdraw(sharesInRegularRange)).to.not.be
+			.reverted
+		console.log("second initiateWithdraw passed")
+
+		const withdrawalEpoch = await liquidityPool.withdrawalEpoch()
+		const pricePerShare = await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpoch.sub(1))
+		const amountForShares = await accounting.amountForShares(shareFraction, pricePerShare)
+		expect(amountForShares).to.eq("0")
+	})
+})
