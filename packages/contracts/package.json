@@ -9,6 +9,7 @@
 		"deploy:rinkeby": "hardhat deploy --network rinkeby --tags testnet --deploy-scripts deploy/rinkeby",
 		"deploy:arbitrumRinkeby": "npx hardhat run deploy/arbitrum-rinkeby/ArbitrumRinkebyDeploy.ts --network arbitrumRinkeby",
 		"deployAlpha:arbitrumRinkeby": "npx hardhat run deploy/arbitrum-rinkeby/ArbitrumRinkebyAlphaDeploy.ts --network arbitrumRinkeby",
+		"deployAlpha:arbitrumGoerli": "npx hardhat run deploy/arbitrum-goerli/ArbitrumGoerliAlphaDeploy.ts --network arbitrumGoerli",
 		"deployAlpha:mainnet": "npx hardhat run deploy/arbitrum/ArbitrumAlphaDeploy.ts --network arbitrum",
 		"deploy:localhost": "npx hardhat deploy --network localhost --tags localhost && ./copyAddressesToFrontEnd.sh --deploy-scripts deploy/localhost",
 		"compile": "hardhat clean && hardhat compile && hardhat typechain && ./copyABIsToFrontend.sh",
@@ -23,7 +24,7 @@
 	"license": "ISC",
 	"devDependencies": {
 		"@nomiclabs/hardhat-ethers": "^2.1.1",
-		"@nomiclabs/hardhat-etherscan": "^2.1.8",
+		"@nomiclabs/hardhat-etherscan": "^3.1.0",
 		"@nomiclabs/hardhat-waffle": "^2.0.0",
 		"@typechain/ethers-v5": "^8.0.5",
 		"@typechain/hardhat": "^3.1.0",
