@@ -40,6 +40,9 @@ const ropsten = process.env.ROPSTEN || new ethers.providers.InfuraProvider("rops
 
 const rinkeby = process.env.RINKEBY || new ethers.providers.InfuraProvider("rinkeby").connection.url
 
+const arbitrumGoerli = process.env.ARBITRUM_GOERLI || new ethers.providers.InfuraProvider("arbitrum-goerli").connection.url
+
+
 const arbitrumRinkeby =
 	process.env.ARBITRUM_RINKEBY ||
 	new ethers.providers.InfuraProvider("arbitrum-rinkeby").connection.url
@@ -156,10 +159,29 @@ module.exports = {
 			saveDeployments: true,
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
 			gas: 500000000
+		},
+		arbitrumGoerli: {
+			url: arbitrumGoerli,
+			chainId: 421613,
+			saveDeployments: true,
+			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
+			gas: 500000000
 		}
 	},
 	etherscan: {
-		apiKey: process.env.ARBISCAN_API_KEY
+		apiKey: {
+			arbitrumGoerli: process.env.ARBISCAN_API_KEY
+		},
+		customChains: [
+			{
+				network: "arbitrumGoerli",
+				chainId: 421613,
+				urls: {
+					apiURL: "https://api-goerli.arbiscan.io/api",
+					browserURL: "https://goerli.arbiscan.io"
+				}
+			}
+		]
 	},
 	gasReporter: {
 		currency: "USD",
