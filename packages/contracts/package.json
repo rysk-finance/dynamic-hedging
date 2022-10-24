@@ -37,7 +37,7 @@
 		"chai": "^4.3.6",
 		"cross-env": "^7.0.3",
 		"ethereum-waffle": "^3.1.0",
-		"ethers": "^5.6.9",
+		"ethers": "^5.7.2",
 		"hardhat": "^2.6.7",
 		"hardhat-contract-sizer": "^2.5.0",
 		"hardhat-deploy": "^0.7.11",

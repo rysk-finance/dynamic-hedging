@@ -36,12 +36,10 @@ if (mnemonic) {
 		})
 	}
 }
-const ropsten = process.env.ROPSTEN || new ethers.providers.InfuraProvider("ropsten").connection.url
 
-const rinkeby = process.env.RINKEBY || new ethers.providers.InfuraProvider("rinkeby").connection.url
-
-const arbitrumGoerli = process.env.ARBITRUM_GOERLI || new ethers.providers.InfuraProvider("arbitrum-goerli").connection.url
-
+const arbitrumGoerli =
+	process.env.ARBITRUM_GOERLI ||
+	new ethers.providers.InfuraProvider("arbitrum-goerli").connection.url
 
 const arbitrumRinkeby =
 	process.env.ARBITRUM_RINKEBY ||
@@ -134,17 +132,6 @@ module.exports = {
 			blockGasLimit: 0x1fffffffffffff,
 			allowUnlimitedContractSize: true,
 			chainId: 1337
-		},
-		ropsten: {
-			url: ropsten,
-			accounts,
-			chainId: 3
-		},
-		rinkeby: {
-			url: rinkeby,
-			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
-			chainId: 4,
-			saveDeployments: true
 		},
 		arbitrum: {
 			url: arbitrum,
