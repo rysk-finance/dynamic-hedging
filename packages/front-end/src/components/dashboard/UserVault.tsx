@@ -29,8 +29,7 @@ export const UserVault = () => {
   const [depositBalance, setDepositBalance] = useState<BigNumber>(
     BigNumber.from(0)
   );
-  const [unredeemableCollateral, setUnredeemableCollateral] =
-    useState<BigNumber>(BigNumber.from(0));
+  const [unredeemableCollateral] = useState<BigNumber>(BigNumber.from(0));
   const [unredeemedSharesValue, setUnredeemedSharesValue] = useState<BigNumber>(
     BigNumber.from(0)
   );
@@ -162,7 +161,7 @@ export const UserVault = () => {
                         )}
                       </h4>
                       <h4 className="mb-2">
-                        PnL
+                        P/L
                         <RyskTooltip
                           message={`Profit or Losses based on your current ${DHV_NAME} position in USDC net of deposits and withdraws`}
                           color="white"
@@ -188,7 +187,7 @@ export const UserVault = () => {
                       data-for="queuedTip"
                       className="cursor-help pl-2"
                     >
-                      <img src="/icons/info.svg" />
+                      <img alt="info" src="/icons/info.svg" />
                     </button>
                     {/* TODO  update with epoch time */}
                     <ReactTooltip
