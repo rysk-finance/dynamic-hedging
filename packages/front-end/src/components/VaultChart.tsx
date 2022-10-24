@@ -14,14 +14,14 @@ import {
 
 interface CustomTooltipT {
   active?: boolean,
-  payload?: Array<{ value: string, length: number }>,
+  payload?: Array<{ value: string, length: number, payload: { epoch: Array<string> } }>,
   label?: string
 }
 
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipT) => {
   if (label && active && payload && payload.length) {
-    const date = new Date(label)
+    const date = new Date(parseInt(label) * 1000)
     return (
       <div className="custom-tooltip bg-bone bg-opacity-75 border-black p-4 border-2 border-b-2 rounded-xl border-black">
         <p>
@@ -35,6 +35,10 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipT) => {
               decimalScale={2}
               suffix="%"
           />
+        </p>
+        <p className="label">
+          Epoch : {' '}
+          {payload[0].payload.epoch.toString()}
         </p>
       </div>
     );
@@ -60,16 +64,52 @@ export const VaultChart = () => {
       `,
       {
         onCompleted: (data) => {
-          const refinedData = data?.pricePerShares ?
+          const refinedData : any = data?.pricePerShares ?
               data.pricePerShares.map((ppsEpoch: any) => {
-              return ({
-                epoch: ppsEpoch.id,
-                growthSinceFirstEpoch: ppsEpoch.growthSinceFirstEpoch,
-                timestamp: new Date(parseInt(ppsEpoch.timestamp) * 1000).toISOString()
-              })
+                const dateLocale = (new Date(parseInt(ppsEpoch.timestamp) * 1000))
+                      .toLocaleString(
+                          'default',
+                          { month: 'numeric', day: 'numeric', year: 'numeric' }
+                      )
+
+                return ({
+                    epoch: ppsEpoch.id,
+                    growthSinceFirstEpoch: ppsEpoch.growthSinceFirstEpoch,
+                    timestamp: ppsEpoch.timestamp,
+                    dateLocale
+                })
           }) : [];
 
-          refinedData.length > 0 && setPricePerShares(refinedData);
+          const refinedDataByDate = refinedData
+              .reduce((mapByDate: any, nextEpoch: any) => {
+                  const dateLocale = nextEpoch.dateLocale
+
+                  if (!(dateLocale in mapByDate)) {
+                      mapByDate[dateLocale] = {
+                          ...nextEpoch,
+                          epoch: [ nextEpoch.epoch ]
+                      }
+                      return mapByDate
+                  }
+
+                  // in case there is already same day We merge values
+
+                  const dateGroup = mapByDate[dateLocale];
+
+                  mapByDate[dateLocale] = {
+                      epoch: [ ...dateGroup.epoch, nextEpoch.epoch ],
+                      // We keep latest growth/yield
+                      growthSinceFirstEpoch: nextEpoch.timestamp > dateGroup.timestamp ?
+                          nextEpoch.growthSinceFirstEpoch : dateGroup.growthSinceFirstEpoch,
+                      // We keep latest timestamp
+                      timestamp: Math.max(nextEpoch.timestamp, dateGroup.timestamp).toString(),
+                      dateLocale
+                  }
+
+                  return mapByDate
+          }, { })
+
+          Object.keys(refinedDataByDate).length > 0 && setPricePerShares(Object.values(refinedDataByDate));
         },
         onError: (err) => {
           console.log(err);
@@ -88,13 +128,13 @@ export const VaultChart = () => {
             <Line
               type="monotone"
               dataKey="growthSinceFirstEpoch"
-              // TODO access color throw Tailwind helpers
+              // TODO access color through Tailwind helpers
               stroke="black"
               strokeWidth={2}
             />
             <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
             <XAxis dataKey="timestamp" angle={0} tickFormatter={(value: string) => {
-              const date = new Date(value)
+              const date = new Date(parseInt(value) * 1000)
               return date.toLocaleString('default', { month: 'short', day:'2-digit' });
             }} />
             <YAxis />
