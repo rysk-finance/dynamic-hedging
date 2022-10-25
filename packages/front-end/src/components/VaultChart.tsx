@@ -134,7 +134,7 @@ export const VaultChart = () => {
             />
             <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
             <XAxis type="number"
-                   domain={['auto', 'auto']}
+                   domain={['dataMin', 'dataMax']}
                    dataKey="timestamp"
                    angle={0}
                    tickFormatter={(value: string) => {
@@ -146,7 +146,7 @@ export const VaultChart = () => {
             <Tooltip content={<CustomTooltip />} />
             <Legend
                 verticalAlign="bottom"
-                formatter={() => 'Yield'}
+                formatter={() => 'Cumulative Yield'}
             />
           </LineChart>
         </ResponsiveContainer>
