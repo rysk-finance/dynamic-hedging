@@ -102,7 +102,7 @@ export const VaultChart = () => {
                       growthSinceFirstEpoch: nextEpoch.timestamp > dateGroup.timestamp ?
                           nextEpoch.growthSinceFirstEpoch : dateGroup.growthSinceFirstEpoch,
                       // We keep latest timestamp
-                      timestamp: Math.max(nextEpoch.timestamp, dateGroup.timestamp).toString(),
+                      timestamp: Math.max(nextEpoch.timestamp, dateGroup.timestamp),
                       dateLocale
                   }
 
@@ -126,17 +126,22 @@ export const VaultChart = () => {
             margin={{ top: 5, right: 40, bottom: 5, left: 20 }}
           >
             <Line
-              type="monotone"
+              type="stepAfter"
               dataKey="growthSinceFirstEpoch"
               // TODO access color through Tailwind helpers
               stroke="black"
               strokeWidth={2}
             />
             <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
-            <XAxis dataKey="timestamp" angle={0} tickFormatter={(value: string) => {
-              const date = new Date(parseInt(value) * 1000)
-              return date.toLocaleString('default', { month: 'short', day:'2-digit' });
-            }} />
+            <XAxis type="number"
+                   domain={['auto', 'auto']}
+                   dataKey="timestamp"
+                   angle={0}
+                   tickFormatter={(value: string) => {
+                        const date = new Date(parseInt(value) * 1000)
+                        return date.toLocaleString('default', { month: 'short', day:'2-digit' });
+                   }}
+            />
             <YAxis />
             <Tooltip content={<CustomTooltip />} />
             <Legend
