@@ -126,7 +126,7 @@ export const VaultChart = () => {
             margin={{ top: 5, right: 40, bottom: 5, left: 20 }}
           >
             <Line
-              type="stepAfter"
+              type="natural"
               dataKey="growthSinceFirstEpoch"
               // TODO access color through Tailwind helpers
               stroke="black"
