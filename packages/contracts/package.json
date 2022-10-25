@@ -7,7 +7,7 @@
 		"test": "hardhat test",
 		"test-coverage": "export NODE_OPTIONS='--max-old-space-size=8192' && hardhat coverage --testfiles 'test/*.ts'",
 		"deploy:rinkeby": "hardhat deploy --network rinkeby --tags testnet --deploy-scripts deploy/rinkeby",
-		"deploy:arbitrumRinkeby": "npx hardhat run deploy/arbitrum-rinkeby/ArbitrumRinkebyDeploy.ts --network arbitrumRinkeby",
+		"deploy:arbitrumGoerli": "npx hardhat run deploy/arbitrum-goerli/ArbitrumGoerliDeploy.ts --network arbitrumGoerli",
 		"deployAlpha:arbitrumRinkeby": "npx hardhat run deploy/arbitrum-rinkeby/ArbitrumRinkebyAlphaDeploy.ts --network arbitrumRinkeby",
 		"deployAlpha:arbitrumGoerli": "npx hardhat run deploy/arbitrum-goerli/ArbitrumGoerliAlphaDeploy.ts --network arbitrumGoerli",
 		"deployAlpha:mainnet": "npx hardhat run deploy/arbitrum/ArbitrumAlphaDeploy.ts --network arbitrum",

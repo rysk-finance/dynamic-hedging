@@ -35,7 +35,6 @@ const opynNewCalculatorAddress = "0xBd0e0beeBa90A9E4879a69de0Db13D5E22d4AC5d"
 const oTokenFactoryAddress = "0xb06F6759aEbdeBf84f67B1420CddcC20e27e1E03"
 const marginPoolAddress = "0xFfE2F86401f1CEFd69BAF2DB6fdB95326649A7d0"
 
-
 // rage trade addresses for Arbitrum Goerli
 const clearingHouseAddress = "0x7047343e3eF25505263116212EE74430A2A12257"
 const vETHAddress = "0xC85c06FCF9355876DF51a90C2c0290ECa913A04f"
@@ -629,8 +628,6 @@ export async function deployLiquidityPool(
 	console.log("hedging reactors added to liquidity pool")
 
 	return {
-		normDist,
-		blackScholes,
 		optionsCompute,
 		liquidityPool: liquidityPool,
 		handler: handler,
