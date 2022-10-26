@@ -439,8 +439,7 @@ export async function deployLiquidityPool(
 	pvFeed: MockPortfolioValuesFeed,
 	authority: string,
 	priceFeed: PriceFeed,
-	blackScholes: BlackScholes,
-	normDist: NormalDist
+	blackScholes: BlackScholes
 ) {
 	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}
@@ -650,7 +649,7 @@ export async function deployLiquidityPool(
 				usd.address,
 				weth.address,
 				liquidityPool.address,
-				3000,
+				500,
 				priceFeed.address,
 				authority
 			]
