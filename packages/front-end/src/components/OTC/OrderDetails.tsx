@@ -41,7 +41,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
           <OptionSeriesInfo option={order.optionSeries} />
           <hr className="my-2 border-black" />
           <p className="pt-2">
-            { order.isBuyBack ? "Seller" : "Buyer" } Address: 
+            {order.isBuyBack ? "Seller" : "Buyer"} Address:
             <AddressDisplay>{order.buyer}</AddressDisplay>
           </p>
           <p className="pt-2">

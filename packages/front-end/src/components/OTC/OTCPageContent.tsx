@@ -450,7 +450,9 @@ export const OTCPageContent = () => {
                   <div className="w-full">
                     <div className="bg-black p-2 text-white">
                       <p>
-                        <b>{ order && order.isBuyBack ? "Close Position" : "Buy" }</b>
+                        <b>
+                          {order && order.isBuyBack ? "Close Position" : "Buy"}
+                        </b>
                       </p>
                     </div>
                     <div className="p-4">
