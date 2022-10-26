@@ -80,36 +80,7 @@ export const VaultChart = () => {
                 })
           }) : [];
 
-          const refinedDataByDate = refinedData
-              .reduce((mapByDate: any, nextEpoch: any) => {
-                  const dateLocale = nextEpoch.dateLocale
-
-                  if (!(dateLocale in mapByDate)) {
-                      mapByDate[dateLocale] = {
-                          ...nextEpoch,
-                          epoch: [ nextEpoch.epoch ]
-                      }
-                      return mapByDate
-                  }
-
-                  // in case there is already same day We merge values
-
-                  const dateGroup = mapByDate[dateLocale];
-
-                  mapByDate[dateLocale] = {
-                      epoch: [ ...dateGroup.epoch, nextEpoch.epoch ],
-                      // We keep latest growth/yield
-                      growthSinceFirstEpoch: nextEpoch.timestamp > dateGroup.timestamp ?
-                          nextEpoch.growthSinceFirstEpoch : dateGroup.growthSinceFirstEpoch,
-                      // We keep latest timestamp
-                      timestamp: Math.max(nextEpoch.timestamp, dateGroup.timestamp),
-                      dateLocale
-                  }
-
-                  return mapByDate
-          }, { })
-
-          Object.keys(refinedDataByDate).length > 0 && setPricePerShares(Object.values(refinedDataByDate));
+          Object.keys(refinedData).length > 0 && setPricePerShares(Object.values(refinedData));
         },
         onError: (err) => {
           console.log(err);
@@ -133,14 +104,17 @@ export const VaultChart = () => {
               strokeWidth={2}
             />
             <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
-            <XAxis type="number"
-                   domain={['dataMin', 'dataMax']}
-                   dataKey="timestamp"
-                   angle={0}
-                   tickFormatter={(value: string) => {
-                        const date = new Date(parseInt(value) * 1000)
-                        return date.toLocaleString('default', { month: 'short', day:'2-digit' });
-                   }}
+            <XAxis
+                type="number"
+                scale="time"
+                domain={['dataMin', 'dataMax']}
+                dataKey="timestamp"
+                angle={0}
+                minTickGap={15}
+                tickFormatter={(value: string) => {
+                     const date = new Date(parseInt(value) * 1000)
+                     return date.toLocaleString('default', { month: 'short', day:'2-digit' });
+               }}
             />
             <YAxis />
             <Tooltip content={<CustomTooltip />} />
