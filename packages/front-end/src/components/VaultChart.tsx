@@ -1,6 +1,6 @@
-import React from "react";
-import { Card } from "./shared/Card";
-
+import React, { useState } from "react";
+import { gql, useQuery } from "@apollo/client";
+import NumberFormat from "react-number-format";
 import {
   LineChart,
   Line,
@@ -9,29 +9,36 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Label,
+  Legend,
 } from "recharts";
-// const data = [
-//   { date: "Jul 1", cumulativeYield: 0.41, pv: 2400, amt: 2400 },
-//   { date: "Jul 8", cumulativeYield: 0.94, pv: 2400, amt: 2400 },
-//   { date: "Jul 15", cumulativeYield: 0.67, pv: 2400, amt: 2400 },
-//   { date: "Jul 22", cumulativeYield: 1.2, pv: 2400, amt: 2400 },
-//   { date: "Jul 29", cumulativeYield: 1.93, pv: 2400, amt: 2400 },
-//   { date: "Aug 6", cumulativeYield: 2.24, pv: 2400, amt: 2400 },
-// ];
 
-const data = [
-  { date: "", cumulativeYield: 0, pv: 2400, amt: 2400 }
-];
+interface CustomTooltipT {
+  active?: boolean,
+  payload?: Array<{ value: string, length: number, payload: { epoch: Array<string> } }>,
+  label?: string
+}
 
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
+const CustomTooltip = ({ active, payload, label }: CustomTooltipT) => {
+  if (label && active && payload && payload.length) {
+    const date = new Date(parseInt(label) * 1000)
     return (
       <div className="custom-tooltip bg-bone bg-opacity-75 border-black p-4 border-2 border-b-2 rounded-xl border-black">
-        {/* <p className="label">{`${label}: ${payload[0].value}%`}</p> */}
+        <p>
+          {date.toLocaleString('default', {month: 'short', day: '2-digit', year: '2-digit' })}
+        </p>
         <p className="label">
-          Soon™️
+          Yield : {' '}
+          <NumberFormat
+              value={payload[0].value}
+              displayType={"text"}
+              decimalScale={2}
+              suffix="%"
+          />
+        </p>
+        <p className="label">
+          Epoch : {' '}
+          {payload[0].payload.epoch.toString()}
         </p>
       </div>
     );
@@ -41,31 +48,80 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export const VaultChart = () => {
+  const [pricePerShares, setPricePerShares] = useState<any[]>();
+
+  useQuery(
+      gql`
+        query {
+            pricePerShares(first: 1000) {
+              id
+              epoch
+              value
+              growthSinceFirstEpoch
+              timestamp
+            }
+        }
+      `,
+      {
+        onCompleted: (data) => {
+          const refinedData : any = data?.pricePerShares ?
+              data.pricePerShares.map((ppsEpoch: any) => {
+                const dateLocale = (new Date(parseInt(ppsEpoch.timestamp) * 1000))
+                      .toLocaleString(
+                          'default',
+                          { month: 'numeric', day: 'numeric', year: 'numeric' }
+                      )
+
+                return ({
+                    epoch: ppsEpoch.id,
+                    growthSinceFirstEpoch: ppsEpoch.growthSinceFirstEpoch,
+                    timestamp: ppsEpoch.timestamp,
+                    dateLocale
+                })
+          }) : [];
+
+          Object.keys(refinedData).length > 0 && setPricePerShares(Object.values(refinedData));
+        },
+        onError: (err) => {
+          console.log(err);
+        },
+      }
+  );
+
   return (
     <div className="pb-8 py-12 px-8 flex flex-col lg:flex-row h-full">
       <div className="flex h-full w-full justify-around">
         <ResponsiveContainer width={"95%"} height={400}>
           <LineChart
-            data={data}
-            margin={{ top: 5, right: 20, bottom: 5, left: 0 }}
+            data={pricePerShares}
+            margin={{ top: 5, right: 40, bottom: 5, left: 20 }}
           >
-            <Tooltip content={<CustomTooltip />} />
             <Line
-              type="monotone"
-              dataKey="cumulativeYield"
+              type="natural"
+              dataKey="growthSinceFirstEpoch"
+              // TODO access color through Tailwind helpers
               stroke="black"
+              strokeWidth={2}
             />
             <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
-            <XAxis dataKey="date" angle={-45} />
-            <YAxis>
-              <Label
-                angle={-90}
-                value="Cumulative Yield (%)"
-                position="center"
-                dx={-20}
-              />
-            </YAxis>
-            <Tooltip />
+            <XAxis
+                type="number"
+                scale="time"
+                domain={['dataMin', 'dataMax']}
+                dataKey="timestamp"
+                angle={0}
+                minTickGap={15}
+                tickFormatter={(value: string) => {
+                     const date = new Date(parseInt(value) * 1000)
+                     return date.toLocaleString('default', { month: 'short', day:'2-digit' });
+               }}
+            />
+            <YAxis />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+                verticalAlign="bottom"
+                formatter={() => 'Cumulative Yield'}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
