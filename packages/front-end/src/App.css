@@ -1,9 +1,9 @@
 ::selection {
-  background-color: #B5FD55;
+  background-color: #b5fd55;
 }
 
 ::-moz-selection {
-  background-color: #B5FD55;
+  background-color: #b5fd55;
 }
 
 .root-grid {
@@ -44,26 +44,28 @@
   color: #02c5e6;
 }
 
-.custom-date-picker .react-datepicker{
+.custom-date-picker .react-datepicker {
   font-family: "DM Mono";
-  background-color: #EDE9DD;
+  background-color: #ede9dd;
   border: none;
 }
 
-.custom-date-picker .react-datepicker .react-datepicker__header{
-  background-color: #EDE9DD;
+.custom-date-picker .react-datepicker .react-datepicker__header {
+  background-color: #ede9dd;
   border: none;
 }
 
-.custom-date-picker .react-datepicker .react-datepicker__day--keyboard-selected {
-  background-color: #EDE9DD;
+.custom-date-picker
+  .react-datepicker
+  .react-datepicker__day--keyboard-selected {
+  background-color: #ede9dd;
   border: 2px solid black;
   color: black;
   box-sizing: content-box;
 }
 
 .custom-date-picker .react-datepicker .react-datepicker__day--selected {
-  background-color: #6ABD00;
+  background-color: #6abd00;
 }
 
 .__react_component_tooltip {
@@ -71,19 +73,19 @@
 }
 
 .overflow-hidden {
-  overflow: hidden
+  overflow: hidden;
 }
 
 :root {
-  --onboard-connect-sidebar-background: #D1CDBF;
-  --onboard-main-scroll-container-background: #EDE9DD;
-  --onboard-connect-header-background: #EDE9DD;
+  --onboard-connect-sidebar-background: #d1cdbf;
+  --onboard-main-scroll-container-background: #ede9dd;
+  --onboard-connect-header-background: #ede9dd;
   --onboard-connect-sidebar-progress-color: #02c5e6;
   --onboard-connect-sidebar-progress-background: black;
   --onboard-wallet-button-background: white;
-  --onboard-wallet-button-background-hover: #F5F5F5;
+  --onboard-wallet-button-background-hover: #f5f5f5;
   --onboard-wallet-button-border-color: black;
   --onboard-wallet-button-color: black;
   --onboard-wallet-app-icon-border-color: black;
-  --onboard-font-family-normal: "DM Mono"
+  --onboard-font-family-normal: "DM Mono";
 }

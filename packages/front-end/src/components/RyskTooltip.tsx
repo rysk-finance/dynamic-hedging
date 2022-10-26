@@ -7,7 +7,7 @@ type RyskTooltipProps = {
   color?: "green" | "yellow" | "red" | "white";
   tooltipProps?: TooltipProps;
   icon?: React.ReactElement;
-  html?: boolean,
+  html?: boolean;
   iconProps?: React.HTMLProps<HTMLDivElement>;
 };
 

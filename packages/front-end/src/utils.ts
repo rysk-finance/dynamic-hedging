@@ -35,12 +35,16 @@ export const optionSymbolFormat = (
   expiryTimestamp: string,
   strikePrice: string
 ) => {
-
-  const returnType = isPut ? "PUT" : "CALL"
+  const returnType = isPut ? "PUT" : "CALL";
   const optionSymbol = `ETH 
-                      ${moment.unix(Number(expiryTimestamp) ).format("DD-MMM-YY").toUpperCase()} 
-                      $${BigNumber.from(strikePrice).div(BIG_NUMBER_DECIMALS.OPYN)}
-                      ${returnType}`
-                      
-  return optionSymbol
-}
+                      ${moment
+                        .unix(Number(expiryTimestamp))
+                        .format("DD-MMM-YY")
+                        .toUpperCase()} 
+                      $${BigNumber.from(strikePrice).div(
+                        BIG_NUMBER_DECIMALS.OPYN
+                      )}
+                      ${returnType}`;
+
+  return optionSymbol;
+};
