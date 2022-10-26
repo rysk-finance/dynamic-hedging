@@ -1,13 +1,11 @@
-import { toWei } from "../../utils/conversion-helper"
 import hre, { ethers } from "hardhat"
 import { expect } from "chai"
-import { utils } from "ethers"
 import { VolatilityFeed } from "../../types/VolatilityFeed"
 
 // deploys a SABR vol feed contract
 
-const authorityAddress = "0x96AC14eE2CeEE2328f13B095A52613319d678Dd1"
-const optionProtocolAddress = "0xf44a3def943c781543A7bC3Dd4127Ec435c1fd39"
+const authorityAddress = "0xd6DE605977A8540BEf4A08429DA0A2BfB09f14Be"
+const optionProtocolAddress = "0x8964381a078e3b2C5F761d6141f8D210180b31b2"
 
 export async function deployNewVolFeed() {
 	const volatilityFeedFactory = await ethers.getContractFactory("VolatilityFeed")

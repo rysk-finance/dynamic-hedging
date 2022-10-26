@@ -29,7 +29,7 @@ const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
 //	Arbitrum Goerli specific contract addresses. Change for other networks
 const chainlinkOracleAddress = "0x62CAe0FA2da220f43a51F86Db2EDb36DcA9A5A08"
 const gammaOracleAddress = "0x34B39BE930E33241dDE56771833f1FCDAE904589"
-const opynControllerProxyAddress = "0x48377a2cc6cb2550608083B66C4C14b3c3f18584"
+const opynControllerProxyAddress = "0x4f4997F374CA0b7c186a2e810EA457A4d0419f2A"
 const opynAddressBookAddress = "0x275729e6070974dAe4dF534C9900305d8BE07391"
 const opynNewCalculatorAddress = "0xBd0e0beeBa90A9E4879a69de0Db13D5E22d4AC5d"
 const oTokenFactoryAddress = "0xb06F6759aEbdeBf84f67B1420CddcC20e27e1E03"
@@ -38,7 +38,7 @@ const marginPoolAddress = "0xFfE2F86401f1CEFd69BAF2DB6fdB95326649A7d0"
 // rage trade addresses for Arbitrum Goerli
 const clearingHouseAddress = "0x7047343e3eF25505263116212EE74430A2A12257"
 const vETHAddress = "0xC85c06FCF9355876DF51a90C2c0290ECa913A04f"
-const usdcAddress = "0xB8c05B5D776Ef8e298D8a1d19Ca57Da95CeB85b8"
+const usdcAddress = "0x6775842ae82bf2f0f987b10526768ad89d79536e"
 const wethAddress = "0x53320bE2A35649E9B2a0f244f9E9474929d3B699"
 
 // uniswap v3 addresses (SAME FOR ALL CHAINS)
@@ -97,8 +97,7 @@ async function main() {
 		portfolioValuesFeed,
 		authority.address,
 		priceFeed,
-		blackScholes,
-		normDist
+		blackScholes
 	)
 	const liquidityPool = lpParams.liquidityPool
 	const handler = lpParams.handler

@@ -41,9 +41,6 @@ const arbitrumGoerli =
 	process.env.ARBITRUM_GOERLI ||
 	new ethers.providers.InfuraProvider("arbitrum-goerli").connection.url
 
-const arbitrumRinkeby =
-	process.env.ARBITRUM_RINKEBY ||
-	new ethers.providers.InfuraProvider("arbitrum-rinkeby").connection.url
 const arbitrum =
 	process.env.ARBITRUM || new ethers.providers.InfuraProvider("arbitrum").connection.url
 
@@ -138,13 +135,6 @@ module.exports = {
 			chainId: 42161,
 			saveDeployments: true,
 			accounts: process.env.MAINNET_PRIVATE_KEY ? [process.env.MAINNET_PRIVATE_KEY] : accounts,
-			gas: 500000000
-		},
-		arbitrumRinkeby: {
-			url: arbitrumRinkeby,
-			chainId: 421611,
-			saveDeployments: true,
-			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
 			gas: 500000000
 		},
 		arbitrumGoerli: {
