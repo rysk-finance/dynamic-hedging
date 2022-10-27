@@ -39,8 +39,7 @@ if (mnemonic) {
 
 const arbitrumGoerli = process.env.ARBITRUM_GOERLI
 
-const arbitrum =
-	process.env.ARBITRUM || new ethers.providers.InfuraProvider("arbitrum").connection.url
+const arbitrum = process.env.ARBITRUM
 
 module.exports = {
 	typechain: {
