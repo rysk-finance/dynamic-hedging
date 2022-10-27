@@ -37,9 +37,7 @@ if (mnemonic) {
 	}
 }
 
-const arbitrumGoerli =
-	process.env.ARBITRUM_GOERLI ||
-	new ethers.providers.InfuraProvider("arbitrum-goerli").connection.url
+const arbitrumGoerli = process.env.ARBITRUM_GOERLI
 
 const arbitrum =
 	process.env.ARBITRUM || new ethers.providers.InfuraProvider("arbitrum").connection.url
