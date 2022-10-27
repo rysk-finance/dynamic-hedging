@@ -17,16 +17,16 @@ import { PriceFeed } from "../../types/PriceFeed"
 dotenv.config()
 
 // arbitrum rinkeby alpha addresses
-const liquidityPoolAddress = "0x022601eB546e007562A6dD4AE4840544E6B85c9B"
-const usdcAddress = "0x33a010E74A354bd784a62cca3A4047C1A84Ceeab"
-const pvFeedAddress = "0x4D2f15471F0d60474d7B1953a27f2c9d642B91C1"
-const priceFeedAddress = "0x27F70AC0453254B3CaA0A0400dB78387c474FAdD"
-const wethAddress = "0xFCfbfcC11d12bCf816415794E5dc1BBcc5304e01"
-const handlerAddress = "0x1c4dB5B6028EE95ad4E07cf83F3AcC797f478125"
+const liquidityPoolAddress = "0x9974d40f47EDedEb8d4788353c637FE5Aa2Dd403"
+const usdcAddress = "0x6775842ae82bf2f0f987b10526768ad89d79536e"
+const pvFeedAddress = "0x9d2f52294D7E713C6eA02e590C94E4eceF84af0C"
+const priceFeedAddress = "0x4018BA8452011Df5dB370C2e7Eeb1CDC248E49DD"
+const wethAddress = "0x53320bE2A35649E9B2a0f244f9E9474929d3B699"
+const handlerAddress = "0xb3714F55Af059f7c1998579F8e979CE29Ed20d9A"
 
 const deployer = new ethers.Wallet(
 	process.env.DEPLOYER_PRIVATE_KEY as string,
-	new ethers.providers.InfuraProvider("arbitrum-rinkeby")
+	new ethers.providers.InfuraProvider("arbitrum-goerli")
 )
 
 console.log({ deployer: deployer.address })
@@ -35,7 +35,7 @@ const deposit = async () => {
 	const depositAmount = toUSDC("1000000")
 	const balance = await deployer.getBalance()
 	const liquidityPool = await ethers.getContractAt("LiquidityPool", liquidityPoolAddress, deployer)
-	const usdc = await ethers.getContractAt("MockERC20", usdcAddress, deployer)
+	const usdc = await ethers.getContractAt("MintableERC20", usdcAddress, deployer)
 	const priceFeed = (await ethers.getContractAt(
 		"PriceFeed",
 		priceFeedAddress,

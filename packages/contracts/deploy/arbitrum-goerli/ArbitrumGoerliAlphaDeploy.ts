@@ -28,12 +28,12 @@ const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
 
 //	Arbitrum Goerli specific contract addresses. Change for other networks
 const chainlinkOracleAddress = "0x62CAe0FA2da220f43a51F86Db2EDb36DcA9A5A08"
-const gammaOracleAddress = "0x34B39BE930E33241dDE56771833f1FCDAE904589"
-const opynControllerProxyAddress = "0x4f4997F374CA0b7c186a2e810EA457A4d0419f2A"
-const opynAddressBookAddress = "0x275729e6070974dAe4dF534C9900305d8BE07391"
-const opynNewCalculatorAddress = "0xBd0e0beeBa90A9E4879a69de0Db13D5E22d4AC5d"
-const oTokenFactoryAddress = "0xb06F6759aEbdeBf84f67B1420CddcC20e27e1E03"
-const marginPoolAddress = "0xFfE2F86401f1CEFd69BAF2DB6fdB95326649A7d0"
+const gammaOracleAddress = "0x35578F5A49E1f1Cf34ed780B46A0BdABA23D4C0b"
+const opynControllerProxyAddress = "0x11a602a5F5D823c103bb8b7184e22391Aae5F4C2"
+const opynAddressBookAddress = "0xd6e67bF0b1Cdb34C37f31A2652812CB30746a94A"
+const opynNewCalculatorAddress = "0xcD270e755C2653e806e16dD3f78E16C89B7a1c9e"
+const oTokenFactoryAddress = "0xB19d2eA6f662b13F530CB84B048877E5Ed0bD8FE"
+const marginPoolAddress = "0x0E0Ad3eA82EFAeAFb4476f5E8225b4746B88FD9f"
 
 // rage trade addresses for Arbitrum Goerli
 const clearingHouseAddress = "0x7047343e3eF25505263116212EE74430A2A12257"
