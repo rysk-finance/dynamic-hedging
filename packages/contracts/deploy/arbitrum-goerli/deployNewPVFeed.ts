@@ -8,14 +8,13 @@ import { PortfolioValuesFeed } from "../../types/PortfolioValuesFeed"
 
 const linkTokenAddress = "0x615fBe6372676474d9e6933d310469c9b68e9726"
 const wethAddress = "0xE32513090f05ED2eE5F3c5819C9Cce6d020Fefe7"
-const usdcAddress = "0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737"
+const usdcAddress = "0x6775842ae82bf2f0f987b10526768ad89d79536e"
+const oracleAddress = "0x0"
+const authorityAddress = "0x0"
+const optionProtocolAddress = "0x0"
+const liquidityPoolAddress = "0x0"
 
-export async function deployNewPVFeed(
-	oracleAddress: string,
-	authorityAddress: string,
-	optionProtocolAddress: string,
-	liquidityPoolAddress: string
-) {
+export async function deployNewPVFeed() {
 	const portfolioValuesFeedFactory = await ethers.getContractFactory("PortfolioValuesFeed")
 	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
 		oracleAddress,
@@ -59,12 +58,7 @@ export async function deployNewPVFeed(
 	console.log({ newPortfolioValuesFeed: portfolioValuesFeed.address })
 }
 
-deployNewPVFeed(
-	"0xF91105B81Dfb795482A8A26E6AB880108a906C5E",
-	"0xBadb002418B5A84362db7877e5E8b35b738f8c84",
-	"0xe52f05b164791c0a963b1729D54b0A4970e56378",
-	"0x502b02DD4bAdb4F2d104418DCb033606AC948e30"
-)
+deployNewPVFeed()
 	.then(() => process.exit(0))
 	.catch(error => {
 		console.error(error)

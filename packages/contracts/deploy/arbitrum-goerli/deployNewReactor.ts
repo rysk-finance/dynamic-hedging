@@ -1,33 +1,29 @@
 import { toWei } from "../../utils/conversion-helper"
 import hre, { ethers } from "hardhat"
-import { expect } from "chai"
-import { utils } from "ethers"
 import { MintableERC20 } from "../../types/MintableERC20"
 import { PerpHedgingReactor } from "../../types/PerpHedgingReactor"
 import { truncate } from "@ragetrade/sdk"
 
 // update these addresses to connect to the appropriate set of contracts
 
-const usdcAddress = "0x33a010E74A354bd784a62cca3A4047C1A84Ceeab"
-const wethAddress = "0xFCfbfcC11d12bCf816415794E5dc1BBcc5304e01"
-const clearingHouseAddress = "0xe3B8eF0C2Ed6d8318F0b1b50A072e0cB508CDB04"
-const liquidityPoolAddress = "0x022601eB546e007562A6dD4AE4840544E6B85c9B"
-const authorityAddress = "0x96AC14eE2CeEE2328f13B095A52613319d678Dd1"
-const priceFeedAddress = "0x27F70AC0453254B3CaA0A0400dB78387c474FAdD"
+const usdcAddress = "0x6775842ae82bf2f0f987b10526768ad89d79536e"
+const wethAddress = "0x53320bE2A35649E9B2a0f244f9E9474929d3B699"
+const clearingHouseAddress = "0x7047343e3eF25505263116212EE74430A2A12257"
+const liquidityPoolAddress = "0xa9FD112cC1192f59078c20f6F39D7B42563Ea716"
+const authorityAddress = "0xd6DE605977A8540BEf4A08429DA0A2BfB09f14Be"
+const priceFeedAddress = "0x74F1c3C4076EfeD74941F4974Db84E1a73a521F1"
 const pvFeedAddress = "0x4D2f15471F0d60474d7B1953a27f2c9d642B91C1"
-const optionProtocolAddress = "0xf44a3def943c781543A7bC3Dd4127Ec435c1fd39"
+const optionProtocolAddress = "0x8964381a078e3b2C5F761d6141f8D210180b31b2"
+const vETHAddress = "0xC85c06FCF9355876DF51a90C2c0290ECa913A04f"
 
 export async function deployNewHedgingReactor() {
-	// const liquidityPool = await ethers.getContractAt("LiquidityPool", liquidityPoolAddress)
-	// await liquidityPool.removeHedgingReactorAddress(1, true)
-
 	const perpHedgingReactorFactory = await ethers.getContractFactory("PerpHedgingReactor")
 	const perpHedgingReactor = (await perpHedgingReactorFactory.deploy(
 		clearingHouseAddress,
 		usdcAddress,
 		wethAddress,
 		liquidityPoolAddress,
-		2277115137,
+		truncate(vETHAddress),
 		truncate(usdcAddress),
 		priceFeedAddress,
 		authorityAddress
@@ -43,7 +39,7 @@ export async function deployNewHedgingReactor() {
 				usdcAddress,
 				wethAddress,
 				liquidityPoolAddress,
-				2277115137,
+				truncate(vETHAddress),
 				truncate(usdcAddress),
 				priceFeedAddress,
 				authorityAddress

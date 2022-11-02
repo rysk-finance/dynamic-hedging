@@ -1,42 +1,54 @@
-import { BigNumber, Signer, utils, Contract } from "ethers"
+import { BigNumber, Signer, utils, BigNumberish, Contract } from "ethers"
 import { expect } from "chai"
 import fs from "fs"
 import { truncate } from "@ragetrade/sdk"
 import { toWei } from "../../utils/conversion-helper"
 import hre, { ethers } from "hardhat"
 import path from "path"
-import { WETH } from "../../types/WETH"
-import { ERC20Interface } from "../../types/ERC20Interface"
-import { MintableERC20 } from "../../types/MintableERC20"
-import { OptionRegistry } from "../../types/OptionRegistry"
-import { PriceFeed } from "../../types/PriceFeed"
-import { VolatilityFeed } from "../../types/VolatilityFeed"
-import { AlphaOptionHandler } from "../../types/AlphaOptionHandler"
-import { Protocol } from "../../types/Protocol"
-import { LiquidityPool } from "../../types/LiquidityPool"
 import LiquidityPoolSol from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { AlphaPortfolioValuesFeed } from "../../types/AlphaPortfolioValuesFeed"
-import { Accounting } from "../../types/Accounting"
-import { BlackScholes } from "../../types/BlackScholes"
-import { NormalDist } from "../../types/NormalDist"
-import { PerpHedgingReactor } from "../../types/PerpHedgingReactor"
+import {
+	WETH,
+	ERC20Interface,
+	MintableERC20,
+	OptionRegistry,
+	PriceFeed,
+	VolatilityFeed,
+	OptionHandler,
+	Protocol,
+	LiquidityPool,
+	MockPortfolioValuesFeed,
+	Accounting,
+	BlackScholes,
+	NormalDist,
+	PerpHedgingReactor,
+	Oracle
+} from "../../types"
+
+/* To use for other chains:
+		- Change addresses below to deployed contracts on new chain
+		- Swap out Mock portfolio values feed factory for real one
+		- Check liquidity pool deploy params
+*/
 
 const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
 
 //	Arbitrum rinkeby specific contract addresses. Change for other networks
-const chainlinkOracleAddress = "0x5f0423B1a6935dc5596e7A24d98532b67A0AeFd8"
-const gammaOracleAddress = "0xe4d64aed5e76bCcE2C255f3c819f4C3817D42f19"
-const opynControllerProxyAddress = "0x2acb561509a082bf2c58ce86cd30df6c2c2017f6"
-const opynAddressBookAddress = "0x2d3E178FFd961BD8C0b035C926F9f2363a436DdC"
-const opynNewCalculatorAddress = "0xa91B46bDDB891fED2cEE626FB03E2929702951A6"
-const oTokenFactoryAddress = "0xcBcC61d56bb2cD6076E2268Ea788F51309FA253B"
-const marginPoolAddress = "0xDD91EB7C3822552D89a5Cb8D4166B1EB19A36Ff2"
 
-// rage trade addresses for Arbitrum Rinkeby
-const clearingHouseAddress = "0xe3B8eF0C2Ed6d8318F0b1b50A072e0cB508CDB04"
-const vETHAddress = "0x164B8C1c65b73638e4C24dB781a0f41a87ba0501"
-const usdcAddress = "0x33a010E74A354bd784a62cca3A4047C1A84Ceeab"
-const wethAddress = "0xFCfbfcC11d12bCf816415794E5dc1BBcc5304e01"
+const chainlinkOracleAddress = "0x62CAe0FA2da220f43a51F86Db2EDb36DcA9A5A08"
+const gammaOracleAddress = "0x34B39BE930E33241dDE56771833f1FCDAE904589"
+const opynControllerProxyAddress = "0x4f4997F374CA0b7c186a2e810EA457A4d0419f2A"
+const opynAddressBookAddress = "0x275729e6070974dAe4dF534C9900305d8BE07391"
+const opynNewCalculatorAddress = "0xBd0e0beeBa90A9E4879a69de0Db13D5E22d4AC5d"
+const oTokenFactoryAddress = "0xb06F6759aEbdeBf84f67B1420CddcC20e27e1E03"
+const marginPoolAddress = "0xFfE2F86401f1CEFd69BAF2DB6fdB95326649A7d0"
+
+// rage trade addresses for Arbitrum Goerli
+const clearingHouseAddress = "0x7047343e3eF25505263116212EE74430A2A12257"
+const vETHAddress = "0xC85c06FCF9355876DF51a90C2c0290ECa913A04f"
+const usdcAddress = "0x6775842ae82bf2f0f987b10526768ad89d79536e"
+const wethAddress = "0x53320bE2A35649E9B2a0f244f9E9474929d3B699"
+
+const linkTokenAddress = "0xd14838a68e8afbade5efb411d5871ea0011afd28"
 
 // uniswap v3 addresses (SAME FOR ALL CHAINS)
 const uniswapV3SwapRouter = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
@@ -65,8 +77,10 @@ async function main() {
 
 	console.log("Account balance:", (await deployer.getBalance()).toString())
 
+	const gammaOracle = (await ethers.getContractAt("Oracle", gammaOracleAddress)) as Oracle
+
 	// deploy system
-	let deployParams = await deploySystem(deployer, chainlinkOracleAddress)
+	let deployParams = await deploySystem(deployer, gammaOracle, chainlinkOracleAddress)
 	console.log("system deployed")
 	const wethERC20 = deployParams.wethERC20
 	const usd = deployParams.usd
@@ -105,6 +119,7 @@ async function main() {
 	const accounting = lpParams.accounting
 	const uniswapV3HedgingReactor = lpParams.uniswapV3HedgingReactor
 	const perpHedgingReactor = lpParams.perpHedgingReactor
+
 	console.log("liquidity pool deployed")
 
 	let contractAddresses
@@ -113,28 +128,29 @@ async function main() {
 		// @ts-ignore
 		contractAddresses = JSON.parse(fs.readFileSync(addressPath))
 	} catch {
-		contractAddresses = { localhost: {}, arbitrumRinkeby: {} }
+		contractAddresses = { localhost: {}, arbitrumGoerli: {} }
 	}
 
 	// @ts-ignore
-	contractAddresses["arbitrumRinkeby"]["OpynController"] = opynControllerProxyAddress
-	contractAddresses["arbitrumRinkeby"]["OpynAddressBook"] = opynAddressBookAddress
-	contractAddresses["arbitrumRinkeby"]["OpynOracle"] = gammaOracleAddress
-	contractAddresses["arbitrumRinkeby"]["OpynNewCalculator"] = opynNewCalculatorAddress
-	contractAddresses["arbitrumRinkeby"]["OpynOptionRegistry"] = optionRegistry.address
-	contractAddresses["arbitrumRinkeby"]["priceFeed"] = priceFeed.address
-	contractAddresses["arbitrumRinkeby"]["volFeed"] = volFeed.address
-	contractAddresses["arbitrumRinkeby"]["optionProtocol"] = optionProtocol.address
-	contractAddresses["arbitrumRinkeby"]["liquidityPool"] = liquidityPool.address
-	contractAddresses["arbitrumRinkeby"]["authority"] = authority.address
-	contractAddresses["arbitrumRinkeby"]["portfolioValuesFeed"] = portfolioValuesFeed.address
-	contractAddresses["arbitrumRinkeby"]["optionHandler"] = handler.address
-	contractAddresses["arbitrumRinkeby"]["opynInteractions"] = interactions.address
-	contractAddresses["arbitrumRinkeby"]["normDist"] = normDist.address
-	contractAddresses["arbitrumRinkeby"]["BlackScholes"] = blackScholes.address
-	contractAddresses["arbitrumRinkeby"]["accounting"] = accounting.address
-	contractAddresses["arbitrumRinkeby"]["uniswapV3HedgingReactor"] = uniswapV3HedgingReactor.address
-	contractAddresses["arbitrumRinkeby"]["perpHedgingReactor"] = perpHedgingReactor.address
+	contractAddresses["arbitrumGoerli"]["OpynController"] = opynControllerProxyAddress
+	contractAddresses["arbitrumGoerli"]["OpynAddressBook"] = opynAddressBookAddress
+	contractAddresses["arbitrumGoerli"]["OpynOracle"] = gammaOracleAddress
+	contractAddresses["arbitrumGoerli"]["OpynNewCalculator"] = opynNewCalculatorAddress
+	contractAddresses["arbitrumGoerli"]["OpynOptionRegistry"] = optionRegistry.address
+	contractAddresses["arbitrumGoerli"]["priceFeed"] = priceFeed.address
+	contractAddresses["arbitrumGoerli"]["volFeed"] = volFeed.address
+	contractAddresses["arbitrumGoerli"]["optionProtocol"] = optionProtocol.address
+	contractAddresses["arbitrumGoerli"]["liquidityPool"] = liquidityPool.address
+	contractAddresses["arbitrumGoerli"]["authority"] = authority.address
+	contractAddresses["arbitrumGoerli"]["portfolioValuesFeed"] = portfolioValuesFeed.address
+	contractAddresses["arbitrumGoerli"]["optionHandler"] = handler.address
+	contractAddresses["arbitrumGoerli"]["opynInteractions"] = interactions.address
+	contractAddresses["arbitrumGoerli"]["normDist"] = normDist.address
+	contractAddresses["arbitrumGoerli"]["BlackScholes"] = blackScholes.address
+	contractAddresses["arbitrumGoerli"]["accounting"] = accounting.address
+	contractAddresses["arbitrumGoerli"]["uniswapV3HedgingReactor"] = uniswapV3HedgingReactor.address
+	contractAddresses["arbitrumGoerli"]["perpHedgingReactor"] = perpHedgingReactor.address
+	contractAddresses["arbitrumGoerli"]["optionsCompute"] = optionsCompute.address
 
 	fs.writeFileSync(addressPath, JSON.stringify(contractAddresses, null, 4))
 
@@ -164,7 +180,11 @@ async function main() {
 
 // --------- DEPLOY RYSK SYSTEM ----------------
 
-export async function deploySystem(deployer: Signer, chainlinkOracleAddress: string) {
+export async function deploySystem(
+	deployer: Signer,
+	oracle: Oracle,
+	chainlinkOracleAddress: string
+) {
 	const deployerAddress = await deployer.getAddress()
 	// deploy libraries
 	const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
@@ -213,6 +233,7 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		})
 		console.log("normDist verified")
 	} catch (err: any) {
+		console.log(err)
 		if (err.message.includes("Reason: Already Verified")) {
 			console.log("normDist contract already verified")
 		}
@@ -287,21 +308,27 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 
 	console.log("volFeed verified")
 
-	/* ********* Alpha contract - ********* */
-	const portfolioValuesFeedFactory = await ethers.getContractFactory("AlphaPortfolioValuesFeed", {
-		libraries: {
-			BlackScholes: blackScholes.address
-		}
-	})
+	/* ********* Mock contract - swap for real on prod ********* */
+	const portfolioValuesFeedFactory = await ethers.getContractFactory("MockPortfolioValuesFeed")
 	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
+		deployerAddress,
+		utils.formatBytes32String("jobId"),
+		toWei("1"),
+		linkTokenAddress,
 		authority.address
-	)) as AlphaPortfolioValuesFeed
-	console.log("alpha portfolio values feed deployed")
+	)) as MockPortfolioValuesFeed
+	console.log("mock portfolio values feed deployed")
 
 	try {
 		await hre.run("verify:verify", {
 			address: portfolioValuesFeed.address,
-			constructorArguments: [authority.address]
+			constructorArguments: [
+				deployerAddress,
+				utils.formatBytes32String("jobId"),
+				toWei("1"),
+				linkTokenAddress,
+				authority.address
+			]
 		})
 
 		console.log("portfolio values feed verified")
@@ -409,13 +436,12 @@ export async function deployLiquidityPool(
 	minExpiry: any,
 	maxExpiry: any,
 	optionRegistry: OptionRegistry,
-	pvFeed: AlphaPortfolioValuesFeed,
+	pvFeed: MockPortfolioValuesFeed,
 	authority: string,
 	priceFeed: PriceFeed,
-	blackScholes: BlackScholes,
-	normDist: NormalDist
+	blackScholes: BlackScholes
 ) {
-	const optionsCompFactory = await ethers.getContractFactory("OptionsCompute", {
+	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}
 	})
 	const optionsCompute = await optionsCompFactory.deploy()
@@ -498,11 +524,26 @@ export async function deployLiquidityPool(
 
 	await liquidityPool.setBidAskSpread(bidAskSpread)
 	await pvFeed.setLiquidityPool(liquidityPool.address)
-	await pvFeed.setProtocol(optionProtocol.address)
 	await pvFeed.setKeeper(liquidityPool.address, true)
+	await liquidityPool.setMaxTimeDeviationThreshold(maxTimeDeviationThreshold)
+	await liquidityPool.setMaxPriceDeviationThreshold(maxPriceDeviationThreshold)
+	await pvFeed.setAddressStringMapping(wethAddress, wethAddress)
+	await pvFeed.setAddressStringMapping(usdcAddress, usdcAddress)
 	console.log("pv feed lp set")
 
-	await pvFeed.fulfill(weth.address, usd.address)
+	const price = await priceFeed.getNormalizedRate(weth.address, usd.address)
+	console.log({ price })
+	await pvFeed.fulfill(
+		utils.formatBytes32String("1"),
+		weth.address,
+		usd.address,
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		price
+	)
 	console.log("pv feed fulfilled")
 
 	const accountingFactory = await ethers.getContractFactory("Accounting")
@@ -524,12 +565,12 @@ export async function deployLiquidityPool(
 	const updateAccountingTx = await optionProtocol.changeAccounting(accounting.address)
 	await updateAccountingTx.wait()
 
-	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
+	const handlerFactory = await ethers.getContractFactory("OptionHandler")
 	const handler = (await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,
 		liquidityPool.address
-	)) as AlphaOptionHandler
+	)) as OptionHandler
 	console.log("option handler deployed")
 
 	try {
@@ -537,14 +578,13 @@ export async function deployLiquidityPool(
 			address: handler.address,
 			constructorArguments: [authority, optionProtocol.address, liquidityPool.address]
 		})
-		console.log("optionHandler verified")
+		console.log("optionHander verified")
 	} catch (err: any) {
 		if (err.message.includes("Reason: Already Verified")) {
-			console.log("optionHandler contract already verified")
+			console.log("optionHander contract already verified")
 		}
 	}
 
-	await pvFeed.setHandler(handler.address, true)
 	await pvFeed.setKeeper(handler.address, true)
 	await liquidityPool.changeHandler(handler.address, true)
 	console.log("lp handler set")
@@ -609,7 +649,7 @@ export async function deployLiquidityPool(
 				usd.address,
 				weth.address,
 				liquidityPool.address,
-				3000,
+				500,
 				priceFeed.address,
 				authority
 			]
@@ -626,8 +666,6 @@ export async function deployLiquidityPool(
 	console.log("hedging reactors added to liquidity pool")
 
 	return {
-		normDist,
-		blackScholes,
 		optionsCompute,
 		liquidityPool: liquidityPool,
 		handler: handler,

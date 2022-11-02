@@ -16,17 +16,17 @@ import { MintableERC20 } from "../../types/MintableERC20"
 import { PriceFeed } from "../../types/PriceFeed"
 dotenv.config()
 
-// arbitrum rinkeby addresses
-const liquidityPoolAddress = "0x502b02DD4bAdb4F2d104418DCb033606AC948e30"
-const usdcAddress = "0x3C6c9B6b41B9E0d82FeD45d9502edFFD5eD3D737"
-const pvFeedAddress = "0xbE1EDd48504828322452bEcC5F6eB0476bf71e89"
-const priceFeedAddress = "0x82580c8d4bf1e56a32bb45b0F6663a9675400597"
-const wethAddress = "0xE32513090f05ED2eE5F3c5819C9Cce6d020Fefe7"
-const handlerAddress = "0x84fbb7C0a210e5e3A9f7707e1Fb725ADcf0CF528"
+// arbitrum goerli alpha addresses
+const liquidityPoolAddress = "0x2ceDe96cd46C9B751EeB868A57FEDeD060Dbe6Bf"
+const usdcAddress = "0x6775842ae82bf2f0f987b10526768ad89d79536e"
+const pvFeedAddress = "0xbFC1eDc5c07ada83e0244b37A784486633910cD7"
+const priceFeedAddress = "0xDcA6c35228acb82363406CB2e7eee81B40c692aE"
+const wethAddress = "0x53320bE2A35649E9B2a0f244f9E9474929d3B699"
+const handlerAddress = "0x8a265fa22aa5AF86fa763dC2cF04661bf06A52E6"
 
 const deployer = new ethers.Wallet(
 	process.env.DEPLOYER_PRIVATE_KEY as string,
-	new ethers.providers.InfuraProvider("arbitrum-rinkeby")
+	new ethers.providers.InfuraProvider("arbitrum-goerli")
 )
 
 console.log({ deployer: deployer.address })
@@ -35,7 +35,7 @@ const deposit = async () => {
 	const depositAmount = toUSDC("1000000")
 	const balance = await deployer.getBalance()
 	const liquidityPool = await ethers.getContractAt("LiquidityPool", liquidityPoolAddress, deployer)
-	const usdc = await ethers.getContractAt("MockERC20", usdcAddress, deployer)
+	const usdc = await ethers.getContractAt("MintableERC20", usdcAddress, deployer)
 	const priceFeed = (await ethers.getContractAt(
 		"PriceFeed",
 		priceFeedAddress,
@@ -44,23 +44,13 @@ const deposit = async () => {
 	console.log({ balance: ethers.utils.formatEther(balance) })
 	await usdc.approve(liquidityPool.address, depositAmount)
 
-	// const pvFeed = await ethers.getContractAt("PortfolioValuesFeed", pvFeedAddress, deployer)
-	// const price = await priceFeed.getNormalizedRate(wethAddress, usdcAddress)
-	// console.log({ price })
-	// await pvFeed.fulfill(
-	// 	utils.formatBytes32String("1"),
-	// 	wethAddress,
-	// 	usdcAddress,
-	// 	BigNumber.from(0),
-	// 	BigNumber.from(0),
-	// 	BigNumber.from(0),
-	// 	BigNumber.from(0),
-	// 	BigNumber.from(0),
-	// 	price
-	// )
+	const pvFeed = await ethers.getContractAt("AlphaPortfolioValuesFeed", pvFeedAddress, deployer)
+	const price = await priceFeed.getNormalizedRate(wethAddress, usdcAddress)
+	console.log({ price })
+	await pvFeed.fulfill(wethAddress, usdcAddress)
 
 	await liquidityPool.deposit(depositAmount, {
-		gasLimit: BigNumber.from("1000000000")
+		gasLimit: BigNumber.from("100000000")
 	})
 
 	try {
@@ -69,17 +59,17 @@ const deposit = async () => {
 	} catch (err) {
 		console.log(err)
 	}
-	// const isTradingpaused = await liquidityPool.isTradingPaused()
-	// console.log({ isTradingpaused })
-	// const executeTx = await liquidityPool.executeEpochCalculation()
-	// await executeTx.wait()
-	// await liquidityPool.redeem(toWei("1000000000000000"))
+	const isTradingpaused = await liquidityPool.isTradingPaused()
+	console.log({ isTradingpaused })
+	const executeTx = await liquidityPool.executeEpochCalculation()
+	await executeTx.wait()
+	await liquidityPool.redeem(toWei("1000000000000000"))
 }
 
 const sellOptions = async (strikePrice: number, weeksUntilExpiry: number, isPut: boolean) => {
 	console.log({ balance: await deployer.getBalance() })
-	const optionHandler = await ethers.getContractAt("OptionHandler", handlerAddress, deployer)
-	const usdc = (await ethers.getContractAt("MockERC20", usdcAddress, deployer)) as MintableERC20
+	const optionHandler = await ethers.getContractAt("AlphaOptionHandler", handlerAddress, deployer)
+	const usdc = (await ethers.getContractAt("MintableERC20", usdcAddress, deployer)) as MintableERC20
 	const liquidityPool = (await ethers.getContractAt(
 		"LiquidityPool",
 		liquidityPoolAddress,
@@ -109,20 +99,20 @@ const sellOptions = async (strikePrice: number, weeksUntilExpiry: number, isPut:
 		collateral: usdcAddress
 	}
 	console.log({ optionSeries })
-	// const pvFeed = await ethers.getContractAt("PortfolioValuesFeed", pvFeedAddress, deployer)
-	// const price = await priceFeed.getNormalizedRate(wethAddress, usdcAddress)
-	// console.log({ price })
-	// await pvFeed.fulfill(
-	// 	utils.formatBytes32String("1"),
-	// 	wethAddress,
-	// 	usdcAddress,
-	// 	BigNumber.from(0),
-	// 	BigNumber.from(0),
-	// 	BigNumber.from(0),
-	// 	BigNumber.from(0),
-	// 	BigNumber.from(0),
-	// 	price
-	// )
+	const pvFeed = await ethers.getContractAt("PortfolioValuesFeed", pvFeedAddress, deployer)
+	const price = await priceFeed.getNormalizedRate(wethAddress, usdcAddress)
+	console.log({ price })
+	await pvFeed.fulfill(
+		utils.formatBytes32String("1"),
+		wethAddress,
+		usdcAddress,
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		price
+	)
 
 	const [quote] = await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, false)
 	console.log({ quote })
@@ -132,11 +122,11 @@ const sellOptions = async (strikePrice: number, weeksUntilExpiry: number, isPut:
 }
 
 // Deposit liquidity into pool then sell an option series
-// deposit().then(() => {
-// 	sellOptions(1500, 3, true)
-// })
+deposit().then(() => {
+	sellOptions(1100, 3, true)
+})
 
 // sell an option series without depositing more
 // sellOptions(1500, 3, true)
 
-deposit()
+// deposit()

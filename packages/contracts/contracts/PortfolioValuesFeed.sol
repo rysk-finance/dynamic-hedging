@@ -52,9 +52,9 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	);
 	event SetJobId(bytes32 jobId);
 	event SetFee(uint256 fee);
-  	event SetOracle(address oracle);
-  	event SetLiquidityPool(address liquidityPool);
-  	event SetAddressStringMapping(address asset, string stringVersion);
+	event SetOracle(address oracle);
+	event SetLiquidityPool(address liquidityPool);
+	event SetAddressStringMapping(address asset, string stringVersion);
 
 	/**
 	 * @notice Executes once when a contract is created to initialize state variables
@@ -85,35 +85,35 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	///////////////
 	/// setters ///
 	///////////////
-  	
+
 	function setjobId(string memory _jobId) external {
-    	_onlyGovernor();
+		_onlyGovernor();
 		jobId = stringToBytes32(_jobId);
-    	emit SetJobId(jobId);
-  	}
+		emit SetJobId(jobId);
+	}
 
 	function setFee(uint256 _fee) external {
-    	_onlyGovernor();
+		_onlyGovernor();
 		fee = _fee;
 		emit SetFee(_fee);
-  	}
+	}
 
-  	function setOracle(address _oracle) external {
-    	_onlyGovernor();
-    	oracle = _oracle;
-    	emit SetOracle(_oracle);
-  	}
+	function setOracle(address _oracle) external {
+		_onlyGovernor();
+		oracle = _oracle;
+		emit SetOracle(_oracle);
+	}
 
 	function setLiquidityPool(address _liquidityPool) external {
 		_onlyGovernor();
 		liquidityPool = ILiquidityPool(_liquidityPool);
-    	emit SetLiquidityPool(_liquidityPool);
+		emit SetLiquidityPool(_liquidityPool);
 	}
 
 	function setAddressStringMapping(address _asset, string memory _stringVersion) external {
 		_onlyGovernor();
 		stringedAddresses[_asset] = _stringVersion;
-    	emit SetAddressStringMapping(_asset, _stringVersion);
+		emit SetAddressStringMapping(_asset, _stringVersion);
 	}
 
 	function setLink(address _link) external {
@@ -234,19 +234,15 @@ contract PortfolioValuesFeed is AccessControl, ChainlinkClient {
 	/// internal helpers //
 	///////////////////////
 
-	function stringToBytes32(string memory source)
-        private
-        pure
-        returns (bytes32 result)
-    {
-        bytes memory tempEmptyStringTest = bytes(source);
-        if (tempEmptyStringTest.length == 0) {
-            return 0x0;
-        }
+	function stringToBytes32(string memory source) private pure returns (bytes32 result) {
+		bytes memory tempEmptyStringTest = bytes(source);
+		if (tempEmptyStringTest.length == 0) {
+			return 0x0;
+		}
 
-        assembly {
-            // solhint-disable-line no-inline-assembly
-            result := mload(add(source, 32))
-        }
-    }
+		assembly {
+			// solhint-disable-line no-inline-assembly
+			result := mload(add(source, 32))
+		}
+	}
 }
