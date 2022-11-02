@@ -214,9 +214,6 @@ contract Accounting is IAccounting {
 			withdrawalShares,
 			liquidityPool.withdrawalEpochPricePerShare(withdrawalEpoch)
 		);
-		if (withdrawalAmount == 0) {
-			revert CustomErrors.InvalidAmount();
-		}
 	}
 
 	/**
