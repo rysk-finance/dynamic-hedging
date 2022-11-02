@@ -19,6 +19,13 @@ library Types {
 		uint256 timestamp;
 		uint256 spotPrice;
 	}
+	struct Option {
+		uint64 expiration;
+		uint128 strike;
+		bool isPut;
+		bool isBuying;
+		bool isSelling;
+	}
 	struct Order {
 		OptionSeries optionSeries;
 		uint256 amount;
