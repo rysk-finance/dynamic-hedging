@@ -154,7 +154,7 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
         // emit an event
     }
 
-    function adjustCollateral(address _series uint256 _collateralAmount, bool _isTopUp) external {
+    function adjustCollateral(address _series, uint256 _collateralAmount, bool _isTopUp) external {
         // check the existence of the series
         // check they have a vault
         // make sure the series has not expired
