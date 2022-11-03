@@ -22,6 +22,8 @@ interface CustomErrors {
 	error TradingNotPaused();
 	error NotLiquidityPool();
 	error UnauthorizedExit();
+	error UnapprovedSeries();
+	error NotSellingSeries();
 	error DeltaNotDecreased();
 	error NonExistentOtoken();
 	error OrderExpiryTooLong();
@@ -29,6 +31,7 @@ interface CustomErrors {
 	error ExistingWithdrawal();
 	error TotalSupplyReached();
 	error StrikeAssetInvalid();
+	error InsufficientBalance();
 	error OptionStrikeInvalid();
 	error OptionExpiryInvalid();
 	error RangeOrderNotFilled();

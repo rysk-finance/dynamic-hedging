@@ -64,8 +64,6 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	mapping(address => bool) public buybackWhitelist;
 	BeyondPricer public pricer;
 
-
-
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
@@ -80,9 +78,6 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	event SeriesApproved(uint64 expiration, uint128 strike, bool isPut, bool isBuying, bool isSelling);
 	event SeriesDisabled(uint64 expiration, uint128 strike, bool isPut);
 	event SeriesAltered(uint64 expiration, uint128 strike, bool isPut, bool isBuying, bool isSelling);
-
-	error UnapprovedSeries();
-	error NotSellingSeries();
 
 	// delta and price boundaries for custom orders
 	struct CustomOrderBounds {
@@ -154,6 +149,15 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		_onlyGovernor();
 		buybackWhitelist[_addressToWhitelist] = toAdd;
 	}
+
+	/**
+	 * @notice change the pricer 
+	 */
+	function setPricer(address _pricer) external {
+		_onlyGovernor();
+		pricer = BeyondPricer(_pricer);
+	}
+
 
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
@@ -252,11 +256,11 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		// check if the option series is approved
 		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, optionSeries.strike * 1e10, optionSeries.isPut));
 		if (!approvedOptions[oHash]) {
-			revert UnapprovedSeries();
+			revert CustomErrors.UnapprovedSeries();
 		}
 		// check if the series is for sale
 		if (!isSelling[oHash]) {
-			revert NotSellingSeries();
+			revert CustomErrors.NotSellingSeries();
 		}
 		// calculate premium and delta
 		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(optionSeries, amount, false);
@@ -307,11 +311,11 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		// check if the option series is approved
 		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, optionSeries.strike, optionSeries.isPut));
 		if (!approvedOptions[oHash]) {
-			revert UnapprovedSeries();
+			revert CustomErrors.UnapprovedSeries();
 		}
 		// check if the series is for sale
 		if (!isSelling[oHash]) {
-			revert NotSellingSeries();
+			revert CustomErrors.NotSellingSeries();
 		}
 		// calculate premium
 		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(
@@ -371,14 +375,11 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		// check if the option series is approved
 		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, optionSeries.strike * 1e10, optionSeries.isPut));
 		if (!approvedOptions[oHash]) {
-			revert UnapprovedSeries();
+			revert CustomErrors.UnapprovedSeries();
 		}
 		// check if the series is for buying
 		if (!isBuying[oHash]) {
-			revert NotSellingSeries();
-		}
-		if (optionSeries.expiration == 0) {
-			revert CustomErrors.NonExistentOtoken();
+			revert CustomErrors.NotSellingSeries();
 		}
 		// revert if the expiry is in the past
 		if (optionSeries.expiration <= block.timestamp) {
