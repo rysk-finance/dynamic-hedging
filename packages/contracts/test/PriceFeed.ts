@@ -39,12 +39,15 @@ describe("Price Feed", async () => {
 			"contracts/interfaces/WETH.sol:WETH",
 			WETH_ADDRESS[chainId]
 		)) as WETH
-		usd = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usd = (await ethers.getContractAt(
+			"contracts/tokens/ERC20.sol:ERC20",
+			USDC_ADDRESS[chainId]
+		)) as MintableERC20
 		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")
 		const senderAddress = await signers[0].getAddress()
 		const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
-		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
+		const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
 		const _priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
 		priceFeed = _priceFeed
 		await priceFeed.addPriceFeed(weth.address, usd.address, ethUSDAggregator.address)
@@ -83,16 +86,18 @@ describe("Price Feed", async () => {
 			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
-		await ethUSDAggregator.mock.decimals.returns(
-			"18"
-		)
+		await ethUSDAggregator.mock.decimals.returns("18")
 		const quote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		expect(quote).to.eq(rate)
 	})
 	it("Should revert for a non-existent price quote", async () => {
-		await expect(priceFeed.getRate(ZERO_ADDRESS, usd.address)).to.be.revertedWith("Price feed does not exist")
+		await expect(priceFeed.getRate(ZERO_ADDRESS, usd.address)).to.be.revertedWith(
+			"Price feed does not exist"
+		)
 	})
 	it("Should revert for a non-existent normalised price quote", async () => {
-		await expect(priceFeed.getNormalizedRate(ZERO_ADDRESS, usd.address)).to.be.revertedWith("Price feed does not exist")
+		await expect(priceFeed.getNormalizedRate(ZERO_ADDRESS, usd.address)).to.be.revertedWith(
+			"Price feed does not exist"
+		)
 	})
 })

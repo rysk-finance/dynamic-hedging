@@ -85,7 +85,7 @@ export async function deploySystem(
 	)) as OptionRegistry
 	const optionRegistry = _optionRegistry
 
-	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
+	const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
 	const _priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
 	const priceFeed = _priceFeed
 	await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
@@ -157,19 +157,25 @@ export async function deployLiquidityPool(
 	pvFeed: MockPortfolioValuesFeed,
 	authority: string
 ) {
-	const normDistFactory = await ethers.getContractFactory("contracts/libraries/NormalDist.sol:NormalDist", {
-		libraries: {}
-	})
+	const normDistFactory = await ethers.getContractFactory(
+		"contracts/libraries/NormalDist.sol:NormalDist",
+		{
+			libraries: {}
+		}
+	)
 	const normDist = await normDistFactory.deploy()
 	const volFactory = await ethers.getContractFactory("Volatility", {
 		libraries: {}
 	})
 	const volatility = (await volFactory.deploy()) as Volatility
-	const blackScholesFactory = await ethers.getContractFactory("contracts/libraries/BlackScholes.sol:BlackScholes", {
-		libraries: {
-			NormalDist: normDist.address
+	const blackScholesFactory = await ethers.getContractFactory(
+		"contracts/libraries/BlackScholes.sol:BlackScholes",
+		{
+			libraries: {
+				NormalDist: normDist.address
+			}
 		}
-	})
+	)
 	const blackScholesDeploy = await blackScholesFactory.deploy()
 	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}

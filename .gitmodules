@@ -17,3 +17,6 @@
 [submodule "packages/contracts/lib/v3-periphery"]
 	path = packages/contracts/lib/v3-periphery
 	url = https://github.com/Uniswap/v3-periphery
+[submodule "packages/contracts/packages/contracts/contracts/gmx-contracts"]
+	path = packages/contracts/packages/contracts/contracts/gmx-contracts
+	url = https://github.com/gmx-io/gmx-contracts

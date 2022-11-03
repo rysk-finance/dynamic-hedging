@@ -85,7 +85,7 @@ export async function deploySystem(
 	)) as OptionRegistry
 	const optionRegistry = _optionRegistry
 
-	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
+	const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
 	const _priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
 	const priceFeed = _priceFeed
 	await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
