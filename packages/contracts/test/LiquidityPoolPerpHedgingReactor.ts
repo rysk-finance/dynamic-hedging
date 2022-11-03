@@ -43,6 +43,7 @@ import {
 	setupOracle,
 	setupTestOracle
 } from "./helpers"
+import { BeyondOptionHandler } from "../types/BeyondOptionHandler"
 
 dayjs.extend(utc)
 
@@ -74,7 +75,7 @@ let clearingHouse: ClearingHouse
 let poolId: string
 let settlementTokenOracle: OracleMock
 let collateralId: string
-let handler: OptionHandler
+let handler: BeyondOptionHandler
 let authority: string
 
 /* --- variables to change --- */
