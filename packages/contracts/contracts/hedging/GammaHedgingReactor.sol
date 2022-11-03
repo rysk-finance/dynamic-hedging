@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
-import "../PriceFeed.sol";
+import "../Protocol.sol";
+import "../BeyondPricer.sol";
+import "../BeyondOptionHandler.sol";
 
 import "../libraries/Types.sol";
 import "../libraries/BlackScholes.sol";
@@ -10,7 +12,11 @@ import "../libraries/OptionsCompute.sol";
 import "../libraries/SafeTransferLib.sol";
 import "../libraries/OpynInteractions.sol";
 
+import "../interfaces/IWhitelist.sol";
 import "../interfaces/IHedgingReactor.sol";
+import "../interfaces/AddressBookInterface.sol";
+import "../interfaces/IPortfolioValuesFeed.sol";
+import {IOtoken } from "../interfaces/GammaInterface.sol";
 
 /**
  *   @title A hedging reactor that allows users to sell options to the reactor using funds from the
@@ -25,9 +31,15 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	/// @notice address of the parent liquidity pool contract
 	address public immutable parentLiquidityPool;
 	/// @notice address of the price feed used for getting asset prices
-	address public immutable priceFeed;
-	/// @notice generalised list of stablecoin addresses to trade against wETH
+	Protocol public immutable protocol;
+	/// @notice collateral asset used for premium 
 	address public immutable collateralAsset;
+	/// @notice strike asset used as the main numeraire
+	address public immutable strikeAsset;
+	/// @notice underlying asset used as the reference asset for the option
+	address public immutable underlyingAsset;
+	/// @notice address book used for the gamma protocol
+	AddressBookInterface public immutable addressbook;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -35,15 +47,15 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @notice delta exposure of this reactor
 	int256 public internalDelta;
-    /// @notice user existing opyn-rysk vaults
-    mapping(address => mapping (address => uint256)) public vaultIds;
 
 	/////////////////////////////////////
 	/// governance settable variables ///
 	/////////////////////////////////////
 
-    /// @notice information of a series
-	mapping(address => Types.OptionSeries) public seriesInfo;
+	/// @notice handler used for writing options and contains options access
+	BeyondOptionHandler public handler;
+	/// @notice pricer for querying option price quotes
+	BeyondPricer public pricer;
 
 	//////////////////////////
 	/// constant variables ///
@@ -52,15 +64,29 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	/// @notice max bips used for percentages
 	uint256 private constant MAX_BIPS = 10_000;
 
+	event OptionsBought();
+	event OptionPositionsClosed();
+	event OptionsRedeemed(address series, uint256 optionAmount, uint256 redeemAmount);
+
 	constructor(
+		address _strikeAsset,
 		address _collateralAsset,
+		address _underlyingAsset,
 		address _parentLiquidityPool,
-		address _priceFeed,
-		address _authority
+		address _protocol,
+		address _authority,
+		address _handler,
+		address _pricer,
+		address _addressbook
 	) AccessControl(IAuthority(_authority)) {
+		strikeAsset = _strikeAsset;
 		collateralAsset = _collateralAsset;
+		underlyingAsset = _underlyingAsset;
 		parentLiquidityPool = _parentLiquidityPool;
-		priceFeed = _priceFeed;
+		protocol = Protocol(_protocol);
+		handler = BeyondOptionHandler(_handler);
+		pricer = BeyondPricer(_pricer);
+		addressbook = AddressBookInterface(_addressbook);
 	}
 
 	///////////////
@@ -98,29 +124,6 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 		}
 	}
 
-    function issueNewSeries(
-        Types.OptionSeries memory _seriesParams
-        ) 
-        external 
-        returns (address series)
-    {
-        _onlyManager();
-        // check the series for its validity, expiry, collateral, strike, underlying etc.
-        // issue the series via opyn interactions issue getting the address
-        // store information on the series
-        // store it in some form of array so its delta and value can be calculated
-        // emit an event of the series creation, now users can write options on this series
-    }
-
-    function revokeSeries(
-        address _series
-        ) 
-        external 
-    {
-        _onlyManager();
-        delete seriesInfo[_series];
-    }
-
 	/////////////////////////////////////////////
 	/// external state changing functionality ///
 	/////////////////////////////////////////////
@@ -131,55 +134,144 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	}
 
 
-    function writeAndBuyOption(
+    function buyOption(
         address _series, 
-        uint256 _amount, 
-        uint256 _vaultType,
-        uint256 _healthFactor
+        uint256 _amount
         ) 
         external 
-        returns (uint256 vaultId, uint256 premium)
+        returns (uint256 premium)
     {
-        // check the series for its existence
-        // check the series is allowed by the reactor
-        // check the series has a valid expiry
-        // check the amount
-        // make sure the vault type is 0 or 1
-        // open a vault on opyn (or find if they have an existing one for this series) and store this
-        // get the collateral amount from something like OpynInteractions.getCollateral taking into account their health factor
-        // deposit the collateral amount into the vault they just created or had already
-        // mint the amount of options they want
-        // price the options using LiquidityPool.quotePriceWithUtilisationGreeks in buy mode or a different pricing algo
+		// check the otoken is whitelisted
+		IWhitelist(addressbook.getWhitelist()).isWhitelistedOtoken(_series);
+		IOtoken otoken = IOtoken(_series);
+		// get the option details
+		Types.OptionSeries memory optionSeries = Types.OptionSeries(
+			uint64(otoken.expiryTimestamp()),
+			uint128(otoken.strikePrice()) * 10**10,
+			otoken.isPut(),
+			otoken.underlyingAsset(),
+			otoken.strikeAsset(),
+			otoken.collateralAsset()
+			);
+		// check if the option series is approved
+		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, optionSeries.strike, optionSeries.isPut));
+		if (!handler.approvedOptions(oHash)) {
+			revert CustomErrors.UnapprovedSeries();
+		}
+		// check if the series is for buying
+		if (!handler.isBuying(oHash)) {
+			revert CustomErrors.NotSellingSeries();
+		}
+		// revert if the expiry is in the past
+		if (optionSeries.expiration <= block.timestamp) {
+			revert CustomErrors.OptionExpiryInvalid();
+		}
+		// check the strike asset and underlying asset
+		if (optionSeries.underlying != underlyingAsset) {
+			revert CustomErrors.UnderlyingAssetInvalid();
+		}
+		if (optionSeries.strikeAsset != strikeAsset) {
+			revert CustomErrors.StrikeAssetInvalid();
+		}
+		// value the options
+		(uint256 premium, ) = pricer.quoteOptionPrice(optionSeries, _amount, true);
+		// send the otokens here
+		SafeTransferLib.safeTransferFrom(
+			_series,
+			msg.sender,
+			address(this),
+			OptionsCompute.convertToDecimals(_amount, ERC20(_series).decimals())
+		);
         // take the funds from the liquidity pool and pay the user for the oTokens
+		SafeTransferLib.safeTransferFrom(
+			collateralAsset,
+			address(parentLiquidityPool),
+			msg.sender,
+			premium
+		);
+		// update on the pvfeed stores
+		getPortfolioValuesFeed().updateStores(
+			optionSeries,
+			0,
+			int256(_amount),
+			_series
+		);
         // emit an event
+		emit OptionsBought();
     }
 
-    function adjustCollateral(address _series, uint256 _collateralAmount, bool _isTopUp) external {
-        // check the existence of the series
-        // check they have a vault
-        // make sure the series has not expired
-        // make sure the collateral amount is non 0
-        // if it is a top up then deposit the collateral amount
-        // if it is a withdrawal then withdraw the collateral amount
-        // make sure funds go to the user or oToken vault
-    }
-
+	function closeOption(address _series, uint256 _amount) external {
+		if (ERC20(_series).balanceOf(address(this)) < _amount) {
+			revert CustomErrors.InsufficientBalance();
+		}
+		// check the otoken is whitelisted
+		IWhitelist(addressbook.getWhitelist()).isWhitelistedOtoken(_series);
+		IOtoken otoken = IOtoken(_series);
+		// get the option details
+		Types.OptionSeries memory optionSeries = Types.OptionSeries(
+			uint64(otoken.expiryTimestamp()),
+			uint128(otoken.strikePrice()) * 10**10,
+			otoken.isPut(),
+			otoken.underlyingAsset(),
+			otoken.strikeAsset(),
+			otoken.collateralAsset()
+			);
+		// check if the option series is approved
+		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, optionSeries.strike, optionSeries.isPut));
+		if (!handler.approvedOptions(oHash)) {
+			revert CustomErrors.UnapprovedSeries();
+		}
+		// check if the series is for selling
+		if (!handler.isSelling(oHash)) {
+			revert CustomErrors.NotSellingSeries();
+		}
+		// revert if the expiry is in the past
+		if (optionSeries.expiration <= block.timestamp) {
+			revert CustomErrors.OptionExpiryInvalid();
+		}
+		// check the strike asset and underlying asset
+		if (optionSeries.underlying != underlyingAsset) {
+			revert CustomErrors.UnderlyingAssetInvalid();
+		}
+		if (optionSeries.strikeAsset != strikeAsset) {
+			revert CustomErrors.StrikeAssetInvalid();
+		}
+		// value the options
+		(uint256 premium, ) = pricer.quoteOptionPrice(optionSeries, _amount, false);
+		// transfer the otokens back to the user
+		SafeTransferLib.safeTransferFrom(
+			_series,
+			address(this),
+			msg.sender,
+			OptionsCompute.convertToDecimals(_amount, ERC20(_series).decimals())
+		);
+		// transfer the premium back to the liquidity pool
+		SafeTransferLib.safeTransferFrom(
+			collateralAsset,
+			msg.sender,
+			parentLiquidityPool,
+			premium
+		);
+		// update on the pvfeed stores
+		getPortfolioValuesFeed().updateStores(
+			optionSeries,
+			0,
+			-int256(_amount),
+			_series
+		);
+		emit OptionPositionsClosed();
+	}
     function redeem(address _series) external {
-        // check the existence of the series
-        // make sure it has expired
-        // make sure the oToken balance is greater than 0
-        // call redeem on the vault
-        // send redeemed funds to the liquidityPool
-        // emit redeem event
+		uint256 optionAmount = ERC20(_series).balanceOf(address(this));
+		uint256 redeemAmount = OpynInteractions.redeem(addressbook.getController(), addressbook.getMarginPool(), _series, optionAmount);
+		SafeTransferLib.safeTransferFrom(
+			collateralAsset,
+			address(this),
+			parentLiquidityPool,
+			redeemAmount
+		);
+		emit OptionsRedeemed(_series, optionAmount, redeemAmount);
     }
-
-    function settle(address _series) external {
-        // check the existence of the series
-        // check if they have a vault
-        // settle the vault
-        // clear the vault from the mapping
-    }
-
 
 	///////////////
 	/// getters ///
@@ -187,21 +279,12 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @inheritdoc IHedgingReactor
 	function getDelta() external view returns (int256 delta) {
-
-        // Returns the pools delta value, which in this case would be the options aggregate delta, 
-        // this could be calculated completely on chain if we limited the number of options series 
-        // that the pool purchased. So getDelta from BlackScholes.sol could be used
-        // Otherwise if this is unbound then we would need to adopt an 
-        // oracle based solution.
+		return 0;
 	}
 
 	/// @inheritdoc IHedgingReactor
 	function getPoolDenominatedValue() external view returns (uint256 value) {
-        // Returns the pools option value, which in this case would be the options aggregate value 
-        // and the collateral left loose, 
-        // this could be calculated completely on chain if we limited the number of options series 
-        // that the pool purchased. So blackScholesCalc could be used from BlackScholes.sol could be used
-        // Otherwise if this is unbound then we would need to adopt an oracle based solution.
+		return ERC20(collateralAsset).balanceOf(address(this));
 	}
 
 	/**
@@ -210,11 +293,19 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	 * @param _strikeAsset the asset that the underlying value is denominated in
 	 * @return the underlying price
 	 */
-	function getUnderlyingPrice(address underlying, address _strikeAsset)
+	function _getUnderlyingPrice(address underlying, address _strikeAsset)
 		internal
 		view
 		returns (uint256)
 	{
-		return PriceFeed(priceFeed).getNormalizedRate(underlying, _strikeAsset);
+		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
+	}
+
+	/**
+	 * @notice get the portfolio values feed used by the liquidity pool
+	 * @return the portfolio values feed contract
+	 */
+	function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
+		return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
 	}
 }

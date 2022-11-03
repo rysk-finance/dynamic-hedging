@@ -63,7 +63,8 @@ import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
-import { OptionHandler } from "../types/OptionHandler"
+import { BeyondOptionHandler } from "../types/BeyondOptionHandler"
+
 let usd: MintableERC20
 let weth: WETH
 let optionRegistry: OptionRegistry
@@ -93,7 +94,7 @@ let clearingHouse: ClearingHouse
 let poolId: string
 let settlementTokenOracle: OracleMock
 let collateralId: string
-let handler: OptionHandler
+let handler: BeyondOptionHandler
 let authority: string
 
 const IMPLIED_VOL = "60"
