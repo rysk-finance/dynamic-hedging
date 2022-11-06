@@ -35,8 +35,9 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	/// immutable variables ///
 	///////////////////////////
 
-	// Protocol management contracts
+	// Liquidity pool contract
 	ILiquidityPool public immutable liquidityPool;
+	// protocol management contract
 	Protocol public immutable protocol;
 	// asset that denominates the strike price
 	address public immutable strikeAsset;
@@ -49,8 +50,11 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	/// dynamic variables ///
 	/////////////////////////
 
+	// option configurations approved for sale, stored by hash of expiration timestamp, strike (in e18) and isPut bool
 	mapping(bytes32 => bool) public approvedOptions;
+	// whether the dhv is buying this option stored by hash
 	mapping(bytes32 => bool) public isBuying;
+	// whether the dhv is selling this option stored by hash
 	mapping(bytes32 => bool) public isSelling;
 	uint256[] public expirations;
 	mapping(uint256 => mapping(bool => uint128[])) public optionDetails;
