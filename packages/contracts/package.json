@@ -17,7 +17,8 @@
 		"buyoption:testnet": "npx hardhat run scripts/buySample.ts --network arbitrumRinkeby",
 		"create-otc-order:testnet": "npx hardhat run scripts/createOTCOrder.ts --network arbitrumRinkeby",
 		"create-otc-strangle:testnet": "npx hardhat run scripts/createOTCStrangle.ts --network arbitrumRinkeby",
-		"fulfill:testnet": "npx hardhat run scripts/fulfill.ts --network arbitrumRinkeby"
+		"fulfill:testnet": "npx hardhat run scripts/fulfill.ts --network arbitrumRinkeby",
+		"postinstall": "patch-package"
 	},
 	"keywords": [],
 	"author": "",
@@ -38,7 +39,7 @@
 		"cross-env": "^7.0.3",
 		"ethereum-waffle": "^3.1.0",
 		"ethers": "5.4.0",
-		"hardhat": "^2.6.7",
+		"hardhat": "2.11.1",
 		"hardhat-contract-sizer": "^2.5.0",
 		"hardhat-deploy": "^0.7.11",
 		"hardhat-gas-reporter": "^1.0.3",
