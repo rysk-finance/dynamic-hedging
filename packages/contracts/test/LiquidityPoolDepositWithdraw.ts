@@ -20,12 +20,12 @@ import utc from "dayjs/plugin/utc"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
+import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
 import { ERC20 } from "../types/ERC20"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
-import { Otoken as IOToken } from "../types/Otoken"
+import { Otoken as IOToken, Otoken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { Volatility } from "../types/Volatility"
@@ -51,9 +51,10 @@ import { deployOpyn } from "../utils/opyn-deployer"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { VolatilityFeed } from "../types/VolatilityFeed"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
-import { OptionHandler } from "../types/OptionHandler"
+import { BeyondOptionHandler } from "../types/BeyondOptionHandler"
 import { Accounting } from "../types/Accounting"
 import exp from "constants"
+import { BeyondPricer } from "../types/BeyondPricer"
 
 dayjs.extend(utc)
 
@@ -73,9 +74,10 @@ let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
-let portfolioValuesFeed: MockPortfolioValuesFeed
-let handler: OptionHandler
-let optionToken1: string
+let portfolioValuesFeed: AlphaPortfolioValuesFeed
+let handler: BeyondOptionHandler
+let pricer: BeyondPricer
+let optionToken1: Otoken
 let priceQuote: any
 let quote: any
 let localDelta: any
@@ -187,6 +189,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		handler = lpParams.handler
+		pricer = lpParams.pricer
 		accounting = lpParams.accounting
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
@@ -387,31 +390,9 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(await liquidityPool.isTradingPaused()).to.be.true
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		await portfolioValuesFeed.fulfill(
-			utils.formatBytes32String("2"),
 			weth.address,
 			usd.address,
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(priceQuote)
 		)
-	})
-	it("Succeeds: User 1: issues an option", async () => {
-		const user = senderAddress
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike))
-		const proposedSeries = {
-			expiration: expiration,
-			strike: BigNumber.from(strikePrice),
-			isPut: PUT_FLAVOR,
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-		optionToken1 = await handler.callStatic.issue(proposedSeries)
-		await handler.issue(proposedSeries)
 	})
 	it("Succeeds: execute epoch", async () => {
 		const depositEpochBefore = await liquidityPool.depositEpoch()
@@ -629,6 +610,17 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(withdrawalReceiptAfter.shares).to.equal(lpBalanceBefore.div(2))
 		expect(withdrawalReceiptBefore.shares).to.equal(0)
 	})
+	it("SETUP: approve series", async () => {
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		await handler.issueNewSeries([{
+			expiration: expiration,
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			isBuying: true,
+			isSelling: true
+		}])
+	})
 	it("Succeeds: User 1: LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
 		const amount = toWei("5")
@@ -646,15 +638,15 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount, false))[0]
+		quote = (await pricer.quoteOptionPrice(proposedSeries, amount, false))[0]
 		await usd.approve(handler.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
 			.series
 		const write = await handler.issueAndWriteOption(proposedSeries, amount)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		const putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
-		const putBalance = await putOptionToken.balanceOf(senderAddress)
+		optionToken1 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+		const putBalance = await optionToken1.balanceOf(senderAddress)
 		const registryUsdBalance = await liquidityPool.collateralAllocated()
 		const balanceNew = await usd.balanceOf(senderAddress)
 		const opynAmount = toOpyn(fromWei(amount))
@@ -666,19 +658,12 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			true
 		)
 		await portfolioValuesFeed.fulfill(
-			utils.formatBytes32String("2"),
 			weth.address,
 			usd.address,
-			localDelta,
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			quote,
-			BigNumber.from(priceQuote)
 		)
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew), 2)).to.eq(tFormatEth(quote, 2))
+		expect(tFormatUSDC(balance.sub(balanceNew), 2)).to.eq(tFormatUSDC(quote, 2))
 	})
 	it("Succeeds: pauses trading", async () => {
 		await liquidityPool.pauseTradingAndRequest()
@@ -686,22 +671,15 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		// deliberately underprice quote so that the pool comes out as profitable
 		await portfolioValuesFeed.fulfill(
-			utils.formatBytes32String("2"),
 			weth.address,
 			usd.address,
-			localDelta,
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			quote.sub(toWei("100")),
-			BigNumber.from(priceQuote)
 		)
 	})
 	it("Reverts: User 1: cant write option", async () => {
 		const user = senderAddress
 		const amount = toWei("2")
-		await usd.approve(liquidityPool.address, toWei("1"))
-		await expect(handler.writeOption(optionToken1, amount)).to.be.revertedWith("TradingPaused()")
+		await usd.approve(handler.address, toWei("1"))
+		await expect(handler.writeOption(optionToken1.address, amount)).to.be.revertedWith("TradingPaused()")
 	})
 	it("Reverts: User 1: cant issue and write option", async () => {
 		const user = senderAddress
@@ -716,7 +694,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await usd.approve(liquidityPool.address, toWei("1"))
+		await usd.approve(handler.address, toWei("1"))
 		await expect(handler.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith(
 			"TradingPaused()"
 		)
@@ -960,6 +938,17 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(withdrawalReceiptAfter.shares).to.equal(lpBalanceBefore.mul(2))
 		expect(withdrawalReceiptBefore.shares).to.equal(lpBalanceBefore)
 	})
+	it("SETUP: approve series", async () => {
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		await handler.issueNewSeries([{
+			expiration: expiration,
+			isPut: CALL_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			isBuying: true,
+			isSelling: true
+		}])
+	})
 	it("Succeeds: User 1: LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
 		const amount = toWei("160")
@@ -978,7 +967,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const singleQ = (
-			await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries, amount, false)
+			await pricer.quoteOptionPrice(proposedSeries, amount, false)
 		)[0]
 		quote = quote.add(singleQ)
 		await usd.approve(handler.address, quote)
@@ -996,19 +985,12 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, true)
 		)
 		await portfolioValuesFeed.fulfill(
-			utils.formatBytes32String("2"),
 			weth.address,
 			usd.address,
-			localDelta,
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			quote,
-			BigNumber.from(priceQuote)
 		)
 		expect(callBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew), 0)).to.eq(tFormatEth(singleQ, 0))
+		expect(tFormatUSDC(balance.sub(balanceNew), 0)).to.eq(tFormatUSDC(singleQ, 0))
 	})
 	it("Reverts: User 1: cannot complete withdrawal because of epoch not closed", async () => {
 		await expect(liquidityPool.completeWithdraw()).to.be.revertedWith("EpochNotClosed()")
@@ -1019,15 +1001,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		// deliberately underprice quote so that the pool comes out as profitable
 		await portfolioValuesFeed.fulfill(
-			utils.formatBytes32String("2"),
 			weth.address,
 			usd.address,
-			localDelta,
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			quote.sub(toWei("100")),
-			BigNumber.from(priceQuote)
 		)
 	})
 	it("Succeeds: execute epoch with not enough funds to execute withdrawals", async () => {
@@ -1118,15 +1093,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		// deliberately underprice quote so that the pool comes out as profitable
 		await portfolioValuesFeed.fulfill(
-			utils.formatBytes32String("2"),
 			weth.address,
 			usd.address,
-			localDelta,
-			BigNumber.from(0),
-			BigNumber.from(0),
-			BigNumber.from(0),
-			quote.sub(toWei("100")),
-			BigNumber.from(priceQuote)
 		)
 	})
 
