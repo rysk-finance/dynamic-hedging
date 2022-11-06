@@ -133,13 +133,18 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 		return 0;
 	}
 
-
+	/**
+	 * @notice sell an otoken to the dhv, user should have created the otoken themselves beforehand and sorted their collateral
+	 * @param _series the option series that was created by the user to be sold to the dhv
+	 * @param _amount the amount of options to sell to the dhv in e18
+	 * @return premium the premium paid out to the user
+	 */
     function buyOption(
         address _series, 
         uint256 _amount
         ) 
         external 
-        returns (uint256 premium)
+        returns (uint256)
     {
 		// check the otoken is whitelisted
 		IWhitelist(addressbook.getWhitelist()).isWhitelistedOtoken(_series);
@@ -198,9 +203,16 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 		);
         // emit an event
 		emit OptionsBought();
+		return premium;
     }
 
-	function closeOption(address _series, uint256 _amount) external {
+	/**
+	 * @notice buy an otoken from the dhv
+	 * @param _series the option series to receive back
+	 * @param _amount the amount of options to buy from the dhv in e18
+	 * @return premium the premium paid from the dhv to the user
+	 */
+	function closeOption(address _series, uint256 _amount) external returns (uint256) {
 		if (ERC20(_series).balanceOf(address(this)) < _amount) {
 			revert CustomErrors.InsufficientBalance();
 		}
@@ -260,17 +272,26 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 			_series
 		);
 		emit OptionPositionsClosed();
+		return premium;
 	}
-    function redeem(address _series) external {
-		uint256 optionAmount = ERC20(_series).balanceOf(address(this));
-		uint256 redeemAmount = OpynInteractions.redeem(addressbook.getController(), addressbook.getMarginPool(), _series, optionAmount);
-		SafeTransferLib.safeTransferFrom(
-			collateralAsset,
-			address(this),
-			parentLiquidityPool,
-			redeemAmount
-		);
-		emit OptionsRedeemed(_series, optionAmount, redeemAmount);
+
+	/**
+	 * @notice get the dhv to redeem an expired otoken
+	 * @param _series the list of series to redeem
+	 */
+    function redeem(address[] memory _series) external {
+		uint256 adLength = _series.length;
+		for(uint i; i < adLength; i++) {
+			uint256 optionAmount = ERC20(_series[i]).balanceOf(address(this));
+			uint256 redeemAmount = OpynInteractions.redeem(addressbook.getController(), addressbook.getMarginPool(), _series[i], optionAmount);
+			SafeTransferLib.safeTransferFrom(
+				collateralAsset,
+				address(this),
+				parentLiquidityPool,
+				redeemAmount
+			);
+			emit OptionsRedeemed(_series[i], optionAmount, redeemAmount);
+		}
     }
 
 	///////////////
