@@ -1103,9 +1103,7 @@ describe("Liquidity Pools", async () => {
 			amount,
 			true
 		)
-		console.log("x")
 		const write = await handler.buybackOption(putOptionAddress, amount)
-		console.log("x", amount)
 		await write.wait(1)
 		const logs = await liquidityPool.queryFilter(liquidityPool.filters.BuybackOption(), 0)
 		const buybackEvent = logs[0].args
@@ -1122,7 +1120,6 @@ describe("Liquidity Pools", async () => {
 		// expect number of options sold in event to be correct
 		expect(buybackEvent.amount).to.equal(amount)
 		// premium in emitted event is correct
-		console.log(buybackEvent.premium, quote)
 		expect(tFormatUSDC(buybackEvent.premium) - tFormatUSDC(quote)).to.be.within(-0.001, 0.001)
 		// collateral returned in event is correct
 		expect(tFormatUSDC(buybackEvent.escrowReturned)).to.equal(collateralAllocatedDiff)
@@ -1251,8 +1248,6 @@ describe("Liquidity Pools", async () => {
 				true
 			)
 			localDelta = localDelta.add(delta_)
-			console.log({ delta_ })
-			console.log({ localDelta })
 		}
 		await portfolioValuesFeed.fulfill(
 			weth.address,
@@ -1262,7 +1257,6 @@ describe("Liquidity Pools", async () => {
 		const oracleDelta = (
 			await portfolioValuesFeed.getPortfolioValues(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
 		).delta
-		console.log(oracleDelta, localDelta)
 		expect(tFormatEth(oracleDelta.sub(localDelta))).to.be.within(-5, 5)
 		expect(delta.sub(localDelta)).to.be.within(-1e15, 1e15)
 		// expect ephemeral values to be reset
