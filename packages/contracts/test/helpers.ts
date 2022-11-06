@@ -215,48 +215,9 @@ export async function calculateOptionQuoteLocally(
 		optionSeries.strike,
 		optionSeries.expiration
 	)
-	const maxDiscount = ethers.utils.parseUnits("1", 17) // 10%
 
-	const NAV = await liquidityPool.getNAV()
-	const collateralAllocated = await liquidityPool.collateralAllocated()
-	const lpUSDBalance = await collateralAsset.balanceOf(liquidityPool.address)
-	const portfolioDeltaBefore = await liquidityPool.getPortfolioDelta()
-	const optionDelta = await calculateOptionDeltaLocally(
-		liquidityPool,
-		priceFeed,
-		optionSeries,
-		amount,
-		!toBuy
-	)
-	// optionDelta will already be inverted if we are selling it
-	const portfolioDeltaAfter = portfolioDeltaBefore.add(optionDelta)
-	const portfolioDeltaIsDecreased = portfolioDeltaAfter.abs().sub(portfolioDeltaBefore.abs()).lt(0)
-	const normalisedDelta = portfolioDeltaBefore
-		.add(portfolioDeltaAfter)
-		.div(2)
-		.abs()
-		.div(NAV.div(underlyingPrice))
-
-	const deltaTiltAmount = parseFloat(
-		utils.formatEther(normalisedDelta.gt(maxDiscount) ? maxDiscount : normalisedDelta)
-	)
-	const liquidityAllocated = await optionRegistry.getCollateral(
-		{
-			expiration: optionSeries.expiration,
-			strike: optionSeries.strike.div(10 ** 10),
-			isPut: optionSeries.isPut,
-			underlying: optionSeries.underlying,
-			strikeAsset: optionSeries.strikeAsset,
-			collateral: optionSeries.collateral
-		},
-		amount
-	)
-	const utilizationBefore =
-		tFormatUSDC(collateralAllocated) / tFormatUSDC(collateralAllocated.add(lpUSDBalance))
-	const utilizationAfter =
-		tFormatUSDC(collateralAllocated.add(liquidityAllocated)) /
-		tFormatUSDC(collateralAllocated.add(lpUSDBalance))
-	const bidAskSpread = tFormatEth(await liquidityPool.bidAskIVSpread())
+	const bidAskSpread = 0
+	const rfr = "0"
 	const localBS =
 		bs.blackScholes(
 			priceNorm,
@@ -266,27 +227,7 @@ export async function calculateOptionQuoteLocally(
 			parseFloat(rfr),
 			optionSeries.isPut ? "put" : "call"
 		) * parseFloat(fromWei(amount))
-	let utilizationPrice = toBuy
-		? localBS
-		: getUtilizationPrice(utilizationBefore, utilizationAfter, localBS)
-	// if delta exposure reduces, subtract delta skew from  pricequotes
-	if (portfolioDeltaIsDecreased) {
-		if (toBuy) {
-			utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
-		} else {
-			utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
-		}
-		return utilizationPrice
-		// if delta exposure increases, add delta skew to price quotes
-	} else {
-		if (toBuy) {
-			utilizationPrice = utilizationPrice - utilizationPrice * deltaTiltAmount
-		} else {
-			utilizationPrice = utilizationPrice + utilizationPrice * deltaTiltAmount
-		}
-
-		return utilizationPrice
-	}
+	return localBS
 }
 
 export async function calculateOptionDeltaLocally(
