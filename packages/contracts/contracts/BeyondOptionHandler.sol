@@ -56,7 +56,9 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	mapping(bytes32 => bool) public isBuying;
 	// whether the dhv is selling this option stored by hash
 	mapping(bytes32 => bool) public isSelling;
+	// array of expirations currently supported (mainly for frontend use)
 	uint256[] public expirations;
+	// details of supported options first key is expiration then isPut then an array of strikes (mainly for frontend use)
 	mapping(uint256 => mapping(bool => uint128[])) public optionDetails;
 
 	/////////////////////////////////////
@@ -67,6 +69,7 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	CustomOrderBounds public customOrderBounds = CustomOrderBounds(0, 25e16, -25e16, 0, 1000);
 	// addresses that are whitelisted to sell options back to the protocol
 	mapping(address => bool) public buybackWhitelist;
+	// pricer contract used for pricing options
 	BeyondPricer public pricer;
 
 	//////////////////////////
@@ -171,8 +174,9 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	//////////////////////////////////////////////////////
 
 	/**
-	 * @notice issue a series
-	 * @param  options option type to mint - strike in e18
+	 * @notice issue an option series for buying or sale
+	 * @param  options option type to approve - strike in e18
+	 * @dev    only callable by the manager
 	 */
 	function issueNewSeries(Types.Option[] memory options)
 		external
@@ -204,6 +208,11 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 
 	}
 
+	/**
+	 * @notice disable an option series for buying or sale that has been issued
+	 * @param  options option type to disable - strike in e18
+	 * @dev    only callable by the manager
+	 */
 	function disableSeries(Types.Option[] memory options) 
 		external
 		nonReentrant 
@@ -220,6 +229,11 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		}
 	}
 
+	/**
+	 * @notice change whether an issued option is for buy or sale
+	 * @param  options option type to change status on - strike in e18
+	 * @dev    only callable by the manager
+	 */
 	function changeOptionBuyOrSell(Types.Option[] memory options)
 	 external 
 	 nonReentrant
@@ -307,10 +321,10 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			);
 	}
 
-/**
-	 * @notice write a number of options for a given series address
-	 * @param  optionSeries the option token series address
-	 * @param  amount        the number of options to mint expressed as 1e18
+	/**
+	 * @notice write a number of options for a given series configuration
+	 * @param  optionSeries the option token series 
+	 * @param  amount       the number of options to mint expressed as 1e18
 	 */
 	function issueAndWriteOption(Types.OptionSeries memory optionSeries, uint256 amount)
 		external
