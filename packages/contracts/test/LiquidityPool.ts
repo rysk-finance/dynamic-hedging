@@ -89,7 +89,7 @@ describe("Liquidity Pools", async () => {
 				{
 					forking: {
 						chainId: 1,
-						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
+						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/E7g6PGB17qImdaPhyGTU6Oqvu6_JKK8B`,
 						blockNumber: 14290000
 					}
 				}
