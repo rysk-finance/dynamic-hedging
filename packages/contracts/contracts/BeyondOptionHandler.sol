@@ -22,6 +22,7 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 
 import "@openzeppelin/contracts/security/Pausable.sol";
 
+import "hardhat/console.sol";
 /**
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
@@ -70,6 +71,8 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
+	// oToken decimals
+	uint8 private constant OPYN_DECIMALS = 8;
 
 	/////////////////////////
 	/// structs && events ///
@@ -175,7 +178,10 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		uint256 addressLength = options.length;
 		for (uint i = 0; i < addressLength; i++) {
 			Types.Option memory o = options[i];
-			bytes32 optionHash = keccak256(abi.encodePacked(o.expiration, o.strike, o.isPut));
+			// make sure the strike gets formatted properly
+			uint128 strike = uint128(formatStrikePrice(o.strike, collateralAsset)) * 10**10;
+			bytes32 optionHash = keccak256(abi.encodePacked(o.expiration, strike, o.isPut));
+
 			if (approvedOptions[optionHash]) {
 				continue;
 			} 
@@ -187,9 +193,9 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			if (optionDetails[o.expiration][true].length == 0 && optionDetails[o.expiration][false].length == 0){
 				expirations.push(o.expiration);
 			}
-			optionDetails[o.expiration][o.isPut].push(o.strike);
+			optionDetails[o.expiration][o.isPut].push(strike);
 			// emit an event of the series creation, now users can write options on this series
-			emit SeriesApproved(o.expiration, o.strike, o.isPut, o.isBuying, o.isSelling);
+			emit SeriesApproved(o.expiration, strike, o.isPut, o.isBuying, o.isSelling);
 		}
 
 	}
@@ -262,14 +268,6 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		if (!isSelling[oHash]) {
 			revert CustomErrors.NotSellingSeries();
 		}
-		// calculate premium and delta
-		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(optionSeries, amount, false);
-		SafeTransferLib.safeTransferFrom(
-			collateralAsset,
-			msg.sender,
-			address(liquidityPool),
-			premium
-		);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			optionSeries.expiration,
@@ -278,6 +276,14 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			underlyingAsset,
 			strikeAsset,
 			collateralAsset
+		);
+		// calculate premium and delta
+		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, amount, false);
+		SafeTransferLib.safeTransferFrom(
+			collateralAsset,
+			msg.sender,
+			address(liquidityPool),
+			premium
 		);
 		getPortfolioValuesFeed().updateStores(
 			seriesToStore,
@@ -308,8 +314,10 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		nonReentrant
 		returns (uint256 optionAmount, address series)
 	{
+		// format the strike correctly
+		uint128 strike = uint128(formatStrikePrice(optionSeries.strike, collateralAsset)) * 10**10;
 		// check if the option series is approved
-		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, optionSeries.strike, optionSeries.isPut));
+		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, strike, optionSeries.isPut));
 		if (!approvedOptions[oHash]) {
 			revert CustomErrors.UnapprovedSeries();
 		}
@@ -337,20 +345,8 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			delta,
 			msg.sender
 		);
-		uint128 strikeDecimalConverted = uint128(
-			OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(series).decimals())
-		);
-		// convert the strike to e18 decimals for storage
-		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
-			optionSeries.expiration,
-			strikeDecimalConverted,
-			optionSeries.isPut,
-			underlyingAsset,
-			strikeAsset,
-			collateralAsset
-		);
 		getPortfolioValuesFeed().updateStores(
-			seriesToStore,
+			optionSeries,
 			int256(amount),
 			0,
 			series
@@ -388,14 +384,6 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		uint128 strikeDecimalConverted = uint128(
 			OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals())
 		);
-		// get quote on the option to buy back, always return the total values
-		SafeTransferLib.safeTransferFrom(
-			seriesAddress,
-			msg.sender,
-			address(liquidityPool),
-			OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals())
-		);
-		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(optionSeries, amount, true);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			optionSeries.expiration,
@@ -405,6 +393,14 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			strikeAsset,
 			collateralAsset
 		);
+		// get quote on the option to buy back, always return the total values
+		SafeTransferLib.safeTransferFrom(
+			seriesAddress,
+			msg.sender,
+			address(liquidityPool),
+			OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals())
+		);
+		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, amount, true);
 		getPortfolioValuesFeed().updateStores(
 			seriesToStore,
 			-int256(amount),
@@ -455,5 +451,25 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		returns (uint256)
 	{
 		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
+	}
+	
+	//////////////////////////
+	/// internal utilities ///
+	//////////////////////////
+
+	/**
+	 * @notice Converts strike price to 1e8 format and floors least significant digits if needed
+	 * @param  strikePrice strikePrice in 1e18 format
+	 * @param  collateral address of collateral asset
+	 * @return if the transaction succeeded
+	 */
+	function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256) {
+		// convert strike to 1e8 format
+		uint256 price = strikePrice / (10**10);
+		uint256 collateralDecimals = ERC20(collateral).decimals();
+		if (collateralDecimals >= OPYN_DECIMALS) return price;
+		uint256 difference = OPYN_DECIMALS - collateralDecimals;
+		// round floor strike to prevent errors in Gamma protocol
+		return (price / (10**difference)) * (10**difference);
 	}
 }
