@@ -3,6 +3,7 @@ pragma solidity >=0.8.0;
 
 import "./Protocol.sol";
 import "./PriceFeed.sol";
+import "./VolatilityFeed.sol";
 
 import "./tokens/ERC20.sol";
 import "./libraries/Types.sol";
@@ -18,7 +19,7 @@ import "./interfaces/IPortfolioValuesFeed.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-
+import "hardhat/console.sol";
 
 /**
  *  @title Contract used for all user facing options interactions
@@ -51,6 +52,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// governance settable variables ///
 	/////////////////////////////////////
 
+	uint256 bidAskIVSpread;
+	uint256 riskFreeRate;
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
@@ -90,7 +93,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	///////////////////////
 
     function quoteOptionPrice(Types.OptionSeries memory _optionSeries, uint256 _amount, bool isBuy) external view returns (uint256 totalPremium, int256 totalDelta) {
-        return (10e18, 1e17);
+		uint256 underlyingPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
+		uint256 iv = _getVolatilityFeed().getImpliedVolatility(_optionSeries.isPut, underlyingPrice,_optionSeries.strike, _optionSeries.expiration);
+		(uint256 premium, int256 delta) = OptionsCompute.quotePriceGreeks(_optionSeries, isBuy, bidAskIVSpread, riskFreeRate, iv, underlyingPrice);
+        return (premium.mul(_amount) / 1e12, delta.mul(int256(_amount)));
     }
 
 	///////////////////////////
@@ -125,5 +131,13 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		returns (uint256)
 	{
 		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
+	}
+
+	/**
+	 * @notice get the volatility feed used by the liquidity pool
+	 * @return the volatility feed contract interface
+	 */
+	function _getVolatilityFeed() internal view returns (VolatilityFeed) {
+		return VolatilityFeed(protocol.volatilityFeed());
 	}
 }
