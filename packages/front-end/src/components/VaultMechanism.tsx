@@ -11,8 +11,7 @@ export const VaultMechanism = () => {
             <ul className="list-decimal px-8">
               <li className="pb-2">Deposit USDC into the {DHV_NAME} vault.</li>
               <li className="pb-2">
-                Your deposit will be deployed within the vault on Friday at 11am
-                UTC.
+                Your deposit will be deployed within the vault on Friday.
               </li>
               <li className="pb-2">
                 The deployed funds are used to fund ETH options strategies.
@@ -32,8 +31,8 @@ export const VaultMechanism = () => {
                 withdrawal at any time.
               </li>
               <li className="pb-2">
-                Your withdrawal will be on hold until Friday 11am UTC, at which
-                point your funds will be released from the vault.
+                Your withdrawal will be on hold until Friday, at which point
+                your funds will be released from the vault.
               </li>
               <li className="pb-2">
                 At this point you can complete your withdrawal.
@@ -44,15 +43,15 @@ export const VaultMechanism = () => {
         <div>
           <div className="rounded-lg mr-8">
             <div className="rounded-t-lg bg-black text-white flex justify-center py-2 mt-16 md:mt-0">
-              <p>epoch.png</p>
+              <p>Epoch</p>
             </div>
             <div>
               <div className="border-black border-2 rounded-b-lg p-8 overflow-hidden bg-bone">
                 <div className="flex flex-col justify-around items-center">
-                  <img
-                    src="/images/epoch.png"
-                    className="mr-8 h-[130px] pb-8"
-                  />
+                  {/*<img*/}
+                  {/*  src="/images/epoch.png"*/}
+                  {/*  className="mr-8 h-[130px] pb-8"*/}
+                  {/*/>*/}
                   {/* <p>
                   An epoch is a period of time in which the funds are used 
                   to run ETH options strategies. 
@@ -75,7 +74,7 @@ export const VaultMechanism = () => {
                     </li>
                     <li>
                       Currently, the epoch lasts <b>7 days</b> and is executed
-                      on <b>Friday 11am UTC</b>.
+                      on <b>Friday</b>.
                     </li>
                   </ul>
                 </div>
