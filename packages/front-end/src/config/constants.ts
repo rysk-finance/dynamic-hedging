@@ -63,6 +63,8 @@ export const OPYN_SUBGRAPH_URL = {
   [CHAINID.LOCALHOST]: "",
   [CHAINID.ARBITRUM_MAINNET]:
     "https://api.thegraph.com/subgraphs/name/rysk-finance/rysk-opyn-gamma-arbitrum",
+  [CHAINID.ARBITRUM_GOERLI]:
+    "https://api.thegraph.com/subgraphs/name/devey/rysk-opyngamma-arbitrum-goerli",
 };
 
 export const SCAN_URL = {
