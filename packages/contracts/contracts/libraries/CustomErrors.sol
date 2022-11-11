@@ -19,6 +19,7 @@ interface CustomErrors {
 	error InvalidDecimals();
 	error InActivePosition();
 	error NoActivePosition();
+	error NotBuyingSeries();
 	error TradingNotPaused();
 	error NotLiquidityPool();
 	error UnauthorizedExit();
