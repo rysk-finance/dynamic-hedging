@@ -260,28 +260,101 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await handler.issueNewSeries([{
+		const tx = await handler.issueNewSeries([{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
 			isBuying: true,
 			isSelling: true
 		}])
+		let receipt = await tx.wait()
+		const events = receipt.events
+		const approveEvents = events?.find(x => x.event == "SeriesApproved")
+		const formattedStrikePrice = (await handler.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1",10))
+		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"],[expiration, formattedStrikePrice, PUT_FLAVOR])
+		const isApproved = await handler.approvedOptions(oHash)
+		const expirationList = await handler.getExpirations()
+		const chainStrike = await handler.getOptionDetails(expiration, true)
+		const isBuying = await handler.isBuying(oHash)
+		const isSelling = await handler.isSelling(oHash)
+		expect(isApproved).to.be.true
+		expect(isBuying).to.be.true
+		expect(isSelling).to.be.true
+		expect(chainStrike[0]).to.equal( formattedStrikePrice)
+		expect(expirationList[0]).to.equal(expiration)
 	})
-	it("Succeeds: sets utilization skew params correctly", async () => {
-		const oldBelowThesholdGradient = await liquidityPool.belowThresholdGradient()
-		const oldAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
-		const oldAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
-		const oldUtilizationThreshold = await liquidityPool.utilizationFunctionThreshold()
-		await liquidityPool.setUtilizationSkewParams(toWei("0.0"), toWei("1"), toWei("0.6"))
-		const newBelowThesholdGradient = await liquidityPool.belowThresholdGradient()
-		const newAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
-		const newAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
-		const newUtilizationThreshold = await liquidityPool.utilizationFunctionThreshold()
-		expect(newBelowThesholdGradient).to.eq(oldBelowThesholdGradient)
-		expect(newAboveThesholdGradient).to.eq(oldAboveThesholdGradient)
-		expect(newUtilizationThreshold).to.eq(oldUtilizationThreshold)
-		expect(newAboveThesholdYIntercept).to.eq(oldAboveThesholdYIntercept)
+	it("SUCCEEDs: change option buy or sell on series", async () => {
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const formattedStrikePrice = (await handler.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1",10))
+		const tx = await handler.changeOptionBuyOrSell([{
+			expiration: expiration,
+			isPut: PUT_FLAVOR,
+			strike: formattedStrikePrice,
+			isBuying: false,
+			isSelling: false
+		}])
+		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"],[expiration, formattedStrikePrice, PUT_FLAVOR])
+		const isApproved = await handler.approvedOptions(oHash)
+		const expirationList = await handler.getExpirations()
+		const chainStrike = await handler.getOptionDetails(expiration, true)
+		const isBuying = await handler.isBuying(oHash)
+		const isSelling = await handler.isSelling(oHash)
+		expect(isApproved).to.be.true
+		expect(isBuying).to.be.false
+		expect(isSelling).to.be.false
+		expect(chainStrike[0]).to.equal(formattedStrikePrice)
+		expect(expirationList[0]).to.equal(expiration)
+	})
+	it("REVERTs: change option buy or sell on series for unapproved option", async () => {
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		await expect(handler.changeOptionBuyOrSell([{
+			expiration: expiration,
+			isPut: PUT_FLAVOR,
+			strike: 0,
+			isBuying: false,
+			isSelling: false
+		}])).to.be.revertedWith("UnapprovedOption(0)")
+
+	})
+	it("SUCCEEDs: reapprove series doesn't work", async () => {
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const tx = await handler.issueNewSeries([{
+			expiration: expiration,
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			isBuying: true,
+			isSelling: true
+		}])
+		let receipt = await tx.wait()
+		const events = receipt.events
+		const approveEvents = events?.find(x => x.event == "SeriesApproved")
+		expect(approveEvents).to.be.undefined
+	})
+	it("SETUP: approve series", async () => {
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const tx = await handler.changeOptionBuyOrSell([{
+			expiration: expiration,
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			isBuying: true,
+			isSelling: true
+		}])
+		const formattedStrikePrice = (await handler.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1",10))
+		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"],[expiration, formattedStrikePrice, PUT_FLAVOR])
+		const isApproved = await handler.approvedOptions(oHash)
+		const expirationList = await handler.getExpirations()
+		const chainStrike = await handler.getOptionDetails(expiration, true)
+		const isBuying = await handler.isBuying(oHash)
+		const isSelling = await handler.isSelling(oHash)
+		expect(isApproved).to.be.true
+		expect(isBuying).to.be.true
+		expect(isSelling).to.be.true
+		expect(chainStrike[0]).to.equal( formattedStrikePrice)
+		expect(expirationList[0]).to.equal(expiration)
 	})
 	it("Succeeds: User 1: Deposit to the liquidityPool", async () => {
 		const user = senderAddress
@@ -473,6 +546,81 @@ describe("Liquidity Pools", async () => {
 		const chainQuote = tFormatUSDC(buyQuote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.within(0, 0.1)
+	})
+	// it("Reverts: Push to price deviation threshold to cause quote to fail", async () => {
+	// 	const latestPrice = await priceFeed.getRate(weth.address, usd.address)
+	// 	await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from("10000000000")))
+	// 	const amount = toWei("1")
+	// 	const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+	// 	const strikePrice = priceQuote.sub(toWei(strike))
+	// 	const optionSeries = {
+	// 		expiration: expiration,
+	// 		strike: strikePrice,
+	// 		isPut: PUT_FLAVOR,
+	// 		strikeAsset: usd.address,
+	// 		underlying: weth.address,
+	// 		collateral: usd.address
+	// 	}
+	// 	await expect(
+	// 		pricer.quoteOptionPrice(optionSeries, amount, true)
+	// 	).to.be.revertedWith("PriceDeltaExceedsThreshold(36378215763291390)")
+	// })
+	// it("Reverts: Push to price deviation threshold to cause quote to fail other way", async () => {
+	// 	const latestPrice = await priceFeed.getRate(weth.address, usd.address)
+	// 	await opynAggregator.setLatestAnswer(latestPrice.sub(BigNumber.from("20000000000")))
+	// 	const amount = toWei("1")
+	// 	const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+	// 	const strikePrice = priceQuote.sub(toWei(strike))
+	// 	const optionSeries = {
+	// 		expiration: expiration,
+	// 		strike: strikePrice,
+	// 		isPut: PUT_FLAVOR,
+	// 		strikeAsset: usd.address,
+	// 		underlying: weth.address,
+	// 		collateral: usd.address
+	// 	}
+	// 	await expect(
+	// 		pricer.quoteOptionPrice(optionSeries, amount, true)
+	// 	).to.be.revertedWith("PriceDeltaExceedsThreshold(36378215763291390)")
+	// })
+	// it("Reverts: Push to time deviation threshold to cause quote to fail", async () => {
+	// 	const latestPrice = await priceFeed.getRate(weth.address, usd.address)
+	// 	await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from("10000000000")))
+	// 	const amount = toWei("1")
+	// 	const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+	// 	const strikePrice = priceQuote.sub(toWei(strike))
+	// 	const optionSeries = {
+	// 		expiration: expiration,
+	// 		strike: strikePrice,
+	// 		isPut: PUT_FLAVOR,
+	// 		strikeAsset: usd.address,
+	// 		underlying: weth.address,
+	// 		collateral: usd.address
+	// 	}
+	// 	await increase(700)
+	// 	await expect(
+	// 		pricer.quoteOptionPrice(optionSeries, amount, true)
+	// 	).to.be.revertedWith("TimeDeltaExceedsThreshold(707)")
+	// })
+	it("SETUP: approve series", async () => {
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		await handler.issueNewSeries([{
+			expiration: invalidExpirationLong,
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			isBuying: true,
+			isSelling: true
+		},
+		{
+			expiration: invalidExpirationShort,
+			isPut: PUT_FLAVOR,
+			strike: BigNumber.from(strikePrice),
+			isBuying: true,
+			isSelling: true
+		}
+		])
+
 	})
 	it("reverts when attempting to write ETH/USD puts with expiry outside of limit", async () => {
 		const amount = toWei("1")
@@ -773,6 +921,26 @@ describe("Liquidity Pools", async () => {
 		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 	})
+	it("REVERTs: when attempting to write a ETH/USD call with unapproved series", async () => {
+		const amount = toWei("7")
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.add(toWei(strike).add(5))
+		const proposedSeries1 = {
+			expiration: expiration,
+			strike: strikePrice,
+			isPut: CALL_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		// const quote = (await pricer.quoteOptionPrice(proposedSeries1, amount, false))[0]
+		await usd.approve(handler.address, toWei("100000000"))
+		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
+			"UnapprovedSeries()"
+		)
+	})
 	it("LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
 		const amount = toWei("5")
@@ -839,6 +1007,96 @@ describe("Liquidity Pools", async () => {
 			-0.01,
 			0.01
 		)
+	})
+	it("SETUP: change option buy or sell on series", async () => {
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const formattedStrikePrice = (await handler.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1",10))
+		const tx = await handler.changeOptionBuyOrSell([{
+			expiration: expiration,
+			isPut: PUT_FLAVOR,
+			strike: formattedStrikePrice,
+			isBuying: false,
+			isSelling: false
+		}])
+		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"],[expiration, formattedStrikePrice, PUT_FLAVOR])
+		const isApproved = await handler.approvedOptions(oHash)
+		const expirationList = await handler.getExpirations()
+		const chainStrike = await handler.getOptionDetails(expiration, true)
+		const isBuying = await handler.isBuying(oHash)
+		const isSelling = await handler.isSelling(oHash)
+		expect(isApproved).to.be.true
+		expect(isBuying).to.be.false
+		expect(isSelling).to.be.false
+		expect(chainStrike[0]).to.equal(formattedStrikePrice)
+		expect(expirationList[0]).to.equal(expiration)
+	})
+	it("REVERTs: LP issueWrites a ETH/USD put for premium for series not approved for sale", async () => {
+		const [sender] = signers
+		const amount = toWei("5")
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		proposedSeries = {
+			expiration: expiration,
+			strike: BigNumber.from(strikePrice),
+			isPut: PUT_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		const [quote, delta] = await pricer.quoteOptionPrice(
+			proposedSeries,
+			amount,
+			false
+		)
+
+		await usd.approve(handler.address, quote)
+		await expect(handler.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith("NotSellingSeries()")
+	})
+	it("REVERTs: LP writes a ETH/USD put for premium for series not approved for sale", async () => {
+		const [sender] = signers
+		const amount = toWei("5")
+		const [quote, delta] = await pricer.quoteOptionPrice(
+			proposedSeries,
+			amount,
+			false
+		)
+		await usd.approve(handler.address, quote)
+		await expect(handler.writeOption(putOptionToken.address, amount)).to.be.revertedWith("NotSellingSeries()")
+	})
+	it("REVERTs: LP buyback a ETH/USD put for premium for series not approved for buying", async () => {
+		const [sender] = signers
+		const amount = toWei("5")
+		const [quote, delta] = await pricer.quoteOptionPrice(
+			proposedSeries,
+			amount,
+			false
+		)
+		await usd.approve(handler.address, quote)
+		await expect(handler.buybackOption(putOptionToken.address, amount)).to.be.revertedWith("NotBuyingSeries()")
+	})
+	it("SETUP: change option buy or sell on series", async () => {
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const formattedStrikePrice = (await handler.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1",10))
+		const tx = await handler.changeOptionBuyOrSell([{
+			expiration: expiration,
+			isPut: PUT_FLAVOR,
+			strike: formattedStrikePrice,
+			isBuying: true,
+			isSelling: true
+		}])
+		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"],[expiration, formattedStrikePrice, PUT_FLAVOR])
+		const isApproved = await handler.approvedOptions(oHash)
+		const expirationList = await handler.getExpirations()
+		const chainStrike = await handler.getOptionDetails(expiration, true)
+		const isBuying = await handler.isBuying(oHash)
+		const isSelling = await handler.isSelling(oHash)
+		expect(isApproved).to.be.true
+		expect(isBuying).to.be.true
+		expect(isSelling).to.be.true
+		expect(chainStrike[0]).to.equal(formattedStrikePrice)
+		expect(expirationList[0]).to.equal(expiration)
 	})
 	it("SETUP: set sabrParams", async () => {
 		const proposedSabrParams = {
@@ -2592,5 +2850,11 @@ describe("Liquidity Pools", async () => {
 			liquidityPool,
 			"InvalidAddress"
 		)
+	})
+	it("sets a new pricer on the handler", async () => {
+		await handler.setPricer(liquidityPool.address)
+		expect(await handler.pricer()).to.equal(liquidityPool.address)
+		await handler.setPricer(pricer.address)
+		expect(await handler.pricer()).to.equal(pricer.address)
 	})
 })
