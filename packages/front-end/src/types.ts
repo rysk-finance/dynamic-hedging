@@ -25,8 +25,8 @@ export type WithdrawalReceipt = {
 
 export enum ETHNetwork {
   LOCALHOST = "localhost",
-  ARBITRUM_RINKEBY = "arbitrumRinkeby",
   ARBITRUM_MAINNET = "arbitrum",
+  ARBITRUM_GOERLI = "arbitrumGoerli",
 }
 
 export type RyskContractAddresses = {

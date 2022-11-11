@@ -35,41 +35,39 @@ export const GAS_LIMIT_MULTIPLIER_PERCENTAGE = BigNumber.from(120);
 
 export enum CHAINID {
   ARBITRUM_MAINNET = 42161,
-  ARBITRUM_RINKEBY = 421611,
   LOCALHOST = 1337,
+  ARBITRUM_GOERLI = 421613,
 }
 
 export const IDToNetwork: Record<CHAINID, ETHNetwork> = {
   [CHAINID.ARBITRUM_MAINNET]: ETHNetwork.ARBITRUM_MAINNET,
-  [CHAINID.ARBITRUM_RINKEBY]: ETHNetwork.ARBITRUM_RINKEBY,
+  [CHAINID.ARBITRUM_GOERLI]: ETHNetwork.ARBITRUM_GOERLI,
   [CHAINID.LOCALHOST]: ETHNetwork.LOCALHOST,
 };
 
 export const RPC_URL_MAP: Record<CHAINID, string> = {
   [CHAINID.ARBITRUM_MAINNET]: `https://arbitrum-mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
-  [CHAINID.ARBITRUM_RINKEBY]: `https://arbitrum-rinkeby.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
+  [CHAINID.ARBITRUM_GOERLI]: `https://arbitrum-goerli.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
   [CHAINID.LOCALHOST]: "",
 };
 
 export const SUBGRAPH_URL = {
   [CHAINID.LOCALHOST]: "",
-  [CHAINID.ARBITRUM_RINKEBY]:
-    "https://api.thegraph.com/subgraphs/name/ugolino/rysktestnet",
+  [CHAINID.ARBITRUM_GOERLI]:
+    "https://api.thegraph.com/subgraphs/name/devey/rysk-goerli-yassine",
   [CHAINID.ARBITRUM_MAINNET]:
     "https://api.thegraph.com/subgraphs/name/rysk-finance/rysk",
 };
 
 export const OPYN_SUBGRAPH_URL = {
   [CHAINID.LOCALHOST]: "",
-  [CHAINID.ARBITRUM_RINKEBY]:
-    "https://api.thegraph.com/subgraphs/name/ugolino/ryskopyntestnet",
   [CHAINID.ARBITRUM_MAINNET]:
     "https://api.thegraph.com/subgraphs/name/rysk-finance/rysk-opyn-gamma-arbitrum",
 };
 
 export const SCAN_URL = {
   [CHAINID.LOCALHOST]: "",
-  [CHAINID.ARBITRUM_RINKEBY]: "https://testnet.arbiscan.io",
+  [CHAINID.ARBITRUM_GOERLI]: "https://goerli.arbiscan.io",
   [CHAINID.ARBITRUM_MAINNET]: "https://arbiscan.io",
 };
 

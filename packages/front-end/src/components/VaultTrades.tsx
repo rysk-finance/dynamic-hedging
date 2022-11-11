@@ -64,8 +64,8 @@ export const VaultTrades = () => {
   const handle = useFullScreenHandle();
 
   const chainId =
-    Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_RINKEBY
-      ? CHAINID.ARBITRUM_RINKEBY
+    Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_GOERLI
+      ? CHAINID.ARBITRUM_GOERLI
       : CHAINID.ARBITRUM_MAINNET;
 
   const { fetchMore, data, loading, error } = useQuery(

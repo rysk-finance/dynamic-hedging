@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
-import { CHAINID, EXPLORER_URL, SCAN_URL } from "../config/constants";
+import { CHAINID, EXPLORER_URL } from "../config/constants";
 import { useGlobalContext } from "../state/GlobalContext";
 import { ActionType } from "../state/types";
 import { Button } from "./shared/Button";
 
 export const HeaderPopover: React.FC = () => {
   const chainId =
-    Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_RINKEBY
-      ? CHAINID.ARBITRUM_RINKEBY
+    Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_GOERLI
+      ? CHAINID.ARBITRUM_GOERLI
       : CHAINID.ARBITRUM_MAINNET;
 
   const [isOpen, setIsOpen] = useState(false);
