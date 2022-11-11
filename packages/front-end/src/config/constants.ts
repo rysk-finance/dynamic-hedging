@@ -4,7 +4,7 @@ import { Currency as Token, ETHNetwork } from "../types";
 export const EXPLORER_URL =
   process.env.REACT_APP_ENV === "production"
     ? "https://arbiscan.io/"
-    : "https://testnet.arbiscan.io/";
+    : "https://goerli.arbiscan.io/";
 
 export const MAX_UINT_256 =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
