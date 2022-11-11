@@ -23,6 +23,7 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
 import "hardhat/console.sol";
+
 /**
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
@@ -57,7 +58,7 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	// whether the dhv is selling this option stored by hash
 	mapping(bytes32 => bool) public isSelling;
 	// array of expirations currently supported (mainly for frontend use)
-	uint256[] public expirations;
+	uint64[] public expirations;
 	// details of supported options first key is expiration then isPut then an array of strikes (mainly for frontend use)
 	mapping(uint256 => mapping(bool => uint128[])) public optionDetails;
 
@@ -89,6 +90,8 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	event SeriesDisabled(uint64 expiration, uint128 strike, bool isPut);
 	event SeriesAltered(uint64 expiration, uint128 strike, bool isPut, bool isBuying, bool isSelling);
 
+	error UnapprovedOption(uint256 index);
+
 	// delta and price boundaries for custom orders
 	struct CustomOrderBounds {
 		uint128 callMinDelta; // call delta will always be between 0 and 1 (e18)
@@ -99,7 +102,6 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		// measured in BPS, that the order may be sold for. 10% would mean maxPriceRange = 1000
 		uint32 maxPriceRange;
 	}
-
 
 	constructor(
 		address _authority,
@@ -161,13 +163,12 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	}
 
 	/**
-	 * @notice change the pricer 
+	 * @notice change the pricer
 	 */
 	function setPricer(address _pricer) external {
 		_onlyGovernor();
 		pricer = BeyondPricer(_pricer);
 	}
-
 
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
@@ -178,13 +179,10 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	 * @param  options option type to approve - strike in e18
 	 * @dev    only callable by the manager
 	 */
-	function issueNewSeries(Types.Option[] memory options)
-		external
-		nonReentrant
-	{
+	function issueNewSeries(Types.Option[] memory options) external nonReentrant {
 		_onlyManager();
 		uint256 addressLength = options.length;
-		for (uint i = 0; i < addressLength; i++) {
+		for (uint256 i = 0; i < addressLength; i++) {
 			Types.Option memory o = options[i];
 			// make sure the strike gets formatted properly
 			uint128 strike = uint128(formatStrikePrice(o.strike, collateralAsset)) * 10**10;
@@ -192,40 +190,20 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 
 			if (approvedOptions[optionHash]) {
 				continue;
-			} 
+			}
 			// store information on the series
 			approvedOptions[optionHash] = true;
 			isBuying[optionHash] = o.isBuying;
 			isSelling[optionHash] = o.isSelling;
 			// store it in some form of array
-			if (optionDetails[o.expiration][true].length == 0 && optionDetails[o.expiration][false].length == 0){
+			if (
+				optionDetails[o.expiration][true].length == 0 && optionDetails[o.expiration][false].length == 0
+			) {
 				expirations.push(o.expiration);
 			}
 			optionDetails[o.expiration][o.isPut].push(strike);
 			// emit an event of the series creation, now users can write options on this series
 			emit SeriesApproved(o.expiration, strike, o.isPut, o.isBuying, o.isSelling);
-		}
-
-	}
-
-	/**
-	 * @notice disable an option series for buying or sale that has been issued
-	 * @param  options option type to disable - strike in e18
-	 * @dev    only callable by the manager
-	 */
-	function disableSeries(Types.Option[] memory options) 
-		external
-		nonReentrant 
-	{
-		_onlyManager();
-		uint256 adLength = options.length;
-		for (uint256 i=0; i < adLength; i++) {
-			Types.Option memory o = options[i];
-			bytes32 optionHash = keccak256(abi.encodePacked(o.expiration, o.strike, o.isPut));
-			approvedOptions[optionHash] = false;
-			isBuying[optionHash] = false;
-			isSelling[optionHash] = false;
-			emit SeriesDisabled(o.expiration, o.strike, o.isPut);
 		}
 	}
 
@@ -234,22 +212,22 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	 * @param  options option type to change status on - strike in e18
 	 * @dev    only callable by the manager
 	 */
-	function changeOptionBuyOrSell(Types.Option[] memory options)
-	 external 
-	 nonReentrant
-	{
+	function changeOptionBuyOrSell(Types.Option[] memory options) external nonReentrant {
 		_onlyManager();
 		uint256 adLength = options.length;
-		for (uint256 i=0; i < adLength; i++) {
+		for (uint256 i = 0; i < adLength; i++) {
 			Types.Option memory o = options[i];
-			bytes32 optionHash = keccak256(abi.encodePacked(o.expiration, o.strike, o.isPut));
+			// make sure the strike gets formatted properly
+			uint128 strike = uint128(formatStrikePrice(o.strike, collateralAsset)) * 10**10;
+			bytes32 optionHash = keccak256(abi.encodePacked(o.expiration, strike, o.isPut));
 			if (approvedOptions[optionHash]) {
 				isBuying[optionHash] = o.isBuying;
 				isSelling[optionHash] = o.isSelling;
-			} 
-			emit SeriesAltered(o.expiration, o.strike, o.isPut, o.isBuying, o.isSelling);
+				emit SeriesAltered(o.expiration, strike, o.isPut, o.isBuying, o.isSelling);
+			} else {
+				revert UnapprovedOption(i);
+			}
 		}
-
 	}
 
 	/////////////////////////////////////////////
@@ -278,7 +256,9 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals())
 		);
 		// check if the option series is approved
-		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, optionSeries.strike * 1e10, optionSeries.isPut));
+		bytes32 oHash = keccak256(
+			abi.encodePacked(optionSeries.expiration, optionSeries.strike * 1e10, optionSeries.isPut)
+		);
 		if (!approvedOptions[oHash]) {
 			revert CustomErrors.UnapprovedSeries();
 		}
@@ -297,18 +277,8 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		);
 		// calculate premium and delta
 		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, amount, false);
-		SafeTransferLib.safeTransferFrom(
-			collateralAsset,
-			msg.sender,
-			address(liquidityPool),
-			premium
-		);
-		getPortfolioValuesFeed().updateStores(
-			seriesToStore,
-			int256(amount),
-			0,
-			seriesAddress
-		);
+		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), premium);
+		getPortfolioValuesFeed().updateStores(seriesToStore, int256(amount), 0, seriesAddress);
 		return
 			liquidityPool.handlerWriteOption(
 				optionSeries,
@@ -323,7 +293,7 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 
 	/**
 	 * @notice write a number of options for a given series configuration
-	 * @param  optionSeries the option token series 
+	 * @param  optionSeries the option token series
 	 * @param  amount       the number of options to mint expressed as 1e18
 	 */
 	function issueAndWriteOption(Types.OptionSeries memory optionSeries, uint256 amount)
@@ -344,17 +314,8 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			revert CustomErrors.NotSellingSeries();
 		}
 		// calculate premium
-		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(
-			optionSeries,
-			amount,
-			false
-		);
-		SafeTransferLib.safeTransferFrom(
-			collateralAsset,
-			msg.sender,
-			address(liquidityPool),
-			premium
-		);
+		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(optionSeries, amount, false);
+		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), premium);
 		// write the option, optionAmount in e18
 		(optionAmount, series) = liquidityPool.handlerIssueAndWriteOption(
 			optionSeries,
@@ -363,12 +324,7 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			delta,
 			msg.sender
 		);
-		getPortfolioValuesFeed().updateStores(
-			optionSeries,
-			int256(amount),
-			0,
-			series
-		);
+		getPortfolioValuesFeed().updateStores(optionSeries, int256(amount), 0, series);
 	}
 
 	/**
@@ -387,13 +343,15 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		// get the option series from the pool
 		Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
 		// check if the option series is approved
-		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, optionSeries.strike * 1e10, optionSeries.isPut));
+		bytes32 oHash = keccak256(
+			abi.encodePacked(optionSeries.expiration, optionSeries.strike * 1e10, optionSeries.isPut)
+		);
 		if (!approvedOptions[oHash]) {
 			revert CustomErrors.UnapprovedSeries();
 		}
 		// check if the series is for buying
 		if (!isBuying[oHash]) {
-			revert CustomErrors.NotSellingSeries();
+			revert CustomErrors.NotBuyingSeries();
 		}
 		// revert if the expiry is in the past
 		if (optionSeries.expiration <= block.timestamp) {
@@ -419,12 +377,7 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 			OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals())
 		);
 		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, amount, true);
-		getPortfolioValuesFeed().updateStores(
-			seriesToStore,
-			-int256(amount),
-			0,
-			seriesAddress
-		);
+		getPortfolioValuesFeed().updateStores(seriesToStore, -int256(amount), 0, seriesAddress);
 		return
 			liquidityPool.handlerBuybackOption(
 				optionSeries,
@@ -458,19 +411,21 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	}
 
 	/**
-	 * @notice get the underlying price with just the underlying asset and strike asset
-	 * @param underlying   the asset that is used as the reference asset
-	 * @param _strikeAsset the asset that the underlying value is denominated in
-	 * @return the underlying price
+	 * @notice get list of all expirations ever activated
+	 * @return list of expirations
 	 */
-	function _getUnderlyingPrice(address underlying, address _strikeAsset)
-		internal
-		view
-		returns (uint256)
-	{
-		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
+	function getExpirations() external view returns (uint64[] memory) {
+		return expirations;
 	}
-	
+
+	/**
+	 * @notice get list of all strikes for a specific expiration and flavour
+	 * @return list of strikes for a specific expiry and flavour
+	 */
+	function getOptionDetails(uint64 expiration, bool isPut) external view returns (uint128[] memory) {
+		return optionDetails[expiration][isPut];
+	}
+
 	//////////////////////////
 	/// internal utilities ///
 	//////////////////////////
