@@ -330,7 +330,7 @@ describe("Liquidity Pools", async () => {
 			strike: 0,
 			isBuying: false,
 			isSelling: false
-		}])).to.be.revertedWith("UnapprovedOption(0)")
+		}])).to.be.revertedWith("UnapprovedSeries()")
 
 	})
 	it("SUCCEEDs: reapprove series doesn't work", async () => {
@@ -1339,12 +1339,6 @@ describe("Liquidity Pools", async () => {
 		expect(ephemeralLiabilitiesDiff - tFormatUSDC(quote)).to.be.within(-0.01, 0.01)
 	})
 
-	it("adds address to the buyback whitelist", async () => {
-		await expect(await handler.buybackWhitelist(senderAddress)).to.be.false
-		await handler.addOrRemoveBuybackAddress(senderAddress, true)
-		await expect(await handler.buybackWhitelist(senderAddress)).to.be.true
-	})
-
 	it("LP can buy back option to reduce open interest", async () => {
 		// sender was added to buyback whitelist in prev test
 		const amount = toWei("2")
@@ -1428,13 +1422,10 @@ describe("Liquidity Pools", async () => {
 	it("fails if buyback token address is invalid", async () => {
 		const amount = toWei("1")
 		// ETH_ADDRESS is not a valid OToken address
-		await expect(handler.buybackOption(ETH_ADDRESS, amount)).to.be.revertedWith("UnapprovedSeries()")
+		await expect(handler.buybackOption(ETH_ADDRESS, amount)).to.be.reverted
 	})
-	it("buys back an option from a non-whitelisted address if it moves delta closer to zero", async () => {
+	it("buys back an option if it moves delta closer to zero", async () => {
 		const amount = toWei("2")
-
-		await handler.addOrRemoveBuybackAddress(senderAddress, false)
-		await expect(await handler.buybackWhitelist(senderAddress)).to.be.false
 
 		const seriesInfo = await optionRegistry.getSeriesInfo(putOptionToken2.address)
 		const vaultId = await optionRegistry.vaultIds(putOptionToken2.address)
@@ -1960,25 +1951,6 @@ describe("Liquidity Pools", async () => {
 		await expect(liquidityPool.setHedgingReactorAddress(ZERO_ADDRESS)).to.be.revertedWith(
 			"InvalidAddress()"
 		)
-	})
-	it("sets new custom order bounds", async () => {
-		const customOrderBoundsBefore = await handler.customOrderBounds()
-
-		await handler.setCustomOrderBounds(
-			BigNumber.from(0),
-			utils.parseEther("0.3"),
-			utils.parseEther("-0.3"),
-			utils.parseEther("-0.05"),
-			BigNumber.from(800)
-		)
-
-		const customOrderBoundsAfter = await handler.customOrderBounds()
-
-		expect(customOrderBoundsAfter).to.not.eq(customOrderBoundsBefore)
-		expect(customOrderBoundsAfter.callMaxDelta).to.equal(utils.parseEther("0.3"))
-		expect(customOrderBoundsAfter.putMinDelta).to.equal(utils.parseEther("-0.3"))
-		expect(customOrderBoundsAfter.putMaxDelta).to.equal(utils.parseEther("-0.05"))
-		expect(customOrderBoundsAfter.maxPriceRange).to.equal(800)
 	})
 	it("updates collateralCap variable", async () => {
 		const beforeValue = await liquidityPool.collateralCap()
