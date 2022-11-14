@@ -60,6 +60,7 @@ import {
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
+import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { BeyondOptionHandler } from "../types/BeyondOptionHandler"
 import { BeyondPricer } from "../types/BeyondPricer"
@@ -81,10 +82,11 @@ let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
-let putOptionToken: IOToken
+let optionToken: IOToken
 let putOptionToken2: IOToken
 let collateralAllocatedToVault1: BigNumber
 let gammaHedgingReactor: GammaHedgingReactor
+let spotHedgingReactor: UniswapV3HedgingReactor
 let handler: BeyondOptionHandler
 let pricer: BeyondPricer
 let authority: string
@@ -116,7 +118,7 @@ const invalidStrikeHigh = utils.parseEther("12500")
 const invalidStrikeLow = utils.parseEther("200")
 
 // balances to deposit into the LP
-const liquidityPoolUsdcDeposit = "20000"
+const liquidityPoolUsdcDeposit = "100000"
 const liquidityPoolWethDeposit = "1"
 
 // balance to withdraw after deposit
@@ -227,365 +229,374 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
 	})
-	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = {
-			callAlpha: 250000,
-			callBeta: 1_000000,
-			callRho: -300000,
-			callVolvol: 1_500000,
-			putAlpha: 250000,
-			putBeta: 1_000000,
-			putRho: -300000,
-			putVolvol: 1_500000
-		}
-		await volFeed.setSabrParameters(proposedSabrParams, expiration)
-		const volFeedSabrParams = await volFeed.sabrParams(expiration)
-		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
-		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
-		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
-		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
-		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
-		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
-		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
-		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
-	})
-	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = {
-			callAlpha: 250000,
-			callBeta: 1_000000,
-			callRho: -300000,
-			callVolvol: 1_500000,
-			putAlpha: 250000,
-			putBeta: 1_000000,
-			putRho: -300000,
-			putVolvol: 1_500000
-		}
-		await volFeed.setSabrParameters(proposedSabrParams, expiration2)
-		const volFeedSabrParams = await volFeed.sabrParams(expiration2)
-		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
-		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
-		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
-		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
-		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
-		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
-		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
-		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
-	})
-	it("Deposit to the liquidityPool", async () => {
-		const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
-		await hre.network.provider.request({
-			method: "hardhat_impersonateAccount",
-			params: [USDC_WHALE]
+	describe("Setup add-on system features", async () => { 
+		it("SETUP: set sabrParams", async () => {
+			const proposedSabrParams = {
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000
+			}
+			await volFeed.setSabrParameters(proposedSabrParams, expiration)
+			const volFeedSabrParams = await volFeed.sabrParams(expiration)
+			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+			expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+			expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+			expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 		})
-		const usdcWhale = await ethers.getSigner(USDC_WHALE)
-		const usdWhaleConnect = await usd.connect(usdcWhale)
-		await weth.deposit({ value: toWei(liquidityPoolWethDeposit) })
-		await usdWhaleConnect.transfer(senderAddress, toUSDC("1000000"))
-		await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
-		const balance = await usd.balanceOf(senderAddress)
-		await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
-		const deposit = await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit))
-		const liquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
-		const receipt = await deposit.wait(1)
-		const event = receipt?.events?.find(x => x.event == "Deposit")
-		const newBalance = await usd.balanceOf(senderAddress)
-		expect(event?.event).to.eq("Deposit")
-	})
-	it("pauses trading and executes epoch", async () => {
-		await liquidityPool.pauseTradingAndRequest()
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
-		await liquidityPool.executeEpochCalculation()
-		await liquidityPool.redeem(toWei("10000000"))
-	})
-	it("deploys the hedging reactor", async () => {
-		// deploy libraries
-		const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
-		const interactions = await interactionsFactory.deploy()
-		const gammaHedgingReactorFactory = await ethers.getContractFactory(
-			"GammaHedgingReactor", {
-				libraries: {
-					OpynInteractions: interactions.address
+		it("SETUP: set sabrParams", async () => {
+			const proposedSabrParams = {
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000
+			}
+			await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+			const volFeedSabrParams = await volFeed.sabrParams(expiration2)
+			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+			expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+			expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+			expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+		})
+		it("Deposit to the liquidityPool", async () => {
+			const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
+			await hre.network.provider.request({
+				method: "hardhat_impersonateAccount",
+				params: [USDC_WHALE]
+			})
+			const usdcWhale = await ethers.getSigner(USDC_WHALE)
+			const usdWhaleConnect = await usd.connect(usdcWhale)
+			await weth.deposit({ value: toWei(liquidityPoolWethDeposit) })
+			await usdWhaleConnect.transfer(senderAddress, toUSDC("1000000"))
+			await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
+			const balance = await usd.balanceOf(senderAddress)
+			await usd.approve(liquidityPool.address, toUSDC(liquidityPoolUsdcDeposit))
+			const deposit = await liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit))
+			const liquidityPoolBalance = await liquidityPool.balanceOf(senderAddress)
+			const receipt = await deposit.wait(1)
+			const event = receipt?.events?.find(x => x.event == "Deposit")
+			const newBalance = await usd.balanceOf(senderAddress)
+			expect(event?.event).to.eq("Deposit")
+		})
+		it("pauses trading and executes epoch", async () => {
+			await liquidityPool.pauseTradingAndRequest()
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			await portfolioValuesFeed.fulfill(
+				weth.address,
+				usd.address,
+			)
+			await liquidityPool.executeEpochCalculation()
+			await liquidityPool.redeem(toWei("10000000"))
+		})
+		it("deploys the spot hedging reactor", async () => {
+			const uniswapV3HedgingReactorFactory = await ethers.getContractFactory(
+				"UniswapV3HedgingReactor",
+				{
+					signer: signers[0]
 				}
+			)
+	
+			spotHedgingReactor = (await uniswapV3HedgingReactorFactory.deploy(
+				UNISWAP_V3_SWAP_ROUTER[chainId],
+				USDC_ADDRESS[chainId],
+				WETH_ADDRESS[chainId],
+				liquidityPool.address,
+				3000,
+				priceFeed.address,
+				authority
+			)) as UniswapV3HedgingReactor
+			await spotHedgingReactor.setSlippage(100, 1000)
+			expect(spotHedgingReactor).to.have.property("hedgeDelta")
+			const minAmount = await spotHedgingReactor.minAmount()
+			expect(minAmount).to.equal(ethers.utils.parseUnits("1", 16))
+			const reactorAddress = spotHedgingReactor.address
+	
+			await liquidityPool.setHedgingReactorAddress(reactorAddress)
+	
+			await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
+		})
+		it("deploys the gamma hedging reactor", async () => {
+			// deploy libraries
+			const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
+			const interactions = await interactionsFactory.deploy()
+			const gammaHedgingReactorFactory = await ethers.getContractFactory(
+				"GammaHedgingReactor", {
+					libraries: {
+						OpynInteractions: interactions.address
+					}
+				},
+				{
+					signer: signers[0]
+				}
+			)
+	
+			gammaHedgingReactor = (await gammaHedgingReactorFactory.deploy(
+				USDC_ADDRESS[chainId],
+				USDC_ADDRESS[chainId],
+				WETH_ADDRESS[chainId],
+				liquidityPool.address,
+				optionProtocol.address,
+				authority,
+				handler.address,
+				pricer.address,
+				addressBook.address,
+				spotHedgingReactor.address,
+				UNISWAP_V3_SWAP_ROUTER[chainId]
+			)) as GammaHedgingReactor
+			expect(gammaHedgingReactor).to.have.property("hedgeDelta")
+			const reactorAddress = gammaHedgingReactor.address
+	
+			await liquidityPool.setHedgingReactorAddress(reactorAddress)
+			await portfolioValuesFeed.setHandler(gammaHedgingReactor.address, true)
+			await expect(await liquidityPool.hedgingReactors(1)).to.equal(reactorAddress)
+		})
+		it("can compute portfolio delta", async function () {
+			const delta = await liquidityPool.getPortfolioDelta()
+			expect(delta).to.equal(0)
+		})
+	})
+	describe("Purchase and sell back an option", async () => {
+		it("SETUP: approve series", async () => {
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const strikePrice = priceQuote.add(toWei(strike))
+			await handler.issueNewSeries([{
+				expiration: expiration,
+				isPut: CALL_FLAVOR,
+				strike: BigNumber.from(strikePrice),
+				isBuying: true,
+				isSelling: true
 			},
 			{
-				signer: signers[0]
+				expiration: expiration2,
+				isPut: CALL_FLAVOR,
+				strike: BigNumber.from(strikePrice),
+				isBuying: true,
+				isSelling: true
+			},
+		])
+		})
+		it("LP Writes a ETH/USD call for premium", async () => {
+			const [sender] = signers
+			const amount = toWei("5")
+			const blockNum = await ethers.provider.getBlockNumber()
+			const block = await ethers.provider.getBlock(blockNum)
+			const { timestamp } = block
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const strikePrice = priceQuote.add(toWei(strike))
+			const proposedSeries = {
+				expiration: expiration,
+				strike: BigNumber.from(strikePrice),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
 			}
-		)
-
-		gammaHedgingReactor = (await gammaHedgingReactorFactory.deploy(
-			USDC_ADDRESS[chainId],
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId],
-			liquidityPool.address,
-			optionProtocol.address,
-			authority,
-			handler.address,
-			pricer.address,
-			addressBook.address
-		)) as GammaHedgingReactor
-		expect(gammaHedgingReactor).to.have.property("hedgeDelta")
-		const reactorAddress = gammaHedgingReactor.address
-
-		await liquidityPool.setHedgingReactorAddress(reactorAddress)
-
-		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
+			const EthPrice = await oracle.getPrice(weth.address)
+			const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
+			const quote = (
+				await pricer.quoteOptionPrice(proposedSeries, amount, false)
+			)[0]
+			await usd.approve(handler.address, quote)
+			const balance = await usd.balanceOf(senderAddress)
+			const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
+				.series
+			const write = await handler.issueAndWriteOption(proposedSeries, amount)
+			const localDelta = await calculateOptionDeltaLocally(
+				liquidityPool,
+				priceFeed,
+				proposedSeries,
+				toWei("5"),
+				true
+			)
+			await portfolioValuesFeed.fulfill(
+				weth.address,
+				usd.address,
+			)
+			const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
+			optionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+			const putBalance = await optionToken.balanceOf(senderAddress)
+			collateralAllocatedToVault1 = await liquidityPool.collateralAllocated()
+			const balanceNew = await usd.balanceOf(senderAddress)
+			const opynAmount = toOpyn(fromWei(amount))
+			expect(putBalance).to.eq(opynAmount)
+			// ensure funds are being transfered
+			expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatUSDC(quote)).to.be.lt(0.1)
+			const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
+		})
+		it("SUCCEEDS: sells the options to the gamma hedging reactor", async () => {
+			const amount = toWei("2")
+			const userOtokenBalanceBefore = await optionToken.balanceOf(senderAddress)
+			const reactorOtokenBalanceBefore =  await optionToken.balanceOf(gammaHedgingReactor.address)
+			const liquidityPoolUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+			const userUSDBalanceBefore = await usd.balanceOf(senderAddress)
+			await optionToken.approve(gammaHedgingReactor.address, amount)
+			const premium = await gammaHedgingReactor.callStatic.sellOption(optionToken.address, amount)
+			await gammaHedgingReactor.sellOption(optionToken.address, amount)
+			const userOtokenBalanceAfter = await optionToken.balanceOf(senderAddress)
+			const reactorOtokenBalanceAfter =  await optionToken.balanceOf(gammaHedgingReactor.address)
+			const liquidityPoolUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
+			const userUSDBalanceAfter = await usd.balanceOf(senderAddress)
+			expect(userOtokenBalanceBefore.sub(userOtokenBalanceAfter)).to.equal(reactorOtokenBalanceAfter.sub(reactorOtokenBalanceBefore))
+			expect(liquidityPoolUSDBalanceBefore.sub(liquidityPoolUSDBalanceAfter).sub(premium)).to.be.within(-50,50)
+			expect(userUSDBalanceAfter.sub(userUSDBalanceBefore).sub(premium)).to.be.within(-50,50)
+		})
 	})
-	it("can compute portfolio delta", async function () {
-		const delta = await liquidityPool.getPortfolioDelta()
-		expect(delta).to.equal(0)
+	describe("LP writes more options", async () => {
+		let prevalues: any
+		let quote: any
+		let localDelta: any
+		it("LP writes another ETH/USD call that expires later", async () => {
+			const [sender] = signers
+			const amount = toWei("3")
+			const blockNum = await ethers.provider.getBlockNumber()
+			const block = await ethers.provider.getBlock(blockNum)
+			const { timestamp } = block
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const strikePrice = priceQuote.add(toWei(strike))
+			const proposedSeries = {
+				expiration: expiration2,
+				strike: BigNumber.from(strikePrice),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
+			const lpAllocatedBefore = await liquidityPool.collateralAllocated()
+			quote = (await pricer.quoteOptionPrice(proposedSeries, amount, false))[0]
+			await usd.approve(handler.address, quote)
+			const balance = await usd.balanceOf(senderAddress)
+			prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
+			const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
+				.series
+			const write = await handler.issueAndWriteOption(proposedSeries, amount)
+			localDelta = await calculateOptionDeltaLocally(
+				liquidityPool,
+				priceFeed,
+				proposedSeries,
+				toWei("3"),
+				true
+			)
+			await portfolioValuesFeed.fulfill(
+				weth.address,
+				usd.address,
+			)
+			const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
+			putOptionToken2 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+			const putBalance = await putOptionToken2.balanceOf(senderAddress)
+			const lpAllocatedAfter = await liquidityPool.collateralAllocated()
+			const balanceNew = await usd.balanceOf(senderAddress)
+			const opynAmount = toOpyn(fromWei(amount))
+			expect(putBalance).to.eq(opynAmount)
+			// ensure funds are being transfered
+			expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatUSDC(quote)).to.be.lt(0.1)
+			const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
+			const lpAllocatedDiff = lpAllocatedAfter.sub(lpAllocatedBefore)
+			expect(tFormatUSDC(poolBalanceDiff) + tFormatUSDC(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.lt(
+				0.1
+			)
+		})
+		it("can compute portfolio delta", async function () {
+			const delta = await liquidityPool.getPortfolioDelta()
+			expect(delta).to.be.lt(0)
+		})
 	})
-	it("SETUP: approve series", async () => {
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.add(toWei(strike))
-		await handler.issueNewSeries([{
-			expiration: expiration,
-			isPut: CALL_FLAVOR,
-			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
-		},
-		{
-			expiration: expiration2,
-			isPut: CALL_FLAVOR,
-			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
-		},
-	])
+	describe("Tries to hedge with rebalancePortfolioDelta", async () => {
+		it("reverts when non-admin calls rebalance function", async () => {
+			const delta = await liquidityPool.getPortfolioDelta()
+			await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 1)).to.be.reverted
+		})
+		it("hedges negative delta in hedging reactor", async () => {
+			const delta = await liquidityPool.getPortfolioDelta()
+			const reactorDelta = await gammaHedgingReactor.internalDelta()
+			await liquidityPool.rebalancePortfolioDelta(delta, 1)
+			const newReactorDelta = await gammaHedgingReactor.internalDelta()
+			const newDelta = await liquidityPool.getPortfolioDelta()
+			expect(newDelta).to.equal(delta)
+			expect(reactorDelta.sub(newReactorDelta)).to.equal(0)
+		})
 	})
-	it("LP Writes a ETH/USD call for premium", async () => {
-		const [sender] = signers
-		const amount = toWei("1")
-		const blockNum = await ethers.provider.getBlockNumber()
-		const block = await ethers.provider.getBlock(blockNum)
-		const { timestamp } = block
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.add(toWei(strike))
-		const proposedSeries = {
-			expiration: expiration,
-			strike: BigNumber.from(strikePrice),
-			isPut: CALL_FLAVOR,
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-		const EthPrice = await oracle.getPrice(weth.address)
-		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		const quote = (
-			await pricer.quoteOptionPrice(proposedSeries, amount, false)
-		)[0]
-		await usd.approve(handler.address, quote)
-		const balance = await usd.balanceOf(senderAddress)
-		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
-			.series
-		const write = await handler.issueAndWriteOption(proposedSeries, amount)
-		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool,
-			priceFeed,
-			proposedSeries,
-			toWei("1"),
-			true
-		)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
-		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
-		const putBalance = await putOptionToken.balanceOf(senderAddress)
-		collateralAllocatedToVault1 = await liquidityPool.collateralAllocated()
-		const balanceNew = await usd.balanceOf(senderAddress)
-		const opynAmount = toOpyn(fromWei(amount))
-		expect(putBalance).to.eq(opynAmount)
-		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatUSDC(quote)).to.be.lt(0.1)
-		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
+	describe("Deposit funds into the liquidityPool and withdraws", async () => {
+		it("Adds additional liquidity from new account", async () => {
+			const [sender, receiver] = signers
+			const sendAmount = toUSDC("1000000")
+			const usdReceiver = usd.connect(receiver)
+			await usdReceiver.approve(liquidityPool.address, sendAmount)
+			const lpReceiver = liquidityPool.connect(receiver)
+			const totalSupply = await liquidityPool.totalSupply()
+			await lpReceiver.deposit(sendAmount)
+			const newTotalSupply = await liquidityPool.totalSupply()
+			const lpBalance = await lpReceiver.balanceOf(receiverAddress)
+			const difference = newTotalSupply.sub(lpBalance)
+			expect(difference).to.eq(await lpReceiver.balanceOf(senderAddress))
+			expect(newTotalSupply).to.eq(totalSupply.add(lpBalance))
+		})
+		it("pauses trading and executes epoch", async () => {
+			await liquidityPool.pauseTradingAndRequest()
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			await portfolioValuesFeed.fulfill(
+				weth.address,
+				usd.address,
+			)
+			await liquidityPool.executeEpochCalculation()
+		})
+		it("initiates withdraw liquidity", async () => {
+			await liquidityPool.initiateWithdraw(await liquidityPool.balanceOf(senderAddress))
+			await liquidityPool
+				.connect(signers[1])
+				.initiateWithdraw(await liquidityPool.connect(signers[1]).callStatic.redeem(toWei("500000")))
+		})
+		it("pauses trading and executes epoch", async () => {
+			await liquidityPool.pauseTradingAndRequest()
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			await portfolioValuesFeed.fulfill(
+				weth.address,
+				usd.address,
+			)
+			await liquidityPool.executeEpochCalculation()
+		})
+		it("LP can redeem shares", async () => {
+			const totalShares = await liquidityPool.totalSupply()
+			//@ts-ignore
+			const ratio = 1 / fromWei(totalShares)
+			const usdBalance = await usd.balanceOf(liquidityPool.address)
+			const withdraw = await liquidityPool.completeWithdraw()
+			const receipt = await withdraw.wait(1)
+			const events = receipt.events
+			const removeEvent = events?.find(x => x.event == "Withdraw")
+			const strikeAmount = removeEvent?.args?.amount
+			const usdBalanceAfter = await usd.balanceOf(liquidityPool.address)
+			//@ts-ignore
+			const diff = fromWei(usdBalance) * ratio
+			expect(diff).to.be.lt(1)
+			expect(strikeAmount).to.be.eq(usdBalance.sub(usdBalanceAfter))
+		})
 	})
-	let prevalues: any
-	let quote: any
-	let localDelta: any
-	it("LP writes another ETH/USD call that expires later", async () => {
-		const [sender] = signers
-		const amount = toWei("3")
-		const blockNum = await ethers.provider.getBlockNumber()
-		const block = await ethers.provider.getBlock(blockNum)
-		const { timestamp } = block
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.add(toWei(strike))
-		const proposedSeries = {
-			expiration: expiration2,
-			strike: BigNumber.from(strikePrice),
-			isPut: CALL_FLAVOR,
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		const lpAllocatedBefore = await liquidityPool.collateralAllocated()
-		quote = (await pricer.quoteOptionPrice(proposedSeries, amount, false))[0]
-		await usd.approve(handler.address, quote)
-		const balance = await usd.balanceOf(senderAddress)
-		prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
-		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
-			.series
-		const write = await handler.issueAndWriteOption(proposedSeries, amount)
-		localDelta = await calculateOptionDeltaLocally(
-			liquidityPool,
-			priceFeed,
-			proposedSeries,
-			toWei("3"),
-			true
-		)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
-		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		putOptionToken2 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
-		const putBalance = await putOptionToken2.balanceOf(senderAddress)
-		const lpAllocatedAfter = await liquidityPool.collateralAllocated()
-		const balanceNew = await usd.balanceOf(senderAddress)
-		const opynAmount = toOpyn(fromWei(amount))
-		expect(putBalance).to.eq(opynAmount)
-		// ensure funds are being transfered
-		expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatUSDC(quote)).to.be.lt(0.1)
-		const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
-		const lpAllocatedDiff = lpAllocatedAfter.sub(lpAllocatedBefore)
-		expect(tFormatUSDC(poolBalanceDiff) + tFormatUSDC(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.lt(
-			0.1
-		)
-	})
-	it("can compute portfolio delta", async function () {
-		const delta = await liquidityPool.getPortfolioDelta()
-		expect(delta).to.be.lt(0)
-	})
-
-	it("reverts when non-admin calls rebalance function", async () => {
-		const delta = await liquidityPool.getPortfolioDelta()
-		await expect(liquidityPool.connect(signers[1]).rebalancePortfolioDelta(delta, 0)).to.be.reverted
-	})
-	it("hedges negative delta in hedging reactor", async () => {
-		const delta = await liquidityPool.getPortfolioDelta()
-		const reactorDelta = await gammaHedgingReactor.internalDelta()
-		await liquidityPool.rebalancePortfolioDelta(delta, 0)
-		const newReactorDelta = await gammaHedgingReactor.internalDelta()
-		const newDelta = await liquidityPool.getPortfolioDelta()
-		expect(newDelta).to.equal(delta)
-		expect(reactorDelta.sub(newReactorDelta)).to.equal(0)
-	})
-	it("Adds additional liquidity from new account", async () => {
-		const [sender, receiver] = signers
-		const sendAmount = toUSDC("1000000")
-		const usdReceiver = usd.connect(receiver)
-		await usdReceiver.approve(liquidityPool.address, sendAmount)
-		const lpReceiver = liquidityPool.connect(receiver)
-		const totalSupply = await liquidityPool.totalSupply()
-		await lpReceiver.deposit(sendAmount)
-		const newTotalSupply = await liquidityPool.totalSupply()
-		const lpBalance = await lpReceiver.balanceOf(receiverAddress)
-		const difference = newTotalSupply.sub(lpBalance)
-		expect(difference).to.eq(await lpReceiver.balanceOf(senderAddress))
-		expect(newTotalSupply).to.eq(totalSupply.add(lpBalance))
-	})
-	it("pauses trading and executes epoch", async () => {
-		await liquidityPool.pauseTradingAndRequest()
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
-		await liquidityPool.executeEpochCalculation()
-	})
-	it("initiates withdraw liquidity", async () => {
-		await liquidityPool.initiateWithdraw(await liquidityPool.balanceOf(senderAddress))
-		await liquidityPool
-			.connect(signers[1])
-			.initiateWithdraw(await liquidityPool.connect(signers[1]).callStatic.redeem(toWei("500000")))
-	})
-	it("pauses trading and executes epoch", async () => {
-		await liquidityPool.pauseTradingAndRequest()
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
-		await liquidityPool.executeEpochCalculation()
-	})
-	it("LP can redeem shares", async () => {
-		const totalShares = await liquidityPool.totalSupply()
-		//@ts-ignore
-		const ratio = 1 / fromWei(totalShares)
-		const usdBalance = await usd.balanceOf(liquidityPool.address)
-		const withdraw = await liquidityPool.completeWithdraw()
-		const receipt = await withdraw.wait(1)
-		const events = receipt.events
-		const removeEvent = events?.find(x => x.event == "Withdraw")
-		const strikeAmount = removeEvent?.args?.amount
-		const usdBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		//@ts-ignore
-		const diff = fromWei(usdBalance) * ratio
-		expect(diff).to.be.lt(1)
-		expect(strikeAmount).to.be.eq(usdBalance.sub(usdBalanceAfter))
-	})
-	it("settles an expired ITM vault", async () => {
-		const totalCollateralAllocated = await liquidityPool.collateralAllocated()
-		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
-		const strikePrice = await putOptionToken.strikePrice()
-		// set price to $80 ITM for put
-		const settlePrice = strikePrice.add(toWei("80").div(oTokenDecimalShift18))
-		// set the option expiry price, make sure the option has now expired
-		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
-		// settle the vault
-		const settleVault = await liquidityPool.settleVault(putOptionToken.address)
-		let receipt = await settleVault.wait()
-		const events = receipt.events
-		const settleEvent = events?.find(x => x.event == "SettleVault")
-		const collateralReturned = settleEvent?.args?.collateralReturned
-		const collateralLost = settleEvent?.args?.collateralLost
-		// puts expired ITM, so the amount ITM will be subtracted and used to pay out option holders
-		const optionITMamount = settlePrice.sub(strikePrice)
-		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
-		// format from e8 oracle price to e6 USDC decimals
-		expect(collateralReturned).to.equal(
-			collateralAllocatedToVault1.sub(optionITMamount.div(100)).mul(amount)
-		)
-		expect(await liquidityPool.collateralAllocated()).to.equal(
-			totalCollateralAllocated.sub(collateralReturned).sub(collateralLost)
-		)
-	})
-
-	it("settles an expired OTM vault", async () => {
-		const totalCollateralAllocated = await liquidityPool.collateralAllocated()
-		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
-		const strikePrice = await putOptionToken.strikePrice()
-		// set price to $100 OTM for put
-		const settlePrice = strikePrice.sub(toWei("100").div(oTokenDecimalShift18))
-		// set the option expiry price, make sure the option has now expired
-		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration2, settlePrice)
-		// settle the vault
-		const settleVault = await liquidityPool.settleVault(putOptionToken2.address)
-		let receipt = await settleVault.wait()
-		const events = receipt.events
-		const settleEvent = events?.find(x => x.event == "SettleVault")
-		const collateralReturned = settleEvent?.args?.collateralReturned
-		const collateralLost = settleEvent?.args?.collateralLost
-		// puts expired OTM, so all collateral should be returned
-		const amount = parseFloat(utils.formatUnits(await putOptionToken.totalSupply(), 8))
-		expect(collateralReturned).to.equal(totalCollateralAllocated) // format from e8 oracle price to e6 USDC decimals
-		expect(await liquidityPool.collateralAllocated()).to.equal(0)
-		expect(collateralLost).to.equal(0)
-	})
-	it("Succeed: Hedging reactor unwind", async () => {
-		await liquidityPool.removeHedgingReactorAddress(0, false)
-		expect(await gammaHedgingReactor.getDelta()).to.equal(0)
-		expect(await liquidityPool.getExternalDelta()).to.equal(0)
-		expect(await gammaHedgingReactor.getPoolDenominatedValue()).to.eq(0)
-		expect(await usd.balanceOf(gammaHedgingReactor.address)).to.eq(0)
-		// check no hedging reactors exist
-		await expect(liquidityPool.hedgingReactors(0)).to.be.reverted
+	describe("Unwinds a hedging reactor", async () => {
+		it("Succeed: Hedging reactor unwind", async () => {
+			await liquidityPool.removeHedgingReactorAddress(1, false)
+			expect(await gammaHedgingReactor.getDelta()).to.equal(0)
+			expect(await liquidityPool.getExternalDelta()).to.equal(0)
+			expect(await gammaHedgingReactor.getPoolDenominatedValue()).to.eq(0)
+			expect(await usd.balanceOf(gammaHedgingReactor.address)).to.eq(0)
+			// check no hedging reactors exist
+			await expect(liquidityPool.hedgingReactors(1)).to.be.reverted
+		})
 	})
 })

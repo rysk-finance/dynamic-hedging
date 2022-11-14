@@ -16,8 +16,10 @@ import "../interfaces/IWhitelist.sol";
 import "../interfaces/IHedgingReactor.sol";
 import "../interfaces/AddressBookInterface.sol";
 import "../interfaces/IPortfolioValuesFeed.sol";
-import {IOtoken } from "../interfaces/GammaInterface.sol";
+import { IOtoken } from "../interfaces/GammaInterface.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 
+import "hardhat/console.sol";
 /**
  *   @title A hedging reactor that allows users to sell options to the reactor using funds from the
  *          liquidity pool to pay their premiums. Interacts with the LiquidityPool and Opyn-Rysk Gamma protocol
@@ -32,7 +34,7 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	address public immutable parentLiquidityPool;
 	/// @notice address of the price feed used for getting asset prices
 	Protocol public immutable protocol;
-	/// @notice collateral asset used for premium 
+	/// @notice collateral asset used for premium
 	address public immutable collateralAsset;
 	/// @notice strike asset used as the main numeraire
 	address public immutable strikeAsset;
@@ -40,6 +42,8 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	address public immutable underlyingAsset;
 	/// @notice address book used for the gamma protocol
 	AddressBookInterface public immutable addressbook;
+	/// @notice instance of the uniswap V3 router interface
+	ISwapRouter public immutable swapRouter;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -56,6 +60,12 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	BeyondOptionHandler public handler;
 	/// @notice pricer for querying option price quotes
 	BeyondPricer public pricer;
+	/// @notice spot hedging reactor
+	address public spotHedgingReactor;
+	/// @notice when redeeming other asset, send to a reactor or sell it
+	bool public sellRedemptions = true;
+	/// @notice pool fees for different swappable assets
+	mapping(address => uint24) public poolFees;
 
 	//////////////////////////
 	/// constant variables ///
@@ -63,10 +73,22 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @notice max bips used for percentages
 	uint256 private constant MAX_BIPS = 10_000;
+	// oToken decimals
+	uint8 private constant OPYN_DECIMALS = 8;
+	// scale otoken conversion decimals
+	uint8 private constant CONVERSION_DECIMALS = 18 - OPYN_DECIMALS;
 
 	event OptionsBought();
 	event OptionPositionsClosed();
-	event OptionsRedeemed(address series, uint256 optionAmount, uint256 redeemAmount);
+	event OptionsRedeemed(
+		address series,
+		uint256 optionAmount,
+		uint256 redeemAmount,
+		address redeemAsset
+	);
+	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
+
+	error PoolFeeNotSet();
 
 	constructor(
 		address _strikeAsset,
@@ -77,23 +99,44 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 		address _authority,
 		address _handler,
 		address _pricer,
-		address _addressbook
+		address _addressbook,
+		address _spotHedgingReactor,
+		address _swapRouter
 	) AccessControl(IAuthority(_authority)) {
 		strikeAsset = _strikeAsset;
 		collateralAsset = _collateralAsset;
 		underlyingAsset = _underlyingAsset;
 		parentLiquidityPool = _parentLiquidityPool;
 		protocol = Protocol(_protocol);
+		addressbook = AddressBookInterface(_addressbook);
+		swapRouter = ISwapRouter(_swapRouter);
 		handler = BeyondOptionHandler(_handler);
 		pricer = BeyondPricer(_pricer);
-		addressbook = AddressBookInterface(_addressbook);
+		spotHedgingReactor = _spotHedgingReactor;
 	}
 
 	///////////////
 	/// setters ///
 	///////////////
 
+	/// @notice update the handler
+	function setHandler(address _handler) external {
+		_onlyGovernor();
+		handler = BeyondOptionHandler(_handler);
+	}
 
+	/// @notice update the pricer
+	function setPricer(address _pricer) external {
+		_onlyGovernor();
+		pricer = BeyondPricer(_pricer);
+	}
+
+	/// @notice whether when redeeming options if the proceeds are in eth they should be converted to usdc or sent to the spot hedging reactor
+	///  		true for selling off to usdc and sending to the liquidity pool and false for sell
+	function setSellRedemptions(bool _sellRedemptions) external {
+		_onlyGovernor();
+		sellRedemptions = _sellRedemptions;
+	}
 
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
@@ -139,33 +182,29 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	 * @param _amount the amount of options to sell to the dhv in e18
 	 * @return premium the premium paid out to the user
 	 */
-    function buyOption(
-        address _series, 
-        uint256 _amount
-        ) 
-        external 
-        returns (uint256)
-    {
+	function sellOption(address _series, uint256 _amount) external returns (uint256) {
 		// check the otoken is whitelisted
 		IWhitelist(addressbook.getWhitelist()).isWhitelistedOtoken(_series);
 		IOtoken otoken = IOtoken(_series);
 		// get the option details
 		Types.OptionSeries memory optionSeries = Types.OptionSeries(
 			uint64(otoken.expiryTimestamp()),
-			uint128(otoken.strikePrice()) * 10**10,
+			uint128(otoken.strikePrice() * 10**CONVERSION_DECIMALS),
 			otoken.isPut(),
 			otoken.underlyingAsset(),
 			otoken.strikeAsset(),
 			otoken.collateralAsset()
-			);
+		);
 		// check if the option series is approved
-		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, optionSeries.strike, optionSeries.isPut));
+		bytes32 oHash = keccak256(
+			abi.encodePacked(optionSeries.expiration, optionSeries.strike, optionSeries.isPut)
+		);
 		if (!handler.approvedOptions(oHash)) {
 			revert CustomErrors.UnapprovedSeries();
 		}
 		// check if the series is for buying
 		if (!handler.isBuying(oHash)) {
-			revert CustomErrors.NotSellingSeries();
+			revert CustomErrors.NotBuyingSeries();
 		}
 		// revert if the expiry is in the past
 		if (optionSeries.expiration <= block.timestamp) {
@@ -178,7 +217,7 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 		if (optionSeries.strikeAsset != strikeAsset) {
 			revert CustomErrors.StrikeAssetInvalid();
 		}
-		// value the options
+		// value the options, premium in e6
 		(uint256 premium, ) = pricer.quoteOptionPrice(optionSeries, _amount, true);
 		// send the otokens here
 		SafeTransferLib.safeTransferFrom(
@@ -187,7 +226,7 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 			address(this),
 			OptionsCompute.convertToDecimals(_amount, ERC20(_series).decimals())
 		);
-        // take the funds from the liquidity pool and pay the user for the oTokens
+		// take the funds from the liquidity pool and pay the user for the oTokens
 		SafeTransferLib.safeTransferFrom(
 			collateralAsset,
 			address(parentLiquidityPool),
@@ -195,16 +234,11 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 			premium
 		);
 		// update on the pvfeed stores
-		getPortfolioValuesFeed().updateStores(
-			optionSeries,
-			0,
-			int256(_amount),
-			_series
-		);
-        // emit an event
+		getPortfolioValuesFeed().updateStores(optionSeries, 0, int256(_amount), _series);
+		// emit an event
 		emit OptionsBought();
 		return premium;
-    }
+	}
 
 	/**
 	 * @notice buy an otoken from the dhv
@@ -227,9 +261,11 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 			otoken.underlyingAsset(),
 			otoken.strikeAsset(),
 			otoken.collateralAsset()
-			);
+		);
 		// check if the option series is approved
-		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, optionSeries.strike, optionSeries.isPut));
+		bytes32 oHash = keccak256(
+			abi.encodePacked(optionSeries.expiration, optionSeries.strike, optionSeries.isPut)
+		);
 		if (!handler.approvedOptions(oHash)) {
 			revert CustomErrors.UnapprovedSeries();
 		}
@@ -258,19 +294,9 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 			OptionsCompute.convertToDecimals(_amount, ERC20(_series).decimals())
 		);
 		// transfer the premium back to the liquidity pool
-		SafeTransferLib.safeTransferFrom(
-			collateralAsset,
-			msg.sender,
-			parentLiquidityPool,
-			premium
-		);
+		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, parentLiquidityPool, premium);
 		// update on the pvfeed stores
-		getPortfolioValuesFeed().updateStores(
-			optionSeries,
-			0,
-			-int256(_amount),
-			_series
-		);
+		getPortfolioValuesFeed().updateStores(optionSeries, 0, -int256(_amount), _series);
 		emit OptionPositionsClosed();
 		return premium;
 	}
@@ -279,20 +305,79 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	 * @notice get the dhv to redeem an expired otoken
 	 * @param _series the list of series to redeem
 	 */
-    function redeem(address[] memory _series) external {
+	function redeem(address[] memory _series) external {
 		uint256 adLength = _series.length;
-		for(uint i; i < adLength; i++) {
+		for (uint256 i; i < adLength; i++) {
+			// get the number of otokens held by this address for the specified series
 			uint256 optionAmount = ERC20(_series[i]).balanceOf(address(this));
-			uint256 redeemAmount = OpynInteractions.redeem(addressbook.getController(), addressbook.getMarginPool(), _series[i], optionAmount);
-			SafeTransferLib.safeTransferFrom(
-				collateralAsset,
-				address(this),
-				parentLiquidityPool,
-				redeemAmount
+			IOtoken otoken = IOtoken(_series[i]);
+			uint256 redeemAmount = OpynInteractions.redeem(
+				addressbook.getController(),
+				addressbook.getMarginPool(),
+				_series[i],
+				optionAmount
 			);
-			emit OptionsRedeemed(_series[i], optionAmount, redeemAmount);
+			address otokenCollateralAsset = otoken.collateralAsset();
+			emit OptionsRedeemed(_series[i], optionAmount, redeemAmount, otokenCollateralAsset);
+			if (otokenCollateralAsset != collateralAsset) {
+				SafeTransferLib.safeTransferFrom(
+					collateralAsset,
+					address(this),
+					parentLiquidityPool,
+					redeemAmount
+				);
+				emit RedemptionSent(redeemAmount, collateralAsset, parentLiquidityPool);
+			} else if (otokenCollateralAsset == underlyingAsset && !sellRedemptions) {
+				SafeTransferLib.safeTransferFrom(
+					otokenCollateralAsset,
+					address(this),
+					spotHedgingReactor,
+					redeemAmount
+				);
+				emit RedemptionSent(redeemAmount, otokenCollateralAsset, spotHedgingReactor);
+			} else {
+				uint256 redeemableCollateral = _swapExactInputSingle(redeemAmount, 0, otokenCollateralAsset);
+				SafeTransferLib.safeTransferFrom(
+					collateralAsset,
+					address(this),
+					parentLiquidityPool,
+					redeemableCollateral
+				);
+				emit RedemptionSent(redeemableCollateral, collateralAsset, parentLiquidityPool);
+			}
 		}
-    }
+	}
+
+	/** @notice function to sell exact amount of wETH to decrease delta
+	 *  @param _amountIn the exact amount of wETH to sell
+	 *  @param _amountOutMinimum the min amount of stablecoin willing to receive. Slippage limit.
+	 *  @param _assetIn the stablecoin to buy
+	 *  @return the amount of usdc received
+	 */
+	function _swapExactInputSingle(
+		uint256 _amountIn,
+		uint256 _amountOutMinimum,
+		address _assetIn
+	) internal returns (uint256) {
+		uint24 poolFee = poolFees[_assetIn];
+		if(poolFee == 0) {
+			revert PoolFeeNotSet();
+		}
+		ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+			tokenIn: _assetIn,
+			tokenOut: collateralAsset,
+			fee: poolFee,
+			recipient: address(this),
+			deadline: block.timestamp,
+			amountIn: _amountIn,
+			amountOutMinimum: _amountOutMinimum,
+			sqrtPriceLimitX96: 0
+		});
+
+		// The call to `exactInputSingle` executes the swap.
+		uint256 amountOut = swapRouter.exactInputSingle(params);
+		return amountOut;
+	}
 
 	///////////////
 	/// getters ///
