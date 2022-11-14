@@ -14,4 +14,12 @@ interface IPositionRouter {
 		bytes32 _referralCode,
 		address _callbackTarget
 	) external payable returns (bytes32);
+
+	function executeIncreasePosition(bytes32 _key, address payable _executionFeeReceiver)
+		external
+		returns (bool);
+
+	function minExecutionFee() external view returns (uint256);
+
+	function isLeverageEnabled() external view returns (bool);
 }
