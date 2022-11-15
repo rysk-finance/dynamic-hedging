@@ -330,7 +330,6 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 			address otokenCollateralAsset = otoken.collateralAsset();
 			emit OptionsRedeemed(_series[i], optionAmount, redeemAmount, otokenCollateralAsset);
 			if (otokenCollateralAsset == collateralAsset) {
-				console.log(redeemAmount, ERC20(collateralAsset).balanceOf(address(this)));
 				SafeTransferLib.safeTransfer(
 					ERC20(collateralAsset),
 					parentLiquidityPool,
@@ -399,20 +398,6 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	/// @inheritdoc IHedgingReactor
 	function getPoolDenominatedValue() external view returns (uint256 value) {
 		return ERC20(collateralAsset).balanceOf(address(this));
-	}
-
-	/**
-	 * @notice get the underlying price with just the underlying asset and strike asset
-	 * @param underlying   the asset that is used as the reference asset
-	 * @param _strikeAsset the asset that the underlying value is denominated in
-	 * @return the underlying price
-	 */
-	function _getUnderlyingPrice(address underlying, address _strikeAsset)
-		internal
-		view
-		returns (uint256)
-	{
-		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
 
 	/**
