@@ -82,7 +82,14 @@ export async function createAndMintOtoken(addressBook: AddressBook, optionSeries
 	const marginPool = await addressBook.getMarginPool()
 	const vaultId = await (await controller.getAccountVaultCounter(signerAddress)).add(1)
 	const calculator = (await ethers.getContractAt("NewMarginCalculator", await addressBook.getMarginCalculator())) as NewMarginCalculator
-	const marginRequirement = await (await registry.getCollateral(optionSeries, amount)).add(toUSDC("100"))
+	const marginRequirement = await (await registry.getCollateral({
+		expiration: optionSeries.expiration,
+		strike: (optionSeries.strike).div(ethers.utils.parseUnits("1", 10)),
+		isPut: optionSeries.isPut,
+		strikeAsset: optionSeries.strikeAsset,
+		underlying: optionSeries.underlying,
+		collateral: optionSeries.collateral
+	}, amount)).add(toUSDC("100"))
 	await collateral.approve(marginPool, marginRequirement)
 	const abiCode = new AbiCoder()
 	const mintArgs = [
