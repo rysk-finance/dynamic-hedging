@@ -4,8 +4,10 @@ import {
 	genOptionTimeFromUnix,
 	fromWei,
 	tFormatUSDC,
-	tFormatEth
+	tFormatEth,
+	toUSDC
 } from "../utils/conversion-helper"
+import { AbiCoder } from "ethers/lib/utils"
 import {
 	CHAINLINK_WETH_PRICER,
 	GAMMA_ORACLE,
@@ -20,16 +22,20 @@ import {
 import greeks from "greeks"
 import { MintableERC20 } from "../types/MintableERC20"
 import { WETH } from "../types/WETH"
-import { BigNumber, Contract, utils } from "ethers"
+import { BigNumber, Contract, Signer, utils } from "ethers"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { ChainLinkPricer } from "../types/ChainLinkPricer"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { PriceFeed } from "../types/PriceFeed"
+import {OtokenFactory} from "../types/OtokenFactory"
 //@ts-ignore
 import bs from "black-scholes"
 import { E } from "prb-math"
-import { OptionRegistry } from "../types/OptionRegistry"
-
+import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
+import { AddressBook } from "../types/AddressBook"
+import { NewController } from "../types/NewController"
+import { NewMarginCalculator } from "../types/NewMarginCalculator"
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const { provider } = ethers
 const { parseEther } = ethers.utils
 const chainId = 1
@@ -65,6 +71,54 @@ export async function whitelistProduct(
 	await whitelist.connect(ownerSigner).whitelistCollateral(collateral)
 
 	await whitelist.connect(ownerSigner).whitelistProduct(underlying, strike, collateral, isPut)
+}
+
+export async function createAndMintOtoken(addressBook: AddressBook, optionSeries: OptionSeriesStruct, usd: MintableERC20, weth: WETH, collateral: MintableERC20, amount: BigNumber, signer: Signer, registry: OptionRegistry, vaultType: string) {
+	const signerAddress = await signer.getAddress()
+	const otokenFactory = (await ethers.getContractAt("OtokenFactory", await addressBook.getOtokenFactory())) as OtokenFactory
+	const otoken =  await otokenFactory.callStatic.createOtoken(optionSeries.underlying, optionSeries.strikeAsset, optionSeries.collateral, (optionSeries.strike).div(ethers.utils.parseUnits("1", 10)), optionSeries.expiration, optionSeries.isPut)
+	await otokenFactory.createOtoken(optionSeries.underlying, optionSeries.strikeAsset, optionSeries.collateral, (optionSeries.strike).div(ethers.utils.parseUnits("1", 10)), optionSeries.expiration, optionSeries.isPut)
+	const controller = (await ethers.getContractAt("NewController", await addressBook.getController())) as NewController
+	const marginPool = await addressBook.getMarginPool()
+	const vaultId = await (await controller.getAccountVaultCounter(signerAddress)).add(1)
+	const calculator = (await ethers.getContractAt("NewMarginCalculator", await addressBook.getMarginCalculator())) as NewMarginCalculator
+	const marginRequirement = await (await registry.getCollateral(optionSeries, amount)).add(toUSDC("100"))
+	await collateral.approve(marginPool, marginRequirement)
+	const abiCode = new AbiCoder()
+	const mintArgs = [
+		{
+			actionType: 0,
+			owner: signerAddress,
+			secondAddress: signerAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: vaultId,
+			amount: 0,
+			index: 0,
+			data: abiCode.encode(["uint256"], [vaultType])
+		}, 
+		{
+			actionType: 5,
+			owner: signerAddress,
+			secondAddress: signerAddress,
+			asset: collateral.address,
+			vaultId: vaultId,
+			amount: marginRequirement,
+			index: 0,
+			data: ZERO_ADDRESS
+		},
+		{
+			actionType: 1,
+			owner: signerAddress,
+			secondAddress: signerAddress,
+			asset: otoken,
+			vaultId: vaultId,
+			amount: amount.div(ethers.utils.parseUnits("1", 10)),
+			index: 0,
+			data: ZERO_ADDRESS
+		}
+	]
+	await controller.connect(signer).operate(mintArgs)
+	return otoken
 }
 
 export async function setupOracle(chainlinkPricer: string, signerAddress: string, useNew = false) {
