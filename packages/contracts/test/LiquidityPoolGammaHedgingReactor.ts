@@ -25,7 +25,7 @@ import { GammaHedgingReactor } from "../types/GammaHedgingReactor"
 import { OracleMock } from "../types/OracleMock"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
-import { Otoken as IOToken } from "../types/Otoken"
+import { Otoken as IOToken, Otoken, Otoken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
@@ -538,8 +538,11 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const otoken = await createAndMintOtoken(addressBook, proposedSeries, usd, weth, usd, toWei("2"), signers[0], optionRegistry, "1")
+			const amount = toWei("2")
+			const otoken = await createAndMintOtoken(addressBook, proposedSeries, usd, weth, usd, amount, signers[0], optionRegistry, "1")
 			console.log(otoken)
+			const otoken1500C = (await ethers.getContractAt("Otoken", otoken)) as Otoken
+			expect(await otoken1500C.balanceOf(senderAddress)).to.equal(amount.div(ethers.utils.parseUnits("1", 10)))
 		})
 	})
 	describe("LP writes more options", async () => {
