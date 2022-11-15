@@ -404,4 +404,44 @@ library OpynInteractions {
 		// returns in collateral decimals
 		return endAssetBalance - startAssetBalance;
 	}
+
+	/**
+	 * @notice Exercises an ITM option to a specific address
+	 * @param gammaController is the address of the opyn controller contract
+	 * @param marginPool is the address of the opyn margin pool
+	 * @param series is the address of the option to redeem
+	 * @param amount is the number of oTokens to redeem - passed in as e8
+	 * @return amount of asset received by exercising the option
+	 */
+	function redeemToAddress(
+		address gammaController,
+		address marginPool,
+		address series,
+		uint256 amount,
+		address recipient
+	) external returns (uint256) {
+		IController controller = IController(gammaController);
+		address collateralAsset = IOtoken(series).collateralAsset();
+		uint256 startAssetBalance = ERC20(collateralAsset).balanceOf(recipient);
+
+		// If it is after expiry, we need to redeem the profits
+		IController.ActionArgs[] memory actions = new IController.ActionArgs[](1);
+
+		actions[0] = IController.ActionArgs(
+			IController.ActionType.Redeem,
+			address(0), // not used
+			recipient, // address to send profits to
+			series, // address of otoken
+			0, // not used
+			amount, // otoken balance
+			0, // not used
+			"" // not used
+		);
+		SafeTransferLib.safeApprove(ERC20(series), marginPool, amount);
+		controller.operate(actions);
+
+		uint256 endAssetBalance = ERC20(collateralAsset).balanceOf(recipient);
+		// returns in collateral decimals
+		return endAssetBalance - startAssetBalance;
+	}
 }

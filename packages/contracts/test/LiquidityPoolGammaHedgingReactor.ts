@@ -366,6 +366,10 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			await portfolioValuesFeed.setHandler(gammaHedgingReactor.address, true)
 			await expect(await liquidityPool.hedgingReactors(1)).to.equal(reactorAddress)
 		})
+		it("SETUP: set the pool fee", async function () {
+			await gammaHedgingReactor.setPoolFee(weth.address, 500)
+			expect(await gammaHedgingReactor.poolFees(weth.address)).to.equal(500)
+		})
 		it("can compute portfolio delta", async function () {
 			const delta = await liquidityPool.getPortfolioDelta()
 			expect(delta).to.equal(0)
@@ -440,7 +444,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
 		})
 		it("SUCCEEDS: sells the options to the gamma hedging reactor", async () => {
-			const amount = toWei("2")
+			const amount = toWei("4")
 			const userOtokenBalanceBefore = await optionToken.balanceOf(senderAddress)
 			const reactorOtokenBalanceBefore =  await optionToken.balanceOf(gammaHedgingReactor.address)
 			const liquidityPoolUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
@@ -453,8 +457,25 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const liquidityPoolUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
 			const userUSDBalanceAfter = await usd.balanceOf(senderAddress)
 			expect(userOtokenBalanceBefore.sub(userOtokenBalanceAfter)).to.equal(reactorOtokenBalanceAfter.sub(reactorOtokenBalanceBefore))
-			expect(liquidityPoolUSDBalanceBefore.sub(liquidityPoolUSDBalanceAfter).sub(premium)).to.be.within(-50,50)
-			expect(userUSDBalanceAfter.sub(userUSDBalanceBefore).sub(premium)).to.be.within(-50,50)
+			expect(liquidityPoolUSDBalanceBefore.sub(liquidityPoolUSDBalanceAfter).sub(premium)).to.be.within(-100,100)
+			expect(userUSDBalanceAfter.sub(userUSDBalanceBefore).sub(premium)).to.be.within(-100,100)
+		})
+		it("SUCCEEDS: closes the option positions", async() => {
+			const amount = toWei("2")
+			const userOtokenBalanceBefore = await optionToken.balanceOf(senderAddress)
+			const reactorOtokenBalanceBefore =  await optionToken.balanceOf(gammaHedgingReactor.address)
+			const liquidityPoolUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+			const userUSDBalanceBefore = await usd.balanceOf(senderAddress)
+			await usd.approve(gammaHedgingReactor.address, amount)
+			const premium = await gammaHedgingReactor.callStatic.closeOption(optionToken.address, amount)
+			await gammaHedgingReactor.closeOption(optionToken.address, amount)
+			const userOtokenBalanceAfter = await optionToken.balanceOf(senderAddress)
+			const reactorOtokenBalanceAfter =  await optionToken.balanceOf(gammaHedgingReactor.address)
+			const liquidityPoolUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
+			const userUSDBalanceAfter = await usd.balanceOf(senderAddress)
+			expect(userOtokenBalanceAfter.sub(userOtokenBalanceBefore)).to.equal(reactorOtokenBalanceBefore.sub(reactorOtokenBalanceAfter))
+			expect(liquidityPoolUSDBalanceAfter.sub(liquidityPoolUSDBalanceBefore).sub(premium)).to.be.within(-50,50)
+			expect(userUSDBalanceBefore.sub(userUSDBalanceAfter).sub(premium)).to.be.within(-50,50)
 		})
 	})
 	describe("LP writes more options", async () => {
@@ -586,6 +607,49 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const diff = fromWei(usdBalance) * ratio
 			expect(diff).to.be.lt(1)
 			expect(strikeAmount).to.be.eq(usdBalance.sub(usdBalanceAfter))
+		})
+	})
+
+	describe("Settles and redeems", async () => {
+		it("settles an expired ITM vault", async () => {
+			const totalCollateralAllocated = await liquidityPool.collateralAllocated()
+			const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
+			const strikePrice = await optionToken.strikePrice()
+			// set price to $80 ITM for calls
+			const settlePrice = strikePrice.add(toWei("80").div(oTokenDecimalShift18))
+			// set the option expiry price, make sure the option has now expired
+			await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration, settlePrice)
+			// settle the vault
+			const settleVault = await liquidityPool.settleVault(optionToken.address)
+			let receipt = await settleVault.wait()
+			const events = receipt.events
+			const settleEvent = events?.find(x => x.event == "SettleVault")
+			const collateralReturned = settleEvent?.args?.collateralReturned
+			const collateralLost = settleEvent?.args?.collateralLost
+			// puts expired ITM, so the amount ITM will be subtracted and used to pay out option holders
+			const optionITMamount = settlePrice.sub(strikePrice)
+			const amount = parseFloat(utils.formatUnits(await optionToken.totalSupply(), 8))
+			// format from e8 oracle price to e6 USDC decimals
+			expect(collateralReturned).to.equal(
+				collateralAllocatedToVault1.sub(optionITMamount.div(100).mul(amount))
+			)
+			expect(await liquidityPool.collateralAllocated()).to.equal(
+				totalCollateralAllocated.sub(collateralReturned).sub(collateralLost)
+			)
+		})
+		it("SUCCEEDS: redeems options held", async () => {
+			const reactorOtokenBalanceBefore =  await optionToken.balanceOf(gammaHedgingReactor.address)
+			const liquidityPoolUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+			const redeem = await gammaHedgingReactor.redeem([optionToken.address])
+			const receipt = await redeem.wait()
+			const events = receipt.events
+			const redemptionEvent = events?.find(x => x.event == "RedemptionSent")
+			const redeemAmount = redemptionEvent?.args?.redeemAmount
+			const reactorOtokenBalanceAfter =  await optionToken.balanceOf(gammaHedgingReactor.address)
+			const liquidityPoolUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
+			expect(reactorOtokenBalanceBefore).to.be.gt(0)
+			expect(reactorOtokenBalanceAfter).to.equal(0)
+			expect(liquidityPoolUSDBalanceAfter.sub(liquidityPoolUSDBalanceBefore).sub(redeemAmount)).to.be.within(-50,50)
 		})
 	})
 	describe("Unwinds a hedging reactor", async () => {
