@@ -20,6 +20,7 @@ import { IOtoken } from "../interfaces/GammaInterface.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 
 import "hardhat/console.sol";
+
 /**
  *   @title A hedging reactor that allows users to sell options to the reactor using funds from the
  *          liquidity pool to pay their premiums. Interacts with the LiquidityPool and Opyn-Rysk Gamma protocol
@@ -77,6 +78,8 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	uint8 private constant OPYN_DECIMALS = 8;
 	// scale otoken conversion decimals
 	uint8 private constant CONVERSION_DECIMALS = 18 - OPYN_DECIMALS;
+	/// @notice used for unlimited token approval
+	uint256 private constant MAX_UINT = 2**256 - 1;
 
 	event OptionsBought();
 	event OptionPositionsClosed();
@@ -136,6 +139,13 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	function setSellRedemptions(bool _sellRedemptions) external {
 		_onlyGovernor();
 		sellRedemptions = _sellRedemptions;
+	}
+
+	/// @notice set the uniswap v3 pool fee for a given asset, also give the asset max approval on the uni v3 swap router
+	function setPoolFee(address asset, uint24 fee) external {
+		_onlyGovernor();
+		poolFees[asset] = fee;
+		SafeTransferLib.safeApprove(ERC20(asset), address(swapRouter), MAX_UINT);
 	}
 
 	//////////////////////////////////////////////////////
@@ -247,7 +257,7 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	 * @return premium the premium paid from the dhv to the user
 	 */
 	function closeOption(address _series, uint256 _amount) external returns (uint256) {
-		if (ERC20(_series).balanceOf(address(this)) < _amount) {
+		if (ERC20(_series).balanceOf(address(this)) * 10**CONVERSION_DECIMALS < _amount) {
 			revert CustomErrors.InsufficientBalance();
 		}
 		// check the otoken is whitelisted
@@ -287,9 +297,8 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 		// value the options
 		(uint256 premium, ) = pricer.quoteOptionPrice(optionSeries, _amount, false);
 		// transfer the otokens back to the user
-		SafeTransferLib.safeTransferFrom(
-			_series,
-			address(this),
+		SafeTransferLib.safeTransfer(
+			ERC20(_series),
 			msg.sender,
 			OptionsCompute.convertToDecimals(_amount, ERC20(_series).decimals())
 		);
@@ -311,35 +320,34 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 			// get the number of otokens held by this address for the specified series
 			uint256 optionAmount = ERC20(_series[i]).balanceOf(address(this));
 			IOtoken otoken = IOtoken(_series[i]);
-			uint256 redeemAmount = OpynInteractions.redeem(
+			uint256 redeemAmount = OpynInteractions.redeemToAddress(
 				addressbook.getController(),
 				addressbook.getMarginPool(),
 				_series[i],
-				optionAmount
+				optionAmount,
+				address(this)
 			);
 			address otokenCollateralAsset = otoken.collateralAsset();
 			emit OptionsRedeemed(_series[i], optionAmount, redeemAmount, otokenCollateralAsset);
-			if (otokenCollateralAsset != collateralAsset) {
-				SafeTransferLib.safeTransferFrom(
-					collateralAsset,
-					address(this),
+			if (otokenCollateralAsset == collateralAsset) {
+				console.log(redeemAmount, ERC20(collateralAsset).balanceOf(address(this)));
+				SafeTransferLib.safeTransfer(
+					ERC20(collateralAsset),
 					parentLiquidityPool,
 					redeemAmount
 				);
 				emit RedemptionSent(redeemAmount, collateralAsset, parentLiquidityPool);
 			} else if (otokenCollateralAsset == underlyingAsset && !sellRedemptions) {
-				SafeTransferLib.safeTransferFrom(
-					otokenCollateralAsset,
-					address(this),
+				SafeTransferLib.safeTransfer(
+					ERC20(otokenCollateralAsset),
 					spotHedgingReactor,
 					redeemAmount
 				);
 				emit RedemptionSent(redeemAmount, otokenCollateralAsset, spotHedgingReactor);
 			} else {
 				uint256 redeemableCollateral = _swapExactInputSingle(redeemAmount, 0, otokenCollateralAsset);
-				SafeTransferLib.safeTransferFrom(
-					collateralAsset,
-					address(this),
+				SafeTransferLib.safeTransfer(
+					ERC20(collateralAsset),
 					parentLiquidityPool,
 					redeemableCollateral
 				);
@@ -360,7 +368,7 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 		address _assetIn
 	) internal returns (uint256) {
 		uint24 poolFee = poolFees[_assetIn];
-		if(poolFee == 0) {
+		if (poolFee == 0) {
 			revert PoolFeeNotSet();
 		}
 		ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
