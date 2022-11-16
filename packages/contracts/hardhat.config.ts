@@ -36,6 +36,20 @@ if (mnemonic) {
 	}
 }
 
+const UNISWAP_COMPILER_SETTINGS = {
+  version: '0.7.6',
+  settings: {
+    evmVersion: 'istanbul',
+    optimizer: {
+      enabled: true,
+      runs: 1_000_000,
+    },
+    metadata: {
+      bytecodeHash: 'none',
+    },
+  },
+}
+
 module.exports = {
 	typechain: {
 		outDir: "types",
@@ -66,6 +80,7 @@ module.exports = {
 					}
 				}
 			},
+      UNISWAP_COMPILER_SETTINGS,
 			{
 				version: "0.8.9",
 				settings: {
