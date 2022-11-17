@@ -182,6 +182,7 @@ export async function deployOpyn(
 		controller: newController,
 		addressBook: addressBook,
 		oracle: oracle,
-		newCalculator: newCalculator
+		newCalculator: newCalculator,
+		newWhitelist: newWhitelist
 	}
 }

@@ -320,6 +320,7 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 			// get the number of otokens held by this address for the specified series
 			uint256 optionAmount = ERC20(_series[i]).balanceOf(address(this));
 			IOtoken otoken = IOtoken(_series[i]);
+			// redeem from opyn to this address
 			uint256 redeemAmount = OpynInteractions.redeemToAddress(
 				addressbook.getController(),
 				addressbook.getMarginPool(),
@@ -327,29 +328,21 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 				optionAmount,
 				address(this)
 			);
+
 			address otokenCollateralAsset = otoken.collateralAsset();
 			emit OptionsRedeemed(_series[i], optionAmount, redeemAmount, otokenCollateralAsset);
+			// if the collateral used by the otoken is the collateral asset then transfer the redemption to the liquidity pool
+			// if the collateral used by the otoken is the underlying asset and sellRedemptions is false, then send the funds to the uniswapHedgingReactor
+			// if the collateral used by the otoken is anything else (or if underlying and sellRedemptions is true) then swap it on uniswap and send the proceeds to the liquidity pool
 			if (otokenCollateralAsset == collateralAsset) {
-				SafeTransferLib.safeTransfer(
-					ERC20(collateralAsset),
-					parentLiquidityPool,
-					redeemAmount
-				);
+				SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, redeemAmount);
 				emit RedemptionSent(redeemAmount, collateralAsset, parentLiquidityPool);
 			} else if (otokenCollateralAsset == underlyingAsset && !sellRedemptions) {
-				SafeTransferLib.safeTransfer(
-					ERC20(otokenCollateralAsset),
-					spotHedgingReactor,
-					redeemAmount
-				);
+				SafeTransferLib.safeTransfer(ERC20(otokenCollateralAsset), spotHedgingReactor, redeemAmount);
 				emit RedemptionSent(redeemAmount, otokenCollateralAsset, spotHedgingReactor);
 			} else {
 				uint256 redeemableCollateral = _swapExactInputSingle(redeemAmount, 0, otokenCollateralAsset);
-				SafeTransferLib.safeTransfer(
-					ERC20(collateralAsset),
-					parentLiquidityPool,
-					redeemableCollateral
-				);
+				SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, redeemableCollateral);
 				emit RedemptionSent(redeemableCollateral, collateralAsset, parentLiquidityPool);
 			}
 		}
