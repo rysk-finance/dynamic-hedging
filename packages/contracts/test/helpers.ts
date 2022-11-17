@@ -73,7 +73,7 @@ export async function whitelistProduct(
 	await whitelist.connect(ownerSigner).whitelistProduct(underlying, strike, collateral, isPut)
 }
 
-export async function createAndMintOtoken(addressBook: AddressBook, optionSeries: OptionSeriesStruct, usd: MintableERC20, weth: WETH, collateral: MintableERC20, amount: BigNumber, signer: Signer, registry: OptionRegistry, vaultType: string) {
+export async function createAndMintOtoken(addressBook: AddressBook, optionSeries: OptionSeriesStruct, usd: MintableERC20, weth: WETH, collateral: any, amount: BigNumber, signer: Signer, registry: OptionRegistry, vaultType: string) {
 	const signerAddress = await signer.getAddress()
 	const otokenFactory = (await ethers.getContractAt("OtokenFactory", await addressBook.getOtokenFactory())) as OtokenFactory
 	const otoken =  await otokenFactory.callStatic.createOtoken(optionSeries.underlying, optionSeries.strikeAsset, optionSeries.collateral, (optionSeries.strike).div(ethers.utils.parseUnits("1", 10)), optionSeries.expiration, optionSeries.isPut)
@@ -295,9 +295,9 @@ export async function calculateOptionDeltaLocally(
 	liquidityPool: LiquidityPool,
 	priceFeed: PriceFeed,
 	optionSeries: {
-		expiration: number
+		expiration: any
 		isPut: boolean
-		strike: BigNumber
+		strike: any
 		strikeAsset: string
 		underlying: string
 		collateral: string
