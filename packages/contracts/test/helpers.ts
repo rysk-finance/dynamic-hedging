@@ -14,6 +14,7 @@ import {
 	GAMMA_WHITELIST,
 	ORACLE_DISPUTE_PERIOD,
 	ORACLE_LOCKING_PERIOD,
+	CONTROLLER_OWNER,
 	ORACLE_OWNER,
 	USDC_ADDRESS,
 	WETH_ADDRESS
@@ -27,7 +28,7 @@ import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { ChainLinkPricer } from "../types/ChainLinkPricer"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { PriceFeed } from "../types/PriceFeed"
-import {OtokenFactory} from "../types/OtokenFactory"
+import { OtokenFactory } from "../types/OtokenFactory"
 //@ts-ignore
 import bs from "black-scholes"
 import { E } from "prb-math"
@@ -50,33 +51,70 @@ export async function whitelistProduct(
 	underlying: string,
 	strike: string,
 	collateral: string,
-	isPut: boolean
+	isPut: boolean,
+	isNakedForPut: boolean,
+	whitelistAddress: string,
+	newCalculator: NewMarginCalculator,
+	productSpotShockValue: any,
+	timeToExpiry: any,
+	expiryToValue: any,
+	newController: NewController,
+	oracle: Oracle,
+	stablePrice: BigNumber
 ) {
-	const [adminSigner] = await ethers.getSigners()
+	const adminSigner = (await ethers.getSigners())[0]
 
+	await hre.network.provider.request({
+		method: "hardhat_impersonateAccount",
+		params: [CONTROLLER_OWNER[chainId]]
+	})
 	await hre.network.provider.request({
 		method: "hardhat_impersonateAccount",
 		params: [ORACLE_OWNER[chainId]]
 	})
+	const ownerSigner = await ethers.getSigner(CONTROLLER_OWNER[chainId])
+	const oracleSigner = await ethers.getSigner(ORACLE_OWNER[chainId])
 
-	const ownerSigner = await provider.getSigner(ORACLE_OWNER[chainId])
-
-	const whitelist = await ethers.getContractAt("IGammaWhitelist", GAMMA_WHITELIST[chainId])
+	const whitelist = await ethers.getContractAt("WhitelistInterface", whitelistAddress)
 
 	await adminSigner.sendTransaction({
-		to: ORACLE_OWNER[chainId],
+		to: CONTROLLER_OWNER[chainId],
 		value: parseEther("1")
 	})
-
-	await whitelist.connect(ownerSigner).whitelistCollateral(collateral)
-
-	await whitelist.connect(ownerSigner).whitelistProduct(underlying, strike, collateral, isPut)
+	await whitelist.whitelistCollateral(collateral)
+	await whitelist.whitelistProduct(underlying, strike, collateral, isPut)
+	if (isNakedForPut) {
+		await whitelist.whitelistCoveredCollateral(collateral, underlying, false)
+		await whitelist.whitelistNakedCollateral(collateral, underlying, true)
+	} else {
+		await whitelist.whitelistCoveredCollateral(collateral, underlying, true)
+		await whitelist.whitelistNakedCollateral(collateral, underlying, false)
+		await oracle.connect(oracleSigner).setStablePrice(collateral, stablePrice)
+	}
+	await newController.connect(ownerSigner).setNakedCap(collateral, toWei("100000000000000000"))
+	// usd collateralised calls
+	await newCalculator.setSpotShock(
+		underlying,
+		strike,
+		collateral,
+		isPut,
+		productSpotShockValue
+	)
+	// set expiry to value values
+	await newCalculator.setUpperBoundValues(
+		underlying,
+		strike,
+		collateral,
+		isPut,
+		timeToExpiry,
+		expiryToValue
+	)
 }
 
 export async function createAndMintOtoken(addressBook: AddressBook, optionSeries: OptionSeriesStruct, usd: MintableERC20, weth: WETH, collateral: any, amount: BigNumber, signer: Signer, registry: OptionRegistry, vaultType: string) {
 	const signerAddress = await signer.getAddress()
 	const otokenFactory = (await ethers.getContractAt("OtokenFactory", await addressBook.getOtokenFactory())) as OtokenFactory
-	const otoken =  await otokenFactory.callStatic.createOtoken(optionSeries.underlying, optionSeries.strikeAsset, optionSeries.collateral, (optionSeries.strike).div(ethers.utils.parseUnits("1", 10)), optionSeries.expiration, optionSeries.isPut)
+	const otoken = await otokenFactory.callStatic.createOtoken(optionSeries.underlying, optionSeries.strikeAsset, optionSeries.collateral, (optionSeries.strike).div(ethers.utils.parseUnits("1", 10)), optionSeries.expiration, optionSeries.isPut)
 	await otokenFactory.createOtoken(optionSeries.underlying, optionSeries.strikeAsset, optionSeries.collateral, (optionSeries.strike).div(ethers.utils.parseUnits("1", 10)), optionSeries.expiration, optionSeries.isPut)
 	const controller = (await ethers.getContractAt("NewController", await addressBook.getController())) as NewController
 	const marginPool = await addressBook.getMarginPool()
@@ -102,7 +140,7 @@ export async function createAndMintOtoken(addressBook: AddressBook, optionSeries
 			amount: 0,
 			index: 0,
 			data: abiCode.encode(["uint256"], [vaultType])
-		}, 
+		},
 		{
 			actionType: 5,
 			owner: signerAddress,
