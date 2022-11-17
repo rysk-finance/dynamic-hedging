@@ -211,6 +211,7 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		nonReentrant
 		returns (uint256)
 	{
+		// TODO: If we hold the option in the gamma hedging reactor then we route it through here and sell it to the user, reducing our longExposure
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		// get the option series from the pool
 		Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);

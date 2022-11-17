@@ -193,6 +193,7 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 	 * @return premium the premium paid out to the user
 	 */
 	function sellOption(address _series, uint256 _amount) external returns (uint256) {
+		// TODO: if we have the option on our books in the dhv then we should sell use the buyback function on the dhv instead
 		// check the otoken is whitelisted
 		IWhitelist(addressbook.getWhitelist()).isWhitelistedOtoken(_series);
 		IOtoken otoken = IOtoken(_series);
