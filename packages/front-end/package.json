@@ -18,6 +18,7 @@
     "@web3-onboard/react": "^2.1.5",
     "@web3-onboard/walletconnect": "^2.0.1",
     "axios": "^0.26.1",
+    "buffer": "^6.0.3",
     "dotenv": "^16.0.0",
     "env-cmd": "^10.1.0",
     "ethers": "^5.6.4",
@@ -44,12 +45,12 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "env-cmd -f .env -f .env.local react-scripts start",
-    "start:testnet": "env-cmd -f .env -f .env.testnet react-scripts start",
-    "start:arbitrum": "env-cmd -f .env -f .env.arbitrum react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "env-cmd -f .env -f .env.local react-app-rewired start",
+    "start:testnet": "env-cmd -f .env -f .env.testnet react-app-rewired start",
+    "start:arbitrum": "env-cmd -f .env -f .env.arbitrum react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
+    "eject": "react-app-rewired eject"
   },
   "eslintConfig": {
     "extends": [
@@ -81,6 +82,7 @@
     "eslint": "^8.14.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-react": "^7.29.4",
-    "prettier": "2.7.1"
+    "prettier": "2.7.1",
+    "react-app-rewired": "^2.2.1"
   }
 }
