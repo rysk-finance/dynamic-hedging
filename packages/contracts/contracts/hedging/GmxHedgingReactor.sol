@@ -171,6 +171,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @inheritdoc IHedgingReactor
 	function hedgeDelta(int256 _delta) external returns (int256 deltaChange) {
+		require(_delta != 0, "delta change is zero");
+
 		// delta is passed in as the delta that the pool has so this function must hedge the opposite
 		// if delta comes in negative then the pool must go long
 		// if delta comes in positive then the pool must go short
@@ -178,9 +180,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		// make sure the caller is the vault
 		require(msg.sender == parentLiquidityPool, "!vault");
 		deltaChange = _changePosition(-_delta);
-
-		// record the delta change internally
-		// internalDelta += deltaChange;
 	}
 
 	/// @inheritdoc IHedgingReactor
@@ -212,29 +211,21 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 		(bool isBelowMin, bool isAboveMax, uint256 health, uint256 collatToTransfer, uint256 positionSize) = checkVaultHealth();
 		if (isBelowMin) {
-			// collateral needs adding to position ]
+			// collateral needs adding to position
 			_addCollateral(collatToTransfer, internalDelta > 0);
+		} else if (isAboveMax) {
+			// collateral needs removing
+			_removeCollateral(collatToTransfer, internalDelta > 0);
 		}
 	}
 
-	function _addCollateral(uint256 _amount, bool _isLong) internal returns (bytes32) {
-		if (_isLong) {
-			// current open position is long
-			// bytes32 positionKey = gmxPositionRouter.createIncreasePosition{
-			// 	value: gmxPositionRouter.minExecutionFee()
-			// }(
-			// 	path,
-			// 	wETH,
-			// 	amountIn,
-			// 	(amountIn * 1e12).div(getUnderlyingPrice(wETH, collateralAsset)).mul(995e15),
-			// 	_size.mul(getUnderlyingPrice(wETH, collateralAsset)) * 1e12,
-			// 	_isLong,
-			// 	getUnderlyingPrice(wETH, collateralAsset) * 1005e9, // mul by 1.005 e12 for slippage
-			// 	gmxPositionRouter.minExecutionFee(),
-			// 	"leverageisfun",
-			// 	address(this)
-			// );
-		}
+	function _addCollateral(uint256 _collateralAmount, bool _isLong) internal returns (bytes32 positionKey, uint256 deltaChange) {
+		console.log("add collateral amount:", _collateralAmount);
+		return _increasePosition(0, _collateralAmount, _isLong);
+	}
+
+	function _removeCollateral(uint256 _collateralAmount, bool _isLong) internal returns (bytes32 positionKey, uint256 deltaChange) {
+		return _decreasePosition(0, _collateralAmount, _isLong);
 	}
 
 	///////////////////////
@@ -325,13 +316,15 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	/// internal utilities ///
 	//////////////////////////
 
-	/** @notice function to change the perp position
-        @param _amount the amount of delta to change exposure by
-        @return deltaChange The resulting difference in delta exposure
-    */
+	/** @notice function to handle logic of when to open and close positions
+			GMX handles shorts and longs separately, so we only want to have either a short OR a long open 
+			at any one time to aavoid paying borrow fees both ways.
+			This function will close off any shorts before opening longs and vice versa.
+      @param _amount the amount of delta to change exposure by
+      @return deltaChange The resulting difference in delta exposure
+  */
 	function _changePosition(int256 _amount) internal returns (int256) {
-		require(_amount != 0, "amount is zero");
-		// this will be used to calculate how much collateral needs to be added or removed from position
+		// collateralSize will be used to calculate how much collateral needs to be added or removed from position
 		// calculated as the difference in collateral needed to adjust position size and move health factor back to target
 		uint256 collateralSize;
 		if (_amount > 0) {
@@ -359,15 +352,18 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				totalCollateralToAdd = uint256(int256(extraPositionCollateral) + rebalancingCollateral);
 			}
 			console.log("collateral parts:", extraPositionCollateral, uint256(rebalancingCollateral));
-
-			bytes32 positionKey = _increasePosition(uint256(_amount), totalCollateralToAdd, true);
+			console.log("pre position size:", uint256(_amount));
+			// -------- BELOW LINE ONLY FOR DECREASE!
+			uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(_amount));
+			console.log("post position size", adjustedPositionSize);
+			(bytes32 positionKey, uint256 deltaChange) = _increasePosition(uint256(_amount), totalCollateralToAdd, true);
 			orderDeltaChange[positionKey] = _amount;
 		} else {
 			// _amount is negative
 			// enter a short position
 			if (internalDelta > 0) {
 				// close longs first
-				(bytes32 positionKey, uint256 deltaChange) = _decreasePosition(uint256(-_amount), true);
+				(bytes32 positionKey, uint256 deltaChange) = _decreasePosition(uint256(-_amount), 0, true);
 				orderDeltaChange[positionKey] = -int256(deltaChange);
 			}
 		}
@@ -377,14 +373,16 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	/*
 		@notice internal function to handle increasing position size on GMX
 		@param _size ETH denominated size to increase position by. e18
+		
 	*/
 	function _increasePosition(
 		uint256 _size,
 		uint256 _collateralSize,
 		bool _isLong
-	) internal returns (bytes32 positionKey) {
+	) internal returns (bytes32 positionKey, uint256 deltaChange) {
+		console.log("positionSize", _size);
 		// take that amount of collateral from the Liquidity Pool and approve to GMX
-		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), _collateralSize);
+		SafeTransferLib.safeTransferFrom(collateralAsset, parentLiquidityPool, address(this), _collateralSize);
 		SafeTransferLib.safeApprove(ERC20(collateralAsset), address(router), _collateralSize);
 
 		address[] memory path = new address[](2);
@@ -404,24 +402,17 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		);
 		console.log("min amount out", (_collateralSize * 1e12).div(getUnderlyingPrice(wETH, collateralAsset)).mul(995e15));
 		emit CreateIncreasePosition(positionKey);
-		return positionKey;
+		return (positionKey, _size);
 	}
 
-	function _decreasePosition(uint256 _size, bool _isLong) internal returns (bytes32 positionKey, uint256 deltaChange) {
-		// max size to reduce position by is abs(internalDelta)
+	function _decreasePosition(
+		uint256 _size,
+		uint256 _collateralSize,
+		bool _isLong
+	) internal returns (bytes32 positionKey, uint256 deltaChange) {
 		address _collateralAsset = collateralAsset;
 		address _wETH = wETH;
 		PositionData memory positionData = _getPosition(_isLong);
-		positionData.ethDelta = _adjustedReducePositionSize(_size);
-		// }
-		// console.log(
-		// 	"existing short;",
-		// 	positionData.positionSize,
-		// 	positionData.collateralAmount,
-		// 	positionData.averagePrice
-		// );
-		// console.log("existing short;", positionData.realisedPnl, positionData.hasRealisedProfit);
-		console.log("ethDelta:", positionData.ethDelta);
 		positionData.currentPrice = getUnderlyingPrice(_wETH, _collateralAsset);
 
 		// address[] memory path = new address[](2);
@@ -432,17 +423,17 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		// without rebalancing collateral this would be equal to (_size / abs(internalDelta)) * collateral
 
 		positionData.collateralSizeDeltaUsd = OptionsCompute.convertToDecimals(
-			positionData.ethDelta.div(uint256(internalDelta.abs())).mul(positionData.collateralAmount / 1e12),
+			_size.div(uint256(internalDelta.abs())).mul(positionData.collateralAmount / 1e12),
 			ERC20(_collateralAsset).decimals()
 		);
 
 		// calculate change in dollar value of position
-		// equal to (positionData.ethDelta / abs(internalDelta)) * positionSize
+		// equal to (_size / abs(internalDelta)) * positionSize
 		// expressed in e30 decimals
 		_getPositionSizeDeltaUsd(positionData);
 
 		// console.log("price:", price);
-		console.log("minOut:", positionData.ethDelta.mul(positionData.currentPrice).mul(900e15));
+		console.log("minOut:", _size.mul(positionData.currentPrice).mul(900e15));
 		console.log("collat delta usd", positionData.collateralSizeDeltaUsd);
 		bytes32 positionKey = gmxPositionRouter.createDecreasePosition{ value: gmxPositionRouter.minExecutionFee() }(
 			_createPath(),
@@ -452,14 +443,14 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			_isLong,
 			address(this),
 			positionData.currentPrice * 995e9, // mul by 0.995 e12 for slippage
-			// positionData.ethDelta.mul(positionData.currentPrice).mul(900e15),
+			// _size.mul(positionData.currentPrice).mul(900e15),
 			0,
 			gmxPositionRouter.minExecutionFee(),
 			false,
 			address(this)
 		);
 		emit CreateDecreasePosition(positionKey);
-		return (positionKey, positionData.ethDelta);
+		return (positionKey, _size);
 	}
 
 	// ------ Internal functions for creating increase/decrease position parameters

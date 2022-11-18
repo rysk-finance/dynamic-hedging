@@ -193,11 +193,15 @@ describe("GMX Hedging Reactor", () => {
 		// set price to 1800
 		// should be a $400 unrealised loss
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1800", 8))
+		const usdcBalanceBeforeLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
 
 		await gmxReactor.update()
+
+		const usdcBalanceAfterLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+		console.log({ usdcBalanceBeforeLP, usdcBalanceAfterLP })
 	})
 	it("closes the long position", async () => {
-		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1800", 8))
+		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1600", 8))
 		const positionsBefore = await gmxReader.getPositions(
 			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
 			gmxReactor.address,
