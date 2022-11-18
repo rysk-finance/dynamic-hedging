@@ -29,6 +29,7 @@
     "implied-volatility": "^1.0.0",
     "moment": "^2.29.3",
     "react": "^17.0.2",
+    "react-app-rewired": "^2.2.1",
     "react-datepicker": "^4.8.0",
     "react-dom": "^17.0.2",
     "react-number-format": "^4.9.3",
@@ -45,12 +46,12 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "env-cmd -f .env -f .env.local react-scripts start",
-    "start:testnet": "env-cmd -f .env -f .env.testnet react-scripts start",
-    "start:arbitrum": "env-cmd -f .env -f .env.arbitrum react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "env-cmd -f .env -f .env.local react-app-rewired start",
+    "start:testnet": "env-cmd -f .env -f .env.testnet react-app-rewired start",
+    "start:arbitrum": "env-cmd -f .env -f .env.arbitrum react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
+    "eject": "react-app-rewired eject"
   },
   "eslintConfig": {
     "extends": [
