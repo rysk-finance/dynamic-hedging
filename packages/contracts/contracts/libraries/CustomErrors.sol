@@ -17,6 +17,7 @@ interface CustomErrors {
 	error InvalidAddress();
 	error IssuanceFailed();
 	error EpochNotClosed();
+	error NoPositionsOpen();
 	error InvalidDecimals();
 	error InActivePosition();
 	error NoActivePosition();
