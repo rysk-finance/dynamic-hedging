@@ -6,17 +6,19 @@ import { IUniswapV3MintCallback } from "@uniswap/v3-core/contracts/interfaces/ca
 import { PoolAddress } from "../vendor/uniswap/PoolAddress.sol";
 import { LiquidityAmounts, FullMath } from "../vendor/uniswap/LiquidityAmounts.sol";
 import "../vendor/uniswap/TickMath.sol";
-import { IERC20, SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IHedgingReactor.sol";
 import "../interfaces/ILiquidityPool.sol";
 import "../libraries/AccessControl.sol";
+import "../libraries/OptionsCompute.sol";
+import "../libraries/SafeTransferLib.sol";
+import "../PriceFeed.sol";
 import "hardhat/console.sol";
 //import "../libraries/SafeTransferLib.sol";
 
 contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, AccessControl {
 
     using TickMath for int24;
-    using SafeERC20 for IERC20;
+    using SafeTransferLib for ERC20;
     ///////////////////////////
 	/// immutable variables ///
 	///////////////////////////
@@ -26,9 +28,9 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	/// @notice address of the price feed used for getting asset prices
 	address public immutable priceFeed;
 	/// @notice smaller address token using uniswap pool convention
-    IERC20 public immutable token0;
+    ERC20 public immutable token0;
 	/// @notice larger address token using uniswap pool convention
-    IERC20 public immutable token1;
+    ERC20 public immutable token1;
 	/// @notice instance of the uniswap V3 pool
     IUniswapV3Pool public pool;
     /// @notice generalised list of stablecoin addresses to trade against wETH
@@ -61,8 +63,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         address _token0 = _collateralAsset < _wethAddress ? _collateralAsset : _wethAddress;
         address _token1 = _collateralAsset < _wethAddress ? _wethAddress : _collateralAsset;
         pool =  IUniswapV3Pool(PoolAddress.getPoolAddress(factory, _token0, _token1, _poolFee));
-		token1 = IERC20(_token1);
-		token0 = IERC20(_token0);
+		token1 = ERC20(_token1);
+		token0 = ERC20(_token0);
 		parentLiquidityPool = _parentLiquidityPool;
 		poolFee = _poolFee;
 		priceFeed = _priceFeed;
@@ -120,8 +122,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             sqrtRatioBX96,
             liquidity
         );
-        console.log("amount0 owed: ", amount0);
-        console.log("amount1: owed ", amount1);
     }
 
     function createUniswapRangeOrderOneTickAboveMarket(uint256 amount0Desired) external {
@@ -142,7 +142,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             0 // amount of token1 being sent in
         );
         token0.safeApprove(address(pool), amount0Desired);
-        console.log("amount0Deposited: ", amount0Desired);
         //token1.safeApprove(address(pool), amount1Desired);
         pool.mint(address(this), lowerTick, upperTick, liquidity, "");
         // store the active range for later access
@@ -158,7 +157,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
         //(uint256 amount0, uint256 amount1) = pool.burn(activeLowerTick, activeUpperTick, liquidity);
         _withdraw(activeLowerTick, activeUpperTick, liquidity);
-        //console.log("amount0: ", amount0, "amount1: ", amount1);
         // todo collect accumulated fees
         //pool.collect(address(this), activeLowerTick, activeUpperTick, type(uint128).max, type(uint128).max);
     }
@@ -339,8 +337,22 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	///////////////////////
 
 	/// @inheritdoc IHedgingReactor
-	function getDelta() external view returns (int256 delta) {}
+	function getDelta() 
+        external
+        view
+        returns (int256 delta) 
+    {
+        (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
+        delta = wETH == address(token0) ? int256(amount0Current) : int256(amount1Current);
+    }
 
 	/// @inheritdoc IHedgingReactor
-	function getPoolDenominatedValue() external view returns (uint256 value) {}
+	function getPoolDenominatedValue() external view returns (uint256 value) {
+        (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
+        uint256 collateral = wETH == address(token0) ? amount1Current : amount0Current;
+        uint256 wethBalance = wETH == address(token0) ? amount0Current : amount1Current;
+        uint256 collateralValue = OptionsCompute.convertFromDecimals(collateral, ERC20(collateralAsset).decimals());
+        uint256 wethValue = PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset) * wethBalance;
+        value = collateralValue + wethValue;
+    }
 }

@@ -173,13 +173,12 @@ describe("UniswapV3HedgingReactor", () => {
 		const normalizedPrice = price / 10 ** 18
 		const latestPrice = await priceFeed.getRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
 		const chainPrice = tickToPrice(205343, 6, 8)
-		await usdcContract
-			.connect(usdcWhale)
-			.transfer(uniswapV3RangeOrderReactor.address, ethers.utils.parseUnits("1000000", 6))
+		const amountToDeploy = toUSDC("100000")
+		await usdcContract.connect(usdcWhale).transfer(uniswapV3RangeOrderReactor.address, amountToDeploy)
 		// cache pool balances before enter range order
 		const poolWethBalance = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
 		const poolUsdcBalance = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
-		await uniswapV3RangeOrderReactor.createUniswapRangeOrderOneTickAboveMarket("1000000")
+		await uniswapV3RangeOrderReactor.createUniswapRangeOrderOneTickAboveMarket(amountToDeploy)
 		const activeUpperTick = await uniswapV3RangeOrderReactor.activeUpperTick()
 		const activeLowerTick = await uniswapV3RangeOrderReactor.activeLowerTick()
 		expect(activeUpperTick).to.be.gt(ticks.tick)
@@ -194,27 +193,8 @@ describe("UniswapV3HedgingReactor", () => {
 	})
 
 	it("Fills when price moves into range", async () => {
-		const bigSigner = await signers[1].getAddress()
-		// Transfer large amount to move uni price
-		//const amountToSwap = toUSDC("10000000").toString()
-		//await usdcContract.connect(usdcWhale).transfer(bigSigner, amountToSwap)
-
-		const poolAddress = await uniswapV3RangeOrderReactor.pool()
-		//uniswapUSDCWETHPool = new ethers.Contract(poolAddress, IUniswapV3PoolABI, signers[1])
-		//const uniswapRouter = new ethers.Contract(SWAP_ROUTER_ADDRESS, ISwapRouterABI, signers[1])
-		//await usdcContract.connect(signers[1]).approve(uniswapRouter.address, amountToSwap)
-
+		const balancesBefore = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
 		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
-		/* 		struct ExactInputSingleParams {
-			address tokenIn;
-			address tokenOut;
-			uint24 fee;
-			address recipient;
-			uint256 deadline;
-			uint256 amountIn;
-			uint256 amountOutMinimum;
-			uint160 sqrtPriceLimitX96;
-		} */
 		const weth_usdc_price_before = poolInfo.token1Price.toFixed()
 		// pool is usdc/weth due to uniswap v3 pool address ordering
 		const amountToSwap = toWei("10000")
@@ -234,77 +214,29 @@ describe("UniswapV3HedgingReactor", () => {
 			tokenIn: poolInfo.token1.address,
 			tokenOut: poolInfo.token0.address,
 			fee: poolInfo.fee,
-			recipient: bigSigner,
+			recipient: bigSignerAddress,
 			deadline: Math.floor(Date.now() / 1000) + 60 * 10,
 			amountIn: amountToSwap,
 			amountOutMinimum: 0,
 			sqrtPriceLimitX96: 0
 		}
-		const balanceBefore = await wethContract.balanceOf(bigSigner)
+		const balanceBefore = await wethContract.balanceOf(bigSignerAddress)
 		const swapTx = await uniswapRouter.exactInputSingle(params)
 		await swapTx.wait(1)
 		poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
-		const balanceAfter = await wethContract.balanceOf(bigSigner)
+		const balanceAfter = await wethContract.balanceOf(bigSignerAddress)
 		const weth_usdc_price_after = poolInfo.token1Price.toFixed()
-		//const wethBalance = await wethContract.balanceOf(bigSigner)
 		const { tick } = await uniswapUSDCWETHPool.slot0()
 		const activeUpperTick = await uniswapV3RangeOrderReactor.activeUpperTick()
 		const activeLowerTick = await uniswapV3RangeOrderReactor.activeLowerTick()
-		console.log({
-			quotedAmountOut,
-			weth_usdc_price_before,
-			weth_usdc_price_after
-		})
-		console.log({ balanceBefore, balanceAfter })
-		console.log({ tick, activeUpperTick, activeLowerTick })
-		expect(tick).to.be.lt(activeLowerTick)
-		expect(tick).to.be.lt(activeUpperTick)
-		// get position info liquidity: ie: amount of ETH in position
 
-		/* 		const quoter = quoterContract(signers[1])
-		const amountIn = toUSDC("1000000")
-		const quotedAmountOut = await quoter.callStatic.quoteExactInputSingle(
-			poolInfo.token0.address,
-			poolInfo.token1.address,
-			poolInfo.fee,
-			amountIn,
-			0
-		)
-		const swapRoute = new Route([poolInfo], poolInfo.token0, poolInfo.token1)
-		const uncheckedTrade = await Trade.createUncheckedTrade({
-			route: swapRoute,
-			inputAmount: CurrencyAmount.fromRawAmount(poolInfo.token0, amountIn.toString()),
-			outputAmount: CurrencyAmount.fromRawAmount(poolInfo.token1, quotedAmountOut.toString()),
-			tradeType: TradeType.EXACT_INPUT
-		})
-		poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
-		const weth_usdc_price_after = poolInfo.token1Price.toFixed()
-
-		const wethBalance = await wethContract.balanceOf(bigSigner)
-		await wethContract.connect(signers[1]).approve(uniswapRouter.address, wethBalance)
-
-		params = {
-			tokenIn: poolInfo.token1.address,
-			tokenOut: poolInfo.token0.address,
-			fee: poolInfo.fee,
-			recipient: bigSigner,
-			deadline: Math.floor(Date.now() / 1000) + 60 * 10,
-			amountIn: wethBalance.toString(),
-			amountOutMinimum: 0,
-			sqrtPriceLimitX96: 0
-		}
-		const swapTx2 = await uniswapRouter.exactInputSingle(params)
-		const wethBalanceAfter = await wethContract.balanceOf(bigSigner)
-
-		console.log({
-			quotedAmountOut,
-			weth_usdc_price_before,
-			weth_usdc_price_after,
-			wethBalance,
-			wethBalanceAfter
-		}) */
-		//console.log("uncheckedTrade", uncheckedTrade.swaps[0])
-		// whale makes large swap
+		// buy weth in usdc/weth pool means price went up into the limit order range
+		expect(tick).to.be.gt(activeLowerTick)
+		expect(tick).to.be.gt(activeUpperTick)
+		const balances = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
+		const averagePricePaid =
+			Number(fromUSDC(balancesBefore.amount0Current)) / Number(fromWei(balances.amount1Current))
+		expect(averagePricePaid).to.lt(Number(weth_usdc_price_before))
 	})
 
 	it("yanks pool liquidity", async () => {
