@@ -64,7 +64,7 @@ const onboard = init({
       rpcUrl: RPC_URL_MAP[CHAINID.ARBITRUM_RINKEBY],
     },
     {
-      id: "0x3",
+      id: "0xa4b1",
       token: "ETH",
       namespace: "evm",
       label: "Arbitrum Mainnet",
