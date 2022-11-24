@@ -908,6 +908,15 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(storesAfter.shortExposure).to.equal(storesBefore.shortExposure)
 			})
 		})
+		it("pauses trading and executes epoch", async () => {
+			await liquidityPool.pauseTradingAndRequest()
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			await portfolioValuesFeed.fulfill(
+				weth.address,
+				usd.address,
+			)
+			await liquidityPool.executeEpochCalculation()
+		})
 		describe("Tries to hedge with rebalancePortfolioDelta", async () => {
 			it("reverts when non-admin calls rebalance function", async () => {
 				const delta = await liquidityPool.getPortfolioDelta()
@@ -985,7 +994,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				optionToken = oTokenUSDCXC
 				const totalCollateralAllocated = await liquidityPool.collateralAllocated()
 				const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
-				console.log(optionToken.address)
 				const strikePrice = await optionToken.strikePrice()
 				// set price to $80 ITM for calls
 				const settlePrice = strikePrice.add(toWei("80").div(oTokenDecimalShift18))

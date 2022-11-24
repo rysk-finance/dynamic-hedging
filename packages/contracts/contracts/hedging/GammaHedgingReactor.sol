@@ -237,6 +237,7 @@ contract GammaHedgingReactor is IHedgingReactor, AccessControl {
 			address(this),
 			OptionsCompute.convertToDecimals(_amount, ERC20(_series).decimals())
 		);
+		// TODO: if we have the position then close it and do buyback option and complete
 		// take the funds from the liquidity pool and pay the user for the oTokens
 		SafeTransferLib.safeTransferFrom(
 			collateralAsset,

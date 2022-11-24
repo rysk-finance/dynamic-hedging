@@ -12,15 +12,22 @@ import "./libraries/CustomErrors.sol";
 import "./libraries/AccessControl.sol";
 import "./libraries/OptionsCompute.sol";
 import "./libraries/SafeTransferLib.sol";
+import "./libraries/OpynInteractions.sol";
 
+import "./interfaces/IWhitelist.sol";
+import "./interfaces/IHedgingReactor.sol";
+import "./interfaces/AddressBookInterface.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
+import "./libraries/Actions.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 
 import "@openzeppelin/contracts/security/Pausable.sol";
+import { IOtoken, IController } from "./interfaces/GammaInterface.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 
 import "hardhat/console.sol";
 
@@ -28,7 +35,7 @@ import "hardhat/console.sol";
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
  */
-contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
+contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingReactor {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
 
@@ -46,10 +53,17 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	address public immutable underlyingAsset;
 	// asset that is used for collateral asset
 	address public immutable collateralAsset;
+	/// @notice address book used for the gamma protocol
+	AddressBookInterface public immutable addressbook;
+	/// @notice instance of the uniswap V3 router interface
+	ISwapRouter public immutable swapRouter;
 
 	/////////////////////////
 	/// dynamic variables ///
 	/////////////////////////
+
+	/// @notice delta exposure of this reactor
+	int256 public internalDelta;
 
 	/////////////////////////////////////
 	/// governance settable variables ///
@@ -59,6 +73,8 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	BeyondPricer public pricer;
 	// option configurations approved for sale, stored by hash of expiration timestamp, strike (in e18) and isPut bool
 	mapping(bytes32 => bool) public approvedOptions;
+	/// @notice spot hedging reactor
+	address public spotHedgingReactor;
 	// whether the dhv is buying this option stored by hash
 	mapping(bytes32 => bool) public isBuying;
 	// whether the dhv is selling this option stored by hash
@@ -67,17 +83,23 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	uint64[] public expirations;
 	// details of supported options first key is expiration then isPut then an array of strikes (mainly for frontend use)
 	mapping(uint256 => mapping(bool => uint128[])) public optionDetails;
+	/// @notice pool fees for different swappable assets
+	mapping(address => uint24) public poolFees;
+	/// @notice when redeeming other asset, send to a reactor or sell it
+	bool public sellRedemptions = true;
 
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
 
-	// BIPS
-	uint256 private constant MAX_BPS = 10_000;
+	/// @notice max bips used for percentages
+	uint256 private constant MAX_BIPS = 10_000;
 	// oToken decimals
 	uint8 private constant OPYN_DECIMALS = 8;
 	// scale otoken conversion decimals
 	uint8 private constant CONVERSION_DECIMALS = 18 - OPYN_DECIMALS;
+	/// @notice used for unlimited token approval
+	uint256 private constant MAX_UINT = 2**256 - 1;
 
 	/////////////////////////
 	/// structs && events ///
@@ -86,18 +108,33 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	event SeriesApproved(uint64 expiration, uint128 strike, bool isPut, bool isBuying, bool isSelling);
 	event SeriesDisabled(uint64 expiration, uint128 strike, bool isPut);
 	event SeriesAltered(uint64 expiration, uint128 strike, bool isPut, bool isBuying, bool isSelling);
+	event OptionsBought();
+	event OptionPositionsClosed();
+	event OptionsRedeemed(
+		address series,
+		uint256 optionAmount,
+		uint256 redeemAmount,
+		address redeemAsset
+	);
+	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
+
+	error PoolFeeNotSet();
 
 	constructor(
 		address _authority,
 		address _protocol,
 		address _liquidityPool,
-		address _pricer
+		address _pricer,
+		address _addressbook,
+		address _swapRouter
 	) AccessControl(IAuthority(_authority)) {
 		protocol = Protocol(_protocol);
 		liquidityPool = ILiquidityPool(_liquidityPool);
 		collateralAsset = liquidityPool.collateralAsset();
 		underlyingAsset = liquidityPool.underlyingAsset();
 		strikeAsset = liquidityPool.strikeAsset();
+		addressbook = AddressBookInterface(_addressbook);
+		swapRouter = ISwapRouter(_swapRouter);
 		pricer = BeyondPricer(_pricer);
 	}
 
@@ -123,10 +160,54 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		pricer = BeyondPricer(_pricer);
 	}
 
+	/// @notice set the uniswap v3 pool fee for a given asset, also give the asset max approval on the uni v3 swap router
+	function setPoolFee(address asset, uint24 fee) external {
+		_onlyGovernor();
+		poolFees[asset] = fee;
+		SafeTransferLib.safeApprove(ERC20(asset), address(swapRouter), MAX_UINT);
+	}
+
+	/// @notice whether when redeeming options if the proceeds are in eth they should be converted to usdc or sent to the spot hedging reactor
+	///  		true for selling off to usdc and sending to the liquidity pool and false for sell
+	function setSellRedemptions(bool _sellRedemptions) external {
+		_onlyGovernor();
+		sellRedemptions = _sellRedemptions;
+	}
+
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
 
+	/// @inheritdoc IHedgingReactor
+	function hedgeDelta(int256 _delta) external returns (int256) {
+		return 0;
+	}
+
+	/// @inheritdoc IHedgingReactor
+	function withdraw(uint256 _amount) external returns (uint256) {
+		require(msg.sender == address(liquidityPool), "!vault");
+		address _token = collateralAsset;
+		// check the holdings if enough just lying around then transfer it
+		uint256 balance = ERC20(_token).balanceOf(address(this));
+		if (balance == 0) {
+			return 0;
+		}
+		if (_amount <= balance) {
+			SafeTransferLib.safeTransfer(ERC20(_token), msg.sender, _amount);
+			// return in collat decimals format
+			return _amount;
+		} else {
+			SafeTransferLib.safeTransfer(ERC20(_token), msg.sender, balance);
+			// return in collatDecimals format
+			return balance;
+		}
+	}
+
+	/// @inheritdoc IHedgingReactor
+	function update() external pure returns (uint256) {
+		return 0;
+	}
+	
 	/**
 	 * @notice issue an option series for buying or sale
 	 * @param  options option type to approve - strike in e18
@@ -199,13 +280,79 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	/// external state changing functionality ///
 	/////////////////////////////////////////////
 
+	function operate(OpynActions.ActionArgs[] memory _opynActions, RyskAction.ActionArgs[] memory _ryskActions) external nonReentrant whenNotPaused {
+		_runActions(_actions);
+        // if (vaultUpdated) {
+        //     _verifyFinalState(vaultOwner, vaultId);
+        //     vaultLatestUpdate[vaultOwner][vaultId] = now;
+        // }
+	}
+
+    /**
+     * @notice execute a variety of actions
+     * @dev for each action in the action array, execute the corresponding action, only one vault can be modified
+     * for all actions except SettleVault, Redeem, and Call
+     * @param _actions array of type Actions.ActionArgs[], which expresses which actions the user wants to execute
+     * @return vaultUpdated, indicates if a vault has changed
+     * @return owner, the vault owner if a vault has changed
+     * @return vaultId, the vault Id if a vault has changed
+     */
+    function _runActions(OpynActions.ActionArgs[] memory _opynActions, RyskActions.ActionArgs[] memory _ryskActions)
+        internal
+    {
+		IController controller = IController(addressbook.getController());
+        for (uint256 i = 0; i < _opynActions.length; i++) {
+			// loop through the opyn actions, if any involve opening a vault then make sure the msg.sender gets the ownership and if there are any more vault ids make sure the msg.sender is the owners
+            OpynActions.ActionArgs memory action = _opynActions[i];
+            OpynActions.ActionType actionType = action.actionType;
+			if (actionType == OpynActions.ActionType.OpenVault) {
+				// might need to change open vault vault id, otherwise check the vault id somehow
+			} else if (actionType == OpynActions.ActionType.DepositLongOption) {
+                // check the from address is as it should be and check the vault id
+            } else if (actionType == OpynActions.ActionType.WithdrawLongOption) {
+                // check the to address is as it should be and check the vault id
+            } else if (actionType == OpynActions.ActionType.DepositCollateral) {
+                // check the from address is as it should be and check the vault id
+            } else if (actionType == OpynActions.ActionType.WithdrawCollateral) {
+                // check the from address is as it should be and check the vault id
+            } else if (actionType == OpynActions.ActionType.MintShortOption) {
+                // check the to address is as it should be and check the vault id
+            } else if (actionType == OpynActions.ActionType.BurnShortOption) {
+                // check the from address is as it should be and check the vault id
+            } else if (actionType == OpynActions.ActionType.Redeem) {
+                // maybe dont allow
+            } else if (actionType == OpynActions.ActionType.SettleVault) {
+                // check the to address is as it should be and check the vault id
+            } else if (actionType == OpynActions.ActionType.Liquidate) {
+                // not sure yet, leaning to not allow
+            } else if (actionType == OpynActions.ActionType.Call) {
+                // dont allow
+            }
+        }
+		controller.operate(_opynActions);
+		for (uint256 i = 0; i < _ryskActions.length; i++) {
+			RyskActions.ActionArgs memory action = _opynActions[i];
+            RyskActions.ActionType actionType = action.actionType;
+			if (actionType == RyskActions.ActionType.SellOption) {
+				_sellOption();
+			} else if (actionType == RyskActions.ActionType.BuyOption) {
+				_buyOption();
+            } else if (actionType == OpynActions.ActionType.CloseOption) {
+				_closeOption();
+            } else if (actionType == OpynActions.ActionType.Issue) {
+				_issue();
+			}
+		}
+
+    }
+
 	/**
-	 * @notice write a number of options for a given series address
+	 * @notice user buys a number of options for a given series address
 	 * @param  seriesAddress the option token series address
 	 * @param  amount        the number of options to mint expressed as 1e18
 	 * @return number of options minted
 	 */
-	function writeOption(address seriesAddress, uint256 amount)
+	function _writeOption(address seriesAddress, uint256 amount)
 		external
 		whenNotPaused
 		nonReentrant
@@ -265,10 +412,9 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	/**
 	 * @notice issue the otoken and write a number of options for a given series configuration
 	 * @param  optionSeries the option token series
-	 * @param  amount       the number of options to mint expressed as 1e18
 	 */
-	function issueAndWriteOption(Types.OptionSeries memory optionSeries, uint256 amount)
-		external
+	function _issue(Types.OptionSeries memory optionSeries)
+		internal
 		whenNotPaused
 		nonReentrant
 		returns (uint256 optionAmount, address series)
@@ -286,32 +432,7 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		if (!isSelling[oHash]) {
 			revert CustomErrors.NotSellingSeries();
 		}
-		// calculate premium and delta from the pricer, returning the premium in collateral decimals and delta in e18
-		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(optionSeries, amount, false);
-		// transfer the funds from the user to the liquidity pool
-		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), premium);
-		// write the option, optionAmount in e18
-		(optionAmount, series) = liquidityPool.handlerIssueAndWriteOption(
-			optionSeries,
-			amount,
-			premium,
-			delta,
-			msg.sender
-		);
-		// add this series to the portfolio values feed so its stored on the book
-		getPortfolioValuesFeed().updateStores(
-			Types.OptionSeries(
-				optionSeries.expiration,
-				strike,
-				optionSeries.isPut,
-				underlyingAsset,
-				strikeAsset,
-				collateralAsset
-			),
-			int256(amount),
-			0,
-			series
-		);
+		series = liquidityPool.handlerIssue(optionSeries);
 	}
 
 	/**
@@ -320,8 +441,8 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 	 * @param amount the number of options to buyback expressed in 1e18
 	 * @return the number of options bought and burned
 	 */
-	function buybackOption(address seriesAddress, uint256 amount)
-		external
+	function _sellOption(address seriesAddress, uint256 amount)
+		internal
 		whenNotPaused
 		nonReentrant
 		returns (uint256)
@@ -377,7 +498,117 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 				msg.sender
 			);
 	}
+	function sellOption(address _series, uint256 _amount) external returns(uint256) {
+		// check the address on the whitelisted products, if it is in there then check the ohash stuff first and the expiry validity as well as the underlying and strike asset
+		// check the strike and underlying asset
+		// check if the option exists on the option registry and check if we have exposure
+		// if we have exposure then run it through the buyback, if we dont have enough exposure in the dhv then go to sell option
+		// if we dont have exposure then run it through the sell option flow
+		// do all the state updates
+	}
 
+	function buyOption(address _series, uint256 _amount) external returns (uint256) {
+		// check if we have balance of the option they want first, if we do then sell it off
+		// if there is a remainder then go through the write option flow
+	}
+	/**
+	 * @notice get the dhv to redeem an expired otoken
+	 * @param _series the list of series to redeem
+	 */
+	function redeem(address[] memory _series) external {
+		uint256 adLength = _series.length;
+		for (uint256 i; i < adLength; i++) {
+			// get the number of otokens held by this address for the specified series
+			uint256 optionAmount = ERC20(_series[i]).balanceOf(address(this));
+			IOtoken otoken = IOtoken(_series[i]);
+			// redeem from opyn to this address
+			uint256 redeemAmount = OpynInteractions.redeemToAddress(
+				addressbook.getController(),
+				addressbook.getMarginPool(),
+				_series[i],
+				optionAmount,
+				address(this)
+			);
+
+			address otokenCollateralAsset = otoken.collateralAsset();
+			emit OptionsRedeemed(_series[i], optionAmount, redeemAmount, otokenCollateralAsset);
+			// if the collateral used by the otoken is the collateral asset then transfer the redemption to the liquidity pool
+			// if the collateral used by the otoken is the underlying asset and sellRedemptions is false, then send the funds to the uniswapHedgingReactor
+			// if the collateral used by the otoken is anything else (or if underlying and sellRedemptions is true) then swap it on uniswap and send the proceeds to the liquidity pool
+			if (otokenCollateralAsset == collateralAsset) {
+				SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), redeemAmount);
+				emit RedemptionSent(redeemAmount, collateralAsset, address(liquidityPool));
+			} else if (otokenCollateralAsset == underlyingAsset && !sellRedemptions) {
+				SafeTransferLib.safeTransfer(ERC20(otokenCollateralAsset), spotHedgingReactor, redeemAmount);
+				emit RedemptionSent(redeemAmount, otokenCollateralAsset, spotHedgingReactor);
+			} else {
+				uint256 redeemableCollateral = _swapExactInputSingle(redeemAmount, 0, otokenCollateralAsset);
+				SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), redeemableCollateral);
+				emit RedemptionSent(redeemableCollateral, collateralAsset, address(liquidityPool));
+			}
+		}
+	}
+
+	/**
+	 * @notice buy an otoken from the dhv
+	 * @param _series the option series to receive back
+	 * @param _amount the amount of options to buy from the dhv in e18
+	 * @return premium the premium paid from the dhv to the user
+	 */
+	function closeOption(address _series, uint256 _amount) external returns (uint256) {
+		if (ERC20(_series).balanceOf(address(this)) * 10**CONVERSION_DECIMALS < _amount) {
+			revert CustomErrors.InsufficientBalance();
+		}
+		// check the otoken is whitelisted
+		IWhitelist(addressbook.getWhitelist()).isWhitelistedOtoken(_series);
+		IOtoken otoken = IOtoken(_series);
+		// get the option details
+		Types.OptionSeries memory optionSeries = Types.OptionSeries(
+			uint64(otoken.expiryTimestamp()),
+			uint128(otoken.strikePrice()) * 10**10,
+			otoken.isPut(),
+			otoken.underlyingAsset(),
+			otoken.strikeAsset(),
+			otoken.collateralAsset()
+		);
+		// check if the option series is approved
+		bytes32 oHash = keccak256(
+			abi.encodePacked(optionSeries.expiration, optionSeries.strike, optionSeries.isPut)
+		);
+		if (!handler.approvedOptions(oHash)) {
+			revert CustomErrors.UnapprovedSeries();
+		}
+		// check if the series is for selling
+		if (!handler.isSelling(oHash)) {
+			revert CustomErrors.NotSellingSeries();
+		}
+		// revert if the expiry is in the past
+		if (optionSeries.expiration <= block.timestamp) {
+			revert CustomErrors.OptionExpiryInvalid();
+		}
+		// check the strike asset and underlying asset
+		if (optionSeries.underlying != underlyingAsset) {
+			revert CustomErrors.UnderlyingAssetInvalid();
+		}
+		if (optionSeries.strikeAsset != strikeAsset) {
+			revert CustomErrors.StrikeAssetInvalid();
+		}
+		// value the options
+		(uint256 premium, ) = pricer.quoteOptionPrice(optionSeries, _amount, false);
+		// transfer the otokens back to the user
+		SafeTransferLib.safeTransfer(
+			ERC20(_series),
+			msg.sender,
+			OptionsCompute.convertToDecimals(_amount, ERC20(_series).decimals())
+		);
+		// transfer the premium back to the liquidity pool
+		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, parentLiquidityPool, premium);
+		// update on the pvfeed stores
+		getPortfolioValuesFeed().updateStores(optionSeries, 0, -int256(_amount), _series);
+		emit OptionPositionsClosed();
+		return premium;
+	}
+	
 	///////////////////////////
 	/// non-complex getters ///
 	///////////////////////////
@@ -414,6 +645,16 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		return optionDetails[expiration][isPut];
 	}
 
+	/// @inheritdoc IHedgingReactor
+	function getDelta() external view returns (int256 delta) {
+		return 0;
+	}
+
+	/// @inheritdoc IHedgingReactor
+	function getPoolDenominatedValue() external view returns (uint256 value) {
+		return ERC20(collateralAsset).balanceOf(address(this));
+	}
+
 	//////////////////////////
 	/// internal utilities ///
 	//////////////////////////
@@ -432,5 +673,36 @@ contract BeyondOptionHandler is Pausable, AccessControl, ReentrancyGuard {
 		uint256 difference = OPYN_DECIMALS - collateralDecimals;
 		// round floor strike to prevent errors in Gamma protocol
 		return (price / (10**difference)) * (10**difference);
+	}
+
+	/** @notice function to sell exact amount of wETH to decrease delta
+	 *  @param _amountIn the exact amount of wETH to sell
+	 *  @param _amountOutMinimum the min amount of stablecoin willing to receive. Slippage limit.
+	 *  @param _assetIn the stablecoin to buy
+	 *  @return the amount of usdc received
+	 */
+	function _swapExactInputSingle(
+		uint256 _amountIn,
+		uint256 _amountOutMinimum,
+		address _assetIn
+	) internal returns (uint256) {
+		uint24 poolFee = poolFees[_assetIn];
+		if (poolFee == 0) {
+			revert PoolFeeNotSet();
+		}
+		ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+			tokenIn: _assetIn,
+			tokenOut: collateralAsset,
+			fee: poolFee,
+			recipient: address(this),
+			deadline: block.timestamp,
+			amountIn: _amountIn,
+			amountOutMinimum: _amountOutMinimum,
+			sqrtPriceLimitX96: 0
+		});
+
+		// The call to `exactInputSingle` executes the swap.
+		uint256 amountOut = swapRouter.exactInputSingle(params);
+		return amountOut;
 	}
 }
