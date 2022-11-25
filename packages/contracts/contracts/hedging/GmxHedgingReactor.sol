@@ -214,7 +214,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			bool isAboveMax,
 			uint256 health,
 			uint256 collatToTransfer,
-			uint256 positionSize
+			uint256[] memory position
 		) = checkVaultHealth();
 		console.log("vault health:", isAboveMax, isBelowMin);
 		if (isBelowMin) {
@@ -228,14 +228,14 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	function _addCollateral(uint256 _collateralAmount, bool _isLong)
 		internal
-		returns (bytes32 positionKey, uint256 deltaChange)
+		returns (bytes32 positionKey, int256 deltaChange)
 	{
 		return _increasePosition(0, _collateralAmount, _isLong);
 	}
 
 	function _removeCollateral(uint256 _collateralAmount, bool _isLong)
 		internal
-		returns (bytes32 positionKey, uint256 deltaChange)
+		returns (bytes32 positionKey, int256 deltaChange)
 	{
 		console.log("got here to decrreasew");
 		return _decreasePosition(0, _collateralAmount, _isLong);
@@ -269,20 +269,17 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			bool isAboveMax,
 			uint256 health,
 			uint256 collatToTransfer,
-			uint256 positionSize
+			uint256[] memory position
 		)
 	{
-		if (internalDelta == 0) {
-			return (false, false, 5000, 0, 0);
-		}
 		address[] memory indexToken = new address[](1);
 
 		indexToken[0] = wETH;
 		address[] memory collateralToken = new address[](1);
 		bool[] memory isLong = new bool[](1);
-		uint256[] memory position;
 		if (internalDelta < 0) {
 			// short position is open
+			console.log("short open");
 			collateralToken[0] = collateralAsset;
 			isLong[0] = false;
 		} else {
@@ -291,8 +288,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			isLong[0] = true;
 		}
 		position = reader.getPositions(address(vault), address(this), collateralToken, indexToken, isLong);
-		console.log("position", position[0], position[1], position[2]);
-		console.log("position", position[5], position[7], position[8]);
+		console.log("position", position[0] / 1e30, position[1] / 1e30, position[2] / 1e30);
+		console.log("position", position[5] / 1e30, position[7], position[8] / 1e30);
 
 		// position[0] = position size in USD
 		// position[1] = collateral amount in USD
@@ -304,26 +301,37 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		// position[7] = is position in profit
 		// position[8] = current unrealised Pnl
 		// HF = (collatSize + unrealised pnl) / positionSize
-		uint256 health = (uint256((int256(position[1]) - int256(position[8])).div(int256(position[0]))) * MAX_BIPS) / 1e18;
-		console.log("health", health);
+
+		if (position[0] == 0) {
+			//no positions open
+			return (false, false, 5000, 0, position);
+		}
+		uint256 health;
+		if (position[7] == 1) {
+			//position in profit
+			health = (uint256((int256(position[1]) + int256(position[8])).div(int256(position[0]))) * MAX_BIPS) / 1e18;
+		} else {
+			health = (uint256((int256(position[1]) - int256(position[8])).div(int256(position[0]))) * MAX_BIPS) / 1e18;
+		}
+		console.log("health:", health);
 		if (health > healthFactor) {
 			// position is over-collateralised
-			health = (uint256((int256(position[1]) + int256(position[8])).div(int256(position[0]))) * MAX_BIPS) / 1e18;
 			isAboveMax = true;
 			isBelowMin = false;
 			collatToTransfer = ((health - healthFactor) * position[0]) / MAX_BIPS / 1e24;
+			console.log("collat to xfer:", collatToTransfer);
 		} else if (health < healthFactor) {
 			// position undercollateralised
 			// more collateral needs adding
-			console.log("HF:", health, healthFactor);
 			isBelowMin = true;
 			isAboveMax = false;
 			collatToTransfer = ((healthFactor - health) * position[0]) / MAX_BIPS / 1e24;
+			console.log("collat to xfer:", collatToTransfer);
 		} else {
 			// health factor is perfect
-			return (false, false, health, 0, position[0]);
+			return (false, false, health, 0, position);
 		}
-		return (isBelowMin, isAboveMax, health, collatToTransfer, position[0]);
+		return (isBelowMin, isAboveMax, health, collatToTransfer, position);
 	}
 
 	//////////////////////////
@@ -338,56 +346,87 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
       @return deltaChange The resulting difference in delta exposure
   */
 	function _changePosition(int256 _amount) internal returns (int256) {
-		// collateralSize will be used to calculate how much collateral needs to be added or removed from position
-		// calculated as the difference in collateral needed to adjust position size and move health factor back to target
-		uint256 collateralSize;
+		(
+			bool isBelowMin,
+			bool isAboveMax,
+			uint256 health,
+			uint256 collatToTransfer,
+			uint256[] memory position
+		) = checkVaultHealth();
+		console.log("change position amount");
+		bool closedOppositeSideFirst = false;
+		int256 closedPositionDeltaChange;
 		if (_amount > 0) {
 			// enter long position
 			if (internalDelta < 0) {
 				// close short position before opening long
-			}
+				uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(_amount));
+				int256 rebalancingCollateral = isAboveMax ? -int256(collatToTransfer) : int256(collatToTransfer);
+				console.log("is abbove max", isAboveMax);
 
-			// calculate amount of collateral to post in USDC
-			// equal to collateral needed for extra margin plus rebalancing collateral to bring health factor back to 5000
-			// rebalancing collateral is positive if current health factor is under target and negative if over target
-			(
-				bool isBelowMin,
-				bool isAboveMax,
-				uint256 health,
-				uint256 collatToTransfer,
-				uint256 positionSize
-			) = checkVaultHealth();
+				console.log("rebalancing collateral", collatToTransfer, uint256(-rebalancingCollateral));
+				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(uint256(_amount), rebalancingCollateral, position, false);
+				console.log("collateral to remove:", collateralToRemove);
+
+				console.log("post position size", adjustedPositionSize);
+				console.log("amount", adjustedPositionSize);
+				(bytes32 positionKey, int256 deltaChange) = _decreasePosition(adjustedPositionSize, collateralToRemove, false);
+				orderDeltaChange[positionKey] = deltaChange;
+				// remove the adjustedPositionSize from _amount to get remaining amount of delta to hedge to open shorts with
+				_amount = _amount - int256(adjustedPositionSize);
+				if (_amount == 0) return int256(adjustedPositionSize);
+				closedPositionDeltaChange = deltaChange;
+				closedOppositeSideFirst = true;
+			}
 			uint256 extraPositionCollateral = OptionsCompute.convertToDecimals(
 				(uint256(_amount).mul(getUnderlyingPrice(wETH, collateralAsset)) * healthFactor) / MAX_BIPS,
 				ERC20(collateralAsset).decimals()
 			);
-			int256 rebalancingCollateral = (int256(health) - int256(healthFactor)) / int256(MAX_BIPS);
-			uint256 totalCollateralToAdd;
-			if (-rebalancingCollateral > int256(extraPositionCollateral)) {
-				// in this case there is a net collateral withdrawal needed which cannot be done with increasePosition
-				// so just dont add any more collateral and have it rebalance later
-				totalCollateralToAdd = 0;
-			} else {
-				// otherwise add the two collateral requirement parts to obtain total collateral input
-				totalCollateralToAdd = uint256(int256(extraPositionCollateral) + rebalancingCollateral);
-			}
+			// if closed shorts first then there is no long position open so nothing to rebalance
+			int256 rebalancingCollateral = closedOppositeSideFirst ? int256(0) : isAboveMax
+				? -int256(collatToTransfer)
+				: int256(collatToTransfer);
+
+			uint256 collateralToAdd = _getCollateralSizeDeltaUsd(uint256(_amount), rebalancingCollateral, position, true);
+			console.log("collateral to add:", collateralToAdd);
 			console.log("collateral parts:", extraPositionCollateral, uint256(rebalancingCollateral));
 			console.log("pre position size:", uint256(_amount));
-			// -------- BELOW LINE ONLY FOR DECREASE!
-			uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(_amount));
-			console.log("post position size", adjustedPositionSize);
-			(bytes32 positionKey, uint256 deltaChange) = _increasePosition(uint256(_amount), totalCollateralToAdd, true);
-			orderDeltaChange[positionKey] = _amount;
+			(bytes32 positionKey, int256 deltaChange) = _increasePosition(uint256(_amount), collateralToAdd, true);
+			orderDeltaChange[positionKey] = deltaChange;
 		} else {
 			// _amount is negative
 			// enter a short position
 			if (internalDelta > 0) {
 				// close longs first
+				uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(-_amount));
+				int256 rebalancingCollateral = isAboveMax ? -int256(collatToTransfer) : int256(collatToTransfer);
+				console.log("rebalancing collateral", uint256(rebalancingCollateral));
+				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(uint256(-_amount), rebalancingCollateral, position, false);
+				console.log("collateral to remove:", collateralToRemove);
+
+				console.log("post position size", adjustedPositionSize);
 				console.log("amount", uint256(-_amount));
-				(bytes32 positionKey, uint256 deltaChange) = _decreasePosition(uint256(-_amount), 0, true);
-				console.log("delta change:", deltaChange);
-				orderDeltaChange[positionKey] = -int256(deltaChange);
+				(bytes32 positionKey, int256 deltaChange) = _decreasePosition(adjustedPositionSize, collateralToRemove, true);
+				orderDeltaChange[positionKey] = deltaChange;
+				// remove the adjustedPositionSize from _amount to get remaining amount of delta to hedge to open shorts with
+				_amount = _amount + int256(adjustedPositionSize);
+				console.log("UPDATED AMOUNT", uint256(-_amount));
+				if (_amount == 0) return -int256(adjustedPositionSize);
+				closedPositionDeltaChange = deltaChange;
+				closedOppositeSideFirst = true;
 			}
+			// increase short position
+			// if closed longs first then there is no short position open so nothing to rebalance
+			console.log("avg entry price:", position[2]);
+			int256 rebalancingCollateral = closedOppositeSideFirst ? int256(0) : isAboveMax
+				? -int256(collatToTransfer)
+				: int256(collatToTransfer);
+			uint256 collateralToAdd = _getCollateralSizeDeltaUsd(uint256(-_amount), rebalancingCollateral, position, true);
+			console.log("collateral to add:", collateralToAdd);
+
+			(bytes32 positionKey, int256 deltaChange) = _increasePosition(uint256(-_amount), collateralToAdd, false);
+			orderDeltaChange[positionKey] = deltaChange;
+			return deltaChange + closedPositionDeltaChange;
 		}
 		return 0;
 	}
@@ -401,78 +440,75 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		uint256 _size,
 		uint256 _collateralSize,
 		bool _isLong
-	) internal returns (bytes32 positionKey, uint256 deltaChange) {
-		console.log("positionSize", _size);
+	) internal returns (bytes32 positionKey, int256 deltaChange) {
 		// take that amount of collateral from the Liquidity Pool and approve to GMX
 		SafeTransferLib.safeTransferFrom(collateralAsset, parentLiquidityPool, address(this), _collateralSize);
 		SafeTransferLib.safeApprove(ERC20(collateralAsset), address(router), _collateralSize);
+		console.log("collateral size:", _collateralSize);
 
-		address[] memory path = new address[](2);
-		path[0] = collateralAsset;
-		path[1] = wETH;
 		bytes32 positionKey = gmxPositionRouter.createIncreasePosition{ value: gmxPositionRouter.minExecutionFee() }(
-			path,
+			_createPathIncreasePosition(_isLong),
 			wETH,
 			_collateralSize,
 			(_collateralSize * 1e12).div(getUnderlyingPrice(wETH, collateralAsset)).mul(995e15),
 			_size.mul(getUnderlyingPrice(wETH, collateralAsset)) * 1e12,
 			_isLong,
-			getUnderlyingPrice(wETH, collateralAsset) * 1005e9, // mul by 1.005 e12 for slippage
+			_isLong ? getUnderlyingPrice(wETH, collateralAsset) * 1005e9 : getUnderlyingPrice(wETH, collateralAsset) * 995e9, // 0.5% price tolerance
 			gmxPositionRouter.minExecutionFee(),
 			"leverageisfun",
 			address(this)
 		);
 		console.log("min amount out", (_collateralSize * 1e12).div(getUnderlyingPrice(wETH, collateralAsset)).mul(995e15));
 		emit CreateIncreasePosition(positionKey);
-		return (positionKey, _size);
+		return (positionKey, _isLong ? int256(_size) : -int256(_size));
 	}
 
 	/*
 		@notice internal function to handle decreasing position size on GMX
 		@param _size ETH denominated size to decrease position by. e18
-		
+		@param _collateralSize amount of collateral to remove. denominated in collateralAsset decimals.
+		@param _isLong whether the position is a long or short
 	*/
 	function _decreasePosition(
 		uint256 _size,
 		uint256 _collateralSize,
 		bool _isLong
-	) internal returns (bytes32 positionKey, uint256 deltaChange) {
+	) internal returns (bytes32 positionKey, int256 deltaChange) {
 		address _collateralAsset = collateralAsset;
 		address _wETH = wETH;
 		PositionData memory positionData = _getPosition(_isLong);
 		positionData.currentPrice = getUnderlyingPrice(_wETH, _collateralAsset);
-		console.log("decrease collateral size:", _collateralSize);
 
 		// calculate change in dollar value of position
 		// equal to (_size / abs(internalDelta)) * positionSize
 		// expressed in e30 decimals
 		positionData.positionSizeDeltaUsd = _getPositionSizeDeltaUsd(_size, positionData);
-		console.log("POS SIZE", positionData.positionSizeDeltaUsd);
 
-		// console.log("price:", price);
-		console.log("minOut:", _size.mul(positionData.currentPrice).mul(900e15));
-		console.log("collat delta usd", positionData.collateralSizeDeltaUsd);
+		console.log("pos size delta:", positionData.positionSizeDeltaUsd / 1e30);
+		console.log("collateral size:", _collateralSize);
+
 		bytes32 positionKey = gmxPositionRouter.createDecreasePosition{ value: gmxPositionRouter.minExecutionFee() }(
 			_createPathDecreasePosition(_isLong),
 			_wETH,
 			_collateralSize * 1e24,
+			// positionData.positionSizeDeltaUsd / 2,
 			positionData.positionSizeDeltaUsd,
 			_isLong,
 			address(this),
-			positionData.currentPrice * 995e9, // mul by 0.995 e12 for slippage
-			// _size.mul(positionData.currentPrice).mul(900e15),
+			_isLong ? positionData.currentPrice * 995e9 : positionData.currentPrice * 1005e9, // mul by 0.995 e12 for slippage
 			0,
 			gmxPositionRouter.minExecutionFee(),
 			false,
 			address(this)
 		);
 		emit CreateDecreasePosition(positionKey);
-		return (positionKey, _size);
+		return (positionKey, _isLong ? -int256(_size) : int256(_size));
 	}
 
 	// ------ Internal functions for creating increase/decrease position parameters
 
 	function _adjustedReducePositionSize(uint256 _size) private view returns (uint256 _adjustedSize) {
+		console.log("adjust size", uint256(internalDelta.abs()), _size);
 		return uint256(internalDelta.abs()) > _size ? _size : uint256(internalDelta.abs());
 	}
 
@@ -487,7 +523,20 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			positionData.realisedPnl,
 			positionData.hasRealisedProfit,
 
-		) = vault.getPosition(address(this), positionData.collateralType, wETH, true);
+		) = vault.getPosition(address(this), positionData.collateralType, wETH, _isLong);
+	}
+
+	function _createPathIncreasePosition(bool _isLong) internal view returns (address[] memory) {
+		if (_isLong) {
+			address[] memory path = new address[](2);
+			path[0] = collateralAsset;
+			path[1] = wETH;
+			return path;
+		} else {
+			address[] memory path = new address[](1);
+			path[0] = collateralAsset;
+			return path;
+		}
 	}
 
 	function _createPathDecreasePosition(bool _isLong) internal view returns (address[] memory) {
@@ -503,12 +552,107 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		}
 	}
 
-	function _getCollateralSizeDeltaUsd(PositionData memory positionData) private view returns (uint256) {
-		return
-			OptionsCompute.convertToDecimals(
-				positionData.ethDelta.div(uint256(internalDelta.abs())).mul(positionData.collateralAmount / 1e12),
+	/* 
+	@param _amount amount of deltas to reduce position by
+*/
+	function _getCollateralSizeDeltaUsd(
+		uint256 _amount,
+		int256 _undercollateralisationAmount,
+		uint256[] memory _position,
+		bool _isIncreasePosition
+	) private view returns (uint256) {
+		// position[0] = position size in USD
+		// position[1] = collateral amount in USD
+		// position[2] = average entry price of position
+		// position[3] = entry funding rate
+		// position[4] = does position have *realised* profit
+		// position[5] = realised PnL
+		// position[6] = timestamp of last position increase
+		// position[7] = is position in profit
+		// position[8] = current unrealised Pnl
+
+		// calculate amount of collateral to add or remove denominated in USDC
+		//  equal to collateral needed for extra margin plus rebalancing collateral to bring health factor back to 5000
+		// _undercollateralisationAmount is positive if current health factor is under target and negative if over target
+		console.log("collat size func:", _amount, uint256(_undercollateralisationAmount), _isIncreasePosition);
+		console.log("collat size func:", _position[0], _position[2]);
+
+		if (_isIncreasePosition) {
+			uint256 extraPositionCollateral = OptionsCompute.convertToDecimals(
+				(_amount.mul(getUnderlyingPrice(wETH, collateralAsset)) * healthFactor) / MAX_BIPS,
 				ERC20(collateralAsset).decimals()
 			);
+			console.log("extra position collat 580", extraPositionCollateral);
+			uint256 totalCollateralToAdd;
+			if (-_undercollateralisationAmount > int256(extraPositionCollateral)) {
+				// in this case there is a net collateral withdrawal needed which cannot be done with increasePosition
+				// so just dont add any more collateral and have it rebalance later
+				totalCollateralToAdd = 0;
+			} else {
+				// otherwise add the two collateral requirement parts to obtain total collateral input
+				totalCollateralToAdd = uint256(int256(extraPositionCollateral) + _undercollateralisationAmount);
+			}
+			return totalCollateralToAdd;
+		} else {
+			console.log(_amount.mul(_position[2]), _position[0]);
+			// if (_amount.mul(_position[2]) >= _position[0]) {
+			// 	console.log("closing the full position!");
+			// 	return 0;
+			// }
+			// decreasing pos size
+			// y = 1 - ((posSize - 2delta)(1 - x) / 2collatAmount)
+			// where y is the proportion of collatAmount to remove (if negative, net collat addition needed)
+			// where x is fraction that positionSize is being decreased by
+			console.log("params amount", _amount / 1e18);
+			console.log("params collateral", _position[0] / 1e30, _position[1] / 1e30, _position[8] / 1e30);
+			console.log("function", uint256(int256(_position[0] / 1e12) + int256((2 * _position[8]) / 1e12)));
+			console.log("function", uint256(1e18 - int256(_amount.mul(_position[2] / 1e12).div(_position[0] / 1e12))));
+			console.log("function", uint256(2 * int256(_position[1] / 1e12)));
+			console.log("function", uint256(int256(_position[1] / 1e12)));
+			console.log(
+				"function",
+				uint256(int256(_amount.mul(_position[2] / 1e12).div(_position[0] / 1e12).mul(_position[8] / 1e12)))
+			);
+			int256 collateralToRemove;
+			if (_position[7] == 1) {
+				// position in profit
+				collateralToRemove = (1e18 -
+					(
+						(int256(_position[0] / 1e12) - int256((2 * _position[8]) / 1e12))
+							.mul(1e18 - int256(_amount.mul(_position[2] / 1e12).div(_position[0] / 1e12)))
+							.div(2 * int256(_position[1] / 1e12))
+					)).mul(int256(_position[1] / 1e12));
+				// +
+				// int256(_amount.mul(_position[2] / 1e12).div(_position[0] / 1e12).mul(_position[8] / 1e12));
+			} else {
+				// position in loss
+				collateralToRemove =
+					(1e18 -
+						(
+							(int256(_position[0] / 1e12) + int256((2 * _position[8]) / 1e12))
+								.mul(1e18 - int256(_amount.mul(_position[2] / 1e12).div(_position[0] / 1e12)))
+								.div(2 * int256(_position[1] / 1e12))
+						)).mul(int256(_position[1] / 1e12)) -
+					int256(_amount.mul(_position[2] / 1e12).div(_position[0] / 1e12).mul(_position[8] / 1e12));
+			}
+			uint256 adjustedCollateralToRemove;
+			// collateral to remove must be a uint
+			if (collateralToRemove < 0) {
+				console.log("is negative", uint256(-collateralToRemove));
+				adjustedCollateralToRemove = uint256(0);
+			} else {
+				console.log("is positive", uint256(collateralToRemove));
+
+				adjustedCollateralToRemove = uint256(collateralToRemove);
+
+				if (adjustedCollateralToRemove > ((_position[1] / 1e12) * 49) / 50) {
+					adjustedCollateralToRemove = ((_position[1] / 1e12) * 49) / 50;
+				}
+			}
+
+			console.log("bits:", adjustedCollateralToRemove);
+			return OptionsCompute.convertToDecimals(adjustedCollateralToRemove, ERC20(collateralAsset).decimals());
+		}
 	}
 
 	function _getPositionSizeDeltaUsd(uint256 _size, PositionData memory positionData) private view returns (uint256) {
@@ -535,7 +679,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			internalDelta += orderDeltaChange[positionKey];
 			delete orderDeltaChange[positionKey];
 		}
-		console.log("callack fired", isExecuted);
+		console.log("callack fired", isExecuted, isIncrease);
 		uint256 usdcBalance = ERC20(collateralAsset).balanceOf(address(this));
 		SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, usdcBalance);
 	}
