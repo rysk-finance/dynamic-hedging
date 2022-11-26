@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.9;
 
+import "prb-math/contracts/PRBMathUD60x18.sol";
 import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import { IUniswapV3MintCallback } from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.sol";
 import { PoolAddress } from "../vendor/uniswap/PoolAddress.sol";
@@ -17,6 +18,7 @@ import "hardhat/console.sol";
 
 contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, AccessControl {
 
+    using PRBMathUD60x18 for uint256;
     using TickMath for int24;
     using SafeTransferLib for ERC20;
     ///////////////////////////
@@ -86,7 +88,48 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         (sqrtPriceX96, tick, , , , , ) = pool.slot0();
     }
 
-    function createUniswapRangeOrderOneTickBelowMarket(uint256 amount0Desired, uint256 amount1Desired) external {
+    /// @notice returns the current price of the underlying asset and the inverse symbol price
+    /// ie: USDC/WETH and WETH/USDC
+    function getPoolPrice() public view returns (uint256 price, uint256 inversed){
+        (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
+        uint256 p = sqrtPriceX96 / (2 ** 96);
+        price = p ** 2;
+        bool token1DecimalsGTE = token1.decimals() >= token0.decimals();
+        if (token1DecimalsGTE){
+            inversed = (1e18 / price) * (10 ** (token1.decimals() - token0.decimals()));
+        } else {
+            inversed = (10 ** token1.decimals()) / price;
+        }
+        // 1e18 format
+        price = price * (10 ** token0.decimals());
+    }
+
+    /// @notice take a price quote in token1/token0 format and convert to sqrtPriceX96 token0/token1 format
+    function sqrtPriceFromWei(uint256 weiPrice) public view returns (uint160 sqrtPriceX96){
+        uint256 inverse = uint256(1e18).div(weiPrice);
+        sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(inverse).mul(2 ** 96)) * uint160(10 ** token0.decimals());
+    }
+
+    function weiToSqrtx96(uint256 weiPrice) public pure returns (uint160 sqrtPriceX96){
+        sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(weiPrice) * 2 ** 96);
+    }
+
+    function sqrtPriceX96ToUint(uint160 sqrtPriceX96, uint8 token0Decimals)
+        public 
+        pure
+        returns (uint256)
+    {
+        uint256 numerator1 = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
+        uint256 numerator2 = 10**token0Decimals;
+        return FullMath.mulDiv(numerator1, numerator2, 1 << 192);
+    }
+
+    function SqrtPriceX96ToNearestTick(uint160 sqrtPriceX96, int24 tickSpacing) public pure returns (int24 nearestActiveTick){
+        int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
+        nearestActiveTick = tick / tickSpacing * tickSpacing;
+    }
+
+    function createUniswapRangeOrderOneTickBelowMarket(uint256 amount1Desired) external {
         // current price, current tick
         (uint160 sqrtPriceX96, int24 tick, , , , , ) = pool.slot0();
         int24 tickSpacing = pool.tickSpacing();
@@ -99,29 +142,12 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             sqrtPriceX96,
             sqrtRatioAX96,
             sqrtRatioBX96,
-            amount0Desired, // amount of token0 being sent in
+            0, // amount of token0 being sent in
             amount1Desired // amount of token1 being sent in
         );
-        token0.safeApprove(address(pool), amount0Desired);
+        //token0.safeApprove(address(pool), amount0Desired);
         token1.safeApprove(address(pool), amount1Desired);
         pool.mint(address(this), tickLower, tickUpper, liquidity, "");
-    }
-
-    function getAmountsForLiquidity() public view {
-        // current price, current tick
-        (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-        (uint128 liquidity, , , uint128 tokensOwed0, uint128 tokensOwed1) = pool.positions(_getPositionID());
-
-        // compute the liquidity amount
-        uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(activeLowerTick);
-        uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(activeUpperTick);
-
-        (uint256 amount0, uint256 amount1) = LiquidityAmounts.getAmountsForLiquidity(
-            sqrtPriceX96,
-            sqrtRatioAX96,
-            sqrtRatioBX96,
-            liquidity
-        );
     }
 
     function createUniswapRangeOrderOneTickAboveMarket(uint256 amount0Desired) external {
@@ -141,6 +167,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             amount0Desired, // amount of token0 being sent in
             0 // amount of token1 being sent in
         );
+        console.log("amount0Desired one args: ", amount0Desired);
+        console.log("sqrtPriceX96 one args: ", sqrtPriceX96);
+        console.logInt(tick);
+        console.logInt(nearestActiveTick);
+        console.logInt(lowerTick);
+        console.logInt(upperTick);
+        console.log(liquidity);
         token0.safeApprove(address(pool), amount0Desired);
         //token1.safeApprove(address(pool), amount1Desired);
         pool.mint(address(this), lowerTick, upperTick, liquidity, "");
@@ -149,6 +182,56 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         activeUpperTick = upperTick;
         activeRangeAboveTick = true;
         //todo - emit event
+    }
+
+    function createUniswapRangeOrderOneTickAbove(uint160 sqrtPriceX96, uint256 amount0Desired) internal {
+        int24 tickSpacing = pool.tickSpacing();
+        int24 nearestActiveTick = SqrtPriceX96ToNearestTick(sqrtPriceX96, tickSpacing);
+        int24 lowerTick = nearestActiveTick + tickSpacing;
+        int24 upperTick = lowerTick + tickSpacing;
+        // compute the liquidity amount
+        uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(lowerTick);
+        uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(upperTick);
+        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            sqrtPriceX96,
+            sqrtRatioAX96,
+            sqrtRatioBX96,
+            amount0Desired, // amount of token0 being sent in
+            0 // amount of token1 being sent in
+        );
+
+        token0.safeApprove(address(pool), amount0Desired);
+        pool.mint(address(this), lowerTick, upperTick, liquidity, "");
+        // store the active range for later access
+        activeLowerTick = lowerTick;
+        activeUpperTick = upperTick;
+        activeRangeAboveTick = true;
+        //TODO emit event
+    }
+
+    function createUniswapRangeOrderOneTickBelow(uint160 sqrtPriceX96, uint256 amount1Desired) internal {
+        int24 tickSpacing = pool.tickSpacing();
+        int24 nearestActivetick = SqrtPriceX96ToNearestTick(sqrtPriceX96, tickSpacing);
+        int24 upperTick = nearestActivetick - tickSpacing;
+        int24 lowerTick = upperTick - tickSpacing;
+        // compute the liquidity amount
+        uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(lowerTick);
+        uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(upperTick);
+        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            sqrtPriceX96,
+            sqrtRatioAX96,
+            sqrtRatioBX96,
+            0, // amount of token0 being sent in
+            amount1Desired // amount of token1 being sent in
+        );
+
+        token1.safeApprove(address(pool), amount1Desired);
+        pool.mint(address(this), lowerTick, upperTick, liquidity, "");
+        // store the active range for later access
+        activeLowerTick = lowerTick;
+        activeUpperTick = upperTick;
+        activeRangeAboveTick = false;
+        //TODO emit event
     }
 
     function yankRangeOrderLiquidity() external {
@@ -232,8 +315,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         ) = pool.positions(_getPositionID());
 
         // compute current holdings from liquidity
-        (amount0Current, amount1Current) = LiquidityAmounts
-            .getAmountsForLiquidity(
+        (amount0Current, amount1Current) = LiquidityAmounts.getAmountsForLiquidity(
             sqrtRatioX96,
             activeLowerTick.getSqrtRatioAtTick(),
             activeUpperTick.getSqrtRatioAtTick(),
@@ -318,7 +400,46 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	//////////////////////////////////////////////////////
 
 	/// @inheritdoc IHedgingReactor
-	function hedgeDelta(int256 _delta) external returns (int256) {}
+	function hedgeDelta(int256 _delta) external returns (int256) {
+		//require(msg.sender == parentLiquidityPool, "!vault");
+        bool inversed = collateralAsset == address(token0);
+        uint256 underlyingPrice = getUnderlyingPrice(wETH, collateralAsset);
+        (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
+        (uint256 poolPrice, uint256 inversedPrice) = getPoolPrice();
+        uint256 quotePrice = inversed ? inversedPrice : poolPrice;
+        uint256 wethBalance = inversed ? amount1Current : amount0Current;
+        console.log("quotePrice", quotePrice, "underlyingPrice", underlyingPrice);
+        if (_delta < 0) {
+            // consider just setting below ticks based on underlying price or buffer to underlying price
+            //require(quotePrice <= underlyingPrice, "quote price > underlying price");
+            // if quotePrice <= underlyingPrice just set below market tick
+            // buy wETH
+            //uint256 priceInCollateralAsset = OptionsCompute.convertToDecimals(underlyingPrice, ERC20(collateralAsset).decimals());
+            uint256 priceToUse = quotePrice < underlyingPrice ? quotePrice : underlyingPrice;
+            uint256 amountCollateralInToken1 = uint256(-_delta).mul(underlyingPrice);
+            uint256 amountDesiredInCollateralToken = OptionsCompute.convertToDecimals(amountCollateralInToken1, ERC20(collateralAsset).decimals());
+            uint160 underlyingSqrtx96 = sqrtPriceFromWei(priceToUse);
+            //TODO check if inversed
+            if (inversed) {
+                createUniswapRangeOrderOneTickAbove(underlyingSqrtx96, amountDesiredInCollateralToken);
+            } else {
+                createUniswapRangeOrderOneTickBelow(underlyingSqrtx96, amountDesiredInCollateralToken);
+            }
+            console.log("minted");
+
+            uint160 poolPriceReversed = sqrtPriceFromWei(inversedPrice);
+            uint256 reversedBack = sqrtPriceX96ToUint(poolPriceReversed, token0.decimals());
+            console.log("pool price reversed", poolPriceReversed);
+            console.log("reversedBack", reversedBack, "inversed price", inversedPrice);
+            console.log("pool price", poolPrice);
+
+            console.log("poolPrice", poolPrice);
+            console.log("underlyingPrice", underlyingPrice);
+            //uint256 
+
+        } else {
+        }
+    }
 
     /// @inheritdoc IHedgingReactor
 	function withdraw(uint256 _amount) external returns (uint256) {}
@@ -355,4 +476,24 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         uint256 wethValue = PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset) * wethBalance;
         value = collateralValue + wethValue;
     }
+
+    //////////////////////////
+	/// internal utilities ///
+	//////////////////////////
+
+	/**
+	 * @notice get the underlying price with just the underlying asset and strike asset
+	 * @param underlying   the asset that is used as the reference asset
+	 * @param _strikeAsset the asset that the underlying value is denominated in
+	 * @return the underlying price
+	 */
+	function getUnderlyingPrice(address underlying, address _strikeAsset)
+		internal
+		view
+		returns (uint256)
+	{
+		return PriceFeed(priceFeed).getNormalizedRate(underlying, _strikeAsset);
+	}
+
+    //TODO - add method to retrieve any ERC20 token held by vault
 }
