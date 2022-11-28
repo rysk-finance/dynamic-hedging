@@ -411,4 +411,211 @@ describe("GMX Hedging Reactor", () => {
 		expect(positionsAfter[2]).to.eq(utils.parseUnits("2000", 30))
 		expect(parseFloat(utils.formatUnits(positionsAfter[8], 30))).to.eq(3000)
 	})
+	it("closes remaining short and flips long in a single tx", async () => {
+		// currently short 5 delta
+		// this should close short and open a 5 delta long
+		const price = 1400
+		const delta = -10
+		const deltaBefore = await gmxReactor.internalDelta()
+		expect(deltaBefore).to.eq(utils.parseEther("-5"))
+		const usdcBalanceBeforeLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+
+		const shortPositionBefore = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[usdcAddress],
+			[wethAddress],
+			[false]
+		)
+		const longPositionBefore = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[wethAddress],
+			[wethAddress],
+			[true]
+		)
+		expect(shortPositionBefore[0]).to.eq(utils.parseUnits("10000", 30))
+		expect(longPositionBefore[0]).to.eq(0)
+
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
+		// -------- execute the decrease short request
+		const decreaseLogs = await gmxReactor.queryFilter(gmxReactor.filters.CreateDecreasePosition(), 0)
+		const decreasePositionKey = decreaseLogs[decreaseLogs.length - 1].args[0]
+		console.log({ decreasePositionKey })
+		// fast forward 3 min and execute tx
+		await ethers.provider.send("evm_increaseTime", [180])
+		await ethers.provider.send("evm_mine")
+		const executeDecreaseTx = await gmxReactor.executeDecreasePosition(decreasePositionKey)
+		await executeDecreaseTx.wait()
+		console.log("decrease position executed")
+
+		// -------- execute the increase long request
+		const increaseLogs = await gmxReactor.queryFilter(gmxReactor.filters.CreateIncreasePosition(), 0)
+		const increasePositionKey = increaseLogs[increaseLogs.length - 1].args[0]
+		console.log({ increasePositionKey })
+		// fast forward 3 min and execute tx
+		await ethers.provider.send("evm_increaseTime", [180])
+		await ethers.provider.send("evm_mine")
+		const executeIncreaseTx = await gmxReactor.executeIncreasePosition(increasePositionKey)
+		await executeIncreaseTx.wait()
+		console.log("increase position executed")
+
+		// positions after
+
+		const shortPositionAfter = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[usdcAddress],
+			[wethAddress],
+			[false]
+		)
+		const longPositionAfter = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[wethAddress],
+			[wethAddress],
+			[true]
+		)
+
+		expect(shortPositionAfter[0]).to.eq(0)
+		// trading fees are taking from collateral
+		expect(shortPositionAfter[1]).to.eq(0)
+		expect(shortPositionAfter[8]).to.eq(0)
+		expect(longPositionAfter[0]).to.eq(utils.parseUnits("7000", 30))
+		expect(parseFloat(utils.formatUnits(longPositionAfter[1], 30))).to.be.within(3480, 3500)
+		expect(longPositionAfter[8]).to.eq(0)
+
+		// expected to be the collateral returned from closing short minus collateral required to open long
+		const expectedUdscDiff =
+			parseFloat(utils.formatUnits(shortPositionBefore[1].add(shortPositionBefore[8]), 30)) -
+			((-delta + parseInt(utils.formatEther(deltaBefore))) * price) / 2
+		const usdcBalanceAfterLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+		const usdcBalanceDiff = usdcBalanceAfterLP - usdcBalanceBeforeLP
+		expect(usdcBalanceDiff).to.be.within(expectedUdscDiff * 0.99, expectedUdscDiff)
+		// check internalDelta var is correct
+		const deltaAfter = await gmxReactor.internalDelta()
+		expect(deltaAfter).to.eq(utils.parseEther("5"))
+	})
+	it("it increases long when position is in a small profit", async () => {
+		// set price to $1600
+		// should be $1000 unrealised profit
+		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1600", 8))
+		// add 5 delta to long
+		const delta = -5
+
+		const usdcBalanceBeforeLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+
+		const longPositionBefore = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[wethAddress],
+			[wethAddress],
+			[true]
+		)
+
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
+
+		// -------- execute the increase long request
+		const increaseLogs = await gmxReactor.queryFilter(gmxReactor.filters.CreateIncreasePosition(), 0)
+		const increasePositionKey = increaseLogs[increaseLogs.length - 1].args[0]
+		console.log({ increasePositionKey })
+		// fast forward 3 min and execute tx
+		await ethers.provider.send("evm_increaseTime", [180])
+		await ethers.provider.send("evm_mine")
+		const executeIncreaseTx = await gmxReactor.executeIncreasePosition(increasePositionKey)
+		await executeIncreaseTx.wait()
+		console.log("increase position executed")
+
+		const usdcBalanceAfterLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+		const usdcBalanceDiff = usdcBalanceBeforeLP - usdcBalanceAfterLP
+
+		const longPositionAfter = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[wethAddress],
+			[wethAddress],
+			[true]
+		)
+		// 3000 plus the trading fees that were deducted in last test
+		const expectedUdscDiff = 3000 + 3500 - parseFloat(utils.formatUnits(longPositionBefore[1], 30))
+		expect(usdcBalanceDiff).to.be.within(expectedUdscDiff - 0.1, expectedUdscDiff + 0.1)
+		expect(longPositionAfter[0]).to.eq(utils.parseUnits("15000", 30))
+		expect(parseFloat(utils.formatUnits(longPositionAfter[1], 30))).to.be.within(6480, 6500)
+		expect(longPositionAfter[2]).to.eq(utils.parseUnits("1500", 30))
+		expect(longPositionAfter[8]).to.eq(utils.parseUnits("1000", 30))
+
+		// check internalDelta var is correct
+		const deltaAfter = await gmxReactor.internalDelta()
+		expect(deltaAfter).to.eq(utils.parseEther("10"))
+	})
+	it("closes long in loss and flips short again", async () => {
+		// currently long 10 delta
+		const delta = 20
+
+		// set price to $1300
+		// should be $2000 unrealised loss
+		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1300", 8))
+
+		const usdcBalanceBeforeLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+
+		const longPositionBefore = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[wethAddress],
+			[wethAddress],
+			[true]
+		)
+
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
+
+		// -------- execute the decrease long request
+		const decreaseLogs = await gmxReactor.queryFilter(gmxReactor.filters.CreateDecreasePosition(), 0)
+		const decreasePositionKey = decreaseLogs[decreaseLogs.length - 1].args[0]
+		console.log({ decreasePositionKey })
+		// fast forward 3 min and execute tx
+		await ethers.provider.send("evm_increaseTime", [180])
+		await ethers.provider.send("evm_mine")
+		const executeDecreaseTx = await gmxReactor.executeDecreasePosition(decreasePositionKey)
+		await executeDecreaseTx.wait()
+		console.log("decrease position executed")
+
+		// -------- execute the increase short request
+		const increaseLogs = await gmxReactor.queryFilter(gmxReactor.filters.CreateIncreasePosition(), 0)
+		const increasePositionKey = increaseLogs[increaseLogs.length - 1].args[0]
+		console.log({ increasePositionKey })
+		// fast forward 3 min and execute tx
+		await ethers.provider.send("evm_increaseTime", [180])
+		await ethers.provider.send("evm_mine")
+		const executeIncreaseTx = await gmxReactor.executeIncreasePosition(increasePositionKey)
+		await executeIncreaseTx.wait()
+		console.log("increase position executed")
+
+		// positions after
+
+		const shortPositionAfter = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[usdcAddress],
+			[wethAddress],
+			[false]
+		)
+		const longPositionAfter = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[wethAddress],
+			[wethAddress],
+			[true]
+		)
+		expect(longPositionAfter[0]).to.eq(0)
+		// trading fees are taking from collateral
+		expect(longPositionAfter[1]).to.eq(0)
+		expect(longPositionAfter[8]).to.eq(0)
+
+		expect(shortPositionAfter[0]).to.eq(utils.parseUnits("13000", 30))
+		expect(parseFloat(utils.formatUnits(shortPositionAfter[1], 30))).to.be.within(6480, 6500)
+		expect(shortPositionAfter[8]).to.eq(0)
+
+		// decrease pos params: 10000000000000000000 6352446847 true
+		// decreasePositionKey: '0xaf7dd668192988b88cc7750ccde851ab9cbf592fc1eb5636fd68bdac7fad7575'
+	})
 })
