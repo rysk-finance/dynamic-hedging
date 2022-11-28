@@ -167,15 +167,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             amount0Desired, // amount of token0 being sent in
             0 // amount of token1 being sent in
         );
-        console.log("amount0Desired one args: ", amount0Desired);
-        console.log("sqrtPriceX96 one args: ", sqrtPriceX96);
-        console.logInt(tick);
-        console.logInt(nearestActiveTick);
-        console.logInt(lowerTick);
-        console.logInt(upperTick);
-        console.log(liquidity);
         token0.safeApprove(address(pool), amount0Desired);
-        //token1.safeApprove(address(pool), amount1Desired);
         pool.mint(address(this), lowerTick, upperTick, liquidity, "");
         // store the active range for later access
         activeLowerTick = lowerTick;
@@ -402,19 +394,17 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	/// @inheritdoc IHedgingReactor
 	function hedgeDelta(int256 _delta) external returns (int256) {
 		//require(msg.sender == parentLiquidityPool, "!vault");
+        // check for existing range order first
         bool inversed = collateralAsset == address(token0);
         uint256 underlyingPrice = getUnderlyingPrice(wETH, collateralAsset);
         (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
         (uint256 poolPrice, uint256 inversedPrice) = getPoolPrice();
         uint256 quotePrice = inversed ? inversedPrice : poolPrice;
-        uint256 wethBalance = inversed ? amount1Current : amount0Current;
-        console.log("quotePrice", quotePrice, "underlyingPrice", underlyingPrice);
         if (_delta < 0) {
             // consider just setting below ticks based on underlying price or buffer to underlying price
             //require(quotePrice <= underlyingPrice, "quote price > underlying price");
             // if quotePrice <= underlyingPrice just set below market tick
             // buy wETH
-            //uint256 priceInCollateralAsset = OptionsCompute.convertToDecimals(underlyingPrice, ERC20(collateralAsset).decimals());
             uint256 priceToUse = quotePrice < underlyingPrice ? quotePrice : underlyingPrice;
             uint256 amountCollateralInToken1 = uint256(-_delta).mul(underlyingPrice);
             uint256 amountDesiredInCollateralToken = OptionsCompute.convertToDecimals(amountCollateralInToken1, ERC20(collateralAsset).decimals());
@@ -425,20 +415,25 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             } else {
                 createUniswapRangeOrderOneTickBelow(underlyingSqrtx96, amountDesiredInCollateralToken);
             }
-            console.log("minted");
-
-            uint160 poolPriceReversed = sqrtPriceFromWei(inversedPrice);
-            uint256 reversedBack = sqrtPriceX96ToUint(poolPriceReversed, token0.decimals());
-            console.log("pool price reversed", poolPriceReversed);
-            console.log("reversedBack", reversedBack, "inversed price", inversedPrice);
-            console.log("pool price", poolPrice);
-
-            console.log("poolPrice", poolPrice);
-            console.log("underlyingPrice", underlyingPrice);
-            //uint256 
+            // return delta change
 
         } else {
+            // sell wETH
+            uint256 wethBalance = inversed ? amount1Current : amount0Current;
+            uint256 priceToUse = quotePrice < underlyingPrice ? underlyingPrice : quotePrice;
+            uint160 underlyingSqrtx96 = sqrtPriceFromWei(priceToUse);
+            uint256 deltaToUse = _delta > int256(wethBalance) ? wethBalance : uint256(_delta);
+            uint256 amountCollateralInToken1 = deltaToUse.mul(underlyingPrice);
+            uint256 amountDesiredInCollateralToken = OptionsCompute.convertToDecimals(amountCollateralInToken1, ERC20(collateralAsset).decimals());
+            // withdraw and collect first
+            if (inversed) {
+                createUniswapRangeOrderOneTickBelow(underlyingSqrtx96, amountDesiredInCollateralToken);
+            } else {
+                createUniswapRangeOrderOneTickAbove(underlyingSqrtx96, amountDesiredInCollateralToken);
+            }
         }
+        // Here to satisfy interface, delta only changes when range order is filled
+        return 0;
     }
 
     /// @inheritdoc IHedgingReactor
@@ -450,6 +445,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
 	/// @inheritdoc IHedgingReactor
 	function update() external pure returns (uint256) {
+        // Remove range order if possible
 		return 0;
 	}
 
