@@ -21,7 +21,6 @@ let usdcWhale: Signer
 let usdcWhaleAddress: string
 let liquidityPoolDummy: UniswapV3HedgingTest
 let liquidityPoolDummyAddress: string
-let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let uniswapV3RangeOrderReactor: UniswapV3RangeOrderReactor
 let usdcContract: MintableERC20
 let wethContract: WETH
@@ -31,6 +30,7 @@ let rate: string
 let uniswapUSDCWETHPool: Contract
 let uniswapRouter: Contract
 let bigSignerAddress: string
+let authority: string
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const SWAP_ROUTER_ADDRESS = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 // edit depending on the chain id to be tested on
@@ -115,7 +115,7 @@ describe("UniswapV3HedgingReactor", () => {
 		await ethUSDAggregator.mock.decimals.returns("6")
 	})
 
-	it("deploys the UniswapV3HedgingReactor contract", async () => {
+	it("deploys the UniswapV3RangeOrderReactor contract", async () => {
 		const uniswapV3RangeOrderReactorFactory = await ethers.getContractFactory(
 			"UniswapV3RangeOrderReactor",
 			{
@@ -132,7 +132,63 @@ describe("UniswapV3HedgingReactor", () => {
 			priceFeed.address,
 			authority
 		)) as UniswapV3RangeOrderReactor
+		expect(uniswapV3RangeOrderReactor).to.have.property("hedgeDelta")
 	})
+
+	it("sets reactor address on LP contract", async () => {
+		const reactorAddress = uniswapV3RangeOrderReactor.address
+
+		await liquidityPoolDummy.setHedgingReactorAddress(reactorAddress)
+
+		expect(await liquidityPoolDummy.uniswapV3HedgingReactor()).to.equal(reactorAddress)
+	})
+
+	it("changes nothing if no ETH balance and hedging positive delta", async () => {
+		wethContract = (await ethers.getContractAt(
+			"contracts/tokens/WETH.sol:WETH",
+			WETH_ADDRESS[chainId]
+		)) as WETH
+		const reactorWethBalanceBefore = parseFloat(
+			ethers.utils.formatEther(
+				BigNumber.from(await wethContract.balanceOf(uniswapV3RangeOrderReactor.address))
+			)
+		)
+
+		expect(reactorWethBalanceBefore).to.equal(0)
+
+		const reactorDeltaBefore = parseFloat(
+			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
+		)
+		const LpUsdcBalanceBefore = parseFloat(
+			ethers.utils.formatUnits(
+				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
+				6
+			)
+		)
+
+		await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther("20"))
+
+		const reactorWethBalanceAfter = parseFloat(
+			ethers.utils.formatEther(
+				BigNumber.from(await wethContract.balanceOf(uniswapV3RangeOrderReactor.address))
+			)
+		)
+		const reactorDeltaAfter = parseFloat(
+			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
+		)
+		const LpUsdcBalanceAfter = parseFloat(
+			ethers.utils.formatUnits(
+				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
+				6
+			)
+		)
+
+		expect(reactorDeltaBefore).to.equal(reactorDeltaAfter)
+		expect(reactorWethBalanceBefore).to.equal(reactorWethBalanceAfter)
+		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter)
+	})
+
+	////////// New Testing Starts Here //////////
 
 	it("sets up a uniswap pool, router and large swapper", async () => {
 		wethContract = (await ethers.getContractAt(
@@ -165,7 +221,6 @@ describe("UniswapV3HedgingReactor", () => {
 		expect(wethBalance).to.be.gt(wethBalanceBefore)
 		expect(wethBalance).to.eq(wethTarget)
 	})
-	let authority: string
 
 	it("Sets a range one tick above USDC/WETH market", async () => {
 		const ticks = await uniswapV3RangeOrderReactor.getTicks()
@@ -190,6 +245,14 @@ describe("UniswapV3HedgingReactor", () => {
 		const difference = poolUsdcBalance.sub(balances.amount0Current)
 		expect(difference).to.be.lte("1")
 		expect(uniswapV3RangeOrderReactor).to.have.property("hedgeDelta")
+	})
+
+	it("hedges delta", async () => {
+		await usdcContract
+			.connect(usdcWhale)
+			.transfer(uniswapV3RangeOrderReactor.address, ethers.utils.parseUnits("1000000", 6))
+		console.log("hedge delta", toWei("-2").toString())
+		const res = await uniswapV3RangeOrderReactor.hedgeDelta(toWei("-2"))
 	})
 
 	it("Fills when price moves into range", async () => {
@@ -229,6 +292,7 @@ describe("UniswapV3HedgingReactor", () => {
 		const { tick } = await uniswapUSDCWETHPool.slot0()
 		const activeUpperTick = await uniswapV3RangeOrderReactor.activeUpperTick()
 		const activeLowerTick = await uniswapV3RangeOrderReactor.activeLowerTick()
+		console.log({ weth_usdc_price_after, weth_usdc_price_before })
 
 		// buy weth in usdc/weth pool means price went up into the limit order range
 		expect(tick).to.be.gt(activeLowerTick)
@@ -239,401 +303,38 @@ describe("UniswapV3HedgingReactor", () => {
 		expect(averagePricePaid).to.lt(Number(weth_usdc_price_before))
 	})
 
+	it("should properly get current price from the pool", async () => {
+		const poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const prices = await uniswapV3RangeOrderReactor.getPoolPrice()
+		const weth_usdc_price = poolInfo.token1Price.toFixed()
+		const usdc_weth_price = poolInfo.token0Price.toFixed(9)
+		const chainlinkPrice = await priceFeed.getNormalizedRate(
+			WETH_ADDRESS[chainId],
+			USDC_ADDRESS[chainId]
+		)
+		const usdcDifference = Number(fromWei(prices.price)) - Number(usdc_weth_price)
+		const wethDifference = Number(fromWei(prices.inversed)) - Number(weth_usdc_price)
+		expect(usdcDifference).to.be.lt(0.0001)
+		expect(wethDifference).to.be.lt(1)
+	})
+
+	it("hedges delta", async () => {
+		console.log("hedge delta", toWei("-2").toString())
+		const res = await uniswapV3RangeOrderReactor.hedgeDelta(toWei("-2"))
+	})
+
 	it("yanks pool liquidity", async () => {
-		//const amounts = await uniswapV3RangeOrderReactor.getAmountsForLiquidity()
-		//console.log({ amounts })
-		await uniswapV3RangeOrderReactor.yankRangeOrderLiquidity()
+		//await uniswapV3RangeOrderReactor.yankRangeOrderLiquidity()
+		const poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const weth_usdc_price_after = poolInfo.token1Price.toFixed()
+		const usdc_weth_price = Number(poolInfo.token0Price.toFixed(18))
+		const reversed_price = 1 / usdc_weth_price
+		const price = await uniswapV3RangeOrderReactor.getPoolPrice()
+		console.log({ price, weth_usdc_price_after, usdc_weth_price, reversed_price })
 	})
 	/* 	it("updates minAmount parameter", async () => {
 		await uniswapV3HedgingReactor.setMinAmount(1e10)
 		const minAmount = await uniswapV3HedgingReactor.minAmount()
 		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 10))
 	}) */
-
-	it("sets reactor address on LP contract", async () => {
-		const reactorAddress = uniswapV3RangeOrderReactor.address
-
-		await liquidityPoolDummy.setHedgingReactorAddress(reactorAddress)
-
-		expect(await liquidityPoolDummy.uniswapV3HedgingReactor()).to.equal(reactorAddress)
-	})
-
-	/* 	it("changes nothing if no ETH balance and hedging positive delta", async () => {
-		wethContract = (await ethers.getContractAt(
-			"contracts/tokens/ERC20.sol:ERC20",
-			WETH_ADDRESS[chainId]
-		)) as MintableERC20
-		const reactorWethBalanceBefore = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3RangeOrderReactor.address))
-			)
-		)
-
-		expect(reactorWethBalanceBefore).to.equal(0)
-
-		const reactorDeltaBefore = parseFloat(
-			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
-		)
-		const LpUsdcBalanceBefore = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-
-		await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther("20"))
-
-		const reactorWethBalanceAfter = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
-			)
-		)
-		const reactorDeltaAfter = parseFloat(
-			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
-		)
-		const LpUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-
-		expect(reactorDeltaBefore).to.equal(reactorDeltaAfter)
-		expect(reactorWethBalanceBefore).to.equal(reactorWethBalanceAfter)
-		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter)
-	}) */
-
-	it("hedges a negative delta", async () => {
-		const LpUsdcBalanceBefore = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther("-0.5"))
-		await hedgeDeltaTx.wait()
-		const reactorWethBalance = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
-			)
-		)
-
-		const LpUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-
-		const reactorDelta = parseFloat(
-			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
-		)
-		expect(reactorDelta).to.equal(0.5)
-		expect(reactorWethBalance).to.equal(0.5)
-		expect(LpUsdcBalanceBefore).to.be.above(LpUsdcBalanceAfter)
-	})
-	it("getDelta returns correct value", async () => {
-		const reactorDelta = parseFloat(
-			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
-		)
-		expect(reactorDelta).to.equal(0.5)
-	})
-	it("gets the portfolio value", async () => {
-		const usdBalance = await usdcContract.balanceOf(uniswapV3HedgingReactor.address)
-		const wethBalance = await wethContract.balanceOf(uniswapV3HedgingReactor.address)
-		const val = await uniswapV3HedgingReactor.getPoolDenominatedValue()
-		const usdValue = usdBalance.mul(1000000000000)
-		const wethValue = wethBalance.mul(rate).div(1000000)
-		expect(usdValue.add(wethValue)).to.eq(val)
-	})
-	it("hedges a positive delta with sufficient funds", async () => {
-		const LpUsdcBalanceBefore = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther("0.3"))
-		await hedgeDeltaTx.wait()
-
-		const LpUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		const reactorWethBalance = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
-			)
-		)
-
-		const reactorDelta = parseFloat(
-			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
-		)
-
-		// no funds being withdrawn to LP so balance should be unchanged
-		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.be.within(0, 5000)
-		expect(reactorDelta).to.equal(0.2)
-		expect(reactorWethBalance).to.equal(0.2)
-	})
-	it("hedges a positive delta with insufficient funds", async () => {
-		// has a balance of 5 wETH at this point
-		// try to hedge another 15 delta
-		const LpUsdcBalanceBefore = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther("15"))
-
-		await hedgeDeltaTx.wait()
-
-		const reactorWethBalance = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
-			)
-		)
-		const reactorDelta = parseFloat(
-			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
-		)
-		const LpUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.be.within(0, 700)
-		expect(reactorWethBalance).to.equal(0)
-		expect(reactorDelta).to.equal(0)
-	})
-
-	it("withdraws funds without liquidation", async () => {
-		// give it ETH balance
-		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther("-0.5"))
-		await hedgeDeltaTx.wait()
-
-		let reactorUsdcBalance = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(uniswapV3HedgingReactor.address)),
-				6
-			)
-		)
-
-		const reactorWethBalanceBefore = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
-			)
-		)
-
-		const reactorDeltaBefore = parseFloat(
-			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
-		)
-
-		expect(reactorWethBalanceBefore).to.equal(0.5)
-
-		const withdrawAmount = "500"
-
-		const LpUsdcBalanceBefore = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		const withdrawTx = await liquidityPoolDummy.withdraw(ethers.utils.parseUnits(withdrawAmount, 18))
-		let reactorUsdcBalanceOld = reactorUsdcBalance
-		reactorUsdcBalance = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(uniswapV3HedgingReactor.address)),
-				6
-			)
-		)
-		const LpUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		const reactorWethBalanceAfter = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
-			)
-		)
-		const reactorDeltaAfter = parseFloat(
-			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
-		)
-		// expect LP balance to go up by withdrawAmount
-		expect(LpUsdcBalanceAfter).to.equal(LpUsdcBalanceBefore)
-		// expect reactor balance to go down by withdrawAmount
-		expect(reactorUsdcBalance.toFixed(6)).to.equal(reactorUsdcBalanceOld.toFixed(6))
-		// expect reactor wETH balance to be unchanged
-		expect(reactorWethBalanceBefore).to.equal(reactorWethBalanceAfter)
-		expect(reactorDeltaAfter).to.equal(reactorWethBalanceAfter)
-		expect(reactorDeltaBefore).to.equal(reactorDeltaAfter)
-	})
-
-	it("liquidates WETH and withdraws sufficient funds", async () => {
-		const reactorUsdcBalanceBefore = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(uniswapV3HedgingReactor.address)),
-				6
-			)
-		)
-		const reactorWethBalanceBefore = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
-			)
-		)
-		const LpUsdcBalanceBefore = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		const withdrawAmount = "9000"
-
-		expect(reactorWethBalanceBefore).to.equal(0.5)
-		expect(parseFloat(withdrawAmount)).to.be.above(reactorUsdcBalanceBefore)
-		// withdraw more than current balance
-		await liquidityPoolDummy.withdraw(ethers.utils.parseUnits(withdrawAmount, 18))
-		await liquidityPoolDummy.getDelta()
-		const reactorWethBalanceAfter = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
-			)
-		)
-		const reactorUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(uniswapV3HedgingReactor.address)),
-				6
-			)
-		)
-
-		const LpUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		const reactorDelta = parseFloat(
-			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
-		)
-
-		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore)
-		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore - reactorUsdcBalanceBefore).to.be.within(
-			-0.001,
-			0.001
-		)
-		expect(reactorUsdcBalanceAfter).to.equal(0)
-		expect(reactorDelta).to.equal(reactorWethBalanceAfter)
-	})
-
-	it("liquidates all ETH and withdraws but does not have enough funds", async () => {
-		// If withdraw amount is greater than the value of assets in the reactor, it should liquidate everything and send all to the LP
-		const LpUsdcBalanceBefore = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-
-		const reactorWethBalanceBefore = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
-			)
-		)
-		expect(reactorWethBalanceBefore).to.be.above(0)
-		const withdrawAmount = "100000000" //100 million
-		const tx = await liquidityPoolDummy.withdraw(ethers.utils.parseUnits(withdrawAmount, 18))
-
-		await tx.wait()
-		const LpUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-
-		const reactorUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(uniswapV3HedgingReactor.address)),
-				6
-			)
-		)
-		const reactorWethBalanceAfter = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
-			)
-		)
-
-		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.be.below(parseFloat(withdrawAmount))
-		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore)
-		expect(reactorUsdcBalanceAfter).to.equal(0)
-	})
-
-	it("update changes no balances", async () => {
-		const reactorUsdcBalanceBefore = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(uniswapV3HedgingReactor.address)),
-				6
-			)
-		)
-		const reactorWethBalanceBefore = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
-			)
-		)
-		const LpUsdcBalanceBefore = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		const tx = await liquidityPoolDummy.update()
-		const reactorUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(uniswapV3HedgingReactor.address)),
-				6
-			)
-		)
-		const reactorWethBalanceAfter = parseFloat(
-			ethers.utils.formatEther(
-				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
-			)
-		)
-		const LpUsdcBalanceAfter = parseFloat(
-			ethers.utils.formatUnits(
-				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
-				6
-			)
-		)
-		expect(reactorUsdcBalanceBefore).to.equal(reactorUsdcBalanceAfter)
-		expect(reactorWethBalanceBefore).to.equal(reactorWethBalanceAfter)
-		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter)
-	})
-
-	it("updates poolFee", async () => {
-		let poolFee = await uniswapV3HedgingReactor.poolFee()
-		expect(poolFee).to.equal(3000)
-		const tx = await uniswapV3HedgingReactor.changePoolFee(1000)
-		poolFee = await uniswapV3HedgingReactor.poolFee()
-		expect(poolFee).to.equal(1000)
-	})
-
-	it("update pool fee reverts if not owner", async () => {
-		await expect(uniswapV3HedgingReactor.connect(signers[1]).changePoolFee(10000)).to.be.reverted
-		let poolFee = await uniswapV3HedgingReactor.poolFee()
-		expect(poolFee).to.equal(1000)
-	})
-
-	it("withdraw reverts if not called form liquidity pool", async () => {
-		await expect(uniswapV3HedgingReactor.withdraw(100000000000)).to.be.revertedWith("!vault")
-	})
-
-	it("hedgeDelta reverts if not called from liquidity pool", async () => {
-		await expect(
-			uniswapV3HedgingReactor.hedgeDelta(ethers.utils.parseEther("-10"))
-		).to.be.revertedWith("!vault")
-	})
 })
