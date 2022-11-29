@@ -556,8 +556,6 @@ describe("GMX Hedging Reactor", () => {
 		// should be $2000 unrealised loss
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1300", 8))
 
-		const usdcBalanceBeforeLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
-
 		const longPositionBefore = await gmxReader.getPositions(
 			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
 			gmxReactor.address,
@@ -565,6 +563,9 @@ describe("GMX Hedging Reactor", () => {
 			[wethAddress],
 			[true]
 		)
+		console.log(longPositionBefore)
+
+		const usdcBalanceBeforeLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
 
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
 
@@ -615,7 +616,155 @@ describe("GMX Hedging Reactor", () => {
 		expect(parseFloat(utils.formatUnits(shortPositionAfter[1], 30))).to.be.within(6480, 6500)
 		expect(shortPositionAfter[8]).to.eq(0)
 
-		// decrease pos params: 10000000000000000000 6352446847 true
-		// decreasePositionKey: '0xaf7dd668192988b88cc7750ccde851ab9cbf592fc1eb5636fd68bdac7fad7575'
+		const usdcBalanceAfterLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+
+		const usdcBalanceDiff = usdcBalanceAfterLP - usdcBalanceBeforeLP
+		console.log({ usdcBalanceBeforeLP, usdcBalanceAfterLP })
+
+		const expectedUdscDiff = parseFloat(utils.formatUnits(longPositionBefore[1].sub(longPositionBefore[8]), 30)) - 6500
+		expect(usdcBalanceDiff).to.be.within(expectedUdscDiff - 40, expectedUdscDiff)
+
+		// check internalDelta var is correct
+		const deltaAfter = await gmxReactor.internalDelta()
+		expect(deltaAfter).to.eq(utils.parseEther("-10"))
+	})
+	it("adds to short when in loss", async () => {
+		// currently short 10 delta
+		// add another 5 delta to short
+		const delta = 5
+		// set price to $1500
+		// should be $2000 unrealised loss
+		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1500", 8))
+
+		const usdcBalanceBeforeLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+
+		const shortPositionBefore = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[usdcAddress],
+			[wethAddress],
+			[false]
+		)
+
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
+
+		// -------- execute the increase short request
+		const increaseLogs = await gmxReactor.queryFilter(gmxReactor.filters.CreateIncreasePosition(), 0)
+		const increasePositionKey = increaseLogs[increaseLogs.length - 1].args[0]
+		console.log({ increasePositionKey })
+		// fast forward 3 min and execute tx
+		await ethers.provider.send("evm_increaseTime", [180])
+		await ethers.provider.send("evm_mine")
+		const executeIncreaseTx = await gmxReactor.executeIncreasePosition(increasePositionKey)
+		await executeIncreaseTx.wait()
+		console.log("increase position executed")
+
+		// position after
+
+		const shortPositionAfter = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[usdcAddress],
+			[wethAddress],
+			[false]
+		)
+		expect(shortPositionAfter[0]).to.eq(utils.parseUnits("20500", 30)) // 1300 * 10 + 1500 * 5
+		expect(parseFloat(utils.formatUnits(shortPositionAfter[1], 30))).to.be.within(12220, 12250) // (20500 / 2) + 2000
+		expect(parseInt(utils.formatUnits(shortPositionAfter[2], 30))).to.eq(1366)
+
+		expect(parseFloat(utils.formatUnits(shortPositionAfter[8], 30))).to.eq(2000)
+
+		const usdcBalanceAfterLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+		const usdcBalanceDiff = usdcBalanceBeforeLP - usdcBalanceAfterLP
+
+		const expectedUdscDiff =
+			3750 +
+			parseFloat(
+				utils.formatUnits(shortPositionBefore[8].add(shortPositionBefore[0].div(2).sub(shortPositionBefore[1])), 30)
+			)
+		console.log({ expectedUdscDiff })
+
+		expect(usdcBalanceDiff).to.be.within(expectedUdscDiff - 1, expectedUdscDiff + 1)
+
+		// check internalDelta var is correct
+		const deltaAfter = await gmxReactor.internalDelta()
+		expect(deltaAfter).to.eq(utils.parseEther("-15"))
+	})
+	it("closes short in loss and flips long", async () => {
+		// currently short 15 delta
+		// go long 25 delta
+		const delta = -25
+		// set price to $1600
+		// should be $3500 unrealised loss
+		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1600", 8))
+
+		const usdcBalanceBeforeLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+
+		const shortPositionBefore = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[usdcAddress],
+			[wethAddress],
+			[false]
+		)
+		expect(parseFloat(utils.formatUnits(shortPositionBefore[8], 30))).to.eq(3500)
+
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
+
+		// -------- execute the decrease short request
+		const decreaseLogs = await gmxReactor.queryFilter(gmxReactor.filters.CreateDecreasePosition(), 0)
+		const decreasePositionKey = decreaseLogs[decreaseLogs.length - 1].args[0]
+		console.log({ decreasePositionKey })
+		// fast forward 3 min and execute tx
+		await ethers.provider.send("evm_increaseTime", [180])
+		await ethers.provider.send("evm_mine")
+		const executeDecreaseTx = await gmxReactor.executeDecreasePosition(decreasePositionKey)
+		await executeDecreaseTx.wait()
+		console.log("decrease position executed")
+
+		// -------- execute the increase long request
+		const increaseLogs = await gmxReactor.queryFilter(gmxReactor.filters.CreateIncreasePosition(), 0)
+		const increasePositionKey = increaseLogs[increaseLogs.length - 1].args[0]
+		console.log({ increasePositionKey })
+		// fast forward 3 min and execute tx
+		await ethers.provider.send("evm_increaseTime", [180])
+		await ethers.provider.send("evm_mine")
+		const executeIncreaseTx = await gmxReactor.executeIncreasePosition(increasePositionKey)
+		await executeIncreaseTx.wait()
+		console.log("increase position executed")
+
+		// positions after
+
+		const shortPositionAfter = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[usdcAddress],
+			[wethAddress],
+			[false]
+		)
+		const longPositionAfter = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[wethAddress],
+			[wethAddress],
+			[true]
+		)
+		expect(shortPositionAfter[0]).to.eq(0)
+		expect(shortPositionAfter[1]).to.eq(0)
+		expect(shortPositionAfter[8]).to.eq(0)
+
+		expect(longPositionAfter[0]).to.eq(utils.parseUnits("16000", 30))
+		expect(parseFloat(utils.formatUnits(longPositionAfter[1], 30))).to.be.within(7950, 8000)
+		expect(longPositionAfter[8]).to.eq(0)
+
+		const usdcBalanceAfterLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+		const usdcBalanceDiff = usdcBalanceAfterLP - usdcBalanceBeforeLP
+
+		const expectedUdscDiff = parseFloat(utils.formatUnits(shortPositionBefore[1].sub(shortPositionBefore[8]), 30)) - 8000
+		expect(usdcBalanceDiff).to.be.within(expectedUdscDiff - 30, expectedUdscDiff)
+
+		// check internalDelta var is correct
+		const deltaAfter = await gmxReactor.internalDelta()
+		expect(deltaAfter).to.eq(utils.parseEther("10"))
 	})
 })
