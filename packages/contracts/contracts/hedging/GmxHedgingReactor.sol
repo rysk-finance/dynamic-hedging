@@ -19,8 +19,6 @@ import "../interfaces/IGmxVault.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import "hardhat/console.sol";
-
 /**
  *  @title A hedging reactor that will manage delta by opening or closing short or long perp positions using rage trade
  *  @dev interacts with LiquidityPool via hedgeDelta, getDelta, getPoolDenominatedValue and withdraw,
@@ -390,13 +388,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		} else {
 			// _amount is negative
 			// enter a short position
-			console.log("reduce delta");
 			if (internalDelta > 0) {
-				console.log("closing long first");
-				console.log("amount of delta to reduce:", _amount > 0 ? uint256(_amount) : uint256(-_amount));
 				// close longs first
 				uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(-_amount));
-				console.log("adjusted position size:", adjustedPositionSize);
 				int256 rebalancingCollateral = isAboveMax ? -int256(collatToTransfer) : int256(collatToTransfer);
 				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(
 					adjustedPositionSize,
@@ -410,14 +404,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 				// remove the adjustedPositionSize from _amount to get remaining amount of delta to hedge to open shorts with
 				_amount = _amount + int256(adjustedPositionSize);
-				console.log("updated amount after removing closed long", uint256(-_amount));
 				if (_amount == 0) return -int256(adjustedPositionSize);
 				closedPositionDeltaChange = deltaChange;
 				closedOppositeSideFirst = true;
 			}
 			// increase short position
 			// if closed longs first then there is no short position open so nothing to rebalance
-			console.log("amount remaining for long", uint256(-_amount));
 			int256 rebalancingCollateral = closedOppositeSideFirst ? int256(0) : isAboveMax
 				? -int256(collatToTransfer)
 				: int256(collatToTransfer);
@@ -472,7 +464,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		uint256 _collateralSize,
 		bool _isLong
 	) internal returns (bytes32 positionKey, int256 deltaChange) {
-		console.log("decrease pos params:", _size, _collateralSize, _isLong);
 		address _collateralAsset = collateralAsset;
 		address _wETH = wETH;
 		PositionData memory positionData = _getPosition(_isLong);
@@ -646,7 +637,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			internalDelta += orderDeltaChange[positionKey];
 			delete orderDeltaChange[positionKey];
 		}
-		console.log("callack fired", isExecuted, isIncrease);
 		uint256 usdcBalance = ERC20(collateralAsset).balanceOf(address(this));
 		SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, usdcBalance);
 	}
