@@ -250,7 +250,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @inheritdoc IHedgingReactor
 	function getPoolDenominatedValue() external view returns (uint256 value) {
-		return 0;
+		(, , , , uint256[] position) = checkVaultHealth();
+		if (position[7] == 1) {
+			value = (position[1] + position[8]) / 1e12;
+		} else {
+			value = (position[1] - position[8]) / 1e12;
+		}
 	}
 
 	/** @notice function to check the health of the margin account
