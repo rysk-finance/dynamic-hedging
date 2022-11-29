@@ -20,7 +20,7 @@ import "./interfaces/AddressBookInterface.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
-import "./libraries/Actions.sol";
+import "./libraries/RyskActions.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
@@ -207,7 +207,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function update() external pure returns (uint256) {
 		return 0;
 	}
-	
+
 	/**
 	 * @notice issue an option series for buying or sale
 	 * @param  options option type to approve - strike in e18
@@ -276,241 +276,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 	}
 
-	/////////////////////////////////////////////
-	/// external state changing functionality ///
-	/////////////////////////////////////////////
-
-	function operate(OpynActions.ActionArgs[] memory _opynActions, RyskAction.ActionArgs[] memory _ryskActions) external nonReentrant whenNotPaused {
-		_runActions(_actions);
-        // if (vaultUpdated) {
-        //     _verifyFinalState(vaultOwner, vaultId);
-        //     vaultLatestUpdate[vaultOwner][vaultId] = now;
-        // }
-	}
-
-    /**
-     * @notice execute a variety of actions
-     * @dev for each action in the action array, execute the corresponding action, only one vault can be modified
-     * for all actions except SettleVault, Redeem, and Call
-     * @param _actions array of type Actions.ActionArgs[], which expresses which actions the user wants to execute
-     * @return vaultUpdated, indicates if a vault has changed
-     * @return owner, the vault owner if a vault has changed
-     * @return vaultId, the vault Id if a vault has changed
-     */
-    function _runActions(OpynActions.ActionArgs[] memory _opynActions, RyskActions.ActionArgs[] memory _ryskActions)
-        internal
-    {
-		IController controller = IController(addressbook.getController());
-        for (uint256 i = 0; i < _opynActions.length; i++) {
-			// loop through the opyn actions, if any involve opening a vault then make sure the msg.sender gets the ownership and if there are any more vault ids make sure the msg.sender is the owners
-            OpynActions.ActionArgs memory action = _opynActions[i];
-            OpynActions.ActionType actionType = action.actionType;
-			if (actionType == OpynActions.ActionType.OpenVault) {
-				// might need to change open vault vault id, otherwise check the vault id somehow
-			} else if (actionType == OpynActions.ActionType.DepositLongOption) {
-                // check the from address is as it should be and check the vault id
-            } else if (actionType == OpynActions.ActionType.WithdrawLongOption) {
-                // check the to address is as it should be and check the vault id
-            } else if (actionType == OpynActions.ActionType.DepositCollateral) {
-                // check the from address is as it should be and check the vault id
-            } else if (actionType == OpynActions.ActionType.WithdrawCollateral) {
-                // check the from address is as it should be and check the vault id
-            } else if (actionType == OpynActions.ActionType.MintShortOption) {
-                // check the to address is as it should be and check the vault id
-            } else if (actionType == OpynActions.ActionType.BurnShortOption) {
-                // check the from address is as it should be and check the vault id
-            } else if (actionType == OpynActions.ActionType.Redeem) {
-                // maybe dont allow
-            } else if (actionType == OpynActions.ActionType.SettleVault) {
-                // check the to address is as it should be and check the vault id
-            } else if (actionType == OpynActions.ActionType.Liquidate) {
-                // not sure yet, leaning to not allow
-            } else if (actionType == OpynActions.ActionType.Call) {
-                // dont allow
-            }
-        }
-		controller.operate(_opynActions);
-		for (uint256 i = 0; i < _ryskActions.length; i++) {
-			RyskActions.ActionArgs memory action = _opynActions[i];
-            RyskActions.ActionType actionType = action.actionType;
-			if (actionType == RyskActions.ActionType.SellOption) {
-				_sellOption();
-			} else if (actionType == RyskActions.ActionType.BuyOption) {
-				_buyOption();
-            } else if (actionType == OpynActions.ActionType.CloseOption) {
-				_closeOption();
-            } else if (actionType == OpynActions.ActionType.Issue) {
-				_issue();
-			}
-		}
-
-    }
-
-	/**
-	 * @notice user buys a number of options for a given series address
-	 * @param  seriesAddress the option token series address
-	 * @param  amount        the number of options to mint expressed as 1e18
-	 * @return number of options minted
-	 */
-	function _writeOption(address seriesAddress, uint256 amount)
-		external
-		whenNotPaused
-		nonReentrant
-		returns (uint256)
-	{
-		// TODO: If we hold the option in the gamma hedging reactor then we route it through here and sell it to the user, reducing our longExposure
-		IOptionRegistry optionRegistry = getOptionRegistry();
-		// get the option series from the pool
-		Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
-		// make sure the expiry actually exists
-		if (optionSeries.expiration == 0) {
-			revert CustomErrors.NonExistentOtoken();
-		}
-		// concert the strike to e18 decimals
-		uint128 strikeDecimalConverted = uint128(
-			OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals())
-		);
-		// check if the option series is approved using the e18 strike value
-		bytes32 oHash = keccak256(
-			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
-		);
-		if (!approvedOptions[oHash]) {
-			revert CustomErrors.UnapprovedSeries();
-		}
-		// check if the series is for sale
-		if (!isSelling[oHash]) {
-			revert CustomErrors.NotSellingSeries();
-		}
-		// convert the strike to e18 decimals for storage
-		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
-			optionSeries.expiration,
-			strikeDecimalConverted,
-			optionSeries.isPut,
-			underlyingAsset,
-			strikeAsset,
-			collateralAsset
-		);
-		// calculate premium and delta from the option pricer, returning the premium in collateral decimals and delta in e18
-		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, amount, false);
-		// transfer the premium from the user to the liquidity pool
-		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), premium);
-		// add this series to the portfolio values feed so its stored on the book
-		getPortfolioValuesFeed().updateStores(seriesToStore, int256(amount), 0, seriesAddress);
-		// get the liquidity pool to write the option
-		return
-			liquidityPool.handlerWriteOption(
-				optionSeries,
-				seriesAddress,
-				amount,
-				optionRegistry,
-				premium,
-				delta,
-				msg.sender
-			);
-	}
-
-	/**
-	 * @notice issue the otoken and write a number of options for a given series configuration
-	 * @param  optionSeries the option token series
-	 */
-	function _issue(Types.OptionSeries memory optionSeries)
-		internal
-		whenNotPaused
-		nonReentrant
-		returns (uint256 optionAmount, address series)
-	{
-		// format the strike correctly
-		uint128 strike = uint128(
-			formatStrikePrice(optionSeries.strike, collateralAsset) * 10**CONVERSION_DECIMALS
-		);
-		// check if the option series is approved
-		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, strike, optionSeries.isPut));
-		if (!approvedOptions[oHash]) {
-			revert CustomErrors.UnapprovedSeries();
-		}
-		// check if the series is for sale
-		if (!isSelling[oHash]) {
-			revert CustomErrors.NotSellingSeries();
-		}
-		series = liquidityPool.handlerIssue(optionSeries);
-	}
-
-	/**
-	 * @notice buys a number of options back and burns the tokens
-	 * @param seriesAddress the option token series address to buyback
-	 * @param amount the number of options to buyback expressed in 1e18
-	 * @return the number of options bought and burned
-	 */
-	function _sellOption(address seriesAddress, uint256 amount)
-		internal
-		whenNotPaused
-		nonReentrant
-		returns (uint256)
-	{
-		IOptionRegistry optionRegistry = getOptionRegistry();
-		// get the option series from the pool
-		Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
-		uint128 strikeDecimalConverted = uint128(
-			OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(seriesAddress).decimals())
-		);
-		// check if the option series is approved
-		bytes32 oHash = keccak256(
-			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
-		);
-		if (!approvedOptions[oHash]) {
-			revert CustomErrors.UnapprovedSeries();
-		}
-		// check if the series is for buying
-		if (!isBuying[oHash]) {
-			revert CustomErrors.NotBuyingSeries();
-		}
-		// revert if the expiry is in the past
-		if (optionSeries.expiration <= block.timestamp) {
-			revert CustomErrors.OptionExpiryInvalid();
-		}
-		// convert the strike to e18 decimals for storage
-		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
-			optionSeries.expiration,
-			strikeDecimalConverted,
-			optionSeries.isPut,
-			underlyingAsset,
-			strikeAsset,
-			collateralAsset
-		);
-		// get quote on the option to buy back, always return the total values
-		SafeTransferLib.safeTransferFrom(
-			seriesAddress,
-			msg.sender,
-			address(liquidityPool),
-			OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals())
-		);
-		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, amount, true);
-		// update the series on the stores
-		getPortfolioValuesFeed().updateStores(seriesToStore, -int256(amount), 0, seriesAddress);
-		return
-			liquidityPool.handlerBuybackOption(
-				optionSeries,
-				amount,
-				optionRegistry,
-				seriesAddress,
-				premium,
-				delta,
-				msg.sender
-			);
-	}
-	function sellOption(address _series, uint256 _amount) external returns(uint256) {
-		// check the address on the whitelisted products, if it is in there then check the ohash stuff first and the expiry validity as well as the underlying and strike asset
-		// check the strike and underlying asset
-		// check if the option exists on the option registry and check if we have exposure
-		// if we have exposure then run it through the buyback, if we dont have enough exposure in the dhv then go to sell option
-		// if we dont have exposure then run it through the sell option flow
-		// do all the state updates
-	}
-
-	function buyOption(address _series, uint256 _amount) external returns (uint256) {
-		// check if we have balance of the option they want first, if we do then sell it off
-		// if there is a remainder then go through the write option flow
-	}
 	/**
 	 * @notice get the dhv to redeem an expired otoken
 	 * @param _series the list of series to redeem
@@ -549,66 +314,236 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 	}
 
-	/**
-	 * @notice buy an otoken from the dhv
-	 * @param _series the option series to receive back
-	 * @param _amount the amount of options to buy from the dhv in e18
-	 * @return premium the premium paid from the dhv to the user
-	 */
-	function closeOption(address _series, uint256 _amount) external returns (uint256) {
-		if (ERC20(_series).balanceOf(address(this)) * 10**CONVERSION_DECIMALS < _amount) {
-			revert CustomErrors.InsufficientBalance();
+	/////////////////////////////////////////////
+	/// external state changing functionality ///
+	/////////////////////////////////////////////
+
+	function operate(IController.ActionArgs[] memory _opynActions, RyskActions.ActionArgs[] memory _ryskActions) external nonReentrant whenNotPaused {
+		_runActions(_opynActions, _ryskActions);
+        // if (vaultUpdated) {
+        //     _verifyFinalState(vaultOwner, vaultId);
+        //     vaultLatestUpdate[vaultOwner][vaultId] = now;
+        // }
+	}
+
+    /**
+     * @notice execute a variety of actions
+     */
+    function _runActions(IController.ActionArgs[] memory _opynActions, RyskActions.ActionArgs[] memory _ryskActions)
+        internal
+    {
+		bool dontRunOpynActions;
+		for (uint256 i = 0; i < _ryskActions.length; i++) {
+			RyskActions.ActionArgs memory action = _ryskActions[i];
+            RyskActions.ActionType actionType = action.actionType;
+			if (actionType == RyskActions.ActionType.Issue) {
+				_issue(RyskActions._parseIssueArgs(action));
+			} else if (actionType == RyskActions.ActionType.BuyOption) {
+				_buyOption(RyskActions._parseBuyOptionArgs(action));
+            } else if (actionType == RyskActions.ActionType.SellOption) {
+				_runOpynActions(_opynActions);
+				_sellOption(RyskActions._parseSellOptionArgs(action));
+			}
 		}
-		// check the otoken is whitelisted
-		IWhitelist(addressbook.getWhitelist()).isWhitelistedOtoken(_series);
-		IOtoken otoken = IOtoken(_series);
-		// get the option details
-		Types.OptionSeries memory optionSeries = Types.OptionSeries(
-			uint64(otoken.expiryTimestamp()),
-			uint128(otoken.strikePrice()) * 10**10,
-			otoken.isPut(),
-			otoken.underlyingAsset(),
-			otoken.strikeAsset(),
-			otoken.collateralAsset()
+		if (!dontRunOpynActions) {
+			_runOpynActions(_opynActions);
+		}
+    }
+
+	function _runOpynActions(IController.ActionArgs[] memory _opynActions) internal {
+		IController controller = IController(addressbook.getController());
+        for (uint256 i = 0; i < _opynActions.length; i++) {
+			// loop through the opyn actions, if any involve opening a vault then make sure the msg.sender gets the ownership and if there are any more vault ids make sure the msg.sender is the owners
+            IController.ActionArgs memory action = _opynActions[i];
+            IController.ActionType actionType = action.actionType;
+			if (actionType == IController.ActionType.OpenVault) {
+				// might need to change open vault vault id, otherwise check the vault id somehow
+			} else if (actionType == IController.ActionType.DepositLongOption) {
+                // check the from address is as it should be and check the vault id
+            } else if (actionType == IController.ActionType.WithdrawLongOption) {
+                // check the to address is as it should be and check the vault id
+            } else if (actionType == IController.ActionType.DepositCollateral) {
+                // check the from address is as it should be and check the vault id
+            } else if (actionType == IController.ActionType.WithdrawCollateral) {
+                // check the from address is as it should be and check the vault id
+            } else if (actionType == IController.ActionType.MintShortOption) {
+                // check the to address is as it should be and check the vault id
+            } else if (actionType == IController.ActionType.BurnShortOption) {
+                // check the from address is as it should be and check the vault id
+            } else if (actionType == IController.ActionType.Redeem) {
+                // maybe dont allow
+            } else if (actionType == IController.ActionType.SettleVault) {
+                // check the to address is as it should be and check the vault id
+            } else if (actionType == IController.ActionType.Liquidate) {
+                // not sure yet, leaning to not allow
+            } else if (actionType == IController.ActionType.Call) {
+                // dont allow
+            }
+        }
+		controller.operate(_opynActions);
+	}
+
+	/**
+	 * @notice issue the otoken and write a number of options for a given series configuration
+	 */
+	function _issue(RyskActions.IssueArgs memory _args)
+		internal
+		whenNotPaused
+		nonReentrant
+		returns (uint256 optionAmount, address series)
+	{
+		// format the strike correctly
+		uint128 strike = uint128(
+			formatStrikePrice(_args.optionSeries.strike, collateralAsset) * 10**CONVERSION_DECIMALS
+		);
+		// check if the option series is approved
+		bytes32 oHash = keccak256(abi.encodePacked(_args.optionSeries.expiration, strike, _args.optionSeries.isPut));
+		if (!approvedOptions[oHash]) {
+			revert CustomErrors.UnapprovedSeries();
+		}
+		// check if the series is for sale
+		if (!isSelling[oHash]) {
+			revert CustomErrors.NotSellingSeries();
+		}
+		series = liquidityPool.handlerIssue(_args.optionSeries);
+	}
+
+	/**
+	 * @notice user buys a number of options for a given series address
+	 * @return number of options minted
+	 */
+	function _buyOption(RyskActions.BuyOptionArgs memory _args)
+		internal
+		whenNotPaused
+		nonReentrant
+		returns (uint256)
+	{
+		// TODO: If we hold the option in the gamma hedging reactor then we route it through here and sell it to the user, reducing our longExposure
+		IOptionRegistry optionRegistry = getOptionRegistry();
+		// get the option series from the pool
+		Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(_args.seriesAddress);
+		// make sure the expiry actually exists
+		if (optionSeries.expiration == 0) {
+			revert CustomErrors.NonExistentOtoken();
+		}
+		// concert the strike to e18 decimals
+		uint128 strikeDecimalConverted = uint128(
+			OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(_args.seriesAddress).decimals())
+		);
+		// check if the option series is approved using the e18 strike value
+		bytes32 oHash = keccak256(
+			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
+		);
+		if (!approvedOptions[oHash]) {
+			revert CustomErrors.UnapprovedSeries();
+		}
+		// check if the series is for sale
+		if (!isSelling[oHash]) {
+			revert CustomErrors.NotSellingSeries();
+		}
+		// convert the strike to e18 decimals for storage
+		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
+			optionSeries.expiration,
+			strikeDecimalConverted,
+			optionSeries.isPut,
+			underlyingAsset,
+			strikeAsset,
+			collateralAsset
+		);
+		// calculate premium and delta from the option pricer, returning the premium in collateral decimals and delta in e18
+		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, _args.amount, false);
+		// transfer the premium from the user to the liquidity pool
+		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), premium);
+		// add this series to the portfolio values feed so its stored on the book
+		getPortfolioValuesFeed().updateStores(seriesToStore, int256(_args.amount), 0, _args.seriesAddress);
+		// get the liquidity pool to write the option
+		return
+			liquidityPool.handlerWriteOption(
+				optionSeries,
+				_args.seriesAddress,
+				_args.amount,
+				optionRegistry,
+				premium,
+				delta,
+				msg.sender
+			);
+	}
+
+	/**
+	 * @notice buys a number of options back and burns the tokens
+	 * @return the number of options bought and burned
+	 */
+	function _sellOption(RyskActions.SellOptionArgs memory _args)
+		internal
+		whenNotPaused
+		nonReentrant
+		returns (uint256)
+	{
+		IOptionRegistry optionRegistry = getOptionRegistry();
+		// get the option series from the pool
+		Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(_args.seriesAddress);
+		uint128 strikeDecimalConverted = uint128(
+			OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(_args.seriesAddress).decimals())
 		);
 		// check if the option series is approved
 		bytes32 oHash = keccak256(
-			abi.encodePacked(optionSeries.expiration, optionSeries.strike, optionSeries.isPut)
+			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
 		);
-		if (!handler.approvedOptions(oHash)) {
+		if (!approvedOptions[oHash]) {
 			revert CustomErrors.UnapprovedSeries();
 		}
-		// check if the series is for selling
-		if (!handler.isSelling(oHash)) {
-			revert CustomErrors.NotSellingSeries();
+		// check if the series is for buying
+		if (!isBuying[oHash]) {
+			revert CustomErrors.NotBuyingSeries();
 		}
 		// revert if the expiry is in the past
 		if (optionSeries.expiration <= block.timestamp) {
 			revert CustomErrors.OptionExpiryInvalid();
 		}
-		// check the strike asset and underlying asset
-		if (optionSeries.underlying != underlyingAsset) {
-			revert CustomErrors.UnderlyingAssetInvalid();
-		}
-		if (optionSeries.strikeAsset != strikeAsset) {
-			revert CustomErrors.StrikeAssetInvalid();
-		}
-		// value the options
-		(uint256 premium, ) = pricer.quoteOptionPrice(optionSeries, _amount, false);
-		// transfer the otokens back to the user
-		SafeTransferLib.safeTransfer(
-			ERC20(_series),
-			msg.sender,
-			OptionsCompute.convertToDecimals(_amount, ERC20(_series).decimals())
+		// convert the strike to e18 decimals for storage
+		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
+			optionSeries.expiration,
+			strikeDecimalConverted,
+			optionSeries.isPut,
+			underlyingAsset,
+			strikeAsset,
+			collateralAsset
 		);
-		// transfer the premium back to the liquidity pool
-		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, parentLiquidityPool, premium);
-		// update on the pvfeed stores
-		getPortfolioValuesFeed().updateStores(optionSeries, 0, -int256(_amount), _series);
-		emit OptionPositionsClosed();
-		return premium;
+		// get quote on the option to buy back, always return the total values
+		SafeTransferLib.safeTransferFrom(
+			_args.seriesAddress,
+			msg.sender,
+			address(liquidityPool),
+			OptionsCompute.convertToDecimals(_args.amount, ERC20(_args.seriesAddress).decimals())
+		);
+		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, _args.amount, true);
+		// update the series on the stores
+		getPortfolioValuesFeed().updateStores(seriesToStore, -int256(_args.amount), 0, _args.seriesAddress);
+		return
+			liquidityPool.handlerBuybackOption(
+				optionSeries,
+				_args.amount,
+				optionRegistry,
+				_args.seriesAddress,
+				premium,
+				delta,
+				msg.sender
+			);
 	}
-	
+	// function sellOption(address _series, uint256 _amount) external returns(uint256) {
+	// 	// check the address on the whitelisted products, if it is in there then check the ohash stuff first and the expiry validity as well as the underlying and strike asset
+	// 	// check the strike and underlying asset
+	// 	// check if the option exists on the option registry and check if we have exposure
+	// 	// if we have exposure then run it through the buyback, if we dont have enough exposure in the dhv then go to sell option
+	// 	// if we dont have exposure then run it through the sell option flow
+	// 	// do all the state updates
+	// }
+
+	// function buyOption(address _series, uint256 _amount) external returns (uint256) {
+	// 	// check if we have balance of the option they want first, if we do then sell it off
+	// 	// if there is a remainder then go through the write option flow
+	// }
+
 	///////////////////////////
 	/// non-complex getters ///
 	///////////////////////////

@@ -30,7 +30,7 @@ import {
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { VolatilityFeed } from "../types/VolatilityFeed"
 import { Accounting } from "../types/Accounting"
-import { BeyondOptionHandler } from "../types/BeyondOptionHandler"
+import { OptionExchange } from "../types/OptionExchange"
 import { BeyondPricer } from "../types/BeyondPricer"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -233,28 +233,28 @@ export async function deployLiquidityPool(
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
-	const handlerFactory = await ethers.getContractFactory("BeyondOptionHandler", {
+	const exchangeFactory = await ethers.getContractFactory("OptionExchange",  {
 		libraries: {
 			OpynInteractions: interactions.address
 		}
 	})
-	const handler = (await handlerFactory.deploy(
+	const exchange = (await exchangeFactory.deploy(
 		authority,
 		optionProtocol.address,
 		liquidityPool.address,
 		pricer.address,
 		ADDRESS_BOOK[chainId],
 		UNISWAP_V3_SWAP_ROUTER[chainId]
-	)) as BeyondOptionHandler
-	await liquidityPool.changeHandler(handler.address, true)
-	await pvFeed.setKeeper(handler.address, true)
+	)) as OptionExchange
+	await liquidityPool.changeHandler(exchange.address, true)
+	await pvFeed.setKeeper(exchange.address, true)
 	await pvFeed.setKeeper(liquidityPool.address, true)
 	await pvFeed.setKeeper(await signers[0].getAddress(), true)
-	await pvFeed.setHandler(handler.address, true)
+	await pvFeed.setHandler(exchange.address, true)
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,
-		handler: handler,
+		exchange: exchange,
 		accounting: Accounting,
 		pricer: pricer
 	}
