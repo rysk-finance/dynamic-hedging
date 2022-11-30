@@ -80,6 +80,7 @@ export const VaultChart = () => {
 
               return {
                 epoch: ppsEpoch.id,
+                // @reminder: For presentation it's ok but reminder that number of float decimals is 17
                 growthSinceFirstEpoch: parseFloat(
                   ppsEpoch.growthSinceFirstEpoch
                 ),
