@@ -45,8 +45,6 @@ library RyskActions {
     struct ActionArgs {
         // type of action that is being performed on the system
         ActionType actionType;
-        // address of the account owner
-        address owner;
         // address which we move assets from or to (depending on the action type)
         address secondAddress;
         // asset that is to be transfered
@@ -107,7 +105,7 @@ library RyskActions {
      */
     function _parseBuyOptionArgs(ActionArgs memory _args) internal pure returns (BuyOptionArgs memory) {
         require(_args.actionType == ActionType.BuyOption, "A4");
-
+        
         return
             BuyOptionArgs({
                 optionSeries: _args.optionSeries,

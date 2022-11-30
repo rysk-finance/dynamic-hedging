@@ -389,7 +389,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function _issue(RyskActions.IssueArgs memory _args)
 		internal
 		whenNotPaused
-		nonReentrant
 		returns (uint256 optionAmount, address series)
 	{
 		// format the strike correctly
@@ -415,21 +414,38 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function _buyOption(RyskActions.BuyOptionArgs memory _args)
 		internal
 		whenNotPaused
-		nonReentrant
 		returns (uint256)
 	{
 		// TODO: If we hold the option in the gamma hedging reactor then we route it through here and sell it to the user, reducing our longExposure
 		IOptionRegistry optionRegistry = getOptionRegistry();
-		// get the option series from the pool
-		Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(_args.seriesAddress);
-		// make sure the expiry actually exists
-		if (optionSeries.expiration == 0) {
-			revert CustomErrors.NonExistentOtoken();
-		}
-		// concert the strike to e18 decimals
+		address seriesAddress = _args.seriesAddress;
+		Types.OptionSeries memory optionSeries = _args.optionSeries;
+		// convert the strike to e18 decimals
 		uint128 strikeDecimalConverted = uint128(
-			OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(_args.seriesAddress).decimals())
+			formatStrikePrice(optionSeries.strike, collateralAsset)
 		);
+		// if the series address is not known then we need to find it
+		if (seriesAddress == address(0)) {
+			seriesAddress = optionRegistry.getSeries(Types.OptionSeries(
+				optionSeries.expiration,
+				strikeDecimalConverted,
+				optionSeries.isPut,
+				underlyingAsset,
+				strikeAsset,
+				collateralAsset
+			));
+			if (seriesAddress == address(0)) {
+				revert CustomErrors.NonExistentOtoken();
+			}
+		} else {
+			// get the option series from the pool
+			optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+			// make sure the expiry actually exists
+			if (optionSeries.expiration == 0) {
+				revert CustomErrors.NonExistentOtoken();
+			}
+		}
+		strikeDecimalConverted = uint128(strikeDecimalConverted  * 10**CONVERSION_DECIMALS);
 		// check if the option series is approved using the e18 strike value
 		bytes32 oHash = keccak256(
 			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
@@ -455,12 +471,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// transfer the premium from the user to the liquidity pool
 		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), premium);
 		// add this series to the portfolio values feed so its stored on the book
-		getPortfolioValuesFeed().updateStores(seriesToStore, int256(_args.amount), 0, _args.seriesAddress);
+		getPortfolioValuesFeed().updateStores(seriesToStore, int256(_args.amount), 0, seriesAddress);
 		// get the liquidity pool to write the option
+						console.log("X");
 		return
 			liquidityPool.handlerWriteOption(
 				optionSeries,
-				_args.seriesAddress,
+				seriesAddress,
 				_args.amount,
 				optionRegistry,
 				premium,
@@ -476,7 +493,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function _sellOption(RyskActions.SellOptionArgs memory _args)
 		internal
 		whenNotPaused
-		nonReentrant
 		returns (uint256)
 	{
 		IOptionRegistry optionRegistry = getOptionRegistry();
@@ -530,6 +546,70 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				msg.sender
 			);
 	}
+	// 	/**
+	//  * @notice sell an otoken to the dhv, user should have created the otoken themselves beforehand and sorted their collateral
+	//  * @param _series the option series that was created by the user to be sold to the dhv
+	//  * @param _amount the amount of options to sell to the dhv in e18
+	//  * @return premium the premium paid out to the user
+	//  */
+	// function sellOption(address _series, uint256 _amount) external returns (uint256) {
+	// 	// TODO: if we have the option on our books in the dhv then we should sell use the buyback function on the dhv instead
+	// 	// check the otoken is whitelisted
+	// 	IWhitelist(addressbook.getWhitelist()).isWhitelistedOtoken(_series);
+	// 	IOtoken otoken = IOtoken(_series);
+	// 	// get the option details
+	// 	Types.OptionSeries memory optionSeries = Types.OptionSeries(
+	// 		uint64(otoken.expiryTimestamp()),
+	// 		uint128(otoken.strikePrice() * 10**CONVERSION_DECIMALS),
+	// 		otoken.isPut(),
+	// 		otoken.underlyingAsset(),
+	// 		otoken.strikeAsset(),
+	// 		otoken.collateralAsset()
+	// 	);
+	// 	// check if the option series is approved
+	// 	bytes32 oHash = keccak256(
+	// 		abi.encodePacked(optionSeries.expiration, optionSeries.strike, optionSeries.isPut)
+	// 	);
+	// 	if (!handler.approvedOptions(oHash)) {
+	// 		revert CustomErrors.UnapprovedSeries();
+	// 	}
+	// 	// check if the series is for buying
+	// 	if (!handler.isBuying(oHash)) {
+	// 		revert CustomErrors.NotBuyingSeries();
+	// 	}
+	// 	// revert if the expiry is in the past
+	// 	if (optionSeries.expiration <= block.timestamp) {
+	// 		revert CustomErrors.OptionExpiryInvalid();
+	// 	}
+	// 	// check the strike asset and underlying asset
+	// 	if (optionSeries.underlying != underlyingAsset) {
+	// 		revert CustomErrors.UnderlyingAssetInvalid();
+	// 	}
+	// 	if (optionSeries.strikeAsset != strikeAsset) {
+	// 		revert CustomErrors.StrikeAssetInvalid();
+	// 	}
+	// 	// value the options, premium in e6
+	// 	(uint256 premium, ) = pricer.quoteOptionPrice(optionSeries, _amount, true);
+	// 	// send the otokens here
+	// 	SafeTransferLib.safeTransferFrom(
+	// 		_series,
+	// 		msg.sender,
+	// 		address(this),
+	// 		OptionsCompute.convertToDecimals(_amount, ERC20(_series).decimals())
+	// 	);
+	// 	// take the funds from the liquidity pool and pay the user for the oTokens
+	// 	SafeTransferLib.safeTransferFrom(
+	// 		collateralAsset,
+	// 		address(parentLiquidityPool),
+	// 		msg.sender,
+	// 		premium
+	// 	);
+	// 	// update on the pvfeed stores
+	// 	getPortfolioValuesFeed().updateStores(optionSeries, 0, int256(_amount), _series);
+	// 	// emit an event
+	// 	emit OptionsBought();
+	// 	return premium;
+	// }
 	// function sellOption(address _series, uint256 _amount) external returns(uint256) {
 	// 	// check the address on the whitelisted products, if it is in there then check the ohash stuff first and the expiry validity as well as the underlying and strike asset
 	// 	// check the strike and underlying asset
