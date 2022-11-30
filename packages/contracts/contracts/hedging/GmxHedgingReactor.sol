@@ -284,22 +284,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			uint256[] memory position
 		)
 	{
-		address[] memory indexToken = new address[](1);
-
-		indexToken[0] = wETH;
-		address[] memory collateralToken = new address[](1);
-		bool[] memory isLong = new bool[](1);
-		if (internalDelta < 0) {
-			// short position is open
-			collateralToken[0] = collateralAsset;
-			isLong[0] = false;
-		} else {
-			// long position is open
-			collateralToken[0] = wETH;
-			isLong[0] = true;
-		}
-		position = reader.getPositions(address(vault), address(this), collateralToken, indexToken, isLong);
-
+		position = _getPosition(internalDelta > 0);
 		// position[0] = position size in USD
 		// position[1] = collateral amount in USD
 		// position[2] = average entry price of position
@@ -345,16 +330,13 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	/// internal utilities ///
 	//////////////////////////
 
-	// function _getPosition(_isLong);
-
 	/** @notice function to handle logic of when to open and close positions
-			GMX handles shorts and longs separately, so we only want to have either a short OR a long open 
-			at any one time to aavoid paying borrow fees both ways.
-			This function will close off any shorts before opening longs and vice versa.
-      @param _amount the amount of delta to change exposure by. e18
-			 
-      @return deltaChange The resulting difference in delta exposure
-  */
+	 *	GMX handles shorts and longs separately, so we only want to have either a short OR a long open
+	 *	at any one time to aavoid paying borrow fees both ways.
+	 *	This function will close off any shorts before opening longs and vice versa.
+	 *  @param _amount the amount of delta to change exposure by. e18
+	 *  @return deltaChange The resulting difference in delta exposure
+	 */
 	function _changePosition(int256 _amount) internal returns (int256) {
 		bool closedOppositeSideFirst = false;
 		int256 closedPositionDeltaChange;
@@ -406,11 +388,14 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		return 0;
 	}
 
-	/*
-		@notice internal function to handle increasing position size on GMX
-		@param _size ETH denominated size to increase position by. e18
-		
-	*/
+	/**
+	 *	@notice internal function to handle increasing position size on GMX
+	 *	@param _size ETH denominated size to increase position by. e18
+	 *	@param _collateralSize amount of collateral to remove. denominated in collateralAsset decimals.
+	 *	@param _isLong whether the position is a long or short
+	 *	@return positionKey the unique key of the GMX position
+	 *	@return deltaChange the resulting delta change from the position increase
+	 */
 	function _increasePosition(
 		uint256 _size,
 		uint256 _collateralSize,
@@ -437,12 +422,14 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		return (positionKey, _isLong ? int256(_size) : -int256(_size));
 	}
 
-	/*
-		@notice internal function to handle decreasing position size on GMX
-		@param _size ETH denominated size to decrease position by. e18
-		@param _collateralSize amount of collateral to remove. denominated in collateralAsset decimals.
-		@param _isLong whether the position is a long or short
-	*/
+	/**
+	 *	@notice internal function to handle decreasing position size on GMX
+	 *	@param _size ETH denominated size to decrease position by. e18
+	 *	@param _collateralSize amount of collateral to remove. denominated in collateralAsset decimals.
+	 *	@param _isLong whether the position is a long or short
+	 *	@return positionKey the unique key of the GMX position
+	 *	@return deltaChange the resulting delta change from the position decrease
+	 */
 	function _decreasePosition(
 		uint256 _size,
 		uint256 _collateralSize,
@@ -473,12 +460,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		return (positionKey, _isLong ? -int256(_size) : int256(_size));
 	}
 
-	// ------ Internal functions for creating increase/decrease position parameters
-
-	function _adjustedReducePositionSize(uint256 _size) private view returns (uint256 _adjustedSize) {
-		return uint256(internalDelta.abs()) > _size ? _size : uint256(internalDelta.abs());
-	}
-
+	/**
+	 *	@notice gets current position details from GMX reader contract
+	 *	@param _isLong if the position to get details for is a long position
+	 *	@return position an array of figures describing the state of the position
+	 */
 	function _getPosition(bool _isLong) private view returns (uint256[] memory position) {
 		address[] memory indexToken = new address[](1);
 
@@ -497,7 +483,20 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		position = reader.getPositions(address(vault), address(this), collateralToken, indexToken, isLong);
 	}
 
-	function _createPathIncreasePosition(bool _isLong) internal view returns (address[] memory) {
+	/**
+	 *	@notice a function that floors a reduce position sizeDelta to only be as big as the open position itself
+	 *	@param _size number of deltas to decrease position by
+	 *	@return adjustedSize the floored number of deltas to decrease position by
+	 */
+	function _adjustedReducePositionSize(uint256 _size) private view returns (uint256 adjustedSize) {
+		return uint256(internalDelta.abs()) > _size ? _size : uint256(internalDelta.abs());
+	}
+
+	/**
+	 *	@param _isLong if the position to be changed is long
+	 *	@return path the _path array formatted for the GMX contract call
+	 */
+	function _createPathIncreasePosition(bool _isLong) internal view returns (address[] memory path) {
 		if (_isLong) {
 			address[] memory path = new address[](2);
 			path[0] = collateralAsset;
@@ -510,7 +509,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		}
 	}
 
-	function _createPathDecreasePosition(bool _isLong) internal view returns (address[] memory) {
+	/**
+	 *	@param _isLong if the position to be changed is long
+	 *	@return path the _path array formatted for the GMX contract call
+	 */
+	function _createPathDecreasePosition(bool _isLong) internal view returns (address[] memory path) {
 		if (_isLong) {
 			address[] memory path = new address[](2);
 			path[0] = wETH;
@@ -523,19 +526,21 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		}
 	}
 
-	/* 
-	@param _amount amount of deltas to change position by
-*/
+	/**
+	 *	@param _amount amount of deltas to change position by. e18
+	 *	@param _isIncreasePosition if the position is to be increased (or decreased)
+	 *	@param _closedOppositeSideFirst in the case of an increase, true if an opposite position has been closed in the same transaction
+	 *	@return amount of collateral to add (for increase) or remove (for decrease). denominated in e6
+	 */
 	function _getCollateralSizeDeltaUsd(
 		uint256 _amount,
 		bool _isIncreasePosition,
-		bool closedOppositeSideFirst
+		bool _closedOppositeSideFirst
 	) private view returns (uint256) {
 		// calculate amount of collateral to add or remove denominated in USDC
-		//  equal to collateral needed for extra margin plus rebalancing collateral to bring health factor back to 5000
-		// _undercollateralisationAmount is positive if current health factor is under target and negative if over target
+		//  for increase positions this is equal to collateral needed for extra margin plus rebalancing collateral to bring health factor back to 5000
 		if (_isIncreasePosition) {
-			if (closedOppositeSideFirst) {
+			if (_closedOppositeSideFirst) {
 				// this is a new position so no pnl to account for
 				return
 					OptionsCompute.convertToDecimals(
@@ -566,6 +571,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			}
 			return totalCollateralToAdd;
 		} else {
+			// when decreasing a position, a proportion of the pnl (positive or negative) equal to the proportion of the
+			// position size being reduced is taken out of the position.
 			uint256[] memory position = _getPosition(internalDelta > 0);
 			// position[0] = position size in USD
 			// position[1] = collateral amount in USD
@@ -580,6 +587,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			int256 collateralToRemove;
 			if (position[7] == 1) {
 				// position in profit
+				// with positions in profit, you receive collateral out equal to the value entered for _collateralDelta in the createDecreasePosition
+				// function PLUS the proportion of the pnl equal to proportion of position size being reduced.
 				collateralToRemove = (1e18 -
 					(
 						(int256(position[0] / 1e12) - int256((2 * position[8]) / 1e12))
@@ -590,6 +599,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				// int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12).mul(position[8] / 1e12));
 			} else {
 				// position in loss
+				// with positions in loss, what is entered into the createDecreasePosition function is what you receive
+				// however the pnl is still reduced proportionally
 				collateralToRemove =
 					(1e18 -
 						(
@@ -613,11 +624,17 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		}
 	}
 
+	/**
+	 *	@param _size amount of deltas to change position by. e18
+	 *	@param positionSize USD size of existing position as given by GMX. e30
+	 *	@return USD size to change position by. e30
+	 */
 	function _getPositionSizeDeltaUsd(uint256 _size, uint256 positionSize) private view returns (uint256) {
 		return _size.div(uint256(internalDelta.abs())).mul(positionSize);
 	}
 
 	// ----- temporary functions to allow me to execute the position requests
+	// ----- will be deleted before deploy on mainnet
 
 	function executeIncreasePosition(bytes32 positionKey) external {
 		gmxPositionRouter.executeIncreasePosition(positionKey, payable(address(this)));
@@ -627,7 +644,13 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		gmxPositionRouter.executeDecreasePosition(positionKey, payable(address(this)));
 	}
 
-	// call back function which confirms execution or cancellation of position
+	// ------ end of temporary functions ---------
+
+	/**	@notice function which will be called by a GMX keeper when they execute or reject our position request
+	 *	@param positionKey unique key of the position given by GMX
+	 *	@param isExecuted if the position change was executed successfully
+	 *	@param isIncrease if the position was increased
+	 */
 	function gmxPositionCallback(
 		bytes32 positionKey,
 		bool isExecuted,
