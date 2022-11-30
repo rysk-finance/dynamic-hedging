@@ -18,6 +18,7 @@ import "../interfaces/IReader.sol";
 import "../interfaces/IGmxVault.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "hardhat/console.sol";
 
 /**
  *  @title A hedging reactor that will manage delta by opening or closing short or long perp positions using rage trade
@@ -223,6 +224,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		}
 	}
 
+	/**
+	 *	@notice internal function called by update() to add more collateral to the perp position
+	 *	@param _collateralAmount amount of collateral tokens to add. Denominated in e6
+	 *	@param _isLong whether the perp position is long or short
+	 **/
 	function _addCollateral(uint256 _collateralAmount, bool _isLong)
 		internal
 		returns (bytes32 positionKey, int256 deltaChange)
@@ -230,6 +236,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		return _increasePosition(0, _collateralAmount, _isLong);
 	}
 
+	/**
+	 *	@notice internal function called by update() to removing collateral from the perp position
+	 *	@param _collateralAmount amount of collateral tokens to add. Denominated in e6
+	 *	@param _isLong whether the perp position is long or short
+	 **/
 	function _removeCollateral(uint256 _collateralAmount, bool _isLong)
 		internal
 		returns (bytes32 positionKey, int256 deltaChange)
@@ -260,7 +271,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	 *  @return isBelowMin is the margin below the health factor
 	 *  @return isAboveMax is the margin above the health factor
 	 *  @return health     the health factor of the account currently
-	 *  @return collatToTransfer the amount of collateral required to return the margin account back to the health factor
+	 *  @return collatToTransfer the amount of collateral required to return the margin account back to the health factor. e6
 	 */
 	function checkVaultHealth()
 		public
@@ -309,6 +320,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			//position in profit
 			health = (uint256((int256(position[1]) + int256(position[8])).div(int256(position[0]))) * MAX_BIPS) / 1e18;
 		} else {
+			//position in loss
 			health = (uint256((int256(position[1]) - int256(position[8])).div(int256(position[0]))) * MAX_BIPS) / 1e18;
 		}
 		if (health > healthFactor) {
@@ -338,6 +350,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			at any one time to aavoid paying borrow fees both ways.
 			This function will close off any shorts before opening longs and vice versa.
       @param _amount the amount of delta to change exposure by. e18
+			 
       @return deltaChange The resulting difference in delta exposure
   */
 	function _changePosition(int256 _amount) internal returns (int256) {
@@ -355,13 +368,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			if (internalDelta < 0) {
 				// close short position before opening long
 				uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(_amount));
-				int256 rebalancingCollateral = isAboveMax ? -int256(collatToTransfer) : int256(collatToTransfer);
-				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(
-					adjustedPositionSize,
-					rebalancingCollateral,
-					position,
-					false
-				);
+				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(adjustedPositionSize, 0, position, false);
 				(bytes32 positionKey, int256 deltaChange) = _decreasePosition(adjustedPositionSize, collateralToRemove, false);
 				// update deltaChange for callback function
 				orderDeltaChange[positionKey] += deltaChange;
@@ -372,10 +379,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				closedPositionDeltaChange = deltaChange;
 				closedOppositeSideFirst = true;
 			}
-			uint256 extraPositionCollateral = OptionsCompute.convertToDecimals(
-				(uint256(_amount).mul(getUnderlyingPrice(wETH, collateralAsset)) * healthFactor) / MAX_BIPS,
-				ERC20(collateralAsset).decimals()
-			);
 			// if closed shorts first then there is no long position open so nothing to rebalance
 			int256 rebalancingCollateral = closedOppositeSideFirst ? int256(0) : isAboveMax
 				? -int256(collatToTransfer)
@@ -391,13 +394,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			if (internalDelta > 0) {
 				// close longs first
 				uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(-_amount));
-				int256 rebalancingCollateral = isAboveMax ? -int256(collatToTransfer) : int256(collatToTransfer);
-				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(
-					adjustedPositionSize,
-					rebalancingCollateral,
-					position,
-					false
-				);
+				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(adjustedPositionSize, 0, position, false);
 				(bytes32 positionKey, int256 deltaChange) = _decreasePosition(adjustedPositionSize, collateralToRemove, true);
 				// update deltaChange for callback function
 				orderDeltaChange[positionKey] += deltaChange;
@@ -547,6 +544,13 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		uint256[] memory _position,
 		bool _isIncreasePosition
 	) private view returns (uint256) {
+		(
+			bool isBelowMin,
+			bool isAboveMax,
+			uint256 health,
+			uint256 collatToTransfer,
+			uint256[] memory position
+		) = checkVaultHealth();
 		// position[0] = position size in USD
 		// position[1] = collateral amount in USD
 		// position[2] = average entry price of position
@@ -560,8 +564,14 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		// calculate amount of collateral to add or remove denominated in USDC
 		//  equal to collateral needed for extra margin plus rebalancing collateral to bring health factor back to 5000
 		// _undercollateralisationAmount is positive if current health factor is under target and negative if over target
-
 		if (_isIncreasePosition) {
+			console.log(
+				"undercollat amount:",
+				_undercollateralisationAmount > 0
+					? uint256(_undercollateralisationAmount)
+					: uint256(-_undercollateralisationAmount),
+				_position[8]
+			);
 			uint256 extraPositionCollateral = OptionsCompute.convertToDecimals(
 				(_amount.mul(getUnderlyingPrice(wETH, collateralAsset)) * healthFactor) / MAX_BIPS,
 				ERC20(collateralAsset).decimals()
