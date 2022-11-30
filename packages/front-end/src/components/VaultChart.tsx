@@ -80,7 +80,9 @@ export const VaultChart = () => {
 
               return {
                 epoch: ppsEpoch.id,
-                growthSinceFirstEpoch: ppsEpoch.growthSinceFirstEpoch,
+                growthSinceFirstEpoch: parseFloat(
+                  ppsEpoch.growthSinceFirstEpoch
+                ),
                 timestamp: ppsEpoch.timestamp,
                 dateLocale,
               };
