@@ -308,7 +308,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				emit RedemptionSent(redeemAmount, otokenCollateralAsset, spotHedgingReactor);
 			} else {
 				uint256 redeemableCollateral = _swapExactInputSingle(redeemAmount, 0, otokenCollateralAsset);
-				SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), redeemableCollateral);
+				SafeTransferLib.safeTransfer(
+					ERC20(collateralAsset),
+					address(liquidityPool),
+					redeemableCollateral
+				);
 				emit RedemptionSent(redeemableCollateral, collateralAsset, address(liquidityPool));
 			}
 		}
@@ -318,29 +322,33 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/// external state changing functionality ///
 	/////////////////////////////////////////////
 
-	function operate(IController.ActionArgs[] memory _opynActions, RyskActions.ActionArgs[] memory _ryskActions) external nonReentrant whenNotPaused {
+	function operate(
+		IController.ActionArgs[] memory _opynActions,
+		RyskActions.ActionArgs[] memory _ryskActions
+	) external nonReentrant whenNotPaused {
 		_runActions(_opynActions, _ryskActions);
-        // if (vaultUpdated) {
-        //     _verifyFinalState(vaultOwner, vaultId);
-        //     vaultLatestUpdate[vaultOwner][vaultId] = now;
-        // }
+		// if (vaultUpdated) {
+		//     _verifyFinalState(vaultOwner, vaultId);
+		//     vaultLatestUpdate[vaultOwner][vaultId] = now;
+		// }
 	}
 
-    /**
-     * @notice execute a variety of actions
-     */
-    function _runActions(IController.ActionArgs[] memory _opynActions, RyskActions.ActionArgs[] memory _ryskActions)
-        internal
-    {
+	/**
+	 * @notice execute a variety of actions
+	 */
+	function _runActions(
+		IController.ActionArgs[] memory _opynActions,
+		RyskActions.ActionArgs[] memory _ryskActions
+	) internal {
 		bool dontRunOpynActions;
 		for (uint256 i = 0; i < _ryskActions.length; i++) {
 			RyskActions.ActionArgs memory action = _ryskActions[i];
-            RyskActions.ActionType actionType = action.actionType;
+			RyskActions.ActionType actionType = action.actionType;
 			if (actionType == RyskActions.ActionType.Issue) {
 				_issue(RyskActions._parseIssueArgs(action));
 			} else if (actionType == RyskActions.ActionType.BuyOption) {
 				_buyOption(RyskActions._parseBuyOptionArgs(action));
-            } else if (actionType == RyskActions.ActionType.SellOption) {
+			} else if (actionType == RyskActions.ActionType.SellOption) {
 				_runOpynActions(_opynActions);
 				_sellOption(RyskActions._parseSellOptionArgs(action));
 			}
@@ -348,38 +356,38 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		if (!dontRunOpynActions) {
 			_runOpynActions(_opynActions);
 		}
-    }
+	}
 
 	function _runOpynActions(IController.ActionArgs[] memory _opynActions) internal {
 		IController controller = IController(addressbook.getController());
-        for (uint256 i = 0; i < _opynActions.length; i++) {
+		for (uint256 i = 0; i < _opynActions.length; i++) {
 			// loop through the opyn actions, if any involve opening a vault then make sure the msg.sender gets the ownership and if there are any more vault ids make sure the msg.sender is the owners
-            IController.ActionArgs memory action = _opynActions[i];
-            IController.ActionType actionType = action.actionType;
+			IController.ActionArgs memory action = _opynActions[i];
+			IController.ActionType actionType = action.actionType;
 			if (actionType == IController.ActionType.OpenVault) {
 				// might need to change open vault vault id, otherwise check the vault id somehow
 			} else if (actionType == IController.ActionType.DepositLongOption) {
-                // check the from address is as it should be and check the vault id
-            } else if (actionType == IController.ActionType.WithdrawLongOption) {
-                // check the to address is as it should be and check the vault id
-            } else if (actionType == IController.ActionType.DepositCollateral) {
-                // check the from address is as it should be and check the vault id
-            } else if (actionType == IController.ActionType.WithdrawCollateral) {
-                // check the from address is as it should be and check the vault id
-            } else if (actionType == IController.ActionType.MintShortOption) {
-                // check the to address is as it should be and check the vault id
-            } else if (actionType == IController.ActionType.BurnShortOption) {
-                // check the from address is as it should be and check the vault id
-            } else if (actionType == IController.ActionType.Redeem) {
-                // maybe dont allow
-            } else if (actionType == IController.ActionType.SettleVault) {
-                // check the to address is as it should be and check the vault id
-            } else if (actionType == IController.ActionType.Liquidate) {
-                // not sure yet, leaning to not allow
-            } else if (actionType == IController.ActionType.Call) {
-                // dont allow
-            }
-        }
+				// check the from address is as it should be and check the vault id
+			} else if (actionType == IController.ActionType.WithdrawLongOption) {
+				// check the to address is as it should be and check the vault id
+			} else if (actionType == IController.ActionType.DepositCollateral) {
+				// check the from address is as it should be and check the vault id
+			} else if (actionType == IController.ActionType.WithdrawCollateral) {
+				// check the from address is as it should be and check the vault id
+			} else if (actionType == IController.ActionType.MintShortOption) {
+				// check the to address is as it should be and check the vault id
+			} else if (actionType == IController.ActionType.BurnShortOption) {
+				// check the from address is as it should be and check the vault id
+			} else if (actionType == IController.ActionType.Redeem) {
+				// maybe dont allow
+			} else if (actionType == IController.ActionType.SettleVault) {
+				// check the to address is as it should be and check the vault id
+			} else if (actionType == IController.ActionType.Liquidate) {
+				// not sure yet, leaning to not allow
+			} else if (actionType == IController.ActionType.Call) {
+				// dont allow
+			}
+		}
 		controller.operate(_opynActions);
 	}
 
@@ -396,7 +404,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			formatStrikePrice(_args.optionSeries.strike, collateralAsset) * 10**CONVERSION_DECIMALS
 		);
 		// check if the option series is approved
-		bytes32 oHash = keccak256(abi.encodePacked(_args.optionSeries.expiration, strike, _args.optionSeries.isPut));
+		bytes32 oHash = keccak256(
+			abi.encodePacked(_args.optionSeries.expiration, strike, _args.optionSeries.isPut)
+		);
 		if (!approvedOptions[oHash]) {
 			revert CustomErrors.UnapprovedSeries();
 		}
@@ -421,19 +431,18 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		address seriesAddress = _args.seriesAddress;
 		Types.OptionSeries memory optionSeries = _args.optionSeries;
 		// convert the strike to e18 decimals
-		uint128 strikeDecimalConverted = uint128(
-			formatStrikePrice(optionSeries.strike, collateralAsset)
+		uint128 strikeDecimalConverted = uint128(formatStrikePrice(optionSeries.strike, collateralAsset));
+		optionSeries = Types.OptionSeries(
+			optionSeries.expiration,
+			strikeDecimalConverted,
+			optionSeries.isPut,
+			underlyingAsset,
+			strikeAsset,
+			collateralAsset
 		);
 		// if the series address is not known then we need to find it
 		if (seriesAddress == address(0)) {
-			seriesAddress = optionRegistry.getSeries(Types.OptionSeries(
-				optionSeries.expiration,
-				strikeDecimalConverted,
-				optionSeries.isPut,
-				underlyingAsset,
-				strikeAsset,
-				collateralAsset
-			));
+			seriesAddress = optionRegistry.getSeries(optionSeries);
 			if (seriesAddress == address(0)) {
 				revert CustomErrors.NonExistentOtoken();
 			}
@@ -445,7 +454,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				revert CustomErrors.NonExistentOtoken();
 			}
 		}
-		strikeDecimalConverted = uint128(strikeDecimalConverted  * 10**CONVERSION_DECIMALS);
+		strikeDecimalConverted = uint128(strikeDecimalConverted * 10**CONVERSION_DECIMALS);
 		// check if the option series is approved using the e18 strike value
 		bytes32 oHash = keccak256(
 			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
@@ -473,7 +482,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// add this series to the portfolio values feed so its stored on the book
 		getPortfolioValuesFeed().updateStores(seriesToStore, int256(_args.amount), 0, seriesAddress);
 		// get the liquidity pool to write the option
-						console.log("X");
 		return
 			liquidityPool.handlerWriteOption(
 				optionSeries,
@@ -496,11 +504,33 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		returns (uint256)
 	{
 		IOptionRegistry optionRegistry = getOptionRegistry();
-		// get the option series from the pool
-		Types.OptionSeries memory optionSeries = optionRegistry.getSeriesInfo(_args.seriesAddress);
-		uint128 strikeDecimalConverted = uint128(
-			OptionsCompute.convertFromDecimals(optionSeries.strike, ERC20(_args.seriesAddress).decimals())
+				address seriesAddress = _args.seriesAddress;
+		Types.OptionSeries memory optionSeries = _args.optionSeries;
+		// convert the strike to e18 decimals
+		uint128 strikeDecimalConverted = uint128(formatStrikePrice(optionSeries.strike, collateralAsset));
+		optionSeries = Types.OptionSeries(
+			optionSeries.expiration,
+			strikeDecimalConverted,
+			optionSeries.isPut,
+			underlyingAsset,
+			strikeAsset,
+			collateralAsset
 		);
+		// if the series address is not known then we need to find it
+		if (seriesAddress == address(0)) {
+			seriesAddress = optionRegistry.getSeries(optionSeries);
+			if (seriesAddress == address(0)) {
+				revert CustomErrors.NonExistentOtoken();
+			}
+		} else {
+			// get the option series from the pool
+			optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+			// make sure the expiry actually exists
+			if (optionSeries.expiration == 0) {
+				revert CustomErrors.NonExistentOtoken();
+			}
+		}
+		strikeDecimalConverted = uint128(strikeDecimalConverted * 10**CONVERSION_DECIMALS);
 		// check if the option series is approved
 		bytes32 oHash = keccak256(
 			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
@@ -527,25 +557,31 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		);
 		// get quote on the option to buy back, always return the total values
 		SafeTransferLib.safeTransferFrom(
-			_args.seriesAddress,
+			seriesAddress,
 			msg.sender,
 			address(liquidityPool),
 			OptionsCompute.convertToDecimals(_args.amount, ERC20(_args.seriesAddress).decimals())
 		);
 		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, _args.amount, true);
 		// update the series on the stores
-		getPortfolioValuesFeed().updateStores(seriesToStore, -int256(_args.amount), 0, _args.seriesAddress);
+		getPortfolioValuesFeed().updateStores(
+			seriesToStore,
+			-int256(_args.amount),
+			0,
+			seriesAddress
+		);
 		return
 			liquidityPool.handlerBuybackOption(
 				optionSeries,
 				_args.amount,
 				optionRegistry,
-				_args.seriesAddress,
+				seriesAddress,
 				premium,
 				delta,
 				msg.sender
 			);
 	}
+
 	// 	/**
 	//  * @notice sell an otoken to the dhv, user should have created the otoken themselves beforehand and sorted their collateral
 	//  * @param _series the option series that was created by the user to be sold to the dhv
@@ -688,6 +724,21 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		uint256 difference = OPYN_DECIMALS - collateralDecimals;
 		// round floor strike to prevent errors in Gamma protocol
 		return (price / (10**difference)) * (10**difference);
+	}
+
+	function getSeriesWithe18Strike(Types.OptionSeries memory optionSeries)
+		external
+		view
+		returns (address)
+	{
+		return
+			IOptionRegistry(getOptionRegistry()).getSeries(
+				Types.OptionSeries(optionSeries.expiration, uint128(formatStrikePrice(optionSeries.strike, optionSeries.collateral)),
+				optionSeries.isPut,
+				optionSeries.underlying,
+				optionSeries.strikeAsset,
+				optionSeries.collateral
+			));
 	}
 
 	/** @notice function to sell exact amount of wETH to decrease delta

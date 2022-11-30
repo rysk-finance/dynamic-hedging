@@ -1127,24 +1127,6 @@ describe("Liquidity Pools", async () => {
 		)
 
 		await usd.approve(exchange.address, quote)
-		const seriesAddress = (await exchange.callStatic.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}]))
-		putOptionToken = new Contract(ZERO_ADDRESS, Otoken.abi, sender) as IOToken
 		await exchange.operate([], [{
 			actionType: 0,
 			secondAddress: ZERO_ADDRESS,
@@ -1162,7 +1144,8 @@ describe("Liquidity Pools", async () => {
 			optionSeries: proposedSeries,
 			data: "0x"
 		}])
-
+		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+		putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const senderPutBalance = await putOptionToken.balanceOf(senderAddress)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -1214,118 +1197,150 @@ describe("Liquidity Pools", async () => {
 		expect(chainStrike[0]).to.equal(formattedStrikePrice)
 		expect(expirationList[0]).to.equal(expiration)
 	})
-	// it("REVERTs: LP issueWrites a ETH/USD put for premium for series not approved for sale", async () => {
-	// 	const [sender] = signers
-	// 	const amount = toWei("5")
-	// 	const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-	// 	const strikePrice = priceQuote.sub(toWei(strike))
-	// 	proposedSeries = {
-	// 		expiration: expiration,
-	// 		strike: BigNumber.from(strikePrice),
-	// 		isPut: PUT_FLAVOR,
-	// 		strikeAsset: usd.address,
-	// 		underlying: weth.address,
-	// 		collateral: usd.address
-	// 	}
-	// 	const [quote, delta] = await pricer.quoteOptionPrice(
-	// 		proposedSeries,
-	// 		amount,
-	// 		false
-	// 	)
+	it("REVERTs: LP issueWrites a ETH/USD put for premium for series not approved for sale", async () => {
+		const [sender] = signers
+		const amount = toWei("5")
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		proposedSeries = {
+			expiration: expiration,
+			strike: BigNumber.from(strikePrice),
+			isPut: PUT_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		const [quote, delta] = await pricer.quoteOptionPrice(
+			proposedSeries,
+			amount,
+			false
+		)
 
-	// 	await usd.approve(exchange.address, quote)
-	// 	await expect(handler.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith("NotSellingSeries()")
-	// })
-	// it("REVERTs: LP writes a ETH/USD put for premium for series not approved for sale", async () => {
-	// 	const [sender] = signers
-	// 	const amount = toWei("5")
-	// 	const [quote, delta] = await pricer.quoteOptionPrice(
-	// 		proposedSeries,
-	// 		amount,
-	// 		false
-	// 	)
-	// 	await usd.approve(exchange.address, quote)
-	// 	await expect(handler.writeOption(putOptionToken.address, amount)).to.be.revertedWith("NotSellingSeries()")
-	// })
-	// it("REVERTs: LP buyback a ETH/USD put for premium for series not approved for buying", async () => {
-	// 	const [sender] = signers
-	// 	const amount = toWei("5")
-	// 	const [quote, delta] = await pricer.quoteOptionPrice(
-	// 		proposedSeries,
-	// 		amount,
-	// 		false
-	// 	)
-	// 	await usd.approve(exchange.address, quote)
-	// 	await expect(handler.buybackOption(putOptionToken.address, amount)).to.be.revertedWith("NotBuyingSeries()")
-	// })
-	// it("SETUP: change option buy or sell on series", async () => {
-	// 	const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-	// 	const strikePrice = priceQuote.sub(toWei(strike))
-	// 	const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1", 10))
-	// 	const tx = await exchange.changeOptionBuyOrSell([{
-	// 		expiration: expiration,
-	// 		isPut: PUT_FLAVOR,
-	// 		strike: formattedStrikePrice,
-	// 		isBuying: true,
-	// 		isSelling: true
-	// 	}])
-	// 	const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"], [expiration, formattedStrikePrice, PUT_FLAVOR])
-	// 	const isApproved = await exchange.approvedOptions(oHash)
-	// 	const expirationList = await exchange.getExpirations()
-	// 	const chainStrike = await exchange.getOptionDetails(expiration, true)
-	// 	const isBuying = await exchange.isBuying(oHash)
-	// 	const isSelling = await exchange.isSelling(oHash)
-	// 	expect(isApproved).to.be.true
-	// 	expect(isBuying).to.be.true
-	// 	expect(isSelling).to.be.true
-	// 	expect(chainStrike[0]).to.equal(formattedStrikePrice)
-	// 	expect(expirationList[0]).to.equal(expiration)
-	// })
-	// it("SETUP: set sabrParams", async () => {
-	// 	const proposedSabrParams = {
-	// 		callAlpha: 250000,
-	// 		callBeta: 1_000000,
-	// 		callRho: -300000,
-	// 		callVolvol: 1_500000,
-	// 		putAlpha: 250000,
-	// 		putBeta: 1_000000,
-	// 		putRho: -300000,
-	// 		putVolvol: 1_500000
-	// 	}
-	// 	await volFeed.setSabrParameters(proposedSabrParams, expiration)
-	// 	const volFeedSabrParams = await volFeed.sabrParams(expiration)
-	// 	expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
-	// 	expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
-	// 	expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
-	// 	expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
-	// 	expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
-	// 	expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
-	// 	expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
-	// 	expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
-	// })
-	// it("can compute portfolio delta", async function () {
-	// 	expect(await liquidityPool.ephemeralDelta()).to.not.eq(0)
-	// 	expect(await liquidityPool.ephemeralLiabilities()).to.not.eq(0)
-	// 	const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-	// 	const localDelta = await calculateOptionDeltaLocally(
-	// 		liquidityPool,
-	// 		priceFeed,
-	// 		proposedSeries,
-	// 		toWei("5"),
-	// 		true
-	// 	)
-	// 	// mock external adapter delta calculation
-	// 	await portfolioValuesFeed.fulfill(
-	// 		weth.address,
-	// 		usd.address,
-	// 	)
-	// 	const delta = await liquidityPool.getPortfolioDelta()
-	// 	const addressSet = await portfolioValuesFeed.getAddressSet()
-	// 	expect(delta.sub(localDelta)).to.be.within(-1000000000000, 1000000000000)
-	// 	// expect ephemeral values to be reset
-	// 	expect(await liquidityPool.ephemeralDelta()).to.eq(0)
-	// 	expect(await liquidityPool.ephemeralLiabilities()).to.eq(0)
-	// })
+		await usd.approve(exchange.address, quote)
+		await expect(exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])).to.be.revertedWith("NotSellingSeries()")
+	})
+	it("REVERTs: LP writes a ETH/USD put for premium for series not approved for sale", async () => {
+		const [sender] = signers
+		const amount = toWei("5")
+		const [quote, delta] = await pricer.quoteOptionPrice(
+			proposedSeries,
+			amount,
+			false
+		)
+		await usd.approve(exchange.address, quote)
+		await expect(exchange.operate([], [{
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: putOptionToken.address,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])).to.be.revertedWith("NotSellingSeries()")
+	})
+	it("REVERTs: LP buyback a ETH/USD put for premium for series not approved for buying", async () => {
+		const [sender] = signers
+		const amount = toWei("5")
+		const [quote, delta] = await pricer.quoteOptionPrice(
+			proposedSeries,
+			amount,
+			false
+		)
+		await usd.approve(exchange.address, quote)
+		await expect(exchange.operate([], [{
+			actionType: 2,
+			secondAddress: senderAddress,
+			asset: putOptionToken.address,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])).to.be.revertedWith("NotBuyingSeries()")
+	})
+	it("SETUP: change option buy or sell on series", async () => {
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const strikePrice = priceQuote.sub(toWei(strike))
+		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1", 10))
+		const tx = await exchange.changeOptionBuyOrSell([{
+			expiration: expiration,
+			isPut: PUT_FLAVOR,
+			strike: formattedStrikePrice,
+			isBuying: true,
+			isSelling: true
+		}])
+		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"], [expiration, formattedStrikePrice, PUT_FLAVOR])
+		const isApproved = await exchange.approvedOptions(oHash)
+		const expirationList = await exchange.getExpirations()
+		const chainStrike = await exchange.getOptionDetails(expiration, true)
+		const isBuying = await exchange.isBuying(oHash)
+		const isSelling = await exchange.isSelling(oHash)
+		expect(isApproved).to.be.true
+		expect(isBuying).to.be.true
+		expect(isSelling).to.be.true
+		expect(chainStrike[0]).to.equal(formattedStrikePrice)
+		expect(expirationList[0]).to.equal(expiration)
+	})
+	it("SETUP: set sabrParams", async () => {
+		const proposedSabrParams = {
+			callAlpha: 250000,
+			callBeta: 1_000000,
+			callRho: -300000,
+			callVolvol: 1_500000,
+			putAlpha: 250000,
+			putBeta: 1_000000,
+			putRho: -300000,
+			putVolvol: 1_500000
+		}
+		await volFeed.setSabrParameters(proposedSabrParams, expiration)
+		const volFeedSabrParams = await volFeed.sabrParams(expiration)
+		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+	})
+	it("can compute portfolio delta", async function () {
+		expect(await liquidityPool.ephemeralDelta()).to.not.eq(0)
+		expect(await liquidityPool.ephemeralLiabilities()).to.not.eq(0)
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const localDelta = await calculateOptionDeltaLocally(
+			liquidityPool,
+			priceFeed,
+			proposedSeries,
+			toWei("5"),
+			true
+		)
+		// mock external adapter delta calculation
+		await portfolioValuesFeed.fulfill(
+			weth.address,
+			usd.address,
+		)
+		const delta = await liquidityPool.getPortfolioDelta()
+		const addressSet = await portfolioValuesFeed.getAddressSet()
+		expect(delta.sub(localDelta)).to.be.within(-1000000000000, 1000000000000)
+		// expect ephemeral values to be reset
+		expect(await liquidityPool.ephemeralDelta()).to.eq(0)
+		expect(await liquidityPool.ephemeralLiabilities()).to.eq(0)
+	})
 	// it("writes more options for an existing series", async () => {
 	// 	const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
 	// 	const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
