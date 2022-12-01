@@ -1,12 +1,14 @@
 import { utils, Event, ContractReceipt } from "ethers"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 import OptionRegistrySol from "../artifacts/contracts/OptionRegistry.sol/OptionRegistry.json"
+import IUniswapv3Pool from "../artifacts/@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json"
 
 const FAILED = "failed"
 // Event names
 export const WRITE_OPTION = "WriteOption"
 export const BUYBACK_OPTION = "BuybackOption"
 export const VAULT_LIQUIDATION_REGISTERED = "VaultLiquidationRegistered"
+export const UNISWAP_POOL_MINT = "Mint"
 
 type EventsMap = Record<string, any>
 const eventsMap: EventsMap = {
@@ -18,6 +20,9 @@ const eventsMap: EventsMap = {
 	},
 	[VAULT_LIQUIDATION_REGISTERED]: {
 		["abi"]: OptionRegistrySol.abi
+	},
+	[UNISWAP_POOL_MINT]: {
+		["abi"]: IUniswapv3Pool.abi
 	}
 }
 

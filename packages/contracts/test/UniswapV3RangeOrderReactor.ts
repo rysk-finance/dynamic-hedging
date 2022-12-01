@@ -15,6 +15,7 @@ import { quoterContract, tickToPrice, getPoolInfo } from "../utils/uniswap"
 import { Route, Trade } from "@uniswap/v3-sdk"
 import { CurrencyAmount, Token, TradeType } from "@uniswap/sdk-core"
 import { fromUSDC, fromWei, toUSDC, toWei } from "../utils/conversion-helper"
+import { getMatchingEvents, UNISWAP_POOL_MINT } from "../utils/events"
 import { WETH } from "../types/WETH"
 let signers: Signer[]
 let usdcWhale: Signer
@@ -143,11 +144,40 @@ describe("UniswapV3HedgingReactor", () => {
 		expect(await liquidityPoolDummy.uniswapV3HedgingReactor()).to.equal(reactorAddress)
 	})
 
-	it("changes nothing if no ETH balance and hedging positive delta", async () => {
+	it("sets up a uniswap pool, router and large swapper", async () => {
 		wethContract = (await ethers.getContractAt(
 			"contracts/tokens/WETH.sol:WETH",
 			WETH_ADDRESS[chainId]
 		)) as WETH
+		const provider = ethers.provider
+		bigSignerAddress = await signers[1].getAddress()
+		// 100,000 * 1e18
+		const ONE_HUNDRED_THOUSAND_HEX = "0x152D02C7E14AF6800000"
+		await hre.network.provider.request({
+			method: "hardhat_setBalance",
+			params: [bigSignerAddress, ONE_HUNDRED_THOUSAND_HEX]
+		})
+		const signer1BalanceAfter = await provider.getBalance(await signers[1].getAddress())
+		expect(signer1BalanceAfter).to.equal(ONE_HUNDRED_THOUSAND_HEX)
+
+		const amountToSend = toUSDC("10000000").toString()
+		await usdcContract.connect(usdcWhale).transfer(bigSignerAddress, amountToSend)
+
+		const poolAddress = await uniswapV3RangeOrderReactor.pool()
+		uniswapUSDCWETHPool = new ethers.Contract(poolAddress, IUniswapV3PoolABI, signers[1])
+		uniswapRouter = new ethers.Contract(SWAP_ROUTER_ADDRESS, ISwapRouterABI, signers[1])
+
+		const wethBalanceBefore = await wethContract.balanceOf(bigSignerAddress)
+		const wethTarget = toWei("90000")
+		const options = { value: wethTarget }
+		await wethContract.connect(signers[1]).deposit(options)
+		const wethBalance = await wethContract.balanceOf(bigSignerAddress)
+
+		expect(wethBalance).to.be.gt(wethBalanceBefore)
+		expect(wethBalance).to.eq(wethTarget)
+	})
+
+	it("changes nothing if no ETH balance and hedging positive delta", async () => {
 		const reactorWethBalanceBefore = parseFloat(
 			ethers.utils.formatEther(
 				BigNumber.from(await wethContract.balanceOf(uniswapV3RangeOrderReactor.address))
@@ -188,39 +218,91 @@ describe("UniswapV3HedgingReactor", () => {
 		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter)
 	})
 
-	////////// New Testing Starts Here //////////
+	it("Enters a range to hedge a negative delta", async () => {
+		const currentPosition = await uniswapV3RangeOrderReactor.currentPosition()
+		expect(currentPosition.activeLowerTick).to.equal(0)
+		expect(currentPosition.activeUpperTick).to.equal(0)
+		const LpUsdcBalanceBefore = parseFloat(
+			ethers.utils.formatUnits(
+				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
+				6
+			)
+		)
+		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(ethers.utils.parseEther("-0.5"))
+		const receipt = await hedgeDeltaTx.wait()
+		const [event] = getMatchingEvents(receipt, UNISWAP_POOL_MINT)
+		const currentPositionAfter = await uniswapV3RangeOrderReactor.currentPosition()
+		expect(currentPositionAfter.activeLowerTick).to.not.equal(0)
+		expect(currentPositionAfter.activeLowerTick).to.equal(event.tickLower)
+		expect(currentPositionAfter.activeUpperTick).to.equal(event.tickUpper)
+		expect(event.owner).to.equal(uniswapV3RangeOrderReactor.address)
+		const reactorWethBalance = parseFloat(
+			ethers.utils.formatEther(
+				BigNumber.from(await wethContract.balanceOf(uniswapV3RangeOrderReactor.address))
+			)
+		)
 
-	it("sets up a uniswap pool, router and large swapper", async () => {
-		wethContract = (await ethers.getContractAt(
-			"contracts/tokens/WETH.sol:WETH",
-			WETH_ADDRESS[chainId]
-		)) as WETH
-		const provider = ethers.provider
-		bigSignerAddress = await signers[1].getAddress()
-		const ONE_HUNDRED_THOUSAND_HEX = "0x152D02C7E14AF6800000"
-		await hre.network.provider.request({
-			method: "hardhat_setBalance",
-			params: [bigSignerAddress, ONE_HUNDRED_THOUSAND_HEX]
-		})
-		const signer1BalanceAfter = await provider.getBalance(await signers[1].getAddress())
-		expect(signer1BalanceAfter).to.equal(ONE_HUNDRED_THOUSAND_HEX)
+		const LpUsdcBalanceAfter = parseFloat(
+			ethers.utils.formatUnits(
+				BigNumber.from(await usdcContract.balanceOf(liquidityPoolDummy.address)),
+				6
+			)
+		)
 
-		const amountToSend = toUSDC("10000000").toString()
-		await usdcContract.connect(usdcWhale).transfer(bigSignerAddress, amountToSend)
-
-		const poolAddress = await uniswapV3RangeOrderReactor.pool()
-		uniswapUSDCWETHPool = new ethers.Contract(poolAddress, IUniswapV3PoolABI, signers[1])
-		uniswapRouter = new ethers.Contract(SWAP_ROUTER_ADDRESS, ISwapRouterABI, signers[1])
-
-		const wethBalanceBefore = await wethContract.balanceOf(bigSignerAddress)
-		const wethTarget = toWei("90000")
-		const options = { value: wethTarget }
-		await wethContract.connect(signers[1]).deposit(options)
-		const wethBalance = await wethContract.balanceOf(bigSignerAddress)
-
-		expect(wethBalance).to.be.gt(wethBalanceBefore)
-		expect(wethBalance).to.eq(wethTarget)
+		const reactorDelta = parseFloat(
+			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
+		)
+		expect(reactorDelta).to.equal(0)
+		expect(reactorWethBalance).to.equal(0)
+		expect(LpUsdcBalanceBefore).to.be.above(LpUsdcBalanceAfter)
 	})
+
+	it("Fills hedge when market moves into range", async () => {
+		const balancesBefore = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
+		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const weth_usdc_price_before = poolInfo.token1Price.toFixed()
+		// pool is usdc/weth due to uniswap v3 pool address ordering
+		const amountToSwap = toWei("10000")
+		await wethContract.connect(signers[1]).approve(uniswapRouter.address, amountToSwap)
+		// setup swap trade params
+		let params = {
+			tokenIn: poolInfo.token1.address,
+			tokenOut: poolInfo.token0.address,
+			fee: poolInfo.fee,
+			recipient: bigSignerAddress,
+			deadline: Math.floor(Date.now() / 1000) + 60 * 10,
+			amountIn: amountToSwap,
+			amountOutMinimum: 0,
+			sqrtPriceLimitX96: 0
+		}
+		const swapTx = await uniswapRouter.exactInputSingle(params)
+		await swapTx.wait()
+		poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const weth_usdc_price_after = poolInfo.token1Price.toFixed()
+		const { tick } = await uniswapUSDCWETHPool.slot0()
+		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		const balances = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
+		const averagePricePaid =
+			Number(fromUSDC(balancesBefore.amount0Current)) / Number(fromWei(balances.amount1Current))
+		const reactorDelta = fromWei(await liquidityPoolDummy.getDelta())
+		console.log(
+			"averagePricePaid",
+			averagePricePaid,
+			"weth_usdc_price_before",
+			Number(weth_usdc_price_before),
+			"balancesBefore",
+			Number(fromUSDC(balancesBefore.amount0Current)),
+			Number(fromWei(balances.amount1Current)),
+			{ balancesBefore, balances, reactorDelta }
+		)
+		// negative slippage
+		expect(averagePricePaid).to.lt(Number(weth_usdc_price_before))
+		// delta will greater due to additional fees collected
+		expect(reactorDelta).to.gte(0.5)
+		expect(tick).to.be.gt(activeLowerTick)
+		expect(tick).to.be.gt(activeUpperTick)
+	})
+	////////// Legacy Testing Starts Here //////////
 
 	it("Sets a range one tick above USDC/WETH market", async () => {
 		const ticks = await uniswapV3RangeOrderReactor.getTicks()
@@ -245,14 +327,6 @@ describe("UniswapV3HedgingReactor", () => {
 		const difference = poolUsdcBalance.sub(balances.amount0Current)
 		expect(difference).to.be.lte("1")
 		expect(uniswapV3RangeOrderReactor).to.have.property("hedgeDelta")
-	})
-
-	it("hedges delta", async () => {
-		await usdcContract
-			.connect(usdcWhale)
-			.transfer(uniswapV3RangeOrderReactor.address, ethers.utils.parseUnits("1000000", 6))
-		console.log("hedge delta", toWei("-2").toString())
-		const res = await uniswapV3RangeOrderReactor.hedgeDelta(toWei("-2"))
 	})
 
 	it("Fills when price moves into range", async () => {
