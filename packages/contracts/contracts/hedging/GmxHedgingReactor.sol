@@ -94,23 +94,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	event CreateIncreasePosition(bytes32 positionKey);
 	event CreateDecreasePosition(bytes32 positionKey);
 
-	///////////////
-	/// structs ///
-	///////////////
-
-	struct PositionData {
-		uint256 positionSize;
-		uint256 collateralAmount;
-		address collateralType;
-		uint256 averagePrice;
-		uint256 realisedPnl;
-		bool hasRealisedProfit;
-		uint256 collateralSizeDeltaUsd;
-		uint256 positionSizeDeltaUsd;
-		uint256 ethDelta;
-		uint256 currentPrice;
-	}
-
 	constructor(
 		address _gmxPositionRouter,
 		address _gmxRouter,
