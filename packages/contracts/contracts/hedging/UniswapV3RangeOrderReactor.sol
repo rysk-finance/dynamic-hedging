@@ -14,7 +14,6 @@ import "../libraries/OptionsCompute.sol";
 import "../libraries/SafeTransferLib.sol";
 import "../PriceFeed.sol";
 import "hardhat/console.sol";
-//import "../libraries/SafeTransferLib.sol";
 
 contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, AccessControl {
 
@@ -29,26 +28,66 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	address public immutable parentLiquidityPool;
 	/// @notice address of the price feed used for getting asset prices
 	address public immutable priceFeed;
-	/// @notice smaller address token using uniswap pool convention
-    ERC20 public immutable token0;
-	/// @notice larger address token using uniswap pool convention
-    ERC20 public immutable token1;
-	/// @notice instance of the uniswap V3 pool
-    IUniswapV3Pool public pool;
     /// @notice generalised list of stablecoin addresses to trade against wETH
 	address public immutable collateralAsset;
 	/// @notice address of the wETH contract
 	address public immutable wETH;
+	/// @notice smaller address token using uniswap pool convention
+    ERC20 public immutable token0;
+	/// @notice larger address token using uniswap pool convention
+    ERC20 public immutable token1;
     /// @notice address of the uniswap V3 factory
     address public immutable factory;
 	/// @notice uniswap v3 pool fee expressed at 10e6
 	uint24 public immutable poolFee;
+
+
+	/////////////////////////////////////
+	/// governance settable variables ///
+	/////////////////////////////////////
+
+	/// @notice instance of the uniswap V3 pool
+    IUniswapV3Pool public pool;
+    /// @notice limit to ensure we arent doing inefficient computation for dust amounts
+	uint256 public minAmount = 1e16;
+
+	/////////////////////////
+	/// dynamic variables ///
+	/////////////////////////
+
     /// @notice uniswap v3 pool lower tick spacing - set to 0 if no active range order
-    int24 public activeLowerTick;
+    //int24 public activeLowerTick;
     /// @notice uniswap v3 pool upper tick spacing - set to 0 if no active range order
-    int24 public activeUpperTick;
+    //int24 public activeUpperTick;
     /// @notice set to true if target is above tick at time of init position
-    bool public activeRangeAboveTick;
+    //bool public activeRangeAboveTick;
+    /// @notice current range order position
+    Position public currentPosition;
+
+    ////////////////////////
+    //      structs       //
+    ////////////////////////
+
+    struct Position {
+        int24 activeLowerTick; // uniswap v3 pool lower tick spacing - set to 0 if no active range order
+        int24 activeUpperTick; // uniswap v3 pool upper tick spacing - set to 0 if no active range order
+        bool activeRangeAboveTick; // set to true if target is above tick at time of init position
+    }
+
+
+
+
+    /////////////////////////
+	///       events      ///
+	/////////////////////////
+    
+    event Minted(
+        address receiver,
+        uint256 mintAmount,
+        uint256 amount0In,
+        uint256 amount1In,
+        uint128 liquidityMinted
+    );
 
     constructor(
 		address _factory,
@@ -170,9 +209,9 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         token0.safeApprove(address(pool), amount0Desired);
         pool.mint(address(this), lowerTick, upperTick, liquidity, "");
         // store the active range for later access
-        activeLowerTick = lowerTick;
-        activeUpperTick = upperTick;
-        activeRangeAboveTick = true;
+        currentPosition.activeLowerTick = lowerTick;
+        currentPosition.activeUpperTick = upperTick;
+        currentPosition.activeRangeAboveTick = true;
         //todo - emit event
     }
 
@@ -192,12 +231,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             0 // amount of token1 being sent in
         );
 
+		SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), amount0Desired);
         token0.safeApprove(address(pool), amount0Desired);
         pool.mint(address(this), lowerTick, upperTick, liquidity, "");
         // store the active range for later access
-        activeLowerTick = lowerTick;
-        activeUpperTick = upperTick;
-        activeRangeAboveTick = true;
+        currentPosition.activeLowerTick = lowerTick;
+        currentPosition.activeUpperTick = upperTick;
+        currentPosition.activeRangeAboveTick = true;
         //TODO emit event
     }
 
@@ -220,20 +260,17 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         token1.safeApprove(address(pool), amount1Desired);
         pool.mint(address(this), lowerTick, upperTick, liquidity, "");
         // store the active range for later access
-        activeLowerTick = lowerTick;
-        activeUpperTick = upperTick;
-        activeRangeAboveTick = false;
-        //TODO emit event
+        currentPosition.activeLowerTick = lowerTick;
+        currentPosition.activeUpperTick = upperTick;
+        currentPosition.activeRangeAboveTick = false;
+        //event emit can be skipped due to uniswap pool emitting Mint event
     }
 
-    function yankRangeOrderLiquidity() external {
+    /// @notice Withdraws all liquidity from a range order and collection outstanding fees
+    function yankRangeOrderLiquidity() private {
         // struct definition: https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/Position.sol#L13
         (uint128 liquidity, , , ,) = pool.positions(_getPositionID());
-
-        //(uint256 amount0, uint256 amount1) = pool.burn(activeLowerTick, activeUpperTick, liquidity);
-        _withdraw(activeLowerTick, activeUpperTick, liquidity);
-        // todo collect accumulated fees
-        //pool.collect(address(this), activeLowerTick, activeUpperTick, type(uint128).max, type(uint128).max);
+        _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
     }
 
     function _withdraw(
@@ -253,9 +290,11 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         uint256 preBalance1 = token1.balanceOf(address(this));
         
         // returns amount of token0 and token1 sent to this vault
+        // emits Burn event in the uniswap pool
         (burn0, burn1) = pool.burn(lowerTick_, upperTick_, liquidity);
 
         // collect accumulated fees
+        // emits collect event in the uniswap pool
         pool.collect(
             address(this),
             lowerTick_,
@@ -267,7 +306,9 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         // using this approach becaus the above collect method return amounts are unreliable
         fee0 = token0.balanceOf(address(this)) - preBalance0 - burn0;
         fee1 = token1.balanceOf(address(this)) - preBalance1 - burn1;
-        //TODO emit events
+        // mark no current position
+        delete currentPosition;
+        //TODO check if we need to emit event based on final balances and fees received
     }
 
     /// @notice compute total underlying holdings of the vault token supply
@@ -309,8 +350,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         // compute current holdings from liquidity
         (amount0Current, amount1Current) = LiquidityAmounts.getAmountsForLiquidity(
             sqrtRatioX96,
-            activeLowerTick.getSqrtRatioAtTick(),
-            activeUpperTick.getSqrtRatioAtTick(),
+            currentPosition.activeLowerTick.getSqrtRatioAtTick(),
+            currentPosition.activeUpperTick.getSqrtRatioAtTick(),
             liquidity
         );
 
@@ -344,18 +385,18 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         uint256 feeGrowthGlobal;
         if (isZero) {
             feeGrowthGlobal = pool.feeGrowthGlobal0X128();
-            (, , feeGrowthOutsideLower, , , , , ) = pool.ticks(activeLowerTick);
-            (, , feeGrowthOutsideUpper, , , , , ) = pool.ticks(activeUpperTick);
+            (, , feeGrowthOutsideLower, , , , , ) = pool.ticks(currentPosition.activeLowerTick);
+            (, , feeGrowthOutsideUpper, , , , , ) = pool.ticks(currentPosition.activeUpperTick);
         } else {
             feeGrowthGlobal = pool.feeGrowthGlobal1X128();
-            (, , , feeGrowthOutsideLower, , , , ) = pool.ticks(activeLowerTick);
-            (, , , feeGrowthOutsideUpper, , , , ) = pool.ticks(activeUpperTick);
+            (, , , feeGrowthOutsideLower, , , , ) = pool.ticks(currentPosition.activeLowerTick);
+            (, , , feeGrowthOutsideUpper, , , , ) = pool.ticks(currentPosition.activeUpperTick);
         }
 
         unchecked {
             // calculate fee growth below
             uint256 feeGrowthBelow;
-            if (tick >= activeLowerTick) {
+            if (tick >= currentPosition.activeLowerTick) {
                 feeGrowthBelow = feeGrowthOutsideLower;
             } else {
                 feeGrowthBelow = feeGrowthGlobal - feeGrowthOutsideLower;
@@ -363,7 +404,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
             // calculate fee growth above
             uint256 feeGrowthAbove;
-            if (tick < activeUpperTick) {
+            if (tick < currentPosition.activeUpperTick) {
                 feeGrowthAbove = feeGrowthOutsideUpper;
             } else {
                 feeGrowthAbove = feeGrowthGlobal - feeGrowthOutsideUpper;
@@ -384,7 +425,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     function _getPositionID() private view returns (bytes32 positionID) {
-        return keccak256(abi.encodePacked(address(this), activeLowerTick, activeUpperTick));
+        return keccak256(abi.encodePacked(address(this), currentPosition.activeLowerTick, currentPosition.activeUpperTick));
     }
 
     //////////////////////////////////////////////////////
@@ -393,46 +434,43 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
 	/// @inheritdoc IHedgingReactor
 	function hedgeDelta(int256 _delta) external returns (int256) {
-		//require(msg.sender == parentLiquidityPool, "!vault");
-        // check for existing range order first
+		require(msg.sender == parentLiquidityPool, "!vault");
+        // check for existing range order first amd return if found
+        if (inActivePosition()) yankRangeOrderLiquidity();
+
         bool inversed = collateralAsset == address(token0);
         uint256 underlyingPrice = getUnderlyingPrice(wETH, collateralAsset);
         (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
         (uint256 poolPrice, uint256 inversedPrice) = getPoolPrice();
         uint256 quotePrice = inversed ? inversedPrice : poolPrice;
         if (_delta < 0) {
-            // consider just setting below ticks based on underlying price or buffer to underlying price
-            //require(quotePrice <= underlyingPrice, "quote price > underlying price");
-            // if quotePrice <= underlyingPrice just set below market tick
             // buy wETH
             uint256 priceToUse = quotePrice < underlyingPrice ? quotePrice : underlyingPrice;
             uint256 amountCollateralInToken1 = uint256(-_delta).mul(underlyingPrice);
             uint256 amountDesiredInCollateralToken = OptionsCompute.convertToDecimals(amountCollateralInToken1, ERC20(collateralAsset).decimals());
             uint160 underlyingSqrtx96 = sqrtPriceFromWei(priceToUse);
-            //TODO check if inversed
             if (inversed) {
                 createUniswapRangeOrderOneTickAbove(underlyingSqrtx96, amountDesiredInCollateralToken);
             } else {
                 createUniswapRangeOrderOneTickBelow(underlyingSqrtx96, amountDesiredInCollateralToken);
             }
-            // return delta change
-
         } else {
             // sell wETH
             uint256 wethBalance = inversed ? amount1Current : amount0Current;
+            if (wethBalance < minAmount) return 0;
             uint256 priceToUse = quotePrice < underlyingPrice ? underlyingPrice : quotePrice;
             uint160 underlyingSqrtx96 = sqrtPriceFromWei(priceToUse);
             uint256 deltaToUse = _delta > int256(wethBalance) ? wethBalance : uint256(_delta);
             uint256 amountCollateralInToken1 = deltaToUse.mul(underlyingPrice);
             uint256 amountDesiredInCollateralToken = OptionsCompute.convertToDecimals(amountCollateralInToken1, ERC20(collateralAsset).decimals());
-            // withdraw and collect first
+            // TODO withdraw and collect first
             if (inversed) {
                 createUniswapRangeOrderOneTickBelow(underlyingSqrtx96, amountDesiredInCollateralToken);
             } else {
                 createUniswapRangeOrderOneTickAbove(underlyingSqrtx96, amountDesiredInCollateralToken);
             }
         }
-        // Here to satisfy interface, delta only changes when range order is filled
+        // satisfy interface, delta only changes when range order is filled
         return 0;
     }
 
@@ -490,6 +528,14 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	{
 		return PriceFeed(priceFeed).getNormalizedRate(underlying, _strikeAsset);
 	}
+
+    /**
+     * @notice determine if the pool is in an range order
+     * @return true if the pool is in a range order
+     */
+    function inActivePosition() internal view returns (bool) {
+        return currentPosition.activeLowerTick != currentPosition.activeUpperTick;
+    }
 
     //TODO - add method to retrieve any ERC20 token held by vault
 }
