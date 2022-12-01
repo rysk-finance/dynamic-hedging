@@ -21,9 +21,9 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "hardhat/console.sol";
 
 /**
- *  @title A hedging reactor that will manage delta by opening or closing short or long perp positions using rage trade
+ *  @title A hedging reactor that will manage delta by opening or closing short or long perp positions using GMX
  *  @dev interacts with LiquidityPool via hedgeDelta, getDelta, getPoolDenominatedValue and withdraw,
- *       interacts with Rage Trade and chainlink via the change position, update and sync
+ *       interacts with GMX via _increasePosition and _decreasePosition
  */
 
 contract GmxHedgingReactor is IHedgingReactor, AccessControl {
