@@ -262,6 +262,45 @@ describe("UniswapV3HedgingReactor", () => {
 		expect(LpUsdcBalanceBefore).to.be.above(LpUsdcBalanceAfter)
 	})
 
+	it("Does not allow removing an unfilled negative hedge order", async () => {
+		const fullfillAttempt = uniswapV3RangeOrderReactor.fullfillActiveRangeOrder()
+		expect(fullfillAttempt).to.be.revertedWithCustomError(
+			uniswapV3RangeOrderReactor,
+			"RangeOrderNotFilled"
+		)
+	})
+
+	it("Does not allow removing a partially filled negative hedge order", async () => {
+		liquidityPoolDummy
+		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const weth_usdc_price_before = poolInfo.token1Price.toFixed()
+		// pool is usdc/weth due to uniswap v3 pool address ordering
+		const amountToSwap = toWei("1000")
+		await wethContract.connect(signers[1]).approve(uniswapRouter.address, amountToSwap)
+		// setup swap trade params
+		let params = {
+			tokenIn: poolInfo.token1.address,
+			tokenOut: poolInfo.token0.address,
+			fee: poolInfo.fee,
+			recipient: bigSignerAddress,
+			deadline: Math.floor(Date.now() / 1000) + 60 * 10,
+			amountIn: amountToSwap,
+			amountOutMinimum: 0,
+			sqrtPriceLimitX96: 0
+		}
+		const swapTx = await uniswapRouter.exactInputSingle(params)
+		await swapTx.wait()
+		const { tick } = await uniswapUSDCWETHPool.slot0()
+		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		expect(tick).to.be.gt(activeLowerTick)
+		expect(tick).to.be.lte(activeUpperTick)
+		const fullfillAttempt = uniswapV3RangeOrderReactor.fullfillActiveRangeOrder()
+		expect(fullfillAttempt).to.be.revertedWithCustomError(
+			uniswapV3RangeOrderReactor,
+			"RangeOrderNotFilled"
+		)
+	})
+
 	it("Fills hedge when market moves into range", async () => {
 		const balancesBefore = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
 		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)

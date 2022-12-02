@@ -28,6 +28,7 @@ interface CustomErrors {
 	error StrikeAssetInvalid();
 	error OptionStrikeInvalid();
 	error OptionExpiryInvalid();
+	error RangeOrderNotFilled();
 	error NoExistingWithdrawal();
 	error SpotMovedBeyondRange();
 	error ReactorAlreadyExists();
