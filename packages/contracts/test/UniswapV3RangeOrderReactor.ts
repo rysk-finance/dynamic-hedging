@@ -15,7 +15,12 @@ import { quoterContract, tickToPrice, getPoolInfo } from "../utils/uniswap"
 import { Route, Trade } from "@uniswap/v3-sdk"
 import { CurrencyAmount, Token, TradeType } from "@uniswap/sdk-core"
 import { fromUSDC, fromWei, toUSDC, toWei } from "../utils/conversion-helper"
-import { getMatchingEvents, UNISWAP_POOL_MINT } from "../utils/events"
+import {
+	getMatchingEvents,
+	UNISWAP_POOL_MINT,
+	UNISWAP_POOL_BURN,
+	UNISWAP_POOL_COLLECT
+} from "../utils/events"
 import { WETH } from "../types/WETH"
 let signers: Signer[]
 let usdcWhale: Signer
@@ -284,27 +289,46 @@ describe("UniswapV3HedgingReactor", () => {
 		const balances = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
 		const averagePricePaid =
 			Number(fromUSDC(balancesBefore.amount0Current)) / Number(fromWei(balances.amount1Current))
-		const reactorDelta = fromWei(await liquidityPoolDummy.getDelta())
-		console.log(
-			"averagePricePaid",
-			averagePricePaid,
-			"weth_usdc_price_before",
-			Number(weth_usdc_price_before),
-			"balancesBefore",
-			Number(fromUSDC(balancesBefore.amount0Current)),
-			Number(fromWei(balances.amount1Current)),
-			{ balancesBefore, balances, reactorDelta }
-		)
+		const reactorDelta = Number(fromWei(await liquidityPoolDummy.getDelta()))
 		// negative slippage
 		expect(averagePricePaid).to.lt(Number(weth_usdc_price_before))
 		// delta will greater due to additional fees collected
-		expect(reactorDelta).to.gte(0.5)
+		expect(reactorDelta).to.be.gte(0.5)
 		expect(tick).to.be.gt(activeLowerTick)
 		expect(tick).to.be.gt(activeUpperTick)
 	})
+
+	it("should pull liquidity from range order if filled", async () => {
+		const wethBalanceBefore = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		const newSigner = signers[2]
+		const rangePoolWithNewSigner = uniswapV3RangeOrderReactor.connect(newSigner)
+		const fullfilledRange = await rangePoolWithNewSigner.fullfillActiveRangeOrder()
+		const receipt = await fullfilledRange.wait()
+		const [burnEvent] = getMatchingEvents(receipt, UNISWAP_POOL_BURN)
+		const [collectEvent] = getMatchingEvents(receipt, UNISWAP_POOL_COLLECT)
+		const burnReceived = burnEvent.amount1
+		// total received with fees
+		const collectReceived = collectEvent.amount1
+		// difference is the fees collected
+		const feesCollected = collectReceived.sub(burnReceived)
+		const reactorDelta = Number(fromWei(await liquidityPoolDummy.getDelta()))
+		const wethBalanceAfter = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		const currentPosition = await uniswapV3RangeOrderReactor.currentPosition()
+		const estimatedFees = Number(collectReceived) * 0.003
+		const estimatedVsActualFees = Math.abs(estimatedFees - Number(feesCollected))
+
+		expect(burnEvent.owner).to.equal(uniswapV3RangeOrderReactor.address)
+		expect(currentPosition.activeLowerTick).to.equal(0)
+		expect(currentPosition.activeUpperTick).to.equal(0)
+		// All weth is locked in the range order
+		expect(wethBalanceBefore).to.eq(0)
+		expect(wethBalanceAfter).to.eq(collectReceived)
+		expect(reactorDelta).to.but.gt(0.5)
+		expect(estimatedVsActualFees).to.be.lte(1)
+	})
 	////////// Legacy Testing Starts Here //////////
 
-	it("Sets a range one tick above USDC/WETH market", async () => {
+	/* 	it("Sets a range one tick above USDC/WETH market", async () => {
 		const ticks = await uniswapV3RangeOrderReactor.getTicks()
 		const price = tickToPrice(ticks.tick, 6, 18)
 		const normalizedPrice = price / 10 ** 18
@@ -405,7 +429,7 @@ describe("UniswapV3HedgingReactor", () => {
 		const reversed_price = 1 / usdc_weth_price
 		const price = await uniswapV3RangeOrderReactor.getPoolPrice()
 		console.log({ price, weth_usdc_price_after, usdc_weth_price, reversed_price })
-	})
+	}) */
 	/* 	it("updates minAmount parameter", async () => {
 		await uniswapV3HedgingReactor.setMinAmount(1e10)
 		const minAmount = await uniswapV3HedgingReactor.minAmount()
