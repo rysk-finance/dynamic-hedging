@@ -9,6 +9,8 @@ export const WRITE_OPTION = "WriteOption"
 export const BUYBACK_OPTION = "BuybackOption"
 export const VAULT_LIQUIDATION_REGISTERED = "VaultLiquidationRegistered"
 export const UNISWAP_POOL_MINT = "Mint"
+export const UNISWAP_POOL_BURN = "Burn"
+export const UNISWAP_POOL_COLLECT = "Collect"
 
 type EventsMap = Record<string, any>
 const eventsMap: EventsMap = {
@@ -20,6 +22,12 @@ const eventsMap: EventsMap = {
 	},
 	[VAULT_LIQUIDATION_REGISTERED]: {
 		["abi"]: OptionRegistrySol.abi
+	},
+	[UNISWAP_POOL_BURN]: {
+		["abi"]: IUniswapv3Pool.abi
+	},
+	[UNISWAP_POOL_COLLECT]: {
+		["abi"]: IUniswapv3Pool.abi
 	},
 	[UNISWAP_POOL_MINT]: {
 		["abi"]: IUniswapv3Pool.abi

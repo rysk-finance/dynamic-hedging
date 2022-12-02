@@ -266,8 +266,28 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         //event emit can be skipped due to uniswap pool emitting Mint event
     }
 
+    /// @notice Permissionlessly withdraws liquidity from an active range if it's 100% in the position target
+    function fullfillActiveRangeOrder() external {
+        (, int24 tick, , , , , ) = pool.slot0();
+        (uint128 liquidity, , , ,) = pool.positions(_getPositionID());
+        if (currentPosition.activeRangeAboveTick) {
+            // check if the current price is above the upper tick
+            if (tick > currentPosition.activeUpperTick) {
+                _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
+            }
+            // consider throwing an error if the current price is below the lower tick
+        } else {
+            // if the active range target is below the current price
+            // if the current price is below the lower tick
+            if (tick <= currentPosition.activeLowerTick) {
+                _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
+            }
+            // consider throwing an error if the current price is above the lower tick
+        }
+    }
+
     /// @notice Withdraws all liquidity from a range order and collection outstanding fees
-    function yankRangeOrderLiquidity() private {
+    function _yankRangeOrderLiquidity() private {
         // struct definition: https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/Position.sol#L13
         (uint128 liquidity, , , ,) = pool.positions(_getPositionID());
         _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
@@ -436,7 +456,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	function hedgeDelta(int256 _delta) external returns (int256) {
 		require(msg.sender == parentLiquidityPool, "!vault");
         // check for existing range order first amd return if found
-        if (inActivePosition()) yankRangeOrderLiquidity();
+        if (inActivePosition()) _yankRangeOrderLiquidity();
 
         bool inversed = collateralAsset == address(token0);
         uint256 underlyingPrice = getUnderlyingPrice(wETH, collateralAsset);
