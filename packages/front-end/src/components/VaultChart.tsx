@@ -68,30 +68,30 @@ export const VaultChart = () => {
     `,
     {
       onCompleted: (data) => {
-        const refinedData: any = data?.pricePerShares
-          ? data.pricePerShares.map((ppsEpoch: any) => {
-              const dateLocale = new Date(
-                parseInt(ppsEpoch.timestamp) * 1000
-              ).toLocaleString("default", {
-                month: "numeric",
-                day: "numeric",
-                year: "numeric",
-              });
+        const refinedData: any =
+          data?.pricePerShares?.length > 0
+            ? new Array(data.pricePerShares.length)
+            : [];
 
-              return {
-                epoch: ppsEpoch.id,
-                // @reminder: For presentation it's ok but reminder that number of float decimals is 17
-                growthSinceFirstEpoch: parseFloat(
-                  ppsEpoch.growthSinceFirstEpoch
-                ),
-                timestamp: ppsEpoch.timestamp,
-                dateLocale,
-              };
-            })
-          : [];
+        data.pricePerShares.map((ppsEpoch: any) => {
+          const dateLocale = new Date(
+            parseInt(ppsEpoch.timestamp) * 1000
+          ).toLocaleString("default", {
+            month: "numeric",
+            day: "numeric",
+            year: "numeric",
+          });
 
-        Object.keys(refinedData).length > 0 &&
-          setPricePerShares(Object.values(refinedData));
+          refinedData[+ppsEpoch.id - 1] = {
+            epoch: ppsEpoch.id,
+            // @reminder: For presentation it's ok but reminder that number of float decimals is 17
+            growthSinceFirstEpoch: parseFloat(ppsEpoch.growthSinceFirstEpoch),
+            timestamp: ppsEpoch.timestamp,
+            dateLocale,
+          };
+        });
+
+        setPricePerShares(refinedData);
       },
       onError: (err) => {
         console.log(err);
