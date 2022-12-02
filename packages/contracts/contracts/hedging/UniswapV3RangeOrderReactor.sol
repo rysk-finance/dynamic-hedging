@@ -12,6 +12,7 @@ import "../interfaces/ILiquidityPool.sol";
 import "../libraries/AccessControl.sol";
 import "../libraries/OptionsCompute.sol";
 import "../libraries/SafeTransferLib.sol";
+import "../libraries/CustomErrors.sol";
 import "../PriceFeed.sol";
 import "hardhat/console.sol";
 
@@ -274,15 +275,17 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             // check if the current price is above the upper tick
             if (tick > currentPosition.activeUpperTick) {
                 _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
+            } else {
+                revert CustomErrors.RangeOrderNotFilled();
             }
-            // consider throwing an error if the current price is below the lower tick
         } else {
-            // if the active range target is below the current price
+            // active range target is below the current price
             // if the current price is below the lower tick
             if (tick <= currentPosition.activeLowerTick) {
                 _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
+            } else {
+                revert CustomErrors.RangeOrderNotFilled();
             }
-            // consider throwing an error if the current price is above the lower tick
         }
     }
 
