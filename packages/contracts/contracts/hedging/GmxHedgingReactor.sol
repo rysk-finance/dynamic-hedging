@@ -209,6 +209,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @notice function to re-calibrate internalDelta in case of liquidation
 	function sync() external returns (int256) {
+		_isKeeper();
 		uint256[] memory longPosition = _getPosition(true);
 		uint256[] memory shortPosition = _getPosition(false);
 		uint256 longDelta = longPosition[0] > 0 ? (longPosition[0]).div(longPosition[2]) : 0;
@@ -219,7 +220,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @inheritdoc IHedgingReactor
 	function update() external returns (uint256) {
-		// _isKeeper();
+		_isKeeper();
 		if (internalDelta == 0) {
 			revert CustomErrors.NoPositionsOpen();
 		}
