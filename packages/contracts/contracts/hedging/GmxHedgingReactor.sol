@@ -377,6 +377,10 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		uint256 _collateralSize,
 		bool _isLong
 	) internal returns (bytes32 positionKey, int256 deltaChange) {
+		// check if funds are available in Liquidity pool
+		if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < _collateralSize) {
+			revert CustomErrors.WithdrawExceedsLiquidity();
+		}
 		// take that amount of collateral from the Liquidity Pool and approve to GMX
 		SafeTransferLib.safeTransferFrom(collateralAsset, parentLiquidityPool, address(this), _collateralSize);
 		SafeTransferLib.safeApprove(ERC20(collateralAsset), address(router), _collateralSize);
