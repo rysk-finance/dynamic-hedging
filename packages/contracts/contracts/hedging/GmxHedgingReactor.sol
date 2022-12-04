@@ -35,12 +35,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @notice address of the parent liquidity pool contract
 	address public immutable parentLiquidityPool;
-	/// @notice address of the price feed used for getting asset prices
-	address public immutable priceFeed;
 	/// @notice collateralAsset used for collateralising the pool
 	address public immutable collateralAsset;
 	/// @notice address of the wETH contract
 	address public immutable wETH;
+	/// @notice the gmx vault contract address
+	IGmxVault public immutable vault;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -64,14 +64,15 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	uint256 public collateralSwapPriceTolerance = 5e15; // 0.5%
 	/// @notice price tolerance for opening/closing positions
 	uint256 public positionPriceTolerance = 5e15; // 0.5%
+	/// @notice address of the price feed used for getting asset prices
+	address public priceFeed;
 	/// @notice the GMX position router contract
 	IPositionRouter public gmxPositionRouter;
 	/// @notice the GMX Router contract
 	IRouter public router;
 	/// @notice the GMX Reader contract
 	IReader public reader;
-	/// @notice the gmx vault contract address
-	IGmxVault public vault;
+
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
@@ -142,6 +143,21 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		_onlyGovernor();
 		gmxPositionRouter = IPositionRouter(_gmxPositionRouter);
 		router.approvePlugin(_gmxPositionRouter);
+	}
+
+	function setReader(address _reader) external {
+		_onlyGovernor();
+		reader = IReader(_reader);
+	}
+
+	function setRouter(address _router) external {
+		_onlyGovernor();
+		router = IRouter(_router);
+	}
+
+	function setPriceFeed(address _priceFeed) external {
+		_onlyGovernor();
+		priceFeed = _priceFeed;
 	}
 
 	function setCollateralSwapPriceTolerance(uint256 _collateralSwapPriceTolerance) external {
