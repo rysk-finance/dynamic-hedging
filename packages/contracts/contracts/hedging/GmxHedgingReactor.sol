@@ -60,6 +60,10 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	mapping(address => bool) public keeper;
 	/// @notice desired healthFactor of the pool
 	uint256 public healthFactor = 5_000;
+	/// @notice price deviation tolerance for collateral swapping
+	uint256 public collateralSwapPriceTolerance = 5e15; // 0.5%
+	/// @notice price tolerance for opening/closing positions
+	uint256 public positionPriceTolerance = 5e15; // 0.5%
 	/// @notice the GMX position router contract
 	IPositionRouter public gmxPositionRouter;
 	/// @notice the GMX Router contract
@@ -140,6 +144,16 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		router.approvePlugin(_gmxPositionRouter);
 	}
 
+	function setCollateralSwapPriceTolerance(uint256 _collateralSwapPriceTolerance) external {
+		_onlyGovernor();
+		collateralSwapPriceTolerance = _collateralSwapPriceTolerance;
+	}
+
+	function setPositionPriceTolerance(uint256 _positionPriceTolerance) external {
+		_onlyGovernor();
+		positionPriceTolerance = _positionPriceTolerance;
+	}
+
 	////////////////////////////////////////////
 	/// access-controlled external functions ///
 	////////////////////////////////////////////
@@ -175,6 +189,16 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			// return in collateral format
 			return balance;
 		}
+	}
+
+	/// @notice function to re-calibrate internalDelta in case of liquidation
+	function sync() external returns (int256) {
+		uint256[] memory longPosition = _getPosition(true);
+		uint256[] memory shortPosition = _getPosition(false);
+		uint256 longDelta = longPosition[0] > 0 ? (longPosition[0]).div(longPosition[2]) : 0;
+		uint256 shortDelta = shortPosition[0] > 0 ? (shortPosition[0]).div(shortPosition[2]) : 0;
+		internalDelta = int256(longDelta) - int256(shortDelta);
+		return internalDelta;
 	}
 
 	/// @inheritdoc IHedgingReactor
@@ -381,6 +405,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < _collateralSize) {
 			revert CustomErrors.WithdrawExceedsLiquidity();
 		}
+		uint256 currentPrice = getUnderlyingPrice(wETH, collateralAsset);
+
 		// take that amount of collateral from the Liquidity Pool and approve to GMX
 		SafeTransferLib.safeTransferFrom(collateralAsset, parentLiquidityPool, address(this), _collateralSize);
 		SafeTransferLib.safeApprove(ERC20(collateralAsset), address(router), _collateralSize);
@@ -389,10 +415,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			_createPathIncreasePosition(_isLong),
 			wETH,
 			_collateralSize,
-			(_collateralSize * 1e12).div(getUnderlyingPrice(wETH, collateralAsset)).mul(995e15),
-			_size.mul(getUnderlyingPrice(wETH, collateralAsset)) * 1e12,
+			(_collateralSize * 1e12).div(currentPrice).mul(1e18 - collateralSwapPriceTolerance),
+			_size.mul(currentPrice) * 1e12,
 			_isLong,
-			_isLong ? getUnderlyingPrice(wETH, collateralAsset) * 1005e9 : getUnderlyingPrice(wETH, collateralAsset) * 995e9, // 0.5% price tolerance
+			_isLong
+				? currentPrice.mul(1e18 + positionPriceTolerance) * 1e12
+				: currentPrice.mul(1e18 - positionPriceTolerance) * 1e12, // 0.5% price tolerance
 			gmxPositionRouter.minExecutionFee(),
 			"leverageisfun",
 			address(this)
@@ -429,7 +457,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			positionSizeDeltaUsd,
 			_isLong,
 			parentLiquidityPool,
-			_isLong ? currentPrice * 995e9 : currentPrice * 1005e9, // mul by 0.995 e12 for slippage
+			_isLong
+				? currentPrice.mul(1e18 - positionPriceTolerance) * 1e12
+				: currentPrice.mul(1e18 + positionPriceTolerance) * 1e12, // mul by 0.995 e12 for slippage
 			0,
 			gmxPositionRouter.minExecutionFee(),
 			false,

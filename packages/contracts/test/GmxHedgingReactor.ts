@@ -729,6 +729,15 @@ describe("GMX Hedging Reactor", () => {
 			parseFloat(utils.formatUnits(shortPositionAfter[1].sub(shortPositionAfter[8]), 30))
 		)
 	})
+	it("syncs internal delta when short. should not change value", async () => {
+		const deltaBefore = await gmxReactor.internalDelta()
+		expect(deltaBefore).to.eq(utils.parseEther("-15"))
+
+		await gmxReactor.sync()
+
+		const deltaAfter = await gmxReactor.internalDelta()
+		expect(deltaAfter).to.eq(utils.parseEther("-15"))
+	})
 	it("closes short in loss and flips long", async () => {
 		// currently short 15 delta
 		// go long 25 delta
@@ -809,5 +818,14 @@ describe("GMX Hedging Reactor", () => {
 		// check getPoolDemoninatedvalue is correct
 		const poolDenominatedValue = parseFloat(utils.formatEther(await gmxReactor.callStatic.getPoolDenominatedValue()))
 		expect(poolDenominatedValue).to.eq(parseFloat(utils.formatUnits(longPositionAfter[1], 30)))
+	})
+	it("syncs internal delta when long. should not change value", async () => {
+		const deltaBefore = await gmxReactor.internalDelta()
+		expect(deltaBefore).to.eq(utils.parseEther("10"))
+
+		await gmxReactor.sync()
+
+		const deltaAfter = await gmxReactor.internalDelta()
+		expect(deltaAfter).to.eq(utils.parseEther("10"))
 	})
 })
