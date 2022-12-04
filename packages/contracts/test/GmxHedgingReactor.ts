@@ -135,7 +135,9 @@ describe("GMX Hedging Reactor", () => {
 			authorityAddress
 		)) as GmxHedgingReactor
 		const funder = await ethers.getSigner(funderAddress)
-		await funder.sendTransaction({ to: gmxReactor.address, value: utils.parseEther("100") })
+		await funder.sendTransaction({ to: gmxReactor.address, value: utils.parseEther("1") })
+
+		await gmxReactor.connect(deployer).setKeeper(signers[0].getAddress(), true)
 
 		expect(await gmxReactor.parentLiquidityPool()).to.eq(liquidityPoolAddress)
 		expect(await gmxReactor.getDelta()).to.eq(0)
@@ -827,5 +829,29 @@ describe("GMX Hedging Reactor", () => {
 
 		const deltaAfter = await gmxReactor.internalDelta()
 		expect(deltaAfter).to.eq(utils.parseEther("10"))
+	})
+	it("withdraws ETH from contract", async () => {
+		const contractBalanceBefore = await ethers.provider.getBalance(gmxReactor.address)
+		const deployerBalanceBefore = await ethers.provider.getBalance(funderAddress)
+
+		const amountOut = utils.parseEther("0.1")
+		await gmxReactor.connect(deployer).sweepFunds(amountOut, funderAddress)
+
+		const contractBalanceAfter = await ethers.provider.getBalance(gmxReactor.address)
+		const deployerBalanceAfter = await ethers.provider.getBalance(funderAddress)
+		expect(contractBalanceAfter).to.eq(contractBalanceBefore.sub(amountOut))
+		expect(deployerBalanceAfter).to.eq(deployerBalanceBefore.add(amountOut))
+	})
+	it("withdraws all ETH from contract", async () => {
+		const contractBalanceBefore = await ethers.provider.getBalance(gmxReactor.address)
+		const deployerBalanceBefore = await ethers.provider.getBalance(funderAddress)
+		// more than available
+		const amountOut = utils.parseEther("1000")
+		await gmxReactor.connect(deployer).sweepFunds(amountOut, funderAddress)
+
+		const contractBalanceAfter = await ethers.provider.getBalance(gmxReactor.address)
+		const deployerBalanceAfter = await ethers.provider.getBalance(funderAddress)
+		expect(contractBalanceAfter).to.eq(0)
+		expect(deployerBalanceAfter).to.eq(deployerBalanceBefore.add(contractBalanceBefore))
 	})
 })
