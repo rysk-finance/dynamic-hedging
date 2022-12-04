@@ -49,7 +49,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	/// @notice delta of the pool
 	int256 public internalDelta;
 
-	mapping(bytes32 => int256) public orderDeltaChange;
+	mapping(bytes32 => int256) public increaseOrderDeltaChange;
+	mapping(bytes32 => int256) public decreaseOrderDeltaChange;
 
 	/////////////////////////////////////
 	/// governance settable variables ///
@@ -59,8 +60,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	mapping(address => bool) public keeper;
 	/// @notice desired healthFactor of the pool
 	uint256 public healthFactor = 5_000;
-	/// @notice should change position also sync state
-	bool public syncOnChange;
 	/// @notice the GMX position router contract
 	IPositionRouter public gmxPositionRouter;
 	/// @notice the GMX Router contract
@@ -135,12 +134,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		keeper[_keeper] = _auth;
 	}
 
-	/// @notice set whether changing a position should trigger a sync before updating
-	function setSyncOnChange(bool _syncOnChange) external {
-		_onlyGovernor();
-		syncOnChange = _syncOnChange;
-	}
-
 	function setPositionRouter(address _gmxPositionRouter) external {
 		_onlyGovernor();
 		gmxPositionRouter = IPositionRouter(_gmxPositionRouter);
@@ -185,7 +178,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	}
 
 	/// @inheritdoc IHedgingReactor
-	function update() public returns (uint256) {
+	function update() external returns (uint256) {
 		// _isKeeper();
 		if (internalDelta == 0) {
 			revert CustomErrors.NoPositionsOpen();
@@ -331,7 +324,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(adjustedPositionSize, false, closedOppositeSideFirst);
 				(bytes32 positionKey, int256 deltaChange) = _decreasePosition(adjustedPositionSize, collateralToRemove, false);
 				// update deltaChange for callback function
-				orderDeltaChange[positionKey] += deltaChange;
+				decreaseOrderDeltaChange[positionKey] += deltaChange;
 
 				// remove the adjustedPositionSize from _amount to get remaining amount of delta to hedge to open shorts with
 				_amount = _amount - int256(adjustedPositionSize);
@@ -343,7 +336,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			uint256 collateralToAdd = _getCollateralSizeDeltaUsd(uint256(_amount), true, closedOppositeSideFirst);
 			(bytes32 positionKey, int256 deltaChange) = _increasePosition(uint256(_amount), collateralToAdd, true);
 			// update deltaChange for callback function
-			orderDeltaChange[positionKey] += deltaChange;
+			increaseOrderDeltaChange[positionKey] += deltaChange;
 		} else {
 			// _amount is negative
 			// enter a short position
@@ -353,7 +346,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(adjustedPositionSize, false, closedOppositeSideFirst);
 				(bytes32 positionKey, int256 deltaChange) = _decreasePosition(adjustedPositionSize, collateralToRemove, true);
 				// update deltaChange for callback function
-				orderDeltaChange[positionKey] += deltaChange;
+				decreaseOrderDeltaChange[positionKey] += deltaChange;
 
 				// remove the adjustedPositionSize from _amount to get remaining amount of delta to hedge to open shorts with
 				_amount = _amount + int256(adjustedPositionSize); // _amount is negative so addition needed
@@ -365,7 +358,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			uint256 collateralToAdd = _getCollateralSizeDeltaUsd(uint256(-_amount), true, closedOppositeSideFirst);
 			(bytes32 positionKey, int256 deltaChange) = _increasePosition(uint256(-_amount), collateralToAdd, false);
 			// update deltaChange for callback function
-			orderDeltaChange[positionKey] += deltaChange;
+			increaseOrderDeltaChange[positionKey] += deltaChange;
 			return deltaChange + closedPositionDeltaChange;
 		}
 		return 0;
@@ -431,15 +424,15 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			_collateralSize * 1e24,
 			positionSizeDeltaUsd,
 			_isLong,
-			address(this),
+			parentLiquidityPool,
 			_isLong ? currentPrice * 995e9 : currentPrice * 1005e9, // mul by 0.995 e12 for slippage
 			0,
 			gmxPositionRouter.minExecutionFee(),
 			false,
 			address(this)
 		);
-
 		emit CreateDecreasePosition(positionKey);
+
 		return (positionKey, _isLong ? -int256(_size) : int256(_size));
 	}
 
@@ -578,8 +571,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 							.mul(1e18 - int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12)))
 							.div(2 * int256(position[1] / 1e12))
 					)).mul(int256(position[1] / 1e12));
-				// +
-				// int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12).mul(position[8] / 1e12));
 			} else {
 				// position in loss
 				// with positions in loss, what is entered into the createDecreasePosition function is what you receive
@@ -607,7 +598,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		}
 	}
 
-	/**
+	/**	@notice GMX position size remains fixed through price fluctuations and is denominated in USD.
+							This function converts from ETH denominated delta to USD denominated position size change
 	 *	@param _size amount of deltas to change position by. e18
 	 *	@param positionSize USD size of existing position as given by GMX. e30
 	 *	@return USD size to change position by. e30
@@ -630,7 +622,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	// ------ end of temporary functions ---------
 
 	/**	@notice function which will be called by a GMX keeper when they execute or reject our position request
-	 *	@param positionKey unique key of the position given by GMX
+	 *	@param positionKey unique key of the position request given by GMX
 	 *	@param isExecuted if the position change was executed successfully
 	 *	@param isIncrease if the position was increased
 	 */
@@ -640,11 +632,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		bool isIncrease
 	) external {
 		if (isExecuted) {
-			internalDelta += orderDeltaChange[positionKey];
-			delete orderDeltaChange[positionKey];
+			if (isIncrease) {
+				internalDelta += increaseOrderDeltaChange[positionKey];
+			} else {
+				internalDelta += decreaseOrderDeltaChange[positionKey];
+			}
 		}
-		uint256 usdcBalance = ERC20(collateralAsset).balanceOf(address(this));
-		SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, usdcBalance);
 	}
 
 	/**

@@ -256,4 +256,11 @@ interface IGmxVault {
 		address _indexToken,
 		bool _isLong
 	) external view returns (uint256);
+
+	function getPositionKey(
+		address _account,
+		address _collateralToken,
+		address _indexToken,
+		bool _isLong
+	) external pure returns (bytes32);
 }
