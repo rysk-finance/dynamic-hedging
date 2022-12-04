@@ -174,6 +174,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	/// access-controlled external functions ///
 	////////////////////////////////////////////
 
+	function sweepFunds(uint256 _amount, address _receiver) external {
+		_onlyGovernor();
+		uint256 balance = address(this).balance;
+		SafeTransferLib.safeTransferETH(_receiver, _amount > balance ? balance : _amount);
+	}
+
 	/// @inheritdoc IHedgingReactor
 	function hedgeDelta(int256 _delta) external returns (int256 deltaChange) {
 		require(_delta != 0, "delta change is zero");
