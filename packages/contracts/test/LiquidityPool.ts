@@ -279,8 +279,8 @@ describe("Liquidity Pools", async () => {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isBuyable: true,
+			isSellable: true
 		}])
 		let receipt = await tx.wait()
 		const events = receipt.events
@@ -290,11 +290,11 @@ describe("Liquidity Pools", async () => {
 		const isApproved = await exchange.approvedOptions(oHash)
 		const expirationList = await exchange.getExpirations()
 		const chainStrike = await exchange.getOptionDetails(expiration, true)
-		const isBuying = await exchange.isBuying(oHash)
-		const isSelling = await exchange.isSelling(oHash)
+		const isSellable = await exchange.isSellable(oHash)
+		const isBuyable = await exchange.isBuyable(oHash)
 		expect(isApproved).to.be.true
-		expect(isBuying).to.be.true
-		expect(isSelling).to.be.true
+		expect(isSellable).to.be.true
+		expect(isBuyable).to.be.true
 		expect(chainStrike[0]).to.equal(formattedStrikePrice)
 		expect(expirationList[0]).to.equal(expiration)
 	})
@@ -306,18 +306,18 @@ describe("Liquidity Pools", async () => {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: formattedStrikePrice,
-			isBuying: false,
-			isSelling: false
+			isSellable: false,
+			isBuyable: false
 		}])
 		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"], [expiration, formattedStrikePrice, PUT_FLAVOR])
 		const isApproved = await exchange.approvedOptions(oHash)
 		const expirationList = await exchange.getExpirations()
 		const chainStrike = await exchange.getOptionDetails(expiration, true)
-		const isBuying = await exchange.isBuying(oHash)
-		const isSelling = await exchange.isSelling(oHash)
+		const isSellable = await exchange.isSellable(oHash)
+		const isBuyable = await exchange.isBuyable(oHash)
 		expect(isApproved).to.be.true
-		expect(isBuying).to.be.false
-		expect(isSelling).to.be.false
+		expect(isSellable).to.be.false
+		expect(isBuyable).to.be.false
 		expect(chainStrike[0]).to.equal(formattedStrikePrice)
 		expect(expirationList[0]).to.equal(expiration)
 	})
@@ -328,8 +328,8 @@ describe("Liquidity Pools", async () => {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: 0,
-			isBuying: false,
-			isSelling: false
+			isSellable: false,
+			isBuyable: false
 		}])).to.be.revertedWith("UnapprovedSeries()")
 
 	})
@@ -340,8 +340,8 @@ describe("Liquidity Pools", async () => {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 		let receipt = await tx.wait()
 		const events = receipt.events
@@ -355,19 +355,19 @@ describe("Liquidity Pools", async () => {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1", 10))
 		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"], [expiration, formattedStrikePrice, PUT_FLAVOR])
 		const isApproved = await exchange.approvedOptions(oHash)
 		const expirationList = await exchange.getExpirations()
 		const chainStrike = await exchange.getOptionDetails(expiration, true)
-		const isBuying = await exchange.isBuying(oHash)
-		const isSelling = await exchange.isSelling(oHash)
+		const isSellable = await exchange.isSellable(oHash)
+		const isBuyable = await exchange.isBuyable(oHash)
 		expect(isApproved).to.be.true
-		expect(isBuying).to.be.true
-		expect(isSelling).to.be.true
+		expect(isSellable).to.be.true
+		expect(isBuyable).to.be.true
 		expect(chainStrike[0]).to.equal(formattedStrikePrice)
 		expect(expirationList[0]).to.equal(expiration)
 	})
@@ -562,61 +562,6 @@ describe("Liquidity Pools", async () => {
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.within(0, 0.1)
 	})
-	// it("Reverts: Push to price deviation threshold to cause quote to fail", async () => {
-	// 	const latestPrice = await priceFeed.getRate(weth.address, usd.address)
-	// 	await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from("10000000000")))
-	// 	const amount = toWei("1")
-	// 	const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-	// 	const strikePrice = priceQuote.sub(toWei(strike))
-	// 	const optionSeries = {
-	// 		expiration: expiration,
-	// 		strike: strikePrice,
-	// 		isPut: PUT_FLAVOR,
-	// 		strikeAsset: usd.address,
-	// 		underlying: weth.address,
-	// 		collateral: usd.address
-	// 	}
-	// 	await expect(
-	// 		pricer.quoteOptionPrice(optionSeries, amount, true)
-	// 	).to.be.revertedWith("PriceDeltaExceedsThreshold(36378215763291390)")
-	// })
-	// it("Reverts: Push to price deviation threshold to cause quote to fail other way", async () => {
-	// 	const latestPrice = await priceFeed.getRate(weth.address, usd.address)
-	// 	await opynAggregator.setLatestAnswer(latestPrice.sub(BigNumber.from("20000000000")))
-	// 	const amount = toWei("1")
-	// 	const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-	// 	const strikePrice = priceQuote.sub(toWei(strike))
-	// 	const optionSeries = {
-	// 		expiration: expiration,
-	// 		strike: strikePrice,
-	// 		isPut: PUT_FLAVOR,
-	// 		strikeAsset: usd.address,
-	// 		underlying: weth.address,
-	// 		collateral: usd.address
-	// 	}
-	// 	await expect(
-	// 		pricer.quoteOptionPrice(optionSeries, amount, true)
-	// 	).to.be.revertedWith("PriceDeltaExceedsThreshold(36378215763291390)")
-	// })
-	// it("Reverts: Push to time deviation threshold to cause quote to fail", async () => {
-	// 	const latestPrice = await priceFeed.getRate(weth.address, usd.address)
-	// 	await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from("10000000000")))
-	// 	const amount = toWei("1")
-	// 	const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-	// 	const strikePrice = priceQuote.sub(toWei(strike))
-	// 	const optionSeries = {
-	// 		expiration: expiration,
-	// 		strike: strikePrice,
-	// 		isPut: PUT_FLAVOR,
-	// 		strikeAsset: usd.address,
-	// 		underlying: weth.address,
-	// 		collateral: usd.address
-	// 	}
-	// 	await increase(700)
-	// 	await expect(
-	// 		pricer.quoteOptionPrice(optionSeries, amount, true)
-	// 	).to.be.revertedWith("TimeDeltaExceedsThreshold(707)")
-	// })
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
@@ -624,15 +569,15 @@ describe("Liquidity Pools", async () => {
 			expiration: invalidExpirationLong,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		},
 		{
 			expiration: invalidExpirationShort,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}
 		])
 
@@ -745,15 +690,15 @@ describe("Liquidity Pools", async () => {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: invalidStrikeHigh,
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		},
 		{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: invalidStrikeLow,
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 	})
 	it("reverts when attempting to write a ETH/USD put with strike outside of limit", async () => {
@@ -834,15 +779,15 @@ describe("Liquidity Pools", async () => {
 			expiration: invalidExpirationLong,
 			isPut: CALL_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		},
 		{
 			expiration: invalidExpirationShort,
 			isPut: CALL_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 	})
 	it("reverts when attempting to write ETH/USD call with expiry outside of limit", async () => {
@@ -948,15 +893,15 @@ describe("Liquidity Pools", async () => {
 			expiration: expiration,
 			isPut: CALL_FLAVOR,
 			strike: invalidStrikeHigh,
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		},
 		{
 			expiration: expiration,
 			isPut: CALL_FLAVOR,
 			strike: invalidStrikeLow,
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 	})
 	it("reverts when attempting to write a ETH/USD call with strike outside of limit", async () => {
@@ -1182,18 +1127,18 @@ describe("Liquidity Pools", async () => {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: formattedStrikePrice,
-			isBuying: false,
-			isSelling: false
+			isSellable: false,
+			isBuyable: false
 		}])
 		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"], [expiration, formattedStrikePrice, PUT_FLAVOR])
 		const isApproved = await exchange.approvedOptions(oHash)
 		const expirationList = await exchange.getExpirations()
 		const chainStrike = await exchange.getOptionDetails(expiration, true)
-		const isBuying = await exchange.isBuying(oHash)
-		const isSelling = await exchange.isSelling(oHash)
+		const isSellable = await exchange.isSellable(oHash)
+		const isBuyable = await exchange.isBuyable(oHash)
 		expect(isApproved).to.be.true
-		expect(isBuying).to.be.false
-		expect(isSelling).to.be.false
+		expect(isSellable).to.be.false
+		expect(isBuyable).to.be.false
 		expect(chainStrike[0]).to.equal(formattedStrikePrice)
 		expect(expirationList[0]).to.equal(expiration)
 	})
@@ -1233,7 +1178,7 @@ describe("Liquidity Pools", async () => {
 			amount: amount,
 			optionSeries: proposedSeries,
 			data: "0x"
-		}])).to.be.revertedWith("NotSellingSeries()")
+		}])).to.be.revertedWith("SeriesNotBuyable()")
 	})
 	it("REVERTs: LP writes a ETH/USD put for premium for series not approved for sale", async () => {
 		const [sender] = signers
@@ -1252,7 +1197,7 @@ describe("Liquidity Pools", async () => {
 			amount: amount,
 			optionSeries: proposedSeries,
 			data: "0x"
-		}])).to.be.revertedWith("NotSellingSeries()")
+		}])).to.be.revertedWith("SeriesNotBuyable()")
 	})
 	it("REVERTs: LP buyback a ETH/USD put for premium for series not approved for buying", async () => {
 		const [sender] = signers
@@ -1271,7 +1216,7 @@ describe("Liquidity Pools", async () => {
 			amount: amount,
 			optionSeries: proposedSeries,
 			data: "0x"
-		}])).to.be.revertedWith("NotBuyingSeries()")
+		}])).to.be.revertedWith("SeriesNotSellable()")
 	})
 	it("SETUP: change option buy or sell on series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -1281,18 +1226,18 @@ describe("Liquidity Pools", async () => {
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: formattedStrikePrice,
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"], [expiration, formattedStrikePrice, PUT_FLAVOR])
 		const isApproved = await exchange.approvedOptions(oHash)
 		const expirationList = await exchange.getExpirations()
 		const chainStrike = await exchange.getOptionDetails(expiration, true)
-		const isBuying = await exchange.isBuying(oHash)
-		const isSelling = await exchange.isSelling(oHash)
+		const isSellable = await exchange.isSellable(oHash)
+		const isBuyable = await exchange.isBuyable(oHash)
 		expect(isApproved).to.be.true
-		expect(isBuying).to.be.true
-		expect(isSelling).to.be.true
+		expect(isSellable).to.be.true
+		expect(isBuyable).to.be.true
 		expect(chainStrike[0]).to.equal(formattedStrikePrice)
 		expect(expirationList[0]).to.equal(expiration)
 	})
@@ -1454,8 +1399,8 @@ describe("Liquidity Pools", async () => {
 			expiration: expiration2,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
