@@ -343,18 +343,20 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			CombinedActions.OperationProcedures memory operationProcedure = _operationProcedures[i];
 			CombinedActions.OperationType operation = operationProcedure.operation;
 			if (operation == CombinedActions.OperationType.OPYN) {
-				_runOpynActions(CombinedActions._parseOpynArgs(operationProcedure.operationQueue));
+				_runOpynActions(operationProcedure.operationQueue);
 			} else if (operation == CombinedActions.OperationType.RYSK) {
-				_runRyskActions(CombinedActions._parseRyskArgs(operationProcedure.operationQueue));
+				_runRyskActions(operationProcedure.operationQueue);
 			} 
 		}
 	}
 
-	function _runOpynActions(IController.ActionArgs[] memory _opynActions) internal {
+	function _runOpynActions(CombinedActions.ActionArgs[] memory _opynActions) internal {
 		IController controller = IController(addressbook.getController());
-		for (uint256 i = 0; i < _opynActions.length; i++) {
+		uint256 arr = _opynActions.length;
+		IController.ActionArgs[] memory _opynArgs = new IController.ActionArgs[](arr);
+		for (uint256 i = 0; i < arr; i++) {
 			// loop through the opyn actions, if any involve opening a vault then make sure the msg.sender gets the ownership and if there are any more vault ids make sure the msg.sender is the owners
-			IController.ActionArgs memory action = _opynActions[i];
+			IController.ActionArgs memory action = CombinedActions._parseOpynArgs(_opynActions[i]);
 			IController.ActionType actionType = action.actionType;
 			if (actionType == IController.ActionType.OpenVault) {
 				// might need to change open vault vault id, otherwise check the vault id somehow
@@ -379,14 +381,15 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			} else if (actionType == IController.ActionType.Call) {
 				// dont allow
 			}
+			_opynArgs[i] = action;
 		}
-		controller.operate(_opynActions);
+		controller.operate(_opynArgs);
 	}
 
-	function _runRyskActions(RyskActions.ActionArgs[] memory _ryskActions) internal {
+	function _runRyskActions(CombinedActions.ActionArgs[] memory _ryskActions) internal {
 		for (uint256 i = 0; i < _ryskActions.length; i++) {
 			// loop through the rysk actions
-			RyskActions.ActionArgs memory action = _ryskActions[i];
+			RyskActions.ActionArgs memory action = CombinedActions._parseRyskArgs(_ryskActions[i]);
 			RyskActions.ActionType actionType = action.actionType;
 			if (actionType == RyskActions.ActionType.Issue) {
 				_issue(RyskActions._parseIssueArgs(action));
