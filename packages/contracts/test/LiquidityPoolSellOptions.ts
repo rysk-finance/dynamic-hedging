@@ -170,7 +170,7 @@ const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").va
 
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
-const emptySeries = {expiration:1,strike:1,isPut:CALL_FLAVOR, collateral:ZERO_ADDRESS, underlying:ZERO_ADDRESS, strikeAsset:ZERO_ADDRESS}
+const emptySeries = { expiration: 1, strike: 1, isPut: CALL_FLAVOR, collateral: ZERO_ADDRESS, underlying: ZERO_ADDRESS, strikeAsset: ZERO_ADDRESS }
 describe("Liquidity Pools hedging reactor: gamma", async () => {
 	before(async function () {
 		await hre.network.provider.request({
@@ -395,23 +395,31 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			)[0]
 			await usd.approve(exchange.address, quote)
 			const balance = await usd.balanceOf(senderAddress)
-			await exchange.operate([], [{
-				actionType: 0,
-				secondAddress: ZERO_ADDRESS,
-				asset: ZERO_ADDRESS,
-				vaultId: 0,
-				amount: 0,
-				optionSeries: proposedSeries,
-				data: "0x"
-			}, {
-				actionType: 1,
-				secondAddress: senderAddress,
-				asset: ZERO_ADDRESS,
-				vaultId: 0,
-				amount: amount,
-				optionSeries: proposedSeries,
-				data: "0x"
-			}])
+			await exchange.operate([
+				{
+					operation: 1,
+					operationQueue: [{
+						actionType: 0,
+						owner: ZERO_ADDRESS,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: 0,
+						optionSeries: proposedSeries,
+						index: 0,
+						data: "0x"
+					}, {
+						actionType: 1,
+						owner: ZERO_ADDRESS,
+						secondAddress: senderAddress,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: proposedSeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])
 			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
 			const localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,

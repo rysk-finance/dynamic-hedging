@@ -106,9 +106,21 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/// structs && events ///
 	/////////////////////////
 
-	event SeriesApproved(uint64 expiration, uint128 strike, bool isPut, bool isBuyable, bool isSellable);
+	event SeriesApproved(
+		uint64 expiration,
+		uint128 strike,
+		bool isPut,
+		bool isBuyable,
+		bool isSellable
+	);
 	event SeriesDisabled(uint64 expiration, uint128 strike, bool isPut);
-	event SeriesAltered(uint64 expiration, uint128 strike, bool isPut, bool isBuyable, bool isSellable);
+	event SeriesAltered(
+		uint64 expiration,
+		uint128 strike,
+		bool isPut,
+		bool isBuyable,
+		bool isSellable
+	);
 	event OptionsBought();
 	event OptionPositionsClosed();
 	event OptionsRedeemed(
@@ -323,9 +335,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/// external state changing functionality ///
 	/////////////////////////////////////////////
 
-	function operate(
-		CombinedActions.OperationProcedures[] memory _operationProcedures
-	) external nonReentrant whenNotPaused {
+	function operate(CombinedActions.OperationProcedures[] memory _operationProcedures)
+		external
+		nonReentrant
+		whenNotPaused
+	{
 		_runActions(_operationProcedures);
 		// if (vaultUpdated) {
 		//     _verifyFinalState(vaultOwner, vaultId);
@@ -336,9 +350,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/**
 	 * @notice execute a variety of actions
 	 */
-	function _runActions(
-		CombinedActions.OperationProcedures[] memory _operationProcedures
-	) internal {
+	function _runActions(CombinedActions.OperationProcedures[] memory _operationProcedures) internal {
 		for (uint256 i = 0; i < _operationProcedures.length; i++) {
 			CombinedActions.OperationProcedures memory operationProcedure = _operationProcedures[i];
 			CombinedActions.OperationType operation = operationProcedure.operation;
@@ -346,7 +358,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				_runOpynActions(operationProcedure.operationQueue);
 			} else if (operation == CombinedActions.OperationType.RYSK) {
 				_runRyskActions(operationProcedure.operationQueue);
-			} 
+			}
 		}
 	}
 
@@ -400,6 +412,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			}
 		}
 	}
+
 	/**
 	 * @notice issue the otoken and write a number of options for a given series configuration
 	 */
@@ -436,7 +449,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		returns (uint256)
 	{
 		IOptionRegistry optionRegistry = getOptionRegistry();
-		(address seriesAddress, Types.OptionSeries memory optionSeries, uint128 strikeDecimalConverted) = _getOptionDetails(_args.seriesAddress, _args.optionSeries);
+		(
+			address seriesAddress,
+			Types.OptionSeries memory optionSeries,
+			uint128 strikeDecimalConverted
+		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries);
 		// check the option hash and option series for validity
 		_checkHash(optionSeries, strikeDecimalConverted, true);
 		// convert the strike to e18 decimals for storage
@@ -454,26 +471,27 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), premium);
 		int256 longExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).longExposure;
 		uint256 amount = _args.amount;
-		if ( longExposure > 0) {
+		if (longExposure > 0) {
 			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
-				SafeTransferLib.safeTransfer(
-					ERC20(seriesAddress),
-					_args.recipient,
-					boughtAmount / CONVERSION_DECIMALS
-				);
+			SafeTransferLib.safeTransfer(
+				ERC20(seriesAddress),
+				_args.recipient,
+				boughtAmount / (10**CONVERSION_DECIMALS)
+			);
 			// update the series on the stores
 			getPortfolioValuesFeed().updateStores(seriesToStore, 0, -int256(boughtAmount), seriesAddress);
 			amount -= boughtAmount;
 			if (amount == 0) {
 				return _args.amount;
 			}
-		} 
+		}
 		if (optionSeries.collateral != collateralAsset) {
 			revert CustomErrors.CollateralAssetInvalid();
 		}
 		// add this series to the portfolio values feed so its stored on the book
 		getPortfolioValuesFeed().updateStores(seriesToStore, int256(amount), 0, seriesAddress);
 		// get the liquidity pool to write the option
+		console.log(optionSeries.strike, optionSeries.expiration, optionSeries.isPut);
 		return
 			liquidityPool.handlerWriteOption(
 				optionSeries,
@@ -486,88 +504,15 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			);
 	}
 
-	function _getOptionDetails(address seriesAddress, Types.OptionSeries memory optionSeries) internal view returns (address, Types.OptionSeries memory, uint128) {
-		IOptionRegistry optionRegistry = getOptionRegistry();
-		// if the series address is not known then we need to find it by looking for the otoken,
-		// if we cant find it then it means the otoken hasnt been created yet, strike is e18
-		if (seriesAddress == address(0)) {
-			seriesAddress = optionRegistry.getOtoken(
-				optionSeries.underlying,
-				optionSeries.strikeAsset,
-				optionSeries.expiration,
-				optionSeries.isPut,
-				optionSeries.strike,
-				optionSeries.collateral
-			);
-
-			if (seriesAddress == address(0)) {
-				revert CustomErrors.NonExistentOtoken();
-			}
-		} else {
-		// if the series address was passed in as non zero then we'll first check the option registry storage,
-		// if its not there then we know this isnt a buyback operation
-			optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
-			// make sure the expiry actually exists, if it doesnt then get the otoken itself
-			if (optionSeries.expiration == 0) {
-				IOtoken otoken = IOtoken(seriesAddress);
-				// get the option details
-				optionSeries = Types.OptionSeries(
-					uint64(otoken.expiryTimestamp()),
-					uint128(otoken.strikePrice() * 10**CONVERSION_DECIMALS),
-					otoken.isPut(),
-					otoken.underlyingAsset(),
-					otoken.strikeAsset(),
-					otoken.collateralAsset()
-				);
-			} else {
-				return (seriesAddress, optionSeries, uint128(optionSeries.strike * 10 ** CONVERSION_DECIMALS));
-			}
-			// strike is in e18
-			// make sure the expiry actually exists
-			if (optionSeries.expiration == 0) {
-				revert CustomErrors.NonExistentOtoken();
-			}
-		}
-		// strikeDecimalConverted is the formatted strike price (for e8) in e18 format
-		uint128 strikeDecimalConverted = uint128(formatStrikePrice(optionSeries.strike, collateralAsset) * 10 ** CONVERSION_DECIMALS);
-		return (seriesAddress, optionSeries, strikeDecimalConverted);
-	}
-
-	function _checkHash(Types.OptionSeries memory optionSeries, uint128 strikeDecimalConverted, bool isSell) public {
-		// check if the option series is approved
-		bytes32 oHash = keccak256(
-			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
-		);
-		if (!approvedOptions[oHash]) {
-			revert CustomErrors.UnapprovedSeries();
-		}
-		if (isSell) {
-			if (!isSellable[oHash]) {
-				revert CustomErrors.SeriesNotSellable();
-			}
-		} else {
-			if (!isBuyable[oHash]) {
-				revert CustomErrors.SeriesNotBuyable();
-			}
-		}
-		if (optionSeries.expiration <= block.timestamp) {
-			revert CustomErrors.OptionExpiryInvalid();
-		}
-		if (optionSeries.underlying != underlyingAsset) {
-			revert CustomErrors.UnderlyingAssetInvalid();
-		}
-		if (optionSeries.strikeAsset != strikeAsset) {
-			revert CustomErrors.StrikeAssetInvalid();
-		}
-	}
 	/**
 	 * @notice buys a number of options back and burns the tokens
 	 */
-	function _sellOption(RyskActions.SellOptionArgs memory _args)
-		internal
-		whenNotPaused
-	{
-		(address seriesAddress, Types.OptionSeries memory optionSeries, uint128 strikeDecimalConverted) = _getOptionDetails(_args.seriesAddress, _args.optionSeries);
+	function _sellOption(RyskActions.SellOptionArgs memory _args) internal whenNotPaused {
+		(
+			address seriesAddress,
+			Types.OptionSeries memory optionSeries,
+			uint128 strikeDecimalConverted
+		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries);
 		// check the option hash and option series for validity
 		_checkHash(optionSeries, strikeDecimalConverted, true);
 		// convert the strike to e18 decimals for storage
@@ -589,16 +534,16 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, _args.amount, true);
 		uint256 amount = _args.amount;
 		int256 shortExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).shortExposure;
-		if ( shortExposure > 0) {
+		if (shortExposure > 0) {
 			uint256 soldBackAmount = liquidityPool.handlerBuybackOption(
-					optionSeries,
-					uint256(shortExposure) > _args.amount ? _args.amount : uint256(shortExposure),
-					getOptionRegistry(),
-					seriesAddress,
-					premium, // WRONG needs to be adjusted for amount, get the quote per unit
-					delta,
-					msg.sender
-				);
+				optionSeries,
+				uint256(shortExposure) > _args.amount ? _args.amount : uint256(shortExposure),
+				getOptionRegistry(),
+				seriesAddress,
+				premium, // WRONG needs to be adjusted for amount, get the quote per unit
+				delta,
+				msg.sender
+			);
 			// update the series on the stores
 			getPortfolioValuesFeed().updateStores(seriesToStore, -int256(soldBackAmount), 0, seriesAddress);
 			amount -= soldBackAmount;
@@ -608,13 +553,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 		// take the funds from the liquidity pool and pay the user for the oTokens
 		SafeTransferLib.safeTransferFrom(
-					collateralAsset,
-					address(liquidityPool),
-					msg.sender,
-					premium // WRONG same as above
+			collateralAsset,
+			address(liquidityPool),
+			msg.sender,
+			premium // WRONG same as above
 		);
 		// update on the pvfeed stores
-		getPortfolioValuesFeed().updateStores(optionSeries, 0, int256(amount), seriesAddress);
+		getPortfolioValuesFeed().updateStores(seriesToStore, 0, int256(amount), seriesAddress);
 	}
 
 	///////////////////////////
@@ -666,6 +611,101 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	//////////////////////////
 	/// internal utilities ///
 	//////////////////////////
+
+	function _getOptionDetails(address seriesAddress, Types.OptionSeries memory optionSeries)
+		internal
+		view
+		returns (
+			address,
+			Types.OptionSeries memory,
+			uint128
+		)
+	{
+		IOptionRegistry optionRegistry = getOptionRegistry();
+		// if the series address is not known then we need to find it by looking for the otoken,
+		// if we cant find it then it means the otoken hasnt been created yet, strike is e18
+		if (seriesAddress == address(0)) {
+			seriesAddress = optionRegistry.getOtoken(
+				optionSeries.underlying,
+				optionSeries.strikeAsset,
+				optionSeries.expiration,
+				optionSeries.isPut,
+				optionSeries.strike,
+				optionSeries.collateral
+			);
+			optionSeries = Types.OptionSeries(
+				optionSeries.expiration,
+				uint128(formatStrikePrice(optionSeries.strike, collateralAsset)),
+				optionSeries.isPut,
+				optionSeries.underlying,
+				optionSeries.strikeAsset,
+				optionSeries.collateral
+			);
+			if (seriesAddress == address(0)) {
+				revert CustomErrors.NonExistentOtoken();
+			}
+		} else {
+			// if the series address was passed in as non zero then we'll first check the option registry storage,
+			// if its not there then we know this isnt a buyback operation
+			optionSeries = optionRegistry.getSeriesInfo(seriesAddress);
+			// make sure the expiry actually exists, if it doesnt then get the otoken itself
+			if (optionSeries.expiration == 0) {
+				IOtoken otoken = IOtoken(seriesAddress);
+				// get the option details
+				optionSeries = Types.OptionSeries(
+					uint64(otoken.expiryTimestamp()),
+					uint128(otoken.strikePrice()),
+					otoken.isPut(),
+					otoken.underlyingAsset(),
+					otoken.strikeAsset(),
+					otoken.collateralAsset()
+				);
+			} else {
+				return (seriesAddress, optionSeries, uint128(optionSeries.strike * 10**CONVERSION_DECIMALS));
+			}
+			// strike is in e18
+			// make sure the expiry actually exists
+			if (optionSeries.expiration == 0) {
+				revert CustomErrors.NonExistentOtoken();
+			}
+		}
+		// strikeDecimalConverted is the formatted strike price (for e8) in e18 format
+		// option series returned with e8
+		uint128 strikeDecimalConverted = uint128(optionSeries.strike * 10**CONVERSION_DECIMALS);
+		return (seriesAddress, optionSeries, strikeDecimalConverted);
+	}
+
+	function _checkHash(
+		Types.OptionSeries memory optionSeries,
+		uint128 strikeDecimalConverted,
+		bool isSell
+	) public {
+		// check if the option series is approved
+		bytes32 oHash = keccak256(
+			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
+		);
+		if (!approvedOptions[oHash]) {
+			revert CustomErrors.UnapprovedSeries();
+		}
+		if (isSell) {
+			if (!isSellable[oHash]) {
+				revert CustomErrors.SeriesNotSellable();
+			}
+		} else {
+			if (!isBuyable[oHash]) {
+				revert CustomErrors.SeriesNotBuyable();
+			}
+		}
+		if (optionSeries.expiration <= block.timestamp) {
+			revert CustomErrors.OptionExpiryInvalid();
+		}
+		if (optionSeries.underlying != underlyingAsset) {
+			revert CustomErrors.UnderlyingAssetInvalid();
+		}
+		if (optionSeries.strikeAsset != strikeAsset) {
+			revert CustomErrors.StrikeAssetInvalid();
+		}
+	}
 
 	/**
 	 * @notice Converts strike price to 1e8 format and floors least significant digits if needed

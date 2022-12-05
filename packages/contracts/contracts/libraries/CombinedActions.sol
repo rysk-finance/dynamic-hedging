@@ -18,10 +18,10 @@ library CombinedActions {
 		OperationType operation;
 		CombinedActions.ActionArgs[] operationQueue;
 	}
-    
+
     struct ActionArgs {
         // type of action that is being performed on the system
-        uint256 action;
+        uint256 actionType;
         // address of the account owner
         address owner;
         // address which we move assets from or to (depending on the action type)
@@ -48,7 +48,7 @@ library CombinedActions {
      */
     function _parseOpynArgs(ActionArgs memory _args) internal pure returns (IController.ActionArgs memory) {
         return IController.ActionArgs({
-            actionType: IController.ActionType(_args.action),
+            actionType: IController.ActionType(_args.actionType),
             owner: _args.owner,
             secondAddress: _args.secondAddress,
             asset: _args.asset,
@@ -66,7 +66,7 @@ library CombinedActions {
      */
     function _parseRyskArgs(ActionArgs memory _args) internal pure returns (RyskActions.ActionArgs memory) {
         return RyskActions.ActionArgs({
-            actionType: RyskActions.ActionType(_args.action),
+            actionType: RyskActions.ActionType(_args.actionType),
             secondAddress: _args.secondAddress,
             asset: _args.asset,
             vaultId: _args.vaultId,
