@@ -665,9 +665,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		return _size.div(uint256(internalDelta.abs())).mul(positionSize);
 	}
 
-	// ----- temporary functions to allow me to execute the position requests
-	// ----- will be deleted before deploy on mainnet
-
+	// ---- functions to force execution in case of GMX keeper failure
 	function executeIncreasePosition(bytes32 positionKey) external {
 		gmxPositionRouter.executeIncreasePosition(positionKey, payable(address(this)));
 	}
@@ -675,8 +673,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	function executeDecreasePosition(bytes32 positionKey) external {
 		gmxPositionRouter.executeDecreasePosition(positionKey, payable(address(this)));
 	}
-
-	// ------ end of temporary functions ---------
 
 	/**	@notice function which will be called by a GMX keeper when they execute or reject our position request
 	 *	@param positionKey unique key of the position request given by GMX
