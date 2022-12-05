@@ -321,7 +321,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 		if (position[0] == 0) {
 			//no positions open
-			return (false, false, 5000, 0, position);
+			return (false, false, healthFactor, 0, position);
 		}
 		uint256 health;
 		if (position[7] == 1) {
