@@ -18,7 +18,6 @@ import "../interfaces/IReader.sol";
 import "../interfaces/IGmxVault.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "hardhat/console.sol";
 
 /**
  *  @title A hedging reactor that will manage delta by opening or closing short or long perp positions using GMX
@@ -238,7 +237,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			uint256 collatToTransfer,
 			uint256[] memory position
 		) = checkVaultHealth();
-		console.log("update", isAboveMax, isBelowMin, collatToTransfer);
 		if (isBelowMin) {
 			// collateral needs adding to position
 			_addCollateral(collatToTransfer, internalDelta > 0);
@@ -616,11 +614,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 					totalCollateralToAdd = extraPositionCollateral + collatToTransfer;
 				}
 			}
-			console.log("total collat to add:", totalCollateralToAdd);
 			return totalCollateralToAdd;
 		} else {
 			uint256 leverageFactor = MAX_BIPS.div(healthFactor);
-			console.log("lev factor:", leverageFactor);
 			// when decreasing a position, a proportion of the pnl (positive or negative) equal to the proportion of the
 			// position size being reduced is taken out of the position.
 			uint256[] memory position = _getPosition(internalDelta > 0);
@@ -647,7 +643,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 								.div(int256(leverageFactor.mul(position[1]) / 1e12))
 						)).mul(int256(position[1] / 1e12));
 				}
-				console.log("collat to remove", uint256(collateralToRemove));
 			} else {
 				// position in loss
 				// with positions in loss, what is entered into the createDecreasePosition function is what you receive
@@ -686,6 +681,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 						return 0;
 					}
 				}
+			}
 			return OptionsCompute.convertToDecimals(adjustedCollateralToRemove, ERC20(collateralAsset).decimals());
 		}
 	}
