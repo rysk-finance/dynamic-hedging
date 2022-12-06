@@ -24,9 +24,10 @@ interface CustomErrors {
 	error NotLiquidityPool();
 	error UnauthorizedExit();
 	error UnapprovedSeries();
-	error NotSellingSeries();
+	error SeriesNotBuyable();
 	error DeltaNotDecreased();
 	error NonExistentOtoken();
+	error SeriesNotSellable();
 	error OrderExpiryTooLong();
 	error InvalidShareAmount();
 	error ExistingWithdrawal();
