@@ -21,8 +21,9 @@ import {
 	MARGIN_POOL,
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
+	WETH_ADDRESS,
 	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS
+	UNISWAP_V3_SWAP_ROUTER
 } from "../test/constants"
 import { Accounting } from "../types/Accounting"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
@@ -32,6 +33,7 @@ import { VolatilityFeed } from "../types/VolatilityFeed"
 dayjs.extend(utc)
 
 import { BeyondOptionHandler } from "../types/BeyondOptionHandler"
+import { OptionExchange } from "../types/OptionExchange"
 import { BeyondPricer } from "../types/BeyondPricer"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -237,22 +239,31 @@ export async function deployLiquidityPool(
 	})
 	const pricer = await PricerFactory.deploy(authority, optionProtocol.address, liquidityPool.address) as BeyondPricer
 	await optionProtocol.changeAccounting(Accounting.address)
-	const handlerFactory = await ethers.getContractFactory("BeyondOptionHandler")
-	const handler = (await handlerFactory.deploy(
+	// deploy libraries
+	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
+	const interactions = await interactionsFactory.deploy()
+	const exchangeFactory = await ethers.getContractFactory("OptionExchange",  {
+		libraries: {
+			OpynInteractions: interactions.address
+		}
+	})
+	const exchange = (await exchangeFactory.deploy(
 		authority,
 		optionProtocol.address,
 		liquidityPool.address,
-		pricer.address
-	)) as BeyondOptionHandler
-	await liquidityPool.changeHandler(handler.address, true)
-	await pvFeed.setKeeper(handler.address, true)
+		pricer.address,
+		ADDRESS_BOOK[chainId],
+		UNISWAP_V3_SWAP_ROUTER[chainId]
+	)) as OptionExchange
+	await liquidityPool.changeHandler(exchange.address, true)
+	await pvFeed.setKeeper(exchange.address, true)
 	await pvFeed.setKeeper(liquidityPool.address, true)
 	await pvFeed.setKeeper(await signers[0].getAddress(), true)
-	await pvFeed.setHandler(handler.address, true)
+	await pvFeed.setHandler(exchange.address, true)
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,
-		handler: handler,
+		exchange: exchange,
 		accounting: Accounting,
 		pricer: pricer
 	}
