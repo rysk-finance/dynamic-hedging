@@ -52,7 +52,7 @@ import {
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { ERC20Interface } from "../types/ERC20Interface"
-import { BeyondOptionHandler } from "../types/BeyondOptionHandler"
+import { OptionExchange } from "../types/OptionExchange"
 import { BeyondPricer } from "../types/BeyondPricer"
 
 dayjs.extend(utc)
@@ -80,7 +80,7 @@ let opynAggregator: MockChainlinkAggregator
 let putOptionToken: IOToken
 let putOptionToken2: IOToken
 let proposedSeries: any
-let handler: BeyondOptionHandler
+let exchange: OptionExchange
 let authority: string
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -216,7 +216,7 @@ describe("Liquidity Pools", async () => {
 		)
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
-		handler = lpParams.handler
+		exchange = lpParams.exchange
 		pricer = lpParams.pricer
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
@@ -256,73 +256,73 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const tx = await handler.issueNewSeries([{
+		const tx = await exchange.issueNewSeries([{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isBuyable: true,
+			isSellable: true
 		}])
 		let receipt = await tx.wait()
 		const events = receipt.events
 		const approveEvents = events?.find(x => x.event == "SeriesApproved")
-		const formattedStrikePrice = (await handler.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1",10))
-		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"],[expiration, formattedStrikePrice, PUT_FLAVOR])
-		const isApproved = await handler.approvedOptions(oHash)
-		const expirationList = await handler.getExpirations()
-		const chainStrike = await handler.getOptionDetails(expiration, true)
-		const isBuying = await handler.isBuying(oHash)
-		const isSelling = await handler.isSelling(oHash)
+		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1", 10))
+		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"], [expiration, formattedStrikePrice, PUT_FLAVOR])
+		const isApproved = await exchange.approvedOptions(oHash)
+		const expirationList = await exchange.getExpirations()
+		const chainStrike = await exchange.getOptionDetails(expiration, true)
+		const isSellable = await exchange.isSellable(oHash)
+		const isBuyable = await exchange.isBuyable(oHash)
 		expect(isApproved).to.be.true
-		expect(isBuying).to.be.true
-		expect(isSelling).to.be.true
-		expect(chainStrike[0]).to.equal( formattedStrikePrice)
+		expect(isSellable).to.be.true
+		expect(isBuyable).to.be.true
+		expect(chainStrike[0]).to.equal(formattedStrikePrice)
 		expect(expirationList[0]).to.equal(expiration)
 	})
 	it("SUCCEEDs: change option buy or sell on series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const formattedStrikePrice = (await handler.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1",10))
-		const tx = await handler.changeOptionBuyOrSell([{
+		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1", 10))
+		const tx = await exchange.changeOptionBuyOrSell([{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: formattedStrikePrice,
-			isBuying: false,
-			isSelling: false
+			isSellable: false,
+			isBuyable: false
 		}])
-		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"],[expiration, formattedStrikePrice, PUT_FLAVOR])
-		const isApproved = await handler.approvedOptions(oHash)
-		const expirationList = await handler.getExpirations()
-		const chainStrike = await handler.getOptionDetails(expiration, true)
-		const isBuying = await handler.isBuying(oHash)
-		const isSelling = await handler.isSelling(oHash)
+		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"], [expiration, formattedStrikePrice, PUT_FLAVOR])
+		const isApproved = await exchange.approvedOptions(oHash)
+		const expirationList = await exchange.getExpirations()
+		const chainStrike = await exchange.getOptionDetails(expiration, true)
+		const isSellable = await exchange.isSellable(oHash)
+		const isBuyable = await exchange.isBuyable(oHash)
 		expect(isApproved).to.be.true
-		expect(isBuying).to.be.false
-		expect(isSelling).to.be.false
+		expect(isSellable).to.be.false
+		expect(isBuyable).to.be.false
 		expect(chainStrike[0]).to.equal(formattedStrikePrice)
 		expect(expirationList[0]).to.equal(expiration)
 	})
 	it("REVERTs: change option buy or sell on series for unapproved option", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await expect(handler.changeOptionBuyOrSell([{
+		await expect(exchange.changeOptionBuyOrSell([{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: 0,
-			isBuying: false,
-			isSelling: false
+			isSellable: false,
+			isBuyable: false
 		}])).to.be.revertedWith("UnapprovedSeries()")
 
 	})
 	it("SUCCEEDs: reapprove series doesn't work", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const tx = await handler.issueNewSeries([{
+		const tx = await exchange.issueNewSeries([{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 		let receipt = await tx.wait()
 		const events = receipt.events
@@ -332,24 +332,24 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const tx = await handler.changeOptionBuyOrSell([{
+		const tx = await exchange.changeOptionBuyOrSell([{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
-		const formattedStrikePrice = (await handler.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1",10))
-		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"],[expiration, formattedStrikePrice, PUT_FLAVOR])
-		const isApproved = await handler.approvedOptions(oHash)
-		const expirationList = await handler.getExpirations()
-		const chainStrike = await handler.getOptionDetails(expiration, true)
-		const isBuying = await handler.isBuying(oHash)
-		const isSelling = await handler.isSelling(oHash)
+		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1", 10))
+		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"], [expiration, formattedStrikePrice, PUT_FLAVOR])
+		const isApproved = await exchange.approvedOptions(oHash)
+		const expirationList = await exchange.getExpirations()
+		const chainStrike = await exchange.getOptionDetails(expiration, true)
+		const isSellable = await exchange.isSellable(oHash)
+		const isBuyable = await exchange.isBuyable(oHash)
 		expect(isApproved).to.be.true
-		expect(isBuying).to.be.true
-		expect(isSelling).to.be.true
-		expect(chainStrike[0]).to.equal( formattedStrikePrice)
+		expect(isSellable).to.be.true
+		expect(isBuyable).to.be.true
+		expect(chainStrike[0]).to.equal(formattedStrikePrice)
 		expect(expirationList[0]).to.equal(expiration)
 	})
 	it("Succeeds: User 1: Deposit to the liquidityPool", async () => {
@@ -543,77 +543,22 @@ describe("Liquidity Pools", async () => {
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.within(0, 0.1)
 	})
-	// it("Reverts: Push to price deviation threshold to cause quote to fail", async () => {
-	// 	const latestPrice = await priceFeed.getRate(weth.address, usd.address)
-	// 	await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from("10000000000")))
-	// 	const amount = toWei("1")
-	// 	const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-	// 	const strikePrice = priceQuote.sub(toWei(strike))
-	// 	const optionSeries = {
-	// 		expiration: expiration,
-	// 		strike: strikePrice,
-	// 		isPut: PUT_FLAVOR,
-	// 		strikeAsset: usd.address,
-	// 		underlying: weth.address,
-	// 		collateral: usd.address
-	// 	}
-	// 	await expect(
-	// 		pricer.quoteOptionPrice(optionSeries, amount, true)
-	// 	).to.be.revertedWith("PriceDeltaExceedsThreshold(36378215763291390)")
-	// })
-	// it("Reverts: Push to price deviation threshold to cause quote to fail other way", async () => {
-	// 	const latestPrice = await priceFeed.getRate(weth.address, usd.address)
-	// 	await opynAggregator.setLatestAnswer(latestPrice.sub(BigNumber.from("20000000000")))
-	// 	const amount = toWei("1")
-	// 	const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-	// 	const strikePrice = priceQuote.sub(toWei(strike))
-	// 	const optionSeries = {
-	// 		expiration: expiration,
-	// 		strike: strikePrice,
-	// 		isPut: PUT_FLAVOR,
-	// 		strikeAsset: usd.address,
-	// 		underlying: weth.address,
-	// 		collateral: usd.address
-	// 	}
-	// 	await expect(
-	// 		pricer.quoteOptionPrice(optionSeries, amount, true)
-	// 	).to.be.revertedWith("PriceDeltaExceedsThreshold(36378215763291390)")
-	// })
-	// it("Reverts: Push to time deviation threshold to cause quote to fail", async () => {
-	// 	const latestPrice = await priceFeed.getRate(weth.address, usd.address)
-	// 	await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from("10000000000")))
-	// 	const amount = toWei("1")
-	// 	const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-	// 	const strikePrice = priceQuote.sub(toWei(strike))
-	// 	const optionSeries = {
-	// 		expiration: expiration,
-	// 		strike: strikePrice,
-	// 		isPut: PUT_FLAVOR,
-	// 		strikeAsset: usd.address,
-	// 		underlying: weth.address,
-	// 		collateral: usd.address
-	// 	}
-	// 	await increase(700)
-	// 	await expect(
-	// 		pricer.quoteOptionPrice(optionSeries, amount, true)
-	// 	).to.be.revertedWith("TimeDeltaExceedsThreshold(707)")
-	// })
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await handler.issueNewSeries([{
+		await exchange.issueNewSeries([{
 			expiration: invalidExpirationLong,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		},
 		{
 			expiration: invalidExpirationShort,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}
 		])
 
@@ -650,8 +595,25 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await usd.approve(handler.address, toWei("1000000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
+
+		await usd.approve(exchange.address, toWei("1000000000"))
+		await expect(exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries1,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries1,
+			data: "0x"
+		}])).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 		await volFeed.setSabrParameters(
@@ -676,8 +638,24 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await usd.approve(handler.address, toWei("1000000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
+		await usd.approve(exchange.address, toWei("1000000000"))
+		await expect(exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries2,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries2,
+			data: "0x"
+		}])).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -689,19 +667,19 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await handler.issueNewSeries([{
+		await exchange.issueNewSeries([{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: invalidStrikeHigh,
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		},
 		{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: invalidStrikeLow,
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 	})
 	it("reverts when attempting to write a ETH/USD put with strike outside of limit", async () => {
@@ -718,8 +696,24 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		// const quote = (await pricer.quoteOptionPrice(proposedSeries1, amount, false))[0]
-		await usd.approve(handler.address, toWei("100000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
+		await usd.approve(exchange.address, toWei("100000000"))
+		await expect(exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries1,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries1,
+			data: "0x"
+		}])).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
 		// Series with strike price too low
@@ -733,8 +727,24 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		// const quote2 = (await pricer.quoteOptionPrice(proposedSeries2, amount, false))[0]
-		await usd.approve(handler.address, toWei("100000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
+		await usd.approve(exchange.address, toWei("100000000"))
+		await expect(exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries2,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries2,
+			data: "0x"
+		}])).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -746,19 +756,19 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.add(toWei(strike))
-		await handler.issueNewSeries([{
+		await exchange.issueNewSeries([{
 			expiration: invalidExpirationLong,
 			isPut: CALL_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		},
 		{
 			expiration: invalidExpirationShort,
 			isPut: CALL_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 	})
 	it("reverts when attempting to write ETH/USD call with expiry outside of limit", async () => {
@@ -789,8 +799,24 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await usd.approve(handler.address, toWei("1000000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
+		await usd.approve(exchange.address, toWei("1000000000"))
+		await expect(exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries1,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries1,
+			data: "0x"
+		}])).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 		await volFeed.setSabrParameters(
@@ -815,8 +841,24 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await usd.approve(handler.address, toWei("1000000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
+		await usd.approve(exchange.address, toWei("1000000000"))
+		await expect(exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries2,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries2,
+			data: "0x"
+		}])).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -828,19 +870,19 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.add(toWei(strike))
-		await handler.issueNewSeries([{
+		await exchange.issueNewSeries([{
 			expiration: expiration,
 			isPut: CALL_FLAVOR,
 			strike: invalidStrikeHigh,
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		},
 		{
 			expiration: expiration,
 			isPut: CALL_FLAVOR,
 			strike: invalidStrikeLow,
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 	})
 	it("reverts when attempting to write a ETH/USD call with strike outside of limit", async () => {
@@ -857,8 +899,24 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		// const quote = (await pricer.quoteOptionPrice(proposedSeries1, amount, false))[0]
-		await usd.approve(handler.address, toWei("100000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
+		await usd.approve(exchange.address, toWei("100000000"))
+		await expect(exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries1,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries1,
+			data: "0x"
+		}])).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
 		// Series with strike price too low
@@ -872,8 +930,24 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		// const quote2 = (await pricer.quoteOptionPrice(proposedSeries2, amount, false))[0]
-		await usd.approve(handler.address, toWei("100000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
+		await usd.approve(exchange.address, toWei("100000000"))
+		await expect(exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries2,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries2,
+			data: "0x"
+		}])).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -924,8 +998,24 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		// const quote = (await pricer.quoteOptionPrice(proposedSeries1, amount, false))[0]
-		await usd.approve(handler.address, toWei("100000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
+		await usd.approve(exchange.address, toWei("100000000"))
+		await expect(exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries1,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries1,
+			data: "0x"
+		}])).to.be.revertedWith(
 			"UnapprovedSeries()"
 		)
 	})
@@ -962,12 +1052,26 @@ describe("Liquidity Pools", async () => {
 			amount
 		)
 
-		await usd.approve(handler.address, quote)
-		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
-			.series
+		await usd.approve(exchange.address, quote)
+		await exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])
+		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
 		putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
-		await handler.issueAndWriteOption(proposedSeries, amount)
-
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const senderPutBalance = await putOptionToken.balanceOf(senderAddress)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -999,23 +1103,23 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: change option buy or sell on series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const formattedStrikePrice = (await handler.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1",10))
-		const tx = await handler.changeOptionBuyOrSell([{
+		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1", 10))
+		const tx = await exchange.changeOptionBuyOrSell([{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: formattedStrikePrice,
-			isBuying: false,
-			isSelling: false
+			isSellable: false,
+			isBuyable: false
 		}])
-		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"],[expiration, formattedStrikePrice, PUT_FLAVOR])
-		const isApproved = await handler.approvedOptions(oHash)
-		const expirationList = await handler.getExpirations()
-		const chainStrike = await handler.getOptionDetails(expiration, true)
-		const isBuying = await handler.isBuying(oHash)
-		const isSelling = await handler.isSelling(oHash)
+		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"], [expiration, formattedStrikePrice, PUT_FLAVOR])
+		const isApproved = await exchange.approvedOptions(oHash)
+		const expirationList = await exchange.getExpirations()
+		const chainStrike = await exchange.getOptionDetails(expiration, true)
+		const isSellable = await exchange.isSellable(oHash)
+		const isBuyable = await exchange.isBuyable(oHash)
 		expect(isApproved).to.be.true
-		expect(isBuying).to.be.false
-		expect(isSelling).to.be.false
+		expect(isSellable).to.be.false
+		expect(isBuyable).to.be.false
 		expect(chainStrike[0]).to.equal(formattedStrikePrice)
 		expect(expirationList[0]).to.equal(expiration)
 	})
@@ -1038,8 +1142,24 @@ describe("Liquidity Pools", async () => {
 			false
 		)
 
-		await usd.approve(handler.address, quote)
-		await expect(handler.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith("NotSellingSeries()")
+		await usd.approve(exchange.address, quote)
+		await expect(exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])).to.be.revertedWith("SeriesNotBuyable()")
 	})
 	it("REVERTs: LP writes a ETH/USD put for premium for series not approved for sale", async () => {
 		const [sender] = signers
@@ -1049,8 +1169,16 @@ describe("Liquidity Pools", async () => {
 			amount,
 			false
 		)
-		await usd.approve(handler.address, quote)
-		await expect(handler.writeOption(putOptionToken.address, amount)).to.be.revertedWith("NotSellingSeries()")
+		await usd.approve(exchange.address, quote)
+		await expect(exchange.operate([], [{
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: putOptionToken.address,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])).to.be.revertedWith("SeriesNotBuyable()")
 	})
 	it("REVERTs: LP buyback a ETH/USD put for premium for series not approved for buying", async () => {
 		const [sender] = signers
@@ -1060,29 +1188,37 @@ describe("Liquidity Pools", async () => {
 			amount,
 			false
 		)
-		await usd.approve(handler.address, quote)
-		await expect(handler.buybackOption(putOptionToken.address, amount)).to.be.revertedWith("NotBuyingSeries()")
+		await usd.approve(exchange.address, quote)
+		await expect(exchange.operate([], [{
+			actionType: 2,
+			secondAddress: senderAddress,
+			asset: putOptionToken.address,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])).to.be.revertedWith("SeriesNotSellable()")
 	})
 	it("SETUP: change option buy or sell on series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const formattedStrikePrice = (await handler.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1",10))
-		const tx = await handler.changeOptionBuyOrSell([{
+		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(ethers.utils.parseUnits("1", 10))
+		const tx = await exchange.changeOptionBuyOrSell([{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: formattedStrikePrice,
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
-		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"],[expiration, formattedStrikePrice, PUT_FLAVOR])
-		const isApproved = await handler.approvedOptions(oHash)
-		const expirationList = await handler.getExpirations()
-		const chainStrike = await handler.getOptionDetails(expiration, true)
-		const isBuying = await handler.isBuying(oHash)
-		const isSelling = await handler.isSelling(oHash)
+		const oHash = ethers.utils.solidityKeccak256(["uint64", "uint128", "bool"], [expiration, formattedStrikePrice, PUT_FLAVOR])
+		const isApproved = await exchange.approvedOptions(oHash)
+		const expirationList = await exchange.getExpirations()
+		const chainStrike = await exchange.getOptionDetails(expiration, true)
+		const isSellable = await exchange.isSellable(oHash)
+		const isBuyable = await exchange.isBuyable(oHash)
 		expect(isApproved).to.be.true
-		expect(isBuying).to.be.true
-		expect(isSelling).to.be.true
+		expect(isSellable).to.be.true
+		expect(isBuyable).to.be.true
 		expect(chainStrike[0]).to.equal(formattedStrikePrice)
 		expect(expirationList[0]).to.equal(expiration)
 	})
@@ -1158,8 +1294,16 @@ describe("Liquidity Pools", async () => {
 		const delta = (
 			await pricer.quoteOptionPrice(seriesInfoDecimalCorrected, amount, false)
 		)[1]
-		await usd.approve(handler.address, quote)
-		await handler.writeOption(putOptionToken.address, amount)
+		await usd.approve(exchange.address, quote)
+		await exchange.operate([], [{
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: putOptionToken.address,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])
 
 		const putBalanceAfter = await putOptionToken.balanceOf(senderAddress)
 		const LpBalanceAfter = tFormatUSDC(await usd.balanceOf(liquidityPool.address))
@@ -1185,19 +1329,27 @@ describe("Liquidity Pools", async () => {
 		expect(ephemeralDeltaDiff).to.equal(-tFormatEth(delta))
 		expect(ephemeralLiabilitiesDiff - tFormatUSDC(quote)).to.be.within(-0.01, 0.01)
 	})
-	it("pauses and unpauses handler contract", async () => {
+	it("pauses and unpauses exchange contract", async () => {
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		await handler.pause()
+		await exchange.pause()
 		const amount = toWei("1")
 
-		expect(await handler.paused()).to.eq(true)
+		expect(await exchange.paused()).to.eq(true)
 
-		await expect(handler.writeOption(putOptionToken.address, amount)).to.be.revertedWith(
+		await expect(exchange.operate([], [{
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: putOptionToken.address,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])).to.be.revertedWith(
 			"Pausable: paused"
 		)
 
-		await handler.unpause()
-		expect(await handler.paused()).to.eq(false)
+		await exchange.unpause()
+		expect(await exchange.paused()).to.eq(false)
 	})
 	it("SETUP: set sabrParams", async () => {
 		const proposedSabrParams = {
@@ -1224,12 +1376,12 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await handler.issueNewSeries([{
+		await exchange.issueNewSeries([{
 			expiration: expiration2,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 	})
 	it("LP writes another ETH/USD put that expires later", async () => {
@@ -1275,11 +1427,26 @@ describe("Liquidity Pools", async () => {
 			amount,
 			false
 		)
-		await usd.approve(handler.address, quote)
+		await usd.approve(exchange.address, quote)
 		const buyerUSDBalanceBefore = await usd.balanceOf(senderAddress)
-		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
-			.series
-		const write = await handler.issueAndWriteOption(proposedSeries, amount)
+		await exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])
+		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		putOptionToken2 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await putOptionToken2.balanceOf(senderAddress)
@@ -1319,7 +1486,6 @@ describe("Liquidity Pools", async () => {
 		expect(ephemeralDeltaDiff - -tFormatEth(delta)).to.be.within(-100, 100)
 		expect(ephemeralLiabilitiesDiff - tFormatUSDC(quote)).to.be.within(-0.01, 0.01)
 	})
-
 	it("LP can buy back option to reduce open interest", async () => {
 		// sender was added to buyback whitelist in prev test
 		const amount = toWei("2")
@@ -1349,13 +1515,21 @@ describe("Liquidity Pools", async () => {
 		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
 		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 
-		await putOptionToken.approve(handler.address, toOpyn(fromWei(amount)))
+		await putOptionToken.approve(exchange.address, toOpyn(fromWei(amount)))
 		const [quote, delta] = await pricer.quoteOptionPrice(
 			seriesInfoDecimalCorrected,
 			amount,
 			true
 		)
-		const write = await handler.buybackOption(putOptionAddress, amount)
+		const write = await exchange.operate([], [{
+			actionType: 2,
+			secondAddress: senderAddress,
+			asset: putOptionToken.address,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])
 		await write.wait(1)
 		const logs = await liquidityPool.queryFilter(liquidityPool.filters.BuybackOption(), 0)
 		const buybackEvent = logs[0].args
@@ -1403,7 +1577,15 @@ describe("Liquidity Pools", async () => {
 	it("fails if buyback token address is invalid", async () => {
 		const amount = toWei("1")
 		// ETH_ADDRESS is not a valid OToken address
-		await expect(handler.buybackOption(ETH_ADDRESS, amount)).to.be.reverted
+		await expect(exchange.operate([], [{
+			actionType: 2,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])).to.be.reverted
 	})
 	it("buys back an option if it moves delta closer to zero", async () => {
 		const amount = toWei("2")
@@ -1438,8 +1620,16 @@ describe("Liquidity Pools", async () => {
 		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
 		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 
-		await putOptionToken2.approve(handler.address, toOpyn(fromWei(amount)))
-		await handler.buybackOption(putOptionToken2.address, amount)
+		await putOptionToken2.approve(exchange.address, toOpyn(fromWei(amount)))
+		await exchange.operate([], [{
+			actionType: 2,
+			secondAddress: senderAddress,
+			asset: putOptionToken2.address,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])
 
 		const deltaAfter = await liquidityPool.getPortfolioDelta()
 		const sellerOTokenBalanceAfter = await putOptionToken2.balanceOf(senderAddress)
@@ -1529,8 +1719,24 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await usd.approve(handler.address, toWei("20"))
-		await expect(handler.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith(
+		await usd.approve(exchange.address, toWei("20"))
+		await expect(exchange.operate([], [{
+			actionType: 0,
+			secondAddress: ZERO_ADDRESS,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: 0,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}, {
+			actionType: 1,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: amount,
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])).to.be.revertedWith(
 			"MaxLiquidityBufferReached"
 		)
 
@@ -1666,55 +1872,6 @@ describe("Liquidity Pools", async () => {
 		)
 		expect(depositReceiptAfter.unredeemedShares).to.equal(0)
 	})
-	it("Succeeds: pauses trading", async () => {
-		await liquidityPool.pauseTradingAndRequest()
-		expect(await liquidityPool.isTradingPaused()).to.be.true
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
-	})
-	// it("Succeeds: execute epoch", async () => {
-	// 	const depositEpochBefore = await liquidityPool.depositEpoch()
-	// 	const withdrawalEpochBefore = await liquidityPool.withdrawalEpoch()
-	// 	const pendingDepositBefore = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
-	// 	const pendingWithdrawBefore = await liquidityPool.pendingWithdrawals()
-	// 	const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
-	// 	const totalSupplyBefore = await liquidityPool.totalSupply()
-	// 	const partitionedFundsBefore = await liquidityPool.partitionedFunds()
-	// 	await liquidityPool.executeEpochCalculation()
-	// 	const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
-	// 	const pendingDepositAfter = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
-	// 	const pendingWithdrawAfter = await liquidityPool.pendingWithdrawals()
-	// 	const partitionedFundsAfter = await liquidityPool.partitionedFunds()
-	// 	const partitionedFundsDiffe18 = toWeiFromUSDC(
-	// 		partitionedFundsAfter.sub(partitionedFundsBefore).toString()
-	// 	)
-	// 	// check partitioned funds increased by pendingWithdrawals * price per share
-	// 	expect(
-	// 		parseFloat(fromWei(partitionedFundsDiffe18)) -
-	// 			parseFloat(fromWei(pendingWithdrawBefore)) *
-	// 				parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
-	// 	).to.be.within(-0.0001, 0.0001)
-	// 	expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
-	// 		toWei("1")
-	// 			.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-	// 			.div(totalSupplyBefore)
-	// 	)
-	// 	expect(await liquidityPool.pendingDeposits()).to.equal(0)
-	// 	expect(pendingDepositBefore).to.not.eq(0)
-	// 	expect(pendingWithdrawAfter).to.eq(0)
-	// 	expect(pendingDepositAfter).to.eq(0)
-	// 	expect(await liquidityPool.isTradingPaused()).to.be.false
-	// 	expect(await liquidityPool.depositEpoch()).to.equal(depositEpochBefore.add(1))
-	// 	expect(
-	// 		pendingDepositBefore
-	// 			.mul(toWei("1"))
-	// 			.div(await liquidityPool.depositEpochPricePerShare(depositEpochBefore))
-	// 	).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
-	// })
 	it("Succeed: User 1: redeems all shares", async () => {
 		const user = senderAddress
 		const usdBalanceBefore = await usd.balanceOf(user)
@@ -1760,7 +1917,55 @@ describe("Liquidity Pools", async () => {
 		expect(depositReceiptAfter.unredeemedShares).to.equal(0)
 		expect(await liquidityPool.allowance(liquidityPool.address, user)).to.equal(0)
 	})
-
+	it("Succeeds: pauses trading", async () => {
+		await liquidityPool.pauseTradingAndRequest()
+		expect(await liquidityPool.isTradingPaused()).to.be.true
+		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
+		await portfolioValuesFeed.fulfill(
+			weth.address,
+			usd.address,
+		)
+	})
+	it("Succeeds: execute epoch", async () => {
+		const depositEpochBefore = await liquidityPool.depositEpoch()
+		const withdrawalEpochBefore = await liquidityPool.withdrawalEpoch()
+		const pendingDepositBefore = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
+		const pendingWithdrawBefore = await liquidityPool.pendingWithdrawals()
+		const lplpBalanceBefore = await liquidityPool.balanceOf(liquidityPool.address)
+		const totalSupplyBefore = await liquidityPool.totalSupply()
+		const partitionedFundsBefore = await liquidityPool.partitionedFunds()
+		await liquidityPool.executeEpochCalculation()
+		const lplpBalanceAfter = await liquidityPool.balanceOf(liquidityPool.address)
+		const pendingDepositAfter = (await liquidityPool.pendingDeposits()).mul(collatDecimalShift)
+		const pendingWithdrawAfter = await liquidityPool.pendingWithdrawals()
+		const partitionedFundsAfter = await liquidityPool.partitionedFunds()
+		const partitionedFundsDiffe18 = toWeiFromUSDC(
+			partitionedFundsAfter.sub(partitionedFundsBefore).toString()
+		)
+		// check partitioned funds increased by pendingWithdrawals * price per share
+		expect(
+			parseFloat(fromWei(partitionedFundsDiffe18)) -
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+		).to.be.within(-0.0001, 0.0001)
+		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
+			toWei("1")
+				.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+				.div(totalSupplyBefore)
+		)
+		expect(await liquidityPool.pendingDeposits()).to.equal(0)
+		expect(pendingDepositBefore).to.not.eq(0)
+		expect(pendingWithdrawAfter).to.eq(0)
+		expect(pendingDepositAfter).to.eq(0)
+		expect(await liquidityPool.isTradingPaused()).to.be.false
+		expect(await liquidityPool.depositEpoch()).to.equal(depositEpochBefore.add(1))
+		expect(
+			pendingDepositBefore
+				.mul(toWei("1"))
+				.div(await liquidityPool.depositEpochPricePerShare(depositEpochBefore))
+		).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
+	})
 	it("Succeed: User 1: Initiates Withdraw for half owned balance", async () => {
 		const user = senderAddress
 		const usdBalanceBefore = await usd.balanceOf(user)
@@ -1862,12 +2067,28 @@ describe("Liquidity Pools", async () => {
 		expect(collateralLost).to.equal(0)
 	})
 	it("Reverts: tries to sell an expired option back to the pool", async () => {
-		await expect(handler.buybackOption(putOptionToken2.address, toWei("3"))).to.be.revertedWith(
+		await expect(exchange.operate([], [{
+			actionType: 2,
+			secondAddress: senderAddress,
+			asset: putOptionToken2.address,
+			vaultId: 0,
+			amount: toWei("3"),
+			optionSeries: proposedSeries,
+			data: "0x"
+		}])).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 	})
 	it("Reverts: tries to write an option that doesnt exist in the handler", async () => {
-		await expect(handler.writeOption(ZERO_ADDRESS, toWei("3"))).to.be.revertedWith(
+		await expect(exchange.operate([], [{
+			actionType: 2,
+			secondAddress: senderAddress,
+			asset: ZERO_ADDRESS,
+			vaultId: 0,
+			amount: toWei("3"),
+			optionSeries: {expiration:1,strike:1,isPut:CALL_FLAVOR, collateral:weth.address, underlying:usd.address, strikeAsset:usd.address},
+			data: "0x"
+		}])).to.be.revertedWith(
 			"NonExistentOtoken()"
 		)
 	})
@@ -2039,10 +2260,10 @@ describe("Liquidity Pools", async () => {
 	it("reverts when setting new keeper address to zero", async () => {
 		await expect(liquidityPool.setKeeper(ZERO_ADDRESS, true)).to.be.revertedWith("InvalidAddress()")
 	})
-	it("sets a new pricer on the handler", async () => {
-		await handler.setPricer(liquidityPool.address)
-		expect(await handler.pricer()).to.equal(liquidityPool.address)
-		await handler.setPricer(pricer.address)
-		expect(await handler.pricer()).to.equal(pricer.address)
+	it("sets a new pricer on the exchange", async () => {
+		await exchange.setPricer(liquidityPool.address)
+		expect(await exchange.pricer()).to.equal(liquidityPool.address)
+		await exchange.setPricer(pricer.address)
+		expect(await exchange.pricer()).to.equal(pricer.address)
 	})
 })

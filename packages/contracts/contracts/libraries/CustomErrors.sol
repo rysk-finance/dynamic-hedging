@@ -17,13 +17,13 @@ interface CustomErrors {
 	error IssuanceFailed();
 	error EpochNotClosed();
 	error InvalidDecimals();
-	error NotBuyingSeries();
 	error TradingNotPaused();
 	error NotLiquidityPool();
 	error UnapprovedSeries();
-	error NotSellingSeries();
+	error SeriesNotBuyable();
 	error DeltaNotDecreased();
 	error NonExistentOtoken();
+	error SeriesNotSellable();
 	error OrderExpiryTooLong();
 	error InvalidShareAmount();
 	error ExistingWithdrawal();
