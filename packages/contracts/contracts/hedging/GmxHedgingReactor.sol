@@ -238,12 +238,26 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			uint256 collatToTransfer,
 			uint256[] memory position
 		) = checkVaultHealth();
+		console.log("update", isAboveMax, isBelowMin, collatToTransfer);
 		if (isBelowMin) {
 			// collateral needs adding to position
 			_addCollateral(collatToTransfer, internalDelta > 0);
+			return collatToTransfer;
 		} else if (isAboveMax) {
 			// collateral needs removing
+			// check if collateral removed would put position within 10% of liquidation limit
+			// where positionSize / collateral is >= maxLeverage()
+			if (
+				// maxLeverage is multiplied by 10000 in contract. divide by 11000 to allow for 10% buffer.
+				int256(position[1] / 1e24) - int256(collatToTransfer) < int256((position[0] / 1e24) / (vault.maxLeverage() / 11000))
+			) {
+				collatToTransfer = position[1] / 1e24 - (position[0] / 1e24) / (vault.maxLeverage() / 11000);
+				if (collatToTransfer == 0) {
+					return 0;
+				}
+			}
 			_removeCollateral(collatToTransfer, internalDelta > 0);
+			return collatToTransfer;
 		}
 	}
 
@@ -368,7 +382,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			if (internalDelta < 0) {
 				// close short position before opening long
 				uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(_amount));
-				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(adjustedPositionSize, false, closedOppositeSideFirst);
+				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(false, closedOppositeSideFirst, adjustedPositionSize);
 				(bytes32 positionKey, int256 deltaChange) = _decreasePosition(adjustedPositionSize, collateralToRemove, false);
 				// update deltaChange for callback function
 				decreaseOrderDeltaChange[positionKey] += deltaChange;
@@ -380,7 +394,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				closedOppositeSideFirst = true;
 			}
 
-			uint256 collateralToAdd = _getCollateralSizeDeltaUsd(uint256(_amount), true, closedOppositeSideFirst);
+			uint256 collateralToAdd = _getCollateralSizeDeltaUsd(true, closedOppositeSideFirst, uint256(_amount));
 			(bytes32 positionKey, int256 deltaChange) = _increasePosition(uint256(_amount), collateralToAdd, true);
 			// update deltaChange for callback function
 			increaseOrderDeltaChange[positionKey] += deltaChange;
@@ -390,7 +404,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			if (internalDelta > 0) {
 				// close longs first
 				uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(-_amount));
-				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(adjustedPositionSize, false, closedOppositeSideFirst);
+				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(false, closedOppositeSideFirst, adjustedPositionSize);
 				(bytes32 positionKey, int256 deltaChange) = _decreasePosition(adjustedPositionSize, collateralToRemove, true);
 				// update deltaChange for callback function
 				decreaseOrderDeltaChange[positionKey] += deltaChange;
@@ -402,7 +416,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				closedOppositeSideFirst = true;
 			}
 			// increase short position
-			uint256 collateralToAdd = _getCollateralSizeDeltaUsd(uint256(-_amount), true, closedOppositeSideFirst);
+			uint256 collateralToAdd = _getCollateralSizeDeltaUsd(true, closedOppositeSideFirst, uint256(-_amount));
 			(bytes32 positionKey, int256 deltaChange) = _increasePosition(uint256(-_amount), collateralToAdd, false);
 			// update deltaChange for callback function
 			increaseOrderDeltaChange[positionKey] += deltaChange;
@@ -560,15 +574,15 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	}
 
 	/**
-	 *	@param _amount amount of deltas to change position by. e18
 	 *	@param _isIncreasePosition if the position is to be increased (or decreased)
 	 *	@param _closedOppositeSideFirst in the case of an increase, true if an opposite position has been closed in the same transaction
+	 *	@param _amount amount of deltas to change position by. e18
 	 *	@return amount of collateral to add (for increase) or remove (for decrease). denominated in e6
 	 */
 	function _getCollateralSizeDeltaUsd(
-		uint256 _amount,
 		bool _isIncreasePosition,
-		bool _closedOppositeSideFirst
+		bool _closedOppositeSideFirst,
+		uint256 _amount
 	) private view returns (uint256) {
 		// calculate amount of collateral to add or remove denominated in USDC
 		//  for increase positions this is equal to collateral needed for extra margin plus rebalancing collateral to bring health factor back to 5000
@@ -602,8 +616,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 					totalCollateralToAdd = extraPositionCollateral + collatToTransfer;
 				}
 			}
+			console.log("total collat to add:", totalCollateralToAdd);
 			return totalCollateralToAdd;
 		} else {
+			uint256 leverageFactor = MAX_BIPS.div(healthFactor);
+			console.log("lev factor:", leverageFactor);
 			// when decreasing a position, a proportion of the pnl (positive or negative) equal to the proportion of the
 			// position size being reduced is taken out of the position.
 			uint256[] memory position = _getPosition(internalDelta > 0);
@@ -622,24 +639,29 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				// position in profit
 				// with positions in profit, you receive collateral out equal to the value entered for _collateralDelta in the createDecreasePosition
 				// function PLUS the proportion of the pnl equal to proportion of position size being reduced.
-				collateralToRemove = (1e18 -
-					(
-						(int256(position[0] / 1e12) - int256((2 * position[8]) / 1e12))
-							.mul(1e18 - int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12)))
-							.div(2 * int256(position[1] / 1e12))
-					)).mul(int256(position[1] / 1e12));
+				{
+					collateralToRemove = (1e18 -
+						(
+							(int256(position[0] / 1e12) - int256((leverageFactor.mul(position[8])) / 1e12))
+								.mul(1e18 - int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12)))
+								.div(int256(leverageFactor.mul(position[1]) / 1e12))
+						)).mul(int256(position[1] / 1e12));
+				}
+				console.log("collat to remove", uint256(collateralToRemove));
 			} else {
 				// position in loss
 				// with positions in loss, what is entered into the createDecreasePosition function is what you receive
 				// however the pnl is still reduced proportionally
-				collateralToRemove =
-					(1e18 -
-						(
-							(int256(position[0] / 1e12) + int256((2 * position[8]) / 1e12))
-								.mul(1e18 - int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12)))
-								.div(2 * int256(position[1] / 1e12))
-						)).mul(int256(position[1] / 1e12)) -
-					int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12).mul(position[8] / 1e12));
+				{
+					collateralToRemove =
+						(1e18 -
+							(
+								(int256(position[0] / 1e12) + int256((leverageFactor.mul(position[8])) / 1e12))
+									.mul(1e18 - int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12)))
+									.div(int256(leverageFactor.mul(position[1]) / 1e12))
+							)).mul(int256(position[1] / 1e12)) -
+						int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12).mul(position[8] / 1e12));
+				}
 			}
 			uint256 adjustedCollateralToRemove;
 			// collateral to remove must be a uint
@@ -647,10 +669,23 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				adjustedCollateralToRemove = uint256(0);
 			} else {
 				adjustedCollateralToRemove = uint256(collateralToRemove);
-				if (adjustedCollateralToRemove > ((position[1] / 1e12) * 49) / 50) {
-					adjustedCollateralToRemove = ((position[1] / 1e12) * 49) / 50;
+
+				// check if collateral removed would put position within 10% of liquidation limit
+				// where positionSize / collateral is >= maxLeverage()
+				if (
+					// maxLeverage is multiplied by 10000 in contract. divide by 11000 to allow for 10% buffer.
+					int256(position[1] / 1e12) - int256(adjustedCollateralToRemove) <
+					int256(((position[0] - _getPositionSizeDeltaUsd(_amount, position[0])) / 1e12) / (vault.maxLeverage() / 11000))
+				) {
+					adjustedCollateralToRemove =
+						position[1] /
+						1e12 -
+						((position[0] - _getPositionSizeDeltaUsd(_amount, position[0])) / 1e12) /
+						(vault.maxLeverage() / 11000);
+					if (adjustedCollateralToRemove == 0) {
+						return 0;
+					}
 				}
-			}
 			return OptionsCompute.convertToDecimals(adjustedCollateralToRemove, ERC20(collateralAsset).decimals());
 		}
 	}
