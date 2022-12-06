@@ -2,13 +2,9 @@
 pragma solidity 0.8.9;
 
 import "../libraries/Types.sol";
+import "../AlphaPortfolioValuesFeed.sol";
 
-interface IPortfolioValuesFeed {
-	struct OptionStore {
-		Types.OptionSeries optionSeries;
-		int256 shortExposure;
-		int256 longExposure;
-	}
+interface IAlphaPortfolioValuesFeed {
 	/////////////////////////////////////////////
 	/// external state changing functionality ///
 	/////////////////////////////////////////////
@@ -35,4 +31,5 @@ interface IPortfolioValuesFeed {
 		view
 		returns (Types.PortfolioValues memory);
 
+	function storesForAddress(address seriesAddress) external view returns (AlphaPortfolioValuesFeed.OptionStores memory);
 }
