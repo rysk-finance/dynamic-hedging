@@ -23,8 +23,8 @@ library Types {
 		uint64 expiration;
 		uint128 strike;
 		bool isPut;
-		bool isBuying;
-		bool isSelling;
+		bool isBuyable;
+		bool isSellable;
 	}
 	struct Order {
 		OptionSeries optionSeries;

@@ -145,6 +145,8 @@ interface IController {
 
 	function getProceed(address _owner, uint256 _vaultId) external view returns (uint256);
 
+	function isOperator(address _owner, address _operator) external view returns (bool);
+	
 	function isSettlementAllowed(
 		address _underlying,
 		address _strike,
@@ -162,4 +164,5 @@ interface IController {
 			uint256,
 			uint256
 		);
+	
 }
