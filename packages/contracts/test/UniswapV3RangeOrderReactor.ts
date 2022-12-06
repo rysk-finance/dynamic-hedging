@@ -7,6 +7,7 @@ import { UniswapV3RangeOrderReactor } from "../types/UniswapV3RangeOrderReactor"
 import { UniswapV3HedgingTest } from "../types/UniswapV3HedgingTest"
 import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_SWAP_ROUTER } from "./constants"
 import { PriceFeed } from "../types/PriceFeed"
+import { MintEvent } from "../types/IUniswapV3PoolEvents"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 import { abi as IUniswapV3PoolABI } from "@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json"
@@ -42,7 +43,7 @@ const SWAP_ROUTER_ADDRESS = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 // edit depending on the chain id to be tested on
 const chainId = 1
 
-describe("UniswapV3HedgingReactor", () => {
+describe("UniswapV3RangeOrderReactor", () => {
 	before(async function () {
 		await network.provider.request({
 			method: "hardhat_reset",
@@ -257,6 +258,8 @@ describe("UniswapV3HedgingReactor", () => {
 		const reactorDelta = parseFloat(
 			ethers.utils.formatEther(BigNumber.from(await liquidityPoolDummy.getDelta()))
 		)
+
+		const balancesBefore = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
 		expect(reactorDelta).to.equal(0)
 		expect(reactorWethBalance).to.equal(0)
 		expect(LpUsdcBalanceBefore).to.be.above(LpUsdcBalanceAfter)
@@ -326,13 +329,10 @@ describe("UniswapV3HedgingReactor", () => {
 		const { tick } = await uniswapUSDCWETHPool.slot0()
 		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
 		const balances = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
-		const averagePricePaid =
-			Number(fromUSDC(balancesBefore.amount0Current)) / Number(fromWei(balances.amount1Current))
 		const reactorDelta = Number(fromWei(await liquidityPoolDummy.getDelta()))
-		// negative slippage
-		expect(averagePricePaid).to.lt(Number(weth_usdc_price_before))
 		// delta will greater due to additional fees collected
-		expect(reactorDelta).to.be.gte(0.5)
+		// but should always return at least the delta requested
+		expect(reactorDelta).to.be.within(0.5, 0.502)
 		expect(tick).to.be.gt(activeLowerTick)
 		expect(tick).to.be.gt(activeUpperTick)
 	})
@@ -365,6 +365,31 @@ describe("UniswapV3HedgingReactor", () => {
 		expect(reactorDelta).to.but.gt(0.5)
 		expect(estimatedVsActualFees).to.be.lte(1)
 	})
+
+	it("Enters a range to hedge a positive delta", async () => {
+		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		const reactorWethBalanceBefore = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(toWei("0.3"))
+		const receipt = await hedgeDeltaTx.wait()
+		const lpBalanceAfter = await fromUSDC(await usdcContract.balanceOf(liquidityPoolDummy.address))
+		const reactorDeltaAfter = Number(fromWei(await liquidityPoolDummy.getDelta()))
+		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown as [MintEvent]
+		const reactorWethBalance = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		const { activeLowerTick: lowerTickAfer, activeUpperTick: upperTickAfter } =
+			await uniswapV3RangeOrderReactor.currentPosition()
+		const wethDifference =
+			Math.round(
+				(Number(fromWei(reactorWethBalanceBefore)) - Number(fromWei(reactorWethBalance))) * 1000
+			) / 1000
+		console.log({ mintEvent })
+		expect(activeLowerTick).to.not.eq(lowerTickAfer)
+		expect(activeUpperTick).to.not.eq(upperTickAfter)
+		expect(mintEvent.tickLower).to.eq(lowerTickAfer)
+		expect(mintEvent.tickUpper).to.eq(upperTickAfter)
+		expect(wethDifference).to.eq(0.3)
+	})
+
+	// adjusts a range order to hedge a new delta
 	////////// Legacy Testing Starts Here //////////
 
 	/* 	it("Sets a range one tick above USDC/WETH market", async () => {
