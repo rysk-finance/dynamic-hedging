@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0;
+pragma solidity >=0.8.9;
 
 import "./Types.sol";
 import "./CustomErrors.sol";
@@ -32,6 +32,18 @@ library OptionsCompute {
 			revert();
 		}
 		uint256 difference = SCALE_DECIMALS - decimals;
+		return value * (10**difference);
+	}
+
+	/// @dev converts from specified decimalsA to decimalsB
+	function convertFromDecimals(uint256 value, uint8 decimalsA, uint8 decimalsB)
+		internal 
+		pure
+		returns (uint256) {
+		if (decimalsA > decimalsB) {
+			revert();
+		}
+		uint8 difference = decimalsB - decimalsA;
 		return value * (10**difference);
 	}
 
