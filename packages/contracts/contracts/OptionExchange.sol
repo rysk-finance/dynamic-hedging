@@ -132,6 +132,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
 
 	error PoolFeeNotSet();
+	error ForbiddenAction();
+	error UnauthorisedSender();
+	error OperatorNotApproved();
 
 	constructor(
 		address _authority,
@@ -370,6 +373,14 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			// loop through the opyn actions, if any involve opening a vault then make sure the msg.sender gets the ownership and if there are any more vault ids make sure the msg.sender is the owners
 			IController.ActionArgs memory action = CombinedActions._parseOpynArgs(_opynActions[i]);
 			IController.ActionType actionType = action.actionType;
+			// make sure the owner parameter being sent in is the msg.sender this makes sure senders arent messing around with other vaults
+			if (action.owner != msg.sender) {
+				revert UnauthorisedSender();
+			}
+			// users need to have this contract approved as an operator so it can carry out actions on the user's behalf
+			if (!controller.isOperator(msg.sender, address(this))){
+				revert OperatorNotApproved();
+			}
 			if (actionType == IController.ActionType.OpenVault) {
 				// might need to change open vault vault id, otherwise check the vault id somehow
 			} else if (actionType == IController.ActionType.DepositLongOption) {
@@ -385,13 +396,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			} else if (actionType == IController.ActionType.BurnShortOption) {
 				// check the from address is as it should be and check the vault id
 			} else if (actionType == IController.ActionType.Redeem) {
-				// maybe dont allow
+				revert ForbiddenAction();
 			} else if (actionType == IController.ActionType.SettleVault) {
 				// check the to address is as it should be and check the vault id
 			} else if (actionType == IController.ActionType.Liquidate) {
-				// not sure yet, leaning to not allow
+				revert ForbiddenAction();
 			} else if (actionType == IController.ActionType.Call) {
-				// dont allow
+				revert ForbiddenAction();
 			}
 			_opynArgs[i] = action;
 		}
@@ -455,7 +466,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			uint128 strikeDecimalConverted
 		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries);
 		// check the option hash and option series for validity
-		_checkHash(optionSeries, strikeDecimalConverted, true);
+		_checkHash(optionSeries, strikeDecimalConverted, false);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			optionSeries.expiration,
@@ -473,6 +484,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		uint256 amount = _args.amount;
 		if (longExposure > 0) {
 			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
+			console.log(boughtAmount);
+			console.log(ERC20(seriesAddress).balanceOf(address(this)));
 			SafeTransferLib.safeTransfer(
 				ERC20(seriesAddress),
 				_args.recipient,
@@ -525,19 +538,21 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			collateralAsset
 		);
 		// get quote on the option to buy back, always return the total values
-		SafeTransferLib.safeTransferFrom(
-			seriesAddress,
-			msg.sender,
-			address(liquidityPool),
-			OptionsCompute.convertToDecimals(_args.amount, ERC20(_args.seriesAddress).decimals())
-		);
 		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, _args.amount, true);
 		uint256 amount = _args.amount;
 		int256 shortExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).shortExposure;
 		if (shortExposure > 0) {
+			uint256 transferAmount = uint256(shortExposure) > _args.amount ? _args.amount : uint256(shortExposure);
+			console.log(transferAmount, "x");
+			SafeTransferLib.safeTransferFrom(
+				seriesAddress,
+				msg.sender,
+				address(liquidityPool),
+				OptionsCompute.convertToDecimals(transferAmount, ERC20(seriesAddress).decimals())
+			);
 			uint256 soldBackAmount = liquidityPool.handlerBuybackOption(
 				optionSeries,
-				uint256(shortExposure) > _args.amount ? _args.amount : uint256(shortExposure),
+				transferAmount,
 				getOptionRegistry(),
 				seriesAddress,
 				premium, // WRONG needs to be adjusted for amount, get the quote per unit
@@ -551,6 +566,14 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				return;
 			}
 		}
+		console.log(amount);
+		// transfer the otokens to this exchange
+		SafeTransferLib.safeTransferFrom(
+			seriesAddress,
+			msg.sender,
+			address(this),
+			OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals())
+		);
 		// take the funds from the liquidity pool and pay the user for the oTokens
 		SafeTransferLib.safeTransferFrom(
 			collateralAsset,
@@ -633,6 +656,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				optionSeries.strike,
 				optionSeries.collateral
 			);
+			console.log(optionSeries.strike, seriesAddress);
 			optionSeries = Types.OptionSeries(
 				optionSeries.expiration,
 				uint128(formatStrikePrice(optionSeries.strike, collateralAsset)),
