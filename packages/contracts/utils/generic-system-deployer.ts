@@ -188,7 +188,6 @@ export async function deployLiquidityPool(
 	const optionsCompute = await optionsCompFactory.deploy()
 	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
 		libraries: {
-			BlackScholes: blackScholesDeploy.address,
 			OptionsCompute: optionsCompute.address
 		}
 	})
@@ -217,7 +216,6 @@ export async function deployLiquidityPool(
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
 	await liquidityPool.setMaxPriceDeviationThreshold(toWei("0.03"))
-	await liquidityPool.setBidAskSpread(toWei("0.05"))
 	await pvFeed.setLiquidityPool(liquidityPool.address)
 	await pvFeed.setProtocol(optionProtocol.address)
 	await pvFeed.fulfill(weth.address, usd.address)
