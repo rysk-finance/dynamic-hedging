@@ -89,6 +89,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/// @notice when redeeming other asset, send to a reactor or sell it
 	bool public sellRedemptions = true;
 
+	// user -> series addresses interacted with in this transaction
+	mapping(address => address[]) internal tempSeriesQueue;
+	// user -> seriesAddress -> amount
+	mapping(address => mapping(address => uint256)) public heldOtokens;
+
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
@@ -133,6 +138,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 
 	error PoolFeeNotSet();
 	error ForbiddenAction();
+	error OtokenImbalance();
 	error UnauthorisedSender();
 	error OperatorNotApproved();
 
@@ -344,10 +350,14 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		whenNotPaused
 	{
 		_runActions(_operationProcedures);
-		// if (vaultUpdated) {
-		//     _verifyFinalState(vaultOwner, vaultId);
-		//     vaultLatestUpdate[vaultOwner][vaultId] = now;
-		// }
+		address[] memory interactedSeries = tempSeriesQueue[msg.sender];
+		uint256 arr = interactedSeries.length;
+		for (uint256 i=0; i < arr; i++ ) {
+			if (heldOtokens[msg.sender][interactedSeries[i]] != 0) {
+				revert OtokenImbalance();
+			}
+		}
+		delete tempSeriesQueue[msg.sender];
 	}
 
 	/**
@@ -381,24 +391,29 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			if (!controller.isOperator(msg.sender, address(this))){
 				revert OperatorNotApproved();
 			}
-			if (actionType == IController.ActionType.OpenVault) {
-				// might need to change open vault vault id, otherwise check the vault id somehow
-			} else if (actionType == IController.ActionType.DepositLongOption) {
-				// check the from address is as it should be and check the vault id
+ 		if (actionType == IController.ActionType.DepositLongOption) {
+				// TODO: make work with negative heldOtokens
+				require(action.secondAddress == msg.sender, "Unauthorised Sender");
+				// check the from address to make sure it comes from the user or if we are holding them temporarily then they are held here
 			} else if (actionType == IController.ActionType.WithdrawLongOption) {
-				// check the to address is as it should be and check the vault id
+				if (action.secondAddress == address(this)) {
+					_updateTempHoldings(action);
+				}
+				// check the to address to see whether it is being sent to the user or held here temporarily
 			} else if (actionType == IController.ActionType.DepositCollateral) {
-				// check the from address is as it should be and check the vault id
-			} else if (actionType == IController.ActionType.WithdrawCollateral) {
-				// check the from address is as it should be and check the vault id
+				// check the from address is the msg.sender so the sender cant take collat from elsewhere
+				require(action.secondAddress == msg.sender, "Unauthorised Sender");
 			} else if (actionType == IController.ActionType.MintShortOption) {
-				// check the to address is as it should be and check the vault id
+				if (action.secondAddress == address(this)) {
+					_updateTempHoldings(action);
+				}
+				// check the to address to see whether it is being sent to the user or held here temporarily
 			} else if (actionType == IController.ActionType.BurnShortOption) {
-				// check the from address is as it should be and check the vault id
+				// TODO: make work with negative heldOtokens
+				require(action.secondAddress == msg.sender, "Unauthorised Sender");
+				// check the from address to see whether it is being sent from the user or is held from a temporary balance
 			} else if (actionType == IController.ActionType.Redeem) {
 				revert ForbiddenAction();
-			} else if (actionType == IController.ActionType.SettleVault) {
-				// check the to address is as it should be and check the vault id
 			} else if (actionType == IController.ActionType.Liquidate) {
 				revert ForbiddenAction();
 			} else if (actionType == IController.ActionType.Call) {
@@ -407,6 +422,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			_opynArgs[i] = action;
 		}
 		controller.operate(_opynArgs);
+	}
+	function _updateTempHoldings(IController.ActionArgs memory action) internal {
+			if (heldOtokens[msg.sender][action.asset] == 0){
+				tempSeriesQueue[msg.sender].push(action.asset);
+			}
+			heldOtokens[msg.sender][action.asset] += action.amount * 10 ** CONVERSION_DECIMALS;
+		
 	}
 
 	function _runRyskActions(CombinedActions.ActionArgs[] memory _ryskActions) internal {
@@ -541,15 +563,21 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, _args.amount, true);
 		uint256 amount = _args.amount;
 		int256 shortExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).shortExposure;
+		uint256 tempHoldings = heldOtokens[msg.sender][seriesAddress];
+		heldOtokens[msg.sender][seriesAddress] -= min(tempHoldings, _args.amount);
 		if (shortExposure > 0) {
-			uint256 transferAmount = uint256(shortExposure) > _args.amount ? _args.amount : uint256(shortExposure);
-			console.log(transferAmount, "x");
-			SafeTransferLib.safeTransferFrom(
-				seriesAddress,
-				msg.sender,
-				address(liquidityPool),
-				OptionsCompute.convertToDecimals(transferAmount, ERC20(seriesAddress).decimals())
-			);
+			uint256 transferAmount = min(uint256(shortExposure), _args.amount);
+			if (tempHoldings > 0) {
+				ERC20(seriesAddress).approve(address(liquidityPool), min(tempHoldings, transferAmount));
+			}
+			if (transferAmount >= min(tempHoldings, transferAmount)) {
+				SafeTransferLib.safeTransferFrom(
+					seriesAddress,
+					msg.sender,
+					address(liquidityPool),
+					OptionsCompute.convertToDecimals(transferAmount - min(tempHoldings, transferAmount), ERC20(seriesAddress).decimals())
+				);
+			}
 			uint256 soldBackAmount = liquidityPool.handlerBuybackOption(
 				optionSeries,
 				transferAmount,
@@ -562,18 +590,20 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			// update the series on the stores
 			getPortfolioValuesFeed().updateStores(seriesToStore, -int256(soldBackAmount), 0, seriesAddress);
 			amount -= soldBackAmount;
+			tempHoldings -= min(tempHoldings, transferAmount);
 			if (amount == 0) {
 				return;
 			}
 		}
-		console.log(amount);
-		// transfer the otokens to this exchange
-		SafeTransferLib.safeTransferFrom(
-			seriesAddress,
-			msg.sender,
-			address(this),
-			OptionsCompute.convertToDecimals(amount, ERC20(seriesAddress).decimals())
-		);
+		if (amount - tempHoldings > 0) {
+			// transfer the otokens to this exchange
+			SafeTransferLib.safeTransferFrom(
+				seriesAddress,
+				msg.sender,
+				address(this),
+				OptionsCompute.convertToDecimals(amount - tempHoldings, ERC20(seriesAddress).decimals())
+			);
+		}
 		// take the funds from the liquidity pool and pay the user for the oTokens
 		SafeTransferLib.safeTransferFrom(
 			collateralAsset,
@@ -585,6 +615,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		getPortfolioValuesFeed().updateStores(seriesToStore, 0, int256(amount), seriesAddress);
 	}
 
+	function min(uint256 v1, uint256 v2) internal pure returns (uint256) {
+		return v1 > v2 ? v2 : v1;
+	}
 	///////////////////////////
 	/// non-complex getters ///
 	///////////////////////////
