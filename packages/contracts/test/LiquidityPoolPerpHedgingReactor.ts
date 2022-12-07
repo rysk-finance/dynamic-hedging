@@ -44,7 +44,9 @@ import {
 	calculateOptionQuoteLocally,
 	calculateOptionDeltaLocally,
 	increase,
-	setOpynOracleExpiryPrice
+	setOpynOracleExpiryPrice,
+	makeIssueAndBuy,
+	makeBuy
 } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
@@ -63,8 +65,8 @@ import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
-import { BeyondOptionHandler } from "../types/BeyondOptionHandler"
 import { BeyondPricer } from "../types/BeyondPricer"
+import { OptionExchange } from "../types/OptionExchange"
 
 let usd: MintableERC20
 let weth: WETH
@@ -95,7 +97,7 @@ let clearingHouse: ClearingHouse
 let poolId: string
 let settlementTokenOracle: OracleMock
 let collateralId: string
-let handler: BeyondOptionHandler
+let exchange: OptionExchange
 let pricer: BeyondPricer
 let authority: string
 
@@ -231,7 +233,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		)
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
-		handler = lpParams.handler
+		exchange = lpParams.exchange
 		pricer = lpParams.pricer
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
@@ -355,19 +357,19 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await handler.issueNewSeries([{
+		await exchange.issueNewSeries([{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		},
 		{
 			expiration: expiration2,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		},
 	])
 	})
@@ -392,11 +394,11 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		const quote = (
 			await pricer.quoteOptionPrice(proposedSeries, amount, false)
 		)[0]
-		await usd.approve(handler.address, quote)
+		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
-		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
-			.series
-		const write = await handler.issueAndWriteOption(proposedSeries, amount)
+		await makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
+		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
@@ -441,12 +443,11 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const lpAllocatedBefore = await liquidityPool.collateralAllocated()
 		quote = (await pricer.quoteOptionPrice(proposedSeries, amount, false))[0]
-		await usd.approve(handler.address, quote)
+		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
-		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
-			.series
-		const write = await handler.issueAndWriteOption(proposedSeries, amount)
+		await makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
+		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
 		localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,

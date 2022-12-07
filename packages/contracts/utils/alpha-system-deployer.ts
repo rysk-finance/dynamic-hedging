@@ -227,7 +227,6 @@ export async function deployLiquidityPool(
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
 	await liquidityPool.setMaxPriceDeviationThreshold(toWei("0.03"))
-	await liquidityPool.setBidAskSpread(toWei("0.05"))
 	await liquidityPool.setKeeper(await signers[0].getAddress(), true)
 	await pvFeed.setLiquidityPool(liquidityPool.address)
 	await pvFeed.setProtocol(optionProtocol.address)

@@ -162,7 +162,7 @@ const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
 const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
 const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
 const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
-
+const emptySeries = { expiration: 1, strike: 1, isPut: true, collateral: ZERO_ADDRESS, underlying: ZERO_ADDRESS, strikeAsset: ZERO_ADDRESS }
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
 
@@ -531,8 +531,6 @@ describe("Liquidity Pools", async () => {
 
 	it("Returns a quote for a ETH/USD put to buy", async () => {
 		const thirtyPercentStr = "0.3"
-		const thirtyPercent = toWei(thirtyPercentStr)
-		await liquidityPool.setBidAskSpread(thirtyPercent)
 		const amount = toWei("1")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
@@ -616,23 +614,31 @@ describe("Liquidity Pools", async () => {
 		}
 
 		await usd.approve(exchange.address, toWei("1000000000"))
-		await expect(exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries1,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries1,
-			data: "0x"
-		}])).to.be.revertedWith(
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries1,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries1,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 		await volFeed.setSabrParameters(
@@ -658,23 +664,31 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await usd.approve(exchange.address, toWei("1000000000"))
-		await expect(exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries2,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries2,
-			data: "0x"
-		}])).to.be.revertedWith(
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries2,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries2,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -716,23 +730,31 @@ describe("Liquidity Pools", async () => {
 		}
 		// const quote = (await pricer.quoteOptionPrice(proposedSeries1, amount, false))[0]
 		await usd.approve(exchange.address, toWei("100000000"))
-		await expect(exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries1,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries1,
-			data: "0x"
-		}])).to.be.revertedWith(
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries1,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries1,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
 		// Series with strike price too low
@@ -747,23 +769,31 @@ describe("Liquidity Pools", async () => {
 		}
 		// const quote2 = (await pricer.quoteOptionPrice(proposedSeries2, amount, false))[0]
 		await usd.approve(exchange.address, toWei("100000000"))
-		await expect(exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries2,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries2,
-			data: "0x"
-		}])).to.be.revertedWith(
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries2,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries2,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -819,23 +849,31 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await usd.approve(exchange.address, toWei("1000000000"))
-		await expect(exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries1,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries1,
-			data: "0x"
-		}])).to.be.revertedWith(
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries1,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries1,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 		await volFeed.setSabrParameters(
@@ -861,23 +899,31 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await usd.approve(exchange.address, toWei("1000000000"))
-		await expect(exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries2,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries2,
-			data: "0x"
-		}])).to.be.revertedWith(
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries2,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries2,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -919,23 +965,31 @@ describe("Liquidity Pools", async () => {
 		}
 		// const quote = (await pricer.quoteOptionPrice(proposedSeries1, amount, false))[0]
 		await usd.approve(exchange.address, toWei("100000000"))
-		await expect(exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries1,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries1,
-			data: "0x"
-		}])).to.be.revertedWith(
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries1,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries1,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
 		// Series with strike price too low
@@ -950,23 +1004,31 @@ describe("Liquidity Pools", async () => {
 		}
 		// const quote2 = (await pricer.quoteOptionPrice(proposedSeries2, amount, false))[0]
 		await usd.approve(exchange.address, toWei("100000000"))
-		await expect(exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries2,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries2,
-			data: "0x"
-		}])).to.be.revertedWith(
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries2,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries2,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith(
 			"OptionStrikeInvalid()"
 		)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -1018,23 +1080,31 @@ describe("Liquidity Pools", async () => {
 		}
 		// const quote = (await pricer.quoteOptionPrice(proposedSeries1, amount, false))[0]
 		await usd.approve(exchange.address, toWei("100000000"))
-		await expect(exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries1,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries1,
-			data: "0x"
-		}])).to.be.revertedWith(
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries1,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries1,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith(
 			"UnapprovedSeries()"
 		)
 	})
@@ -1072,23 +1142,31 @@ describe("Liquidity Pools", async () => {
 		)
 
 		await usd.approve(exchange.address, quote)
-		await exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}])
+		await exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}]
+			}])
 		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
 		putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
@@ -1162,23 +1240,31 @@ describe("Liquidity Pools", async () => {
 		)
 
 		await usd.approve(exchange.address, quote)
-		await expect(exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}])).to.be.revertedWith("SeriesNotBuyable()")
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith("SeriesNotBuyable()")
 	})
 	it("REVERTs: LP writes a ETH/USD put for premium for series not approved for sale", async () => {
 		const [sender] = signers
@@ -1189,15 +1275,21 @@ describe("Liquidity Pools", async () => {
 			false
 		)
 		await usd.approve(exchange.address, quote)
-		await expect(exchange.operate([], [{
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: putOptionToken.address,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}])).to.be.revertedWith("SeriesNotBuyable()")
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: putOptionToken.address,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith("SeriesNotBuyable()")
 	})
 	it("REVERTs: LP buyback a ETH/USD put for premium for series not approved for buying", async () => {
 		const [sender] = signers
@@ -1208,15 +1300,21 @@ describe("Liquidity Pools", async () => {
 			false
 		)
 		await usd.approve(exchange.address, quote)
-		await expect(exchange.operate([], [{
-			actionType: 2,
-			secondAddress: senderAddress,
-			asset: putOptionToken.address,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}])).to.be.revertedWith("SeriesNotSellable()")
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 2,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: putOptionToken.address,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith("SeriesNotSellable()")
 	})
 	it("SETUP: change option buy or sell on series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -1314,15 +1412,21 @@ describe("Liquidity Pools", async () => {
 			await pricer.quoteOptionPrice(seriesInfoDecimalCorrected, amount, false)
 		)[1]
 		await usd.approve(exchange.address, quote)
-		await exchange.operate([], [{
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: putOptionToken.address,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}])
+		await exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: putOptionToken.address,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}]
+			}])
 
 		const putBalanceAfter = await putOptionToken.balanceOf(senderAddress)
 		const LpBalanceAfter = tFormatUSDC(await usd.balanceOf(liquidityPool.address))
@@ -1355,15 +1459,21 @@ describe("Liquidity Pools", async () => {
 
 		expect(await exchange.paused()).to.eq(true)
 
-		await expect(exchange.operate([], [{
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: putOptionToken.address,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}])).to.be.revertedWith(
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: putOptionToken.address,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith(
 			"Pausable: paused"
 		)
 
@@ -1448,23 +1558,31 @@ describe("Liquidity Pools", async () => {
 		)
 		await usd.approve(exchange.address, quote)
 		const buyerUSDBalanceBefore = await usd.balanceOf(senderAddress)
-		await exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}])
+		await exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}]
+			}])
 		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		putOptionToken2 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
@@ -1540,15 +1658,21 @@ describe("Liquidity Pools", async () => {
 			amount,
 			true
 		)
-		const write = await exchange.operate([], [{
-			actionType: 2,
-			secondAddress: senderAddress,
-			asset: putOptionToken.address,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}])
+		const write = await exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 2,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: putOptionToken.address,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}]
+			}])
 		await write.wait(1)
 		const logs = await liquidityPool.queryFilter(liquidityPool.filters.BuybackOption(), 0)
 		const buybackEvent = logs[0].args
@@ -1593,19 +1717,6 @@ describe("Liquidity Pools", async () => {
 		expect(ephemeralDeltaDiff - tFormatEth(delta)).to.be.within(-0.01, 0.01)
 		expect(ephemeralLiabilitiesDiff + tFormatUSDC(quote)).to.be.within(-0.01, 0.01)
 	})
-	it("fails if buyback token address is invalid", async () => {
-		const amount = toWei("1")
-		// ETH_ADDRESS is not a valid OToken address
-		await expect(exchange.operate([], [{
-			actionType: 2,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}])).to.be.reverted
-	})
 	it("buys back an option if it moves delta closer to zero", async () => {
 		const amount = toWei("2")
 
@@ -1640,15 +1751,21 @@ describe("Liquidity Pools", async () => {
 		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 
 		await putOptionToken2.approve(exchange.address, toOpyn(fromWei(amount)))
-		await exchange.operate([], [{
-			actionType: 2,
-			secondAddress: senderAddress,
-			asset: putOptionToken2.address,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}])
+		await exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 2,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: putOptionToken2.address,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}]
+			}])
 
 		const deltaAfter = await liquidityPool.getPortfolioDelta()
 		const sellerOTokenBalanceAfter = await putOptionToken2.balanceOf(senderAddress)
@@ -1739,23 +1856,31 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await usd.approve(exchange.address, toWei("20"))
-		await expect(exchange.operate([], [{
-			actionType: 0,
-			secondAddress: ZERO_ADDRESS,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: 0,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}, {
-			actionType: 1,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: amount,
-			optionSeries: proposedSeries,
-			data: "0x"
-		}])).to.be.revertedWith(
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}, {
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith(
 			"MaxLiquidityBufferReached"
 		)
 
@@ -2086,30 +2211,40 @@ describe("Liquidity Pools", async () => {
 		expect(collateralLost).to.equal(0)
 	})
 	it("Reverts: tries to sell an expired option back to the pool", async () => {
-		await expect(exchange.operate([], [{
-			actionType: 2,
-			secondAddress: senderAddress,
-			asset: putOptionToken2.address,
-			vaultId: 0,
-			amount: toWei("3"),
-			optionSeries: proposedSeries,
-			data: "0x"
-		}])).to.be.revertedWith(
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 2,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: putOptionToken2.address,
+					vaultId: 0,
+					amount: toWei("3"),
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.revertedWith(
 			"OptionExpiryInvalid()"
 		)
 	})
 	it("Reverts: tries to write an option that doesnt exist in the handler", async () => {
-		await expect(exchange.operate([], [{
-			actionType: 2,
-			secondAddress: senderAddress,
-			asset: ZERO_ADDRESS,
-			vaultId: 0,
-			amount: toWei("3"),
-			optionSeries: {expiration:1,strike:1,isPut:CALL_FLAVOR, collateral:weth.address, underlying:usd.address, strikeAsset:usd.address},
-			data: "0x"
-		}])).to.be.revertedWith(
-			"NonExistentOtoken()"
-		)
+		await expect(exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [{
+					actionType: 2,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: exchange.address,
+					vaultId: 0,
+					amount: toWei("3"),
+					optionSeries: emptySeries,
+					index: 0,
+					data: "0x"
+				}]
+			}])).to.be.reverted
 	})
 	it("updates option params with setter", async () => {
 		await liquidityPool.setNewOptionParams(
@@ -2181,14 +2316,6 @@ describe("Liquidity Pools", async () => {
 		expect(afterValue).to.eq(expectedValue)
 		expect(afterValue).to.not.eq(beforeValue)
 	})
-	it("updates maxDiscount variable", async () => {
-		const beforeValue = await liquidityPool.maxDiscount()
-		const expectedValue = toWei("2")
-		await liquidityPool.setMaxDiscount(expectedValue)
-		const afterValue = await liquidityPool.maxDiscount()
-		expect(afterValue).to.eq(expectedValue)
-		expect(afterValue).to.not.eq(beforeValue)
-	})
 	it("updates bufferPercentage variable", async () => {
 		const beforeValue = await liquidityPool.bufferPercentage()
 		expect(beforeValue).to.equal(5000)
@@ -2206,18 +2333,6 @@ describe("Liquidity Pools", async () => {
 		const afterValue = await liquidityPool.riskFreeRate()
 		expect(afterValue).to.eq(expectedValue)
 		expect(afterValue).to.not.eq(beforeValue)
-	})
-	it("sets new utilization skew params", async () => {
-		await liquidityPool.setUtilizationSkewParams(toWei("0.05"), toWei("2"), toWei("0.7"))
-		const newBelowThesholdGradient = await liquidityPool.belowThresholdGradient()
-		const newAboveThesholdGradient = await liquidityPool.aboveThresholdGradient()
-		const newAboveThesholdYIntercept = await liquidityPool.aboveThresholdYIntercept()
-		const newUtilizationThreshold = await liquidityPool.utilizationFunctionThreshold()
-		expect(newBelowThesholdGradient).to.eq(toWei("0.05"))
-		expect(newAboveThesholdGradient).to.eq(toWei("2"))
-		expect(newUtilizationThreshold).to.eq(toWei("0.7"))
-		const expectedYIntercept = -0.7 * (0.05 - 2)
-		expect(newAboveThesholdYIntercept).to.eq(toWei(expectedYIntercept.toString()))
 	})
 	it("pauses trading", async () => {
 		await liquidityPool.pauseUnpauseTrading(true)
