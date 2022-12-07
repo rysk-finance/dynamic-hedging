@@ -1,7 +1,7 @@
 import { util } from "chai"
 import { BigNumber, BigNumberish, utils } from "ethers"
 // import BigNumber from 'bignumber.js'
-
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 export const formatEth = (x: BigNumberish) => Number(utils.formatEther(x))
 export function truncate(num: number, places: number = 3): number {
 	return Math.trunc(num * Math.pow(10, places)) / Math.pow(10, places)
@@ -11,6 +11,7 @@ export const tFormatEth = (x: BigNumberish, places: number = 3): number =>
 export const toWei = (x: string) => utils.parseEther(x)
 export const call = false,
 	put = true
+export const emptySeries = { expiration: 1, strike: 1, isPut: true, collateral: ZERO_ADDRESS, underlying: ZERO_ADDRESS, strikeAsset: ZERO_ADDRESS }
 export const MAX_BPS = BigNumber.from(10000)
 export const CALL = false
 export const PUT = true
