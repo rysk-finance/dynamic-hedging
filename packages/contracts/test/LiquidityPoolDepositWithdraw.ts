@@ -13,7 +13,9 @@ import {
 	toOpyn,
 	tFormatUSDC,
 	scaleNum,
-	fromWeiToUSDC
+	fromWeiToUSDC,
+	emptySeries,
+	ZERO_ADDRESS
 } from "../utils/conversion-helper"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
@@ -35,7 +37,7 @@ import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle, calculateOptionDeltaLocally } from "./helpers"
+import { setupTestOracle, calculateOptionDeltaLocally, makeIssueAndBuy, makeBuy } from "./helpers"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -51,10 +53,10 @@ import { deployOpyn } from "../utils/opyn-deployer"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { VolatilityFeed } from "../types/VolatilityFeed"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
-import { BeyondOptionHandler } from "../types/BeyondOptionHandler"
 import { Accounting } from "../types/Accounting"
 import exp from "constants"
 import { BeyondPricer } from "../types/BeyondPricer"
+import { OptionExchange } from "../types/OptionExchange"
 
 dayjs.extend(utc)
 
@@ -75,7 +77,7 @@ let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
-let handler: BeyondOptionHandler
+let exchange: OptionExchange
 let pricer: BeyondPricer
 let optionToken1: Otoken
 let priceQuote: any
@@ -83,8 +85,6 @@ let quote: any
 let localDelta: any
 let authority: string
 let accounting: Accounting
-
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 /* --- variables to change --- */
 
@@ -188,7 +188,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		)
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
-		handler = lpParams.handler
+		exchange = lpParams.exchange
 		pricer = lpParams.pricer
 		accounting = lpParams.accounting
 		signers = await hre.ethers.getSigners()
@@ -613,12 +613,12 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await handler.issueNewSeries([{
+		await exchange.issueNewSeries([{
 			expiration: expiration,
 			isPut: PUT_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 	})
 	it("Succeeds: User 1: LP Writes a ETH/USD put for premium", async () => {
@@ -639,11 +639,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		quote = (await pricer.quoteOptionPrice(proposedSeries, amount, false))[0]
-		await usd.approve(handler.address, quote)
+		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
-		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
-			.series
-		const write = await handler.issueAndWriteOption(proposedSeries, amount)
+		await makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
+		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		optionToken1 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await optionToken1.balanceOf(senderAddress)
@@ -678,8 +677,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	it("Reverts: User 1: cant write option", async () => {
 		const user = senderAddress
 		const amount = toWei("2")
-		await usd.approve(handler.address, toWei("1"))
-		await expect(handler.writeOption(optionToken1.address, amount)).to.be.revertedWith("TradingPaused()")
+		await usd.approve(exchange.address, toWei("1"))
+		await expect(makeBuy(exchange, senderAddress, optionToken1.address, amount, emptySeries)).to.be.revertedWith("TradingPaused()")
 	})
 	it("Reverts: User 1: cant issue and write option", async () => {
 		const user = senderAddress
@@ -694,8 +693,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await usd.approve(handler.address, toWei("1"))
-		await expect(handler.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith(
+		await usd.approve(exchange.address, toWei("1"))
+		await expect(makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)).to.be.revertedWith(
 			"TradingPaused()"
 		)
 	})
@@ -941,12 +940,12 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await handler.issueNewSeries([{
+		await exchange.issueNewSeries([{
 			expiration: expiration,
 			isPut: CALL_FLAVOR,
 			strike: BigNumber.from(strikePrice),
-			isBuying: true,
-			isSelling: true
+			isSellable: true,
+			isBuyable: true
 		}])
 	})
 	it("Succeeds: User 1: LP Writes a ETH/USD put for premium", async () => {
@@ -970,11 +969,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			await pricer.quoteOptionPrice(proposedSeries, amount, false)
 		)[0]
 		quote = quote.add(singleQ)
-		await usd.approve(handler.address, quote)
+		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
-		const seriesAddress = (await handler.callStatic.issueAndWriteOption(proposedSeries, amount))
-			.series
-		const write = await handler.issueAndWriteOption(proposedSeries, amount)
+		await makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
+		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const callOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const callBalance = await callOptionToken.balanceOf(senderAddress)
