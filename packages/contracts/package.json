@@ -5,7 +5,7 @@
 	"main": "index.js",
 	"scripts": {
 		"test": "hardhat test",
-		"test-coverage": "export NODE_OPTIONS='--max-old-space-size=8192' && hardhat coverage --testfiles 'test/*.ts'",
+		"test-coverage": "export NODE_OPTIONS='--max-old-space-size=8192' && hardhat coverage --solcoverjs ./.solcover.js --testfiles 'test/*.ts'",
 		"deploy:rinkeby": "hardhat deploy --network rinkeby --tags testnet --deploy-scripts deploy/rinkeby",
 		"deploy:arbitrumGoerli": "npx hardhat run deploy/arbitrum-goerli/ArbitrumGoerliDeploy.ts --network arbitrumGoerli",
 		"deployAlpha:arbitrumRinkeby": "npx hardhat run deploy/arbitrum-rinkeby/ArbitrumRinkebyAlphaDeploy.ts --network arbitrumRinkeby",
