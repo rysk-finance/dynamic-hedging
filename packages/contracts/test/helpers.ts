@@ -47,6 +47,70 @@ const aboveUtilizationThresholdGradient = 1
 const utilizationFunctionThreshold = 0.6 // 60%
 const yIntercept = -0.6
 
+export async function makeBuy(exchange, senderAddress, optionToken, amount, proposedSeries) {
+	await exchange.operate([
+		{
+			operation: 1,
+			operationQueue: [{
+				actionType: 1,
+				owner: ZERO_ADDRESS,
+				secondAddress: senderAddress,
+				asset: optionToken,
+				vaultId: 0,
+				amount: amount,
+				optionSeries: proposedSeries,
+				index: 0,
+				data: "0x"
+			}]
+		}])
+}
+
+export async function makeIssueAndBuy(exchange, senderAddress, optionToken, amount, proposedSeries) {
+	await exchange.operate([
+		{
+			operation: 1,
+			operationQueue: [{
+				actionType: 0,
+				owner: ZERO_ADDRESS,
+				secondAddress: ZERO_ADDRESS,
+				asset: ZERO_ADDRESS,
+				vaultId: 0,
+				amount: 0,
+				optionSeries: proposedSeries,
+				index: 0,
+				data: "0x"
+			}, {
+				actionType: 1,
+				owner: ZERO_ADDRESS,
+				secondAddress: senderAddress,
+				asset: ZERO_ADDRESS,
+				vaultId: 0,
+				amount: amount,
+				optionSeries: proposedSeries,
+				index: 0,
+				data: "0x"
+			}]
+		}])
+}
+
+export async function makeSellBack(exchange, senderAddress, optionToken, amount, proposedSeries) {
+	await exchange.operate([
+		{
+			operation: 1,
+			operationQueue: [{
+				actionType: 2,
+				owner: ZERO_ADDRESS,
+				secondAddress: senderAddress,
+				asset: optionToken,
+				vaultId: 0,
+				amount: amount,
+				optionSeries: proposedSeries,
+				index: 0,
+				data: "0x"
+			}]
+		}])
+}
+
 export async function whitelistProduct(
 	underlying: string,
 	strike: string,
@@ -399,13 +463,12 @@ export async function getBlackScholesQuote(
 	const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), optionSeries.expiration)
 
 	const priceNorm = fromWei(underlyingPrice)
-	const bidAskSpread = tFormatEth(await liquidityPool.bidAskIVSpread())
 	const localBS =
 		bs.blackScholes(
 			priceNorm,
 			fromWei(optionSeries.strike),
 			timeToExpiration,
-			toBuy ? Number(fromWei(iv)) * (1 - Number(bidAskSpread)) : fromWei(iv),
+			Number(fromWei(iv)),
 			parseFloat(rfr),
 			optionSeries.isPut ? "put" : "call"
 		) * parseFloat(fromWei(amount))
