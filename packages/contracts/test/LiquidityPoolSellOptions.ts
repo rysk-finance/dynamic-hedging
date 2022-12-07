@@ -89,6 +89,7 @@ let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 let optionToken: Otoken
 let oTokenUSDCXC: Otoken
+let oTokenUSDCSXC: Otoken
 let oTokenETH1500C: Otoken
 let oTokenETH1600C: Otoken
 let oTokenBUSD3000P: Otoken
@@ -697,9 +698,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				true
 			)
 			const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
-			console.log(seriesAddress)
-			oTokenUSDCXC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
-			optionToken = oTokenUSDCXC
+			oTokenUSDCSXC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
+			optionToken = oTokenUSDCSXC
 			collateralAllocatedToVault1 = await liquidityPool.collateralAllocated()
 			const balanceNew = await usd.balanceOf(senderAddress)
 			const opynAmount = toOpyn(fromWei(amount))
@@ -979,10 +979,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(tFormatUSDC(poolBalanceDiff) + tFormatUSDC(quote) - tFormatUSDC(lpAllocatedDiff)).to.be.lt(
 				0.1
 			)
-		})
-		it("can compute portfolio delta", async function () {
-			const delta = await liquidityPool.getPortfolioDelta()
-			expect(delta).to.be.lt(0)
 		})
 	})
 	describe("Purchase and sell back an ETH option", async () => {
@@ -1296,20 +1292,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					totalCollateralAllocated.sub(collateralReturned).sub(collateralLost)
 				)
 			})
-			it("SUCCEEDS: redeems options held", async () => {
-				const reactorOtokenBalanceBefore = await optionToken.balanceOf(exchange.address)
-				const liquidityPoolUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-				const redeem = await exchange.redeem([optionToken.address])
-				const receipt = await redeem.wait()
-				const events = receipt.events
-				const redemptionEvent = events?.find(x => x.event == "RedemptionSent")
-				const redeemAmount = redemptionEvent?.args?.redeemAmount
-				const reactorOtokenBalanceAfter = await optionToken.balanceOf(exchange.address)
-				const liquidityPoolUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
-				expect(reactorOtokenBalanceBefore).to.be.gt(0)
-				expect(reactorOtokenBalanceAfter).to.equal(0)
-				expect(liquidityPoolUSDBalanceAfter.sub(liquidityPoolUSDBalanceBefore).sub(redeemAmount)).to.be.within(-50, 50)
-			})
 		})
 
 		describe("Settles and redeems eth otoken", async () => {
@@ -1331,8 +1313,9 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		})
 		describe("Settles and redeems eth otoken", async () => {
 			it("SETUP: changes spot handling to sell redemption", async () => {
-				await exchange.setSellRedemptions(false)
+				await exchange.setSellRedemptions(false, spotHedgingReactor.address)
 				expect(await exchange.sellRedemptions()).to.be.false
+				expect(await exchange.spotHedgingReactor()).to.equal(spotHedgingReactor.address)
 			})
 			it("SUCCEEDS: redeems options held", async () => {
 				optionToken = oTokenETH1600C
@@ -1349,8 +1332,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(reactorOtokenBalanceAfter).to.equal(0)
 				expect(liquidityPoolUSDBalanceAfter).to.equal(liquidityPoolUSDBalanceBefore)
 				const wethAsset = (await ethers.getContractAt("MintableERC20", WETH_ADDRESS[chainId])) as MintableERC20
-				expect(await wethAsset.balanceOf(spotHedgingReactor.address)).to.equal(redeemAmount)
 				expect(await wethAsset.balanceOf(exchange.address)).to.equal(0)
+				expect(await wethAsset.balanceOf(spotHedgingReactor.address)).to.equal(redeemAmount)
 			})
 		})
 		describe("Settles and redeems busd otoken", async () => {
@@ -1391,12 +1374,13 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.pricer()).to.equal(pricer.address)
 			})
 			it("SUCCEEDS: set sell redemptions", async () => {
-				await exchange.setSellRedemptions(false)
+				await exchange.setSellRedemptions(false, spotHedgingReactor.address)
 				expect(await exchange.sellRedemptions()).to.be.false
+				expect(await exchange.spotHedgingReactor()).to.equal(spotHedgingReactor.address)
 			})
 			it("REVERTS: set sell redemptions when non governance calls", async () => {
-				await expect(exchange.connect(signers[1]).setSellRedemptions(true)).to.be.revertedWith("UNAUTHORIZED()")
-				await exchange.setSellRedemptions(true)
+				await expect(exchange.connect(signers[1]).setSellRedemptions(true, spotHedgingReactor.address)).to.be.revertedWith("UNAUTHORIZED()")
+				await exchange.setSellRedemptions(true, spotHedgingReactor.address)
 				expect(await exchange.sellRedemptions()).to.equal(true)
 			})
 			it("SUCCEEDS: set pool fee", async () => {
