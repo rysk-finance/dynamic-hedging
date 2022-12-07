@@ -84,11 +84,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	address[] public hedgingReactors;
 	// max total supply of collateral, denominated in e18
 	uint256 public collateralCap = type(uint256).max;
-	// Maximum discount that an option tilting factor can discount an option price
-	uint256 public maxDiscount = (PRBMathUD60x18.SCALE * 10) / 100; // As a percentage. Init at 10%
-	// The spread between the bid and ask on the IV skew;
-	// Consider making this it's own volatility skew if more flexibility is needed
-	uint256 public bidAskIVSpread;
 	// option issuance parameters
 	Types.OptionParams public optionParams;
 	// riskFreeRate as a percentage PRBMath Float. IE: 3% -> 0.03 * 10**18
@@ -101,15 +96,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	uint256 public maxTimeDeviationThreshold = 600;
 	// max price difference to allow between oracle updates for an underlying and strike
 	uint256 public maxPriceDeviationThreshold = 1e18;
-	// variables relating to the utilization skew function:
-	// the gradient of the function where utiization is below function threshold. e18
-	uint256 public belowThresholdGradient = 0; // 0
-	// the gradient of the line above the utilization threshold. e18
-	uint256 public aboveThresholdGradient = 1e18; // 1
-	// the y-intercept of the line above the threshold. Needed to make the two lines meet at the threshold.  Will always be negative but enter the absolute value
-	uint256 public aboveThresholdYIntercept = 6e17; //-0.6
-	// the percentage utilization above which the function moves from its shallow line to its steep line. e18
-	uint256 public utilizationFunctionThreshold = 6e17; // 60%
 	// keeper mapping
 	mapping(address => bool) public keeper;
 
@@ -271,26 +257,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	}
 
 	/**
-	 * @notice set the bid ask spread used to price option buying
-	 * @param _bidAskSpread the bid ask spread to update to
-	 * @dev   only management or above can call this function
-	 */
-	function setBidAskSpread(uint256 _bidAskSpread) external {
-		_onlyManager();
-		bidAskIVSpread = _bidAskSpread;
-	}
-
-	/**
-	 * @notice set the maximum percentage discount for an option
-	 * @param _maxDiscount of the option as a percentage in 1e18 format. ie: 1*e18 == 1%
-	 * @dev   only management or above can call this function
-	 */
-	function setMaxDiscount(uint256 _maxDiscount) external {
-		_onlyManager();
-		maxDiscount = _maxDiscount;
-	}
-
-	/**
 	 * @notice set the maximum collateral amount allowed in the pool
 	 * @param _collateralCap of the collateral held
 	 * @dev   only governance can call this function
@@ -355,30 +321,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			revert CustomErrors.InvalidAddress();
 		}
 		keeper[_keeper] = _auth;
-	}
-
-	/**
-	 *  @notice sets the parameters for the function that determines the utilization price factor
-	 *  The function is made up of two parts, both linear. The line to the left of the utilisation threshold has a low gradient
-	 *  while the gradient to the right of the threshold is much steeper. The aim of this function is to make options much more
-	 *  expensive near full utilization while not having much effect at low utilizations.
-	 *  @param _belowThresholdGradient the gradient of the function where utiization is below function threshold. e18
-	 *  @param _aboveThresholdGradient the gradient of the line above the utilization threshold. e18
-	 *  @param _utilizationFunctionThreshold the percentage utilization above which the function moves from its shallow line to its steep line
-	 */
-	function setUtilizationSkewParams(
-		uint256 _belowThresholdGradient,
-		uint256 _aboveThresholdGradient,
-		uint256 _utilizationFunctionThreshold
-	) external {
-		_onlyManager();
-		belowThresholdGradient = _belowThresholdGradient;
-		aboveThresholdGradient = _aboveThresholdGradient;
-		aboveThresholdYIntercept = _utilizationFunctionThreshold.mul(
-			_aboveThresholdGradient - _belowThresholdGradient // inverted the order of the subtraction to result in a positive uint
-		);
-
-		utilizationFunctionThreshold = _utilizationFunctionThreshold;
 	}
 
 	//////////////////////////////////////////////////////
@@ -757,146 +699,6 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 			maxPriceDeviationThreshold
 		);
 		return portfolioValues.delta + getExternalDelta() + ephemeralDelta;
-	}
-
-	/**
-	 * @notice get the quote price and delta for a given option
-	 * @param  optionSeries option type to quote - strike assumed in e18
-	 * @param  amount the number of options to mint  - assumed in e18
-	 * @param toBuy whether the protocol is buying the option
-	 * @return quote the price of the options - returns in e18
-	 * @return delta the delta of the options - returns in e18
-	 */
-	function quotePriceWithUtilizationGreeks(
-		Types.OptionSeries memory optionSeries,
-		uint256 amount,
-		bool toBuy
-	) external view returns (uint256 quote, int256 delta) {
-		// using a struct to get around stack too deep issues
-		Types.UtilizationState memory quoteState;
-		quoteState.underlyingPrice = _getUnderlyingPrice(
-			optionSeries.underlying,
-			optionSeries.strikeAsset
-		);
-		quoteState.iv = getImpliedVolatility(
-			optionSeries.isPut,
-			quoteState.underlyingPrice,
-			optionSeries.strike,
-			optionSeries.expiration
-		);
-		(uint256 optionQuote, int256 deltaQuote) = OptionsCompute.quotePriceGreeks(
-			optionSeries,
-			toBuy,
-			bidAskIVSpread,
-			riskFreeRate,
-			quoteState.iv,
-			quoteState.underlyingPrice
-		);
-		// price of acquiring total amount of options (remains e18 due to PRBMath)
-		quoteState.totalOptionPrice = optionQuote.mul(amount);
-		quoteState.totalDelta = deltaQuote.mul(int256(amount));
-
-		// will update quoteState.utilizationPrice
-		addUtilizationPremium(quoteState, optionSeries, amount, toBuy);
-		quote = applyDeltaPremium(quoteState, toBuy);
-
-		quote = OptionsCompute.convertToCollateralDenominated(
-			quote,
-			quoteState.underlyingPrice,
-			optionSeries
-		);
-		delta = quoteState.totalDelta;
-		if (quote == 0 || delta == int256(0)) {
-			revert CustomErrors.DeltaQuoteError(quote, delta);
-		}
-	}
-
-	/**
-	 *	@notice applies a utilization premium when the protocol is selling options.
-	 *	Stores the utilization price in quoteState.utilizationPrice for use in quotePriceWithUtilizationGreeks
-	 *	@param quoteState the struct created in quoteStateWithUtilizationGreeks to store memory variables
-	 *	@param optionSeries the option type for which we are quoting a price
-	 *	@param amount the amount of options. e18
-	 *	@param toBuy whether we are buying an option. False if selling
-	 */
-	function addUtilizationPremium(
-		Types.UtilizationState memory quoteState,
-		Types.OptionSeries memory optionSeries,
-		uint256 amount,
-		bool toBuy
-	) internal view {
-		if (!toBuy) {
-			uint256 collateralAllocated_ = collateralAllocated;
-			// if selling options, we want to add the utilization premium
-			// Work out the utilization of the pool as a percentage
-			quoteState.utilizationBefore = collateralAllocated_.div(
-				collateralAllocated_ + getBalance(collateralAsset)
-			);
-			// assumes strike is e18
-			// strike is not being used again so we dont care if format changes
-			optionSeries.strike = optionSeries.strike / 1e10;
-			// returns collateral decimals
-			quoteState.collateralToAllocate = _getOptionRegistry().getCollateral(optionSeries, amount);
-
-			quoteState.utilizationAfter = (quoteState.collateralToAllocate + collateralAllocated_).div(
-				collateralAllocated_ + getBalance(collateralAsset)
-			);
-			// get the price of the option with the utilization premium added
-			quoteState.utilizationPrice = OptionsCompute.getUtilizationPrice(
-				quoteState.utilizationBefore,
-				quoteState.utilizationAfter,
-				quoteState.totalOptionPrice,
-				utilizationFunctionThreshold,
-				belowThresholdGradient,
-				aboveThresholdGradient,
-				aboveThresholdYIntercept
-			);
-		} else {
-			// do not use utlilization premium for buybacks
-			quoteState.utilizationPrice = quoteState.totalOptionPrice;
-		}
-	}
-
-	/**
-	 *	@notice Applies a discount or premium based on the liquidity pool's delta exposure
-	 *	Gives discount if the transaction results in a lower delta exposure for the liquidity pool.
-	 *	Prices option more richly if the transaction results in higher delta exposure for liquidity pool.
-	 *	@param quoteState the struct created in quoteStateWithUtilizationGreeks to store memory variables
-	 *	@param toBuy whether we are buying an option. False if selling
-	 *	@return quote the quote for the option with the delta skew applied
-	 */
-	function applyDeltaPremium(Types.UtilizationState memory quoteState, bool toBuy)
-		internal
-		view
-		returns (uint256 quote)
-	{
-		// portfolio delta before writing option
-		int256 portfolioDelta = getPortfolioDelta();
-		// subtract totalDelta if buying as pool is taking on the negative of the option's delta
-		int256 newDelta = toBuy
-			? portfolioDelta + quoteState.totalDelta
-			: portfolioDelta - quoteState.totalDelta;
-		// Is delta moved closer to zero?
-		quoteState.isDecreased = (PRBMathSD59x18.abs(newDelta) - PRBMathSD59x18.abs(portfolioDelta)) < 0;
-		// delta exposure of the portolio per ETH equivalent value the portfolio holds.
-		// This value is only used for tilting so we are only interested in its distance from 0 (its magnitude)
-		uint256 normalizedDelta = uint256(PRBMathSD59x18.abs((portfolioDelta + newDelta).div(2e18))).div(
-			_getNAV().div(quoteState.underlyingPrice)
-		);
-		// this is the percentage of the option price which is added to or subtracted from option price
-		// according to whether portfolio delta is increased or decreased respectively
-		quoteState.deltaTiltAmount = normalizedDelta > maxDiscount ? maxDiscount : normalizedDelta;
-
-		if (quoteState.isDecreased) {
-			quote = toBuy
-				? quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice
-				: quoteState.utilizationPrice - quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice);
-		} else {
-			// increase utilization by delta tilt factor for moving delta away from zero
-			quote = toBuy
-				? quoteState.utilizationPrice - quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice)
-				: quoteState.deltaTiltAmount.mul(quoteState.utilizationPrice) + quoteState.utilizationPrice;
-		}
 	}
 
 	///////////////////////////
