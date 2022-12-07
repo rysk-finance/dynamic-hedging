@@ -283,7 +283,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
     function createUniswapRangeOrder(
         RangeOrderParams memory params,
-        uint256 amountDesired
+        uint256 amountDesired,
+        bool inversed
     ) internal {
         uint256 amount0Desired;
         uint256 amount1Desired;
@@ -293,11 +294,12 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         
         if (params.direction == RangeOrderDirection.ABOVE) {
             amount0Desired = amountDesired;
-            // Transfer in token from parent contract
-		    SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), amountDesired);
+            // Only transfer in when collateral token is token0
+            if (inversed) { SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), amountDesired); }
             token0.safeApprove(address(pool), amountDesired);
         } else {
             amount1Desired = amountDesired;
+            if (!inversed) { SafeTransferLib.safeTransferFrom(address(token1), msg.sender, address(this), amountDesired); }
             token1.safeApprove(address(pool), amountDesired);
         }
 
@@ -542,6 +544,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         uint256 quotePrice = inversed ? inversedPrice : poolPrice;
         if (_delta < 0) {
             // buy wETH
+            // lowest price is best price when buying
             uint256 priceToUse = quotePrice < underlyingPrice ? quotePrice : underlyingPrice;
             RangeOrderDirection direction = inversed ? RangeOrderDirection.ABOVE : RangeOrderDirection.BELOW;
             RangeOrderParams memory rangeOrder = getTicksAndMeanPriceFromWei(priceToUse, direction);
@@ -550,16 +553,17 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
                 amountCollateralInToken1, 
                 ERC20(collateralAsset).decimals()
             );    
-            createUniswapRangeOrder(rangeOrder, amountDesiredInCollateralToken);
+            createUniswapRangeOrder(rangeOrder, amountDesiredInCollateralToken, inversed);
         } else {
             // sell wETH
             uint256 wethBalance = inversed ? amount1Current : amount0Current;
             if (wethBalance < minAmount) return 0;
+            // highest price is best price when selling
             uint256 priceToUse = quotePrice < underlyingPrice ? underlyingPrice : quotePrice;
             RangeOrderDirection direction = inversed ? RangeOrderDirection.BELOW : RangeOrderDirection.ABOVE;
             RangeOrderParams memory rangeOrder = getTicksAndMeanPriceFromWei(priceToUse, direction);
             uint256 deltaToUse = _delta > int256(wethBalance) ? wethBalance : uint256(_delta);
-            createUniswapRangeOrder(rangeOrder, deltaToUse);
+            createUniswapRangeOrder(rangeOrder, deltaToUse, inversed);
         }
         // satisfy interface, delta only changes when range order is filled
         return 0;
