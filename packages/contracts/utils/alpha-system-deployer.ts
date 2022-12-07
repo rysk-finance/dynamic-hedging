@@ -201,7 +201,6 @@ export async function deployLiquidityPool(
 	const optionsCompute = await optionsCompFactory.deploy()
 	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
 		libraries: {
-			BlackScholes: blackScholesDeploy.address,
 			OptionsCompute: optionsCompute.address
 		}
 	})
