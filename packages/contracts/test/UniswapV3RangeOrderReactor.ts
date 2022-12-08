@@ -461,20 +461,61 @@ describe("UniswapV3RangeOrderReactor", () => {
 	})
 
 	it("Allows for rehedging after range order is partially filled", async () => {
-		const balancesBefore = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
-		const deltaBefore = Number(fromWei(await liquidityPoolDummy.getDelta()))
-		const wethBalanceBefore = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(toWei("0.3"))
 		const receipt = await hedgeDeltaTx.wait()
-		const [burnEvent] = getMatchingEvents(receipt, UNISWAP_POOL_BURN)
 		const [collectEvent] = getMatchingEvents(receipt, UNISWAP_POOL_COLLECT)
 		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown as [MintEvent]
-		const balanceAfter = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
-		const wethBalanceAfter = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
-		const deltaAfter = Number(fromWei(await liquidityPoolDummy.getDelta()))
 		expect(mintEvent.amount1).to.eq(toWei("0.3"))
 		// should be less than previous hedge
 		expect(collectEvent.amount1).to.be.lt(toWei("0.2"))
+	})
+
+	it("It fullfills when rehedge moves through range", async () => {
+		const reactorDelta = Number(fromWei(await liquidityPoolDummy.getDelta()))
+		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const balancesBefore = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
+		const weth_usdc_price_before = poolInfo.token1Price.toFixed()
+		const amountToSwap = toUSDC("10000000")
+		await usdcContract.connect(signers[1]).approve(uniswapRouter.address, amountToSwap)
+		const signerBalance = await usdcContract.balanceOf(bigSignerAddress)
+
+		const { tick } = await uniswapUSDCWETHPool.slot0()
+
+		let params = {
+			tokenIn: poolInfo.token0.address,
+			tokenOut: poolInfo.token1.address,
+			fee: poolInfo.fee,
+			recipient: bigSignerAddress,
+			deadline: Math.floor(Date.now() / 1000) + 60 * 10,
+			amountIn: amountToSwap,
+			amountOutMinimum: 0,
+			sqrtPriceLimitX96: 0
+		}
+		const swapTx = await uniswapRouter.exactInputSingle(params)
+		await swapTx.wait()
+		let poolInfoAfter = await getPoolInfo(uniswapUSDCWETHPool)
+		const weth_usdc_price_after = poolInfoAfter.token1Price.toFixed()
+		const { tick: tickAfter } = await uniswapUSDCWETHPool.slot0()
+		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		const balances = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
+		const reactorDeltaAfter = Number(fromWei(await liquidityPoolDummy.getDelta()))
+
+		const fullfillAttempt = await uniswapV3RangeOrderReactor.fullfillActiveRangeOrder()
+		const receipt = await fullfillAttempt.wait()
+		const [collectEvent] = getMatchingEvents(receipt, UNISWAP_POOL_COLLECT)
+		const { activeLowerTick: activeLowerAfter, activeUpperTick: activeUpperAfter } =
+			await uniswapV3RangeOrderReactor.currentPosition()
+		const deltaDifference = Math.round((reactorDelta - reactorDeltaAfter) * 100) / 100
+		const average = Math.sqrt(Number(weth_usdc_price_before) * Number(weth_usdc_price_after))
+		// USDC amount
+		const amountOut = Number(fromUSDC(collectEvent.amount0))
+		const fillPrice = amountOut / 0.3
+		// Amount of delta hedged
+		expect(deltaDifference).to.eq(0.3)
+		expect(fillPrice).to.be.gt(average)
+		expect(tickAfter).to.be.lt(activeLowerTick)
+		expect(activeLowerAfter).to.be.eq(0)
+		expect(activeUpperAfter).to.be.eq(0)
 	})
 
 	// create test to reclaim assets in pool by authority
