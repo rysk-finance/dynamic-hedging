@@ -342,7 +342,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			health = (uint256((int256(position[1]) + int256(position[8])).div(int256(position[0]))) * MAX_BIPS) / 1e18;
 		} else {
 			//position in loss
-			health = (uint256((int256(position[1]) - int256(position[8])).div(int256(position[0]))) * MAX_BIPS) / 1e18;
+			if (position[8] >= position[1]) {
+				health = 0;
+			} else {
+				health = (uint256((int256(position[1]) - int256(position[8])).div(int256(position[0]))) * MAX_BIPS) / 1e18;
+			}
 		}
 		if (health > healthFactor) {
 			// position is over-collateralised
