@@ -570,7 +570,37 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     /// @inheritdoc IHedgingReactor
-	function withdraw(uint256 _amount) external returns (uint256) {}
+	function withdraw(uint256 _amount) external returns (uint256) {
+        require(msg.sender == parentLiquidityPool, "!vault");
+        // check the holdings if enough just lying around then transfer it
+		// assume amount is passed in as collateral decimals
+		uint256 balance = ERC20(collateralAsset).balanceOf(address(this));
+		if (balance == 0) {
+			return 0;
+		}
+		if (_amount <= balance) {
+			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, _amount);
+			// return in collateral format
+			return _amount;
+		} else {
+			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, balance);
+			// return in collateral format
+			return balance;
+		}
+    }
+
+    /// @notice use to recover any ERC20 token that is held
+    function recoverERC20(address tokenAddress, address receiver, uint256 tokenAmount) external {
+        _onlyGuardian();
+        _recoverERC20(tokenAddress, receiver, tokenAmount);
+    }
+
+    /// @notice use to recover any ETH that might be in this contract
+    function recoverETH(address payable receiver, uint256 amount) external {
+        _onlyGuardian();
+        SafeTransferLib.safeTransferETH(receiver, amount);
+    }
+
 
     /////////////////////////////////////////////
 	/// external state changing functionality ///
@@ -581,6 +611,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         // Remove range order if possible
 		return 0;
 	}
+
+
 
 	///////////////////////
 	/// complex getters ///
@@ -609,6 +641,16 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     //////////////////////////
 	/// internal utilities ///
 	//////////////////////////
+
+    /**
+     * @dev Used to receover any ERC20 tokens held by the contract
+     * @param tokenAddress The token contract address
+     * @param receiver Address that will receive the tokens
+     * @param tokenAmount Number of tokens to be sent
+     */
+    function _recoverERC20(address tokenAddress, address receiver, uint256 tokenAmount) private {
+		SafeTransferLib.safeTransfer(ERC20(tokenAddress), receiver, tokenAmount);
+    }
 
 	/**
 	 * @notice get the underlying price with just the underlying asset and strike asset
