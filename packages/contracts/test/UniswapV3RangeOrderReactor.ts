@@ -518,7 +518,34 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(activeUpperAfter).to.be.eq(0)
 	})
 
-	// create test to reclaim assets in pool by authority
+	it("withdraws partial excess USDC to liquidity pool", async () => {
+		const usdcBalance = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		const usdcBalanceLp = await usdcContract.balanceOf(liquidityPoolDummy.address)
+		const withdrawAmount = toUSDC("1000")
+		const withdrawTx = await liquidityPoolDummy.withdraw(withdrawAmount)
+		const receipt = await withdrawTx.wait()
+		const usdcBalanceAfter = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		const usdcBalanceLpAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
+		expect(usdcBalanceAfter).to.eq(usdcBalance.sub(withdrawAmount))
+		expect(usdcBalanceLpAfter).to.eq(usdcBalanceLp.add(withdrawAmount))
+	})
+
+	it("Allows the guardian to recover an erc20 token directly", async () => {
+		const usdcBalance = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		// ensure there is a balance to recover for the test to be valid
+		expect(usdcBalance).to.be.gt(0)
+		const recoverTx = uniswapV3RangeOrderReactor
+			.connect(signers[1])
+			.recoverERC20(usdcContract.address, liquidityPoolDummy.address, usdcBalance)
+		// non guardian should not be able to recover
+		await expect(recoverTx).to.be.revertedWithCustomError(uniswapV3RangeOrderReactor, "UNAUTHORIZED")
+		// signer 0 is the guardian
+		const recoverTx2 = await uniswapV3RangeOrderReactor
+			.connect(signers[0])
+			.recoverERC20(usdcContract.address, liquidityPoolDummy.address, usdcBalance)
+		const usdcBalanceAfter = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		expect(usdcBalanceAfter).to.eq(0)
+	})
 
 	// adjusts a range order to hedge a new delta
 	////////// Legacy Testing Starts Here //////////
