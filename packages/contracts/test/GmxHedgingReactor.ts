@@ -939,6 +939,11 @@ describe("change to 4x leverage factor", async () => {
 		expect(parseFloat(utils.formatUnits(positionBefore[8], 30))).to.eq(7000)
 
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
+		// Try to send a fraudulent callback - must revert
+		const logs = await gmxReactor.queryFilter(gmxReactor.filters.CreateDecreasePosition(), 0)
+		const positionKey = logs[logs.length - 1].args[0]
+		await expect(gmxReactor.gmxPositionCallback(positionKey, true, false)).to.be.revertedWith("InvalidGmxCallback()")
+
 		await executeDecreasePosition()
 
 		const usdcBalanceAfterLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))

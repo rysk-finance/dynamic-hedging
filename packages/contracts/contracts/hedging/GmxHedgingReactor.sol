@@ -715,6 +715,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		bool isExecuted,
 		bool isIncrease
 	) external {
+		if (msg.sender != address(gmxPositionRouter)) {
+			revert CustomErrors.InvalidGmxCallback();
+		}
 		if (isExecuted) {
 			if (isIncrease) {
 				internalDelta += increaseOrderDeltaChange[positionKey];
