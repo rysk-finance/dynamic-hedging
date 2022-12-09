@@ -51,7 +51,7 @@ const parseTrades = (data: any) => {
 };
 
 export const VaultTrades = () => {
-  const [trades, setTrades] = useState<any[]>();
+  const [trades, setTrades] = useState<any[]>([]);
 
   const chainId =
     Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_RINKEBY
@@ -63,41 +63,41 @@ export const VaultTrades = () => {
 
   useQuery(
     gql`
-    query {
-      writeOptionsActions(first: 1000, orderBy: timestamp, orderDirection: desc, where: {timestamp_gte: ${startTimestamp} }) {
-        id
-        timestamp
-        otoken {
-          symbol
-          strikePrice
-          isPut
-          expiryTimestamp
+        query {
+          writeOptionsActions(first: 1000, orderBy: timestamp, orderDirection: desc, where: {timestamp_gte: ${startTimestamp} }) {
+            id
+            timestamp
+            otoken {
+              symbol
+              strikePrice
+              isPut
+              expiryTimestamp
+            }
+            amount
+            premium
+            transactionHash
+          }
+          buybackOptionActions(first: 1000, orderBy: timestamp, orderDirection: desc, where: {timestamp_gte: ${startTimestamp} }) {
+            id
+            timestamp
+            otoken {
+              symbol
+              strikePrice
+              isPut
+              expiryTimestamp
+            }
+            amount
+            premium
+            transactionHash
+          }
+          rebalanceDeltaActions(first: 1000, orderBy: timestamp, orderDirection: desc, where: {timestamp_gte: ${startTimestamp} }) {
+            id
+            timestamp
+            deltaChange
+            transactionHash
+          }
         }
-        amount
-        premium
-        transactionHash
-      }
-      buybackOptionActions(first: 1000, orderBy: timestamp, orderDirection: desc, where: {timestamp_gte: ${startTimestamp} }) {
-        id
-        timestamp
-        otoken {
-          symbol
-          strikePrice
-          isPut
-          expiryTimestamp
-        }
-        amount
-        premium
-        transactionHash
-      }
-      rebalanceDeltaActions(first: 1000, orderBy: timestamp, orderDirection: desc, where: {timestamp_gte: ${startTimestamp} }) {
-        id
-        timestamp
-        deltaChange
-        transactionHash
-      }
-    }
-  `,
+      `,
     {
       onCompleted: (data) => {
         const allTrades = parseTrades(data);
@@ -110,47 +110,94 @@ export const VaultTrades = () => {
   );
 
   return (
-    <div className="pb-8 py-12 px-8">
-      <div className="grid grid-cols-12 text-left text-lg pb-4 px-2">
-        <div className="col-span-3">Date</div>
-        <div className="col-span-2">Trade Type</div>
-        <div className="col-span-3">Product</div>
-        <div className="col-span-1 text-right">Size</div>
-        <div className="col-span-1 text-right">Premium Received</div>
-        <div className="col-span-1 text-right">Premium Paid</div>
-        <div className="col-span-1 text-right">Delta Change</div>
-      </div>
-
-      {trades &&
-        trades
+    <div className="w-full overflow-x-auto lg:overflow-x-clip relative">
+      <table className="w-full text-sm text-left border-separate border-spacing-0 border-black">
+        <thead className="text-xs text-gray-700 uppercase sticky top-0 z-1">
+          <tr>
+            <th
+              scope="col"
+              className="py-3 px-5 bg-bone-dark border-b-2 border-r border-black bg-bone-dark z-2 sticky left-0"
+            >
+              Date
+            </th>
+            <th
+              scope="col"
+              className="py-3 px-6 bg-bone border-b-2 border-black"
+            >
+              Trade
+            </th>
+            <th
+              scope="col"
+              className="py-3 px-6 bg-bone-dark border-b-2 border-black"
+            >
+              Product
+            </th>
+            <th
+              scope="col"
+              className="py-3 px-6 bg-bone border-b-2 border-black"
+            >
+              Size
+            </th>
+            <th
+              scope="col"
+              className="py-3 px-6 bg-bone-dark border-b-2 border-black"
+            >
+              Premium Received
+            </th>
+            <th
+              scope="col"
+              className="py-3 px-6 bg-bone border-b-2 border-black"
+            >
+              Premium Paid
+            </th>
+            <th
+              scope="col"
+              className="py-3 px-6 bg-bone-dark border-b-2 border-black"
+            >
+              Delta Change
+            </th>
+            <th
+              scope="col"
+              className="py-3 bg-bone border-b-2 border-black border-dashed"
+            ></th>
+          </tr>
+        </thead>
+        {trades
           .sort(
             (a, b) =>
               b.timestamp.localeCompare(a.timestamp) ||
               Number(b.timestamp) - Number(a.timestamp)
           )
-          .map((trade) => (
-            <div key={trade.id} className="w-full">
-              <a
-                href={`${SCAN_URL[chainId]}/tx/${trade.transactionHash}`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <div className="grid grid-cols-12 py-2 text-black hover:bg-black hover:text-white px-2">
-                  <div className="col-span-3">
-                    {moment
-                      .utc(trade.timestamp * 1000)
-                      .format("DD-MMM-YY HH:mm")}{" "}
-                    UTC
-                  </div>
-                  <div className="col-span-2">
+          .map((trade) => {
+            return (
+              <>
+                <tr
+                  className="border-b text-black bg-bone-dark "
+                  key={trade.id}
+                >
+                  <th
+                    scope="row"
+                    className="border-r border-black py-4 px-5 uppercase font-parabole font-bold bg-bone-dark sticky left-0 z-1"
+                  >
+                    <div className="flex lg:flex-row flex-col justify-between items-center ">
+                      {/*<span className="bg-blue-100 text-blue-800 text-xs mt-1 lg:mt-0 font-semibold ml-2 px-2.5 lg:py-0.5 rounded dark:bg-blue-200 dark:text-blue-800">*/}
+                      {/*  {entry.protocol}*/}
+                      {/*</span>*/}
+                      {moment
+                        .utc(trade.timestamp * 1000)
+                        .format("DD-MMM-YY HH:mm")}{" "}
+                      UTC
+                    </div>
+                  </th>
+                  <td className="py-4 px-6 bg-bone">
                     {trade.typename === "WriteOptionsAction" && "Short Options"}
                     {trade.typename === "BuybackOptionAction" &&
                       "Buyback Options"}
                     {trade.typename === "RebalanceDeltaAction" &&
                       "Delta Rebalance"}
-                  </div>
-                  <div className="col-span-3">{trade.optionSymbol}</div>
-                  <div className="col-span-1 text-right">
+                  </td>
+                  <td className="py-4 px-6">{trade.optionSymbol}</td>
+                  <td className="py-4 px-6 bg-bone">
                     {trade.amount && (
                       <NumberFormat
                         value={(
@@ -161,8 +208,8 @@ export const VaultTrades = () => {
                         decimalScale={2}
                       />
                     )}
-                  </div>
-                  <div className="col-span-1 text-right">
+                  </td>
+                  <td className="py-4 px-6">
                     {trade.premium &&
                       trade.typename === "WriteOptionsAction" && (
                         <NumberFormat
@@ -175,8 +222,8 @@ export const VaultTrades = () => {
                           decimalScale={2}
                         />
                       )}
-                  </div>
-                  <div className="col-span-1 text-right">
+                  </td>
+                  <td className="py-4 px-6 bg-bone">
                     {trade.premium &&
                       trade.typename === "BuybackOptionAction" && (
                         <NumberFormat
@@ -189,8 +236,8 @@ export const VaultTrades = () => {
                           decimalScale={2}
                         />
                       )}
-                  </div>
-                  <div className="col-span-1 text-right">
+                  </td>
+                  <td className="py-4 px-6">
                     {trade.deltaChange && (
                       <NumberFormat
                         value={(
@@ -201,11 +248,35 @@ export const VaultTrades = () => {
                         decimalScale={2}
                       />
                     )}
-                  </div>
-                </div>
-              </a>
-            </div>
-          ))}
+                  </td>
+                  <td className="bg-bone">
+                    <th className="flex mx-5 justify-center items-center">
+                      <a
+                        href={`${SCAN_URL[chainId]}/tx/${trade.transactionHash}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          ></path>
+                        </svg>
+                      </a>
+                    </th>
+                  </td>
+                </tr>
+              </>
+            );
+          })}
+      </table>
     </div>
   );
 };
