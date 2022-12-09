@@ -47,7 +47,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @notice delta of the pool
 	int256 public internalDelta;
-
+	bool public pendingIncreaseCallback;
+	bool public pendingDecreaseCallback;
 	mapping(bytes32 => int256) public increaseOrderDeltaChange;
 	mapping(bytes32 => int256) public decreaseOrderDeltaChange;
 
@@ -439,6 +440,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < _collateralSize) {
 			revert CustomErrors.WithdrawExceedsLiquidity();
 		}
+		if (pendingIncreaseCallback) {
+			revert CustomErrors.GmxCallbackPending();
+		}
 		uint256 currentPrice = getUnderlyingPrice(wETH, collateralAsset);
 
 		// take that amount of collateral from the Liquidity Pool and approve to GMX
@@ -460,7 +464,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			address(this)
 		);
 		emit CreateIncreasePosition(positionKey);
-
+		pendingIncreaseCallback = true;
 		return (positionKey, _isLong ? int256(_size) : -int256(_size));
 	}
 
@@ -477,6 +481,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		uint256 _collateralSize,
 		bool _isLong
 	) internal returns (bytes32 positionKey, int256 deltaChange) {
+		if (pendingDecreaseCallback) {
+			revert CustomErrors.GmxCallbackPending();
+		}
 		uint256[] memory position = _getPosition(_isLong);
 		uint256 currentPrice = getUnderlyingPrice(wETH, collateralAsset);
 
@@ -500,7 +507,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			address(this)
 		);
 		emit CreateDecreasePosition(positionKey);
-
+		pendingDecreaseCallback = true;
 		return (positionKey, _isLong ? -int256(_size) : int256(_size));
 	}
 
@@ -716,6 +723,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	) external {
 		if (msg.sender != address(gmxPositionRouter)) {
 			revert CustomErrors.InvalidGmxCallback();
+		}
+		if (isIncrease) {
+			pendingIncreaseCallback = false;
+		} else {
+			pendingDecreaseCallback = false;
 		}
 		if (isExecuted) {
 			if (isIncrease) {

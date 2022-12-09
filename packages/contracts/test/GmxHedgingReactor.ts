@@ -330,7 +330,7 @@ describe("GMX Hedging Reactor", () => {
 		const poolDenominatedValue = parseFloat(utils.formatEther(await gmxReactor.callStatic.getPoolDenominatedValue()))
 		expect(poolDenominatedValue).to.eq(0)
 	})
-	it("opens a short position", async () => {
+	it("opens a short position and reverts an attempt to open a long at same time", async () => {
 		// set price to $2000
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("2000", 8))
 		expect(await gmxReactor.internalDelta()).to.eq(0)
@@ -338,6 +338,11 @@ describe("GMX Hedging Reactor", () => {
 		const usdcBalanceBeforeLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
 
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
+
+		// this should revert to stop long and short coexisting
+		await expect(liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${-delta}`), 2)).to.be.revertedWith(
+			"GmxCallbackPending()"
+		)
 		await executeIncreasePosition()
 
 		const usdcBalanceAfterLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
@@ -729,30 +734,6 @@ describe("GMX Hedging Reactor", () => {
 		const deltaAfter = await gmxReactor.internalDelta()
 		expect(deltaAfter).to.eq(utils.parseEther("10"))
 	})
-	// it("withdraws ETH from contract", async () => {
-	// 	const contractBalanceBefore = await ethers.provider.getBalance(gmxReactor.address)
-	// 	const deployerBalanceBefore = await ethers.provider.getBalance(funderAddress)
-
-	// 	const amountOut = utils.parseEther("0.1")
-	// 	await gmxReactor.connect(deployer).sweepFunds(amountOut, funderAddress)
-
-	// 	const contractBalanceAfter = await ethers.provider.getBalance(gmxReactor.address)
-	// 	const deployerBalanceAfter = await ethers.provider.getBalance(funderAddress)
-	// 	expect(contractBalanceAfter).to.eq(contractBalanceBefore.sub(amountOut))
-	// 	expect(deployerBalanceAfter).to.eq(deployerBalanceBefore.add(amountOut))
-	// })
-	// it("withdraws all ETH from contract", async () => {
-	// 	const contractBalanceBefore = await ethers.provider.getBalance(gmxReactor.address)
-	// 	const deployerBalanceBefore = await ethers.provider.getBalance(funderAddress)
-	// 	// more than available
-	// 	const amountOut = utils.parseEther("1000")
-	// 	await gmxReactor.connect(deployer).sweepFunds(amountOut, funderAddress)
-
-	// 	const contractBalanceAfter = await ethers.provider.getBalance(gmxReactor.address)
-	// 	const deployerBalanceAfter = await ethers.provider.getBalance(funderAddress)
-	// 	expect(contractBalanceAfter).to.eq(0)
-	// 	expect(deployerBalanceAfter).to.eq(deployerBalanceBefore.add(contractBalanceBefore))
-	// })
 })
 describe("change to 4x leverage factor", async () => {
 	it("updates heath factor to target 4x leverage", async () => {
@@ -943,7 +924,7 @@ describe("change to 4x leverage factor", async () => {
 		const logs = await gmxReactor.queryFilter(gmxReactor.filters.CreateDecreasePosition(), 0)
 		const positionKey = logs[logs.length - 1].args[0]
 		await expect(gmxReactor.gmxPositionCallback(positionKey, true, false)).to.be.revertedWith("InvalidGmxCallback()")
-
+		// execute position
 		await executeDecreasePosition()
 
 		const usdcBalanceAfterLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
@@ -959,5 +940,29 @@ describe("change to 4x leverage factor", async () => {
 		// collateral should be 1/90th of position size
 		expect(parseFloat(utils.formatUnits(positionAfter[1], 30))).to.be.within(70.5, 71.5)
 		expect(parseFloat(utils.formatUnits(positionAfter[8], 30))).to.eq(5600)
+	})
+	it("withdraws ETH from contract", async () => {
+		const contractBalanceBefore = await ethers.provider.getBalance(gmxReactor.address)
+		const deployerBalanceBefore = await ethers.provider.getBalance(funderAddress)
+
+		const amountOut = utils.parseEther("0.1")
+		await gmxReactor.connect(deployer).sweepFunds(amountOut, funderAddress)
+
+		const contractBalanceAfter = await ethers.provider.getBalance(gmxReactor.address)
+		const deployerBalanceAfter = await ethers.provider.getBalance(funderAddress)
+		expect(contractBalanceAfter).to.eq(contractBalanceBefore.sub(amountOut))
+		expect(deployerBalanceAfter).to.eq(deployerBalanceBefore.add(amountOut))
+	})
+	it("withdraws all ETH from contract", async () => {
+		const contractBalanceBefore = await ethers.provider.getBalance(gmxReactor.address)
+		const deployerBalanceBefore = await ethers.provider.getBalance(funderAddress)
+		// more than available
+		const amountOut = utils.parseEther("1000")
+		await gmxReactor.connect(deployer).sweepFunds(amountOut, funderAddress)
+
+		const contractBalanceAfter = await ethers.provider.getBalance(gmxReactor.address)
+		const deployerBalanceAfter = await ethers.provider.getBalance(funderAddress)
+		expect(contractBalanceAfter).to.eq(0)
+		expect(deployerBalanceAfter).to.eq(deployerBalanceBefore.add(contractBalanceBefore))
 	})
 })
