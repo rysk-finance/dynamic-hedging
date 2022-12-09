@@ -177,24 +177,41 @@ export const VaultTrades = () => {
                 >
                   <th
                     scope="row"
-                    className="border-r border-black py-4 px-5 uppercase font-parabole font-bold bg-bone-dark sticky left-0 z-1"
+                    className="border-r border-black py-4 px-5 font-medium uppercase bg-bone-dark sticky left-0 z-1"
                   >
-                    <div className="flex lg:flex-row flex-col justify-between items-center ">
-                      {/*<span className="bg-blue-100 text-blue-800 text-xs mt-1 lg:mt-0 font-semibold ml-2 px-2.5 lg:py-0.5 rounded dark:bg-blue-200 dark:text-blue-800">*/}
-                      {/*  {entry.protocol}*/}
-                      {/*</span>*/}
-                      {moment
-                        .utc(trade.timestamp * 1000)
-                        .format("DD-MMM-YY HH:mm")}{" "}
-                      UTC
-                    </div>
+                    {moment
+                      .utc(trade.timestamp * 1000)
+                      .format("DD-MMM-YY HH:mm")}{" "}
+                    UTC
                   </th>
-                  <td className="py-4 px-6 bg-bone">
-                    {trade.typename === "WriteOptionsAction" && "Short Options"}
-                    {trade.typename === "BuybackOptionAction" &&
-                      "Buyback Options"}
-                    {trade.typename === "RebalanceDeltaAction" &&
-                      "Delta Rebalance"}
+                  <td className="py-4 px-6 text-md bg-bone font-parabole">
+                    <div className="flex lg:flex-row flex-col justify-between items-center">
+                      <span className="font-semibold">
+                        {trade.typename === "WriteOptionsAction" && "SHORT"}
+                        {trade.typename === "BuybackOptionAction" && "BUYBACK"}
+                        {trade.typename === "RebalanceDeltaAction" && "DELTA"}
+                      </span>
+                      {["WriteOptionsAction", "BuybackOptionAction"].includes(
+                        trade.typename
+                      ) && (
+                        <span
+                          className={
+                            "bg-amber-100 border border-amber-300 text-amber-800 px-2.5 lg:py-0.5 rounded text-md mt-1 lg:mt-0 font-bold ml-2 "
+                          }
+                        >
+                          Options
+                        </span>
+                      )}
+                      {trade.typename === "RebalanceDeltaAction" && (
+                        <span
+                          className={
+                            "border border-blue-200 bg-blue-100 text-blue-800 px-2.5 lg:py-0.5 rounded text-md mt-1 lg:mt-0 font-bold ml-2 "
+                          }
+                        >
+                          Rebalance
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-4 px-6">{trade.optionSymbol}</td>
                   <td className="py-4 px-6 bg-bone">
@@ -209,7 +226,7 @@ export const VaultTrades = () => {
                       />
                     )}
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-4 px-6 text-right">
                     {trade.premium &&
                       trade.typename === "WriteOptionsAction" && (
                         <NumberFormat
@@ -223,7 +240,7 @@ export const VaultTrades = () => {
                         />
                       )}
                   </td>
-                  <td className="py-4 px-6 bg-bone">
+                  <td className="py-4 px-6 bg-bone text-right">
                     {trade.premium &&
                       trade.typename === "BuybackOptionAction" && (
                         <NumberFormat
@@ -237,7 +254,7 @@ export const VaultTrades = () => {
                         />
                       )}
                   </td>
-                  <td className="py-4 px-6">
+                  <td className="py-4 px-6 text-right">
                     {trade.deltaChange && (
                       <NumberFormat
                         value={(
