@@ -395,6 +395,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			(bytes32 positionKey, int256 deltaChange) = _increasePosition(uint256(_amount), collateralToAdd, true);
 			// update deltaChange for callback function
 			increaseOrderDeltaChange[positionKey] += deltaChange;
+			return deltaChange + closedPositionDeltaChange;
 		} else {
 			// _amount is negative
 			// enter a short position
@@ -419,7 +420,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			increaseOrderDeltaChange[positionKey] += deltaChange;
 			return deltaChange + closedPositionDeltaChange;
 		}
-		return 0;
 	}
 
 	/**
