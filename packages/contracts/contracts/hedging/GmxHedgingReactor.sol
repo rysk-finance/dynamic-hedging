@@ -113,7 +113,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		vault = IGmxVault(_gmxVault);
 		gmxPositionRouter = IPositionRouter(_gmxPositionRouter);
 		router.approvePlugin(_gmxPositionRouter);
-		SafeTransferLib.safeApprove(ERC20(_collateralAsset), _gmxPositionRouter, MAX_UINT);
 		parentLiquidityPool = _parentLiquidityPool;
 		wETH = _wethAddress;
 		collateralAsset = _collateralAsset;
