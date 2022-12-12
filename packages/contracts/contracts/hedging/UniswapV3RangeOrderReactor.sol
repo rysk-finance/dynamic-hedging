@@ -50,6 +50,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     IUniswapV3Pool public pool;
     /// @notice limit to ensure we arent doing inefficient computation for dust amounts
 	uint256 public minAmount = 1e16;
+    /// @notice only authorized can fullfill range orders when set to true
+    bool public onlyAuthorizedFullFill = false;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -97,6 +99,11 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         uint128 liquidityMinted
     );
 
+    event SetAuthorizedFullFill(
+        bool onlyAuthorizedFullFill,
+        address caller
+    );
+
     constructor(
 		address _factory,
 		address _collateralAsset,
@@ -118,7 +125,18 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 		poolFee = _poolFee;
 		priceFeed = _priceFeed;
 	}
+
+	///////////////
+	/// setters ///
+	///////////////
     
+    /// @notice set if orders can be fullfilled by anyone or only authorized
+    function setAuthorizedFullFill(bool _onlyAuthorizedFullFill) external {
+        _onlyGovernor();
+        onlyAuthorizedFullFill = _onlyAuthorizedFullFill;
+        emit SetAuthorizedFullFill(_onlyAuthorizedFullFill, msg.sender);
+    }
+
     /// @notice Uniswap V3 callback fn, called back on pool.mint
     function uniswapV3MintCallback(
         uint256 amount0Owed,
@@ -281,7 +299,18 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         //TODO emit event
     }
 
+    /// @notice allows the manager to create a range order of custom tick width
     function createUniswapRangeOrder(
+        RangeOrderParams calldata params,
+        uint256 amountDesired
+    ) external {
+        require(!inActivePosition(), "RangeOrder: active position");
+        _onlyManager();
+        bool inversed = collateralAsset == address(token0);
+        _createUniswapRangeOrder(params, amountDesired, inversed);
+    }
+
+    function _createUniswapRangeOrder(
         RangeOrderParams memory params,
         uint256 amountDesired,
         bool inversed
@@ -294,12 +323,20 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         
         if (params.direction == RangeOrderDirection.ABOVE) {
             amount0Desired = amountDesired;
+            uint256 balance = token0.balanceOf(address(this));
             // Only transfer in when collateral token is token0
-            if (inversed) { SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), amountDesired); }
+            if (inversed && balance < amountDesired) { 
+                uint256 transferAmount = amountDesired - balance;
+                SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), transferAmount); 
+            }
             token0.safeApprove(address(pool), amountDesired);
         } else {
             amount1Desired = amountDesired;
-            if (!inversed) { SafeTransferLib.safeTransferFrom(address(token1), msg.sender, address(this), amountDesired); }
+            uint256 balance = token1.balanceOf(address(this));
+            if (!inversed && balance < amountDesired) {
+                uint256 transferAmount = amountDesired - balance;
+                SafeTransferLib.safeTransferFrom(address(token1), msg.sender, address(this), transferAmount); 
+            }
             token1.safeApprove(address(pool), amountDesired);
         }
 
@@ -343,8 +380,11 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         //event emit can be skipped due to uniswap pool emitting Mint event
     }
 
-    /// @notice Permissionlessly withdraws liquidity from an active range if it's 100% in the position target
+    /// @notice Permissionlessly when flag disabled withdraws liquidity from an active range if it's 100% in the position target
     function fullfillActiveRangeOrder() external {
+        if (onlyAuthorizedFullFill && msg.sender != authority.manager()) {
+            revert CustomErrors.UnauthorizedFullFill();
+        }
         (, int24 tick, , , , , ) = pool.slot0();
         (uint128 liquidity, , , ,) = pool.positions(_getPositionID());
         if (currentPosition.activeRangeAboveTick) {
@@ -553,7 +593,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
                 amountCollateralInToken1, 
                 ERC20(collateralAsset).decimals()
             );    
-            createUniswapRangeOrder(rangeOrder, amountDesiredInCollateralToken, inversed);
+            _createUniswapRangeOrder(rangeOrder, amountDesiredInCollateralToken, inversed);
         } else {
             // sell wETH
             uint256 wethBalance = inversed ? amount1Current : amount0Current;
@@ -563,7 +603,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             RangeOrderDirection direction = inversed ? RangeOrderDirection.BELOW : RangeOrderDirection.ABOVE;
             RangeOrderParams memory rangeOrder = getTicksAndMeanPriceFromWei(priceToUse, direction);
             uint256 deltaToUse = _delta > int256(wethBalance) ? wethBalance : uint256(_delta);
-            createUniswapRangeOrder(rangeOrder, deltaToUse, inversed);
+            _createUniswapRangeOrder(rangeOrder, deltaToUse, inversed);
         }
         // satisfy interface, delta only changes when range order is filled
         return 0;
