@@ -149,10 +149,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         if (amount1Owed > 0) token1.safeTransfer(msg.sender, amount1Owed);
     }
 
-    function getTicks() external view returns (int24 tick, uint160 sqrtPriceX96){
-        (sqrtPriceX96, tick, , , , , ) = pool.slot0();
-    }
-
     /// @notice returns the current price of the underlying asset and the inverse symbol price
     /// ie: USDC/WETH and WETH/USDC
     function getPoolPrice() public view returns (uint256 price, uint256 inversed){
@@ -170,18 +166,14 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     /// @notice take a price quote in token1/token0 format and convert to sqrtPriceX96 token0/token1 format
-    function sqrtPriceFromWei(uint256 weiPrice) public view returns (uint160 sqrtPriceX96){
+    function sqrtPriceFromWei(uint256 weiPrice) private view returns (uint160 sqrtPriceX96){
         uint256 inverse = uint256(1e18).div(weiPrice);
         sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(inverse).mul(2 ** 96)) * uint160(10 ** token0.decimals());
     }
 
-    function weiToSqrtx96(uint256 weiPrice) public pure returns (uint160 sqrtPriceX96){
-        sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(weiPrice) * 2 ** 96);
-    }
-
     /// @notice return the price in token0 decimals format
     function sqrtPriceX96ToUint(uint160 sqrtPriceX96)
-        public 
+        private 
         pure
         returns (uint256)
     {
@@ -226,79 +218,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         });
     }
 
-   function createUniswapRangeOrderOneTickBelowMarket(uint256 amount1Desired) external {
-        // current price, current tick
-        (uint160 sqrtPriceX96, int24 tick, , , , , ) = pool.slot0();
-        int24 tickSpacing = pool.tickSpacing();
-        int24 tickUpper = tick - tickSpacing;
-        int24 tickLower = tick - (2 * tickSpacing);
-        // compute the liquidity amount
-        uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(tickLower);
-        uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(tickUpper);
-        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            sqrtPriceX96,
-            sqrtRatioAX96,
-            sqrtRatioBX96,
-            0, // amount of token0 being sent in
-            amount1Desired // amount of token1 being sent in
-        );
-        //token0.safeApprove(address(pool), amount0Desired);
-        token1.safeApprove(address(pool), amount1Desired);
-        pool.mint(address(this), tickLower, tickUpper, liquidity, "");
-    }
-
-    function createUniswapRangeOrderOneTickAboveMarket(uint256 amount0Desired) external {
-        // current price, current tick
-        (uint160 sqrtPriceX96, int24 tick, , , , , ) = pool.slot0();
-        int24 tickSpacing = pool.tickSpacing();
-        int24 nearestActiveTick = tick / tickSpacing * tickSpacing;
-        int24 lowerTick = nearestActiveTick + tickSpacing;
-        int24 upperTick = lowerTick + tickSpacing;
-        // compute the liquidity amount
-        uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(lowerTick);
-        uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(upperTick);
-        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            sqrtPriceX96,
-            sqrtRatioAX96,
-            sqrtRatioBX96,
-            amount0Desired, // amount of token0 being sent in
-            0 // amount of token1 being sent in
-        );
-        token0.safeApprove(address(pool), amount0Desired);
-        pool.mint(address(this), lowerTick, upperTick, liquidity, "");
-        // store the active range for later access
-        currentPosition.activeLowerTick = lowerTick;
-        currentPosition.activeUpperTick = upperTick;
-        currentPosition.activeRangeAboveTick = true;
-        //todo - emit event
-    }
-
-    function createUniswapRangeOrderOneTickAbove(uint160 sqrtPriceX96, uint256 amount0Desired) internal {
-        int24 tickSpacing = pool.tickSpacing();
-        int24 nearestActiveTick = SqrtPriceX96ToNearestTick(sqrtPriceX96, tickSpacing);
-        int24 lowerTick = nearestActiveTick + tickSpacing;
-        int24 upperTick = lowerTick + tickSpacing;
-        // compute the liquidity amount
-        uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(lowerTick);
-        uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(upperTick);
-        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            sqrtPriceX96,
-            sqrtRatioAX96,
-            sqrtRatioBX96,
-            amount0Desired, // amount of token0 being sent in
-            0 // amount of token1 being sent in
-        );
-
-		SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), amount0Desired);
-        token0.safeApprove(address(pool), amount0Desired);
-        pool.mint(address(this), lowerTick, upperTick, liquidity, "");
-        // store the active range for later access
-        currentPosition.activeLowerTick = lowerTick;
-        currentPosition.activeUpperTick = upperTick;
-        currentPosition.activeRangeAboveTick = true;
-        //TODO emit event
-    }
-
     /// @notice allows the manager to create a range order of custom tick width
     function createUniswapRangeOrder(
         RangeOrderParams calldata params,
@@ -314,7 +233,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         RangeOrderParams memory params,
         uint256 amountDesired,
         bool inversed
-    ) internal {
+    ) private {
         uint256 amount0Desired;
         uint256 amount1Desired;
         // compute the liquidity amount
@@ -352,32 +271,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         currentPosition.activeLowerTick = params.lowerTick;
         currentPosition.activeUpperTick = params.upperTick;
         currentPosition.activeRangeAboveTick = params.direction == RangeOrderDirection.ABOVE ? true : false;
-        //TODO emit event
-    }
-
-    function createUniswapRangeOrderOneTickBelow(uint160 sqrtPriceX96, uint256 amount1Desired) internal {
-        int24 tickSpacing = pool.tickSpacing();
-        int24 nearestActivetick = SqrtPriceX96ToNearestTick(sqrtPriceX96, tickSpacing);
-        int24 upperTick = nearestActivetick - tickSpacing;
-        int24 lowerTick = upperTick - tickSpacing;
-        // compute the liquidity amount
-        uint160 sqrtRatioAX96 = TickMath.getSqrtRatioAtTick(lowerTick);
-        uint160 sqrtRatioBX96 = TickMath.getSqrtRatioAtTick(upperTick);
-        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            sqrtPriceX96,
-            sqrtRatioAX96,
-            sqrtRatioBX96,
-            0, // amount of token0 being sent in
-            amount1Desired // amount of token1 being sent in
-        );
-
-        token1.safeApprove(address(pool), amount1Desired);
-        pool.mint(address(this), lowerTick, upperTick, liquidity, "");
-        // store the active range for later access
-        currentPosition.activeLowerTick = lowerTick;
-        currentPosition.activeUpperTick = upperTick;
-        currentPosition.activeRangeAboveTick = false;
-        //event emit can be skipped due to uniswap pool emitting Mint event
+        // state transition can be reconstructed from uniswap events emitted
     }
 
     /// @notice allows the manager to exit an active range order
@@ -445,7 +339,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
         // collect accumulated fees
         // emits collect event in the uniswap pool
-        pool.collect(
+       (uint256 collect0, uint256 collect1) = pool.collect(
             address(this),
             lowerTick_,
             upperTick_,
@@ -453,12 +347,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             type(uint128).max
         );
 
-        // using this approach becaus the above collect method return amounts are unreliable
+        // using this approach because the above collect method return amounts are not reliable
         fee0 = token0.balanceOf(address(this)) - preBalance0 - burn0;
         fee1 = token1.balanceOf(address(this)) - preBalance1 - burn1;
+        console.log("fee0", fee0, "fee1", fee1);
+        console.log("computed fee0", collect0 - burn0, "computed fee1", collect1 - burn1);
         // mark no current position
         delete currentPosition;
-        //TODO check if we need to emit event based on final balances and fees received
     }
 
     /// @notice compute total underlying holdings of the vault token supply
@@ -472,15 +367,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         returns (uint256 amount0Current, uint256 amount1Current)
     {
         (uint160 sqrtRatioX96, int24 tick, , , , , ) = pool.slot0();
-        return _getUnderlyingBalances(sqrtRatioX96, tick);
-    }
-
-    function getUnderlyingBalancesAtPrice(uint160 sqrtRatioX96)
-        external
-        view
-        returns (uint256 amount0Current, uint256 amount1Current)
-    {
-        (, int24 tick, , , , , ) = pool.slot0();
         return _getUnderlyingBalances(sqrtRatioX96, tick);
     }
 
@@ -574,6 +460,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         return _getPositionID();
     }
 
+    /// @notice get the position id of the current position
     function _getPositionID() private view returns (bytes32 positionID) {
         return keccak256(abi.encodePacked(address(this), currentPosition.activeLowerTick, currentPosition.activeUpperTick));
     }
@@ -623,7 +510,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     /// @inheritdoc IHedgingReactor
 	function withdraw(uint256 _amount) external returns (uint256) {
         require(msg.sender == parentLiquidityPool, "!vault");
-        // check the holdings if enough just lying around then transfer it
+        // check the holdings if enough then transfer it
 		// assume amount is passed in as collateral decimals
 		uint256 balance = ERC20(collateralAsset).balanceOf(address(this));
 		if (balance == 0) {
@@ -710,7 +597,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	 * @return the underlying price
 	 */
 	function getUnderlyingPrice(address underlying, address _strikeAsset)
-		internal
+		private
 		view
 		returns (uint256)
 	{
@@ -721,9 +608,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
      * @notice determine if the pool is in an range order
      * @return true if the pool is in a range order
      */
-    function inActivePosition() internal view returns (bool) {
+    function inActivePosition() private view returns (bool) {
         return currentPosition.activeLowerTick != currentPosition.activeUpperTick;
     }
-
-    //TODO - add method to retrieve any ERC20 token held by vault
 }
