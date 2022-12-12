@@ -379,6 +379,19 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         currentPosition.activeRangeAboveTick = false;
         //event emit can be skipped due to uniswap pool emitting Mint event
     }
+    /// @notice allows the manager to exit an active range order
+    function exitActiveRangeOrder() external {
+        if (msg.sender != authority.manager()) {
+            revert CustomErrors.UnauthorizedExit();
+        }
+        // check if in active range
+        if (!inActivePosition()) {
+            revert CustomErrors.NoActivePosition();
+        }
+        (uint128 liquidity, , , ,) = pool.positions(_getPositionID());
+        _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
+
+    }
 
     /// @notice Permissionlessly when flag disabled withdraws liquidity from an active range if it's 100% in the position target
     function fullfillActiveRangeOrder() external {
