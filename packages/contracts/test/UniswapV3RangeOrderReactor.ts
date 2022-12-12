@@ -274,8 +274,8 @@ describe("UniswapV3RangeOrderReactor", () => {
 	})
 
 	it("Does not allow removing an unfilled negative hedge order", async () => {
-		const fullfillAttempt = uniswapV3RangeOrderReactor.fullfillActiveRangeOrder()
-		expect(fullfillAttempt).to.be.revertedWithCustomError(
+		const fulfillAttempt = uniswapV3RangeOrderReactor.fulfillActiveRangeOrder()
+		expect(fulfillAttempt).to.be.revertedWithCustomError(
 			uniswapV3RangeOrderReactor,
 			"RangeOrderNotFilled"
 		)
@@ -304,8 +304,8 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
 		expect(tick).to.be.gt(activeLowerTick)
 		expect(tick).to.be.lte(activeUpperTick)
-		const fullfillAttempt = uniswapV3RangeOrderReactor.fullfillActiveRangeOrder()
-		expect(fullfillAttempt).to.be.revertedWithCustomError(
+		const fulfillAttempt = uniswapV3RangeOrderReactor.fulfillActiveRangeOrder()
+		expect(fulfillAttempt).to.be.revertedWithCustomError(
 			uniswapV3RangeOrderReactor,
 			"RangeOrderNotFilled"
 		)
@@ -348,8 +348,8 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const wethBalanceBefore = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
 		const newSigner = signers[2]
 		const rangePoolWithNewSigner = uniswapV3RangeOrderReactor.connect(newSigner)
-		const fullfilledRange = await rangePoolWithNewSigner.fullfillActiveRangeOrder()
-		const receipt = await fullfilledRange.wait()
+		const fulfilledRange = await rangePoolWithNewSigner.fulfillActiveRangeOrder()
+		const receipt = await fulfilledRange.wait()
 		const [burnEvent] = getMatchingEvents(receipt, UNISWAP_POOL_BURN)
 		const [collectEvent] = getMatchingEvents(receipt, UNISWAP_POOL_COLLECT)
 		const burnReceived = burnEvent.amount1
@@ -428,7 +428,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(mintEvent.tickUpper).to.eq(upperTickAfter)
 	})
 
-	it("Reverts when trying to fullfill a range order that is partially filled", async () => {
+	it("Reverts when trying to fulfill a range order that is partially filled", async () => {
 		const reactorDelta = Number(fromWei(await liquidityPoolDummy.getDelta()))
 		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
 		const balancesBefore = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
@@ -458,8 +458,8 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const balances = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
 		const reactorDeltaAfter = Number(fromWei(await liquidityPoolDummy.getDelta()))
 
-		const fullfillAttempt = uniswapV3RangeOrderReactor.fullfillActiveRangeOrder()
-		expect(fullfillAttempt).to.be.revertedWithCustomError(
+		const fulfillAttempt = uniswapV3RangeOrderReactor.fulfillActiveRangeOrder()
+		expect(fulfillAttempt).to.be.revertedWithCustomError(
 			uniswapV3RangeOrderReactor,
 			"RangeOrderNotFilled"
 		)
@@ -478,7 +478,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(collectEvent.amount1).to.be.lt(toWei("0.2"))
 	})
 
-	it("It fullfills when rehedge moves through range", async () => {
+	it("It fulfills when rehedge moves through range", async () => {
 		const reactorDelta = Number(fromWei(await liquidityPoolDummy.getDelta()))
 		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
 		const balancesBefore = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
@@ -508,8 +508,8 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const balances = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
 		const reactorDeltaAfter = Number(fromWei(await liquidityPoolDummy.getDelta()))
 
-		const fullfillAttempt = await uniswapV3RangeOrderReactor.fullfillActiveRangeOrder()
-		const receipt = await fullfillAttempt.wait()
+		const fulfillAttempt = await uniswapV3RangeOrderReactor.fulfillActiveRangeOrder()
+		const receipt = await fulfillAttempt.wait()
 		const [collectEvent] = getMatchingEvents(receipt, UNISWAP_POOL_COLLECT)
 		const { activeLowerTick: activeLowerAfter, activeUpperTick: activeUpperAfter } =
 			await uniswapV3RangeOrderReactor.currentPosition()
@@ -591,31 +591,31 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(mintEvent.amount0).to.eq(rangeOrderAmount)
 	})
 
-	it("Allows the manager to lock range order fullfillment", async () => {
-		const isAuthorizedFullFill = await uniswapV3RangeOrderReactor.onlyAuthorizedFullFill()
-		expect(isAuthorizedFullFill).to.be.false
-		const setAuthorizedFullFillTx = await uniswapV3RangeOrderReactor.setAuthorizedFullFill(true)
-		const isAuthorizedFullFillAfter = await uniswapV3RangeOrderReactor.onlyAuthorizedFullFill()
-		expect(isAuthorizedFullFillAfter).to.be.true
+	it("Allows the manager to lock range order fulfillment", async () => {
+		const isAuthorizedFulfill = await uniswapV3RangeOrderReactor.onlyAuthorizedFulfill()
+		expect(isAuthorizedFulfill).to.be.false
+		const setAuthorizedFulfillTx = await uniswapV3RangeOrderReactor.setAuthorizedFulfill(true)
+		const isAuthorizedFulfillAfter = await uniswapV3RangeOrderReactor.onlyAuthorizedFulfill()
+		expect(isAuthorizedFulfillAfter).to.be.true
 	})
 
-	it("Prevents fullFillment of range order when only authorized flag is active", async () => {
-		const isAuthorizedFullFill = await uniswapV3RangeOrderReactor.onlyAuthorizedFullFill()
-		expect(isAuthorizedFullFill).to.be.true
-		const fullFillTx = uniswapV3RangeOrderReactor.connect(signers[1]).fullfillActiveRangeOrder()
-		await expect(fullFillTx).to.be.revertedWithCustomError(
+	it("Prevents fulfillment of range order when only authorized flag is active", async () => {
+		const isAuthorizedFulfill = await uniswapV3RangeOrderReactor.onlyAuthorizedFulfill()
+		expect(isAuthorizedFulfill).to.be.true
+		const fulfillTx = uniswapV3RangeOrderReactor.connect(signers[1]).fulfillActiveRangeOrder()
+		await expect(fulfillTx).to.be.revertedWithCustomError(
 			uniswapV3RangeOrderReactor,
-			"UnauthorizedFullFill"
+			"UnauthorizedFulfill"
 		)
 	})
 
-	it("Allows the manager to exit a range order when not fullfilled", async () => {
+	it("Allows the manager to exit a range order when not fulfilled", async () => {
 		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
 		// non manager attempt should be reverted
 		const rejectedExitTx = uniswapV3RangeOrderReactor.connect(signers[1]).exitActiveRangeOrder()
 		await expect(rejectedExitTx).to.be.revertedWithCustomError(
 			uniswapV3RangeOrderReactor,
-			"UnauthorizedExit"
+			"UNAUTHORIZED"
 		)
 		const exitTx = await uniswapV3RangeOrderReactor.exitActiveRangeOrder()
 		const receipt = await exitTx.wait()
@@ -627,114 +627,4 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(activeLowerTickAfter).to.eq(0)
 		expect(activeUpperTickAfter).to.eq(0)
 	})
-
-	////////// Legacy Testing Starts Here //////////
-
-	/* 	it("Sets a range one tick above USDC/WETH market", async () => {
-		const ticks = await uniswapV3RangeOrderReactor.getTicks()
-		const price = tickToPrice(ticks.tick, 6, 18)
-		const normalizedPrice = price / 10 ** 18
-		const latestPrice = await priceFeed.getRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-		const chainPrice = tickToPrice(205343, 6, 8)
-		const amountToDeploy = toUSDC("100000")
-		await usdcContract.connect(usdcWhale).transfer(uniswapV3RangeOrderReactor.address, amountToDeploy)
-		// cache pool balances before enter range order
-		const poolWethBalance = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
-		const poolUsdcBalance = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
-		await uniswapV3RangeOrderReactor.createUniswapRangeOrderOneTickAboveMarket(amountToDeploy)
-		const activeUpperTick = await uniswapV3RangeOrderReactor.activeUpperTick()
-		const activeLowerTick = await uniswapV3RangeOrderReactor.activeLowerTick()
-		expect(activeUpperTick).to.be.gt(ticks.tick)
-		expect(activeLowerTick).to.be.gt(ticks.tick)
-		expect(activeUpperTick).to.be.gt(activeLowerTick)
-
-		//checks balances
-		const balances = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
-		const difference = poolUsdcBalance.sub(balances.amount0Current)
-		expect(difference).to.be.lte("1")
-		expect(uniswapV3RangeOrderReactor).to.have.property("hedgeDelta")
-	})
-
-	it("Fills when price moves into range", async () => {
-		const balancesBefore = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
-		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
-		const weth_usdc_price_before = poolInfo.token1Price.toFixed()
-		// pool is usdc/weth due to uniswap v3 pool address ordering
-		const amountToSwap = toWei("10000")
-		await wethContract.connect(signers[1]).approve(uniswapRouter.address, amountToSwap)
-
-		// generate price quote
-		const quoter = quoterContract(signers[1])
-		const quotedAmountOut = await quoter.callStatic.quoteExactInputSingle(
-			poolInfo.token1.address,
-			poolInfo.token0.address,
-			poolInfo.fee,
-			amountToSwap.toString(),
-			0
-		)
-		// setup swap trade params
-		let params = {
-			tokenIn: poolInfo.token1.address,
-			tokenOut: poolInfo.token0.address,
-			fee: poolInfo.fee,
-			recipient: bigSignerAddress,
-			deadline: Math.floor(Date.now() / 1000) + 60 * 10,
-			amountIn: amountToSwap,
-			amountOutMinimum: 0,
-			sqrtPriceLimitX96: 0
-		}
-		const balanceBefore = await wethContract.balanceOf(bigSignerAddress)
-		const swapTx = await uniswapRouter.exactInputSingle(params)
-		await swapTx.wait(1)
-		poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
-		const balanceAfter = await wethContract.balanceOf(bigSignerAddress)
-		const weth_usdc_price_after = poolInfo.token1Price.toFixed()
-		const { tick } = await uniswapUSDCWETHPool.slot0()
-		const activeUpperTick = await uniswapV3RangeOrderReactor.activeUpperTick()
-		const activeLowerTick = await uniswapV3RangeOrderReactor.activeLowerTick()
-		console.log({ weth_usdc_price_after, weth_usdc_price_before })
-
-		// buy weth in usdc/weth pool means price went up into the limit order range
-		expect(tick).to.be.gt(activeLowerTick)
-		expect(tick).to.be.gt(activeUpperTick)
-		const balances = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
-		const averagePricePaid =
-			Number(fromUSDC(balancesBefore.amount0Current)) / Number(fromWei(balances.amount1Current))
-		expect(averagePricePaid).to.lt(Number(weth_usdc_price_before))
-	})
-
-	it("should properly get current price from the pool", async () => {
-		const poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
-		const prices = await uniswapV3RangeOrderReactor.getPoolPrice()
-		const weth_usdc_price = poolInfo.token1Price.toFixed()
-		const usdc_weth_price = poolInfo.token0Price.toFixed(9)
-		const chainlinkPrice = await priceFeed.getNormalizedRate(
-			WETH_ADDRESS[chainId],
-			USDC_ADDRESS[chainId]
-		)
-		const usdcDifference = Number(fromWei(prices.price)) - Number(usdc_weth_price)
-		const wethDifference = Number(fromWei(prices.inversed)) - Number(weth_usdc_price)
-		expect(usdcDifference).to.be.lt(0.0001)
-		expect(wethDifference).to.be.lt(1)
-	})
-
-	it("hedges delta", async () => {
-		console.log("hedge delta", toWei("-2").toString())
-		const res = await uniswapV3RangeOrderReactor.hedgeDelta(toWei("-2"))
-	})
-
-	it("yanks pool liquidity", async () => {
-		//await uniswapV3RangeOrderReactor.yankRangeOrderLiquidity()
-		const poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
-		const weth_usdc_price_after = poolInfo.token1Price.toFixed()
-		const usdc_weth_price = Number(poolInfo.token0Price.toFixed(18))
-		const reversed_price = 1 / usdc_weth_price
-		const price = await uniswapV3RangeOrderReactor.getPoolPrice()
-		console.log({ price, weth_usdc_price_after, usdc_weth_price, reversed_price })
-	}) */
-	/* 	it("updates minAmount parameter", async () => {
-		await uniswapV3HedgingReactor.setMinAmount(1e10)
-		const minAmount = await uniswapV3HedgingReactor.minAmount()
-		expect(minAmount).to.equal(ethers.utils.parseUnits("1", 10))
-	}) */
 })

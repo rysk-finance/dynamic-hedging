@@ -50,8 +50,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     IUniswapV3Pool public pool;
     /// @notice limit to ensure we arent doing inefficient computation for dust amounts
 	uint256 public minAmount = 1e16;
-    /// @notice only authorized can fullfill range orders when set to true
-    bool public onlyAuthorizedFullFill = false;
+    /// @notice only authorized can fulfill range orders when set to true
+    bool public onlyAuthorizedFulfill = false;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -99,8 +99,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         uint128 liquidityMinted
     );
 
-    event SetAuthorizedFullFill(
-        bool onlyAuthorizedFullFill,
+    event SetAuthorizedFulfill(
+        bool onlyAuthorizedFulfill,
         address caller
     );
 
@@ -130,11 +130,11 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	/// setters ///
 	///////////////
     
-    /// @notice set if orders can be fullfilled by anyone or only authorized
-    function setAuthorizedFullFill(bool _onlyAuthorizedFullFill) external {
+    /// @notice set if orders can be fulfilled by anyone or only authorized
+    function setAuthorizedFulfill(bool _onlyAuthorizedFulfill) external {
         _onlyGovernor();
-        onlyAuthorizedFullFill = _onlyAuthorizedFullFill;
-        emit SetAuthorizedFullFill(_onlyAuthorizedFullFill, msg.sender);
+        onlyAuthorizedFulfill = _onlyAuthorizedFulfill;
+        emit SetAuthorizedFulfill(_onlyAuthorizedFulfill, msg.sender);
     }
 
     /// @notice Uniswap V3 callback fn, called back on pool.mint
@@ -379,24 +379,22 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         currentPosition.activeRangeAboveTick = false;
         //event emit can be skipped due to uniswap pool emitting Mint event
     }
+
     /// @notice allows the manager to exit an active range order
     function exitActiveRangeOrder() external {
-        if (msg.sender != authority.manager()) {
-            revert CustomErrors.UnauthorizedExit();
-        }
+        _onlyManager();
         // check if in active range
         if (!inActivePosition()) {
             revert CustomErrors.NoActivePosition();
         }
         (uint128 liquidity, , , ,) = pool.positions(_getPositionID());
         _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
-
     }
 
     /// @notice Permissionlessly when flag disabled withdraws liquidity from an active range if it's 100% in the position target
-    function fullfillActiveRangeOrder() external {
-        if (onlyAuthorizedFullFill && msg.sender != authority.manager()) {
-            revert CustomErrors.UnauthorizedFullFill();
+    function fulfillActiveRangeOrder() external {
+        if (onlyAuthorizedFulfill && msg.sender != authority.manager()) {
+            revert CustomErrors.UnauthorizedFulfill();
         }
         (, int24 tick, , , , , ) = pool.slot0();
         (uint128 liquidity, , , ,) = pool.positions(_getPositionID());
@@ -644,13 +642,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
     /// @notice use to recover any ERC20 token that is held
     function recoverERC20(address tokenAddress, address receiver, uint256 tokenAmount) external {
-        _onlyGuardian();
+        _onlyGovernor();
         _recoverERC20(tokenAddress, receiver, tokenAmount);
     }
 
     /// @notice use to recover any ETH that might be in this contract
     function recoverETH(address payable receiver, uint256 amount) external {
-        _onlyGuardian();
+        _onlyGovernor();
         SafeTransferLib.safeTransferETH(receiver, amount);
     }
 
