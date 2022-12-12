@@ -17,8 +17,10 @@ interface CustomErrors {
 	error IssuanceFailed();
 	error EpochNotClosed();
 	error InvalidDecimals();
+	error NoActivePosition();
 	error TradingNotPaused();
 	error NotLiquidityPool();
+	error UnauthorizedExit();
 	error DeltaNotDecreased();
 	error NonExistentOtoken();
 	error OrderExpiryTooLong();

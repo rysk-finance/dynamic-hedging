@@ -609,7 +609,24 @@ describe("UniswapV3RangeOrderReactor", () => {
 		)
 	})
 
-	it("Allows the manager to exit a range order when not fullfilled", async () => {})
+	it("Allows the manager to exit a range order when not fullfilled", async () => {
+		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		// non manager attempt should be reverted
+		const rejectedExitTx = uniswapV3RangeOrderReactor.connect(signers[1]).exitActiveRangeOrder()
+		await expect(rejectedExitTx).to.be.revertedWithCustomError(
+			uniswapV3RangeOrderReactor,
+			"UnauthorizedExit"
+		)
+		const exitTx = await uniswapV3RangeOrderReactor.exitActiveRangeOrder()
+		const receipt = await exitTx.wait()
+		const { activeLowerTick: activeLowerTickAfter, activeUpperTick: activeUpperTickAfter } =
+			await uniswapV3RangeOrderReactor.currentPosition()
+		const [burnEvent] = getMatchingEvents(receipt, UNISWAP_POOL_BURN)
+		expect(burnEvent.tickLower).to.eq(activeLowerTick)
+		expect(burnEvent.tickUpper).to.eq(activeUpperTick)
+		expect(activeLowerTickAfter).to.eq(0)
+		expect(activeUpperTickAfter).to.eq(0)
+	})
 
 	////////// Legacy Testing Starts Here //////////
 
