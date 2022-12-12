@@ -32,6 +32,7 @@ interface CustomErrors {
 	error NoExistingWithdrawal();
 	error SpotMovedBeyondRange();
 	error ReactorAlreadyExists();
+    error UnauthorizedFullFill();
 	error CollateralAssetInvalid();
 	error UnderlyingAssetInvalid();
 	error CollateralAmountInvalid();

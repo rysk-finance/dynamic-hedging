@@ -3,7 +3,10 @@ import { Signer, BigNumber } from "ethers"
 import { expect } from "chai"
 import { MintableERC20 } from "../types/MintableERC20"
 import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
-import { UniswapV3RangeOrderReactor } from "../types/UniswapV3RangeOrderReactor"
+import {
+	UniswapV3RangeOrderReactor,
+	RangeOrderParamsStruct
+} from "../types/UniswapV3RangeOrderReactor"
 import { UniswapV3HedgingTest } from "../types/UniswapV3HedgingTest"
 import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_SWAP_ROUTER } from "./constants"
 import { PriceFeed } from "../types/PriceFeed"
@@ -23,6 +26,11 @@ import {
 	UNISWAP_POOL_COLLECT
 } from "../utils/events"
 import { WETH } from "../types/WETH"
+import { amountsForLiquidity } from "@ragetrade/sdk"
+enum Direction {
+	ABOVE = 0,
+	BELOW = 1
+}
 let signers: Signer[]
 let usdcWhale: Signer
 let usdcWhaleAddress: string
@@ -547,7 +555,62 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(usdcBalanceAfter).to.eq(0)
 	})
 
-	// adjusts a range order to hedge a new delta
+	it("Allows the manager to create a custom range order", async () => {
+		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const weth_usdc_price_before = poolInfo.token1Price.toFixed()
+		const { sqrtPriceX96, tick } = await uniswapUSDCWETHPool.slot0()
+		const tickSpacing = await uniswapUSDCWETHPool.tickSpacing()
+		const nearestTick = Math.round(tick / tickSpacing) * tickSpacing
+		const lowerTick = nearestTick + tickSpacing
+		// make a 10 tick range to be non-standard
+		const upperTick = lowerTick + tickSpacing * 10
+		//TODO use uniswap api to create order
+		let rangeOrderParams: RangeOrderParamsStruct = {
+			lowerTick,
+			upperTick,
+			sqrtPriceX96,
+			meanPrice: 0,
+			direction: Direction.ABOVE
+		}
+		await usdcContract
+			.connect(signers[1])
+			.transfer(uniswapV3RangeOrderReactor.address, toUSDC("1000"))
+		const usdcBalance = await usdcContract.balanceOf(await signers[0].getAddress())
+		const rangeOrderAmount = toUSDC("1000")
+		const createRangeOrderTx = await uniswapV3RangeOrderReactor.createUniswapRangeOrder(
+			rangeOrderParams,
+			rangeOrderAmount
+		)
+		const receipt = await createRangeOrderTx.wait()
+		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT)
+		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		expect(mintEvent.tickLower).to.eq(lowerTick)
+		expect(mintEvent.tickUpper).to.eq(upperTick)
+		expect(activeLowerTick).to.eq(lowerTick)
+		expect(activeUpperTick).to.eq(upperTick)
+		expect(mintEvent.amount0).to.eq(rangeOrderAmount)
+	})
+
+	it("Allows the manager to lock range order fullfillment", async () => {
+		const isAuthorizedFullFill = await uniswapV3RangeOrderReactor.onlyAuthorizedFullFill()
+		expect(isAuthorizedFullFill).to.be.false
+		const setAuthorizedFullFillTx = await uniswapV3RangeOrderReactor.setAuthorizedFullFill(true)
+		const isAuthorizedFullFillAfter = await uniswapV3RangeOrderReactor.onlyAuthorizedFullFill()
+		expect(isAuthorizedFullFillAfter).to.be.true
+	})
+
+	it("Prevents fullFillment of range order when only authorized flag is active", async () => {
+		const isAuthorizedFullFill = await uniswapV3RangeOrderReactor.onlyAuthorizedFullFill()
+		expect(isAuthorizedFullFill).to.be.true
+		const fullFillTx = uniswapV3RangeOrderReactor.connect(signers[1]).fullfillActiveRangeOrder()
+		await expect(fullFillTx).to.be.revertedWithCustomError(
+			uniswapV3RangeOrderReactor,
+			"UnauthorizedFullFill"
+		)
+	})
+
+	it("Allows the manager to exit a range order when not fullfilled", async () => {})
+
 	////////// Legacy Testing Starts Here //////////
 
 	/* 	it("Sets a range one tick above USDC/WETH market", async () => {
