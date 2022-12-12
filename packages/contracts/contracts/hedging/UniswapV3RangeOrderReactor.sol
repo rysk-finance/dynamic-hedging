@@ -330,15 +330,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             uint256 fee1
         )
     {
-        uint256 preBalance0 = token0.balanceOf(address(this));
-        uint256 preBalance1 = token1.balanceOf(address(this));
-        
         // returns amount of token0 and token1 sent to this vault
         // emits Burn event in the uniswap pool
         (burn0, burn1) = pool.burn(lowerTick_, upperTick_, liquidity);
 
         // collect accumulated fees
         // emits collect event in the uniswap pool
+        // returns amount burned + fees collected
        (uint256 collect0, uint256 collect1) = pool.collect(
             address(this),
             lowerTick_,
@@ -347,11 +345,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             type(uint128).max
         );
 
-        // using this approach because the above collect method return amounts are not reliable
-        fee0 = token0.balanceOf(address(this)) - preBalance0 - burn0;
-        fee1 = token1.balanceOf(address(this)) - preBalance1 - burn1;
-        console.log("fee0", fee0, "fee1", fee1);
-        console.log("computed fee0", collect0 - burn0, "computed fee1", collect1 - burn1);
+        fee0 = collect0 - burn0;
+        fee1 = collect1 - burn1;
         // mark no current position
         delete currentPosition;
     }
