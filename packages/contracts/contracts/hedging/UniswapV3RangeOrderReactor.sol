@@ -165,59 +165,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         price = price * (10 ** token0.decimals());
     }
 
-    /// @notice take a price quote in token1/token0 format and convert to sqrtPriceX96 token0/token1 format
-    function sqrtPriceFromWei(uint256 weiPrice) private view returns (uint160 sqrtPriceX96){
-        uint256 inverse = uint256(1e18).div(weiPrice);
-        sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(inverse).mul(2 ** 96)) * uint160(10 ** token0.decimals());
-    }
-
-    /// @notice return the price in token0 decimals format
-    function sqrtPriceX96ToUint(uint160 sqrtPriceX96)
-        private 
-        pure
-        returns (uint256)
-    {
-        uint256 numerator1 = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
-        return FullMath.mulDiv(numerator1, 1, 1 << 192);
-    }
-
-    function SqrtPriceX96ToNearestTick(uint160 sqrtPriceX96, int24 tickSpacing) private pure returns (int24 nearestActiveTick){
-        int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
-        nearestActiveTick = tick / tickSpacing * tickSpacing;
-    }
-
-    function tickToToken0PriceInverted(int24 tick) private view returns (uint256){
-        uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(tick);
-        uint256 price = sqrtPriceX96ToUint(sqrtPriceX96);
-        uint256 inWei = OptionsCompute.convertFromDecimals(price, token0.decimals());
-        uint256 intermediate = inWei.div(10**(token1.decimals() - token0.decimals()));
-        uint256 inversed = uint256(1e18).div(intermediate);
-        return inversed;
-    }
-    /// @notice returns the parameters needed to mint a range order with average price when filled
-    function getTicksAndMeanPriceFromWei(uint256 price, RangeOrderDirection direction) 
-        private 
-        view
-        returns (RangeOrderParams memory) {
-        uint160 sqrtPriceX96 = sqrtPriceFromWei(price);
-        int24 tickSpacing = pool.tickSpacing();
-        int24 nearestTick = SqrtPriceX96ToNearestTick(sqrtPriceX96, tickSpacing);
-        int24 lowerTick = direction == RangeOrderDirection.ABOVE ? nearestTick + tickSpacing : nearestTick - (2 * tickSpacing);
-        int24 tickUpper = direction ==RangeOrderDirection.ABOVE ? lowerTick + tickSpacing : nearestTick - tickSpacing;
-        int24 meanTick = (lowerTick + tickUpper) / 2;
-        // average price paid on the range order in token1/token0 in token0 decimals format
-        uint256 meanPrice = tickToToken0PriceInverted(meanTick);
-        // convert to token1 format
-        meanPrice = OptionsCompute.convertFromDecimals(meanPrice, token0.decimals(), token1.decimals());
-        return RangeOrderParams({
-            lowerTick: lowerTick,
-            upperTick: tickUpper,
-            meanPrice: meanPrice,
-            sqrtPriceX96: sqrtPriceX96,
-            direction: direction
-        });
-    }
-
     /// @notice allows the manager to create a range order of custom tick width
     function createUniswapRangeOrder(
         RangeOrderParams calldata params,
@@ -227,51 +174,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         _onlyManager();
         bool inversed = collateralAsset == address(token0);
         _createUniswapRangeOrder(params, amountDesired, inversed);
-    }
-
-    function _createUniswapRangeOrder(
-        RangeOrderParams memory params,
-        uint256 amountDesired,
-        bool inversed
-    ) private {
-        uint256 amount0Desired;
-        uint256 amount1Desired;
-        // compute the liquidity amount
-        uint160 sqrtRatioAX96 = params.lowerTick.getSqrtRatioAtTick();
-        uint160 sqrtRatioBX96 = params.upperTick.getSqrtRatioAtTick();
-        
-        if (params.direction == RangeOrderDirection.ABOVE) {
-            amount0Desired = amountDesired;
-            uint256 balance = token0.balanceOf(address(this));
-            // Only transfer in when collateral token is token0
-            if (inversed && balance < amountDesired) { 
-                uint256 transferAmount = amountDesired - balance;
-                SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), transferAmount); 
-            }
-            token0.safeApprove(address(pool), amountDesired);
-        } else {
-            amount1Desired = amountDesired;
-            uint256 balance = token1.balanceOf(address(this));
-            if (!inversed && balance < amountDesired) {
-                uint256 transferAmount = amountDesired - balance;
-                SafeTransferLib.safeTransferFrom(address(token1), msg.sender, address(this), transferAmount); 
-            }
-            token1.safeApprove(address(pool), amountDesired);
-        }
-
-        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            params.sqrtPriceX96,
-            sqrtRatioAX96,
-            sqrtRatioBX96,
-            amount0Desired, // amount of token0 being sent in
-            amount1Desired// amount of token1 being sent in
-        );
-        pool.mint(address(this), params.lowerTick, params.upperTick, liquidity, "");
-        // store the active range for later access
-        currentPosition.activeLowerTick = params.lowerTick;
-        currentPosition.activeUpperTick = params.upperTick;
-        currentPosition.activeRangeAboveTick = params.direction == RangeOrderDirection.ABOVE ? true : false;
-        // state transition can be reconstructed from uniswap events emitted
     }
 
     /// @notice allows the manager to exit an active range order
@@ -310,47 +212,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         }
     }
 
-    /// @notice Withdraws all liquidity from a range order and collection outstanding fees
-    function _yankRangeOrderLiquidity() private {
-        // struct definition: https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/Position.sol#L13
-        (uint128 liquidity, , , ,) = pool.positions(_getPositionID());
-        _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
-    }
-
-    function _withdraw(
-        int24 lowerTick_,
-        int24 upperTick_,
-        uint128 liquidity
-    )
-        private
-        returns (
-            uint256 burn0,
-            uint256 burn1,
-            uint256 fee0,
-            uint256 fee1
-        )
-    {
-        // returns amount of token0 and token1 sent to this vault
-        // emits Burn event in the uniswap pool
-        (burn0, burn1) = pool.burn(lowerTick_, upperTick_, liquidity);
-
-        // collect accumulated fees
-        // emits collect event in the uniswap pool
-        // returns amount burned + fees collected
-       (uint256 collect0, uint256 collect1) = pool.collect(
-            address(this),
-            lowerTick_,
-            upperTick_,
-            type(uint128).max,
-            type(uint128).max
-        );
-
-        fee0 = collect0 - burn0;
-        fee1 = collect1 - burn1;
-        // mark no current position
-        delete currentPosition;
-    }
-
     /// @notice compute total underlying holdings of the vault token supply
     /// includes current liquidity invested in uniswap position, current fees earned, 
     /// and tokens held in vault
@@ -363,92 +224,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     {
         (uint160 sqrtRatioX96, int24 tick, , , , , ) = pool.slot0();
         return _getUnderlyingBalances(sqrtRatioX96, tick);
-    }
-
-    function _getUnderlyingBalances(uint160 sqrtRatioX96, int24 tick)
-        internal
-        view
-        returns (uint256 amount0Current, uint256 amount1Current)
-    {
-        (
-            uint128 liquidity,
-            uint256 feeGrowthInside0Last,
-            uint256 feeGrowthInside1Last,
-            uint128 tokensOwed0,
-            uint128 tokensOwed1
-        ) = pool.positions(_getPositionID());
-
-        // compute current holdings from liquidity
-        (amount0Current, amount1Current) = LiquidityAmounts.getAmountsForLiquidity(
-            sqrtRatioX96,
-            currentPosition.activeLowerTick.getSqrtRatioAtTick(),
-            currentPosition.activeUpperTick.getSqrtRatioAtTick(),
-            liquidity
-        );
-
-        // compute current fees earned
-        uint256 fee0 =
-            _computeFeesEarned(true, feeGrowthInside0Last, tick, liquidity) +
-                uint256(tokensOwed0);
-        uint256 fee1 =
-            _computeFeesEarned(false, feeGrowthInside1Last, tick, liquidity) +
-                uint256(tokensOwed1);
-
-        // add any leftover in contract to current holdings
-        amount0Current +=
-            fee0 +
-            token0.balanceOf(address(this));
-        amount1Current +=
-            fee1 +
-            token1.balanceOf(address(this));
-    }
-
-    /// credit: https://github.com/ArrakisFinance/vault-v1-core/blob/main/contracts/ArrakisVaultV1.sol#L721
-    /// @notice Computes the fees earned by the position
-    function _computeFeesEarned(
-        bool isZero,
-        uint256 feeGrowthInsideLast,
-        int24 tick,
-        uint128 liquidity
-    ) private view returns (uint256 fee) {
-        uint256 feeGrowthOutsideLower;
-        uint256 feeGrowthOutsideUpper;
-        uint256 feeGrowthGlobal;
-        if (isZero) {
-            feeGrowthGlobal = pool.feeGrowthGlobal0X128();
-            (, , feeGrowthOutsideLower, , , , , ) = pool.ticks(currentPosition.activeLowerTick);
-            (, , feeGrowthOutsideUpper, , , , , ) = pool.ticks(currentPosition.activeUpperTick);
-        } else {
-            feeGrowthGlobal = pool.feeGrowthGlobal1X128();
-            (, , , feeGrowthOutsideLower, , , , ) = pool.ticks(currentPosition.activeLowerTick);
-            (, , , feeGrowthOutsideUpper, , , , ) = pool.ticks(currentPosition.activeUpperTick);
-        }
-
-        unchecked {
-            // calculate fee growth below
-            uint256 feeGrowthBelow;
-            if (tick >= currentPosition.activeLowerTick) {
-                feeGrowthBelow = feeGrowthOutsideLower;
-            } else {
-                feeGrowthBelow = feeGrowthGlobal - feeGrowthOutsideLower;
-            }
-
-            // calculate fee growth above
-            uint256 feeGrowthAbove;
-            if (tick < currentPosition.activeUpperTick) {
-                feeGrowthAbove = feeGrowthOutsideUpper;
-            } else {
-                feeGrowthAbove = feeGrowthGlobal - feeGrowthOutsideUpper;
-            }
-
-            uint256 feeGrowthInside =
-                feeGrowthGlobal - feeGrowthBelow - feeGrowthAbove;
-            fee = FullMath.mulDiv(
-                liquidity,
-                feeGrowthInside - feeGrowthInsideLast,
-                0x100000000000000000000000000000000
-            );
-        }
     }
 
     function getPositionID() external view returns (bytes32) {
@@ -575,6 +350,153 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	/// internal utilities ///
 	//////////////////////////
 
+    /// credit: https://github.com/ArrakisFinance/vault-v1-core/blob/main/contracts/ArrakisVaultV1.sol#L721
+    /// @notice Computes the fees earned by the position
+    function _computeFeesEarned(
+        bool isZero,
+        uint256 feeGrowthInsideLast,
+        int24 tick,
+        uint128 liquidity
+    ) private view returns (uint256 fee) {
+        uint256 feeGrowthOutsideLower;
+        uint256 feeGrowthOutsideUpper;
+        uint256 feeGrowthGlobal;
+        if (isZero) {
+            feeGrowthGlobal = pool.feeGrowthGlobal0X128();
+            (, , feeGrowthOutsideLower, , , , , ) = pool.ticks(currentPosition.activeLowerTick);
+            (, , feeGrowthOutsideUpper, , , , , ) = pool.ticks(currentPosition.activeUpperTick);
+        } else {
+            feeGrowthGlobal = pool.feeGrowthGlobal1X128();
+            (, , , feeGrowthOutsideLower, , , , ) = pool.ticks(currentPosition.activeLowerTick);
+            (, , , feeGrowthOutsideUpper, , , , ) = pool.ticks(currentPosition.activeUpperTick);
+        }
+
+        unchecked {
+            // calculate fee growth below
+            uint256 feeGrowthBelow;
+            if (tick >= currentPosition.activeLowerTick) {
+                feeGrowthBelow = feeGrowthOutsideLower;
+            } else {
+                feeGrowthBelow = feeGrowthGlobal - feeGrowthOutsideLower;
+            }
+
+            // calculate fee growth above
+            uint256 feeGrowthAbove;
+            if (tick < currentPosition.activeUpperTick) {
+                feeGrowthAbove = feeGrowthOutsideUpper;
+            } else {
+                feeGrowthAbove = feeGrowthGlobal - feeGrowthOutsideUpper;
+            }
+
+            uint256 feeGrowthInside =
+                feeGrowthGlobal - feeGrowthBelow - feeGrowthAbove;
+            fee = FullMath.mulDiv(
+                liquidity,
+                feeGrowthInside - feeGrowthInsideLast,
+                0x100000000000000000000000000000000
+            );
+        }
+    }
+
+    function _createUniswapRangeOrder(
+        RangeOrderParams memory params,
+        uint256 amountDesired,
+        bool inversed
+    ) private {
+        uint256 amount0Desired;
+        uint256 amount1Desired;
+        // compute the liquidity amount
+        uint160 sqrtRatioAX96 = params.lowerTick.getSqrtRatioAtTick();
+        uint160 sqrtRatioBX96 = params.upperTick.getSqrtRatioAtTick();
+        
+        if (params.direction == RangeOrderDirection.ABOVE) {
+            amount0Desired = amountDesired;
+            uint256 balance = token0.balanceOf(address(this));
+            // Only transfer in when collateral token is token0
+            if (inversed && balance < amountDesired) { 
+                uint256 transferAmount = amountDesired - balance;
+                SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), transferAmount); 
+            }
+            token0.safeApprove(address(pool), amountDesired);
+        } else {
+            amount1Desired = amountDesired;
+            uint256 balance = token1.balanceOf(address(this));
+            if (!inversed && balance < amountDesired) {
+                uint256 transferAmount = amountDesired - balance;
+                SafeTransferLib.safeTransferFrom(address(token1), msg.sender, address(this), transferAmount); 
+            }
+            token1.safeApprove(address(pool), amountDesired);
+        }
+
+        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            params.sqrtPriceX96,
+            sqrtRatioAX96,
+            sqrtRatioBX96,
+            amount0Desired, // amount of token0 being sent in
+            amount1Desired// amount of token1 being sent in
+        );
+        pool.mint(address(this), params.lowerTick, params.upperTick, liquidity, "");
+        // store the active range for later access
+        currentPosition.activeLowerTick = params.lowerTick;
+        currentPosition.activeUpperTick = params.upperTick;
+        currentPosition.activeRangeAboveTick = params.direction == RangeOrderDirection.ABOVE ? true : false;
+        // state transition can be reconstructed from uniswap events emitted
+    }
+
+    /// @notice take a price quote in token1/token0 format and convert to sqrtPriceX96 token0/token1 format
+    function sqrtPriceFromWei(uint256 weiPrice) private view returns (uint160 sqrtPriceX96){
+        uint256 inverse = uint256(1e18).div(weiPrice);
+        sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(inverse).mul(2 ** 96)) * uint160(10 ** token0.decimals());
+    }
+
+    /// @notice return the price in token0 decimals format
+    function sqrtPriceX96ToUint(uint160 sqrtPriceX96)
+        private 
+        pure
+        returns (uint256)
+    {
+        uint256 numerator1 = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
+        return FullMath.mulDiv(numerator1, 1, 1 << 192);
+    }
+
+    function SqrtPriceX96ToNearestTick(uint160 sqrtPriceX96, int24 tickSpacing) private pure returns (int24 nearestActiveTick){
+        int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
+        nearestActiveTick = tick / tickSpacing * tickSpacing;
+    }
+
+    function tickToToken0PriceInverted(int24 tick) private view returns (uint256){
+        uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(tick);
+        uint256 price = sqrtPriceX96ToUint(sqrtPriceX96);
+        uint256 inWei = OptionsCompute.convertFromDecimals(price, token0.decimals());
+        uint256 intermediate = inWei.div(10**(token1.decimals() - token0.decimals()));
+        uint256 inversed = uint256(1e18).div(intermediate);
+        return inversed;
+    }
+
+    /// @notice returns the parameters needed to mint a range order with average price when filled
+    function getTicksAndMeanPriceFromWei(uint256 price, RangeOrderDirection direction) 
+        private 
+        view
+        returns (RangeOrderParams memory) {
+        uint160 sqrtPriceX96 = sqrtPriceFromWei(price);
+        int24 tickSpacing = pool.tickSpacing();
+        int24 nearestTick = SqrtPriceX96ToNearestTick(sqrtPriceX96, tickSpacing);
+        int24 lowerTick = direction == RangeOrderDirection.ABOVE ? nearestTick + tickSpacing : nearestTick - (2 * tickSpacing);
+        int24 tickUpper = direction ==RangeOrderDirection.ABOVE ? lowerTick + tickSpacing : nearestTick - tickSpacing;
+        int24 meanTick = (lowerTick + tickUpper) / 2;
+        // average price paid on the range order in token1/token0 in token0 decimals format
+        uint256 meanPrice = tickToToken0PriceInverted(meanTick);
+        // convert to token1 format
+        meanPrice = OptionsCompute.convertFromDecimals(meanPrice, token0.decimals(), token1.decimals());
+        return RangeOrderParams({
+            lowerTick: lowerTick,
+            upperTick: tickUpper,
+            meanPrice: meanPrice,
+            sqrtPriceX96: sqrtPriceX96,
+            direction: direction
+        });
+    }
+
     /**
      * @dev Used to receover any ERC20 tokens held by the contract
      * @param tokenAddress The token contract address
@@ -583,6 +505,44 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
      */
     function _recoverERC20(address tokenAddress, address receiver, uint256 tokenAmount) private {
 		SafeTransferLib.safeTransfer(ERC20(tokenAddress), receiver, tokenAmount);
+    }
+
+    function _getUnderlyingBalances(uint160 sqrtRatioX96, int24 tick)
+        private
+        view
+        returns (uint256 amount0Current, uint256 amount1Current)
+    {
+        (
+            uint128 liquidity,
+            uint256 feeGrowthInside0Last,
+            uint256 feeGrowthInside1Last,
+            uint128 tokensOwed0,
+            uint128 tokensOwed1
+        ) = pool.positions(_getPositionID());
+
+        // compute current holdings from liquidity
+        (amount0Current, amount1Current) = LiquidityAmounts.getAmountsForLiquidity(
+            sqrtRatioX96,
+            currentPosition.activeLowerTick.getSqrtRatioAtTick(),
+            currentPosition.activeUpperTick.getSqrtRatioAtTick(),
+            liquidity
+        );
+
+        // compute current fees earned
+        uint256 fee0 =
+            _computeFeesEarned(true, feeGrowthInside0Last, tick, liquidity) +
+                uint256(tokensOwed0);
+        uint256 fee1 =
+            _computeFeesEarned(false, feeGrowthInside1Last, tick, liquidity) +
+                uint256(tokensOwed1);
+
+        // add any leftover in contract to current holdings
+        amount0Current +=
+            fee0 +
+            token0.balanceOf(address(this));
+        amount1Current +=
+            fee1 +
+            token1.balanceOf(address(this));
     }
 
 	/**
@@ -605,5 +565,46 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
      */
     function inActivePosition() private view returns (bool) {
         return currentPosition.activeLowerTick != currentPosition.activeUpperTick;
+    }
+
+    function _withdraw(
+        int24 lowerTick_,
+        int24 upperTick_,
+        uint128 liquidity
+    )
+        private
+        returns (
+            uint256 burn0,
+            uint256 burn1,
+            uint256 fee0,
+            uint256 fee1
+        )
+    {
+        // returns amount of token0 and token1 sent to this vault
+        // emits Burn event in the uniswap pool
+        (burn0, burn1) = pool.burn(lowerTick_, upperTick_, liquidity);
+
+        // collect accumulated fees
+        // emits collect event in the uniswap pool
+        // returns amount burned + fees collected
+       (uint256 collect0, uint256 collect1) = pool.collect(
+            address(this),
+            lowerTick_,
+            upperTick_,
+            type(uint128).max,
+            type(uint128).max
+        );
+
+        fee0 = collect0 - burn0;
+        fee1 = collect1 - burn1;
+        // mark no current position
+        delete currentPosition;
+    }
+
+    /// @notice Withdraws all liquidity from a range order and collection outstanding fees
+    function _yankRangeOrderLiquidity() private {
+        // struct definition: https://github.com/Uniswap/v3-core/blob/main/contracts/libraries/Position.sol#L13
+        (uint128 liquidity, , , ,) = pool.positions(_getPositionID());
+        _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
     }
 }
