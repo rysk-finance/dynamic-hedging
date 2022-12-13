@@ -13,7 +13,6 @@ import "../libraries/OptionsCompute.sol";
 import "../libraries/SafeTransferLib.sol";
 import "../libraries/CustomErrors.sol";
 import "../PriceFeed.sol";
-import "hardhat/console.sol";
 
 contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, AccessControl {
 
@@ -230,11 +229,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         return _getPositionID();
     }
 
-    /// @notice get the position id of the current position
-    function _getPositionID() private view returns (bytes32 positionID) {
-        return keccak256(abi.encodePacked(address(this), currentPosition.activeLowerTick, currentPosition.activeUpperTick));
-    }
-
     //////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
@@ -297,13 +291,22 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 		}
     }
 
-    /// @notice use to recover any ERC20 token that is held
+    /**
+     * @notice use to recover any ERC20 token that is held
+     * @param tokenAddress address of the token to recover
+     * @param receiver address of the receiver of the token
+     * @param tokenAmount amount of the token to recover
+     */
     function recoverERC20(address tokenAddress, address receiver, uint256 tokenAmount) external {
         _onlyGovernor();
         _recoverERC20(tokenAddress, receiver, tokenAmount);
     }
 
-    /// @notice use to recover any ETH that might be in this contract
+    /**
+     * @notice use to recover any ETH that is held in this contract
+     * @param receiver address of the receiver of the ETH
+     * @param amount amount of ETH to recover
+     */
     function recoverETH(address payable receiver, uint256 amount) external {
         _onlyGovernor();
         SafeTransferLib.safeTransferETH(receiver, amount);
@@ -398,6 +401,12 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         }
     }
 
+    /**
+     * @dev create a uniswap range order
+     * @param params the range order params
+     * @param amountDesired the amount of liquidity to supply in token to be sold / 100% allocation above range
+     * @param inversed true if collateral token is token0
+     */
     function _createUniswapRangeOrder(
         RangeOrderParams memory params,
         uint256 amountDesired,
@@ -449,7 +458,10 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(inverse).mul(2 ** 96)) * uint160(10 ** token0.decimals());
     }
 
-    /// @notice return the price in token0 decimals format
+    /**
+     * @dev returns the price of sqrtX96(token0) as token0 in token1 decimals
+     * @param sqrtPriceX96 the sqrt price of token0/token1
+     */
     function _sqrtPriceX96ToUint(uint160 sqrtPriceX96)
         private 
         pure
@@ -459,11 +471,21 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         return FullMath.mulDiv(numerator1, 1, 1 << 192);
     }
 
+    /**
+     * @dev returns sqrtPriceX96 as a tick
+     * @param sqrtPriceX96 the sqrtx96 price
+     * @param tickSpacing the tick spacing of the pool
+     */
     function _sqrtPriceX96ToNearestTick(uint160 sqrtPriceX96, int24 tickSpacing) private pure returns (int24 nearestActiveTick){
         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
         nearestActiveTick = tick / tickSpacing * tickSpacing;
     }
 
+    /**
+     * @dev takes the price of token0/token1 as a tick token1/token0
+     * @param tick price expressed as a tick
+     * @return price token0/token1 in token1/token0 in token1 decimals
+     */
     function _tickToToken0PriceInverted(int24 tick) private view returns (uint256){
         uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(tick);
         uint256 price = _sqrtPriceX96ToUint(sqrtPriceX96);
@@ -473,7 +495,11 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         return inversed;
     }
 
-    /// @notice returns the parameters needed to mint a range order with average price when filled
+    /**
+     * @param price the price of token0/token1 in token1/token0 in token1 decimals
+     * @param direction the direction of the range order
+     * @return params the parameters needed to mint a range order with average price when filled
+     */
     function _getTicksAndMeanPriceFromWei(uint256 price, RangeOrderDirection direction) 
         private 
         view
@@ -497,6 +523,11 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         });
     }
 
+    /// @notice get the uniswap position id of the current position
+    function _getPositionID() private view returns (bytes32 positionID) {
+        return keccak256(abi.encodePacked(address(this), currentPosition.activeLowerTick, currentPosition.activeUpperTick));
+    }
+
     /**
      * @dev Used to receover any ERC20 tokens held by the contract
      * @param tokenAddress The token contract address
@@ -507,6 +538,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 		SafeTransferLib.safeTransfer(ERC20(tokenAddress), receiver, tokenAmount);
     }
 
+    /**
+     * @dev Gets all assets owned by the vault in a range order and held directly in the vault
+     * @param sqrtRatioX96 the current sqrt price of the pool
+     * @param tick the current tick of the pool
+     * @return amount0Current the amount of token0 held in the vault and range order
+     * @return amount1Current the amount of token1 held in the vault and range order
+     */
     function _getUnderlyingBalances(uint160 sqrtRatioX96, int24 tick)
         private
         view
@@ -567,6 +605,16 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         return currentPosition.activeLowerTick != currentPosition.activeUpperTick;
     }
 
+    /**
+     * @dev withdraws liquidity from the uniswap pool
+     * @param lowerTick_ the lower tick of the range order
+     * @param upperTick_ the upper tick of the range order
+     * @param liquidity the amount of liquidity to withdraw
+     * @return burn0 the amount of token0 withdrawn from the pool
+     * @return burn1 the amount of token1 withdrawn from the pool
+     * @return fee0 the amount of token0 fees collected from the pool
+     * @return fee1 the amount of token1 fees collected from the pool
+     */
     function _withdraw(
         int24 lowerTick_,
         int24 upperTick_,
