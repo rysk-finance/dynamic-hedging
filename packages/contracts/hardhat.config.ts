@@ -156,7 +156,7 @@ module.exports = {
 			gas: 500000000
 		},
 		arbitrumGoerli: {
-			url: `https://arbitrum-goerli.infura.io/v3/${process.env.INFURA}}`,
+			url: `https://arb-goerli.g.alchemy.com/v2/${process.env.ALCHEMY}}`,
 			chainId: 421613,
 			saveDeployments: true,
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
