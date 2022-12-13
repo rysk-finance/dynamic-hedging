@@ -170,7 +170,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         RangeOrderParams calldata params,
         uint256 amountDesired
     ) external {
-        require(!inActivePosition(), "RangeOrder: active position");
+        require(!_inActivePosition(), "RangeOrder: active position");
         _onlyManager();
         bool inversed = collateralAsset == address(token0);
         _createUniswapRangeOrder(params, amountDesired, inversed);
@@ -180,7 +180,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     function exitActiveRangeOrder() external {
         _onlyManager();
         // check if in active range
-        if (!inActivePosition()) {
+        if (!_inActivePosition()) {
             revert CustomErrors.NoActivePosition();
         }
         (uint128 liquidity, , , ,) = pool.positions(_getPositionID());
@@ -243,10 +243,10 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	function hedgeDelta(int256 _delta) external returns (int256) {
 		require(msg.sender == parentLiquidityPool, "!vault");
         // check for existing range order first amd yank if it exists
-        if (inActivePosition()) _yankRangeOrderLiquidity();
+        if (_inActivePosition()) _yankRangeOrderLiquidity();
 
         bool inversed = collateralAsset == address(token0);
-        uint256 underlyingPrice = getUnderlyingPrice(wETH, collateralAsset);
+        uint256 underlyingPrice = _getUnderlyingPrice(wETH, collateralAsset);
         (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
         (uint256 poolPrice, uint256 inversedPrice) = getPoolPrice();
         uint256 quotePrice = inversed ? inversedPrice : poolPrice;
@@ -255,7 +255,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             // lowest price is best price when buying
             uint256 priceToUse = quotePrice < underlyingPrice ? quotePrice : underlyingPrice;
             RangeOrderDirection direction = inversed ? RangeOrderDirection.ABOVE : RangeOrderDirection.BELOW;
-            RangeOrderParams memory rangeOrder = getTicksAndMeanPriceFromWei(priceToUse, direction);
+            RangeOrderParams memory rangeOrder = _getTicksAndMeanPriceFromWei(priceToUse, direction);
             uint256 amountCollateralInToken1 = uint256(-_delta).mul(rangeOrder.meanPrice);
             uint256 amountDesiredInCollateralToken = OptionsCompute.convertToDecimals(
                 amountCollateralInToken1, 
@@ -269,7 +269,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             // highest price is best price when selling
             uint256 priceToUse = quotePrice < underlyingPrice ? underlyingPrice : quotePrice;
             RangeOrderDirection direction = inversed ? RangeOrderDirection.BELOW : RangeOrderDirection.ABOVE;
-            RangeOrderParams memory rangeOrder = getTicksAndMeanPriceFromWei(priceToUse, direction);
+            RangeOrderParams memory rangeOrder = _getTicksAndMeanPriceFromWei(priceToUse, direction);
             uint256 deltaToUse = _delta > int256(wethBalance) ? wethBalance : uint256(_delta);
             _createUniswapRangeOrder(rangeOrder, deltaToUse, inversed);
         }
@@ -444,13 +444,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     /// @notice take a price quote in token1/token0 format and convert to sqrtPriceX96 token0/token1 format
-    function sqrtPriceFromWei(uint256 weiPrice) private view returns (uint160 sqrtPriceX96){
+    function _sqrtPriceFromWei(uint256 weiPrice) private view returns (uint160 sqrtPriceX96){
         uint256 inverse = uint256(1e18).div(weiPrice);
         sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(inverse).mul(2 ** 96)) * uint160(10 ** token0.decimals());
     }
 
     /// @notice return the price in token0 decimals format
-    function sqrtPriceX96ToUint(uint160 sqrtPriceX96)
+    function _sqrtPriceX96ToUint(uint160 sqrtPriceX96)
         private 
         pure
         returns (uint256)
@@ -459,14 +459,14 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         return FullMath.mulDiv(numerator1, 1, 1 << 192);
     }
 
-    function SqrtPriceX96ToNearestTick(uint160 sqrtPriceX96, int24 tickSpacing) private pure returns (int24 nearestActiveTick){
+    function _sqrtPriceX96ToNearestTick(uint160 sqrtPriceX96, int24 tickSpacing) private pure returns (int24 nearestActiveTick){
         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
         nearestActiveTick = tick / tickSpacing * tickSpacing;
     }
 
-    function tickToToken0PriceInverted(int24 tick) private view returns (uint256){
+    function _tickToToken0PriceInverted(int24 tick) private view returns (uint256){
         uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(tick);
-        uint256 price = sqrtPriceX96ToUint(sqrtPriceX96);
+        uint256 price = _sqrtPriceX96ToUint(sqrtPriceX96);
         uint256 inWei = OptionsCompute.convertFromDecimals(price, token0.decimals());
         uint256 intermediate = inWei.div(10**(token1.decimals() - token0.decimals()));
         uint256 inversed = uint256(1e18).div(intermediate);
@@ -474,18 +474,18 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     /// @notice returns the parameters needed to mint a range order with average price when filled
-    function getTicksAndMeanPriceFromWei(uint256 price, RangeOrderDirection direction) 
+    function _getTicksAndMeanPriceFromWei(uint256 price, RangeOrderDirection direction) 
         private 
         view
         returns (RangeOrderParams memory) {
-        uint160 sqrtPriceX96 = sqrtPriceFromWei(price);
+        uint160 sqrtPriceX96 = _sqrtPriceFromWei(price);
         int24 tickSpacing = pool.tickSpacing();
-        int24 nearestTick = SqrtPriceX96ToNearestTick(sqrtPriceX96, tickSpacing);
+        int24 nearestTick = _sqrtPriceX96ToNearestTick(sqrtPriceX96, tickSpacing);
         int24 lowerTick = direction == RangeOrderDirection.ABOVE ? nearestTick + tickSpacing : nearestTick - (2 * tickSpacing);
         int24 tickUpper = direction ==RangeOrderDirection.ABOVE ? lowerTick + tickSpacing : nearestTick - tickSpacing;
         int24 meanTick = (lowerTick + tickUpper) / 2;
         // average price paid on the range order in token1/token0 in token0 decimals format
-        uint256 meanPrice = tickToToken0PriceInverted(meanTick);
+        uint256 meanPrice = _tickToToken0PriceInverted(meanTick);
         // convert to token1 format
         meanPrice = OptionsCompute.convertFromDecimals(meanPrice, token0.decimals(), token1.decimals());
         return RangeOrderParams({
@@ -551,7 +551,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	 * @param _strikeAsset the asset that the underlying value is denominated in
 	 * @return the underlying price
 	 */
-	function getUnderlyingPrice(address underlying, address _strikeAsset)
+	function _getUnderlyingPrice(address underlying, address _strikeAsset)
 		private
 		view
 		returns (uint256)
@@ -563,7 +563,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
      * @notice determine if the pool is in an range order
      * @return true if the pool is in a range order
      */
-    function inActivePosition() private view returns (bool) {
+    function _inActivePosition() private view returns (bool) {
         return currentPosition.activeLowerTick != currentPosition.activeUpperTick;
     }
 
