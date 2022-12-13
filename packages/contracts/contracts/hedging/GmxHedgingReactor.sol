@@ -647,7 +647,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 					collateralToRemove = (1e18 -
 						(
 							(int256(position[0] / 1e12) - int256((leverageFactor.mul(position[8])) / 1e12))
-								.mul(1e18 - int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12)))
+								.mul(1e18 - int256(_amount.mul(position[2]).div(position[0])))
 								.div(int256(leverageFactor.mul(position[1]) / 1e12))
 						)).mul(int256(position[1] / 1e12));
 				}
@@ -655,15 +655,16 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				// position in loss
 				// with positions in loss, what is entered into the createDecreasePosition function is what you receive
 				// however the pnl is still reduced proportionally
+				uint256 d = _amount.mul(position[2]).div(position[0]);
 				{
 					collateralToRemove =
-						(1e18 -
+						(int256(position[1] / 1e12) -
 							(
-								(int256(position[0] / 1e12) + int256((leverageFactor.mul(position[8])) / 1e12))
-									.mul(1e18 - int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12)))
-									.div(int256(leverageFactor.mul(position[1]) / 1e12))
-							)).mul(int256(position[1] / 1e12)) -
-						int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12).mul(position[8] / 1e12));
+								((int256(position[0]) + int256(leverageFactor.mul(position[8]))) / 1e12).mul(1e18 - int256(d)).div(
+									int256(leverageFactor)
+								)
+							)) -
+						int256(_amount.mul(d).mul(position[8] / 1e12));
 				}
 			}
 			uint256 adjustedCollateralToRemove;
@@ -675,16 +676,13 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 				// check if collateral removed would put position within 10% of liquidation limit
 				// where positionSize / collateral is >= maxLeverage()
+				uint256 minAllowedCollateral = ((position[0] - _getPositionSizeDeltaUsd(_amount, position[0])) / 1e12) /
+					(vault.maxLeverage() / 11000);
 				if (
 					// maxLeverage is multiplied by 10000 in contract. divide by 11000 to allow for 10% buffer.
-					int256(position[1] / 1e12) - int256(adjustedCollateralToRemove) <
-					int256(((position[0] - _getPositionSizeDeltaUsd(_amount, position[0])) / 1e12) / (vault.maxLeverage() / 11000))
+					int256(position[1] / 1e12) - int256(adjustedCollateralToRemove) < int256(minAllowedCollateral)
 				) {
-					adjustedCollateralToRemove =
-						position[1] /
-						1e12 -
-						((position[0] - _getPositionSizeDeltaUsd(_amount, position[0])) / 1e12) /
-						(vault.maxLeverage() / 11000);
+					adjustedCollateralToRemove = position[1] / 1e12 - minAllowedCollateral;
 					if (adjustedCollateralToRemove == 0) {
 						return 0;
 					}
