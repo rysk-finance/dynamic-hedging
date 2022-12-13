@@ -726,17 +726,19 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		if (msg.sender != address(gmxPositionRouter)) {
 			revert CustomErrors.InvalidGmxCallback();
 		}
-		if (isIncrease) {
-			pendingIncreaseCallback = false;
-		} else {
-			pendingDecreaseCallback = false;
-		}
 		if (isExecuted) {
 			if (isIncrease) {
 				internalDelta += increaseOrderDeltaChange[positionKey];
 			} else {
 				internalDelta += decreaseOrderDeltaChange[positionKey];
 			}
+		}
+		if (isIncrease) {
+			pendingIncreaseCallback = false;
+			delete increaseOrderDeltaChange[positionKey];
+		} else {
+			pendingDecreaseCallback = false;
+			delete decreaseOrderDeltaChange[positionKey];
 		}
 	}
 
