@@ -234,7 +234,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		(
 			bool isBelowMin,
 			bool isAboveMax,
-			uint256 health,
+			int256 health,
 			uint256 collatToTransfer,
 			uint256[] memory position
 		) = checkVaultHealth();
@@ -316,7 +316,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		returns (
 			bool isBelowMin,
 			bool isAboveMax,
-			uint256 health,
+			int256 health,
 			uint256 collatToTransfer,
 			uint256[] memory position
 		)
@@ -335,35 +335,32 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 		if (position[0] == 0) {
 			//no positions open
-			return (false, false, healthFactor, 0, position);
+			return (false, false, int256(healthFactor), 0, position);
 		}
-		uint256 health;
+		int256 health;
 		if (position[7] == 1) {
 			//position in profit
-			health =
-				(uint256((int256(position[1]) + int256(position[8])).div(int256(position[0]))) * MAX_BIPS) /
-				1e18;
+			health = int256(((position[1] + position[8]).div(position[0]) * MAX_BIPS) / 1e18);
 		} else {
 			//position in loss
-			if (position[8] >= position[1]) {
-				health = 0;
-			} else {
-				health =
-					(uint256((int256(position[1]) - int256(position[8])).div(int256(position[0]))) * MAX_BIPS) /
-					1e18;
-			}
+			health =
+				((int256(position[1]) - int256(position[8])).div(int256(position[0])) * int256(MAX_BIPS)) /
+				1e18;
 		}
-		if (health > healthFactor) {
+		if (health > int256(healthFactor)) {
 			// position is over-collateralised
 			isAboveMax = true;
 			isBelowMin = false;
-			collatToTransfer = ((health - healthFactor) * position[0]) / MAX_BIPS / 1e24;
-		} else if (health < healthFactor) {
+			// health must be > 0 so can cast to uint
+			collatToTransfer = ((uint256(health) - healthFactor) * position[0]) / MAX_BIPS / 1e24;
+		} else if (health < int256(healthFactor)) {
 			// position undercollateralised
 			// more collateral needs adding
 			isBelowMin = true;
 			isAboveMax = false;
-			collatToTransfer = ((healthFactor - health) * position[0]) / MAX_BIPS / 1e24;
+			collatToTransfer = uint256(
+				((int256(healthFactor) - health) * int256(position[0])) / int256(MAX_BIPS) / 1e24
+			);
 		} else {
 			// health factor is perfect
 			return (false, false, health, 0, position);

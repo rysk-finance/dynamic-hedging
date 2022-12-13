@@ -940,6 +940,33 @@ describe("change to 4x leverage factor", async () => {
 		// collateral should be 1/90th of position size
 		expect(parseFloat(utils.formatUnits(positionAfter[1], 30))).to.be.within(70.5, 71.5)
 		expect(parseFloat(utils.formatUnits(positionAfter[8], 30))).to.eq(5600)
+		const deltaAfter = await gmxReactor.internalDelta()
+		expect(deltaAfter).to.eq(utils.parseEther("4"))
+	})
+	it("rebalances a position with a negative health factor", async () => {
+		// set price to $1000
+		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1000", 8))
+		const healthLogsBefore = await gmxReactor.checkVaultHealth()
+		expect(healthLogsBefore.health).to.be.lt(0)
+
+		await gmxReactor.update()
+		await executeIncreasePosition()
+
+		const positionAfter = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[wethAddress],
+			[wethAddress],
+			[true]
+		)
+
+		expect(positionAfter[8]).to.eq(positionAfter[2].sub(utils.parseUnits("1000", 30)).mul(4))
+		expect(
+			parseFloat(utils.formatUnits(positionAfter[0], 30)) /
+				(parseFloat(utils.formatUnits(positionAfter[1], 30)) - parseFloat(utils.formatUnits(positionAfter[8], 30)))
+		).to.be.within(4, 4.1)
+		const healthLogsAfter = await gmxReactor.checkVaultHealth()
+		expect(healthLogsAfter.health).to.be.gt(0)
 	})
 	it("withdraws ETH from contract", async () => {
 		const contractBalanceBefore = await ethers.provider.getBalance(gmxReactor.address)
