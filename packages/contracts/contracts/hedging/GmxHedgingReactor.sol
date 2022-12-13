@@ -16,7 +16,6 @@ import "../interfaces/IRouter.sol";
 import "../interfaces/IPositionRouter.sol";
 import "../interfaces/IReader.sol";
 import "../interfaces/IGmxVault.sol";
-
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
@@ -602,7 +601,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			if (isAboveMax && collatToTransfer > extraPositionCollateral) {
 				// in this case there is a net collateral withdrawal needed which cannot be done with increasePosition
 				// so just dont add any more collateral and have it rebalance later
-				return 0;
+				totalCollateralToAdd = 0;
 			} else {
 				// otherwise add the two collateral requirement parts to obtain total collateral input
 				if (isAboveMax) {
@@ -612,6 +611,23 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 					// add extra needed collateral
 					totalCollateralToAdd = extraPositionCollateral + collatToTransfer;
 				}
+			}
+			uint256[] memory position = _getPosition(internalDelta > 0);
+			// check if collateral removed would put position within 10% of liquidation limit
+			// where positionSize / collateral is >= maxLeverage()
+			// maxLeverage is multiplied by 10000 in contract. divide by 11000 to allow for 10% buffer.
+			uint256 minAllowedCollateral = OptionsCompute.convertToDecimals(
+				((position[0] / 1e12 + _amount.mul(getUnderlyingPrice(wETH, collateralAsset)))) / (vault.maxLeverage() / 11000),
+				ERC20(collateralAsset).decimals()
+			);
+			if (
+				OptionsCompute.convertToDecimals(position[1] / 1e12, ERC20(collateralAsset).decimals()) + totalCollateralToAdd <
+				minAllowedCollateral
+			) {
+				// position[1] cannot be bigger than minAllowedCollateral here - no underflow
+				totalCollateralToAdd =
+					minAllowedCollateral -
+					OptionsCompute.convertToDecimals(position[1] / 1e12, ERC20(collateralAsset).decimals());
 			}
 			return totalCollateralToAdd;
 		} else {

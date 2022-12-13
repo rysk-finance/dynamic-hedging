@@ -819,7 +819,7 @@ describe("change to 4x leverage factor", async () => {
 		const poolDenominatedValue = parseFloat(utils.formatEther(await gmxReactor.callStatic.getPoolDenominatedValue()))
 		expect(poolDenominatedValue).to.eq(parseFloat(utils.formatUnits(positionAfter[1].add(positionAfter[8]), 30)))
 	})
-	it("relances a position where unrealised pnl is greater than collateral size", async () => {
+	it("rebalances a position where unrealised pnl is greater than collateral size", async () => {
 		// set price to $2600
 		// $5000 in profit
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("2600", 8))
@@ -863,7 +863,7 @@ describe("change to 4x leverage factor", async () => {
 		const deltaAfter = await gmxReactor.internalDelta()
 		expect(deltaAfter).to.eq(utils.parseEther("5"))
 	})
-	it("relances a position that is already at min collateral limit and even more in profit", async () => {
+	it("rebalances a position that is already at min collateral limit and even more in profit", async () => {
 		// set price to $3000
 		// $7000 in profit
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("3000", 8))
@@ -967,6 +967,28 @@ describe("change to 4x leverage factor", async () => {
 		).to.be.within(4, 4.1)
 		const healthLogsAfter = await gmxReactor.checkVaultHealth()
 		expect(healthLogsAfter.health).to.be.gt(0)
+	})
+	it("increases a position with huge profit that will go under min collateral amount", async () => {
+		// set price to $1000
+		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1000000", 8))
+		const healthLogsBefore = await gmxReactor.checkVaultHealth()
+		// go long by 1 more delta
+		const delta = -1
+
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
+		await executeIncreasePosition()
+
+		const positionAfter = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[wethAddress],
+			[wethAddress],
+			[true]
+		)
+		console.log({ positionAfter })
+		expect(positionAfter[0]).to.eq(utils.parseUnits("1006400", 30))
+		// collateral should be 1/90th of position size minus 0.1% trading fee
+		expect(parseFloat(utils.formatUnits(positionAfter[1], 30))).to.be.within(10150, 10180)
 	})
 	it("withdraws ETH from contract", async () => {
 		const contractBalanceBefore = await ethers.provider.getBalance(gmxReactor.address)
