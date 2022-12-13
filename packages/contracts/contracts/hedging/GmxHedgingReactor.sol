@@ -428,7 +428,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	/**
 	 *	@notice internal function to handle increasing position size on GMX
 	 *	@param _size ETH denominated size to increase position by. e18
-	 *	@param _collateralSize amount of collateral to remove. denominated in collateralAsset decimals.
+	 *	@param _collateralSize amount of collateral to add. denominated in collateralAsset decimals.
 	 *	@param _isLong whether the position is a long or short
 	 *	@return positionKey the unique key of the GMX position
 	 *	@return deltaChange the resulting delta change from the position increase
@@ -460,7 +460,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			_isLong,
 			_isLong
 				? currentPrice.mul(1e18 + positionPriceTolerance) * 1e12
-				: currentPrice.mul(1e18 - positionPriceTolerance) * 1e12, // 0.5% price tolerance
+				: currentPrice.mul(1e18 - positionPriceTolerance) * 1e12,
 			gmxPositionRouter.minExecutionFee(),
 			"leverageisfun",
 			address(this)
