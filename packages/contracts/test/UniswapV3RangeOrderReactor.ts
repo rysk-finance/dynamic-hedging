@@ -8,7 +8,13 @@ import {
 	RangeOrderParamsStruct
 } from "../types/UniswapV3RangeOrderReactor"
 import { UniswapV3HedgingTest } from "../types/UniswapV3HedgingTest"
-import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_SWAP_ROUTER } from "./constants"
+import {
+	USDC_ADDRESS,
+	USDC_OWNER_ADDRESS,
+	WETH_ADDRESS,
+	UNISWAP_V3_SWAP_ROUTER,
+	UNISWAP_V3_FACTORY
+} from "./constants"
 import { PriceFeed } from "../types/PriceFeed"
 import { MintEvent } from "../types/IUniswapV3PoolEvents"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
@@ -139,7 +145,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 		)
 
 		uniswapV3RangeOrderReactor = (await uniswapV3RangeOrderReactorFactory.deploy(
-			"0x1F98431c8aD98523631AE4a59f267346ea31F984", // v3 factory address
+			UNISWAP_V3_FACTORY,
 			USDC_ADDRESS[chainId],
 			WETH_ADDRESS[chainId],
 			liquidityPoolDummyAddress,
