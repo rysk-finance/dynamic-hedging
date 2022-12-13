@@ -106,3 +106,8 @@ export const ADDRESS_BOOK = {
 export const ORACLE_DISPUTE_PERIOD = 7200
 export const ORACLE_LOCKING_PERIOD = 300
 export const oTokenDecimalShift18 = 10000000000
+/**
+ * Uniswap
+ */
+// Factory is deployed to same address on all networks
+export const UNISWAP_V3_FACTORY = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
