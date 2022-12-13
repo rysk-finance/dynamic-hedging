@@ -83,15 +83,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	uint256 private constant MAX_BIPS = 10_000;
 
 	//////////////
-	/// errors ///
-	//////////////
-
-	error ValueFailure();
-	error IncorrectCollateral();
-	error IncorrectDeltaChange();
-	error InvalidTransactionNotEnoughMargin(int256 accountMarketValue, int256 totalRequiredMargin);
-
-	//////////////
 	/// events ///
 	//////////////
 
