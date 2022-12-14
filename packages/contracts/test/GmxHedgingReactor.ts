@@ -72,7 +72,7 @@ describe("GMX Hedging Reactor", () => {
 			params: [
 				{
 					forking: {
-						jsonRpcUrl: `https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA}`,
+						jsonRpcUrl: `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY}`,
 						chainId: 42161,
 						blockNumber: 36000000
 					}
