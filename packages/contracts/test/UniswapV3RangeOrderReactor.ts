@@ -2,28 +2,19 @@ import hre, { ethers, network, Contract } from "hardhat"
 import { Signer, BigNumber } from "ethers"
 import { expect } from "chai"
 import { MintableERC20 } from "../types/MintableERC20"
-import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import {
 	UniswapV3RangeOrderReactor,
 	RangeOrderParamsStruct
 } from "../types/UniswapV3RangeOrderReactor"
 import { UniswapV3HedgingTest } from "../types/UniswapV3HedgingTest"
-import {
-	USDC_ADDRESS,
-	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS,
-	UNISWAP_V3_SWAP_ROUTER,
-	UNISWAP_V3_FACTORY
-} from "./constants"
+import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_FACTORY } from "./constants"
 import { PriceFeed } from "../types/PriceFeed"
 import { MintEvent } from "../types/IUniswapV3PoolEvents"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 import { abi as IUniswapV3PoolABI } from "@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json"
 import { abi as ISwapRouterABI } from "@uniswap/v3-periphery/artifacts/contracts/interfaces/ISwapRouter.sol/ISwapRouter.json"
-import { quoterContract, tickToPrice, getPoolInfo } from "../utils/uniswap"
-import { Route, Trade } from "@uniswap/v3-sdk"
-import { CurrencyAmount, Token, TradeType } from "@uniswap/sdk-core"
+import { getPoolInfo } from "../utils/uniswap"
 import { fromUSDC, fromWei, toUSDC, toWei } from "../utils/conversion-helper"
 import {
 	getMatchingEvents,
@@ -32,7 +23,7 @@ import {
 	UNISWAP_POOL_COLLECT
 } from "../utils/events"
 import { WETH } from "../types/WETH"
-import { amountsForLiquidity } from "@ragetrade/sdk"
+
 enum Direction {
 	ABOVE = 0,
 	BELOW = 1
@@ -53,6 +44,7 @@ let uniswapRouter: Contract
 let bigSignerAddress: string
 let authority: string
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+const POOL_FEE = 3000
 const SWAP_ROUTER_ADDRESS = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 // edit depending on the chain id to be tested on
 const chainId = 1
@@ -149,7 +141,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 			USDC_ADDRESS[chainId],
 			WETH_ADDRESS[chainId],
 			liquidityPoolDummyAddress,
-			3000,
+			POOL_FEE,
 			priceFeed.address,
 			authority
 		)) as UniswapV3RangeOrderReactor
