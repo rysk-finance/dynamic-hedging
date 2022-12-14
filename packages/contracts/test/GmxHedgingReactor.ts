@@ -118,7 +118,7 @@ describe("GMX Hedging Reactor", () => {
 		const govAddress = await gmxVaultPriceFeed.gov()
 		expect(govAddress.toLowerCase()).to.eq("0x7b1ffddeec3c4797079c7ed91057e399e9d43a8b")
 
-		gmxVault = (await ethers.getContractAt("Vault", gmxVaultAddress)) as any
+		gmxVault = (await ethers.getContractAt("IGmxVault", gmxVaultAddress)) as any
 		gmxReader = (await ethers.getContractAt("IReader", gmxReaderAddress)) as IReader
 
 		const gmxPriceFeedTimelock = await ethers.getContractAt("PriceFeedTimelock", gmxPriceFeedTimelockAddress)
