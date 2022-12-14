@@ -20,41 +20,41 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     using TickMath for int24;
     using SafeTransferLib for ERC20;
     ///////////////////////////
-	/// immutable variables ///
-	///////////////////////////
+    /// immutable variables ///
+    ///////////////////////////
 
-	/// @notice address of the parent liquidity pool contract
-	address public immutable parentLiquidityPool;
-	/// @notice address of the price feed used for getting asset prices
-	address public immutable priceFeed;
+    /// @notice address of the parent liquidity pool contract
+    address public immutable parentLiquidityPool;
+    /// @notice address of the price feed used for getting asset prices
+    address public immutable priceFeed;
     /// @notice generalised list of stablecoin addresses to trade against wETH
-	address public immutable collateralAsset;
-	/// @notice address of the wETH contract
-	address public immutable wETH;
-	/// @notice smaller address token using uniswap pool convention
+    address public immutable collateralAsset;
+    /// @notice address of the wETH contract
+    address public immutable wETH;
+    /// @notice smaller address token using uniswap pool convention
     ERC20 public immutable token0;
-	/// @notice larger address token using uniswap pool convention
+    /// @notice larger address token using uniswap pool convention
     ERC20 public immutable token1;
     /// @notice address of the uniswap V3 factory
     address public immutable factory;
-	/// @notice uniswap v3 pool fee expressed at 10e6
-	uint24 public immutable poolFee;
+    /// @notice uniswap v3 pool fee expressed at 10e6
+    uint24 public immutable poolFee;
 
 
-	/////////////////////////////////////
-	/// governance settable variables ///
-	/////////////////////////////////////
+    /////////////////////////////////////
+    /// governance settable variables ///
+    /////////////////////////////////////
 
-	/// @notice instance of the uniswap V3 pool
+    /// @notice instance of the uniswap V3 pool
     IUniswapV3Pool public pool;
     /// @notice limit to ensure we arent doing inefficient computation for dust amounts
-	uint256 public minAmount = 1e16;
+    uint256 public minAmount = 1e16;
     /// @notice only authorized can fulfill range orders when set to true
     bool public onlyAuthorizedFulfill = false;
 
-	/////////////////////////
-	/// dynamic variables ///
-	/////////////////////////
+    /////////////////////////
+    /// dynamic variables ///
+    /////////////////////////
 
     /// @notice uniswap v3 pool lower tick spacing - set to 0 if no active range order
     //int24 public activeLowerTick;
@@ -87,9 +87,9 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     enum RangeOrderDirection{ ABOVE, BELOW }
 
     /////////////////////////
-	///       events      ///
-	/////////////////////////
-    
+    ///       events      ///
+    /////////////////////////
+
     event Minted(
         address receiver,
         uint256 mintAmount,
@@ -104,31 +104,31 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     );
 
     constructor(
-		address _factory,
-		address _collateralAsset,
-		address _wethAddress,
-		address _parentLiquidityPool,
-		uint24 _poolFee,
-		address _priceFeed,
-		address _authority
-	) AccessControl(IAuthority(_authority)) {
+    address _factory,
+    address _collateralAsset,
+    address _wethAddress,
+    address _parentLiquidityPool,
+    uint24 _poolFee,
+    address _priceFeed,
+    address _authority
+  ) AccessControl(IAuthority(_authority)) {
         collateralAsset = _collateralAsset;
         wETH = _wethAddress;
         factory = _factory;
         address _token0 = _collateralAsset < _wethAddress ? _collateralAsset : _wethAddress;
         address _token1 = _collateralAsset < _wethAddress ? _wethAddress : _collateralAsset;
         pool =  IUniswapV3Pool(PoolAddress.getPoolAddress(factory, _token0, _token1, _poolFee));
-		token1 = ERC20(_token1);
-		token0 = ERC20(_token0);
-		parentLiquidityPool = _parentLiquidityPool;
-		poolFee = _poolFee;
-		priceFeed = _priceFeed;
-	}
+    token1 = ERC20(_token1);
+    token0 = ERC20(_token0);
+    parentLiquidityPool = _parentLiquidityPool;
+    poolFee = _poolFee;
+    priceFeed = _priceFeed;
+  }
 
-	///////////////
-	/// setters ///
-	///////////////
-    
+    ///////////////
+    /// setters ///
+    ///////////////
+
     /// @notice set if orders can be fulfilled by anyone or only authorized
     function setAuthorizedFulfill(bool _onlyAuthorizedFulfill) external {
         _onlyGovernor();
@@ -212,7 +212,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     /// @notice compute total underlying holdings of the vault token supply
-    /// includes current liquidity invested in uniswap position, current fees earned, 
+    /// includes current liquidity invested in uniswap position, current fees earned,
     /// and tokens held in vault
     /// @return amount0Current current total underlying balance of token0
     /// @return amount1Current current total underlying balance of token1
@@ -230,12 +230,12 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     //////////////////////////////////////////////////////
-	/// access-controlled state changing functionality ///
-	//////////////////////////////////////////////////////
+    /// access-controlled state changing functionality ///
+    //////////////////////////////////////////////////////
 
-	/// @inheritdoc IHedgingReactor
-	function hedgeDelta(int256 _delta) external returns (int256) {
-		require(msg.sender == parentLiquidityPool, "!vault");
+    /// @inheritdoc IHedgingReactor
+    function hedgeDelta(int256 _delta) external returns (int256) {
+        require(msg.sender == parentLiquidityPool, "!vault");
         // check for existing range order first amd yank if it exists
         if (_inActivePosition()) _yankRangeOrderLiquidity();
 
@@ -252,9 +252,9 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             RangeOrderParams memory rangeOrder = _getTicksAndMeanPriceFromWei(priceToUse, direction);
             uint256 amountCollateralInToken1 = uint256(-_delta).mul(rangeOrder.meanPrice);
             uint256 amountDesiredInCollateralToken = OptionsCompute.convertToDecimals(
-                amountCollateralInToken1, 
-                ERC20(collateralAsset).decimals()
-            );    
+                                                                                      amountCollateralInToken1,
+                                                                                      ERC20(collateralAsset).decimals()
+            );
             _createUniswapRangeOrder(rangeOrder, amountDesiredInCollateralToken, inversed);
         } else {
             // sell wETH
@@ -272,23 +272,23 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     /// @inheritdoc IHedgingReactor
-	function withdraw(uint256 _amount) external returns (uint256) {
+    function withdraw(uint256 _amount) external returns (uint256) {
         require(msg.sender == parentLiquidityPool, "!vault");
         // check the holdings if enough then transfer it
-		// assume amount is passed in as collateral decimals
-		uint256 balance = ERC20(collateralAsset).balanceOf(address(this));
-		if (balance == 0) {
-			return 0;
-		}
-		if (_amount <= balance) {
-			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, _amount);
-			// return in collateral format
-			return _amount;
-		} else {
-			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, balance);
-			// return in collateral format
-			return balance;
-		}
+        // assume amount is passed in as collateral decimals
+        uint256 balance = ERC20(collateralAsset).balanceOf(address(this));
+        if (balance == 0) {
+            return 0;
+        }
+        if (_amount <= balance) {
+            SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, _amount);
+            // return in collateral format
+            return _amount;
+        } else {
+            SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, balance);
+            // return in collateral format
+            return balance;
+        }
     }
 
     /**
@@ -314,33 +314,33 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
 
     /////////////////////////////////////////////
-	/// external state changing functionality ///
-	/////////////////////////////////////////////
+    /// external state changing functionality ///
+    /////////////////////////////////////////////
 
-	/// @inheritdoc IHedgingReactor
-	function update() external pure returns (uint256) {
+    /// @inheritdoc IHedgingReactor
+    function update() external pure returns (uint256) {
         // Remove range order if possible
-		return 0;
-	}
+        return 0;
+    }
 
 
 
-	///////////////////////
-	/// complex getters ///
-	///////////////////////
+    ///////////////////////
+    /// complex getters ///
+    ///////////////////////
 
-	/// @inheritdoc IHedgingReactor
-	function getDelta() 
+    /// @inheritdoc IHedgingReactor
+    function getDelta()
         external
         view
-        returns (int256 delta) 
+        returns (int256 delta)
     {
         (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
         delta = wETH == address(token0) ? int256(amount0Current) : int256(amount1Current);
     }
 
-	/// @inheritdoc IHedgingReactor
-	function getPoolDenominatedValue() external view returns (uint256 value) {
+    /// @inheritdoc IHedgingReactor
+    function getPoolDenominatedValue() external view returns (uint256 value) {
         (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
         uint256 collateral = wETH == address(token0) ? amount1Current : amount0Current;
         uint256 wethBalance = wETH == address(token0) ? amount0Current : amount1Current;
@@ -350,8 +350,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     //////////////////////////
-	/// internal utilities ///
-	//////////////////////////
+    /// internal utilities ///
+    //////////////////////////
 
     /// credit: https://github.com/ArrakisFinance/vault-v1-core/blob/main/contracts/ArrakisVaultV1.sol#L721
     /// @notice Computes the fees earned by the position
@@ -417,14 +417,14 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         // compute the liquidity amount
         uint160 sqrtRatioAX96 = params.lowerTick.getSqrtRatioAtTick();
         uint160 sqrtRatioBX96 = params.upperTick.getSqrtRatioAtTick();
-        
+
         if (params.direction == RangeOrderDirection.ABOVE) {
             amount0Desired = amountDesired;
             uint256 balance = token0.balanceOf(address(this));
             // Only transfer in when collateral token is token0
-            if (inversed && balance < amountDesired) { 
+            if (inversed && balance < amountDesired) {
                 uint256 transferAmount = amountDesired - balance;
-                SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), transferAmount); 
+                SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), transferAmount);
             }
             token0.safeApprove(address(pool), amountDesired);
         } else {
@@ -432,7 +432,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             uint256 balance = token1.balanceOf(address(this));
             if (!inversed && balance < amountDesired) {
                 uint256 transferAmount = amountDesired - balance;
-                SafeTransferLib.safeTransferFrom(address(token1), msg.sender, address(this), transferAmount); 
+                SafeTransferLib.safeTransferFrom(address(token1), msg.sender, address(this), transferAmount);
             }
             token1.safeApprove(address(pool), amountDesired);
         }
@@ -463,7 +463,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
      * @param sqrtPriceX96 the sqrt price of token0/token1
      */
     function _sqrtPriceX96ToUint(uint160 sqrtPriceX96)
-        private 
+        private
         pure
         returns (uint256)
     {
@@ -500,8 +500,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
      * @param direction the direction of the range order
      * @return params the parameters needed to mint a range order with average price when filled
      */
-    function _getTicksAndMeanPriceFromWei(uint256 price, RangeOrderDirection direction) 
-        private 
+    function _getTicksAndMeanPriceFromWei(uint256 price, RangeOrderDirection direction)
+        private
         view
         returns (RangeOrderParams memory) {
         uint160 sqrtPriceX96 = _sqrtPriceFromWei(price);
@@ -535,7 +535,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
      * @param tokenAmount Number of tokens to be sent
      */
     function _recoverERC20(address tokenAddress, address receiver, uint256 tokenAmount) private {
-		SafeTransferLib.safeTransfer(ERC20(tokenAddress), receiver, tokenAmount);
+        SafeTransferLib.safeTransfer(ERC20(tokenAddress), receiver, tokenAmount);
     }
 
     /**
@@ -583,19 +583,19 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             token1.balanceOf(address(this));
     }
 
-	/**
-	 * @notice get the underlying price with just the underlying asset and strike asset
-	 * @param underlying   the asset that is used as the reference asset
-	 * @param _strikeAsset the asset that the underlying value is denominated in
-	 * @return the underlying price
-	 */
-	function _getUnderlyingPrice(address underlying, address _strikeAsset)
-		private
-		view
-		returns (uint256)
-	{
-		return PriceFeed(priceFeed).getNormalizedRate(underlying, _strikeAsset);
-	}
+    /**
+     * @notice get the underlying price with just the underlying asset and strike asset
+     * @param underlying   the asset that is used as the reference asset
+     * @param _strikeAsset the asset that the underlying value is denominated in
+     * @return the underlying price
+     */
+    function _getUnderlyingPrice(address underlying, address _strikeAsset)
+        private
+        view
+        returns (uint256)
+    {
+        return PriceFeed(priceFeed).getNormalizedRate(underlying, _strikeAsset);
+    }
 
     /**
      * @notice determine if the pool is in an range order
