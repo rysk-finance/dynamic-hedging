@@ -109,7 +109,10 @@ describe("GMX Hedging Reactor", () => {
 	it("deploys mock chainlink price feed and hooks to GMX Vault Price feed", async () => {
 		const mockChainlinkFeedFactory = await ethers.getContractFactory("MockChainlinkAggregator")
 		mockChainlinkFeed = (await mockChainlinkFeedFactory.deploy()) as MockChainlinkAggregator
-		const gmxVaultPriceFeed = await ethers.getContractAt("VaultPriceFeed", gmxVaultPricefeedAddress)
+		const gmxVaultPriceFeed = await ethers.getContractAt(
+			"contracts/interfaces/IGmxVaultPriceFeed.sol:IVaultPriceFeed",
+			gmxVaultPricefeedAddress
+		)
 		await priceFeed.addPriceFeed(wethAddress, usdcAddress, mockChainlinkFeed.address)
 
 		const govAddress = await gmxVaultPriceFeed.gov()
