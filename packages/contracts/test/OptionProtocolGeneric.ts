@@ -49,6 +49,7 @@ let senderAddress: string
 let receiverAddress: string
 let proposedSeries: OptionSeriesStruct
 let proposedSeriesETH: OptionSeriesStruct
+let interactions: OpynInteractions
 
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
@@ -105,7 +106,7 @@ describe("Options protocol", function () {
 		receiverAddress = await signers[1].getAddress()
 		// deploy libraries
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
-		const interactions = await interactionsFactory.deploy()
+		interactions = (await interactionsFactory.deploy()) as OpynInteractions
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
@@ -174,9 +175,9 @@ describe("Options protocol", function () {
 		optionTokenUSDC = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 	})
 	it("Reverts: Tries to close oToken series that doesnt have a vault", async () => {
-		await expect(optionRegistry.close(optionTokenUSDC.address, toWei("2"))).to.be.revertedWith(
-			"NoVault()"
-		)
+		await expect(
+			optionRegistry.close(optionTokenUSDC.address, toWei("2"))
+		).to.be.revertedWithCustomError(optionRegistry, "NoVault")
 	})
 	it("Returns correct oToken when calling getOrDeployOtoken", async () => {
 		const [sender] = signers
@@ -310,11 +311,11 @@ describe("Options protocol", function () {
 		const optionRegistryReceiver = optionRegistry.connect(receiver)
 		await expect(
 			optionRegistryReceiver.close(optionTokenUSDC.address, toWei("1"))
-		).to.be.revertedWith("NotLiquidityPool()")
+		).to.be.revertedWithCustomError(optionRegistry, "NotLiquidityPool")
 		const optionRegistryReceiverETH = optionRegistryETH.connect(receiver)
 		await expect(
 			optionRegistryReceiverETH.close(optionTokenETH.address, toWei("1"))
-		).to.be.revertedWith("NotLiquidityPool()")
+		).to.be.revertedWithCustomError(optionRegistry, "NotLiquidityPool")
 	})
 
 	it("opens call option again with USDC", async () => {
@@ -423,8 +424,9 @@ describe("Options protocol", function () {
 			false
 		)
 		marginReq = (await optionRegistryETH.callUpperHealthFactor()).mul(marginReq).div(MAX_BPS)
-		await expect(optionRegistrySender.close(weth.address, value)).to.be.revertedWith(
-			"NonExistentSeries()"
+		await expect(optionRegistrySender.close(weth.address, value)).to.be.revertedWithCustomError(
+			optionRegistry,
+			"NonExistentSeries"
 		)
 	})
 	it("liquidityPool close and transaction succeeds ETH options", async () => {
@@ -464,19 +466,31 @@ describe("Options protocol", function () {
 		)
 		await expect(
 			optionRegistry.connect(receiver).open(optionTokenUSDC.address, value, collatAmount)
-		).to.be.revertedWith("NotLiquidityPool()")
+		).to.be.revertedWithCustomError(optionRegistry, "NotLiquidityPool")
 	})
 	it("Fails to settle early", async () => {
-		await expect(optionRegistry.settle(optionTokenUSDC.address)).to.be.revertedWith("NotExpired()")
+		await expect(optionRegistry.settle(optionTokenUSDC.address)).to.be.revertedWithCustomError(
+			optionRegistry,
+			"NotExpired"
+		)
 	})
 	it("Fails to redeem early", async () => {
-		await expect(optionRegistry.redeem(optionTokenUSDC.address)).to.be.revertedWith("NotExpired()")
+		await expect(optionRegistry.redeem(optionTokenUSDC.address)).to.be.revertedWithCustomError(
+			optionRegistry,
+			"NotExpired"
+		)
 	})
 	it("Fails to settle non-existent option", async () => {
-		await expect(optionRegistry.settle(ZERO_ADDRESS)).to.be.revertedWith("NonExistentSeries()")
+		await expect(optionRegistry.settle(ZERO_ADDRESS)).to.be.revertedWithCustomError(
+			optionRegistry,
+			"NonExistentSeries"
+		)
 	})
 	it("Fails to redeem non-existent option", async () => {
-		await expect(optionRegistry.redeem(ZERO_ADDRESS)).to.be.revertedWith("NonExistentSeries()")
+		await expect(optionRegistry.redeem(ZERO_ADDRESS)).to.be.revertedWithCustomError(
+			optionRegistry,
+			"NonExistentSeries"
+		)
 	})
 	it("#fastforwards time and sets oracle price", async () => {
 		const diff = 200
@@ -489,19 +503,22 @@ describe("Options protocol", function () {
 	})
 	it("Fails to create a USDC collataralised call option token series when expired", async () => {
 		const [sender] = signers
-		await expect(optionRegistry.issue(proposedSeries)).to.be.revertedWith("AlreadyExpired()")
+		await expect(optionRegistry.issue(proposedSeries)).to.be.revertedWithCustomError(
+			optionRegistry,
+			"AlreadyExpired"
+		)
 	})
 	it("Fails to open a USDC collataralised call option token series when expired", async () => {
 		const [sender] = signers
 		await expect(
 			optionRegistry.open(optionTokenUSDC.address, toWei("1"), toWei("1"))
-		).to.be.revertedWith("AlreadyExpired()")
+		).to.be.revertedWithCustomError(optionRegistry, "AlreadyExpired")
 	})
 	it("Fails to close a USDC collataralised call option token series when expired", async () => {
 		const [sender] = signers
-		await expect(optionRegistry.close(optionTokenUSDC.address, toWei("1"))).to.be.revertedWith(
-			"AlreadyExpired()"
-		)
+		await expect(
+			optionRegistry.close(optionTokenUSDC.address, toWei("1"))
+		).to.be.revertedWithCustomError(optionRegistry, "AlreadyExpired")
 	})
 	it("settles when option expires ITM USD collateral", async () => {
 		const [sender, receiver] = signers
@@ -525,7 +542,10 @@ describe("Options protocol", function () {
 		expect(newBalanceUSD.sub(balanceUSD)).to.equal(collatBal.sub(opUSDbal.mul(diff).div(100)))
 	})
 	it("reverts when attempt to settle again", async () => {
-		await expect(optionRegistry.settle(optionTokenUSDC.address)).to.be.revertedWith("NoShort()")
+		await expect(optionRegistry.settle(optionTokenUSDC.address)).to.be.revertedWithCustomError(
+			interactions,
+			"NoShort"
+		)
 	})
 	it("settles when option expires ITM ETH collateral", async () => {
 		const [sender, receiver] = signers
@@ -568,8 +588,9 @@ describe("Options protocol", function () {
 		expect(opBalSender).to.equal(0)
 	})
 	it("Fails when writer redeems twice", async () => {
-		await expect(optionRegistry.redeem(optionTokenUSDC.address)).to.be.revertedWith(
-			"InsufficientBalance()"
+		await expect(optionRegistry.redeem(optionTokenUSDC.address)).to.be.revertedWithCustomError(
+			optionRegistry,
+			"InsufficientBalance"
 		)
 	})
 	it("writer redeems when option expires ITM ETH collateral", async () => {
@@ -851,12 +872,17 @@ describe("Options protocol", function () {
 	})
 	it("sets the health threshold", async () => {
 		await optionRegistry.setHealthThresholds(1000, 1000, 1000, 1000)
+		console.log("first set")
 		expect(await optionRegistry.putLowerHealthFactor()).to.equal(1000)
+		console.log("second set")
 		expect(await optionRegistry.putUpperHealthFactor()).to.equal(1000)
+		console.log("third set")
 		expect(await optionRegistry.callLowerHealthFactor()).to.equal(1000)
+		console.log("fourth set")
 		expect(await optionRegistry.callUpperHealthFactor()).to.equal(1000)
-		await expect(optionRegistry.connect(receiverAddress).setHealthThresholds(1000, 1000, 1000, 1000))
-			.to.be.reverted
+		console.log("fifth set")
+		await expect(optionRegistry.connect(signers[1]).setHealthThresholds(1000, 1000, 1000, 1000)).to.be
+			.reverted
 	})
 	it("gets the series via issuance hash", async () => {
 		const issuance = await optionRegistry.getIssuanceHash(
