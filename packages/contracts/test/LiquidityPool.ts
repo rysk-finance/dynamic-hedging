@@ -33,6 +33,7 @@ import { VolatilityFeed } from "../types/VolatilityFeed"
 import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
+import { OptionsCompute } from "../types/OptionsCompute"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import {
 	setupTestOracle,
@@ -80,6 +81,7 @@ let putOptionToken2: IOToken
 let proposedSeries: any
 let handler: OptionHandler
 let authority: string
+let optionCompute: OptionsCompute
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
@@ -177,6 +179,8 @@ describe("Liquidity Pools", async () => {
 			to: signer.address,
 			value: ethers.utils.parseEther("10.0") // Sends exactly 10.0 ether
 		})
+		const customErrorsFactory = await ethers.getContractFactory("OptionsCompute")
+		optionCompute = (await customErrorsFactory.deploy()) as OptionsCompute
 		const forceSendContract = await ethers.getContractFactory("ForceSend")
 		const forceSend = await forceSendContract.deploy() // force Send is a contract that forces the sending of Ether to WBTC minter (which is a contract with no receive() function)
 		await forceSend
@@ -504,8 +508,9 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await usd.approve(handler.address, toWei("1000000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
-			"OptionExpiryInvalid()"
+		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"OptionExpiryInvalid"
 		)
 		await volFeed.setSabrParameters(
 			{
@@ -530,8 +535,9 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await usd.approve(handler.address, toWei("1000000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
-			"OptionExpiryInvalid()"
+		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"OptionExpiryInvalid"
 		)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
@@ -554,8 +560,9 @@ describe("Liquidity Pools", async () => {
 		}
 		// const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount, false))[0]
 		await usd.approve(handler.address, toWei("100000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
-			"OptionStrikeInvalid()"
+		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"OptionStrikeInvalid"
 		)
 		// Series with strike price too low
 
@@ -569,8 +576,9 @@ describe("Liquidity Pools", async () => {
 		}
 		// const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount, false))[0]
 		await usd.approve(handler.address, toWei("100000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
-			"OptionStrikeInvalid()"
+		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"OptionStrikeInvalid"
 		)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
@@ -607,8 +615,9 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await usd.approve(handler.address, toWei("1000000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
-			"OptionExpiryInvalid()"
+		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"OptionExpiryInvalid"
 		)
 		await volFeed.setSabrParameters(
 			{
@@ -633,8 +642,9 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 		await usd.approve(handler.address, toWei("1000000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
-			"OptionExpiryInvalid()"
+		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"OptionExpiryInvalid"
 		)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
@@ -657,8 +667,9 @@ describe("Liquidity Pools", async () => {
 		}
 		// const quote = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries1, amount, false))[0]
 		await usd.approve(handler.address, toWei("100000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWith(
-			"OptionStrikeInvalid()"
+		await expect(handler.issueAndWriteOption(proposedSeries1, amount)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"OptionStrikeInvalid"
 		)
 		// Series with strike price too low
 
@@ -672,8 +683,9 @@ describe("Liquidity Pools", async () => {
 		}
 		// const quote2 = (await liquidityPool.quotePriceWithUtilizationGreeks(proposedSeries2, amount, false))[0]
 		await usd.approve(handler.address, toWei("100000000"))
-		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWith(
-			"OptionStrikeInvalid()"
+		await expect(handler.issueAndWriteOption(proposedSeries2, amount)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"OptionStrikeInvalid"
 		)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
@@ -1141,7 +1153,10 @@ describe("Liquidity Pools", async () => {
 	it("fails if buyback token address is invalid", async () => {
 		const amount = toWei("1")
 		// ETH_ADDRESS is not a valid OToken address
-		await expect(handler.buybackOption(ETH_ADDRESS, amount)).to.be.revertedWith("NonExistentOtoken()")
+		await expect(handler.buybackOption(ETH_ADDRESS, amount)).to.be.revertedWithCustomError(
+			handler,
+			"NonExistentOtoken"
+		)
 	})
 	it("buys back an option from a non-whitelisted address if it moves delta closer to zero", async () => {
 		const amount = toWei("2")
@@ -1292,7 +1307,8 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		await expect(handler.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith(
+		await expect(handler.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWithCustomError(
+			liquidityPool,
 			"MaxLiquidityBufferReached"
 		)
 
@@ -1588,7 +1604,7 @@ describe("Liquidity Pools", async () => {
 				toWei("1"),
 				toWei("1")
 			])
-		).to.be.revertedWith("InvalidPrice()")
+		).to.be.revertedWithCustomError(handler, "InvalidPrice")
 	})
 	it("Create buy order reverts if order expiry too long", async () => {
 		const [sender, receiver] = signers
@@ -1610,10 +1626,10 @@ describe("Liquidity Pools", async () => {
 				toWei("1"),
 				toWei("1")
 			])
-		).to.be.revertedWith("OrderExpiryTooLong()")
+		).to.be.revertedWithCustomError(handler, "OrderExpiryTooLong")
 	})
 	it("cant exercise order if not buyer", async () => {
-		await expect(handler.executeOrder(1)).to.be.revertedWith("InvalidBuyer()")
+		await expect(handler.executeOrder(1)).to.be.revertedWithCustomError(handler, "InvalidBuyer")
 	})
 	it("Executes a buy order", async () => {
 		const [sender, receiver] = signers
@@ -1939,7 +1955,7 @@ describe("Liquidity Pools", async () => {
 
 		await expect(
 			handler.connect(receiver).buybackOption(buybackToken.address, amount)
-		).to.be.revertedWith("DeltaNotDecreased()")
+		).to.be.revertedWithCustomError(handler, "DeltaNotDecreased")
 		expect(ephemeralLiabilitiesBefore).to.eq(ephemeralLiabilitiesAfter)
 		expect(ephemeralDeltaBefore).to.eq(ephemeralDeltaAfter)
 	})
@@ -2011,7 +2027,10 @@ describe("Liquidity Pools", async () => {
 		// expect ephemeral values to be reset
 		expect(await liquidityPool.ephemeralDelta()).to.eq(0)
 		expect(await liquidityPool.ephemeralLiabilities()).to.eq(0)
-		await expect(handler.connect(receiver).executeOrder(orderId)).to.be.revertedWith("OrderExpired()")
+		await expect(handler.connect(receiver).executeOrder(orderId)).to.be.revertedWithCustomError(
+			handler,
+			"OrderExpired"
+		)
 	})
 	it("fails to execute invalid custom orders", async () => {
 		let customOrderPriceMultiplier = 0.93
@@ -2120,16 +2139,16 @@ describe("Liquidity Pools", async () => {
 		const createOrderEvent2 = events2?.find(x => x.event == "OrderCreated")
 		const invalidPriceOrderId = createOrderEvent2?.args?.orderId
 
-		await expect(handler.connect(receiver).executeOrder(invalidDeltaCallOrderId)).to.be.revertedWith(
-			"CustomOrderInvalidDeltaValue()"
-		)
-		await expect(handler.connect(receiver).executeOrder(invalidDeltaPutOrderId)).to.be.revertedWith(
-			"CustomOrderInvalidDeltaValue()"
-		)
+		await expect(
+			handler.connect(receiver).executeOrder(invalidDeltaCallOrderId)
+		).to.be.revertedWithCustomError(handler, "CustomOrderInvalidDeltaValue")
+		await expect(
+			handler.connect(receiver).executeOrder(invalidDeltaPutOrderId)
+		).to.be.revertedWithCustomError(handler, "CustomOrderInvalidDeltaValue")
 
-		await expect(handler.connect(receiver).executeOrder(invalidPriceOrderId)).to.be.revertedWith(
-			"CustomOrderInsufficientPrice()"
-		)
+		await expect(
+			handler.connect(receiver).executeOrder(invalidPriceOrderId)
+		).to.be.revertedWithCustomError(handler, "CustomOrderInsufficientPrice")
 	})
 
 	it("Can compute IV from volatility skew coefs", async () => {
@@ -2388,13 +2407,14 @@ describe("Liquidity Pools", async () => {
 		expect(collateralLost).to.equal(0)
 	})
 	it("Reverts: tries to sell an expired option back to the pool", async () => {
-		await expect(handler.buybackOption(putOptionToken2.address, toWei("3"))).to.be.revertedWith(
-			"OptionExpiryInvalid()"
-		)
+		await expect(
+			handler.buybackOption(putOptionToken2.address, toWei("3"))
+		).to.be.revertedWithCustomError(liquidityPool, "OptionExpiryInvalid")
 	})
 	it("Reverts: tries to write an option that doesnt exist in the handler", async () => {
-		await expect(handler.writeOption(ZERO_ADDRESS, toWei("3"))).to.be.revertedWith(
-			"NonExistentOtoken()"
+		await expect(handler.writeOption(ZERO_ADDRESS, toWei("3"))).to.be.revertedWithCustomError(
+			handler,
+			"NonExistentOtoken"
 		)
 	})
 	it("updates option params with setter", async () => {
@@ -2454,9 +2474,10 @@ describe("Liquidity Pools", async () => {
 	it("reverts when adding invalid reactor address", async () => {
 		await expect(
 			liquidityPool.setHedgingReactorAddress(uniswapV3HedgingReactor.address)
-		).to.be.revertedWith("ReactorAlreadyExists()")
-		await expect(liquidityPool.setHedgingReactorAddress(ZERO_ADDRESS)).to.be.revertedWith(
-			"InvalidAddress()"
+		).to.be.revertedWithCustomError(liquidityPool, "ReactorAlreadyExists")
+		await expect(liquidityPool.setHedgingReactorAddress(ZERO_ADDRESS)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"InvalidAddress"
 		)
 	})
 	it("sets new custom order bounds", async () => {
@@ -2577,11 +2598,15 @@ describe("Liquidity Pools", async () => {
 		expect(await optionProtocol.priceFeed()).to.eq(volFeed.address)
 	})
 	it("reverts when setting new handler address to zero", async () => {
-		await expect(liquidityPool.changeHandler(ZERO_ADDRESS, true)).to.be.revertedWith(
-			"InvalidAddress()"
+		await expect(liquidityPool.changeHandler(ZERO_ADDRESS, true)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"InvalidAddress"
 		)
 	})
 	it("reverts when setting new keeper address to zero", async () => {
-		await expect(liquidityPool.setKeeper(ZERO_ADDRESS, true)).to.be.revertedWith("InvalidAddress()")
+		await expect(liquidityPool.setKeeper(ZERO_ADDRESS, true)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"InvalidAddress"
+		)
 	})
 })

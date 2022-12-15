@@ -63,6 +63,7 @@ let opynAggregator: MockChainlinkAggregator
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
 let handler: AlphaOptionHandler
 let authority: string
+let accounting: Accounting
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
@@ -161,6 +162,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 			portfolioValuesFeed,
 			authority
 		)
+		accounting = lpParams.accounting
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		handler = lpParams.handler
@@ -316,9 +318,18 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 		})
 		it("Reverts: User 1: Tries Zero on all functions", async () => {
 			const user = senderAddress
-			await expect(liquidityPool.deposit(0)).to.be.revertedWith("InvalidAmount()")
-			await expect(liquidityPool.redeem(0)).to.be.revertedWith("InvalidShareAmount()")
-			await expect(liquidityPool.initiateWithdraw(0)).to.be.revertedWith("InvalidShareAmount()")
+			await expect(liquidityPool.deposit(0)).to.be.revertedWithCustomError(
+				liquidityPool,
+				"InvalidAmount"
+			)
+			await expect(liquidityPool.redeem(0)).to.be.revertedWithCustomError(
+				liquidityPool,
+				"InvalidShareAmount"
+			)
+			await expect(liquidityPool.initiateWithdraw(0)).to.be.revertedWithCustomError(
+				liquidityPool,
+				"InvalidShareAmount"
+			)
 		})
 		it("Reverts: User 1: Attempts to redeem before epoch initiation", async () => {
 			const user = senderAddress
@@ -326,16 +337,23 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 		})
 		it("Reverts: User 1: Attempts to initiate withdraw before epoch initiation", async () => {
 			const user = senderAddress
-			await expect(liquidityPool.initiateWithdraw(toWei("100000"))).to.be.revertedWith(
-				"InsufficientShareBalance()"
+			await expect(liquidityPool.initiateWithdraw(toWei("100000"))).to.be.revertedWithCustomError(
+				accounting,
+				"InsufficientShareBalance"
 			)
 		})
 		it("Reverts: User 1: Attempts to complete withdraw before epoch initiation", async () => {
 			const user = senderAddress
-			await expect(liquidityPool.completeWithdraw()).to.be.revertedWith("NoExistingWithdrawal()")
+			await expect(liquidityPool.completeWithdraw()).to.be.revertedWithCustomError(
+				accounting,
+				"NoExistingWithdrawal"
+			)
 		})
 		it("Reverts: execute epoch before pause", async () => {
-			await expect(liquidityPool.executeEpochCalculation()).to.be.revertedWith("TradingNotPaused()")
+			await expect(liquidityPool.executeEpochCalculation()).to.be.revertedWithCustomError(
+				liquidityPool,
+				"TradingNotPaused"
+			)
 		})
 		it("Succeeds: pauses trading", async () => {
 			await liquidityPool.pauseTradingAndRequest()
@@ -527,7 +545,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 					toWei("1"),
 					toWei("1")
 				])
-			).to.be.revertedWith("InvalidPrice()")
+			).to.be.revertedWithCustomError(handler, "InvalidPrice")
 		})
 		it("REVERTS: Cant create buy order if order expiry too long", async () => {
 			const [sender, receiver] = signers
@@ -549,10 +567,10 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 					toWei("1"),
 					toWei("1")
 				])
-			).to.be.revertedWith("OrderExpiryTooLong()")
+			).to.be.revertedWithCustomError(handler, "OrderExpiryTooLong")
 		})
 		it("REVERTS: cant exercise order if not buyer", async () => {
-			await expect(handler.executeOrder(1)).to.be.revertedWith("InvalidBuyer()")
+			await expect(handler.executeOrder(1)).to.be.revertedWithCustomError(handler, "InvalidBuyer")
 		})
 		it("SUCCEEDS: Executes a buy order", async () => {
 			const [sender, receiver] = signers
@@ -719,11 +737,12 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 		it("Reverts: User 3: Attempts to initiate withdraw before epoch initiation", async () => {
 			await expect(
 				liquidityPool.connect(signers[2]).initiateWithdraw(toWei("100000"))
-			).to.be.revertedWith("InsufficientShareBalance()")
+			).to.be.revertedWithCustomError(accounting, "InsufficientShareBalance")
 		})
 		it("Reverts: User 3: Attempts to complete withdraw before epoch initiation", async () => {
-			await expect(liquidityPool.connect(signers[2]).completeWithdraw()).to.be.revertedWith(
-				"NoExistingWithdrawal()"
+			await expect(liquidityPool.connect(signers[2]).completeWithdraw()).to.be.revertedWithCustomError(
+				accounting,
+				"NoExistingWithdrawal"
 			)
 		})
 		it("Succeed: User 1: redeems all shares", async () => {
@@ -1389,7 +1408,10 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 		})
 
 		it("Reverts: User 1: cannot complete withdrawal because of epoch not closed", async () => {
-			await expect(liquidityPool.completeWithdraw()).to.be.revertedWith("EpochNotClosed()")
+			await expect(liquidityPool.completeWithdraw()).to.be.revertedWithCustomError(
+				accounting,
+				"EpochNotClosed"
+			)
 		})
 		it("Succeeds: pauses trading", async () => {
 			await liquidityPool.pauseTradingAndRequest()
