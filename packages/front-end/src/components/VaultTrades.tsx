@@ -238,7 +238,7 @@ export const VaultTrades = () => {
                   b.timestamp.localeCompare(a.timestamp) ||
                   Number(b.timestamp) - Number(a.timestamp)
               )
-              .map((trade) => {
+              .map((trade, i) => {
                 return (
                   <>
                     <tr
@@ -249,6 +249,12 @@ export const VaultTrades = () => {
                         scope="row"
                         className="border-r border-black py-4 px-5 font-medium uppercase bg-bone-dark sticky left-0 z-1"
                       >
+                        {/** NOTE: if trades not going out of screen this goes to last trade and triggers fetchMore due to containerRef hook */}
+                        {i === trades.length - 1 && (
+                          <span
+                            ref={i === trades.length - 1 ? containerRef : null}
+                          />
+                        )}
                         {moment
                           .utc(trade.timestamp * 1000)
                           .format("DD-MMM-YY HH:mm")}{" "}
@@ -368,7 +374,6 @@ export const VaultTrades = () => {
               })}
           </tbody>
         </table>
-        <div ref={containerRef}></div>
       </FullScreen>
     </div>
   );
