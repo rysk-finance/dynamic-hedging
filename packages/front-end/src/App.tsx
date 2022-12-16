@@ -352,7 +352,32 @@ function App() {
         opynSubgraph, // <= apollo will send to this if clientName is "opyn"
         ryskSubgraph // <= otherwise will send to this
       ),
-      cache: new InMemoryCache(),
+      cache: new InMemoryCache({
+        typePolicies: {
+          Query: {
+            fields: {
+              writeOptionsActions: {
+                keyArgs: false,
+                merge(existing = [], incoming) {
+                  return [...existing, ...incoming];
+                },
+              },
+              buybackOptionActions: {
+                keyArgs: false,
+                merge(existing = [], incoming) {
+                  return [...existing, ...incoming];
+                },
+              },
+              rebalanceDeltaActions: {
+                keyArgs: false,
+                merge(existing = [], incoming) {
+                  return [...existing, ...incoming];
+                },
+              },
+            },
+          },
+        },
+      }),
     });
 
     setApolloClient(client);
