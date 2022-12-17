@@ -376,16 +376,18 @@ export const VaultTrades = () => {
               })}
             {loading && (
               <tr>
-                {Array.from(Array(7).keys()).map((el) => (
+                {Array.from(Array(8).keys()).map((el) => (
                   <td
                     key={el}
                     className={`bg-bone ${
                       el % 2 == 0 ? "bg-bone-dark" : "bg-bone"
                     }`}
                   >
-                    <ContentLoader width="75" height="45">
-                      <rect x="20" y="10" width="100%" height="13" />
-                    </ContentLoader>
+                    {el !== 7 && (
+                      <ContentLoader width="75" height="45">
+                        <rect x="20" y="10" width="100%" height="13" />
+                      </ContentLoader>
+                    )}
                   </td>
                 ))}
               </tr>
