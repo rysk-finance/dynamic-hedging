@@ -6,6 +6,7 @@ import NumberFormat from "react-number-format";
 import { optionSymbolFormat } from "../utils";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
 import useElementOnScreen from "../hooks/useElementOnScreen";
+import ContentLoader from "react-content-loader";
 
 const TEN_DAYS_IN_SECONDS = 864000;
 const TIMESTAMP_LIMIT = 1664553600;
@@ -67,7 +68,7 @@ export const VaultTrades = () => {
       ? CHAINID.ARBITRUM_RINKEBY
       : CHAINID.ARBITRUM_MAINNET;
 
-  const { fetchMore, data, ...rest } = useQuery(
+  const { fetchMore, data, loading } = useQuery(
     gql`
       query ($timestamp1: Int, $timestamp2: Int) {
         writeOptionsActions(
@@ -128,6 +129,7 @@ export const VaultTrades = () => {
         timestamp1: Math.floor(Date.now() / 1000) - TEN_DAYS_IN_SECONDS,
         timestamp2: Math.floor(Date.now() / 1000),
       },
+      notifyOnNetworkStatusChange: true,
     }
   );
 
@@ -210,7 +212,7 @@ export const VaultTrades = () => {
               </th>
               <th
                 scope="col"
-                className="py-3 bg-bone border-b-2 border-black border-dashed"
+                className="w-16 py-3 bg-bone border-b-2 border-black border-dashed"
               >
                 <svg
                   className={`w-full h-4 shrink-0 motion-reduce:animate-bounce ${
@@ -242,7 +244,7 @@ export const VaultTrades = () => {
                 return (
                   <>
                     <tr
-                      className="border-b text-black bg-bone-dark "
+                      className="border-b text-black bg-bone-dark"
                       key={trade.id}
                     >
                       <th
@@ -372,6 +374,17 @@ export const VaultTrades = () => {
                   </>
                 );
               })}
+            {loading && (
+              <tr>
+                {Array.from(Array(7).keys()).map((el) => (
+                  <td key={el}>
+                    <ContentLoader width="75" height="35">
+                      <rect x="20" y="10" width="100%" height="13" />
+                    </ContentLoader>
+                  </td>
+                ))}
+              </tr>
+            )}
           </tbody>
         </table>
       </FullScreen>
