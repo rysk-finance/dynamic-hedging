@@ -203,7 +203,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         } else {
             // active range target is below the current price
             // if the current price is below the lower tick
-            if (tick <= currentPosition.activeLowerTick) {
+            if (tick < currentPosition.activeLowerTick) {
                 _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
             } else {
                 revert CustomErrors.RangeOrderNotFilled();
