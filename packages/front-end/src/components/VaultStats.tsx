@@ -14,7 +14,7 @@ export const VaultStats = () => {
   useQuery(
     gql`
       query {
-        pricePerShares(orderBy: "id", orderDirection: "desc", first: 1) {
+        pricePerShares(orderBy: "timestamp", orderDirection: "desc", first: 1) {
           id
           epoch
           value
