@@ -84,14 +84,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     ///       events      ///
     /////////////////////////
 
-    event Minted(
-        address receiver,
-        uint256 mintAmount,
-        uint256 amount0In,
-        uint256 amount1In,
-        uint128 liquidityMinted
-    );
-
     event SetAuthorizedFulfill(
         bool onlyAuthorizedFulfill,
         address caller
