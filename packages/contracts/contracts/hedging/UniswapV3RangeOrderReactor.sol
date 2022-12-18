@@ -428,6 +428,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             // Only transfer in when collateral token is token0
             if (inversed && balance < amountDesired) {
                 uint256 transferAmount = amountDesired - balance;
+                uint256 parentPoolBalance = ILiquidityPool(parentLiquidityPool).getBalance(address(token0));
+                if (parentPoolBalance < transferAmount) { revert CustomErrors.WithdrawExceedsLiquidity(); }
                 SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), transferAmount);
             }
             token0.safeApprove(address(pool), amountDesired);
@@ -436,6 +438,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             uint256 balance = token1.balanceOf(address(this));
             if (!inversed && balance < amountDesired) {
                 uint256 transferAmount = amountDesired - balance;
+                uint256 parentPoolBalance = ILiquidityPool(parentLiquidityPool).getBalance(address(token1));
+                if (parentPoolBalance < transferAmount) { revert CustomErrors.WithdrawExceedsLiquidity(); }
                 SafeTransferLib.safeTransferFrom(address(token1), msg.sender, address(this), transferAmount);
             }
             token1.safeApprove(address(pool), amountDesired);
