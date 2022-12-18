@@ -37,14 +37,14 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     ERC20 public immutable token1;
     /// @notice address of the uniswap V3 factory
     address public immutable factory;
-    /// @notice uniswap v3 pool fee expressed at 10e6
-    uint24 public immutable poolFee;
 
 
     /////////////////////////////////////
     /// governance settable variables ///
     /////////////////////////////////////
 
+    /// @notice uniswap v3 pool fee expressed at 10e6
+    uint24 public poolFee;
     /// @notice instance of the uniswap V3 pool
     IUniswapV3Pool public pool;
     /// @notice limit to ensure we arent doing inefficient computation for dust amounts
@@ -89,6 +89,11 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         address caller
     );
 
+    event SetPoolFee(
+        uint24 poolFee,
+        address caller
+    );
+
     constructor(
     address _factory,
     address _collateralAsset,
@@ -120,6 +125,17 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         _onlyGovernor();
         onlyAuthorizedFulfill = _onlyAuthorizedFulfill;
         emit SetAuthorizedFulfill(_onlyAuthorizedFulfill, msg.sender);
+    }
+
+    /// @notice set the poolFee
+    function setPoolFee(uint24 _poolFee) external {
+        if (_inActivePosition()) {
+            revert CustomErrors.InActivePosition();
+        }
+        _onlyGovernor();
+        poolFee = _poolFee;
+        pool = IUniswapV3Pool(PoolAddress.getPoolAddress(factory, address(token0), address(token1), _poolFee));
+        emit SetPoolFee(_poolFee, msg.sender);
     }
 
     /// @notice Uniswap V3 callback fn, called back on pool.mint
