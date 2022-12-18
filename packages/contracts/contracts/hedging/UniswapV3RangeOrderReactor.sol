@@ -152,6 +152,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
     /// @notice returns the current price of the underlying asset and the inverse symbol price
     /// ie: USDC/WETH and WETH/USDC
+    /// @return price token0/token1 in 1e18 format
+    /// @return inversed token1/token0 in 1e18 format
     function getPoolPrice() public view returns (uint256 price, uint256 inversed){
         (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
         uint256 p = sqrtPriceX96 / (2 ** 96);
