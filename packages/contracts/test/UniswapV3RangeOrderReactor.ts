@@ -607,6 +607,14 @@ describe("UniswapV3RangeOrderReactor", () => {
 		)
 	})
 
+	it("Prevent changing the pool fee while a range order exists", async () => {
+		const setPoolFeeTx = uniswapV3RangeOrderReactor.setPoolFee(10000)
+		await expect(setPoolFeeTx).to.be.revertedWithCustomError(
+			uniswapV3RangeOrderReactor,
+			"InActivePosition"
+		)
+	})
+
 	it("Allows the manager to exit a range order when not fulfilled", async () => {
 		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
 		// non manager attempt should be reverted
@@ -624,5 +632,17 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(burnEvent.tickUpper).to.eq(activeUpperTick)
 		expect(activeLowerTickAfter).to.eq(0)
 		expect(activeUpperTickAfter).to.eq(0)
+	})
+
+	it("Allows the manager to change the pool fee", async () => {
+		const rejectedSetPoolFeeTx = uniswapV3RangeOrderReactor.connect(signers[1]).setPoolFee(10000)
+		await expect(rejectedSetPoolFeeTx).to.be.revertedWithCustomError(
+			uniswapV3RangeOrderReactor,
+			"UNAUTHORIZED"
+		)
+		const setPoolFeeTx = await uniswapV3RangeOrderReactor.setPoolFee(10000)
+		const receipt = await setPoolFeeTx.wait()
+		const poolFee = await uniswapV3RangeOrderReactor.poolFee()
+		expect(poolFee).to.eq(10000)
 	})
 })
