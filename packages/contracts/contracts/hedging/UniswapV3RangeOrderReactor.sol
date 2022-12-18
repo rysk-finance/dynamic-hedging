@@ -56,12 +56,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     /// dynamic variables ///
     /////////////////////////
 
-    /// @notice uniswap v3 pool lower tick spacing - set to 0 if no active range order
-    //int24 public activeLowerTick;
-    /// @notice uniswap v3 pool upper tick spacing - set to 0 if no active range order
-    //int24 public activeUpperTick;
-    /// @notice set to true if target is above tick at time of init position
-    //bool public activeRangeAboveTick;
     /// @notice current range order position
     Position public currentPosition;
 
