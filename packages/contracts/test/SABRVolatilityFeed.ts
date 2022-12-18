@@ -82,14 +82,14 @@ describe("Volatility Feed", async () => {
 		})
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = {
-				callAlpha: 6613557,
-				callBeta: 692108,
-				callRho: -355300,
-				callVolvol: 2526110,
-				putAlpha: 6613557,
-				putBeta: 692108,
-				putRho: -355300,
-				putVolvol: 2526110
+				callAlpha: 250000,
+				callBeta: 1000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1000000,
+				putRho: -300000,
+				putVolvol: 1_500000
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -106,14 +106,14 @@ describe("Volatility Feed", async () => {
 		})
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = {
-				callAlpha: 6613557,
-				callBeta: 692108,
-				callRho: -355300,
-				callVolvol: 2526110,
-				putAlpha: 6613557,
-				putBeta: 692108,
-				putRho: -355300,
-				putVolvol: 2526110
+				callAlpha: 250000,
+				callBeta: 1000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1000000,
+				putRho: -300000,
+				putVolvol: 1_500000
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -158,7 +158,7 @@ describe("Volatility Feed", async () => {
 		it("SUCCEEDS: get implied volatility for different strikes", async () => {
 			const underlyingPrice = toWei("100")
 			const strikePrices = [60, 80, 100, 120, 140, 160]
-			const ivs = [0.4657, 0.3383, 0.2528, 0.2591, 0.3073, 0.355]
+			const ivs = [0.4638, 0.3363, 0.2518, 0.2601, 0.3087, 0.356]
 			for (let i = 0; i < strikePrices.length; i++) {
 				const iv = await volFeed.getImpliedVolatility(
 					false,
@@ -166,7 +166,7 @@ describe("Volatility Feed", async () => {
 					toWei(strikePrices[i].toString()),
 					expiration
 				)
-				expect(tFormatEth(iv) - ivs[i]).to.be.within(-0.0011, 0.0011)
+				expect(tFormatEth(iv) - ivs[i]).to.be.within(-0.0025, 0.0025)
 			}
 		})
 		it("REVERTS: when strike is zero", async () => {
