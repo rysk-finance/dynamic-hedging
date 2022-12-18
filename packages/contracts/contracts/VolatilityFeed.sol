@@ -158,7 +158,7 @@ contract VolatilityFeed is AccessControl {
 		if (sabrParams_.callAlpha == 0) {
 			revert CustomErrors.IVNotFound();
 		}
-		int256 forwardPrice = int256(underlyingPrice) * (interestRate * time).exp2();
+		int256 forwardPrice = int256(underlyingPrice).mul((PRBMathSD59x18.exp(interestRate.mul(time))));
 		if (!isPut) {
 			vol = SABR.lognormalVol(
 				int256(strikePrice),

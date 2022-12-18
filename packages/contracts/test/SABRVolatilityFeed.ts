@@ -69,7 +69,7 @@ describe("Volatility Feed", async () => {
 	})
 	describe("VolatilityFeed: setup", async () => {
 		it("SETUP: set price quote", async () => {
-			const rate = "10000000000"
+			const rate = "119887500000"
 			await ethUSDAggregator.mock.latestRoundData.returns(
 				"55340232221128660932",
 				rate,
@@ -82,14 +82,14 @@ describe("Volatility Feed", async () => {
 		})
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = {
-				callAlpha: 250000,
-				callBeta: 1_000000,
-				callRho: -300000,
-				callVolvol: 1_500000,
-				putAlpha: 250000,
-				putBeta: 1_000000,
-				putRho: -300000,
-				putVolvol: 1_500000
+				callAlpha: 6613557,
+				callBeta: 692108,
+				callRho: -355300,
+				callVolvol: 2526110,
+				putAlpha: 6613557,
+				putBeta: 692108,
+				putRho: -355300,
+				putVolvol: 2526110
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -106,14 +106,14 @@ describe("Volatility Feed", async () => {
 		})
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = {
-				callAlpha: 250000,
-				callBeta: 1_000000,
-				callRho: -300000,
-				callVolvol: 1_500000,
-				putAlpha: 250000,
-				putBeta: 1_000000,
-				putRho: -300000,
-				putVolvol: 1_500000
+				callAlpha: 6613557,
+				callBeta: 692108,
+				callRho: -355300,
+				callVolvol: 2526110,
+				putAlpha: 6613557,
+				putBeta: 692108,
+				putRho: -355300,
+				putVolvol: 2526110
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -176,7 +176,7 @@ describe("Volatility Feed", async () => {
 				volFeed.getImpliedVolatility(false, underlyingPrice, toWei(strikePrice.toString()), expiration)
 			).to.be.revertedWith("IVNotFound()")
 		})
-		it("REVERTS: when strike is zero", async () => {
+		it("REVERTS: when price is zero", async () => {
 			const underlyingPrice = toWei("0")
 			const strikePrice = 160
 			await expect(
