@@ -445,7 +445,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			_createPathIncreasePosition(_isLong),
 			wETH,
 			_collateralSize,
-			(_collateralSize * 1e12).div(currentPrice).mul(1e18 - collateralSwapPriceTolerance),
+			(_collateralSize * 1e12).mul(1e18 - collateralSwapPriceTolerance).div(currentPrice),
 			_size.mul(currentPrice) * 1e12,
 			_isLong,
 			_isLong
@@ -665,13 +665,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				uint256 d = _amount.mul(position[2]).div(position[0]);
 				{
 					collateralToRemove =
-						(int256(position[1] / 1e12) -
-							(
-								((int256(position[0]) + int256(leverageFactor.mul(position[8]))) / 1e12).mul(1e18 - int256(d)).div(
-									int256(leverageFactor)
-								)
-							)) -
-						int256(_amount.mul(d).mul(position[8] / 1e12));
+						(int256(position[1] / 1e12) - ((int256(position[0]) / 1e12).mul(1e18 - int256(d)).div(int256(leverageFactor)))) -
+						int256(position[8] / 1e12);
 				}
 			}
 			uint256 adjustedCollateralToRemove;
@@ -706,7 +701,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	 *	@return USD size to change position by. e30
 	 */
 	function _getPositionSizeDeltaUsd(uint256 _size, uint256 positionSize) private view returns (uint256) {
-		return _size.div(uint256(internalDelta.abs())).mul(positionSize);
+		return _size.mul(positionSize).div(uint256(internalDelta.abs()));
 	}
 
 	// ---- functions to force execution in case of GMX keeper failure
