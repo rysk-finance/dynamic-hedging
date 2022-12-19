@@ -306,7 +306,9 @@ describe("GMX Hedging Reactor", () => {
 
 		const usdcBalanceBeforeLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
 		const delta = 2
-		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta / 2}`), 2)
+		await executeDecreasePosition()
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta / 2}`), 2)
 		await executeDecreasePosition()
 
 		const usdcBalanceAfterReactor = parseFloat(utils.formatUnits(await usdc.balanceOf(gmxReactor.address), 6))
@@ -375,7 +377,8 @@ describe("GMX Hedging Reactor", () => {
 		// set price to $1400
 		// should be $6000 unrealised profit
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1400", 8))
-		const delta = -5
+		const delta1 = -4
+		const delta2 = -1
 
 		const usdcBalanceBeforeLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
 
@@ -388,7 +391,9 @@ describe("GMX Hedging Reactor", () => {
 		)
 		console.log({ positionsBefore })
 
-		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta1}`), 2)
+		await executeDecreasePosition()
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta2}`), 2)
 		await executeDecreasePosition()
 
 		const usdcBalanceAfterLP = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
@@ -668,7 +673,8 @@ describe("GMX Hedging Reactor", () => {
 	it("closes short in loss and flips long", async () => {
 		// currently short 15 delta
 		// go long 25 delta
-		const delta = -25
+		const delta1 = -5
+		const delta2 = -20
 		// set price to $1600
 		// should be $3500 unrealised loss
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1600", 8))
@@ -684,7 +690,13 @@ describe("GMX Hedging Reactor", () => {
 		)
 		expect(parseFloat(utils.formatUnits(shortPositionBefore[8], 30))).to.eq(3500)
 
-		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta1}`), 2)
+		// -------- execute the decrease short request
+		await executeDecreasePosition()
+		// -------- execute the increase long request
+		await executeIncreasePosition()
+
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta2}`), 2)
 		// -------- execute the decrease short request
 		await executeDecreasePosition()
 		// -------- execute the increase long request
@@ -718,7 +730,7 @@ describe("GMX Hedging Reactor", () => {
 		const usdcBalanceDiff = usdcBalanceAfterLP - usdcBalanceBeforeLP
 
 		const expectedUdscDiff = parseFloat(utils.formatUnits(shortPositionBefore[1].sub(shortPositionBefore[8]), 30)) - 8000
-		expect(usdcBalanceDiff).to.be.within(expectedUdscDiff - 30, expectedUdscDiff)
+		expect(usdcBalanceDiff).to.be.within(expectedUdscDiff - 50, expectedUdscDiff)
 
 		// check internalDelta var is correct
 		const deltaAfter = await gmxReactor.internalDelta()
