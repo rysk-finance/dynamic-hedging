@@ -432,7 +432,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
                 if (parentPoolBalance < transferAmount) { revert CustomErrors.WithdrawExceedsLiquidity(); }
                 SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), transferAmount);
             }
-            token0.safeApprove(address(pool), amountDesired);
         } else {
             amount1Desired = amountDesired;
             uint256 balance = token1.balanceOf(address(this));
@@ -442,7 +441,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
                 if (parentPoolBalance < transferAmount) { revert CustomErrors.WithdrawExceedsLiquidity(); }
                 SafeTransferLib.safeTransferFrom(address(token1), msg.sender, address(this), transferAmount);
             }
-            token1.safeApprove(address(pool), amountDesired);
         }
 
         uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
