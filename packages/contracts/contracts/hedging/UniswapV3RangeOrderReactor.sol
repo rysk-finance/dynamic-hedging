@@ -13,7 +13,6 @@ import "../libraries/OptionsCompute.sol";
 import "../libraries/SafeTransferLib.sol";
 import "../libraries/CustomErrors.sol";
 import "../PriceFeed.sol";
-import "hardhat/console.sol";
 
 contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, AccessControl {
 
@@ -187,7 +186,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
     /// @notice Permissionlessly when flag disabled withdraws liquidity from an active range if it's 100% in the position target
     function fulfillActiveRangeOrder() external {
-        if (onlyAuthorizedFulfill && msg.sender != authority.manager()) {
+        if (onlyAuthorizedFulfill && !_isManagement()) {
             revert CustomErrors.UnauthorizedFulfill();
         }
         (, int24 tick, , , , , ) = pool.slot0();
@@ -596,6 +595,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         returns (uint256)
     {
         return PriceFeed(priceFeed).getNormalizedRate(underlying, _strikeAsset);
+    }
+
+    function _isManagement() private view returns (bool) {
+        bool isGuardian = authority.guardian(msg.sender);
+        bool isGovernor = msg.sender == authority.governor();
+        bool isManager = msg.sender == authority.manager();
+        return isGovernor || isGuardian || isManager;
     }
 
     /**
