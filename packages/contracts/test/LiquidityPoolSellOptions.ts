@@ -92,6 +92,7 @@ let oTokenUSDCXC: Otoken
 let oTokenUSDCSXC: Otoken
 let oTokenETH1500C: Otoken
 let oTokenETH1600C: Otoken
+let oTokenUSDC1650C: Otoken
 let oTokenBUSD3000P: Otoken
 let oTokenUSDCXCLaterExp2: Otoken
 let collateralAllocatedToVault1: BigNumber
@@ -785,8 +786,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				usd.address,
 			)
 			const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
-			oTokenUSDCXC = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
-			optionToken = oTokenUSDCXC
+			oTokenUSDC1650C = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
+			optionToken = oTokenUSDC1650C
 			const putBalance = await optionToken.balanceOf(senderAddress)
 			collateralAllocatedToVault1 = await liquidityPool.collateralAllocated()
 			const balanceNew = await usd.balanceOf(senderAddress)
@@ -808,6 +809,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				collateral: usd.address
 			}
 			const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
+			const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 			const quote = (
 				await pricer.quoteOptionPrice(proposedSeries, amount, false)
 			)[0]
@@ -892,14 +894,15 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const pfListAfter = await portfolioValuesFeed.getAddressSet()
 			const storesAfter = await portfolioValuesFeed.storesForAddress(optionToken.address)
 			const balanceNew = await usd.balanceOf(senderAddress)
+			const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 			const opynAmount = toOpyn(fromWei(amount))
 			const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
 			expect(await optionToken.balanceOf(exchange.address)).to.eq(0)
 			expect(balanceNew.sub(balance).sub(quote).add(marginRequirement)).to.be.within(-10,10)
-			expect(poolBalanceDiff.sub(quote)).to.be.within(-10, 10)
+			expect(poolBalanceDiff.sub(quote).add(collateralAllocatedBefore.sub(collateralAllocatedAfter))).to.be.within(-10, 10)
 			expect(await exchange.heldOtokens(senderAddress, seriesAddress)).to.equal(0)
-			expect((pfListAfter.length - pfListBefore.length)).to.equal(1)
-			expect(storesAfter.longExposure).to.equal(amount)
+			expect((pfListAfter.length - pfListBefore.length)).to.equal(0)
+			expect(storesAfter.longExposure).to.equal(0)
 			expect(storesAfter.shortExposure).to.equal(0)
 			expect(storesAfter.optionSeries.expiration).to.equal(proposedSeries.expiration)
 			expect(storesAfter.optionSeries.isPut).to.equal(proposedSeries.isPut)
@@ -941,6 +944,10 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 
 		it("REVERTS: cant write eth options to the liquidity pool", async () => {
 			const amount = toWei("4")
+			const quote = (
+				await pricer.quoteOptionPrice(proposedSeries, amount, false)
+			)[0]
+			await usd.approve(exchange.address, quote)
 			await expect(exchange.operate([
 				{
 					operation: 1,

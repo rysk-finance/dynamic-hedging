@@ -606,7 +606,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 						)
 				);
 			}
-			console.log(transferAmount, min(tempHoldings, transferAmount));
 			// want to check if they have any otokens in their wallet and send those here
 			if (transferAmount > min(tempHoldings, transferAmount)) {
 				SafeTransferLib.safeTransferFrom(
