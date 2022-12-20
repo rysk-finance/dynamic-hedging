@@ -230,6 +230,23 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter)
 	})
 
+	it("Returns proper pool prices", async () => {
+		const ONE = (10 ** 18).toString()
+		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const weth_usdc_price = poolInfo.token1Price.toFixed(18)
+		const usdc_weth_price = poolInfo.token0Price.toFixed(18)
+		const { price, inversed } = await uniswapV3RangeOrderReactor.getPoolPrice()
+		//const priceDecimals = price.div(BigNumber.from(ONE)).toNumber()
+		const priceDecimals = fromWei(price)
+		//const inversedDecimals = inversed.div(BigNumber.from(ONE)).toNumber()
+		const inversedDecimals = fromWei(inversed)
+		const priceDifference = Number(usdc_weth_price) - Number(priceDecimals)
+		const inversedDifference = Number(weth_usdc_price) - Number(inversedDecimals)
+		expect(priceDifference).to.be.eq(0)
+		// some loss of precision is expected in conversion, but very little
+		expect(inversedDifference).to.be.lt(10e-10)
+	})
+
 	it("Enters a range to hedge a negative delta", async () => {
 		const currentPosition = await uniswapV3RangeOrderReactor.currentPosition()
 		expect(currentPosition.activeLowerTick).to.equal(0)
