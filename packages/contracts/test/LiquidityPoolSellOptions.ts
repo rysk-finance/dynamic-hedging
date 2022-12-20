@@ -728,6 +728,74 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(storesAfter.optionSeries.strikeAsset).to.equal(proposedSeries.strikeAsset).to.equal(usd.address)
 			expect(storesAfter.optionSeries.strike).to.equal(proposedSeries.strike)
 		})
+		it("LP Writes a ETH/USD call for premium for an option to be sold", async () => {
+			const [sender] = signers
+			const amount = toWei("5")
+			const strikePrice = toWei("1650")
+			const proposedSeries = {
+				expiration: expiration2,
+				strike: strikePrice,
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			const EthPrice = await oracle.getPrice(weth.address)
+			const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
+			const quote = (
+				await pricer.quoteOptionPrice(proposedSeries, amount, false)
+			)[0]
+			await usd.approve(exchange.address, quote)
+			const balance = await usd.balanceOf(senderAddress)
+			await exchange.operate([
+				{
+					operation: 1,
+					operationQueue: [{
+						actionType: 0,
+						owner: ZERO_ADDRESS,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: 0,
+						optionSeries: proposedSeries,
+						index: 0,
+						data: "0x"
+					}, {
+						actionType: 1,
+						owner: ZERO_ADDRESS,
+						secondAddress: senderAddress,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: proposedSeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])
+			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const localDelta = await calculateOptionDeltaLocally(
+				liquidityPool,
+				priceFeed,
+				proposedSeries,
+				toWei("5"),
+				true
+			)
+			await portfolioValuesFeed.fulfill(
+				weth.address,
+				usd.address,
+			)
+			const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
+			oTokenUSDCXC = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
+			optionToken = oTokenUSDCXC
+			const putBalance = await optionToken.balanceOf(senderAddress)
+			collateralAllocatedToVault1 = await liquidityPool.collateralAllocated()
+			const balanceNew = await usd.balanceOf(senderAddress)
+			const opynAmount = toOpyn(fromWei(amount))
+			expect(putBalance).to.eq(opynAmount)
+			// ensure funds are being transfered
+			expect(tFormatUSDC(balance.sub(balanceNew)) - tFormatUSDC(quote)).to.be.lt(0.1)
+			const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
+		})
 		it("SUCCEEDS: LP Sells a ETH/USD call for premium creating otoken in tx", async () => {
 			const amount = toWei("5")
 			const strikePrice = toWei("1650")
@@ -826,7 +894,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const balanceNew = await usd.balanceOf(senderAddress)
 			const opynAmount = toOpyn(fromWei(amount))
 			const poolBalanceDiff = poolBalanceBefore.sub(poolBalanceAfter)
-			expect(await optionToken.balanceOf(exchange.address)).to.eq(opynAmount)
+			expect(await optionToken.balanceOf(exchange.address)).to.eq(0)
 			expect(balanceNew.sub(balance).sub(quote).add(marginRequirement)).to.be.within(-10,10)
 			expect(poolBalanceDiff.sub(quote)).to.be.within(-10, 10)
 			expect(await exchange.heldOtokens(senderAddress, seriesAddress)).to.equal(0)

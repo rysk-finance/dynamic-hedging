@@ -595,10 +595,20 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		heldOtokens[msg.sender][seriesAddress] -= min(tempHoldings, _args.amount);
 		if (shortExposure > 0) {
 			uint256 transferAmount = min(uint256(shortExposure), _args.amount);
+			// will transfer any tempHoldings they have here to the liquidityPool
 			if (tempHoldings > 0) {
-				ERC20(seriesAddress).approve(address(liquidityPool), min(tempHoldings, transferAmount));
+				SafeTransferLib.safeTransfer(
+						ERC20(seriesAddress),
+						address(liquidityPool),
+						OptionsCompute.convertToDecimals(
+							min(tempHoldings, transferAmount),
+							ERC20(seriesAddress).decimals()
+						)
+				);
 			}
-			if (transferAmount >= min(tempHoldings, transferAmount)) {
+			console.log(transferAmount, min(tempHoldings, transferAmount));
+			// want to check if they have any otokens in their wallet and send those here
+			if (transferAmount > min(tempHoldings, transferAmount)) {
 				SafeTransferLib.safeTransferFrom(
 					seriesAddress,
 					msg.sender,
