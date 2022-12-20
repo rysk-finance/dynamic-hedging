@@ -26,6 +26,8 @@ contract VolatilityFeed is AccessControl {
 	mapping(address => bool) public keeper;
 	// expiry array
 	uint256[] public expiries;
+	// interest rate in e18 decimals
+	int256 public interestRate;
 
 	//////////////////////////
 	/// constant variables ///
@@ -118,6 +120,14 @@ contract VolatilityFeed is AccessControl {
 		);
 	}
 
+	/// @notice set the interest rate that is used to compute forward price
+	function setInterestRate(
+		int256 _interestRate
+	) public {
+		_onlyGovernor();
+		interestRate = _interestRate;
+	}
+
 	/// @notice update the keepers
 	function setKeeper(address _keeper, bool _auth) external {
 		_onlyGovernor();
@@ -148,10 +158,11 @@ contract VolatilityFeed is AccessControl {
 		if (sabrParams_.callAlpha == 0) {
 			revert CustomErrors.IVNotFound();
 		}
+		int256 forwardPrice = int256(underlyingPrice).mul((PRBMathSD59x18.exp(interestRate.mul(time))));
 		if (!isPut) {
 			vol = SABR.lognormalVol(
 				int256(strikePrice),
-				int256(underlyingPrice),
+				forwardPrice,
 				time,
 				sabrParams_.callAlpha * BIPS_SCALE,
 				sabrParams_.callBeta * BIPS_SCALE,
@@ -161,7 +172,7 @@ contract VolatilityFeed is AccessControl {
 		} else {
 			vol = SABR.lognormalVol(
 				int256(strikePrice),
-				int256(underlyingPrice),
+				forwardPrice,
 				time,
 				sabrParams_.putAlpha * BIPS_SCALE,
 				sabrParams_.putBeta * BIPS_SCALE,

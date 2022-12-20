@@ -1,6 +1,7 @@
 import numpy as np
 from eth_abi import encode_single
 import argparse
+import math
 
 def main(args): 
     # convert expiration to dte
@@ -9,10 +10,16 @@ def main(args):
         rho = -args.rho
     else:
         rho = args.rho
+    if args.isInterestRateNegative == 1:
+        interestRate = -args.interestRate
+    else:
+        interestRate = args.interestRate
+    # convert spot to forward
+    f = (args.f / 1e18) *  math.exp((interestRate / 1e18) * dte)
     # calculate vol
     vol = lognormal_vol(
         args.k / 1e18, 
-        args.f / 1e18, 
+        f, 
         dte,
         args.alpha / 1e6,
         args.beta / 1e6,
@@ -70,6 +77,9 @@ def parse_args():
     parser.add_argument("--rho", type=int)
     parser.add_argument("--nu", type=int)
     parser.add_argument("--isRhoNegative", type=int)
+    parser.add_argument("--interestRate", type=int)
+    parser.add_argument("--isInterestRateNegative", type=int)
+
     return parser.parse_args()
 
 if __name__ == '__main__':
