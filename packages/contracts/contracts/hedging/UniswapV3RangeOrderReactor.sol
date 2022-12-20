@@ -13,6 +13,7 @@ import "../libraries/OptionsCompute.sol";
 import "../libraries/SafeTransferLib.sol";
 import "../libraries/CustomErrors.sol";
 import "../PriceFeed.sol";
+import "hardhat/console.sol";
 
 contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, AccessControl {
 
@@ -156,16 +157,10 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     /// @return inversed token1/token0 in 1e18 format
     function getPoolPrice() public view returns (uint256 price, uint256 inversed){
         (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-        uint256 p = sqrtPriceX96 / (2 ** 96);
-        price = p ** 2;
-        bool token1DecimalsGTE = token1.decimals() >= token0.decimals();
-        if (token1DecimalsGTE){
-            inversed = (1e18 / price) * (10 ** (token1.decimals() - token0.decimals()));
-        } else {
-            inversed = (10 ** token1.decimals()) / price;
-        }
-        // 1e18 format
-        price = price * (10 ** token0.decimals());
+        uint256 p = uint256(sqrtPriceX96) * uint256(sqrtPriceX96) * (10 ** token0.decimals());
+        // token0/token1 in 1e18 format
+        price = p / (2 ** 192);
+        inversed = 1e36 / price;
     }
 
     /// @notice allows the manager to create a range order of custom tick width
