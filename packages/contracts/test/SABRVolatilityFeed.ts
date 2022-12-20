@@ -73,7 +73,7 @@ describe("Volatility Feed", async () => {
 	})
 	describe("VolatilityFeed: setup", async () => {
 		it("SETUP: set price quote", async () => {
-			const rate = "10000000000"
+			const rate = "119887500000"
 			await ethUSDAggregator.mock.latestRoundData.returns(
 				"55340232221128660932",
 				rate,
@@ -87,11 +87,11 @@ describe("Volatility Feed", async () => {
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = {
 				callAlpha: 250000,
-				callBeta: 1_000000,
+				callBeta: 1000000,
 				callRho: -300000,
 				callVolvol: 1_500000,
 				putAlpha: 250000,
-				putBeta: 1_000000,
+				putBeta: 1000000,
 				putRho: -300000,
 				putVolvol: 1_500000
 			}
@@ -111,11 +111,11 @@ describe("Volatility Feed", async () => {
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = {
 				callAlpha: 250000,
-				callBeta: 1_000000,
+				callBeta: 1000000,
 				callRho: -300000,
 				callVolvol: 1_500000,
 				putAlpha: 250000,
-				putBeta: 1_000000,
+				putBeta: 1000000,
 				putRho: -300000,
 				putVolvol: 1_500000
 			}
@@ -162,7 +162,7 @@ describe("Volatility Feed", async () => {
 		it("SUCCEEDS: get implied volatility for different strikes", async () => {
 			const underlyingPrice = toWei("100")
 			const strikePrices = [60, 80, 100, 120, 140, 160]
-			const ivs = [0.4657, 0.3383, 0.2528, 0.2591, 0.3073, 0.355]
+			const ivs = [0.4638, 0.3363, 0.2518, 0.2601, 0.3087, 0.356]
 			for (let i = 0; i < strikePrices.length; i++) {
 				const iv = await volFeed.getImpliedVolatility(
 					false,
@@ -170,7 +170,7 @@ describe("Volatility Feed", async () => {
 					toWei(strikePrices[i].toString()),
 					expiration
 				)
-				expect(tFormatEth(iv) - ivs[i]).to.be.within(-0.0011, 0.0011)
+				expect(tFormatEth(iv) - ivs[i]).to.be.within(-0.0025, 0.0025)
 			}
 		})
 		it("REVERTS: when strike is zero", async () => {
@@ -180,7 +180,7 @@ describe("Volatility Feed", async () => {
 				volFeed.getImpliedVolatility(false, underlyingPrice, toWei(strikePrice.toString()), expiration)
 			).to.be.revertedWith("IVNotFound()")
 		})
-		it("REVERTS: when strike is zero", async () => {
+		it("REVERTS: when price is zero", async () => {
 			const underlyingPrice = toWei("0")
 			const strikePrice = 160
 			await expect(
