@@ -27,6 +27,7 @@ contract SABRTest is Test {
 		);
 		startExpiry = block.timestamp + 30 * 24 * 60 * 60;
 		volFeed.setSabrParameters(_sabrParams, startExpiry);
+		volFeed.setInterestRate(-51466918013879405);
 	}
 
 	function testSABRGetKeeper() public {
@@ -201,9 +202,12 @@ contract SABRTest is Test {
 		uint256 underlyingPrice = 100e18;
 		uint256 strikePrice = 120e18;
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
-		assertApproxEqAbs(vol, 0.2591e18, 1e14);
+		assertApproxEqAbs(vol, 0.2601e18, 1e14);
         (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
-        uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu);
+        uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu, volFeed.interestRate());
+
+		console.log(vol);
+        console.log(expectedVol);
         assertApproxEqAbs(vol, expectedVol, 1e4);
 	}
 
@@ -214,7 +218,9 @@ contract SABRTest is Test {
 		uint256 strikePrice = 120e18;
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
         (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
-        uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu);
+		uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu, volFeed.interestRate());
+        console.log(vol);
+        console.log(expectedVol);
         assertApproxEqAbs(vol, expectedVol, 1e8);
 	}
 
@@ -225,11 +231,13 @@ contract SABRTest is Test {
         uint256 strikePrice = 2000e18;
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
         (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
-        uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu);
+        uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu, volFeed.interestRate());
+        console.log(vol);
+        console.log(expectedVol);
         assertApproxEqAbs(vol, expectedVol, 1e8);
 	}
 
-	function testSABRFuzzBetaGetImpliedVolatility(int32 beta) public {
+	function testSABRFFIFuzzBetaGetImpliedVolatility(int32 beta) public {
 		vm.assume(beta > 0);
 		vm.assume(beta < 1000000);
 		VolatilityFeed.SABRParams memory _sabrParams = VolatilityFeed.SABRParams(
@@ -249,18 +257,22 @@ contract SABRTest is Test {
 		uint256 strikePrice = 120e18;
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
         (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
-        uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu);
+        uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu, volFeed.interestRate());
+        console.log(vol);
+        console.log(expectedVol);
         assertApproxEqAbs(vol, expectedVol, 1e5);
 	}
 
-	function testSABRFuzzStrikeGetImpliedVolatility(uint80 strikePrice) public {
+	function testSABRFFIFuzzStrikeGetImpliedVolatility(uint80 strikePrice) public {
         vm.assume(strikePrice > 10e18);
 		uint256 expiration = startExpiry;
 		bool isPut = false;
         uint256 underlyingPrice = 100e18;
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
         (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
-        uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu);
+        uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu, volFeed.interestRate());
+        console.log(vol);
+        console.log(expectedVol);
         assertApproxEqAbs(vol, expectedVol, 1e9);
 	}
 
@@ -271,14 +283,20 @@ contract SABRTest is Test {
 		int256 alpha,
 		int256 beta,
 		int256 rho,
-		int256 nu
+		int256 nu,
+		int256 interestRate
 	) private returns (uint256) {
         uint256 isRhoNegative;
+		uint256 isInterestRateNegative;
         if (rho < 0) {
             isRhoNegative = 1;
             rho = -rho;
         }
-        string[] memory inputs = new string[](20);
+		if (interestRate < 0) {
+			isInterestRateNegative = 1;
+			interestRate = -interestRate;
+		}
+        string[] memory inputs = new string[](24);
         inputs[0] = "python3";
         inputs[1] = "test/foundry/sabr.py";
         inputs[2] = "--k";
@@ -299,6 +317,10 @@ contract SABRTest is Test {
         inputs[17] = uint256(nu).toString(); 
         inputs[18] = "--isRhoNegative";
         inputs[19] = uint256(isRhoNegative).toString();
+		inputs[20] = "--interestRate";
+		inputs[21] = uint256(interestRate).toString();
+		inputs[22] = "--isInterestRateNegative";
+        inputs[23] = uint256(isInterestRateNegative).toString();
         bytes memory res = vm.ffi(inputs);
         uint256 vol = abi.decode(res, (uint256));
         return vol;
