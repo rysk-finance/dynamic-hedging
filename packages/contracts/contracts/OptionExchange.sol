@@ -15,11 +15,12 @@ import "./libraries/SafeTransferLib.sol";
 import "./libraries/OpynInteractions.sol";
 
 import "./interfaces/IWhitelist.sol";
-import "./interfaces/IHedgingReactor.sol";
-import "./interfaces/AddressBookInterface.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
+import "./interfaces/IHedgingReactor.sol";
+import "./interfaces/AddressBookInterface.sol";
 import "./interfaces/IAlphaPortfolioValuesFeed.sol";
+
 import "./libraries/RyskActions.sol";
 import "./libraries/CombinedActions.sol";
 
@@ -27,8 +28,8 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 
 import "@openzeppelin/contracts/security/Pausable.sol";
-import { IOtoken, IController } from "./interfaces/GammaInterface.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import { IOtoken, IController } from "./interfaces/GammaInterface.sol";
 
 import "hardhat/console.sol";
 
@@ -357,7 +358,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_runActions(_operationProcedures);
 		address[] memory interactedSeries = tempSeriesQueue[msg.sender];
 		uint256 arr = interactedSeries.length;
-		for (uint256 i=0; i < arr; i++ ) {
+		for (uint256 i = 0; i < arr; i++) {
 			if (heldOtokens[msg.sender][interactedSeries[i]] != 0) {
 				revert OtokenImbalance();
 			}
@@ -390,10 +391,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				revert UnauthorisedSender();
 			}
 			// users need to have this contract approved as an operator so it can carry out actions on the user's behalf
-			if (!controller.isOperator(msg.sender, address(this))){
+			if (!controller.isOperator(msg.sender, address(this))) {
 				revert OperatorNotApproved();
 			}
- 		if (actionType == IController.ActionType.DepositLongOption) {
+			if (actionType == IController.ActionType.DepositLongOption) {
 				// TODO: make work with negative heldOtokens
 				require(action.secondAddress == msg.sender, "Unauthorised Sender");
 				// check the from address to make sure it comes from the user or if we are holding them temporarily then they are held here
@@ -439,6 +440,32 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				_sellOption(RyskActions._parseSellOptionArgs(action));
 			}
 		}
+	}
+
+	/**
+	 * @notice create an otoken, distinguished from issue because we may not want this option on the option registry
+	 * @param optionSeries - otoken to create (strike in e18)
+	 * @return series the address of the otoken created
+	 */
+	function createOtoken(Types.OptionSeries memory optionSeries)
+		external
+		returns (address series)
+	{
+		// deploy an oToken contract address
+		// assumes strike is passed in e18, converts to e8
+		uint128 formattedStrike = uint128(
+			formatStrikePrice(optionSeries.strike, optionSeries.collateral)
+		);
+		// check for an opyn oToken if it doesn't exist deploy it
+		series = OpynInteractions.getOrDeployOtoken(
+			address(addressbook.getOtokenFactory()),
+			optionSeries.collateral,
+			optionSeries.underlying,
+			optionSeries.strikeAsset,
+			formattedStrike,
+			optionSeries.expiration,
+			optionSeries.isPut
+		);
 	}
 
 	/**
@@ -576,7 +603,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 					seriesAddress,
 					msg.sender,
 					address(liquidityPool),
-					OptionsCompute.convertToDecimals(transferAmount - min(tempHoldings, transferAmount), ERC20(seriesAddress).decimals())
+					OptionsCompute.convertToDecimals(
+						transferAmount - min(tempHoldings, transferAmount),
+						ERC20(seriesAddress).decimals()
+					)
 				);
 			}
 			uint256 soldBackAmount = liquidityPool.handlerBuybackOption(
@@ -666,7 +696,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/// internal utilities ///
 	//////////////////////////
 
-	function _getOptionDetails(address seriesAddress, Types.OptionSeries memory optionSeries, IOptionRegistry optionRegistry)
+	function _getOptionDetails(
+		address seriesAddress,
+		Types.OptionSeries memory optionSeries,
+		IOptionRegistry optionRegistry
+	)
 		internal
 		view
 		returns (
@@ -762,7 +796,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		if (optionSeries.strikeAsset != strikeAsset) {
 			revert CustomErrors.StrikeAssetInvalid();
 		}
-		
 	}
 
 	/**
@@ -831,11 +864,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	}
 
 	function _updateTempHoldings(IController.ActionArgs memory action) internal {
-			if (heldOtokens[msg.sender][action.asset] == 0){
-				tempSeriesQueue[msg.sender].push(action.asset);
-			}
-			heldOtokens[msg.sender][action.asset] += action.amount * 10 ** CONVERSION_DECIMALS;
-		
+		if (heldOtokens[msg.sender][action.asset] == 0) {
+			tempSeriesQueue[msg.sender].push(action.asset);
+		}
+		heldOtokens[msg.sender][action.asset] += action.amount * 10**CONVERSION_DECIMALS;
 	}
 
 	function min(uint256 v1, uint256 v2) internal pure returns (uint256) {
