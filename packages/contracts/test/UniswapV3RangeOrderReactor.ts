@@ -230,21 +230,54 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter)
 	})
 
-	it("Returns proper pool prices", async () => {
+	it("Returns proper pool prices usdc/weth", async () => {
 		const ONE = (10 ** 18).toString()
 		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
 		const weth_usdc_price = poolInfo.token1Price.toFixed(18)
 		const usdc_weth_price = poolInfo.token0Price.toFixed(18)
 		const { price, inversed } = await uniswapV3RangeOrderReactor.getPoolPrice()
-		//const priceDecimals = price.div(BigNumber.from(ONE)).toNumber()
 		const priceDecimals = fromWei(price)
-		//const inversedDecimals = inversed.div(BigNumber.from(ONE)).toNumber()
 		const inversedDecimals = fromWei(inversed)
 		const priceDifference = Number(usdc_weth_price) - Number(priceDecimals)
 		const inversedDifference = Number(weth_usdc_price) - Number(inversedDecimals)
 		expect(priceDifference).to.be.eq(0)
 		// some loss of precision is expected in conversion, but very little
 		expect(inversedDifference).to.be.lt(10e-10)
+	})
+
+	it("Returns proper pool prices dai/weth", async () => {
+		const DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+		const uniswapV3RangeOrderReactorFactory = await ethers.getContractFactory(
+			"UniswapV3RangeOrderReactor",
+			{
+				signer: signers[0]
+			}
+		)
+
+		const daiWethV3RangeOrderReactor = (await uniswapV3RangeOrderReactorFactory.deploy(
+			UNISWAP_V3_FACTORY,
+			DAI,
+			WETH_ADDRESS[chainId],
+			liquidityPoolDummyAddress,
+			POOL_FEE,
+			priceFeed.address,
+			authority
+		)) as UniswapV3RangeOrderReactor
+		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const weth_dai_price = poolInfo.token1Price.toFixed(18)
+		const dai_weth_price = poolInfo.token0Price.toFixed(18)
+		const { price, inversed } = await daiWethV3RangeOrderReactor.getPoolPrice()
+		const token0 = await daiWethV3RangeOrderReactor.token0()
+		const token1 = await daiWethV3RangeOrderReactor.token1()
+		const priceDecimals = fromWei(price)
+		const inversedDecimals = fromWei(inversed)
+		const priceDifference = Number(dai_weth_price) - Number(priceDecimals)
+		const pricePercentageDiff = Math.abs(priceDifference) / Number(dai_weth_price)
+		const inversedDifference = Number(weth_dai_price) - Number(inversedDecimals)
+		const inversedPercentageDiff = Math.abs(inversedDifference) / Number(weth_dai_price)
+		expect(pricePercentageDiff).to.be.lt(0.001)
+		// some loss of precision is expected in conversion, but very little
+		expect(inversedPercentageDiff).to.be.lt(0.001)
 	})
 
 	it("Enters a range to hedge a negative delta", async () => {
