@@ -570,6 +570,22 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(usdcBalanceAfter).to.eq(0)
 	})
 
+	it("Withdraw more than reactor balance should withdraw balance", async () => {
+		const transferAmount = toUSDC("100000")
+		const sendUSDCToReactorFromWhale = await usdcContract
+			.connect(usdcWhale)
+			.transfer(uniswapV3RangeOrderReactor.address, transferAmount)
+		const usdcBalance = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		const withdrawReturn = await liquidityPoolDummy.callStatic.withdraw(
+			usdcBalance.add(transferAmount)
+		)
+		const withdrawTx = await liquidityPoolDummy.withdraw(usdcBalance.add(transferAmount))
+		const usdcBalanceAfter = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		expect(usdcBalance).to.eq(transferAmount)
+		expect(withdrawReturn).to.eq(transferAmount)
+		expect(usdcBalanceAfter).to.eq(0)
+	})
+
 	it("Allows the manager to create a custom range order", async () => {
 		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
 		const weth_usdc_price_before = poolInfo.token1Price.toFixed()
