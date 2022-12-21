@@ -426,7 +426,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
                 uint256 transferAmount = amountDesired - balance;
                 uint256 parentPoolBalance = ILiquidityPool(parentLiquidityPool).getBalance(address(token0));
                 if (parentPoolBalance < transferAmount) { revert CustomErrors.WithdrawExceedsLiquidity(); }
-                SafeTransferLib.safeTransferFrom(address(token0), msg.sender, address(this), transferAmount);
+                SafeTransferLib.safeTransferFrom(address(token0), address(parentLiquidityPool), address(this), transferAmount);
             }
         } else {
             amount1Desired = amountDesired;
@@ -435,7 +435,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
                 uint256 transferAmount = amountDesired - balance;
                 uint256 parentPoolBalance = ILiquidityPool(parentLiquidityPool).getBalance(address(token1));
                 if (parentPoolBalance < transferAmount) { revert CustomErrors.WithdrawExceedsLiquidity(); }
-                SafeTransferLib.safeTransferFrom(address(token1), msg.sender, address(this), transferAmount);
+                SafeTransferLib.safeTransferFrom(address(token1), address(parentLiquidityPool), address(this), transferAmount);
             }
         }
 
@@ -492,6 +492,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(tick);
         uint256 price = _sqrtPriceX96ToUint(sqrtPriceX96);
         uint256 inWei = OptionsCompute.convertFromDecimals(price, token0.decimals());
+        // overflow if token0 decimals > token1 decimals
         uint256 intermediate = inWei.div(10**(token1.decimals() - token0.decimals()));
         uint256 inversed = uint256(1e18).div(intermediate);
         return inversed;
