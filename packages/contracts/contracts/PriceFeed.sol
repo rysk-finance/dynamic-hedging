@@ -15,7 +15,7 @@ contract PriceFeed is AccessControl {
 	/////////////////////////////////////
 
 	mapping(address => mapping(address => address)) public priceFeeds;
-	address public sequencerUptimeFeedAddress = 0xFdB631F5EE196F0ed6FAa767959853A9F217697D;
+	address public sequencerUptimeFeedAddress;
 
 	//////////////////////////
 	/// constant variables ///
@@ -34,7 +34,11 @@ contract PriceFeed is AccessControl {
 	error SequencerDown();
 	error GracePeriodNotOver();
 
-	constructor(address _authority, address _sequencerUptimeFeedAddress) AccessControl(IAuthority(_authority)) {}
+	constructor(address _authority, address _sequencerUptimeFeedAddress)
+		AccessControl(IAuthority(_authority))
+	{
+		sequencerUptimeFeedAddress = _sequencerUptimeFeedAddress;
+	}
 
 	///////////////
 	/// setters ///
@@ -63,8 +67,9 @@ contract PriceFeed is AccessControl {
 		require(feedAddress != address(0), "Price feed does not exist");
 		AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
 		// check arbitrum sequencer status
-		_checkSequencerUp();
-		(uint80 roundId, int256 rate, , uint256 timestamp, uint80 answeredInRound) = feed.latestRoundData();
+		// _checkSequencerUp();
+		(uint80 roundId, int256 rate, , uint256 timestamp, uint80 answeredInRound) = feed
+			.latestRoundData();
 		require(rate > 0, "ChainLinkPricer: price is lower than 0");
 		require(timestamp != 0, "ROUND_NOT_COMPLETE");
 		require(block.timestamp <= timestamp + STALE_PRICE_DELAY, "STALE_PRICE");
@@ -79,8 +84,9 @@ contract PriceFeed is AccessControl {
 		AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
 		uint8 feedDecimals = feed.decimals();
 		// check arbitrum sequencer status
-		_checkSequencerUp();
-		(uint80 roundId, int256 rate, , uint256 timestamp, uint80 answeredInRound) = feed.latestRoundData();
+		// _checkSequencerUp();
+		(uint80 roundId, int256 rate, , uint256 timestamp, uint80 answeredInRound) = feed
+			.latestRoundData();
 		require(rate > 0, "ChainLinkPricer: price is lower than 0");
 		require(timestamp != 0, "ROUND_NOT_COMPLETE");
 		require(block.timestamp <= timestamp + STALE_PRICE_DELAY, "STALE_PRICE");
