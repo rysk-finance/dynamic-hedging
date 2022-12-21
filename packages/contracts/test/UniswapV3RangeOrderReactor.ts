@@ -606,6 +606,21 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(mintEvent.amount0).to.eq(rangeOrderAmount)
 	})
 
+	it("Properly quotes pool denominated value", async () => {
+		const poolValue = await uniswapV3RangeOrderReactor.getPoolDenominatedValue()
+		const { amount0Current, amount1Current } =
+			await uniswapV3RangeOrderReactor.getUnderlyingBalances()
+		const ethPrice = Number(
+			fromWei(await priceFeed.getNormalizedRate(wethContract.address, usdcContract.address))
+		)
+		const usdcAmount = Number(fromUSDC(amount0Current))
+		const wethAmount = Number(fromWei(amount1Current))
+		const wethValue = wethAmount * ethPrice
+		const computedPoolValue = wethValue + usdcAmount
+		const pool_value = Number(fromWei(poolValue))
+		expect(pool_value).to.be.eq(computedPoolValue)
+	})
+
 	it("Allows the manager to lock range order fulfillment", async () => {
 		const isAuthorizedFulfill = await uniswapV3RangeOrderReactor.onlyAuthorizedFulfill()
 		expect(isAuthorizedFulfill).to.be.false

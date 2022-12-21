@@ -317,7 +317,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
     /// @inheritdoc IHedgingReactor
     function update() external pure returns (uint256) {
-        // Remove range order if possible
+        // Satifies interface
         return 0;
     }
 
@@ -342,8 +342,10 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
         uint256 collateral = wETH == address(token0) ? amount1Current : amount0Current;
         uint256 wethBalance = wETH == address(token0) ? amount0Current : amount1Current;
+        // keeping for when 'weth' is migrated to 'underlying'
+        wethBalance = OptionsCompute.convertFromDecimals(wethBalance, ERC20(wETH).decimals());
         uint256 collateralValue = OptionsCompute.convertFromDecimals(collateral, ERC20(collateralAsset).decimals());
-        uint256 wethValue = PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset) * wethBalance;
+        uint256 wethValue = PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset).mul(wethBalance);
         value = collateralValue + wethValue;
     }
 
