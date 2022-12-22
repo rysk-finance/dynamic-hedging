@@ -29,6 +29,8 @@ interface CustomErrors {
 	error DeltaNotDecreased();
 	error NonExistentOtoken();
 	error SeriesNotSellable();
+	error InvalidGmxCallback();
+	error GmxCallbackPending();
 	error OrderExpiryTooLong();
 	error InvalidShareAmount();
 	error ExistingWithdrawal();

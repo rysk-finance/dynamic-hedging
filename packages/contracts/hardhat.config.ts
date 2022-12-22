@@ -104,17 +104,25 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 200
+						runs: 200,
+						details: {
+							yul: true
+						}
 					}
-				}
+				},
+				viaIR: false
 			},
 			{
 				version: "0.8.10",
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 200
-					}
+						runs: 200,
+						details: {
+							yul: true
+						}
+					},
+					viaIR: false
 				}
 			},
 			{
@@ -122,8 +130,12 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 200
-					}
+						runs: 200,
+						details: {
+							yul: true
+						}
+					},
+					viaIR: false
 				}
 			},
 			{
@@ -131,8 +143,12 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 200
-					}
+						runs: 200,
+						details: {
+							yul: true
+						}
+					},
+					viaIR: false
 				}
 			}
 		]
