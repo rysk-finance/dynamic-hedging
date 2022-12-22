@@ -41,10 +41,8 @@ const ropsten = process.env.ROPSTEN || new ethers.providers.InfuraProvider("rops
 const rinkeby = process.env.RINKEBY || new ethers.providers.InfuraProvider("rinkeby").connection.url
 
 const arbitrumRinkeby =
-	process.env.ARBITRUM_RINKEBY ||
-	new ethers.providers.InfuraProvider("arbitrum-rinkeby").connection.url
-const arbitrum =
-	process.env.ARBITRUM || new ethers.providers.InfuraProvider("arbitrum").connection.url
+	process.env.ARBITRUM_RINKEBY || new ethers.providers.InfuraProvider("arbitrum-rinkeby").connection.url
+const arbitrum = process.env.ARBITRUM || new ethers.providers.InfuraProvider("arbitrum").connection.url
 
 module.exports = {
 	typechain: {
@@ -69,6 +67,15 @@ module.exports = {
 			},
 			{
 				version: "0.6.10",
+				settings: {
+					optimizer: {
+						enabled: true,
+						runs: 200
+					}
+				}
+			},
+			{
+				version: "0.6.12",
 				settings: {
 					optimizer: {
 						enabled: true,
