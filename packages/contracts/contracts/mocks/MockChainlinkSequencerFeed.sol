@@ -6,7 +6,7 @@ pragma solidity 0.8.9;
 /**
  * @notice Chainlink oracle mock
  */
-contract MockChainlinkAggregator {
+contract MockChainlinkSequencerFeed {
 	uint256 public decimals = 8;
 
 	/// @dev mock sequencer status answer: 0 is up, 1 is down.
@@ -19,11 +19,11 @@ contract MockChainlinkAggregator {
 		external
 		view
 		returns (
-			uint80 roundId,
-			int256 answer,
-			uint256 startedAt,
-			uint256 updatedAt,
-			uint80 answeredInRound
+			uint80,
+			int256,
+			uint256,
+			uint256,
+			uint80
 		)
 	{
 		return (1, answer, startedAt, 1, 1);

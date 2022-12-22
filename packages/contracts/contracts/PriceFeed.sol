@@ -67,7 +67,7 @@ contract PriceFeed is AccessControl {
 		require(feedAddress != address(0), "Price feed does not exist");
 		AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
 		// check arbitrum sequencer status
-		// _checkSequencerUp();
+		_checkSequencerUp();
 		(uint80 roundId, int256 rate, , uint256 timestamp, uint80 answeredInRound) = feed
 			.latestRoundData();
 		require(rate > 0, "ChainLinkPricer: price is lower than 0");
@@ -84,9 +84,10 @@ contract PriceFeed is AccessControl {
 		AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
 		uint8 feedDecimals = feed.decimals();
 		// check arbitrum sequencer status
-		// _checkSequencerUp();
+		_checkSequencerUp();
 		(uint80 roundId, int256 rate, , uint256 timestamp, uint80 answeredInRound) = feed
 			.latestRoundData();
+
 		require(rate > 0, "ChainLinkPricer: price is lower than 0");
 		require(timestamp != 0, "ROUND_NOT_COMPLETE");
 		require(block.timestamp <= timestamp + STALE_PRICE_DELAY, "STALE_PRICE");

@@ -1,6 +1,7 @@
 import hre, { ethers } from "hardhat"
-import { Signer, BigNumber } from "ethers"
+import { Signer, BigNumber, providers } from "ethers"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
+import { MockChainlinkSequencerFeed } from "../types/MockChainlinkSequencerFeed"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 import { expect } from "chai"
 import { MintableERC20 } from "../types/MintableERC20"
@@ -13,6 +14,7 @@ let weth: WETH
 let signers: Signer[]
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
+let sequencerUptimeFeed: MockChainlinkSequencerFeed
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 // edit depending on the chain id to be tested on
@@ -39,13 +41,21 @@ describe("Price Feed", async () => {
 			"contracts/interfaces/WETH.sol:WETH",
 			WETH_ADDRESS[chainId]
 		)) as WETH
-		usd = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usd = (await ethers.getContractAt(
+			"contracts/tokens/ERC20.sol:ERC20",
+			USDC_ADDRESS[chainId]
+		)) as MintableERC20
 		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")
 		const senderAddress = await signers[0].getAddress()
 		const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
-		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-		const _priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
+		const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
+		const sequencerUptimeFeedFactory = await ethers.getContractFactory("MockChainlinkSequencerFeed")
+		sequencerUptimeFeed = (await sequencerUptimeFeedFactory.deploy()) as MockChainlinkSequencerFeed
+		const _priceFeed = (await priceFeedFactory.deploy(
+			authority.address,
+			sequencerUptimeFeed.address
+		)) as PriceFeed
 		priceFeed = _priceFeed
 		await priceFeed.addPriceFeed(weth.address, usd.address, ethUSDAggregator.address)
 		const feedAddress = await priceFeed.priceFeeds(weth.address, usd.address)
@@ -83,16 +93,51 @@ describe("Price Feed", async () => {
 			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
-		await ethUSDAggregator.mock.decimals.returns(
-			"18"
-		)
+		await ethUSDAggregator.mock.decimals.returns("18")
 		const quote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		expect(quote).to.eq(rate)
 	})
 	it("Should revert for a non-existent price quote", async () => {
-		await expect(priceFeed.getRate(ZERO_ADDRESS, usd.address)).to.be.revertedWith("Price feed does not exist")
+		await expect(priceFeed.getRate(ZERO_ADDRESS, usd.address)).to.be.revertedWith(
+			"Price feed does not exist"
+		)
 	})
 	it("Should revert for a non-existent normalised price quote", async () => {
-		await expect(priceFeed.getNormalizedRate(ZERO_ADDRESS, usd.address)).to.be.revertedWith("Price feed does not exist")
+		await expect(priceFeed.getNormalizedRate(ZERO_ADDRESS, usd.address)).to.be.revertedWith(
+			"Price feed does not exist"
+		)
+	})
+	it("should revert when the Arbitrum Sequencer is down", async () => {
+		// set answer to 1 meaning sequencer is down
+		await sequencerUptimeFeed.setAnswer(1)
+
+		await expect(priceFeed.getNormalizedRate(weth.address, usd.address)).to.be.revertedWith(
+			"SequencerDown()"
+		)
+	})
+	it("should revert when the sequencer is back online but has not completed its grace period", async () => {
+		// set answer to 0 meaning sequencer is up
+		await sequencerUptimeFeed.setAnswer(0)
+		const blockNumber = await ethers.provider.getBlockNumber()
+		const blockTime = await (await ethers.provider.getBlock(blockNumber)).timestamp
+		await sequencerUptimeFeed.setStartedAt(blockTime)
+
+		// fast forward 29 mins
+		await ethers.provider.send("evm_increaseTime", [1740])
+		await ethers.provider.send("evm_mine")
+
+		await expect(priceFeed.getNormalizedRate(weth.address, usd.address)).to.be.revertedWith(
+			"GracePeriodNotOver()"
+		)
+	})
+	it("should return a price once grade period is over", async () => {
+		// fast forward 2 more mins
+		await ethers.provider.send("evm_increaseTime", [120])
+		await ethers.provider.send("evm_mine")
+
+		const quote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+		rate = "567000000000000000000"
+
+		expect(quote).to.eq(rate)
 	})
 })
