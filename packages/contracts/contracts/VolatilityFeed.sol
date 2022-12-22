@@ -27,7 +27,7 @@ contract VolatilityFeed is AccessControl {
 	// expiry array
 	uint256[] public expiries;
 	// interest rate in e18 decimals
-	int256 public interestRate;
+	int256 public interestRate = -1e16;
 
 	//////////////////////////
 	/// constant variables ///
@@ -158,6 +158,7 @@ contract VolatilityFeed is AccessControl {
 		if (sabrParams_.callAlpha == 0) {
 			revert CustomErrors.IVNotFound();
 		}
+		// TODO: fuzz this
 		int256 forwardPrice = int256(underlyingPrice).mul((PRBMathSD59x18.exp(interestRate.mul(time))));
 		if (!isPut) {
 			vol = SABR.lognormalVol(

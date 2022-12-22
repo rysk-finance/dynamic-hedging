@@ -5,7 +5,8 @@ import {
 	fromWei,
 	tFormatUSDC,
 	tFormatEth,
-	toUSDC
+	toUSDC,
+	toOpyn
 } from "../utils/conversion-helper"
 import { AbiCoder } from "ethers/lib/utils"
 import {
@@ -36,6 +37,7 @@ import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
 import { AddressBook } from "../types/AddressBook"
 import { NewController } from "../types/NewController"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
+import { expect } from "chai"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const { provider } = ethers
 const { parseEther } = ethers.utils
@@ -47,6 +49,35 @@ const aboveUtilizationThresholdGradient = 1
 const utilizationFunctionThreshold = 0.6 // 60%
 const yIntercept = -0.6
 
+export async function getExchangeParams(liquidityPool, exchange, usd, weth, portfolioValuesFeed, optionToken, senderAddress, amount) {
+	const poolUSDBalance = await usd.balanceOf(liquidityPool.address)
+	const senderUSDBalance = await usd.balanceOf(senderAddress)
+	const senderWethBalance = await weth.balanceOf(senderAddress)
+	const pfList = await portfolioValuesFeed.getAddressSet()
+	const opynAmount = toOpyn(fromWei(amount))
+	const collateralAllocated = await liquidityPool.collateralAllocated()
+	let seriesStores = await portfolioValuesFeed.storesForAddress(ZERO_ADDRESS)
+	let exchangeOTokenBalance = 0
+	let senderOtokenBalance = 0
+	// stuff we always expect to be the case
+	const poolWethBalance = await weth.balanceOf(liquidityPool.address)
+	const exchangeWethBalance = await weth.balanceOf(exchange.address)
+	const exchangeUSDBalance = await usd.balanceOf(exchange.address)
+	expect(poolWethBalance).to.equal(0)
+	expect(exchangeWethBalance).to.equal(0)
+	expect(exchangeUSDBalance).to.equal(0)
+
+	if (optionToken != 0) {
+		exchangeOTokenBalance = await optionToken.balanceOf(exchange.address)
+		senderOtokenBalance = await optionToken.balanceOf(senderAddress)
+		seriesStores = await portfolioValuesFeed.storesForAddress(optionToken.address)
+		const exchangeTempOtokens = await exchange.heldOtokens(senderAddress, optionToken.address)
+		const liquidityPoolOTokenBalance = await optionToken.balanceOf(liquidityPool.address)
+		expect(liquidityPoolOTokenBalance).to.equal(0)
+		expect(exchangeTempOtokens).to.equal(0)
+	}
+	return { poolUSDBalance, pfList, seriesStores, senderUSDBalance, senderWethBalance, opynAmount, exchangeOTokenBalance, senderOtokenBalance, collateralAllocated }
+}
 export async function makeBuy(exchange, senderAddress, optionToken, amount, proposedSeries) {
 	await exchange.operate([
 		{
