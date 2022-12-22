@@ -15,6 +15,7 @@ contract PriceFeed is AccessControl {
 	/////////////////////////////////////
 
 	mapping(address => mapping(address => address)) public priceFeeds;
+	address public sequencerUptimeFeedAddress;
 
 	//////////////////////////
 	/// constant variables ///
@@ -23,8 +24,21 @@ contract PriceFeed is AccessControl {
 	uint8 private constant SCALE_DECIMALS = 18;
 	// seconds since the last price feed update until we deem the data to be stale
 	uint32 private constant STALE_PRICE_DELAY = 3600;
+	// seconds after arbitrum sequencer comes back online that we start accepting price feed data
+	uint32 private constant GRACE_PERIOD_TIME = 1800; // 30 minutes
 
-	constructor(address _authority) AccessControl(IAuthority(_authority)) {}
+	//////////////
+	/// errors ///
+	//////////////
+
+	error SequencerDown();
+	error GracePeriodNotOver();
+
+	constructor(address _authority, address _sequencerUptimeFeedAddress)
+		AccessControl(IAuthority(_authority))
+	{
+		sequencerUptimeFeedAddress = _sequencerUptimeFeedAddress;
+	}
 
 	///////////////
 	/// setters ///
@@ -39,6 +53,11 @@ contract PriceFeed is AccessControl {
 		priceFeeds[underlying][strike] = feed;
 	}
 
+	function setSequencerUptimeFeedAddress(address _sequencerUptimeFeedAddress) external {
+		_onlyGovernor();
+		sequencerUptimeFeedAddress = _sequencerUptimeFeedAddress;
+	}
+
 	///////////////////////
 	/// complex getters ///
 	///////////////////////
@@ -47,6 +66,8 @@ contract PriceFeed is AccessControl {
 		address feedAddress = priceFeeds[underlying][strike];
 		require(feedAddress != address(0), "Price feed does not exist");
 		AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
+		// check arbitrum sequencer status
+		_checkSequencerUp();
 		(uint80 roundId, int256 rate, , uint256 timestamp, uint80 answeredInRound) = feed
 			.latestRoundData();
 		require(rate > 0, "ChainLinkPricer: price is lower than 0");
@@ -62,8 +83,11 @@ contract PriceFeed is AccessControl {
 		require(feedAddress != address(0), "Price feed does not exist");
 		AggregatorV3Interface feed = AggregatorV3Interface(feedAddress);
 		uint8 feedDecimals = feed.decimals();
+		// check arbitrum sequencer status
+		_checkSequencerUp();
 		(uint80 roundId, int256 rate, , uint256 timestamp, uint80 answeredInRound) = feed
 			.latestRoundData();
+
 		require(rate > 0, "ChainLinkPricer: price is lower than 0");
 		require(timestamp != 0, "ROUND_NOT_COMPLETE");
 		require(block.timestamp <= timestamp + STALE_PRICE_DELAY, "STALE_PRICE");
@@ -75,5 +99,19 @@ contract PriceFeed is AccessControl {
 		}
 		difference = feedDecimals - SCALE_DECIMALS;
 		return uint256(rate) / (10**difference);
+	}
+
+	/// @dev check arbitrum sequencer status and time since it last came back online
+	function _checkSequencerUp() internal view {
+		AggregatorV3Interface sequencerUptimeFeed = AggregatorV3Interface(sequencerUptimeFeedAddress);
+		(, int256 answer, uint256 startedAt, , ) = sequencerUptimeFeed.latestRoundData();
+		if (!(answer == 0)) {
+			revert SequencerDown();
+		}
+
+		uint256 timeSinceUp = block.timestamp - startedAt;
+		if (timeSinceUp <= GRACE_PERIOD_TIME) {
+			revert GracePeriodNotOver();
+		}
 	}
 }
