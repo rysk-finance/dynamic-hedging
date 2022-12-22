@@ -58,8 +58,13 @@ describe("Volatility Feed", async () => {
 		const senderAddress = await signers[0].getAddress()
 		const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
 		// deploy price feed
-		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-		priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
+		const sequencerUptimeFeedFactory = await ethers.getContractFactory("MockChainlinkSequencerFeed")
+		const sequencerUptimeFeed = await sequencerUptimeFeedFactory.deploy()
+		const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
+		priceFeed = (await priceFeedFactory.deploy(
+			authority.address,
+			sequencerUptimeFeed.address
+		)) as PriceFeed
 		await priceFeed.addPriceFeed(weth.address, usd.address, ethUSDAggregator.address)
 		const feedAddress = await priceFeed.priceFeeds(weth.address, usd.address)
 		expect(feedAddress).to.eq(ethUSDAggregator.address)
