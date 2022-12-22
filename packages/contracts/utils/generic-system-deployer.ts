@@ -87,8 +87,13 @@ export async function deploySystem(
 	)) as OptionRegistry
 	const optionRegistry = _optionRegistry
 
-	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-	const _priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
+	const sequencerUptimeFeedFactory = await ethers.getContractFactory("MockChainlinkSequencerFeed")
+	const sequencerUptimeFeed = await sequencerUptimeFeedFactory.deploy()
+	const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
+	const _priceFeed = (await priceFeedFactory.deploy(
+		authority.address,
+		sequencerUptimeFeed.address
+	)) as PriceFeed
 	const priceFeed = _priceFeed
 	await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
 	// oracle returns price denominated in 1e8
@@ -110,15 +115,21 @@ export async function deploySystem(
 		putVolvol: 1_500000
 	}
 	await volFeed.setSabrParameters(proposedSabrParams, expiration)
-	const normDistFactory = await ethers.getContractFactory("contracts/libraries/NormalDist.sol:NormalDist", {
-		libraries: {}
-	})
-	const normDist = await normDistFactory.deploy()
-	const blackScholesFactory = await ethers.getContractFactory("contracts/libraries/BlackScholes.sol:BlackScholes", {
-		libraries: {
-			NormalDist: normDist.address
+	const normDistFactory = await ethers.getContractFactory(
+		"contracts/libraries/NormalDist.sol:NormalDist",
+		{
+			libraries: {}
 		}
-	})
+	)
+	const normDist = await normDistFactory.deploy()
+	const blackScholesFactory = await ethers.getContractFactory(
+		"contracts/libraries/BlackScholes.sol:BlackScholes",
+		{
+			libraries: {
+				NormalDist: normDist.address
+			}
+		}
+	)
 	const blackScholesDeploy = await blackScholesFactory.deploy()
 	const portfolioValuesFeedFactory = await ethers.getContractFactory("AlphaPortfolioValuesFeed", {
 		libraries: {
@@ -168,19 +179,25 @@ export async function deployLiquidityPool(
 	pvFeed: AlphaPortfolioValuesFeed,
 	authority: string
 ) {
-	const normDistFactory = await ethers.getContractFactory("contracts/libraries/NormalDist.sol:NormalDist", {
-		libraries: {}
-	})
+	const normDistFactory = await ethers.getContractFactory(
+		"contracts/libraries/NormalDist.sol:NormalDist",
+		{
+			libraries: {}
+		}
+	)
 	const normDist = await normDistFactory.deploy()
 	const volFactory = await ethers.getContractFactory("Volatility", {
 		libraries: {}
 	})
 	const volatility = (await volFactory.deploy()) as Volatility
-	const blackScholesFactory = await ethers.getContractFactory("contracts/libraries/BlackScholes.sol:BlackScholes", {
-		libraries: {
-			NormalDist: normDist.address
+	const blackScholesFactory = await ethers.getContractFactory(
+		"contracts/libraries/BlackScholes.sol:BlackScholes",
+		{
+			libraries: {
+				NormalDist: normDist.address
+			}
 		}
-	})
+	)
 	const blackScholesDeploy = await blackScholesFactory.deploy()
 	const optionsCompFactory = await await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}
@@ -221,17 +238,21 @@ export async function deployLiquidityPool(
 	await pvFeed.fulfill(weth.address, usd.address)
 	const AccountingFactory = await ethers.getContractFactory("Accounting")
 	const Accounting = (await AccountingFactory.deploy(liquidityPool.address)) as Accounting
-	const PricerFactory =  await ethers.getContractFactory("BeyondPricer",  {
+	const PricerFactory = await ethers.getContractFactory("BeyondPricer", {
 		libraries: {
 			BlackScholes: blackScholesDeploy.address
 		}
 	})
-	const pricer = await PricerFactory.deploy(authority, optionProtocol.address, liquidityPool.address) as BeyondPricer
+	const pricer = (await PricerFactory.deploy(
+		authority,
+		optionProtocol.address,
+		liquidityPool.address
+	)) as BeyondPricer
 	await optionProtocol.changeAccounting(Accounting.address)
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
-	const exchangeFactory = await ethers.getContractFactory("OptionExchange",  {
+	const exchangeFactory = await ethers.getContractFactory("OptionExchange", {
 		libraries: {
 			OpynInteractions: interactions.address
 		}

@@ -193,7 +193,7 @@ export async function deploySystem(
 		usdcAddress
 	)) as MintableERC20
 
-	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
+	const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
 	const priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
 	console.log("priceFeed deployed")
 
@@ -239,13 +239,7 @@ export async function deploySystem(
 	]
 	type number7 = [number, number, number, number, number, number, number]
 	const coefInts: number7 = [
-		1.42180236,
-		0,
-		-0.08626792,
-		0.07873822,
-		0.00650549,
-		0.02160918,
-		-0.1393287
+		1.42180236, 0, -0.08626792, 0.07873822, 0.00650549, 0.02160918, -0.1393287
 	]
 	//@ts-ignore
 	const coefs: int7 = coefInts.map(x => toWei(x.toString()))
