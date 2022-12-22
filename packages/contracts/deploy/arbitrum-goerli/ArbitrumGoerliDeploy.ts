@@ -273,7 +273,7 @@ export async function deploySystem(
 		usdcAddress
 	)) as MintableERC20
 
-	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
+	const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
 	const priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
 	console.log("priceFeed deployed")
 
