@@ -82,6 +82,15 @@ module.exports = {
 			},
 			UNISWAP_COMPILER_SETTINGS,
 			{
+				version: "0.6.12",
+				settings: {
+					optimizer: {
+						enabled: true,
+						runs: 200
+					}
+				}
+			},
+			{
 				version: "0.8.9",
 				settings: {
 					optimizer: {
