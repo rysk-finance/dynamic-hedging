@@ -55,7 +55,7 @@ export const VaultContent = () => {
 
   return (
     <>
-      <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 mb-16">
+      <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 -mt-12 mb-16">
         {envChainID && (
           <div className="flex items-center w-[240px]">
             <p>
