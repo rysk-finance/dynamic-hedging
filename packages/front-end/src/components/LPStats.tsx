@@ -94,19 +94,21 @@ export const LPStats = () => {
           </div>
         )}
       </div>
-      <ProgressBar
-        completed={Math.round(
-          (Number(showDeposit ? showDeposit : depositedCollateral) /
-            Number(collateralCap)) *
-            100
-        )}
-        bgColor={"#000"}
-        height={"24px"}
-        baseBgColor={"#ebebeb"}
-        animateOnRender={true}
-        borderRadius={"9px"}
-        className={"border-2 border-2 rounded-xl border-black"}
-      />
+      {depositedCollateral && (
+        <ProgressBar
+          completed={Math.round(
+            (Number(showDeposit ? showDeposit : depositedCollateral) /
+              Number(collateralCap)) *
+              100
+          )}
+          bgColor={"#000"}
+          height={"24px"}
+          baseBgColor={"#ebebeb"}
+          animateOnRender={true}
+          borderRadius={"9px"}
+          className={"border-2 border-2 rounded-xl border-black"}
+        />
+      )}
     </div>
   );
 };
