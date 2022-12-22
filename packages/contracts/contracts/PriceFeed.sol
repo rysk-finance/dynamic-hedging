@@ -101,11 +101,11 @@ contract PriceFeed is AccessControl {
 		return uint256(rate) / (10**difference);
 	}
 
+	/// @dev check arbitrum sequencer status and time since it last came back online
 	function _checkSequencerUp() internal view {
 		AggregatorV3Interface sequencerUptimeFeed = AggregatorV3Interface(sequencerUptimeFeedAddress);
 		(, int256 answer, uint256 startedAt, , ) = sequencerUptimeFeed.latestRoundData();
-		bool isSequencerUp = answer == 0;
-		if (!isSequencerUp) {
+		if (!(answer == 0)) {
 			revert SequencerDown();
 		}
 
