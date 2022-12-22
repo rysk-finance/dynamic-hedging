@@ -37,4 +37,6 @@ interface IRouter {
 	) external;
 
 	function approvePlugin(address _plugin) external;
+
+	function denyPlugin(address _plugin) external;
 }

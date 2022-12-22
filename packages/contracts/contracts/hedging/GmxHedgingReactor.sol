@@ -16,9 +16,7 @@ import "../interfaces/IRouter.sol";
 import "../interfaces/IPositionRouter.sol";
 import "../interfaces/IReader.sol";
 import "../interfaces/IGmxVault.sol";
-
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "hardhat/console.sol";
 
 /**
  *  @title A hedging reactor that will manage delta by opening or closing short or long perp positions using GMX
@@ -48,7 +46,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @notice delta of the pool
 	int256 public internalDelta;
-
+	bool public pendingIncreaseCallback;
+	bool public pendingDecreaseCallback;
 	mapping(bytes32 => int256) public increaseOrderDeltaChange;
 	mapping(bytes32 => int256) public decreaseOrderDeltaChange;
 
@@ -83,15 +82,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	uint256 private constant MAX_BIPS = 10_000;
 
 	//////////////
-	/// errors ///
-	//////////////
-
-	error ValueFailure();
-	error IncorrectCollateral();
-	error IncorrectDeltaChange();
-	error InvalidTransactionNotEnoughMargin(int256 accountMarketValue, int256 totalRequiredMargin);
-
-	//////////////
 	/// events ///
 	//////////////
 
@@ -114,7 +104,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		vault = IGmxVault(_gmxVault);
 		gmxPositionRouter = IPositionRouter(_gmxPositionRouter);
 		router.approvePlugin(_gmxPositionRouter);
-		SafeTransferLib.safeApprove(ERC20(_collateralAsset), _gmxPositionRouter, MAX_UINT);
 		parentLiquidityPool = _parentLiquidityPool;
 		wETH = _wethAddress;
 		collateralAsset = _collateralAsset;
@@ -141,6 +130,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	function setPositionRouter(address _gmxPositionRouter) external {
 		_onlyGovernor();
+		router.denyPlugin(address(gmxPositionRouter));
 		gmxPositionRouter = IPositionRouter(_gmxPositionRouter);
 		router.approvePlugin(_gmxPositionRouter);
 	}
@@ -234,16 +224,29 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		(
 			bool isBelowMin,
 			bool isAboveMax,
-			uint256 health,
+			int256 health,
 			uint256 collatToTransfer,
 			uint256[] memory position
 		) = checkVaultHealth();
 		if (isBelowMin) {
 			// collateral needs adding to position
 			_addCollateral(collatToTransfer, internalDelta > 0);
+			return collatToTransfer;
 		} else if (isAboveMax) {
 			// collateral needs removing
+			// check if collateral removed would put position within 10% of liquidation limit
+			// where positionSize / collateral is >= maxLeverage()
+			if (
+				// maxLeverage is multiplied by 10000 in contract. divide by 11000 to allow for 10% buffer.
+				int256(position[1] / 1e24) - int256(collatToTransfer) < int256((position[0] / 1e24) / (vault.maxLeverage() / 11000))
+			) {
+				collatToTransfer = position[1] / 1e24 - (position[0] / 1e24) / (vault.maxLeverage() / 11000);
+				if (collatToTransfer == 0) {
+					return 0;
+				}
+			}
 			_removeCollateral(collatToTransfer, internalDelta > 0);
+			return collatToTransfer;
 		}
 	}
 
@@ -282,7 +285,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @inheritdoc IHedgingReactor
 	function getPoolDenominatedValue() external view returns (uint256 value) {
-		(, , , , uint256[] memory position) = checkVaultHealth();
+		uint256[] memory position = _getPosition(internalDelta > 0);
 		if (position[7] == 1) {
 			value = (position[1] + position[8]) / 1e12;
 		} else {
@@ -302,7 +305,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		returns (
 			bool isBelowMin,
 			bool isAboveMax,
-			uint256 health,
+			int256 health,
 			uint256 collatToTransfer,
 			uint256[] memory position
 		)
@@ -321,27 +324,28 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 		if (position[0] == 0) {
 			//no positions open
-			return (false, false, healthFactor, 0, position);
+			return (false, false, int256(healthFactor), 0, position);
 		}
-		uint256 health;
+		int256 health;
 		if (position[7] == 1) {
 			//position in profit
-			health = (uint256((int256(position[1]) + int256(position[8])).div(int256(position[0]))) * MAX_BIPS) / 1e18;
+			health = int256(((position[1] + position[8]).div(position[0]) * MAX_BIPS) / 1e18);
 		} else {
 			//position in loss
-			health = (uint256((int256(position[1]) - int256(position[8])).div(int256(position[0]))) * MAX_BIPS) / 1e18;
+			health = ((int256(position[1]) - int256(position[8])).div(int256(position[0])) * int256(MAX_BIPS)) / 1e18;
 		}
-		if (health > healthFactor) {
+		if (health > int256(healthFactor)) {
 			// position is over-collateralised
 			isAboveMax = true;
 			isBelowMin = false;
-			collatToTransfer = ((health - healthFactor) * position[0]) / MAX_BIPS / 1e24;
-		} else if (health < healthFactor) {
+			// health must be > 0 so can cast to uint
+			collatToTransfer = ((uint256(health) - healthFactor) * position[0]) / MAX_BIPS / 1e24;
+		} else if (health < int256(healthFactor)) {
 			// position undercollateralised
 			// more collateral needs adding
 			isBelowMin = true;
 			isAboveMax = false;
-			collatToTransfer = ((healthFactor - health) * position[0]) / MAX_BIPS / 1e24;
+			collatToTransfer = uint256(((int256(healthFactor) - health) * int256(position[0])) / int256(MAX_BIPS) / 1e24);
 		} else {
 			// health factor is perfect
 			return (false, false, health, 0, position);
@@ -368,7 +372,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			if (internalDelta < 0) {
 				// close short position before opening long
 				uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(_amount));
-				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(adjustedPositionSize, false, closedOppositeSideFirst);
+				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(false, closedOppositeSideFirst, adjustedPositionSize);
 				(bytes32 positionKey, int256 deltaChange) = _decreasePosition(adjustedPositionSize, collateralToRemove, false);
 				// update deltaChange for callback function
 				decreaseOrderDeltaChange[positionKey] += deltaChange;
@@ -380,17 +384,18 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				closedOppositeSideFirst = true;
 			}
 
-			uint256 collateralToAdd = _getCollateralSizeDeltaUsd(uint256(_amount), true, closedOppositeSideFirst);
+			uint256 collateralToAdd = _getCollateralSizeDeltaUsd(true, closedOppositeSideFirst, uint256(_amount));
 			(bytes32 positionKey, int256 deltaChange) = _increasePosition(uint256(_amount), collateralToAdd, true);
 			// update deltaChange for callback function
 			increaseOrderDeltaChange[positionKey] += deltaChange;
+			return deltaChange + closedPositionDeltaChange;
 		} else {
 			// _amount is negative
 			// enter a short position
 			if (internalDelta > 0) {
 				// close longs first
 				uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(-_amount));
-				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(adjustedPositionSize, false, closedOppositeSideFirst);
+				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(false, closedOppositeSideFirst, adjustedPositionSize);
 				(bytes32 positionKey, int256 deltaChange) = _decreasePosition(adjustedPositionSize, collateralToRemove, true);
 				// update deltaChange for callback function
 				decreaseOrderDeltaChange[positionKey] += deltaChange;
@@ -402,19 +407,18 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				closedOppositeSideFirst = true;
 			}
 			// increase short position
-			uint256 collateralToAdd = _getCollateralSizeDeltaUsd(uint256(-_amount), true, closedOppositeSideFirst);
+			uint256 collateralToAdd = _getCollateralSizeDeltaUsd(true, closedOppositeSideFirst, uint256(-_amount));
 			(bytes32 positionKey, int256 deltaChange) = _increasePosition(uint256(-_amount), collateralToAdd, false);
 			// update deltaChange for callback function
 			increaseOrderDeltaChange[positionKey] += deltaChange;
 			return deltaChange + closedPositionDeltaChange;
 		}
-		return 0;
 	}
 
 	/**
 	 *	@notice internal function to handle increasing position size on GMX
 	 *	@param _size ETH denominated size to increase position by. e18
-	 *	@param _collateralSize amount of collateral to remove. denominated in collateralAsset decimals.
+	 *	@param _collateralSize amount of collateral to add. denominated in collateralAsset decimals.
 	 *	@param _isLong whether the position is a long or short
 	 *	@return positionKey the unique key of the GMX position
 	 *	@return deltaChange the resulting delta change from the position increase
@@ -428,6 +432,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < _collateralSize) {
 			revert CustomErrors.WithdrawExceedsLiquidity();
 		}
+		if (pendingIncreaseCallback) {
+			revert CustomErrors.GmxCallbackPending();
+		}
 		uint256 currentPrice = getUnderlyingPrice(wETH, collateralAsset);
 
 		// take that amount of collateral from the Liquidity Pool and approve to GMX
@@ -438,18 +445,18 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			_createPathIncreasePosition(_isLong),
 			wETH,
 			_collateralSize,
-			(_collateralSize * 1e12).div(currentPrice).mul(1e18 - collateralSwapPriceTolerance),
+			(_collateralSize * 1e12).mul(1e18 - collateralSwapPriceTolerance).div(currentPrice),
 			_size.mul(currentPrice) * 1e12,
 			_isLong,
 			_isLong
 				? currentPrice.mul(1e18 + positionPriceTolerance) * 1e12
-				: currentPrice.mul(1e18 - positionPriceTolerance) * 1e12, // 0.5% price tolerance
+				: currentPrice.mul(1e18 - positionPriceTolerance) * 1e12,
 			gmxPositionRouter.minExecutionFee(),
 			"leverageisfun",
 			address(this)
 		);
 		emit CreateIncreasePosition(positionKey);
-
+		pendingIncreaseCallback = true;
 		return (positionKey, _isLong ? int256(_size) : -int256(_size));
 	}
 
@@ -466,6 +473,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		uint256 _collateralSize,
 		bool _isLong
 	) internal returns (bytes32 positionKey, int256 deltaChange) {
+		if (pendingDecreaseCallback) {
+			revert CustomErrors.GmxCallbackPending();
+		}
 		uint256[] memory position = _getPosition(_isLong);
 		uint256 currentPrice = getUnderlyingPrice(wETH, collateralAsset);
 
@@ -489,7 +499,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			address(this)
 		);
 		emit CreateDecreasePosition(positionKey);
-
+		pendingDecreaseCallback = true;
 		return (positionKey, _isLong ? -int256(_size) : int256(_size));
 	}
 
@@ -560,15 +570,15 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	}
 
 	/**
-	 *	@param _amount amount of deltas to change position by. e18
 	 *	@param _isIncreasePosition if the position is to be increased (or decreased)
 	 *	@param _closedOppositeSideFirst in the case of an increase, true if an opposite position has been closed in the same transaction
+	 *	@param _amount amount of deltas to change position by. e18
 	 *	@return amount of collateral to add (for increase) or remove (for decrease). denominated in e6
 	 */
 	function _getCollateralSizeDeltaUsd(
-		uint256 _amount,
 		bool _isIncreasePosition,
-		bool _closedOppositeSideFirst
+		bool _closedOppositeSideFirst,
+		uint256 _amount
 	) private view returns (uint256) {
 		// calculate amount of collateral to add or remove denominated in USDC
 		//  for increase positions this is equal to collateral needed for extra margin plus rebalancing collateral to bring health factor back to 5000
@@ -591,7 +601,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			if (isAboveMax && collatToTransfer > extraPositionCollateral) {
 				// in this case there is a net collateral withdrawal needed which cannot be done with increasePosition
 				// so just dont add any more collateral and have it rebalance later
-				return 0;
+				totalCollateralToAdd = 0;
 			} else {
 				// otherwise add the two collateral requirement parts to obtain total collateral input
 				if (isAboveMax) {
@@ -602,8 +612,26 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 					totalCollateralToAdd = extraPositionCollateral + collatToTransfer;
 				}
 			}
+			uint256[] memory position = _getPosition(internalDelta > 0);
+			// check if collateral removed would put position within 10% of liquidation limit
+			// where positionSize / collateral is >= maxLeverage()
+			// maxLeverage is multiplied by 10000 in contract. divide by 11000 to allow for 10% buffer.
+			uint256 minAllowedCollateral = OptionsCompute.convertToDecimals(
+				((position[0] / 1e12 + _amount.mul(getUnderlyingPrice(wETH, collateralAsset)))) / (vault.maxLeverage() / 11000),
+				ERC20(collateralAsset).decimals()
+			);
+			if (
+				OptionsCompute.convertToDecimals(position[1] / 1e12, ERC20(collateralAsset).decimals()) + totalCollateralToAdd <
+				minAllowedCollateral
+			) {
+				// position[1] cannot be bigger than minAllowedCollateral here - no underflow
+				totalCollateralToAdd =
+					minAllowedCollateral -
+					OptionsCompute.convertToDecimals(position[1] / 1e12, ERC20(collateralAsset).decimals());
+			}
 			return totalCollateralToAdd;
 		} else {
+			uint256 leverageFactor = MAX_BIPS.div(healthFactor);
 			// when decreasing a position, a proportion of the pnl (positive or negative) equal to the proportion of the
 			// position size being reduced is taken out of the position.
 			uint256[] memory position = _getPosition(internalDelta > 0);
@@ -622,24 +650,24 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				// position in profit
 				// with positions in profit, you receive collateral out equal to the value entered for _collateralDelta in the createDecreasePosition
 				// function PLUS the proportion of the pnl equal to proportion of position size being reduced.
-				collateralToRemove = (1e18 -
-					(
-						(int256(position[0] / 1e12) - int256((2 * position[8]) / 1e12))
-							.mul(1e18 - int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12)))
-							.div(2 * int256(position[1] / 1e12))
-					)).mul(int256(position[1] / 1e12));
+				{
+					collateralToRemove = (1e18 -
+						(
+							(int256(position[0] / 1e12) - int256((leverageFactor.mul(position[8])) / 1e12))
+								.mul(1e18 - int256(_amount.mul(position[2]).div(position[0])))
+								.div(int256(leverageFactor.mul(position[1]) / 1e12))
+						)).mul(int256(position[1] / 1e12));
+				}
 			} else {
 				// position in loss
 				// with positions in loss, what is entered into the createDecreasePosition function is what you receive
 				// however the pnl is still reduced proportionally
-				collateralToRemove =
-					(1e18 -
-						(
-							(int256(position[0] / 1e12) + int256((2 * position[8]) / 1e12))
-								.mul(1e18 - int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12)))
-								.div(2 * int256(position[1] / 1e12))
-						)).mul(int256(position[1] / 1e12)) -
-					int256(_amount.mul(position[2] / 1e12).div(position[0] / 1e12).mul(position[8] / 1e12));
+				uint256 d = _amount.mul(position[2]).div(position[0]);
+				{
+					collateralToRemove =
+						(int256(position[1] / 1e12) - ((int256(position[0]) / 1e12).mul(1e18 - int256(d)).div(int256(leverageFactor)))) -
+						int256(position[8] / 1e12);
+				}
 			}
 			uint256 adjustedCollateralToRemove;
 			// collateral to remove must be a uint
@@ -647,8 +675,19 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				adjustedCollateralToRemove = uint256(0);
 			} else {
 				adjustedCollateralToRemove = uint256(collateralToRemove);
-				if (adjustedCollateralToRemove > ((position[1] / 1e12) * 49) / 50) {
-					adjustedCollateralToRemove = ((position[1] / 1e12) * 49) / 50;
+
+				// check if collateral removed would put position within 10% of liquidation limit
+				// where positionSize / collateral is >= maxLeverage()
+				uint256 minAllowedCollateral = ((position[0] - _getPositionSizeDeltaUsd(_amount, position[0])) / 1e12) /
+					(vault.maxLeverage() / 11000);
+				if (
+					// maxLeverage is multiplied by 10000 in contract. divide by 11000 to allow for 10% buffer.
+					int256(position[1] / 1e12) - int256(adjustedCollateralToRemove) < int256(minAllowedCollateral)
+				) {
+					adjustedCollateralToRemove = position[1] / 1e12 - minAllowedCollateral;
+					if (adjustedCollateralToRemove == 0) {
+						return 0;
+					}
 				}
 			}
 			return OptionsCompute.convertToDecimals(adjustedCollateralToRemove, ERC20(collateralAsset).decimals());
@@ -662,12 +701,10 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	 *	@return USD size to change position by. e30
 	 */
 	function _getPositionSizeDeltaUsd(uint256 _size, uint256 positionSize) private view returns (uint256) {
-		return _size.div(uint256(internalDelta.abs())).mul(positionSize);
+		return _size.mul(positionSize).div(uint256(internalDelta.abs()));
 	}
 
-	// ----- temporary functions to allow me to execute the position requests
-	// ----- will be deleted before deploy on mainnet
-
+	// ---- functions to force execution in case of GMX keeper failure
 	function executeIncreasePosition(bytes32 positionKey) external {
 		gmxPositionRouter.executeIncreasePosition(positionKey, payable(address(this)));
 	}
@@ -675,8 +712,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	function executeDecreasePosition(bytes32 positionKey) external {
 		gmxPositionRouter.executeDecreasePosition(positionKey, payable(address(this)));
 	}
-
-	// ------ end of temporary functions ---------
 
 	/**	@notice function which will be called by a GMX keeper when they execute or reject our position request
 	 *	@param positionKey unique key of the position request given by GMX
@@ -688,12 +723,22 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		bool isExecuted,
 		bool isIncrease
 	) external {
+		if (msg.sender != address(gmxPositionRouter)) {
+			revert CustomErrors.InvalidGmxCallback();
+		}
 		if (isExecuted) {
 			if (isIncrease) {
 				internalDelta += increaseOrderDeltaChange[positionKey];
 			} else {
 				internalDelta += decreaseOrderDeltaChange[positionKey];
 			}
+		}
+		if (isIncrease) {
+			pendingIncreaseCallback = false;
+			delete increaseOrderDeltaChange[positionKey];
+		} else {
+			pendingDecreaseCallback = false;
+			delete decreaseOrderDeltaChange[positionKey];
 		}
 	}
 
