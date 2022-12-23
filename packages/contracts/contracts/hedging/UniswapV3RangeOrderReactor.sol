@@ -156,9 +156,16 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     /// @return inversed token1/token0 in 1e18 format
     function getPoolPrice() public view returns (uint256 price, uint256 inversed){
         (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-        uint256 p = uint256(sqrtPriceX96) * uint256(sqrtPriceX96) * (10 ** token0.decimals());
-        // token0/token1 in 1e18 format
-        price = p / (2 ** 192);
+        uint256 decimals;
+        if (token0.decimals() == 18 || token1.decimals() == 18) {
+            decimals = token0.decimals() > token1.decimals()
+            ? token0.decimals() + (token0.decimals() - token1.decimals())
+            : token0.decimals();
+        } else {
+            decimals = token1.decimals() + (token0.decimals() + token1.decimals());
+        }
+        uint256 p = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
+        price = FullMath.mulDiv(p, 10 ** decimals, 2 ** 192);
         inversed = 1e36 / price;
     }
 
@@ -641,6 +648,10 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         // returns amount of token0 and token1 sent to this vault
         // emits Burn event in the uniswap pool
         (burn0, burn1) = pool.burn(lowerTick_, upperTick_, liquidity);
+
+        //TODO add slippage protection
+        // https://uniswapv3book.com/docs/milestone_3/slippage-protection/
+        // IE: https://github.com/Uniswap/v3-periphery/blob/6cce88e63e176af1ddb6cc56e029110289622317/contracts/NonfungiblePositionManager.sol#L275
 
         // collect accumulated fees
         // emits collect event in the uniswap pool
