@@ -22,6 +22,8 @@ interface CustomErrors {
 	error NotLiquidityPool();
 	error DeltaNotDecreased();
 	error NonExistentOtoken();
+	error InvalidGmxCallback();
+	error GmxCallbackPending();
 	error OrderExpiryTooLong();
 	error InvalidShareAmount();
 	error ExistingWithdrawal();

@@ -81,17 +81,25 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 200
+						runs: 200,
+						details: {
+							yul: true
+						}
 					}
-				}
+				},
+				viaIR: false
 			},
 			{
 				version: "0.8.10",
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 200
-					}
+						runs: 200,
+						details: {
+							yul: true
+						}
+					},
+					viaIR: false
 				}
 			},
 			{
@@ -99,8 +107,12 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 200
-					}
+						runs: 200,
+						details: {
+							yul: true
+						}
+					},
+					viaIR: false
 				}
 			},
 			{
@@ -108,8 +120,12 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 200
-					}
+						runs: 200,
+						details: {
+							yul: true
+						}
+					},
+					viaIR: false
 				}
 			}
 		]
@@ -140,7 +156,7 @@ module.exports = {
 			gas: 500000000
 		},
 		arbitrumGoerli: {
-			url: `https://arbitrum-goerli.infura.io/v3/${process.env.INFURA}}`,
+			url: `https://arb-goerli.g.alchemy.com/v2/${process.env.ALCHEMY_GOERLI}}`,
 			chainId: 421613,
 			saveDeployments: true,
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,

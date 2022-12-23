@@ -3,6 +3,8 @@
 pragma solidity >=0.8.0;
 
 interface IVaultPriceFeed {
+	function gov() external view returns (address);
+
 	function adjustmentBasisPoints(address _token) external view returns (uint256);
 
 	function isAdjustmentAdditive(address _token) external view returns (bool);
