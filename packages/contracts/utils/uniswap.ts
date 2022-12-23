@@ -2,6 +2,8 @@ import { TickMath, Pool } from "@uniswap/v3-sdk"
 import { Token } from "@uniswap/sdk-core"
 import { abi as QuoterABI } from "@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json"
 import { ethers, Contract, Signer } from "ethers"
+import { ethers as hhEthers } from "hardhat"
+import { MintableERC20 } from "../types/MintableERC20"
 import JSBI from "jsbi"
 
 const quoterAddress = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6"
@@ -27,6 +29,7 @@ export interface State {
 }
 
 async function getPoolImmutables(poolContract: Contract): Promise<Immutables> {
+	const fac = await poolContract.factory()
 	const [factory, token0, token1, fee, tickSpacing, maxLiquidityPerTick] = await Promise.all([
 		poolContract.factory(),
 		poolContract.token0(),
@@ -64,15 +67,38 @@ async function getPoolState(poolContract: Contract): Promise<State> {
 	return PoolState
 }
 
+async function getErc20Contract(tokenAddress: string) {
+	const c = (await hhEthers.getContractAt(
+		"contracts/tokens/ERC20.sol:ERC20",
+		tokenAddress
+	)) as MintableERC20
+	return c
+}
+
 export async function getPoolInfo(poolContract: Contract) {
 	const [immutables, state] = await Promise.all([
 		getPoolImmutables(poolContract),
 		getPoolState(poolContract)
 	])
 	const { chainId } = await poolContract.provider.getNetwork()
-	const TokenA = new Token(chainId, immutables.token0, 6, "USDC", "USD Coin")
+	const token0Address = await poolContract.token0()
+	const token1Address = await poolContract.token1()
+	const token0 = await getErc20Contract(token0Address)
+	const token1 = await getErc20Contract(token1Address)
+	const t0sym = await token0.symbol()
+	const [token0Symbol, token1Symbol, token0Name, token1Name, token0Decimals, token1Decimals] =
+		await Promise.all([
+			token0.symbol(),
+			token1.symbol(),
+			token0.name(),
+			token1.name(),
+			token0.decimals(),
+			token1.decimals()
+		])
 
-	const TokenB = new Token(chainId, immutables.token1, 18, "WETH", "Wrapped Ether")
+	const TokenA = new Token(chainId, immutables.token0, token0Decimals, token0Symbol, token0Name)
+
+	const TokenB = new Token(chainId, immutables.token1, token1Decimals, token1Symbol, token1Name)
 
 	const pool = new Pool(
 		TokenA,

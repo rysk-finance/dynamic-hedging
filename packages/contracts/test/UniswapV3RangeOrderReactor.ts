@@ -7,7 +7,13 @@ import {
 	RangeOrderParamsStruct
 } from "../types/UniswapV3RangeOrderReactor"
 import { UniswapV3HedgingTest } from "../types/UniswapV3HedgingTest"
-import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_FACTORY } from "./constants"
+import {
+	USDC_ADDRESS,
+	USDC_OWNER_ADDRESS,
+	WETH_ADDRESS,
+	UNISWAP_V3_FACTORY,
+	USDT_ADDRESS
+} from "./constants"
 import { PriceFeed } from "../types/PriceFeed"
 import { MintEvent } from "../types/IUniswapV3PoolEvents"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
@@ -34,12 +40,14 @@ let usdcWhaleAddress: string
 let liquidityPoolDummy: UniswapV3HedgingTest
 let liquidityPoolDummyAddress: string
 let uniswapV3RangeOrderReactor: UniswapV3RangeOrderReactor
+let wethUsdtRangeOrderReactor: UniswapV3RangeOrderReactor
 let usdcContract: MintableERC20
 let wethContract: WETH
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
 let rate: string
 let uniswapUSDCWETHPool: Contract
+let uniswapWETHUSDTPool: Contract
 let uniswapRouter: Contract
 let bigSignerAddress: string
 let authority: string
@@ -148,6 +156,33 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(uniswapV3RangeOrderReactor).to.have.property("hedgeDelta")
 	})
 
+	it("deploys the UniswapV3RangeOrderReactor contract with weth/usdt pair", async () => {
+		// This pool is being deployed to test cases where the pair of tokens is inverted in order from usdc/weth
+		const uniswapV3RangeOrderReactorFactory = await ethers.getContractFactory(
+			"UniswapV3RangeOrderReactor",
+			{
+				signer: signers[0]
+			}
+		)
+
+		wethUsdtRangeOrderReactor = (await uniswapV3RangeOrderReactorFactory.deploy(
+			UNISWAP_V3_FACTORY,
+			USDT_ADDRESS[chainId],
+			WETH_ADDRESS[chainId],
+			liquidityPoolDummyAddress,
+			POOL_FEE,
+			priceFeed.address,
+			authority
+		)) as UniswapV3RangeOrderReactor
+		const poolAddress = await wethUsdtRangeOrderReactor.pool()
+		uniswapWETHUSDTPool = new ethers.Contract(poolAddress, IUniswapV3PoolABI, signers[1])
+		const token0 = await wethUsdtRangeOrderReactor.token0()
+		const token1 = await wethUsdtRangeOrderReactor.token1()
+		expect(wethUsdtRangeOrderReactor).to.have.property("hedgeDelta")
+		expect(token0.toLowerCase()).to.eq(WETH_ADDRESS[chainId].toLowerCase())
+		expect(token1.toLowerCase()).to.eq(USDT_ADDRESS[chainId].toLowerCase())
+	})
+
 	it("sets reactor address on LP contract", async () => {
 		const reactorAddress = uniswapV3RangeOrderReactor.address
 
@@ -245,6 +280,23 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(inversedDifference).to.be.lt(10e-10)
 	})
 
+	it("Returns proper pool prices weth/usdt", async () => {
+		let poolInfo = await getPoolInfo(uniswapWETHUSDTPool)
+		uniswapWETHUSDTPool.token
+		const weth_usdt_price = poolInfo.token0Price.toFixed(18)
+		const usdt_weth_price = poolInfo.token1Price.toFixed(18)
+		const tp = poolInfo.token0Price
+		const { price, inversed } = await wethUsdtRangeOrderReactor.getPoolPrice()
+		const priceDecimals = fromWei(price)
+		const inversedDecimals = fromWei(inversed)
+		const priceDifference = Number(weth_usdt_price) - Number(priceDecimals)
+		const inversedDifference = Number(usdt_weth_price) - Number(inversedDecimals)
+		const pricePercentageDiff = Math.abs(priceDifference) / Number(weth_usdt_price)
+		const inversedPercentageDiff = Math.abs(inversedDifference) / Number(usdt_weth_price)
+		expect(pricePercentageDiff).to.be.lt(0.001)
+		expect(inversedPercentageDiff).to.be.lt(0.001)
+	})
+
 	it("Returns proper pool prices dai/weth", async () => {
 		const DAI = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 		const uniswapV3RangeOrderReactorFactory = await ethers.getContractFactory(
@@ -263,21 +315,91 @@ describe("UniswapV3RangeOrderReactor", () => {
 			priceFeed.address,
 			authority
 		)) as UniswapV3RangeOrderReactor
-		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const poolAddress = await daiWethV3RangeOrderReactor.pool()
+		const uniswapDAIWETHPool = new ethers.Contract(poolAddress, IUniswapV3PoolABI, signers[1])
+		let poolInfo = await getPoolInfo(uniswapDAIWETHPool)
 		const weth_dai_price = poolInfo.token1Price.toFixed(18)
 		const dai_weth_price = poolInfo.token0Price.toFixed(18)
 		const { price, inversed } = await daiWethV3RangeOrderReactor.getPoolPrice()
-		const token0 = await daiWethV3RangeOrderReactor.token0()
-		const token1 = await daiWethV3RangeOrderReactor.token1()
 		const priceDecimals = fromWei(price)
 		const inversedDecimals = fromWei(inversed)
 		const priceDifference = Number(dai_weth_price) - Number(priceDecimals)
 		const pricePercentageDiff = Math.abs(priceDifference) / Number(dai_weth_price)
 		const inversedDifference = Number(weth_dai_price) - Number(inversedDecimals)
 		const inversedPercentageDiff = Math.abs(inversedDifference) / Number(weth_dai_price)
-		expect(pricePercentageDiff).to.be.lt(0.001)
+		expect(pricePercentageDiff).to.be.lt(1e-10)
 		// some loss of precision is expected in conversion, but very little
-		expect(inversedPercentageDiff).to.be.lt(0.001)
+		expect(inversedPercentageDiff).to.be.lt(1e-10)
+	})
+
+	it("Returns proper pool prices wbtc/usdt", async () => {
+		// testing a pair with neither being 18 decimals
+		const WBTC = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
+		const uniswapV3RangeOrderReactorFactory = await ethers.getContractFactory(
+			"UniswapV3RangeOrderReactor",
+			{
+				signer: signers[0]
+			}
+		)
+
+		const wbtcUSDTV3RangeOrderReactor = (await uniswapV3RangeOrderReactorFactory.deploy(
+			UNISWAP_V3_FACTORY,
+			WBTC,
+			USDT_ADDRESS[chainId],
+			liquidityPoolDummyAddress,
+			POOL_FEE,
+			priceFeed.address,
+			authority
+		)) as UniswapV3RangeOrderReactor
+		const poolAddress = await wbtcUSDTV3RangeOrderReactor.pool()
+		const uniswapWBTCUSDTPool = new ethers.Contract(poolAddress, IUniswapV3PoolABI, signers[1])
+		let poolInfo = await getPoolInfo(uniswapWBTCUSDTPool)
+		const wbtc_usdt_price = poolInfo.token0Price.toFixed(18)
+		const usdt_wbtc_price = poolInfo.token1Price.toFixed(18)
+		const { price, inversed } = await wbtcUSDTV3RangeOrderReactor.getPoolPrice()
+		const priceDecimals = fromWei(price)
+		const inversedDecimals = fromWei(inversed)
+		const priceDifference = Number(wbtc_usdt_price) - Number(priceDecimals)
+		const pricePercentageDiff = Math.abs(priceDifference) / Number(wbtc_usdt_price)
+		const inversedDifference = Number(usdt_wbtc_price) - Number(inversedDecimals)
+		const inversedPercentageDiff = Math.abs(inversedDifference) / Number(usdt_wbtc_price)
+		expect(pricePercentageDiff).to.be.lt(1e-10)
+		expect(inversedPercentageDiff).to.be.lt(1e-10)
+	})
+
+	it("Returns proper pool prices wbtc/usdc", async () => {
+		// testing a pair with neither being 18 decimals
+		const WBTC = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
+		const uniswapV3RangeOrderReactorFactory = await ethers.getContractFactory(
+			"UniswapV3RangeOrderReactor",
+			{
+				signer: signers[0]
+			}
+		)
+
+		const wbtcUSDCV3RangeOrderReactor = (await uniswapV3RangeOrderReactorFactory.deploy(
+			UNISWAP_V3_FACTORY,
+			WBTC,
+			USDC_ADDRESS[chainId],
+			liquidityPoolDummyAddress,
+			POOL_FEE,
+			priceFeed.address,
+			authority
+		)) as UniswapV3RangeOrderReactor
+		const poolAddress = await wbtcUSDCV3RangeOrderReactor.pool()
+		const uniswapWBTCUSDCPool = new ethers.Contract(poolAddress, IUniswapV3PoolABI, signers[1])
+		let poolInfo = await getPoolInfo(uniswapWBTCUSDCPool)
+		const wbtc_usdc_price = poolInfo.token0Price.toFixed(18)
+		const usdc_wbtc_price = poolInfo.token1Price.toFixed(18)
+		const { price, inversed } = await wbtcUSDCV3RangeOrderReactor.getPoolPrice()
+		const priceDecimals = fromWei(price)
+		const inversedDecimals = fromWei(inversed)
+		const priceDifference = Number(wbtc_usdc_price) - Number(priceDecimals)
+		const pricePercentageDiff = Math.abs(priceDifference) / Number(wbtc_usdc_price)
+		const inversedDifference = Number(usdc_wbtc_price) - Number(inversedDecimals)
+		const inversedPercentageDiff = Math.abs(inversedDifference) / Number(usdc_wbtc_price)
+		expect(pricePercentageDiff).to.be.lt(1e-10)
+		expect(inversedPercentageDiff).to.be.lt(1e-10)
 	})
 
 	it("Enters a range to hedge a negative delta", async () => {
