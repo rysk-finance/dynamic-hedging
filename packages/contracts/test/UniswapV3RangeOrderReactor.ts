@@ -37,11 +37,16 @@ enum Direction {
 let signers: Signer[]
 let usdcWhale: Signer
 let usdcWhaleAddress: string
+let usdtWhale: Signer
+let usdtWhaleAddress: string
 let liquidityPoolDummy: UniswapV3HedgingTest
 let liquidityPoolDummyAddress: string
+let liquidityPoolUSDTDummy: UniswapV3HedgingTest
+let liquidityPoolUSDTDummyAddress: string
 let uniswapV3RangeOrderReactor: UniswapV3RangeOrderReactor
 let wethUsdtRangeOrderReactor: UniswapV3RangeOrderReactor
 let usdcContract: MintableERC20
+let usdtContract: MintableERC20
 let wethContract: WETH
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
@@ -54,6 +59,7 @@ let authority: string
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const POOL_FEE = 3000
 const SWAP_ROUTER_ADDRESS = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+const TETHER_TREASURY = "0x5754284f345afc66a98fbB0a0Afe71e0F007B949"
 // edit depending on the chain id to be tested on
 const chainId = 1
 
@@ -72,13 +78,24 @@ describe("UniswapV3RangeOrderReactor", () => {
 			]
 		})
 	})
-	it("deploys the dummy LP contract", async () => {
+
+	it("deploys the dummy LP USDC collateral contract", async () => {
 		signers = await ethers.getSigners()
 		const liquidityPoolDummyFactory = await ethers.getContractFactory("UniswapV3HedgingTest")
 		liquidityPoolDummy = (await liquidityPoolDummyFactory.deploy()) as UniswapV3HedgingTest
 		liquidityPoolDummyAddress = liquidityPoolDummy.address
 
 		expect(liquidityPoolDummy).to.have.property("setHedgingReactorAddress")
+		expect(liquidityPoolDummy).to.have.property("hedgeDelta")
+	})
+
+	it("deploys the dummy LP USDT contract", async () => {
+		signers = await ethers.getSigners()
+		const liquidityPoolDummyFactory = await ethers.getContractFactory("UniswapV3HedgingTest")
+		liquidityPoolUSDTDummy = (await liquidityPoolDummyFactory.deploy()) as UniswapV3HedgingTest
+		liquidityPoolUSDTDummyAddress = liquidityPoolDummy.address
+
+		expect(liquidityPoolDummy).to.have.property("setHedgingReactorAddressAndToken")
 		expect(liquidityPoolDummy).to.have.property("hedgeDelta")
 	})
 
@@ -109,7 +126,34 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(LPContractBalance).to.equal(1000000)
 	})
 
-	it("Should deploy price feed", async () => {
+	it("funds the LP contract with a million USDT", async () => {
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [TETHER_TREASURY]
+		})
+		usdtWhale = await ethers.getSigner(TETHER_TREASURY)
+		await signers[0].sendTransaction({
+			to: TETHER_TREASURY,
+			value: ethers.utils.parseEther("1.0") // Sends exactly 1.0 ether
+		})
+		usdtWhaleAddress = await usdcWhale.getAddress()
+		usdtContract = (await ethers.getContractAt(
+			"contracts/tokens/ERC20.sol:ERC20",
+			USDT_ADDRESS[chainId]
+		)) as MintableERC20
+
+		await usdtContract
+			.connect(usdtWhale)
+			.transfer(liquidityPoolUSDTDummyAddress, ethers.utils.parseUnits("1000000", 6))
+
+		const LPContractBalance = parseFloat(
+			ethers.utils.formatUnits(await usdtContract.balanceOf(liquidityPoolUSDTDummyAddress), 6)
+		)
+
+		expect(LPContractBalance).to.equal(1000000)
+	})
+
+	it("Should deploy a price feed", async () => {
 		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")
 		const senderAddress = await signers[0].getAddress()
@@ -121,6 +165,11 @@ describe("UniswapV3RangeOrderReactor", () => {
 		await priceFeed.addPriceFeed(
 			WETH_ADDRESS[chainId],
 			USDC_ADDRESS[chainId],
+			ethUSDAggregator.address
+		)
+		await priceFeed.addPriceFeed(
+			WETH_ADDRESS[chainId],
+			USDT_ADDRESS[chainId],
 			ethUSDAggregator.address
 		)
 		const feedAddress = await priceFeed.priceFeeds(ZERO_ADDRESS, USDC_ADDRESS[chainId])
