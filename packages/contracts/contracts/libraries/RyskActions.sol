@@ -50,7 +50,7 @@ library RyskActions {
         Types.OptionSeries optionSeries;
         // series address
         address seriesAddress;
-        // amount of options to buy
+        // amount of options to buy, always in e18
         uint256 amount;
         // recipient of the options
         address recipient;
@@ -63,7 +63,7 @@ library RyskActions {
         address seriesAddress;
         // vault id
         uint256 vaultId;
-        // amount of options to sell
+        // amount of options to sell, always in e18
         uint256 amount;
         // recipient of premium
         address recipient;

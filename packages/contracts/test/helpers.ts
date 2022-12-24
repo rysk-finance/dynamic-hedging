@@ -52,6 +52,7 @@ const yIntercept = -0.6
 export async function getExchangeParams(liquidityPool, exchange, usd, weth, portfolioValuesFeed, optionToken, senderAddress, amount) {
 	const poolUSDBalance = await usd.balanceOf(liquidityPool.address)
 	const senderUSDBalance = await usd.balanceOf(senderAddress)
+	const exchangeTempUSD = await exchange.heldTokens(senderAddress, usd.address)
 	const senderWethBalance = await weth.balanceOf(senderAddress)
 	const pfList = await portfolioValuesFeed.getAddressSet()
 	const opynAmount = toOpyn(fromWei(amount))
@@ -66,12 +67,13 @@ export async function getExchangeParams(liquidityPool, exchange, usd, weth, port
 	expect(poolWethBalance).to.equal(0)
 	expect(exchangeWethBalance).to.equal(0)
 	expect(exchangeUSDBalance).to.equal(0)
+	expect(exchangeTempUSD).to.equal(0)
 
 	if (optionToken != 0) {
 		exchangeOTokenBalance = await optionToken.balanceOf(exchange.address)
 		senderOtokenBalance = await optionToken.balanceOf(senderAddress)
 		seriesStores = await portfolioValuesFeed.storesForAddress(optionToken.address)
-		const exchangeTempOtokens = await exchange.heldOtokens(senderAddress, optionToken.address)
+		const exchangeTempOtokens = await exchange.heldTokens(senderAddress, optionToken.address)
 		const liquidityPoolOTokenBalance = await optionToken.balanceOf(liquidityPool.address)
 		expect(liquidityPoolOTokenBalance).to.equal(0)
 		expect(exchangeTempOtokens).to.equal(0)
