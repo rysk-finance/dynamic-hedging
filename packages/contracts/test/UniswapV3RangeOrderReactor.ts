@@ -907,9 +907,10 @@ describe("UniswapV3RangeOrderReactor", () => {
 	})
 
 	// Uniswap Conversions Testing
-	it("Converts a usdc/weth (6/18 decimals) to sqrtPriceX96 - Uniswap Conversions", async () => {
+	it("Converts a usdc/weth (6/18 decimals) to sqrtPriceX96 and back - Uniswap Conversions", async () => {
 		const usdcWethPrice = "304794466082623"
 		const sqrtPriceX96 = await uniswapConversions.priceToSqrtX96(usdcWethPrice, 6)
+		const convertBack = await uniswapConversions.sqrtToPrice(sqrtPriceX96, 6)
 		const poolSquareRootPrice = BigNumber.from("1383194083266513227538809339896527")
 		const poolLength = poolSquareRootPrice.toString().length
 		const sqrtPriceLength = sqrtPriceX96.toString().length
@@ -917,13 +918,17 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const poolPriceFromWei = Number(fromWei(poolSquareRootPrice))
 		const difFromWei = Math.abs(Number(fromWei(difference)))
 		const percentDifferece = difFromWei / poolPriceFromWei
+		const conversionDiff = Math.abs(Number(fromWei(convertBack)) - Number(fromWei(usdcWethPrice)))
+		const conversionPercentDiff = conversionDiff / Number(fromWei(usdcWethPrice))
 		expect(sqrtPriceLength).to.eq(poolLength)
 		expect(percentDifferece).to.be.lt(1e-6)
+		expect(conversionPercentDiff).to.be.lt(1e-6)
 	})
 
 	it("Converts a weth/usdt (18/6 decimals) to sqrtPriceX96 - Uniswap Conversions", async () => {
 		const wethUsdtPrice = "3278775459"
 		const sqrtPriceX96 = await uniswapConversions.priceToSqrtX96(wethUsdtPrice, 18)
+		const convertBack = await uniswapConversions.sqrtToPrice(sqrtPriceX96, 18)
 		const poolSquareRootPrice = BigNumber.from("4536651532748345691924484")
 		const poolLength = poolSquareRootPrice.toString().length
 		const sqrtPriceLength = sqrtPriceX96.toString().length
@@ -931,13 +936,17 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const poolPriceFromWei = Number(fromWei(poolSquareRootPrice))
 		const difFromWei = Math.abs(Number(fromWei(difference)))
 		const percentDifferece = difFromWei / poolPriceFromWei
+		const conversionDiff = Math.abs(Number(fromWei(convertBack)) - Number(fromWei(wethUsdtPrice)))
+		const conversionPercentDiff = conversionDiff / Number(fromWei(wethUsdtPrice))
 		expect(sqrtPriceLength).to.eq(poolLength)
 		expect(percentDifferece).to.be.lt(1e-6)
+		expect(conversionPercentDiff).to.be.lt(1e-6)
 	})
 
 	it("Converts a DAI/WETH (18/18 decimals) to sqrtPriceX96 - Uniswap Conversions", async () => {
 		const daiWethPrice = "304873053351706"
 		const sqrtPriceX96 = await uniswapConversions.priceToSqrtX96(daiWethPrice, 18)
+		const convertBack = await uniswapConversions.sqrtToPrice(sqrtPriceX96, 18)
 		const poolSquareRootPrice = BigNumber.from("1383372391030930353024001313")
 		const poolLength = poolSquareRootPrice.toString().length
 		const sqrtPriceLength = sqrtPriceX96.toString().length
@@ -945,13 +954,17 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const poolPriceFromWei = Number(fromWei(poolSquareRootPrice))
 		const difFromWei = Math.abs(Number(fromWei(difference)))
 		const percentDifferece = difFromWei / poolPriceFromWei
+		const conversionDiff = Math.abs(Number(fromWei(convertBack)) - Number(fromWei(daiWethPrice)))
+		const conversionPercentDiff = conversionDiff / Number(fromWei(daiWethPrice))
 		expect(sqrtPriceLength).to.eq(poolLength)
 		expect(percentDifferece).to.be.lt(1e-6)
+		expect(conversionPercentDiff).to.be.lt(1e-6)
 	})
 
 	it("Converts a WBTC/USDT (8/6 decimals) to sqrtPriceX96 - Uniswap Conversions", async () => {
 		const wbtcUsdcPrice = "45149740258"
 		const sqrtPriceX96 = await uniswapConversions.priceToSqrtX96(wbtcUsdcPrice, 8)
+		const convertBack = await uniswapConversions.sqrtToPrice(sqrtPriceX96, 8)
 		const poolSquareRootPrice = BigNumber.from("1683477094974729778595779250705")
 		const poolLength = poolSquareRootPrice.toString().length
 		const sqrtPriceLength = sqrtPriceX96.toString().length
@@ -959,13 +972,17 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const poolPriceFromWei = Number(fromWei(poolSquareRootPrice))
 		const difFromWei = Math.abs(Number(fromWei(difference)))
 		const percentDifferece = difFromWei / poolPriceFromWei
+		const conversionDiff = Math.abs(Number(fromWei(convertBack)) - Number(fromWei(wbtcUsdcPrice)))
+		const conversionPercentDiff = conversionDiff / Number(fromWei(wbtcUsdcPrice))
 		expect(sqrtPriceLength).to.eq(poolLength)
 		expect(percentDifferece).to.be.lt(1e-6)
+		expect(conversionPercentDiff).to.be.lt(1e-6)
 	})
 
 	it("Converts a WBTC/USDC (8/6 decimals) to sqrtPriceX96 - Uniswap Conversions", async () => {
 		const wbtcUsdcPrice = "45165453874"
 		const sqrtPriceX96 = await uniswapConversions.priceToSqrtX96(wbtcUsdcPrice, 8)
+		const convertBack = await uniswapConversions.sqrtToPrice(sqrtPriceX96, 8)
 		const poolSquareRootPrice = BigNumber.from("1683770022578357087060958331921")
 		const poolLength = poolSquareRootPrice.toString().length
 		const sqrtPriceLength = sqrtPriceX96.toString().length
@@ -973,7 +990,10 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const poolPriceFromWei = Number(fromWei(poolSquareRootPrice))
 		const difFromWei = Math.abs(Number(fromWei(difference)))
 		const percentDifferece = difFromWei / poolPriceFromWei
+		const conversionDiff = Math.abs(Number(fromWei(convertBack)) - Number(fromWei(wbtcUsdcPrice)))
+		const conversionPercentDiff = conversionDiff / Number(fromWei(wbtcUsdcPrice))
 		expect(sqrtPriceLength).to.eq(poolLength)
 		expect(percentDifferece).to.be.lt(1e-6)
+		expect(conversionPercentDiff).to.be.lt(1e-6)
 	})
 })
