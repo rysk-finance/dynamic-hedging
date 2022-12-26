@@ -125,6 +125,8 @@ contract VolatilityFeed is AccessControl {
 		int256 _interestRate
 	) public {
 		_onlyGovernor();
+		require(-100e18 < _interestRate, "Interest rate too small");
+		require(100e18 > _interestRate, "Interest rate too big");
 		interestRate = _interestRate;
 	}
 
@@ -158,7 +160,6 @@ contract VolatilityFeed is AccessControl {
 		if (sabrParams_.callAlpha == 0) {
 			revert CustomErrors.IVNotFound();
 		}
-		// TODO: fuzz this
 		int256 forwardPrice = int256(underlyingPrice).mul((PRBMathSD59x18.exp(interestRate.mul(time))));
 		if (!isPut) {
 			vol = SABR.lognormalVol(
