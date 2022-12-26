@@ -380,7 +380,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				isBuyable: true
 			},
 			{
-				expiration: expiration2,
+				expiration: expiration,
 				isPut: CALL_FLAVOR,
 				strike: toWei("1650"),
 				isSellable: true,
@@ -706,7 +706,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const amount = toWei("5")
 			const strikePrice = toWei("1650")
 			const proposedSeries = {
-				expiration: expiration2,
+				expiration: expiration,
 				strike: strikePrice,
 				isPut: CALL_FLAVOR,
 				strikeAsset: usd.address,
@@ -773,10 +773,10 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.seriesStores.optionSeries.strike).to.equal(proposedSeries.strike)
 		})
 		it("SUCCEEDS: LP Sells a ETH/USD call for premium creating otoken in tx", async () => {
-			const amount = toWei("5")
+			const amount = toWei("10")
 			const strikePrice = toWei("1650")
 			const proposedSeries = {
-				expiration: expiration2,
+				expiration: expiration,
 				strike: strikePrice,
 				isPut: CALL_FLAVOR,
 				strikeAsset: usd.address,
@@ -794,7 +794,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				underlying: proposedSeries.underlying,
 				collateral: proposedSeries.collateral
 			}, amount)).add(toUSDC("100"))
-			const before = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, 0, senderAddress, amount)
+			const before = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, oTokenUSDC1650C, senderAddress, amount)
 			await usd.approve(MARGIN_POOL[chainId], marginRequirement)
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
 			/// ADD OPERATOR TODO
@@ -863,11 +863,11 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			oTokenUSDCSXC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
 			optionToken = oTokenUSDCSXC
 			const after = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, optionToken, senderAddress, amount)
-			expect(after.exchangeOTokenBalance).to.eq(0)
+			expect(after.exchangeOTokenBalance.sub(before.exchangeOTokenBalance)).to.eq(after.opynAmount.div(2))
 			expect(after.senderUSDBalance.sub(before.senderUSDBalance).sub(quote).add(marginRequirement)).to.be.within(-10,10)
 			expect(before.poolUSDBalance.sub(after.poolUSDBalance).sub(quote).add(before.collateralAllocated.sub(after.collateralAllocated))).to.be.within(-10, 10)
 			expect((after.pfList.length - before.pfList.length)).to.equal(0)
-			expect(after.seriesStores.longExposure).to.equal(0)
+			expect(after.seriesStores.longExposure).to.equal(amount.div(2))
 			expect(after.seriesStores.shortExposure).to.equal(0)
 			expect(after.seriesStores.optionSeries.expiration).to.equal(proposedSeries.expiration)
 			expect(after.seriesStores.optionSeries.isPut).to.equal(proposedSeries.isPut)
@@ -1442,6 +1442,21 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					totalCollateralAllocated.sub(collateralReturned).sub(collateralLost)
 				)
 			})
+			it("SUCCEEDS: redeems options held", async () => {
+				optionToken = oTokenUSDC1650C
+				const reactorOtokenBalanceBefore = await optionToken.balanceOf(exchange.address)
+				const liquidityPoolUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+				const redeem = await exchange.redeem([optionToken.address])
+				const receipt = await redeem.wait()
+				const events = receipt.events
+				const redemptionEvent = events?.find(x => x.event == "RedemptionSent")
+				const redeemAmount = redemptionEvent?.args?.redeemAmount
+				const reactorOtokenBalanceAfter = await optionToken.balanceOf(exchange.address)
+				const liquidityPoolUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
+				expect(reactorOtokenBalanceBefore).to.be.gt(0)
+				expect(reactorOtokenBalanceAfter).to.equal(0)
+				expect(liquidityPoolUSDBalanceAfter.sub(liquidityPoolUSDBalanceBefore).sub(redeemAmount)).to.be.within(-50, 50)
+			})
 		})
 
 		describe("Settles and redeems eth otoken", async () => {
@@ -1546,6 +1561,10 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				const update = await exchange.callStatic.update()
 				expect(update).to.equal(0)
 			})
+			it("REVERTS: withdraw when non vault calls", async () => {
+				await expect(exchange.withdraw(toWei("10"))).to.be.revertedWith("!vault")
+			})
+			
 		})
 		describe("Unwinds a hedging reactor", async () => {
 			it("Succeed: Hedging reactor unwind", async () => {

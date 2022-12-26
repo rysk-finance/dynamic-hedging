@@ -19,7 +19,6 @@ import "./interfaces/IPortfolioValuesFeed.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-import "hardhat/console.sol";
 
 /**
  *  @title Contract used for all user facing options interactions

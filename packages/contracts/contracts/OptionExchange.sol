@@ -31,7 +31,6 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import { IOtoken, IController } from "./interfaces/GammaInterface.sol";
 
-import "hardhat/console.sol";
 
 /**
  *  @title Contract used for all user facing options interactions
