@@ -13,4 +13,12 @@ contract UniswapConversionsTest {
         return encodePriceSqrt(token0Token1, token0Decimals);
     }
 
+    function sqrtToPrice(uint160 sqrtPriceX96, uint8 token0Decimals)
+        public
+        pure
+        returns (uint256)
+    {
+        return sqrtPriceX96ToUint(sqrtPriceX96, token0Decimals);
+    }
+
 }
