@@ -418,7 +418,14 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				// check the to address to see whether it is being sent to the user or held here temporarily
 			} else if (actionType == IController.ActionType.DepositCollateral) {
 				// check the from address is the msg.sender so the sender cant take collat from elsewhere
-				require(action.secondAddress == msg.sender, "Unauthorised Sender");
+				require(action.secondAddress == msg.sender || action.secondAddress == address(this), "Unauthorised Sender");
+				// if the address is this address then for UX purposes the collateral will be handled here 
+				// (this means the user only needs to do one approval for collateral to this address)
+				if(action.secondAddress == address(this)) {
+					SafeTransferLib.safeTransferFrom(action.asset, msg.sender, address(this), action.amount);
+					// approve the margin pool from this account
+					SafeTransferLib.safeApprove(ERC20(action.asset), addressbook.getMarginPool(), action.amount);
+				}
 			} else if (actionType == IController.ActionType.MintShortOption) {
 				if (action.secondAddress == address(this)) {
 					_updateTempHoldings(action.asset, action.amount * 10**CONVERSION_DECIMALS);
