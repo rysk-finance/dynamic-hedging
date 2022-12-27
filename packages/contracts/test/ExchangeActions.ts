@@ -454,6 +454,340 @@ describe("Actions tests", async () => {
 				}])).to.be.revertedWith("UnauthorisedSender()")
 		})
 	})
+	describe("Opyn Deposit Collateral Action checks", async () => {
+		it("SUCCEED: OPYN deposit collateral", async () => {
+			const margin = toUSDC("1000")
+			usd.approve(MARGIN_POOL[chainId], margin)
+			await exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 3,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: usd.address,
+						vaultId: 3,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])
+			const vaultId = await controller.getAccountVaultCounter(senderAddress)
+			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
+			expect(vaultId).to.equal(3)
+			expect((vaultDetails)[1]).to.equal(0)
+			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+		})
+		it("SUCCEED: OPYN deposit collateral through exchange", async () => {
+			const margin = toUSDC("1000")
+			usd.approve(exchange.address, margin)
+			await exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 4,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: usd.address,
+						vaultId: 4,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])
+			const vaultId = await controller.getAccountVaultCounter(senderAddress)
+			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
+			expect(vaultId).to.equal(4)
+			expect((vaultDetails)[1]).to.equal(0)
+			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+		})
+		it("SUCCEED: OPYN deposit collateral weth", async () => {
+			const margin = toWei("1")
+			weth.approve(MARGIN_POOL[chainId], margin)
+			await exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 5,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: weth.address,
+						vaultId: 5,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])
+			const vaultId = await controller.getAccountVaultCounter(senderAddress)
+			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
+			expect(vaultId).to.equal(5)
+			expect((vaultDetails)[1]).to.equal(0)
+			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+		})
+		it("SUCCEED: OPYN deposit collateral through exchange with weth", async () => {
+			const margin = toWei("1")
+			weth.approve(exchange.address, margin)
+			await exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 6,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: weth.address,
+						vaultId: 6,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])
+			const vaultId = await controller.getAccountVaultCounter(senderAddress)
+			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
+			expect(vaultId).to.equal(6)
+			expect((vaultDetails)[1]).to.equal(0)
+			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+		})
+		it("REVERTS: OPYN deposit collateral fails when sending to an invalid address", async () => {
+			const margin = toUSDC("1000")
+			usd.approve(exchange.address, margin)
+			await expect(exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 4,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: liquidityPool.address,
+						asset: usd.address,
+						vaultId: 4,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])).to.be.revertedWith("UnauthorisedSender()")
+		})
+		it("REVERTS: OPYN deposit collateral fails with invalid owner", async () => {
+			const margin = toUSDC("1000")
+			usd.approve(exchange.address, margin)
+			await expect(exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 4,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 5,
+						owner: exchange.address,
+						secondAddress: exchange.address,
+						asset: usd.address,
+						vaultId: 4,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])).to.be.revertedWith("UnauthorisedSender()")
+		})
+	})
+	// describe("Opyn Mint Short Option Action checks", async () => {
+	// 	it("SUCCEED: OPYN mint short option", async () => {
+	// 		const margin = toUSDC("1000")
+	// 		usd.approve(MARGIN_POOL[chainId], margin)
+	// 		await exchange.operate([
+	// 			{
+	// 				operation: 0,
+	// 				operationQueue: [{
+	// 					actionType: 0,
+	// 					owner: senderAddress,
+	// 					secondAddress: ZERO_ADDRESS,
+	// 					asset: ZERO_ADDRESS,
+	// 					vaultId: 3,
+	// 					amount: 0,
+	// 					optionSeries: emptySeries,
+	// 					index: 0,
+	// 					data: "0x"
+	// 				},
+	// 				{
+	// 					actionType: 5,
+	// 					owner: senderAddress,
+	// 					secondAddress: senderAddress,
+	// 					asset: usd.address,
+	// 					vaultId: 3,
+	// 					amount: margin,
+	// 					optionSeries: emptySeries,
+	// 					index: 0,
+	// 					data: "0x"
+	// 				}]
+	// 			}])
+	// 		const vaultId = await controller.getAccountVaultCounter(senderAddress)
+	// 		const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
+	// 		expect(vaultId).to.equal(3)
+	// 		expect((vaultDetails)[1]).to.equal(0)
+	// 		expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+	// 	})
+	// 	it("SUCCEED: OPYN deposit collateral through exchange", async () => {
+	// 		const margin = toUSDC("1000")
+	// 		usd.approve(exchange.address, margin)
+	// 		await exchange.operate([
+	// 			{
+	// 				operation: 0,
+	// 				operationQueue: [{
+	// 					actionType: 0,
+	// 					owner: senderAddress,
+	// 					secondAddress: ZERO_ADDRESS,
+	// 					asset: ZERO_ADDRESS,
+	// 					vaultId: 4,
+	// 					amount: 0,
+	// 					optionSeries: emptySeries,
+	// 					index: 0,
+	// 					data: "0x"
+	// 				},
+	// 				{
+	// 					actionType: 5,
+	// 					owner: senderAddress,
+	// 					secondAddress: exchange.address,
+	// 					asset: usd.address,
+	// 					vaultId: 4,
+	// 					amount: margin,
+	// 					optionSeries: emptySeries,
+	// 					index: 0,
+	// 					data: "0x"
+	// 				}]
+	// 			}])
+	// 		const vaultId = await controller.getAccountVaultCounter(senderAddress)
+	// 		const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
+	// 		expect(vaultId).to.equal(4)
+	// 		expect((vaultDetails)[1]).to.equal(0)
+	// 		expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+	// 	})
+	// 	it("REVERTS: OPYN deposit collateral fails when sending to an invalid address", async () => {
+	// 		const margin = toUSDC("1000")
+	// 		usd.approve(exchange.address, margin)
+	// 		await expect(exchange.operate([
+	// 			{
+	// 				operation: 0,
+	// 				operationQueue: [{
+	// 					actionType: 0,
+	// 					owner: senderAddress,
+	// 					secondAddress: ZERO_ADDRESS,
+	// 					asset: ZERO_ADDRESS,
+	// 					vaultId: 4,
+	// 					amount: 0,
+	// 					optionSeries: emptySeries,
+	// 					index: 0,
+	// 					data: "0x"
+	// 				},
+	// 				{
+	// 					actionType: 5,
+	// 					owner: senderAddress,
+	// 					secondAddress: liquidityPool.address,
+	// 					asset: usd.address,
+	// 					vaultId: 4,
+	// 					amount: margin,
+	// 					optionSeries: emptySeries,
+	// 					index: 0,
+	// 					data: "0x"
+	// 				}]
+	// 			}])).to.be.revertedWith("UnauthorisedSender()")
+	// 	})
+	// 	it("REVERTS: OPYN deposit collateral fails with invalid owner", async () => {
+	// 		const margin = toUSDC("1000")
+	// 		usd.approve(exchange.address, margin)
+	// 		await expect(exchange.operate([
+	// 			{
+	// 				operation: 0,
+	// 				operationQueue: [{
+	// 					actionType: 0,
+	// 					owner: senderAddress,
+	// 					secondAddress: ZERO_ADDRESS,
+	// 					asset: ZERO_ADDRESS,
+	// 					vaultId: 4,
+	// 					amount: 0,
+	// 					optionSeries: emptySeries,
+	// 					index: 0,
+	// 					data: "0x"
+	// 				},
+	// 				{
+	// 					actionType: 5,
+	// 					owner: exchange.address,
+	// 					secondAddress: exchange.address,
+	// 					asset: usd.address,
+	// 					vaultId: 4,
+	// 					amount: margin,
+	// 					optionSeries: emptySeries,
+	// 					index: 0,
+	// 					data: "0x"
+	// 				}]
+	// 			}])).to.be.revertedWith("UnauthorisedSender()")
+	// 	})
+	// })	
 	describe("Opyn Forbidden Actions", async () => {
 		it("REVERTS: OPYN liquidate", async () => {
 			await expect(exchange.operate([

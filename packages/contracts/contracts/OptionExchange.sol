@@ -407,17 +407,16 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				revert OperatorNotApproved();
 			}
 			if (actionType == IController.ActionType.DepositLongOption) {
-				// TODO: make work with negative heldOtokens
-				require(action.secondAddress == msg.sender, "Unauthorised Sender");
+				if(action.secondAddress != msg.sender) {revert UnauthorisedSender();}
 				// check the from address to make sure it comes from the user or if we are holding them temporarily then they are held here
 			} else if (actionType == IController.ActionType.WithdrawLongOption) {
+				// check the to address to see whether it is being sent to the user or held here temporarily
 				if (action.secondAddress == address(this)) {
 					_updateTempHoldings(action.asset, action.amount * 10**CONVERSION_DECIMALS);
 				}
-				// check the to address to see whether it is being sent to the user or held here temporarily
 			} else if (actionType == IController.ActionType.DepositCollateral) {
 				// check the from address is the msg.sender so the sender cant take collat from elsewhere
-				require(action.secondAddress == msg.sender || action.secondAddress == address(this), "Unauthorised Sender");
+				if(action.secondAddress != msg.sender && action.secondAddress != address(this)) {revert UnauthorisedSender();}
 				// if the address is this address then for UX purposes the collateral will be handled here 
 				// (this means the user only needs to do one approval for collateral to this address)
 				if(action.secondAddress == address(this)) {
@@ -431,8 +430,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				}
 				// check the to address to see whether it is being sent to the user or held here temporarily
 			} else if (actionType == IController.ActionType.BurnShortOption) {
-				// TODO: make work with negative heldOtokens
-				require(action.secondAddress == msg.sender, "Unauthorised Sender");
+				if(action.secondAddress != msg.sender) {revert UnauthorisedSender();}
 				// check the from address to see whether it is being sent from the user or is held from a temporary balance
 			} else if (actionType == IController.ActionType.Redeem) {
 				revert ForbiddenAction();
@@ -544,7 +542,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			optionSeries.collateral
 		);
 		// calculate premium and delta from the option pricer, returning the premium in collateral decimals and delta in e18
-		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, _args.amount, false);
+		(uint256 premium, int256 delta,) = pricer.quoteOptionPrice(seriesToStore, _args.amount, false);
 		_handlePremiumTransfer(premium);
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
 		int256 longExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).longExposure;
@@ -622,7 +620,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		(address seriesAddress, Types.OptionSeries memory seriesToStore, Types.OptionSeries memory optionSeries) = _preSaleChecks(_args, optionRegistry);
 		// get the unit price for premium and delta
-		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, 1e18, true);
+		(uint256 premium, int256 delta,) = pricer.quoteOptionPrice(seriesToStore, 1e18, true);
 		uint256 amount = _args.amount;
 		address recipient = _args.recipient;
 		int256 shortExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).shortExposure;
