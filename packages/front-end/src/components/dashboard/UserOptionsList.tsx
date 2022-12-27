@@ -115,42 +115,46 @@ export const UserOptionsList = () => {
   // TODO: Add typings here
   useQuery(
     gql`
-    query($account: String) {
-      positions(first: 1000, where: { account_contains: "${account?.toLowerCase()}" }) {
-        id
-        amount
-        oToken {
-          id
-          symbol
-          expiryTimestamp
-          strikePrice
-          isPut
-          underlyingAsset {
-            id
-          }
-        }
-        writeOptionsTransactions {
+      query ($account: String) {
+        positions(first: 1000, where: { account_contains: $account }) {
           id
           amount
-          premium
-          timestamp
-        }
-        account {
-          balances {
-            balance
-            token {
+          oToken {
+            id
+            symbol
+            expiryTimestamp
+            strikePrice
+            isPut
+            underlyingAsset {
               id
+            }
+          }
+          writeOptionsTransactions {
+            id
+            amount
+            premium
+            timestamp
+          }
+          account {
+            balances {
+              balance
+              token {
+                id
+              }
             }
           }
         }
       }
-    }
-  `,
+    `,
     {
       onCompleted: parsePositions,
       onError: (err) => {
         console.log(err);
       },
+      variables: {
+        account: account?.toLowerCase(),
+      },
+      skip: !account,
     }
   );
 

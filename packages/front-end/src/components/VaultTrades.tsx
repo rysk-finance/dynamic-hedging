@@ -68,7 +68,7 @@ export const VaultTrades = () => {
       ? CHAINID.ARBITRUM_RINKEBY
       : CHAINID.ARBITRUM_MAINNET;
 
-  const { fetchMore, data, loading } = useQuery(
+  const { fetchMore, data, loading, error } = useQuery(
     gql`
       query ($timestamp1: Int, $timestamp2: Int) {
         writeOptionsActions(
@@ -160,11 +160,9 @@ export const VaultTrades = () => {
     }
   }, [isVisible]);
 
-  console.log("trades length:", trades.length);
-
   return (
     <div className="w-full overflow-x-auto lg:overflow-x-clip relative">
-      <FullScreen handle={handle} className="overflow-auto">
+      <FullScreen handle={handle} className="overflow-auto bg-bone">
         <table className="w-full text-sm text-left border-separate border-spacing-0 border-black">
           <thead className="text-xs text-gray-700 uppercase sticky top-0 z-1">
             <tr>
@@ -394,6 +392,11 @@ export const VaultTrades = () => {
             )}
           </tbody>
         </table>
+        {error && (
+          <div className="m-5 flex flex-row justify-center">
+            <p>{error.message.slice(0, 100)}</p>
+          </div>
+        )}
       </FullScreen>
     </div>
   );
