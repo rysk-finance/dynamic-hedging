@@ -7,6 +7,7 @@ import {
 	RangeOrderParamsStruct
 } from "../types/UniswapV3RangeOrderReactor"
 import { UniswapV3HedgingTest } from "../types/UniswapV3HedgingTest"
+import { UniswapConversionsTest } from "../types"
 import {
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
@@ -53,7 +54,7 @@ let ethUSDAggregator: MockContract
 let rate: string
 let uniswapUSDCWETHPool: Contract
 let uniswapWETHUSDTPool: Contract
-let uniswapConversions: Contract
+let uniswapConversions: UniswapConversionsTest
 let uniswapRouter: Contract
 let bigSignerAddress: string
 let authority: string
@@ -995,5 +996,33 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(sqrtPriceLength).to.eq(poolLength)
 		expect(percentDifferece).to.be.lt(1e-6)
 		expect(conversionPercentDiff).to.be.lt(1e-6)
+	})
+
+	it("Properly gets price to use when inversed and direction is above - Uniswap Conversions", async () => {
+		const price0 = BigNumber.from("1000000000000000000")
+		const price1 = price0.add(100)
+		const priceToUse = await uniswapConversions.testPriceToUse(price0, price1, true, Direction.ABOVE)
+		expect(priceToUse).to.eq(price0)
+	})
+
+	it("Properly gets price to use when inversed and direction is below - Uniswap Conversions", async () => {
+		const price0 = BigNumber.from("1000000000000000000")
+		const price1 = price0.add(100)
+		const priceToUse = await uniswapConversions.testPriceToUse(price0, price1, true, Direction.BELOW)
+		expect(priceToUse).to.eq(price1)
+	})
+
+	it("Properly gets price to use when not inversed and direction is above - Uniswap Conversions", async () => {
+		const price0 = BigNumber.from("1000000000000000000")
+		const price1 = price0.add(100)
+		const priceToUse = await uniswapConversions.testPriceToUse(price0, price1, false, Direction.ABOVE)
+		expect(priceToUse).to.eq(price1)
+	})
+
+	it("Properly gets price to use when not inversed and direction is below - Uniswap Conversions", async () => {
+		const price0 = BigNumber.from("1000000000000000000")
+		const price1 = price0.add(100)
+		const priceToUse = await uniswapConversions.testPriceToUse(price0, price1, false, Direction.BELOW)
+		expect(priceToUse).to.eq(price0)
 	})
 })
