@@ -5,6 +5,7 @@ import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3
 import { IUniswapV3MintCallback } from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.sol";
 import { PoolAddress } from "../vendor/uniswap/PoolAddress.sol";
 import { LiquidityAmounts, FullMath } from "../vendor/uniswap/LiquidityAmounts.sol";
+import { sqrtPriceX96ToUint, encodePriceSqrt, RangeOrderDirection, getPriceToUse } from "../vendor/uniswap/Conversions.sol";
 import "../vendor/uniswap/TickMath.sol";
 import "../interfaces/IHedgingReactor.sol";
 import "../interfaces/ILiquidityPool.sol";
@@ -76,9 +77,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         uint256 meanPrice;
         RangeOrderDirection direction;
     }
-
-    /// @notice enum to indicate the direction of the range order
-    enum RangeOrderDirection{ ABOVE, BELOW }
 
     /////////////////////////
     ///       events      ///
@@ -156,14 +154,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     /// @return inversed token1/token0 in 1e18 format
     function getPoolPrice() public view returns (uint256 price, uint256 inversed){
         (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-        uint256 decimals;
-        if (token0.decimals() == 18 || token1.decimals() == 18) {
-            decimals = token0.decimals() > token1.decimals()
-            ? token0.decimals() + (token0.decimals() - token1.decimals())
-            : token0.decimals();
-        } else {
-            decimals = token1.decimals() + (token0.decimals() + token1.decimals());
-        }
+        uint256 decimals = _getOffsetDecimals();
         uint256 p = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
         price = FullMath.mulDiv(p, 10 ** decimals, 2 ** 192);
         inversed = 1e36 / price;
@@ -250,10 +241,17 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         (uint256 poolPrice, uint256 inversedPrice) = getPoolPrice();
         uint256 quotePrice = inversed ? inversedPrice : poolPrice;
         if (_delta < 0) {
-            // buy wETH
-            // lowest price is best price when buying
-            uint256 priceToUse = quotePrice < underlyingPrice ? quotePrice : underlyingPrice;
+            // buy underlying
+            uint256 priceToUse;
+            // Normal is selling above and buying below, reversed if inversed
             RangeOrderDirection direction = inversed ? RangeOrderDirection.ABOVE : RangeOrderDirection.BELOW;
+            if (direction == RangeOrderDirection.ABOVE) {
+                // ABOVE is selling, use highest price in underlying or in collateral token when inversed for best price
+                priceToUse = getPriceToUse(quotePrice, underlyingPrice, inversed, direction);
+            } else {
+                // BELOW is buying, use lowest price in underlying or in collateral token when inversed for best price
+                priceToUse = getPriceToUse(quotePrice, underlyingPrice, inversed, direction);
+            }
             RangeOrderParams memory rangeOrder = _getTicksAndMeanPriceFromWei(priceToUse, direction);
             uint256 amountCollateralInToken1 = uint256(-_delta).mul(rangeOrder.meanPrice);
             uint256 amountDesiredInCollateralToken = OptionsCompute.convertToDecimals(
@@ -262,7 +260,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             );
             _createUniswapRangeOrder(rangeOrder, amountDesiredInCollateralToken, inversed);
         } else {
-            // sell wETH
+            // sell underlying
             uint256 wethBalance = inversed ? amount1Current : amount0Current;
             if (wethBalance < minAmount) return 0;
             // highest price is best price when selling
@@ -451,7 +449,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             sqrtRatioAX96,
             sqrtRatioBX96,
             amount0Desired, // amount of token0 being sent in
-            amount1Desired// amount of token1 being sent in
+            amount1Desired  // amount of token1 being sent in
         );
         pool.mint(address(this), params.lowerTick, params.upperTick, liquidity, "");
         // store the active range for later access
@@ -518,7 +516,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         int24 tickSpacing = pool.tickSpacing();
         int24 nearestTick = _sqrtPriceX96ToNearestTick(sqrtPriceX96, tickSpacing);
         int24 lowerTick = direction == RangeOrderDirection.ABOVE ? nearestTick + tickSpacing : nearestTick - (2 * tickSpacing);
-        int24 tickUpper = direction ==RangeOrderDirection.ABOVE ? lowerTick + tickSpacing : nearestTick - tickSpacing;
+        int24 tickUpper = direction == RangeOrderDirection.ABOVE ? lowerTick + tickSpacing : nearestTick - tickSpacing;
         int24 meanTick = (lowerTick + tickUpper) / 2;
         // average price paid on the range order in token1/token0 in token0 decimals format
         uint256 meanPrice = _tickToToken0PriceInverted(meanTick);
@@ -546,6 +544,16 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
      */
     function _recoverERC20(address tokenAddress, address receiver, uint256 tokenAmount) private {
         SafeTransferLib.safeTransfer(ERC20(tokenAddress), receiver, tokenAmount);
+    }
+
+    function _getOffsetDecimals() private view returns (uint256 decimals){
+        if (token0.decimals() == 18 || token1.decimals() == 18) {
+            decimals = token0.decimals() > token1.decimals()
+            ? token0.decimals() + (token0.decimals() - token1.decimals())
+            : token0.decimals();
+        } else {
+            decimals = token1.decimals() + (token0.decimals() + token1.decimals());
+        }
     }
 
     /**
