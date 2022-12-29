@@ -109,6 +109,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         pool =  IUniswapV3Pool(PoolAddress.getPoolAddress(factory, _token0, _token1, _poolFee));
     token1 = ERC20(_token1);
     token0 = ERC20(_token0);
+    require(token1.decimals() <= 18 && token0.decimals() <= 18, "UniswapV3RangeOrderReactor: decimals > 18");
     parentLiquidityPool = _parentLiquidityPool;
     poolFee = _poolFee;
     priceFeed = _priceFeed;
