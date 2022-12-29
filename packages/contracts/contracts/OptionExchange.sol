@@ -88,6 +88,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	mapping(address => uint24) public poolFees;
 	/// @notice when redeeming other asset, send to a reactor or sell it
 	bool public sellRedemptions = true;
+	/// @notice fee recipient
+	address public feeRecipient;
 
 	// user -> token addresses interacted with in this transaction
 	mapping(address => address[]) internal tempTokenQueue;
@@ -180,6 +182,14 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function setPricer(address _pricer) external {
 		_onlyGovernor();
 		pricer = BeyondPricer(_pricer);
+	}
+
+	/**
+	 * @notice change the fee recipient
+	 */
+	function setFeeRecipient(address _feeRecipient) external {
+		_onlyGovernor();
+		feeRecipient = _feeRecipient;
 	}
 
 	/// @notice set the uniswap v3 pool fee for a given asset, also give the asset max approval on the uni v3 swap router
@@ -542,8 +552,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			optionSeries.collateral
 		);
 		// calculate premium and delta from the option pricer, returning the premium in collateral decimals and delta in e18
-		(uint256 premium, int256 delta,) = pricer.quoteOptionPrice(seriesToStore, _args.amount, false);
-		_handlePremiumTransfer(premium);
+		(uint256 premium, int256 delta, uint256 fee) = pricer.quoteOptionPrice(seriesToStore, _args.amount, false);
+		_handlePremiumTransfer(premium, fee);
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
 		int256 longExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).longExposure;
 		uint256 amount = _args.amount;
@@ -581,7 +591,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			);
 	}
 
-	function _handlePremiumTransfer(uint256 premium) internal {
+	function _handlePremiumTransfer(uint256 premium, uint256 fee) internal {
 		// if we are holding any collateral asset on their behalf then we can use this first to transfer to the liquidity pool
 		if (heldTokens[msg.sender][collateralAsset] > 0) {
 			uint256 transferAmount = min(heldTokens[msg.sender][collateralAsset], premium);
