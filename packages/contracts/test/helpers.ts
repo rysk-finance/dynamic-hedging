@@ -38,6 +38,7 @@ import { AddressBook } from "../types/AddressBook"
 import { NewController } from "../types/NewController"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import { expect } from "chai"
+import { Otoken } from "../types/Otoken"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const { provider } = ethers
 const { parseEther } = ethers.utils
@@ -207,7 +208,13 @@ export async function whitelistProduct(
 		expiryToValue
 	)
 }
+export async function createFakeOtoken(senderAddress, proposedSeries, addressBook) {
+	const otokenInstance = await ethers.getContractFactory("Otoken")
+	const newOtoken = (await otokenInstance.deploy()) as Otoken
+	await newOtoken.init(addressBook.address, proposedSeries.underlying, proposedSeries.strikeAsset, proposedSeries.collateral, proposedSeries.strike, proposedSeries.expiration, proposedSeries.isPut)
+	return newOtoken
 
+}
 export async function createAndMintOtoken(addressBook: AddressBook, optionSeries: OptionSeriesStruct, usd: MintableERC20, weth: WETH, collateral: any, amount: BigNumber, signer: Signer, registry: OptionRegistry, vaultType: string) {
 	const signerAddress = await signer.getAddress()
 	const otokenFactory = (await ethers.getContractAt("OtokenFactory", await addressBook.getOtokenFactory())) as OtokenFactory
