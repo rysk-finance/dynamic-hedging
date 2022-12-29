@@ -428,19 +428,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             uint256 balance = token0.balanceOf(address(this));
             // Only transfer in when collateral token is token0
             if (inversed && balance < amountDesired) {
-                uint256 transferAmount = amountDesired - balance;
-                uint256 parentPoolBalance = ILiquidityPool(parentLiquidityPool).getBalance(address(token0));
-                if (parentPoolBalance < transferAmount) { revert CustomErrors.WithdrawExceedsLiquidity(); }
-                SafeTransferLib.safeTransferFrom(address(token0), address(parentLiquidityPool), address(this), transferAmount);
+                _transferFromParentPool(address(token0), amountDesired, balance);
             }
         } else {
             amount1Desired = amountDesired;
             uint256 balance = token1.balanceOf(address(this));
             if (!inversed && balance < amountDesired) {
-                uint256 transferAmount = amountDesired - balance;
-                uint256 parentPoolBalance = ILiquidityPool(parentLiquidityPool).getBalance(address(token1));
-                if (parentPoolBalance < transferAmount) { revert CustomErrors.WithdrawExceedsLiquidity(); }
-                SafeTransferLib.safeTransferFrom(address(token1), address(parentLiquidityPool), address(this), transferAmount);
+                _transferFromParentPool(address(token1), amountDesired, balance);
             }
         }
 
@@ -628,6 +622,23 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
      */
     function _inActivePosition() private view returns (bool) {
         return currentPosition.activeLowerTick != currentPosition.activeUpperTick;
+    }
+
+    /**
+     * @notice transfer tokens from the parent liquidity pool
+     * @param token the address of the token to transfer
+     * @param amountDesired the amount of tokens to transfer
+     * @param balance the current token balance of this contract 
+     */
+    function _transferFromParentPool(
+        address token,
+        uint256 amountDesired,
+        uint256 balance
+    ) private {
+        uint256 transferAmount = amountDesired - balance;
+        uint256 parentPoolBalance = ILiquidityPool(parentLiquidityPool).getBalance(token);
+        if (parentPoolBalance < transferAmount) { revert CustomErrors.WithdrawExceedsLiquidity(); }
+        SafeTransferLib.safeTransferFrom(token, address(parentLiquidityPool), address(this), transferAmount);
     }
 
     /**
