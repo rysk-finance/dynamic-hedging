@@ -156,7 +156,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
         uint256 decimals = _getOffsetDecimals();
         uint256 p = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
-        price = FullMath.mulDiv(p, 10 ** decimals, 2 ** 192);
+        price = FullMath.mulDiv(p, 10 ** decimals, 1 << 192);
         inversed = 1e36 / price;
     }
 
@@ -540,14 +540,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         SafeTransferLib.safeTransfer(ERC20(tokenAddress), receiver, tokenAmount);
     }
 
+    /**
+     * @return decimals the decimals needed to converting from sqrtPriceX96 to token0/token1 1e18 format
+     */
     function _getOffsetDecimals() private view returns (uint256 decimals){
-        if (token0.decimals() == 18 || token1.decimals() == 18) {
-            decimals = token0.decimals() > token1.decimals()
-            ? token0.decimals() + (token0.decimals() - token1.decimals())
-            : token0.decimals();
-        } else {
-            decimals = token1.decimals() + (token0.decimals() + token1.decimals());
-        }
+        uint8 token0Decimals = token0.decimals();
+        uint8 token1Decimals = token1.decimals();
+        return 18 - token1Decimals + token0Decimals;
     }
 
     /**
