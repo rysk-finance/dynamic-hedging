@@ -20,7 +20,8 @@ library RyskActions {
     enum ActionType {
         Issue,
         BuyOption,
-        SellOption
+        SellOption,
+        CloseOption
     }
 
     struct ActionArgs {

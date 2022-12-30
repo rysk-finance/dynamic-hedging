@@ -53,6 +53,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	uint256 bidAskIVSpread;
 	uint256 riskFreeRate;
+	uint256 feePerContract = 3e5;
+
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
@@ -64,7 +66,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// structs && events ///
 	/////////////////////////
 
-
+	event FeePerContractChanged(uint256 newFeePerContract, uint256 oldFeePerContract);
 	constructor(
 		address _authority,
 		address _protocol,
@@ -81,6 +83,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// setters ///
 	///////////////
 
+	function setFeePerContract(uint256 _feePerContract) external {
+		_onlyGovernor();
+		feePerContract = _feePerContract;
+		emit FeePerContractChanged(_feePerContract, feePerContract);
+	}
 
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
@@ -95,10 +102,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 underlyingPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		uint256 iv = _getVolatilityFeed().getImpliedVolatility(_optionSeries.isPut, underlyingPrice, _optionSeries.strike, _optionSeries.expiration);
 		(uint256 premium, int256 delta) = OptionsCompute.quotePriceGreeks(_optionSeries, isSell, bidAskIVSpread, riskFreeRate, iv, underlyingPrice);
-		uint256 fee = 3e5;
 		totalPremium = premium.mul(_amount) / 1e12;
 		totalDelta = delta.mul(int256(_amount));
-		totalFees = fee.mul(_amount);
+		totalFees = feePerContract.mul(_amount);
     }
 
 	///////////////////////////

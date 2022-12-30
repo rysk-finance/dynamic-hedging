@@ -113,6 +113,19 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/// structs && events ///
 	/////////////////////////
 
+	struct SellParams {
+		address seriesAddress;
+		Types.OptionSeries seriesToStore;
+		Types.OptionSeries optionSeries;
+		uint256 premium;
+		int256 delta;
+		uint256 fee;
+		uint256 amount;
+		uint256 tempHoldings;
+		uint256 transferAmount;
+		uint256 premiumSent;
+	}
+
 	event SeriesApproved(
 		uint64 expiration,
 		uint128 strike,
@@ -139,8 +152,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
 
 	error PoolFeeNotSet();
-	error ForbiddenAction();
 	error TokenImbalance();
+	error NothingToClose();
+	error PremiumTooSmall();
+	error ForbiddenAction();
+	error CloseSizeTooLarge();
 	error UnauthorisedSender();
 	error OperatorNotApproved();
 
@@ -474,7 +490,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			} else if (actionType == RyskActions.ActionType.BuyOption) {
 				_buyOption(RyskActions._parseBuyOptionArgs(action));
 			} else if (actionType == RyskActions.ActionType.SellOption) {
-				_sellOption(RyskActions._parseSellOptionArgs(action));
+				_sellOption(RyskActions._parseSellOptionArgs(action), false);
+			} else if (actionType == RyskActions.ActionType.CloseOption) {
+				_sellOption(RyskActions._parseSellOptionArgs(action), true);
 			}
 		}
 	}
@@ -602,121 +620,12 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			);
 	}
 
-	function _handlePremiumTransfer(uint256 premium, uint256 fee) internal {
-		// check if we need to transfer anything from the user into this wallet
-		if (premium + fee > heldTokens[msg.sender][collateralAsset]) {
-			uint256 diff = premium + fee - heldTokens[msg.sender][collateralAsset];
-			// reduce their temporary holdings to 0
-			heldTokens[msg.sender][collateralAsset] = 0;
-			SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), diff);
-		} else {
-			// reduce their temporary holdings by the premium and fee
-			heldTokens[msg.sender][collateralAsset] -= premium + fee;
-		}
-		// handle fees
-		if (fee > 0) {
-			SafeTransferLib.safeTransfer(ERC20(collateralAsset), feeRecipient, fee);
-		}
-		// transfer premium to liquidity pool
-		SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), premium);
-	}
-
-	function _preSaleChecks(RyskActions.SellOptionArgs memory _args, IOptionRegistry optionRegistry)
-		internal
-		view
-		returns (
-			address,
-			Types.OptionSeries memory,
-			Types.OptionSeries memory
-		)
-	{
-		(
-			address seriesAddress,
-			Types.OptionSeries memory optionSeries,
-			uint128 strikeDecimalConverted
-		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
-		// check the option hash and option series for validity
-		_checkHash(optionSeries, strikeDecimalConverted, true);
-		// convert the strike to e18 decimals for storage
-		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
-			optionSeries.expiration,
-			strikeDecimalConverted,
-			optionSeries.isPut,
-			underlyingAsset,
-			strikeAsset,
-			optionSeries.collateral
-		);
-		return (seriesAddress, seriesToStore, optionSeries);
-	}
-
-	struct SellParams {
-		address seriesAddress;
-		Types.OptionSeries seriesToStore;
-		Types.OptionSeries optionSeries;
-		uint256 premium;
-		int256 delta;
-		uint256 fee;
-		uint256 amount;
-		uint256 tempHoldings;
-		uint256 transferAmount;
-		uint256 premiumSent;
-	}
-
-	function _handleDHVBuyback(SellParams memory sellParams, int256 shortExposure, IOptionRegistry optionRegistry)
-		internal
-		returns (SellParams memory)
-	{
-		sellParams.transferAmount = min(uint256(shortExposure), sellParams.amount);
-		// will transfer any tempHoldings they have here to the liquidityPool
-		if (sellParams.tempHoldings > 0) {
-			SafeTransferLib.safeTransfer(
-				ERC20(sellParams.seriesAddress),
-				address(liquidityPool),
-				OptionsCompute.convertToDecimals(
-					min(sellParams.tempHoldings, sellParams.transferAmount),
-					ERC20(sellParams.seriesAddress).decimals()
-				)
-			);
-		}
-		// want to check if they have any otokens in their wallet and send those here
-		if (sellParams.transferAmount > min(sellParams.tempHoldings, sellParams.transferAmount)) {
-			SafeTransferLib.safeTransferFrom(
-				sellParams.seriesAddress,
-				msg.sender,
-				address(liquidityPool),
-				OptionsCompute.convertToDecimals(
-					sellParams.transferAmount - min(sellParams.tempHoldings, sellParams.transferAmount),
-					ERC20(sellParams.seriesAddress).decimals()
-				)
-			);
-		}
-		sellParams.premiumSent = sellParams.premium.div(sellParams.amount).mul(sellParams.transferAmount);
-		uint256 soldBackAmount = liquidityPool.handlerBuybackOption(
-			sellParams.optionSeries,
-			sellParams.transferAmount,
-			optionRegistry,
-			sellParams.seriesAddress,
-			sellParams.premiumSent,
-			sellParams.delta.div(int256(sellParams.amount)).mul(int256(sellParams.transferAmount)),
-			address(this)
-		);
-		// update the series on the stores
-		getPortfolioValuesFeed().updateStores(
-			sellParams.seriesToStore,
-			-int256(soldBackAmount),
-			0,
-			sellParams.seriesAddress
-		);
-		sellParams.amount -= soldBackAmount;
-		sellParams.tempHoldings -= min(sellParams.tempHoldings, sellParams.transferAmount);
-		return sellParams;
-	}
-
 	/**
 	 * @notice function that allows a user to sell options to the dhv and pays them a premium in the vaults collateral asset
 	 * @param _args RyskAction struct containing details on the option to sell
+	 * @param isClose if true then we only close positions the dhv has open, we do not conduct any more sales beyond that
 	 */
-	function _sellOption(RyskActions.SellOptionArgs memory _args) internal whenNotPaused {
+	function _sellOption(RyskActions.SellOptionArgs memory _args, bool isClose) internal whenNotPaused {
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		SellParams memory sellParams;
 		(sellParams.seriesAddress, sellParams.seriesToStore, sellParams.optionSeries) = _preSaleChecks(
@@ -731,13 +640,21 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		);
 		sellParams.amount = _args.amount;
 		sellParams.tempHoldings = heldTokens[msg.sender][sellParams.seriesAddress];
-		heldTokens[msg.sender][sellParams.seriesAddress] -= min(sellParams.tempHoldings, _args.amount);
+		heldTokens[msg.sender][sellParams.seriesAddress] -= OptionsCompute.min(sellParams.tempHoldings, _args.amount);
 		int256 shortExposure = getPortfolioValuesFeed()
 			.storesForAddress(sellParams.seriesAddress)
 			.shortExposure;
 		if (shortExposure > 0) {
+			// if they are just closing and the amount to close is bigger than the dhv's position then we revert
+			if (isClose && OptionsCompute.toInt256(sellParams.amount) > shortExposure) {revert CloseSizeTooLarge();}
 			sellParams = _handleDHVBuyback(sellParams, shortExposure, optionRegistry);
+		} else if (isClose) {
+			// if they are closing and there is nothing to close then we revert
+			revert NothingToClose();
 		}
+		// if they are not closing and the premium is less than or equal to the fee then we revert
+		// because the sale doesnt make sense
+		if(!isClose && sellParams.premium <= sellParams.fee) {revert PremiumTooSmall();}
 		if (sellParams.amount > 0) {
 			if (sellParams.amount > sellParams.tempHoldings) {
 				// transfer the otokens to this exchange
@@ -770,8 +687,12 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			);
 		}
 		// transfer any fees
-		// TODO: handle premium being smaller than fees
-		SafeTransferLib.safeTransfer(ERC20(collateralAsset), feeRecipient, sellParams.fee);
+		if (sellParams.premium > sellParams.fee) {
+			SafeTransferLib.safeTransfer(ERC20(collateralAsset), feeRecipient, sellParams.fee);
+		} else {
+			// if the total premium to be paid is less than or equal to the total fees then we waive the total fees (we only get here when the scenario is a close)
+			sellParams.fee = 0;
+		}
 		// if the recipient is this address then update the temporary holdings now to indicate the premium is temporarily being held here
 		if (_args.recipient == address(this)) {
 			_updateTempHoldings(collateralAsset, sellParams.premium - sellParams.fee);
@@ -1009,7 +930,101 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		heldTokens[msg.sender][asset] += amount;
 	}
 
-	function min(uint256 v1, uint256 v2) internal pure returns (uint256) {
-		return v1 > v2 ? v2 : v1;
+	function _handlePremiumTransfer(uint256 premium, uint256 fee) internal {
+		// check if we need to transfer anything from the user into this wallet
+		if (premium + fee > heldTokens[msg.sender][collateralAsset]) {
+			uint256 diff = premium + fee - heldTokens[msg.sender][collateralAsset];
+			// reduce their temporary holdings to 0
+			heldTokens[msg.sender][collateralAsset] = 0;
+			SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), diff);
+		} else {
+			// reduce their temporary holdings by the premium and fee
+			heldTokens[msg.sender][collateralAsset] -= premium + fee;
+		}
+		// handle fees
+		if (fee > 0) {
+			SafeTransferLib.safeTransfer(ERC20(collateralAsset), feeRecipient, fee);
+		}
+		// transfer premium to liquidity pool
+		SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), premium);
 	}
+
+	function _preSaleChecks(RyskActions.SellOptionArgs memory _args, IOptionRegistry optionRegistry)
+		internal
+		view
+		returns (
+			address,
+			Types.OptionSeries memory,
+			Types.OptionSeries memory
+		)
+	{
+		(
+			address seriesAddress,
+			Types.OptionSeries memory optionSeries,
+			uint128 strikeDecimalConverted
+		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
+		// check the option hash and option series for validity
+		_checkHash(optionSeries, strikeDecimalConverted, true);
+		// convert the strike to e18 decimals for storage
+		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
+			optionSeries.expiration,
+			strikeDecimalConverted,
+			optionSeries.isPut,
+			underlyingAsset,
+			strikeAsset,
+			optionSeries.collateral
+		);
+		return (seriesAddress, seriesToStore, optionSeries);
+	}
+
+	function _handleDHVBuyback(SellParams memory sellParams, int256 shortExposure, IOptionRegistry optionRegistry)
+		internal
+		returns (SellParams memory)
+	{
+		sellParams.transferAmount = OptionsCompute.min(uint256(shortExposure), sellParams.amount);
+		// will transfer any tempHoldings they have here to the liquidityPool
+		if (sellParams.tempHoldings > 0) {
+			SafeTransferLib.safeTransfer(
+				ERC20(sellParams.seriesAddress),
+				address(liquidityPool),
+				OptionsCompute.convertToDecimals(
+					OptionsCompute.min(sellParams.tempHoldings, sellParams.transferAmount),
+					ERC20(sellParams.seriesAddress).decimals()
+				)
+			);
+		}
+		// want to check if they have any otokens in their wallet and send those here
+		if (sellParams.transferAmount > OptionsCompute.min(sellParams.tempHoldings, sellParams.transferAmount)) {
+			SafeTransferLib.safeTransferFrom(
+				sellParams.seriesAddress,
+				msg.sender,
+				address(liquidityPool),
+				OptionsCompute.convertToDecimals(
+					sellParams.transferAmount - OptionsCompute.min(sellParams.tempHoldings, sellParams.transferAmount),
+					ERC20(sellParams.seriesAddress).decimals()
+				)
+			);
+		}
+		sellParams.premiumSent = sellParams.premium.div(sellParams.amount).mul(sellParams.transferAmount);
+		uint256 soldBackAmount = liquidityPool.handlerBuybackOption(
+			sellParams.optionSeries,
+			sellParams.transferAmount,
+			optionRegistry,
+			sellParams.seriesAddress,
+			sellParams.premiumSent,
+			sellParams.delta.div(OptionsCompute.toInt256(sellParams.amount)).mul(OptionsCompute.toInt256(sellParams.transferAmount)),
+			address(this)
+		);
+		// update the series on the stores
+		getPortfolioValuesFeed().updateStores(
+			sellParams.seriesToStore,
+			-int256(soldBackAmount),
+			0,
+			sellParams.seriesAddress
+		);
+		sellParams.amount -= soldBackAmount;
+		sellParams.tempHoldings -= OptionsCompute.min(sellParams.tempHoldings, sellParams.transferAmount);
+		return sellParams;
+	}
+
 }
