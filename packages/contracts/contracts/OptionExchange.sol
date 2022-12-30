@@ -770,6 +770,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			);
 		}
 		// transfer any fees
+		// TODO: handle premium being smaller than fees
 		SafeTransferLib.safeTransfer(ERC20(collateralAsset), feeRecipient, sellParams.fee);
 		// if the recipient is this address then update the temporary holdings now to indicate the premium is temporarily being held here
 		if (_args.recipient == address(this)) {
