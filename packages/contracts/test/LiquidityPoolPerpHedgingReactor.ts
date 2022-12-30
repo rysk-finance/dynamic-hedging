@@ -391,9 +391,8 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		}
 		const EthPrice = await oracle.getPrice(weth.address)
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		const quote = (
-			await pricer.quoteOptionPrice(proposedSeries, amount, false)
-		)[0]
+		let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, false))
+		let quote = quoteResponse[0].add(quoteResponse[2])
 		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		await makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
@@ -442,7 +441,8 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const lpAllocatedBefore = await liquidityPool.collateralAllocated()
-		quote = (await pricer.quoteOptionPrice(proposedSeries, amount, false))[0]
+		let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, false))
+		let quote = quoteResponse[0].add(quoteResponse[2])
 		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)

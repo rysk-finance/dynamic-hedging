@@ -450,9 +450,8 @@ describe("Structured Product maker", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const quote = (
-				await pricer.quoteOptionPrice(proposedSeries, amount, false)
-			)[0]
+			let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, false))
+			let quote = quoteResponse[0].add(quoteResponse[2])
 			const before = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, 0, senderAddress, amount)
 			await usd.approve(exchange.address, quote)
 			await exchange.operate([
@@ -532,13 +531,10 @@ describe("Structured Product maker", async () => {
 				underlying: upperProposedSeries.underlying,
 				collateral: upperProposedSeries.collateral
 			}, amount)).add(toUSDC("100"))
-
-			let lowerQuote = (
-				await pricer.quoteOptionPrice(lowerProposedSeries, amount, true)
-			)[0]
-			let upperQuote = (
-				await pricer.quoteOptionPrice(upperProposedSeries, amount, false)
-			)[0]
+			let lowerQuoteResponse = (await pricer.quoteOptionPrice(lowerProposedSeries, amount, false))
+			let lowerQuote = lowerQuoteResponse[0].add(lowerQuoteResponse[2])
+			let upperQuoteResponse = (await pricer.quoteOptionPrice(upperProposedSeries, amount, true))
+			let upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 
 			await usd.approve(exchange.address, marginRequirement.add(lowerQuote.sub(upperQuote).add(toUSDC("100"))))
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
@@ -624,12 +620,10 @@ describe("Structured Product maker", async () => {
 				}
 			])
 
-			lowerQuote = (
-				await pricer.quoteOptionPrice(lowerProposedSeries, amount, true)
-			)[0]
-			upperQuote = (
-				await pricer.quoteOptionPrice(upperProposedSeries, amount, false)
-			)[0]
+			lowerQuoteResponse = (await pricer.quoteOptionPrice(lowerProposedSeries, amount, false))
+			lowerQuote = lowerQuoteResponse[0].add(lowerQuoteResponse[2])
+			upperQuoteResponse = (await pricer.quoteOptionPrice(upperProposedSeries, amount, true))
+			upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 			const upperAfter = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", upperToken)) as Otoken, senderAddress, amount)
 			const lowerAfter = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", lowerToken)) as Otoken, senderAddress, amount)
 			expect(upperAfter.exchangeOTokenBalance).to.eq(toOpyn(fromWei(amount)))
@@ -681,12 +675,10 @@ describe("Structured Product maker", async () => {
 				collateral: lowerProposedSeries.collateral
 			}, amount)).add(toUSDC("100"))
 
-			let lowerQuote = (
-				await pricer.quoteOptionPrice(lowerProposedSeries, amount, true)
-			)[0]
-			let upperQuote = (
-				await pricer.quoteOptionPrice(upperProposedSeries, amount, false)
-			)[0]
+			let lowerQuoteResponse = (await pricer.quoteOptionPrice(lowerProposedSeries, amount, true))
+			let lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
+			let upperQuoteResponse = (await pricer.quoteOptionPrice(upperProposedSeries, amount, false))
+			let upperQuote = upperQuoteResponse[0].add(upperQuoteResponse[2])
 
 			await usd.approve(MARGIN_POOL[chainId], marginRequirement)
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
@@ -772,12 +764,10 @@ describe("Structured Product maker", async () => {
 				}
 			])
 
-			lowerQuote = (
-				await pricer.quoteOptionPrice(lowerProposedSeries, amount, true)
-			)[0]
-			upperQuote = (
-				await pricer.quoteOptionPrice(upperProposedSeries, amount, false)
-			)[0]
+			lowerQuoteResponse = (await pricer.quoteOptionPrice(lowerProposedSeries, amount, true))
+			lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
+			upperQuoteResponse = (await pricer.quoteOptionPrice(upperProposedSeries, amount, false))
+			upperQuote = upperQuoteResponse[0].add(upperQuoteResponse[2])
 			const upperAfter = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", upperToken)) as Otoken, senderAddress, amount)
 			const lowerAfter = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", lowerToken)) as Otoken, senderAddress, amount)
 			expect(upperAfter.exchangeOTokenBalance).to.eq(0)
@@ -838,16 +828,12 @@ describe("Structured Product maker", async () => {
 				underlying: midProposedSeries.underlying,
 				collateral: midProposedSeries.collateral
 			}, amount.mul(2))).add(toUSDC("100"))
-
-			let lowerQuote = (
-				await pricer.quoteOptionPrice(lowerProposedSeries, amount, true)
-			)[0]
-			let midQuote = (
-				await pricer.quoteOptionPrice(midProposedSeries, amount.mul(2), true)
-			)[0]
-			let upperQuote = (
-				await pricer.quoteOptionPrice(upperProposedSeries, amount, false)
-			)[0]
+			let lowerQuoteResponse = (await pricer.quoteOptionPrice(lowerProposedSeries, amount, false))
+			let lowerQuote = lowerQuoteResponse[0].add(lowerQuoteResponse[2])
+			let midQuoteResponse = (await pricer.quoteOptionPrice(midProposedSeries, amount.mul(2), true))
+			let midQuote = midQuoteResponse[0].sub(midQuoteResponse[2])
+			let upperQuoteResponse = (await pricer.quoteOptionPrice(upperProposedSeries, amount, false))
+			let upperQuote = upperQuoteResponse[0].add(upperQuoteResponse[2])
 
 			const before = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, 0, senderAddress, amount)
 			await usd.approve(MARGIN_POOL[chainId], marginRequirement)
@@ -960,15 +946,12 @@ describe("Structured Product maker", async () => {
 				}
 			])
 
-			lowerQuote = (
-				await pricer.quoteOptionPrice(lowerProposedSeries, amount, true)
-			)[0]
-			midQuote = (
-				await pricer.quoteOptionPrice(midProposedSeries, amount.mul(2), true)
-			)[0]
-			upperQuote = (
-				await pricer.quoteOptionPrice(upperProposedSeries, amount, false)
-			)[0]
+			lowerQuoteResponse = (await pricer.quoteOptionPrice(lowerProposedSeries, amount, false))
+			lowerQuote = lowerQuoteResponse[0].add(lowerQuoteResponse[2])
+			midQuoteResponse = (await pricer.quoteOptionPrice(midProposedSeries, amount.mul(2), true))
+			midQuote = midQuoteResponse[0].sub(midQuoteResponse[2])
+			upperQuoteResponse = (await pricer.quoteOptionPrice(upperProposedSeries, amount, false))
+			upperQuote = upperQuoteResponse[0].add(upperQuoteResponse[2])
 			const upperAfter = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", upperToken)) as Otoken, senderAddress, amount)
 			const midAfter = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", midToken)) as Otoken, senderAddress, amount)
 			const lowerAfter = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", lowerToken)) as Otoken, senderAddress, amount)
@@ -1036,12 +1019,10 @@ describe("Structured Product maker", async () => {
 				underlying: upperProposedSeries.underlying,
 				collateral: upperProposedSeries.collateral
 			}, amount)).add(toUSDC("100"))
-			let lowerQuote = (
-				await pricer.quoteOptionPrice(lowerProposedSeries, amount, true)
-			)[0]
-			let upperQuote = (
-				await pricer.quoteOptionPrice(upperProposedSeries, amount, false)
-			)[0]
+			let lowerQuoteResponse = (await pricer.quoteOptionPrice(lowerProposedSeries, amount, true))
+			let lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
+			let upperQuoteResponse = (await pricer.quoteOptionPrice(upperProposedSeries, amount, true))
+			let upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 
 			await usd.approve(exchange.address, lowerMarginRequirement.add(upperMarginRequirement))
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
@@ -1154,12 +1135,10 @@ describe("Structured Product maker", async () => {
 				}
 			])
 
-			lowerQuote = (
-				await pricer.quoteOptionPrice(lowerProposedSeries, amount, true)
-			)[0]
-			upperQuote = (
-				await pricer.quoteOptionPrice(upperProposedSeries, amount, false)
-			)[0]
+			lowerQuoteResponse = (await pricer.quoteOptionPrice(lowerProposedSeries, amount, true))
+			lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
+			upperQuoteResponse = (await pricer.quoteOptionPrice(upperProposedSeries, amount, true))
+			upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 			const upperAfter = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", upperToken)) as Otoken, senderAddress, amount)
 			const lowerAfter = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", lowerToken)) as Otoken, senderAddress, amount)
 			expect(upperAfter.exchangeOTokenBalance).to.eq(toOpyn(fromWei(amount)))
@@ -1220,12 +1199,10 @@ describe("Structured Product maker", async () => {
 				underlying: upperProposedSeries.underlying,
 				collateral: upperProposedSeries.collateral
 			}, amount)).add(toWei("0.1"))
-			let lowerQuote = (
-				await pricer.quoteOptionPrice(lowerProposedSeries, amount, true)
-			)[0]
-			let upperQuote = (
-				await pricer.quoteOptionPrice(upperProposedSeries, amount, false)
-			)[0]
+			let lowerQuoteResponse = (await pricer.quoteOptionPrice(lowerProposedSeries, amount, true))
+			let lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
+			let upperQuoteResponse = (await pricer.quoteOptionPrice(upperProposedSeries, amount, true))
+			let upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 
 			await weth.approve(exchange.address, lowerMarginRequirement.add(upperMarginRequirement))
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
@@ -1338,12 +1315,10 @@ describe("Structured Product maker", async () => {
 				}
 			])
 
-			lowerQuote = (
-				await pricer.quoteOptionPrice(lowerProposedSeries, amount, true)
-			)[0]
-			upperQuote = (
-				await pricer.quoteOptionPrice(upperProposedSeries, amount, false)
-			)[0]
+			lowerQuoteResponse = (await pricer.quoteOptionPrice(lowerProposedSeries, amount, true))
+			lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
+			upperQuoteResponse = (await pricer.quoteOptionPrice(upperProposedSeries, amount, true))
+			upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 			const upperAfter = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", upperToken)) as Otoken, senderAddress, amount)
 			const lowerAfter = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", lowerToken)) as Otoken, senderAddress, amount)
 			expect(upperAfter.exchangeOTokenBalance).to.eq(toOpyn(fromWei(amount)))
@@ -1379,9 +1354,8 @@ describe("Structured Product maker", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const quote = (
-				await pricer.quoteOptionPrice(proposedSeries, amount, false)
-			)[0]
+			let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, true))
+			let quote = quoteResponse[0].sub(quoteResponse[2])
 			const otokenFactory = (await ethers.getContractAt("OtokenFactory", await addressBook.getOtokenFactory())) as OtokenFactory
 			const otoken = await otokenFactory.callStatic.createOtoken(proposedSeries.underlying, proposedSeries.strikeAsset, proposedSeries.collateral, (proposedSeries.strike).div(ethers.utils.parseUnits("1", 10)), proposedSeries.expiration, proposedSeries.isPut)
 			await otokenFactory.createOtoken(proposedSeries.underlying, proposedSeries.strikeAsset, proposedSeries.collateral, (proposedSeries.strike).div(ethers.utils.parseUnits("1", 10)), proposedSeries.expiration, proposedSeries.isPut)
@@ -1484,9 +1458,8 @@ describe("Structured Product maker", async () => {
 				collateral: usd.address
 			}
 			const before = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, 0, senderAddress, amount)
-			const quote = (
-				await pricer.quoteOptionPrice(proposedSeries, amount, true)
-			)[0]
+			let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, false))
+			let quote = quoteResponse[0].add(quoteResponse[2])
 			await usd.approve(exchange.address, quote)
 			await exchange.operate([
 				{
@@ -1553,9 +1526,8 @@ describe("Structured Product maker", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const quote = (
-				await pricer.quoteOptionPrice(proposedSeries, amount, false)
-			)[0]
+			let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, true))
+			let quote = quoteResponse[0].sub(quoteResponse[2])
 			const marginRequirement = await (await optionRegistry.getCollateral({
 				expiration: proposedSeries.expiration,
 				strike: (proposedSeries.strike).div(ethers.utils.parseUnits("1", 10)),

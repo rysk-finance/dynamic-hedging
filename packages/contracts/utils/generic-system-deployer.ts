@@ -236,13 +236,15 @@ export async function deployLiquidityPool(
 			OpynInteractions: interactions.address
 		}
 	})
+	const feeRecipient = await signers[9].getAddress()
 	const exchange = (await exchangeFactory.deploy(
 		authority,
 		optionProtocol.address,
 		liquidityPool.address,
 		pricer.address,
 		ADDRESS_BOOK[chainId],
-		UNISWAP_V3_SWAP_ROUTER[chainId]
+		UNISWAP_V3_SWAP_ROUTER[chainId],
+		liquidityPool.address
 	)) as OptionExchange
 	await liquidityPool.changeHandler(exchange.address, true)
 	await pvFeed.setKeeper(exchange.address, true)
