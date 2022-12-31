@@ -1,6 +1,6 @@
 import hre, { ethers, network, Contract } from "hardhat"
-import { Signer, BigNumber } from "ethers"
-import { expect } from "chai"
+import { Signer, BigNumber, utils } from "ethers"
+import { expect, util } from "chai"
 import { MintableERC20 } from "../types/MintableERC20"
 import {
 	UniswapV3RangeOrderReactor,
@@ -402,8 +402,8 @@ describe("UniswapV3RangeOrderReactor", () => {
 
 		const wbtcUSDTV3RangeOrderReactor = (await uniswapV3RangeOrderReactorFactory.deploy(
 			UNISWAP_V3_FACTORY,
-			WBTC,
 			USDT_ADDRESS[chainId],
+			WBTC,
 			liquidityPoolDummyAddress,
 			POOL_FEE,
 			priceFeed.address,
@@ -437,8 +437,8 @@ describe("UniswapV3RangeOrderReactor", () => {
 
 		const wbtcUSDCV3RangeOrderReactor = (await uniswapV3RangeOrderReactorFactory.deploy(
 			UNISWAP_V3_FACTORY,
-			WBTC,
 			USDC_ADDRESS[chainId],
+			WBTC,
 			liquidityPoolDummyAddress,
 			POOL_FEE,
 			priceFeed.address,
@@ -1024,5 +1024,66 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const price1 = price0.add(100)
 		const priceToUse = await uniswapConversions.testPriceToUse(price0, price1, false, Direction.BELOW)
 		expect(priceToUse).to.eq(price0)
+	})
+
+	it("Properly converts tick to token price USDC/WETH (inversed) - Uniswap Conversions", async () => {
+		const tick = "195361"
+		// weth/usdc in usdc decimals which is the cost of 1 weth in usdc
+		const expectedPrice = "3280981373"
+		const price = await uniswapConversions.testTickToTokenPrice(tick, 6, true)
+		const normalizedExpected = utils.formatUnits(expectedPrice, 6)
+		const normalizedPrice = utils.formatUnits(price, 6)
+		const difference = Math.abs(Number(normalizedExpected) - Number(normalizedPrice))
+		const percentDiff = difference / Number(normalizedExpected)
+		expect(percentDiff).to.be.lt(0.0001)
+		expect(expectedPrice.length).to.eq(price.toString().length)
+	})
+
+	it("Properly converts tick to token price WETH/USDT (not inversed) - Uniswap Conversions", async () => {
+		const tick = "-195368"
+		const expectedPrice = "3278685604"
+		const price = await uniswapConversions.testTickToTokenPrice(tick, 18, false)
+		const normalizedExpected = fromWei(expectedPrice)
+		const normalizedPrice = fromWei(price)
+		const difference = Math.abs(Number(normalizedExpected) - Number(normalizedPrice))
+		const percentDiff = difference / Number(normalizedExpected)
+		expect(percentDiff).to.be.lt(0.0001)
+		expect(expectedPrice.length).to.eq(price.toString().length)
+	})
+
+	it("Properly converts tick to token price DAI/WETH (inversed) - Uniswap Conversions", async () => {
+		const tick = "-80961"
+		const expectedPrice = "3280316602869370632259"
+		const price = await uniswapConversions.testTickToTokenPrice(tick, 18, true)
+		const normalizedExpected = utils.formatUnits(expectedPrice, 18)
+		const normalizedPrice = utils.formatUnits(price, 18)
+		const difference = Math.abs(Number(normalizedExpected) - Number(normalizedPrice))
+		const percentDiff = difference / Number(normalizedExpected)
+		expect(percentDiff).to.be.lt(0.0001)
+		expect(expectedPrice.length).to.eq(price.toString().length)
+	})
+
+	it("Properly converts tick to token price WBTC/USDT (not inversed) - Uniswap Conversions", async () => {
+		const tick = "61132"
+		const expectedPrice = "45164404583"
+		const price = await uniswapConversions.testTickToTokenPrice(tick, 8, false)
+		const normalizedExpected = utils.formatUnits(expectedPrice, 6)
+		const normalizedPrice = utils.formatUnits(price, 6)
+		const difference = Math.abs(Number(normalizedExpected) - Number(normalizedPrice))
+		const percentDiff = difference / Number(normalizedExpected)
+		expect(percentDiff).to.be.lt(0.0001)
+		expect(expectedPrice.length).to.eq(price.toString().length)
+	})
+
+	it("Properly converts tick to token price USDC/WBTC (inversed)- Uniswap Conversions", async () => {
+		const tick = "61132"
+		const expectedPrice = "2214133030719511"
+		const price = await uniswapConversions.testTickToTokenPrice(tick, 8, true)
+		const normalizedExpected = utils.formatUnits(expectedPrice, 8)
+		const normalizedPrice = utils.formatUnits(price, 8)
+		const difference = Math.abs(Number(normalizedExpected) - Number(normalizedPrice))
+		const percentDiff = difference / Number(normalizedExpected)
+		expect(percentDiff).to.be.lt(0.0001)
+		expect(expectedPrice.length).to.eq(price.toString().length)
 	})
 })

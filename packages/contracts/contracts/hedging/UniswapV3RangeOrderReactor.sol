@@ -5,7 +5,7 @@ import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3
 import { IUniswapV3MintCallback } from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.sol";
 import { PoolAddress } from "../vendor/uniswap/PoolAddress.sol";
 import { LiquidityAmounts, FullMath } from "../vendor/uniswap/LiquidityAmounts.sol";
-import { sqrtPriceX96ToUint, encodePriceSqrt, RangeOrderDirection, getPriceToUse } from "../vendor/uniswap/Conversions.sol";
+import { sqrtPriceX96ToUint, encodePriceSqrt, RangeOrderDirection, getPriceToUse, tickToTokenPrice } from "../vendor/uniswap/Conversions.sol";
 import "../vendor/uniswap/TickMath.sol";
 import "../interfaces/IHedgingReactor.sol";
 import "../interfaces/ILiquidityPool.sol";
@@ -243,23 +243,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         uint256 quotePrice = inversed ? inversedPrice : poolPrice;
         if (_delta < 0) {
             // buy underlying
-            uint256 priceToUse;
             // Normal is selling above and buying below, reversed if inversed
             RangeOrderDirection direction = inversed ? RangeOrderDirection.ABOVE : RangeOrderDirection.BELOW;
-            if (direction == RangeOrderDirection.ABOVE) {
-                // ABOVE is selling, use highest price in underlying or in collateral token when inversed for best price
-                priceToUse = getPriceToUse(quotePrice, underlyingPrice, inversed, direction);
-            } else {
-                // BELOW is buying, use lowest price in underlying or in collateral token when inversed for best price
-                priceToUse = getPriceToUse(quotePrice, underlyingPrice, inversed, direction);
-            }
-            RangeOrderParams memory rangeOrder = _getTicksAndMeanPriceFromWei(priceToUse, direction);
-            uint256 amountCollateralInToken1 = uint256(-_delta).mul(rangeOrder.meanPrice);
-            uint256 amountDesiredInCollateralToken = OptionsCompute.convertToDecimals(
-                                                                                      amountCollateralInToken1,
-                                                                                      ERC20(collateralAsset).decimals()
-            );
-            _createUniswapRangeOrder(rangeOrder, amountDesiredInCollateralToken, inversed);
+            uint256 priceToUse = getPriceToUse(quotePrice, underlyingPrice, inversed, direction);
+            RangeOrderParams memory rangeOrder = _getTicksAndMeanPriceFromWei(priceToUse, direction, inversed);
+            // calculate amount of collateral needed to buy underlying
+            uint256 amountCollateral = uint256(-_delta).mul(rangeOrder.meanPrice);
+            _createUniswapRangeOrder(rangeOrder, amountCollateral, inversed);
         } else {
             // sell underlying
             uint256 wethBalance = inversed ? amount1Current : amount0Current;
@@ -267,7 +257,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             // highest price is best price when selling
             uint256 priceToUse = quotePrice < underlyingPrice ? underlyingPrice : quotePrice;
             RangeOrderDirection direction = inversed ? RangeOrderDirection.BELOW : RangeOrderDirection.ABOVE;
-            RangeOrderParams memory rangeOrder = _getTicksAndMeanPriceFromWei(priceToUse, direction);
+            RangeOrderParams memory rangeOrder = _getTicksAndMeanPriceFromWei(priceToUse, direction, inversed);
             uint256 deltaToUse = _delta > int256(wethBalance) ? wethBalance : uint256(_delta);
             _createUniswapRangeOrder(rangeOrder, deltaToUse, inversed);
         }
@@ -503,7 +493,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
      * @param direction the direction of the range order
      * @return params the parameters needed to mint a range order with average price when filled
      */
-    function _getTicksAndMeanPriceFromWei(uint256 price, RangeOrderDirection direction)
+    function _getTicksAndMeanPriceFromWei(uint256 price, RangeOrderDirection direction, bool inversed)
         private
         view
         returns (RangeOrderParams memory) {
@@ -513,10 +503,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         int24 lowerTick = direction == RangeOrderDirection.ABOVE ? nearestTick + tickSpacing : nearestTick - (2 * tickSpacing);
         int24 tickUpper = direction == RangeOrderDirection.ABOVE ? lowerTick + tickSpacing : nearestTick - tickSpacing;
         int24 meanTick = (lowerTick + tickUpper) / 2;
-        // average price paid on the range order in token1/token0 in token0 decimals format
-        uint256 meanPrice = _tickToToken0PriceInverted(meanTick);
-        // convert to token1 format
-        meanPrice = OptionsCompute.convertFromDecimals(meanPrice, token0.decimals(), token1.decimals());
+        uint256 meanPrice = tickToTokenPrice(meanTick, token0.decimals(), inversed);
+
         return RangeOrderParams({
             lowerTick: lowerTick,
             upperTick: tickUpper,
