@@ -183,7 +183,8 @@ const bearcsUpperStrike = toWei("2500")
 const butterflyLowerStrike = toWei("1900")
 const butterflyMidStrike = toWei("2000")
 const butterflyUpperStrike = toWei("2100")
-const putStrike = toWei("2000")
+const putStrike = toWei("2300")
+const failingPutStrike =  toWei("2000")
 const callStrike = toWei("2600")
 
 describe("Structured Product maker", async () => {
@@ -425,14 +426,21 @@ describe("Structured Product maker", async () => {
 				{
 					expiration: expiration,
 					isPut: CALL_FLAVOR,
-					strike: toWei("2600"),
+					strike: callStrike,
 					isSellable: true,
 					isBuyable: true
 				},
 				{
 					expiration: expiration,
 					isPut: PUT_FLAVOR,
-					strike: toWei("2000"),
+					strike: putStrike,
+					isSellable: true,
+					isBuyable: true
+				},
+				{
+					expiration: expiration,
+					isPut: PUT_FLAVOR,
+					strike: failingPutStrike,
 					isSellable: true,
 					isBuyable: true
 				},
@@ -1162,6 +1170,159 @@ describe("Structured Product maker", async () => {
 			expect(lowerAfter.seriesStores.optionSeries.underlying).to.equal(lowerProposedSeries.underlying).to.equal(weth.address)
 			expect(lowerAfter.seriesStores.optionSeries.strikeAsset).to.equal(lowerProposedSeries.strikeAsset).to.equal(usd.address)
 			expect(lowerAfter.seriesStores.optionSeries.strike).to.equal(lowerProposedSeries.strike)
+		})
+				// short strangle sell a call and sell a put at the same expiry
+		// the sender is paid for this strategy
+		it("CONSTRUCT: SHORT STRANGLE", async () => {
+			const amount = toWei("3")
+			const lowerProposedSeries = {
+				expiration: expiration,
+				strike: failingPutStrike,
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			const upperProposedSeries = {
+				expiration: expiration,
+				strike: callStrike,
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			const lowerMarginRequirement = await (await optionRegistry.getCollateral({
+				expiration: lowerProposedSeries.expiration,
+				strike: (lowerProposedSeries.strike).div(ethers.utils.parseUnits("1", 10)),
+				isPut: lowerProposedSeries.isPut,
+				strikeAsset: lowerProposedSeries.strikeAsset,
+				underlying: lowerProposedSeries.underlying,
+				collateral: lowerProposedSeries.collateral
+			}, amount)).add(toUSDC("100"))
+			const upperMarginRequirement = await (await optionRegistry.getCollateral({
+				expiration: upperProposedSeries.expiration,
+				strike: (upperProposedSeries.strike).div(ethers.utils.parseUnits("1", 10)),
+				isPut: upperProposedSeries.isPut,
+				strikeAsset: upperProposedSeries.strikeAsset,
+				underlying: upperProposedSeries.underlying,
+				collateral: upperProposedSeries.collateral
+			}, amount)).add(toUSDC("100"))
+			let lowerQuoteResponse = (await pricer.quoteOptionPrice(lowerProposedSeries, amount, true))
+			let lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
+			let upperQuoteResponse = (await pricer.quoteOptionPrice(upperProposedSeries, amount, true))
+			let upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
+
+			await usd.approve(exchange.address, lowerMarginRequirement.add(upperMarginRequirement))
+			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
+			const otoken = await exchange.callStatic.createOtoken(lowerProposedSeries)
+			const upperToken = await exchange.callStatic.createOtoken(upperProposedSeries)
+			const lowerToken = await exchange.callStatic.createOtoken(lowerProposedSeries)
+			await exchange.createOtoken(lowerProposedSeries)
+			await exchange.createOtoken(upperProposedSeries)
+			const upperBefore = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", upperToken)) as Otoken, senderAddress, amount)
+			const lowerBefore = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", lowerToken)) as Otoken, senderAddress, amount)
+			await expect(exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: ZERO_ADDRESS,
+						vaultId: vaultId,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: abiCode.encode(["uint256"], [1])
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: lowerProposedSeries.collateral,
+						vaultId: vaultId,
+						amount: lowerMarginRequirement,
+						optionSeries: emptySeries,
+						index: 0,
+						data: ZERO_ADDRESS
+					},
+					{
+						actionType: 1,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: lowerToken,
+						vaultId: vaultId,
+						amount: amount.div(ethers.utils.parseUnits("1", 10)),
+						optionSeries: emptySeries,
+						index: 0,
+						data: ZERO_ADDRESS
+					}]
+				},
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: ZERO_ADDRESS,
+						vaultId: vaultId.add(1),
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: abiCode.encode(["uint256"], [1])
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: upperProposedSeries.collateral,
+						vaultId: vaultId.add(1),
+						amount: upperMarginRequirement,
+						optionSeries: emptySeries,
+						index: 0,
+						data: ZERO_ADDRESS
+					},
+					{
+						actionType: 1,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: upperToken,
+						vaultId: vaultId.add(1),
+						amount: amount.div(ethers.utils.parseUnits("1", 10)),
+						optionSeries: emptySeries,
+						index: 0,
+						data: ZERO_ADDRESS
+					}
+					]
+				},
+				{
+					operation: 1,
+					operationQueue: [{
+						actionType: 2,
+						owner: ZERO_ADDRESS,
+						secondAddress: exchange.address,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: lowerProposedSeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 2,
+						owner: ZERO_ADDRESS,
+						secondAddress: exchange.address,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: upperProposedSeries,
+						index: 0,
+						data: "0x"
+					}
+					]
+				}
+			])).to.be.revertedWith("PremiumTooSmall()")
+
 		})
 		// short strangle sell a call and sell a put at the same expiry
 		// the sender is paid for this strategy

@@ -652,9 +652,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			// if they are closing and there is nothing to close then we revert
 			revert NothingToClose();
 		}
-		// if they are not closing and the premium is less than or equal to the fee then we revert
+		// if they are not closing and the premium / 8 is less than or equal to the fee then we revert
 		// because the sale doesnt make sense
-		if(!isClose && sellParams.premium <= sellParams.fee) {revert PremiumTooSmall();}
+		if(!isClose && (sellParams.premium >> 3) <= sellParams.fee) {revert PremiumTooSmall();}
 		if (sellParams.amount > 0) {
 			if (sellParams.amount > sellParams.tempHoldings) {
 				// transfer the otokens to this exchange
@@ -687,10 +687,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			);
 		}
 		// transfer any fees
-		if (sellParams.premium > sellParams.fee) {
+		// bitshift to the right 3 times to get to 1/8
+		if ((sellParams.premium >> 3) > sellParams.fee) {
 			SafeTransferLib.safeTransfer(ERC20(collateralAsset), feeRecipient, sellParams.fee);
 		} else {
-			// if the total premium to be paid is less than or equal to the total fees then we waive the total fees (we only get here when the scenario is a close)
+			// if the total fee is greater than premium / 8 then the fee is waived, this is to avoid disincentivising selling back to the pool for collateral release
 			sellParams.fee = 0;
 		}
 		// if the recipient is this address then update the temporary holdings now to indicate the premium is temporarily being held here
