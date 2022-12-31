@@ -11,6 +11,18 @@ import {TickMath} from "./TickMath.sol";
     /// @notice enum to indicate the direction of the range order
     enum RangeOrderDirection{ ABOVE, BELOW }
 
+    ////////////////////////
+    //      structs       //
+    ////////////////////////
+
+    struct RangeOrderParams {
+        int24 lowerTick;
+        int24 upperTick;
+        uint160 sqrtPriceX96;
+        uint256 meanPrice;
+        RangeOrderDirection direction;
+    }
+
     /**
      * @param token0Token1 the price of token0/token1 in token1 decimals
      * @param token0Decimals the decimals of token0
