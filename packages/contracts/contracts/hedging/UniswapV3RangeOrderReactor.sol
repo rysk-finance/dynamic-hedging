@@ -236,6 +236,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         require(msg.sender == parentLiquidityPool, "!vault");
         // check for existing range order first amd yank if it exists
         if (_inActivePosition()) _yankRangeOrderLiquidity();
+        // nothing further to do if delta is 0
+        if (_delta == 0) return 0;
 
         bool inversed = collateralAsset == address(token0);
         uint256 underlyingPrice = _getUnderlyingPrice(wETH, collateralAsset);
