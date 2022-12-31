@@ -35,7 +35,8 @@ import {TickMath} from "./TickMath.sol";
         pure
         returns (uint256)
     {
-        uint256 numerator1 = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
+        uint256 sqrtPrice = uint256(sqrtPriceX96);
+        uint256 numerator1 = FullMath.mulDiv(sqrtPrice, sqrtPrice, 1);
         uint256 numerator2 = 10 ** token0Decimals;
         return FullMath.mulDiv(numerator1, numerator2, 1 << 192);
     }

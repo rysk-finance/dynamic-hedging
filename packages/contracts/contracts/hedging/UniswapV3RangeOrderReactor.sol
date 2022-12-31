@@ -156,7 +156,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     function getPoolPrice() public view returns (uint256 price, uint256 inversed){
         (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
         uint256 decimals = _getOffsetDecimals();
-        uint256 p = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
+        uint256 sqrtPrice = uint256(sqrtPriceX96);
+        uint256 p = FullMath.mulDiv(sqrtPrice, sqrtPrice, 1);
         price = FullMath.mulDiv(p, 10 ** decimals, 1 << 192);
         inversed = 1e36 / price;
     }
@@ -451,19 +452,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     /**
-     * @dev returns the price of sqrtX96(token0) as token0 in token1 decimals
-     * @param sqrtPriceX96 the sqrt price of token0/token1
-     */
-    function _sqrtPriceX96ToUint(uint160 sqrtPriceX96)
-        private
-        pure
-        returns (uint256)
-    {
-        uint256 numerator1 = uint256(sqrtPriceX96) * uint256(sqrtPriceX96);
-        return FullMath.mulDiv(numerator1, 1, 1 << 192);
-    }
-
-    /**
      * @dev returns sqrtPriceX96 as a tick
      * @param sqrtPriceX96 the sqrtx96 price
      * @param tickSpacing the tick spacing of the pool
@@ -471,21 +459,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     function _sqrtPriceX96ToNearestTick(uint160 sqrtPriceX96, int24 tickSpacing) private pure returns (int24 nearestActiveTick){
         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
         nearestActiveTick = tick / tickSpacing * tickSpacing;
-    }
-
-    /**
-     * @dev takes the price of token0/token1 as a tick token1/token0
-     * @param tick price expressed as a tick
-     * @return price token0/token1 in token1/token0 in token1 decimals
-     */
-    function _tickToToken0PriceInverted(int24 tick) private view returns (uint256){
-        uint160 sqrtPriceX96 = TickMath.getSqrtRatioAtTick(tick);
-        uint256 price = _sqrtPriceX96ToUint(sqrtPriceX96);
-        uint256 inWei = OptionsCompute.convertFromDecimals(price, token0.decimals());
-        // overflow if token0 decimals > token1 decimals
-        uint256 intermediate = inWei.div(10**(token1.decimals() - token0.decimals()));
-        uint256 inversed = uint256(1e18).div(intermediate);
-        return inversed;
     }
 
     /**
