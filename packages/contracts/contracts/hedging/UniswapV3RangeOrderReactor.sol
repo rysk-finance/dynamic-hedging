@@ -5,7 +5,14 @@ import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3
 import { IUniswapV3MintCallback } from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.sol";
 import { PoolAddress } from "../vendor/uniswap/PoolAddress.sol";
 import { LiquidityAmounts, FullMath } from "../vendor/uniswap/LiquidityAmounts.sol";
-import { sqrtPriceX96ToUint, encodePriceSqrt, RangeOrderDirection, getPriceToUse, tickToTokenPrice } from "../vendor/uniswap/Conversions.sol";
+import { 
+    sqrtPriceX96ToUint,
+    encodePriceSqrt,
+    RangeOrderDirection,
+    getPriceToUse,
+    tickToTokenPrice,
+    RangeOrderParams
+} from "../vendor/uniswap/Conversions.sol";
 import "../vendor/uniswap/TickMath.sol";
 import "../interfaces/IHedgingReactor.sol";
 import "../interfaces/ILiquidityPool.sol";
@@ -70,14 +77,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         bool activeRangeAboveTick; // set to true if target is above tick at time of init position
     }
 
-    struct RangeOrderParams {
-        int24 lowerTick;
-        int24 upperTick;
-        uint160 sqrtPriceX96;
-        uint256 meanPrice;
-        RangeOrderDirection direction;
-    }
-
     /////////////////////////
     ///       events      ///
     /////////////////////////
@@ -125,6 +124,12 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         onlyAuthorizedFulfill = _onlyAuthorizedFulfill;
         emit SetAuthorizedFulfill(_onlyAuthorizedFulfill, msg.sender);
     }
+
+    /// @notice update the minAmount parameter
+	function setMinAmount(uint256 _minAmount) external {
+		_onlyGovernor();
+		minAmount = _minAmount;
+	}
 
     /// @notice set the poolFee
     function setPoolFee(uint24 _poolFee) external {
@@ -256,12 +261,12 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         } else {
             // sell underlying
             uint256 wethBalance = inversed ? amount1Current : amount0Current;
-            if (wethBalance < minAmount) return 0;
             // highest price is best price when selling
             uint256 priceToUse = quotePrice < underlyingPrice ? underlyingPrice : quotePrice;
             RangeOrderDirection direction = inversed ? RangeOrderDirection.BELOW : RangeOrderDirection.ABOVE;
             RangeOrderParams memory rangeOrder = _getTicksAndMeanPriceFromWei(priceToUse, direction, inversed);
             uint256 deltaToUse = _delta > int256(wethBalance) ? wethBalance : uint256(_delta);
+            if (deltaToUse < minAmount) return 0;
             _createUniswapRangeOrder(rangeOrder, deltaToUse, inversed);
         }
         // satisfy interface, delta only changes when range order is filled
