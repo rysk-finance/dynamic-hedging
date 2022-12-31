@@ -3,8 +3,10 @@ pragma solidity >=0.8.13;
 
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import {FullMath} from "./FullMath.sol";
+import {TickMath} from "./TickMath.sol";
 
 	using PRBMathUD60x18 for uint256;
+    using TickMath for int24;
 
     /// @notice enum to indicate the direction of the range order
     enum RangeOrderDirection{ ABOVE, BELOW }
@@ -70,5 +72,30 @@ import {FullMath} from "./FullMath.sol";
                 // BELOW is buying selling underlying for collateral token, use lowest price for best price
                 return price0 < price1 ? price0 : price1;
             } 
+        }
+    }
+
+    /**
+     * @param tick the tick of the pool
+     * @param token0Decimals the decimals of token0
+     * @param inversed whether the pool token0/token1 ordering is inverted to underlying/collateral
+     * @return the price of underlying/collateral token in collateral decimals
+     */
+    function tickToTokenPrice(
+        int24 tick,
+        uint8 token0Decimals,
+        bool inversed
+    )
+        pure
+        returns (uint256)
+    {
+        uint256 price = sqrtPriceX96ToUint(tick.getSqrtRatioAtTick(), token0Decimals);
+        if (!inversed) {
+            // underlying/collateral is token0/token1
+            return price;
+        } else {
+            // underlying/collateral is token1/token0
+            uint256 ONE = 10 ** (token0Decimals);
+            return ONE.div(price);
         }
     }
