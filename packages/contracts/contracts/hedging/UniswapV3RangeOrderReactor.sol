@@ -86,9 +86,31 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         address caller
     );
 
+    event SetMinAmount(
+        uint256 minAmount,
+        address caller
+    );
+
     event SetPoolFee(
         uint24 poolFee,
         address caller
+    );
+
+    event RecoverETH(
+        uint256 amount,
+        address receiver,
+        address caller
+    );
+
+    event RecoverERC20(
+        address token,
+        uint256 amount,
+        address receiver,
+        address caller
+    );
+
+    event Withdraw(
+        uint256 amount
     );
 
     constructor(
@@ -129,6 +151,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 	function setMinAmount(uint256 _minAmount) external {
 		_onlyGovernor();
 		minAmount = _minAmount;
+        emit SetMinAmount(_minAmount, msg.sender);
 	}
 
     /// @notice set the poolFee
@@ -284,10 +307,12 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         }
         if (_amount <= balance) {
             SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, _amount);
+            emit Withdraw(_amount);
             // return in collateral format
             return _amount;
         } else {
             SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, balance);
+            emit Withdraw(_amount);
             // return in collateral format
             return balance;
         }
@@ -302,6 +327,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     function recoverERC20(address tokenAddress, address receiver, uint256 tokenAmount) external {
         _onlyGovernor();
         _recoverERC20(tokenAddress, receiver, tokenAmount);
+        emit RecoverERC20(tokenAddress, tokenAmount, receiver, msg.sender);
     }
 
     /**
@@ -312,6 +338,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     function recoverETH(address payable receiver, uint256 amount) external {
         _onlyGovernor();
         SafeTransferLib.safeTransferETH(receiver, amount);
+        emit RecoverETH(amount, receiver, msg.sender);
     }
 
 
