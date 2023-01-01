@@ -557,6 +557,12 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         view
         returns (uint256 amount0Current, uint256 amount1Current)
     {
+        if (!_inActivePosition()) {
+            amount0Current = token0.balanceOf(address(this));
+            amount1Current = token1.balanceOf(address(this));
+            return (amount0Current, amount1Current);
+        }
+
         (
             uint128 liquidity,
             uint256 feeGrowthInside0Last,
