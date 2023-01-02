@@ -995,13 +995,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			);
 		}
 		// want to check if they have any otokens in their wallet and send those here
-		if (sellParams.transferAmount > OptionsCompute.min(sellParams.tempHoldings, sellParams.transferAmount)) {
+		if (sellParams.transferAmount > sellParams.tempHoldings) {
 			SafeTransferLib.safeTransferFrom(
 				sellParams.seriesAddress,
 				msg.sender,
 				address(liquidityPool),
 				OptionsCompute.convertToDecimals(
-					sellParams.transferAmount - OptionsCompute.min(sellParams.tempHoldings, sellParams.transferAmount),
+					sellParams.transferAmount - sellParams.tempHoldings,
 					ERC20(sellParams.seriesAddress).decimals()
 				)
 			);
