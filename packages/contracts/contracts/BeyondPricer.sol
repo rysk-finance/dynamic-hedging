@@ -19,7 +19,6 @@ import "./interfaces/IPortfolioValuesFeed.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-import "hardhat/console.sol";
 
 /**
  *  @title Contract used for all user facing options interactions
@@ -54,6 +53,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	uint256 bidAskIVSpread;
 	uint256 riskFreeRate;
+	uint256 feePerContract = 3e5;
+
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
@@ -65,7 +66,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// structs && events ///
 	/////////////////////////
 
-
+	event FeePerContractChanged(uint256 newFeePerContract, uint256 oldFeePerContract);
 	constructor(
 		address _authority,
 		address _protocol,
@@ -82,6 +83,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// setters ///
 	///////////////
 
+	function setFeePerContract(uint256 _feePerContract) external {
+		_onlyGovernor();
+		feePerContract = _feePerContract;
+		emit FeePerContractChanged(_feePerContract, feePerContract);
+	}
 
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
@@ -92,11 +98,13 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// complex getters ///
 	///////////////////////
 
-    function quoteOptionPrice(Types.OptionSeries memory _optionSeries, uint256 _amount, bool isSell) external view returns (uint256 totalPremium, int256 totalDelta) {
+    function quoteOptionPrice(Types.OptionSeries memory _optionSeries, uint256 _amount, bool isSell) external view returns (uint256 totalPremium, int256 totalDelta, uint256 totalFees) {
 		uint256 underlyingPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
-		uint256 iv = _getVolatilityFeed().getImpliedVolatility(_optionSeries.isPut, underlyingPrice,_optionSeries.strike, _optionSeries.expiration);
+		uint256 iv = _getVolatilityFeed().getImpliedVolatility(_optionSeries.isPut, underlyingPrice, _optionSeries.strike, _optionSeries.expiration);
 		(uint256 premium, int256 delta) = OptionsCompute.quotePriceGreeks(_optionSeries, isSell, bidAskIVSpread, riskFreeRate, iv, underlyingPrice);
-        return (premium.mul(_amount) / 1e12, delta.mul(int256(_amount)));
+		totalPremium = premium.mul(_amount) / 1e12;
+		totalDelta = delta.mul(int256(_amount));
+		totalFees = feePerContract.mul(_amount);
     }
 
 	///////////////////////////

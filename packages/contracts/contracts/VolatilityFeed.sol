@@ -27,7 +27,7 @@ contract VolatilityFeed is AccessControl {
 	// expiry array
 	uint256[] public expiries;
 	// interest rate in e18 decimals
-	int256 public interestRate;
+	int256 public interestRate = -1e16;
 
 	//////////////////////////
 	/// constant variables ///
@@ -125,6 +125,8 @@ contract VolatilityFeed is AccessControl {
 		int256 _interestRate
 	) public {
 		_onlyGovernor();
+		require(-100e18 < _interestRate, "Interest rate too small");
+		require(100e18 > _interestRate, "Interest rate too big");
 		interestRate = _interestRate;
 	}
 

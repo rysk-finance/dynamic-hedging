@@ -276,6 +276,22 @@ contract SABRTest is Test {
         assertApproxEqAbs(vol, expectedVol, 1e9);
 	}
 
+	function testSABRFFIFuzzInterestRateGetImpliedVolatility(int256 _interestRate) public {
+		vm.assume(_interestRate < 100e18);
+		vm.assume(_interestRate > -100e18);
+		uint256 expiration = startExpiry;
+		bool isPut = false;
+        uint256 underlyingPrice = 100e18;
+		uint256 strikePrice = 120e18;
+		volFeed.setInterestRate(_interestRate);
+		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+        (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
+        uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu, volFeed.interestRate());
+        console.log(vol);
+        console.log(expectedVol);
+        assertApproxEqAbs(vol, expectedVol, 1e9);
+	}
+
 	function calculateVol(
 		uint256 k,
 		uint256 f,
