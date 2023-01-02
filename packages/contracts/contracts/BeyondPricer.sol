@@ -101,7 +101,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	function setSlippageGradient(uint256 _slippageGradient) external {
 		_onlyGuardian();
-		slippageGradent = _slippageGradient;
+		slippageGradient = _slippageGradient;
 	}
 
 	function setLowDeltaSlippageMultiplier(uint256 _lowDeltaSlippageMultiplier) external {
@@ -130,7 +130,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	function quoteOptionPrice(
 		Types.OptionSeries memory _optionSeries,
 		uint256 _amount,
-		bool isSell
+		bool isSell,
+		int256 netDhvExposure
 	)
 		external
 		view
@@ -201,16 +202,16 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	function _getVolatilityFeed() internal view returns (VolatilityFeed) {
 		return VolatilityFeed(protocol.volatilityFeed());
 	}
+
+	//////////////////////////
+	/// internal functions ///
+	//////////////////////////
+
+	function _applySlippage(
+		Types.OptionSeries memory _optionSeries,
+		uint256 _amount,
+		bool isSell,
+		uint256 vanillaPremium,
+		int256 portfolioDelta
+	) internal view returns (uint256 slippageMultiplier) {}
 }
-
-//////////////////////////
-/// internal functions ///
-//////////////////////////
-
-function _applySlippage(
-	Types.OptionSeries memory _optionSeries,
-	uint256 _amount,
-	bool isSell,
-	uint256 vanillaPremium,
-	int256 portfolioDelta
-) internal view returns (uint256 slippageMultiplier) {}

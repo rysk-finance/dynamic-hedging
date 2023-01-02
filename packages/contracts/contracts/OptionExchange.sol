@@ -80,6 +80,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	mapping(bytes32 => bool) public isBuyable;
 	// whether the dhv is selling this option stored by hash
 	mapping(bytes32 => bool) public isSellable;
+	// net exposure of the DHV for an option type stores by hash (ignoring collateral)
+	mapping(bytes32 => int256) netDhvExposure;
 	// array of expirations currently supported (mainly for frontend use)
 	uint64[] public expirations;
 	// details of supported options first key is expiration then isPut then an array of strikes (mainly for frontend use)
@@ -566,7 +568,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			uint128 strikeDecimalConverted
 		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
 		// check the option hash and option series for validity
-		_checkHash(optionSeries, strikeDecimalConverted, false);
+		bytes32 oHash = _checkHash(optionSeries, strikeDecimalConverted, false);
 		// convert the strike to e18 decimals for storage, this gets the strike price in e18 decimals
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			optionSeries.expiration,
@@ -580,7 +582,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		(uint256 premium, int256 delta, uint256 fee) = pricer.quoteOptionPrice(
 			seriesToStore,
 			_args.amount,
-			false
+			false,
+			netDhvExposure[oHash]
 		);
 		_handlePremiumTransfer(premium, fee);
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
@@ -631,15 +634,19 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	{
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		SellParams memory sellParams;
-		(sellParams.seriesAddress, sellParams.seriesToStore, sellParams.optionSeries) = _preSaleChecks(
-			_args,
-			optionRegistry
-		);
+		bytes32 oHash;
+		(
+			sellParams.seriesAddress,
+			sellParams.seriesToStore,
+			sellParams.optionSeries,
+			oHash
+		) = _preSaleChecks(_args, optionRegistry);
 		// get the unit price for premium and delta
 		(sellParams.premium, sellParams.delta, sellParams.fee) = pricer.quoteOptionPrice(
 			sellParams.seriesToStore,
 			_args.amount,
-			true
+			true,
+			netDhvExposure[oHash]
 		);
 		sellParams.amount = _args.amount;
 		sellParams.tempHoldings = heldTokens[msg.sender][sellParams.seriesAddress];
@@ -841,9 +848,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		Types.OptionSeries memory optionSeries,
 		uint128 strikeDecimalConverted,
 		bool isSell
-	) public view {
+	) public view returns (bytes32 oHash) {
 		// check if the option series is approved
-		bytes32 oHash = keccak256(
+		oHash = keccak256(
 			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
 		);
 		if (!approvedOptions[oHash]) {
@@ -966,7 +973,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		returns (
 			address,
 			Types.OptionSeries memory,
-			Types.OptionSeries memory
+			Types.OptionSeries memory,
+			bytes32
 		)
 	{
 		(
@@ -975,7 +983,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			uint128 strikeDecimalConverted
 		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
 		// check the option hash and option series for validity
-		_checkHash(optionSeries, strikeDecimalConverted, true);
+		bytes32 oHash = _checkHash(optionSeries, strikeDecimalConverted, true);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			optionSeries.expiration,
@@ -985,7 +993,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			strikeAsset,
 			optionSeries.collateral
 		);
-		return (seriesAddress, seriesToStore, optionSeries);
+		return (seriesAddress, seriesToStore, optionSeries, oHash);
 	}
 
 	function _handleDHVBuyback(

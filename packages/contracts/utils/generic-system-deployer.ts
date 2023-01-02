@@ -246,7 +246,8 @@ export async function deployLiquidityPool(
 	const pricer = (await PricerFactory.deploy(
 		authority,
 		optionProtocol.address,
-		liquidityPool.address
+		liquidityPool.address,
+		0
 	)) as BeyondPricer
 	await optionProtocol.changeAccounting(Accounting.address)
 	// deploy libraries

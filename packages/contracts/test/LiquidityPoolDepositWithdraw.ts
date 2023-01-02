@@ -386,10 +386,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		await liquidityPool.pauseTradingAndRequest()
 		expect(await liquidityPool.isTradingPaused()).to.be.true
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 	})
 	it("Succeeds: execute epoch", async () => {
 		const depositEpochBefore = await liquidityPool.depositEpoch()
@@ -610,13 +607,15 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await exchange.issueNewSeries([{
-			expiration: expiration,
-			isPut: PUT_FLAVOR,
-			strike: BigNumber.from(strikePrice),
-			isSellable: true,
-			isBuyable: true
-		}])
+		await exchange.issueNewSeries([
+			{
+				expiration: expiration,
+				isPut: PUT_FLAVOR,
+				strike: BigNumber.from(strikePrice),
+				isSellable: true,
+				isBuyable: true
+			}
+		])
 	})
 	it("Succeeds: User 1: LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
@@ -635,7 +634,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, false))
+		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 		quote = quoteResponse[0].add(quoteResponse[2])
 		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
@@ -654,10 +653,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			amount,
 			true
 		)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		expect(putBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew), 2)).to.eq(tFormatUSDC(quote, 2))
@@ -667,16 +663,15 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(await liquidityPool.isTradingPaused()).to.be.true
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		// deliberately underprice quote so that the pool comes out as profitable
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 	})
 	it("Reverts: User 1: cant write option", async () => {
 		const user = senderAddress
 		const amount = toWei("2")
 		await usd.approve(exchange.address, toWei("1"))
-		await expect(makeBuy(exchange, senderAddress, optionToken1.address, amount, emptySeries)).to.be.revertedWith("TradingPaused()")
+		await expect(
+			makeBuy(exchange, senderAddress, optionToken1.address, amount, emptySeries)
+		).to.be.revertedWith("TradingPaused()")
 	})
 	it("Reverts: User 1: cant issue and write option", async () => {
 		const user = senderAddress
@@ -692,9 +687,9 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			collateral: usd.address
 		}
 		await usd.approve(exchange.address, toWei("1"))
-		await expect(makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)).to.be.revertedWith(
-			"TradingPaused()"
-		)
+		await expect(
+			makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
+		).to.be.revertedWith("TradingPaused()")
 	})
 	it("Succeeds: execute epoch", async () => {
 		const depositEpochBefore = await liquidityPool.depositEpoch()
@@ -938,13 +933,15 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await exchange.issueNewSeries([{
-			expiration: expiration,
-			isPut: CALL_FLAVOR,
-			strike: BigNumber.from(strikePrice),
-			isSellable: true,
-			isBuyable: true
-		}])
+		await exchange.issueNewSeries([
+			{
+				expiration: expiration,
+				isPut: CALL_FLAVOR,
+				strike: BigNumber.from(strikePrice),
+				isSellable: true,
+				isBuyable: true
+			}
+		])
 	})
 	it("Succeeds: User 1: LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
@@ -963,7 +960,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, false))
+		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 		const singleQ = quoteResponse[0].add(quoteResponse[2])
 		quote = quote.add(singleQ)
 		await usd.approve(exchange.address, quote)
@@ -979,10 +976,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		localDelta = localDelta.add(
 			await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, true)
 		)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		expect(callBalance).to.eq(opynAmount)
 		// ensure funds are being transfered
 		expect(tFormatUSDC(balance.sub(balanceNew), 0)).to.eq(tFormatUSDC(singleQ, 0))
@@ -995,10 +989,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(await liquidityPool.isTradingPaused()).to.be.true
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		// deliberately underprice quote so that the pool comes out as profitable
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 	})
 	it("Succeeds: execute epoch with not enough funds to execute withdrawals", async () => {
 		const lpUsdBalance = await usd.balanceOf(liquidityPool.address)
@@ -1087,10 +1078,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(await liquidityPool.isTradingPaused()).to.be.true
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		// deliberately underprice quote so that the pool comes out as profitable
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 	})
 
 	it("Succeeds: execute epoch from keeper", async () => {

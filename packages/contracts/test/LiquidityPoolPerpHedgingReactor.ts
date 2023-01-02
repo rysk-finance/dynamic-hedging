@@ -306,10 +306,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 	it("pauses trading and executes epoch", async () => {
 		await liquidityPool.pauseTradingAndRequest()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		await liquidityPool.executeEpochCalculation()
 		await liquidityPool.redeem(toWei("10000000"))
 	})
@@ -357,21 +354,22 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await exchange.issueNewSeries([{
-			expiration: expiration,
-			isPut: PUT_FLAVOR,
-			strike: BigNumber.from(strikePrice),
-			isSellable: true,
-			isBuyable: true
-		},
-		{
-			expiration: expiration2,
-			isPut: PUT_FLAVOR,
-			strike: BigNumber.from(strikePrice),
-			isSellable: true,
-			isBuyable: true
-		},
-	])
+		await exchange.issueNewSeries([
+			{
+				expiration: expiration,
+				isPut: PUT_FLAVOR,
+				strike: BigNumber.from(strikePrice),
+				isSellable: true,
+				isBuyable: true
+			},
+			{
+				expiration: expiration2,
+				isPut: PUT_FLAVOR,
+				strike: BigNumber.from(strikePrice),
+				isSellable: true,
+				isBuyable: true
+			}
+		])
 	})
 	it("LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
@@ -391,7 +389,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		}
 		const EthPrice = await oracle.getPrice(weth.address)
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, false))
+		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 		let quote = quoteResponse[0].add(quoteResponse[2])
 		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
@@ -405,10 +403,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 			toWei("1"),
 			true
 		)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await putOptionToken.balanceOf(senderAddress)
@@ -441,7 +436,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const lpAllocatedBefore = await liquidityPool.collateralAllocated()
-		let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, false))
+		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 		let quote = quoteResponse[0].add(quoteResponse[2])
 		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
@@ -455,10 +450,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 			toWei("3"),
 			true
 		)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		putOptionToken2 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await putOptionToken2.balanceOf(senderAddress)
@@ -509,10 +501,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 	it("pauses trading and executes epoch", async () => {
 		await liquidityPool.pauseTradingAndRequest()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		const executeEpochTx = await liquidityPool.executeEpochCalculation()
 		await executeEpochTx.wait()
 	})
@@ -526,10 +515,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		const withdrawalEpochBefore = await liquidityPool.withdrawalEpoch()
 		await liquidityPool.pauseTradingAndRequest()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		const executeEpochTx = await liquidityPool.executeEpochCalculation()
 		await executeEpochTx.wait()
 		const withdrawalEpochAfter = await liquidityPool.withdrawalEpoch()
