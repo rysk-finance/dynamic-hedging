@@ -40,6 +40,7 @@ interface CustomErrors {
 	error SpotMovedBeyondRange();
 	error ReactorAlreadyExists();
     error UnauthorizedFulfill();
+	error NonWhitelistedOtoken();
 	error CollateralAssetInvalid();
 	error UnderlyingAssetInvalid();
 	error CollateralAmountInvalid();
