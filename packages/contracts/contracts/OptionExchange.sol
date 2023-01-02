@@ -15,11 +15,12 @@ import "./libraries/SafeTransferLib.sol";
 import "./libraries/OpynInteractions.sol";
 
 import "./interfaces/IWhitelist.sol";
-import "./interfaces/IHedgingReactor.sol";
-import "./interfaces/AddressBookInterface.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
+import "./interfaces/IHedgingReactor.sol";
+import "./interfaces/AddressBookInterface.sol";
 import "./interfaces/IAlphaPortfolioValuesFeed.sol";
+
 import "./libraries/RyskActions.sol";
 import "./libraries/CombinedActions.sol";
 
@@ -27,9 +28,8 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 
 import "@openzeppelin/contracts/security/Pausable.sol";
-import { IOtoken, IController } from "./interfaces/GammaInterface.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
-
+import { IOtoken, IController } from "./interfaces/GammaInterface.sol";
 import "hardhat/console.sol";
 
 /**
@@ -88,11 +88,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	mapping(address => uint24) public poolFees;
 	/// @notice when redeeming other asset, send to a reactor or sell it
 	bool public sellRedemptions = true;
+	/// @notice fee recipient
+	address public feeRecipient;
 
-	// user -> series addresses interacted with in this transaction
-	mapping(address => address[]) internal tempSeriesQueue;
-	// user -> seriesAddress -> amount
-	mapping(address => mapping(address => uint256)) public heldOtokens;
+	// user -> token addresses interacted with in this transaction
+	mapping(address => address[]) internal tempTokenQueue;
+	// user -> token address -> amount
+	mapping(address => mapping(address => uint256)) public heldTokens;
 
 	//////////////////////////
 	/// constant variables ///
@@ -110,6 +112,19 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/////////////////////////
 	/// structs && events ///
 	/////////////////////////
+
+	struct SellParams {
+		address seriesAddress;
+		Types.OptionSeries seriesToStore;
+		Types.OptionSeries optionSeries;
+		uint256 premium;
+		int256 delta;
+		uint256 fee;
+		uint256 amount;
+		uint256 tempHoldings;
+		uint256 transferAmount;
+		uint256 premiumSent;
+	}
 
 	event SeriesApproved(
 		uint64 expiration,
@@ -137,8 +152,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
 
 	error PoolFeeNotSet();
+	error TokenImbalance();
+	error NothingToClose();
+	error PremiumTooSmall();
 	error ForbiddenAction();
-	error OtokenImbalance();
+	error CloseSizeTooLarge();
 	error UnauthorisedSender();
 	error OperatorNotApproved();
 
@@ -148,7 +166,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		address _liquidityPool,
 		address _pricer,
 		address _addressbook,
-		address _swapRouter
+		address _swapRouter,
+		address _feeRecipient
 	) AccessControl(IAuthority(_authority)) {
 		protocol = Protocol(_protocol);
 		liquidityPool = ILiquidityPool(_liquidityPool);
@@ -158,6 +177,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		addressbook = AddressBookInterface(_addressbook);
 		swapRouter = ISwapRouter(_swapRouter);
 		pricer = BeyondPricer(_pricer);
+		require(_feeRecipient != address(0));
+		feeRecipient = _feeRecipient;
 	}
 
 	///////////////
@@ -180,6 +201,15 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function setPricer(address _pricer) external {
 		_onlyGovernor();
 		pricer = BeyondPricer(_pricer);
+	}
+
+	/**
+	 * @notice change the fee recipient
+	 */
+	function setFeeRecipient(address _feeRecipient) external {
+		_onlyGovernor();
+		require(_feeRecipient != address(0));
+		feeRecipient = _feeRecipient;
 	}
 
 	/// @notice set the uniswap v3 pool fee for a given asset, also give the asset max approval on the uni v3 swap router
@@ -355,14 +385,27 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		whenNotPaused
 	{
 		_runActions(_operationProcedures);
-		address[] memory interactedSeries = tempSeriesQueue[msg.sender];
-		uint256 arr = interactedSeries.length;
-		for (uint256 i=0; i < arr; i++ ) {
-			if (heldOtokens[msg.sender][interactedSeries[i]] != 0) {
-				revert OtokenImbalance();
+		_verifyFinalState();
+	}
+
+	/**
+	 * @notice verify all final state
+	 */
+	function _verifyFinalState() internal {
+		address[] memory interactedTokens = tempTokenQueue[msg.sender];
+		uint256 arr = interactedTokens.length;
+		for (uint256 i = 0; i < arr; i++) {
+			uint256 tempTokens = heldTokens[msg.sender][interactedTokens[i]];
+			if (tempTokens != 0) {
+				if (interactedTokens[i] == collateralAsset) {
+					SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, tempTokens);
+					heldTokens[msg.sender][interactedTokens[i]] = 0;
+				} else {
+					revert TokenImbalance();
+				}
 			}
 		}
-		delete tempSeriesQueue[msg.sender];
+		delete tempTokenQueue[msg.sender];
 	}
 
 	function _runActions(CombinedActions.OperationProcedures[] memory _operationProcedures) internal {
@@ -390,29 +433,40 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				revert UnauthorisedSender();
 			}
 			// users need to have this contract approved as an operator so it can carry out actions on the user's behalf
-			if (!controller.isOperator(msg.sender, address(this))){
+			if (!controller.isOperator(msg.sender, address(this))) {
 				revert OperatorNotApproved();
 			}
- 		if (actionType == IController.ActionType.DepositLongOption) {
-				// TODO: make work with negative heldOtokens
-				require(action.secondAddress == msg.sender, "Unauthorised Sender");
+			if (actionType == IController.ActionType.DepositLongOption) {
+				if (action.secondAddress != msg.sender) {
+					revert UnauthorisedSender();
+				}
 				// check the from address to make sure it comes from the user or if we are holding them temporarily then they are held here
 			} else if (actionType == IController.ActionType.WithdrawLongOption) {
-				if (action.secondAddress == address(this)) {
-					_updateTempHoldings(action);
-				}
 				// check the to address to see whether it is being sent to the user or held here temporarily
+				if (action.secondAddress == address(this)) {
+					_updateTempHoldings(action.asset, action.amount * 10**CONVERSION_DECIMALS);
+				}
 			} else if (actionType == IController.ActionType.DepositCollateral) {
 				// check the from address is the msg.sender so the sender cant take collat from elsewhere
-				require(action.secondAddress == msg.sender, "Unauthorised Sender");
+				if (action.secondAddress != msg.sender && action.secondAddress != address(this)) {
+					revert UnauthorisedSender();
+				}
+				// if the address is this address then for UX purposes the collateral will be handled here
+				// (this means the user only needs to do one approval for collateral to this address)
+				if (action.secondAddress == address(this)) {
+					SafeTransferLib.safeTransferFrom(action.asset, msg.sender, address(this), action.amount);
+					// approve the margin pool from this account
+					SafeTransferLib.safeApprove(ERC20(action.asset), addressbook.getMarginPool(), action.amount);
+				}
 			} else if (actionType == IController.ActionType.MintShortOption) {
 				if (action.secondAddress == address(this)) {
-					_updateTempHoldings(action);
+					_updateTempHoldings(action.asset, action.amount * 10**CONVERSION_DECIMALS);
 				}
 				// check the to address to see whether it is being sent to the user or held here temporarily
 			} else if (actionType == IController.ActionType.BurnShortOption) {
-				// TODO: make work with negative heldOtokens
-				require(action.secondAddress == msg.sender, "Unauthorised Sender");
+				if (action.secondAddress != msg.sender) {
+					revert UnauthorisedSender();
+				}
 				// check the from address to see whether it is being sent from the user or is held from a temporary balance
 			} else if (actionType == IController.ActionType.Redeem) {
 				revert ForbiddenAction();
@@ -436,9 +490,34 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			} else if (actionType == RyskActions.ActionType.BuyOption) {
 				_buyOption(RyskActions._parseBuyOptionArgs(action));
 			} else if (actionType == RyskActions.ActionType.SellOption) {
-				_sellOption(RyskActions._parseSellOptionArgs(action));
+				_sellOption(RyskActions._parseSellOptionArgs(action), false);
+			} else if (actionType == RyskActions.ActionType.CloseOption) {
+				_sellOption(RyskActions._parseSellOptionArgs(action), true);
 			}
 		}
+	}
+
+	/**
+	 * @notice create an otoken, distinguished from issue because we may not want this option on the option registry
+	 * @param optionSeries - otoken to create (strike in e18)
+	 * @return series the address of the otoken created
+	 */
+	function createOtoken(Types.OptionSeries memory optionSeries) external returns (address series) {
+		// deploy an oToken contract address
+		// assumes strike is passed in e18, converts to e8
+		uint128 formattedStrike = uint128(
+			formatStrikePrice(optionSeries.strike, optionSeries.collateral)
+		);
+		// check for an opyn oToken if it doesn't exist deploy it
+		series = OpynInteractions.getOrDeployOtoken(
+			address(addressbook.getOtokenFactory()),
+			optionSeries.collateral,
+			optionSeries.underlying,
+			optionSeries.strikeAsset,
+			formattedStrike,
+			optionSeries.expiration,
+			optionSeries.isPut
+		);
 	}
 
 	/**
@@ -498,9 +577,12 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			optionSeries.collateral
 		);
 		// calculate premium and delta from the option pricer, returning the premium in collateral decimals and delta in e18
-		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, _args.amount, false);
-		// transfer the premium from the user to the liquidity pool
-		SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(liquidityPool), premium);
+		(uint256 premium, int256 delta, uint256 fee) = pricer.quoteOptionPrice(
+			seriesToStore,
+			_args.amount,
+			false
+		);
+		_handlePremiumTransfer(premium, fee);
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
 		int256 longExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).longExposure;
 		uint256 amount = _args.amount;
@@ -541,79 +623,88 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/**
 	 * @notice function that allows a user to sell options to the dhv and pays them a premium in the vaults collateral asset
 	 * @param _args RyskAction struct containing details on the option to sell
+	 * @param isClose if true then we only close positions the dhv has open, we do not conduct any more sales beyond that
 	 */
-	function _sellOption(RyskActions.SellOptionArgs memory _args) internal whenNotPaused {
+	function _sellOption(RyskActions.SellOptionArgs memory _args, bool isClose) internal whenNotPaused {
 		IOptionRegistry optionRegistry = getOptionRegistry();
-		(
-			address seriesAddress,
-			Types.OptionSeries memory optionSeries,
-			uint128 strikeDecimalConverted
-		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
-		// check the option hash and option series for validity
-		_checkHash(optionSeries, strikeDecimalConverted, true);
-		// convert the strike to e18 decimals for storage
-		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
-			optionSeries.expiration,
-			strikeDecimalConverted,
-			optionSeries.isPut,
-			underlyingAsset,
-			strikeAsset,
-			optionSeries.collateral
+		SellParams memory sellParams;
+		(sellParams.seriesAddress, sellParams.seriesToStore, sellParams.optionSeries) = _preSaleChecks(
+			_args,
+			optionRegistry
 		);
 		// get the unit price for premium and delta
-		(uint256 premium, int256 delta) = pricer.quoteOptionPrice(seriesToStore, 1e18, true);
-		uint256 amount = _args.amount;
-		int256 shortExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).shortExposure;
-		uint256 tempHoldings = heldOtokens[msg.sender][seriesAddress];
-		heldOtokens[msg.sender][seriesAddress] -= min(tempHoldings, _args.amount);
+		(sellParams.premium, sellParams.delta, sellParams.fee) = pricer.quoteOptionPrice(
+			sellParams.seriesToStore,
+			_args.amount,
+			true
+		);
+		sellParams.amount = _args.amount;
+		sellParams.tempHoldings = heldTokens[msg.sender][sellParams.seriesAddress];
+		heldTokens[msg.sender][sellParams.seriesAddress] -= OptionsCompute.min(sellParams.tempHoldings, _args.amount);
+		int256 shortExposure = getPortfolioValuesFeed()
+			.storesForAddress(sellParams.seriesAddress)
+			.shortExposure;
 		if (shortExposure > 0) {
-			uint256 transferAmount = min(uint256(shortExposure), _args.amount);
-			if (tempHoldings > 0) {
-				ERC20(seriesAddress).approve(address(liquidityPool), min(tempHoldings, transferAmount));
-			}
-			if (transferAmount >= min(tempHoldings, transferAmount)) {
+			// if they are just closing and the amount to close is bigger than the dhv's position then we revert
+			if (isClose && OptionsCompute.toInt256(sellParams.amount) > shortExposure) {revert CloseSizeTooLarge();}
+			sellParams = _handleDHVBuyback(sellParams, shortExposure, optionRegistry);
+		} else if (isClose) {
+			// if they are closing and there is nothing to close then we revert
+			revert NothingToClose();
+		}
+		// if they are not closing and the premium / 8 is less than or equal to the fee then we revert
+		// because the sale doesnt make sense
+		if(!isClose && (sellParams.premium >> 3) <= sellParams.fee) {revert PremiumTooSmall();}
+		if (sellParams.amount > 0) {
+			if (sellParams.amount > sellParams.tempHoldings) {
+				// transfer the otokens to this exchange
 				SafeTransferLib.safeTransferFrom(
-					seriesAddress,
+					sellParams.seriesAddress,
 					msg.sender,
-					address(liquidityPool),
-					OptionsCompute.convertToDecimals(transferAmount - min(tempHoldings, transferAmount), ERC20(seriesAddress).decimals())
+					address(this),
+					OptionsCompute.convertToDecimals(
+						sellParams.amount - sellParams.tempHoldings,
+						ERC20(sellParams.seriesAddress).decimals()
+					)
 				);
 			}
-			uint256 soldBackAmount = liquidityPool.handlerBuybackOption(
-				optionSeries,
-				transferAmount,
-				optionRegistry,
-				seriesAddress,
-				premium.mul(transferAmount),
-				delta.mul(int256(transferAmount)),
-				msg.sender
+			// update on the pvfeed stores
+			getPortfolioValuesFeed().updateStores(
+				sellParams.seriesToStore,
+				0,
+				int256(sellParams.amount),
+				sellParams.seriesAddress
 			);
-			// update the series on the stores
-			getPortfolioValuesFeed().updateStores(seriesToStore, -int256(soldBackAmount), 0, seriesAddress);
-			amount -= soldBackAmount;
-			tempHoldings -= min(tempHoldings, transferAmount);
-			if (amount == 0) {
-				return;
-			}
 		}
-		if (amount - tempHoldings > 0) {
-			// transfer the otokens to this exchange
+		// this accounts for premium sent from buyback as well as any rounding errors from the dhv buyback
+		if (sellParams.premium > sellParams.premiumSent) {
+			// take the funds from the liquidity pool and pay them here
 			SafeTransferLib.safeTransferFrom(
-				seriesAddress,
-				msg.sender,
+				collateralAsset,
+				address(liquidityPool),
 				address(this),
-				OptionsCompute.convertToDecimals(amount - tempHoldings, ERC20(seriesAddress).decimals())
+				sellParams.premium - sellParams.premiumSent
 			);
 		}
-		// take the funds from the liquidity pool and pay the user for the oTokens
-		SafeTransferLib.safeTransferFrom(
-			collateralAsset,
-			address(liquidityPool),
-			msg.sender,
-			premium.mul(amount)
-		);
-		// update on the pvfeed stores
-		getPortfolioValuesFeed().updateStores(seriesToStore, 0, int256(amount), seriesAddress);
+		// transfer any fees
+		// bitshift to the right 3 times to get to 1/8
+		if ((sellParams.premium >> 3) > sellParams.fee) {
+			SafeTransferLib.safeTransfer(ERC20(collateralAsset), feeRecipient, sellParams.fee);
+		} else {
+			// if the total fee is greater than premium / 8 then the fee is waived, this is to avoid disincentivising selling back to the pool for collateral release
+			sellParams.fee = 0;
+		}
+		// if the recipient is this address then update the temporary holdings now to indicate the premium is temporarily being held here
+		if (_args.recipient == address(this)) {
+			_updateTempHoldings(collateralAsset, sellParams.premium - sellParams.fee);
+		} else {
+			// transfer premium to the recipient
+			SafeTransferLib.safeTransfer(
+				ERC20(collateralAsset),
+				_args.recipient,
+				sellParams.premium - sellParams.fee
+			);
+		}
 	}
 
 	///////////////////////////
@@ -666,7 +757,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/// internal utilities ///
 	//////////////////////////
 
-	function _getOptionDetails(address seriesAddress, Types.OptionSeries memory optionSeries, IOptionRegistry optionRegistry)
+	function _getOptionDetails(
+		address seriesAddress,
+		Types.OptionSeries memory optionSeries,
+		IOptionRegistry optionRegistry
+	)
 		internal
 		view
 		returns (
@@ -727,7 +822,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// try sending a made up otoken
 		IWhitelist whitelist = IWhitelist(addressbook.getWhitelist());
 		if (!whitelist.isWhitelistedOtoken(seriesAddress)) {
-			revert CustomErrors.NonExistentOtoken();
+			revert CustomErrors.NonWhitelistedOtoken();
 		}
 		return (seriesAddress, optionSeries, strikeDecimalConverted);
 	}
@@ -762,7 +857,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		if (optionSeries.strikeAsset != strikeAsset) {
 			revert CustomErrors.StrikeAssetInvalid();
 		}
-		
 	}
 
 	/**
@@ -830,15 +924,108 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		return amountOut;
 	}
 
-	function _updateTempHoldings(IController.ActionArgs memory action) internal {
-			if (heldOtokens[msg.sender][action.asset] == 0){
-				tempSeriesQueue[msg.sender].push(action.asset);
-			}
-			heldOtokens[msg.sender][action.asset] += action.amount * 10 ** CONVERSION_DECIMALS;
-		
+	function _updateTempHoldings(address asset, uint256 amount) internal {
+		if (heldTokens[msg.sender][asset] == 0) {
+			tempTokenQueue[msg.sender].push(asset);
+		}
+		heldTokens[msg.sender][asset] += amount;
 	}
 
-	function min(uint256 v1, uint256 v2) internal pure returns (uint256) {
-		return v1 > v2 ? v2 : v1;
+	function _handlePremiumTransfer(uint256 premium, uint256 fee) internal {
+		// check if we need to transfer anything from the user into this wallet
+		if (premium + fee > heldTokens[msg.sender][collateralAsset]) {
+			uint256 diff = premium + fee - heldTokens[msg.sender][collateralAsset];
+			// reduce their temporary holdings to 0
+			heldTokens[msg.sender][collateralAsset] = 0;
+			SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), diff);
+		} else {
+			// reduce their temporary holdings by the premium and fee
+			heldTokens[msg.sender][collateralAsset] -= premium + fee;
+		}
+		// handle fees
+		if (fee > 0) {
+			SafeTransferLib.safeTransfer(ERC20(collateralAsset), feeRecipient, fee);
+		}
+		// transfer premium to liquidity pool
+		SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), premium);
 	}
+
+	function _preSaleChecks(RyskActions.SellOptionArgs memory _args, IOptionRegistry optionRegistry)
+		internal
+		view
+		returns (
+			address,
+			Types.OptionSeries memory,
+			Types.OptionSeries memory
+		)
+	{
+		(
+			address seriesAddress,
+			Types.OptionSeries memory optionSeries,
+			uint128 strikeDecimalConverted
+		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
+		// check the option hash and option series for validity
+		_checkHash(optionSeries, strikeDecimalConverted, true);
+		// convert the strike to e18 decimals for storage
+		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
+			optionSeries.expiration,
+			strikeDecimalConverted,
+			optionSeries.isPut,
+			underlyingAsset,
+			strikeAsset,
+			optionSeries.collateral
+		);
+		return (seriesAddress, seriesToStore, optionSeries);
+	}
+
+	function _handleDHVBuyback(SellParams memory sellParams, int256 shortExposure, IOptionRegistry optionRegistry)
+		internal
+		returns (SellParams memory)
+	{
+		sellParams.transferAmount = OptionsCompute.min(uint256(shortExposure), sellParams.amount);
+		// will transfer any tempHoldings they have here to the liquidityPool
+		if (sellParams.tempHoldings > 0) {
+			SafeTransferLib.safeTransfer(
+				ERC20(sellParams.seriesAddress),
+				address(liquidityPool),
+				OptionsCompute.convertToDecimals(
+					OptionsCompute.min(sellParams.tempHoldings, sellParams.transferAmount),
+					ERC20(sellParams.seriesAddress).decimals()
+				)
+			);
+		}
+		// want to check if they have any otokens in their wallet and send those here
+		if (sellParams.transferAmount > sellParams.tempHoldings) {
+			SafeTransferLib.safeTransferFrom(
+				sellParams.seriesAddress,
+				msg.sender,
+				address(liquidityPool),
+				OptionsCompute.convertToDecimals(
+					sellParams.transferAmount - sellParams.tempHoldings,
+					ERC20(sellParams.seriesAddress).decimals()
+				)
+			);
+		}
+		sellParams.premiumSent = sellParams.premium.div(sellParams.amount).mul(sellParams.transferAmount);
+		uint256 soldBackAmount = liquidityPool.handlerBuybackOption(
+			sellParams.optionSeries,
+			sellParams.transferAmount,
+			optionRegistry,
+			sellParams.seriesAddress,
+			sellParams.premiumSent,
+			sellParams.delta.div(OptionsCompute.toInt256(sellParams.amount)).mul(OptionsCompute.toInt256(sellParams.transferAmount)),
+			address(this)
+		);
+		// update the series on the stores
+		getPortfolioValuesFeed().updateStores(
+			sellParams.seriesToStore,
+			-int256(soldBackAmount),
+			0,
+			sellParams.seriesAddress
+		);
+		sellParams.amount -= soldBackAmount;
+		sellParams.tempHoldings -= OptionsCompute.min(sellParams.tempHoldings, sellParams.transferAmount);
+		return sellParams;
+	}
+
 }
