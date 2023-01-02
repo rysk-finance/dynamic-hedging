@@ -15,7 +15,6 @@ import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed";
 import bs from "black-scholes";
 import greeks from "greeks";
 import impliedVol from "implied-volatility";
-import { truncateDecimalString } from "../utils";
 
 const rfr = "0.03";
 const belowUtilizationThresholdGradient = 0.1;
@@ -78,17 +77,20 @@ export async function calculateOptionQuoteLocally(
       ).callPutsValue
     );
 
-  const NAV = await liquidityPool
-    .getNAV()
-    .catch((e) => {
-      console.log(e);
-      // TODO update once LP is deployed
-      // getAssets() - effephemeralLiabalities - portfolioValueFeed.getPortfolioVaules.callPutsValue
-      return getAltNAV;
-    })
-    .then((res) => {
-      return res;
-    });
+  const NAV = await getAltNAV;
+
+  // BUG getNAV will only work 10 minutes after a fulfill happens
+  // await liquidityPool
+  //   .getNAV()
+  //   .catch((e) => {
+  //     console.log("errore");
+  //     // TODO update once LP is deployed
+  //     // getAssets() - effephemeralLiabalities - portfolioValueFeed.getPortfolioVaules.callPutsValue
+  //     return getAltNAV;
+  //   })
+  //   .then((res) => {
+  //     return res;
+  //   });
 
   // try {
   // 	let NAV = await liquidityPool.getNAV()
@@ -101,7 +103,8 @@ export async function calculateOptionQuoteLocally(
   console.log("NAV IS:", NAV);
   const collateralAllocated = await liquidityPool.collateralAllocated();
   const lpUSDBalance = await collateralAsset.balanceOf(liquidityPool.address);
-  const portfolioDeltaBefore = await liquidityPool.getPortfolioDelta();
+  // BUG getPortfolioDelta will only work 10 minutes after a fulfill happens
+  const portfolioDeltaBefore = BigNumber.from(0); // await liquidityPool.getPortfolioDelta();
   const optionDelta = await calculateOptionDeltaLocally(
     liquidityPool,
     priceFeed,
@@ -217,7 +220,8 @@ export async function calculateOptionDeltaLocally(
     opType
   );
   localDelta = isShort ? -localDelta : localDelta;
-  return toWei(truncateDecimalString(localDelta.toString())).mul(
+  // TODO make sure this rounding is appropriate
+  return toWei(parseFloat(localDelta.toString()).toFixed(5)).mul(
     amount.div(toWei("1"))
   );
 }
