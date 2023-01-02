@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import NumberFormat from "react-number-format";
 import { useNetwork } from "wagmi";
 
 import PVFABI from "../../abis/AlphaPortfolioValuesFeed.json";
@@ -7,8 +6,6 @@ import ERC20ABI from "../../abis/erc20.json";
 import LPABI from "../../abis/LiquidityPool.json";
 import ORABI from "../../abis/OptionRegistry.json";
 import PFABI from "../../abis/PriceFeed.json";
-import addresses from "../../contracts.json";
-import { useContract } from "../../hooks/useContract";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import {
@@ -16,17 +13,20 @@ import {
   OptionsTradingActionType,
   OptionType
 } from "../../state/types";
+import {
+  calculateOptionDeltaLocally,
+  returnIVFromQuote,
+} from "../../utils/helpers";
+import { useContract } from "../../hooks/useContract";
+import { toWei, fromWei } from "../../utils/conversion-helper";
+import NumberFormat from "react-number-format";
+import addresses from "../../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../../types";
 import { ERC20 } from "../../types/ERC20";
 import { LiquidityPool } from "../../types/LiquidityPool";
 import { OptionRegistry } from "../../types/OptionRegistry";
-import { PortfolioValuesFeed } from "../types/PortfolioValuesFeed"
+import { PortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
 import { PriceFeed } from "../../types/PriceFeed";
-import { fromWei, toWei } from "../../utils/conversion-helper";
-import {
-  calculateOptionDeltaLocally,
-  returnIVFromQuote
-} from "../../utils/helpers";
 
 const isNotTwoDigitsZero = (price: number) => {
   // TODO: Not sure this makes sense, come back to it after figuring out pricing

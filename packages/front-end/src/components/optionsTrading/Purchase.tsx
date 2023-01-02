@@ -45,9 +45,7 @@ const formatOptionDate = (date: Date | null) => {
   );
 };
 
-export const Purchase = () => {
-  const { address } = useAccount();
-
+export const Purchase: React.FC = () => {
   // Context state
   const {
     state: { settings },
