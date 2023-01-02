@@ -17,7 +17,6 @@ import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 
-import "hardhat/console.sol";
 /**
  * @title AlphaPortfolioValuesFeed contract
  * @notice Options portfolio storage and calculations
