@@ -104,15 +104,14 @@ export const OptionsTable = () => {
         const suggestions = await Promise.all(
           strikes.map(async (strike) => {
             const optionSeries = {
-              expiration: Number(expiryDate?.getTime()) / 1000,
+              // TODO make sure this UTC set is done in the right place
+              expiration: Number(expiryDate?.setUTCHours(8, 0, 0)) / 1000,
               strike: toWei(strike.toString()),
               isPut: optionType !== OptionType.CALL,
               strikeAsset: typedAddresses[network].USDC,
               underlying: typedAddresses[network].WETH,
               collateral: typedAddresses[network].USDC,
             };
-
-            console.log({ optionSeries });
 
             const localQuote = await calculateOptionQuoteLocally(
               liquidityPool as LiquidityPool,
@@ -138,8 +137,6 @@ export const OptionsTable = () => {
               priceFeed as PriceFeed,
               optionSeries
             );
-
-            console.log(iv);
 
             return {
               strike: strike,
@@ -173,26 +170,39 @@ export const OptionsTable = () => {
   };
 
   return (
-    <table className="w-full bg-white">
+    <table className="w-full bg-white border-b-2 border-black">
       <thead className="text-left border-b-2 border-black">
-        <tr>
-          <th className="pl-4 py-2">Strike ($)</th>
-          <th>IV</th>
+        <tr className="text-center bg-gray-500 border-b-2 border-black">
+          <th colSpan={5} className={"py-2"}>
+            CALLS
+          </th>
+          <th colSpan={1}>Dec 30</th>
+          <th colSpan={5}>PUTS</th>
+        </tr>
+        <tr className="text-center">
+          <th className="py-2">IV (Bid)</th>
+          <th className="">Sell</th>
+          <th className="">Buy</th>
+          <th>IV (Ask)</th>
           <th>Delta</th>
-          <th className="pr-4">Price ($)</th>
+          <th className="bg-bone-dark border-x border-black">Strike ($)</th>
+          <th>IV (Bid)</th>
+          <th className="">Sell</th>
+          <th className="">Buy</th>
+          <th>IV (Ask)</th>
+          <th>Delta</th>
         </tr>
       </thead>
       <tbody>
         {suggestions?.map((option, index) => (
           <tr
-            className={`h-12 ${
+            className={`text-right h-12 ${
               index % 2 === 0 ? "bg-gray-300" : ""
             } cursor-pointer`}
             onClick={() => setSelectedOption(option)}
             key={option.strike}
           >
-            <td className="pl-4">{option.strike}</td>
-            <td>
+            <td className="pr-4">
               <NumberFormat
                 value={option.IV}
                 displayType={"text"}
@@ -200,16 +210,72 @@ export const OptionsTable = () => {
                 suffix={"%"}
               />
             </td>
-            <td>
+            <td className="pr-4 text-red-700">
               <NumberFormat
-                value={option.delta}
+                value={option.price}
+                displayType={"text"}
+                decimalScale={2}
+              />
+            </td>
+            <td className="pr-4 text-green-700">
+              <NumberFormat
+                value={option.price}
                 displayType={"text"}
                 decimalScale={2}
               />
             </td>
             <td className="pr-4">
               <NumberFormat
+                value={option.IV}
+                displayType={"text"}
+                decimalScale={2}
+                suffix={"%"}
+              />
+            </td>
+            <td className="pr-4">
+              <NumberFormat
+                value={option.delta}
+                displayType={"text"}
+                decimalScale={2}
+              />
+            </td>
+            <td className="text-center bg-bone-dark border-x border-black">
+              {option.strike}
+            </td>
+            {/** TODO numbers below are same as calls here */}
+            <td className="pr-4">
+              <NumberFormat
+                value={option.IV}
+                displayType={"text"}
+                decimalScale={2}
+                suffix={"%"}
+              />
+            </td>
+            <td className="pr-4 text-red-700">
+              <NumberFormat
                 value={option.price}
+                displayType={"text"}
+                decimalScale={2}
+              />
+            </td>
+            <td className="pr-4 text-green-700">
+              <NumberFormat
+                value={option.price}
+                displayType={"text"}
+                decimalScale={2}
+              />
+            </td>
+            <td className="pr-4">
+              <NumberFormat
+                value={option.IV}
+                displayType={"text"}
+                decimalScale={2}
+                suffix={"%"}
+              />
+            </td>
+            <td className="pr-4">
+              <NumberFormat
+                value={option.delta}
                 displayType={"text"}
                 decimalScale={2}
               />
