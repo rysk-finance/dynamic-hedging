@@ -638,7 +638,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		quote = (await pricer.quoteOptionPrice(proposedSeries, amount, false))[0]
+		let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, false))
+		quote = quoteResponse[0].add(quoteResponse[2])
 		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		await makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
@@ -965,9 +966,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			collateral: usd.address
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		const singleQ = (
-			await pricer.quoteOptionPrice(proposedSeries, amount, false)
-		)[0]
+		let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, false))
+		const singleQ = quoteResponse[0].add(quoteResponse[2])
 		quote = quote.add(singleQ)
 		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
