@@ -29,16 +29,8 @@ export const RadioButtonList = ({
             key={option.key}
             className={`${
               isSelected ? "" : "!bg-gray-500"
-            }  basis-0 grow mr-[-2px] ${
-              removeOuterBorder
-                ? `border-y-0 ${
-                    index === 0
-                      ? "border-l-0"
-                      : index === options.length - 1
-                      ? "border-r-0"
-                      : ""
-                  }`
-                : ""
+            } basis-0 h-12 border-0 grow mr-[-2px] ${
+              removeOuterBorder ? "border-y-0" : ""
             }`}
             onClick={() => setSelected(option.value)}
           >

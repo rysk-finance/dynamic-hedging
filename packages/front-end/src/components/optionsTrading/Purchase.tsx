@@ -3,7 +3,6 @@ import { ethers } from "ethers";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import { useAccount } from "wagmi";
-
 import OptionHandlerABI from "../../abis/AlphaOptionHandler.json";
 import ERC20ABI from "../../abis/erc20.json";
 import OptionRegistryABI from "../../abis/OptionRegistry.json";
@@ -29,6 +28,23 @@ const DUMMY_OPTION_SERIES: OptionSeries = {
   isPut: false,
 };
 
+const formatOptionDate = (date: Date | null) => {
+  const expirationDate = date
+    ?.toLocaleString("en-GB", {
+      month: "short",
+      day: "numeric",
+      year: "2-digit",
+    })
+    .toUpperCase()
+    .replace(",", "")
+    .split(" ");
+
+  return (
+    expirationDate &&
+    `${expirationDate[0]}${expirationDate[1]}${expirationDate[2]}`
+  );
+};
+
 export const Purchase = () => {
   const { address } = useAccount();
 
@@ -38,7 +54,7 @@ export const Purchase = () => {
   } = useGlobalContext();
 
   const {
-    state: { selectedOption },
+    state: { selectedOption, expiryDate },
   } = useOptionsTradingContext();
 
   // Local state
@@ -179,7 +195,7 @@ export const Purchase = () => {
                 <TextInput
                   value={uiOrderSize}
                   setValue={handleInputChange}
-                  className="text-right border-x-0 w-full"
+                  className="text-right border-r-0 w-full"
                   iconLeft={
                     <div className="px-2 flex items-center h-full">
                       <p className="text-gray-600">Shares</p>
@@ -189,19 +205,29 @@ export const Purchase = () => {
                   maxNumDecimals={2}
                 />
               </div>
+            </div>
+            <div className="w-1/2 flex flex-col justify-between">
               <div className="w-full">
                 <div className="w-full -mb-1">
-                  <div className="w-full p-4 flex items-center">
-                    <h4 className="font-parabole mr-2 pb-1">Total price:</h4>
+                  <div className="w-full p-4 flex flex-col">
+                    <h5 className={`mb-10 tracking-tight`}>
+                      1. ETH-{formatOptionDate(expiryDate)}-
+                      {selectedOption.strike}-
+                      {selectedOption.type === "CALL" ? "P" : "C"}
+                    </h5>
+
                     {uiOrderSize && (
-                      <p>{Number(uiOrderSize) * selectedOption.price} USDC</p>
+                      <>
+                        <h4 className="font-parabole mr-2">Total price:</h4>
+                        <p>{Number(uiOrderSize) * selectedOption.price} USDC</p>
+                      </>
                     )}
                   </div>
                 </div>
               </div>
               <div className="flex">
                 <Button
-                  className={`w-full border-b-0 border-x-0 !py-4 text-white ${
+                  className={`w-full border-l-0 !py-2 text-white ${
                     approveIsDisabled ? "!bg-gray-300 " : "!bg-black"
                   }`}
                   onClick={handleApproveSpend}
@@ -210,7 +236,7 @@ export const Purchase = () => {
                 </Button>
                 <Button
                   disabled={buyIsDisabled}
-                  className={`w-full border-b-0 border-x-0 !py-4 text-white ${
+                  className={`w-full border-l-0 !py-2 text-white ${
                     buyIsDisabled ? "!bg-gray-300" : "!bg-black"
                   }`}
                   onClick={handleBuy}
