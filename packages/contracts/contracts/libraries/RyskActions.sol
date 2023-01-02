@@ -10,36 +10,18 @@ import "./Types.sol";
  * @author Rysk Team
  * @notice A library that provides a ActionArgs struct, sub types of Action structs, and functions to parse ActionArgs into specific Actions.
  * errorCode
- * A1 can only parse arguments for open vault actions
- * A2 cannot open vault for an invalid account
- * A3 cannot open vault with an invalid type
- * A4 can only parse arguments for mint actions
- * A5 cannot mint from an invalid account
- * A6 can only parse arguments for burn actions
- * A7 cannot burn from an invalid account
- * A8 can only parse arguments for deposit actions
- * A9 cannot deposit to an invalid account
- * A10 can only parse arguments for withdraw actions
- * A11 cannot withdraw from an invalid account
- * A12 cannot withdraw to an invalid account
- * A13 can only parse arguments for redeem actions
- * A14 cannot redeem to an invalid account
- * A15 can only parse arguments for settle vault actions
- * A16 cannot settle vault for an invalid account
- * A17 cannot withdraw payout to an invalid account
- * A18 can only parse arguments for liquidate action
- * A19 cannot liquidate vault for an invalid account owner
- * A20 cannot send collateral to an invalid account
- * A21 cannot parse liquidate action with no round id
- * A22 can only parse arguments for call actions
- * A23 target address cannot be address(0)
+ * A1 can only parse arguments for create otoken actions
+ * A2 can only parse arguments for issue actions
+ * A3 can only parse arguments for buy option actions
+ * A4 can only parse arguments for sell option actions
  */
 library RyskActions {
     // possible actions that can be performed
     enum ActionType {
         Issue,
         BuyOption,
-        SellOption
+        SellOption,
+        CloseOption
     }
 
     struct ActionArgs {
@@ -69,7 +51,7 @@ library RyskActions {
         Types.OptionSeries optionSeries;
         // series address
         address seriesAddress;
-        // amount of options to buy
+        // amount of options to buy, always in e18
         uint256 amount;
         // recipient of the options
         address recipient;
@@ -82,7 +64,7 @@ library RyskActions {
         address seriesAddress;
         // vault id
         uint256 vaultId;
-        // amount of options to sell
+        // amount of options to sell, always in e18
         uint256 amount;
         // recipient of premium
         address recipient;
@@ -91,10 +73,10 @@ library RyskActions {
     /**
      * @notice parses the passed in action arguments to get the arguments for an issue action
      * @param _args general action arguments structure
-     * @return arguments for a open vault action
+     * @return arguments for an issue action
      */
     function _parseIssueArgs(ActionArgs memory _args) internal pure returns (IssueArgs memory) {
-        require(_args.actionType == ActionType.Issue, "A1");
+        require(_args.actionType == ActionType.Issue, "A2");
         return IssueArgs({optionSeries: _args.optionSeries});
     }
 
@@ -104,7 +86,7 @@ library RyskActions {
      * @return arguments for a buy option action
      */
     function _parseBuyOptionArgs(ActionArgs memory _args) internal pure returns (BuyOptionArgs memory) {
-        require(_args.actionType == ActionType.BuyOption, "A2");
+        require(_args.actionType == ActionType.BuyOption, "A3");
         
         return
             BuyOptionArgs({
@@ -119,10 +101,10 @@ library RyskActions {
     /**
      * @notice parses the passed in action arguments to get the arguments for a sell option action
      * @param _args general action arguments structure
-     * @return arguments for a buy option action
+     * @return arguments for a sell option action
      */
     function _parseSellOptionArgs(ActionArgs memory _args) internal pure returns (SellOptionArgs memory) {
-        require(_args.actionType == ActionType.SellOption, "A3");
+        require(_args.actionType == ActionType.SellOption, "A4");
 
         return
             SellOptionArgs({
@@ -133,6 +115,5 @@ library RyskActions {
                 recipient: _args.secondAddress
             });
     }
-
 
 }
