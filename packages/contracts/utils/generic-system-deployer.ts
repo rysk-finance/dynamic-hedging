@@ -1,6 +1,6 @@
 import hre, { ethers, network } from "hardhat"
 import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
-import { toWei } from "./conversion-helper"
+import { toUSDC, toWei } from "./conversion-helper"
 //@ts-ignore
 import { expect } from "chai"
 import { ERC20Interface } from "../types/ERC20Interface"
@@ -74,7 +74,7 @@ export async function deploySystem(
 		params: [USDC_OWNER_ADDRESS[chainId]]
 	})
 	const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
-	await usd.connect(signer).transfer(senderAddress, toWei("1000").div(oTokenDecimalShift18))
+	await usd.connect(signer).transfer(senderAddress, toUSDC("1000000"))
 	await weth.deposit({ value: utils.parseEther("99") })
 	const _optionRegistry = (await optionRegistryFactory.deploy(
 		USDC_ADDRESS[chainId],
@@ -257,13 +257,15 @@ export async function deployLiquidityPool(
 			OpynInteractions: interactions.address
 		}
 	})
+	const feeRecipient = await signers[9].getAddress()
 	const exchange = (await exchangeFactory.deploy(
 		authority,
 		optionProtocol.address,
 		liquidityPool.address,
 		pricer.address,
 		ADDRESS_BOOK[chainId],
-		UNISWAP_V3_SWAP_ROUTER[chainId]
+		UNISWAP_V3_SWAP_ROUTER[chainId],
+		liquidityPool.address
 	)) as OptionExchange
 	await liquidityPool.changeHandler(exchange.address, true)
 	await pvFeed.setKeeper(exchange.address, true)

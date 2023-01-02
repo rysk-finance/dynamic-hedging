@@ -35,6 +35,7 @@ interface CustomErrors {
 	error NoExistingWithdrawal();
 	error SpotMovedBeyondRange();
 	error ReactorAlreadyExists();
+	error NonWhitelistedOtoken();
 	error CollateralAssetInvalid();
 	error UnderlyingAssetInvalid();
 	error CollateralAmountInvalid();
