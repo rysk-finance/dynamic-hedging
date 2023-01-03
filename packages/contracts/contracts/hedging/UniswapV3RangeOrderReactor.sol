@@ -35,10 +35,10 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     address public immutable parentLiquidityPool;
     /// @notice address of the price feed used for getting asset prices
     address public immutable priceFeed;
-    /// @notice generalised list of stablecoin addresses to trade against wETH
+    /// @notice stablecoin address to trade against the underlying
     address public immutable collateralAsset;
-    /// @notice address of the wETH contract
-    address public immutable wETH;
+    /// @notice address of the underlying contract
+    address public immutable underlyingAsset;
     /// @notice smaller address token using uniswap pool convention
     ERC20 public immutable token0;
     /// @notice larger address token using uniswap pool convention
@@ -116,17 +116,17 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     constructor(
     address _factory,
     address _collateralAsset,
-    address _wethAddress,
+    address _underlyingAsset,
     address _parentLiquidityPool,
     uint24 _poolFee,
     address _priceFeed,
     address _authority
   ) AccessControl(IAuthority(_authority)) {
         collateralAsset = _collateralAsset;
-        wETH = _wethAddress;
+        underlyingAsset = _underlyingAsset;
         factory = _factory;
-        address _token0 = _collateralAsset < _wethAddress ? _collateralAsset : _wethAddress;
-        address _token1 = _collateralAsset < _wethAddress ? _wethAddress : _collateralAsset;
+        address _token0 = _collateralAsset < _underlyingAsset ? _collateralAsset : _underlyingAsset;
+        address _token1 = _collateralAsset < _underlyingAsset ? _underlyingAsset : _collateralAsset;
         pool =  IUniswapV3Pool(PoolAddress.getPoolAddress(factory, _token0, _token1, _poolFee));
     token1 = ERC20(_token1);
     token0 = ERC20(_token0);
@@ -268,7 +268,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         if (_delta == 0) return 0;
 
         bool inversed = collateralAsset == address(token0);
-        uint256 underlyingPrice = _getUnderlyingPrice(wETH, collateralAsset);
+        uint256 underlyingPrice = _getUnderlyingPrice(underlyingAsset, collateralAsset);
         (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
         (uint256 poolPrice, uint256 inversedPrice) = getPoolPrice();
         uint256 quotePrice = inversed ? inversedPrice : poolPrice;
@@ -283,12 +283,12 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             _createUniswapRangeOrder(rangeOrder, amountCollateral, inversed);
         } else {
             // sell underlying
-            uint256 wethBalance = inversed ? amount1Current : amount0Current;
+            uint256 underlyingBalance = inversed ? amount1Current : amount0Current;
             // highest price is best price when selling
             uint256 priceToUse = quotePrice < underlyingPrice ? underlyingPrice : quotePrice;
             RangeOrderDirection direction = inversed ? RangeOrderDirection.BELOW : RangeOrderDirection.ABOVE;
             RangeOrderParams memory rangeOrder = _getTicksAndMeanPriceFromWei(priceToUse, direction, inversed);
-            uint256 deltaToUse = _delta > int256(wethBalance) ? wethBalance : uint256(_delta);
+            uint256 deltaToUse = _delta > int256(underlyingBalance) ? underlyingBalance : uint256(_delta);
             if (deltaToUse < minAmount) return 0;
             _createUniswapRangeOrder(rangeOrder, deltaToUse, inversed);
         }
@@ -365,19 +365,18 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         returns (int256 delta)
     {
         (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
-        delta = wETH == address(token0) ? int256(amount0Current) : int256(amount1Current);
+        delta = underlyingAsset == address(token0) ? int256(amount0Current) : int256(amount1Current);
     }
 
     /// @inheritdoc IHedgingReactor
     function getPoolDenominatedValue() external view returns (uint256 value) {
         (uint256 amount0Current, uint256 amount1Current) = getUnderlyingBalances();
-        uint256 collateral = wETH == address(token0) ? amount1Current : amount0Current;
-        uint256 wethBalance = wETH == address(token0) ? amount0Current : amount1Current;
-        // keeping for when 'weth' is migrated to 'underlying'
-        wethBalance = OptionsCompute.convertFromDecimals(wethBalance, ERC20(wETH).decimals());
+        uint256 collateral = underlyingAsset == address(token0) ? amount1Current : amount0Current;
+        uint256 underlyingBalance = underlyingAsset == address(token0) ? amount0Current : amount1Current;
+        underlyingBalance = OptionsCompute.convertFromDecimals(underlyingBalance, ERC20(underlyingAsset).decimals());
         uint256 collateralValue = OptionsCompute.convertFromDecimals(collateral, ERC20(collateralAsset).decimals());
-        uint256 wethValue = PriceFeed(priceFeed).getNormalizedRate(wETH, collateralAsset).mul(wethBalance);
-        value = collateralValue + wethValue;
+        uint256 underlyingValue = PriceFeed(priceFeed).getNormalizedRate(underlyingAsset, collateralAsset).mul(underlyingBalance);
+        value = collateralValue + underlyingValue;
     }
 
     //////////////////////////
