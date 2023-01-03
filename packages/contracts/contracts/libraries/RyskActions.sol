@@ -13,7 +13,7 @@ import "./Types.sol";
  * A1 can only parse arguments for create otoken actions
  * A2 can only parse arguments for issue actions
  * A3 can only parse arguments for buy option actions
- * A4 can only parse arguments for sell option actions
+ * A4 can only parse arguments for sell option or close option actions
  */
 library RyskActions {
     // possible actions that can be performed
@@ -104,7 +104,7 @@ library RyskActions {
      * @return arguments for a sell option action
      */
     function _parseSellOptionArgs(ActionArgs memory _args) internal pure returns (SellOptionArgs memory) {
-        require(_args.actionType == ActionType.SellOption, "A4");
+        require(_args.actionType == ActionType.SellOption || _args.actionType == ActionType.CloseOption, "A4");
 
         return
             SellOptionArgs({
