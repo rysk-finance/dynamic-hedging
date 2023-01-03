@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.13;
 
-import { sqrtPriceX96ToUint, encodePriceSqrt, getPriceToUse, RangeOrderDirection, tickToTokenPrice } from "../vendor/uniswap/Conversions.sol";
+import { sqrtPriceX96ToUint, encodePriceSqrt, getPriceToUse, RangeOrderDirection, tickToTokenPrice } from "../vendor/uniswap/RangeOrderUtils.sol";
 
 contract UniswapConversionsTest {
 

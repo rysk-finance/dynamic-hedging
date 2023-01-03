@@ -12,7 +12,7 @@ import {
     getPriceToUse,
     tickToTokenPrice,
     RangeOrderParams
-} from "../vendor/uniswap/Conversions.sol";
+} from "../vendor/uniswap/RangeOrderUtils.sol";
 import "../vendor/uniswap/TickMath.sol";
 import "../interfaces/IHedgingReactor.sol";
 import "../interfaces/ILiquidityPool.sol";
