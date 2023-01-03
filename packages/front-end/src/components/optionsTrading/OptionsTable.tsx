@@ -17,17 +17,21 @@ import {
   OptionType
 } from "../../state/types";
 import { ContractAddresses, ETHNetwork } from "../../types";
-import { AlphaPortfolioValuesFeed } from "../../types/AlphaPortfolioValuesFeed";
 import { ERC20 } from "../../types/ERC20";
 import { LiquidityPool } from "../../types/LiquidityPool";
 import { OptionRegistry } from "../../types/OptionRegistry";
+import { PortfolioValuesFeed } from "../types/PortfolioValuesFeed"
 import { PriceFeed } from "../../types/PriceFeed";
 import { fromWei, toWei } from "../../utils/conversion-helper";
 import {
   calculateOptionDeltaLocally,
-  calculateOptionQuoteLocally,
   returnIVFromQuote
 } from "../../utils/helpers";
+
+const isNotTwoDigitsZero = (price: number) => {
+  // TODO: Not sure this makes sense, come back to it after figuring out pricing
+  return price.toFixed(2) != "0.00";
+};
 
 const suggestedCallOptionPriceDiff = [-100, 0, 100, 200, 300, 400, 600, 800];
 const suggestedPutOptionPriceDiff = [
@@ -116,7 +120,7 @@ export const OptionsTable = () => {
             const localQuote = await calculateOptionQuoteLocally(
               liquidityPool as LiquidityPool,
               optionRegistry as OptionRegistry,
-              portfolioValuesFeed as AlphaPortfolioValuesFeed,
+              portfolioValuesFeed as PortfolioValuesFeed,
               usdc as ERC20,
               priceFeed as PriceFeed,
               optionSeries,
@@ -180,16 +184,16 @@ export const OptionsTable = () => {
           <th colSpan={5}>PUTS</th>
         </tr>
         <tr className="text-center">
-          <th className="py-2">IV (Bid)</th>
-          <th className="">Sell</th>
-          <th className="">Buy</th>
-          <th>IV (Ask)</th>
+          <th className="py-2">Bid IV</th>
+          <th className="">Bid</th>
+          <th className="">Ask</th>
+          <th>Ask IV</th>
           <th>Delta</th>
-          <th className="bg-bone-dark border-x border-black">Strike ($)</th>
-          <th>IV (Bid)</th>
-          <th className="">Sell</th>
-          <th className="">Buy</th>
-          <th>IV (Ask)</th>
+          <th className="bg-bone-dark border-x border-black">Strike</th>
+          <th>Bid IV</th>
+          <th className="">Bid</th>
+          <th className="">Ask</th>
+          <th>Ask IV</th>
           <th>Delta</th>
         </tr>
       </thead>
@@ -204,7 +208,7 @@ export const OptionsTable = () => {
           >
             <td className="pr-4">
               <NumberFormat
-                value={option.IV}
+                value={isNotTwoDigitsZero(option.IV) ? option.IV : "-"}
                 displayType={"text"}
                 decimalScale={2}
                 suffix={"%"}
@@ -212,21 +216,23 @@ export const OptionsTable = () => {
             </td>
             <td className="pr-4 text-red-700">
               <NumberFormat
-                value={option.price}
+                value={isNotTwoDigitsZero(option.price) ? option.price : ""}
                 displayType={"text"}
                 decimalScale={2}
+                prefix={"$"}
               />
             </td>
             <td className="pr-4 text-green-700">
               <NumberFormat
-                value={option.price}
+                value={isNotTwoDigitsZero(option.price) ? option.price : ""}
                 displayType={"text"}
                 decimalScale={2}
+                prefix={"$"}
               />
             </td>
             <td className="pr-4">
               <NumberFormat
-                value={option.IV}
+                value={isNotTwoDigitsZero(option.IV) ? option.IV : "-"}
                 displayType={"text"}
                 decimalScale={2}
                 suffix={"%"}
@@ -239,13 +245,13 @@ export const OptionsTable = () => {
                 decimalScale={2}
               />
             </td>
-            <td className="text-center bg-bone-dark border-x border-black">
+            <td className="w-20 text-center bg-bone-dark border-x border-black">
               {option.strike}
             </td>
             {/** TODO numbers below are same as calls here */}
             <td className="pr-4">
               <NumberFormat
-                value={option.IV}
+                value={isNotTwoDigitsZero(option.IV) ? option.IV : "-"}
                 displayType={"text"}
                 decimalScale={2}
                 suffix={"%"}
@@ -253,21 +259,23 @@ export const OptionsTable = () => {
             </td>
             <td className="pr-4 text-red-700">
               <NumberFormat
-                value={option.price}
+                value={isNotTwoDigitsZero(option.price) ? option.price : ""}
                 displayType={"text"}
                 decimalScale={2}
+                prefix={"$"}
               />
             </td>
             <td className="pr-4 text-green-700">
               <NumberFormat
-                value={option.price}
+                value={isNotTwoDigitsZero(option.price) ? option.price : ""}
                 displayType={"text"}
                 decimalScale={2}
+                prefix={"$"}
               />
             </td>
             <td className="pr-4">
               <NumberFormat
-                value={option.IV}
+                value={isNotTwoDigitsZero(option.IV) ? option.IV : "-"}
                 displayType={"text"}
                 decimalScale={2}
                 suffix={"%"}
