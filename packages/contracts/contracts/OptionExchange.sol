@@ -59,13 +59,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/// @notice instance of the uniswap V3 router interface
 	ISwapRouter public immutable swapRouter;
 
-	/////////////////////////
-	/// dynamic variables ///
-	/////////////////////////
-
-	/// @notice delta exposure of this reactor
-	int256 public internalDelta;
-
 	/////////////////////////////////////
 	/// governance settable variables ///
 	/////////////////////////////////////
@@ -90,6 +83,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	bool public sellRedemptions = true;
 	/// @notice fee recipient
 	address public feeRecipient;
+
 
 	// user -> token addresses interacted with in this transaction
 	mapping(address => address[]) internal tempTokenQueue;
@@ -576,6 +570,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			strikeAsset,
 			optionSeries.collateral
 		);
+		address recipient = _args.recipient;
 		// calculate premium and delta from the option pricer, returning the premium in collateral decimals and delta in e18
 		(uint256 premium, int256 delta, uint256 fee) = pricer.quoteOptionPrice(
 			seriesToStore,
@@ -592,7 +587,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			// transfer the otokens to the user
 			SafeTransferLib.safeTransfer(
 				ERC20(seriesAddress),
-				_args.recipient,
+				recipient,
 				boughtAmount / (10**CONVERSION_DECIMALS)
 			);
 			// update the series on the stores
@@ -607,6 +602,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 		// add this series to the portfolio values feed so its stored on the book
 		getPortfolioValuesFeed().updateStores(seriesToStore, int256(amount), 0, seriesAddress);
+
 		// get the liquidity pool to write the options
 		return
 			liquidityPool.handlerWriteOption(
@@ -616,7 +612,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				optionRegistry,
 				premium,
 				delta,
-				msg.sender
+				recipient
 			);
 	}
 

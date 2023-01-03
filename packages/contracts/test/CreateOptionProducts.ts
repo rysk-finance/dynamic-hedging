@@ -169,7 +169,7 @@ const PUT_FLAVOR = true
 const emptySeries = { expiration: 1, strike: 1, isPut: CALL_FLAVOR, collateral: ZERO_ADDRESS, underlying: ZERO_ADDRESS, strikeAsset: ZERO_ADDRESS }
 /* --- end variables to change --- */
 
-const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
+const expiration = moment.utc(expiryDate).add(3, "d").add(8, "h").valueOf() / 1000
 const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
 const expiration3 = moment.utc(expiryDate).add(2, "w").add(8, "h").valueOf() / 1000
 const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
@@ -184,7 +184,7 @@ const butterflyLowerStrike = toWei("1900")
 const butterflyMidStrike = toWei("2000")
 const butterflyUpperStrike = toWei("2100")
 const putStrike = toWei("2300")
-const failingPutStrike =  toWei("2000")
+const failingPutStrike = toWei("2000")
 const callStrike = toWei("2600")
 
 describe("Structured Product maker", async () => {
@@ -424,14 +424,14 @@ describe("Structured Product maker", async () => {
 					isBuyable: true
 				},
 				{
-					expiration: expiration,
+					expiration: expiration2,
 					isPut: CALL_FLAVOR,
 					strike: callStrike,
 					isSellable: true,
 					isBuyable: true
 				},
 				{
-					expiration: expiration,
+					expiration: expiration2,
 					isPut: PUT_FLAVOR,
 					strike: putStrike,
 					isSellable: true,
@@ -996,7 +996,7 @@ describe("Structured Product maker", async () => {
 		it("CONSTRUCT: SHORT STRANGLE", async () => {
 			const amount = toWei("3")
 			const lowerProposedSeries = {
-				expiration: expiration,
+				expiration: expiration2,
 				strike: putStrike,
 				isPut: PUT_FLAVOR,
 				strikeAsset: usd.address,
@@ -1004,7 +1004,7 @@ describe("Structured Product maker", async () => {
 				collateral: usd.address
 			}
 			const upperProposedSeries = {
-				expiration: expiration,
+				expiration: expiration2,
 				strike: callStrike,
 				isPut: CALL_FLAVOR,
 				strikeAsset: usd.address,
@@ -1171,9 +1171,9 @@ describe("Structured Product maker", async () => {
 			expect(lowerAfter.seriesStores.optionSeries.strikeAsset).to.equal(lowerProposedSeries.strikeAsset).to.equal(usd.address)
 			expect(lowerAfter.seriesStores.optionSeries.strike).to.equal(lowerProposedSeries.strike)
 		})
-				// short strangle sell a call and sell a put at the same expiry
+		// short strangle sell a call and sell a put at the same expiry
 		// the sender is paid for this strategy
-		it("CONSTRUCT: SHORT STRANGLE", async () => {
+		it("REVERT: SHORT STRANGLE with failing put strike", async () => {
 			const amount = toWei("3")
 			const lowerProposedSeries = {
 				expiration: expiration,
@@ -1324,12 +1324,69 @@ describe("Structured Product maker", async () => {
 			])).to.be.revertedWith("PremiumTooSmall()")
 
 		})
+		it("SUCCEED: buys more of option amount than has short", async () => {
+			const amount = toWei("10")
+			const lowerProposedSeries = {
+				expiration: expiration2,
+				strike: putStrike,
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			const lowerToken = await exchange.callStatic.createOtoken(lowerProposedSeries)
+			const before = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", lowerToken)) as Otoken, senderAddress, amount)
+			let quoteResponse = (await pricer.quoteOptionPrice(lowerProposedSeries, amount, false))
+			let quote = quoteResponse[0].add(quoteResponse[2])
+			await usd.approve(exchange.address, quote)
+			await exchange.operate([{
+				operation: 1,
+				operationQueue: [
+					{
+						actionType: 0,
+						owner: ZERO_ADDRESS,
+						secondAddress: exchange.address,
+						asset: lowerToken,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: lowerProposedSeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: ZERO_ADDRESS,
+						secondAddress: senderAddress,
+						asset: lowerToken,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: lowerProposedSeries,
+						index: 0,
+						data: "0x"
+					}
+				]
+			}])
+			const after = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, (await ethers.getContractAt("Otoken", lowerToken)) as Otoken, senderAddress, amount)
+			expect(after.senderOtokenBalance.sub(before.senderOtokenBalance)).to.eq(after.opynAmount)
+			expect(after.exchangeOTokenBalance).to.eq(0)
+			expect(before.senderUSDBalance.sub(after.senderUSDBalance).sub(quote)).to.be.within(-200, 200)
+			expect(before.poolUSDBalance.sub(after.poolUSDBalance).add(quote).add(before.collateralAllocated.sub(after.collateralAllocated))).to.be.within(-200, 200)
+			expect((after.pfList.length - before.pfList.length)).to.equal(0)
+			expect(after.seriesStores.longExposure).to.equal(0)
+			expect(after.seriesStores.shortExposure.sub(before.seriesStores.shortExposure)).to.equal(toWei("7"))
+			expect(after.seriesStores.optionSeries.expiration).to.equal(lowerProposedSeries.expiration)
+			expect(after.seriesStores.optionSeries.isPut).to.equal(lowerProposedSeries.isPut)
+			expect(after.seriesStores.optionSeries.collateral).to.equal(lowerProposedSeries.collateral).to.equal(usd.address)
+			expect(after.seriesStores.optionSeries.underlying).to.equal(lowerProposedSeries.underlying).to.equal(weth.address)
+			expect(after.seriesStores.optionSeries.strikeAsset).to.equal(lowerProposedSeries.strikeAsset).to.equal(usd.address)
+
+		})
 		// short strangle sell a call and sell a put at the same expiry
 		// the sender is paid for this strategy
 		it("CONSTRUCT: SHORT STRANGLE with ETH", async () => {
 			const amount = toWei("3")
 			const lowerProposedSeries = {
-				expiration: expiration,
+				expiration: expiration2,
 				strike: putStrike,
 				isPut: PUT_FLAVOR,
 				strikeAsset: usd.address,
@@ -1337,7 +1394,7 @@ describe("Structured Product maker", async () => {
 				collateral: weth.address
 			}
 			const upperProposedSeries = {
-				expiration: expiration,
+				expiration: expiration2,
 				strike: callStrike,
 				isPut: CALL_FLAVOR,
 				strikeAsset: usd.address,
