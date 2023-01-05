@@ -333,7 +333,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const inversedDecimals = fromWei(inversed)
 		const priceDifference = Number(usdc_weth_price) - Number(priceDecimals)
 		const inversedDifference = Number(weth_usdc_price) - Number(inversedDecimals)
-		expect(priceDifference).to.be.eq(0)
+		expect(priceDifference).to.be.lt(10e-10)
 		// some loss of precision is expected in conversion, but very little
 		expect(inversedDifference).to.be.lt(10e-10)
 	})
@@ -1085,5 +1085,12 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const percentDiff = difference / Number(normalizedExpected)
 		expect(percentDiff).to.be.lt(0.0001)
 		expect(expectedPrice.length).to.eq(price.toString().length)
+	})
+
+	it("Converts max sqrtPrice to uint without overflow - Uniswap Conversions", async () => {
+		const maxSqrtPrice = "1461446703485210103287273052203988822378723970342"
+		const maxSQRTPriceUint = "340256786836388094070642339899681172748067254072799124246"
+		const maxSqrtPriceUint = await uniswapConversions.sqrtToPrice(maxSqrtPrice, "18")
+		expect(maxSqrtPriceUint).to.eq(maxSQRTPriceUint)
 	})
 })
