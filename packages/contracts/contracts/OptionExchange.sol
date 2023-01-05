@@ -58,13 +58,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/// @notice instance of the uniswap V3 router interface
 	ISwapRouter public immutable swapRouter;
 
-	/////////////////////////
-	/// dynamic variables ///
-	/////////////////////////
-
-	/// @notice delta exposure of this reactor
-	int256 public internalDelta;
-
 	/////////////////////////////////////
 	/// governance settable variables ///
 	/////////////////////////////////////
@@ -118,6 +111,20 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		address seriesAddress;
 		Types.OptionSeries seriesToStore;
 		Types.OptionSeries optionSeries;
+		uint256 premium;
+		int256 delta;
+		uint256 fee;
+		uint256 amount;
+		uint256 tempHoldings;
+		uint256 transferAmount;
+		uint256 premiumSent;
+	}
+
+	struct BuyParams {
+		address seriesAddress;
+		Types.OptionSeries seriesToStore;
+		Types.OptionSeries optionSeries;
+		uint128 strikeDecimalConverted;
 		uint256 premium;
 		int256 delta;
 		uint256 fee;
@@ -561,44 +568,54 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	{
 		// get the option details in the correct formats
 		IOptionRegistry optionRegistry = getOptionRegistry();
+		BuyParams memory buyParams;
+
 		(
-			address seriesAddress,
-			Types.OptionSeries memory optionSeries,
-			uint128 strikeDecimalConverted
+			buyParams.seriesAddress,
+			buyParams.optionSeries,
+			buyParams.strikeDecimalConverted
 		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
 		// check the option hash and option series for validity
-		bytes32 oHash = _checkHash(optionSeries, strikeDecimalConverted, false);
+		bytes32 oHash = _checkHash(buyParams.optionSeries, buyParams.strikeDecimalConverted, false);
 		// convert the strike to e18 decimals for storage, this gets the strike price in e18 decimals
-		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
-			optionSeries.expiration,
-			strikeDecimalConverted,
-			optionSeries.isPut,
+		buyParams.seriesToStore = Types.OptionSeries(
+			buyParams.optionSeries.expiration,
+			buyParams.strikeDecimalConverted,
+			buyParams.optionSeries.isPut,
 			underlyingAsset,
 			strikeAsset,
-			optionSeries.collateral
+			buyParams.optionSeries.collateral
 		);
+		address recipient = _args.recipient;
 		// calculate premium and delta from the option pricer, returning the premium in collateral decimals and delta in e18
-		(uint256 premium, int256 delta, uint256 fee) = pricer.quoteOptionPrice(
-			seriesToStore,
+		(buyParams.premium, buyParams.delta, buyParams.fee) = pricer.quoteOptionPrice(
+			buyParams.seriesToStore,
 			_args.amount,
 			false,
 			netDhvExposure[oHash]
 		);
-		_handlePremiumTransfer(premium, fee);
+		_handlePremiumTransfer(buyParams.premium, buyParams.fee);
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
-		int256 longExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).longExposure;
+		int256 longExposure = getPortfolioValuesFeed()
+			.storesForAddress(buyParams.seriesAddress)
+			.longExposure;
 		uint256 amount = _args.amount;
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
 			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
 			// transfer the otokens to the user
 			SafeTransferLib.safeTransfer(
-				ERC20(seriesAddress),
-				_args.recipient,
+				ERC20(buyParams.seriesAddress),
+				recipient,
 				boughtAmount / (10**CONVERSION_DECIMALS)
 			);
 			// update the series on the stores
-			getPortfolioValuesFeed().updateStores(seriesToStore, 0, -int256(boughtAmount), seriesAddress);
+			getPortfolioValuesFeed().updateStores(
+				buyParams.seriesToStore,
+				0,
+				-int256(boughtAmount),
+				buyParams.seriesAddress
+			);
 			// update the net DHV exposure for this series
 			netDhvExposure[oHash] -= int256(_args.amount);
 			amount -= boughtAmount;
@@ -606,23 +623,28 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				return _args.amount;
 			}
 		}
-		if (optionSeries.collateral != collateralAsset) {
+		if (buyParams.optionSeries.collateral != collateralAsset) {
 			revert CustomErrors.CollateralAssetInvalid();
 		}
 		// add this series to the portfolio values feed so its stored on the book
-		getPortfolioValuesFeed().updateStores(seriesToStore, int256(amount), 0, seriesAddress);
+		getPortfolioValuesFeed().updateStores(
+			buyParams.seriesToStore,
+			int256(amount),
+			0,
+			buyParams.seriesAddress
+		);
 		// update the net DHV exposure for this series
 		netDhvExposure[oHash] -= int256(_args.amount);
 		// get the liquidity pool to write the options
 		return
 			liquidityPool.handlerWriteOption(
-				optionSeries,
-				seriesAddress,
+				buyParams.optionSeries,
+				buyParams.seriesAddress,
 				amount,
 				optionRegistry,
-				premium,
-				delta,
-				msg.sender
+				buyParams.premium,
+				buyParams.delta,
+				recipient
 			);
 	}
 

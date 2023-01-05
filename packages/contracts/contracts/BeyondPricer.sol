@@ -50,9 +50,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// governance settable variables ///
 	/////////////////////////////////////
 
-	uint256 bidAskIVSpread;
-	uint256 riskFreeRate;
-	uint256 feePerContract = 3e5;
+	uint256 public bidAskIVSpread;
+	uint256 public riskFreeRate;
+	uint256 public feePerContract = 3e5;
 
 	uint256 public slippageGradient;
 
