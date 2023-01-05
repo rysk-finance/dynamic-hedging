@@ -160,10 +160,19 @@ const expiration3 = moment.utc(expiryDate).add(2, "w").add(8, "h").valueOf() / 1
 const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
 const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
 const abiCode = new AbiCoder()
-
+let vaultIdCounter = 1
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
 const emptySeries = { expiration: 1, strike: 1, isPut: CALL_FLAVOR, collateral: ZERO_ADDRESS, underlying: ZERO_ADDRESS, strikeAsset: ZERO_ADDRESS }
+const proposedSeries = {
+	expiration: expiration,
+	strike: toWei("2000"),
+	isPut: CALL_FLAVOR,
+	strikeAsset: USDC_ADDRESS[chainId],
+	underlying: WETH_ADDRESS[chainId],
+	collateral: USDC_ADDRESS[chainId]
+}
+const tinyAmount = toOpyn("0.01")
 describe("Actions tests", async () => {
 	before(async function () {
 		await hre.network.provider.request({
@@ -315,7 +324,7 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: ZERO_ADDRESS,
 						asset: ZERO_ADDRESS,
-						vaultId: 1,
+						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
 						index: 0,
@@ -339,15 +348,16 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: ZERO_ADDRESS,
 						asset: ZERO_ADDRESS,
-						vaultId: 1,
+						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
 						index: 0,
 						data: "0x"
 					}]
 				}])
-			expect(await controller.getAccountVaultCounter(senderAddress)).to.equal(1)
+			expect(await controller.getAccountVaultCounter(senderAddress)).to.equal(vaultIdCounter)
 			expect((await controller.getVaultWithDetails(senderAddress, 1))[1]).to.equal(0)
+			vaultIdCounter++
 		})
 		it("SUCCEED: OPYN open vault type 1", async () => {
 			await exchange.operate([
@@ -358,15 +368,16 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: ZERO_ADDRESS,
 						asset: ZERO_ADDRESS,
-						vaultId: 2,
+						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
 						index: 0,
 						data: abiCode.encode(["uint256"], ["1"])
 					}]
 				}])
-			expect(await controller.getAccountVaultCounter(senderAddress)).to.equal(2)
+			expect(await controller.getAccountVaultCounter(senderAddress)).to.equal(vaultIdCounter)
 			expect((await controller.getVaultWithDetails(senderAddress, 2))[1]).to.equal(1)
+			vaultIdCounter++
 		})
 		it("REVERTS: OPYN open vault fails on already made vault", async () => {
 			await expect(exchange.operate([
@@ -377,7 +388,7 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: ZERO_ADDRESS,
 						asset: ZERO_ADDRESS,
-						vaultId: 2,
+						vaultId: vaultIdCounter - 1,
 						amount: 0,
 						optionSeries: emptySeries,
 						index: 0,
@@ -411,7 +422,7 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: ZERO_ADDRESS,
 						asset: ZERO_ADDRESS,
-						vaultId: 3,
+						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
 						index: 0,
@@ -466,7 +477,7 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: ZERO_ADDRESS,
 						asset: ZERO_ADDRESS,
-						vaultId: 3,
+						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
 						index: 0,
@@ -477,7 +488,7 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: senderAddress,
 						asset: usd.address,
-						vaultId: 3,
+						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
 						index: 0,
@@ -486,9 +497,10 @@ describe("Actions tests", async () => {
 				}])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
-			expect(vaultId).to.equal(3)
+			expect(vaultId).to.equal(vaultIdCounter)
 			expect((vaultDetails)[1]).to.equal(0)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+			vaultIdCounter++
 		})
 		it("SUCCEED: OPYN deposit collateral through exchange", async () => {
 			const margin = toUSDC("1000")
@@ -501,7 +513,7 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: ZERO_ADDRESS,
 						asset: ZERO_ADDRESS,
-						vaultId: 4,
+						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
 						index: 0,
@@ -512,7 +524,7 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: exchange.address,
 						asset: usd.address,
-						vaultId: 4,
+						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
 						index: 0,
@@ -521,9 +533,10 @@ describe("Actions tests", async () => {
 				}])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
-			expect(vaultId).to.equal(4)
+			expect(vaultId).to.equal(vaultIdCounter)
 			expect((vaultDetails)[1]).to.equal(0)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+			vaultIdCounter++
 		})
 		it("SUCCEED: OPYN deposit collateral weth", async () => {
 			const margin = toWei("1")
@@ -536,7 +549,7 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: ZERO_ADDRESS,
 						asset: ZERO_ADDRESS,
-						vaultId: 5,
+						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
 						index: 0,
@@ -547,7 +560,7 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: senderAddress,
 						asset: weth.address,
-						vaultId: 5,
+						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
 						index: 0,
@@ -556,9 +569,10 @@ describe("Actions tests", async () => {
 				}])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
-			expect(vaultId).to.equal(5)
+			expect(vaultId).to.equal(vaultIdCounter)
 			expect((vaultDetails)[1]).to.equal(0)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+			vaultIdCounter++
 		})
 		it("SUCCEED: OPYN deposit collateral through exchange with weth", async () => {
 			const margin = toWei("1")
@@ -571,7 +585,7 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: ZERO_ADDRESS,
 						asset: ZERO_ADDRESS,
-						vaultId: 6,
+						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
 						index: 0,
@@ -582,7 +596,7 @@ describe("Actions tests", async () => {
 						owner: senderAddress,
 						secondAddress: exchange.address,
 						asset: weth.address,
-						vaultId: 6,
+						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
 						index: 0,
@@ -591,13 +605,13 @@ describe("Actions tests", async () => {
 				}])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
-			expect(vaultId).to.equal(6)
+			expect(vaultId).to.equal(vaultIdCounter)
 			expect((vaultDetails)[1]).to.equal(0)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+			vaultIdCounter++
 		})
 		it("REVERTS: OPYN deposit collateral fails when sending to an invalid address", async () => {
 			const margin = toUSDC("1000")
-			usd.approve(exchange.address, margin)
 			await expect(exchange.operate([
 				{
 					operation: 0,
@@ -627,7 +641,6 @@ describe("Actions tests", async () => {
 		})
 		it("REVERTS: OPYN deposit collateral fails with invalid owner", async () => {
 			const margin = toUSDC("1000")
-			usd.approve(exchange.address, margin)
 			await expect(exchange.operate([
 				{
 					operation: 0,
@@ -656,77 +669,549 @@ describe("Actions tests", async () => {
 				}])).to.be.revertedWith("UnauthorisedSender()")
 		})
 	})
-	// describe("Opyn Mint Short Option Action checks", async () => {
-	// 	it("SUCCEED: OPYN mint short option", async () => {
-	// 		const margin = toUSDC("1000")
-	// 		usd.approve(MARGIN_POOL[chainId], margin)
-	// 		await exchange.operate([
-	// 			{
-	// 				operation: 0,
-	// 				operationQueue: [{
-	// 					actionType: 0,
-	// 					owner: senderAddress,
-	// 					secondAddress: ZERO_ADDRESS,
-	// 					asset: ZERO_ADDRESS,
-	// 					vaultId: 3,
-	// 					amount: 0,
-	// 					optionSeries: emptySeries,
-	// 					index: 0,
-	// 					data: "0x"
-	// 				},
-	// 				{
-	// 					actionType: 5,
-	// 					owner: senderAddress,
-	// 					secondAddress: senderAddress,
-	// 					asset: usd.address,
-	// 					vaultId: 3,
-	// 					amount: margin,
-	// 					optionSeries: emptySeries,
-	// 					index: 0,
-	// 					data: "0x"
-	// 				}]
-	// 			}])
-	// 		const vaultId = await controller.getAccountVaultCounter(senderAddress)
-	// 		const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
-	// 		expect(vaultId).to.equal(3)
-	// 		expect((vaultDetails)[1]).to.equal(0)
-	// 		expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
-	// 	})
-	// 	it("SUCCEED: OPYN deposit collateral through exchange", async () => {
-	// 		const margin = toUSDC("1000")
-	// 		usd.approve(exchange.address, margin)
-	// 		await exchange.operate([
-	// 			{
-	// 				operation: 0,
-	// 				operationQueue: [{
-	// 					actionType: 0,
-	// 					owner: senderAddress,
-	// 					secondAddress: ZERO_ADDRESS,
-	// 					asset: ZERO_ADDRESS,
-	// 					vaultId: 4,
-	// 					amount: 0,
-	// 					optionSeries: emptySeries,
-	// 					index: 0,
-	// 					data: "0x"
-	// 				},
-	// 				{
-	// 					actionType: 5,
-	// 					owner: senderAddress,
-	// 					secondAddress: exchange.address,
-	// 					asset: usd.address,
-	// 					vaultId: 4,
-	// 					amount: margin,
-	// 					optionSeries: emptySeries,
-	// 					index: 0,
-	// 					data: "0x"
-	// 				}]
-	// 			}])
-	// 		const vaultId = await controller.getAccountVaultCounter(senderAddress)
-	// 		const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
-	// 		expect(vaultId).to.equal(4)
-	// 		expect((vaultDetails)[1]).to.equal(0)
-	// 		expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
-	// 	})
+	describe("Opyn Mint/Burn/Deposit/Withdraw Short Option Action checks", async () => {
+		it("SUCCEED: OPYN mint short option", async () => {
+			const margin = toUSDC("1000")
+			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+			await exchange.createOtoken(proposedSeries)
+			usd.approve(MARGIN_POOL[chainId], margin)
+			await exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: vaultIdCounter,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: abiCode.encode(["uint256"], [1])
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: usd.address,
+						vaultId: vaultIdCounter,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: otoken,
+						vaultId: vaultIdCounter,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+				]
+				}])
+			const vaultId = await controller.getAccountVaultCounter(senderAddress)
+			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
+			expect(vaultId).to.equal(vaultIdCounter)
+			expect((vaultDetails)[1]).to.equal(1)
+			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+			expect(vaultDetails[0].shortAmounts[0]).to.equal(tinyAmount)
+			expect(vaultDetails[0].shortOtokens[0]).to.equal(otoken)
+			vaultIdCounter++
+		})
+		it("SUCCEED: OPYN mint short option with collateral deposited via exchange", async () => {
+			const margin = toUSDC("1000")
+			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+			await exchange.createOtoken(proposedSeries)
+			usd.approve(exchange.address, margin)
+			await exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: vaultIdCounter,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: abiCode.encode(["uint256"], [1])
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: usd.address,
+						vaultId: vaultIdCounter,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: otoken,
+						vaultId: vaultIdCounter,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+				]
+				}])
+			const vaultId = await controller.getAccountVaultCounter(senderAddress)
+			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
+			expect(vaultId).to.equal(vaultIdCounter)
+			expect((vaultDetails)[1]).to.equal(1)
+			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+			expect(vaultDetails[0].shortAmounts[0]).to.equal(tinyAmount)
+			expect(vaultDetails[0].shortOtokens[0]).to.equal(otoken)
+			vaultIdCounter++
+		})
+		it("REVERTS: OPYN mint short option and sends temp holdings to exchange", async () => {
+			const margin = toUSDC("1000")
+			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+			await exchange.createOtoken(proposedSeries)
+			usd.approve(exchange.address, margin)
+			await expect(exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: vaultIdCounter,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: abiCode.encode(["uint256"], [1])
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: usd.address,
+						vaultId: vaultIdCounter,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: otoken,
+						vaultId: vaultIdCounter,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+				]
+				}])).to.be.revertedWith("TokenImbalance()")
+			await usd.approve(exchange.address, 0)
+		})
+		it("SUCCEED: OPYN mint short option with collateral deposited via exchange then burn the option", async () => {
+			const margin = toUSDC("1000")
+			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+			await exchange.createOtoken(proposedSeries)
+			usd.approve(exchange.address, margin)
+			await exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: vaultIdCounter,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: abiCode.encode(["uint256"], [1])
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: usd.address,
+						vaultId: vaultIdCounter,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: otoken,
+						vaultId: vaultIdCounter,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 2,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: otoken,
+						vaultId: vaultIdCounter,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+
+				]
+				}])
+			const vaultId = await controller.getAccountVaultCounter(senderAddress)
+			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
+			expect(vaultId).to.equal(vaultIdCounter)
+			expect((vaultDetails)[1]).to.equal(1)
+			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+			expect(vaultDetails[0].shortAmounts[0]).to.equal(0)
+			expect(vaultDetails[0].shortOtokens[0]).to.equal(ZERO_ADDRESS)
+			vaultIdCounter++
+		})
+		it("REVERTS: OPYN mint short option with collateral deposited via exchange then burn the option from non-sender", async () => {
+			const margin = toUSDC("1000")
+			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+			await exchange.createOtoken(proposedSeries)
+			usd.approve(exchange.address, margin)
+			await expect(exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: vaultIdCounter,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: abiCode.encode(["uint256"], [1])
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: usd.address,
+						vaultId: vaultIdCounter,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: otoken,
+						vaultId: vaultIdCounter,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 2,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: otoken,
+						vaultId: vaultIdCounter,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+				]
+				}])).to.be.revertedWith("UnauthorisedSender()")
+				await usd.approve(exchange.address, 0)
+		})
+		it("SUCCEED: OPYN mint short option with collateral deposited via exchange then deposits the long option from sender in vault 1", async () => {
+			const margin = toUSDC("1000")
+			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+			const otokenERC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
+			await otokenERC.approve(MARGIN_POOL[chainId], tinyAmount)
+			await exchange.createOtoken(proposedSeries)
+			usd.approve(exchange.address, margin)
+			await exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: vaultIdCounter,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: abiCode.encode(["uint256"], [1])
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: usd.address,
+						vaultId: vaultIdCounter,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: otoken,
+						vaultId: vaultIdCounter,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]},
+					{
+						operation: 0,
+						operationQueue:[
+					{
+						actionType: 3,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: otoken,
+						vaultId: 1,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]},
+				])
+			const vaultId = await controller.getAccountVaultCounter(senderAddress)
+			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
+			expect(vaultId).to.equal(vaultIdCounter)
+			expect((vaultDetails)[1]).to.equal(1)
+			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+			expect(vaultDetails[0].shortAmounts[0]).to.equal(tinyAmount)
+			expect(vaultDetails[0].shortOtokens[0]).to.equal(otoken)
+			const vault1Details = await controller.getVaultWithDetails(senderAddress, 1)
+			expect(vault1Details[0].longAmounts[0]).to.equal(tinyAmount)
+			expect(vault1Details[0].longOtokens[0]).to.equal(otoken)
+			vaultIdCounter++
+		})
+		it("REVERTS: OPYN mint short option with collateral deposited via exchange then deposits the long option from sender in vault 1", async () => {
+			const margin = toUSDC("1000")
+			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+			const otokenERC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
+			await otokenERC.approve(MARGIN_POOL[chainId], tinyAmount)
+			await exchange.createOtoken(proposedSeries)
+			usd.approve(exchange.address, margin)
+			await expect(exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: vaultIdCounter,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: abiCode.encode(["uint256"], [1])
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: usd.address,
+						vaultId: vaultIdCounter,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: otoken,
+						vaultId: vaultIdCounter,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]},
+					{
+						operation: 0,
+						operationQueue:[
+					{
+						actionType: 3,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: otoken,
+						vaultId: 1,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]},
+				])).to.be.revertedWith("UnauthorisedSender()")
+				await usd.approve(exchange.address, 0)
+				await otokenERC.approve(MARGIN_POOL[chainId], 0)
+		})
+		it("SUCCEED: OPYN mint short option with collateral deposited via exchange then deposits the long option from sender in vault 1 and withdraws to sender", async () => {
+			const margin = toUSDC("1000")
+			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+			const otokenERC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
+			await otokenERC.approve(MARGIN_POOL[chainId], tinyAmount)
+			await exchange.createOtoken(proposedSeries)
+			usd.approve(exchange.address, margin)
+			await exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: vaultIdCounter,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: abiCode.encode(["uint256"], [1])
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: usd.address,
+						vaultId: vaultIdCounter,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: otoken,
+						vaultId: vaultIdCounter,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]},
+					{
+						operation: 0,
+						operationQueue:[
+					{
+						actionType: 4,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: otoken,
+						vaultId: 1,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]},
+				])
+				const vaultId = await controller.getAccountVaultCounter(senderAddress)
+				const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
+				expect(vaultId).to.equal(vaultIdCounter)
+				expect((vaultDetails)[1]).to.equal(1)
+				expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
+				expect(vaultDetails[0].shortAmounts[0]).to.equal(tinyAmount)
+				expect(vaultDetails[0].shortOtokens[0]).to.equal(otoken)
+				const vault1Details = await controller.getVaultWithDetails(senderAddress, 1)
+				expect(vault1Details[0].longAmounts[0]).to.equal(0)
+				expect(vault1Details[0].longOtokens[0]).to.equal(ZERO_ADDRESS)
+				vaultIdCounter++
+		})
+		it("REVERTS: OPYN mint short option with collateral deposited via exchange then deposits the long option from sender in vault 1 and withdraws to exchange", async () => {
+			const margin = toUSDC("1000")
+			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+			const otokenERC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
+			await otokenERC.approve(MARGIN_POOL[chainId], tinyAmount)
+			await exchange.createOtoken(proposedSeries)
+			usd.approve(exchange.address, margin)
+			await expect(exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [{
+						actionType: 0,
+						owner: senderAddress,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: vaultIdCounter,
+						amount: 0,
+						optionSeries: emptySeries,
+						index: 0,
+						data: abiCode.encode(["uint256"], [1])
+					},
+					{
+						actionType: 5,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: usd.address,
+						vaultId: vaultIdCounter,
+						amount: margin,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: otoken,
+						vaultId: vaultIdCounter,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]},
+					{
+						operation: 0,
+						operationQueue:[
+					{
+						actionType: 3,
+						owner: senderAddress,
+						secondAddress: senderAddress,
+						asset: otoken,
+						vaultId: 1,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					},
+					{
+						actionType: 4,
+						owner: senderAddress,
+						secondAddress: exchange.address,
+						asset: otoken,
+						vaultId: 1,
+						amount: tinyAmount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]},
+				])).to.be.revertedWith("TokenImbalance()")
+				await usd.approve(exchange.address, 0)
+				await otokenERC.approve(MARGIN_POOL[chainId], 0)
+		})
 	// 	it("REVERTS: OPYN deposit collateral fails when sending to an invalid address", async () => {
 	// 		const margin = toUSDC("1000")
 	// 		usd.approve(exchange.address, margin)
@@ -787,7 +1272,7 @@ describe("Actions tests", async () => {
 	// 				}]
 	// 			}])).to.be.revertedWith("UnauthorisedSender()")
 	// 	})
-	// })	
+	})	
 	describe("Opyn Forbidden Actions", async () => {
 		it("REVERTS: OPYN liquidate", async () => {
 			await expect(exchange.operate([
@@ -842,7 +1327,6 @@ describe("Actions tests", async () => {
 		})
 	})
 })
-// test opyn args
 // test rysk args
 // test issue args
 // test buy args
