@@ -159,7 +159,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			underlyingPrice
 		);
 		uint256 premium = vanillaPremium.mul(
-			_getSlippageMultiplier(_optionSeries, _amount, isSell, vanillaPremium, delta, netDhvExposure)
+			_getSlippageMultiplier(_optionSeries, _amount, delta, netDhvExposure)
 		);
 
 		totalPremium = premium.mul(_amount) / 1e12;
@@ -213,27 +213,33 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// internal functions ///
 	//////////////////////////
 
+	/**
+	 * @notice function to add slippage to orders to prevent over-exposure to a single option type
+	 * @param _optionSeries the option series that we are pricing
+	 * @param _amount amount of options contracts being traded. e18
+	 * @param _optionDelta the delta exposure of the option
+	 * @param _netDhvExposure how many contracts of this series the DHV is already exposed to. e18. negative if net short.
+	 */
 	function _getSlippageMultiplier(
 		Types.OptionSeries memory _optionSeries,
 		uint256 _amount,
-		bool isSell,
-		uint256 vanillaPremium,
-		int256 optionDelta,
-		int256 netDhvExposure
+		int256 _optionDelta,
+		int256 _netDhvExposure
 	) internal view returns (uint256 slippageMultiplier) {
 		// divide _amount by 2 to obtain the average exposure throughout the tx. Stops large orders being disproportionately penalised.
-		console.log("exposure", uint256(netDhvExposure), _amount);
-		int256 exposureCoefficient = netDhvExposure + int256(_amount) / 2;
+		console.log("exposure", uint256(-_netDhvExposure), _amount);
+		int256 exposureCoefficient = _netDhvExposure + int256(_amount) / 2;
 		if (exposureCoefficient < 0) {
+			console.log("exposure < 0");
 			return 1e18;
 		}
 		uint256 modifiedSlippageGradient;
-		if (optionDelta.abs() < 10e18) {
+		if (_optionDelta.abs() < 10e18) {
 			// these options require most collateral per dollar of premium
 			modifiedSlippageGradient = slippageGradient.mul(lowDeltaSlippageMultiplier);
-		} else if (10e18 <= optionDelta.abs() && optionDelta.abs() < 25e18) {
+		} else if (10e18 <= _optionDelta.abs() && _optionDelta.abs() < 25e18) {
 			modifiedSlippageGradient = slippageGradient.mul(mediumDeltaSlippageMultiplier);
-		} else if (optionDelta.abs() >= 25e18) {
+		} else if (_optionDelta.abs() >= 25e18) {
 			modifiedSlippageGradient = slippageGradient.mul(highDeltaSlippageMultiplier);
 		}
 		// multiply the gradient by the number of contracts the dhv will have exposure to by the end of the tx
