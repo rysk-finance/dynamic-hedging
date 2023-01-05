@@ -30,7 +30,6 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import { IOtoken, IController } from "./interfaces/GammaInterface.sol";
-import "hardhat/console.sol";
 
 /**
  *  @title Contract used for all user facing options interactions
@@ -568,9 +567,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			uint128 strikeDecimalConverted
 		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
 		// check the option hash and option series for validity
-		console.log("STRIKE!", strikeDecimalConverted);
-		console.log("buy option");
-
 		bytes32 oHash = _checkHash(optionSeries, strikeDecimalConverted, false);
 		// convert the strike to e18 decimals for storage, this gets the strike price in e18 decimals
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
@@ -592,8 +588,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
 		int256 longExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).longExposure;
 		uint256 amount = _args.amount;
-		console.log("here1");
-
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
 			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
@@ -604,11 +598,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				boughtAmount / (10**CONVERSION_DECIMALS)
 			);
 			// update the series on the stores
-			console.log("here2");
 			getPortfolioValuesFeed().updateStores(seriesToStore, 0, -int256(boughtAmount), seriesAddress);
 			// update the net DHV exposure for this series
-			console.log("solidity hash");
-			console.logBytes32(oHash);
 			netDhvExposure[oHash] -= int256(_args.amount);
 			amount -= boughtAmount;
 			if (amount == 0) {
@@ -621,8 +612,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// add this series to the portfolio values feed so its stored on the book
 		getPortfolioValuesFeed().updateStores(seriesToStore, int256(amount), 0, seriesAddress);
 		// update the net DHV exposure for this series
-		console.log("solidity hash");
-		console.logBytes32(oHash);
 		netDhvExposure[oHash] -= int256(_args.amount);
 		// get the liquidity pool to write the options
 		return
@@ -655,7 +644,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			sellParams.optionSeries,
 			oHash
 		) = _preSaleChecks(_args, optionRegistry);
-		console.log("SELL OPTION EXCHANGE");
 		// get the unit price for premium and delta
 		(sellParams.premium, sellParams.delta, sellParams.fee) = pricer.quoteOptionPrice(
 			sellParams.seriesToStore,
@@ -669,8 +657,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			sellParams.tempHoldings,
 			_args.amount
 		);
-		console.log("sell option");
-
 		int256 shortExposure = getPortfolioValuesFeed()
 			.storesForAddress(sellParams.seriesAddress)
 			.shortExposure;
@@ -689,12 +675,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		if (!isClose && (sellParams.premium >> 3) <= sellParams.fee) {
 			revert PremiumTooSmall();
 		}
-		console.log("series addy:", sellParams.seriesAddress);
-
 		if (sellParams.amount > 0) {
 			if (sellParams.amount > sellParams.tempHoldings) {
 				// transfer the otokens to this exchange
-				console.log("series addy:", sellParams.seriesAddress);
 				SafeTransferLib.safeTransferFrom(
 					sellParams.seriesAddress,
 					msg.sender,
@@ -713,8 +696,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				sellParams.seriesAddress
 			);
 			// update the net DHV exposure for this series
-			console.log("solidity hash");
-			console.logBytes32(oHash);
 			netDhvExposure[oHash] += int256(_args.amount);
 		}
 		// this accounts for premium sent from buyback as well as any rounding errors from the dhv buyback
