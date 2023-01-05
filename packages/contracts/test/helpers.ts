@@ -32,13 +32,14 @@ import { PriceFeed } from "../types/PriceFeed"
 import { OtokenFactory } from "../types/OtokenFactory"
 //@ts-ignore
 import bs from "black-scholes"
-import { E } from "prb-math"
 import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
 import { AddressBook } from "../types/AddressBook"
 import { NewController } from "../types/NewController"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import { expect } from "chai"
 import { Otoken } from "../types/Otoken"
+import { BeyondPricer } from "../types/BeyondPricer"
+import { OptionExchange } from "../types/OptionExchange"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const { provider } = ethers
 const { parseEther } = ethers.utils
@@ -50,7 +51,16 @@ const aboveUtilizationThresholdGradient = 1
 const utilizationFunctionThreshold = 0.6 // 60%
 const yIntercept = -0.6
 
-export async function getExchangeParams(liquidityPool, exchange, usd, weth, portfolioValuesFeed, optionToken, senderAddress, amount) {
+export async function getExchangeParams(
+	liquidityPool,
+	exchange,
+	usd,
+	weth,
+	portfolioValuesFeed,
+	optionToken,
+	senderAddress,
+	amount
+) {
 	const poolUSDBalance = await usd.balanceOf(liquidityPool.address)
 	const senderUSDBalance = await usd.balanceOf(senderAddress)
 	const exchangeTempUSD = await exchange.heldTokens(senderAddress, usd.address)
@@ -79,70 +89,96 @@ export async function getExchangeParams(liquidityPool, exchange, usd, weth, port
 		expect(liquidityPoolOTokenBalance).to.equal(0)
 		expect(exchangeTempOtokens).to.equal(0)
 	}
-	return { poolUSDBalance, pfList, seriesStores, senderUSDBalance, senderWethBalance, opynAmount, exchangeOTokenBalance, senderOtokenBalance, collateralAllocated }
+	return {
+		poolUSDBalance,
+		pfList,
+		seriesStores,
+		senderUSDBalance,
+		senderWethBalance,
+		opynAmount,
+		exchangeOTokenBalance,
+		senderOtokenBalance,
+		collateralAllocated
+	}
 }
 export async function makeBuy(exchange, senderAddress, optionToken, amount, proposedSeries) {
 	await exchange.operate([
 		{
 			operation: 1,
-			operationQueue: [{
-				actionType: 1,
-				owner: ZERO_ADDRESS,
-				secondAddress: senderAddress,
-				asset: optionToken,
-				vaultId: 0,
-				amount: amount,
-				optionSeries: proposedSeries,
-				index: 0,
-				data: "0x"
-			}]
-		}])
+			operationQueue: [
+				{
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: optionToken,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}
+			]
+		}
+	])
 }
 
-export async function makeIssueAndBuy(exchange, senderAddress, optionToken, amount, proposedSeries) {
+export async function makeIssueAndBuy(
+	exchange,
+	senderAddress,
+	optionToken,
+	amount,
+	proposedSeries
+) {
 	await exchange.operate([
 		{
 			operation: 1,
-			operationQueue: [{
-				actionType: 0,
-				owner: ZERO_ADDRESS,
-				secondAddress: ZERO_ADDRESS,
-				asset: ZERO_ADDRESS,
-				vaultId: 0,
-				amount: 0,
-				optionSeries: proposedSeries,
-				index: 0,
-				data: "0x"
-			}, {
-				actionType: 1,
-				owner: ZERO_ADDRESS,
-				secondAddress: senderAddress,
-				asset: ZERO_ADDRESS,
-				vaultId: 0,
-				amount: amount,
-				optionSeries: proposedSeries,
-				index: 0,
-				data: "0x"
-			}]
-		}])
+			operationQueue: [
+				{
+					actionType: 0,
+					owner: ZERO_ADDRESS,
+					secondAddress: ZERO_ADDRESS,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: 0,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				},
+				{
+					actionType: 1,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: ZERO_ADDRESS,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}
+			]
+		}
+	])
 }
 
 export async function makeSellBack(exchange, senderAddress, optionToken, amount, proposedSeries) {
 	await exchange.operate([
 		{
 			operation: 1,
-			operationQueue: [{
-				actionType: 2,
-				owner: ZERO_ADDRESS,
-				secondAddress: senderAddress,
-				asset: optionToken,
-				vaultId: 0,
-				amount: amount,
-				optionSeries: proposedSeries,
-				index: 0,
-				data: "0x"
-			}]
-		}])
+			operationQueue: [
+				{
+					actionType: 2,
+					owner: ZERO_ADDRESS,
+					secondAddress: senderAddress,
+					asset: optionToken,
+					vaultId: 0,
+					amount: amount,
+					optionSeries: proposedSeries,
+					index: 0,
+					data: "0x"
+				}
+			]
+		}
+	])
 }
 
 export async function whitelistProduct(
@@ -191,13 +227,7 @@ export async function whitelistProduct(
 	}
 	await newController.connect(ownerSigner).setNakedCap(collateral, toWei("100000000000000000"))
 	// usd collateralised calls
-	await newCalculator.setSpotShock(
-		underlying,
-		strike,
-		collateral,
-		isPut,
-		productSpotShockValue
-	)
+	await newCalculator.setSpotShock(underlying, strike, collateral, isPut, productSpotShockValue)
 	// set expiry to value values
 	await newCalculator.setUpperBoundValues(
 		underlying,
@@ -211,27 +241,72 @@ export async function whitelistProduct(
 export async function createFakeOtoken(senderAddress, proposedSeries, addressBook) {
 	const otokenInstance = await ethers.getContractFactory("Otoken")
 	const newOtoken = (await otokenInstance.deploy()) as Otoken
-	await newOtoken.init(addressBook.address, proposedSeries.underlying, proposedSeries.strikeAsset, proposedSeries.collateral, proposedSeries.strike, proposedSeries.expiration, proposedSeries.isPut)
+	await newOtoken.init(
+		addressBook.address,
+		proposedSeries.underlying,
+		proposedSeries.strikeAsset,
+		proposedSeries.collateral,
+		proposedSeries.strike,
+		proposedSeries.expiration,
+		proposedSeries.isPut
+	)
 	return newOtoken
-
 }
-export async function createAndMintOtoken(addressBook: AddressBook, optionSeries: OptionSeriesStruct, usd: MintableERC20, weth: WETH, collateral: any, amount: BigNumber, signer: Signer, registry: OptionRegistry, vaultType: string) {
+export async function createAndMintOtoken(
+	addressBook: AddressBook,
+	optionSeries: OptionSeriesStruct,
+	usd: MintableERC20,
+	weth: WETH,
+	collateral: any,
+	amount: BigNumber,
+	signer: Signer,
+	registry: OptionRegistry,
+	vaultType: string
+) {
 	const signerAddress = await signer.getAddress()
-	const otokenFactory = (await ethers.getContractAt("OtokenFactory", await addressBook.getOtokenFactory())) as OtokenFactory
-	const otoken = await otokenFactory.callStatic.createOtoken(optionSeries.underlying, optionSeries.strikeAsset, optionSeries.collateral, (optionSeries.strike).div(ethers.utils.parseUnits("1", 10)), optionSeries.expiration, optionSeries.isPut)
-	await otokenFactory.createOtoken(optionSeries.underlying, optionSeries.strikeAsset, optionSeries.collateral, (optionSeries.strike).div(ethers.utils.parseUnits("1", 10)), optionSeries.expiration, optionSeries.isPut)
-	const controller = (await ethers.getContractAt("NewController", await addressBook.getController())) as NewController
+	const otokenFactory = (await ethers.getContractAt(
+		"OtokenFactory",
+		await addressBook.getOtokenFactory()
+	)) as OtokenFactory
+	const otoken = await otokenFactory.callStatic.createOtoken(
+		optionSeries.underlying,
+		optionSeries.strikeAsset,
+		optionSeries.collateral,
+		optionSeries.strike.div(ethers.utils.parseUnits("1", 10)),
+		optionSeries.expiration,
+		optionSeries.isPut
+	)
+	await otokenFactory.createOtoken(
+		optionSeries.underlying,
+		optionSeries.strikeAsset,
+		optionSeries.collateral,
+		optionSeries.strike.div(ethers.utils.parseUnits("1", 10)),
+		optionSeries.expiration,
+		optionSeries.isPut
+	)
+	const controller = (await ethers.getContractAt(
+		"NewController",
+		await addressBook.getController()
+	)) as NewController
 	const marginPool = await addressBook.getMarginPool()
 	const vaultId = await (await controller.getAccountVaultCounter(signerAddress)).add(1)
-	const calculator = (await ethers.getContractAt("NewMarginCalculator", await addressBook.getMarginCalculator())) as NewMarginCalculator
-	const marginRequirement = await (await registry.getCollateral({
-		expiration: optionSeries.expiration,
-		strike: (optionSeries.strike).div(ethers.utils.parseUnits("1", 10)),
-		isPut: optionSeries.isPut,
-		strikeAsset: optionSeries.strikeAsset,
-		underlying: optionSeries.underlying,
-		collateral: optionSeries.collateral
-	}, amount)).add(toUSDC("100"))
+	const calculator = (await ethers.getContractAt(
+		"NewMarginCalculator",
+		await addressBook.getMarginCalculator()
+	)) as NewMarginCalculator
+	const marginRequirement = await (
+		await registry.getCollateral(
+			{
+				expiration: optionSeries.expiration,
+				strike: optionSeries.strike.div(ethers.utils.parseUnits("1", 10)),
+				isPut: optionSeries.isPut,
+				strikeAsset: optionSeries.strikeAsset,
+				underlying: optionSeries.underlying,
+				collateral: optionSeries.collateral
+			},
+			amount
+		)
+	).add(toUSDC("100"))
 	await collateral.approve(marginPool, marginRequirement)
 	const abiCode = new AbiCoder()
 	const mintArgs = [
@@ -431,6 +506,55 @@ export async function calculateOptionQuoteLocally(
 			optionSeries.isPut ? "put" : "call"
 		) * parseFloat(fromWei(amount))
 	return localBS
+}
+
+export async function applySlippageLocally(
+	beyondPricer: BeyondPricer,
+	exchange: OptionExchange,
+	optionSeries: {
+		expiration: number
+		strike: BigNumber
+		isPut: boolean
+		strikeAsset: string
+		underlying: string
+		collateral: string
+	},
+	amount: BigNumber,
+	vanillaPremium: Number,
+	optionDelta: BigNumber,
+	toBuy: boolean = false
+) {
+	const formattedStrikePrice = (
+		await exchange.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
+	).mul(ethers.utils.parseUnits("1", 10))
+	const oHash = ethers.utils.solidityKeccak256(
+		["uint64", "uint128", "bool"],
+		[optionSeries.expiration, formattedStrikePrice, optionSeries.isPut]
+	)
+	const netDhvExposure = await exchange.netDhvExposure(oHash)
+	console.log({ oHash, netDhvExposure })
+
+	const exposureCoefficient = parseFloat(fromWei(netDhvExposure)) + parseFloat(fromWei(amount)) / 2
+	if (exposureCoefficient < 0) {
+		return 1
+	}
+	const slippageGradient = await beyondPricer.slippageGradient()
+	let modifiedSlippageGradient
+	if (optionDelta.abs() < toWei("10")) {
+		modifiedSlippageGradient =
+			parseFloat(fromWei(slippageGradient)) *
+			parseFloat(fromWei(await beyondPricer.lowDeltaSlippageMultiplier()))
+	} else if (toWei("10") <= optionDelta.abs() && optionDelta.abs() < toWei("25")) {
+		modifiedSlippageGradient =
+			parseFloat(fromWei(slippageGradient)) *
+			parseFloat(fromWei(await beyondPricer.mediumDeltaSlippageMultiplier()))
+	} else if (optionDelta.abs() >= toWei("25")) {
+		modifiedSlippageGradient =
+			parseFloat(fromWei(slippageGradient)) *
+			parseFloat(fromWei(await beyondPricer.highDeltaSlippageMultiplier()))
+	}
+	const slippagePremium = modifiedSlippageGradient * exposureCoefficient
+	return 1 + slippagePremium
 }
 
 export async function calculateOptionDeltaLocally(
