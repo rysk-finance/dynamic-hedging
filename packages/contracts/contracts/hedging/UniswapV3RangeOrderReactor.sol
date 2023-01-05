@@ -5,7 +5,7 @@ import { IUniswapV3Pool } from "@uniswap/v3-core/contracts/interfaces/IUniswapV3
 import { IUniswapV3MintCallback } from "@uniswap/v3-core/contracts/interfaces/callback/IUniswapV3MintCallback.sol";
 import { PoolAddress } from "../vendor/uniswap/PoolAddress.sol";
 import { LiquidityAmounts, FullMath } from "../vendor/uniswap/LiquidityAmounts.sol";
-import { 
+import {
     sqrtPriceX96ToUint,
     encodePriceSqrt,
     RangeOrderDirection,
@@ -148,11 +148,11 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     /// @notice update the minAmount parameter
-	function setMinAmount(uint256 _minAmount) external {
-		_onlyGovernor();
-		minAmount = _minAmount;
+  function setMinAmount(uint256 _minAmount) external {
+    _onlyGovernor();
+    minAmount = _minAmount;
         emit SetMinAmount(_minAmount, msg.sender);
-	}
+  }
 
     /// @notice set the poolFee
     function setPoolFee(uint24 _poolFee) external {
@@ -183,10 +183,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     /// @return inversed token1/token0 in 1e18 format
     function getPoolPrice() public view returns (uint256 price, uint256 inversed){
         (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-        uint256 decimals = _getOffsetDecimals();
-        uint256 sqrtPrice = uint256(sqrtPriceX96);
-        uint256 p = FullMath.mulDiv(sqrtPrice, sqrtPrice, 1);
-        price = FullMath.mulDiv(p, 10 ** decimals, 1 << 192);
+        uint8 decimals = _getOffsetDecimals();
+        price = sqrtPriceX96ToUint(sqrtPriceX96, decimals);
         inversed = 1e36 / price;
     }
 
@@ -538,7 +536,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     /**
      * @return decimals the decimals needed to converting from sqrtPriceX96 to token0/token1 1e18 format
      */
-    function _getOffsetDecimals() private view returns (uint256 decimals){
+    function _getOffsetDecimals() private view returns (uint8 decimals){
         uint8 token0Decimals = token0.decimals();
         uint8 token1Decimals = token1.decimals();
         return 18 - token1Decimals + token0Decimals;
@@ -628,7 +626,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
      * @notice transfer tokens from the parent liquidity pool
      * @param token the address of the token to transfer
      * @param amountDesired the amount of tokens to transfer
-     * @param balance the current token balance of this contract 
+     * @param balance the current token balance of this contract
      */
     function _transferFromParentPool(
         address token,
