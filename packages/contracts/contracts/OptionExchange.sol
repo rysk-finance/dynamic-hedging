@@ -135,8 +135,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		bool isBuyable,
 		bool isSellable
 	);
-	event OptionsBought();
-	event OptionPositionsClosed();
+	event OptionsIssued(address series);
+	event OptionsBought(address series, uint256 optionAmount);
+	event OptionsSold(address series, uint256 optionAmount);
 	event OptionsRedeemed(
 		address series,
 		uint256 optionAmount,
@@ -418,6 +419,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		IController controller = IController(addressbook.getController());
 		uint256 arr = _opynActions.length;
 		IController.ActionArgs[] memory _opynArgs = new IController.ActionArgs[](arr);
+		// users need to have this contract approved as an operator so it can carry out actions on the user's behalf
+		if (!controller.isOperator(msg.sender, address(this))) {
+			revert OperatorNotApproved();
+		}
 		for (uint256 i = 0; i < arr; i++) {
 			// loop through the opyn actions, if any involve opening a vault then make sure the msg.sender gets the ownership and if there are any more vault ids make sure the msg.sender is the owners
 			IController.ActionArgs memory action = CombinedActions._parseOpynArgs(_opynActions[i]);
@@ -425,10 +430,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			// make sure the owner parameter being sent in is the msg.sender this makes sure senders arent messing around with other vaults
 			if (action.owner != msg.sender) {
 				revert UnauthorisedSender();
-			}
-			// users need to have this contract approved as an operator so it can carry out actions on the user's behalf
-			if (!controller.isOperator(msg.sender, address(this))) {
-				revert OperatorNotApproved();
 			}
 			if (actionType == IController.ActionType.DepositLongOption) {
 				if (action.secondAddress != msg.sender) {
@@ -540,6 +541,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			revert CustomErrors.SeriesNotBuyable();
 		}
 		series = liquidityPool.handlerIssue(_args.optionSeries);
+		emit OptionsIssued(series);
 	}
 
 	/**
@@ -581,6 +583,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
 		int256 longExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).longExposure;
 		uint256 amount = _args.amount;
+		emit OptionsBought(seriesAddress, amount);
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
 			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
@@ -701,6 +704,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				sellParams.premium - sellParams.fee
 			);
 		}
+		emit OptionsSold(sellParams.seriesAddress, _args.amount);
 	}
 
 	///////////////////////////
