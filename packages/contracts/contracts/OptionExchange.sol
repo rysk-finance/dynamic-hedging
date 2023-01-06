@@ -135,10 +135,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		bool isBuyable,
 		bool isSellable
 	);
-	event OptionsBought();
-	event OptionPositionsClosed();
+	event OptionsIssued(address indexed series);
+	event OptionsBought(address indexed series, uint256 optionAmount);
+	event OptionsSold(address indexed series, uint256 optionAmount);
 	event OptionsRedeemed(
-		address series,
+		address indexed series,
 		uint256 optionAmount,
 		uint256 redeemAmount,
 		address redeemAsset
@@ -418,6 +419,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		IController controller = IController(addressbook.getController());
 		uint256 arr = _opynActions.length;
 		IController.ActionArgs[] memory _opynArgs = new IController.ActionArgs[](arr);
+		// users need to have this contract approved as an operator so it can carry out actions on the user's behalf
+		if (!controller.isOperator(msg.sender, address(this))) {
+			revert OperatorNotApproved();
+		}
 		for (uint256 i = 0; i < arr; i++) {
 			// loop through the opyn actions, if any involve opening a vault then make sure the msg.sender gets the ownership and if there are any more vault ids make sure the msg.sender is the owners
 			IController.ActionArgs memory action = CombinedActions._parseOpynArgs(_opynActions[i]);
@@ -425,10 +430,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			// make sure the owner parameter being sent in is the msg.sender this makes sure senders arent messing around with other vaults
 			if (action.owner != msg.sender) {
 				revert UnauthorisedSender();
-			}
-			// users need to have this contract approved as an operator so it can carry out actions on the user's behalf
-			if (!controller.isOperator(msg.sender, address(this))) {
-				revert OperatorNotApproved();
 			}
 			if (actionType == IController.ActionType.DepositLongOption) {
 				if (action.secondAddress != msg.sender) {
@@ -540,6 +541,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			revert CustomErrors.SeriesNotBuyable();
 		}
 		series = liquidityPool.handlerIssue(_args.optionSeries);
+		emit OptionsIssued(series);
 	}
 
 	/**
@@ -554,21 +556,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	{
 		// get the option details in the correct formats
 		IOptionRegistry optionRegistry = getOptionRegistry();
-		(
-			address seriesAddress,
-			Types.OptionSeries memory optionSeries,
-			uint128 strikeDecimalConverted
-		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
-		// check the option hash and option series for validity
-		_checkHash(optionSeries, strikeDecimalConverted, false);
-		// convert the strike to e18 decimals for storage, this gets the strike price in e18 decimals
-		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
-			optionSeries.expiration,
-			strikeDecimalConverted,
-			optionSeries.isPut,
-			underlyingAsset,
-			strikeAsset,
-			optionSeries.collateral
+		(address seriesAddress, Types.OptionSeries memory seriesToStore, Types.OptionSeries memory optionSeries) = _preChecks(
+			_args.seriesAddress,
+			_args.optionSeries,
+			optionRegistry,
+			false
 		);
 		address recipient = _args.recipient;
 		// calculate premium and delta from the option pricer, returning the premium in collateral decimals and delta in e18
@@ -581,6 +573,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
 		int256 longExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).longExposure;
 		uint256 amount = _args.amount;
+		emit OptionsBought(seriesAddress, amount);
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
 			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
@@ -624,9 +617,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function _sellOption(RyskActions.SellOptionArgs memory _args, bool isClose) internal whenNotPaused {
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		SellParams memory sellParams;
-		(sellParams.seriesAddress, sellParams.seriesToStore, sellParams.optionSeries) = _preSaleChecks(
-			_args,
-			optionRegistry
+		(sellParams.seriesAddress, sellParams.seriesToStore, sellParams.optionSeries) = _preChecks(
+			_args.seriesAddress,
+			_args.optionSeries,
+			optionRegistry,
+			true
 		);
 		// get the unit price for premium and delta
 		(sellParams.premium, sellParams.delta, sellParams.fee) = pricer.quoteOptionPrice(
@@ -705,6 +700,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				sellParams.premium - sellParams.fee
 			);
 		}
+		emit OptionsSold(sellParams.seriesAddress, _args.amount);
 	}
 
 	///////////////////////////
@@ -950,7 +946,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), premium);
 	}
 
-	function _preSaleChecks(RyskActions.SellOptionArgs memory _args, IOptionRegistry optionRegistry)
+	function _preChecks(address _seriesAddress, Types.OptionSeries memory _optionSeries, IOptionRegistry _optionRegistry, bool isSell)
 		internal
 		view
 		returns (
@@ -963,9 +959,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			address seriesAddress,
 			Types.OptionSeries memory optionSeries,
 			uint128 strikeDecimalConverted
-		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
+		) = _getOptionDetails(_seriesAddress, _optionSeries, _optionRegistry);
 		// check the option hash and option series for validity
-		_checkHash(optionSeries, strikeDecimalConverted, true);
+		_checkHash(optionSeries, strikeDecimalConverted, isSell);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			optionSeries.expiration,

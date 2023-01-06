@@ -406,7 +406,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			const before = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, 0, senderAddress, amount)
 			await usd.approve(exchange.address, quote)
-			await exchange.operate([
+			const tx = await exchange.operate([
 				{
 					operation: 1,
 					operationQueue: [{
@@ -431,7 +431,14 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						data: "0x"
 					}]
 				}])
+			const logs = await exchange.queryFilter(exchange.filters.OptionsIssued(), 0)
+			const issueEvent = logs[0].args
+			const logs2 = await exchange.queryFilter(exchange.filters.OptionsBought(), 0)
+			const buyEvent = logs2[0].args
 			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			expect(issueEvent.series).to.equal(seriesAddress)
+			expect(buyEvent.series).to.equal(seriesAddress)
+			expect(buyEvent.optionAmount).to.equal(amount)
 			const localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
 				priceFeed,
@@ -503,7 +510,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const amount = toWei("4")
 			const before = await getExchangeParams(liquidityPool, exchange, usd, wethERC20, portfolioValuesFeed, optionToken, senderAddress, amount)
 			await optionToken.approve(exchange.address, amount)
-			await exchange.operate([
+			const tx = await exchange.operate([
 				{
 					operation: 1,
 					operationQueue: [{
@@ -518,6 +525,10 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						data: "0x"
 					}]
 				}])
+			const logs = await exchange.queryFilter(exchange.filters.OptionsSold(), 0)
+			const soldEvent = logs[0].args
+			expect(soldEvent.series).to.equal(optionToken.address)
+			expect(soldEvent.optionAmount).to.equal(amount)
 			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address)).optionSeries
 			let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, true))
 			let quote = quoteResponse[0].sub(quoteResponse[2])
