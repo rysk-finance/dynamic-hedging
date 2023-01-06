@@ -57,11 +57,11 @@ const onboard = init({
   wallets: [injectedWallets, walletConnect],
   chains: [
     {
-      id: "0x2",
-      token: "ARETH",
+      id: "0x66eed",
+      token: "AGOR",
       namespace: "evm",
-      label: "Arbitrum Rinkeby Testnet",
-      rpcUrl: RPC_URL_MAP[CHAINID.ARBITRUM_RINKEBY],
+      label: "Arbitrum Goerli",
+      rpcUrl: RPC_URL_MAP[CHAINID.ARBITRUM_GOERLI],
     },
     {
       id: "0xa4b1",
@@ -129,7 +129,7 @@ function App() {
   const [rpcURL, setRPCURL] = useState<string>(
     process.env.REACT_APP_ENV === "production"
       ? RPC_URL_MAP[CHAINID.ARBITRUM_MAINNET]
-      : RPC_URL_MAP[CHAINID.ARBITRUM_RINKEBY]
+      : RPC_URL_MAP[CHAINID.ARBITRUM_GOERLI]
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   // Initialising to a client with undefined URL, rather than just null, as ApolloProvider
@@ -181,7 +181,7 @@ function App() {
         initialNetwork.chainId ===
         (process.env.REACT_APP_ENV === "production"
           ? CHAINID.ARBITRUM_MAINNET
-          : CHAINID.ARBITRUM_RINKEBY);
+          : CHAINID.ARBITRUM_GOERLI);
       if (!isCorrectChain) {
         if (process.env.REACT_APP_ENV === "production") {
           await addArbitrum();
@@ -198,7 +198,7 @@ function App() {
         process.env.REACT_APP_ENV === "production"
           ? CHAINID.ARBITRUM_MAINNET
           : process.env.REACT_APP_ENV === "testnet"
-          ? CHAINID.ARBITRUM_RINKEBY
+          ? CHAINID.ARBITRUM_GOERLI
           : null;
       if (networkId) {
         const networkName =
@@ -259,15 +259,15 @@ function App() {
         method: "wallet_addEthereumChain",
         params: [
           {
-            chainId: "0x66EEB", // A 0x-prefixed hexadecimal string
-            chainName: "Arbitrum Testnet",
+            chainId: "0x66EED", // A 0x-prefixed hexadecimal string
+            chainName: "Arbitrum Görli",
             nativeCurrency: {
               name: "Ethereum",
-              symbol: "arETH",
+              symbol: "AGOR",
               decimals: 18,
             },
-            rpcUrls: ["https://rinkeby.arbitrum.io/rpc"],
-            blockExplorerUrls: ["https://rinkeby-explorer.arbitrum.io/"],
+            rpcUrls: ["https://goerli-rollup.arbitrum.io/rpc"],
+            blockExplorerUrls: ["https://goerli.arbiscan.io/"],
           },
         ],
       });
@@ -301,7 +301,7 @@ function App() {
       const correctChainID =
         process.env.REACT_APP_ENV === "production"
           ? CHAINID.ARBITRUM_MAINNET
-          : CHAINID.ARBITRUM_RINKEBY;
+          : CHAINID.ARBITRUM_GOERLI;
       if (chainId !== correctChainID) {
         disconnect();
       }
@@ -329,14 +329,14 @@ function App() {
         ? SUBGRAPH_URL[network?.id]
         : process.env.REACT_APP_ENV === "production"
         ? SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
-        : SUBGRAPH_URL[CHAINID.ARBITRUM_RINKEBY];
+        : SUBGRAPH_URL[CHAINID.ARBITRUM_GOERLI];
 
     const OPYN_SUBGRAPH_URI =
       network?.id !== undefined
         ? OPYN_SUBGRAPH_URL[network?.id]
         : process.env.REACT_APP_ENV === "production"
         ? OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
-        : OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_RINKEBY];
+        : OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_GOERLI];
 
     const ryskSubgraph = new HttpLink({
       uri: SUBGRAPH_URI,

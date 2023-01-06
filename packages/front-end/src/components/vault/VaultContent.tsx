@@ -61,7 +61,7 @@ export const VaultContent = () => {
             <p>
               {Number(envChainID) === CHAINID.ARBITRUM_MAINNET
                 ? "Arbitrum"
-                : Number(envChainID) === CHAINID.ARBITRUM_RINKEBY
+                : Number(envChainID) === CHAINID.ARBITRUM_GOERLI
                 ? "Arbitrum Testnet"
                 : network?.name}{" "}
             </p>

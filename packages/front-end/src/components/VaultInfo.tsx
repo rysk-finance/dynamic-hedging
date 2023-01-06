@@ -26,8 +26,8 @@ export const VaultInfo = () => {
   });
 
   const chainId =
-    Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_RINKEBY
-      ? CHAINID.ARBITRUM_RINKEBY
+    Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_GOERLI
+      ? CHAINID.ARBITRUM_GOERLI
       : CHAINID.ARBITRUM_MAINNET;
 
   return (
