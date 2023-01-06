@@ -135,11 +135,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		bool isBuyable,
 		bool isSellable
 	);
-	event OptionsIssued(address series);
-	event OptionsBought(address series, uint256 optionAmount);
-	event OptionsSold(address series, uint256 optionAmount);
+	event OptionsIssued(address indexed series);
+	event OptionsBought(address indexed series, uint256 optionAmount);
+	event OptionsSold(address indexed series, uint256 optionAmount);
 	event OptionsRedeemed(
-		address series,
+		address indexed series,
 		uint256 optionAmount,
 		uint256 redeemAmount,
 		address redeemAsset
@@ -556,21 +556,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	{
 		// get the option details in the correct formats
 		IOptionRegistry optionRegistry = getOptionRegistry();
-		(
-			address seriesAddress,
-			Types.OptionSeries memory optionSeries,
-			uint128 strikeDecimalConverted
-		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
-		// check the option hash and option series for validity
-		_checkHash(optionSeries, strikeDecimalConverted, false);
-		// convert the strike to e18 decimals for storage, this gets the strike price in e18 decimals
-		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
-			optionSeries.expiration,
-			strikeDecimalConverted,
-			optionSeries.isPut,
-			underlyingAsset,
-			strikeAsset,
-			optionSeries.collateral
+		(address seriesAddress, Types.OptionSeries memory seriesToStore, Types.OptionSeries memory optionSeries) = _preChecks(
+			_args.seriesAddress,
+			_args.optionSeries,
+			optionRegistry,
+			false
 		);
 		address recipient = _args.recipient;
 		// calculate premium and delta from the option pricer, returning the premium in collateral decimals and delta in e18
@@ -627,9 +617,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function _sellOption(RyskActions.SellOptionArgs memory _args, bool isClose) internal whenNotPaused {
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		SellParams memory sellParams;
-		(sellParams.seriesAddress, sellParams.seriesToStore, sellParams.optionSeries) = _preSaleChecks(
-			_args,
-			optionRegistry
+		(sellParams.seriesAddress, sellParams.seriesToStore, sellParams.optionSeries) = _preChecks(
+			_args.seriesAddress,
+			_args.optionSeries,
+			optionRegistry,
+			true
 		);
 		// get the unit price for premium and delta
 		(sellParams.premium, sellParams.delta, sellParams.fee) = pricer.quoteOptionPrice(
@@ -950,7 +942,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), premium);
 	}
 
-	function _preSaleChecks(RyskActions.SellOptionArgs memory _args, IOptionRegistry optionRegistry)
+	function _preChecks(address _seriesAddress, Types.OptionSeries memory _optionSeries, IOptionRegistry _optionRegistry, bool isSell)
 		internal
 		view
 		returns (
@@ -963,9 +955,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			address seriesAddress,
 			Types.OptionSeries memory optionSeries,
 			uint128 strikeDecimalConverted
-		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
+		) = _getOptionDetails(_seriesAddress, _optionSeries, _optionRegistry);
 		// check the option hash and option series for validity
-		_checkHash(optionSeries, strikeDecimalConverted, true);
+		_checkHash(optionSeries, strikeDecimalConverted, isSell);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			optionSeries.expiration,
