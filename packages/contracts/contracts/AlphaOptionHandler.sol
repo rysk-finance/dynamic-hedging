@@ -50,6 +50,13 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	// custom option orders
 	mapping(uint256 => Types.Order) public orderStores;
 
+	/////////////////////////////////////
+	/// governance settable variables ///
+	/////////////////////////////////////
+
+	uint256 public feePerContract = 1e5;
+	address public feeRecipient;
+
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
@@ -76,6 +83,18 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		collateralAsset = liquidityPool.collateralAsset();
 		underlyingAsset = liquidityPool.underlyingAsset();
 		strikeAsset = liquidityPool.strikeAsset();
+		feeRecipient = _liquidityPool;
+	}
+
+	function setFeePerContract(uint256 _feePerContract) external {
+		_onlyGovernor();
+		feePerContract = _feePerContract;
+	}
+
+	function setFeeRecipient(address _feeRecipient) external {
+		_onlyGovernor();
+		require(_feeRecipient != address(0));
+		feeRecipient = _feeRecipient;
 	}
 
 	//////////////////////////////////////////////////////
@@ -224,6 +243,12 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			premium,
 			ERC20(collateralAsset).decimals()
 		);
+		// apply fees (it is assumed that in otc trades fees are already accounted for so we subtract)
+		uint256 expectedFee = feePerContract.mul(order.amount);
+		if ((convertedPrem >> 3) > expectedFee) {
+			SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, feeRecipient, expectedFee);
+			convertedPrem -= expectedFee;
+		}
 		// premium needs to adjusted for decimals of collateral asset
 		SafeTransferLib.safeTransferFrom(
 			collateralAsset,
