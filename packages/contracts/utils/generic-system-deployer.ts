@@ -247,7 +247,52 @@ export async function deployLiquidityPool(
 		authority,
 		optionProtocol.address,
 		liquidityPool.address,
-		0
+		0,
+		toWei("5"),
+		[
+			toWei("1"),
+			toWei("1.1"),
+			toWei("1.2"),
+			toWei("1.3"),
+			toWei("1.4"),
+			toWei("1.5"),
+			toWei("1.6"),
+			toWei("1.7"),
+			toWei("1.8"),
+			toWei("1.9"),
+			toWei("2"),
+			toWei("2.1"),
+			toWei("2.2"),
+			toWei("2.3"),
+			toWei("2.4"),
+			toWei("2.5"),
+			toWei("2.6"),
+			toWei("2.7"),
+			toWei("2.8"),
+			toWei("2.9")
+		],
+		[
+			toWei("1"),
+			toWei("1.1"),
+			toWei("1.2"),
+			toWei("1.3"),
+			toWei("1.4"),
+			toWei("1.5"),
+			toWei("1.6"),
+			toWei("1.7"),
+			toWei("1.8"),
+			toWei("1.9"),
+			toWei("2"),
+			toWei("2.1"),
+			toWei("2.2"),
+			toWei("2.3"),
+			toWei("2.4"),
+			toWei("2.5"),
+			toWei("2.6"),
+			toWei("2.7"),
+			toWei("2.8"),
+			toWei("2.9")
+		]
 	)) as BeyondPricer
 	await optionProtocol.changeAccounting(Accounting.address)
 	// deploy libraries

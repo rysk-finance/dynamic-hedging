@@ -40,6 +40,7 @@ import { expect } from "chai"
 import { Otoken } from "../types/Otoken"
 import { BeyondPricer } from "../types/BeyondPricer"
 import { OptionExchange } from "../types/OptionExchange"
+import { priceToPriceX128 } from "@ragetrade/sdk"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const { provider } = ethers
 const { parseEther } = ethers.utils
@@ -540,19 +541,27 @@ export async function applySlippageLocally(
 	}
 	const slippageGradient = await beyondPricer.slippageGradient()
 	let modifiedSlippageGradient
-	if (optionDelta.abs() < toWei("10")) {
+	console.log({ optionDelta })
+	const deltaBandIndex = Math.floor(
+		(parseFloat(fromWei(optionDelta.abs())) * 100) /
+			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
+	)
+	console.log({
+		deltaBandIndex,
+		optionDelta: parseFloat(fromWei(optionDelta.abs())),
+		deltaBandWidth: parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
+	})
+	console.log("multiplier:", await beyondPricer.putSlippageGradientMultipliers(deltaBandIndex))
+	if (parseFloat(fromWei(optionDelta)) < 0) {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
-			parseFloat(fromWei(await beyondPricer.lowDeltaSlippageMultiplier()))
-	} else if (toWei("10") <= optionDelta.abs() && optionDelta.abs() < toWei("25")) {
+			parseFloat(fromWei(await beyondPricer.putSlippageGradientMultipliers(deltaBandIndex)))
+	} else {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
-			parseFloat(fromWei(await beyondPricer.mediumDeltaSlippageMultiplier()))
-	} else if (optionDelta.abs() >= toWei("25")) {
-		modifiedSlippageGradient =
-			parseFloat(fromWei(slippageGradient)) *
-			parseFloat(fromWei(await beyondPricer.highDeltaSlippageMultiplier()))
+			parseFloat(fromWei(await beyondPricer.callSlippageGradientMultipliers(deltaBandIndex)))
 	}
+
 	const slippagePremium = modifiedSlippageGradient * exposureCoefficient
 	return 1 + slippagePremium
 }

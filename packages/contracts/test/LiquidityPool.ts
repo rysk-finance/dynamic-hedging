@@ -291,32 +291,9 @@ describe("Liquidity Pools", async () => {
 
 		expect(await pricer.slippageGradient()).to.eq(slippageGradient)
 	})
-	it("sets slippage gradient multipliers in pricer contract", async () => {
-		expect(await pricer.lowDeltaSlippageMultiplier()).to.eq(0)
-		expect(await pricer.mediumDeltaSlippageMultiplier()).to.eq(0)
-		expect(await pricer.highDeltaSlippageMultiplier()).to.eq(0)
-
-		await pricer.setLowDeltaSlippageMultiplier(lowDeltaSlippageMultiplier)
-		await pricer.setMediumDeltaSlippageMultiplier(mediumDeltaSlippageMultiplier)
-		await pricer.setHighDeltaSlippageMultiplier(highDeltaSlippageMultiplier)
-
-		expect(await pricer.lowDeltaSlippageMultiplier()).to.eq(lowDeltaSlippageMultiplier)
-		expect(await pricer.mediumDeltaSlippageMultiplier()).to.eq(mediumDeltaSlippageMultiplier)
-		expect(await pricer.highDeltaSlippageMultiplier()).to.eq(highDeltaSlippageMultiplier)
-	})
 	it("reverts when unauthorised party tries to update slippage variables", async () => {
 		await expect(
 			pricer.connect((await ethers.getSigners())[4]).setSlippageGradient(0)
-		).to.be.revertedWith("UNAUTHORIZED")
-
-		await expect(
-			pricer.connect((await ethers.getSigners())[4]).setLowDeltaSlippageMultiplier(0)
-		).to.be.revertedWith("UNAUTHORIZED")
-		await expect(
-			pricer.connect((await ethers.getSigners())[4]).setMediumDeltaSlippageMultiplier(0)
-		).to.be.revertedWith("UNAUTHORIZED")
-		await expect(
-			pricer.connect((await ethers.getSigners())[4]).setHighDeltaSlippageMultiplier(0)
 		).to.be.revertedWith("UNAUTHORIZED")
 	})
 	it("SETUP: approve series", async () => {
@@ -592,7 +569,7 @@ describe("Liquidity Pools", async () => {
 			optionSeries,
 			amount,
 			localQuote,
-			localDelta,
+			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
 		console.log({ slippageFactor })
@@ -651,7 +628,7 @@ describe("Liquidity Pools", async () => {
 			optionSeries,
 			amount,
 			localQuote,
-			localDelta,
+			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
 		console.log({ slippageFactor })
@@ -1301,7 +1278,7 @@ describe("Liquidity Pools", async () => {
 			proposedSeries,
 			amount,
 			localQuote,
-			localDelta,
+			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
 		console.log({ slippageFactor })
@@ -1644,7 +1621,7 @@ describe("Liquidity Pools", async () => {
 			seriesInfoDecimalCorrected,
 			amount,
 			localQuote,
-			localDelta,
+			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
 		let quoteResponse = await pricer.quoteOptionPrice(
@@ -1839,7 +1816,7 @@ describe("Liquidity Pools", async () => {
 			proposedSeries,
 			amount,
 			localQuote,
-			localDelta,
+			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
 		console.log({ slippageFactor })
@@ -1976,7 +1953,7 @@ describe("Liquidity Pools", async () => {
 			seriesInfoDecimalCorrected,
 			amount,
 			localQuote,
-			localDelta,
+			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
 
@@ -2121,7 +2098,7 @@ describe("Liquidity Pools", async () => {
 			proposedSeries,
 			amount,
 			localQuote,
-			localDelta,
+			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
 		console.log({ slippageFactor })
@@ -2354,7 +2331,7 @@ describe("Liquidity Pools", async () => {
 			optionSeries,
 			amount,
 			localQuote,
-			localDelta,
+			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
 		console.log({ slippageFactor })
@@ -2817,174 +2794,174 @@ describe("Liquidity Pools", async () => {
 	})
 })
 
-describe("test slippage params", async () => {
-	before(async function () {
-		await hre.network.provider.request({
-			method: "hardhat_reset",
-			params: [
-				{
-					forking: {
-						chainId: 1,
-						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
-						blockNumber: 14290000
-					}
-				}
-			]
-		})
+// describe("test slippage params", async () => {
+// 	before(async function () {
+// 		await hre.network.provider.request({
+// 			method: "hardhat_reset",
+// 			params: [
+// 				{
+// 					forking: {
+// 						chainId: 1,
+// 						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
+// 						blockNumber: 14290000
+// 					}
+// 				}
+// 			]
+// 		})
 
-		await network.provider.request({
-			method: "hardhat_impersonateAccount",
-			params: [CHAINLINK_WETH_PRICER[chainId]]
-		})
-		signers = await ethers.getSigners()
-		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
-		controller = opynParams.controller
-		addressBook = opynParams.addressBook
-		oracle = opynParams.oracle
-		newCalculator = opynParams.newCalculator
-		const [sender] = signers
+// 		await network.provider.request({
+// 			method: "hardhat_impersonateAccount",
+// 			params: [CHAINLINK_WETH_PRICER[chainId]]
+// 		})
+// 		signers = await ethers.getSigners()
+// 		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
+// 		controller = opynParams.controller
+// 		addressBook = opynParams.addressBook
+// 		oracle = opynParams.oracle
+// 		newCalculator = opynParams.newCalculator
+// 		const [sender] = signers
 
-		const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
-		await sender.sendTransaction({
-			to: signer.address,
-			value: ethers.utils.parseEther("10.0") // Sends exactly 10.0 ether
-		})
-		const forceSendContract = await ethers.getContractFactory("ForceSend")
-		const forceSend = await forceSendContract.deploy() // force Send is a contract that forces the sending of Ether to WBTC minter (which is a contract with no receive() function)
-		await forceSend
-			.connect(signer)
-			.go(CHAINLINK_WETH_PRICER[chainId], { value: utils.parseEther("0.5") })
-		// get the oracle
-		const res = await setupTestOracle(await sender.getAddress())
-		oracle = res[0] as Oracle
-		opynAggregator = res[1] as MockChainlinkAggregator
-		let deployParams = await deploySystem(signers, oracle, opynAggregator)
-		weth = deployParams.weth
-		wethERC20 = deployParams.wethERC20
-		usd = deployParams.usd
-		optionRegistry = deployParams.optionRegistry
-		priceFeed = deployParams.priceFeed
-		volFeed = deployParams.volFeed
-		portfolioValuesFeed = deployParams.portfolioValuesFeed
-		optionProtocol = deployParams.optionProtocol
-		authority = deployParams.authority.address
-		let lpParams = await deployLiquidityPool(
-			signers,
-			optionProtocol,
-			usd,
-			wethERC20,
-			rfr,
-			minCallStrikePrice,
-			minPutStrikePrice,
-			maxCallStrikePrice,
-			maxPutStrikePrice,
-			minExpiry,
-			maxExpiry,
-			optionRegistry,
-			portfolioValuesFeed,
-			authority
-		)
-		volatility = lpParams.volatility
-		liquidityPool = lpParams.liquidityPool
-		exchange = lpParams.exchange
-		pricer = lpParams.pricer
-		signers = await hre.ethers.getSigners()
-		senderAddress = await signers[0].getAddress()
-		receiverAddress = await signers[1].getAddress()
-		const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
-		await hre.network.provider.request({
-			method: "hardhat_impersonateAccount",
-			params: [USDC_WHALE]
-		})
-		const usdcWhale = await ethers.getSigner(USDC_WHALE)
-		const usdWhaleConnect = await usd.connect(usdcWhale)
-		await usdWhaleConnect.transfer(senderAddress, toUSDC("1000000"))
-		await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
-	})
-	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = {
-			callAlpha: 250000,
-			callBeta: 1_000000,
-			callRho: -300000,
-			callVolvol: 1_500000,
-			putAlpha: 250000,
-			putBeta: 1_000000,
-			putRho: -300000,
-			putVolvol: 1_500000
-		}
-		await volFeed.setSabrParameters(proposedSabrParams, expiration)
-		const volFeedSabrParams = await volFeed.sabrParams(expiration)
-		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
-		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
-		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
-		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
-		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
-		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
-		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
-		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
-	})
-	it("sets slippage gradient in pricer contract", async () => {
-		expect(await pricer.slippageGradient()).to.eq(0)
-		await pricer.setSlippageGradient(slippageGradient)
+// 		const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
+// 		await sender.sendTransaction({
+// 			to: signer.address,
+// 			value: ethers.utils.parseEther("10.0") // Sends exactly 10.0 ether
+// 		})
+// 		const forceSendContract = await ethers.getContractFactory("ForceSend")
+// 		const forceSend = await forceSendContract.deploy() // force Send is a contract that forces the sending of Ether to WBTC minter (which is a contract with no receive() function)
+// 		await forceSend
+// 			.connect(signer)
+// 			.go(CHAINLINK_WETH_PRICER[chainId], { value: utils.parseEther("0.5") })
+// 		// get the oracle
+// 		const res = await setupTestOracle(await sender.getAddress())
+// 		oracle = res[0] as Oracle
+// 		opynAggregator = res[1] as MockChainlinkAggregator
+// 		let deployParams = await deploySystem(signers, oracle, opynAggregator)
+// 		weth = deployParams.weth
+// 		wethERC20 = deployParams.wethERC20
+// 		usd = deployParams.usd
+// 		optionRegistry = deployParams.optionRegistry
+// 		priceFeed = deployParams.priceFeed
+// 		volFeed = deployParams.volFeed
+// 		portfolioValuesFeed = deployParams.portfolioValuesFeed
+// 		optionProtocol = deployParams.optionProtocol
+// 		authority = deployParams.authority.address
+// 		let lpParams = await deployLiquidityPool(
+// 			signers,
+// 			optionProtocol,
+// 			usd,
+// 			wethERC20,
+// 			rfr,
+// 			minCallStrikePrice,
+// 			minPutStrikePrice,
+// 			maxCallStrikePrice,
+// 			maxPutStrikePrice,
+// 			minExpiry,
+// 			maxExpiry,
+// 			optionRegistry,
+// 			portfolioValuesFeed,
+// 			authority
+// 		)
+// 		volatility = lpParams.volatility
+// 		liquidityPool = lpParams.liquidityPool
+// 		exchange = lpParams.exchange
+// 		pricer = lpParams.pricer
+// 		signers = await hre.ethers.getSigners()
+// 		senderAddress = await signers[0].getAddress()
+// 		receiverAddress = await signers[1].getAddress()
+// 		const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
+// 		await hre.network.provider.request({
+// 			method: "hardhat_impersonateAccount",
+// 			params: [USDC_WHALE]
+// 		})
+// 		const usdcWhale = await ethers.getSigner(USDC_WHALE)
+// 		const usdWhaleConnect = await usd.connect(usdcWhale)
+// 		await usdWhaleConnect.transfer(senderAddress, toUSDC("1000000"))
+// 		await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
+// 	})
+// 	it("SETUP: set sabrParams", async () => {
+// 		const proposedSabrParams = {
+// 			callAlpha: 250000,
+// 			callBeta: 1_000000,
+// 			callRho: -300000,
+// 			callVolvol: 1_500000,
+// 			putAlpha: 250000,
+// 			putBeta: 1_000000,
+// 			putRho: -300000,
+// 			putVolvol: 1_500000
+// 		}
+// 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
+// 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
+// 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+// 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+// 		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+// 		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+// 		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+// 		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+// 		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+// 		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+// 	})
+// 	it("sets slippage gradient in pricer contract", async () => {
+// 		expect(await pricer.slippageGradient()).to.eq(0)
+// 		await pricer.setSlippageGradient(slippageGradient)
 
-		expect(await pricer.slippageGradient()).to.eq(slippageGradient)
-	})
-	it("sets slippage gradient multipliers in pricer contract", async () => {
-		expect(await pricer.lowDeltaSlippageMultiplier()).to.eq(0)
-		expect(await pricer.mediumDeltaSlippageMultiplier()).to.eq(0)
-		expect(await pricer.highDeltaSlippageMultiplier()).to.eq(0)
+// 		expect(await pricer.slippageGradient()).to.eq(slippageGradient)
+// 	})
+// 	it("sets slippage gradient multipliers in pricer contract", async () => {
+// 		expect(await pricer.lowDeltaSlippageMultiplier()).to.eq(0)
+// 		expect(await pricer.mediumDeltaSlippageMultiplier()).to.eq(0)
+// 		expect(await pricer.highDeltaSlippageMultiplier()).to.eq(0)
 
-		await pricer.setLowDeltaSlippageMultiplier(lowDeltaSlippageMultiplier)
-		await pricer.setMediumDeltaSlippageMultiplier(mediumDeltaSlippageMultiplier)
-		await pricer.setHighDeltaSlippageMultiplier(highDeltaSlippageMultiplier)
+// 		await pricer.setLowDeltaSlippageMultiplier(lowDeltaSlippageMultiplier)
+// 		await pricer.setMediumDeltaSlippageMultiplier(mediumDeltaSlippageMultiplier)
+// 		await pricer.setHighDeltaSlippageMultiplier(highDeltaSlippageMultiplier)
 
-		expect(await pricer.lowDeltaSlippageMultiplier()).to.eq(lowDeltaSlippageMultiplier)
-		expect(await pricer.mediumDeltaSlippageMultiplier()).to.eq(mediumDeltaSlippageMultiplier)
-		expect(await pricer.highDeltaSlippageMultiplier()).to.eq(highDeltaSlippageMultiplier)
-	})
-	it("reverts when unauthorised party tries to update slippage variables", async () => {
-		await expect(
-			pricer.connect((await ethers.getSigners())[4]).setSlippageGradient(0)
-		).to.be.revertedWith("UNAUTHORIZED")
+// 		expect(await pricer.lowDeltaSlippageMultiplier()).to.eq(lowDeltaSlippageMultiplier)
+// 		expect(await pricer.mediumDeltaSlippageMultiplier()).to.eq(mediumDeltaSlippageMultiplier)
+// 		expect(await pricer.highDeltaSlippageMultiplier()).to.eq(highDeltaSlippageMultiplier)
+// 	})
+// 	it("reverts when unauthorised party tries to update slippage variables", async () => {
+// 		await expect(
+// 			pricer.connect((await ethers.getSigners())[4]).setSlippageGradient(0)
+// 		).to.be.revertedWith("UNAUTHORIZED")
 
-		await expect(
-			pricer.connect((await ethers.getSigners())[4]).setLowDeltaSlippageMultiplier(0)
-		).to.be.revertedWith("UNAUTHORIZED")
-		await expect(
-			pricer.connect((await ethers.getSigners())[4]).setMediumDeltaSlippageMultiplier(0)
-		).to.be.revertedWith("UNAUTHORIZED")
-		await expect(
-			pricer.connect((await ethers.getSigners())[4]).setHighDeltaSlippageMultiplier(0)
-		).to.be.revertedWith("UNAUTHORIZED")
-	})
-	it("Returns a quote for a ETH/USD put with slippage", async () => {
-		const amount = toWei("5")
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike))
-		const optionSeries = {
-			expiration: expiration,
-			strike: strikePrice,
-			isPut: PUT_FLAVOR,
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
+// 		await expect(
+// 			pricer.connect((await ethers.getSigners())[4]).setLowDeltaSlippageMultiplier(0)
+// 		).to.be.revertedWith("UNAUTHORIZED")
+// 		await expect(
+// 			pricer.connect((await ethers.getSigners())[4]).setMediumDeltaSlippageMultiplier(0)
+// 		).to.be.revertedWith("UNAUTHORIZED")
+// 		await expect(
+// 			pricer.connect((await ethers.getSigners())[4]).setHighDeltaSlippageMultiplier(0)
+// 		).to.be.revertedWith("UNAUTHORIZED")
+// 	})
+// 	it("Returns a quote for a ETH/USD put with slippage", async () => {
+// 		const amount = toWei("5")
+// 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+// 		const strikePrice = priceQuote.sub(toWei(strike))
+// 		const optionSeries = {
+// 			expiration: expiration,
+// 			strike: strikePrice,
+// 			isPut: PUT_FLAVOR,
+// 			strikeAsset: usd.address,
+// 			underlying: weth.address,
+// 			collateral: usd.address
+// 		}
 
-		const localQuote = await calculateOptionQuoteLocally(
-			liquidityPool,
-			optionRegistry,
-			usd,
-			priceFeed,
-			optionSeries,
-			amount,
-			false
-		)
-		let quoteResponse = await pricer.quoteOptionPrice(optionSeries, amount, false, 0)
-		console.log({ quoteResponse, localQuote })
-		let quote = quoteResponse[0].add(quoteResponse[2])
-		const truncQuote = truncate(localQuote)
-		const chainQuote = tFormatUSDC(quote.toString())
-		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 0.1)
-	})
-})
+// 		const localQuote = await calculateOptionQuoteLocally(
+// 			liquidityPool,
+// 			optionRegistry,
+// 			usd,
+// 			priceFeed,
+// 			optionSeries,
+// 			amount,
+// 			false
+// 		)
+// 		let quoteResponse = await pricer.quoteOptionPrice(optionSeries, amount, false, 0)
+// 		console.log({ quoteResponse, localQuote })
+// 		let quote = quoteResponse[0].add(quoteResponse[2])
+// 		const truncQuote = truncate(localQuote)
+// 		const chainQuote = tFormatUSDC(quote.toString())
+// 		const diff = percentDiff(truncQuote, chainQuote)
+// 		expect(diff).to.be.within(0, 0.1)
+// 	})
+// })
