@@ -58,12 +58,12 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	// multiplier of slippageGradient for options < 10 delta
 	// reflects the cost of increased collateral used to back these kind of options relative to their price.
-	uint256 public lowDeltaSlippageMultiplier;
-	// multiplier of slippageGradient for options between 10 and 25 delta
-	uint256 public mediumDeltaSlippageMultiplier;
-	// multiplier of slippageGradient for options > 25 delta
+	// represents the width of delta bands to apply slippage multipliers to. e18
+	uint256 public deltaBandWidth;
+	// array of slippage multipliers for each delta band. e18
+	uint256[] public callSlippageGradientMultipliers;
+	uint256[] public putSlippageGradientMultipliers;
 
-	uint256 public highDeltaSlippageMultiplier;
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
@@ -77,17 +77,34 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	event FeePerContractChanged(uint256 newFeePerContract, uint256 oldFeePerContract);
 
+	error InvalidSlippageGradientMultipliersArrayLength();
+	error InvalidSlippageGradientMultiplierValue();
+
 	constructor(
 		address _authority,
 		address _protocol,
 		address _liquidityPool,
-		uint256 _slippageGradient
+		uint256 _slippageGradient,
+		uint256 _deltaBandWidth,
+		uint256[] memory _callSlippageGradientMultipliers,
+		uint256[] memory _putSlippageGradientMultipliers
 	) AccessControl(IAuthority(_authority)) {
+		// option delta can span a range of 100, so ensure delta bands match this range
+		if (
+			_callSlippageGradientMultipliers.length != 100e18 / _deltaBandWidth ||
+			_putSlippageGradientMultipliers.length != 100e18 / _deltaBandWidth
+		) {
+			revert InvalidSlippageGradientMultipliersArrayLength();
+		}
 		protocol = Protocol(_protocol);
 		liquidityPool = ILiquidityPool(_liquidityPool);
 		collateralAsset = liquidityPool.collateralAsset();
 		underlyingAsset = liquidityPool.underlyingAsset();
 		strikeAsset = liquidityPool.strikeAsset();
+		slippageGradient = _slippageGradient;
+		deltaBandWidth = _deltaBandWidth;
+		callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
+		putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
 	}
 
 	///////////////
@@ -105,19 +122,37 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		slippageGradient = _slippageGradient;
 	}
 
-	function setLowDeltaSlippageMultiplier(uint256 _lowDeltaSlippageMultiplier) external {
+	/// @dev must also update delta band arrays to fit the new delta band width
+	function setDeltaBandWidth(
+		uint256 _deltaBandWidth,
+		uint256[] memory _callSlippageGradientMultipliers,
+		uint256[] memory _putSlippageGradientMultipliers
+	) external {
 		_onlyGuardian();
-		lowDeltaSlippageMultiplier = _lowDeltaSlippageMultiplier;
+		deltaBandWidth = _deltaBandWidth;
+		setSlippageGradientMultipliers(_callSlippageGradientMultipliers, _putSlippageGradientMultipliers);
 	}
 
-	function setMediumDeltaSlippageMultiplier(uint256 _mediumDeltaSlippageMultiplier) external {
+	function setSlippageGradientMultipliers(
+		uint256[] memory _callSlippageGradientMultipliers,
+		uint256[] memory _putSlippageGradientMultipliers
+	) public {
 		_onlyGuardian();
-		mediumDeltaSlippageMultiplier = _mediumDeltaSlippageMultiplier;
-	}
-
-	function setHighDeltaSlippageMultiplier(uint256 _highDeltaSlippageMultiplier) external {
-		_onlyGuardian();
-		highDeltaSlippageMultiplier = _highDeltaSlippageMultiplier;
+		if (
+			_callSlippageGradientMultipliers.length != 100e18 / deltaBandWidth ||
+			_putSlippageGradientMultipliers.length != 100e18 / deltaBandWidth
+		) {
+			revert InvalidSlippageGradientMultipliersArrayLength();
+		}
+		for (uint256 i = 0; i < _callSlippageGradientMultipliers.length; i++) {
+			// arrays must be same length so can check both in same loop
+			// ensure no multiplier is less than 1 due to human error.
+			if (_callSlippageGradientMultipliers[i] < 1e18 || _putSlippageGradientMultipliers[i] < 1e18) {
+				revert InvalidSlippageGradientMultiplierValue();
+			}
+		}
+		callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
+		putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
 	}
 
 	//////////////////////////////////////////////////////
@@ -234,20 +269,22 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			return 1e18;
 		}
 		uint256 modifiedSlippageGradient;
-		if (_optionDelta.abs() < 10e18) {
-			// these options require most collateral per dollar of premium
-			modifiedSlippageGradient = slippageGradient.mul(lowDeltaSlippageMultiplier);
-		} else if (10e18 <= _optionDelta.abs() && _optionDelta.abs() < 25e18) {
-			modifiedSlippageGradient = slippageGradient.mul(mediumDeltaSlippageMultiplier);
-		} else if (_optionDelta.abs() >= 25e18) {
-			modifiedSlippageGradient = slippageGradient.mul(highDeltaSlippageMultiplier);
+		// not using math library here, want to reduce to a non e18 integer
+		// integer division rounds down to nearest integer
+		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
+		console.log("delta band index:", deltaBandIndex, uint256(_optionDelta.abs()), deltaBandWidth);
+		if (_optionDelta > 0) {
+			modifiedSlippageGradient = slippageGradient.mul(callSlippageGradientMultipliers[deltaBandIndex]);
+		} else {
+			modifiedSlippageGradient = slippageGradient.mul(putSlippageGradientMultipliers[deltaBandIndex]);
 		}
+
 		// multiply the gradient by the number of contracts the dhv will have exposure to by the end of the tx
 		uint256 slippagePremium = (modifiedSlippageGradient).mul(uint256(exposureCoefficient));
 		console.log(
 			"multiplier:",
 			1e18 + slippagePremium,
-			slippageGradient,
+			modifiedSlippageGradient,
 			uint256(exposureCoefficient)
 		);
 
