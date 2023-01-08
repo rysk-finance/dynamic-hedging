@@ -561,9 +561,9 @@ export async function applySlippageLocally(
 			parseFloat(fromWei(slippageGradient)) *
 			parseFloat(fromWei(await beyondPricer.callSlippageGradientMultipliers(deltaBandIndex)))
 	}
-
-	const slippagePremium = modifiedSlippageGradient * exposureCoefficient
-	return 1 + slippagePremium
+	const slippagePremium = (1 + modifiedSlippageGradient) ** exposureCoefficient
+	console.log({ modifiedSlippageGradient, exposureCoefficient, slippagePremium })
+	return slippagePremium
 }
 
 export async function calculateOptionDeltaLocally(

@@ -263,11 +263,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	) internal view returns (uint256 slippageMultiplier) {
 		// divide _amount by 2 to obtain the average exposure throughout the tx. Stops large orders being disproportionately penalised.
 		console.log("exposure", uint256(-_netDhvExposure), _amount);
-		int256 exposureCoefficient = _netDhvExposure + int256(_amount) / 2;
-		if (exposureCoefficient < 0) {
-			console.log("exposure < 0");
-			return 1e18;
-		}
+		// slippage will be exponential with the exponent being the DHV's net exposure
+		int256 exposureExponent = _netDhvExposure + int256(_amount) / 2;
 		uint256 modifiedSlippageGradient;
 		// not using math library here, want to reduce to a non e18 integer
 		// integer division rounds down to nearest integer
@@ -278,16 +275,12 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		} else {
 			modifiedSlippageGradient = slippageGradient.mul(putSlippageGradientMultipliers[deltaBandIndex]);
 		}
-
-		// multiply the gradient by the number of contracts the dhv will have exposure to by the end of the tx
-		uint256 slippagePremium = (modifiedSlippageGradient).mul(uint256(exposureCoefficient));
-		console.log(
-			"multiplier:",
-			1e18 + slippagePremium,
-			modifiedSlippageGradient,
-			uint256(exposureCoefficient)
+		// raise slippageGradient to the power of _amount
+		uint256 slippagePremium = uint256(
+			(int256(1e18 + modifiedSlippageGradient)).pow(exposureExponent)
 		);
+		console.log("multiplier:", slippagePremium, modifiedSlippageGradient, uint256(exposureExponent));
 
-		return 1e18 + slippagePremium;
+		return slippagePremium;
 	}
 }
