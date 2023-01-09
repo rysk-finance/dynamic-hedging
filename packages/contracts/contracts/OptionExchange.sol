@@ -551,7 +551,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// get the option details in the correct formats
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		BuyParams memory buyParams;
-		(buyParams.seriesAddress, buyParams.seriesToStore, buyParams.optionSeries) = _preChecks(
+		bytes32 oHash;
+		(buyParams.seriesAddress, buyParams.seriesToStore, buyParams.optionSeries, oHash) = _preChecks(
 			_args.seriesAddress,
 			_args.optionSeries,
 			optionRegistry,
@@ -571,7 +572,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			.storesForAddress(buyParams.seriesAddress)
 			.longExposure;
 		uint256 amount = _args.amount;
-		emit OptionsBought(seriesAddress, amount);
+		emit OptionsBought(buyParams.seriesAddress, amount);
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
 			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
@@ -637,7 +638,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			sellParams.seriesToStore,
 			sellParams.optionSeries,
 			oHash
-		) = _preChecks(_args.seriesAddress, _args.optionSeries, optionRegistry true);
+		) = _preChecks(_args.seriesAddress, _args.optionSeries, optionRegistry, true);
 		// get the unit price for premium and delta
 		(sellParams.premium, sellParams.delta, sellParams.fee) = pricer.quoteOptionPrice(
 			sellParams.seriesToStore,
