@@ -47,8 +47,8 @@ import {
 } from "./utils/updateFavicon";
 import { Footer } from "./components/Footer";
 import * as Fathom from "fathom-client";
-import { LegalDisclaimer } from "./components/LegalDisclaimer";
 import { MobileWarning } from "./components/MobileWarning";
+import { PP_LINK, TERMS_LINK } from "./config/links";
 
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();
@@ -80,6 +80,11 @@ const onboard = init({
       { name: "Coinbase", url: "https://wallet.coinbase.com/" },
       { name: "MetaMask", url: "https://metamask.io" },
     ],
+    agreement: {
+      version: "2022-09-26",
+      termsUrl: TERMS_LINK,
+      privacyUrl: PP_LINK,
+    },
   },
 });
 
@@ -410,7 +415,6 @@ function App() {
       <GlobalContextProvider>
         <ApolloProvider client={apolloClient}>
           <div className="App bg-bone font-dm-mono flex flex-col min-h-screen">
-            <LegalDisclaimer />
             <MobileWarning />
             <Header />
             <div className="pt-16 px-16">
