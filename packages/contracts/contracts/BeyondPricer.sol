@@ -298,5 +298,16 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		return slippagePremium;
 	}
 
-	function _getSpreadValue(Types.OptionSeries memory _optionSeries, int256 _netDhvExposure) {}
+	function _getSpreadValue(
+		Types.OptionSeries memory _optionSeries,
+		uint256 _amount,
+		int256 _netDhvExposure
+	) {
+		uint256 netShortContracts;
+		if (_netDhvExposure <= 0) {
+			netShortContracts = _amount;
+		} else {
+			netShortContracts = _amount - _netDhvExposure;
+		}
+	}
 }
