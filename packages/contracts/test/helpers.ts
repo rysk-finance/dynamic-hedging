@@ -477,7 +477,7 @@ export async function calculateOptionQuoteLocally(
 		collateral: string
 	},
 	amount: BigNumber,
-	toBuy: boolean = false
+	toBuy: boolean = false // from perspective of DHV
 ) {
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
@@ -523,7 +523,7 @@ export async function applySlippageLocally(
 	amount: BigNumber,
 	vanillaPremium: Number,
 	optionDelta: BigNumber,
-	toBuy: boolean = false
+	toBuy: boolean = false // from perspective of DHV
 ) {
 	const formattedStrikePrice = (
 		await exchange.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
@@ -535,10 +535,9 @@ export async function applySlippageLocally(
 	const netDhvExposure = await exchange.netDhvExposure(oHash)
 	console.log({ oHash, netDhvExposure })
 
-	const exposureCoefficient = parseFloat(fromWei(netDhvExposure)) + parseFloat(fromWei(amount)) / 2
-	if (exposureCoefficient < 0) {
-		return 1
-	}
+	const exposureCoefficient = toBuy
+		? parseFloat(fromWei(netDhvExposure)) + parseFloat(fromWei(amount)) / 2
+		: parseFloat(fromWei(netDhvExposure)) - parseFloat(fromWei(amount)) / 2
 	const slippageGradient = await beyondPricer.slippageGradient()
 	let modifiedSlippageGradient
 	console.log({ optionDelta })
@@ -561,7 +560,7 @@ export async function applySlippageLocally(
 			parseFloat(fromWei(slippageGradient)) *
 			parseFloat(fromWei(await beyondPricer.callSlippageGradientMultipliers(deltaBandIndex)))
 	}
-	const slippagePremium = (1 + modifiedSlippageGradient) ** exposureCoefficient
+	const slippagePremium = (1 + modifiedSlippageGradient) ** -exposureCoefficient
 	console.log({ modifiedSlippageGradient, exposureCoefficient, slippagePremium })
 	return slippagePremium
 }

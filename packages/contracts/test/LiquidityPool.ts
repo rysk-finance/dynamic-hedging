@@ -561,7 +561,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			optionSeries,
 			amount,
-			false
+			true
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
@@ -589,10 +589,11 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuoteWithSlippage)
 		const chainQuote = tFormatUSDC(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
+		console.log({ diff })
 		expect(diff).to.be.within(0, 0.1)
 	})
 
-	it("Returns a quote for a ETH/USD put to buy", async () => {
+	it("Returns a quote for a ETH/USD put for DHV to buy", async () => {
 		const thirtyPercentStr = "0.3"
 		const amount = toWei("350")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -629,16 +630,17 @@ describe("Liquidity Pools", async () => {
 			amount,
 			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
-			false
+			true
 		)
 		console.log({ slippageFactor })
-		let quoteResponse = await pricer.quoteOptionPrice(optionSeries, amount, false, 0)
+		let quoteResponse = await pricer.quoteOptionPrice(optionSeries, amount, true, 0)
 		let localQuoteWithSlippage = localQuote * slippageFactor
-		expect(localQuoteWithSlippage).to.be.gt(localQuote)
+		expect(localQuoteWithSlippage).to.be.lt(localQuote)
 		let buyQuote = quoteResponse[0].add(quoteResponse[2])
 		const truncQuote = truncate(localQuoteWithSlippage)
 		const chainQuote = tFormatUSDC(buyQuote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
+		console.log({ diff })
 		expect(diff).to.be.within(0, 0.1)
 	})
 	it("SETUP: approve series", async () => {
@@ -1263,14 +1265,14 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			proposedSeries,
 			amount,
-			true
+			false
 		)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
 			proposedSeries,
 			amount,
-			false
+			true
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
@@ -1290,6 +1292,7 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuoteWithSlippage)
 		const chainQuote = tFormatUSDC(quote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
+		console.log({ diff })
 		expect(diff).to.be.within(0, 0.1)
 
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
@@ -1606,14 +1609,14 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			seriesInfoDecimalCorrected,
 			amount,
-			true
+			false
 		)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
 			seriesInfoDecimalCorrected,
 			amount,
-			false
+			true
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
@@ -1634,8 +1637,8 @@ describe("Liquidity Pools", async () => {
 		const delta = quoteResponse[1]
 		let localQuoteWithSlippage = localQuote * slippageFactor
 		console.log({ slippageFactor })
-		// should be no slippage
-		expect(localQuoteWithSlippage).to.eq(localQuote)
+		// slippage should make option more expensive as existing dhv exposure is short and this tx makes it more short
+		expect(localQuoteWithSlippage).to.be.gt(localQuote)
 
 		const truncQuote = truncate(localQuoteWithSlippage)
 		const chainQuote = tFormatUSDC(quote.toString())
@@ -1808,7 +1811,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			proposedSeries,
 			amount,
-			false
+			true
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
@@ -1954,7 +1957,7 @@ describe("Liquidity Pools", async () => {
 			amount,
 			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
-			false
+			true
 		)
 
 		const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
@@ -2070,7 +2073,7 @@ describe("Liquidity Pools", async () => {
 			parseInt(fromOpyn(vaultDetails.shortAmounts[0]))
 
 		const seriesInfoDecimalCorrected = {
-			expiration: seriesInfo.expiration,
+			expiration: seriesInfo.expiration.toNumber(),
 			isPut: seriesInfo.isPut,
 			strike: seriesInfo.strike.mul(1e10),
 			strikeAsset: seriesInfo.strikeAsset,
@@ -2082,24 +2085,25 @@ describe("Liquidity Pools", async () => {
 			optionRegistry,
 			usd,
 			priceFeed,
-			proposedSeries,
-			amount
+			seriesInfoDecimalCorrected,
+			amount,
+			true
 		)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
-			proposedSeries,
+			seriesInfoDecimalCorrected,
 			amount,
 			false
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
 			exchange,
-			proposedSeries,
+			seriesInfoDecimalCorrected,
 			amount,
 			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
-			false
+			true
 		)
 		console.log({ slippageFactor })
 		let quoteResponse = await pricer.quoteOptionPrice(
@@ -2111,7 +2115,8 @@ describe("Liquidity Pools", async () => {
 		let quote = quoteResponse[0].sub(quoteResponse[2])
 		let expectedDeltaChange = quoteResponse[1]
 		let localQuoteWithSlippage = localQuote * slippageFactor
-		expect(localQuoteWithSlippage).to.eq(localQuote)
+		// DHV is 50 short so a 5 buyback will still have positive slippage
+		expect(localQuoteWithSlippage).to.be.gt(localQuote)
 		// ensure quote is accurate
 		const truncQuote = truncate(localQuoteWithSlippage)
 		const chainQuote = tFormatUSDC(quote.toString())
@@ -2316,14 +2321,15 @@ describe("Liquidity Pools", async () => {
 			usd,
 			priceFeed,
 			optionSeries,
-			amount
+			amount,
+			false
 		)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
 			optionSeries,
 			amount,
-			false
+			true
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
