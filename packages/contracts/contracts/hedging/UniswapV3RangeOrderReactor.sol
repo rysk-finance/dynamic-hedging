@@ -309,7 +309,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             return _amount;
         } else {
             SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, balance);
-            emit Withdraw(_amount);
+            emit Withdraw(balance);
             // return in collateral format
             return balance;
         }
