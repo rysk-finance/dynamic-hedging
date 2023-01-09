@@ -67,8 +67,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	BeyondPricer public pricer;
 	// option configurations approved for sale, stored by hash of expiration timestamp, strike (in e18) and isPut bool
 	mapping(bytes32 => bool) public approvedOptions;
-	/// @notice spot hedging reactor
-	address public spotHedgingReactor;
 	// whether the dhv is buying this option stored by hash
 	mapping(bytes32 => bool) public isBuyable;
 	// whether the dhv is selling this option stored by hash
@@ -79,8 +77,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	mapping(uint256 => mapping(bool => uint128[])) public optionDetails;
 	/// @notice pool fees for different swappable assets
 	mapping(address => uint24) public poolFees;
-	/// @notice when redeeming other asset, send to a reactor or sell it
-	bool public sellRedemptions = true;
 	/// @notice fee recipient
 	address public feeRecipient;
 
@@ -214,14 +210,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		SafeTransferLib.safeApprove(ERC20(asset), address(swapRouter), MAX_UINT);
 	}
 
-	/// @notice whether when redeeming options if the proceeds are in eth they should be converted to usdc or sent to the spot hedging reactor
-	///  		true for selling off to usdc and sending to the liquidity pool and false for sell
-	function setSellRedemptions(bool _sellRedemptions, address _reactor) external {
-		_onlyGovernor();
-		sellRedemptions = _sellRedemptions;
-		spotHedgingReactor = _reactor;
-	}
-
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
@@ -346,14 +334,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			address otokenCollateralAsset = otoken.collateralAsset();
 			emit OptionsRedeemed(_series[i], optionAmount, redeemAmount, otokenCollateralAsset);
 			// if the collateral used by the otoken is the collateral asset then transfer the redemption to the liquidity pool
-			// if the collateral used by the otoken is the underlying asset and sellRedemptions is false, then send the funds to the uniswapHedgingReactor
 			// if the collateral used by the otoken is anything else (or if underlying and sellRedemptions is true) then swap it on uniswap and send the proceeds to the liquidity pool
 			if (otokenCollateralAsset == collateralAsset) {
 				SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), redeemAmount);
 				emit RedemptionSent(redeemAmount, collateralAsset, address(liquidityPool));
-			} else if (otokenCollateralAsset == underlyingAsset && !sellRedemptions) {
-				SafeTransferLib.safeTransfer(ERC20(otokenCollateralAsset), spotHedgingReactor, redeemAmount);
-				emit RedemptionSent(redeemAmount, otokenCollateralAsset, spotHedgingReactor);
 			} else {
 				uint256 redeemableCollateral = _swapExactInputSingle(redeemAmount, 0, otokenCollateralAsset);
 				SafeTransferLib.safeTransfer(
