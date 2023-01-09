@@ -64,6 +64,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	uint256[] public callSlippageGradientMultipliers;
 	uint256[] public putSlippageGradientMultipliers;
 
+	// represents the lending rate of collateral used to collateralise short options by the DHV. denominated in bips
+	uint256 public collateralLendingRate;
+
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
@@ -87,7 +90,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 _slippageGradient,
 		uint256 _deltaBandWidth,
 		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers
+		uint256[] memory _putSlippageGradientMultipliers,
+		uint256 _collateralLendingRate
 	) AccessControl(IAuthority(_authority)) {
 		// option delta can span a range of 100, so ensure delta bands match this range
 		if (
@@ -105,6 +109,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		deltaBandWidth = _deltaBandWidth;
 		callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
 		putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
+		collateralLendingRate = _collateralLendingRate;
 	}
 
 	///////////////
@@ -120,6 +125,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	function setSlippageGradient(uint256 _slippageGradient) external {
 		_onlyGuardian();
 		slippageGradient = _slippageGradient;
+	}
+
+	function setCollateralLendingRate(uint256 _collateralLendingRate) external {
+		_onlyGovernor();
+		collateralLendingRate = _collateralLendingRate;
 	}
 
 	/// @dev must also update delta band arrays to fit the new delta band width
@@ -283,4 +293,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 		return slippagePremium;
 	}
+
+	function _getSpreadValue(Types.OptionSeries memory _optionSeries, int256 _netDhvExposure) {}
 }
