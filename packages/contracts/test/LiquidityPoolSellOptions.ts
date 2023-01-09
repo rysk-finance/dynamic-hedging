@@ -3030,9 +3030,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			})
 			it("hedges negative delta in hedging reactor", async () => {
 				const delta = await liquidityPool.getPortfolioDelta()
-				await liquidityPool.rebalancePortfolioDelta(delta, 1)
-				const newDelta = await liquidityPool.getPortfolioDelta()
-				expect(newDelta).to.equal(delta)
+				await expect(liquidityPool.rebalancePortfolioDelta(delta, 1)).to.be.reverted
 			})
 		})
 		describe("Deposit funds into the liquidityPool and withdraws", async () => {
@@ -3382,7 +3380,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				await expect(exchange.withdraw(toWei("10"))).to.be.revertedWith("!vault")
 			})
 			it("SUCCEEDS: hedge delta", async () => {
-				await exchange.hedgeDelta(1)
+				await expect(exchange.hedgeDelta(1)).to.be.reverted
 			})
 		})
 		describe("Unwinds a hedging reactor", async () => {

@@ -225,11 +225,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	//////////////////////////////////////////////////////
 
 	/// @inheritdoc IHedgingReactor
-	function hedgeDelta(int256 _delta) external returns (int256) {
-		return 0;
-	}
-
-	/// @inheritdoc IHedgingReactor
 	function withdraw(uint256 _amount) external returns (uint256) {
 		require(msg.sender == address(liquidityPool), "!vault");
 		address _token = collateralAsset;
@@ -247,11 +242,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			// return in collatDecimals format
 			return balance;
 		}
-	}
-
-	/// @inheritdoc IHedgingReactor
-	function update() external pure returns (uint256) {
-		return 0;
 	}
 
 	/**
@@ -327,6 +317,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @param _series the list of series to redeem
 	 */
 	function redeem(address[] memory _series) external {
+		_onlyManager();
 		uint256 adLength = _series.length;
 		for (uint256 i; i < adLength; i++) {
 			// get the number of otokens held by this address for the specified series
@@ -365,6 +356,29 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/////////////////////////////////////////////
 
 	/**
+	 * @notice create an otoken, distinguished from issue because we may not want this option on the option registry
+	 * @param optionSeries - otoken to create (strike in e18)
+	 * @return series the address of the otoken created
+	 */
+	function createOtoken(Types.OptionSeries memory optionSeries) external returns (address series) {
+		// deploy an oToken contract address
+		// assumes strike is passed in e18, converts to e8
+		uint128 formattedStrike = uint128(
+			formatStrikePrice(optionSeries.strike, optionSeries.collateral)
+		);
+		// check for an opyn oToken if it doesn't exist deploy it
+		series = OpynInteractions.getOrDeployOtoken(
+			address(addressbook.getOtokenFactory()),
+			optionSeries.collateral,
+			optionSeries.underlying,
+			optionSeries.strikeAsset,
+			formattedStrike,
+			optionSeries.expiration,
+			optionSeries.isPut
+		);
+	}
+
+	/**
 	 * @notice entry point to the contract for users, takes a queue of actions for both opyn and rysk and executes them sequentially
 	 * @param  _operationProcedures an array of actions to be executed sequentially
 	 */
@@ -375,6 +389,22 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	{
 		_runActions(_operationProcedures);
 		_verifyFinalState();
+	}
+
+	//////////////////////////////////
+	/// primary internal functions ///
+	//////////////////////////////////
+
+	function _runActions(CombinedActions.OperationProcedures[] memory _operationProcedures) internal {
+		for (uint256 i = 0; i < _operationProcedures.length; i++) {
+			CombinedActions.OperationProcedures memory operationProcedure = _operationProcedures[i];
+			CombinedActions.OperationType operation = operationProcedure.operation;
+			if (operation == CombinedActions.OperationType.OPYN) {
+				_runOpynActions(operationProcedure.operationQueue);
+			} else if (operation == CombinedActions.OperationType.RYSK) {
+				_runRyskActions(operationProcedure.operationQueue);
+			}
+		}
 	}
 
 	/**
@@ -395,18 +425,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			}
 		}
 		delete tempTokenQueue[msg.sender];
-	}
-
-	function _runActions(CombinedActions.OperationProcedures[] memory _operationProcedures) internal {
-		for (uint256 i = 0; i < _operationProcedures.length; i++) {
-			CombinedActions.OperationProcedures memory operationProcedure = _operationProcedures[i];
-			CombinedActions.OperationType operation = operationProcedure.operation;
-			if (operation == CombinedActions.OperationType.OPYN) {
-				_runOpynActions(operationProcedure.operationQueue);
-			} else if (operation == CombinedActions.OperationType.RYSK) {
-				_runRyskActions(operationProcedure.operationQueue);
-			}
-		}
 	}
 
 	function _runOpynActions(CombinedActions.ActionArgs[] memory _opynActions) internal {
@@ -484,29 +502,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				_sellOption(RyskActions._parseSellOptionArgs(action), true);
 			}
 		}
-	}
-
-	/**
-	 * @notice create an otoken, distinguished from issue because we may not want this option on the option registry
-	 * @param optionSeries - otoken to create (strike in e18)
-	 * @return series the address of the otoken created
-	 */
-	function createOtoken(Types.OptionSeries memory optionSeries) external returns (address series) {
-		// deploy an oToken contract address
-		// assumes strike is passed in e18, converts to e8
-		uint128 formattedStrike = uint128(
-			formatStrikePrice(optionSeries.strike, optionSeries.collateral)
-		);
-		// check for an opyn oToken if it doesn't exist deploy it
-		series = OpynInteractions.getOrDeployOtoken(
-			address(addressbook.getOtokenFactory()),
-			optionSeries.collateral,
-			optionSeries.underlying,
-			optionSeries.strikeAsset,
-			formattedStrike,
-			optionSeries.expiration,
-			optionSeries.isPut
-		);
 	}
 
 	/**
@@ -881,40 +876,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 	}
 
-	/**
-	 * @notice Converts strike price to 1e8 format and floors least significant digits if needed
-	 * @param  strikePrice strikePrice in 1e18 format
-	 * @param  collateral address of collateral asset
-	 * @return if the transaction succeeded
-	 */
-	function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256) {
-		// convert strike to 1e8 format
-		uint256 price = strikePrice / (10**10);
-		uint256 collateralDecimals = ERC20(collateral).decimals();
-		if (collateralDecimals >= OPYN_DECIMALS) return price;
-		uint256 difference = OPYN_DECIMALS - collateralDecimals;
-		// round floor strike to prevent errors in Gamma protocol
-		return (price / (10**difference)) * (10**difference);
-	}
-
-	function getSeriesWithe18Strike(Types.OptionSeries memory optionSeries)
-		external
-		view
-		returns (address)
-	{
-		return
-			IOptionRegistry(getOptionRegistry()).getSeries(
-				Types.OptionSeries(
-					optionSeries.expiration,
-					uint128(formatStrikePrice(optionSeries.strike, optionSeries.collateral)),
-					optionSeries.isPut,
-					optionSeries.underlying,
-					optionSeries.strikeAsset,
-					optionSeries.collateral
-				)
-			);
-	}
-
 	/** @notice function to sell exact amount of wETH to decrease delta
 	 *  @param _amountIn the exact amount of wETH to sell
 	 *  @param _amountOutMinimum the min amount of stablecoin willing to receive. Slippage limit.
@@ -1052,5 +1013,53 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		sellParams.amount -= soldBackAmount;
 		sellParams.tempHoldings -= OptionsCompute.min(sellParams.tempHoldings, sellParams.transferAmount);
 		return sellParams;
+	}
+
+	///////////////////////
+	/// complex getters ///
+	///////////////////////
+
+	/**
+	 * @notice Converts strike price to 1e8 format and floors least significant digits if needed
+	 * @param  strikePrice strikePrice in 1e18 format
+	 * @param  collateral address of collateral asset
+	 * @return if the transaction succeeded
+	 */
+	function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256) {
+		// convert strike to 1e8 format
+		uint256 price = strikePrice / (10**10);
+		uint256 collateralDecimals = ERC20(collateral).decimals();
+		if (collateralDecimals >= OPYN_DECIMALS) return price;
+		uint256 difference = OPYN_DECIMALS - collateralDecimals;
+		// round floor strike to prevent errors in Gamma protocol
+		return (price / (10**difference)) * (10**difference);
+	}
+
+	function getSeriesWithe18Strike(Types.OptionSeries memory optionSeries)
+		external
+		view
+		returns (address)
+	{
+		return
+			IOptionRegistry(getOptionRegistry()).getSeries(
+				Types.OptionSeries(
+					optionSeries.expiration,
+					uint128(formatStrikePrice(optionSeries.strike, optionSeries.collateral)),
+					optionSeries.isPut,
+					optionSeries.underlying,
+					optionSeries.strikeAsset,
+					optionSeries.collateral
+				)
+			);
+	}
+
+	/// @inheritdoc IHedgingReactor
+	function update() external pure returns (uint256) {
+		return 0;
+	}
+
+	/// @inheritdoc IHedgingReactor
+	function hedgeDelta(int256 _delta) external returns (int256) {
+		revert();
 	}
 }
