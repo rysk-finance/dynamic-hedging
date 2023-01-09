@@ -41,3 +41,7 @@ This function settles a vault that holds an option series. It will determine and
 ### ```getOtoken(address oTokenFactory, address collateral, address underlying, address strikeAsset, uint256 strike, uint256 expiration,bool isPut) external view returns address ``` ***View***
 
 This function returns an oToken from the opyn-rysk gamma otoken factory. If the otoken does not exist then it returns the zero address. The strike is passed in in oToken (e8) decimals.
+
+### ``` function redeemToAddress(address gammaController, address marginPool, address series, uint256 amount, address recipient) external returns uint256``` ***Direct NonTrustedAccessible***
+
+After an option expires this function allows a user to redeem their payout if the option expired in the money to a specified recipient address. If the option expired OTM then it returns nothing. This function should not settle vaults. Sending funds to the specified recipient.
