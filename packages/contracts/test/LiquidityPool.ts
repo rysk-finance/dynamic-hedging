@@ -1968,13 +1968,8 @@ describe("Liquidity Pools", async () => {
 		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
 		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 
-		await putOptionToken.approve(exchange.address, toOpyn(fromWei(amount)))
-		let quoteResponse = await pricer.quoteOptionPrice(
-			seriesInfoDecimalCorrected,
-			amount,
-			true,
-			netDhvExposure
-		)
+		await putOptionToken.approve(exchange.address, toOpyn("2.1"))
+		let quoteResponse = (await pricer.quoteOptionPrice(seriesInfoDecimalCorrected, amount, true, netDhvExposure))
 		let quote = quoteResponse[0].sub(quoteResponse[2])
 		let delta = quoteResponse[1]
 		let localQuoteWithSlippage = localQuote * slippageFactor

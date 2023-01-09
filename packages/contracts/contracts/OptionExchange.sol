@@ -66,8 +66,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	BeyondPricer public pricer;
 	// option configurations approved for sale, stored by hash of expiration timestamp, strike (in e18) and isPut bool
 	mapping(bytes32 => bool) public approvedOptions;
-	/// @notice spot hedging reactor
-	address public spotHedgingReactor;
 	// whether the dhv is buying this option stored by hash
 	mapping(bytes32 => bool) public isBuyable;
 	// whether the dhv is selling this option stored by hash
@@ -80,8 +78,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	mapping(uint256 => mapping(bool => uint128[])) public optionDetails;
 	/// @notice pool fees for different swappable assets
 	mapping(address => uint24) public poolFees;
-	/// @notice when redeeming other asset, send to a reactor or sell it
-	bool public sellRedemptions = true;
 	/// @notice fee recipient
 	address public feeRecipient;
 
@@ -145,10 +141,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		bool isBuyable,
 		bool isSellable
 	);
-	event OptionsBought();
-	event OptionPositionsClosed();
+	event OptionsIssued(address indexed series);
+	event OptionsBought(address indexed series, uint256 optionAmount);
+	event OptionsSold(address indexed series, uint256 optionAmount);
 	event OptionsRedeemed(
-		address series,
+		address indexed series,
 		uint256 optionAmount,
 		uint256 redeemAmount,
 		address redeemAsset
@@ -221,14 +218,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_onlyGovernor();
 		poolFees[asset] = fee;
 		SafeTransferLib.safeApprove(ERC20(asset), address(swapRouter), MAX_UINT);
-	}
-
-	/// @notice whether when redeeming options if the proceeds are in eth they should be converted to usdc or sent to the spot hedging reactor
-	///  		true for selling off to usdc and sending to the liquidity pool and false for sell
-	function setSellRedemptions(bool _sellRedemptions, address _reactor) external {
-		_onlyGovernor();
-		sellRedemptions = _sellRedemptions;
-		spotHedgingReactor = _reactor;
 	}
 
 	//////////////////////////////////////////////////////
@@ -355,14 +344,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			address otokenCollateralAsset = otoken.collateralAsset();
 			emit OptionsRedeemed(_series[i], optionAmount, redeemAmount, otokenCollateralAsset);
 			// if the collateral used by the otoken is the collateral asset then transfer the redemption to the liquidity pool
-			// if the collateral used by the otoken is the underlying asset and sellRedemptions is false, then send the funds to the uniswapHedgingReactor
 			// if the collateral used by the otoken is anything else (or if underlying and sellRedemptions is true) then swap it on uniswap and send the proceeds to the liquidity pool
 			if (otokenCollateralAsset == collateralAsset) {
 				SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), redeemAmount);
 				emit RedemptionSent(redeemAmount, collateralAsset, address(liquidityPool));
-			} else if (otokenCollateralAsset == underlyingAsset && !sellRedemptions) {
-				SafeTransferLib.safeTransfer(ERC20(otokenCollateralAsset), spotHedgingReactor, redeemAmount);
-				emit RedemptionSent(redeemAmount, otokenCollateralAsset, spotHedgingReactor);
 			} else {
 				uint256 redeemableCollateral = _swapExactInputSingle(redeemAmount, 0, otokenCollateralAsset);
 				SafeTransferLib.safeTransfer(
@@ -428,6 +413,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		IController controller = IController(addressbook.getController());
 		uint256 arr = _opynActions.length;
 		IController.ActionArgs[] memory _opynArgs = new IController.ActionArgs[](arr);
+		// users need to have this contract approved as an operator so it can carry out actions on the user's behalf
+		if (!controller.isOperator(msg.sender, address(this))) {
+			revert OperatorNotApproved();
+		}
 		for (uint256 i = 0; i < arr; i++) {
 			// loop through the opyn actions, if any involve opening a vault then make sure the msg.sender gets the ownership and if there are any more vault ids make sure the msg.sender is the owners
 			IController.ActionArgs memory action = CombinedActions._parseOpynArgs(_opynActions[i]);
@@ -435,10 +424,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			// make sure the owner parameter being sent in is the msg.sender this makes sure senders arent messing around with other vaults
 			if (action.owner != msg.sender) {
 				revert UnauthorisedSender();
-			}
-			// users need to have this contract approved as an operator so it can carry out actions on the user's behalf
-			if (!controller.isOperator(msg.sender, address(this))) {
-				revert OperatorNotApproved();
 			}
 			if (actionType == IController.ActionType.DepositLongOption) {
 				if (action.secondAddress != msg.sender) {
@@ -550,6 +535,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			revert CustomErrors.SeriesNotBuyable();
 		}
 		series = liquidityPool.handlerIssue(_args.optionSeries);
+		emit OptionsIssued(series);
 	}
 
 	/**
@@ -565,22 +551,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// get the option details in the correct formats
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		BuyParams memory buyParams;
-
-		(
-			buyParams.seriesAddress,
-			buyParams.optionSeries,
-			buyParams.strikeDecimalConverted
-		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
-		// check the option hash and option series for validity
-		bytes32 oHash = _checkHash(buyParams.optionSeries, buyParams.strikeDecimalConverted, false);
-		// convert the strike to e18 decimals for storage, this gets the strike price in e18 decimals
-		buyParams.seriesToStore = Types.OptionSeries(
-			buyParams.optionSeries.expiration,
-			buyParams.strikeDecimalConverted,
-			buyParams.optionSeries.isPut,
-			underlyingAsset,
-			strikeAsset,
-			buyParams.optionSeries.collateral
+		(buyParams.seriesAddress, buyParams.seriesToStore, buyParams.optionSeries) = _preChecks(
+			_args.seriesAddress,
+			_args.optionSeries,
+			optionRegistry,
+			false
 		);
 		address recipient = _args.recipient;
 		// calculate premium and delta from the option pricer, returning the premium in collateral decimals and delta in e18
@@ -596,6 +571,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			.storesForAddress(buyParams.seriesAddress)
 			.longExposure;
 		uint256 amount = _args.amount;
+		emit OptionsBought(seriesAddress, amount);
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
 			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
@@ -661,7 +637,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			sellParams.seriesToStore,
 			sellParams.optionSeries,
 			oHash
-		) = _preSaleChecks(_args, optionRegistry);
+		) = _preChecks(_args.seriesAddress, _args.optionSeries, optionRegistry true);
 		// get the unit price for premium and delta
 		(sellParams.premium, sellParams.delta, sellParams.fee) = pricer.quoteOptionPrice(
 			sellParams.seriesToStore,
@@ -718,6 +694,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 		// this accounts for premium sent from buyback as well as any rounding errors from the dhv buyback
 		if (sellParams.premium > sellParams.premiumSent) {
+			// we need to make sure we arent eating into the withdraw partition with this trade 
+			if (ILiquidityPool(liquidityPool).getBalance(collateralAsset) < (sellParams.premium - sellParams.premiumSent)) {
+				revert CustomErrors.WithdrawExceedsLiquidity();
+			}
 			// take the funds from the liquidity pool and pay them here
 			SafeTransferLib.safeTransferFrom(
 				collateralAsset,
@@ -745,6 +725,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				sellParams.premium - sellParams.fee
 			);
 		}
+		emit OptionsSold(sellParams.seriesAddress, _args.amount);
 	}
 
 	///////////////////////////
@@ -990,7 +971,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), premium);
 	}
 
-	function _preSaleChecks(RyskActions.SellOptionArgs memory _args, IOptionRegistry optionRegistry)
+	function _preChecks(address _seriesAddress, Types.OptionSeries memory _optionSeries, IOptionRegistry _optionRegistry, bool isSell)
 		internal
 		view
 		returns (
@@ -1004,7 +985,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			address seriesAddress,
 			Types.OptionSeries memory optionSeries,
 			uint128 strikeDecimalConverted
-		) = _getOptionDetails(_args.seriesAddress, _args.optionSeries, optionRegistry);
+		) = _getOptionDetails(_seriesAddress, _optionSeries, _optionRegistry);
 		// check the option hash and option series for validity
 		bytes32 oHash = _checkHash(optionSeries, strikeDecimalConverted, true);
 		// convert the strike to e18 decimals for storage

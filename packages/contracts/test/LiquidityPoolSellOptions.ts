@@ -420,36 +420,39 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				amount
 			)
 			await usd.approve(exchange.address, quote)
-			await exchange.operate([
+			const tx = await exchange.operate([
 				{
 					operation: 1,
-					operationQueue: [
-						{
-							actionType: 0,
-							owner: ZERO_ADDRESS,
-							secondAddress: ZERO_ADDRESS,
-							asset: ZERO_ADDRESS,
-							vaultId: 0,
-							amount: 0,
-							optionSeries: proposedSeries,
-							index: 0,
-							data: "0x"
-						},
-						{
-							actionType: 1,
-							owner: ZERO_ADDRESS,
-							secondAddress: senderAddress,
-							asset: ZERO_ADDRESS,
-							vaultId: 0,
-							amount: amount,
-							optionSeries: proposedSeries,
-							index: 0,
-							data: "0x"
-						}
-					]
-				}
-			])
+					operationQueue: [{
+						actionType: 0,
+						owner: ZERO_ADDRESS,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: 0,
+						optionSeries: proposedSeries,
+						index: 0,
+						data: "0x"
+					}, {
+						actionType: 1,
+						owner: ZERO_ADDRESS,
+						secondAddress: senderAddress,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: proposedSeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])
+			const logs = await exchange.queryFilter(exchange.filters.OptionsIssued(), 0)
+			const issueEvent = logs[0].args
+			const logs2 = await exchange.queryFilter(exchange.filters.OptionsBought(), 0)
+			const buyEvent = logs2[0].args
 			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			expect(issueEvent.series).to.equal(seriesAddress)
+			expect(buyEvent.series).to.equal(seriesAddress)
+			expect(buyEvent.optionAmount).to.equal(amount)
 			const localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
 				priceFeed,
@@ -563,27 +566,27 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				amount
 			)
 			await optionToken.approve(exchange.address, amount)
-			await exchange.operate([
+			const tx = await exchange.operate([
 				{
 					operation: 1,
-					operationQueue: [
-						{
-							actionType: 2,
-							owner: ZERO_ADDRESS,
-							secondAddress: senderAddress,
-							asset: optionToken.address,
-							vaultId: 0,
-							amount: amount,
-							optionSeries: emptySeries,
-							index: 0,
-							data: "0x"
-						}
-					]
-				}
-			])
-			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address))
-				.optionSeries
-			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+					operationQueue: [{
+						actionType: 2,
+						owner: ZERO_ADDRESS,
+						secondAddress: senderAddress,
+						asset: optionToken.address,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: emptySeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])
+			const logs = await exchange.queryFilter(exchange.filters.OptionsSold(), 0)
+			const soldEvent = logs[0].args
+			expect(soldEvent.series).to.equal(optionToken.address)
+			expect(soldEvent.optionAmount).to.equal(amount)
+			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address)).optionSeries
+			let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, true))
 			let quote = quoteResponse[0].sub(quoteResponse[2])
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -3305,34 +3308,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				).to.be.within(-50, 50)
 			})
 		})
-		describe("Settles and redeems eth otoken", async () => {
-			it("SETUP: changes spot handling to sell redemption", async () => {
-				await exchange.setSellRedemptions(false, spotHedgingReactor.address)
-				expect(await exchange.sellRedemptions()).to.be.false
-				expect(await exchange.spotHedgingReactor()).to.equal(spotHedgingReactor.address)
-			})
-			it("SUCCEEDS: redeems options held", async () => {
-				optionToken = oTokenETH1600C
-				const reactorOtokenBalanceBefore = await optionToken.balanceOf(exchange.address)
-				const liquidityPoolUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-				const redeem = await exchange.redeem([optionToken.address])
-				const receipt = await redeem.wait()
-				const events = receipt.events
-				const redemptionEvent = events?.find(x => x.event == "RedemptionSent")
-				const redeemAmount = redemptionEvent?.args?.redeemAmount
-				const reactorOtokenBalanceAfter = await optionToken.balanceOf(exchange.address)
-				const liquidityPoolUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
-				expect(reactorOtokenBalanceBefore).to.be.gt(0)
-				expect(reactorOtokenBalanceAfter).to.equal(0)
-				expect(liquidityPoolUSDBalanceAfter).to.equal(liquidityPoolUSDBalanceBefore)
-				const wethAsset = (await ethers.getContractAt(
-					"MintableERC20",
-					WETH_ADDRESS[chainId]
-				)) as MintableERC20
-				expect(await wethAsset.balanceOf(exchange.address)).to.equal(0)
-				expect(await wethAsset.balanceOf(spotHedgingReactor.address)).to.equal(redeemAmount)
-			})
-		})
 		describe("Settles and redeems busd otoken", async () => {
 			it("REVERTS: cannot redeem option when pool fee not set", async () => {
 				optionToken = oTokenBUSD3000P
@@ -3376,18 +3351,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				)
 				await exchange.setPricer(pricer.address)
 				expect(await exchange.pricer()).to.equal(pricer.address)
-			})
-			it("SUCCEEDS: set sell redemptions", async () => {
-				await exchange.setSellRedemptions(false, spotHedgingReactor.address)
-				expect(await exchange.sellRedemptions()).to.be.false
-				expect(await exchange.spotHedgingReactor()).to.equal(spotHedgingReactor.address)
-			})
-			it("REVERTS: set sell redemptions when non governance calls", async () => {
-				await expect(
-					exchange.connect(signers[1]).setSellRedemptions(true, spotHedgingReactor.address)
-				).to.be.revertedWith("UNAUTHORIZED()")
-				await exchange.setSellRedemptions(true, spotHedgingReactor.address)
-				expect(await exchange.sellRedemptions()).to.equal(true)
 			})
 			it("SUCCEEDS: set pool fee", async () => {
 				await exchange.setPoolFee(senderAddress, 1000)
