@@ -46,7 +46,8 @@ import {
 	increase,
 	setOpynOracleExpiryPrice,
 	makeIssueAndBuy,
-	makeBuy
+	makeBuy,
+	getSeriesWithe18Strike
 } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
@@ -394,7 +395,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		await makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
-		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+		const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
@@ -442,7 +443,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 		const balance = await usd.balanceOf(senderAddress)
 		prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
 		await makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
-		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+		const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 		localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,

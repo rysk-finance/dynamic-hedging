@@ -949,7 +949,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			uint128 strikeDecimalConverted
 		) = _getOptionDetails(_seriesAddress, _optionSeries, _optionRegistry);
 		// check the option hash and option series for validity
-		bytes32 oHash = _checkHash(optionSeries, strikeDecimalConverted, true);
+		bytes32 oHash = _checkHash(optionSeries, strikeDecimalConverted, isSell);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			optionSeries.expiration,
@@ -1033,24 +1033,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		uint256 difference = OPYN_DECIMALS - collateralDecimals;
 		// round floor strike to prevent errors in Gamma protocol
 		return (price / (10**difference)) * (10**difference);
-	}
-
-	function getSeriesWithe18Strike(Types.OptionSeries memory optionSeries)
-		external
-		view
-		returns (address)
-	{
-		return
-			IOptionRegistry(getOptionRegistry()).getSeries(
-				Types.OptionSeries(
-					optionSeries.expiration,
-					uint128(formatStrikePrice(optionSeries.strike, optionSeries.collateral)),
-					optionSeries.isPut,
-					optionSeries.underlying,
-					optionSeries.strikeAsset,
-					optionSeries.collateral
-				)
-			);
 	}
 
 	/// @inheritdoc IHedgingReactor

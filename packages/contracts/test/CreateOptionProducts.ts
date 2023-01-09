@@ -40,11 +40,9 @@ import {
 	setupOracle,
 	calculateOptionQuoteLocally,
 	calculateOptionDeltaLocally,
-	increase,
 	setOpynOracleExpiryPrice,
-	createAndMintOtoken,
-	whitelistProduct,
-	getExchangeParams
+	getExchangeParams,
+	getSeriesWithe18Strike
 } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
@@ -504,7 +502,7 @@ describe("Structured Product maker", async () => {
 					]
 				}
 			])
-			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			const localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
 				priceFeed,
@@ -2261,7 +2259,7 @@ describe("Structured Product maker", async () => {
 					]
 				}
 			])
-			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			const localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
 				priceFeed,
@@ -2405,7 +2403,7 @@ describe("Structured Product maker", async () => {
 					]
 				}
 			])
-			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			const localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
 				priceFeed,

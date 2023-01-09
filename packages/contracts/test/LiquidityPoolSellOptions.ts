@@ -45,7 +45,9 @@ import {
 	createAndMintOtoken,
 	whitelistProduct,
 	getExchangeParams,
-	createFakeOtoken
+	createFakeOtoken,
+	getSeriesWithe18Strike,
+	getNetDhvExposure
 } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
@@ -389,6 +391,13 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				{
 					expiration: expiration,
 					isPut: CALL_FLAVOR,
+					strike: toWei("1750"),
+					isSellable: true,
+					isBuyable: true
+				},
+				{
+					expiration: expiration,
+					isPut: CALL_FLAVOR,
 					strike: toWei("1650"),
 					isSellable: true,
 					isBuyable: true
@@ -449,7 +458,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const issueEvent = logs[0].args
 			const logs2 = await exchange.queryFilter(exchange.filters.OptionsBought(), 0)
 			const buyEvent = logs2[0].args
-			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			expect(issueEvent.series).to.equal(seriesAddress)
 			expect(buyEvent.series).to.equal(seriesAddress)
 			expect(buyEvent.optionAmount).to.equal(amount)
@@ -586,7 +595,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(soldEvent.series).to.equal(optionToken.address)
 			expect(soldEvent.optionAmount).to.equal(amount)
 			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address)).optionSeries
-			let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, true))
+			const netDhvExposure = await getNetDhvExposure(proposedSeries.strike, proposedSeries.collateral, exchange, proposedSeries.expiration, proposedSeries.isPut)
+			let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, true, netDhvExposure))
 			let quote = quoteResponse[0].sub(quoteResponse[2])
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -956,7 +966,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					]
 				}
 			])
-			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			const localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
 				priceFeed,
@@ -1064,7 +1074,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					]
 				}
 			])
-			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			const localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
 				priceFeed,
@@ -1403,7 +1413,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					]
 				}
 			])
-			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			const localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
 				priceFeed,
@@ -1788,7 +1798,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					]
 				}
 			])
-			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			quote = quoteResponse[0].add(quoteResponse[2])
 			localDelta = await calculateOptionDeltaLocally(
@@ -1893,7 +1903,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					]
 				}
 			])
-			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			quote = quoteResponse[0].add(quoteResponse[2])
 			localDelta = await calculateOptionDeltaLocally(
@@ -2036,7 +2046,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					]
 				}
 			])
-			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			const localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
 				priceFeed,
@@ -2099,7 +2109,14 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				collateral: usd.address
 			}
 			const fakeOtoken = await createFakeOtoken(senderAddress, proposedSeries, addressBook)
-			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			let quoteResponse = await pricer.quoteOptionPrice({
+				expiration: expiration2,
+				strike: strikePrice,
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}, amount, false, 0)
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			const before = await getExchangeParams(
 				liquidityPool,
@@ -2253,7 +2270,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					]
 				}
 			])
-			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			const localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
 				priceFeed,
@@ -2551,7 +2568,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					]
 				}
 			])
-			const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			const localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
 				priceFeed,

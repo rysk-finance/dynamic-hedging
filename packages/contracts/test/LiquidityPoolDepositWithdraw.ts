@@ -36,7 +36,7 @@ import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle, calculateOptionDeltaLocally, makeIssueAndBuy, makeBuy } from "./helpers"
+import { setupTestOracle, calculateOptionDeltaLocally, makeIssueAndBuy, makeBuy, getSeriesWithe18Strike } from "./helpers"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -407,15 +407,15 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-				parseFloat(fromWei(pendingWithdrawBefore)) *
-					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+			parseFloat(fromWei(pendingWithdrawBefore)) *
+			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			totalSupplyBefore.eq(0)
 				? toWei("1")
 				: toWei("1")
-						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-						.div(totalSupplyBefore)
+					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+					.div(totalSupplyBefore)
 		)
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
 		expect(pendingDepositBefore).to.not.eq(0)
@@ -639,7 +639,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		await makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
-		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+		const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		optionToken1 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await optionToken1.balanceOf(senderAddress)
@@ -710,15 +710,15 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-				parseFloat(fromWei(pendingWithdrawBefore)) *
-					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+			parseFloat(fromWei(pendingWithdrawBefore)) *
+			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			totalSupplyBefore.eq(0)
 				? toWei("1")
 				: toWei("1")
-						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-						.div(totalSupplyBefore)
+					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+					.div(totalSupplyBefore)
 		)
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
 		expect(pendingDepositBefore).to.not.eq(0)
@@ -966,7 +966,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		await makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
-		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+		const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const callOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const callBalance = await callOptionToken.balanceOf(senderAddress)
@@ -1041,8 +1041,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			totalSupplyBefore.eq(0)
 				? toWei("1")
 				: toWei("1")
-						.mul((await liquidityPool.getNAV()).sub(pendingDepositBefore))
-						.div(totalSupplyBefore)
+					.mul((await liquidityPool.getNAV()).sub(pendingDepositBefore))
+					.div(totalSupplyBefore)
 		)
 
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
@@ -1121,8 +1121,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-				parseFloat(fromWei(pendingWithdrawBefore)) *
-					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+			parseFloat(fromWei(pendingWithdrawBefore)) *
+			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(pendingWithdrawAfter).to.eq(0)
 		// check depositEpochPricePerShare is correct

@@ -52,6 +52,29 @@ const aboveUtilizationThresholdGradient = 1
 const utilizationFunctionThreshold = 0.6 // 60%
 const yIntercept = -0.6
 
+export async function getNetDhvExposure(strikePrice, collateral, exchange, expiration, flavor) {
+	const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, collateral)).mul(
+		ethers.utils.parseUnits("1", 10)
+	)
+	const oHash = ethers.utils.solidityKeccak256(
+		["uint64", "uint128", "bool"],
+		[expiration, formattedStrikePrice, flavor]
+	)
+	return await exchange.netDhvExposure(oHash)
+}
+export async function getSeriesWithe18Strike(proposedSeries, optionRegistry) {
+	const formattedStrike = await optionRegistry.formatStrikePrice(proposedSeries.strike, proposedSeries.collateral)
+	const seriesAddress = await optionRegistry.getSeries({
+		expiration: proposedSeries.expiration,
+		isPut: proposedSeries.isPut,
+		strike: formattedStrike,
+		strikeAsset: proposedSeries.strikeAsset,
+		underlying: proposedSeries.underlying,
+		collateral: proposedSeries.collateral
+	})
+	return seriesAddress
+}
+
 export async function getExchangeParams(
 	liquidityPool,
 	exchange,
