@@ -128,10 +128,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		uint256 premium;
 		int256 delta;
 		uint256 fee;
-		uint256 amount;
-		uint256 tempHoldings;
-		uint256 transferAmount;
-		uint256 premiumSent;
 	}
 
 	event SeriesApproved(
