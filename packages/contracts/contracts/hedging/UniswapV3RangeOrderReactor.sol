@@ -282,9 +282,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         } else {
             // sell underlying
             uint256 underlyingBalance = inversed ? amount1Current : amount0Current;
-            // highest price is best price when selling
-            uint256 priceToUse = quotePrice < underlyingPrice ? underlyingPrice : quotePrice;
             RangeOrderDirection direction = inversed ? RangeOrderDirection.BELOW : RangeOrderDirection.ABOVE;
+            uint256 priceToUse = getPriceToUse(quotePrice, underlyingPrice, inversed, direction);
             RangeOrderParams memory rangeOrder = _getTicksAndMeanPriceFromWei(priceToUse, direction, inversed);
             uint256 deltaToUse = _delta > int256(underlyingBalance) ? underlyingBalance : uint256(_delta);
             if (deltaToUse < minAmount) return 0;
