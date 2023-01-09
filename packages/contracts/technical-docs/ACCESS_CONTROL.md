@@ -2,8 +2,8 @@
 
 All contracts below inherit AccessControl with 3 roles, Governor, Manager and Guardian
 
-1. GOVERNOR: 3/5 Multisig of addresses: [Jib, Gerry, Dan, Josh, X]
-2. MANAGER: 2/3 Multisig of addresses: [Jib, Gerry, X]
+1. GOVERNOR: 3/5 Multisig of addresses: [Jib, Gerry, Dan, Josh, Degeneral]
+2. MANAGER: 2/4 Multisig of addresses: [Jib, Gerry, Degeneral, Josh]
 3. GUARDIAN: Single addresses: [Jib], [Dan], [Gerry], [Josh]
 4. KEEPER: Set of automated single addresses (bots)
 
@@ -15,30 +15,40 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
     - bufferPercentage [the collateral amount percentage that must be left in the pool]: GOVERNOR
     - hedgingReactors [hedging reactors used for hedging delta with new derivatives]: GOVERNOR
     - collateralCap [max amount of collateral allowed]: GOVERNOR
-    - maxDiscount [max discount allowed for options prices because of delta skew]: GOVERNOR, MANAGER
     - bidAskIVSpread [the implied volatility difference for when selling options back to the pool]: GOVERNOR, MANAGER
     - optionParams [options value range for options that the pool can write]: GOVERNOR, MANAGER
     - riskFreeRate [rate used for options calculation]: GOVERNOR
     - handler [authorised contracts that can interact with liquidityPool options writing capabilities]: GOVERNOR
     - maxTimeDeviationThreshold [time window after which a portfolio feed update gets stale]: GOVERNOR
     - maxPriceDeviationThreshold [price window after which a portfolio feed update gets stale]: GOVERNOR
-    - utilizationSkewParams [parameters used for the quote price pricing mechanism]: GOVERNOR, MANAGER
     - keeper [authorised specified function caller]: GOVERNOR
 - LiquidityPool rebalancePortfolioDelta: GOVERNOR, MANAGER
 - LiquidityPool settleVault: GOVERNOR, MANAGER, KEEPER 
 - LiquidityPool pauseTradingAndRequest: GOVERNOR, MANAGER, KEEPER
 - LiquidityPool executeEpochCalculation: GOVERNOR, MANAGER, KEEPER
 
-
-## OptionHandler
+## OptionExchange
 ### (GOVERNOR, MANAGER, GUARDIAN)
 
-- OptionHandler pause/unpause: GUARDIAN, GOVERNOR
-- OptionHandler setters: GOVERNOR
-    - customOrderBounds [the options details range and price range that can be used for writing custom orders]: GOVERNOR
-    - buybackWhitelist [mapping of addresses that are allowed to always sell options back to the pool]: GOVERNOR
-- OptionHandler createOrder: GOVERNOR, MANAGER
-- OptionHandler createStrangle: GOVERNOR, MANAGER
+- OptionExchange pause/unpause: GUARDIAN, GOVERNOR
+- OptionExchange setters: GOVERNOR
+    - pricer [the contract used for pricing options]: GOVERNOR
+    - feeRecipient [the recipient of protocol fees]: GOVERNOR
+    - poolFee [pool fees associated with swapping redeemed assets]
+- OptionExchange: withdraw: LIQUIDITY POOL
+    - withdraw [give any loose USDC to the liquidityPool]
+- OptionExchange accessed controlled functions: MANAGER, GOVERNOR
+    - issueNewSeries [approve a new option type for trading]: MANAGER, GOVERNOR
+    - changeOptionBuyOrSell [change whether an option type is available for buy or sell]: MANAGER, GOVERNOR
+    - redeem [redeem options held by the exchange]: MANAGER, GOVERNOR
+
+## AlphaOptionHandler
+### (GOVERNOR, MANAGER, GUARDIAN)
+- AlphaOptionHandler setters: GOVERNOR
+    - feePerContract [the fee paid per option contract]: GOVERNOR
+    - feeRecipient [the recipient of protocol fees]: GOVERNOR
+- AlphaOptionHandler createOrder [create an otc option order]: GOVERNOR, MANAGER
+- AlphaOptionHandler createStrangle [create an otc option order strangle]: GOVERNOR, MANAGER
 
 ## OptionRegistry
 ### (GOVERNOR, GUARDIAN, KEEPER)
@@ -51,28 +61,36 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
 - OptionRegistry wCollatLiquidatedVault: GOVERNOR, KEEPER
 - OptionRegistry registerLiquidatedVault: GOVERNOR, KEEPER
 
-## PortfolioValuesFeed
+## AlphaPortfolioValuesFeed
 ### (GOVERNOR)
 
-- PortfolioValuesFeed setters: GOVERNOR
+- AlphaPortfolioValuesFeed setters: GOVERNOR
     - liquidityPool [liquidityPool contract authorised to interact with options capabilitites]: GOVERNOR
-    - stringedAddresses [address to string asset mappings]: GOVERNOR
-    - maxTimeDeviationThreshold [time window after which a portfolio feed update gets stale]: GOVERNOR
-    - maxPriceDeviationThreshold [price window after which a portfolio feed update gets stale]: GOVERNOR
-- PortfolioValuesFeed withdrawLink: GOVERNOR
+    - protocol [protocol contract]: GOVERNOR
+    - rfr [riskFreeRate]: GOVERNOR
+    - keeper [keepers can interact with maintenance tasks]: GOVERNOR
+    - handler [handlers are contracts that can update the options storage]: GOVERNOR
+- AlphaPortfolioValuesFeed updateStores [update the options book of the contract]: HANDLER
+- AlphaPortfolioValuesFeed syncLooper [cleans the array used for storing options of expired options]: KEEPER
+- AlphaPortfolioValuesFeed cleanLooperManually [manually clean the for loop of a specific series]: KEEPER
+- AlphaPortfolioValuesFeed accountLiquidatedSeries [account for a liquidated series in the portfolio]: KEEPER
+- AlphaPortfolioValuesFeed migrate [migrate the options storage to a new PortfolioValuesFeed]: GOVERNOR
 
 ## PriceFeed
 ### (GOVERNOR)
 
 - PriceFeed setters: GOVERNOR
     - priceFeeds [chainlink price feeds that the pricefeed can offer]: GOVERNOR
+    - sequencerUptimeFeedAddress [address used for tracking the uptime of the arbitrum sequencer]: GOVERNOR
 
 
 ## VolatilityFeed
 ### (GOVERNOR)
 
-- VolatilityFeed setters: GOVERNOR
-    - volatilitySkew [the volatility skew used for puts and calls]: GOVERNOR, MANAGER, KEEPER
+- VolatilityFeed setters: GOVERNOR, MANAGER, KEEPER
+    - sabrParameters [parameters used for the sabr volatility curve]: KEEPER, MANAGER, GOVERNOR
+    - interestRate [used to compute the forward price for volatility]: GOVERNOR
+    - keeper [able to update sabr parameters]: GOVERNOR
 
 ## Protocol
 ### (GOVERNOR)
@@ -80,6 +98,8 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
 - Protocol setters: GOVERNOR
     - volatilityFeed [the volatility feed used for the liquidityPool]: GOVERNOR
     - portfolioValuesFeed [the portfolio values feed used for the liquidityPool]: GOVERNOR
+    - accounting [the contract used for managing deposit/withdraw logic]: GOVERNOR
+    - priceFeed [the price feed used for all contracts]: GOVERNOR
 
 ## PerpHedgingReactor
 ### (GOVERNOR, GUARDIAN, KEEPER)
