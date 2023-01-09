@@ -7,9 +7,7 @@ The Liquidity Pool holds most core functionality for the Rysk Dynamic Hedging Va
 Throughout the contract there are conversions between decimals, there are three decimals to be aware of e6 (USDC decimals) or collateral decimals, e8 otoken decimals and e18 share value, eth, and options calculation decimals. Where each decimal type is used is commented in each function.
 ## Oracle use
 
-**Chainlink oracle not used in Rysk Alpha**
-
-The contract uses Chainlink Price feed oracles. The contract also makes use of the Portfolio values feed request response oracle and may in the future make use of a volatility feed oracle. These are documented in the oracle documentation.
+The contract uses Chainlink Price feed oracles.
 
 ## Descriptions
 
@@ -35,24 +33,25 @@ These values are used to set the time and price thresholds for when an oracle up
 
 These are contracts that have the authority to issue, write, and buyback options from the liquidityPool. They must be authorised. This architecture allows for multiple handlers and upgradeability on the handlers.
 
-### Options pricing (quotePriceWithUtilizationGreeks, applyUtilizationPremium, applyDeltaPremium, getImpliedVolatility, OptionsCompute, utilisationSkewParams) 
-
-**Not used in Rysk Alpha**
-
-An explainer of the option pricing methodology and processes can be seen here: https://bejewled-egret-22c.notion.site/QuotePriceWithUtilizationGreeks-e7fdfdc890cc4b55852a5901c099ef9a 
-
 ### Mutual fund system (deposit(), redeem(), initiateWithdraw(), completeWithdraw(), pauseTradingAndRequest(), executeEpochCalculations(), getNAV(), sharesForAmount(), amountForShares())
 
 An explainer of the mutual fund system or how deposits/withdraws/redeems/pauseTradingAndRequest and executeEpochCalculation work can be seen here: https://bejewled-egret-22c.notion.site/Mutual-Fund-Explainer-768912673cf946f4a99c3b833d830389 
 
-Accounting.sol descriptor: https://bejewled-egret-22c.notion.site/Accounting-sol-58deffac2d1a45e1986fd29d1aa752fb
+Accounting.sol is responsible for the logic that guides how deposits and withdraws should be calculated and processed, it can be plugged in and out such that this logic can be modified in the future.
+
+Accounting.sol descriptor: https://rysk.notion.site/Accounting-sol-58deffac2d1a45e1986fd29d1aa752fb
 
 ### Issuing and Buying options back (handlerIssue, handlerWriteOption, handlerIssueAndWriteOption, handlerBuyBackOption, _issue, _writeOption, _buybackOption)
 
-**Only custom orders used in Rysk Alpha**
+Issuing an option is creating or retrieving an oToken series from opyn for that option and storing it in the options registry. It does NOT create any obligation or options contracts and is just a way of telling the registry and pool that this is an option that someone might want to mint.
 
-An explainer of the options interaction experience from the liquidity pool and user side can be seen here: https://bejewled-egret-22c.notion.site/Liquidity-Pool-Options-Interactions-9558238986234e01bbeb066a1031eb6f 
+Writing or Opening an option is the act of minting an oToken of a specified series, this will create an obligation, the pool takes on the short position and transfers the oToken which represents the long side to the option buyer. A user will pay a premium in order to do this.
 
+For writing options it can only be done if the options sale would not reduce the loose collateral held by the liquidity pool below the maxLiquidityBuffer.
+
+Buying back or closing an option is the act of returning an oToken to the pool so that it can be burnt. In this scenario the pool will pay the options seller a premium for closing out the position with the pool and collateral will be freed from the option vault.
+
+In all of these scenarios, the expiry of the option MUST be in the future, the collateral asset, underlying asset and strike asset must be correct. The expiries and strike prices must be within the specified thresholds.
 
 ### rebalancePortfolioDelta()
 
