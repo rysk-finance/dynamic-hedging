@@ -2401,31 +2401,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(liquidityPoolUSDBalanceAfter.sub(liquidityPoolUSDBalanceBefore).sub(redeemAmount)).to.be.within(-50, 50)
 			})
 		})
-		describe("Settles and redeems eth otoken", async () => {
-			it("SETUP: changes spot handling to sell redemption", async () => {
-				await exchange.setSellRedemptions(false, spotHedgingReactor.address)
-				expect(await exchange.sellRedemptions()).to.be.false
-				expect(await exchange.spotHedgingReactor()).to.equal(spotHedgingReactor.address)
-			})
-			it("SUCCEEDS: redeems options held", async () => {
-				optionToken = oTokenETH1600C
-				const reactorOtokenBalanceBefore = await optionToken.balanceOf(exchange.address)
-				const liquidityPoolUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-				const redeem = await exchange.redeem([optionToken.address])
-				const receipt = await redeem.wait()
-				const events = receipt.events
-				const redemptionEvent = events?.find(x => x.event == "RedemptionSent")
-				const redeemAmount = redemptionEvent?.args?.redeemAmount
-				const reactorOtokenBalanceAfter = await optionToken.balanceOf(exchange.address)
-				const liquidityPoolUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
-				expect(reactorOtokenBalanceBefore).to.be.gt(0)
-				expect(reactorOtokenBalanceAfter).to.equal(0)
-				expect(liquidityPoolUSDBalanceAfter).to.equal(liquidityPoolUSDBalanceBefore)
-				const wethAsset = (await ethers.getContractAt("MintableERC20", WETH_ADDRESS[chainId])) as MintableERC20
-				expect(await wethAsset.balanceOf(exchange.address)).to.equal(0)
-				expect(await wethAsset.balanceOf(spotHedgingReactor.address)).to.equal(redeemAmount)
-			})
-		})
 		describe("Settles and redeems busd otoken", async () => {
 			it("REVERTS: cannot redeem option when pool fee not set", async () => {
 				optionToken = oTokenBUSD3000P
@@ -2462,16 +2437,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				await expect(exchange.connect(signers[1]).setPricer(senderAddress)).to.be.revertedWith("UNAUTHORIZED()")
 				await exchange.setPricer(pricer.address)
 				expect(await exchange.pricer()).to.equal(pricer.address)
-			})
-			it("SUCCEEDS: set sell redemptions", async () => {
-				await exchange.setSellRedemptions(false, spotHedgingReactor.address)
-				expect(await exchange.sellRedemptions()).to.be.false
-				expect(await exchange.spotHedgingReactor()).to.equal(spotHedgingReactor.address)
-			})
-			it("REVERTS: set sell redemptions when non governance calls", async () => {
-				await expect(exchange.connect(signers[1]).setSellRedemptions(true, spotHedgingReactor.address)).to.be.revertedWith("UNAUTHORIZED()")
-				await exchange.setSellRedemptions(true, spotHedgingReactor.address)
-				expect(await exchange.sellRedemptions()).to.equal(true)
 			})
 			it("SUCCEEDS: set pool fee", async () => {
 				await exchange.setPoolFee(senderAddress, 1000)
