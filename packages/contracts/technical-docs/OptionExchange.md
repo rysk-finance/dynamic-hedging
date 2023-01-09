@@ -68,12 +68,12 @@ CHECK ON ALL ACTIONS: OWNER - It is checked that the owner param is the msg.send
 - *BurnShortOption*: Check the second address is the sender, this ensures the sender is burning otokens from their own wallet and nowhere else
 - *DepositLongOption*: Check the second address is the sender, this ensures the sender is depositing otokens from their own wallet and nowhere else
 - *WithdrawLongOption*: Check the secondAddress which represents the recipient of the withdrawn long short options, FOR UX PURPOSES the user can specify the exchange as the recipient. This will store the otokens in the exchange on behalf of the user for the duration of the transaction, this balance must be used by the end of the tx or the tx will revert.
-*DepositCollateral*: Check the secondAddress which represents the depositor of collateral. FOR UX PURPOSES the user can specify the exchange as the depositor (or themselves). If they select the exchange then the collateral is transferred from the user to the exchange before being sent to the gamma protocol (this prevents a seperate collateral Approve tx to the MarginPool contract as the user just needs to approve the exchange contract).
-*WithdrawCollateral*: No further preprocessing
-*SettleVault*: No further preprocessing
-*Redeem*: completely forbidden to reduce scope
-*Call*: completely forbidden to reduce scope
-*Liquidate*: completely forbidden to reduce scope
+- *DepositCollateral*: Check the secondAddress which represents the depositor of collateral. FOR UX PURPOSES the user can specify the exchange as the depositor (or themselves). If they select the exchange then the collateral is transferred from the user to the exchange before being sent to the gamma protocol (this prevents a seperate collateral Approve tx to the MarginPool contract as the user just needs to approve the exchange contract).
+- *WithdrawCollateral*: No further preprocessing
+- *SettleVault*: No further preprocessing
+- *Redeem*: completely forbidden to reduce scope
+- *Call*: completely forbidden to reduce scope
+- *Liquidate*: completely forbidden to reduce scope
 
 ### Rysk Actions
 
