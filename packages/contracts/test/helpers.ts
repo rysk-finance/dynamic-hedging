@@ -491,16 +491,10 @@ export async function calculateOptionQuoteLocally(
 	optionRegistry: OptionRegistry,
 	collateralAsset: MintableERC20,
 	priceFeed: PriceFeed,
-	optionSeries: {
-		expiration: number
-		strike: BigNumber
-		isPut: boolean
-		strikeAsset: string
-		underlying: string
-		collateral: string
-	},
+	optionSeries,
 	amount: BigNumber,
-	toBuy: boolean = false // from perspective of DHV
+	pricer: BeyondPricer,
+	isSell: boolean = false // from perspective of user,
 ) {
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
@@ -518,35 +512,44 @@ export async function calculateOptionQuoteLocally(
 		optionSeries.expiration
 	)
 
-	const bidAskSpread = 0
-	const rfr = "0"
+	const bidAskSpread = await pricer.bidAskIVSpread()
+	const rfr = await pricer.riskFreeRate()
 	const localBS =
 		bs.blackScholes(
 			priceNorm,
 			fromWei(optionSeries.strike),
 			timeToExpiration,
-			toBuy ? Number(fromWei(iv)) * (1 - Number(bidAskSpread)) : fromWei(iv),
-			parseFloat(rfr),
+			isSell ? Number(fromWei(iv)) * (1 - Number(bidAskSpread)) : fromWei(iv),
+			fromWei(rfr),
 			optionSeries.isPut ? "put" : "call"
 		) * parseFloat(fromWei(amount))
 	return localBS
 }
 
+export async function localQuoteOptionPrice(	
+	liquidityPool: LiquidityPool,
+	optionRegistry: OptionRegistry,
+	collateralAsset: MintableERC20,
+	priceFeed: PriceFeed,
+	optionSeries,
+	amount: BigNumber,
+	pricer: BeyondPricer,
+	isSell: boolean, // from perspective of user,
+	exchange: OptionExchange,
+	optionDelta: BigNumber
+	){
+		const bsQ = await calculateOptionQuoteLocally(liquidityPool, optionRegistry, collateralAsset, priceFeed, optionSeries, amount, pricer, isSell)
+		const slip = await applySlippageLocally(pricer, exchange, optionSeries, amount, optionDelta, isSell)
+		return bsQ*slip
+	}
+
 export async function applySlippageLocally(
 	beyondPricer: BeyondPricer,
 	exchange: OptionExchange,
-	optionSeries: {
-		expiration: number
-		strike: BigNumber
-		isPut: boolean
-		strikeAsset: string
-		underlying: string
-		collateral: string
-	},
+	optionSeries: OptionSeriesStruct,
 	amount: BigNumber,
-	vanillaPremium: Number,
 	optionDelta: BigNumber,
-	toBuy: boolean = false // from perspective of DHV
+	isSell: boolean = false // from perspective of user
 ) {
 	const formattedStrikePrice = (
 		await exchange.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
@@ -558,7 +561,7 @@ export async function applySlippageLocally(
 	const netDhvExposure = await exchange.netDhvExposure(oHash)
 	console.log({ oHash, netDhvExposure })
 
-	const exposureCoefficient = toBuy
+	const exposureCoefficient = isSell
 		? parseFloat(fromWei(netDhvExposure)) + parseFloat(fromWei(amount)) / 2
 		: parseFloat(fromWei(netDhvExposure)) - parseFloat(fromWei(amount)) / 2
 	const slippageGradient = await beyondPricer.slippageGradient()
@@ -570,7 +573,7 @@ export async function applySlippageLocally(
 	)
 	console.log({
 		deltaBandIndex,
-		optionDelta: parseFloat(fromWei(optionDelta.abs())),
+		optionDelta: parseFloat(fromWei(optionDelta)),
 		deltaBandWidth: parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
 	})
 	console.log("multiplier:", await beyondPricer.putSlippageGradientMultipliers(deltaBandIndex))
@@ -600,7 +603,7 @@ export async function calculateOptionDeltaLocally(
 		collateral: string
 	},
 	amount: BigNumber,
-	isShort: boolean
+	isSell: boolean // from perspective of user
 ) {
 	const priceQuote = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
 	const blockNum = await ethers.provider.getBlockNumber()
@@ -622,7 +625,7 @@ export async function calculateOptionDeltaLocally(
 		rfr,
 		opType
 	)
-	localDelta = isShort ? -localDelta : localDelta
+	localDelta = isSell ? -localDelta : localDelta
 	return toWei(localDelta.toFixed(18).toString()).mul(amount).div(toWei("1"))
 }
 
@@ -640,7 +643,7 @@ export async function getBlackScholesQuote(
 		collateral: string
 	},
 	amount: BigNumber,
-	toBuy: boolean = false
+	isSell: boolean = false
 ) {
 	const underlyingPrice = await priceFeed.getNormalizedRate(
 		WETH_ADDRESS[chainId],
@@ -671,37 +674,3 @@ export async function getBlackScholesQuote(
 	return localBS
 }
 
-function getUtilizationPrice(
-	utilizationBefore: number,
-	utilizationAfter: number,
-	optionPrice: number
-) {
-	if (
-		utilizationBefore < utilizationFunctionThreshold &&
-		utilizationAfter < utilizationFunctionThreshold
-	) {
-		return (
-			optionPrice +
-			((optionPrice * (utilizationBefore + utilizationAfter)) / 2) * belowUtilizationThresholdGradient
-		)
-	} else if (
-		utilizationBefore > utilizationFunctionThreshold &&
-		utilizationAfter > utilizationFunctionThreshold
-	) {
-		const utilizationPremiumFactor =
-			((utilizationBefore + utilizationAfter) / 2) * aboveUtilizationThresholdGradient + yIntercept
-		return optionPrice + optionPrice * utilizationPremiumFactor
-	} else {
-		const weightingRatio =
-			(utilizationFunctionThreshold - utilizationBefore) /
-			(utilizationAfter - utilizationFunctionThreshold)
-		const averageFactorBelow =
-			((utilizationFunctionThreshold + utilizationBefore) / 2) * belowUtilizationThresholdGradient
-		const averageFactorAbove =
-			((utilizationFunctionThreshold + utilizationAfter) / 2) * aboveUtilizationThresholdGradient +
-			yIntercept
-		const multiplicationFactor =
-			(weightingRatio * averageFactorBelow + averageFactorAbove) / (1 + weightingRatio)
-		return optionPrice + optionPrice * multiplicationFactor
-	}
-}
