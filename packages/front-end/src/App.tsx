@@ -18,7 +18,8 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet";
+import { Route, Routes } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
@@ -127,7 +128,7 @@ function App() {
   const [network, setNetwork] = useState<WalletContext["network"] | null>(null);
   //
   const [rpcURL, setRPCURL] = useState<string>(
-    process.env.REACT_APP_ENV === "production"
+    process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
       ? RPC_URL_MAP[CHAINID.ARBITRUM_MAINNET]
       : RPC_URL_MAP[CHAINID.ARBITRUM_GOERLI]
   );
@@ -179,11 +180,11 @@ function App() {
       const initialNetwork = await ethersProvider.getNetwork();
       const isCorrectChain =
         initialNetwork.chainId ===
-        (process.env.REACT_APP_ENV === "production"
+        (process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
           ? CHAINID.ARBITRUM_MAINNET
           : CHAINID.ARBITRUM_GOERLI);
       if (!isCorrectChain) {
-        if (process.env.REACT_APP_ENV === "production") {
+        if (process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET) {
           await addArbitrum();
           connectWallet();
           return;
@@ -195,9 +196,9 @@ function App() {
       }
 
       const networkId =
-        process.env.REACT_APP_ENV === "production"
+      process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
           ? CHAINID.ARBITRUM_MAINNET
-          : process.env.REACT_APP_ENV === "testnet"
+          : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_GOERLI
           ? CHAINID.ARBITRUM_GOERLI
           : null;
       if (networkId) {
@@ -299,7 +300,7 @@ function App() {
     async (chainIdHex: string) => {
       const chainId = parseInt(chainIdHex);
       const correctChainID =
-        process.env.REACT_APP_ENV === "production"
+      process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
           ? CHAINID.ARBITRUM_MAINNET
           : CHAINID.ARBITRUM_GOERLI;
       if (chainId !== correctChainID) {
@@ -327,14 +328,14 @@ function App() {
     const SUBGRAPH_URI =
       network?.id !== undefined
         ? SUBGRAPH_URL[network?.id]
-        : process.env.REACT_APP_ENV === "production"
+        : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
         ? SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
         : SUBGRAPH_URL[CHAINID.ARBITRUM_GOERLI];
 
     const OPYN_SUBGRAPH_URI =
       network?.id !== undefined
         ? OPYN_SUBGRAPH_URL[network?.id]
-        : process.env.REACT_APP_ENV === "production"
+        : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
         ? OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
         : OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_GOERLI];
 
@@ -410,6 +411,12 @@ function App() {
       <GlobalContextProvider>
         <ApolloProvider client={apolloClient}>
           <div className="App bg-bone font-dm-mono flex flex-col min-h-screen">
+            {process.env.REACT_APP_ENV !== "production" && (
+              <Helmet>
+                <meta name="robots" content="noindex, nofollow"></meta>
+              </Helmet>
+            )}
+
             <LegalDisclaimer />
             <MobileWarning />
             <Header />

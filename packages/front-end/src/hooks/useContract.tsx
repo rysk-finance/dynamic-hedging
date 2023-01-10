@@ -140,7 +140,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
           const transaction = (await method(...args, {
             gasLimit: scaledGasLimit,
           })) as TransactionResponse;
-          if (process.env.REACT_APP_ENV === "testnet") {
+          if (process.env.REACT_APP_NETWORK !== ETHNetwork.ARBITRUM_MAINNET) {
             console.log(`TX HASH: ${transaction.hash}`);
           }
           toast(
