@@ -7,6 +7,8 @@ on:
  push:
   branches:
    - "**" # matches every branch
+  paths:
+   - 'packages/contracts/**'
 
 
 defaults:
