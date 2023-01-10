@@ -193,12 +193,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			iv,
 			underlyingPrice
 		);
-		if (isSell) {
-			delta = -delta;
-		}
 		uint256 premium = vanillaPremium.mul(
 			_getSlippageMultiplier(_optionSeries, _amount, delta, netDhvExposure, isSell)
 		);
+		// note the delta returned is the delta of a long position of the option the sign of delta should be handled elsewhere.
 		totalPremium = premium.mul(_amount) / 1e12;
 		totalDelta = delta.mul(int256(_amount));
 		totalFees = feePerContract.mul(_amount);

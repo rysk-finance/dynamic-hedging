@@ -2166,8 +2166,8 @@ describe("Liquidity Pools", async () => {
 			collateralAllocatedBefore.sub(collateralAllocatedAfter)
 		)
 
-		// expect delta to be further from 0 afterwards because selling back a put option
-		expect(Math.abs(tFormatEth(deltaAfter))).to.be.gt(Math.abs(tFormatEth(deltaBefore)))
+		// expect delta to be closer to 0 afterwards because selling back a put option
+		expect(Math.abs(tFormatEth(deltaAfter))).to.be.lt(Math.abs(tFormatEth(deltaBefore)))
 		// check option seller's OToken balance reduced
 		expect(sellerOTokenBalanceAfter).to.equal(sellerOTokenBalanceBefore.sub(toOpyn(fromWei(amount))))
 		// check option seller's USD balance increases by correct amount
