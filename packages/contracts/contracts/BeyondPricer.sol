@@ -66,6 +66,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	// represents the lending rate of collateral used to collateralise short options by the DHV. denominated in bips
 	uint256 public collateralLendingRate;
+	// long delta borrow rate. denominated in bips
+	uint256 longDeltaBorrowRate;
+	// short delta borrow rate. denominated in bips
+	uint256 shortDeltaBorrowRate;
 
 	//////////////////////////
 	/// constant variables ///
@@ -73,6 +77,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
+	uint256 private constant ONE_YEAR_SECONDS = 31557600;
 
 	/////////////////////////
 	/// structs && events ///
@@ -91,7 +96,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 _deltaBandWidth,
 		uint256[] memory _callSlippageGradientMultipliers,
 		uint256[] memory _putSlippageGradientMultipliers,
-		uint256 _collateralLendingRate
+		uint256 _collateralLendingRate,
+		uint256 _shortDeltaBorrowRate,
+		uint256 _longDeltaBorrowRate
 	) AccessControl(IAuthority(_authority)) {
 		// option delta can span a range of 100, so ensure delta bands match this range
 		if (
@@ -110,6 +117,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
 		putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
 		collateralLendingRate = _collateralLendingRate;
+		shortDeltaBorrowRate = _shortDeltaBorrowRate;
+		longDeltaBorrowRate = _longDeltaBorrowRate;
 	}
 
 	///////////////
@@ -130,6 +139,16 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	function setCollateralLendingRate(uint256 _collateralLendingRate) external {
 		_onlyGovernor();
 		collateralLendingRate = _collateralLendingRate;
+	}
+
+	function setShortDeltaBorrowRate(uint256 _shortDeltaBorrowRate) external {
+		_onlyGovernor();
+		shortDeltaBorrowRate = _shortDeltaBorrowRate;
+	}
+
+	function setLongDeltaBorrowRate(uint256 _longDeltaBorrowRate) external {
+		_onlyGovernor();
+		longDeltaBorrowRate = _longDeltaBorrowRate;
 	}
 
 	/// @dev must also update delta band arrays to fit the new delta band width
@@ -206,6 +225,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 premium = vanillaPremium.mul(
 			_getSlippageMultiplier(_optionSeries, _amount, delta, netDhvExposure, isSell)
 		);
+		if (!isSell) {
+			// user is buying from DHV, so add spread to the price
+			premium += _getSpreadValue(_optionSeries, _amount, delta, netDhvExposure, underlyingPrice);
+		}
 
 		totalPremium = premium.mul(_amount) / 1e12;
 		totalDelta = delta.mul(int256(_amount));
@@ -301,13 +324,36 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	function _getSpreadValue(
 		Types.OptionSeries memory _optionSeries,
 		uint256 _amount,
-		int256 _netDhvExposure
-	) {
+		int256 _optionDelta,
+		int256 _netDhvExposure,
+		uint256 _underlyingPrice
+	) view interal returns (uint256 spreadPremium) {
 		uint256 netShortContracts;
 		if (_netDhvExposure <= 0) {
+			// dhv is already short so apply collateral lending spread to all traded contracts
 			netShortContracts = _amount;
 		} else {
-			netShortContracts = _amount - _netDhvExposure;
+			// dhv is long so only apply spread to those contracts which make it net short.
+			netShortContracts = _amount - _netDhvExposure < 0 ? 0 : _amount - _netDhvExposure;
 		}
+		// find collateral requirements for net short options
+		collateralToLend = protocol.optionRegistry().getCollateral(_optionSeries, netShortContracts);
+		// get duration of option in years
+		uint256 time = (_optionSeries.expiration - getTimeStamp()).div(ONE_YEAR_SECONDS);
+		// calculate the collateral cost portion of the spread
+		uint256 collateralLendingPremium = ((1e18 + (collateralLendingRate * 1e18) / MAX_BPS).pow(time))
+			.mul(collateralToLend) - collateralToLend;
+
+		uint256 dollarDelta = _optionDelta.mul(_amount).mul(_underlyingPrice);
+		uint256 deltaBorrowPremium;
+
+		if (_optionDelta < 0) {
+			// option is negative delta, resulting in long exposure for DHV
+			deltaBorrowPremium = dollarDelta.mul(1e18 + longDeltaBorrowRate).pow(time) - dollarDelta;
+		} else {
+			// option is positive delta, resulting in long exposure for DHV
+			deltaBorrowPremium = dollarDelta.mul(1e18 + longDeltaBorrowRate).pow(time) - dollarDelta;
+		}
+		return collateralLendingPremium + deltaBorrowPremium;
 	}
 }
