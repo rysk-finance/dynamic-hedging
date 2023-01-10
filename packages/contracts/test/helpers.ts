@@ -41,6 +41,7 @@ import { Otoken } from "../types/Otoken"
 import { BeyondPricer } from "../types/BeyondPricer"
 import { OptionExchange } from "../types/OptionExchange"
 import { priceToPriceX128 } from "@ragetrade/sdk"
+
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const { provider } = ethers
 const { parseEther } = ethers.utils
@@ -95,6 +96,7 @@ export async function getExchangeParams(
 	let seriesStores = await portfolioValuesFeed.storesForAddress(ZERO_ADDRESS)
 	let exchangeOTokenBalance = 0
 	let senderOtokenBalance = 0
+	let netDhvExposure = 0
 	// stuff we always expect to be the case
 	const poolWethBalance = await weth.balanceOf(liquidityPool.address)
 	const exchangeWethBalance = await weth.balanceOf(exchange.address)
@@ -108,6 +110,7 @@ export async function getExchangeParams(
 		exchangeOTokenBalance = await optionToken.balanceOf(exchange.address)
 		senderOtokenBalance = await optionToken.balanceOf(senderAddress)
 		seriesStores = await portfolioValuesFeed.storesForAddress(optionToken.address)
+		netDhvExposure = await getNetDhvExposure(seriesStores.optionSeries.strike, usd.address, exchange, seriesStores.optionSeries.expiration, seriesStores.optionSeries.isPut)
 		const exchangeTempOtokens = await exchange.heldTokens(senderAddress, optionToken.address)
 		const liquidityPoolOTokenBalance = await optionToken.balanceOf(liquidityPool.address)
 		expect(liquidityPoolOTokenBalance).to.equal(0)
@@ -122,7 +125,8 @@ export async function getExchangeParams(
 		opynAmount,
 		exchangeOTokenBalance,
 		senderOtokenBalance,
-		collateralAllocated
+		collateralAllocated,
+		netDhvExposure
 	}
 }
 export async function makeBuy(exchange, senderAddress, optionToken, amount, proposedSeries) {
@@ -493,7 +497,7 @@ export async function calculateOptionQuoteLocally(
 	priceFeed: PriceFeed,
 	optionSeries,
 	amount: BigNumber,
-	pricer: BeyondPricer,
+	pricer,
 	isSell: boolean = false // from perspective of user,
 ) {
 	const blockNum = await ethers.provider.getBlockNumber()
@@ -525,6 +529,44 @@ export async function calculateOptionQuoteLocally(
 		) * parseFloat(fromWei(amount))
 	return localBS
 }
+export async function calculateOptionQuoteLocallyAlpha(
+	liquidityPool: LiquidityPool,
+	optionRegistry: OptionRegistry,
+	collateralAsset: MintableERC20,
+	priceFeed: PriceFeed,
+	optionSeries,
+	amount: BigNumber,
+	isSell: boolean = false // from perspective of user,
+) {
+	const blockNum = await ethers.provider.getBlockNumber()
+	const block = await ethers.provider.getBlock(blockNum)
+	const { timestamp } = block
+	const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), optionSeries.expiration)
+	const underlyingPrice = await priceFeed.getNormalizedRate(
+		WETH_ADDRESS[chainId],
+		USDC_ADDRESS[chainId]
+	)
+	const priceNorm = fromWei(underlyingPrice)
+	const iv = await liquidityPool.getImpliedVolatility(
+		optionSeries.isPut,
+		underlyingPrice,
+		optionSeries.strike,
+		optionSeries.expiration
+	)
+
+	const bidAskSpread = 0
+	const rfr = 0
+	const localBS =
+		bs.blackScholes(
+			priceNorm,
+			fromWei(optionSeries.strike),
+			timeToExpiration,
+			isSell ? Number(fromWei(iv)) * (1 - Number(bidAskSpread)) : fromWei(iv),
+			0,
+			optionSeries.isPut ? "put" : "call"
+		) * parseFloat(fromWei(amount))
+	return localBS
+}
 
 export async function localQuoteOptionPrice(	
 	liquidityPool: LiquidityPool,
@@ -533,7 +575,7 @@ export async function localQuoteOptionPrice(
 	priceFeed: PriceFeed,
 	optionSeries,
 	amount: BigNumber,
-	pricer: BeyondPricer,
+	pricer,
 	isSell: boolean, // from perspective of user,
 	exchange: OptionExchange,
 	optionDelta: BigNumber
@@ -566,7 +608,6 @@ export async function applySlippageLocally(
 		: parseFloat(fromWei(netDhvExposure)) - parseFloat(fromWei(amount)) / 2
 	const slippageGradient = await beyondPricer.slippageGradient()
 	let modifiedSlippageGradient
-	console.log({ optionDelta })
 	const deltaBandIndex = Math.floor(
 		(parseFloat(fromWei(optionDelta.abs())) * 100) /
 			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))

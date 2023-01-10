@@ -2008,6 +2008,7 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
+
 			expect(upperAfter.exchangeOTokenBalance).to.eq(toOpyn(fromWei(amount)))
 			expect(lowerAfter.exchangeOTokenBalance).to.eq(toOpyn(fromWei(amount)))
 			expect(
@@ -2423,6 +2424,8 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
+			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			quote = quoteResponse[0].sub(quoteResponse[2])
 			expect(after.exchangeOTokenBalance).to.eq(0)
 			expect(
 				after.senderUSDBalance.sub(before.senderUSDBalance).sub(quote).add(marginRequirement)

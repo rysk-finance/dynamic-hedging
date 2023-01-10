@@ -36,12 +36,6 @@ import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import { Authority } from "../types/Authority"
 import {
 	setupTestOracle,
-	setupOracle,
-	calculateOptionQuoteLocally,
-	getBlackScholesQuote,
-	increaseTo,
-	setOpynOracleExpiryPrice,
-	calculateOptionDeltaLocally
 } from "./helpers"
 import {
 	GAMMA_CONTROLLER,

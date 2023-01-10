@@ -567,6 +567,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			.storesForAddress(buyParams.seriesAddress)
 			.longExposure;
 		uint256 amount = _args.amount;
+		// update the net DHV exposure for this series
+		netDhvExposure[oHash] -= int256(_args.amount);
 		emit OptionsBought(buyParams.seriesAddress, amount);
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
@@ -584,8 +586,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				-int256(boughtAmount),
 				buyParams.seriesAddress
 			);
-			// update the net DHV exposure for this series
-			netDhvExposure[oHash] -= int256(_args.amount);
 			amount -= boughtAmount;
 			if (amount == 0) {
 				return _args.amount;
@@ -601,8 +601,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			0,
 			buyParams.seriesAddress
 		);
-		// update the net DHV exposure for this series
-		netDhvExposure[oHash] -= int256(_args.amount);
 		// get the liquidity pool to write the options
 		return
 			liquidityPool.handlerWriteOption(
@@ -647,6 +645,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			sellParams.tempHoldings,
 			_args.amount
 		);
+		// update the net DHV exposure for this series
+		netDhvExposure[oHash] += int256(_args.amount);
 		int256 shortExposure = getPortfolioValuesFeed()
 			.storesForAddress(sellParams.seriesAddress)
 			.shortExposure;
@@ -685,8 +685,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				int256(sellParams.amount),
 				sellParams.seriesAddress
 			);
-			// update the net DHV exposure for this series
-			netDhvExposure[oHash] += int256(_args.amount);
 		}
 		// this accounts for premium sent from buyback as well as any rounding errors from the dhv buyback
 		if (sellParams.premium > sellParams.premiumSent) {

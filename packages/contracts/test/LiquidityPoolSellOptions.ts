@@ -506,6 +506,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.seriesStores.optionSeries.strikeAsset)
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
+			expect(after.netDhvExposure.add(amount)).to.equal(0)
 		})
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -621,6 +622,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.pfList[after.pfList.length - 1]).to.equal(optionToken.address)
 			expect(after.seriesStores.longExposure).to.equal(before.seriesStores.longExposure)
 			expect(before.seriesStores.shortExposure.sub(after.seriesStores.shortExposure)).to.equal(amount)
+			expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
 		})
 		it("REVERTS: tries to write an otoken that is not approved", async () => {
 			const amount = toWei("2")
@@ -752,6 +754,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.pfList[after.pfList.length - 1]).to.equal(optionToken.address)
 			expect(after.seriesStores.longExposure).to.equal(before.seriesStores.longExposure)
 			expect(after.seriesStores.shortExposure.sub(before.seriesStores.shortExposure)).to.equal(amount)
+			expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
 		})
 		it("SUCCEEDS: Sender sets exchange as an operator", async () => {
 			await controller.setOperator(exchange.address, true)
@@ -912,6 +915,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(after.seriesStores.optionSeries.strike).to.equal(proposedSeries.strike)
+			expect(after.netDhvExposure.add(amount)).to.equal(0)
 		})
 		it("LP Writes a ETH/USD call for premium for an option to be sold", async () => {
 			const amount = toWei("5")
@@ -1011,6 +1015,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(after.seriesStores.optionSeries.strike).to.equal(proposedSeries.strike)
+			expect(after.netDhvExposure.add(amount)).to.equal(0)
 		})
 		it("SUCCEEDS: Check action series address to see that series address is prioritised over optionSeries", async () => {
 			const amount = toWei("2")
@@ -1129,6 +1134,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(
 				seriesAfter.seriesStores.shortExposure.sub(seriesBefore.seriesStores.shortExposure)
 			).to.equal(amount)
+			expect(structBefore.netDhvExposure.sub(structAfter.netDhvExposure)).to.equal(0)
+			expect(seriesBefore.netDhvExposure.sub(seriesAfter.netDhvExposure)).to.equal(amount)
 		})
 		it("REVERTS: LP Sells a ETH/USD call using temp holdings and doesnt sell enough", async () => {
 			const amount = toWei("10")
@@ -1462,6 +1469,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(after.seriesStores.optionSeries.strike).to.equal(proposedSeries.strike)
+			expect(before.netDhvExposure.sub(after.netDhvExposure)).to.equal(amount)
 		})
 	})
 
@@ -1646,6 +1654,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.pfList[after.pfList.length - 1]).to.equal(optionToken.address)
 			expect(after.seriesStores.longExposure.sub(before.seriesStores.longExposure)).to.equal(amount)
 			expect(before.seriesStores.shortExposure).to.equal(after.seriesStores.shortExposure)
+			expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
 		})
 		it("REVERTS: closes the option positions fails because not approved", async () => {
 			const amount = toWei("2")
@@ -1740,6 +1749,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.pfList[after.pfList.length - 1]).to.equal(optionToken.address)
 			expect(before.seriesStores.longExposure.sub(after.seriesStores.longExposure)).to.equal(amount)
 			expect(after.seriesStores.shortExposure.sub(before.seriesStores.shortExposure)).to.equal(0)
+			expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
 		})
 	})
 	describe("LP writes more options", async () => {
@@ -1844,6 +1854,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.seriesStores.optionSeries.strikeAsset)
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
+			expect(after.netDhvExposure.add(amount)).to.equal(0)
 		})
 		it("SETUP: sets fee to 0", async () => {
 			await pricer.setFeePerContract(0)
@@ -1947,6 +1958,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.seriesStores.optionSeries.strikeAsset)
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
+			expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
 		})
 		it("SETUP: sets fee back to 3e5", async () => {
 			await pricer.setFeePerContract(toUSDC("0.3"))
@@ -2095,6 +2107,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.seriesStores.optionSeries.strikeAsset)
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
+			expect(before.netDhvExposure.sub(after.netDhvExposure)).to.equal(amount)
 		})
 		it("REVERTS: LP tries to write an ETH/USD call that is not from the correct otoken factory", async () => {
 			const amount = toWei("3")
@@ -2315,6 +2328,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.seriesStores.optionSeries.strikeAsset)
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
+			expect(after.netDhvExposure.add(amount)).to.equal(0)
 		})
 		it("SUCCEEDS: LP Sells a ETH/USD call with a mix of temp holdings and wallet holdings", async () => {
 			const amount = toWei("10")
@@ -2515,6 +2529,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.pfList[after.pfList.length - 1]).to.equal(optionToken.address)
 			expect(after.seriesStores.longExposure.sub(before.seriesStores.longExposure)).to.equal(0)
 			expect(before.seriesStores.shortExposure.sub(after.seriesStores.shortExposure)).to.equal(amount)
+			expect(before.netDhvExposure.sub(after.netDhvExposure)).to.equal(amount)
 		})
 		it("SUCCEED: LP Writes a ETH/USD put for premium", async () => {
 			const amount = toWei("5")
@@ -2613,6 +2628,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.seriesStores.optionSeries.strikeAsset)
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
+			expect(after.netDhvExposure.add(amount)).to.equal(0)
 		})
 		it("SUCCEEDS: closes the options on the exchange", async () => {
 			const amount = toWei("4")
@@ -2681,6 +2697,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.pfList[after.pfList.length - 1]).to.equal(optionToken.address)
 			expect(after.seriesStores.longExposure.sub(before.seriesStores.longExposure)).to.equal(0)
 			expect(before.seriesStores.shortExposure.sub(after.seriesStores.shortExposure)).to.equal(amount)
+			expect(before.netDhvExposure.sub(after.netDhvExposure)).to.equal(amount)
 		})
 	})
 	describe("Purchase and sell back an ETH option", async () => {
@@ -2812,6 +2829,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.pfList[after.pfList.length - 1]).to.equal(optionToken.address)
 			expect(after.seriesStores.longExposure.sub(before.seriesStores.longExposure)).to.equal(amount)
 			expect(before.seriesStores.shortExposure).to.equal(after.seriesStores.shortExposure)
+			expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
 		})
 		describe("Purchase and sell back a busd option", async () => {
 			let strikePrice: BigNumber
@@ -2973,6 +2991,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(after.pfList[after.pfList.length - 1]).to.equal(optionToken.address)
 				expect(after.seriesStores.longExposure.sub(before.seriesStores.longExposure)).to.equal(amount)
 				expect(before.seriesStores.shortExposure).to.equal(after.seriesStores.shortExposure)
+				expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
 			})
 			it("SUCCEEDS: buys the option positions", async () => {
 				const amount = toWei("2")
@@ -3032,6 +3051,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(after.pfList[after.pfList.length - 1]).to.equal(optionToken.address)
 				expect(before.seriesStores.longExposure.sub(after.seriesStores.longExposure)).to.equal(amount)
 				expect(after.seriesStores.shortExposure.sub(before.seriesStores.shortExposure)).to.equal(0)
+				expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
 			})
 		})
 		it("pauses trading and executes epoch", async () => {
@@ -3178,6 +3198,22 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								data: ZERO_ADDRESS
 							}
 						]
+					},
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
 					}
 				])
 				const localDelta = await calculateOptionDeltaLocally(
@@ -3219,6 +3255,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					.to.equal(proposedSeries.strikeAsset)
 					.to.equal(usd.address)
 				expect(after.seriesStores.optionSeries.strike).to.equal(proposedSeries.strike)
+				expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
 			})
 		})
 		describe("Settles and redeems usd otoken", async () => {
