@@ -1,23 +1,18 @@
-import React, { useEffect, useMemo } from "react";
-import { BigNumberDisplay } from "../../components/BigNumberDisplay";
+import { useEffect, useMemo } from "react";
 import { LPStats } from "../../components/LPStats";
 import { Card } from "../../components/shared/Card";
 import { VaultDeposit } from "./VaultDeposit";
-import { VaultPerformance } from "../../components/VaultPerformance";
+import { VaultPerformance } from "src/components/VaultPerformance/VaultPerformance";
 import { VaultTrades } from "../../components/VaultTrades";
-import { Currency } from "../../types";
-import { RequiresWalletConnection } from "../RequiresWalletConnection";
 import { VaultWithdraw } from "./VaultWithdraw";
 import { VaultStrategy } from "../VaultStrategy";
 import { VaultRisks } from "../VaultRisks";
-import { VaultInfo } from "../VaultInfo";
 import { DHV_NAME, SCAN_URL } from "../../config/constants";
 import * as Scroll from "react-scroll";
 
 import { useWalletContext } from "../../App";
 import { CHAINID } from "../../config/constants";
 import { useUserPosition } from "../../hooks/useUserPosition";
-import { PositionTooltip } from "./PositionTooltip";
 import { VaultMechanism } from "../VaultMechanism";
 import { useLocation } from "react-router-dom";
 import addresses from "../../contracts.json";
