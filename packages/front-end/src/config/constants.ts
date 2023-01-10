@@ -2,7 +2,7 @@ import { BigNumber } from "ethers";
 import { Currency as Token, ETHNetwork } from "../types";
 
 export const EXPLORER_URL =
-  process.env.REACT_APP_ENV === "production"
+  process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
     ? "https://arbiscan.io/"
     : "https://goerli.arbiscan.io/";
 
