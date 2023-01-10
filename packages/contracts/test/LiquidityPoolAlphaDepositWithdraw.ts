@@ -33,7 +33,7 @@ import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import {
 	setupTestOracle,
-	calculateOptionQuoteLocally,
+	calculateOptionQuoteLocallyAlpha,
 	calculateOptionDeltaLocally
 } from "./helpers"
 
@@ -436,7 +436,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -600,7 +600,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 				true
 			)
 			const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -893,7 +893,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuoteCall = await calculateOptionQuoteLocally(
+			const localQuoteCall = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -901,7 +901,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 				proposedSeriesCall,
 				amount
 			)
-			const localQuotePut = await calculateOptionQuoteLocally(
+			const localQuotePut = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1002,7 +1002,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 				orderDeets1.amount,
 				true
 			)
-			const localQuote1 = await calculateOptionQuoteLocally(
+			const localQuote1 = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1032,7 +1032,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 				orderDeets2.amount,
 				true
 			)
-			const localQuote2 = await calculateOptionQuoteLocally(
+			const localQuote2 = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,

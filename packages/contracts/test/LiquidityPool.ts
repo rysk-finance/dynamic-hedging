@@ -288,7 +288,6 @@ describe("Liquidity Pools", async () => {
 		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 	})
 	it("sets slippage gradient in pricer contract", async () => {
-		expect(await pricer.slippageGradient()).to.eq(0)
 		await pricer.setSlippageGradient(slippageGradient)
 
 		expect(await pricer.slippageGradient()).to.eq(slippageGradient)
@@ -597,6 +596,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			optionSeries,
 			amount,
+			pricer,
 			false
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -611,7 +611,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			optionSeries,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
@@ -657,6 +656,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			optionSeries,
 			amount,
+			pricer,
 			true
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -671,7 +671,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			optionSeries,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			true
 		)
@@ -1299,6 +1298,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			proposedSeries,
 			amount,
+			pricer,
 			false
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -1313,7 +1313,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			proposedSeries,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
@@ -1638,6 +1637,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			seriesInfoDecimalCorrected,
 			amount,
+			pricer,
 			false
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -1652,7 +1652,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			seriesInfoDecimalCorrected,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
@@ -1824,7 +1823,8 @@ describe("Liquidity Pools", async () => {
 			usd,
 			priceFeed,
 			proposedSeries,
-			amount
+			amount,
+			pricer,
 		)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
@@ -1838,7 +1838,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			proposedSeries,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
@@ -1956,6 +1955,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			seriesInfoDecimalCorrected,
 			amount,
+			pricer,
 			true
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -1970,7 +1970,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			seriesInfoDecimalCorrected,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			true
 		)
@@ -2092,6 +2091,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			seriesInfoDecimalCorrected,
 			amount,
+			pricer,
 			true
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -2099,14 +2099,13 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			seriesInfoDecimalCorrected,
 			amount,
-			false
+			true
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
 			exchange,
 			seriesInfoDecimalCorrected,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			true
 		)
@@ -2167,7 +2166,7 @@ describe("Liquidity Pools", async () => {
 			collateralAllocatedBefore.sub(collateralAllocatedAfter)
 		)
 
-		// expect delta to be closer to zero afterwards
+		// expect delta to be closer to 0 afterwards because selling back a put option
 		expect(Math.abs(tFormatEth(deltaAfter))).to.be.lt(Math.abs(tFormatEth(deltaBefore)))
 		// check option seller's OToken balance reduced
 		expect(sellerOTokenBalanceAfter).to.equal(sellerOTokenBalanceBefore.sub(toOpyn(fromWei(amount))))
@@ -2327,6 +2326,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			optionSeries,
 			amount,
+			pricer,
 			false
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -2341,7 +2341,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			optionSeries,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)

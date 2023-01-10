@@ -38,7 +38,7 @@ import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import {
 	setupTestOracle,
 	setupOracle,
-	calculateOptionQuoteLocally,
+	calculateOptionQuoteLocallyAlpha,
 	calculateOptionDeltaLocally,
 	increase,
 	setOpynOracleExpiryPrice,
@@ -410,7 +410,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -582,7 +582,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				true
 			)
 			const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -693,7 +693,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuoteCall = await calculateOptionQuoteLocally(
+			const localQuoteCall = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -701,7 +701,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				proposedSeriesCall,
 				amount
 			)
-			const localQuotePut = await calculateOptionQuoteLocally(
+			const localQuotePut = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -807,7 +807,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				orderDeets1.amount,
 				true
 			)
-			const localQuote1 = await calculateOptionQuoteLocally(
+			const localQuote1 = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -837,7 +837,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				orderDeets2.amount,
 				true
 			)
-			const localQuote2 = await calculateOptionQuoteLocally(
+			const localQuote2 = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -973,7 +973,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1062,7 +1062,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				true
 			)
 			const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1156,7 +1156,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1326,7 +1326,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				true
 			)
 			const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1418,7 +1418,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1531,7 +1531,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
