@@ -1887,9 +1887,9 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
-			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, 0)
+			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, lowerBefore.netDhvExposure)
 			let lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
-			let upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, 0)
+			let upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, upperBefore.netDhvExposure)
 			let upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 			await exchange.operate([
 				{
@@ -1996,11 +1996,6 @@ describe("Structured Product maker", async () => {
 					]
 				}
 			])
-
-			lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, 0)
-			lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
-			upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, 0)
-			upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 			const upperAfter = await getExchangeParams(
 				liquidityPool,
 				exchange,
@@ -2021,7 +2016,11 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
-
+			lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, lowerBefore.netDhvExposure)
+			lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
+			upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, upperBefore.netDhvExposure)
+			upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
+			console.log(lowerQuote, upperQuote)
 			expect(upperAfter.exchangeOTokenBalance).to.eq(toOpyn(fromWei(amount)))
 			expect(lowerAfter.exchangeOTokenBalance).to.eq(toOpyn(fromWei(amount)))
 			expect(
@@ -2063,8 +2062,8 @@ describe("Structured Product maker", async () => {
 				.to.equal(lowerProposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(lowerAfter.seriesStores.optionSeries.strike).to.equal(lowerProposedSeries.strike)
-			expect(lowerAfter.netDhvExposure.sub(amount)).to.equal(0)
-			expect(upperAfter.netDhvExposure.sub(amount)).to.equal(0)
+			expect(lowerAfter.netDhvExposure.sub(lowerBefore.netDhvExposure)).to.equal(amount)
+			expect(upperAfter.netDhvExposure.sub(upperBefore.netDhvExposure)).to.equal(amount)
 		})
 		it("SUCCEEDS: LP Sells a ETH/USD call for premium with otoken created outside", async () => {
 			const amount = toWei("5")

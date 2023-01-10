@@ -110,7 +110,7 @@ export async function getExchangeParams(
 		exchangeOTokenBalance = await optionToken.balanceOf(exchange.address)
 		senderOtokenBalance = await optionToken.balanceOf(senderAddress)
 		seriesStores = await portfolioValuesFeed.storesForAddress(optionToken.address)
-		netDhvExposure = await getNetDhvExposure(seriesStores.optionSeries.strike, usd.address, exchange, seriesStores.optionSeries.expiration, seriesStores.optionSeries.isPut)
+		netDhvExposure = await getNetDhvExposure((await optionToken.strikePrice()).mul(utils.parseUnits("1", 10)), usd.address, exchange, await optionToken.expiryTimestamp(), await optionToken.isPut())
 		const exchangeTempOtokens = await exchange.heldTokens(senderAddress, optionToken.address)
 		const liquidityPoolOTokenBalance = await optionToken.balanceOf(liquidityPool.address)
 		expect(liquidityPoolOTokenBalance).to.equal(0)

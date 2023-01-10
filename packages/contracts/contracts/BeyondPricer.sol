@@ -193,6 +193,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			iv,
 			underlyingPrice
 		);
+		console.log("vanillaPremium:", vanillaPremium);
 		uint256 premium = vanillaPremium.mul(
 			_getSlippageMultiplier(_optionSeries, _amount, delta, netDhvExposure, isSell)
 		);
@@ -200,6 +201,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		totalPremium = premium.mul(_amount) / 1e12;
 		totalDelta = delta.mul(int256(_amount));
 		totalFees = feePerContract.mul(_amount);
+		console.log("total premium:", totalPremium);
 	}
 
 	///////////////////////////
