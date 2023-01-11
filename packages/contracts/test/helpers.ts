@@ -41,6 +41,7 @@ import { Otoken } from "../types/Otoken"
 import { BeyondPricer } from "../types/BeyondPricer"
 import { OptionExchange } from "../types/OptionExchange"
 import { priceToPriceX128 } from "@ragetrade/sdk"
+import { ln } from "prb-math"
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const { provider } = ethers
@@ -578,10 +579,11 @@ export async function localQuoteOptionPrice(
 	pricer,
 	isSell: boolean, // from perspective of user,
 	exchange: OptionExchange,
-	optionDelta: BigNumber
+	optionDelta: BigNumber,
+	netDhvExposure: BigNumber = toWei("0")
 	){
 		const bsQ = await calculateOptionQuoteLocally(liquidityPool, optionRegistry, collateralAsset, priceFeed, optionSeries, amount, pricer, isSell)
-		const slip = await applySlippageLocally(pricer, exchange, optionSeries, amount, optionDelta, isSell)
+		const slip = await applySlippageLocally(pricer, exchange, optionSeries, amount, optionDelta, isSell, netDhvExposure)
 		return bsQ*slip
 	}
 
@@ -591,7 +593,8 @@ export async function applySlippageLocally(
 	optionSeries: OptionSeriesStruct,
 	amount: BigNumber,
 	optionDelta: BigNumber,
-	isSell: boolean = false // from perspective of user
+	isSell: boolean = false, // from perspective of user
+	netDhvExposure: BigNumber = toWei("0")
 ) {
 	const formattedStrikePrice = (
 		await exchange.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
@@ -600,12 +603,16 @@ export async function applySlippageLocally(
 		["uint64", "uint128", "bool"],
 		[optionSeries.expiration, formattedStrikePrice, optionSeries.isPut]
 	)
-	const netDhvExposure = await exchange.netDhvExposure(oHash)
+	if (netDhvExposure == toWei("0")) {
+		netDhvExposure = await exchange.netDhvExposure(oHash)
+	}
+
 	console.log({ oHash, netDhvExposure })
 
-	const exposureCoefficient = isSell
-		? parseFloat(fromWei(netDhvExposure)) + parseFloat(fromWei(amount)) / 2
-		: parseFloat(fromWei(netDhvExposure)) - parseFloat(fromWei(amount)) / 2
+	const newExposureCoefficient = isSell
+		? parseFloat(fromWei(netDhvExposure)) + parseFloat(fromWei(amount))
+		: parseFloat(fromWei(netDhvExposure)) - parseFloat(fromWei(amount))
+	const oldExposureCoefficient = fromWei(netDhvExposure)
 	const slippageGradient = await beyondPricer.slippageGradient()
 	let modifiedSlippageGradient
 	const deltaBandIndex = Math.floor(
@@ -627,8 +634,13 @@ export async function applySlippageLocally(
 			parseFloat(fromWei(slippageGradient)) *
 			parseFloat(fromWei(await beyondPricer.callSlippageGradientMultipliers(deltaBandIndex)))
 	}
-	const slippagePremium = (1 + modifiedSlippageGradient) ** -exposureCoefficient
-	console.log({ modifiedSlippageGradient, exposureCoefficient, slippagePremium })
+	if(slippageGradient == toWei("0")) {
+		return 1
+	}
+	const slippageFactor = (1 + modifiedSlippageGradient)
+	const slippagePremium = isSell ? (((slippageFactor ** -oldExposureCoefficient) - (slippageFactor ** -newExposureCoefficient))/Math.log(slippageFactor)) / parseFloat(fromWei(amount)) 
+								   : (((slippageFactor ** -newExposureCoefficient) - (slippageFactor ** -oldExposureCoefficient))/Math.log(slippageFactor)) / parseFloat(fromWei(amount))
+	console.log({ modifiedSlippageGradient, slippagePremium })
 	return slippagePremium
 }
 

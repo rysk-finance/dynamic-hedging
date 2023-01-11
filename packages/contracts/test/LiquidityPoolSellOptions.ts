@@ -1469,7 +1469,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(after.seriesStores.optionSeries.strike).to.equal(proposedSeries.strike)
-			expect(before.netDhvExposure.sub(after.netDhvExposure)).to.equal(amount)
+			expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
 		})
 	})
 
