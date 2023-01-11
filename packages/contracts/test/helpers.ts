@@ -24,7 +24,7 @@ import {
 import greeks from "greeks"
 import { MintableERC20 } from "../types/MintableERC20"
 import { WETH } from "../types/WETH"
-import { BigNumber, Contract, Signer, utils } from "ethers"
+import { BigNumber, BigNumberish, Contract, Signer, utils } from "ethers"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { ChainLinkPricer } from "../types/ChainLinkPricer"
 import { LiquidityPool } from "../types/LiquidityPool"
@@ -88,12 +88,11 @@ export async function compareQuotes(
 	optionRegistry,
 	usd,
 	pricer,
-	netDhvExposureOverride: BigNumber = toWei("86868686")) 
+	netDhvExposureOverride: BigNumberish = 1)
 {
 	const feePerContract = await pricer.feePerContract()
 	const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, isSell)
 	const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, isSell, exchange, localDelta.div(amount.div(toWei("1"))), netDhvExposureOverride)
-	console.log(localDelta.toString(), quoteResponse.totalDelta)
 	expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.1, 0.1)
 	expect((quoteResponse.totalDelta).abs().sub(localDelta.abs())).to.be.within(-1e14, 1e14)
 	if (proposedSeries.isPut) {
@@ -616,7 +615,7 @@ export async function localQuoteOptionPrice(
 	isSell: boolean, // from perspective of user,
 	exchange: OptionExchange,
 	optionDelta: BigNumber,
-	netDhvExposure: BigNumber = toWei("86868686")
+	netDhvExposure: BigNumberish = 1
 	){
 		const bsQ = await calculateOptionQuoteLocally(liquidityPool, optionRegistry, collateralAsset, priceFeed, optionSeries, amount, pricer, isSell)
 		const slip = await applySlippageLocally(pricer, exchange, optionSeries, amount, optionDelta, isSell, netDhvExposure)
@@ -630,7 +629,7 @@ export async function applySlippageLocally(
 	amount: BigNumber,
 	optionDelta: BigNumber,
 	isSell: boolean = false, // from perspective of user
-	netDhvExposure: BigNumber = toWei("86868686")
+	netDhvExposure: BigNumberish = 1
 ) {
 	const formattedStrikePrice = (
 		await exchange.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
@@ -639,11 +638,11 @@ export async function applySlippageLocally(
 		["uint64", "uint128", "bool"],
 		[optionSeries.expiration, formattedStrikePrice, optionSeries.isPut]
 	)
-	if (netDhvExposure == toWei("86868686")) {
+	if (netDhvExposure == 1) {
 		netDhvExposure = await exchange.netDhvExposure(oHash)
 	}
 
-	console.log({ oHash, netDhvExposure })
+	console.log({ oHash}, netDhvExposure.toString())
 
 	const newExposureCoefficient = isSell
 		? parseFloat(fromWei(netDhvExposure)) + parseFloat(fromWei(amount))
@@ -674,6 +673,13 @@ export async function applySlippageLocally(
 		return 1
 	}
 	const slippageFactor = (1 + modifiedSlippageGradient)
+	console.log({slippageFactor})
+	console.log(oldExposureCoefficient)
+	console.log(newExposureCoefficient)
+	console.log((slippageFactor ** -oldExposureCoefficient))
+	console.log((slippageFactor ** -newExposureCoefficient))
+	console.log(Math.log(slippageFactor))
+	console.log(fromWei(amount))
 	const slippagePremium = isSell ? (((slippageFactor ** -oldExposureCoefficient) - (slippageFactor ** -newExposureCoefficient))/Math.log(slippageFactor)) / parseFloat(fromWei(amount)) 
 								   : (((slippageFactor ** -newExposureCoefficient) - (slippageFactor ** -oldExposureCoefficient))/Math.log(slippageFactor)) / parseFloat(fromWei(amount))
 	console.log({ modifiedSlippageGradient, slippagePremium })

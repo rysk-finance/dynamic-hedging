@@ -349,25 +349,25 @@ describe("Pricer testing", async () => {
             const amount = toWei("1")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
             singleBuyQuote = quoteResponse[0]
-            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer)
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
         })
         it("SUCCEEDS: get quote for 1 option when selling", async () => {
             const amount = toWei("1")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
             singleSellQuote = quoteResponse[0]
-            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer)
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
         })
         it("SUCCEEDS: get quote for 1000 options when buying", async () => {
             const amount = toWei("1000")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer)
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
             expect(singleBuyQuote).to.be.lt(quoteResponse[0].div(1000))
         })
         it("SUCCEEDS: get quote for 1000 options when selling", async () => {
             const feePerContract = await pricer.feePerContract()
             const amount = toWei("1000")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
-            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer)
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
             expect(singleSellQuote).to.be.gt(quoteResponse[0].div(1000))
         })
     })
@@ -387,24 +387,24 @@ describe("Pricer testing", async () => {
             const amount = toWei("1")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
             singleBuyQuote = quoteResponse[0]
-            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer)
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
         })
         it("SUCCEEDS: get quote for 1 option when selling", async () => {
             const amount = toWei("1")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
             singleSellQuote = quoteResponse[0]
-            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer)
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
         })
         it("SUCCEEDS: get quote for 1000 options when buying", async () => {
             const amount = toWei("1000")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer)
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
             expect(singleBuyQuote).to.be.lt(quoteResponse[0].div(1000))
         })
         it("SUCCEEDS: get quote for 1000 options when selling", async () => {
             const amount = toWei("1000")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
-            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer)
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
             expect(singleSellQuote).to.be.gt(quoteResponse[0].div(1000))
         })
     })
@@ -441,13 +441,13 @@ describe("Pricer testing", async () => {
         it("SUCCEEDS: get quote for 100 options when buying 1 time", async () => {
             const amount = toWei("100")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer)
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			expect(buyQuoteLots.sub(quoteResponse[0])).to.be.within(-100, 100)
         })
         it("SUCCEEDS: get quote for 100 options when selling 1 time", async () => {
             const amount = toWei("100")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
-            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer)
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
             expect(sellQuoteLots.sub(quoteResponse[0])).to.be.within(-100, 100)
         })
     })
