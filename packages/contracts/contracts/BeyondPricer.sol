@@ -197,6 +197,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 premium = vanillaPremium.mul(
 			_getSlippageMultiplier(_optionSeries, _amount, delta, netDhvExposure, isSell)
 		);
+		console.log("premium:", premium);
 		// note the delta returned is the delta of a long position of the option the sign of delta should be handled elsewhere.
 		totalPremium = premium.mul(_amount) / 1e12;
 		totalDelta = delta.mul(int256(_amount));
@@ -268,9 +269,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// divide _amount by 2 to obtain the average exposure throughout the tx. Stops large orders being disproportionately penalised.
 		console.log("exposure", uint256(-_netDhvExposure), _amount);
 		// slippage will be exponential with the exponent being the DHV's net exposure
-		int256 exposureExponent = _isSell
-			? _netDhvExposure + int256(_amount) / 2
-			: _netDhvExposure - int256(_amount) / 2;
+		int256 newExposureExponent = _isSell
+			? _netDhvExposure + int256(_amount)
+			: _netDhvExposure - int256(_amount);
+		int256 oldExposureExponent = _netDhvExposure;
 		uint256 modifiedSlippageGradient;
 		// not using math library here, want to reduce to a non e18 integer
 		// integer division rounds down to nearest integer
@@ -281,13 +283,19 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		} else {
 			modifiedSlippageGradient = slippageGradient.mul(putSlippageGradientMultipliers[deltaBandIndex]);
 		}
-		// raise slippageGradient to the power of _amount
-		uint256 slippagePremium = uint256(
-			(int256(1e18 + modifiedSlippageGradient)).pow(-exposureExponent)
-		);
+		if (slippageGradient == 0){
+			slippageMultiplier = 1e18;
+			return slippageMultiplier;
+		}
+		// if it is a sell then we need to do lower bound is old exposure exponent, upper bound is new exposure exponent
+		// if it is a buy then we need to do lower bound is new exposure exponent, upper bound is old exposure exponent
+		int256 slippageFactor = int256(1e18 + modifiedSlippageGradient);
+		if (_isSell) {
+			slippageMultiplier = uint256((slippageFactor.pow(-oldExposureExponent) - slippageFactor.pow(-newExposureExponent)).div(slippageFactor.ln())).div(_amount);
+		} else {
+			slippageMultiplier = uint256((slippageFactor.pow(-newExposureExponent) - slippageFactor.pow(-oldExposureExponent)).div(slippageFactor.ln())).div(_amount);
+		}
 		console.log("slippage gradient:", slippageGradient);
-		console.log("multiplier:", slippagePremium, modifiedSlippageGradient, uint256(-exposureExponent));
-
-		return slippagePremium;
+		console.log("multiplier:", slippageMultiplier, modifiedSlippageGradient);
 	}
 }
