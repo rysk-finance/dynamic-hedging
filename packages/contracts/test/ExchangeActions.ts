@@ -1204,66 +1204,6 @@ describe("Actions tests", async () => {
 				await usd.approve(exchange.address, 0)
 				await otokenERC.approve(MARGIN_POOL[chainId], 0)
 		})
-	// 	it("REVERTS: OPYN deposit collateral fails when sending to an invalid address", async () => {
-	// 		const margin = toUSDC("1000")
-	// 		usd.approve(exchange.address, margin)
-	// 		await expect(exchange.operate([
-	// 			{
-	// 				operation: 0,
-	// 				operationQueue: [{
-	// 					actionType: 0,
-	// 					owner: senderAddress,
-	// 					secondAddress: ZERO_ADDRESS,
-	// 					asset: ZERO_ADDRESS,
-	// 					vaultId: 4,
-	// 					amount: 0,
-	// 					optionSeries: emptySeries,
-	// 					index: 0,
-	// 					data: "0x"
-	// 				},
-	// 				{
-	// 					actionType: 5,
-	// 					owner: senderAddress,
-	// 					secondAddress: liquidityPool.address,
-	// 					asset: usd.address,
-	// 					vaultId: 4,
-	// 					amount: margin,
-	// 					optionSeries: emptySeries,
-	// 					index: 0,
-	// 					data: "0x"
-	// 				}]
-	// 			}])).to.be.revertedWith("UnauthorisedSender()")
-	// 	})
-	// 	it("REVERTS: OPYN deposit collateral fails with invalid owner", async () => {
-	// 		const margin = toUSDC("1000")
-	// 		usd.approve(exchange.address, margin)
-	// 		await expect(exchange.operate([
-	// 			{
-	// 				operation: 0,
-	// 				operationQueue: [{
-	// 					actionType: 0,
-	// 					owner: senderAddress,
-	// 					secondAddress: ZERO_ADDRESS,
-	// 					asset: ZERO_ADDRESS,
-	// 					vaultId: 4,
-	// 					amount: 0,
-	// 					optionSeries: emptySeries,
-	// 					index: 0,
-	// 					data: "0x"
-	// 				},
-	// 				{
-	// 					actionType: 5,
-	// 					owner: exchange.address,
-	// 					secondAddress: exchange.address,
-	// 					asset: usd.address,
-	// 					vaultId: 4,
-	// 					amount: margin,
-	// 					optionSeries: emptySeries,
-	// 					index: 0,
-	// 					data: "0x"
-	// 				}]
-	// 			}])).to.be.revertedWith("UnauthorisedSender()")
-	// 	})
 	})	
 	describe("Opyn Forbidden Actions", async () => {
 		it("REVERTS: OPYN liquidate", async () => {
@@ -1319,7 +1259,3 @@ describe("Actions tests", async () => {
 		})
 	})
 })
-// test rysk args
-// test issue args
-// test buy args
-// test sell args

@@ -521,6 +521,52 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				}
 			])
 		})
+		it("REVERTS: sells the options to the exchange on a series where amount is too small", async () => {
+			const amount = toWei("0.009")
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("A5")
+		})
+		it("REVERTS: buys the options from the exchange on a series where amount is too small", async () => {
+			const amount = toWei("0.009")
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 1,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("A5")
+		})
 		it("REVERTS: sells the options to the exchange on a series not approved for selling", async () => {
 			const amount = toWei("4")
 			await expect(
