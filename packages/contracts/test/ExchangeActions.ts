@@ -37,14 +37,6 @@ import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import {
 	setupTestOracle,
-	setupOracle,
-	calculateOptionQuoteLocally,
-	calculateOptionDeltaLocally,
-	increase,
-	setOpynOracleExpiryPrice,
-	createAndMintOtoken,
-	whitelistProduct,
-	getExchangeParams
 } from "./helpers"
 import {
 	GAMMA_CONTROLLER,

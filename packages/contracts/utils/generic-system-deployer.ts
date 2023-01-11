@@ -297,6 +297,7 @@ export async function deployLiquidityPool(
 		0,
 		0
 	)) as BeyondPricer
+	await pricer.setSlippageGradient(toWei("0.0001"))
 	await optionProtocol.changeAccounting(Accounting.address)
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")

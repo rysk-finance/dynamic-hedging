@@ -222,17 +222,21 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			iv,
 			underlyingPrice
 		);
+		console.log("vanillaPremium:", vanillaPremium);
 		uint256 premium = vanillaPremium.mul(
-			_getSlippageMultiplier(_optionSeries, _amount, delta, netDhvExposure, isSell)
+			_getSlippageMultiplier(_amount, delta, netDhvExposure, isSell)
 		);
 		if (!isSell) {
 			// user is buying from DHV, so add spread to the price
 			premium += _getSpreadValue(_optionSeries, _amount, delta, netDhvExposure, underlyingPrice);
 		}
 
+		console.log("premium:", premium);
+		// note the delta returned is the delta of a long position of the option the sign of delta should be handled elsewhere.
 		totalPremium = premium.mul(_amount) / 1e12;
 		totalDelta = delta.mul(int256(_amount));
 		totalFees = feePerContract.mul(_amount);
+		console.log("total premium:", totalPremium);
 	}
 
 	///////////////////////////
@@ -283,14 +287,12 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	/**
 	 * @notice function to add slippage to orders to prevent over-exposure to a single option type
-	 * @param _optionSeries the option series that we are pricing
 	 * @param _amount amount of options contracts being traded. e18
 	 * @param _optionDelta the delta exposure of the option
 	 * @param _netDhvExposure how many contracts of this series the DHV is already exposed to. e18. negative if net short.
 	 * @param _isSell true if someone is selling option to DHV. False if they're buying from DHV
 	 */
 	function _getSlippageMultiplier(
-		Types.OptionSeries memory _optionSeries,
 		uint256 _amount,
 		int256 _optionDelta,
 		int256 _netDhvExposure,
@@ -299,9 +301,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// divide _amount by 2 to obtain the average exposure throughout the tx. Stops large orders being disproportionately penalised.
 		console.log("exposure", uint256(-_netDhvExposure), _amount);
 		// slippage will be exponential with the exponent being the DHV's net exposure
-		int256 exposureExponent = _isSell
-			? _netDhvExposure + int256(_amount) / 2
-			: _netDhvExposure - int256(_amount) / 2;
+		int256 newExposureExponent = _isSell
+			? _netDhvExposure + int256(_amount)
+			: _netDhvExposure - int256(_amount);
+		int256 oldExposureExponent = _netDhvExposure;
 		uint256 modifiedSlippageGradient;
 		// not using math library here, want to reduce to a non e18 integer
 		// integer division rounds down to nearest integer
@@ -312,13 +315,28 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		} else {
 			modifiedSlippageGradient = slippageGradient.mul(putSlippageGradientMultipliers[deltaBandIndex]);
 		}
-		// raise slippageGradient to the power of _amount
-		uint256 slippagePremium = uint256(
-			(int256(1e18 + modifiedSlippageGradient)).pow(-exposureExponent)
-		);
-		console.log("multiplier:", slippagePremium, modifiedSlippageGradient, uint256(-exposureExponent));
-
-		return slippagePremium;
+		if (slippageGradient == 0) {
+			slippageMultiplier = 1e18;
+			return slippageMultiplier;
+		}
+		// if it is a sell then we need to do lower bound is old exposure exponent, upper bound is new exposure exponent
+		// if it is a buy then we need to do lower bound is new exposure exponent, upper bound is old exposure exponent
+		int256 slippageFactor = int256(1e18 + modifiedSlippageGradient);
+		if (_isSell) {
+			slippageMultiplier = uint256(
+				(slippageFactor.pow(-oldExposureExponent) - slippageFactor.pow(-newExposureExponent)).div(
+					slippageFactor.ln()
+				)
+			).div(_amount);
+		} else {
+			slippageMultiplier = uint256(
+				(slippageFactor.pow(-newExposureExponent) - slippageFactor.pow(-oldExposureExponent)).div(
+					slippageFactor.ln()
+				)
+			).div(_amount);
+		}
+		console.log("slippage gradient:", slippageGradient);
+		console.log("multiplier:", slippageMultiplier, modifiedSlippageGradient);
 	}
 
 	function _getSpreadValue(
@@ -334,7 +352,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			netShortContracts = _amount;
 		} else {
 			// dhv is long so only apply spread to those contracts which make it net short.
-			netShortContracts = _amount - uint256(_netDhvExposure) < 0
+			netShortContracts = int256(_amount) - _netDhvExposure < 0
 				? 0
 				: _amount - uint256(_netDhvExposure);
 		}

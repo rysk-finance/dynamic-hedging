@@ -43,7 +43,10 @@ import {
 	applySlippageLocally,
 	calculateOptionDeltaLocally,
 	increase,
-	setOpynOracleExpiryPrice
+	setOpynOracleExpiryPrice,
+	getSeriesWithe18Strike,
+	getNetDhvExposure,
+	localQuoteOptionPrice
 } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
@@ -286,7 +289,6 @@ describe("Liquidity Pools", async () => {
 		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 	})
 	it("sets slippage gradient in pricer contract", async () => {
-		expect(await pricer.slippageGradient()).to.eq(0)
 		await pricer.setSlippageGradient(slippageGradient)
 
 		expect(await pricer.slippageGradient()).to.eq(slippageGradient)
@@ -485,15 +487,15 @@ describe("Liquidity Pools", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-				parseFloat(fromWei(pendingWithdrawBefore)) *
-					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+			parseFloat(fromWei(pendingWithdrawBefore)) *
+			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			totalSupplyBefore.eq(0)
 				? toWei("1")
 				: toWei("1")
-						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-						.div(totalSupplyBefore)
+					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+					.div(totalSupplyBefore)
 		)
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
 		expect(pendingDepositBefore).to.not.eq(0)
@@ -534,6 +536,47 @@ describe("Liquidity Pools", async () => {
 
 		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
 	})
+	it("adds and deletes a hedging reactor address", async () => {
+		const reactorAddress = uniswapV3HedgingReactor.address
+
+		const hedgingReactorBefore = await liquidityPool.hedgingReactors(0)
+		// check hedging reactor exists in array
+		expect(parseInt(hedgingReactorBefore, 16)).to.not.eq(0x0)
+		await liquidityPool.removeHedgingReactorAddress(0, false)
+		// check no hedging reactors exist
+		await expect(liquidityPool.hedgingReactors(0)).to.be.reverted
+		await expect(liquidityPool.hedgingReactors(1)).to.be.reverted
+
+		// restore hedging reactor
+		await liquidityPool.setHedgingReactorAddress(reactorAddress)
+		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
+
+		await liquidityPool.setHedgingReactorAddress(ETH_ADDRESS)
+		await liquidityPool.setHedgingReactorAddress(WETH_ADDRESS[chainId])
+
+		// check added addresses show
+		expect(await liquidityPool.hedgingReactors(1)).to.equal(ETH_ADDRESS)
+		expect(await liquidityPool.hedgingReactors(2)).to.equal(WETH_ADDRESS[chainId])
+		// delete two added reactors
+		// should remove middle element (element 1)
+		await liquidityPool.removeHedgingReactorAddress(1, true)
+		// should remove last element (elements 1)
+		await liquidityPool.removeHedgingReactorAddress(1, true)
+		expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
+		await expect(liquidityPool.hedgingReactors(1)).to.be.reverted
+	})
+	it("reverts when adding invalid reactor address", async () => {
+		await expect(
+			liquidityPool.setHedgingReactorAddress(uniswapV3HedgingReactor.address)
+		).to.be.revertedWith("ReactorAlreadyExists()")
+		await expect(liquidityPool.setHedgingReactorAddress(ZERO_ADDRESS)).to.be.revertedWith(
+			"InvalidAddress()"
+		)
+	})
+	it("SETUP: sets the exchange as a hedging reactor", async function () {
+		await liquidityPool.setHedgingReactorAddress(exchange.address)
+		expect(await liquidityPool.hedgingReactors(1)).to.equal(exchange.address)
+	})
 	it("Returns a quote for a ETH/USD put with utilization", async () => {
 		const amount = toWei("500")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -554,6 +597,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			optionSeries,
 			amount,
+			pricer,
 			false
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -568,7 +612,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			optionSeries,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
@@ -580,7 +623,7 @@ describe("Liquidity Pools", async () => {
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
 		)
-		const netDhvExposure = await exchange.netDhvExposure(oHash)
+		const netDhvExposure = await getNetDhvExposure(optionSeries.strike, optionSeries.collateral, exchange, optionSeries.expiration, optionSeries.isPut)
 		expect(netDhvExposure).to.eq(0)
 		let quoteResponse = await pricer.quoteOptionPrice(optionSeries, amount, false, netDhvExposure)
 		let localQuoteWithSlippage = localQuote * slippageFactor
@@ -614,6 +657,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			optionSeries,
 			amount,
+			pricer,
 			true
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -628,7 +672,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			optionSeries,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			true
 		)
@@ -1235,16 +1278,7 @@ describe("Liquidity Pools", async () => {
 		const amount = toWei("25")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-
-		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-			ethers.utils.parseUnits("1", 10)
-		)
-		const oHash = ethers.utils.solidityKeccak256(
-			["uint64", "uint128", "bool"],
-			[expiration, formattedStrikePrice, PUT_FLAVOR]
-		)
-		console.log({ oHash })
-		const netDhvExposure = await exchange.netDhvExposure(oHash)
+		const netDhvExposure = await getNetDhvExposure(strikePrice, usd.address, exchange, expiration, PUT_FLAVOR)
 		expect(netDhvExposure).to.eq(0)
 
 		proposedSeries = {
@@ -1265,6 +1299,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			proposedSeries,
 			amount,
+			pricer,
 			false
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -1279,7 +1314,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			proposedSeries,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
@@ -1340,7 +1374,7 @@ describe("Liquidity Pools", async () => {
 				]
 			}
 		])
-		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+		const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 		putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const senderPutBalance = await putOptionToken.balanceOf(senderAddress)
@@ -1584,12 +1618,7 @@ describe("Liquidity Pools", async () => {
 		const numberOTokensMintedBefore = await putOptionToken.totalSupply()
 
 		const seriesInfo = await optionRegistry.getSeriesInfo(putOptionToken.address)
-		const formattedStrikePrice = seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10))
-		const oHash = ethers.utils.solidityKeccak256(
-			["uint64", "uint128", "bool"],
-			[expiration, formattedStrikePrice, PUT_FLAVOR]
-		)
-		const netDhvExposure = await exchange.netDhvExposure(oHash)
+		const netDhvExposure = await getNetDhvExposure(seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10)), usd.address, exchange, expiration, PUT_FLAVOR)
 		expect(netDhvExposure).to.eq(toWei("-25"))
 
 		const expectedCollateralAllocated = await optionRegistry.getCollateral(seriesInfo, amount)
@@ -1609,6 +1638,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			seriesInfoDecimalCorrected,
 			amount,
+			pricer,
 			false
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -1623,7 +1653,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			seriesInfoDecimalCorrected,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
@@ -1766,16 +1795,7 @@ describe("Liquidity Pools", async () => {
 		const amount = toWei("50")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-
-		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-			ethers.utils.parseUnits("1", 10)
-		)
-		const oHash = ethers.utils.solidityKeccak256(
-			["uint64", "uint128", "bool"],
-			[expiration2, formattedStrikePrice, PUT_FLAVOR]
-		)
-		console.log({ oHash })
-		const netDhvExposure = await exchange.netDhvExposure(oHash)
+		const netDhvExposure = await getNetDhvExposure(strikePrice, usd.address, exchange, expiration2, PUT_FLAVOR)
 		expect(netDhvExposure).to.eq(0)
 
 		const proposedSeries = {
@@ -1804,7 +1824,8 @@ describe("Liquidity Pools", async () => {
 			usd,
 			priceFeed,
 			proposedSeries,
-			amount
+			amount,
+			pricer,
 		)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
@@ -1818,7 +1839,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			proposedSeries,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
@@ -1861,7 +1881,7 @@ describe("Liquidity Pools", async () => {
 				]
 			}
 		])
-		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+		const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		putOptionToken2 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await putOptionToken2.balanceOf(senderAddress)
@@ -1912,12 +1932,7 @@ describe("Liquidity Pools", async () => {
 		const seriesInfo = await optionRegistry.getSeriesInfo(putOptionToken.address)
 		const vaultId = await optionRegistry.vaultIds(putOptionToken.address)
 		const vaultDetails = await controller.getVault(optionRegistry.address, vaultId)
-		const formattedStrikePrice = seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10))
-		const oHash = ethers.utils.solidityKeccak256(
-			["uint64", "uint128", "bool"],
-			[seriesInfo.expiration, formattedStrikePrice, PUT_FLAVOR]
-		)
-		const netDhvExposure = await exchange.netDhvExposure(oHash)
+		const netDhvExposure = await getNetDhvExposure(seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10)), usd.address, exchange, seriesInfo.expiration, PUT_FLAVOR)
 		expect(netDhvExposure).to.eq(toWei("-37"))
 
 		// expected collateral returned is no. options short div collateral allocated mul no. options bought back
@@ -1941,6 +1956,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			seriesInfoDecimalCorrected,
 			amount,
+			pricer,
 			true
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -1955,7 +1971,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			seriesInfoDecimalCorrected,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			true
 		)
@@ -1968,13 +1983,8 @@ describe("Liquidity Pools", async () => {
 		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
 		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 
-		await putOptionToken.approve(exchange.address, toOpyn(fromWei(amount)))
-		let quoteResponse = await pricer.quoteOptionPrice(
-			seriesInfoDecimalCorrected,
-			amount,
-			true,
-			netDhvExposure
-		)
+		await putOptionToken.approve(exchange.address, toOpyn("2.1"))
+		let quoteResponse = (await pricer.quoteOptionPrice(seriesInfoDecimalCorrected, amount, true, netDhvExposure))
 		let quote = quoteResponse[0].sub(quoteResponse[2])
 		let delta = quoteResponse[1]
 		let localQuoteWithSlippage = localQuote * slippageFactor
@@ -2060,12 +2070,7 @@ describe("Liquidity Pools", async () => {
 		const seriesInfo = await optionRegistry.getSeriesInfo(putOptionToken2.address)
 		const vaultId = await optionRegistry.vaultIds(putOptionToken2.address)
 		const vaultDetails = await controller.getVault(optionRegistry.address, vaultId)
-		const formattedStrikePrice = seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10))
-		const oHash = ethers.utils.solidityKeccak256(
-			["uint64", "uint128", "bool"],
-			[seriesInfo.expiration, formattedStrikePrice, PUT_FLAVOR]
-		)
-		const netDhvExposure = await exchange.netDhvExposure(oHash)
+		const netDhvExposure = await getNetDhvExposure(seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10)), seriesInfo.collateral, exchange, seriesInfo.expiration, seriesInfo.isPut)
 		expect(netDhvExposure).to.eq(toWei("-50"))
 		// expected collateral returned is no. options short div collateral allocated mul no. options bought back
 		const expectedCollateralReturned =
@@ -2087,6 +2092,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			seriesInfoDecimalCorrected,
 			amount,
+			pricer,
 			true
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -2094,18 +2100,8 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			seriesInfoDecimalCorrected,
 			amount,
-			false
-		)
-		const slippageFactor = await applySlippageLocally(
-			pricer,
-			exchange,
-			seriesInfoDecimalCorrected,
-			amount,
-			localQuote,
-			localDelta.div(parseFloat(fromWei(amount))),
 			true
 		)
-		console.log({ slippageFactor })
 		let quoteResponse = await pricer.quoteOptionPrice(
 			seriesInfoDecimalCorrected,
 			amount,
@@ -2114,7 +2110,7 @@ describe("Liquidity Pools", async () => {
 		)
 		let quote = quoteResponse[0].sub(quoteResponse[2])
 		let expectedDeltaChange = quoteResponse[1]
-		let localQuoteWithSlippage = localQuote * slippageFactor
+		let localQuoteWithSlippage = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, seriesInfoDecimalCorrected, amount, pricer, true, exchange, localDelta.div(amount.div(toWei("1"))), toWei("0").sub(toWei("50")))
 		// DHV is 50 short so a 5 buyback will still have positive slippage
 		expect(localQuoteWithSlippage).to.be.gt(localQuote)
 		// ensure quote is accurate
@@ -2162,7 +2158,7 @@ describe("Liquidity Pools", async () => {
 			collateralAllocatedBefore.sub(collateralAllocatedAfter)
 		)
 
-		// expect delta to be closer to zero afterwards
+		// expect delta to be closer to 0 afterwards because selling back a put option
 		expect(Math.abs(tFormatEth(deltaAfter))).to.be.lt(Math.abs(tFormatEth(deltaBefore)))
 		// check option seller's OToken balance reduced
 		expect(sellerOTokenBalanceAfter).to.equal(sellerOTokenBalanceBefore.sub(toOpyn(fromWei(amount))))
@@ -2173,7 +2169,7 @@ describe("Liquidity Pools", async () => {
 		// expect liquidity pool's USD balance decreases by correct amount
 		expect(
 			tFormatUSDC(lpUSDBalanceBefore.sub(lpUSDBalanceAfter)) -
-				(tFormatUSDC(quote) - collateralAllocatedDiff)
+			(tFormatUSDC(quote) - collateralAllocatedDiff)
 		).to.be.within(-0.0011, 0.0011)
 		// expect collateral allocated in LP reduces by correct amount
 		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.0011, 0.0011)
@@ -2230,7 +2226,7 @@ describe("Liquidity Pools", async () => {
 		const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
 		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 
-		const amount = toWei("2000")
+		const amount = toWei("1000")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const proposedSeries = {
@@ -2322,6 +2318,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			optionSeries,
 			amount,
+			pricer,
 			false
 		)
 		const localDelta = await calculateOptionDeltaLocally(
@@ -2336,7 +2333,6 @@ describe("Liquidity Pools", async () => {
 			exchange,
 			optionSeries,
 			amount,
-			localQuote,
 			localDelta.div(parseFloat(fromWei(amount))),
 			false
 		)
@@ -2480,8 +2476,8 @@ describe("Liquidity Pools", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-				parseFloat(fromWei(pendingWithdrawBefore)) *
-					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+			parseFloat(fromWei(pendingWithdrawBefore)) *
+			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			toWei("1")
@@ -2566,7 +2562,7 @@ describe("Liquidity Pools", async () => {
 		// check collateral returned to LP is correct
 		expect(
 			tFormatUSDC(collateralReturned) -
-				tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
+			tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
 		).to.be.within(-0.001, 0.001)
 		// check LP USDC balance increases by correct amount
 		expect(lpBalanceDiff).to.eq(tFormatUSDC(collateralReturned))
@@ -2667,44 +2663,6 @@ describe("Liquidity Pools", async () => {
 		expect(maxPutStrikePrice).to.equal(utils.parseEther("6000"))
 		expect(minExpiry).to.equal(86400 * 3)
 		expect(maxExpiry).to.equal(86400 * 365)
-	})
-
-	it("adds and deletes a hedging reactor address", async () => {
-		const reactorAddress = uniswapV3HedgingReactor.address
-
-		const hedgingReactorBefore = await liquidityPool.hedgingReactors(0)
-		// check hedging reactor exists in array
-		expect(parseInt(hedgingReactorBefore, 16)).to.not.eq(0x0)
-		await liquidityPool.removeHedgingReactorAddress(0, false)
-		// check no hedging reactors exist
-		await expect(liquidityPool.hedgingReactors(0)).to.be.reverted
-		await expect(liquidityPool.hedgingReactors(1)).to.be.reverted
-
-		// restore hedging reactor
-		await liquidityPool.setHedgingReactorAddress(reactorAddress)
-		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
-
-		await liquidityPool.setHedgingReactorAddress(ETH_ADDRESS)
-		await liquidityPool.setHedgingReactorAddress(WETH_ADDRESS[chainId])
-
-		// check added addresses show
-		expect(await liquidityPool.hedgingReactors(1)).to.equal(ETH_ADDRESS)
-		expect(await liquidityPool.hedgingReactors(2)).to.equal(WETH_ADDRESS[chainId])
-		// delete two added reactors
-		// should remove middle element (element 1)
-		await liquidityPool.removeHedgingReactorAddress(1, true)
-		// should remove last element (elements 1)
-		await liquidityPool.removeHedgingReactorAddress(1, true)
-		expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
-		await expect(liquidityPool.hedgingReactors(1)).to.be.reverted
-	})
-	it("reverts when adding invalid reactor address", async () => {
-		await expect(
-			liquidityPool.setHedgingReactorAddress(uniswapV3HedgingReactor.address)
-		).to.be.revertedWith("ReactorAlreadyExists()")
-		await expect(liquidityPool.setHedgingReactorAddress(ZERO_ADDRESS)).to.be.revertedWith(
-			"InvalidAddress()"
-		)
 	})
 	it("updates collateralCap variable", async () => {
 		const beforeValue = await liquidityPool.collateralCap()
