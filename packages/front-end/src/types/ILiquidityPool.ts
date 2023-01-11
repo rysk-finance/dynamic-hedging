@@ -90,6 +90,7 @@ export interface ILiquidityPoolInterface extends utils.Interface {
     "pendingDeposits()": FunctionFragment;
     "pendingWithdrawals()": FunctionFragment;
     "quotePriceWithUtilizationGreeks((uint64,uint128,bool,address,address,address),uint256,bool)": FunctionFragment;
+    "rebalancePortfolioDelta(int256,uint256)": FunctionFragment;
     "redeem(uint256)": FunctionFragment;
     "resetEphemeralValues()": FunctionFragment;
     "strikeAsset()": FunctionFragment;
@@ -212,6 +213,10 @@ export interface ILiquidityPoolInterface extends utils.Interface {
     values: [OptionSeriesStruct, BigNumberish, boolean]
   ): string;
   encodeFunctionData(
+    functionFragment: "rebalancePortfolioDelta",
+    values: [BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "redeem",
     values: [BigNumberish]
   ): string;
@@ -331,6 +336,10 @@ export interface ILiquidityPoolInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "quotePriceWithUtilizationGreeks",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "rebalancePortfolioDelta",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "redeem", data: BytesLike): Result;
@@ -515,6 +524,12 @@ export interface ILiquidityPool extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber, BigNumber] & { quote: BigNumber; delta: BigNumber }>;
 
+    rebalancePortfolioDelta(
+      delta: BigNumberish,
+      index: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     redeem(
       arg0: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -651,6 +666,12 @@ export interface ILiquidityPool extends BaseContract {
     overrides?: CallOverrides
   ): Promise<[BigNumber, BigNumber] & { quote: BigNumber; delta: BigNumber }>;
 
+  rebalancePortfolioDelta(
+    delta: BigNumberish,
+    index: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   redeem(
     arg0: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -786,6 +807,12 @@ export interface ILiquidityPool extends BaseContract {
       toBuy: boolean,
       overrides?: CallOverrides
     ): Promise<[BigNumber, BigNumber] & { quote: BigNumber; delta: BigNumber }>;
+
+    rebalancePortfolioDelta(
+      delta: BigNumberish,
+      index: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     redeem(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -943,6 +970,12 @@ export interface ILiquidityPool extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    rebalancePortfolioDelta(
+      delta: BigNumberish,
+      index: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     redeem(
       arg0: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1090,6 +1123,12 @@ export interface ILiquidityPool extends BaseContract {
       amount: BigNumberish,
       toBuy: boolean,
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    rebalancePortfolioDelta(
+      delta: BigNumberish,
+      index: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     redeem(

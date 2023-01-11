@@ -23,7 +23,9 @@ export interface PriceFeedInterface extends utils.Interface {
     "getNormalizedRate(address,address)": FunctionFragment;
     "getRate(address,address)": FunctionFragment;
     "priceFeeds(address,address)": FunctionFragment;
+    "sequencerUptimeFeedAddress()": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
+    "setSequencerUptimeFeedAddress(address)": FunctionFragment;
   };
 
   encodeFunctionData(
@@ -44,7 +46,15 @@ export interface PriceFeedInterface extends utils.Interface {
     values: [string, string]
   ): string;
   encodeFunctionData(
+    functionFragment: "sequencerUptimeFeedAddress",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "setAuthority",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setSequencerUptimeFeedAddress",
     values: [string]
   ): string;
 
@@ -60,7 +70,15 @@ export interface PriceFeedInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "getRate", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "priceFeeds", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "sequencerUptimeFeedAddress",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "setAuthority",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setSequencerUptimeFeedAddress",
     data: BytesLike
   ): Result;
 
@@ -130,8 +148,15 @@ export interface PriceFeed extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[string]>;
 
+    sequencerUptimeFeedAddress(overrides?: CallOverrides): Promise<[string]>;
+
     setAuthority(
       _newAuthority: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setSequencerUptimeFeedAddress(
+      _sequencerUptimeFeedAddress: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
   };
@@ -163,8 +188,15 @@ export interface PriceFeed extends BaseContract {
     overrides?: CallOverrides
   ): Promise<string>;
 
+  sequencerUptimeFeedAddress(overrides?: CallOverrides): Promise<string>;
+
   setAuthority(
     _newAuthority: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setSequencerUptimeFeedAddress(
+    _sequencerUptimeFeedAddress: string,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -196,8 +228,15 @@ export interface PriceFeed extends BaseContract {
       overrides?: CallOverrides
     ): Promise<string>;
 
+    sequencerUptimeFeedAddress(overrides?: CallOverrides): Promise<string>;
+
     setAuthority(
       _newAuthority: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setSequencerUptimeFeedAddress(
+      _sequencerUptimeFeedAddress: string,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -235,8 +274,15 @@ export interface PriceFeed extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    sequencerUptimeFeedAddress(overrides?: CallOverrides): Promise<BigNumber>;
+
     setAuthority(
       _newAuthority: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setSequencerUptimeFeedAddress(
+      _sequencerUptimeFeedAddress: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
   };
@@ -269,8 +315,17 @@ export interface PriceFeed extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
+    sequencerUptimeFeedAddress(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     setAuthority(
       _newAuthority: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setSequencerUptimeFeedAddress(
+      _sequencerUptimeFeedAddress: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };

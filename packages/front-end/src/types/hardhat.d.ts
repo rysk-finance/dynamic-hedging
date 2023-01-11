@@ -413,6 +413,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Authority__factory>;
     getContractFactory(
+      name: "BeyondPricer",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.BeyondPricer__factory>;
+    getContractFactory(
       name: "PerpHedgingReactor",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.PerpHedgingReactor__factory>;
@@ -449,6 +453,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IAccounting__factory>;
     getContractFactory(
+      name: "IAlphaOptionHandler",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IAlphaOptionHandler__factory>;
+    getContractFactory(
+      name: "IAlphaPortfolioValuesFeed",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IAlphaPortfolioValuesFeed__factory>;
+    getContractFactory(
       name: "IAuthority",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IAuthority__factory>;
@@ -476,6 +488,10 @@ declare module "hardhat/types/runtime" {
       name: "IPortfolioValuesFeed",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IPortfolioValuesFeed__factory>;
+    getContractFactory(
+      name: "IWhitelist",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IWhitelist__factory>;
     getContractFactory(
       name: "WETH",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -509,6 +525,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.LiquidityPool__factory>;
     getContractFactory(
+      name: "Manager",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Manager__factory>;
+    getContractFactory(
       name: "ForceSend",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ForceSend__factory>;
@@ -517,13 +537,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.MockChainlinkAggregator__factory>;
     getContractFactory(
+      name: "MockChainlinkSequencerFeed",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.MockChainlinkSequencerFeed__factory>;
+    getContractFactory(
       name: "MockPortfolioValuesFeed",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.MockPortfolioValuesFeed__factory>;
     getContractFactory(
-      name: "OptionHandler",
+      name: "OptionExchange",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.OptionHandler__factory>;
+    ): Promise<Contracts.OptionExchange__factory>;
     getContractFactory(
       name: "OptionRegistry",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -712,10 +736,6 @@ declare module "hardhat/types/runtime" {
       name: "YearnPricer",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.YearnPricer__factory>;
-    getContractFactory(
-      name: "PortfolioValuesFeed",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.PortfolioValuesFeed__factory>;
     getContractFactory(
       name: "PriceFeed",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -1274,6 +1294,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Authority>;
     getContractAt(
+      name: "BeyondPricer",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.BeyondPricer>;
+    getContractAt(
       name: "PerpHedgingReactor",
       address: string,
       signer?: ethers.Signer
@@ -1319,6 +1344,16 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IAccounting>;
     getContractAt(
+      name: "IAlphaOptionHandler",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IAlphaOptionHandler>;
+    getContractAt(
+      name: "IAlphaPortfolioValuesFeed",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IAlphaPortfolioValuesFeed>;
+    getContractAt(
       name: "IAuthority",
       address: string,
       signer?: ethers.Signer
@@ -1353,6 +1388,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.IPortfolioValuesFeed>;
+    getContractAt(
+      name: "IWhitelist",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IWhitelist>;
     getContractAt(
       name: "WETH",
       address: string,
@@ -1394,6 +1434,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.LiquidityPool>;
     getContractAt(
+      name: "Manager",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Manager>;
+    getContractAt(
       name: "ForceSend",
       address: string,
       signer?: ethers.Signer
@@ -1404,15 +1449,20 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.MockChainlinkAggregator>;
     getContractAt(
+      name: "MockChainlinkSequencerFeed",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.MockChainlinkSequencerFeed>;
+    getContractAt(
       name: "MockPortfolioValuesFeed",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.MockPortfolioValuesFeed>;
     getContractAt(
-      name: "OptionHandler",
+      name: "OptionExchange",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.OptionHandler>;
+    ): Promise<Contracts.OptionExchange>;
     getContractAt(
       name: "OptionRegistry",
       address: string,
@@ -1648,11 +1698,6 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.YearnPricer>;
-    getContractAt(
-      name: "PortfolioValuesFeed",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.PortfolioValuesFeed>;
     getContractAt(
       name: "PriceFeed",
       address: string,

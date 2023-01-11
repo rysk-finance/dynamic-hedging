@@ -51,18 +51,34 @@ export type SABRParamsStructOutput = [
 export interface VolatilityFeedInterface extends utils.Interface {
   functions: {
     "authority()": FunctionFragment;
+    "expiries(uint256)": FunctionFragment;
+    "getExpiries()": FunctionFragment;
     "getImpliedVolatility(bool,uint256,uint256,uint256)": FunctionFragment;
+    "interestRate()": FunctionFragment;
     "keeper(address)": FunctionFragment;
     "sabrParams(uint256)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
+    "setInterestRate(int256)": FunctionFragment;
     "setKeeper(address,bool)": FunctionFragment;
     "setSabrParameters((int32,int32,int32,int32,int32,int32,int32,int32),uint256)": FunctionFragment;
   };
 
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "expiries",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getExpiries",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "getImpliedVolatility",
     values: [boolean, BigNumberish, BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "interestRate",
+    values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "keeper", values: [string]): string;
   encodeFunctionData(
@@ -74,6 +90,10 @@ export interface VolatilityFeedInterface extends utils.Interface {
     values: [string]
   ): string;
   encodeFunctionData(
+    functionFragment: "setInterestRate",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setKeeper",
     values: [string, boolean]
   ): string;
@@ -83,14 +103,27 @@ export interface VolatilityFeedInterface extends utils.Interface {
   ): string;
 
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "expiries", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getExpiries",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "getImpliedVolatility",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "interestRate",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "keeper", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "sabrParams", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setAuthority",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setInterestRate",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setKeeper", data: BytesLike): Result;
@@ -101,15 +134,34 @@ export interface VolatilityFeedInterface extends utils.Interface {
 
   events: {
     "AuthorityUpdated(address)": EventFragment;
+    "SabrParamsSet(uint256,int32,int32,int32,int32,int32,int32,int32,int32)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "SabrParamsSet"): EventFragment;
 }
 
 export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
 
 export type AuthorityUpdatedEventFilter =
   TypedEventFilter<AuthorityUpdatedEvent>;
+
+export type SabrParamsSetEvent = TypedEvent<
+  [BigNumber, number, number, number, number, number, number, number, number],
+  {
+    _expiry: BigNumber;
+    callAlpha: number;
+    callBeta: number;
+    callRho: number;
+    callVolvol: number;
+    putAlpha: number;
+    putBeta: number;
+    putRho: number;
+    putVolvol: number;
+  }
+>;
+
+export type SabrParamsSetEventFilter = TypedEventFilter<SabrParamsSetEvent>;
 
 export interface VolatilityFeed extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -140,6 +192,13 @@ export interface VolatilityFeed extends BaseContract {
   functions: {
     authority(overrides?: CallOverrides): Promise<[string]>;
 
+    expiries(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
+    getExpiries(overrides?: CallOverrides): Promise<[BigNumber[]]>;
+
     getImpliedVolatility(
       isPut: boolean,
       underlyingPrice: BigNumberish,
@@ -147,6 +206,8 @@ export interface VolatilityFeed extends BaseContract {
       expiration: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
+
+    interestRate(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     keeper(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
 
@@ -171,6 +232,11 @@ export interface VolatilityFeed extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    setInterestRate(
+      _interestRate: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     setKeeper(
       _keeper: string,
       _auth: boolean,
@@ -186,6 +252,10 @@ export interface VolatilityFeed extends BaseContract {
 
   authority(overrides?: CallOverrides): Promise<string>;
 
+  expiries(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
+
+  getExpiries(overrides?: CallOverrides): Promise<BigNumber[]>;
+
   getImpliedVolatility(
     isPut: boolean,
     underlyingPrice: BigNumberish,
@@ -193,6 +263,8 @@ export interface VolatilityFeed extends BaseContract {
     expiration: BigNumberish,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
+
+  interestRate(overrides?: CallOverrides): Promise<BigNumber>;
 
   keeper(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
@@ -217,6 +289,11 @@ export interface VolatilityFeed extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  setInterestRate(
+    _interestRate: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   setKeeper(
     _keeper: string,
     _auth: boolean,
@@ -232,6 +309,10 @@ export interface VolatilityFeed extends BaseContract {
   callStatic: {
     authority(overrides?: CallOverrides): Promise<string>;
 
+    expiries(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
+
+    getExpiries(overrides?: CallOverrides): Promise<BigNumber[]>;
+
     getImpliedVolatility(
       isPut: boolean,
       underlyingPrice: BigNumberish,
@@ -239,6 +320,8 @@ export interface VolatilityFeed extends BaseContract {
       expiration: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    interestRate(overrides?: CallOverrides): Promise<BigNumber>;
 
     keeper(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
@@ -263,6 +346,11 @@ export interface VolatilityFeed extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setInterestRate(
+      _interestRate: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     setKeeper(
       _keeper: string,
       _auth: boolean,
@@ -279,10 +367,37 @@ export interface VolatilityFeed extends BaseContract {
   filters: {
     "AuthorityUpdated(address)"(authority?: null): AuthorityUpdatedEventFilter;
     AuthorityUpdated(authority?: null): AuthorityUpdatedEventFilter;
+
+    "SabrParamsSet(uint256,int32,int32,int32,int32,int32,int32,int32,int32)"(
+      _expiry?: BigNumberish | null,
+      callAlpha?: null,
+      callBeta?: null,
+      callRho?: null,
+      callVolvol?: null,
+      putAlpha?: null,
+      putBeta?: null,
+      putRho?: null,
+      putVolvol?: null
+    ): SabrParamsSetEventFilter;
+    SabrParamsSet(
+      _expiry?: BigNumberish | null,
+      callAlpha?: null,
+      callBeta?: null,
+      callRho?: null,
+      callVolvol?: null,
+      putAlpha?: null,
+      putBeta?: null,
+      putRho?: null,
+      putVolvol?: null
+    ): SabrParamsSetEventFilter;
   };
 
   estimateGas: {
     authority(overrides?: CallOverrides): Promise<BigNumber>;
+
+    expiries(arg0: BigNumberish, overrides?: CallOverrides): Promise<BigNumber>;
+
+    getExpiries(overrides?: CallOverrides): Promise<BigNumber>;
 
     getImpliedVolatility(
       isPut: boolean,
@@ -291,6 +406,8 @@ export interface VolatilityFeed extends BaseContract {
       expiration: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    interestRate(overrides?: CallOverrides): Promise<BigNumber>;
 
     keeper(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -301,6 +418,11 @@ export interface VolatilityFeed extends BaseContract {
 
     setAuthority(
       _newAuthority: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setInterestRate(
+      _interestRate: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -320,6 +442,13 @@ export interface VolatilityFeed extends BaseContract {
   populateTransaction: {
     authority(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    expiries(
+      arg0: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getExpiries(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     getImpliedVolatility(
       isPut: boolean,
       underlyingPrice: BigNumberish,
@@ -327,6 +456,8 @@ export interface VolatilityFeed extends BaseContract {
       expiration: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    interestRate(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     keeper(
       arg0: string,
@@ -340,6 +471,11 @@ export interface VolatilityFeed extends BaseContract {
 
     setAuthority(
       _newAuthority: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setInterestRate(
+      _interestRate: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

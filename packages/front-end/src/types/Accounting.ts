@@ -41,7 +41,7 @@ export interface AccountingInterface extends utils.Interface {
   functions: {
     "amountForShares(uint256,uint256)": FunctionFragment;
     "collateralAsset()": FunctionFragment;
-    "completeWithdraw(address,uint256)": FunctionFragment;
+    "completeWithdraw(address)": FunctionFragment;
     "deposit(address,uint256)": FunctionFragment;
     "executeEpochCalculation(uint256,uint256,int256)": FunctionFragment;
     "initiateWithdraw(address,uint256)": FunctionFragment;
@@ -62,7 +62,7 @@ export interface AccountingInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "completeWithdraw",
-    values: [string, BigNumberish]
+    values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "deposit",
@@ -176,7 +176,6 @@ export interface Accounting extends BaseContract {
 
     completeWithdraw(
       withdrawer: string,
-      shares: BigNumberish,
       overrides?: CallOverrides
     ): Promise<
       [BigNumber, BigNumber, WithdrawalReceiptStructOutput] & {
@@ -253,7 +252,6 @@ export interface Accounting extends BaseContract {
 
   completeWithdraw(
     withdrawer: string,
-    shares: BigNumberish,
     overrides?: CallOverrides
   ): Promise<
     [BigNumber, BigNumber, WithdrawalReceiptStructOutput] & {
@@ -324,7 +322,6 @@ export interface Accounting extends BaseContract {
 
     completeWithdraw(
       withdrawer: string,
-      shares: BigNumberish,
       overrides?: CallOverrides
     ): Promise<
       [BigNumber, BigNumber, WithdrawalReceiptStructOutput] & {
@@ -400,7 +397,6 @@ export interface Accounting extends BaseContract {
 
     completeWithdraw(
       withdrawer: string,
-      shares: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -453,7 +449,6 @@ export interface Accounting extends BaseContract {
 
     completeWithdraw(
       withdrawer: string,
-      shares: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 

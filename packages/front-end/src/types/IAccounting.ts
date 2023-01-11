@@ -41,7 +41,7 @@ export type DepositReceiptStructOutput = [BigNumber, BigNumber, BigNumber] & {
 
 export interface IAccountingInterface extends utils.Interface {
   functions: {
-    "completeWithdraw(address,uint256)": FunctionFragment;
+    "completeWithdraw(address)": FunctionFragment;
     "deposit(address,uint256)": FunctionFragment;
     "executeEpochCalculation(uint256,uint256,int256)": FunctionFragment;
     "initiateWithdraw(address,uint256)": FunctionFragment;
@@ -51,7 +51,7 @@ export interface IAccountingInterface extends utils.Interface {
 
   encodeFunctionData(
     functionFragment: "completeWithdraw",
-    values: [string, BigNumberish]
+    values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "deposit",
@@ -125,7 +125,6 @@ export interface IAccounting extends BaseContract {
   functions: {
     completeWithdraw(
       withdrawer: string,
-      shares: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -171,7 +170,6 @@ export interface IAccounting extends BaseContract {
 
   completeWithdraw(
     withdrawer: string,
-    shares: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -217,7 +215,6 @@ export interface IAccounting extends BaseContract {
   callStatic: {
     completeWithdraw(
       withdrawer: string,
-      shares: BigNumberish,
       overrides?: CallOverrides
     ): Promise<
       [BigNumber, BigNumber, WithdrawalReceiptStructOutput] & {
@@ -282,7 +279,6 @@ export interface IAccounting extends BaseContract {
   estimateGas: {
     completeWithdraw(
       withdrawer: string,
-      shares: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -321,7 +317,6 @@ export interface IAccounting extends BaseContract {
   populateTransaction: {
     completeWithdraw(
       withdrawer: string,
-      shares: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

@@ -148,6 +148,57 @@
     {
       "inputs": [
         {
+          "components": [
+            {
+              "internalType": "uint64",
+              "name": "expiration",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint128",
+              "name": "strike",
+              "type": "uint128"
+            },
+            {
+              "internalType": "bool",
+              "name": "isPut",
+              "type": "bool"
+            },
+            {
+              "internalType": "address",
+              "name": "underlying",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "strikeAsset",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "collateral",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct Types.OptionSeries",
+          "name": "_series",
+          "type": "tuple"
+        }
+      ],
+      "name": "getSeries",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "address",
           "name": "series",
           "type": "address"

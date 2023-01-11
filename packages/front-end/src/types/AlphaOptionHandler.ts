@@ -48,16 +48,18 @@ export interface AlphaOptionHandlerInterface extends utils.Interface {
     "collateralAsset()": FunctionFragment;
     "createOrder((uint64,uint128,bool,address,address,address),uint256,uint256,uint256,address,bool,uint256[2])": FunctionFragment;
     "createStrangle((uint64,uint128,bool,address,address,address),(uint64,uint128,bool,address,address,address),uint256,uint256,uint256,uint256,uint256,address,uint256[2],uint256[2])": FunctionFragment;
-    "customOrderBounds()": FunctionFragment;
     "executeBuyBackOrder(uint256)": FunctionFragment;
     "executeOrder(uint256)": FunctionFragment;
     "executeStrangle(uint256,uint256)": FunctionFragment;
+    "feePerContract()": FunctionFragment;
+    "feeRecipient()": FunctionFragment;
     "liquidityPool()": FunctionFragment;
     "orderIdCounter()": FunctionFragment;
     "orderStores(uint256)": FunctionFragment;
     "protocol()": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
-    "setCustomOrderBounds(uint128,uint128,int128,int128,uint32)": FunctionFragment;
+    "setFeePerContract(uint256)": FunctionFragment;
+    "setFeeRecipient(address)": FunctionFragment;
     "strikeAsset()": FunctionFragment;
     "underlyingAsset()": FunctionFragment;
   };
@@ -95,10 +97,6 @@ export interface AlphaOptionHandlerInterface extends utils.Interface {
     ]
   ): string;
   encodeFunctionData(
-    functionFragment: "customOrderBounds",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "executeBuyBackOrder",
     values: [BigNumberish]
   ): string;
@@ -109,6 +107,14 @@ export interface AlphaOptionHandlerInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "executeStrangle",
     values: [BigNumberish, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "feePerContract",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "feeRecipient",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "liquidityPool",
@@ -128,14 +134,12 @@ export interface AlphaOptionHandlerInterface extends utils.Interface {
     values: [string]
   ): string;
   encodeFunctionData(
-    functionFragment: "setCustomOrderBounds",
-    values: [
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-      BigNumberish
-    ]
+    functionFragment: "setFeePerContract",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setFeeRecipient",
+    values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "strikeAsset",
@@ -160,10 +164,6 @@ export interface AlphaOptionHandlerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "customOrderBounds",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "executeBuyBackOrder",
     data: BytesLike
   ): Result;
@@ -173,6 +173,14 @@ export interface AlphaOptionHandlerInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "executeStrangle",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "feePerContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "feeRecipient",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -193,7 +201,11 @@ export interface AlphaOptionHandlerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setCustomOrderBounds",
+    functionFragment: "setFeePerContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setFeeRecipient",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -288,18 +300,6 @@ export interface AlphaOptionHandler extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    customOrderBounds(
-      overrides?: CallOverrides
-    ): Promise<
-      [BigNumber, BigNumber, BigNumber, BigNumber, BigNumber] & {
-        callMinDelta: BigNumber;
-        callMaxDelta: BigNumber;
-        putMinDelta: BigNumber;
-        putMaxDelta: BigNumber;
-        maxPriceRange: BigNumber;
-      }
-    >;
-
     executeBuyBackOrder(
       _orderId: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -315,6 +315,10 @@ export interface AlphaOptionHandler extends BaseContract {
       _orderId2: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    feePerContract(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    feeRecipient(overrides?: CallOverrides): Promise<[string]>;
 
     liquidityPool(overrides?: CallOverrides): Promise<[string]>;
 
@@ -354,12 +358,13 @@ export interface AlphaOptionHandler extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    setCustomOrderBounds(
-      _callMinDelta: BigNumberish,
-      _callMaxDelta: BigNumberish,
-      _putMinDelta: BigNumberish,
-      _putMaxDelta: BigNumberish,
-      _maxPriceRange: BigNumberish,
+    setFeePerContract(
+      _feePerContract: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setFeeRecipient(
+      _feeRecipient: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -397,18 +402,6 @@ export interface AlphaOptionHandler extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  customOrderBounds(
-    overrides?: CallOverrides
-  ): Promise<
-    [BigNumber, BigNumber, BigNumber, BigNumber, BigNumber] & {
-      callMinDelta: BigNumber;
-      callMaxDelta: BigNumber;
-      putMinDelta: BigNumber;
-      putMaxDelta: BigNumber;
-      maxPriceRange: BigNumber;
-    }
-  >;
-
   executeBuyBackOrder(
     _orderId: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -424,6 +417,10 @@ export interface AlphaOptionHandler extends BaseContract {
     _orderId2: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
+
+  feePerContract(overrides?: CallOverrides): Promise<BigNumber>;
+
+  feeRecipient(overrides?: CallOverrides): Promise<string>;
 
   liquidityPool(overrides?: CallOverrides): Promise<string>;
 
@@ -463,12 +460,13 @@ export interface AlphaOptionHandler extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  setCustomOrderBounds(
-    _callMinDelta: BigNumberish,
-    _callMaxDelta: BigNumberish,
-    _putMinDelta: BigNumberish,
-    _putMaxDelta: BigNumberish,
-    _maxPriceRange: BigNumberish,
+  setFeePerContract(
+    _feePerContract: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setFeeRecipient(
+    _feeRecipient: string,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -506,18 +504,6 @@ export interface AlphaOptionHandler extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber, BigNumber]>;
 
-    customOrderBounds(
-      overrides?: CallOverrides
-    ): Promise<
-      [BigNumber, BigNumber, BigNumber, BigNumber, BigNumber] & {
-        callMinDelta: BigNumber;
-        callMaxDelta: BigNumber;
-        putMinDelta: BigNumber;
-        putMaxDelta: BigNumber;
-        maxPriceRange: BigNumber;
-      }
-    >;
-
     executeBuyBackOrder(
       _orderId: BigNumberish,
       overrides?: CallOverrides
@@ -533,6 +519,10 @@ export interface AlphaOptionHandler extends BaseContract {
       _orderId2: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    feePerContract(overrides?: CallOverrides): Promise<BigNumber>;
+
+    feeRecipient(overrides?: CallOverrides): Promise<string>;
 
     liquidityPool(overrides?: CallOverrides): Promise<string>;
 
@@ -572,12 +562,13 @@ export interface AlphaOptionHandler extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setCustomOrderBounds(
-      _callMinDelta: BigNumberish,
-      _callMaxDelta: BigNumberish,
-      _putMinDelta: BigNumberish,
-      _putMaxDelta: BigNumberish,
-      _maxPriceRange: BigNumberish,
+    setFeePerContract(
+      _feePerContract: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setFeeRecipient(
+      _feeRecipient: string,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -627,8 +618,6 @@ export interface AlphaOptionHandler extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    customOrderBounds(overrides?: CallOverrides): Promise<BigNumber>;
-
     executeBuyBackOrder(
       _orderId: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -644,6 +633,10 @@ export interface AlphaOptionHandler extends BaseContract {
       _orderId2: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
+
+    feePerContract(overrides?: CallOverrides): Promise<BigNumber>;
+
+    feeRecipient(overrides?: CallOverrides): Promise<BigNumber>;
 
     liquidityPool(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -661,12 +654,13 @@ export interface AlphaOptionHandler extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    setCustomOrderBounds(
-      _callMinDelta: BigNumberish,
-      _callMaxDelta: BigNumberish,
-      _putMinDelta: BigNumberish,
-      _putMaxDelta: BigNumberish,
-      _maxPriceRange: BigNumberish,
+    setFeePerContract(
+      _feePerContract: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setFeeRecipient(
+      _feeRecipient: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -705,8 +699,6 @@ export interface AlphaOptionHandler extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    customOrderBounds(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
     executeBuyBackOrder(
       _orderId: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -722,6 +714,10 @@ export interface AlphaOptionHandler extends BaseContract {
       _orderId2: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
+
+    feePerContract(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    feeRecipient(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     liquidityPool(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -739,12 +735,13 @@ export interface AlphaOptionHandler extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    setCustomOrderBounds(
-      _callMinDelta: BigNumberish,
-      _callMaxDelta: BigNumberish,
-      _putMinDelta: BigNumberish,
-      _putMaxDelta: BigNumberish,
-      _maxPriceRange: BigNumberish,
+    setFeePerContract(
+      _feePerContract: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setFeeRecipient(
+      _feeRecipient: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

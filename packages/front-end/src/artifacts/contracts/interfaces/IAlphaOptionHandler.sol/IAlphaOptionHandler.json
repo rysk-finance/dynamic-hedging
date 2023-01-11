@@ -1,0 +1,225 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IAlphaOptionHandler",
+  "sourceName": "contracts/interfaces/IAlphaOptionHandler.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint64",
+              "name": "expiration",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint128",
+              "name": "strike",
+              "type": "uint128"
+            },
+            {
+              "internalType": "bool",
+              "name": "isPut",
+              "type": "bool"
+            },
+            {
+              "internalType": "address",
+              "name": "underlying",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "strikeAsset",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "collateral",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct Types.OptionSeries",
+          "name": "_optionSeries",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_price",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_orderExpiry",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "_buyerAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "_isBuyBack",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256[2]",
+          "name": "_spotMovementRange",
+          "type": "uint256[2]"
+        }
+      ],
+      "name": "createOrder",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint64",
+              "name": "expiration",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint128",
+              "name": "strike",
+              "type": "uint128"
+            },
+            {
+              "internalType": "bool",
+              "name": "isPut",
+              "type": "bool"
+            },
+            {
+              "internalType": "address",
+              "name": "underlying",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "strikeAsset",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "collateral",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct Types.OptionSeries",
+          "name": "_optionSeriesCall",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "uint64",
+              "name": "expiration",
+              "type": "uint64"
+            },
+            {
+              "internalType": "uint128",
+              "name": "strike",
+              "type": "uint128"
+            },
+            {
+              "internalType": "bool",
+              "name": "isPut",
+              "type": "bool"
+            },
+            {
+              "internalType": "address",
+              "name": "underlying",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "strikeAsset",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "collateral",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct Types.OptionSeries",
+          "name": "_optionSeriesPut",
+          "type": "tuple"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amountCall",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amountPut",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_priceCall",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_pricePut",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_orderExpiry",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "_buyerAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256[2]",
+          "name": "_callSpotMovementRange",
+          "type": "uint256[2]"
+        },
+        {
+          "internalType": "uint256[2]",
+          "name": "_putSpotMovementRange",
+          "type": "uint256[2]"
+        }
+      ],
+      "name": "createStrangle",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

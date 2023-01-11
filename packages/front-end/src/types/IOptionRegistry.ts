@@ -48,6 +48,7 @@ export interface IOptionRegistryInterface extends utils.Interface {
     "gammaController()": FunctionFragment;
     "getCollateral((uint64,uint128,bool,address,address,address),uint256)": FunctionFragment;
     "getOtoken(address,address,uint256,bool,uint256,address)": FunctionFragment;
+    "getSeries((uint64,uint128,bool,address,address,address))": FunctionFragment;
     "getSeriesInfo(address)": FunctionFragment;
     "issue((uint64,uint128,bool,address,address,address))": FunctionFragment;
     "open(address,uint256,uint256)": FunctionFragment;
@@ -70,6 +71,10 @@ export interface IOptionRegistryInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "getOtoken",
     values: [string, string, BigNumberish, boolean, BigNumberish, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getSeries",
+    values: [OptionSeriesStruct]
   ): string;
   encodeFunctionData(
     functionFragment: "getSeriesInfo",
@@ -96,6 +101,7 @@ export interface IOptionRegistryInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getOtoken", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "getSeries", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getSeriesInfo",
     data: BytesLike
@@ -159,6 +165,11 @@ export interface IOptionRegistry extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[string]>;
 
+    getSeries(
+      _series: OptionSeriesStruct,
+      overrides?: CallOverrides
+    ): Promise<[string]>;
+
     getSeriesInfo(
       series: string,
       overrides?: CallOverrides
@@ -208,6 +219,11 @@ export interface IOptionRegistry extends BaseContract {
     overrides?: CallOverrides
   ): Promise<string>;
 
+  getSeries(
+    _series: OptionSeriesStruct,
+    overrides?: CallOverrides
+  ): Promise<string>;
+
   getSeriesInfo(
     series: string,
     overrides?: CallOverrides
@@ -254,6 +270,11 @@ export interface IOptionRegistry extends BaseContract {
       isPut: boolean,
       strike: BigNumberish,
       collateral: string,
+      overrides?: CallOverrides
+    ): Promise<string>;
+
+    getSeries(
+      _series: OptionSeriesStruct,
       overrides?: CallOverrides
     ): Promise<string>;
 
@@ -316,6 +337,11 @@ export interface IOptionRegistry extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    getSeries(
+      _series: OptionSeriesStruct,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     getSeriesInfo(
       series: string,
       overrides?: CallOverrides
@@ -363,6 +389,11 @@ export interface IOptionRegistry extends BaseContract {
       isPut: boolean,
       strike: BigNumberish,
       collateral: string,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getSeries(
+      _series: OptionSeriesStruct,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 

@@ -65,7 +65,17 @@ const _abi = [
   },
   {
     inputs: [],
+    name: "InsufficientBalance",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "InsufficientShareBalance",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidAddress",
     type: "error",
   },
   {
@@ -76,6 +86,16 @@ const _abi = [
   {
     inputs: [],
     name: "InvalidBuyer",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidDecimals",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "InvalidInput",
     type: "error",
   },
   {
@@ -152,6 +172,11 @@ const _abi = [
   },
   {
     inputs: [],
+    name: "NonWhitelistedOtoken",
+    type: "error",
+  },
+  {
+    inputs: [],
     name: "NotHandler",
     type: "error",
   },
@@ -194,6 +219,21 @@ const _abi = [
       },
     ],
     name: "PriceDeltaExceedsThreshold",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "ReactorAlreadyExists",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "SeriesNotBuyable",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "SeriesNotSellable",
     type: "error",
   },
   {
@@ -249,6 +289,11 @@ const _abi = [
     type: "error",
   },
   {
+    inputs: [],
+    name: "UnapprovedSeries",
+    type: "error",
+  },
+  {
     inputs: [
       {
         internalType: "uint256",
@@ -267,6 +312,11 @@ const _abi = [
   {
     inputs: [],
     name: "UnderlyingAssetInvalid",
+    type: "error",
+  },
+  {
+    inputs: [],
+    name: "VaultExpired",
     type: "error",
   },
   {

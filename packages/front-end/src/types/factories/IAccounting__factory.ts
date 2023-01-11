@@ -14,11 +14,6 @@ const _abi = [
         name: "withdrawer",
         type: "address",
       },
-      {
-        internalType: "uint256",
-        name: "shares",
-        type: "uint256",
-      },
     ],
     name: "completeWithdraw",
     outputs: [

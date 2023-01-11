@@ -145,9 +145,9 @@ const _abi = [
     name: "checkBuffer",
     outputs: [
       {
-        internalType: "uint256",
+        internalType: "int256",
         name: "bufferRemaining",
-        type: "uint256",
+        type: "int256",
       },
     ],
     stateMutability: "view",
@@ -723,6 +723,24 @@ const _abi = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "int256",
+        name: "delta",
+        type: "int256",
+      },
+      {
+        internalType: "uint256",
+        name: "index",
+        type: "uint256",
+      },
+    ],
+    name: "rebalancePortfolioDelta",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {

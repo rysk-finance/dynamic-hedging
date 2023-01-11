@@ -26,9 +26,9 @@ export interface AuthorityInterface extends utils.Interface {
     "newManager()": FunctionFragment;
     "pullGovernor()": FunctionFragment;
     "pullManager()": FunctionFragment;
-    "pushGovernor(address,bool)": FunctionFragment;
+    "pushGovernor(address)": FunctionFragment;
     "pushGuardian(address)": FunctionFragment;
-    "pushManager(address,bool)": FunctionFragment;
+    "pushManager(address)": FunctionFragment;
     "revokeGuardian(address)": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
   };
@@ -55,16 +55,13 @@ export interface AuthorityInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "pushGovernor",
-    values: [string, boolean]
+    values: [string]
   ): string;
   encodeFunctionData(
     functionFragment: "pushGuardian",
     values: [string]
   ): string;
-  encodeFunctionData(
-    functionFragment: "pushManager",
-    values: [string, boolean]
-  ): string;
+  encodeFunctionData(functionFragment: "pushManager", values: [string]): string;
   encodeFunctionData(
     functionFragment: "revokeGuardian",
     values: [string]
@@ -115,18 +112,18 @@ export interface AuthorityInterface extends utils.Interface {
   events: {
     "AuthorityUpdated(address)": EventFragment;
     "GovernorPulled(address,address)": EventFragment;
-    "GovernorPushed(address,address,bool)": EventFragment;
-    "GuardianPulled(address)": EventFragment;
-    "GuardianPushed(address,bool)": EventFragment;
+    "GovernorPushed(address,address)": EventFragment;
+    "GuardianPushed(address)": EventFragment;
+    "GuardianRevoked(address)": EventFragment;
     "ManagerPulled(address,address)": EventFragment;
-    "ManagerPushed(address,address,bool)": EventFragment;
+    "ManagerPushed(address,address)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "GovernorPulled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "GovernorPushed"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "GuardianPulled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "GuardianPushed"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "GuardianRevoked"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "ManagerPulled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "ManagerPushed"): EventFragment;
 }
@@ -144,22 +141,19 @@ export type GovernorPulledEvent = TypedEvent<
 export type GovernorPulledEventFilter = TypedEventFilter<GovernorPulledEvent>;
 
 export type GovernorPushedEvent = TypedEvent<
-  [string, string, boolean],
-  { from: string; to: string; _effectiveImmediately: boolean }
+  [string, string],
+  { from: string; to: string }
 >;
 
 export type GovernorPushedEventFilter = TypedEventFilter<GovernorPushedEvent>;
 
-export type GuardianPulledEvent = TypedEvent<[string], { to: string }>;
-
-export type GuardianPulledEventFilter = TypedEventFilter<GuardianPulledEvent>;
-
-export type GuardianPushedEvent = TypedEvent<
-  [string, boolean],
-  { to: string; _effectiveImmediately: boolean }
->;
+export type GuardianPushedEvent = TypedEvent<[string], { to: string }>;
 
 export type GuardianPushedEventFilter = TypedEventFilter<GuardianPushedEvent>;
+
+export type GuardianRevokedEvent = TypedEvent<[string], { to: string }>;
+
+export type GuardianRevokedEventFilter = TypedEventFilter<GuardianRevokedEvent>;
 
 export type ManagerPulledEvent = TypedEvent<
   [string, string],
@@ -169,8 +163,8 @@ export type ManagerPulledEvent = TypedEvent<
 export type ManagerPulledEventFilter = TypedEventFilter<ManagerPulledEvent>;
 
 export type ManagerPushedEvent = TypedEvent<
-  [string, string, boolean],
-  { from: string; to: string; _effectiveImmediately: boolean }
+  [string, string],
+  { from: string; to: string }
 >;
 
 export type ManagerPushedEventFilter = TypedEventFilter<ManagerPushedEvent>;
@@ -224,7 +218,6 @@ export interface Authority extends BaseContract {
 
     pushGovernor(
       _newGovernor: string,
-      _effectiveImmediately: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -235,7 +228,6 @@ export interface Authority extends BaseContract {
 
     pushManager(
       _newManager: string,
-      _effectiveImmediately: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -272,7 +264,6 @@ export interface Authority extends BaseContract {
 
   pushGovernor(
     _newGovernor: string,
-    _effectiveImmediately: boolean,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -283,7 +274,6 @@ export interface Authority extends BaseContract {
 
   pushManager(
     _newManager: string,
-    _effectiveImmediately: boolean,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -316,7 +306,6 @@ export interface Authority extends BaseContract {
 
     pushGovernor(
       _newGovernor: string,
-      _effectiveImmediately: boolean,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -325,11 +314,7 @@ export interface Authority extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    pushManager(
-      _newManager: string,
-      _effectiveImmediately: boolean,
-      overrides?: CallOverrides
-    ): Promise<void>;
+    pushManager(_newManager: string, overrides?: CallOverrides): Promise<void>;
 
     revokeGuardian(_guardian: string, overrides?: CallOverrides): Promise<void>;
 
@@ -352,28 +337,20 @@ export interface Authority extends BaseContract {
       to?: string | null
     ): GovernorPulledEventFilter;
 
-    "GovernorPushed(address,address,bool)"(
+    "GovernorPushed(address,address)"(
       from?: string | null,
-      to?: string | null,
-      _effectiveImmediately?: null
+      to?: string | null
     ): GovernorPushedEventFilter;
     GovernorPushed(
       from?: string | null,
-      to?: string | null,
-      _effectiveImmediately?: null
+      to?: string | null
     ): GovernorPushedEventFilter;
 
-    "GuardianPulled(address)"(to?: string | null): GuardianPulledEventFilter;
-    GuardianPulled(to?: string | null): GuardianPulledEventFilter;
+    "GuardianPushed(address)"(to?: string | null): GuardianPushedEventFilter;
+    GuardianPushed(to?: string | null): GuardianPushedEventFilter;
 
-    "GuardianPushed(address,bool)"(
-      to?: string | null,
-      _effectiveImmediately?: null
-    ): GuardianPushedEventFilter;
-    GuardianPushed(
-      to?: string | null,
-      _effectiveImmediately?: null
-    ): GuardianPushedEventFilter;
+    "GuardianRevoked(address)"(to?: string | null): GuardianRevokedEventFilter;
+    GuardianRevoked(to?: string | null): GuardianRevokedEventFilter;
 
     "ManagerPulled(address,address)"(
       from?: string | null,
@@ -384,15 +361,13 @@ export interface Authority extends BaseContract {
       to?: string | null
     ): ManagerPulledEventFilter;
 
-    "ManagerPushed(address,address,bool)"(
+    "ManagerPushed(address,address)"(
       from?: string | null,
-      to?: string | null,
-      _effectiveImmediately?: null
+      to?: string | null
     ): ManagerPushedEventFilter;
     ManagerPushed(
       from?: string | null,
-      to?: string | null,
-      _effectiveImmediately?: null
+      to?: string | null
     ): ManagerPushedEventFilter;
   };
 
@@ -419,7 +394,6 @@ export interface Authority extends BaseContract {
 
     pushGovernor(
       _newGovernor: string,
-      _effectiveImmediately: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -430,7 +404,6 @@ export interface Authority extends BaseContract {
 
     pushManager(
       _newManager: string,
-      _effectiveImmediately: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -471,7 +444,6 @@ export interface Authority extends BaseContract {
 
     pushGovernor(
       _newGovernor: string,
-      _effectiveImmediately: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -482,7 +454,6 @@ export interface Authority extends BaseContract {
 
     pushManager(
       _newManager: string,
-      _effectiveImmediately: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

@@ -36,12 +36,6 @@
           "internalType": "address",
           "name": "to",
           "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "bool",
-          "name": "_effectiveImmediately",
-          "type": "bool"
         }
       ],
       "name": "GovernorPushed",
@@ -57,7 +51,7 @@
           "type": "address"
         }
       ],
-      "name": "GuardianPulled",
+      "name": "GuardianPushed",
       "type": "event"
     },
     {
@@ -68,15 +62,9 @@
           "internalType": "address",
           "name": "to",
           "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "bool",
-          "name": "_effectiveImmediately",
-          "type": "bool"
         }
       ],
-      "name": "GuardianPushed",
+      "name": "GuardianRevoked",
       "type": "event"
     },
     {
@@ -112,12 +100,6 @@
           "internalType": "address",
           "name": "to",
           "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "bool",
-          "name": "_effectiveImmediately",
-          "type": "bool"
         }
       ],
       "name": "ManagerPushed",
@@ -166,6 +148,13 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "pullManager",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     }
   ],

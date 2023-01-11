@@ -6,6 +6,8 @@ import {
   BigNumber,
   BytesLike,
   CallOverrides,
+  ContractTransaction,
+  Overrides,
   PopulatedTransaction,
   Signer,
   utils,
@@ -19,29 +21,38 @@ export interface IAuthorityInterface extends utils.Interface {
     "governor()": FunctionFragment;
     "guardian(address)": FunctionFragment;
     "manager()": FunctionFragment;
+    "pullManager()": FunctionFragment;
   };
 
   encodeFunctionData(functionFragment: "governor", values?: undefined): string;
   encodeFunctionData(functionFragment: "guardian", values: [string]): string;
   encodeFunctionData(functionFragment: "manager", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "pullManager",
+    values?: undefined
+  ): string;
 
   decodeFunctionResult(functionFragment: "governor", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "guardian", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "manager", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "pullManager",
+    data: BytesLike
+  ): Result;
 
   events: {
     "GovernorPulled(address,address)": EventFragment;
-    "GovernorPushed(address,address,bool)": EventFragment;
-    "GuardianPulled(address)": EventFragment;
-    "GuardianPushed(address,bool)": EventFragment;
+    "GovernorPushed(address,address)": EventFragment;
+    "GuardianPushed(address)": EventFragment;
+    "GuardianRevoked(address)": EventFragment;
     "ManagerPulled(address,address)": EventFragment;
-    "ManagerPushed(address,address,bool)": EventFragment;
+    "ManagerPushed(address,address)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "GovernorPulled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "GovernorPushed"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "GuardianPulled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "GuardianPushed"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "GuardianRevoked"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "ManagerPulled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "ManagerPushed"): EventFragment;
 }
@@ -54,22 +65,19 @@ export type GovernorPulledEvent = TypedEvent<
 export type GovernorPulledEventFilter = TypedEventFilter<GovernorPulledEvent>;
 
 export type GovernorPushedEvent = TypedEvent<
-  [string, string, boolean],
-  { from: string; to: string; _effectiveImmediately: boolean }
+  [string, string],
+  { from: string; to: string }
 >;
 
 export type GovernorPushedEventFilter = TypedEventFilter<GovernorPushedEvent>;
 
-export type GuardianPulledEvent = TypedEvent<[string], { to: string }>;
-
-export type GuardianPulledEventFilter = TypedEventFilter<GuardianPulledEvent>;
-
-export type GuardianPushedEvent = TypedEvent<
-  [string, boolean],
-  { to: string; _effectiveImmediately: boolean }
->;
+export type GuardianPushedEvent = TypedEvent<[string], { to: string }>;
 
 export type GuardianPushedEventFilter = TypedEventFilter<GuardianPushedEvent>;
+
+export type GuardianRevokedEvent = TypedEvent<[string], { to: string }>;
+
+export type GuardianRevokedEventFilter = TypedEventFilter<GuardianRevokedEvent>;
 
 export type ManagerPulledEvent = TypedEvent<
   [string, string],
@@ -79,8 +87,8 @@ export type ManagerPulledEvent = TypedEvent<
 export type ManagerPulledEventFilter = TypedEventFilter<ManagerPulledEvent>;
 
 export type ManagerPushedEvent = TypedEvent<
-  [string, string, boolean],
-  { from: string; to: string; _effectiveImmediately: boolean }
+  [string, string],
+  { from: string; to: string }
 >;
 
 export type ManagerPushedEventFilter = TypedEventFilter<ManagerPushedEvent>;
@@ -117,6 +125,10 @@ export interface IAuthority extends BaseContract {
     guardian(_target: string, overrides?: CallOverrides): Promise<[boolean]>;
 
     manager(overrides?: CallOverrides): Promise<[string]>;
+
+    pullManager(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
   };
 
   governor(overrides?: CallOverrides): Promise<string>;
@@ -125,12 +137,18 @@ export interface IAuthority extends BaseContract {
 
   manager(overrides?: CallOverrides): Promise<string>;
 
+  pullManager(
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   callStatic: {
     governor(overrides?: CallOverrides): Promise<string>;
 
     guardian(_target: string, overrides?: CallOverrides): Promise<boolean>;
 
     manager(overrides?: CallOverrides): Promise<string>;
+
+    pullManager(overrides?: CallOverrides): Promise<void>;
   };
 
   filters: {
@@ -143,28 +161,20 @@ export interface IAuthority extends BaseContract {
       to?: string | null
     ): GovernorPulledEventFilter;
 
-    "GovernorPushed(address,address,bool)"(
+    "GovernorPushed(address,address)"(
       from?: string | null,
-      to?: string | null,
-      _effectiveImmediately?: null
+      to?: string | null
     ): GovernorPushedEventFilter;
     GovernorPushed(
       from?: string | null,
-      to?: string | null,
-      _effectiveImmediately?: null
+      to?: string | null
     ): GovernorPushedEventFilter;
 
-    "GuardianPulled(address)"(to?: string | null): GuardianPulledEventFilter;
-    GuardianPulled(to?: string | null): GuardianPulledEventFilter;
+    "GuardianPushed(address)"(to?: string | null): GuardianPushedEventFilter;
+    GuardianPushed(to?: string | null): GuardianPushedEventFilter;
 
-    "GuardianPushed(address,bool)"(
-      to?: string | null,
-      _effectiveImmediately?: null
-    ): GuardianPushedEventFilter;
-    GuardianPushed(
-      to?: string | null,
-      _effectiveImmediately?: null
-    ): GuardianPushedEventFilter;
+    "GuardianRevoked(address)"(to?: string | null): GuardianRevokedEventFilter;
+    GuardianRevoked(to?: string | null): GuardianRevokedEventFilter;
 
     "ManagerPulled(address,address)"(
       from?: string | null,
@@ -175,15 +185,13 @@ export interface IAuthority extends BaseContract {
       to?: string | null
     ): ManagerPulledEventFilter;
 
-    "ManagerPushed(address,address,bool)"(
+    "ManagerPushed(address,address)"(
       from?: string | null,
-      to?: string | null,
-      _effectiveImmediately?: null
+      to?: string | null
     ): ManagerPushedEventFilter;
     ManagerPushed(
       from?: string | null,
-      to?: string | null,
-      _effectiveImmediately?: null
+      to?: string | null
     ): ManagerPushedEventFilter;
   };
 
@@ -193,6 +201,10 @@ export interface IAuthority extends BaseContract {
     guardian(_target: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     manager(overrides?: CallOverrides): Promise<BigNumber>;
+
+    pullManager(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -204,5 +216,9 @@ export interface IAuthority extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     manager(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    pullManager(
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
   };
 }

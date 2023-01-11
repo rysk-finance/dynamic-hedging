@@ -81,6 +81,7 @@ export interface IControllerInterface extends utils.Interface {
     "getProceed(address,uint256)": FunctionFragment;
     "getVault(address,uint256)": FunctionFragment;
     "getVaultLiquidationDetails(address,uint256)": FunctionFragment;
+    "isOperator(address,address)": FunctionFragment;
     "isSettlementAllowed(address,address,address,uint256)": FunctionFragment;
     "operate((uint8,address,address,address,uint256,uint256,uint256,bytes)[])": FunctionFragment;
     "oracle()": FunctionFragment;
@@ -111,6 +112,10 @@ export interface IControllerInterface extends utils.Interface {
     values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "isOperator",
+    values: [string, string]
+  ): string;
+  encodeFunctionData(
     functionFragment: "isSettlementAllowed",
     values: [string, string, string, BigNumberish]
   ): string;
@@ -135,6 +140,7 @@ export interface IControllerInterface extends utils.Interface {
     functionFragment: "getVaultLiquidationDetails",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "isOperator", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "isSettlementAllowed",
     data: BytesLike
@@ -206,6 +212,12 @@ export interface IController extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[string, BigNumber, BigNumber]>;
 
+    isOperator(
+      _owner: string,
+      _operator: string,
+      overrides?: CallOverrides
+    ): Promise<[boolean]>;
+
     isSettlementAllowed(
       _underlying: string,
       _strike: string,
@@ -256,6 +268,12 @@ export interface IController extends BaseContract {
     overrides?: CallOverrides
   ): Promise<[string, BigNumber, BigNumber]>;
 
+  isOperator(
+    _owner: string,
+    _operator: string,
+    overrides?: CallOverrides
+  ): Promise<boolean>;
+
   isSettlementAllowed(
     _underlying: string,
     _strike: string,
@@ -305,6 +323,12 @@ export interface IController extends BaseContract {
       _vaultId: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[string, BigNumber, BigNumber]>;
+
+    isOperator(
+      _owner: string,
+      _operator: string,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
 
     isSettlementAllowed(
       _underlying: string,
@@ -359,6 +383,12 @@ export interface IController extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    isOperator(
+      _owner: string,
+      _operator: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     isSettlementAllowed(
       _underlying: string,
       _strike: string,
@@ -407,6 +437,12 @@ export interface IController extends BaseContract {
     getVaultLiquidationDetails(
       _owner: string,
       _vaultId: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    isOperator(
+      _owner: string,
+      _operator: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
