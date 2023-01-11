@@ -327,32 +327,40 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		int256 _optionDelta,
 		int256 _netDhvExposure,
 		uint256 _underlyingPrice
-	) view interal returns (uint256 spreadPremium) {
+	) internal view returns (uint256 spreadPremium) {
 		uint256 netShortContracts;
 		if (_netDhvExposure <= 0) {
 			// dhv is already short so apply collateral lending spread to all traded contracts
 			netShortContracts = _amount;
 		} else {
 			// dhv is long so only apply spread to those contracts which make it net short.
-			netShortContracts = _amount - _netDhvExposure < 0 ? 0 : _amount - _netDhvExposure;
+			netShortContracts = _amount - uint256(_netDhvExposure) < 0
+				? 0
+				: _amount - uint256(_netDhvExposure);
 		}
 		// find collateral requirements for net short options
-		collateralToLend = protocol.optionRegistry().getCollateral(_optionSeries, netShortContracts);
+		uint256 collateralToLend = IOptionRegistry(protocol.optionRegistry()).getCollateral(
+			_optionSeries,
+			netShortContracts
+		);
 		// get duration of option in years
-		uint256 time = (_optionSeries.expiration - getTimeStamp()).div(ONE_YEAR_SECONDS);
+		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
 		// calculate the collateral cost portion of the spread
 		uint256 collateralLendingPremium = ((1e18 + (collateralLendingRate * 1e18) / MAX_BPS).pow(time))
 			.mul(collateralToLend) - collateralToLend;
-
-		uint256 dollarDelta = _optionDelta.mul(_amount).mul(_underlyingPrice);
+		// this is just a magnitude value, sign doesnt matter
+		uint256 dollarDelta = uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice);
 		uint256 deltaBorrowPremium;
-
 		if (_optionDelta < 0) {
 			// option is negative delta, resulting in long exposure for DHV
-			deltaBorrowPremium = dollarDelta.mul(1e18 + longDeltaBorrowRate).pow(time) - dollarDelta;
+			deltaBorrowPremium =
+				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
+				dollarDelta;
 		} else {
-			// option is positive delta, resulting in long exposure for DHV
-			deltaBorrowPremium = dollarDelta.mul(1e18 + longDeltaBorrowRate).pow(time) - dollarDelta;
+			// option is positive delta, resulting in short exposure for DHV
+			deltaBorrowPremium =
+				dollarDelta.mul((1e18 + (shortDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
+				dollarDelta;
 		}
 		return collateralLendingPremium + deltaBorrowPremium;
 	}

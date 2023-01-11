@@ -292,7 +292,10 @@ export async function deployLiquidityPool(
 			toWei("2.7"),
 			toWei("2.8"),
 			toWei("2.9")
-		]
+		],
+		0,
+		0,
+		0
 	)) as BeyondPricer
 	await optionProtocol.changeAccounting(Accounting.address)
 	// deploy libraries
