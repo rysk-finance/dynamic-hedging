@@ -45,7 +45,8 @@ import {
 	increase,
 	setOpynOracleExpiryPrice,
 	getSeriesWithe18Strike,
-	getNetDhvExposure
+	getNetDhvExposure,
+	localQuoteOptionPrice
 } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
@@ -2101,15 +2102,6 @@ describe("Liquidity Pools", async () => {
 			amount,
 			true
 		)
-		const slippageFactor = await applySlippageLocally(
-			pricer,
-			exchange,
-			seriesInfoDecimalCorrected,
-			amount,
-			localDelta.div(parseFloat(fromWei(amount))),
-			true
-		)
-		console.log({ slippageFactor })
 		let quoteResponse = await pricer.quoteOptionPrice(
 			seriesInfoDecimalCorrected,
 			amount,
@@ -2118,7 +2110,7 @@ describe("Liquidity Pools", async () => {
 		)
 		let quote = quoteResponse[0].sub(quoteResponse[2])
 		let expectedDeltaChange = quoteResponse[1]
-		let localQuoteWithSlippage = localQuote * slippageFactor
+		let localQuoteWithSlippage = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, seriesInfoDecimalCorrected, amount, pricer, true, exchange, localDelta.div(amount.div(toWei("1"))))
 		// DHV is 50 short so a 5 buyback will still have positive slippage
 		expect(localQuoteWithSlippage).to.be.gt(localQuote)
 		// ensure quote is accurate
@@ -2166,8 +2158,8 @@ describe("Liquidity Pools", async () => {
 			collateralAllocatedBefore.sub(collateralAllocatedAfter)
 		)
 
-		// expect delta to be further from 0 afterwards because selling back a put option
-		expect(Math.abs(tFormatEth(deltaAfter))).to.be.gt(Math.abs(tFormatEth(deltaBefore)))
+		// expect delta to be closer to 0 afterwards because selling back a put option
+		expect(Math.abs(tFormatEth(deltaAfter))).to.be.lt(Math.abs(tFormatEth(deltaBefore)))
 		// check option seller's OToken balance reduced
 		expect(sellerOTokenBalanceAfter).to.equal(sellerOTokenBalanceBefore.sub(toOpyn(fromWei(amount))))
 		// check option seller's USD balance increases by correct amount

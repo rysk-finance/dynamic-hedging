@@ -545,6 +545,7 @@ describe("Structured Product maker", async () => {
 			expect(after.seriesStores.optionSeries.strikeAsset)
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
+			expect(after.netDhvExposure.add(amount)).to.equal(0)
 		})
 		// bull call spread or long call spread involves buying a lower strike price call and selling a higher strike price call expiring at the same time
 		// the sender should have their funds reduced
@@ -760,6 +761,8 @@ describe("Structured Product maker", async () => {
 				.to.equal(lowerProposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(lowerAfter.seriesStores.optionSeries.strike).to.equal(lowerProposedSeries.strike)
+			expect(lowerAfter.netDhvExposure.add(amount)).to.equal(0)
+			expect(upperAfter.netDhvExposure.sub(amount)).to.equal(0)
 		})
 		// bear call spread involves selling a lower strike price call and buying a higher strike price call expiring at the same time
 		// the sender is paid for this strategy
@@ -973,6 +976,8 @@ describe("Structured Product maker", async () => {
 				.to.equal(lowerProposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(lowerAfter.seriesStores.optionSeries.strike).to.equal(lowerProposedSeries.strike)
+			expect(lowerAfter.netDhvExposure.sub(amount)).to.equal(0)
+			expect(upperAfter.netDhvExposure.add(amount)).to.equal(0)
 		})
 		// e.g.
 		// Buy 1 XYZ 100-strike price call for $5.00
@@ -1269,6 +1274,9 @@ describe("Structured Product maker", async () => {
 				.to.equal(midProposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(midAfter.seriesStores.optionSeries.strike).to.equal(midProposedSeries.strike)
+			expect(lowerAfter.netDhvExposure.add(amount)).to.equal(0)
+			expect(upperAfter.netDhvExposure.add(amount)).to.equal(0)
+			expect(midAfter.netDhvExposure.sub(amount.mul(2))).to.equal(0)
 		})
 		// short strangle sell a call and sell a put at the same expiry
 		// the sender is paid for this strategy
@@ -1524,6 +1532,8 @@ describe("Structured Product maker", async () => {
 				.to.equal(lowerProposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(lowerAfter.seriesStores.optionSeries.strike).to.equal(lowerProposedSeries.strike)
+			expect(lowerAfter.netDhvExposure.sub(amount)).to.equal(0)
+			expect(upperAfter.netDhvExposure.sub(amount)).to.equal(0)
 		})
 		// short strangle sell a call and sell a put at the same expiry
 		// the sender is paid for this strategy
@@ -1732,7 +1742,7 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
-			let quoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, false, 0)
+			let quoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, false, before.netDhvExposure)
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			await usd.approve(exchange.address, quote)
 			await exchange.operate([
@@ -1774,6 +1784,8 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
+			quoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, false, before.netDhvExposure)
+			quote = quoteResponse[0].add(quoteResponse[2])
 			expect(after.senderOtokenBalance.sub(before.senderOtokenBalance)).to.eq(after.opynAmount)
 			expect(after.exchangeOTokenBalance).to.eq(0)
 			expect(before.senderUSDBalance.sub(after.senderUSDBalance).sub(quote)).to.be.within(-200, 200)
@@ -1799,6 +1811,7 @@ describe("Structured Product maker", async () => {
 			expect(after.seriesStores.optionSeries.strikeAsset)
 				.to.equal(lowerProposedSeries.strikeAsset)
 				.to.equal(usd.address)
+			expect(before.netDhvExposure.sub(after.netDhvExposure)).to.equal(amount)
 		})
 		// short strangle sell a call and sell a put at the same expiry
 		// the sender is paid for this strategy
@@ -1846,10 +1859,6 @@ describe("Structured Product maker", async () => {
 					amount
 				)
 			).add(toWei("0.1"))
-			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, 0)
-			let lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
-			let upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, 0)
-			let upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 
 			await weth.approve(exchange.address, lowerMarginRequirement.add(upperMarginRequirement))
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
@@ -1878,6 +1887,10 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
+			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, lowerBefore.netDhvExposure)
+			let lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
+			let upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, upperBefore.netDhvExposure)
+			let upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 			await exchange.operate([
 				{
 					operation: 0,
@@ -1983,11 +1996,6 @@ describe("Structured Product maker", async () => {
 					]
 				}
 			])
-
-			lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, 0)
-			lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
-			upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, 0)
-			upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 			const upperAfter = await getExchangeParams(
 				liquidityPool,
 				exchange,
@@ -2008,7 +2016,11 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
-
+			lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, lowerBefore.netDhvExposure)
+			lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
+			upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, upperBefore.netDhvExposure)
+			upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
+			console.log(lowerQuote, upperQuote)
 			expect(upperAfter.exchangeOTokenBalance).to.eq(toOpyn(fromWei(amount)))
 			expect(lowerAfter.exchangeOTokenBalance).to.eq(toOpyn(fromWei(amount)))
 			expect(
@@ -2050,6 +2062,8 @@ describe("Structured Product maker", async () => {
 				.to.equal(lowerProposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(lowerAfter.seriesStores.optionSeries.strike).to.equal(lowerProposedSeries.strike)
+			expect(lowerAfter.netDhvExposure.sub(lowerBefore.netDhvExposure)).to.equal(amount)
+			expect(upperAfter.netDhvExposure.sub(upperBefore.netDhvExposure)).to.equal(amount)
 		})
 		it("SUCCEEDS: LP Sells a ETH/USD call for premium with otoken created outside", async () => {
 			const amount = toWei("5")
@@ -2097,6 +2111,8 @@ describe("Structured Product maker", async () => {
 					amount
 				)
 			).add(toUSDC("100"))
+			oTokenUSDCSXC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
+			optionToken = oTokenUSDCSXC
 			await usd.approve(MARGIN_POOL[chainId], marginRequirement)
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
 			const before = await getExchangeParams(
@@ -2105,7 +2121,7 @@ describe("Structured Product maker", async () => {
 				usd,
 				wethERC20,
 				portfolioValuesFeed,
-				0,
+				optionToken,
 				senderAddress,
 				amount
 			)
@@ -2173,8 +2189,6 @@ describe("Structured Product maker", async () => {
 				toWei("5"),
 				true
 			)
-			oTokenUSDCSXC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
-			optionToken = oTokenUSDCSXC
 			const after = await getExchangeParams(
 				liquidityPool,
 				exchange,
@@ -2206,6 +2220,7 @@ describe("Structured Product maker", async () => {
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(after.seriesStores.optionSeries.strike).to.equal(proposedSeries.strike)
+			expect(after.netDhvExposure.sub(amount)).to.equal(0)
 		})
 		it("LP Writes a ETH/USD call for premium for an option to be sold", async () => {
 			const amount = toWei("5")
@@ -2305,6 +2320,7 @@ describe("Structured Product maker", async () => {
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(after.seriesStores.optionSeries.strike).to.equal(proposedSeries.strike)
+			expect(after.netDhvExposure.add(amount)).to.equal(0)
 		})
 		it("SUCCEEDS: LP Sells a ETH/USD call for premium creating otoken in tx", async () => {
 			const amount = toWei("5")
@@ -2332,22 +2348,23 @@ describe("Structured Product maker", async () => {
 					amount
 				)
 			).add(toUSDC("100"))
+			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+			await exchange.createOtoken(proposedSeries)
+			oTokenUSDCSXC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
+			optionToken = oTokenUSDCSXC
 			const before = await getExchangeParams(
 				liquidityPool,
 				exchange,
 				usd,
 				wethERC20,
 				portfolioValuesFeed,
-				0,
+				optionToken,
 				senderAddress,
 				amount
 			)
 			await usd.approve(MARGIN_POOL[chainId], marginRequirement)
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
-			/// ADD OPERATOR TODO
-			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
 
-			await exchange.createOtoken(proposedSeries)
 			await exchange.operate([
 				{
 					operation: 0,
@@ -2412,8 +2429,6 @@ describe("Structured Product maker", async () => {
 				toWei("5"),
 				true
 			)
-			oTokenUSDCSXC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
-			optionToken = oTokenUSDCSXC
 			const after = await getExchangeParams(
 				liquidityPool,
 				exchange,
@@ -2424,7 +2439,7 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
-			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, before.netDhvExposure)
 			quote = quoteResponse[0].sub(quoteResponse[2])
 			expect(after.exchangeOTokenBalance).to.eq(0)
 			expect(
@@ -2451,6 +2466,7 @@ describe("Structured Product maker", async () => {
 				.to.equal(proposedSeries.strikeAsset)
 				.to.equal(usd.address)
 			expect(after.seriesStores.optionSeries.strike).to.equal(proposedSeries.strike)
+			expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
 		})
 	})
 	describe("Deposit funds into the liquidityPool and withdraws", async () => {
