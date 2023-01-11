@@ -195,7 +195,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		);
 		console.log("vanillaPremium:", vanillaPremium);
 		uint256 premium = vanillaPremium.mul(
-			_getSlippageMultiplier(_optionSeries, _amount, delta, netDhvExposure, isSell)
+			_getSlippageMultiplier(_amount, delta, netDhvExposure, isSell)
 		);
 		console.log("premium:", premium);
 		// note the delta returned is the delta of a long position of the option the sign of delta should be handled elsewhere.
@@ -253,14 +253,12 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	/**
 	 * @notice function to add slippage to orders to prevent over-exposure to a single option type
-	 * @param _optionSeries the option series that we are pricing
 	 * @param _amount amount of options contracts being traded. e18
 	 * @param _optionDelta the delta exposure of the option
 	 * @param _netDhvExposure how many contracts of this series the DHV is already exposed to. e18. negative if net short.
 	 * @param _isSell true if someone is selling option to DHV. False if they're buying from DHV
 	 */
 	function _getSlippageMultiplier(
-		Types.OptionSeries memory _optionSeries,
 		uint256 _amount,
 		int256 _optionDelta,
 		int256 _netDhvExposure,
