@@ -77,6 +77,42 @@ export async function getSeriesWithe18Strike(proposedSeries, optionRegistry) {
 	return seriesAddress
 }
 
+export async function compareQuotes(
+	quoteResponse, 
+	liquidityPool, 
+	priceFeed, 
+	proposedSeries, 
+	amount, 
+	isSell, 
+	exchange,
+	optionRegistry,
+	usd,
+	pricer,
+	netDhvExposureOverride: BigNumber = toWei("86868686")) 
+{
+	const feePerContract = await pricer.feePerContract()
+	const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, isSell)
+	const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, isSell, exchange, localDelta.div(amount.div(toWei("1"))), netDhvExposureOverride)
+	console.log(localDelta.toString(), quoteResponse.totalDelta)
+	expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.1, 0.1)
+	expect((quoteResponse.totalDelta).abs().sub(localDelta.abs())).to.be.within(-1e14, 1e14)
+	if (proposedSeries.isPut) {
+		if (isSell) {
+			expect(localDelta).to.be.gt(0)
+		} else {
+			expect(localDelta).to.be.lt(0)
+		}
+		expect(quoteResponse.totalDelta).to.be.lt(0)
+	} else {
+		if (isSell) {
+			expect(localDelta).to.be.lt(0)
+		} else {
+			expect(localDelta).to.be.gt(0)
+		}
+		expect(quoteResponse.totalDelta).to.be.gt(0)
+	}
+	expect(quoteResponse.totalFees).to.equal(feePerContract.mul(amount.div(toWei("1"))))
+}
 export async function getExchangeParams(
 	liquidityPool,
 	exchange,
@@ -97,7 +133,7 @@ export async function getExchangeParams(
 	let seriesStores = await portfolioValuesFeed.storesForAddress(ZERO_ADDRESS)
 	let exchangeOTokenBalance = 0
 	let senderOtokenBalance = 0
-	let netDhvExposure = 0
+	let netDhvExposure = toWei("0")
 	// stuff we always expect to be the case
 	const poolWethBalance = await weth.balanceOf(liquidityPool.address)
 	const exchangeWethBalance = await weth.balanceOf(exchange.address)
@@ -580,7 +616,7 @@ export async function localQuoteOptionPrice(
 	isSell: boolean, // from perspective of user,
 	exchange: OptionExchange,
 	optionDelta: BigNumber,
-	netDhvExposure: BigNumber = toWei("0")
+	netDhvExposure: BigNumber = toWei("86868686")
 	){
 		const bsQ = await calculateOptionQuoteLocally(liquidityPool, optionRegistry, collateralAsset, priceFeed, optionSeries, amount, pricer, isSell)
 		const slip = await applySlippageLocally(pricer, exchange, optionSeries, amount, optionDelta, isSell, netDhvExposure)
@@ -594,7 +630,7 @@ export async function applySlippageLocally(
 	amount: BigNumber,
 	optionDelta: BigNumber,
 	isSell: boolean = false, // from perspective of user
-	netDhvExposure: BigNumber = toWei("0")
+	netDhvExposure: BigNumber = toWei("86868686")
 ) {
 	const formattedStrikePrice = (
 		await exchange.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
@@ -603,7 +639,7 @@ export async function applySlippageLocally(
 		["uint64", "uint128", "bool"],
 		[optionSeries.expiration, formattedStrikePrice, optionSeries.isPut]
 	)
-	if (netDhvExposure == toWei("0")) {
+	if (netDhvExposure == toWei("86868686")) {
 		netDhvExposure = await exchange.netDhvExposure(oHash)
 	}
 

@@ -49,7 +49,8 @@ import {
 	getSeriesWithe18Strike,
 	getNetDhvExposure,
     applySlippageLocally,
-    localQuoteOptionPrice
+    localQuoteOptionPrice,
+    compareQuotes
 } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
@@ -345,48 +346,29 @@ describe("Pricer testing", async () => {
                 underlying: weth.address,
                 collateral: usd.address
             }
-            const feePerContract = await pricer.feePerContract()
             const amount = toWei("1")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
             singleBuyQuote = quoteResponse[0]
-            const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, false)
-            const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, false, exchange, localDelta.div(amount.div(toWei("1"))))
-            expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.01, 0.01)
-            expect(quoteResponse[1].sub(localDelta)).to.be.within(-1e12, 1e12)
-            expect(quoteResponse[2]).to.equal(feePerContract.mul(amount.div(toWei("1"))))
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer)
         })
         it("SUCCEEDS: get quote for 1 option when selling", async () => {
-            const feePerContract = await pricer.feePerContract()
             const amount = toWei("1")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
             singleSellQuote = quoteResponse[0]
-            const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, true)
-            const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, true, exchange, localDelta.div(amount.div(toWei("1"))))
-            expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.01, 0.01)
-            expect(quoteResponse[1].add(localDelta)).to.be.within(-1e12,1e12)
-            expect(quoteResponse[2]).to.equal(feePerContract.mul(amount.div(toWei("1"))))
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer)
         })
         it("SUCCEEDS: get quote for 1000 options when buying", async () => {
-            const feePerContract = await pricer.feePerContract()
             const amount = toWei("1000")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-            const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, false)
-            const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, false, exchange, localDelta.div(amount.div(toWei("1"))))
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer)
             expect(singleBuyQuote).to.be.lt(quoteResponse[0].div(1000))
-            expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.1, 0.1)
-            expect(quoteResponse[1].sub(localDelta)).to.be.within(-1e15, 1e15)
-            expect(quoteResponse[2]).to.equal(feePerContract.mul(amount.div(toWei("1"))))
         })
         it("SUCCEEDS: get quote for 1000 options when selling", async () => {
             const feePerContract = await pricer.feePerContract()
             const amount = toWei("1000")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
-            const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, true)
-            const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, true, exchange, localDelta.div(amount.div(toWei("1"))))
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer)
             expect(singleSellQuote).to.be.gt(quoteResponse[0].div(1000))
-            expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.1, 0.1)
-            expect(quoteResponse[1].add(localDelta)).to.be.within(-1e15, 1e15)
-            expect(quoteResponse[2]).to.equal(feePerContract.mul(amount.div(toWei("1"))))
         })
     })
     describe("Get quotes successfully for small and big puts", async () => {
@@ -402,48 +384,28 @@ describe("Pricer testing", async () => {
                 underlying: weth.address,
                 collateral: usd.address
             }
-            const feePerContract = await pricer.feePerContract()
             const amount = toWei("1")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
             singleBuyQuote = quoteResponse[0]
-            const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, false)
-            const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, false, exchange, localDelta.div(amount.div(toWei("1"))))
-            expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.01, 0.01)
-            expect(quoteResponse[1].sub(localDelta)).to.be.within(-1e12, 1e12)
-            expect(quoteResponse[2]).to.equal(feePerContract.mul(amount.div(toWei("1"))))
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer)
         })
         it("SUCCEEDS: get quote for 1 option when selling", async () => {
-            const feePerContract = await pricer.feePerContract()
             const amount = toWei("1")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
             singleSellQuote = quoteResponse[0]
-            const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, true)
-            const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, true, exchange, localDelta.div(amount.div(toWei("1"))))
-            expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.01, 0.01)
-            expect(quoteResponse[1].add(localDelta)).to.be.within(-1e12,1e12)
-            expect(quoteResponse[2]).to.equal(feePerContract.mul(amount.div(toWei("1"))))
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer)
         })
         it("SUCCEEDS: get quote for 1000 options when buying", async () => {
-            const feePerContract = await pricer.feePerContract()
             const amount = toWei("1000")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-            const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, false)
-            const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, false, exchange, localDelta.div(amount.div(toWei("1"))))
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer)
             expect(singleBuyQuote).to.be.lt(quoteResponse[0].div(1000))
-            expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.1, 0.1)
-            expect(quoteResponse[1].sub(localDelta)).to.be.within(-1e15, 1e15)
-            expect(quoteResponse[2]).to.equal(feePerContract.mul(amount.div(toWei("1"))))
         })
         it("SUCCEEDS: get quote for 1000 options when selling", async () => {
-            const feePerContract = await pricer.feePerContract()
             const amount = toWei("1000")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
-            const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, true)
-            const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, true, exchange, localDelta.div(amount.div(toWei("1"))))
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer)
             expect(singleSellQuote).to.be.gt(quoteResponse[0].div(1000))
-            expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.1, 0.1)
-            expect(quoteResponse[1].add(localDelta)).to.be.within(-1e15, 1e15)
-            expect(quoteResponse[2]).to.equal(feePerContract.mul(amount.div(toWei("1"))))
         })
     })
 	describe("Compare lots of small quotes to one big quote", async () => {
@@ -461,55 +423,32 @@ describe("Pricer testing", async () => {
             }
 			buyQuoteLots = toWei("0")
 			for (let i=0; i < 100; i++) {
-				const feePerContract = await pricer.feePerContract()
 				const amount = toWei("1")
 				let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, toWei("0").sub(toWei(i.toString())))
-				const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, false)
-				const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, false, exchange, localDelta.div(amount.div(toWei("1"))), toWei("0").sub(toWei(i.toString())))
-				expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.1, 0.1)
-				expect(quoteResponse.totalDelta.sub(localDelta)).to.be.within(-1e15, 1e15)
-				expect(quoteResponse.totalFees).to.equal(feePerContract.mul(amount.div(toWei("1"))))
+                await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0").sub(toWei(i.toString())))
 				buyQuoteLots = buyQuoteLots.add(quoteResponse.totalPremium)
 			}
-			console.log(buyQuoteLots.toString())
-
         })
         it("SUCCEEDS: get quote for 1000 options when selling 100 times", async () => {
 			sellQuoteLots = toWei("0")
 			for (let i=0; i < 100; i++) {
-				const feePerContract = await pricer.feePerContract()
 				const amount = toWei("1")
 				let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, toWei(i.toString()))
-				const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, true)
-				const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, true, exchange, localDelta.div(amount.div(toWei("1"))), toWei(i.toString()))
-				expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.1, 0.1)
-				expect(quoteResponse.totalDelta.add(localDelta)).to.be.within(-1e15,1e15)
-				expect(quoteResponse.totalFees).to.equal(feePerContract.mul(amount.div(toWei("1"))))
+                await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei(i.toString()))
 				sellQuoteLots = sellQuoteLots.add(quoteResponse.totalPremium)
 			}
-			console.log(sellQuoteLots)
         })
         it("SUCCEEDS: get quote for 100 options when buying 1 time", async () => {
-            const feePerContract = await pricer.feePerContract()
             const amount = toWei("100")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-            const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, false)
-            const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, false, exchange, localDelta.div(amount.div(toWei("1"))))
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer)
 			expect(buyQuoteLots.sub(quoteResponse[0])).to.be.within(-100, 100)
-            expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.1, 0.1)
-            expect(quoteResponse[1].sub(localDelta)).to.be.within(-1e15, 1e15)
-            expect(quoteResponse[2]).to.equal(feePerContract.mul(amount.div(toWei("1"))))
         })
         it("SUCCEEDS: get quote for 100 options when selling 1 time", async () => {
-            const feePerContract = await pricer.feePerContract()
             const amount = toWei("100")
             let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
-            const localDelta = await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries, amount, true)
-            const localQuote = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, proposedSeries, amount, pricer, true, exchange, localDelta.div(amount.div(toWei("1"))))
+            await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer)
             expect(sellQuoteLots.sub(quoteResponse[0])).to.be.within(-100, 100)
-            expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.1, 0.1)
-            expect(quoteResponse[1].add(localDelta)).to.be.within(-1e15, 1e15)
-            expect(quoteResponse[2]).to.equal(feePerContract.mul(amount.div(toWei("1"))))
         })
     })
 })
