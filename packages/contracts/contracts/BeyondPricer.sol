@@ -140,7 +140,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	}
 
 	function setSlippageGradient(uint256 _slippageGradient) external {
-		_onlyGuardian();
+		_onlyGovernor();
 		slippageGradient = _slippageGradient;
 	}
 
@@ -165,7 +165,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256[] memory _callSlippageGradientMultipliers,
 		uint256[] memory _putSlippageGradientMultipliers
 	) external {
-		_onlyGuardian();
+		_onlyGovernor();
 		deltaBandWidth = _deltaBandWidth;
 		setSlippageGradientMultipliers(_callSlippageGradientMultipliers, _putSlippageGradientMultipliers);
 	}
@@ -174,7 +174,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256[] memory _callSlippageGradientMultipliers,
 		uint256[] memory _putSlippageGradientMultipliers
 	) public {
-		_onlyGuardian();
+		_onlyGovernor();
 		if (
 			_callSlippageGradientMultipliers.length != 100e18 / deltaBandWidth ||
 			_putSlippageGradientMultipliers.length != 100e18 / deltaBandWidth
