@@ -681,7 +681,7 @@ export async function localQuoteOptionPrice(
 		)
 	}
 	console.log({ bsQ, slip, spread })
-	return bsQ * slip
+	return bsQ * slip + spread
 }
 
 export async function applySlippageLocally(
@@ -777,6 +777,18 @@ export async function applySpreadLocally(
 		"NewMarginCalculator",
 		await addressBook.getMarginCalculator()
 	)) as NewMarginCalculator
+	console.log(
+		"margin calc params",
+		optionSeries.underlying,
+		optionSeries.strikeAsset,
+		optionSeries.collateral,
+		netShortContracts.div(utils.parseUnits("1", 10)), // format from e18 to e8
+		optionSeries.strike.div(utils.parseUnits("1", 10)), // format from e18 to e8,
+		underlyingPrice,
+		optionSeries.expiration,
+		6,
+		optionSeries.isPut
+	)
 	const collateralToLend = parseFloat(
 		fromUSDC(
 			await marginCalc.getNakedMarginRequired(
@@ -784,14 +796,15 @@ export async function applySpreadLocally(
 				optionSeries.strikeAsset,
 				optionSeries.collateral,
 				netShortContracts.div(utils.parseUnits("1", 10)), // format from e18 to e8
-				optionSeries.strike,
-				underlyingPrice,
+				optionSeries.strike.div(utils.parseUnits("1", 10)), // format from e18 to e8
+				underlyingPrice.div(utils.parseUnits("1", 10)), // format from e18 to e8,
 				optionSeries.expiration,
 				6,
 				optionSeries.isPut
 			)
 		)
 	)
+	console.log({ collateralToLend })
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block

@@ -232,13 +232,14 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 premium = vanillaPremium.mul(
 			_getSlippageMultiplier(_amount, delta, netDhvExposure, isSell)
 		);
+		uint256 spread;
 		if (!isSell) {
 			// user is buying from DHV, so add spread to the price
-			premium += _getSpreadValue(_optionSeries, _amount, delta, netDhvExposure, underlyingPrice);
+			spread = _getSpreadValue(_optionSeries, _amount, delta, netDhvExposure, underlyingPrice);
 		}
-
+		console.log("solidity vanilla premium:", vanillaPremium / 1e18, spread / 1e18);
 		// note the delta returned is the delta of a long position of the option the sign of delta should be handled elsewhere.
-		totalPremium = premium.mul(_amount) / 1e12;
+		totalPremium = (premium.mul(_amount) + spread) / 1e12;
 		totalDelta = delta.mul(int256(_amount));
 		totalFees = feePerContract.mul(_amount);
 	}
@@ -388,6 +389,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				dollarDelta.mul((1e18 + (shortDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
 				dollarDelta;
 		}
+		console.log("solidity:", collateralLendingPremium, deltaBorrowPremium);
 		console.log("SPREAD VALUE:", collateralLendingPremium + deltaBorrowPremium);
 		return collateralLendingPremium + deltaBorrowPremium;
 	}
@@ -408,7 +410,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				_optionSeries.strike / SCALE_FROM, // assumes in e18
 				IOracle(addressBook.getOracle()).getPrice(_optionSeries.underlying),
 				_optionSeries.expiration,
-				ERC20(_optionSeries.collateral).decimals(),
+				18, // always have the value return in e18
 				_optionSeries.isPut
 			);
 	}
