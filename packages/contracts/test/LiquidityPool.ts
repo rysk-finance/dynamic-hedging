@@ -487,15 +487,15 @@ describe("Liquidity Pools", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-			parseFloat(fromWei(pendingWithdrawBefore)) *
-			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			totalSupplyBefore.eq(0)
 				? toWei("1")
 				: toWei("1")
-					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-					.div(totalSupplyBefore)
+						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+						.div(totalSupplyBefore)
 		)
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
 		expect(pendingDepositBefore).to.not.eq(0)
@@ -623,7 +623,13 @@ describe("Liquidity Pools", async () => {
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
 		)
-		const netDhvExposure = await getNetDhvExposure(optionSeries.strike, optionSeries.collateral, exchange, optionSeries.expiration, optionSeries.isPut)
+		const netDhvExposure = await getNetDhvExposure(
+			optionSeries.strike,
+			optionSeries.collateral,
+			exchange,
+			optionSeries.expiration,
+			optionSeries.isPut
+		)
 		expect(netDhvExposure).to.eq(0)
 		let quoteResponse = await pricer.quoteOptionPrice(optionSeries, amount, false, netDhvExposure)
 		let localQuoteWithSlippage = localQuote * slippageFactor
@@ -1278,7 +1284,13 @@ describe("Liquidity Pools", async () => {
 		const amount = toWei("25")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const netDhvExposure = await getNetDhvExposure(strikePrice, usd.address, exchange, expiration, PUT_FLAVOR)
+		const netDhvExposure = await getNetDhvExposure(
+			strikePrice,
+			usd.address,
+			exchange,
+			expiration,
+			PUT_FLAVOR
+		)
 		expect(netDhvExposure).to.eq(0)
 
 		proposedSeries = {
@@ -1618,7 +1630,13 @@ describe("Liquidity Pools", async () => {
 		const numberOTokensMintedBefore = await putOptionToken.totalSupply()
 
 		const seriesInfo = await optionRegistry.getSeriesInfo(putOptionToken.address)
-		const netDhvExposure = await getNetDhvExposure(seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10)), usd.address, exchange, expiration, PUT_FLAVOR)
+		const netDhvExposure = await getNetDhvExposure(
+			seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10)),
+			usd.address,
+			exchange,
+			expiration,
+			PUT_FLAVOR
+		)
 		expect(netDhvExposure).to.eq(toWei("-25"))
 
 		const expectedCollateralAllocated = await optionRegistry.getCollateral(seriesInfo, amount)
@@ -1795,7 +1813,13 @@ describe("Liquidity Pools", async () => {
 		const amount = toWei("50")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const netDhvExposure = await getNetDhvExposure(strikePrice, usd.address, exchange, expiration2, PUT_FLAVOR)
+		const netDhvExposure = await getNetDhvExposure(
+			strikePrice,
+			usd.address,
+			exchange,
+			expiration2,
+			PUT_FLAVOR
+		)
 		expect(netDhvExposure).to.eq(0)
 
 		const proposedSeries = {
@@ -1825,7 +1849,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			proposedSeries,
 			amount,
-			pricer,
+			pricer
 		)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
@@ -1932,7 +1956,13 @@ describe("Liquidity Pools", async () => {
 		const seriesInfo = await optionRegistry.getSeriesInfo(putOptionToken.address)
 		const vaultId = await optionRegistry.vaultIds(putOptionToken.address)
 		const vaultDetails = await controller.getVault(optionRegistry.address, vaultId)
-		const netDhvExposure = await getNetDhvExposure(seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10)), usd.address, exchange, seriesInfo.expiration, PUT_FLAVOR)
+		const netDhvExposure = await getNetDhvExposure(
+			seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10)),
+			usd.address,
+			exchange,
+			seriesInfo.expiration,
+			PUT_FLAVOR
+		)
 		expect(netDhvExposure).to.eq(toWei("-37"))
 
 		// expected collateral returned is no. options short div collateral allocated mul no. options bought back
@@ -1984,7 +2014,12 @@ describe("Liquidity Pools", async () => {
 		const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
 
 		await putOptionToken.approve(exchange.address, toOpyn("2.1"))
-		let quoteResponse = (await pricer.quoteOptionPrice(seriesInfoDecimalCorrected, amount, true, netDhvExposure))
+		let quoteResponse = await pricer.quoteOptionPrice(
+			seriesInfoDecimalCorrected,
+			amount,
+			true,
+			netDhvExposure
+		)
 		let quote = quoteResponse[0].sub(quoteResponse[2])
 		let delta = quoteResponse[1]
 		let localQuoteWithSlippage = localQuote * slippageFactor
@@ -2070,7 +2105,13 @@ describe("Liquidity Pools", async () => {
 		const seriesInfo = await optionRegistry.getSeriesInfo(putOptionToken2.address)
 		const vaultId = await optionRegistry.vaultIds(putOptionToken2.address)
 		const vaultDetails = await controller.getVault(optionRegistry.address, vaultId)
-		const netDhvExposure = await getNetDhvExposure(seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10)), seriesInfo.collateral, exchange, seriesInfo.expiration, seriesInfo.isPut)
+		const netDhvExposure = await getNetDhvExposure(
+			seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10)),
+			seriesInfo.collateral,
+			exchange,
+			seriesInfo.expiration,
+			seriesInfo.isPut
+		)
 		expect(netDhvExposure).to.eq(toWei("-50"))
 		// expected collateral returned is no. options short div collateral allocated mul no. options bought back
 		const expectedCollateralReturned =
@@ -2110,7 +2151,19 @@ describe("Liquidity Pools", async () => {
 		)
 		let quote = quoteResponse[0].sub(quoteResponse[2])
 		let expectedDeltaChange = quoteResponse[1]
-		let localQuoteWithSlippage = await localQuoteOptionPrice(liquidityPool, optionRegistry, usd, priceFeed, seriesInfoDecimalCorrected, amount, pricer, true, exchange, localDelta.div(amount.div(toWei("1"))), toWei("0").sub(toWei("50")))
+		let localQuoteWithSlippage = await localQuoteOptionPrice(
+			liquidityPool,
+			optionRegistry,
+			usd,
+			priceFeed,
+			seriesInfoDecimalCorrected,
+			amount,
+			pricer,
+			true,
+			exchange,
+			localDelta.div(amount.div(toWei("1"))),
+			toWei("0").sub(toWei("50"))
+		)
 		// DHV is 50 short so a 5 buyback will still have positive slippage
 		expect(localQuoteWithSlippage).to.be.gt(localQuote)
 		// ensure quote is accurate
@@ -2169,7 +2222,7 @@ describe("Liquidity Pools", async () => {
 		// expect liquidity pool's USD balance decreases by correct amount
 		expect(
 			tFormatUSDC(lpUSDBalanceBefore.sub(lpUSDBalanceAfter)) -
-			(tFormatUSDC(quote) - collateralAllocatedDiff)
+				(tFormatUSDC(quote) - collateralAllocatedDiff)
 		).to.be.within(-0.0011, 0.0011)
 		// expect collateral allocated in LP reduces by correct amount
 		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.0011, 0.0011)
@@ -2476,8 +2529,8 @@ describe("Liquidity Pools", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-			parseFloat(fromWei(pendingWithdrawBefore)) *
-			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			toWei("1")
@@ -2562,7 +2615,7 @@ describe("Liquidity Pools", async () => {
 		// check collateral returned to LP is correct
 		expect(
 			tFormatUSDC(collateralReturned) -
-			tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
+				tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
 		).to.be.within(-0.001, 0.001)
 		// check LP USDC balance increases by correct amount
 		expect(lpBalanceDiff).to.eq(tFormatUSDC(collateralReturned))
