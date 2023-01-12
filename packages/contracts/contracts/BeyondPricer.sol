@@ -381,12 +381,12 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		if (_optionDelta < 0) {
 			// option is negative delta, resulting in long exposure for DHV
 			deltaBorrowPremium =
-				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
+				dollarDelta.mul((1e18 + (shortDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
 				dollarDelta;
 		} else {
 			// option is positive delta, resulting in short exposure for DHV
 			deltaBorrowPremium =
-				dollarDelta.mul((1e18 + (shortDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
+				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
 				dollarDelta;
 		}
 		console.log("solidity:", collateralLendingPremium, deltaBorrowPremium);
