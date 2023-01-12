@@ -6,7 +6,8 @@ import {
 	tFormatUSDC,
 	tFormatEth,
 	toUSDC,
-	toOpyn
+	toOpyn,
+	fromUSDC
 } from "../utils/conversion-helper"
 import { AbiCoder } from "ethers/lib/utils"
 import {
@@ -18,7 +19,8 @@ import {
 	CONTROLLER_OWNER,
 	ORACLE_OWNER,
 	USDC_ADDRESS,
-	WETH_ADDRESS
+	WETH_ADDRESS,
+	ADDRESS_BOOK
 } from "./constants"
 //@ts-ignore
 import greeks from "greeks"
@@ -44,6 +46,8 @@ import { priceToPriceX128 } from "@ragetrade/sdk"
 import { ln } from "prb-math"
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+const ONE_YEAR_SECONDS = 31557600
+const MAX_BPS = 10000
 const { provider } = ethers
 const { parseEther } = ethers.utils
 const chainId = 1
@@ -65,7 +69,10 @@ export async function getNetDhvExposure(strikePrice, collateral, exchange, expir
 	return await exchange.netDhvExposure(oHash)
 }
 export async function getSeriesWithe18Strike(proposedSeries, optionRegistry) {
-	const formattedStrike = await optionRegistry.formatStrikePrice(proposedSeries.strike, proposedSeries.collateral)
+	const formattedStrike = await optionRegistry.formatStrikePrice(
+		proposedSeries.strike,
+		proposedSeries.collateral
+	)
 	const seriesAddress = await optionRegistry.getSeries({
 		expiration: proposedSeries.expiration,
 		isPut: proposedSeries.isPut,
@@ -111,7 +118,13 @@ export async function getExchangeParams(
 		exchangeOTokenBalance = await optionToken.balanceOf(exchange.address)
 		senderOtokenBalance = await optionToken.balanceOf(senderAddress)
 		seriesStores = await portfolioValuesFeed.storesForAddress(optionToken.address)
-		netDhvExposure = await getNetDhvExposure((await optionToken.strikePrice()).mul(utils.parseUnits("1", 10)), usd.address, exchange, await optionToken.expiryTimestamp(), await optionToken.isPut())
+		netDhvExposure = await getNetDhvExposure(
+			(await optionToken.strikePrice()).mul(utils.parseUnits("1", 10)),
+			usd.address,
+			exchange,
+			await optionToken.expiryTimestamp(),
+			await optionToken.isPut()
+		)
 		const exchangeTempOtokens = await exchange.heldTokens(senderAddress, optionToken.address)
 		const liquidityPoolOTokenBalance = await optionToken.balanceOf(liquidityPool.address)
 		expect(liquidityPoolOTokenBalance).to.equal(0)
@@ -569,7 +582,7 @@ export async function calculateOptionQuoteLocallyAlpha(
 	return localBS
 }
 
-export async function localQuoteOptionPrice(	
+export async function localQuoteOptionPrice(
 	liquidityPool: LiquidityPool,
 	optionRegistry: OptionRegistry,
 	collateralAsset: MintableERC20,
@@ -581,11 +594,42 @@ export async function localQuoteOptionPrice(
 	exchange: OptionExchange,
 	optionDelta: BigNumber,
 	netDhvExposure: BigNumber = toWei("0")
-	){
-		const bsQ = await calculateOptionQuoteLocally(liquidityPool, optionRegistry, collateralAsset, priceFeed, optionSeries, amount, pricer, isSell)
-		const slip = await applySlippageLocally(pricer, exchange, optionSeries, amount, optionDelta, isSell, netDhvExposure)
-		return bsQ*slip
+) {
+	const bsQ = await calculateOptionQuoteLocally(
+		liquidityPool,
+		optionRegistry,
+		collateralAsset,
+		priceFeed,
+		optionSeries,
+		amount,
+		pricer,
+		isSell
+	)
+	const slip = await applySlippageLocally(
+		pricer,
+		exchange,
+		optionSeries,
+		amount,
+		optionDelta,
+		isSell,
+		netDhvExposure
+	)
+
+	let spread = 0
+	if (!isSell) {
+		spread = await applySpreadLocally(
+			pricer,
+			(await ethers.getContractAt("AddressBook", ADDRESS_BOOK[chainId])) as AddressBook,
+			priceFeed,
+			optionSeries,
+			amount,
+			optionDelta,
+			netDhvExposure
+		)
 	}
+	console.log({ bsQ, slip, spread })
+	return bsQ * slip
+}
 
 export async function applySlippageLocally(
 	beyondPricer: BeyondPricer,
@@ -634,14 +678,85 @@ export async function applySlippageLocally(
 			parseFloat(fromWei(slippageGradient)) *
 			parseFloat(fromWei(await beyondPricer.callSlippageGradientMultipliers(deltaBandIndex)))
 	}
-	if(slippageGradient == toWei("0")) {
+	if (slippageGradient == toWei("0")) {
 		return 1
 	}
-	const slippageFactor = (1 + modifiedSlippageGradient)
-	const slippagePremium = isSell ? (((slippageFactor ** -oldExposureCoefficient) - (slippageFactor ** -newExposureCoefficient))/Math.log(slippageFactor)) / parseFloat(fromWei(amount)) 
-								   : (((slippageFactor ** -newExposureCoefficient) - (slippageFactor ** -oldExposureCoefficient))/Math.log(slippageFactor)) / parseFloat(fromWei(amount))
+	const slippageFactor = 1 + modifiedSlippageGradient
+	const slippagePremium = isSell
+		? (slippageFactor ** -oldExposureCoefficient - slippageFactor ** -newExposureCoefficient) /
+		  Math.log(slippageFactor) /
+		  parseFloat(fromWei(amount))
+		: (slippageFactor ** -newExposureCoefficient - slippageFactor ** -oldExposureCoefficient) /
+		  Math.log(slippageFactor) /
+		  parseFloat(fromWei(amount))
 	console.log({ modifiedSlippageGradient, slippagePremium })
 	return slippagePremium
+}
+
+export async function applySpreadLocally(
+	beyondPricer: BeyondPricer,
+	addressBook: AddressBook,
+	priceFeed: PriceFeed,
+	optionSeries,
+	amount: BigNumber,
+	optionDelta: BigNumber,
+	netDhvExposure: BigNumber
+) {
+	let netShortContracts
+	if (netDhvExposure < toWei("0")) {
+		netShortContracts = amount
+	} else {
+		netShortContracts =
+			amount.sub(netDhvExposure) < toWei("0") ? toWei("0") : amount.sub(netDhvExposure)
+	}
+	const underlyingPrice = await priceFeed.getNormalizedRate(
+		WETH_ADDRESS[chainId],
+		USDC_ADDRESS[chainId]
+	)
+	const marginCalc = (await ethers.getContractAt(
+		"NewMarginCalculator",
+		await addressBook.getMarginCalculator()
+	)) as NewMarginCalculator
+	const collateralToLend = parseFloat(
+		fromUSDC(
+			await marginCalc.getNakedMarginRequired(
+				optionSeries.underlying,
+				optionSeries.strikeAsset,
+				optionSeries.collateral,
+				netShortContracts.div(utils.parseUnits("1", 10)), // format from e18 to e8
+				optionSeries.strike,
+				underlyingPrice,
+				optionSeries.expiration,
+				6,
+				optionSeries.isPut
+			)
+		)
+	)
+	const blockNum = await ethers.provider.getBlockNumber()
+	const block = await ethers.provider.getBlock(blockNum)
+	const { timestamp } = block
+	const timeToExpiry = (optionSeries.expiration - timestamp) / ONE_YEAR_SECONDS
+	const collateralLendingRate = await beyondPricer.collateralLendingRate()
+	const collateralLendingPremium =
+		(1 + collateralLendingRate / MAX_BPS) ** timeToExpiry * collateralToLend - collateralToLend
+
+	const dollarDelta =
+		parseFloat(fromWei(optionDelta.abs())) *
+		parseFloat(fromWei(amount)) *
+		parseFloat(fromWei(underlyingPrice))
+	let deltaBorrowPremium
+
+	if (optionDelta < toWei("0")) {
+		const longDeltaBorrowRate = await beyondPricer.longDeltaBorrowRate()
+		deltaBorrowPremium =
+			dollarDelta * (1 + longDeltaBorrowRate / MAX_BPS) ** timeToExpiry - dollarDelta
+	} else {
+		const shortDeltaBorrowRate = await beyondPricer.shortDeltaBorrowRate()
+		deltaBorrowPremium =
+			dollarDelta * (1 + shortDeltaBorrowRate / MAX_BPS) ** timeToExpiry - dollarDelta
+	}
+	console.log({ collateralLendingPremium, deltaBorrowPremium })
+	return collateralLendingPremium + deltaBorrowPremium
 }
 
 export async function calculateOptionDeltaLocally(
@@ -726,4 +841,3 @@ export async function getBlackScholesQuote(
 
 	return localBS
 }
-
