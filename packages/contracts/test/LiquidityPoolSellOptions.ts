@@ -47,7 +47,8 @@ import {
 	getExchangeParams,
 	createFakeOtoken,
 	getSeriesWithe18Strike,
-	getNetDhvExposure
+	getNetDhvExposure,
+	compareQuotes
 } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
@@ -418,6 +419,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				collateral: usd.address
 			}
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			const before = await getExchangeParams(
 				liquidityPool,
@@ -463,16 +465,10 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(issueEvent.series).to.equal(seriesAddress)
 			expect(buyEvent.series).to.equal(seriesAddress)
 			expect(buyEvent.optionAmount).to.equal(amount)
-			const localDelta = await calculateOptionDeltaLocally(
-				liquidityPool,
-				priceFeed,
-				proposedSeries,
-				toWei("5"),
-				true
-			)
 			oTokenUSDCXC = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
 			optionToken = oTokenUSDCXC
 			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			quote = quoteResponse[0].add(quoteResponse[2])
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -524,6 +520,52 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					isBuyable: false
 				}
 			])
+		})
+		it("REVERTS: sells the options to the exchange on a series where amount is too small", async () => {
+			const amount = toWei("0.009")
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("A5")
+		})
+		it("REVERTS: buys the options from the exchange on a series where amount is too small", async () => {
+			const amount = toWei("0.009")
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 1,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("A5")
 		})
 		it("REVERTS: sells the options to the exchange on a series not approved for selling", async () => {
 			const amount = toWei("4")
@@ -608,6 +650,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			)
 			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address)).optionSeries
 			let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, true, before.netDhvExposure))
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			let quote = quoteResponse[0].sub(quoteResponse[2])
 			expect(before.senderOtokenBalance.sub(after.senderOtokenBalance)).to.eq(after.opynAmount)
 			expect(after.senderUSDBalance.sub(before.senderUSDBalance).sub(quote)).to.be.within(-10, 10)
@@ -740,6 +783,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address))
 			.optionSeries
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, before.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			expect(after.senderOtokenBalance.sub(before.senderOtokenBalance)).to.eq(after.opynAmount)
 			expect(before.senderUSDBalance.sub(after.senderUSDBalance).sub(quote)).to.be.within(-10, 10)
@@ -772,6 +816,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				collateral: usd.address
 			}
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].sub(quoteResponse[2])
 			const otokenFactory = (await ethers.getContractAt(
 				"OtokenFactory",
@@ -939,6 +984,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				amount
 			)
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			await usd.approve(exchange.address, quote)
 			await exchange.operate([
@@ -1059,6 +1105,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				amount
 			)
 			let quoteResponse = await pricer.quoteOptionPrice(actualProposedSeries, amount, false, seriesBefore.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, actualProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, seriesBefore.netDhvExposure)
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			await usd.approve(exchange.address, quote)
 			await exchange.operate([
@@ -1079,15 +1126,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					]
 				}
 			])
-			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
-			const localDelta = await calculateOptionDeltaLocally(
-				liquidityPool,
-				priceFeed,
-				proposedSeries,
-				toWei("5"),
-				true
-			)
 			quoteResponse = await pricer.quoteOptionPrice(actualProposedSeries, amount, false, seriesBefore.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, actualProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, seriesBefore.netDhvExposure)
 			quote = quoteResponse[0].add(quoteResponse[2])
 			const structAfter = await getExchangeParams(
 				liquidityPool,
@@ -1441,6 +1481,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				amount
 			)
 			const quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, before.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			const quote = quoteResponse[0].sub(quoteResponse[2])
 			expect(after.exchangeOTokenBalance.sub(before.exchangeOTokenBalance)).to.eq(
 				after.opynAmount.div(2)
@@ -1519,6 +1560,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("REVERTS: cant write eth options to the liquidity pool", async () => {
 			const amount = toWei("4")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			await usd.approve(exchange.address, quote)
 			await expect(
@@ -1625,6 +1667,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address))
 				.optionSeries
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].sub(quoteResponse[2])
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -1725,6 +1768,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address))
 				.optionSeries
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, before.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -1777,6 +1821,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				amount
 			)
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			await usd.approve(exchange.address, quote)
 			await exchange.operate([
@@ -1810,6 +1855,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			])
 			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			quote = quoteResponse[0].add(quoteResponse[2])
 			localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
@@ -1883,6 +1929,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				amount
 			)
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, before.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			await usd.approve(exchange.address, quote)
 			await exchange.operate([
@@ -1916,6 +1963,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			])
 			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, before.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			quote = quoteResponse[0].add(quoteResponse[2])
 			localDelta = await calculateOptionDeltaLocally(
 				liquidityPool,
@@ -2058,20 +2106,13 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					]
 				}
 			])
-			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
-			const localDelta = await calculateOptionDeltaLocally(
-				liquidityPool,
-				priceFeed,
-				proposedSeries,
-				toWei("5"),
-				true
-			)
 			let quoteResponse = await pricer.quoteOptionPrice(
 				proposedSeries,
 				amount.add(toWei("1")),
 				true,
 				before.netDhvExposure
 			)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount.add(toWei("1")), true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			let quote = quoteResponse[0].sub(quoteResponse[2])
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -2130,6 +2171,14 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}, amount, false, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, {
+				expiration: expiration2,
+				strike: strikePrice,
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			const before = await getExchangeParams(
 				liquidityPool,
@@ -2242,6 +2291,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				collateral: usd.address
 			}
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			const before = await getExchangeParams(
 				liquidityPool,
@@ -2284,16 +2334,10 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				}
 			])
 			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
-			const localDelta = await calculateOptionDeltaLocally(
-				liquidityPool,
-				priceFeed,
-				proposedSeries,
-				toWei("5"),
-				true
-			)
 			oTokenUSDCClose = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
 			optionToken = oTokenUSDCClose
 			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			quote = quoteResponse[0].add(quoteResponse[2])
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -2495,6 +2539,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address))
 				.optionSeries
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, before.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			// do not subtract the fee as we expect it to be waived
 			let quote = quoteResponse[0]
 			const after = await getExchangeParams(
@@ -2542,6 +2587,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				collateral: usd.address
 			}
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			const before = await getExchangeParams(
 				liquidityPool,
@@ -2594,6 +2640,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			oTokenUSDCClose = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
 			optionToken = oTokenUSDCClose
 			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			quote = quoteResponse[0].add(quoteResponse[2])
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -2664,6 +2711,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address))
 				.optionSeries
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, before.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			let quote = quoteResponse[0].sub(quoteResponse[2])
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -2800,6 +2848,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address))
 				.optionSeries
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].sub(quoteResponse[2])
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -2962,6 +3011,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address))
 					.optionSeries
 				let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+				await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 				let quote = quoteResponse[0].sub(quoteResponse[2])
 				const after = await getExchangeParams(
 					liquidityPool,
@@ -3027,6 +3077,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address))
 					.optionSeries
 				let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, before.netDhvExposure)
+				await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 				let quote = quoteResponse[0].add(quoteResponse[2])
 				const after = await getExchangeParams(
 					liquidityPool,
@@ -3158,6 +3209,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					amount
 				)
 				let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, before.netDhvExposure)
+				await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 				let quote = quoteResponse[0].sub(quoteResponse[2])
 				await exchange.operate([
 					{
@@ -3233,6 +3285,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					amount
 				)
 				quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, before.netDhvExposure)
+				await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 				quote = quoteResponse[0].sub(quoteResponse[2])
 				expect(after.senderOtokenBalance).to.eq(0)
 				expect(after.senderUSDBalance.sub(before.senderUSDBalance).add(marginRequirement).sub(quote)).to.be.within(

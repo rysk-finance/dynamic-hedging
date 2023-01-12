@@ -214,7 +214,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			uint256 totalFees
 		)
 	{
-		console.log("amount", _amount);
 		uint256 underlyingPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		uint256 iv = _getVolatilityFeed().getImpliedVolatility(
 			_optionSeries.isPut,
@@ -230,7 +229,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			iv,
 			underlyingPrice
 		);
-		console.log("vanillaPremium:", vanillaPremium);
 		uint256 premium = vanillaPremium.mul(
 			_getSlippageMultiplier(_amount, delta, netDhvExposure, isSell)
 		);
@@ -239,12 +237,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			premium += _getSpreadValue(_optionSeries, _amount, delta, netDhvExposure, underlyingPrice);
 		}
 
-		console.log("premium:", premium);
 		// note the delta returned is the delta of a long position of the option the sign of delta should be handled elsewhere.
 		totalPremium = premium.mul(_amount) / 1e12;
 		totalDelta = delta.mul(int256(_amount));
 		totalFees = feePerContract.mul(_amount);
-		console.log("total premium:", totalPremium);
 	}
 
 	///////////////////////////
@@ -307,7 +303,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		bool _isSell
 	) internal view returns (uint256 slippageMultiplier) {
 		// divide _amount by 2 to obtain the average exposure throughout the tx. Stops large orders being disproportionately penalised.
-		console.log("exposure", uint256(-_netDhvExposure), _amount);
 		// slippage will be exponential with the exponent being the DHV's net exposure
 		int256 newExposureExponent = _isSell
 			? _netDhvExposure + int256(_amount)
@@ -317,7 +312,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// not using math library here, want to reduce to a non e18 integer
 		// integer division rounds down to nearest integer
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
-		console.log("delta band index:", deltaBandIndex, uint256(_optionDelta.abs()), deltaBandWidth);
 		if (_optionDelta > 0) {
 			modifiedSlippageGradient = slippageGradient.mul(callSlippageGradientMultipliers[deltaBandIndex]);
 		} else {
@@ -343,8 +337,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				)
 			).div(_amount);
 		}
-		console.log("slippage gradient:", slippageGradient);
-		console.log("multiplier:", slippageMultiplier, modifiedSlippageGradient);
 	}
 
 	function _getSpreadValue(

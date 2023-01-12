@@ -46,7 +46,8 @@ import {
 	setOpynOracleExpiryPrice,
 	getSeriesWithe18Strike,
 	getNetDhvExposure,
-	localQuoteOptionPrice
+	localQuoteOptionPrice,
+	compareQuotes
 } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
@@ -589,33 +590,6 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-
-		const localQuote = await calculateOptionQuoteLocally(
-			liquidityPool,
-			optionRegistry,
-			usd,
-			priceFeed,
-			optionSeries,
-			amount,
-			pricer,
-			false
-		)
-		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool,
-			priceFeed,
-			optionSeries,
-			amount,
-			true
-		)
-		const slippageFactor = await applySlippageLocally(
-			pricer,
-			exchange,
-			optionSeries,
-			amount,
-			localDelta.div(parseFloat(fromWei(amount))),
-			false
-		)
-		console.log({ slippageFactor })
 		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
 			ethers.utils.parseUnits("1", 10)
 		)
@@ -632,14 +606,19 @@ describe("Liquidity Pools", async () => {
 		)
 		expect(netDhvExposure).to.eq(0)
 		let quoteResponse = await pricer.quoteOptionPrice(optionSeries, amount, false, netDhvExposure)
-		let localQuoteWithSlippage = localQuote * slippageFactor
-		expect(localQuoteWithSlippage).to.be.gt(localQuote)
-		let quote = quoteResponse[0].add(quoteResponse[2])
-		const truncQuote = truncate(localQuoteWithSlippage)
-		const chainQuote = tFormatUSDC(quote.toString())
-		const diff = percentDiff(truncQuote, chainQuote)
-		console.log({ diff })
-		expect(diff).to.be.within(0, 0.1)
+		await compareQuotes(
+			quoteResponse,
+			liquidityPool,
+			priceFeed,
+			optionSeries,
+			amount,
+			false,
+			exchange,
+			optionRegistry,
+			usd,
+			pricer,
+			netDhvExposure
+		)
 	})
 
 	it("Returns a quote for a ETH/USD put for DHV to buy", async () => {
@@ -671,7 +650,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			optionSeries,
 			amount,
-			false
+			true
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
@@ -1319,7 +1298,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			proposedSeries,
 			amount,
-			true
+			false
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
@@ -1664,7 +1643,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			seriesInfoDecimalCorrected,
 			amount,
-			true
+			false
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
@@ -1849,14 +1828,15 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			proposedSeries,
 			amount,
-			pricer
+			pricer,
+			false
 		)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
 			proposedSeries,
 			amount,
-			true
+			false
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
@@ -1994,7 +1974,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			seriesInfoDecimalCorrected,
 			amount,
-			false
+			true
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
@@ -2379,7 +2359,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			optionSeries,
 			amount,
-			true
+			false
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,

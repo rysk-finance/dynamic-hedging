@@ -14,6 +14,7 @@ import "./Types.sol";
  * A2 can only parse arguments for issue actions
  * A3 can only parse arguments for buy option actions
  * A4 can only parse arguments for sell option or close option actions
+ * A5 amount must be greater than or equal to 1e16 to avoid tiny positions in the dhv
  */
 library RyskActions {
     // possible actions that can be performed
@@ -87,7 +88,7 @@ library RyskActions {
      */
     function _parseBuyOptionArgs(ActionArgs memory _args) internal pure returns (BuyOptionArgs memory) {
         require(_args.actionType == ActionType.BuyOption, "A3");
-        
+        require(_args.amount >= 1e16, "A5");
         return
             BuyOptionArgs({
                 optionSeries: _args.optionSeries,
@@ -105,7 +106,7 @@ library RyskActions {
      */
     function _parseSellOptionArgs(ActionArgs memory _args) internal pure returns (SellOptionArgs memory) {
         require(_args.actionType == ActionType.SellOption || _args.actionType == ActionType.CloseOption, "A4");
-
+        require(_args.amount >= 1e16, "A5");
         return
             SellOptionArgs({
                 optionSeries: _args.optionSeries,
