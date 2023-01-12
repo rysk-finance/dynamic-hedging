@@ -247,6 +247,7 @@ export async function deployLiquidityPool(
 		authority,
 		optionProtocol.address,
 		liquidityPool.address,
+		ADDRESS_BOOK[chainId],
 		0,
 		toWei("5"),
 		[
