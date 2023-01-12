@@ -379,12 +379,12 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 dollarDelta = uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice);
 		uint256 deltaBorrowPremium;
 		if (_optionDelta < 0) {
-			// option is negative delta, resulting in long exposure for DHV
+			// option is negative delta, resulting in long delta exposure for DHV. needs hedging with a short pos
 			deltaBorrowPremium =
 				dollarDelta.mul((1e18 + (shortDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
 				dollarDelta;
 		} else {
-			// option is positive delta, resulting in short exposure for DHV
+			// option is positive delta, resulting in short delta exposure for DHV. needs hedging with a long pos
 			deltaBorrowPremium =
 				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
 				dollarDelta;
