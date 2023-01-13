@@ -51,9 +51,9 @@ contract Protocol is AccessControl {
 
 	function changeAccounting(address _accounting) external {
 		_onlyGovernor();
-		accounting= _accounting;
+		accounting = _accounting;
 	}
-	
+
 	function changePriceFeed(address _priceFeed) external {
 		_onlyGovernor();
 		priceFeed = _priceFeed;
