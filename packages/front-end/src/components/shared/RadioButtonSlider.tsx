@@ -1,7 +1,6 @@
-import React from "react";
 import { Option } from "../../types";
 
-type RadioButtonSliderProps<T> = {
+interface RadioButtonSliderProps<T> {
   options: Option<T>[];
   selected: T | null;
   setSelected: (value: T) => void;
@@ -12,9 +11,9 @@ type RadioButtonSliderProps<T> = {
   buttonType?: "primary" | "secondary";
 };
 
-type RadioButtonSliderType<T = any> = React.FC<RadioButtonSliderProps<T>>;
+type RadioButtonSliderType<T = any> = RadioButtonSliderProps<T>;
 
-export const RadioButtonSlider: RadioButtonSliderType = ({
+export const RadioButtonSlider = ({
   options,
   selected,
   setSelected,
@@ -23,7 +22,7 @@ export const RadioButtonSlider: RadioButtonSliderType = ({
   selectedClassName = "",
   deselectedClassName = "",
   buttonType = "primary",
-}) => {
+}: RadioButtonSliderType) => {
   return (
     <div className={`flex w-full box-content relative`}>
       {options.map((option) => {

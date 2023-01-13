@@ -1,24 +1,23 @@
-import React from "react";
 import { Option } from "../../types";
 import { Button } from "./Button";
 
-type RadioButtonListProps<T> = {
+interface RadioButtonListProps<T> {
   options: Option<T>[];
   selected: T | null;
   setSelected: (value: T) => void;
   predicate?: (arg: T) => boolean;
   removeOuterBorder?: boolean;
-};
+}
 
-type RadioButtonListType<T = any> = React.FC<RadioButtonListProps<T>>;
+type RadioButtonListType<T = any> = RadioButtonListProps<T>;
 
-export const RadioButtonList: RadioButtonListType = ({
+export const RadioButtonList = ({
   options,
   selected,
   setSelected,
   predicate,
   removeOuterBorder = false,
-}) => {
+}: RadioButtonListType) => {
   return (
     <div className={`flex w-full pr-[2px]`}>
       {options.map((option, index) => {

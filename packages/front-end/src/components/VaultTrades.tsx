@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { gql, useQuery } from "@apollo/client";
 import moment from "moment";
 import { CHAINID, DECIMALS, SCAN_URL } from "../config/constants";

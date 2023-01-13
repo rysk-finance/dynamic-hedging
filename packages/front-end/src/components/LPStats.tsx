@@ -1,6 +1,6 @@
 import { ETHNetwork } from "../types";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ProgressBar from "@ramonak/react-progress-bar";
 import { useContract } from "../hooks/useContract";
 import LPABI from "../abis/LiquidityPool.json";

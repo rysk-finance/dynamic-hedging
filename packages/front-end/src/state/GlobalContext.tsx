@@ -9,7 +9,6 @@ import {
 } from "react";
 import { globalReducer } from "./reducer";
 import { ActionType, AppSettings, GlobalContext, GlobalState } from "./types";
-import React from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../components/dashboard/Settings";
 

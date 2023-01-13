@@ -1,4 +1,3 @@
-import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useWalletContext } from "../App";
 import { AppPaths } from "../config/appPaths";
@@ -6,7 +5,7 @@ import { useGlobalContext } from "../state/GlobalContext";
 import { HeaderPopover } from "./HeaderPopover";
 import { Button } from "./shared/Button";
 
-export const Header: React.FC = () => {
+export const Header = () => {
   const {
     state: { connectWalletIndicatorActive },
   } = useGlobalContext();

@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 
-import React, { createContext, useContext, useReducer } from "react";
+import { createContext, useContext, useReducer } from "react";
 import { optionsTradingReducer } from "./reducer";
 import {
   OptionsTradingContext,

@@ -1,24 +1,24 @@
-import React, { useState } from "react";
+import type { ReactElement } from "react";
 
-type CardTab = {
-  label: string;
-  content: React.ReactElement;
-  title?: React.ReactElement;
-};
+import { useState } from "react";
 
-type CardProps = {
-  tabs: CardTab[];
+interface CardProps {
+  tabs: {
+    label: string;
+    content: ReactElement;
+    title?: ReactElement;
+  }[];
   tabWidth?: number;
   tabHeight?: number;
   initialTabIndex?: number;
-};
+}
 
-export const Card: React.FC<CardProps> = ({
+export const Card = ({
   tabs,
   tabWidth = 180,
   tabHeight = 36,
   initialTabIndex = 0,
-}) => {
+}: CardProps) => {
   const [selectedTabIndex, setSelectedTabIndex] = useState(initialTabIndex);
 
   return (
