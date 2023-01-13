@@ -87,7 +87,6 @@ library RyskActions {
      */
     function _parseBuyOptionArgs(ActionArgs memory _args) internal pure returns (BuyOptionArgs memory) {
         require(_args.actionType == ActionType.BuyOption, "A3");
-        
         return
             BuyOptionArgs({
                 optionSeries: _args.optionSeries,
@@ -105,7 +104,6 @@ library RyskActions {
      */
     function _parseSellOptionArgs(ActionArgs memory _args) internal pure returns (SellOptionArgs memory) {
         require(_args.actionType == ActionType.SellOption || _args.actionType == ActionType.CloseOption, "A4");
-
         return
             SellOptionArgs({
                 optionSeries: _args.optionSeries,
