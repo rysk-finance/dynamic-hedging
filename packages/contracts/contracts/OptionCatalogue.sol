@@ -42,7 +42,7 @@ contract OptionCatalogue is AccessControl {
 
 	// net dhv exposure of the option
 	mapping(bytes32 => int256) public netDhvExposure;
-    
+
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
@@ -117,7 +117,7 @@ contract OptionCatalogue is AccessControl {
 
 	/**
 	 * @notice update the net dhv exposure
-	 * @param  oHash the hash of the option
+	 * @param  oHash the hash of the option - uses formatted strike
 	 * @param  netDhvExposureChange the amount to change netDhvExposure by
 	 * @dev    only callable by an approved updater
 	 */
@@ -129,7 +129,7 @@ contract OptionCatalogue is AccessControl {
 
 	/**
 	 * @notice update the net dhv exposure
-	 * @param  optionSeries the option series represented
+	 * @param  optionSeries the option series represented - assumes strike in e18
 	 * @param  netDhvExposureChange the amount to change netDhvExposure by
 	 * @dev    only callable by an approved updater
 	 */
