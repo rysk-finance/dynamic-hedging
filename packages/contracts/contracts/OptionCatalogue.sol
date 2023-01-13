@@ -27,6 +27,8 @@ contract OptionCatalogue is AccessControl {
 	mapping(bytes32 => OptionStores) public optionStores;
 	// net dhv exposure of the option
 	mapping(bytes32 => int256) public netDhvExposure;
+    // maximum absolute netDhvExposure 
+    uint256 public maxNetDhvExposure;
 	// array of expirations currently supported (mainly for frontend use)
 	uint64[] public expirations;
 	// details of supported options first key is expiration then isPut then an array of strikes (mainly for frontend use)
