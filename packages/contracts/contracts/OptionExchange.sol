@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import "./Protocol.sol";
 import "./PriceFeed.sol";
 import "./BeyondPricer.sol";
+import "./OptionCatalogue.sol";
 
 import "./tokens/ERC20.sol";
 import "./libraries/Types.sol";
@@ -30,7 +31,6 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import { IOtoken, IController } from "./interfaces/GammaInterface.sol";
-import "hardhat/console.sol";
 
 /**
  *  @title Contract used for all user facing options interactions
@@ -65,21 +65,20 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 
 	// pricer contract used for pricing options
 	BeyondPricer public pricer;
-	// option configurations approved for sale, stored by hash of expiration timestamp, strike (in e18) and isPut bool
-	mapping(bytes32 => bool) public approvedOptions;
-	// whether the dhv is buying this option stored by hash
-	mapping(bytes32 => bool) public isBuyable;
-	// whether the dhv is selling this option stored by hash
-	mapping(bytes32 => bool) public isSellable;
-	// array of expirations currently supported (mainly for frontend use)
-	uint64[] public expirations;
-	// details of supported options first key is expiration then isPut then an array of strikes (mainly for frontend use)
-	mapping(uint256 => mapping(bool => uint128[])) public optionDetails;
 	/// @notice pool fees for different swappable assets
 	mapping(address => uint24) public poolFees;
 	/// @notice fee recipient
 	address public feeRecipient;
+	/// @notice option catalogue
+	OptionCatalogue public catalogue;
+	/// @notice maximum amount allowed for a single trade
+	uint256 public maxTradeSize = 1000e18;
+	/// @notice minimum amount allowed for a single trade
+	uint256 public minTradeSize = 1e16;
 
+	///////////////////////////
+	/// transient variables ///
+	///////////////////////////
 
 	// user -> token addresses interacted with in this transaction
 	mapping(address => address[]) internal tempTokenQueue;
@@ -116,21 +115,16 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		uint256 premiumSent;
 	}
 
-	event SeriesApproved(
-		uint64 expiration,
-		uint128 strike,
-		bool isPut,
-		bool isBuyable,
-		bool isSellable
-	);
-	event SeriesDisabled(uint64 expiration, uint128 strike, bool isPut);
-	event SeriesAltered(
-		uint64 expiration,
-		uint128 strike,
-		bool isPut,
-		bool isBuyable,
-		bool isSellable
-	);
+	struct BuyParams {
+		address seriesAddress;
+		Types.OptionSeries seriesToStore;
+		Types.OptionSeries optionSeries;
+		uint128 strikeDecimalConverted;
+		uint256 premium;
+		int256 delta;
+		uint256 fee;
+	}
+
 	event OptionsIssued(address indexed series);
 	event OptionsBought(address indexed series, uint256 optionAmount);
 	event OptionsSold(address indexed series, uint256 optionAmount);
@@ -142,6 +136,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	);
 	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
 
+	error TradeTooSmall();
+	error TradeTooLarge();
 	error PoolFeeNotSet();
 	error TokenImbalance();
 	error NothingToClose();
@@ -158,7 +154,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		address _pricer,
 		address _addressbook,
 		address _swapRouter,
-		address _feeRecipient
+		address _feeRecipient,
+		address _catalogue
 	) AccessControl(IAuthority(_authority)) {
 		protocol = Protocol(_protocol);
 		liquidityPool = ILiquidityPool(_liquidityPool);
@@ -168,6 +165,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		addressbook = AddressBookInterface(_addressbook);
 		swapRouter = ISwapRouter(_swapRouter);
 		pricer = BeyondPricer(_pricer);
+		catalogue = OptionCatalogue(_catalogue);
 		require(_feeRecipient != address(0));
 		feeRecipient = _feeRecipient;
 	}
@@ -195,6 +193,14 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	}
 
 	/**
+	 * @notice change the catalogue
+	 */
+	function setOptionCatalogue(address _catalogue) external {
+		_onlyGovernor();
+		catalogue = OptionCatalogue(_catalogue);
+	}
+
+	/**
 	 * @notice change the fee recipient
 	 */
 	function setFeeRecipient(address _feeRecipient) external {
@@ -208,6 +214,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_onlyGovernor();
 		poolFees[asset] = fee;
 		SafeTransferLib.safeApprove(ERC20(asset), address(swapRouter), MAX_UINT);
+	}
+
+	/// @notice set the maximum and minimum trade size
+	function setTradeSizeLimits(uint256 _minTradeSize, uint256 _maxTradeSize) external {
+		_onlyGovernor();
+		minTradeSize = _minTradeSize;
+		maxTradeSize = _maxTradeSize;
 	}
 
 	//////////////////////////////////////////////////////
@@ -231,74 +244,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			SafeTransferLib.safeTransfer(ERC20(_token), msg.sender, balance);
 			// return in collatDecimals format
 			return balance;
-		}
-	}
-
-	/**
-	 * @notice issue an option series for buying or sale
-	 * @param  options option type to approve - strike in e18
-	 * @dev    only callable by the manager
-	 */
-	function issueNewSeries(Types.Option[] memory options) external nonReentrant {
-		_onlyManager();
-		uint256 addressLength = options.length;
-		for (uint256 i = 0; i < addressLength; i++) {
-			Types.Option memory o = options[i];
-			// make sure the strike gets formatted properly
-			uint128 strike = uint128(
-				formatStrikePrice(o.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
-			);
-			// get the hash of the option (how the option is stored on the books)
-			bytes32 optionHash = keccak256(abi.encodePacked(o.expiration, strike, o.isPut));
-			// if the option is already issued then skip it
-			if (approvedOptions[optionHash]) {
-				continue;
-			}
-			// store information on the series
-			approvedOptions[optionHash] = true;
-			isBuyable[optionHash] = o.isBuyable;
-			isSellable[optionHash] = o.isSellable;
-			// store it in an array, these are mainly for frontend/informational use
-			// if the strike array is empty for calls and puts for that expiry it means that this expiry hasnt been issued yet
-			// so we should save the expory
-			if (
-				optionDetails[o.expiration][true].length == 0 && optionDetails[o.expiration][false].length == 0
-			) {
-				expirations.push(o.expiration);
-			}
-			// we wouldnt get here if the strike already existed, so we store it in the array
-			// there shouldnt be any duplicates in the strike array or expiration array
-			optionDetails[o.expiration][o.isPut].push(strike);
-			// emit an event of the series creation, now users can write options on this series
-			emit SeriesApproved(o.expiration, strike, o.isPut, o.isBuyable, o.isSellable);
-		}
-	}
-
-	/**
-	 * @notice change whether an issued option is for buy or sale
-	 * @param  options option type to change status on - strike in e18
-	 * @dev    only callable by the manager
-	 */
-	function changeOptionBuyOrSell(Types.Option[] memory options) external nonReentrant {
-		_onlyManager();
-		uint256 adLength = options.length;
-		for (uint256 i = 0; i < adLength; i++) {
-			Types.Option memory o = options[i];
-			// make sure the strike gets formatted properly, we get it to e8 format in the converter
-			// then convert it back to e18
-			uint128 strike = uint128(
-				formatStrikePrice(o.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
-			);
-			// get the option hash
-			bytes32 optionHash = keccak256(abi.encodePacked(o.expiration, strike, o.isPut));
-			// if its already approved then we can change its parameters, if its not approved then revert as there is a mistake
-			if (approvedOptions[optionHash]) {
-				isBuyable[optionHash] = o.isBuyable;
-				isSellable[optionHash] = o.isSellable;
-				emit SeriesAltered(o.expiration, strike, o.isPut, o.isBuyable, o.isSellable);
-			} else {
-				revert CustomErrors.UnapprovedSeries();
-			}
 		}
 	}
 
@@ -512,11 +457,12 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		bytes32 oHash = keccak256(
 			abi.encodePacked(_args.optionSeries.expiration, strike, _args.optionSeries.isPut)
 		);
-		if (!approvedOptions[oHash]) {
+		OptionCatalogue.OptionStores memory optionStore = catalogue.getOptionStores(oHash);
+		if (!optionStore.approvedOption) {
 			revert CustomErrors.UnapprovedSeries();
 		}
 		// check if the series is buyable
-		if (!isBuyable[oHash]) {
+		if (!optionStore.isBuyable) {
 			revert CustomErrors.SeriesNotBuyable();
 		}
 		series = liquidityPool.handlerIssue(_args.optionSeries);
@@ -533,9 +479,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		whenNotPaused
 		returns (uint256)
 	{
+		if (_args.amount < minTradeSize) revert TradeTooSmall();
+		if (_args.amount > maxTradeSize) revert TradeTooLarge();
 		// get the option details in the correct formats
 		IOptionRegistry optionRegistry = getOptionRegistry();
-		(address seriesAddress, Types.OptionSeries memory seriesToStore, Types.OptionSeries memory optionSeries) = _preChecks(
+		BuyParams memory buyParams;
+		bytes32 oHash;
+		(buyParams.seriesAddress, buyParams.seriesToStore, buyParams.optionSeries, oHash) = _preChecks(
 			_args.seriesAddress,
 			_args.optionSeries,
 			optionRegistry,
@@ -543,47 +493,61 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		);
 		address recipient = _args.recipient;
 		// calculate premium and delta from the option pricer, returning the premium in collateral decimals and delta in e18
-		(uint256 premium, int256 delta, uint256 fee) = pricer.quoteOptionPrice(
-			seriesToStore,
+		(buyParams.premium, buyParams.delta, buyParams.fee) = pricer.quoteOptionPrice(
+			buyParams.seriesToStore,
 			_args.amount,
-			false
+			false,
+			catalogue.netDhvExposure(oHash)
 		);
-		_handlePremiumTransfer(premium, fee);
+		_handlePremiumTransfer(buyParams.premium, buyParams.fee);
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
-		int256 longExposure = getPortfolioValuesFeed().storesForAddress(seriesAddress).longExposure;
+		int256 longExposure = getPortfolioValuesFeed()
+			.storesForAddress(buyParams.seriesAddress)
+			.longExposure;
 		uint256 amount = _args.amount;
-		emit OptionsBought(seriesAddress, amount);
+		// update the net DHV exposure for this series
+		catalogue.updateNetDhvExposure(oHash, -int256(_args.amount));
+		emit OptionsBought(buyParams.seriesAddress, amount);
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
 			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
 			// transfer the otokens to the user
 			SafeTransferLib.safeTransfer(
-				ERC20(seriesAddress),
+				ERC20(buyParams.seriesAddress),
 				recipient,
 				boughtAmount / (10**CONVERSION_DECIMALS)
 			);
 			// update the series on the stores
-			getPortfolioValuesFeed().updateStores(seriesToStore, 0, -int256(boughtAmount), seriesAddress);
+			getPortfolioValuesFeed().updateStores(
+				buyParams.seriesToStore,
+				0,
+				-int256(boughtAmount),
+				buyParams.seriesAddress
+			);
 			amount -= boughtAmount;
 			if (amount == 0) {
 				return _args.amount;
 			}
 		}
-		if (optionSeries.collateral != collateralAsset) {
+		if (buyParams.optionSeries.collateral != collateralAsset) {
 			revert CustomErrors.CollateralAssetInvalid();
 		}
 		// add this series to the portfolio values feed so its stored on the book
-		getPortfolioValuesFeed().updateStores(seriesToStore, int256(amount), 0, seriesAddress);
-
+		getPortfolioValuesFeed().updateStores(
+			buyParams.seriesToStore,
+			int256(amount),
+			0,
+			buyParams.seriesAddress
+		);
 		// get the liquidity pool to write the options
 		return
 			liquidityPool.handlerWriteOption(
-				optionSeries,
-				seriesAddress,
+				buyParams.optionSeries,
+				buyParams.seriesAddress,
 				amount,
 				optionRegistry,
-				premium,
-				delta,
+				buyParams.premium,
+				buyParams.delta,
 				recipient
 			);
 	}
@@ -593,10 +557,16 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @param _args RyskAction struct containing details on the option to sell
 	 * @param isClose if true then we only close positions the dhv has open, we do not conduct any more sales beyond that
 	 */
-	function _sellOption(RyskActions.SellOptionArgs memory _args, bool isClose) internal whenNotPaused {
+	function _sellOption(RyskActions.SellOptionArgs memory _args, bool isClose)
+		internal
+		whenNotPaused
+	{
+		if (_args.amount < minTradeSize) revert TradeTooSmall();
+		if (_args.amount > maxTradeSize) revert TradeTooLarge();
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		SellParams memory sellParams;
-		(sellParams.seriesAddress, sellParams.seriesToStore, sellParams.optionSeries) = _preChecks(
+		bytes32 oHash;
+		(sellParams.seriesAddress, sellParams.seriesToStore, sellParams.optionSeries, oHash) = _preChecks(
 			_args.seriesAddress,
 			_args.optionSeries,
 			optionRegistry,
@@ -606,17 +576,25 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		(sellParams.premium, sellParams.delta, sellParams.fee) = pricer.quoteOptionPrice(
 			sellParams.seriesToStore,
 			_args.amount,
-			true
+			true,
+			catalogue.netDhvExposure(oHash)
 		);
 		sellParams.amount = _args.amount;
 		sellParams.tempHoldings = heldTokens[msg.sender][sellParams.seriesAddress];
-		heldTokens[msg.sender][sellParams.seriesAddress] -= OptionsCompute.min(sellParams.tempHoldings, _args.amount);
+		heldTokens[msg.sender][sellParams.seriesAddress] -= OptionsCompute.min(
+			sellParams.tempHoldings,
+			_args.amount
+		);
+		// update the net DHV exposure for this series
+		catalogue.updateNetDhvExposure(oHash, int256(_args.amount));
 		int256 shortExposure = getPortfolioValuesFeed()
 			.storesForAddress(sellParams.seriesAddress)
 			.shortExposure;
 		if (shortExposure > 0) {
 			// if they are just closing and the amount to close is bigger than the dhv's position then we revert
-			if (isClose && OptionsCompute.toInt256(sellParams.amount) > shortExposure) {revert CloseSizeTooLarge();}
+			if (isClose && OptionsCompute.toInt256(sellParams.amount) > shortExposure) {
+				revert CloseSizeTooLarge();
+			}
 			sellParams = _handleDHVBuyback(sellParams, shortExposure, optionRegistry);
 		} else if (isClose) {
 			// if they are closing and there is nothing to close then we revert
@@ -624,7 +602,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 		// if they are not closing and the premium / 8 is less than or equal to the fee then we revert
 		// because the sale doesnt make sense
-		if(!isClose && (sellParams.premium >> 3) <= sellParams.fee) {revert PremiumTooSmall();}
+		if (!isClose && (sellParams.premium >> 3) <= sellParams.fee) {
+			revert PremiumTooSmall();
+		}
 		if (sellParams.amount > 0) {
 			if (sellParams.amount > sellParams.tempHoldings) {
 				// transfer the otokens to this exchange
@@ -648,8 +628,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 		// this accounts for premium sent from buyback as well as any rounding errors from the dhv buyback
 		if (sellParams.premium > sellParams.premiumSent) {
-			// we need to make sure we arent eating into the withdraw partition with this trade 
-			if (ILiquidityPool(liquidityPool).getBalance(collateralAsset) < (sellParams.premium - sellParams.premiumSent)) {
+			// we need to make sure we arent eating into the withdraw partition with this trade
+			if (
+				ILiquidityPool(liquidityPool).getBalance(collateralAsset) <
+				(sellParams.premium - sellParams.premiumSent)
+			) {
 				revert CustomErrors.WithdrawExceedsLiquidity();
 			}
 			// take the funds from the liquidity pool and pay them here
@@ -702,29 +685,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		return IAlphaPortfolioValuesFeed(protocol.portfolioValuesFeed());
 	}
 
-	/**
-	 * @notice get list of all expirations ever activated
-	 * @return list of expirations
-	 */
-	function getExpirations() external view returns (uint64[] memory) {
-		return expirations;
-	}
-
-	/**
-	 * @notice get list of all strikes for a specific expiration and flavour
-	 * @return list of strikes for a specific expiry and flavour
-	 */
-	function getOptionDetails(uint64 expiration, bool isPut) external view returns (uint128[] memory) {
-		return optionDetails[expiration][isPut];
-	}
-
 	/// @inheritdoc IHedgingReactor
 	function getDelta() external view returns (int256 delta) {
 		return 0;
 	}
 
 	/// @inheritdoc IHedgingReactor
-	function getPoolDenominatedValue() external view returns (uint256 value) {
+	function getPoolDenominatedValue() external view returns (uint256) {
 		return ERC20(collateralAsset).balanceOf(address(this));
 	}
 
@@ -806,20 +773,21 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		Types.OptionSeries memory optionSeries,
 		uint128 strikeDecimalConverted,
 		bool isSell
-	) public view {
+	) public view returns (bytes32 oHash) {
 		// check if the option series is approved
-		bytes32 oHash = keccak256(
+		oHash = keccak256(
 			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
 		);
-		if (!approvedOptions[oHash]) {
+		OptionCatalogue.OptionStores memory optionStore = catalogue.getOptionStores(oHash);
+		if (!optionStore.approvedOption) {
 			revert CustomErrors.UnapprovedSeries();
 		}
 		if (isSell) {
-			if (!isSellable[oHash]) {
+			if (!optionStore.isSellable) {
 				revert CustomErrors.SeriesNotSellable();
 			}
 		} else {
-			if (!isBuyable[oHash]) {
+			if (!optionStore.isBuyable) {
 				revert CustomErrors.SeriesNotBuyable();
 			}
 		}
@@ -891,13 +859,19 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), premium);
 	}
 
-	function _preChecks(address _seriesAddress, Types.OptionSeries memory _optionSeries, IOptionRegistry _optionRegistry, bool isSell)
+	function _preChecks(
+		address _seriesAddress,
+		Types.OptionSeries memory _optionSeries,
+		IOptionRegistry _optionRegistry,
+		bool isSell
+	)
 		internal
 		view
 		returns (
 			address,
 			Types.OptionSeries memory,
-			Types.OptionSeries memory
+			Types.OptionSeries memory,
+			bytes32
 		)
 	{
 		(
@@ -906,7 +880,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			uint128 strikeDecimalConverted
 		) = _getOptionDetails(_seriesAddress, _optionSeries, _optionRegistry);
 		// check the option hash and option series for validity
-		_checkHash(optionSeries, strikeDecimalConverted, isSell);
+		bytes32 oHash = _checkHash(optionSeries, strikeDecimalConverted, isSell);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			optionSeries.expiration,
@@ -916,13 +890,14 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			strikeAsset,
 			optionSeries.collateral
 		);
-		return (seriesAddress, seriesToStore, optionSeries);
+		return (seriesAddress, seriesToStore, optionSeries, oHash);
 	}
 
-	function _handleDHVBuyback(SellParams memory sellParams, int256 shortExposure, IOptionRegistry optionRegistry)
-		internal
-		returns (SellParams memory)
-	{
+	function _handleDHVBuyback(
+		SellParams memory sellParams,
+		int256 shortExposure,
+		IOptionRegistry optionRegistry
+	) internal returns (SellParams memory) {
 		sellParams.transferAmount = OptionsCompute.min(uint256(shortExposure), sellParams.amount);
 		// will transfer any tempHoldings they have here to the liquidityPool
 		if (sellParams.tempHoldings > 0) {
@@ -954,7 +929,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			optionRegistry,
 			sellParams.seriesAddress,
 			sellParams.premiumSent,
-			sellParams.delta.div(OptionsCompute.toInt256(sellParams.amount)).mul(OptionsCompute.toInt256(sellParams.transferAmount)),
+			sellParams.delta.div(OptionsCompute.toInt256(sellParams.amount)).mul(
+				OptionsCompute.toInt256(sellParams.transferAmount)
+			),
 			address(this)
 		);
 		// update the series on the stores
@@ -987,24 +964,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		uint256 difference = OPYN_DECIMALS - collateralDecimals;
 		// round floor strike to prevent errors in Gamma protocol
 		return (price / (10**difference)) * (10**difference);
-	}
-
-	function getSeriesWithe18Strike(Types.OptionSeries memory optionSeries)
-		external
-		view
-		returns (address)
-	{
-		return
-			IOptionRegistry(getOptionRegistry()).getSeries(
-				Types.OptionSeries(
-					optionSeries.expiration,
-					uint128(formatStrikePrice(optionSeries.strike, optionSeries.collateral)),
-					optionSeries.isPut,
-					optionSeries.underlying,
-					optionSeries.strikeAsset,
-					optionSeries.collateral
-				)
-			);
 	}
 
 	/// @inheritdoc IHedgingReactor
