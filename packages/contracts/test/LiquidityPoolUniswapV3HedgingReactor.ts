@@ -46,8 +46,7 @@ import {
 	increase,
 	setupOracle,
 	setupTestOracle,
-	makeIssueAndBuy, 
-	makeBuy
+	getSeriesWithe18Strike
 } from "./helpers"
 
 dayjs.extend(utc)
@@ -56,7 +55,7 @@ import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
 import { BeyondOptionHandler } from "../types/BeyondOptionHandler"
 import { BeyondPricer } from "../types/BeyondPricer"
 import { OptionExchange } from "../types/OptionExchange"
-
+import { OptionCatalogue } from "../types/OptionCatalogue"
 let usd: MintableERC20
 let weth: WETH
 let optionRegistry: OptionRegistry
@@ -193,6 +192,7 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 		liquidityPool = lpParams.liquidityPool
 		exchange = lpParams.exchange
 		pricer = lpParams.pricer
+		catalogue = lpParams.catalogue
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
@@ -264,10 +264,7 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 	it("pauses trading and executes epoch", async () => {
 		await liquidityPool.pauseTradingAndRequest()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		await liquidityPool.executeEpochCalculation()
 		await liquidityPool.redeem(toWei("10000000"))
 	})
@@ -305,21 +302,22 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.add(toWei(strike))
-		await exchange.issueNewSeries([{
-			expiration: expiration,
-			isPut: CALL_FLAVOR,
-			strike: BigNumber.from(strikePrice),
-			isSellable: true,
-			isBuyable: true
-		},
-		{
-			expiration: expiration2,
-			isPut: CALL_FLAVOR,
-			strike: BigNumber.from(strikePrice),
-			isSellable: true,
-			isBuyable: true
-		},
-	])
+		await catalogue.issueNewSeries([
+			{
+				expiration: expiration,
+				isPut: CALL_FLAVOR,
+				strike: BigNumber.from(strikePrice),
+				isSellable: true,
+				isBuyable: true
+			},
+			{
+				expiration: expiration2,
+				isPut: CALL_FLAVOR,
+				strike: BigNumber.from(strikePrice),
+				isSellable: true,
+				isBuyable: true
+			}
+		])
 	})
 	it("LP Writes a ETH/USD call for premium", async () => {
 		const [sender] = signers
@@ -339,12 +337,12 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 		}
 		const EthPrice = await oracle.getPrice(weth.address)
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
-		let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, false))
+		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 		let quote = quoteResponse[0].add(quoteResponse[2])
 		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		await makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
-		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+		const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 		const localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
@@ -352,10 +350,7 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 			toWei("1"),
 			true
 		)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await putOptionToken.balanceOf(senderAddress)
@@ -388,13 +383,13 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 		}
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const lpAllocatedBefore = await liquidityPool.collateralAllocated()
-		let quoteResponse = (await pricer.quoteOptionPrice(proposedSeries, amount, false))
+		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 		let quote = quoteResponse[0].add(quoteResponse[2])
 		await usd.approve(exchange.address, quote)
 		const balance = await usd.balanceOf(senderAddress)
 		prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
 		await makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
-		const seriesAddress = await exchange.getSeriesWithe18Strike(proposedSeries)
+		const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 		localDelta = await calculateOptionDeltaLocally(
 			liquidityPool,
 			priceFeed,
@@ -402,10 +397,7 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 			toWei("3"),
 			true
 		)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		putOptionToken2 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const putBalance = await putOptionToken2.balanceOf(senderAddress)
@@ -456,10 +448,7 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 	it("pauses trading and executes epoch", async () => {
 		await liquidityPool.pauseTradingAndRequest()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		await liquidityPool.executeEpochCalculation()
 	})
 	it("initiates withdraw liquidity", async () => {
@@ -471,10 +460,7 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 	it("pauses trading and executes epoch", async () => {
 		await liquidityPool.pauseTradingAndRequest()
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		await portfolioValuesFeed.fulfill(
-			weth.address,
-			usd.address,
-		)
+		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		await liquidityPool.executeEpochCalculation()
 	})
 	it("LP can redeem shares", async () => {
