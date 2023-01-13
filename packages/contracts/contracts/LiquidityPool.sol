@@ -234,6 +234,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	function getHedgingReactors() external view returns (address[] memory) {
 		return hedgingReactors;
 	}
+
 	/**
 	 * @notice update all optionParam variables for max and min strikes and max and
 	 *         min expiries for options that the DHV can issue

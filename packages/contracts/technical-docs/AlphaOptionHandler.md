@@ -13,7 +13,12 @@ The contract uses Chainlink Price feed oracles.
 ### ```executeOrder(orderId) external ``` ***Direct NonTrustedAccessible***
 
 This function gets a custom order using a orderId, this will revert if the sender is not the authorised buyer of the order. First the order expiry will be checked against a spot price deviation from when the order was created as well as a time deviation which is the alloted time that the buyer has to execute the order from creation (this cannot be more than 30 minutes). If all conditions are met then the option will be minted to the buyer. At the end of the transaction the order is invalidated. 
-Fees are also charged at this point and a fixed fee is charged per contract. If the premium / 8 is less than the fee then the fee is waived.
+Fees are also charged at this point and a fixed fee is charged per contract. If the premium / 8 is less than the fee then the fee is waived. Execute order should update the netdhvexposure on the OptionCatalogue so that the dhv has a full record of the exposure of the Dhv.
+
+### ```executeBuybackOrder(orderId) external ``` ***Direct NonTrustedAccessible***
+
+This function gets a custom order using a orderId, this will revert if the sender is not the authorised buyer of the order. First the order expiry will be checked against a spot price deviation from when the order was created as well as a time deviation which is the alloted time that the buyer has to execute the order from creation (this cannot be more than 30 minutes). If all conditions are met then the option will be bought from the seller. At the end of the transaction the order is invalidated. 
+Fees are also charged at this point and a fixed fee is charged per contract. If the premium / 8 is less than the fee then the fee is waived. Execute order should update the netdhvexposure on the OptionCatalogue so that the dhv has a full record of the exposure of the Dhv.
 
 ### ```executeStrangle(orderId1, orderId2) external ``` ***Direct NonTrustedAccessible***
 
