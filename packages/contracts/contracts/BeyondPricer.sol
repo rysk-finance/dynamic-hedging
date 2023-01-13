@@ -12,13 +12,16 @@ import "./libraries/AccessControl.sol";
 import "./libraries/OptionsCompute.sol";
 import "./libraries/SafeTransferLib.sol";
 
-import "./interfaces/ILiquidityPool.sol";
+import "./interfaces/IOracle.sol";
 import "./interfaces/IOptionRegistry.sol";
+import "./interfaces/IMarginCalculator.sol";
+import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
+import "./interfaces/AddressBookInterface.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-
+import "hardhat/console.sol";
 
 /**
  *  @title Contract used for all user facing options interactions
@@ -35,6 +38,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	// Protocol management contracts
 	ILiquidityPool public immutable liquidityPool;
 	Protocol public immutable protocol;
+	AddressBookInterface public immutable addressBook;
 	// asset that denominates the strike price
 	address public immutable strikeAsset;
 	// asset that is used as the reference asset
@@ -64,12 +68,22 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	uint256[] public callSlippageGradientMultipliers;
 	uint256[] public putSlippageGradientMultipliers;
 
+	// represents the lending rate of collateral used to collateralise short options by the DHV. denominated in bips
+	uint256 public collateralLendingRate;
+	// long delta borrow rate. denominated in bips
+	uint256 public longDeltaBorrowRate;
+	// short delta borrow rate. denominated in bips
+	uint256 public shortDeltaBorrowRate;
+
 	//////////////////////////
 	/// constant variables ///
 	//////////////////////////
 
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
+	uint256 private constant ONE_YEAR_SECONDS = 31557600;
+	// used to convert e18 to e8
+	uint256 private constant SCALE_FROM = 10**10;
 
 	/////////////////////////
 	/// structs && events ///
@@ -84,10 +98,14 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		address _authority,
 		address _protocol,
 		address _liquidityPool,
+		address _addressBook,
 		uint256 _slippageGradient,
 		uint256 _deltaBandWidth,
 		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers
+		uint256[] memory _putSlippageGradientMultipliers,
+		uint256 _collateralLendingRate,
+		uint256 _shortDeltaBorrowRate,
+		uint256 _longDeltaBorrowRate
 	) AccessControl(IAuthority(_authority)) {
 		// option delta can span a range of 100, so ensure delta bands match this range
 		if (
@@ -98,6 +116,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		}
 		protocol = Protocol(_protocol);
 		liquidityPool = ILiquidityPool(_liquidityPool);
+		addressBook = AddressBookInterface(_addressBook);
 		collateralAsset = liquidityPool.collateralAsset();
 		underlyingAsset = liquidityPool.underlyingAsset();
 		strikeAsset = liquidityPool.strikeAsset();
@@ -105,6 +124,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		deltaBandWidth = _deltaBandWidth;
 		callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
 		putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
+		collateralLendingRate = _collateralLendingRate;
+		shortDeltaBorrowRate = _shortDeltaBorrowRate;
+		longDeltaBorrowRate = _longDeltaBorrowRate;
 	}
 
 	///////////////
@@ -120,6 +142,21 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	function setSlippageGradient(uint256 _slippageGradient) external {
 		_onlyGovernor();
 		slippageGradient = _slippageGradient;
+	}
+
+	function setCollateralLendingRate(uint256 _collateralLendingRate) external {
+		_onlyGovernor();
+		collateralLendingRate = _collateralLendingRate;
+	}
+
+	function setShortDeltaBorrowRate(uint256 _shortDeltaBorrowRate) external {
+		_onlyGovernor();
+		shortDeltaBorrowRate = _shortDeltaBorrowRate;
+	}
+
+	function setLongDeltaBorrowRate(uint256 _longDeltaBorrowRate) external {
+		_onlyGovernor();
+		longDeltaBorrowRate = _longDeltaBorrowRate;
 	}
 
 	/// @dev must also update delta band arrays to fit the new delta band width
@@ -195,8 +232,14 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 premium = vanillaPremium.mul(
 			_getSlippageMultiplier(_amount, delta, netDhvExposure, isSell)
 		);
+		uint256 spread;
+		if (!isSell) {
+			// user is buying from DHV, so add spread to the price
+			spread = _getSpreadValue(_optionSeries, _amount, delta, netDhvExposure, underlyingPrice);
+		}
+		console.log("solidity vanilla premium:", vanillaPremium / 1e18, spread / 1e18);
 		// note the delta returned is the delta of a long position of the option the sign of delta should be handled elsewhere.
-		totalPremium = premium.mul(_amount) / 1e12;
+		totalPremium = (premium.mul(_amount) + spread) / 1e12;
 		totalDelta = delta.mul(int256(_amount));
 		totalFees = feePerContract.mul(_amount);
 	}
@@ -275,7 +318,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		} else {
 			modifiedSlippageGradient = slippageGradient.mul(putSlippageGradientMultipliers[deltaBandIndex]);
 		}
-		if (slippageGradient == 0){
+		if (slippageGradient == 0) {
 			slippageMultiplier = 1e18;
 			return slippageMultiplier;
 		}
@@ -283,9 +326,92 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// if it is a buy then we need to do lower bound is new exposure exponent, upper bound is old exposure exponent
 		int256 slippageFactor = int256(1e18 + modifiedSlippageGradient);
 		if (_isSell) {
-			slippageMultiplier = uint256((slippageFactor.pow(-oldExposureExponent) - slippageFactor.pow(-newExposureExponent)).div(slippageFactor.ln())).div(_amount);
+			slippageMultiplier = uint256(
+				(slippageFactor.pow(-oldExposureExponent) - slippageFactor.pow(-newExposureExponent)).div(
+					slippageFactor.ln()
+				)
+			).div(_amount);
 		} else {
-			slippageMultiplier = uint256((slippageFactor.pow(-newExposureExponent) - slippageFactor.pow(-oldExposureExponent)).div(slippageFactor.ln())).div(_amount);
+			slippageMultiplier = uint256(
+				(slippageFactor.pow(-newExposureExponent) - slippageFactor.pow(-oldExposureExponent)).div(
+					slippageFactor.ln()
+				)
+			).div(_amount);
 		}
+	}
+
+	function _getSpreadValue(
+		Types.OptionSeries memory _optionSeries,
+		uint256 _amount,
+		int256 _optionDelta,
+		int256 _netDhvExposure,
+		uint256 _underlyingPrice
+	) internal view returns (uint256 spreadPremium) {
+		uint256 netShortContracts;
+		if (_netDhvExposure <= 0) {
+			// dhv is already short so apply collateral lending spread to all traded contracts
+			netShortContracts = _amount;
+		} else {
+			// dhv is long so only apply spread to those contracts which make it net short.
+			netShortContracts = int256(_amount) - _netDhvExposure < 0
+				? 0
+				: _amount - uint256(_netDhvExposure);
+		}
+		// find collateral requirements for net short options
+		uint256 collateralToLend = _getCollateralRequirements(_optionSeries, netShortContracts);
+
+		console.log(
+			"collateral to lend",
+			collateralToLend,
+			netShortContracts / 1e18,
+			_underlyingPrice / 1e18
+		);
+
+		// get duration of option in years
+		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
+		console.log("params", _optionSeries.underlying, _optionSeries.collateral);
+
+		console.log("params", _optionSeries.strike / 1e18, _optionSeries.isPut, time / 1e16);
+		// calculate the collateral cost portion of the spread
+		uint256 collateralLendingPremium = ((1e18 + (collateralLendingRate * 1e18) / MAX_BPS).pow(time))
+			.mul(collateralToLend) - collateralToLend;
+		// this is just a magnitude value, sign doesnt matter
+		uint256 dollarDelta = uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice);
+		uint256 deltaBorrowPremium;
+		if (_optionDelta < 0) {
+			// option is negative delta, resulting in long delta exposure for DHV. needs hedging with a short pos
+			deltaBorrowPremium =
+				dollarDelta.mul((1e18 + (shortDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
+				dollarDelta;
+		} else {
+			// option is positive delta, resulting in short delta exposure for DHV. needs hedging with a long pos
+			deltaBorrowPremium =
+				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
+				dollarDelta;
+		}
+		console.log("solidity:", collateralLendingPremium, deltaBorrowPremium);
+		console.log("SPREAD VALUE:", collateralLendingPremium + deltaBorrowPremium);
+		return collateralLendingPremium + deltaBorrowPremium;
+	}
+
+	function _getCollateralRequirements(Types.OptionSeries memory _optionSeries, uint256 _amount)
+		internal
+		view
+		returns (uint256)
+	{
+		IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
+
+		return
+			marginCalc.getNakedMarginRequired(
+				_optionSeries.underlying,
+				_optionSeries.strikeAsset,
+				_optionSeries.collateral,
+				_amount / SCALE_FROM,
+				_optionSeries.strike / SCALE_FROM, // assumes in e18
+				IOracle(addressBook.getOracle()).getPrice(_optionSeries.underlying),
+				_optionSeries.expiration,
+				18, // always have the value return in e18
+				_optionSeries.isPut
+			);
 	}
 }
