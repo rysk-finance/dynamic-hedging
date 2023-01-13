@@ -247,6 +247,7 @@ export async function deployLiquidityPool(
 		authority,
 		optionProtocol.address,
 		liquidityPool.address,
+		ADDRESS_BOOK[chainId],
 		0,
 		toWei("5"),
 		[
@@ -292,7 +293,10 @@ export async function deployLiquidityPool(
 			toWei("2.7"),
 			toWei("2.8"),
 			toWei("2.9")
-		]
+		],
+		0,
+		0,
+		0
 	)) as BeyondPricer
 	await pricer.setSlippageGradient(toWei("0.0001"))
 	await optionProtocol.changeAccounting(Accounting.address)

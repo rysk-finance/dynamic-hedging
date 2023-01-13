@@ -190,7 +190,7 @@ const emptySeries = {
 	underlying: ZERO_ADDRESS,
 	strikeAsset: ZERO_ADDRESS
 }
-describe("Slippage Pricer testing", async () => {
+describe("Spread Pricer testing", async () => {
 	before(async function () {
 		await hre.network.provider.request({
 			method: "hardhat_reset",
@@ -300,6 +300,14 @@ describe("Slippage Pricer testing", async () => {
 			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+		})
+		it("sets spread values to non-zero", async () => {
+			await pricer.setCollateralLendingRate(1000) // 10%
+			expect(await pricer.collateralLendingRate()).to.eq(1000)
+			await pricer.setShortDeltaBorrowRate(1000) // 10%
+			expect(await pricer.shortDeltaBorrowRate()).to.eq(1000)
+			await pricer.setLongDeltaBorrowRate(1500) // 15%
+			expect(await pricer.longDeltaBorrowRate()).to.eq(1500)
 		})
 		it("Deposit to the liquidityPool", async () => {
 			const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
