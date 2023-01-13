@@ -370,15 +370,15 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 			// check partitioned funds increased by pendingWithdrawals * price per share
 			expect(
 				parseFloat(fromWei(partitionedFundsDiffe18)) -
-					parseFloat(fromWei(pendingWithdrawBefore)) *
-						parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+				parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 			).to.be.within(-0.0001, 0.0001)
 			expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 				totalSupplyBefore.eq(0)
 					? toWei("1")
 					: toWei("1")
-							.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-							.div(totalSupplyBefore)
+						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+						.div(totalSupplyBefore)
 			)
 			expect(await liquidityPool.pendingDeposits()).to.equal(0)
 			expect(pendingDepositBefore).to.not.eq(0)
@@ -655,7 +655,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 			expect(lpOTokenBalAfter).to.eq(0)
 			expect(
 				tFormatUSDC(buyerUSDBalanceDiff) -
-					parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
+				parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
 			).to.be.within(-0.01, 0.01)
 			// check collateralAllocated is correct
 			expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
@@ -668,8 +668,8 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 			// check liquidity pool USD balance increases by agreed price minus collateral
 			expect(
 				tFormatUSDC(lpUSDBalanceDiff) -
-					(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
-						tFormatUSDC(expectedCollateralAllocated))
+				(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
+					tFormatUSDC(expectedCollateralAllocated))
 			).to.be.within(-0.015, 0.015)
 			// check delta changes by expected amount
 			expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
@@ -1129,17 +1129,17 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 			).to.be.within(-1, 1)
 			expect(
 				tFormatUSDC(buyerUSDBalanceDiff) -
-					(parseFloat(fromWei(orderDeets1.amount)) * tFormatEth(orderDeets1.price) +
-						parseFloat(fromWei(orderDeets2.amount)) * tFormatEth(orderDeets2.price))
+				(parseFloat(fromWei(orderDeets1.amount)) * tFormatEth(orderDeets1.price) +
+					parseFloat(fromWei(orderDeets2.amount)) * tFormatEth(orderDeets2.price))
 			).to.be.within(-0.02, 0.02)
 			// check collateralAllocated is correct
 			expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
 			// check liquidity pool USD balance increases by agreed price minus collateral
 			expect(
 				tFormatUSDC(lpUSDBalanceDiff) -
-					(tFormatEth(orderDeets1.amount) * tFormatEth(orderDeets1.price) +
-						tFormatEth(orderDeets2.amount) * tFormatEth(orderDeets2.price) -
-						tFormatUSDC(expectedCollateralAllocated))
+				(tFormatEth(orderDeets1.amount) * tFormatEth(orderDeets1.price) +
+					tFormatEth(orderDeets2.amount) * tFormatEth(orderDeets2.price) -
+					tFormatUSDC(expectedCollateralAllocated))
 			).to.be.within(-0.02, 0.02)
 			// check delta changes by expected amount
 			expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
@@ -1172,15 +1172,15 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 			// check partitioned funds increased by pendingWithdrawals * price per share
 			expect(
 				parseFloat(fromWei(partitionedFundsDiffe18)) -
-					parseFloat(fromWei(pendingWithdrawBefore)) *
-						parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+				parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 			).to.be.within(-0.0001, 0.0001)
 			expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 				totalSupplyBefore.eq(0)
 					? toWei("1")
 					: toWei("1")
-							.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-							.div(totalSupplyBefore)
+						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+						.div(totalSupplyBefore)
 			)
 			expect(await liquidityPool.pendingDeposits()).to.equal(0)
 			expect(pendingDepositBefore).to.not.eq(0)
@@ -1425,15 +1425,15 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 			// check partitioned funds increased by pendingWithdrawals * price per share
 			expect(
 				parseFloat(fromWei(partitionedFundsDiffe18)) -
-					parseFloat(fromWei(pendingWithdrawBefore)) *
-						parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+				parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 			).to.be.within(-0.0001, 0.0001)
 			expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 				totalSupplyBefore.eq(0)
 					? toWei("1")
 					: toWei("1")
-							.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-							.div(totalSupplyBefore)
+						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+						.div(totalSupplyBefore)
 			)
 			expect(await liquidityPool.pendingDeposits()).to.equal(0)
 			expect(pendingDepositBefore).to.not.eq(0)

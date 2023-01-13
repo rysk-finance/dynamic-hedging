@@ -19,11 +19,11 @@ contract SlippageTest is Test {
 	uint256 deltaBandWidth;
 
 	function setUp() public {
-        minAmount = 1e16;
+        minAmount = 1e15;
 		callSlippageGradientMultipliers = [1e18, 1.1e18, 1.2e18, 1.3e18, 1.4e18, 1.5e18, 1.6e18, 1.7e18, 1.8e18, 1.9e18, 2.0e18, 2.1e18, 2.2e18, 2.3e18, 2.4e18, 2.5e18, 2.6e18, 2.7e18, 2.8e18, 2.9e18];
 		putSlippageGradientMultipliers = [1e18, 1.1e18, 1.2e18, 1.3e18, 1.4e18, 1.5e18, 1.6e18, 1.7e18, 1.8e18, 1.9e18, 2.0e18, 2.1e18, 2.2e18, 2.3e18, 2.4e18, 2.5e18, 2.6e18, 2.7e18, 2.8e18, 2.9e18];
 		deltaBandWidth = 5e18;
-		slippageGradient = 1e15;
+		slippageGradient = 1e16;
 	}
 
 
@@ -52,7 +52,6 @@ contract SlippageTest is Test {
 		_getSlippageMultiplier(1e16, _delta, -100e18, true);
 		_getSlippageMultiplier(1e16, _delta, -100e18, false);
 	}
-
 	function testSlippageMultiplierFuzzNetDhvExposure(int96 _netDhvExposure) public {
 		vm.assume(_netDhvExposure <= 50000e18);
 		vm.assume(_netDhvExposure >= -50000e18);
@@ -64,6 +63,21 @@ contract SlippageTest is Test {
 		_getSlippageMultiplier(1e16, -5e17, _netDhvExposure, false);
 		_getSlippageMultiplier(1e16, 5e17, _netDhvExposure, true);
 		_getSlippageMultiplier(1e16, -5e17, _netDhvExposure, false);
+	}
+
+
+	function testSlippageMultiplierFuzzSlippageGradient(uint64 _slippageGradient) public {
+		vm.assume(_slippageGradient >= 1e12);
+		vm.assume(_slippageGradient <= 0.1e18);
+		slippageGradient = _slippageGradient;
+        _getSlippageMultiplier(1000e18, 5e17, 100e18, true);
+		_getSlippageMultiplier(1000e18, -5e17, 100e18, false);
+		_getSlippageMultiplier(1000e18, 5e17, -100e18, true);
+		_getSlippageMultiplier(1000e18, -5e17, -100e18, false);
+		_getSlippageMultiplier(1e16, 5e17, 100e18, true);
+		_getSlippageMultiplier(1e16, -5e17, 100e18, false);
+		_getSlippageMultiplier(1e16, 5e17, -100e18, true);
+		_getSlippageMultiplier(1e16, -5e17, -100e18, false);
 	}
 
 	// function testSlippageFFIGetSlippageMultiplier() public {

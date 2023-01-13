@@ -68,6 +68,7 @@ import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deplo
 import { ERC20Interface } from "../types/ERC20Interface"
 import { OptionExchange } from "../types/OptionExchange"
 import { BeyondPricer } from "../types/BeyondPricer"
+import { OptionCatalogue } from "../types/OptionCatalogue"
 
 let usd: MintableERC20
 let weth: WETH
@@ -96,6 +97,7 @@ let collateralAllocatedToVault1: BigNumber
 let proposedSeries: any
 let exchange: OptionExchange
 let authority: string
+let catalogue: OptionCatalogue
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -254,6 +256,7 @@ describe("Liquidity Pools", async () => {
 		liquidityPool = lpParams.liquidityPool
 		exchange = lpParams.exchange
 		pricer = lpParams.pricer
+		catalogue = lpParams.catalogue
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
@@ -302,7 +305,7 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const tx = await exchange.issueNewSeries([
+		const tx = await catalogue.issueNewSeries([
 			{
 				expiration: expiration,
 				isPut: PUT_FLAVOR,
@@ -321,11 +324,11 @@ describe("Liquidity Pools", async () => {
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
 		)
-		const isApproved = await exchange.approvedOptions(oHash)
-		const expirationList = await exchange.getExpirations()
-		const chainStrike = await exchange.getOptionDetails(expiration, true)
-		const isSellable = await exchange.isSellable(oHash)
-		const isBuyable = await exchange.isBuyable(oHash)
+		const isApproved = await catalogue.approvedOptions(oHash)
+		const expirationList = await catalogue.getExpirations()
+		const chainStrike = await catalogue.getOptionDetails(expiration, true)
+		const isSellable = await catalogue.isSellable(oHash)
+		const isBuyable = await catalogue.isBuyable(oHash)
 		expect(isApproved).to.be.true
 		expect(isSellable).to.be.true
 		expect(isBuyable).to.be.true
@@ -338,7 +341,7 @@ describe("Liquidity Pools", async () => {
 		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
 			ethers.utils.parseUnits("1", 10)
 		)
-		const tx = await exchange.changeOptionBuyOrSell([
+		const tx = await catalogue.changeOptionBuyOrSell([
 			{
 				expiration: expiration,
 				isPut: PUT_FLAVOR,
@@ -351,11 +354,11 @@ describe("Liquidity Pools", async () => {
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
 		)
-		const isApproved = await exchange.approvedOptions(oHash)
-		const expirationList = await exchange.getExpirations()
-		const chainStrike = await exchange.getOptionDetails(expiration, true)
-		const isSellable = await exchange.isSellable(oHash)
-		const isBuyable = await exchange.isBuyable(oHash)
+		const isApproved = await catalogue.approvedOptions(oHash)
+		const expirationList = await catalogue.getExpirations()
+		const chainStrike = await catalogue.getOptionDetails(expiration, true)
+		const isSellable = await catalogue.isSellable(oHash)
+		const isBuyable = await catalogue.isBuyable(oHash)
 		expect(isApproved).to.be.true
 		expect(isSellable).to.be.false
 		expect(isBuyable).to.be.false
@@ -366,7 +369,7 @@ describe("Liquidity Pools", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
 		await expect(
-			exchange.changeOptionBuyOrSell([
+			catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
 					isPut: PUT_FLAVOR,
@@ -380,7 +383,7 @@ describe("Liquidity Pools", async () => {
 	it("SUCCEEDs: reapprove series doesn't work", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const tx = await exchange.issueNewSeries([
+		const tx = await catalogue.issueNewSeries([
 			{
 				expiration: expiration,
 				isPut: PUT_FLAVOR,
@@ -397,7 +400,7 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const tx = await exchange.changeOptionBuyOrSell([
+		const tx = await catalogue.changeOptionBuyOrSell([
 			{
 				expiration: expiration,
 				isPut: PUT_FLAVOR,
@@ -413,11 +416,11 @@ describe("Liquidity Pools", async () => {
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
 		)
-		const isApproved = await exchange.approvedOptions(oHash)
-		const expirationList = await exchange.getExpirations()
-		const chainStrike = await exchange.getOptionDetails(expiration, true)
-		const isSellable = await exchange.isSellable(oHash)
-		const isBuyable = await exchange.isBuyable(oHash)
+		const isApproved = await catalogue.approvedOptions(oHash)
+		const expirationList = await catalogue.getExpirations()
+		const chainStrike = await catalogue.getOptionDetails(expiration, true)
+		const isSellable = await catalogue.isSellable(oHash)
+		const isBuyable = await catalogue.isBuyable(oHash)
 		expect(isApproved).to.be.true
 		expect(isSellable).to.be.true
 		expect(isBuyable).to.be.true
@@ -488,15 +491,15 @@ describe("Liquidity Pools", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-				parseFloat(fromWei(pendingWithdrawBefore)) *
-					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+			parseFloat(fromWei(pendingWithdrawBefore)) *
+			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			totalSupplyBefore.eq(0)
 				? toWei("1")
 				: toWei("1")
-						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-						.div(totalSupplyBefore)
+					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+					.div(totalSupplyBefore)
 		)
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
 		expect(pendingDepositBefore).to.not.eq(0)
@@ -600,7 +603,7 @@ describe("Liquidity Pools", async () => {
 		const netDhvExposure = await getNetDhvExposure(
 			optionSeries.strike,
 			optionSeries.collateral,
-			exchange,
+			catalogue,
 			optionSeries.expiration,
 			optionSeries.isPut
 		)
@@ -654,7 +657,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
-			exchange,
+			catalogue,
 			optionSeries,
 			amount,
 			localDelta.div(parseFloat(fromWei(amount))),
@@ -674,7 +677,7 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await exchange.issueNewSeries([
+		await catalogue.issueNewSeries([
 			{
 				expiration: invalidExpirationLong,
 				isPut: PUT_FLAVOR,
@@ -816,7 +819,7 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await exchange.issueNewSeries([
+		await catalogue.issueNewSeries([
 			{
 				expiration: expiration,
 				isPut: PUT_FLAVOR,
@@ -931,7 +934,7 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.add(toWei(strike))
-		await exchange.issueNewSeries([
+		await catalogue.issueNewSeries([
 			{
 				expiration: invalidExpirationLong,
 				isPut: CALL_FLAVOR,
@@ -1071,7 +1074,7 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.add(toWei(strike))
-		await exchange.issueNewSeries([
+		await catalogue.issueNewSeries([
 			{
 				expiration: expiration,
 				isPut: CALL_FLAVOR,
@@ -1266,7 +1269,7 @@ describe("Liquidity Pools", async () => {
 		const netDhvExposure = await getNetDhvExposure(
 			strikePrice,
 			usd.address,
-			exchange,
+			catalogue,
 			expiration,
 			PUT_FLAVOR
 		)
@@ -1302,7 +1305,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
-			exchange,
+			catalogue,
 			proposedSeries,
 			amount,
 			localDelta.div(parseFloat(fromWei(amount))),
@@ -1400,7 +1403,7 @@ describe("Liquidity Pools", async () => {
 		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
 			ethers.utils.parseUnits("1", 10)
 		)
-		const tx = await exchange.changeOptionBuyOrSell([
+		const tx = await catalogue.changeOptionBuyOrSell([
 			{
 				expiration: expiration,
 				isPut: PUT_FLAVOR,
@@ -1413,11 +1416,11 @@ describe("Liquidity Pools", async () => {
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
 		)
-		const isApproved = await exchange.approvedOptions(oHash)
-		const expirationList = await exchange.getExpirations()
-		const chainStrike = await exchange.getOptionDetails(expiration, true)
-		const isSellable = await exchange.isSellable(oHash)
-		const isBuyable = await exchange.isBuyable(oHash)
+		const isApproved = await catalogue.approvedOptions(oHash)
+		const expirationList = await catalogue.getExpirations()
+		const chainStrike = await catalogue.getOptionDetails(expiration, true)
+		const isSellable = await catalogue.isSellable(oHash)
+		const isBuyable = await catalogue.isBuyable(oHash)
 		expect(isApproved).to.be.true
 		expect(isSellable).to.be.false
 		expect(isBuyable).to.be.false
@@ -1533,7 +1536,7 @@ describe("Liquidity Pools", async () => {
 		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
 			ethers.utils.parseUnits("1", 10)
 		)
-		const tx = await exchange.changeOptionBuyOrSell([
+		const tx = await catalogue.changeOptionBuyOrSell([
 			{
 				expiration: expiration,
 				isPut: PUT_FLAVOR,
@@ -1546,11 +1549,11 @@ describe("Liquidity Pools", async () => {
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
 		)
-		const isApproved = await exchange.approvedOptions(oHash)
-		const expirationList = await exchange.getExpirations()
-		const chainStrike = await exchange.getOptionDetails(expiration, true)
-		const isSellable = await exchange.isSellable(oHash)
-		const isBuyable = await exchange.isBuyable(oHash)
+		const isApproved = await catalogue.approvedOptions(oHash)
+		const expirationList = await catalogue.getExpirations()
+		const chainStrike = await catalogue.getOptionDetails(expiration, true)
+		const isSellable = await catalogue.isSellable(oHash)
+		const isBuyable = await catalogue.isBuyable(oHash)
 		expect(isApproved).to.be.true
 		expect(isSellable).to.be.true
 		expect(isBuyable).to.be.true
@@ -1612,7 +1615,7 @@ describe("Liquidity Pools", async () => {
 		const netDhvExposure = await getNetDhvExposure(
 			seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10)),
 			usd.address,
-			exchange,
+			catalogue,
 			expiration,
 			PUT_FLAVOR
 		)
@@ -1647,7 +1650,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
-			exchange,
+			catalogue,
 			seriesInfoDecimalCorrected,
 			amount,
 			localDelta.div(parseFloat(fromWei(amount))),
@@ -1774,7 +1777,7 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await exchange.issueNewSeries([
+		await catalogue.issueNewSeries([
 			{
 				expiration: expiration2,
 				isPut: PUT_FLAVOR,
@@ -1795,7 +1798,7 @@ describe("Liquidity Pools", async () => {
 		const netDhvExposure = await getNetDhvExposure(
 			strikePrice,
 			usd.address,
-			exchange,
+			catalogue,
 			expiration2,
 			PUT_FLAVOR
 		)
@@ -1840,7 +1843,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
-			exchange,
+			catalogue,
 			proposedSeries,
 			amount,
 			localDelta.div(parseFloat(fromWei(amount))),
@@ -1939,7 +1942,7 @@ describe("Liquidity Pools", async () => {
 		const netDhvExposure = await getNetDhvExposure(
 			seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10)),
 			usd.address,
-			exchange,
+			catalogue,
 			seriesInfo.expiration,
 			PUT_FLAVOR
 		)
@@ -1978,7 +1981,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
-			exchange,
+			catalogue,
 			seriesInfoDecimalCorrected,
 			amount,
 			localDelta.div(parseFloat(fromWei(amount))),
@@ -2088,7 +2091,7 @@ describe("Liquidity Pools", async () => {
 		const netDhvExposure = await getNetDhvExposure(
 			seriesInfo.strike.mul(ethers.utils.parseUnits("1", 10)),
 			seriesInfo.collateral,
-			exchange,
+			catalogue,
 			seriesInfo.expiration,
 			seriesInfo.isPut
 		)
@@ -2202,7 +2205,7 @@ describe("Liquidity Pools", async () => {
 		// expect liquidity pool's USD balance decreases by correct amount
 		expect(
 			tFormatUSDC(lpUSDBalanceBefore.sub(lpUSDBalanceAfter)) -
-				(tFormatUSDC(quote) - collateralAllocatedDiff)
+			(tFormatUSDC(quote) - collateralAllocatedDiff)
 		).to.be.within(-0.0011, 0.0011)
 		// expect collateral allocated in LP reduces by correct amount
 		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.0011, 0.0011)
@@ -2363,7 +2366,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const slippageFactor = await applySlippageLocally(
 			pricer,
-			exchange,
+			catalogue,
 			optionSeries,
 			amount,
 			localDelta.div(parseFloat(fromWei(amount))),
@@ -2509,8 +2512,8 @@ describe("Liquidity Pools", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-				parseFloat(fromWei(pendingWithdrawBefore)) *
-					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+			parseFloat(fromWei(pendingWithdrawBefore)) *
+			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			toWei("1")
@@ -2595,7 +2598,7 @@ describe("Liquidity Pools", async () => {
 		// check collateral returned to LP is correct
 		expect(
 			tFormatUSDC(collateralReturned) -
-				tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
+			tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
 		).to.be.within(-0.001, 0.001)
 		// check LP USDC balance increases by correct amount
 		expect(lpBalanceDiff).to.eq(tFormatUSDC(collateralReturned))

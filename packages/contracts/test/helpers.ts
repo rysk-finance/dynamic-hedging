@@ -44,6 +44,7 @@ import { BeyondPricer } from "../types/BeyondPricer"
 import { OptionExchange } from "../types/OptionExchange"
 import { priceToPriceX128 } from "@ragetrade/sdk"
 import { ln } from "prb-math"
+import { OptionCatalogue } from "../types/OptionCatalogue"
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const ONE_YEAR_SECONDS = 31557600
@@ -58,15 +59,15 @@ const aboveUtilizationThresholdGradient = 1
 const utilizationFunctionThreshold = 0.6 // 60%
 const yIntercept = -0.6
 
-export async function getNetDhvExposure(strikePrice, collateral, exchange, expiration, flavor) {
-	const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, collateral)).mul(
+export async function getNetDhvExposure(strikePrice, collateral, catalogue, expiration, flavor) {
+	const formattedStrikePrice = (await catalogue.formatStrikePrice(strikePrice, collateral)).mul(
 		ethers.utils.parseUnits("1", 10)
 	)
 	const oHash = ethers.utils.solidityKeccak256(
 		["uint64", "uint128", "bool"],
 		[expiration, formattedStrikePrice, flavor]
 	)
-	return await exchange.netDhvExposure(oHash)
+	return await catalogue.netDhvExposure(oHash)
 }
 export async function getSeriesWithe18Strike(proposedSeries, optionRegistry) {
 	const formattedStrike = await optionRegistry.formatStrikePrice(
@@ -97,6 +98,7 @@ export async function compareQuotes(
 	pricer,
 	netDhvExposureOverride: BigNumberish = 1
 ) {
+	const catalogue = await ethers.getContractAt("OptionCatalogue", (await exchange.catalogue())) as OptionCatalogue
 	const feePerContract = await pricer.feePerContract()
 	const localDelta = await calculateOptionDeltaLocally(
 		liquidityPool,
@@ -114,7 +116,7 @@ export async function compareQuotes(
 		amount,
 		pricer,
 		isSell,
-		exchange,
+		catalogue,
 		localDelta.div(amount.div(toWei("1"))),
 		netDhvExposureOverride
 	)
@@ -174,7 +176,7 @@ export async function getExchangeParams(
 		netDhvExposure = await getNetDhvExposure(
 			(await optionToken.strikePrice()).mul(utils.parseUnits("1", 10)),
 			usd.address,
-			exchange,
+			await ethers.getContractAt("OptionCatalogue", (await exchange.catalogue())) as OptionCatalogue,
 			await optionToken.expiryTimestamp(),
 			await optionToken.isPut()
 		)
@@ -644,7 +646,7 @@ export async function localQuoteOptionPrice(
 	amount: BigNumber,
 	pricer,
 	isSell: boolean, // from perspective of user,
-	exchange: OptionExchange,
+	catalogue: OptionCatalogue,
 	optionDelta: BigNumber,
 	netDhvExposure: BigNumberish = 1
 ) {
@@ -660,7 +662,7 @@ export async function localQuoteOptionPrice(
 	)
 	const slip = await applySlippageLocally(
 		pricer,
-		exchange,
+		catalogue,
 		optionSeries,
 		amount,
 		optionDelta,
@@ -686,7 +688,7 @@ export async function localQuoteOptionPrice(
 
 export async function applySlippageLocally(
 	beyondPricer: BeyondPricer,
-	exchange: OptionExchange,
+	catalogue: OptionCatalogue,
 	optionSeries: OptionSeriesStruct,
 	amount: BigNumber,
 	optionDelta: BigNumber,
@@ -694,14 +696,14 @@ export async function applySlippageLocally(
 	netDhvExposure: BigNumberish = 1
 ) {
 	const formattedStrikePrice = (
-		await exchange.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
+		await catalogue.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
 	).mul(ethers.utils.parseUnits("1", 10))
 	const oHash = ethers.utils.solidityKeccak256(
 		["uint64", "uint128", "bool"],
 		[optionSeries.expiration, formattedStrikePrice, optionSeries.isPut]
 	)
 	if (netDhvExposure == 1) {
-		netDhvExposure = await exchange.netDhvExposure(oHash)
+		netDhvExposure = await catalogue.netDhvExposure(oHash)
 	}
 
 	console.log({ oHash }, netDhvExposure.toString())
@@ -714,7 +716,7 @@ export async function applySlippageLocally(
 	let modifiedSlippageGradient
 	const deltaBandIndex = Math.floor(
 		(parseFloat(fromWei(optionDelta.abs())) * 100) /
-			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
+		parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
 	)
 	console.log({
 		deltaBandIndex,
@@ -744,11 +746,11 @@ export async function applySlippageLocally(
 	console.log(fromWei(amount))
 	const slippagePremium = isSell
 		? (slippageFactor ** -oldExposureCoefficient - slippageFactor ** -newExposureCoefficient) /
-		  Math.log(slippageFactor) /
-		  parseFloat(fromWei(amount))
+		Math.log(slippageFactor) /
+		parseFloat(fromWei(amount))
 		: (slippageFactor ** -newExposureCoefficient - slippageFactor ** -oldExposureCoefficient) /
-		  Math.log(slippageFactor) /
-		  parseFloat(fromWei(amount))
+		Math.log(slippageFactor) /
+		parseFloat(fromWei(amount))
 	console.log({ modifiedSlippageGradient, slippagePremium })
 	return slippagePremium
 }

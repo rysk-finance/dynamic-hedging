@@ -192,10 +192,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
 	}
 
-	//////////////////////////////////////////////////////
-	/// access-controlled state changing functionality ///
-	//////////////////////////////////////////////////////
-
 	///////////////////////
 	/// complex getters ///
 	///////////////////////
