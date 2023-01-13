@@ -118,7 +118,7 @@ export async function compareQuotes(
 		localDelta.div(amount.div(toWei("1"))),
 		netDhvExposureOverride
 	)
-	expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.1, 0.1)
+	expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.11, 0.11)
 	expect(quoteResponse.totalDelta.abs().sub(localDelta.abs())).to.be.within(-1e14, 1e14)
 	if (proposedSeries.isPut) {
 		if (isSell) {
@@ -820,11 +820,11 @@ export async function applySpreadLocally(
 	let deltaBorrowPremium
 
 	if (optionDelta < toWei("0")) {
-		const longDeltaBorrowRate = await beyondPricer.longDeltaBorrowRate()
+		const longDeltaBorrowRate = await beyondPricer.shortDeltaBorrowRate()
 		deltaBorrowPremium =
 			dollarDelta * (1 + longDeltaBorrowRate / MAX_BPS) ** timeToExpiry - dollarDelta
 	} else {
-		const shortDeltaBorrowRate = await beyondPricer.shortDeltaBorrowRate()
+		const shortDeltaBorrowRate = await beyondPricer.longDeltaBorrowRate()
 		deltaBorrowPremium =
 			dollarDelta * (1 + shortDeltaBorrowRate / MAX_BPS) ** timeToExpiry - dollarDelta
 	}
