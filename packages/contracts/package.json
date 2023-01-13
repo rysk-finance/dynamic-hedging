@@ -26,6 +26,8 @@
 		"deployAlpha:arbitrumGoerli": "npx hardhat run deploy/arbitrum-goerli/ArbitrumGoerliAlphaDeploy.ts --network arbitrumGoerli",
 		"deployAlpha:arbitrumRinkeby": "npx hardhat run deploy/arbitrum-rinkeby/ArbitrumRinkebyAlphaDeploy.ts --network arbitrumRinkeby",
 		"deployAlpha:mainnet": "npx hardhat run deploy/arbitrum/ArbitrumAlphaDeploy.ts --network arbitrum",
+    	"deployRangeOrderReactor:arbitrum": "npx hardhat run deploy/arbitrum/DeployRangeOrderReactor.ts --network arbitrum",
+    	"deployRangeOrderReactor:arbitrumGoerli": "npx hardhat run deploy/arbitrum/DeployRangeOrderReactor.ts --network arbitrumGoerli",
 		"execute-epoch:testnet": "npx hardhat run scripts/executeEpochTestnet.ts --network arbitrumRinkeby",
 		"fulfill:testnet": "npx hardhat run scripts/fulfill.ts --network arbitrumRinkeby",
 		"test": "hardhat test",
