@@ -48,7 +48,8 @@ import {
 	createFakeOtoken,
 	getSeriesWithe18Strike,
 	getNetDhvExposure,
-	compareQuotes
+	compareQuotes,
+	calculateOptionQuoteLocallyAlpha
 } from "./helpers"
 import {
 	GAMMA_CONTROLLER,
@@ -73,6 +74,8 @@ import { create } from "domain"
 import { NewWhitelist } from "../types/NewWhitelist"
 import { OptionExchange } from "../types/OptionExchange"
 import { OtokenFactory } from "../types/OtokenFactory"
+import { OptionCatalogue } from "../types/OptionCatalogue"
+import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: MintableERC20
@@ -108,7 +111,8 @@ let spotHedgingReactor: UniswapV3HedgingReactor
 let exchange: OptionExchange
 let pricer: BeyondPricer
 let authority: string
-
+let catalogue: OptionCatalogue
+let handler: AlphaOptionHandler
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
@@ -251,6 +255,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		exchange = lpParams.exchange
+		catalogue = lpParams.catalogue
+		handler = lpParams.handler
 		pricer = lpParams.pricer
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
@@ -368,7 +374,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: approve series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			await exchange.issueNewSeries([
+			await catalogue.issueNewSeries([
 				{
 					expiration: expiration,
 					isPut: CALL_FLAVOR,
@@ -505,13 +511,307 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				.to.equal(usd.address)
 			expect(after.netDhvExposure.add(amount)).to.equal(0)
 		})
+		it("REVERTS: LP Writes a ETH/USD call fails because unapproved series", async () => {
+			const amount = toWei("5")
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const strikePrice = priceQuote.add(toWei("1"))
+			const proposedSeries = {
+				expiration: expiration,
+				strike: BigNumber.from(strikePrice),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			await exchange.createOtoken(proposedSeries)
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, utils.parseEther("-5"))
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, utils.parseEther("-5"))
+			let quote = quoteResponse[0].add(quoteResponse[2])
+			await usd.approve(exchange.address, quote)
+			await expect(exchange.operate([
+				{
+					operation: 1,
+					operationQueue: [ {
+						actionType: 1,
+						owner: ZERO_ADDRESS,
+						secondAddress: senderAddress,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: proposedSeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])).to.be.revertedWith("UnapprovedSeries()")
+
+		})
+		it("SETUP: set maxMetDhvExposure", async () => {
+			await catalogue.setMaxNetDhvExposure(toWei("3"))
+			expect(await catalogue.maxNetDhvExposure()).to.equal(toWei("3"))
+		})
+		it("REVERTS: LP Writes a ETH/USD call fails because above netDhvExposure", async () => {
+			const amount = toWei("5")
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const strikePrice = priceQuote.add(toWei(strike))
+			const proposedSeries = {
+				expiration: expiration,
+				strike: BigNumber.from(strikePrice),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, utils.parseEther("-5"))
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, utils.parseEther("-5"))
+			let quote = quoteResponse[0].add(quoteResponse[2])
+			await usd.approve(exchange.address, quote)
+			await expect(exchange.operate([
+				{
+					operation: 1,
+					operationQueue: [{
+						actionType: 0,
+						owner: ZERO_ADDRESS,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: 0,
+						optionSeries: proposedSeries,
+						index: 0,
+						data: "0x"
+					}, {
+						actionType: 1,
+						owner: ZERO_ADDRESS,
+						secondAddress: senderAddress,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: proposedSeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])).to.be.revertedWith("MaxNetDhvExposureExceeded()")
+
+		})
+		it("REVERTS: sells the options to the exchange and go below net dhv exposure", async () => {
+			const amount = toWei("1")
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("MaxNetDhvExposureExceeded()")
+		})
+		it("SETUP: set maxMetDhvExposure", async () => {
+			await catalogue.setMaxNetDhvExposure(toWei("50000"))
+			expect(await catalogue.maxNetDhvExposure()).to.equal(toWei("50000"))
+		})
+		let customOrderPrice: any
+		let oToken: Otoken
+		it("SETUP: Creates a buy order", async () => {
+			let customOrderPriceMultiplier = 1
+			const [sender, receiver] = signers
+			const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+			const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+			const amount = toWei("10")
+			const orderExpiry = 10
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const strikePrice = priceQuote.add(toWei(strike))
+			const proposedSeries = {
+				expiration: expiration,
+				strike: BigNumber.from(strikePrice),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount
+			)
+			customOrderPrice = localQuote * customOrderPriceMultiplier
+			const createOrder = await handler.createOrder(
+				proposedSeries,
+				amount,
+				toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
+				orderExpiry,
+				senderAddress,
+				false,
+				[toWei("1"), toWei("1")]
+			)
+			const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+			const lpUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
+			const receipt = await createOrder.wait()
+			const events = receipt.events
+			const createOrderEvents = events?.find(x => x.event == "OrderCreated")
+			const customOrderId = createOrderEvents?.args?.orderId
+			const order = await handler.orderStores(customOrderId)
+			// check saved order details are correct
+			expect(order.optionSeries.expiration).to.eq(proposedSeries.expiration)
+			expect(order.optionSeries.isPut).to.eq(proposedSeries.isPut)
+			expect(
+				order.optionSeries.strike.sub(proposedSeries.strike.div(oTokenDecimalShift18))
+			).to.be.within(-100, 0)
+			expect(order.optionSeries.underlying).to.eq(proposedSeries.underlying)
+			expect(order.optionSeries.strikeAsset).to.eq(proposedSeries.strikeAsset)
+			expect(order.optionSeries.collateral).to.eq(proposedSeries.collateral)
+			expect(order.amount).to.eq(amount)
+			expect(order.price).to.eq(toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount))
+			expect(order.buyer).to.eq(senderAddress)
+			expect(order.upperSpotMovementRange.sub(toWei("1"))).to.equal(priceQuote)
+			expect(order.lowerSpotMovementRange.add(toWei("1"))).to.equal(priceQuote)
+			expect(order.isBuyBack).to.be.false
+			const seriesInfo = await optionRegistry.getSeriesInfo(order.seriesAddress)
+			// check series info for OToken is correct
+			expect(order.optionSeries.expiration).to.eq(seriesInfo.expiration.toString())
+			expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
+			expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
+			expect(await handler.orderIdCounter()).to.eq(1)
+			oToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
+			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
+			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
+		})
+		it("SETUP: Executes a buy order", async () => {
+			const [sender, receiver] = signers
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+			const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+			const buyerBalBefore = await usd.balanceOf(senderAddress)
+			const senderBalBefore = await usd.balanceOf(senderAddress)
+			const senderOTokenBalBefore = await oToken.balanceOf(senderAddress)
+			const orderDeets = await handler.orderStores(1)
+			const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
+			const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
+			const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
+			const netDhvExposureBefore = await getNetDhvExposure(orderDeets.optionSeries.strike.mul(utils.parseUnits("1", 10)), orderDeets.optionSeries.collateral, catalogue, orderDeets.optionSeries.expiration, orderDeets.optionSeries.isPut)
+			expect(netDhvExposureBefore).to.equal(toWei("0").sub(toWei("5")))
+			const expectedCollateralAllocated = await optionRegistry.getCollateral(
+				{
+					expiration: orderDeets.optionSeries.expiration,
+					isPut: orderDeets.optionSeries.isPut,
+					strike: orderDeets.optionSeries.strike, // keep e8
+					strikeAsset: orderDeets.optionSeries.strikeAsset,
+					underlying: orderDeets.optionSeries.underlying,
+					collateral: orderDeets.optionSeries.collateral
+				},
+				orderDeets.amount
+			)
+			const localDelta = await calculateOptionDeltaLocally(
+				liquidityPool,
+				priceFeed,
+				{
+					expiration: orderDeets.optionSeries.expiration.toNumber(),
+					strike: orderDeets.optionSeries.strike.mul(10 ** 10), // format to e18
+					isPut: orderDeets.optionSeries.isPut,
+					underlying: orderDeets.optionSeries.underlying,
+					strikeAsset: orderDeets.optionSeries.strikeAsset,
+					collateral: orderDeets.optionSeries.collateral
+				},
+				orderDeets.amount,
+				true
+			)
+			const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				{
+					expiration: orderDeets.optionSeries.expiration.toNumber(),
+					strike: orderDeets.optionSeries.strike.mul(10 ** 10), // format to e18
+					isPut: orderDeets.optionSeries.isPut,
+					underlying: orderDeets.optionSeries.underlying,
+					strikeAsset: orderDeets.optionSeries.strikeAsset,
+					collateral: orderDeets.optionSeries.collateral
+				},
+				orderDeets.amount,
+				false
+			)
+			await usd.approve(handler.address, 100000000000)
+			await oToken.approve(handler.address, toOpyn(fromWei(orderDeets.amount)))
+			await handler.executeOrder(1)
+			// check ephemeral values update correctly
+			const ephemeralLiabilitiesDiff =
+				tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatEth(ephemeralLiabilitiesBefore)
+			// const ephemeralDeltaDiff =
+			// 	tFormatEth(await liquidityPool.ephemeralDelta()) - tFormatEth(ephemeralDeltaBefore)
+			// expect(ephemeralDeltaDiff - tFormatEth(localDelta)).to.be.within(-0.01, 0.01)
+			expect(percentDiff(ephemeralLiabilitiesDiff, localQuote)).to.be.within(-0.1, 0.1)
+			await portfolioValuesFeed.fulfill(weth.address, usd.address)
+			const deltaAfter = tFormatEth(await liquidityPool.getPortfolioDelta())
+
+			// expect ephemeral values to be reset
+			expect(await liquidityPool.ephemeralDelta()).to.eq(0)
+			expect(await liquidityPool.ephemeralLiabilities()).to.eq(0)
+			const senderOTokenBalAfter = await oToken.balanceOf(senderAddress)
+			const lpUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
+			const lpOTokenBalAfter = await oToken.balanceOf(liquidityPool.address)
+			const buyerBalAfter = await usd.balanceOf(senderAddress)
+			const senderBalAfter = await usd.balanceOf(senderAddress)
+			const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+			const netDhvExposureAfter = await getNetDhvExposure(orderDeets.optionSeries.strike.mul(utils.parseUnits("1", 10)), orderDeets.optionSeries.collateral, catalogue, orderDeets.optionSeries.expiration, orderDeets.optionSeries.isPut)
+			const collateralAllocatedDiff = tFormatUSDC(
+				collateralAllocatedAfter.sub(collateralAllocatedBefore)
+			)
+			const buyerUSDBalanceDiff = buyerBalBefore.sub(buyerBalAfter)
+			const lpUSDBalanceDiff = lpUSDBalanceAfter.sub(lpUSDBalanceBefore)
+
+			const order = await handler.orderStores(0)
+			// order should be non existant
+			expect(order.buyer).to.eq(ZERO_ADDRESS)
+			// check buyer's OToken balance increases by correct amount
+			expect(fromOpyn(senderOTokenBalAfter.sub(senderOTokenBalBefore).toString())).to.eq(
+				fromWei(orderDeets.amount.toString())
+			)
+			// liquidity pool holds no tokens
+			expect(lpOTokenBalAfter).to.eq(0)
+			expect(
+				tFormatUSDC(buyerUSDBalanceDiff) -
+				parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
+			).to.be.within(-0.01, 0.01)
+			// check collateralAllocated is correct
+			expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
+			// check buyer's USD balance decreases by correct amount
+			expect(
+				senderBalBefore
+					.sub(senderBalAfter)
+					.sub(BigNumber.from(Math.floor(customOrderPrice * 10 ** 6).toString()))
+			).to.be.within(-1, 1)
+			// check liquidity pool USD balance increases by agreed price minus collateral
+			expect(
+				tFormatUSDC(lpUSDBalanceDiff) -
+				(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
+					tFormatUSDC(expectedCollateralAllocated))
+			).to.be.within(-0.015, 0.015)
+			// check delta changes by expected amount
+			expect(deltaAfter.toPrecision(2)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(2))
+			expect(await portfolioValuesFeed.addressSetLength()).to.equal(1)
+			expect(netDhvExposureBefore.sub(netDhvExposureAfter)).to.equal(orderDeets.amount)
+		})
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
 			const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
 				ethers.utils.parseUnits("1", 10)
 			)
-			const tx = await exchange.changeOptionBuyOrSell([
+			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
 					isPut: CALL_FLAVOR,
@@ -542,7 +842,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("A5")
+			).to.be.revertedWith("TradeTooSmall()")
 		})
 		it("REVERTS: buys the options from the exchange on a series where amount is too small", async () => {
 			const amount = toWei("0.009")
@@ -565,7 +865,53 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("A5")
+			).to.be.revertedWith("TradeTooSmall()")
+		})
+		it("REVERTS: sells the options to the exchange on a series where amount is too large", async () => {
+			const amount = toWei("1000.001")
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("TradeTooLarge()")
+		})
+		it("REVERTS: buys the options from the exchange on a series where amount is too large", async () => {
+			const amount = toWei("1000.001")
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 1,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("TradeTooLarge()")
 		})
 		it("REVERTS: sells the options to the exchange on a series not approved for selling", async () => {
 			const amount = toWei("4")
@@ -596,7 +942,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
 				ethers.utils.parseUnits("1", 10)
 			)
-			const tx = await exchange.changeOptionBuyOrSell([
+			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
 					isPut: CALL_FLAVOR,
@@ -729,7 +1075,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
 				ethers.utils.parseUnits("1", 10)
 			)
-			const tx = await exchange.changeOptionBuyOrSell([
+			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
 					isPut: CALL_FLAVOR,
@@ -781,7 +1127,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				amount
 			)
 			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address))
-			.optionSeries
+				.optionSeries
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, before.netDhvExposure)
 			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			let quote = quoteResponse[0].add(quoteResponse[2])
@@ -1546,7 +1892,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			optionToken = oTokenETH1500C
 		})
 		it("SETUP: approve series", async () => {
-			await exchange.issueNewSeries([
+			await catalogue.issueNewSeries([
 				{
 					expiration: proposedSeries.expiration,
 					isPut: proposedSeries.isPut,
@@ -1587,7 +1933,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			const tx = await exchange.changeOptionBuyOrSell([
+			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: proposedSeries.expiration,
 					isPut: proposedSeries.isPut,
@@ -1623,7 +1969,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			const tx = await exchange.changeOptionBuyOrSell([
+			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: proposedSeries.expiration,
 					isPut: proposedSeries.isPut,
@@ -1724,7 +2070,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			).to.be.revertedWith("SeriesNotBuyable()")
 		})
 		it("SETUP: change option buy or sell on series", async () => {
-			const tx = await exchange.changeOptionBuyOrSell([
+			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: proposedSeries.expiration,
 					isPut: proposedSeries.isPut,
@@ -2263,7 +2609,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: approve series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			await exchange.issueNewSeries([
+			await catalogue.issueNewSeries([
 				{
 					expiration: expiration,
 					isPut: PUT_FLAVOR,
@@ -2780,7 +3126,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			optionToken = oTokenETH1600C
 		})
 		it("SETUP: approve series", async () => {
-			await exchange.issueNewSeries([
+			await catalogue.issueNewSeries([
 				{
 					expiration: proposedSeries.expiration,
 					isPut: proposedSeries.isPut,
@@ -2954,7 +3300,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				optionToken = oTokenBUSD3000P
 			})
 			it("SETUP: approve series", async () => {
-				await exchange.issueNewSeries([
+				await catalogue.issueNewSeries([
 					{
 						expiration: proposedSeries.expiration,
 						isPut: proposedSeries.isPut,
@@ -2967,7 +3313,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			it("SETUP: change option buy or sell on series", async () => {
 				const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 				const strikePrice = priceQuote.add(toWei(strike))
-				const tx = await exchange.changeOptionBuyOrSell([
+				const tx = await catalogue.changeOptionBuyOrSell([
 					{
 						expiration: proposedSeries.expiration,
 						isPut: proposedSeries.isPut,
@@ -3458,6 +3804,71 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				await exchange.setPricer(pricer.address)
 				expect(await exchange.pricer()).to.equal(pricer.address)
 			})
+			it("SUCCEEDS: set catalogue", async () => {
+				await exchange.setOptionCatalogue(senderAddress)
+				expect(await exchange.catalogue()).to.equal(senderAddress)
+			})
+			it("REVERTS: set catalogue when non governance calls", async () => {
+				await expect(exchange.connect(signers[1]).setOptionCatalogue(senderAddress)).to.be.revertedWith(
+					"UNAUTHORIZED()"
+				)
+				await exchange.setOptionCatalogue(catalogue.address)
+				expect(await exchange.catalogue()).to.equal(catalogue.address)
+			})
+			it("SUCCEEDS: set trade size limits", async () => {
+				await exchange.setTradeSizeLimits(toWei("1000"), toWei("10000"))
+				expect(await exchange.maxTradeSize()).to.equal(toWei("10000"))
+				expect(await exchange.minTradeSize()).to.equal(toWei("1000"))
+			})
+			it("REVERTS: set trade size limits when non governance calls", async () => {
+				await expect(exchange.connect(signers[1]).setTradeSizeLimits(0, 0)).to.be.revertedWith(
+					"UNAUTHORIZED()"
+				)
+				await exchange.setTradeSizeLimits(toWei("0.01"), toWei("1000"))
+				expect(await exchange.maxTradeSize()).to.equal(toWei("1000"))
+				expect(await exchange.minTradeSize()).to.equal(toWei("0.01"))
+			})
+			it("SUCCEEDS: set delta band width on pricer", async () => {
+				await pricer.setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])
+				expect(await pricer.deltaBandWidth()).to.equal(toWei("20"))
+			})
+			it("REVERTS: set delta band width on pricer when non governance calls", async () => {
+				await expect(pricer.connect(signers[1]).setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
+					"UNAUTHORIZED()"
+				)
+			})
+			it("REVERTS: set delta band width with incorrect length arrays", async () => {
+				await expect(pricer.setDeltaBandWidth(toWei("5"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
+					"InvalidSlippageGradientMultipliersArrayLength()"
+				)
+			})
+			it("REVERTS: set delta band width with incorrect length arrays", async () => {
+				await expect(pricer.setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
+					"InvalidSlippageGradientMultipliersArrayLength()"
+				)
+			})
+			it("REVERTS: set delta band width with a param below 0", async () => {
+				await expect(pricer.setDeltaBandWidth(toWei("20"), [toWei("0.9"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
+					"InvalidSlippageGradientMultiplierValue()"
+				)
+			})
+			it("SUCCEEDS: set slippage gradient multipliers on pricer", async () => {
+				const slippageGradientMultipliers = [utils.parseUnits("1.1", 18), utils.parseUnits("1.2", 18), utils.parseUnits("1.6", 18), utils.parseUnits("1.4", 18), utils.parseUnits("1.5", 18)]
+				await pricer.setSlippageGradientMultipliers( slippageGradientMultipliers, slippageGradientMultipliers)
+				const acSlippageGradientMultipliers = await pricer.getCallSlippageGradientMultipliers()
+				const apSlippageGradientMultipliers = await pricer.getPutSlippageGradientMultipliers()
+				console.log(slippageGradientMultipliers)
+				console.log(acSlippageGradientMultipliers)
+				for (let i=0; i < slippageGradientMultipliers.length; i++) {
+					expect(acSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
+					expect(apSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
+				}
+			})
+			it("REVERTS: set slippage gradients on pricer when non governance calls", async () => {
+				await expect(pricer.connect(signers[1]).setSlippageGradientMultipliers( [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
+					"UNAUTHORIZED()"
+				)
+			})
 			it("SUCCEEDS: set pool fee", async () => {
 				await exchange.setPoolFee(senderAddress, 1000)
 				expect(await exchange.poolFees(senderAddress)).to.equal(1000)
@@ -3479,6 +3890,9 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				)
 				await exchange.setFeeRecipient(senderAddress)
 				expect(await exchange.feeRecipient()).to.equal(senderAddress)
+			})
+			it("REVERTS: set fee recipient to zero address", async () => {
+				await expect(exchange.setFeeRecipient(ZERO_ADDRESS)).to.be.reverted
 			})
 			it("SUCCEEDS: update just returns 0", async () => {
 				const update = await exchange.callStatic.update()

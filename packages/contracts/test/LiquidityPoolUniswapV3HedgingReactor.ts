@@ -66,6 +66,7 @@ import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { BeyondPricer } from "../types/BeyondPricer"
 import { OptionExchange } from "../types/OptionExchange"
+import { OptionCatalogue } from "../types/OptionCatalogue"
 let usd: MintableERC20
 let weth: WETH
 let optionRegistry: OptionRegistry
@@ -91,7 +92,7 @@ let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let exchange: OptionExchange
 let pricer: BeyondPricer
 let authority: string
-
+let catalogue: OptionCatalogue
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
@@ -226,6 +227,7 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 		liquidityPool = lpParams.liquidityPool
 		exchange = lpParams.exchange
 		pricer = lpParams.pricer
+		catalogue = lpParams.catalogue
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
@@ -335,7 +337,7 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.add(toWei(strike))
-		await exchange.issueNewSeries([
+		await catalogue.issueNewSeries([
 			{
 				expiration: expiration,
 				isPut: CALL_FLAVOR,

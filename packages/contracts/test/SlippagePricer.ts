@@ -605,4 +605,37 @@ describe("Slippage Pricer testing", async () => {
 			expect(sellQuoteLots.sub(quoteResponse[0])).to.be.within(-100, 100)
 		})
 	})
+	describe("Get quotes with no slippage if slippage gradient is zero", async () => {
+		let proposedSeries: OptionSeriesStruct
+		it("SETUP: sets slippage to zero", async () => {
+			await pricer.setSlippageGradient(0)
+			expect(pricer.slippageGradient()).to.equal(0)
+		})
+		it("SUCCEEDS: get quote for 1 option when buying", async () => {
+			proposedSeries = {
+				expiration: expiration,
+				strike: toWei("2200"),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			const amount = toWei("1")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			const singleBuyQuote = quoteResponse[0]
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				priceFeed,
+				proposedSeries,
+				amount,
+				false,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+		})
+	})
 })
