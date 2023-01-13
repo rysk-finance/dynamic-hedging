@@ -190,7 +190,7 @@ const emptySeries = {
 	underlying: ZERO_ADDRESS,
 	strikeAsset: ZERO_ADDRESS
 }
-describe("Pricer testing", async () => {
+describe("Slippage Pricer testing", async () => {
 	before(async function () {
 		await hre.network.provider.request({
 			method: "hardhat_reset",
