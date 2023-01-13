@@ -241,12 +241,20 @@ export async function deployLiquidityPool(
 	const AccountingFactory = await ethers.getContractFactory("Accounting")
 	const Accounting = (await AccountingFactory.deploy(liquidityPool.address)) as Accounting
 	await optionProtocol.changeAccounting(Accounting.address)
+	const catalogueFactory = await ethers.getContractFactory("OptionCatalogue")
+	const catalogue = (await catalogueFactory.deploy(
+		authority,
+		usd.address,
+		toWei("50000")
+	)) as OptionCatalogue
 	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
 	const handler = (await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,
-		liquidityPool.address
+		liquidityPool.address,
+		catalogue.address
 	)) as AlphaOptionHandler
+	await catalogue.setUpdater(handler.address, true)
 	await liquidityPool.changeHandler(handler.address, true)
 	await pvFeed.setKeeper(handler.address, true)
 	await pvFeed.setKeeper(liquidityPool.address, true)
@@ -256,6 +264,7 @@ export async function deployLiquidityPool(
 		volatility: volatility,
 		liquidityPool: liquidityPool,
 		handler: handler,
-		accounting: Accounting
+		accounting: Accounting,
+		catalogue: catalogue
 	}
 }
