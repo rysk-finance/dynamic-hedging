@@ -41,7 +41,7 @@ import { deployRage, deployRangeOrder } from "../utils/rage-deployer"
 import {
 	setupTestOracle,
 	setupOracle,
-	calculateOptionQuoteLocally,
+	calculateOptionQuoteLocallyAlpha,
 	calculateOptionDeltaLocally,
 	increase,
 	setOpynOracleExpiryPrice,
@@ -392,15 +392,15 @@ describe("Liquidity Pool with alpha tests", async () => {
 			// check partitioned funds increased by pendingWithdrawals * price per share
 			expect(
 				parseFloat(fromWei(partitionedFundsDiffe18)) -
-					parseFloat(fromWei(pendingWithdrawBefore)) *
-						parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+				parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 			).to.be.within(-0.0001, 0.0001)
 			expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 				totalSupplyBefore.eq(0)
 					? toWei("1")
 					: toWei("1")
-							.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-							.div(totalSupplyBefore)
+						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+						.div(totalSupplyBefore)
 			)
 			expect(await liquidityPool.pendingDeposits()).to.equal(0)
 			expect(pendingDepositBefore).to.not.eq(0)
@@ -436,9 +436,9 @@ describe("Liquidity Pool with alpha tests", async () => {
 			const reactorDelta = await perpHedgingReactor.internalDelta()
 			await expect(manager.connect(receiver).rebalancePortfolioDelta(delta, 0, { gasLimit: 999999999999 })).to.be.revertedWith("NotKeeper()")
 		})
-		it("SUCCEEDS: sets keeper", async() => {
+		it("SUCCEEDS: sets keeper", async () => {
 			await manager.setKeeper(receiverAddress, true)
-			expect( await manager.keeper(receiverAddress)).to.be.true
+			expect(await manager.keeper(receiverAddress)).to.be.true
 		})
 		it("REVERTS: hedges delta in perp hedging reactor via keeper with no delta limit", async () => {
 			const [sender, receiver] = signers
@@ -446,16 +446,16 @@ describe("Liquidity Pool with alpha tests", async () => {
 			const reactorDelta = await perpHedgingReactor.internalDelta()
 			await expect(manager.connect(receiver).rebalancePortfolioDelta(delta, 0, { gasLimit: 999999999999 })).to.be.revertedWith("ExceedsDeltaLimit()")
 		})
-		it("SUCCEEDS: proxy manager sets delta limit", async() => {
+		it("SUCCEEDS: proxy manager sets delta limit", async () => {
 			await manager.setDeltaLimit([toWei("1")], [receiverAddress])
-			expect( await manager.deltaLimit(receiverAddress)).to.equal(toWei("1"))
+			expect(await manager.deltaLimit(receiverAddress)).to.equal(toWei("1"))
 		})
-		it("SUCCEEDS: proxy manager sets multiple delta limit", async() => {
+		it("SUCCEEDS: proxy manager sets multiple delta limit", async () => {
 			await manager.setDeltaLimit([toWei("1"), toWei("2")], [receiverAddress, senderAddress])
-			expect( await manager.deltaLimit(receiverAddress)).to.equal(toWei("1"))
-			expect( await manager.deltaLimit(senderAddress)).to.equal(toWei("2"))
+			expect(await manager.deltaLimit(receiverAddress)).to.equal(toWei("1"))
+			expect(await manager.deltaLimit(senderAddress)).to.equal(toWei("2"))
 		})
-		it("REVERTS: non proxy manager sets delta limit", async() => {
+		it("REVERTS: non proxy manager sets delta limit", async () => {
 			const [sender, receiver] = signers
 			await expect(manager.connect(receiver).setDeltaLimit([toWei("1")], [receiverAddress])).to.be.revertedWith("NotProxyManager()")
 		})
@@ -529,7 +529,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -538,7 +538,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				amount
 			)
 			customOrderPrice = localQuote * customOrderPriceMultiplier
-			customOrderId = await handler.callStatic.createOrder(				
+			customOrderId = await handler.callStatic.createOrder(
 				proposedSeries,
 				amount,
 				toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
@@ -737,7 +737,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				true
 			)
 			const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -792,7 +792,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(lpOTokenBalAfter).to.eq(0)
 			expect(
 				tFormatUSDC(buyerUSDBalanceDiff) -
-					parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
+				parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
 			).to.be.within(-0.01, 0.01)
 			// check collateralAllocated is correct
 			expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
@@ -805,8 +805,8 @@ describe("Liquidity Pool with alpha tests", async () => {
 			// check liquidity pool USD balance increases by agreed price minus collateral
 			expect(
 				tFormatUSDC(lpUSDBalanceDiff) -
-					(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
-						tFormatUSDC(expectedCollateralAllocated))
+				(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
+					tFormatUSDC(expectedCollateralAllocated))
 			).to.be.within(-0.015, 0.015)
 			// check delta changes by expected amount
 			expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
@@ -848,7 +848,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuoteCall = await calculateOptionQuoteLocally(
+			const localQuoteCall = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -856,7 +856,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				proposedSeriesCall,
 				amount
 			)
-			const localQuotePut = await calculateOptionQuoteLocally(
+			const localQuotePut = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -967,7 +967,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				orderDeets1.amount,
 				true
 			)
-			const localQuote1 = await calculateOptionQuoteLocally(
+			const localQuote1 = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -997,7 +997,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				orderDeets2.amount,
 				true
 			)
-			const localQuote2 = await calculateOptionQuoteLocally(
+			const localQuote2 = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1094,17 +1094,17 @@ describe("Liquidity Pool with alpha tests", async () => {
 			).to.be.within(-1, 1)
 			expect(
 				tFormatUSDC(buyerUSDBalanceDiff) -
-					(parseFloat(fromWei(orderDeets1.amount)) * tFormatEth(orderDeets1.price) +
-						parseFloat(fromWei(orderDeets2.amount)) * tFormatEth(orderDeets2.price))
+				(parseFloat(fromWei(orderDeets1.amount)) * tFormatEth(orderDeets1.price) +
+					parseFloat(fromWei(orderDeets2.amount)) * tFormatEth(orderDeets2.price))
 			).to.be.within(-0.02, 0.02)
 			// check collateralAllocated is correct
 			expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
 			// check liquidity pool USD balance increases by agreed price minus collateral
 			expect(
 				tFormatUSDC(lpUSDBalanceDiff) -
-					(tFormatEth(orderDeets1.amount) * tFormatEth(orderDeets1.price) +
-						tFormatEth(orderDeets2.amount) * tFormatEth(orderDeets2.price) -
-						tFormatUSDC(expectedCollateralAllocated))
+				(tFormatEth(orderDeets1.amount) * tFormatEth(orderDeets1.price) +
+					tFormatEth(orderDeets2.amount) * tFormatEth(orderDeets2.price) -
+					tFormatUSDC(expectedCollateralAllocated))
 			).to.be.within(-0.02, 0.02)
 			// check delta changes by expected amount
 			expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
@@ -1133,7 +1133,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1142,7 +1142,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				amount
 			)
 			customOrderPrice = localQuote * customOrderPriceMultiplier
-			customOrderId = await handler.callStatic.createOrder(				
+			customOrderId = await handler.callStatic.createOrder(
 				proposedSeries,
 				amount,
 				toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
@@ -1227,7 +1227,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				true
 			)
 			const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1284,7 +1284,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(lpOTokenBalAfter).to.eq(0)
 			expect(
 				tFormatUSDC(buyerUSDBalanceDiff) -
-					parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
+				parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
 			).to.be.within(-0.01, 0.01)
 			// check collateralAllocated is correct
 			expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
@@ -1297,8 +1297,8 @@ describe("Liquidity Pool with alpha tests", async () => {
 			// check liquidity pool USD balance increases by agreed price minus collateral
 			expect(
 				tFormatUSDC(lpUSDBalanceDiff) -
-					(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
-						tFormatUSDC(expectedCollateralAllocated))
+				(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
+					tFormatUSDC(expectedCollateralAllocated))
 			).to.be.within(-0.015, 0.015)
 			// check delta changes by expected amount
 			expect(deltaAfter.toPrecision(2)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(2))
@@ -1321,7 +1321,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1330,7 +1330,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				amount
 			)
 			customOrderPrice = localQuote * customOrderPriceMultiplier
-			customOrderId = await handler.callStatic.createOrder(				
+			customOrderId = await handler.callStatic.createOrder(
 				proposedSeries,
 				amount,
 				toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
@@ -1527,7 +1527,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				true
 			)
 			const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1582,7 +1582,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(lpOTokenBalAfter).to.eq(0)
 			expect(
 				tFormatUSDC(buyerUSDBalanceDiff) -
-					parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
+				parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
 			).to.be.within(-0.01, 0.01)
 			// check collateralAllocated is correct
 			expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
@@ -1595,8 +1595,8 @@ describe("Liquidity Pool with alpha tests", async () => {
 			// check liquidity pool USD balance decreases by agreed price plus collateral
 			expect(
 				tFormatUSDC(lpUSDBalanceDiff) -
-					(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
-						tFormatUSDC(expectedCollateralAllocated))
+				(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
+					tFormatUSDC(expectedCollateralAllocated))
 			).to.be.within(-0.015, 0.015)
 			// check delta changes by expected amount
 			expect((deltaAfter + tFormatEth(localDelta)).toPrecision(2)).to.eq(deltaBefore.toPrecision(2))
@@ -1619,7 +1619,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1628,7 +1628,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				amount
 			)
 			customOrderPrice = localQuote * customOrderPriceMultiplier
-			customOrderId = await handler.callStatic.createOrder(				
+			customOrderId = await handler.callStatic.createOrder(
 				proposedSeries,
 				amount,
 				toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
@@ -1736,7 +1736,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const localQuote = await calculateOptionQuoteLocally(
+			const localQuote = await calculateOptionQuoteLocallyAlpha(
 				liquidityPool,
 				optionRegistry,
 				usd,
@@ -1745,7 +1745,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				amount
 			)
 			customOrderPrice = localQuote * customOrderPriceMultiplier
-			customOrderId = await handler.callStatic.createOrder(				
+			customOrderId = await handler.callStatic.createOrder(
 				proposedSeries,
 				amount,
 				toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
@@ -1817,7 +1817,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			customOrderId = await handler.callStatic.createOrder(				
+			customOrderId = await handler.callStatic.createOrder(
 				proposedSeries,
 				amount,
 				toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
@@ -1993,15 +1993,15 @@ describe("Liquidity Pool with alpha tests", async () => {
 			// check partitioned funds increased by pendingWithdrawals * price per share
 			expect(
 				parseFloat(fromWei(partitionedFundsDiffe18)) -
-					parseFloat(fromWei(pendingWithdrawBefore)) *
-						parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+				parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 			).to.be.within(-0.0001, 0.0001)
 			expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 				totalSupplyBefore.eq(0)
 					? toWei("1")
 					: toWei("1")
-							.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-							.div(totalSupplyBefore)
+						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+						.div(totalSupplyBefore)
 			)
 			expect(await liquidityPool.pendingDeposits()).to.equal(0)
 			expect(pendingDepositBefore).to.not.eq(0)
