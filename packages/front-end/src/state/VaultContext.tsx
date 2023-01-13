@@ -1,3 +1,5 @@
+import type { PropsWithChildren } from "react";
+
 import React, { createContext, useContext, useReducer } from "react";
 import { vaultReducer } from "./reducer";
 import { VaultContext, VaultState } from "./types";
@@ -15,7 +17,7 @@ export const VaultReactContext = createContext<VaultContext>({
   dispatch: () => {},
 });
 
-export const VaultProvider: React.FC = ({ children }) => {
+export const VaultProvider = ({ children }: PropsWithChildren<unknown>) => {
   const [state, dispatch] = useReducer(vaultReducer, defaultVaultState);
 
   return (

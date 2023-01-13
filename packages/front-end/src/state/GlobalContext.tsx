@@ -1,3 +1,5 @@
+import type { PropsWithChildren } from "react";
+
 import {
   createContext,
   useCallback,
@@ -35,7 +37,9 @@ export const GlobalReactContext = createContext<GlobalContext>({
   dispatch: () => {},
 });
 
-export const GlobalContextProvider: React.FC = ({ children }) => {
+export const GlobalContextProvider = ({
+  children,
+}: PropsWithChildren<unknown>) => {
   const [state, dispatch] = useReducer(globalReducer, defaultGlobalState);
   const [getFromLocalStorage] = useLocalStorage();
 

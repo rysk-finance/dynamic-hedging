@@ -1,3 +1,5 @@
+import type { PropsWithChildren } from "react";
+
 import React, { useCallback } from "react";
 import { useWalletContext } from "../App";
 import { useGlobalContext } from "../state/GlobalContext";
@@ -9,9 +11,11 @@ type RequiresWalletConnectionProps = {
   fallbackComponent?: React.ReactElement;
 };
 
-export const RequiresWalletConnection: React.FC<
-  RequiresWalletConnectionProps
-> = ({ className, fallbackComponent, children }) => {
+export const RequiresWalletConnection = ({
+  className,
+  fallbackComponent,
+  children,
+}: PropsWithChildren<RequiresWalletConnectionProps>) => {
   const { dispatch } = useGlobalContext();
   const { account, connectWallet } = useWalletContext();
 

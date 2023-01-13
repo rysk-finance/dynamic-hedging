@@ -1,5 +1,4 @@
 import { BigNumber } from "@ethersproject/bignumber";
-import { Serie } from "@nivo/line";
 import { ethers } from "ethers";
 import React, { useState } from "react";
 import { toast } from "react-toastify";
