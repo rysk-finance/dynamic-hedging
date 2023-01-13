@@ -736,7 +736,8 @@ export async function applySlippageLocally(
 			parseFloat(fromWei(slippageGradient)) *
 			parseFloat(fromWei(await beyondPricer.callSlippageGradientMultipliers(deltaBandIndex)))
 	}
-	if (slippageGradient == toWei("0")) {
+
+	if (slippageGradient.eq(BigNumber.from(0))) {
 		return 1
 	}
 	const slippageFactor = 1 + modifiedSlippageGradient

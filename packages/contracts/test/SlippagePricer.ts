@@ -609,7 +609,7 @@ describe("Slippage Pricer testing", async () => {
 		let proposedSeries: OptionSeriesStruct
 		it("SETUP: sets slippage to zero", async () => {
 			await pricer.setSlippageGradient(0)
-			expect(pricer.slippageGradient()).to.equal(0)
+			expect(await pricer.slippageGradient()).to.equal(0)
 		})
 		it("SUCCEEDS: get quote for 1 option when buying", async () => {
 			proposedSeries = {
