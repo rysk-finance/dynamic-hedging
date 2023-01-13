@@ -2313,6 +2313,9 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
+			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
+			quote = quoteResponse[0].add(quoteResponse[2])
 			expect(after.senderOtokenBalance).to.eq(after.opynAmount)
 			expect(after.exchangeOTokenBalance).to.eq(0)
 			expect(before.senderUSDBalance.sub(after.senderUSDBalance).sub(quote)).to.be.within(-10, 10)

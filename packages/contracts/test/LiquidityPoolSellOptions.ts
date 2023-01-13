@@ -511,6 +511,40 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				.to.equal(usd.address)
 			expect(after.netDhvExposure.add(amount)).to.equal(0)
 		})
+		it("REVERTS: LP Writes a ETH/USD call fails because unapproved series", async () => {
+			const amount = toWei("5")
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const strikePrice = priceQuote.add(toWei("1"))
+			const proposedSeries = {
+				expiration: expiration,
+				strike: BigNumber.from(strikePrice),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			await exchange.createOtoken(proposedSeries)
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, utils.parseEther("-5"))
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, utils.parseEther("-5"))
+			let quote = quoteResponse[0].add(quoteResponse[2])
+			await usd.approve(exchange.address, quote)
+			await expect(exchange.operate([
+				{
+					operation: 1,
+					operationQueue: [ {
+						actionType: 1,
+						owner: ZERO_ADDRESS,
+						secondAddress: senderAddress,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: proposedSeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])).to.be.revertedWith("UnapprovedSeries()")
+
+		})
 		it("SETUP: set maxMetDhvExposure", async () => {
 			await catalogue.setMaxNetDhvExposure(toWei("3"))
 			expect(await catalogue.maxNetDhvExposure()).to.equal(toWei("3"))
@@ -3770,6 +3804,71 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				await exchange.setPricer(pricer.address)
 				expect(await exchange.pricer()).to.equal(pricer.address)
 			})
+			it("SUCCEEDS: set catalogue", async () => {
+				await exchange.setOptionCatalogue(senderAddress)
+				expect(await exchange.catalogue()).to.equal(senderAddress)
+			})
+			it("REVERTS: set catalogue when non governance calls", async () => {
+				await expect(exchange.connect(signers[1]).setOptionCatalogue(senderAddress)).to.be.revertedWith(
+					"UNAUTHORIZED()"
+				)
+				await exchange.setOptionCatalogue(catalogue.address)
+				expect(await exchange.catalogue()).to.equal(catalogue.address)
+			})
+			it("SUCCEEDS: set trade size limits", async () => {
+				await exchange.setTradeSizeLimits(toWei("1000"), toWei("10000"))
+				expect(await exchange.maxTradeSize()).to.equal(toWei("10000"))
+				expect(await exchange.minTradeSize()).to.equal(toWei("1000"))
+			})
+			it("REVERTS: set trade size limits when non governance calls", async () => {
+				await expect(exchange.connect(signers[1]).setTradeSizeLimits(0, 0)).to.be.revertedWith(
+					"UNAUTHORIZED()"
+				)
+				await exchange.setTradeSizeLimits(toWei("0.01"), toWei("1000"))
+				expect(await exchange.maxTradeSize()).to.equal(toWei("1000"))
+				expect(await exchange.minTradeSize()).to.equal(toWei("0.01"))
+			})
+			it("SUCCEEDS: set delta band width on pricer", async () => {
+				await pricer.setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])
+				expect(await pricer.deltaBandWidth()).to.equal(toWei("20"))
+			})
+			it("REVERTS: set delta band width on pricer when non governance calls", async () => {
+				await expect(pricer.connect(signers[1]).setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
+					"UNAUTHORIZED()"
+				)
+			})
+			it("REVERTS: set delta band width with incorrect length arrays", async () => {
+				await expect(pricer.setDeltaBandWidth(toWei("5"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
+					"InvalidSlippageGradientMultipliersArrayLength()"
+				)
+			})
+			it("REVERTS: set delta band width with incorrect length arrays", async () => {
+				await expect(pricer.setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
+					"InvalidSlippageGradientMultipliersArrayLength()"
+				)
+			})
+			it("REVERTS: set delta band width with a param below 0", async () => {
+				await expect(pricer.setDeltaBandWidth(toWei("20"), [toWei("0.9"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
+					"InvalidSlippageGradientMultiplierValue()"
+				)
+			})
+			it("SUCCEEDS: set slippage gradient multipliers on pricer", async () => {
+				const slippageGradientMultipliers = [utils.parseUnits("1.1", 18), utils.parseUnits("1.2", 18), utils.parseUnits("1.6", 18), utils.parseUnits("1.4", 18), utils.parseUnits("1.5", 18)]
+				await pricer.setSlippageGradientMultipliers( slippageGradientMultipliers, slippageGradientMultipliers)
+				const acSlippageGradientMultipliers = await pricer.getCallSlippageGradientMultipliers()
+				const apSlippageGradientMultipliers = await pricer.getPutSlippageGradientMultipliers()
+				console.log(slippageGradientMultipliers)
+				console.log(acSlippageGradientMultipliers)
+				for (let i=0; i < slippageGradientMultipliers.length; i++) {
+					expect(acSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
+					expect(apSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
+				}
+			})
+			it("REVERTS: set slippage gradients on pricer when non governance calls", async () => {
+				await expect(pricer.connect(signers[1]).setSlippageGradientMultipliers( [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
+					"UNAUTHORIZED()"
+				)
+			})
 			it("SUCCEEDS: set pool fee", async () => {
 				await exchange.setPoolFee(senderAddress, 1000)
 				expect(await exchange.poolFees(senderAddress)).to.equal(1000)
@@ -3791,6 +3890,9 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				)
 				await exchange.setFeeRecipient(senderAddress)
 				expect(await exchange.feeRecipient()).to.equal(senderAddress)
+			})
+			it("REVERTS: set fee recipient to zero address", async () => {
+				await expect(exchange.setFeeRecipient(ZERO_ADDRESS)).to.be.reverted
 			})
 			it("SUCCEEDS: update just returns 0", async () => {
 				const update = await exchange.callStatic.update()

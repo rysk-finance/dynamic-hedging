@@ -140,22 +140,22 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	}
 
 	function setSlippageGradient(uint256 _slippageGradient) external {
-		_onlyGovernor();
+		_onlyManager();
 		slippageGradient = _slippageGradient;
 	}
 
 	function setCollateralLendingRate(uint256 _collateralLendingRate) external {
-		_onlyGovernor();
+		_onlyManager();
 		collateralLendingRate = _collateralLendingRate;
 	}
 
 	function setShortDeltaBorrowRate(uint256 _shortDeltaBorrowRate) external {
-		_onlyGovernor();
+		_onlyManager();
 		shortDeltaBorrowRate = _shortDeltaBorrowRate;
 	}
 
 	function setLongDeltaBorrowRate(uint256 _longDeltaBorrowRate) external {
-		_onlyGovernor();
+		_onlyManager();
 		longDeltaBorrowRate = _longDeltaBorrowRate;
 	}
 
@@ -165,7 +165,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256[] memory _callSlippageGradientMultipliers,
 		uint256[] memory _putSlippageGradientMultipliers
 	) external {
-		_onlyGovernor();
+		_onlyManager();
 		deltaBandWidth = _deltaBandWidth;
 		setSlippageGradientMultipliers(_callSlippageGradientMultipliers, _putSlippageGradientMultipliers);
 	}
@@ -174,7 +174,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256[] memory _callSlippageGradientMultipliers,
 		uint256[] memory _putSlippageGradientMultipliers
 	) public {
-		_onlyGovernor();
+		_onlyManager();
 		if (
 			_callSlippageGradientMultipliers.length != 100e18 / deltaBandWidth ||
 			_putSlippageGradientMultipliers.length != 100e18 / deltaBandWidth
@@ -244,22 +244,13 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// non-complex getters ///
 	///////////////////////////
 
-	/**
-	 * @notice get the option registry used for storing and managing the options
-	 * @return the option registry contract
-	 */
-	function getOptionRegistry() internal view returns (IOptionRegistry) {
-		return IOptionRegistry(protocol.optionRegistry());
+	function getCallSlippageGradientMultipliers() external view returns (uint256[] memory) {
+		return callSlippageGradientMultipliers;
 	}
-
-	/**
-	 * @notice get the portfolio values feed used by the liquidity pool
-	 * @return the portfolio values feed contract
-	 */
-	function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
-		return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
+	function getPutSlippageGradientMultipliers() external view returns (uint256[] memory) {
+		return putSlippageGradientMultipliers;
 	}
-
+	
 	/**
 	 * @notice get the underlying price with just the underlying asset and strike asset
 	 * @param underlying   the asset that is used as the reference asset
