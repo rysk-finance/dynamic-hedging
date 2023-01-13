@@ -247,10 +247,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	function getCallSlippageGradientMultipliers() external view returns (uint256[] memory) {
 		return callSlippageGradientMultipliers;
 	}
+
 	function getPutSlippageGradientMultipliers() external view returns (uint256[] memory) {
 		return putSlippageGradientMultipliers;
 	}
-	
+
 	/**
 	 * @notice get the underlying price with just the underlying asset and strike asset
 	 * @param underlying   the asset that is used as the reference asset

@@ -98,7 +98,10 @@ export async function compareQuotes(
 	pricer,
 	netDhvExposureOverride: BigNumberish = 1
 ) {
-	const catalogue = await ethers.getContractAt("OptionCatalogue", (await exchange.catalogue())) as OptionCatalogue
+	const catalogue = (await ethers.getContractAt(
+		"OptionCatalogue",
+		await exchange.catalogue()
+	)) as OptionCatalogue
 	const feePerContract = await pricer.feePerContract()
 	const localDelta = await calculateOptionDeltaLocally(
 		liquidityPool,
@@ -176,7 +179,7 @@ export async function getExchangeParams(
 		netDhvExposure = await getNetDhvExposure(
 			(await optionToken.strikePrice()).mul(utils.parseUnits("1", 10)),
 			usd.address,
-			await ethers.getContractAt("OptionCatalogue", (await exchange.catalogue())) as OptionCatalogue,
+			(await ethers.getContractAt("OptionCatalogue", await exchange.catalogue())) as OptionCatalogue,
 			await optionToken.expiryTimestamp(),
 			await optionToken.isPut()
 		)
@@ -716,7 +719,7 @@ export async function applySlippageLocally(
 	let modifiedSlippageGradient
 	const deltaBandIndex = Math.floor(
 		(parseFloat(fromWei(optionDelta.abs())) * 100) /
-		parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
+			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
 	)
 	console.log({
 		deltaBandIndex,
@@ -747,11 +750,11 @@ export async function applySlippageLocally(
 	console.log(fromWei(amount))
 	const slippagePremium = isSell
 		? (slippageFactor ** -oldExposureCoefficient - slippageFactor ** -newExposureCoefficient) /
-		Math.log(slippageFactor) /
-		parseFloat(fromWei(amount))
+		  Math.log(slippageFactor) /
+		  parseFloat(fromWei(amount))
 		: (slippageFactor ** -newExposureCoefficient - slippageFactor ** -oldExposureCoefficient) /
-		Math.log(slippageFactor) /
-		parseFloat(fromWei(amount))
+		  Math.log(slippageFactor) /
+		  parseFloat(fromWei(amount))
 	console.log({ modifiedSlippageGradient, slippagePremium })
 	return slippagePremium
 }

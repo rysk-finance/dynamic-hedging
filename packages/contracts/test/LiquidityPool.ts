@@ -491,15 +491,15 @@ describe("Liquidity Pools", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-			parseFloat(fromWei(pendingWithdrawBefore)) *
-			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			totalSupplyBefore.eq(0)
 				? toWei("1")
 				: toWei("1")
-					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-					.div(totalSupplyBefore)
+						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+						.div(totalSupplyBefore)
 		)
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
 		expect(pendingDepositBefore).to.not.eq(0)
@@ -2205,7 +2205,7 @@ describe("Liquidity Pools", async () => {
 		// expect liquidity pool's USD balance decreases by correct amount
 		expect(
 			tFormatUSDC(lpUSDBalanceBefore.sub(lpUSDBalanceAfter)) -
-			(tFormatUSDC(quote) - collateralAllocatedDiff)
+				(tFormatUSDC(quote) - collateralAllocatedDiff)
 		).to.be.within(-0.0011, 0.0011)
 		// expect collateral allocated in LP reduces by correct amount
 		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.0011, 0.0011)
@@ -2512,8 +2512,8 @@ describe("Liquidity Pools", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-			parseFloat(fromWei(pendingWithdrawBefore)) *
-			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			toWei("1")
@@ -2598,7 +2598,7 @@ describe("Liquidity Pools", async () => {
 		// check collateral returned to LP is correct
 		expect(
 			tFormatUSDC(collateralReturned) -
-			tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
+				tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
 		).to.be.within(-0.001, 0.001)
 		// check LP USDC balance increases by correct amount
 		expect(lpBalanceDiff).to.eq(tFormatUSDC(collateralReturned))
