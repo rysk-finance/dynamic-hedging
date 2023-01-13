@@ -71,6 +71,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	address public feeRecipient;
 	/// @notice option catalogue
 	OptionCatalogue public catalogue;
+	/// @notice maximum amount allowed for a single trade
+	uint256 public maxTradeSize = 1000e18;
+	/// @notice minimum amount allowed for a single trade
+	uint256 public minTradeSize = 1e16;
 
 	///////////////////////////
 	/// transient variables ///
@@ -132,6 +136,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	);
 	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
 
+	error TradeTooSmall();
+	error TradeTooLarge();
 	error PoolFeeNotSet();
 	error TokenImbalance();
 	error NothingToClose();
@@ -208,6 +214,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_onlyGovernor();
 		poolFees[asset] = fee;
 		SafeTransferLib.safeApprove(ERC20(asset), address(swapRouter), MAX_UINT);
+	}
+
+	/// @notice set the maximum and minimum trade size
+	function setTradeSizeLimits(uint256 _minTradeSize, uint256 _maxTradeSize) external {
+		_onlyGovernor();
+		minTradeSize = _minTradeSize;
+		maxTradeSize = _maxTradeSize;
 	}
 
 	//////////////////////////////////////////////////////
@@ -466,6 +479,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		whenNotPaused
 		returns (uint256)
 	{
+		if (_args.amount < minTradeSize) revert TradeTooSmall();
+		if (_args.amount > maxTradeSize) revert TradeTooLarge();
 		// get the option details in the correct formats
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		BuyParams memory buyParams;
@@ -546,6 +561,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		internal
 		whenNotPaused
 	{
+		if (_args.amount < minTradeSize) revert TradeTooSmall();
+		if (_args.amount > maxTradeSize) revert TradeTooLarge();
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		SellParams memory sellParams;
 		bytes32 oHash;

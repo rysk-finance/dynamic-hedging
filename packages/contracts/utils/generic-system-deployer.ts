@@ -308,7 +308,8 @@ export async function deployLiquidityPool(
 	const catalogueFactory = await ethers.getContractFactory("OptionCatalogue")
 	const catalogue = (await catalogueFactory.deploy(
 		authority,
-		usd.address
+		usd.address,
+		toWei("50000")
 	)) as OptionCatalogue
 	const exchangeFactory = await ethers.getContractFactory("OptionExchange", {
 		libraries: {

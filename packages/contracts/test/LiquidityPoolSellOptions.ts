@@ -511,6 +511,80 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				.to.equal(usd.address)
 			expect(after.netDhvExposure.add(amount)).to.equal(0)
 		})
+		it("SETUP: set maxMetDhvExposure", async () => {
+			await catalogue.setMaxNetDhvExposure(toWei("3"))
+			expect(await catalogue.maxNetDhvExposure()).to.equal(toWei("3"))
+		})
+		it("REVERTS: LP Writes a ETH/USD call fails because above netDhvExposure", async () => {
+			const amount = toWei("5")
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const strikePrice = priceQuote.add(toWei(strike))
+			const proposedSeries = {
+				expiration: expiration,
+				strike: BigNumber.from(strikePrice),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, utils.parseEther("-5"))
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, utils.parseEther("-5"))
+			let quote = quoteResponse[0].add(quoteResponse[2])
+			await usd.approve(exchange.address, quote)
+			await expect(exchange.operate([
+				{
+					operation: 1,
+					operationQueue: [{
+						actionType: 0,
+						owner: ZERO_ADDRESS,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: 0,
+						optionSeries: proposedSeries,
+						index: 0,
+						data: "0x"
+					}, {
+						actionType: 1,
+						owner: ZERO_ADDRESS,
+						secondAddress: senderAddress,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: proposedSeries,
+						index: 0,
+						data: "0x"
+					}]
+				}])).to.be.revertedWith("MaxNetDhvExposureExceeded()")
+	
+		})
+		it("REVERTS: sells the options to the exchange and go below net dhv exposure", async () => {
+			const amount = toWei("1")
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("MaxNetDhvExposureExceeded()")
+		})
+		it("SETUP: set maxMetDhvExposure", async () => {
+			await catalogue.setMaxNetDhvExposure(toWei("50000"))
+			expect(await catalogue.maxNetDhvExposure()).to.equal(toWei("50000"))
+		})
 		let customOrderPrice: any
 		let oToken: Otoken
 		it("SETUP: Creates a buy order", async () => {
@@ -734,7 +808,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("A5")
+			).to.be.revertedWith("TradeTooSmall()")
 		})
 		it("REVERTS: buys the options from the exchange on a series where amount is too small", async () => {
 			const amount = toWei("0.009")
@@ -757,7 +831,53 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("A5")
+			).to.be.revertedWith("TradeTooSmall()")
+		})
+		it("REVERTS: sells the options to the exchange on a series where amount is too large", async () => {
+			const amount = toWei("1000.001")
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("TradeTooLarge()")
+		})
+		it("REVERTS: buys the options from the exchange on a series where amount is too large", async () => {
+			const amount = toWei("1000.001")
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 1,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("TradeTooLarge()")
 		})
 		it("REVERTS: sells the options to the exchange on a series not approved for selling", async () => {
 			const amount = toWei("4")
