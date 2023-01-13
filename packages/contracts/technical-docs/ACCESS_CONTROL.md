@@ -38,9 +38,21 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
 - OptionExchange: withdraw: LIQUIDITY POOL
     - withdraw [give any loose USDC to the liquidityPool]
 - OptionExchange accessed controlled functions: MANAGER, GOVERNOR
+    - redeem [redeem options held by the exchange]: MANAGER, GOVERNOR
+
+
+## OptionCatalogue
+### (GOVERNOR, MANAGER)
+
+- OptionCatalogue setters: GOVERNOR
+    - updater [able to update the netDhvExposure]: GOVERNOR
+    - maxNetDhvExposure [the maximum netDhvExposure that is allowed for a particular option series]: GOVERNOR
+- OptionExchange: UPDATER (OptionExchange and AlphaOptionHandler)
+    - updateNetDhvExposure [function that allows an updater to update the netdhvexposure of a given series, using the oHash]
+    - updateNetDhvExposureWithOptionSeries [function that allows an updater to update the netdhvexposure of a given series, using the option series struct]
+- OptionExchange accessed controlled functions: MANAGER, GOVERNOR
     - issueNewSeries [approve a new option type for trading]: MANAGER, GOVERNOR
     - changeOptionBuyOrSell [change whether an option type is available for buy or sell]: MANAGER, GOVERNOR
-    - redeem [redeem options held by the exchange]: MANAGER, GOVERNOR
 
 ## AlphaOptionHandler
 ### (GOVERNOR, MANAGER, GUARDIAN)
