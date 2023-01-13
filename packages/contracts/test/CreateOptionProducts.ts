@@ -1588,7 +1588,7 @@ describe("Structured Product maker", async () => {
 					},
 					amount
 				)
-			).add(toUSDC("100"))			
+			).add(toUSDC("100"))
 			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, 0)
 			await compareQuotes(lowerQuoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])

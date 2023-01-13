@@ -53,7 +53,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	/// @notice option catalogue
 	OptionCatalogue public catalogue;
 
-
 	/////////////////////////////////////
 	/// governance settable variables ///
 	/////////////////////////////////////

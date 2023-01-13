@@ -566,12 +566,12 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		SellParams memory sellParams;
 		bytes32 oHash;
-		(
-			sellParams.seriesAddress,
-			sellParams.seriesToStore,
-			sellParams.optionSeries,
-			oHash
-		) = _preChecks(_args.seriesAddress, _args.optionSeries, optionRegistry, true);
+		(sellParams.seriesAddress, sellParams.seriesToStore, sellParams.optionSeries, oHash) = _preChecks(
+			_args.seriesAddress,
+			_args.optionSeries,
+			optionRegistry,
+			true
+		);
 		// get the unit price for premium and delta
 		(sellParams.premium, sellParams.delta, sellParams.fee) = pricer.quoteOptionPrice(
 			sellParams.seriesToStore,
@@ -628,8 +628,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 		// this accounts for premium sent from buyback as well as any rounding errors from the dhv buyback
 		if (sellParams.premium > sellParams.premiumSent) {
-			// we need to make sure we arent eating into the withdraw partition with this trade 
-			if (ILiquidityPool(liquidityPool).getBalance(collateralAsset) < (sellParams.premium - sellParams.premiumSent)) {
+			// we need to make sure we arent eating into the withdraw partition with this trade
+			if (
+				ILiquidityPool(liquidityPool).getBalance(collateralAsset) <
+				(sellParams.premium - sellParams.premiumSent)
+			) {
 				revert CustomErrors.WithdrawExceedsLiquidity();
 			}
 			// take the funds from the liquidity pool and pay them here
@@ -691,6 +694,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function getPoolDenominatedValue() external view returns (uint256) {
 		return ERC20(collateralAsset).balanceOf(address(this));
 	}
+
 	//////////////////////////
 	/// internal utilities ///
 	//////////////////////////
@@ -855,7 +859,12 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), premium);
 	}
 
-	function _preChecks(address _seriesAddress, Types.OptionSeries memory _optionSeries, IOptionRegistry _optionRegistry, bool isSell)
+	function _preChecks(
+		address _seriesAddress,
+		Types.OptionSeries memory _optionSeries,
+		IOptionRegistry _optionRegistry,
+		bool isSell
+	)
 		internal
 		view
 		returns (
@@ -966,5 +975,4 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function hedgeDelta(int256 _delta) external returns (int256) {
 		revert();
 	}
-
 }

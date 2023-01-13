@@ -556,7 +556,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						data: "0x"
 					}]
 				}])).to.be.revertedWith("MaxNetDhvExposureExceeded()")
-	
+
 		})
 		it("REVERTS: sells the options to the exchange and go below net dhv exposure", async () => {
 			const amount = toWei("1")

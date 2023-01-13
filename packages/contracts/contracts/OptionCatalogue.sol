@@ -8,12 +8,13 @@ import "./libraries/AccessControl.sol";
 import "./libraries/OptionsCompute.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
+
 /**
  *  @title OptionCatalogue
  *  @dev Store information on options approved for sale and to buy as well as netDhvExposure of the option
  */
 contract OptionCatalogue is AccessControl {
-    using PRBMathSD59x18 for int256;
+	using PRBMathSD59x18 for int256;
 	///////////////////////////
 	/// immutable variables ///
 	///////////////////////////
@@ -27,8 +28,8 @@ contract OptionCatalogue is AccessControl {
 
 	// storage of option information and approvals
 	mapping(bytes32 => OptionStores) public optionStores;
-    // maximum absolute netDhvExposure 
-    uint256 public maxNetDhvExposure;
+	// maximum absolute netDhvExposure
+	uint256 public maxNetDhvExposure;
 	// array of expirations currently supported (mainly for frontend use)
 	uint64[] public expirations;
 	// details of supported options first key is expiration then isPut then an array of strikes (mainly for frontend use)
@@ -62,7 +63,7 @@ contract OptionCatalogue is AccessControl {
 		bool isSellable;
 	}
 
-    error MaxNetDhvExposureExceeded();
+	error MaxNetDhvExposureExceeded();
 
 	event SeriesApproved(
 		uint64 expiration,
@@ -79,12 +80,16 @@ contract OptionCatalogue is AccessControl {
 		bool isBuyable,
 		bool isSellable
 	);
-    event UpdaterUpdated(address updater, bool auth);
-    event MaxNetDhvExposureUpdated(uint256 maxNetDhvExposure);
+	event UpdaterUpdated(address updater, bool auth);
+	event MaxNetDhvExposureUpdated(uint256 maxNetDhvExposure);
 
-	constructor(address _authority, address _collateralAsset, uint256 _maxNetDhvExposure) AccessControl(IAuthority(_authority)) {
+	constructor(
+		address _authority,
+		address _collateralAsset,
+		uint256 _maxNetDhvExposure
+	) AccessControl(IAuthority(_authority)) {
 		collateralAsset = _collateralAsset;
-        maxNetDhvExposure = _maxNetDhvExposure;
+		maxNetDhvExposure = _maxNetDhvExposure;
 	}
 
 	///////////////
@@ -100,17 +105,18 @@ contract OptionCatalogue is AccessControl {
 			revert CustomErrors.InvalidAddress();
 		}
 		updater[_updater] = _auth;
-        emit UpdaterUpdated(_updater, _auth);
+		emit UpdaterUpdated(_updater, _auth);
 	}
 
 	/**
 	 * @notice change the max net dhv exposure
 	 */
-    function setMaxNetDhvExposure(uint256 _maxNetDhvExposure) external {
-        _onlyGovernor();
-        maxNetDhvExposure = _maxNetDhvExposure;
-        emit MaxNetDhvExposureUpdated(_maxNetDhvExposure);
-    }
+	function setMaxNetDhvExposure(uint256 _maxNetDhvExposure) external {
+		_onlyGovernor();
+		maxNetDhvExposure = _maxNetDhvExposure;
+		emit MaxNetDhvExposureUpdated(_maxNetDhvExposure);
+	}
+
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
@@ -124,7 +130,7 @@ contract OptionCatalogue is AccessControl {
 	function updateNetDhvExposure(bytes32 oHash, int256 netDhvExposureChange) external {
 		_isUpdater();
 		netDhvExposure[oHash] += netDhvExposureChange;
-        if (uint256(netDhvExposure[oHash].abs()) > maxNetDhvExposure) revert MaxNetDhvExposureExceeded();
+		if (uint256(netDhvExposure[oHash].abs()) > maxNetDhvExposure) revert MaxNetDhvExposureExceeded();
 	}
 
 	/**
@@ -145,7 +151,7 @@ contract OptionCatalogue is AccessControl {
 		// get the hash of the option (how the option is stored on the books)
 		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, strike, optionSeries.isPut));
 		netDhvExposure[oHash] += netDhvExposureChange;
-        if (uint256(netDhvExposure[oHash].abs()) > maxNetDhvExposure) revert MaxNetDhvExposureExceeded();
+		if (uint256(netDhvExposure[oHash].abs()) > maxNetDhvExposure) revert MaxNetDhvExposureExceeded();
 	}
 
 	/**
