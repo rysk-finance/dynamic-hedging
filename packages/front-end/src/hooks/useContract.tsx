@@ -1,6 +1,6 @@
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import * as ethers from "ethers";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
 import { TransactionDisplay } from "../components/shared/TransactionDisplay";

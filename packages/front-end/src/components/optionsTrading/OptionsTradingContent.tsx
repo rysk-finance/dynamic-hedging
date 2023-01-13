@@ -1,4 +1,3 @@
-import React from "react";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import {

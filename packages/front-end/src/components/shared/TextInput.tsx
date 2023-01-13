@@ -1,12 +1,19 @@
+import type {
+  DetailedHTMLProps,
+  InputHTMLAttributes,
+  ReactElement,
+} from "react";
+
 import { BigNumber, ethers } from "ethers";
-import React from "react";
+
 import { Button } from "./Button";
 
-type TextInputProps = React.DetailedHTMLProps<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  HTMLInputElement
-> & {
-  iconLeft?: React.ReactElement;
+interface TextInputProps
+  extends DetailedHTMLProps<
+    InputHTMLAttributes<HTMLInputElement>,
+    HTMLInputElement
+  > {
+  iconLeft?: ReactElement;
   value: string;
   setValue: (value: string) => void;
   numericOnly?: boolean;
@@ -14,9 +21,9 @@ type TextInputProps = React.DetailedHTMLProps<
   maxValue?: BigNumber;
   maxValueDecimals?: number;
   maxButtonHandler?: () => void;
-};
+}
 
-export const TextInput: React.FC<TextInputProps> = ({
+export const TextInput = ({
   value,
   setValue,
   iconLeft,
@@ -26,7 +33,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   maxValueDecimals,
   maxButtonHandler,
   ...props
-}) => {
+}: TextInputProps) => {
   const setter = (value: string) => {
     if (numericOnly) {
       const isWithinDecimalLimit =

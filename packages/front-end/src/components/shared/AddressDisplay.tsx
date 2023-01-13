@@ -1,11 +1,10 @@
-import React from "react";
 import { toast } from "react-toastify";
 
 type AddressDisplayProps = {
   children: string;
 };
 
-export const AddressDisplay: React.FC<AddressDisplayProps> = ({ children }) => {
+export const AddressDisplay = ({ children }: AddressDisplayProps) => {
   const handleCopy = () => {
     window.navigator.clipboard.writeText(children);
     toast("✅ Copied", { autoClose: 500 });

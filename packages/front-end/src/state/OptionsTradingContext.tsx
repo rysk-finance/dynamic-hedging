@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useReducer } from "react";
+import type { PropsWithChildren } from "react";
+
+import { createContext, useContext, useReducer } from "react";
 import { optionsTradingReducer } from "./reducer";
 import {
   OptionsTradingContext,
@@ -19,7 +21,9 @@ export const OptionsTradingReactContext = createContext<OptionsTradingContext>({
   dispatch: () => {},
 });
 
-export const OptionsTradingProvider: React.FC = ({ children }) => {
+export const OptionsTradingProvider = ({
+  children,
+}: PropsWithChildren<unknown>) => {
   const [state, dispatch] = useReducer(
     optionsTradingReducer,
     defaultOptionTradingState

@@ -1,5 +1,4 @@
 import { ResponsiveLine, Serie } from "@nivo/line";
-import React from "react";
 
 type ReturnLineChartProps = {
   data: Serie[];
@@ -13,7 +12,7 @@ const Tooltip: ResponsiveLine["props"]["tooltip"] = ({ point: { y } }) => {
   );
 };
 
-export const ReturnLineChart: React.FC<ReturnLineChartProps> = ({ data }) => {
+export const ReturnLineChart = ({ data }: ReturnLineChartProps) => {
   const yVals = data[0].data
     .map((point) => point.y)
     .filter((point): point is number => typeof point === "number");

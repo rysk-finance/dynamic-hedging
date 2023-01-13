@@ -1,4 +1,3 @@
-import React from "react";
 import { UserVault } from "../components/dashboard/UserVault";
 import { UserOptionsList } from "../components/dashboard/UserOptionsList";
 

@@ -1,6 +1,3 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { AppPaths } from "../config/appPaths";
 import {
   BLOG_LINK,
   DISCORD_LINK,
@@ -11,7 +8,7 @@ import {
   TWITTER_LINK,
 } from "../config/links";
 
-export const Footer: React.FC = () => {
+export const Footer = () => {
   return (
     <div className="w-full bg-bone-dark px-8 md:px-24 py-6 flex justify-between mt-auto">
       <p className="uppercase">Rysk - Crypto Uncorrelated Returns</p>

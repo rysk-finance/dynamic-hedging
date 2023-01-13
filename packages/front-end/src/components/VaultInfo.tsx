@@ -1,20 +1,13 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { useContract } from "../hooks/useContract";
 import LPABI from "../abis/LiquidityPool.json";
 import { CHAINID, DHV_NAME, SCAN_URL } from "../config/constants";
 import { useVaultContext } from "../state/VaultContext";
-import { BigNumberDisplay } from "./BigNumberDisplay";
-import { Currency } from "../types";
 import { getClosestFridayToDate } from "../utils/getSuggestedExpiryDates";
 
 export const VaultInfo = () => {
   const {
-    state: {
-      depositEpoch,
-      withdrawPricePerShare: depositPricePerShare,
-      withdrawalEpoch,
-      withdrawalPricePerShare,
-    },
+    state: { withdrawalEpoch },
   } = useVaultContext();
 
   const nextFriday = useMemo(() => getClosestFridayToDate(new Date()), []);

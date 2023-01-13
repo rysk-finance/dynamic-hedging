@@ -1,5 +1,6 @@
+import type { HTMLProps } from "react";
+
 import { BigNumber, ethers } from "ethers";
-import React from "react";
 import NumberFormat, { NumberFormatProps } from "react-number-format";
 import { DECIMALS } from "../config/constants";
 import { Currency } from "../types";
@@ -15,17 +16,17 @@ type BigNumberDisplayProps = {
   currency: Currency;
   children: BigNumber | null;
   numberFormatProps?: NumberFormatProps;
-  loaderProps?: React.HTMLProps<HTMLImageElement>;
+  loaderProps?: HTMLProps<HTMLImageElement>;
   suffix?: string;
 };
 
-export const BigNumberDisplay: React.FC<BigNumberDisplayProps> = ({
+export const BigNumberDisplay = ({
   children,
   currency,
   numberFormatProps = {},
   suffix,
   loaderProps: { className: loaderClassName, ...restLoaderProps } = {},
-}) => {
+}: BigNumberDisplayProps) => {
   return children ? (
     <NumberFormat
       value={ethers.utils.formatUnits(children, DECIMALS[currency])}

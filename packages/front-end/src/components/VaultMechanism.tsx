@@ -1,4 +1,3 @@
-import React from "react";
 import { DHV_NAME } from "../config/constants";
 
 export const VaultMechanism = () => {

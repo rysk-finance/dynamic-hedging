@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
+
 import { useWalletContext } from "../../App";
 import OptionHandler from "../../abis/OptionHandler.json";
 import OptionRegistry from "../../abis/OptionRegistry.json";
@@ -15,7 +16,6 @@ import { OrderDetails } from "./OrderDetails";
 import ERC20ABI from "../../abis/erc20.json";
 import { BigNumber, ethers } from "ethers";
 import { BigNumberDisplay } from "../BigNumberDisplay";
-import { getAddress } from "@ethersproject/address";
 
 const STRANGLE_REGEX = /^([0-9]+)(-[0-9]+)$/;
 

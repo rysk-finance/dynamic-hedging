@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { BIG_NUMBER_DECIMALS } from "../../config/constants";
+import { useEffect, useState } from "react";
+
 import { Currency, Order } from "../../types";
 import { parseTimestamp } from "../../utils/parseTimestamp";
 import { BigNumberDisplay } from "../BigNumberDisplay";
@@ -10,7 +10,7 @@ type OrderDetailsProps = {
   order: Order | null;
 };
 
-export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
+export const OrderDetails = ({ order }: OrderDetailsProps) => {
   const [countDown, setCountDown] = useState(
     Number(order?.orderExpiry) - Math.floor(Date.now() / 1000)
   );

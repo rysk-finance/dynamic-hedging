@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+
 import { useContract } from "../../hooks/useContract";
 import LPABI from "../../abis/LiquidityPool.json";
 import { BigNumber } from "ethers";
@@ -15,7 +16,7 @@ type DepositAction = {
   pricePerShare: BigNumber;
 };
 
-export const UnredeemedDepositBreakdown: React.FC = () => {
+export const UnredeemedDepositBreakdown = () => {
   const [lpContract] = useContract({
     contract: "liquidityPool",
     ABI: LPABI,

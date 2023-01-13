@@ -1,25 +1,27 @@
-import React, { useCallback } from "react";
+import type { ButtonHTMLAttributes, DetailedHTMLProps } from "react";
+
+import { useCallback } from "react";
+
 import { useWalletContext } from "../../App";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { ActionType } from "../../state/types";
 
-type ButtonProps = {
+interface ButtonProps
+  extends DetailedHTMLProps<
+    ButtonHTMLAttributes<HTMLButtonElement>,
+    HTMLButtonElement
+  > {
   color?: "white" | "black";
   requiresConnection?: boolean;
-};
+}
 
-export const Button: React.FC<
-  React.DetailedHTMLProps<
-    React.ButtonHTMLAttributes<HTMLButtonElement>,
-    HTMLButtonElement
-  > &
-    ButtonProps
-> = ({ color, requiresConnection = false, ...props }) => {
+export const Button = ({
+  color,
+  requiresConnection = false,
+  ...props
+}: ButtonProps) => {
   const { account, connectWallet } = useWalletContext();
-  const {
-    dispatch,
-    state: { connectWalletIndicatorActive },
-  } = useGlobalContext();
+  const { dispatch } = useGlobalContext();
 
   const handleMouseEnter = useCallback(() => {
     dispatch({

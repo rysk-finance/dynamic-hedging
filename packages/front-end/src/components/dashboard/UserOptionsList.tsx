@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { gql, useQuery } from "@apollo/client";
 import { BigNumber, utils } from "ethers";
 import { useState } from "react";
@@ -9,15 +9,10 @@ import { renameOtoken } from "../../utils/conversion-helper";
 import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import { RadioButtonSlider } from "../shared/RadioButtonSlider";
-import { BuyBack } from "./BuyBack";
 import { useContract } from "../../hooks/useContract";
 import OpynController from "../../abis/OpynController.json";
 import { toast } from "react-toastify";
-import {
-  BIG_NUMBER_DECIMALS,
-  DECIMALS,
-  ZERO_ADDRESS,
-} from "../../config/constants";
+import { DECIMALS, ZERO_ADDRESS } from "../../config/constants";
 import { useExpiryPriceData } from "../../hooks/useExpiryPriceData";
 
 enum OptionState {

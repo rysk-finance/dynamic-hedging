@@ -1,5 +1,5 @@
-import React from "react";
-import { render } from "react-dom";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
@@ -17,13 +17,15 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
-render(
-  <React.StrictMode>
+const container = document.getElementById("root")!;
+const root = createRoot(container);
+
+root.render(
+  <StrictMode>
     <BrowserRouter>
       <App />
     </BrowserRouter>
-  </React.StrictMode>,
-  document.getElementById("root")
+  </StrictMode>
 );
 
 // If you want to start measuring performance in your app, pass a function

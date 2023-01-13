@@ -1,17 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
-import { CHAINID, EXPLORER_URL } from "../config/constants";
+import { EXPLORER_URL } from "../config/constants";
 import { useGlobalContext } from "../state/GlobalContext";
 import { ActionType } from "../state/types";
 import { Button } from "./shared/Button";
 
-export const HeaderPopover: React.FC = () => {
-  const chainId =
-    Number(process.env.REACT_APP_CHAIN_ID) === CHAINID.ARBITRUM_GOERLI
-      ? CHAINID.ARBITRUM_GOERLI
-      : CHAINID.ARBITRUM_MAINNET;
-
+export const HeaderPopover = () => {
   const [isOpen, setIsOpen] = useState(false);
   const isOpenRef = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -83,9 +78,6 @@ export const HeaderPopover: React.FC = () => {
               Open in Explorer
             </Button>
 
-            {/* <div className="mb-4">
-              <Settings />
-            </div> */}
             <Button
               onClick={() => {
                 disconnect?.();
