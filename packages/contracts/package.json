@@ -1,5 +1,6 @@
 {
-  "name": "delta-hedging",
+  "private": true,
+  "name": "contracts",
   "version": "1.0.0",
   "description": "",
   "license": "ISC",

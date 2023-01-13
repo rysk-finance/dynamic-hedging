@@ -38,12 +38,6 @@ git clone
 2. Install NPM packages
 
 ```sh
-npm install
-```
-
-or
-
-```sh
 yarn
 ```
 
