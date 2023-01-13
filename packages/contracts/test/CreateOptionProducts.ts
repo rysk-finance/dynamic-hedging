@@ -68,6 +68,7 @@ import { create } from "domain"
 import { NewWhitelist } from "../types/NewWhitelist"
 import { OptionExchange } from "../types/OptionExchange"
 import { OtokenFactory } from "../types/OtokenFactory"
+import { OptionCatalogue } from "../types/OptionCatalogue"
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: MintableERC20
@@ -99,6 +100,7 @@ let oTokenUSDCXCLaterExp2: Otoken
 let collateralAllocatedToVault1: BigNumber
 let spotHedgingReactor: UniswapV3HedgingReactor
 let exchange: OptionExchange
+let catalogue: OptionCatalogue
 let pricer: BeyondPricer
 let authority: string
 
@@ -254,6 +256,7 @@ describe("Structured Product maker", async () => {
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		exchange = lpParams.exchange
+		catalogue = lpParams.catalogue
 		pricer = lpParams.pricer
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
@@ -348,7 +351,7 @@ describe("Structured Product maker", async () => {
 		it("SETUP: approve series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			await exchange.issueNewSeries([
+			await catalogue.issueNewSeries([
 				{
 					expiration: expiration,
 					isPut: CALL_FLAVOR,

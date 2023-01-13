@@ -32,6 +32,8 @@ import { VolatilityFeed } from "../types/VolatilityFeed"
 import { Accounting } from "../types/Accounting"
 import { OptionExchange } from "../types/OptionExchange"
 import { BeyondPricer } from "../types/BeyondPricer"
+import { OptionCatalogue } from "../types/OptionCatalogue"
+import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 // edit depending on the chain id to be tested on
@@ -303,6 +305,11 @@ export async function deployLiquidityPool(
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
+	const catalogueFactory = await ethers.getContractFactory("OptionCatalogue")
+	const catalogue = (await catalogueFactory.deploy(
+		authority,
+		usd.address
+	)) as OptionCatalogue
 	const exchangeFactory = await ethers.getContractFactory("OptionExchange", {
 		libraries: {
 			OpynInteractions: interactions.address
@@ -316,18 +323,33 @@ export async function deployLiquidityPool(
 		pricer.address,
 		ADDRESS_BOOK[chainId],
 		UNISWAP_V3_SWAP_ROUTER[chainId],
-		liquidityPool.address
+		liquidityPool.address,
+		catalogue.address
 	)) as OptionExchange
+	await catalogue.setUpdater(exchange.address, true)
 	await liquidityPool.changeHandler(exchange.address, true)
+	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
+	const handler = (await handlerFactory.deploy(
+		authority,
+		optionProtocol.address,
+		liquidityPool.address,
+		catalogue.address
+	)) as AlphaOptionHandler
+	await catalogue.setUpdater(handler.address, true)
+	await liquidityPool.changeHandler(handler.address, true)
+	await pvFeed.setKeeper(handler.address, true)
 	await pvFeed.setKeeper(exchange.address, true)
 	await pvFeed.setKeeper(liquidityPool.address, true)
 	await pvFeed.setKeeper(await signers[0].getAddress(), true)
+	await pvFeed.setHandler(handler.address, true)
 	await pvFeed.setHandler(exchange.address, true)
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,
 		exchange: exchange,
 		accounting: Accounting,
-		pricer: pricer
+		pricer: pricer,
+		handler: handler,
+		catalogue: catalogue
 	}
 }

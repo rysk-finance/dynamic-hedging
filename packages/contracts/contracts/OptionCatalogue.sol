@@ -12,7 +12,6 @@ import "./libraries/OptionsCompute.sol";
  *  @dev Store information on options approved for sale and to buy as well as netDhvExposure of the option
  */
 contract OptionCatalogue is AccessControl {
-
 	///////////////////////////
 	/// immutable variables ///
 	///////////////////////////
@@ -26,14 +25,14 @@ contract OptionCatalogue is AccessControl {
 
 	// storage of option information and approvals
 	mapping(bytes32 => OptionStores) public optionStores;
-    // net dhv exposure of the option
-    mapping(bytes32 => int256) public netDhvExposure;
+	// net dhv exposure of the option
+	mapping(bytes32 => int256) public netDhvExposure;
 	// array of expirations currently supported (mainly for frontend use)
 	uint64[] public expirations;
 	// details of supported options first key is expiration then isPut then an array of strikes (mainly for frontend use)
 	mapping(uint256 => mapping(bool => uint128[])) public optionDetails;
-    // approved to update netDhvExposure
-    mapping(address => bool) public updator;
+	// approved to update netDhvExposure
+	mapping(address => bool) public updater;
 
 	//////////////////////////
 	/// constant variables ///
@@ -48,7 +47,7 @@ contract OptionCatalogue is AccessControl {
 	/// structs && events ///
 	/////////////////////////
 
-	struct OptionStores{
+	struct OptionStores {
 		bool approvedOption;
 		bool isBuyable;
 		bool isSellable;
@@ -70,10 +69,7 @@ contract OptionCatalogue is AccessControl {
 		bool isSellable
 	);
 
-	constructor(
-		address _authority,
-        address _collateralAsset
-	) AccessControl(IAuthority(_authority)) {
+	constructor(address _authority, address _collateralAsset) AccessControl(IAuthority(_authority)) {
 		collateralAsset = _collateralAsset;
 	}
 
@@ -82,14 +78,14 @@ contract OptionCatalogue is AccessControl {
 	///////////////
 
 	/**
-	 * @notice change the status of a updator
+	 * @notice change the status of a updater
 	 */
-	function setUpdator(address _updator, bool _auth) external {
+	function setUpdater(address _updater, bool _auth) external {
 		_onlyGovernor();
-		if (_updator == address(0)) {
+		if (_updater == address(0)) {
 			revert CustomErrors.InvalidAddress();
 		}
-		updator[_updator] = _auth;
+		updater[_updater] = _auth;
 	}
 
 	//////////////////////////////////////////////////////
@@ -99,31 +95,33 @@ contract OptionCatalogue is AccessControl {
 	/**
 	 * @notice update the net dhv exposure
 	 * @param  oHash the hash of the option
-     * @param  netDhvExposureChange the amount to change netDhvExposure by
-	 * @dev    only callable by an approved updator
+	 * @param  netDhvExposureChange the amount to change netDhvExposure by
+	 * @dev    only callable by an approved updater
 	 */
-    function updateNetDhvExposure(bytes32 oHash, int256 netDhvExposureChange) external {
-        _isUpdator();
-        netDhvExposure[oHash] += netDhvExposureChange;
-    }
+	function updateNetDhvExposure(bytes32 oHash, int256 netDhvExposureChange) external {
+		_isUpdater();
+		netDhvExposure[oHash] += netDhvExposureChange;
+	}
 
 	/**
 	 * @notice update the net dhv exposure
 	 * @param  optionSeries the option series represented
-     * @param  netDhvExposureChange the amount to change netDhvExposure by
-	 * @dev    only callable by an approved updator
+	 * @param  netDhvExposureChange the amount to change netDhvExposure by
+	 * @dev    only callable by an approved updater
 	 */
-    function updateNetDhvExposureWithOptionSeries(Types.OptionSeries memory o, int256 netDhvExposureChange) external {
-        _isUpdator();
-        // make sure the strike gets formatted properly
+	function updateNetDhvExposureWithOptionSeries(
+		Types.OptionSeries memory optionSeries,
+		int256 netDhvExposureChange
+	) external {
+		_isUpdater();
+		// make sure the strike gets formatted properly
 		uint128 strike = uint128(
-			formatStrikePrice(o.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
+			formatStrikePrice(optionSeries.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
 		);
 		// get the hash of the option (how the option is stored on the books)
-		bytes32 oHash = keccak256(abi.encodePacked(o.expiration, strike, o.isPut));
-        netDhvExposure[oHash] += netDhvExposureChange;
-    }
-
+		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, strike, optionSeries.isPut));
+		netDhvExposure[oHash] += netDhvExposureChange;
+	}
 
 	/**
 	 * @notice issue an option series for buying or sale
@@ -147,8 +145,8 @@ contract OptionCatalogue is AccessControl {
 			}
 			// store information on the series
 			optionStores[optionHash] = OptionStores(
-				true, 				// approval
-				o.isBuyable,		
+				true, // approval
+				o.isBuyable,
 				o.isSellable
 			);
 			// store it in an array, these are mainly for frontend/informational use
@@ -206,6 +204,7 @@ contract OptionCatalogue is AccessControl {
 	function getExpirations() external view returns (uint64[] memory) {
 		return expirations;
 	}
+
 	/**
 	 * @notice get list of all strikes for a specific expiration and flavour
 	 * @return list of strikes for a specific expiry and flavour
@@ -213,15 +212,19 @@ contract OptionCatalogue is AccessControl {
 	function getOptionDetails(uint64 expiration, bool isPut) external view returns (uint128[] memory) {
 		return optionDetails[expiration][isPut];
 	}
-    function getOptionStores(bytes32 oHash) external view returns (OptionStores memory) {
-        return optionStores[oHash];
-    }
+
+	function getOptionStores(bytes32 oHash) external view returns (OptionStores memory) {
+		return optionStores[oHash];
+	}
+
 	function isBuyable(bytes32 oHash) external view returns (bool) {
 		return optionStores[oHash].isBuyable;
 	}
+
 	function isSellable(bytes32 oHash) external view returns (bool) {
 		return optionStores[oHash].isSellable;
 	}
+
 	function approvedOptions(bytes32 oHash) external view returns (bool) {
 		return optionStores[oHash].approvedOption;
 	}
@@ -246,9 +249,9 @@ contract OptionCatalogue is AccessControl {
 		return (price / (10**difference)) * (10**difference);
 	}
 
-	function _isUpdator() internal view {
-		if (!updator[msg.sender]) {
-			revert CustomErrors.NotUpdator();
+	function _isUpdater() internal view {
+		if (!updater[msg.sender]) {
+			revert CustomErrors.NotUpdater();
 		}
 	}
 }

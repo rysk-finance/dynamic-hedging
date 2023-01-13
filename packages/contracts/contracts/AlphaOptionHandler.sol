@@ -80,7 +80,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	constructor(
 		address _authority,
 		address _protocol,
-		address _liquidityPool
+		address _liquidityPool,
+		address _catalogue
 	) AccessControl(IAuthority(_authority)) {
 		protocol = Protocol(_protocol);
 		liquidityPool = ILiquidityPool(_liquidityPool);
@@ -88,6 +89,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		underlyingAsset = liquidityPool.underlyingAsset();
 		strikeAsset = liquidityPool.strikeAsset();
 		feeRecipient = _liquidityPool;
+		catalogue = OptionCatalogue(_catalogue);
 	}
 
 	function setFeePerContract(uint256 _feePerContract) external {
@@ -284,6 +286,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			strikeAsset,
 			collateralAsset
 		);
+		catalogue.updateNetDhvExposureWithOptionSeries(seriesToStore, -int256(order.amount));
 		getPortfolioValuesFeed().updateStores(
 			seriesToStore,
 			int256(order.amount),
@@ -355,6 +358,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			strikeAsset,
 			collateralAsset
 		);
+		catalogue.updateNetDhvExposureWithOptionSeries(seriesToStore, int256(order.amount));
 		getPortfolioValuesFeed().updateStores(
 			seriesToStore,
 			-int256(order.amount),

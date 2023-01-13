@@ -56,6 +56,7 @@ import { Accounting } from "../types/Accounting"
 import exp from "constants"
 import { BeyondPricer } from "../types/BeyondPricer"
 import { OptionExchange } from "../types/OptionExchange"
+import { OptionCatalogue } from "../types/OptionCatalogue"
 
 let usd: MintableERC20
 let weth: WETH
@@ -82,6 +83,7 @@ let quote: any
 let localDelta: any
 let authority: string
 let accounting: Accounting
+let catalogue: OptionCatalogue
 
 /* --- variables to change --- */
 
@@ -188,6 +190,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		exchange = lpParams.exchange
 		pricer = lpParams.pricer
 		accounting = lpParams.accounting
+		catalogue = lpParams.catalogue
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
@@ -607,7 +610,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await exchange.issueNewSeries([
+		await catalogue.issueNewSeries([
 			{
 				expiration: expiration,
 				isPut: PUT_FLAVOR,
@@ -933,7 +936,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		await exchange.issueNewSeries([
+		await catalogue.issueNewSeries([
 			{
 				expiration: expiration,
 				isPut: CALL_FLAVOR,

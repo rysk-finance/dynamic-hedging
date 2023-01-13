@@ -73,6 +73,8 @@ import { create } from "domain"
 import { NewWhitelist } from "../types/NewWhitelist"
 import { OptionExchange } from "../types/OptionExchange"
 import { OtokenFactory } from "../types/OtokenFactory"
+import { OptionCatalogue } from "../types/OptionCatalogue"
+import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: MintableERC20
@@ -108,7 +110,8 @@ let spotHedgingReactor: UniswapV3HedgingReactor
 let exchange: OptionExchange
 let pricer: BeyondPricer
 let authority: string
-
+let catalogue: OptionCatalogue
+let handler: AlphaOptionHandler
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
@@ -251,6 +254,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		exchange = lpParams.exchange
+		catalogue = lpParams.catalogue
+		handler = lpParams.handler
 		pricer = lpParams.pricer
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
@@ -368,7 +373,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: approve series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			await exchange.issueNewSeries([
+			await catalogue.issueNewSeries([
 				{
 					expiration: expiration,
 					isPut: CALL_FLAVOR,
@@ -511,7 +516,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
 				ethers.utils.parseUnits("1", 10)
 			)
-			const tx = await exchange.changeOptionBuyOrSell([
+			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
 					isPut: CALL_FLAVOR,
@@ -596,7 +601,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
 				ethers.utils.parseUnits("1", 10)
 			)
-			const tx = await exchange.changeOptionBuyOrSell([
+			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
 					isPut: CALL_FLAVOR,
@@ -729,7 +734,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
 				ethers.utils.parseUnits("1", 10)
 			)
-			const tx = await exchange.changeOptionBuyOrSell([
+			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
 					isPut: CALL_FLAVOR,
@@ -781,7 +786,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				amount
 			)
 			const proposedSeries = (await portfolioValuesFeed.storesForAddress(optionToken.address))
-			.optionSeries
+				.optionSeries
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, before.netDhvExposure)
 			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			let quote = quoteResponse[0].add(quoteResponse[2])
@@ -1546,7 +1551,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			optionToken = oTokenETH1500C
 		})
 		it("SETUP: approve series", async () => {
-			await exchange.issueNewSeries([
+			await catalogue.issueNewSeries([
 				{
 					expiration: proposedSeries.expiration,
 					isPut: proposedSeries.isPut,
@@ -1587,7 +1592,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			const tx = await exchange.changeOptionBuyOrSell([
+			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: proposedSeries.expiration,
 					isPut: proposedSeries.isPut,
@@ -1623,7 +1628,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			const tx = await exchange.changeOptionBuyOrSell([
+			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: proposedSeries.expiration,
 					isPut: proposedSeries.isPut,
@@ -1724,7 +1729,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			).to.be.revertedWith("SeriesNotBuyable()")
 		})
 		it("SETUP: change option buy or sell on series", async () => {
-			const tx = await exchange.changeOptionBuyOrSell([
+			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: proposedSeries.expiration,
 					isPut: proposedSeries.isPut,
@@ -2263,7 +2268,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: approve series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			await exchange.issueNewSeries([
+			await catalogue.issueNewSeries([
 				{
 					expiration: expiration,
 					isPut: PUT_FLAVOR,
@@ -2780,7 +2785,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			optionToken = oTokenETH1600C
 		})
 		it("SETUP: approve series", async () => {
-			await exchange.issueNewSeries([
+			await catalogue.issueNewSeries([
 				{
 					expiration: proposedSeries.expiration,
 					isPut: proposedSeries.isPut,
@@ -2954,7 +2959,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				optionToken = oTokenBUSD3000P
 			})
 			it("SETUP: approve series", async () => {
-				await exchange.issueNewSeries([
+				await catalogue.issueNewSeries([
 					{
 						expiration: proposedSeries.expiration,
 						isPut: proposedSeries.isPut,
@@ -2967,7 +2972,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			it("SETUP: change option buy or sell on series", async () => {
 				const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 				const strikePrice = priceQuote.add(toWei(strike))
-				const tx = await exchange.changeOptionBuyOrSell([
+				const tx = await catalogue.changeOptionBuyOrSell([
 					{
 						expiration: proposedSeries.expiration,
 						isPut: proposedSeries.isPut,

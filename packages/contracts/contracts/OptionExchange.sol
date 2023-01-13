@@ -148,7 +148,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		address _pricer,
 		address _addressbook,
 		address _swapRouter,
-		address _feeRecipient
+		address _feeRecipient,
+		address _catalogue
 	) AccessControl(IAuthority(_authority)) {
 		protocol = Protocol(_protocol);
 		liquidityPool = ILiquidityPool(_liquidityPool);
@@ -158,6 +159,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		addressbook = AddressBookInterface(_addressbook);
 		swapRouter = ISwapRouter(_swapRouter);
 		pricer = BeyondPricer(_pricer);
+		catalogue = OptionCatalogue(_catalogue);
 		require(_feeRecipient != address(0));
 		feeRecipient = _feeRecipient;
 	}
