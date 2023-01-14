@@ -21,7 +21,6 @@ import "./interfaces/AddressBookInterface.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-import "hardhat/console.sol";
 
 /**
  *  @title Contract used for all user facing options interactions
@@ -233,7 +232,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			// user is buying from DHV, so add spread to the price
 			spread = _getSpreadValue(_optionSeries, _amount, delta, netDhvExposure, underlyingPrice);
 		}
-		console.log("solidity vanilla premium:", vanillaPremium / 1e18, spread / 1e18);
 		// note the delta returned is the delta of a long position of the option the sign of delta should be handled elsewhere.
 		totalPremium = (premium.mul(_amount) + spread) / 1e12;
 		totalDelta = delta.mul(int256(_amount));
@@ -348,18 +346,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// find collateral requirements for net short options
 		uint256 collateralToLend = _getCollateralRequirements(_optionSeries, netShortContracts);
 
-		console.log(
-			"collateral to lend",
-			collateralToLend,
-			netShortContracts / 1e18,
-			_underlyingPrice / 1e18
-		);
-
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
-		console.log("params", _optionSeries.underlying, _optionSeries.collateral);
 
-		console.log("params", _optionSeries.strike / 1e18, _optionSeries.isPut, time / 1e16);
 		// calculate the collateral cost portion of the spread
 		uint256 collateralLendingPremium = ((1e18 + (collateralLendingRate * 1e18) / MAX_BPS).pow(time))
 			.mul(collateralToLend) - collateralToLend;
@@ -377,8 +366,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
 				dollarDelta;
 		}
-		console.log("solidity:", collateralLendingPremium, deltaBorrowPremium);
-		console.log("SPREAD VALUE:", collateralLendingPremium + deltaBorrowPremium);
+
 		return collateralLendingPremium + deltaBorrowPremium;
 	}
 
