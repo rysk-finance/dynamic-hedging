@@ -75,6 +75,9 @@ import { create } from "domain"
 import { NewWhitelist } from "../types/NewWhitelist"
 import { OptionExchange } from "../types/OptionExchange"
 import { OtokenFactory } from "../types/OtokenFactory"
+import { OptionCatalogue } from "../types/OptionCatalogue"
+import { isRegExp } from "util"
+
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: MintableERC20
@@ -109,6 +112,7 @@ let spotHedgingReactor: UniswapV3HedgingReactor
 let exchange: OptionExchange
 let pricer: BeyondPricer
 let authority: string
+let catalogue: OptionCatalogue
 
 const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -251,6 +255,7 @@ describe("Spread Pricer testing", async () => {
 		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		exchange = lpParams.exchange
+		catalogue = lpParams.catalogue
 		pricer = lpParams.pricer
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
@@ -308,6 +313,10 @@ describe("Spread Pricer testing", async () => {
 			expect(await pricer.shortDeltaBorrowRate()).to.eq(1000)
 			await pricer.setLongDeltaBorrowRate(1500) // 15%
 			expect(await pricer.longDeltaBorrowRate()).to.eq(1500)
+		})
+		it("sets slippage vars to zero", async () => {
+			await pricer.setSlippageGradient(0)
+			expect(await pricer.slippageGradient()).to.eq(0)
 		})
 		it("Deposit to the liquidityPool", async () => {
 			const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"
@@ -405,10 +414,9 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
-			expect(singleBuyQuote).to.be.lt(quoteResponse[0].div(1000))
+			expect(singleBuyQuote.toNumber()).to.eq(quoteResponse[0].div(1000))
 		})
 		it("SUCCEEDS: get quote for 1000 options when selling", async () => {
-			const feePerContract = await pricer.feePerContract()
 			const amount = toWei("1000")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			await compareQuotes(
@@ -424,7 +432,7 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
-			expect(singleSellQuote).to.be.gt(quoteResponse[0].div(1000))
+			expect(singleSellQuote).to.eq(quoteResponse[0].div(1000))
 		})
 	})
 	describe("Get quotes successfully for small and big puts", async () => {
@@ -491,7 +499,7 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
-			expect(singleBuyQuote).to.be.lt(quoteResponse[0].div(1000))
+			expect(singleBuyQuote).to.eq(quoteResponse[0].div(1000))
 		})
 		it("SUCCEEDS: get quote for 1000 options when selling", async () => {
 			const amount = toWei("1000")
@@ -509,7 +517,7 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
-			expect(singleSellQuote).to.be.gt(quoteResponse[0].div(1000))
+			expect(singleSellQuote).to.eq(quoteResponse[0].div(1000))
 		})
 	})
 	describe("Compare lots of small quotes to one big quote", async () => {
@@ -525,6 +533,9 @@ describe("Spread Pricer testing", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
+			const allAtOnceQuote = (
+				await pricer.quoteOptionPrice(proposedSeries, toWei("100"), false, toWei("0"))
+			)[0]
 			buyQuoteLots = toWei("0")
 			for (let i = 0; i < 100; i++) {
 				const amount = toWei("1")
@@ -549,9 +560,13 @@ describe("Spread Pricer testing", async () => {
 				)
 				buyQuoteLots = buyQuoteLots.add(quoteResponse.totalPremium)
 			}
+			expect(allAtOnceQuote.sub(buyQuoteLots)).to.be.within(-100, 100)
 		})
-		it("SUCCEEDS: get quote for 1000 options when selling 100 times", async () => {
+		it("SUCCEEDS: get quote for 100 options when selling 100 times", async () => {
 			sellQuoteLots = toWei("0")
+			const allAtOnceQuote = (
+				await pricer.quoteOptionPrice(proposedSeries, toWei("100"), true, toWei("0"))
+			)[0]
 			for (let i = 0; i < 100; i++) {
 				const amount = toWei("1")
 				let quoteResponse = await pricer.quoteOptionPrice(
@@ -574,7 +589,9 @@ describe("Spread Pricer testing", async () => {
 					toWei(i.toString())
 				)
 				sellQuoteLots = sellQuoteLots.add(quoteResponse.totalPremium)
+				expect(quoteResponse[0]).to.eq(allAtOnceQuote.div(100))
 			}
+			expect(allAtOnceQuote.sub(sellQuoteLots)).to.be.within(-100, 100)
 		})
 		it("SUCCEEDS: get quote for 100 options when buying 1 time", async () => {
 			const amount = toWei("100")
@@ -611,6 +628,101 @@ describe("Spread Pricer testing", async () => {
 				toWei("0")
 			)
 			expect(sellQuoteLots.sub(quoteResponse[0])).to.be.within(-100, 100)
+		})
+		it("SUCCEEDS: get quote for 100 options when buying 100 times and dhv has positive exposure", async () => {
+			proposedSeries = {
+				expiration: expiration,
+				strike: toWei("2600"),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			buyQuoteLots = toWei("0")
+			const allAtOnceQuote = (
+				await pricer.quoteOptionPrice(proposedSeries, toWei("100"), false, toWei("100"))
+			)[0]
+
+			for (let i = 0; i < 100; i++) {
+				const amount = toWei("1")
+				let quoteResponse = await pricer.quoteOptionPrice(
+					proposedSeries,
+					amount,
+					false,
+					toWei("100").sub(toWei(i.toString()))
+				)
+
+				await compareQuotes(
+					quoteResponse,
+					liquidityPool,
+					priceFeed,
+					proposedSeries,
+					amount,
+					false,
+					exchange,
+					optionRegistry,
+					usd,
+					pricer,
+					toWei("100").sub(toWei(i.toString()))
+				)
+				expect(quoteResponse[0]).to.eq(allAtOnceQuote.div(100))
+				buyQuoteLots = buyQuoteLots.add(quoteResponse.totalPremium)
+			}
+			console.log({ buyQuoteLots, allAtOnceQuote })
+			expect(buyQuoteLots.sub(allAtOnceQuote)).to.be.within(-100, 100)
+		})
+		it("SUCCEEDS: get quote for 100 options when buying 100 times and dhv has half amount worth of long exposure", async () => {
+			proposedSeries = {
+				expiration: expiration,
+				strike: toWei("2600"),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			buyQuoteLots = toWei("0")
+			const allAtOnceQuoteNoLongExposure = (
+				await pricer.quoteOptionPrice(proposedSeries, toWei("100"), false, toWei("0"))
+			)[0]
+			const allAtOnceQuoteFullLongExposure = (
+				await pricer.quoteOptionPrice(proposedSeries, toWei("100"), false, toWei("100"))
+			)[0]
+			const allAtOnceQuoteHalfLongExposure = (
+				await pricer.quoteOptionPrice(proposedSeries, toWei("100"), false, toWei("50"))
+			)[0]
+
+			for (let i = 0; i < 100; i++) {
+				const amount = toWei("1")
+				let quoteResponse = await pricer.quoteOptionPrice(
+					proposedSeries,
+					amount,
+					false,
+					toWei("50").sub(toWei(i.toString()))
+				)
+
+				await compareQuotes(
+					quoteResponse,
+					liquidityPool,
+					priceFeed,
+					proposedSeries,
+					amount,
+					false,
+					exchange,
+					optionRegistry,
+					usd,
+					pricer,
+					toWei("50").sub(toWei(i.toString()))
+				)
+				if (i < 50) {
+					expect(quoteResponse[0]).to.eq(allAtOnceQuoteFullLongExposure.div(100))
+				} else {
+					expect(quoteResponse[0]).to.eq(allAtOnceQuoteNoLongExposure.div(100))
+				}
+				buyQuoteLots = buyQuoteLots.add(quoteResponse.totalPremium)
+			}
+			expect(buyQuoteLots.sub(allAtOnceQuoteHalfLongExposure)).to.be.within(-100, 100)
+			expect(allAtOnceQuoteFullLongExposure).to.be.lt(allAtOnceQuoteHalfLongExposure)
+			expect(allAtOnceQuoteHalfLongExposure).to.be.lt(allAtOnceQuoteNoLongExposure)
 		})
 	})
 })
