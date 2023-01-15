@@ -65,7 +65,7 @@ contract SlippageTest is Test {
 			2.9e18
 		];
 		deltaBandWidth = 5e18;
-		slippageGradient = 1e16;
+		slippageGradient = 1e15;
 	}
 
 	function testSlippageMultiplierFuzzAmount(uint256 _amount) public {
@@ -181,7 +181,7 @@ contract SlippageTest is Test {
 
 	function testSlippageMultiplierFuzzSlippageGradient(uint64 _slippageGradient) public {
 		vm.assume(_slippageGradient >= 1e12);
-		vm.assume(_slippageGradient <= 0.1e18);
+		vm.assume(_slippageGradient <= 0.01e18);
 		slippageGradient = _slippageGradient;
 		_getSlippageMultiplier(1000e18, 5e17, 100e18, true);
 		_getSlippageMultiplier(1000e18, -5e17, 100e18, false);
@@ -249,30 +249,94 @@ contract SlippageTest is Test {
 		_getSlippageMultiplier(1e18, 99e16, -1000e18, false);
 	}
 
-	// function testSlippageFFIGetSlippageMultiplier() public {
+	function testSlippageFFIGetSlippageMultiplier() public {
+		uint256 amount = 10e18;
+		int256 delta = 5e17;
+		int256 netDhvExposure = -1000e18;
+		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
+		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e7);
+		solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, false);
+		pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, false, slippageGradient);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e7);
+	}
 
-	// }
+	function testSlippageFFIFuzzAmountGetSlippageMultiplier(uint128 amount) public {
+		vm.assume(amount > 1e16);
+		vm.assume(amount < 1000e18);
+		int256 delta = 5e17;
+		int256 netDhvExposure = -1000e18;
+		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
+		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e7);
+		solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, false);
+		pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, false, slippageGradient);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e7);
+	}
 
-	// function testSlippageFFIFuzzPriceGetSlippageMultiplier(uint128 underlyingPrice) public {
-	// }
+	function testSlippageFFIFuzzDeltaGetSlippageMultiplier(int64 delta) public {
+		vm.assume(delta <= 1e18);
+		vm.assume(delta >= -1e18);
+		uint256 amount = 1000e18;
+		int256 netDhvExposure = -1000e18;
+		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
+		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e9);
+		solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, false);
+		pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, false, slippageGradient);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e9);
+	}
+
+	function testSlippageFFIFuzzNetDhvExposureGetSlippageMultiplier(int96 netDhvExposure) public {
+		vm.assume(netDhvExposure <= 50000e18);
+		vm.assume(netDhvExposure >= -50000e18);
+		uint256 amount = 1000e18;
+		int256 delta = 5e17;
+		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
+		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e7);
+		solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, false);
+		pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, false, slippageGradient);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e7);
+	}
+
+	function testSlippageFFIFuzzSlippageGradientGetSlippageMultiplier(uint64 _slippageGradient) public {
+		vm.assume(_slippageGradient >= 1e12);
+		vm.assume(_slippageGradient <= 0.01e18);
+		slippageGradient = _slippageGradient;
+		uint256 amount = 1000e18;
+		int256 delta = 5e17;
+		int256 netDhvExposure = -1000e18;
+		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
+		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e8);
+		solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, false);
+		pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, false, slippageGradient);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e8);
+	}
 
 	function getSlippageMultiplier(
 		uint256 _amount,
 		int256 _netDhvExposure,
+		int256 _delta,
 		bool _isSellBool,
-		uint256 _slippageGradient,
-		uint256 _slippageGradientMultiplier
+		uint256 _slippageGradient
 	) private returns (uint256) {
 		uint256 isNetDhvExposureNegative;
+		uint256 isDeltaNegative;
 		uint256 isSell;
 		if (_netDhvExposure < 0) {
 			isNetDhvExposureNegative = 1;
 			_netDhvExposure = -_netDhvExposure;
 		}
+		if (_delta < 0) {
+			isDeltaNegative = 1;
+			_delta = -_delta;
+		}
 		if (_isSellBool) {
 			isSell = 1;
 		}
-		string[] memory inputs = new string[](14);
+		string[] memory inputs = new string[](16);
 		inputs[0] = "python3";
 		inputs[1] = "test/foundry/slippage.py";
 		inputs[2] = "--amount";
@@ -285,8 +349,10 @@ contract SlippageTest is Test {
 		inputs[9] = uint256(isSell).toString();
 		inputs[10] = "--slippageGradient";
 		inputs[11] = uint256(_slippageGradient).toString();
-		inputs[12] = "--slippageGradientMultiplier";
-		inputs[13] = uint256(_slippageGradientMultiplier).toString();
+		inputs[12] = "--delta";
+		inputs[13] = uint256(_delta).toString();
+		inputs[14] = "--isDeltaNegative";
+		inputs[15] = uint256(isDeltaNegative).toString();
 		bytes memory res = vm.ffi(inputs);
 		uint256 vol = abi.decode(res, (uint256));
 		return vol;
@@ -330,23 +396,13 @@ contract SlippageTest is Test {
 		// if it is a sell then we need to do lower bound is old exposure exponent, upper bound is new exposure exponent
 		// if it is a buy then we need to do lower bound is new exposure exponent, upper bound is old exposure exponent
 		int256 slippageFactor = int256(1e18 + modifiedSlippageGradient);
-		console.logInt(slippageFactor);
-		console.logInt(-oldExposureExponent);
-		console.logInt(-newExposureExponent);
-		console.logInt(slippageFactor.ln());
 		if (_isSell) {
-			console.logInt(
-				(slippageFactor.pow(-oldExposureExponent) - slippageFactor.pow(-newExposureExponent))
-			);
 			slippageMultiplier = uint256(
 				(slippageFactor.pow(-oldExposureExponent) - slippageFactor.pow(-newExposureExponent)).div(
 					slippageFactor.ln()
 				)
 			).div(_amount);
 		} else {
-			console.logInt(
-				(slippageFactor.pow(-newExposureExponent) - slippageFactor.pow(-oldExposureExponent))
-			);
 			slippageMultiplier = uint256(
 				(slippageFactor.pow(-newExposureExponent) - slippageFactor.pow(-oldExposureExponent)).div(
 					slippageFactor.ln()
