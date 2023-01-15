@@ -326,6 +326,14 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		}
 	}
 
+	/**
+	 * @notice function to apply an additive spread premium to the order. Is applied to whole _amount and not per contract.
+	 * @param _optionSeries the series detail of the option - strike decimals in e18
+	 * @param _amount number of contracts being traded. e18
+	 * @param _optionDelta the delta exposure of the option. e18
+	 * @param _netDhvExposure how many contracts of this series the DHV is already exposed to. e18. negative if net short.
+	 * @param _underlyingPrice the price of the underlying asset. e18
+	 */
 	function _getSpreadValue(
 		Types.OptionSeries memory _optionSeries,
 		uint256 _amount,
@@ -345,10 +353,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		}
 		// find collateral requirements for net short options
 		uint256 collateralToLend = _getCollateralRequirements(_optionSeries, netShortContracts);
-
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
-
 		// calculate the collateral cost portion of the spread
 		uint256 collateralLendingPremium = ((1e18 + (collateralLendingRate * 1e18) / MAX_BPS).pow(time))
 			.mul(collateralToLend) - collateralToLend;
@@ -366,7 +372,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
 				dollarDelta;
 		}
-
 		return collateralLendingPremium + deltaBorrowPremium;
 	}
 
