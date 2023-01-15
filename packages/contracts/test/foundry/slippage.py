@@ -3,52 +3,54 @@ from eth_abi import encode_single
 import argparse
 import math
 
+from decimal import Decimal
+
 call_slippage_gradient_multipliers = [
-			1,
-			1.1,
-			1.2,
-			1.3,
-			1.4,
-			1.5,
-			1.6,
-			1.7,
-			1.8,
-			1.9,
-			2.0,
-			2.1,
-			2.2,
-			2.3,
-			2.4,
-			2.5,
-			2.6,
-			2.7,
-			2.8,
-			2.9
+			Decimal(1.0),
+			Decimal(1.1),
+			Decimal(1.2),
+			Decimal(1.3),
+			Decimal(1.4),
+			Decimal(1.5),
+			Decimal(1.6),
+			Decimal(1.7),
+			Decimal(1.8),
+			Decimal(1.9),
+			Decimal(2.0),
+			Decimal(2.1),
+			Decimal(2.2),
+			Decimal(2.3),
+			Decimal(2.4),
+			Decimal(2.5),
+			Decimal(2.6),
+			Decimal(2.7),
+			Decimal(2.8),
+			Decimal(2.9)
 		]
 
 put_slippage_gradient_multipliers = [
-			1,
-			1.1,
-			1.2,
-			1.3,
-			1.4,
-			1.5,
-			1.6,
-			1.7,
-			1.8,
-			1.9,
-			2.0,
-			2.1,
-			2.2,
-			2.3,
-			2.4,
-			2.5,
-			2.6,
-			2.7,
-			2.8,
-			2.9
+			Decimal(1.0),
+			Decimal(1.1),
+			Decimal(1.2),
+			Decimal(1.3),
+			Decimal(1.4),
+			Decimal(1.5),
+			Decimal(1.6),
+			Decimal(1.7),
+			Decimal(1.8),
+			Decimal(1.9),
+			Decimal(2.0),
+			Decimal(2.1),
+			Decimal(2.2),
+			Decimal(2.3),
+			Decimal(2.4),
+			Decimal(2.5),
+			Decimal(2.6),
+			Decimal(2.7),
+			Decimal(2.8),
+			Decimal(2.9)
 		]
-delta_band_width = 5
+delta_band_width = Decimal(5)
 
 def main(args): 
     if (args.isNetDhvExposureNegative == 1):
@@ -65,12 +67,12 @@ def main(args):
         is_sell = False
     # convert values to numbers from decimals
     slippage_multiplier = get_slippage_multiplier(
-        args.amount / 1e18,
-        net_dhv_exposure / 1e18,
+        Decimal(args.amount) / Decimal(1e18),
+        Decimal(net_dhv_exposure) / Decimal(1e18),
         is_sell,
-        args.slippageGradient / 1e18,
-        delta / 1e18
-    ) * 1e18
+        Decimal(args.slippageGradient) / Decimal(1e18),
+        Decimal(delta) / Decimal(1e18)
+    ) * Decimal(1e18)
     # encode
     enc = encode_single('uint256', int(slippage_multiplier))
     print("0x" + enc.hex())
@@ -100,9 +102,9 @@ def get_slippage_multiplier(amount: float, net_dhv_exposure: float, is_sell: boo
         modified_slippage_gradient = slippage_gradient * put_slippage_gradient_multipliers[delta_band_index]
     slippage_factor = 1 + modified_slippage_gradient
     if(is_sell):
-        slippage_multiplier = (((slippage_factor ** -old_exposure_exponent) - (slippage_factor ** -new_exposure_exponent))/math.log(slippage_factor)) / amount
+        slippage_multiplier = (((slippage_factor ** -old_exposure_exponent) - (slippage_factor ** -new_exposure_exponent))/Decimal(math.log(slippage_factor))) / amount
     else:
-        slippage_multiplier = (((slippage_factor ** -new_exposure_exponent) - (slippage_factor ** -old_exposure_exponent))/math.log(slippage_factor)) / amount
+        slippage_multiplier = (((slippage_factor ** -new_exposure_exponent) - (slippage_factor ** -old_exposure_exponent))/Decimal(math.log(slippage_factor))) / amount
     return slippage_multiplier
 
 def parse_args(): 
