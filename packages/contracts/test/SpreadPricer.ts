@@ -1,28 +1,10 @@
 import hre, { ethers, network } from "hardhat"
 import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
-import {
-	toWei,
-	truncate,
-	tFormatEth,
-	call,
-	put,
-	genOptionTimeFromUnix,
-	fromWei,
-	percentDiff,
-	toUSDC,
-	fromOpyn,
-	toOpyn,
-	tFormatUSDC,
-	scaleNum,
-	fromUSDC
-} from "../utils/conversion-helper"
+import { toWei, toUSDC, scaleNum, fromUSDC } from "../utils/conversion-helper"
 import moment from "moment"
 import { AbiCoder } from "ethers/lib/utils"
 //@ts-ignore
-import bs from "black-scholes"
 import { expect } from "chai"
-import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { OracleMock } from "../types/OracleMock"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
 import { Otoken } from "../types/Otoken"
@@ -36,48 +18,16 @@ import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import {
-	setupTestOracle,
-	setupOracle,
-	calculateOptionQuoteLocally,
-	calculateOptionDeltaLocally,
-	increase,
-	setOpynOracleExpiryPrice,
-	createAndMintOtoken,
-	whitelistProduct,
-	getExchangeParams,
-	createFakeOtoken,
-	getSeriesWithe18Strike,
-	getNetDhvExposure,
-	applySlippageLocally,
-	localQuoteOptionPrice,
-	compareQuotes
-} from "./helpers"
-import {
-	GAMMA_CONTROLLER,
-	MARGIN_POOL,
-	OTOKEN_FACTORY,
-	USDC_ADDRESS,
-	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS,
-	ADDRESS_BOOK,
-	UNISWAP_V3_SWAP_ROUTER,
-	CONTROLLER_OWNER,
-	GAMMA_ORACLE_NEW,
-	CHAINLINK_WETH_PRICER
-} from "./constants"
+import { setupTestOracle, calculateOptionQuoteLocally, compareQuotes } from "./helpers"
+import { CHAINLINK_WETH_PRICER } from "./constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
-import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { BeyondPricer } from "../types/BeyondPricer"
-import { create } from "domain"
 import { NewWhitelist } from "../types/NewWhitelist"
 import { OptionExchange } from "../types/OptionExchange"
-import { OtokenFactory } from "../types/OtokenFactory"
 import { OptionCatalogue } from "../types/OptionCatalogue"
-import { isRegExp } from "util"
 
 let usd: MintableERC20
 let weth: WETH
@@ -99,17 +49,6 @@ let newCalculator: NewMarginCalculator
 let newWhitelist: NewWhitelist
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
-let optionToken: Otoken
-let oTokenUSDCXC: Otoken
-let oTokenUSDCSXC: Otoken
-let oTokenUSDCClose: Otoken
-let oTokenETH1500C: Otoken
-let oTokenETH1600C: Otoken
-let oTokenUSDC1650C: Otoken
-let oTokenBUSD3000P: Otoken
-let oTokenUSDCXCLaterExp2: Otoken
-let collateralAllocatedToVault1: BigNumber
-let spotHedgingReactor: UniswapV3HedgingReactor
 let exchange: OptionExchange
 let pricer: BeyondPricer
 let authority: string
@@ -812,7 +751,6 @@ describe("Spread Pricer testing", async () => {
 				expect(quoteResponse[0]).to.eq(allAtOnceQuote.div(100))
 				buyQuoteLots = buyQuoteLots.add(quoteResponse.totalPremium)
 			}
-			console.log({ buyQuoteLots, allAtOnceQuote })
 			expect(buyQuoteLots.sub(allAtOnceQuote)).to.be.within(-100, 100)
 			expect(parseFloat(fromUSDC(buyQuoteLots))).to.be.gt(localQuoteNoSpread)
 		})
