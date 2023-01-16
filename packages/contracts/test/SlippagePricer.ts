@@ -1,30 +1,12 @@
 import hre, { ethers, network } from "hardhat"
 import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
-import {
-	toWei,
-	truncate,
-	tFormatEth,
-	call,
-	put,
-	genOptionTimeFromUnix,
-	fromWei,
-	percentDiff,
-	toUSDC,
-	fromOpyn,
-	toOpyn,
-	tFormatUSDC,
-	scaleNum
-} from "../utils/conversion-helper"
+import { toWei, toUSDC, scaleNum } from "../utils/conversion-helper"
 import moment from "moment"
 import { AbiCoder } from "ethers/lib/utils"
 //@ts-ignore
-import bs from "black-scholes"
 import { expect } from "chai"
-import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { OracleMock } from "../types/OracleMock"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
-import { Otoken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { WETH } from "../types/WETH"
@@ -35,46 +17,15 @@ import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import {
-	setupTestOracle,
-	setupOracle,
-	calculateOptionQuoteLocally,
-	calculateOptionDeltaLocally,
-	increase,
-	setOpynOracleExpiryPrice,
-	createAndMintOtoken,
-	whitelistProduct,
-	getExchangeParams,
-	createFakeOtoken,
-	getSeriesWithe18Strike,
-	getNetDhvExposure,
-	applySlippageLocally,
-	localQuoteOptionPrice,
-	compareQuotes
-} from "./helpers"
-import {
-	GAMMA_CONTROLLER,
-	MARGIN_POOL,
-	OTOKEN_FACTORY,
-	USDC_ADDRESS,
-	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS,
-	ADDRESS_BOOK,
-	UNISWAP_V3_SWAP_ROUTER,
-	CONTROLLER_OWNER,
-	GAMMA_ORACLE_NEW,
-	CHAINLINK_WETH_PRICER
-} from "./constants"
+import { setupTestOracle, compareQuotes } from "./helpers"
+import { CHAINLINK_WETH_PRICER } from "./constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
-import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { BeyondPricer } from "../types/BeyondPricer"
-import { create } from "domain"
 import { NewWhitelist } from "../types/NewWhitelist"
 import { OptionExchange } from "../types/OptionExchange"
-import { OtokenFactory } from "../types/OtokenFactory"
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: MintableERC20
@@ -88,24 +39,13 @@ let portfolioValuesFeed: AlphaPortfolioValuesFeed
 let volatility: Volatility
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
-let rate: string
 let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let newWhitelist: NewWhitelist
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
-let optionToken: Otoken
-let oTokenUSDCXC: Otoken
-let oTokenUSDCSXC: Otoken
-let oTokenUSDCClose: Otoken
-let oTokenETH1500C: Otoken
-let oTokenETH1600C: Otoken
-let oTokenUSDC1650C: Otoken
-let oTokenBUSD3000P: Otoken
-let oTokenUSDCXCLaterExp2: Otoken
-let collateralAllocatedToVault1: BigNumber
-let spotHedgingReactor: UniswapV3HedgingReactor
+
 let exchange: OptionExchange
 let pricer: BeyondPricer
 let authority: string
