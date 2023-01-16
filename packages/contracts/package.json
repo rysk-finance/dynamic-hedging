@@ -1,11 +1,20 @@
 {
-	"private": true,
 	"name": "contracts",
 	"version": "1.0.0",
 	"description": "",
 	"license": "ISC",
+	"private": true,
 	"author": "",
+	"keywords": [],
 	"main": "index.js",
+	"workspaces": {
+		"nohoist": [
+			"**/typechain",
+			"**/typechain/**",
+			"**/@typechain",
+			"**/@typechain/**"
+		]
+	},
 	"scripts": {
 		"buyoption:testnet": "npx hardhat run scripts/buySample.ts --network arbitrumRinkeby",
 		"compile": "hardhat clean && hardhat compile && hardhat typechain && ./copyABIsToFrontend.sh",
@@ -23,52 +32,35 @@
 		"test-coverage": "export NODE_OPTIONS='--max-old-space-size=8192' && hardhat coverage --testfiles 'test/*.ts'"
 	},
 	"dependencies": {
-		"@chainlink/contracts": "^0.4.0",
-		"@openzeppelin/contracts": "^4.4.2",
+		"@chainlink/contracts": "^0.6.0",
+		"@openzeppelin/contracts": "^4.8.1",
 		"@rage/core": "https://github.com/RageTrade/core.git",
-		"@uniswap/v3-periphery": "1.4.0",
-		"black-scholes": "^1.1.0",
-		"bn.js": "^5.2.0",
-		"dotenv": "^8.2.0",
-		"greeks": "^1.0.0",
-		"jsbi": "^4.2.0",
-		"moment": "^2.29.1",
-		"prb-math": "^2.4.1",
-		"ts-generator": "^0.1.1"
+		"@uniswap/v3-periphery": "1.4.3",
+		"prb-math": "^2.4.3"
 	},
 	"devDependencies": {
-		"@nomiclabs/hardhat-ethers": "^2.1.1",
-		"@nomiclabs/hardhat-etherscan": "^3.1.0",
-		"@nomiclabs/hardhat-waffle": "^2.0.0",
-		"@ragetrade/sdk": "^0.3.0",
-		"@typechain/ethers-v5": "^8.0.5",
-		"@typechain/hardhat": "^3.1.0",
-		"@types/chai": "^4.3.0",
-		"@types/mocha": "^8.2.3",
-		"@types/node": "^14.18.10",
-		"@uniswap/v3-sdk": "^3.8.2",
-		"bip39": "^3.0.2",
-		"chai": "^4.3.6",
-		"ethereum-waffle": "^3.1.0",
-		"ethers": "5.4.0",
-		"hardhat": "^2.6.7",
-		"hardhat-contract-sizer": "^2.5.0",
-		"hardhat-dependency-compiler": "^1.1.2",
-		"hardhat-deploy": "^0.7.11",
-		"hardhat-gas-reporter": "^1.0.3",
-		"hardhat-tracer": "^1.1.0-rc.3",
+		"@nomiclabs/hardhat-ethers": "^2.2.2",
+		"@nomiclabs/hardhat-etherscan": "^3.1.5",
+		"@nomiclabs/hardhat-waffle": "^2.0.3",
+		"@ragetrade/sdk": "^1.0.6",
+		"@typechain/ethers-v5": "^9.0.0",
+		"@typechain/hardhat": "^6.1.5",
+		"@types/chai": "^4.3.4",
+		"@types/mocha": "^10.0.1",
+		"@types/node": "^16.x.x",
+		"@uniswap/v3-sdk": "^3.9.0",
+		"bip39": "^3.0.4",
+		"chai": "^4.3.7",
+		"ethereum-waffle": "^3.4.4",
+		"ethers": "5.7.2",
+		"hardhat": "^2.12.6",
+		"hardhat-contract-sizer": "^2.7.0",
+		"hardhat-dependency-compiler": "^1.1.3",
+		"hardhat-deploy": "^0.11.12",
+		"hardhat-gas-reporter": "^1.0.9",
 		"path": "^0.12.7",
-		"solidity-coverage": "^0.7.20",
+		"solidity-coverage": "^0.8.2",
 		"ts-node": "^10.9.1",
-		"typechain": "^6.0.5"
-	},
-	"keywords": [],
-	"workspaces": {
-		"nohoist": [
-			"**/typechain",
-			"**/typechain/**",
-			"**/@typechain",
-			"**/@typechain/**"
-		]
+		"typechain": "^8.1.1"
 	}
 }

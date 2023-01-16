@@ -1,11 +1,9 @@
 {
-    "private": true,
     "name": "dynamic-hedging",
     "version": "1.0.0",
     "description": "<!-- PROJECT LOGO --> <br /> <p align=\"center\">   <a href=\"https://github.com/github_username/repo_name\">     <img src=\"./packages/front-end/public/logo.png\" alt=\"Logo\" width=\"auto\" height=\"200\" style=\"filter: brightness(100);\">   </a>",
     "license": "ISC",
-    "author": "",
-    "homepage": "https://github.com/rysk-finance/dynamic-hedging#readme",
+    "private": true,
     "repository": {
         "type": "git",
         "url": "git+https://github.com/rysk-finance/dynamic-hedging.git"
@@ -13,17 +11,23 @@
     "bugs": {
         "url": "https://github.com/rysk-finance/dynamic-hedging/issues"
     },
+    "homepage": "https://github.com/rysk-finance/dynamic-hedging#readme",
+    "author": "",
     "workspaces": {
         "packages": [
             "packages/*"
         ]
     },
+    "scripts": {
+        "upgrade": "yarn upgrade-interactive --latest"
+    },
     "dependencies": {
-        "i": "^0.3.7",
-        "npm": "^8.11.0",
-        "react-tiny-popover": "^7.0.1"
+        "black-scholes": "^1.1.0",
+        "greeks": "^1.0.0",
+        "moment": "^2.29.4"
     },
     "devDependencies": {
+        "dotenv": "^16.0.3",
         "typescript": "^4.9.4"
     }
 }
