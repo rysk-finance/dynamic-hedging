@@ -5,6 +5,7 @@
 The Beyond Pricer contains logic for Rysk's option pricing. It prices the options using the
 Black-Scholes model and applies slippage, a spread, and fees to the Black-Scholes quote based on the
 state of the protocol.
+https://rysk.notion.site/Slippage-5be84802101c425d86d1d6f3917cac16
 
 ## Function by function
 
