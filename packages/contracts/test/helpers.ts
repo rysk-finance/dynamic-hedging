@@ -688,7 +688,6 @@ export async function localQuoteOptionPrice(
 	if (isSell) {
 		expect(spread).to.eq(0)
 	}
-	console.log({ bsQ, slip, spread })
 	return bsQ * slip + spread
 }
 
