@@ -685,6 +685,9 @@ export async function localQuoteOptionPrice(
 			netDhvExposure
 		)
 	}
+	if (isSell) {
+		expect(spread).to.eq(0)
+	}
 	console.log({ bsQ, slip, spread })
 	return bsQ * slip + spread
 }
@@ -709,8 +712,6 @@ export async function applySlippageLocally(
 		netDhvExposure = await catalogue.netDhvExposure(oHash)
 	}
 
-	console.log({ oHash }, netDhvExposure.toString())
-
 	const newExposureCoefficient = isSell
 		? parseFloat(fromWei(netDhvExposure)) + parseFloat(fromWei(amount))
 		: parseFloat(fromWei(netDhvExposure)) - parseFloat(fromWei(amount))
@@ -721,12 +722,7 @@ export async function applySlippageLocally(
 		(parseFloat(fromWei(optionDelta.abs())) * 100) /
 			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
 	)
-	console.log({
-		deltaBandIndex,
-		optionDelta: parseFloat(fromWei(optionDelta)),
-		deltaBandWidth: parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
-	})
-	console.log("multiplier:", await beyondPricer.putSlippageGradientMultipliers(deltaBandIndex))
+
 	if (parseFloat(fromWei(optionDelta)) < 0) {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
@@ -741,13 +737,6 @@ export async function applySlippageLocally(
 		return 1
 	}
 	const slippageFactor = 1 + modifiedSlippageGradient
-	console.log({ slippageFactor })
-	console.log(oldExposureCoefficient)
-	console.log(newExposureCoefficient)
-	console.log(slippageFactor ** -oldExposureCoefficient)
-	console.log(slippageFactor ** -newExposureCoefficient)
-	console.log(Math.log(slippageFactor))
-	console.log(fromWei(amount))
 	const slippagePremium = isSell
 		? (slippageFactor ** -oldExposureCoefficient - slippageFactor ** -newExposureCoefficient) /
 		  Math.log(slippageFactor) /
@@ -755,7 +744,6 @@ export async function applySlippageLocally(
 		: (slippageFactor ** -newExposureCoefficient - slippageFactor ** -oldExposureCoefficient) /
 		  Math.log(slippageFactor) /
 		  parseFloat(fromWei(amount))
-	console.log({ modifiedSlippageGradient, slippagePremium })
 	return slippagePremium
 }
 
@@ -783,18 +771,7 @@ export async function applySpreadLocally(
 		"NewMarginCalculator",
 		await addressBook.getMarginCalculator()
 	)) as NewMarginCalculator
-	console.log(
-		"margin calc params",
-		optionSeries.underlying,
-		optionSeries.strikeAsset,
-		optionSeries.collateral,
-		netShortContracts.div(utils.parseUnits("1", 10)), // format from e18 to e8
-		optionSeries.strike.div(utils.parseUnits("1", 10)), // format from e18 to e8,
-		underlyingPrice,
-		optionSeries.expiration,
-		6,
-		optionSeries.isPut
-	)
+
 	const collateralToLend = parseFloat(
 		fromUSDC(
 			await marginCalc.getNakedMarginRequired(
@@ -810,7 +787,6 @@ export async function applySpreadLocally(
 			)
 		)
 	)
-	console.log({ collateralToLend })
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block
@@ -834,7 +810,6 @@ export async function applySpreadLocally(
 		deltaBorrowPremium =
 			dollarDelta * (1 + shortDeltaBorrowRate / MAX_BPS) ** timeToExpiry - dollarDelta
 	}
-	console.log({ collateralLendingPremium, deltaBorrowPremium })
 	return collateralLendingPremium + deltaBorrowPremium
 }
 
