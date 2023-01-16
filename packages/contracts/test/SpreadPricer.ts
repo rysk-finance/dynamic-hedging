@@ -415,6 +415,7 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
+			console.log({ quoteResponse: fromUSDC(quoteResponse[0]), localQuoteNoSpread })
 			expect(singleSellQuote).to.eq(quoteResponse[0].div(1000))
 			expect(parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread).to.be.within(-0.1, 0.1)
 		})
