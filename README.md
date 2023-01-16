@@ -8,7 +8,7 @@
   <h3 align="center">Dynamic hedging</h3>
 
   <p align="center">
-     Options delta neutrality as a crypto native uncorrelated asset class
+     Options delta neutrality as a crypto native uncorrelated asset class and the best option trading experience
     <br />
   </p>
 </p>
@@ -123,6 +123,11 @@ Run test coverage
 npm run test-coverage
 ```
 
+Run foundry fuzzing
+
+1. Follow instructions on [template](https://github.com/kjr217/foundry-python-template#installation-instructions)
+2. In the pipenv environment run forge test --ffi --vvv
+
 ## Contract Architecture
 
 ![Rysk Architecture](./images/RyskArchitecture.png) ![Diagram C](./images/DiagramC.png)
@@ -133,6 +138,7 @@ npm run test-coverage
 ```
 contracts
 ├── hedging
+│   ├── GMXHedgingReactor.sol
 │   ├── PerpHedgingReactor.sol
 │   └── UniswapV3HedgingReactor.sol
 ├── interfaces
@@ -153,14 +159,22 @@ contracts
 │   ├── OptionsCompute.sol
 │   ├── OpynInteractions.sol
 │   ├── AccessControl.sol
+│   ├── RyskActions.sol
+│   ├── CombinedActions.sol
+│   ├── EnumerableSet.sol
+│   ├── SABR.sol
 │   ├── SafeTransferLib.sol
 │   └── Types.sol
 ├── tokens
 │   └── ERC20.sol
+├── Accounting.sol
+├── AlphaOptionHandler.sol
 ├── Authority.sol
+├── BeyondPricer.sol
 ├── LiquidityPool.sol
 ├── OptionRegistry.sol
-├── OptionHandler.sol
+├── OptionExchange.sol
+├── OptionCatalogue.sol
 ├── Protocol.sol
 ├── PortfolioValuesFeed.sol
 ├── VolatilityFeed.sol
