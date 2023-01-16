@@ -13,7 +13,8 @@ import {
 	fromOpyn,
 	toOpyn,
 	tFormatUSDC,
-	scaleNum
+	scaleNum,
+	fromUSDC
 } from "../utils/conversion-helper"
 import moment from "moment"
 import { AbiCoder } from "ethers/lib/utils"
@@ -365,6 +366,16 @@ describe("Spread Pricer testing", async () => {
 			}
 			const amount = toWei("1")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				false
+			)
 			singleBuyQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
@@ -379,10 +390,21 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.gt(localQuoteNoSpread)
 		})
 		it("SUCCEEDS: get quote for 1 option when selling", async () => {
 			const amount = toWei("1")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				true
+			)
 			singleSellQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
@@ -397,10 +419,21 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
+			expect(parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread).to.be.within(-0.1, 0.1)
 		})
 		it("SUCCEEDS: get quote for 1000 options when buying", async () => {
 			const amount = toWei("1000")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				false
+			)
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
@@ -415,10 +448,21 @@ describe("Spread Pricer testing", async () => {
 				toWei("0")
 			)
 			expect(singleBuyQuote.toNumber()).to.eq(quoteResponse[0].div(1000))
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.gt(localQuoteNoSpread)
 		})
 		it("SUCCEEDS: get quote for 1000 options when selling", async () => {
 			const amount = toWei("1000")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				true
+			)
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
@@ -432,7 +476,9 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
+			console.log({ quoteResponse: fromUSDC(quoteResponse[0]), localQuoteNoSpread })
 			expect(singleSellQuote).to.eq(quoteResponse[0].div(1000))
+			expect(parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread).to.be.within(-0.1, 0.1)
 		})
 	})
 	describe("Get quotes successfully for small and big puts", async () => {
@@ -450,6 +496,16 @@ describe("Spread Pricer testing", async () => {
 			}
 			const amount = toWei("1")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				false
+			)
 			singleBuyQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
@@ -464,10 +520,21 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.gt(localQuoteNoSpread)
 		})
 		it("SUCCEEDS: get quote for 1 option when selling", async () => {
 			const amount = toWei("1")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				true
+			)
 			singleSellQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
@@ -482,10 +549,21 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
+			expect(parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread).to.be.within(-0.1, 0.1)
 		})
 		it("SUCCEEDS: get quote for 1000 options when buying", async () => {
 			const amount = toWei("1000")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				false
+			)
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
@@ -500,10 +578,21 @@ describe("Spread Pricer testing", async () => {
 				toWei("0")
 			)
 			expect(singleBuyQuote).to.eq(quoteResponse[0].div(1000))
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.gt(localQuoteNoSpread)
 		})
 		it("SUCCEEDS: get quote for 1000 options when selling", async () => {
 			const amount = toWei("1000")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				true
+			)
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
@@ -518,6 +607,7 @@ describe("Spread Pricer testing", async () => {
 				toWei("0")
 			)
 			expect(singleSellQuote).to.eq(quoteResponse[0].div(1000))
+			expect(parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread).to.be.within(-0.1, 0.1)
 		})
 	})
 	describe("Compare lots of small quotes to one big quote", async () => {
@@ -533,6 +623,16 @@ describe("Spread Pricer testing", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				toWei("100"),
+				pricer,
+				false
+			)
 			const allAtOnceQuote = (
 				await pricer.quoteOptionPrice(proposedSeries, toWei("100"), false, toWei("0"))
 			)[0]
@@ -561,9 +661,20 @@ describe("Spread Pricer testing", async () => {
 				buyQuoteLots = buyQuoteLots.add(quoteResponse.totalPremium)
 			}
 			expect(allAtOnceQuote.sub(buyQuoteLots)).to.be.within(-100, 100)
+			expect(parseFloat(fromUSDC(buyQuoteLots))).to.be.gt(localQuoteNoSpread)
 		})
 		it("SUCCEEDS: get quote for 100 options when selling 100 times", async () => {
 			sellQuoteLots = toWei("0")
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				toWei("100"),
+				pricer,
+				true
+			)
 			const allAtOnceQuote = (
 				await pricer.quoteOptionPrice(proposedSeries, toWei("100"), true, toWei("0"))
 			)[0]
@@ -592,9 +703,20 @@ describe("Spread Pricer testing", async () => {
 				expect(quoteResponse[0]).to.eq(allAtOnceQuote.div(100))
 			}
 			expect(allAtOnceQuote.sub(sellQuoteLots)).to.be.within(-100, 100)
+			expect(parseFloat(fromUSDC(sellQuoteLots)) - localQuoteNoSpread).to.be.within(-0.1, 0.1)
 		})
 		it("SUCCEEDS: get quote for 100 options when buying 1 time", async () => {
 			const amount = toWei("100")
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				false
+			)
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			await compareQuotes(
 				quoteResponse,
@@ -610,9 +732,20 @@ describe("Spread Pricer testing", async () => {
 				toWei("0")
 			)
 			expect(buyQuoteLots.sub(quoteResponse[0])).to.be.within(-100, 100)
+			expect(parseFloat(fromUSDC(buyQuoteLots))).to.be.gt(localQuoteNoSpread)
 		})
 		it("SUCCEEDS: get quote for 100 options when selling 1 time", async () => {
 			const amount = toWei("100")
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				true
+			)
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			await compareQuotes(
 				quoteResponse,
@@ -628,6 +761,7 @@ describe("Spread Pricer testing", async () => {
 				toWei("0")
 			)
 			expect(sellQuoteLots.sub(quoteResponse[0])).to.be.within(-100, 100)
+			expect(parseFloat(fromUSDC(sellQuoteLots)) - localQuoteNoSpread).to.be.within(-0.1, 0.1)
 		})
 		it("SUCCEEDS: get quote for 100 options when buying 100 times and dhv has positive exposure", async () => {
 			proposedSeries = {
@@ -638,6 +772,16 @@ describe("Spread Pricer testing", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				toWei("100"),
+				pricer,
+				false
+			)
 			buyQuoteLots = toWei("0")
 			const allAtOnceQuote = (
 				await pricer.quoteOptionPrice(proposedSeries, toWei("100"), false, toWei("100"))
@@ -670,6 +814,7 @@ describe("Spread Pricer testing", async () => {
 			}
 			console.log({ buyQuoteLots, allAtOnceQuote })
 			expect(buyQuoteLots.sub(allAtOnceQuote)).to.be.within(-100, 100)
+			expect(parseFloat(fromUSDC(buyQuoteLots))).to.be.gt(localQuoteNoSpread)
 		})
 		it("SUCCEEDS: get quote for 100 options when buying 100 times and dhv has half amount worth of long exposure", async () => {
 			proposedSeries = {
@@ -681,6 +826,16 @@ describe("Spread Pricer testing", async () => {
 				collateral: usd.address
 			}
 			buyQuoteLots = toWei("0")
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				toWei("100"),
+				pricer,
+				false
+			)
 			const allAtOnceQuoteNoLongExposure = (
 				await pricer.quoteOptionPrice(proposedSeries, toWei("100"), false, toWei("0"))
 			)[0]
@@ -720,6 +875,7 @@ describe("Spread Pricer testing", async () => {
 				}
 				buyQuoteLots = buyQuoteLots.add(quoteResponse.totalPremium)
 			}
+			expect(parseFloat(fromUSDC(buyQuoteLots))).to.be.gt(localQuoteNoSpread)
 			expect(buyQuoteLots.sub(allAtOnceQuoteHalfLongExposure)).to.be.within(-100, 100)
 			expect(allAtOnceQuoteFullLongExposure).to.be.lt(allAtOnceQuoteHalfLongExposure)
 			expect(allAtOnceQuoteHalfLongExposure).to.be.lt(allAtOnceQuoteNoLongExposure)
