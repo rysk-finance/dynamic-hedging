@@ -20,9 +20,9 @@
     leven "^3.1.0"
 
 "@apollo/client@^3.6.9":
-  version "3.7.3"
-  resolved "https://registry.yarnpkg.com/@apollo/client/-/client-3.7.3.tgz#ab3fe31046e74bc1a3762363a185ba5bcfffc58b"
-  integrity sha512-nzZ6d6a4flLpm3pZOGpuAUxLlp9heob7QcCkyIqZlCLvciUibgufRfYTwfkWCc4NaGHGSZyodzvfr79H6oUwGQ==
+  version "3.7.4"
+  resolved "https://registry.yarnpkg.com/@apollo/client/-/client-3.7.4.tgz#28c3fb7f89365ccaf185bc8b51860041f37629b3"
+  integrity sha512-bgiCKRmLSBImX4JRrw8NjqGo0AQE/mowCdHX1PJp2r5zIXrJx0UeaAYmx1qJY69Oz/KR7SKlLt4xK+bOP1jx7A==
   dependencies:
     "@graphql-typed-document-node/core" "^3.1.1"
     "@wry/context" "^0.7.0"
@@ -3415,9 +3415,9 @@
     which "^2.0.2"
 
 "@openzeppelin/contracts-upgradeable@^4.5.2":
-  version "4.8.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.8.0.tgz#26688982f46969018e3ed3199e72a07c8d114275"
-  integrity sha512-5GeFgqMiDlqGT8EdORadp1ntGF0qzWZLmEY7Wbp/yVhN7/B3NNzCxujuI77ktlyG81N3CUZP8cZe3ZAQ/cW10w==
+  version "4.8.1"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.8.1.tgz#363f7dd08f25f8f77e16d374350c3d6b43340a7a"
+  integrity sha512-1wTv+20lNiC0R07jyIAbHU7TNHKRwGiTGRfiNnA8jOWjKT98g5OgLpYWOi40Vgpk8SPLA9EvfJAbAeIyVn+7Bw==
 
 "@openzeppelin/contracts@3.4.1-solc-0.7-2":
   version "3.4.1-solc-0.7-2"
@@ -3430,9 +3430,9 @@
   integrity sha512-W6QmqgkADuFcTLzHL8vVoNBtkwjvQRpYIAom7KiUNoLKghyx3FgH0GBjt8NRvigV1ZmMOBllvE1By1C+bi8WpA==
 
 "@openzeppelin/contracts@^4.4.2", "@openzeppelin/contracts@^4.5.0":
-  version "4.8.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.8.0.tgz#6854c37df205dd2c056bdfa1b853f5d732109109"
-  integrity sha512-AGuwhRRL+NaKx73WKRNzeCxOCOCxpaqF+kp8TJ89QzAipSwZy/NoflkWaL9bywXFRhIzXt8j38sfF7KBKCPWLw==
+  version "4.8.1"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.8.1.tgz#709cfc4bbb3ca9f4460d60101f15dac6b7a2d5e4"
+  integrity sha512-xQ6eUZl+RDyb/FiZe1h+U7qr/f4p/SrTSQcTPH2bjur3C5DbuW/zFgCU/b1P/xcIaEqJep+9ju4xDRi3rmChdQ==
 
 "@pmmmwh/react-refresh-webpack-plugin@^0.5.3":
   version "0.5.10"
@@ -7796,13 +7796,6 @@ create-require@^1.1.0:
   resolved "https://registry.yarnpkg.com/create-require/-/create-require-1.1.1.tgz#c1d7e8f1e5f6cfc9ff65f9cd352d37348756c333"
   integrity sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==
 
-cross-env@^7.0.3:
-  version "7.0.3"
-  resolved "https://registry.yarnpkg.com/cross-env/-/cross-env-7.0.3.tgz#865264b29677dc015ba8418918965dd232fc54cf"
-  integrity sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==
-  dependencies:
-    cross-spawn "^7.0.1"
-
 cross-fetch@^2.1.0, cross-fetch@^2.1.1:
   version "2.2.6"
   resolved "https://registry.yarnpkg.com/cross-fetch/-/cross-fetch-2.2.6.tgz#2ef0bb39a24ac034787965c457368a28730e220a"
@@ -7829,7 +7822,7 @@ cross-spawn@^6.0.5:
     shebang-command "^1.2.0"
     which "^1.2.9"
 
-cross-spawn@^7.0.0, cross-spawn@^7.0.1, cross-spawn@^7.0.2, cross-spawn@^7.0.3:
+cross-spawn@^7.0.0, cross-spawn@^7.0.2, cross-spawn@^7.0.3:
   version "7.0.3"
   resolved "https://registry.yarnpkg.com/cross-spawn/-/cross-spawn-7.0.3.tgz#f73a85b9d5d41d045551c177e2882d4ac85728a6"
   integrity sha512-iRDPJKUPVEND7dHPO8rkbOnPpyDygcDFtWjpeWNCgy8WP2rXcxXL8TskReQl6OrB2G7+UJrags1q15Fudc7G6w==
@@ -19153,7 +19146,7 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==
 
-typescript@^4.6.3, typescript@^4.7.4:
+typescript@^4.9.4:
   version "4.9.4"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.9.4.tgz#a2a3d2756c079abda241d75f149df9d561091e78"
   integrity sha512-Uz+dTXYzxXXbsFpM86Wh3dKCxrQqUcVMxwU54orwlJjOpO3ao8L7j5lH+dWfTwgCwIuM9GQ2kvVotzYJMXTBZg==
