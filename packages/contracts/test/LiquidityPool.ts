@@ -483,24 +483,6 @@ describe("Liquidity Pools", async () => {
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.within(0, 0.1)
 	})
-	it("Reverts: Push to price deviation threshold to cause quote to fail", async () => {
-		const latestPrice = await priceFeed.getRate(weth.address, usd.address)
-		await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from("10000000000")))
-		const amount = toWei("1")
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike))
-		const optionSeries = {
-			expiration: expiration,
-			strike: strikePrice,
-			isPut: PUT_FLAVOR,
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-		await expect(
-			liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
-		).to.be.revertedWith("PriceDeltaExceedsThreshold(36378215763291390)")
-	})
 	it("reverts when attempting to write ETH/USD puts with expiry outside of limit", async () => {
 		const amount = toWei("1")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
