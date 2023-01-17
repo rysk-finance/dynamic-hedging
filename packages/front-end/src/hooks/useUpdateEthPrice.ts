@@ -1,5 +1,5 @@
-import Axios from "axios";
 import { useCallback } from "react";
+
 import { CMC_API_KEY, endpoints } from "../config/endpoints";
 import { useGlobalContext } from "../state/GlobalContext";
 import { ActionType } from "../state/types";
@@ -16,13 +16,15 @@ export const useUpdateEthPrice = () => {
 
   const getPrice = async () => {
     try {
-      const response = await Axios.get<EthPriceResponse>(endpoints.ethPrice, {
+      const response = await fetch(endpoints.ethPrice, {
         headers: {
           "X-CMC_PRO_API_KEY": CMC_API_KEY,
           Accept: "application/json",
         },
       });
-      return response.data[0];
+      const data: EthPriceResponse = await response.json();
+
+      return data[0];
     } catch (err) {
       console.error(err);
       return null;
@@ -31,6 +33,7 @@ export const useUpdateEthPrice = () => {
 
   const updatePrice = useCallback(async () => {
     const priceData = await getPrice();
+
     if (priceData) {
       dispatch({
         type: ActionType.SET_ETH_PRICE,

@@ -1,44 +1,36 @@
-import hre, { ethers, network } from "hardhat"
-import { Contract, utils, Signer, BigNumber, BigNumberish } from "ethers"
-import {
-	toWei,
-	call,
-	put,
-	fromOpyn,
-	scaleNum,
-	createValidExpiry,
-	MAX_BPS
-} from "../utils/conversion-helper"
 import { expect } from "chai"
-import moment from "moment"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import { BigNumber, Contract, Signer, utils } from "ethers"
+import { AbiCoder } from "ethers/lib/utils"
+import hre, { ethers, network } from "hardhat"
+
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import { LiquidityPoolAdjustCollateralTest } from "../types/LiquidityPoolAdjustCollateralTest"
-import { NewController } from "../types/NewController"
 import { AddressBook } from "../types/AddressBook"
-import { Oracle } from "../types/Oracle"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import { ERC20Interface } from "../types/ERC20Interface"
+import { LiquidityPoolAdjustCollateralTest } from "../types/LiquidityPoolAdjustCollateralTest"
 import { MintableERC20 } from "../types/MintableERC20"
+import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
+import { NewController } from "../types/NewController"
+import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
+import { Oracle } from "../types/Oracle"
 import { Otoken as IOToken } from "../types/Otoken"
 import { WETH } from "../types/WETH"
+import { call, createValidExpiry, MAX_BPS, put, scaleNum, toWei } from "../utils/conversion-helper"
+import { deployOpyn } from "../utils/opyn-deployer"
 import {
-	CHAINLINK_WETH_PRICER,
+	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
 	MARGIN_POOL,
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS,
-	CONTROLLER_OWNER,
-	ADDRESS_BOOK,
-	GAMMA_ORACLE_NEW
+	WETH_ADDRESS
 } from "./constants"
-import { deployOpyn } from "../utils/opyn-deployer"
-import { setupOracle, setOpynOracleExpiryPrice, setupTestOracle, increase } from "./helpers"
-import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import { AbiCoder } from "ethers/lib/utils"
-import { ChainLinkPricer } from "../types/ChainLinkPricer"
+import { increase, setOpynOracleExpiryPrice, setupTestOracle } from "./helpers"
+
+dayjs.extend(utc)
 
 let usd: MintableERC20
 let wethERC20: ERC20Interface
@@ -68,12 +60,6 @@ let proposedSeriesETH: OptionSeriesStruct
 const expiryDate: string = "2022-04-05"
 
 // time travel period between each expiry
-const expiryPeriod = {
-	days: 0,
-	weeks: 0,
-	months: 1,
-	years: 0
-}
 const productSpotShockValue = scaleNum("0.6", 27)
 // array of time to expiry
 const day = 60 * 60 * 24
@@ -93,16 +79,7 @@ const oTokenDecimalShift18 = 10000000000
 let strike = toWei("3500")
 
 // handles the conversion of expiryDate to a unix timestamp
-const now = moment().utc().unix()
-let expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
-const optionParams = {
-	minCallStrikePrice: 0,
-	maxCallStrikePrice: toWei("100000000000"),
-	minPutStrikePrice: 0,
-	maxPutStrikePrice: toWei("1000000000000"),
-	minExpiry: 0,
-	maxExpiry: 99999999999
-}
+let expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
 
 describe("Options protocol Vault Health", function () {
 	before(async function () {

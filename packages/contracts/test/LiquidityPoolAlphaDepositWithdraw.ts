@@ -1,47 +1,48 @@
-import hre, { ethers, network } from "hardhat"
-import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
-import {
-	toWei,
-	tFormatEth,
-	fromWei,
-	toUSDC,
-	toOpyn,
-	fromOpyn,
-	percentDiff,
-	tFormatUSDC,
-	scaleNum,
-	toWeiFromUSDC
-} from "../utils/conversion-helper"
-import moment from "moment"
 import { expect } from "chai"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import { BigNumber, Contract, Signer, utils } from "ethers"
+import hre, { ethers } from "hardhat"
+
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
+import { AddressBook } from "../types/AddressBook"
 import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
-import { ERC20 } from "../types/ERC20"
-import { ERC20Interface } from "../types/ERC20Interface"
+import { LiquidityPool } from "../types/LiquidityPool"
 import { MintableERC20 } from "../types/MintableERC20"
+import { NewController } from "../types/NewController"
+import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import { OptionRegistry } from "../types/OptionRegistry"
+import { Oracle } from "../types/Oracle"
 import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPool } from "../types/LiquidityPool"
+import { Protocol } from "../types/Protocol"
 import { Volatility } from "../types/Volatility"
 import { WETH } from "../types/WETH"
-import { Protocol } from "../types/Protocol"
-import { NewController } from "../types/NewController"
-import { AddressBook } from "../types/AddressBook"
-import { Oracle } from "../types/Oracle"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import {
-	setupTestOracle,
+	fromOpyn,
+	fromWei,
+	percentDiff,
+	scaleNum,
+	tFormatEth,
+	tFormatUSDC,
+	toOpyn,
+	toUSDC,
+	toWei,
+	toWeiFromUSDC
+} from "../utils/conversion-helper"
+import {
+	calculateOptionDeltaLocally,
 	calculateOptionQuoteLocally,
-	calculateOptionDeltaLocally
+	setupTestOracle
 } from "./helpers"
 
-import { deployOpyn } from "../utils/opyn-deployer"
+import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { VolatilityFeed } from "../types/VolatilityFeed"
 import { deployLiquidityPool, deploySystem } from "../utils/alpha-system-deployer"
-import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
+import { deployOpyn } from "../utils/opyn-deployer"
+
+dayjs.extend(utc)
 
 let usd: MintableERC20
 let weth: WETH
@@ -61,10 +62,6 @@ let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
 let handler: AlphaOptionHandler
-let optionToken1: string
-let priceQuote: any
-let quote: any
-let localDelta: any
 let authority: string
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
@@ -79,7 +76,6 @@ const expiryDate: string = "2022-04-05"
 // decimal representation of a percentage
 const rfr: string = "0"
 // edit depending on the chain id to be tested on
-const chainId = 1
 const oTokenDecimalShift18 = 10000000000
 const collatDecimalShift = BigNumber.from(1000000000000)
 // amount of dollars OTM written options will be (both puts and calls)
@@ -88,7 +84,6 @@ const strike = "20"
 
 // balances to deposit into the LP
 const liquidityPoolUsdcDeposit = "100000"
-const liquidityPoolUsdcWithdraw = "1000"
 
 const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("10000")
@@ -114,10 +109,7 @@ const expiryToValue = [
 
 /* --- end variables to change --- */
 
-const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
-
-const CALL_FLAVOR = false
-const PUT_FLAVOR = true
+const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
 
 describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 	before(async function () {

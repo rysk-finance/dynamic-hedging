@@ -6,7 +6,8 @@
 
 import { ethers } from "hardhat"
 import { BigNumber, utils } from "ethers"
-import moment from "moment"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
 import dotenv from "dotenv"
 import { toWei, toUSDC } from "../../utils/conversion-helper"
 import { calculateOptionQuoteLocally } from "../../test/helpers"
@@ -14,6 +15,8 @@ import { LiquidityPool } from "../../types/LiquidityPool"
 import { OptionRegistry } from "../../types/OptionRegistry"
 import { MintableERC20 } from "../../types/MintableERC20"
 import { PriceFeed } from "../../types/PriceFeed"
+
+dayjs.extend(utc)
 dotenv.config()
 
 // arbitrum goerli alpha addresses
@@ -82,8 +85,8 @@ const sellOptions = async (strikePrice: number, weeksUntilExpiry: number, isPut:
 	)) as PriceFeed
 
 	const amount = toWei("1")
-	const todayDate = moment().format("YYYY-MM-DD")
-	const expiration = moment.utc(todayDate).add(weeksUntilExpiry, "w").add(8, "h").valueOf() / 1000
+	const todayDate = dayjs().format("YYYY-MM-DD")
+	const expiration = dayjs.utc(todayDate).add(weeksUntilExpiry, "weeks").add(8, "hours").unix()
 	const strikePriceFormatted = toWei(strikePrice.toString())
 
 	const balance = await usdc.balanceOf(liquidityPoolAddress)

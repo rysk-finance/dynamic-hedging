@@ -8,7 +8,6 @@ import "hardhat-contract-sizer"
 import "hardhat-dependency-compiler"
 import "hardhat-deploy"
 import "hardhat-gas-reporter"
-import "hardhat-tracer"
 import path from "path"
 import "solidity-coverage"
 // Task imports

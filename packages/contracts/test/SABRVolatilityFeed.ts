@@ -1,16 +1,21 @@
-import hre, { ethers } from "hardhat"
-import { Signer, BigNumber } from "ethers"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
-import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 import { expect } from "chai"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import { BigNumber, Signer } from "ethers"
+import hre, { ethers } from "hardhat"
+
+import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 import { MintableERC20 } from "../types/MintableERC20"
 import { PriceFeed } from "../types/PriceFeed"
 import { VolatilityFeed } from "../types/VolatilityFeed"
 import { WETH } from "../types/WETH"
+import { tFormatEth, toWei } from "../utils/conversion-helper"
 import { USDC_ADDRESS, WETH_ADDRESS } from "./constants"
-import { toWei, tFormatEth } from "../utils/conversion-helper"
-import moment from "moment"
 import { increaseTo } from "./helpers"
+
+dayjs.extend(utc)
+
 let usd: MintableERC20
 let weth: WETH
 let signers: Signer[]
@@ -18,13 +23,12 @@ let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
 
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 // edit depending on the chain id to be tested on
 const chainId = 1
 // get the expiration to use
 const expiryDate: string = "2022-04-05"
-let start = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
-let expiration = moment.utc(expiryDate).add(30, "d").add(8, "h").valueOf() / 1000
+let start = dayjs.utc(expiryDate).add(8, "hours").unix()
+let expiration = dayjs.utc(expiryDate).add(30, "days").add(8, "hours").unix()
 
 describe("Volatility Feed", async () => {
 	before(async function () {
@@ -128,32 +132,32 @@ describe("Volatility Feed", async () => {
 			const expiries = await volFeed.getExpiries()
 			expect(expiries.length).to.equal(1)
 		})
-	it("SETUP: set sabrParams", async () => {
-		const proposedSabrParams = {
-			callAlpha: 250000,
-			callBeta: 1_000000,
-			callRho: -300000,
-			callVolvol: 1_500000,
-			putAlpha: 250000,
-			putBeta: 1_000000,
-			putRho: -300000,
-			putVolvol: 1_500000
-		}
-		const expiry = expiration + 10
-		await volFeed.setSabrParameters(proposedSabrParams, expiry)
-		const volFeedSabrParams = await volFeed.sabrParams(expiry)
-		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
-		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
-		expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
-		expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
-		expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
-		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
-		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
-		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
-		const expiries = await volFeed.getExpiries()
-		expect(expiries.length).to.equal(2)
+		it("SETUP: set sabrParams", async () => {
+			const proposedSabrParams = {
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000
+			}
+			const expiry = expiration + 10
+			await volFeed.setSabrParameters(proposedSabrParams, expiry)
+			const volFeedSabrParams = await volFeed.sabrParams(expiry)
+			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+			expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+			expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+			expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			const expiries = await volFeed.getExpiries()
+			expect(expiries.length).to.equal(2)
+		})
 	})
-})
 	describe("VolatilityFeed: get implied volatility", async () => {
 		it("SUCCEEDS: get implied volatility for different strikes", async () => {
 			const underlyingPrice = toWei("100")

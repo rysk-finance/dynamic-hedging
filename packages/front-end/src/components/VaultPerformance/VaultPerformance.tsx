@@ -65,7 +65,7 @@ export const VaultPerformance = () => {
   }, [data]);
 
   return (
-    <AnimatePresence exitBeforeEnter>
+    <AnimatePresence mode="wait">
       {loading && (
         <FadeWrapper key="loading">
           <Loading />
