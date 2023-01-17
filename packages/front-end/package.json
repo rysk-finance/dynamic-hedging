@@ -1,7 +1,7 @@
 {
-  "private": true,
   "name": "front-end",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "private": true,
   "scripts": {
     "build": "react-app-rewired build",
     "eject": "react-app-rewired eject",
@@ -67,23 +67,5 @@
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-react": "^7.29.4",
     "prettier": "2.7.1"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
   }
 }
