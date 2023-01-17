@@ -204,8 +204,6 @@ contract SABRTest is Test {
 		assertApproxEqAbs(vol, 0.2591e18, 1e14);
         (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
         uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu);
-        console.log(vol);
-        console.log(expectedVol);
         assertApproxEqAbs(vol, expectedVol, 1e4);
 	}
 
@@ -217,8 +215,6 @@ contract SABRTest is Test {
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
         (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
         uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu);
-        console.log(vol);
-        console.log(expectedVol);
         assertApproxEqAbs(vol, expectedVol, 1e8);
 	}
 
@@ -230,8 +226,6 @@ contract SABRTest is Test {
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
         (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
         uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu);
-        console.log(vol);
-        console.log(expectedVol);
         assertApproxEqAbs(vol, expectedVol, 1e8);
 	}
 
@@ -256,8 +250,6 @@ contract SABRTest is Test {
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
         (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
         uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu);
-        console.log(vol);
-        console.log(expectedVol);
         assertApproxEqAbs(vol, expectedVol, 1e5);
 	}
 
@@ -269,8 +261,6 @@ contract SABRTest is Test {
 		uint256 vol = volFeed.getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
         (int32 alpha, int32 beta, int32 rho, int32 nu, , , ,) = volFeed.sabrParams(expiration);
         uint256 expectedVol = calculateVol(strikePrice, underlyingPrice, expiration, alpha, beta, rho, nu);
-        console.log(vol);
-        console.log(expectedVol);
         assertApproxEqAbs(vol, expectedVol, 1e9);
 	}
 

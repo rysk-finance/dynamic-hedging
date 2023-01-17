@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const OVERFLOW_HIDDEN_CLASS = "overflow-hidden";
 const MIN_WIDTH = 768;

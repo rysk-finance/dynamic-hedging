@@ -1,6 +1,6 @@
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import * as ethers from "ethers";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useWalletContext } from "../App";
 import { TransactionDisplay } from "../components/shared/TransactionDisplay";
@@ -140,7 +140,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
           const transaction = (await method(...args, {
             gasLimit: scaledGasLimit,
           })) as TransactionResponse;
-          if (process.env.REACT_APP_ENV === "testnet") {
+          if (process.env.REACT_APP_NETWORK !== ETHNetwork.ARBITRUM_MAINNET) {
             console.log(`TX HASH: ${transaction.hash}`);
           }
           toast(

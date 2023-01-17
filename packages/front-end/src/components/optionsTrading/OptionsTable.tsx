@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import {
@@ -33,7 +34,7 @@ const suggestedPutOptionPriceDiff = [
   -800, -600, -400, -300, -200, -100, 0, 100,
 ];
 
-export const OptionsTable: React.FC = () => {
+export const OptionsTable = () => {
   const {
     state: { ethPrice },
   } = useGlobalContext();

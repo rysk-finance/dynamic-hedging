@@ -1,4 +1,3 @@
-import React from "react";
 import { VaultContent } from "../components/vault/VaultContent";
 import { VaultStateManagment } from "../components/vault/VaultStateManagement";
 import { VaultProvider } from "../state/VaultContext";

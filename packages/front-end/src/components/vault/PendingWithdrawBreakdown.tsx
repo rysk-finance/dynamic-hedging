@@ -1,6 +1,7 @@
 import { gql, useQuery } from "@apollo/client";
 import { BigNumber } from "ethers";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
 import { useWalletContext } from "../../App";
 import LPABI from "../../abis/LiquidityPool.json";
 import { DHV_NAME } from "../../config/constants";
@@ -15,7 +16,7 @@ type WithdrawAction = {
   pricePerShare: BigNumber;
 };
 
-export const PendingWithdrawBreakdown: React.FC = () => {
+export const PendingWithdrawBreakdown = () => {
   const [lpContract] = useContract({
     contract: "liquidityPool",
     ABI: LPABI,

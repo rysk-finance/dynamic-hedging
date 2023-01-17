@@ -207,18 +207,9 @@ describe("PerpHedgingReactor Sc1", () => {
 			.add(1)
 		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
-		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
-		console.log(await clearingHouse.getAccountNetProfit(0))
 		await liquidityPoolDummy.hedgeDelta(delta)
-		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
-		console.log(await clearingHouse.getAccountNetProfit(0))
-		const reactorCollatBalanceAfter = (
-			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
-		)[1]
-		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(
-			0,
-			truncate(vTokenAddress)
-		)
+		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		expect(deltaHedge).to.equal(reactorDeltaAfter)
@@ -372,25 +363,11 @@ describe("PerpHedgingReactor Sc1", () => {
 			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
 		)[1]
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-		const collatRequired = -price
-			.mul(delta)
-			.div(toWei("1"))
-			.mul(await perpHedgingReactor.healthFactor())
-			.div(10000)
-			.div(USDC_SCALE)
-		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
-		console.log(await clearingHouse.getAccountNetProfit(0))
+		const collatRequired = -((price.mul(delta).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(delta)
 		await hedgeDeltaTx.wait()
-		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
-		console.log(await clearingHouse.getAccountNetProfit(0))
-		const reactorCollatBalanceAfter = (
-			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
-		)[1]
-		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(
-			0,
-			truncate(vTokenAddress)
-		)
+		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		expect(reactorDeltaAfter).to.equal(reactorDeltaBefore.sub(delta))
@@ -399,8 +376,6 @@ describe("PerpHedgingReactor Sc1", () => {
 		expect(reactorCollatBalanceAfter).to.equal(reactorCollatBalanceBefore.add(collatRequired))
 	})
 	it("syncs profits", async () => {
-		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
-		console.log(await clearingHouse.getAccountNetProfit(0))
 		const hedgeDeltaTx = await liquidityPoolDummy.syncAndUpdate()
 		await hedgeDeltaTx.wait()
 		const profit = await clearingHouse.getAccountNetProfit(0)
@@ -420,25 +395,11 @@ describe("PerpHedgingReactor Sc1", () => {
 			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
 		)[1]
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-		const collatRequired = -price
-			.mul(delta)
-			.div(toWei("1"))
-			.mul(await perpHedgingReactor.healthFactor())
-			.div(10000)
-			.div(USDC_SCALE)
-		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
-		console.log(await clearingHouse.getAccountNetProfit(0))
+		const collatRequired = -((price.mul(delta).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(delta)
 		await hedgeDeltaTx.wait()
-		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
-		console.log(await clearingHouse.getAccountNetProfit(0))
-		const reactorCollatBalanceAfter = (
-			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
-		)[1]
-		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(
-			0,
-			truncate(vTokenAddress)
-		)
+		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		expect(reactorDeltaAfter).to.equal(reactorDeltaBefore.sub(delta))
@@ -475,25 +436,11 @@ describe("PerpHedgingReactor Sc1", () => {
 			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
 		)[1]
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-		const collatRequired = -price
-			.mul(delta)
-			.div(toWei("1"))
-			.mul(await perpHedgingReactor.healthFactor())
-			.div(10000)
-			.div(USDC_SCALE)
-		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
-		console.log(await clearingHouse.getAccountNetProfit(0))
+		const collatRequired = -((price.mul(delta).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(delta)
 		await hedgeDeltaTx.wait()
-		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
-		console.log(await clearingHouse.getAccountNetProfit(0))
-		const reactorCollatBalanceAfter = (
-			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
-		)[1]
-		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(
-			0,
-			truncate(vTokenAddress)
-		)
+		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		expect(reactorDeltaAfter).to.equal(reactorDeltaBefore.sub(delta))
@@ -522,7 +469,6 @@ describe("PerpHedgingReactor Sc1", () => {
 			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
 		)[1]
 		const withdrawAmount = "10000"
-		console.log(await clearingHouse.getAccountMarketValueAndRequiredMargin(0, true))
 		// withdraw more than current balance
 		await liquidityPoolDummy.withdraw(ethers.utils.parseUnits(withdrawAmount, 18))
 		const reactorCollatBalanceAfter = (

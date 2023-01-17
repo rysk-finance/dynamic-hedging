@@ -1,10 +1,3 @@
-import React from "react";
-// import NumberFormat from "react-number-format";
-// import { Card } from "./shared/Card";
-// import ReactTooltip from "react-tooltip";
-// import { RyskTooltip } from "./RyskTooltip";
-// import { DHV_NAME } from "../config/constants";
-
 export const VaultRisksStats = () => {
   return (
     <div className="pb-8 py-12 px-8 flex flex-col lg:flex-row h-full">

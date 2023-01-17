@@ -1,8 +1,9 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
+
 import { useUpdateEthPrice } from "../../hooks/useUpdateEthPrice";
 import { useGlobalContext } from "../../state/GlobalContext";
 
-export const ETHPriceIndicator: React.FC = () => {
+export const ETHPriceIndicator = () => {
   const {
     state: { ethPrice, eth24hChange },
   } = useGlobalContext();

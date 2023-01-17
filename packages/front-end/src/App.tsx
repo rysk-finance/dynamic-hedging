@@ -1,4 +1,3 @@
-import React from "react";
 import {
   ApolloClient,
   ApolloLink,
@@ -18,7 +17,8 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet";
+import { Route, Routes } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
@@ -57,14 +57,14 @@ const onboard = init({
   wallets: [injectedWallets, walletConnect],
   chains: [
     {
-      id: "0x2",
-      token: "ARETH",
+      id: "0x66eed",
+      token: "AGOR",
       namespace: "evm",
-      label: "Arbitrum Rinkeby Testnet",
-      rpcUrl: RPC_URL_MAP[CHAINID.ARBITRUM_RINKEBY],
+      label: "Arbitrum Goerli",
+      rpcUrl: RPC_URL_MAP[CHAINID.ARBITRUM_GOERLI],
     },
     {
-      id: "0x3",
+      id: "0xa4b1",
       token: "ETH",
       namespace: "evm",
       label: "Arbitrum Mainnet",
@@ -127,9 +127,9 @@ function App() {
   const [network, setNetwork] = useState<WalletContext["network"] | null>(null);
   //
   const [rpcURL, setRPCURL] = useState<string>(
-    process.env.REACT_APP_ENV === "production"
+    process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
       ? RPC_URL_MAP[CHAINID.ARBITRUM_MAINNET]
-      : RPC_URL_MAP[CHAINID.ARBITRUM_RINKEBY]
+      : RPC_URL_MAP[CHAINID.ARBITRUM_GOERLI]
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
   // Initialising to a client with undefined URL, rather than just null, as ApolloProvider
@@ -179,11 +179,11 @@ function App() {
       const initialNetwork = await ethersProvider.getNetwork();
       const isCorrectChain =
         initialNetwork.chainId ===
-        (process.env.REACT_APP_ENV === "production"
+        (process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
           ? CHAINID.ARBITRUM_MAINNET
-          : CHAINID.ARBITRUM_RINKEBY);
+          : CHAINID.ARBITRUM_GOERLI);
       if (!isCorrectChain) {
-        if (process.env.REACT_APP_ENV === "production") {
+        if (process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET) {
           await addArbitrum();
           connectWallet();
           return;
@@ -195,10 +195,10 @@ function App() {
       }
 
       const networkId =
-        process.env.REACT_APP_ENV === "production"
+      process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
           ? CHAINID.ARBITRUM_MAINNET
-          : process.env.REACT_APP_ENV === "testnet"
-          ? CHAINID.ARBITRUM_RINKEBY
+          : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_GOERLI
+          ? CHAINID.ARBITRUM_GOERLI
           : null;
       if (networkId) {
         const networkName =
@@ -259,15 +259,15 @@ function App() {
         method: "wallet_addEthereumChain",
         params: [
           {
-            chainId: "0x66EEB", // A 0x-prefixed hexadecimal string
-            chainName: "Arbitrum Testnet",
+            chainId: "0x66EED", // A 0x-prefixed hexadecimal string
+            chainName: "Arbitrum Görli",
             nativeCurrency: {
               name: "Ethereum",
-              symbol: "arETH",
+              symbol: "AGOR",
               decimals: 18,
             },
-            rpcUrls: ["https://rinkeby.arbitrum.io/rpc"],
-            blockExplorerUrls: ["https://rinkeby-explorer.arbitrum.io/"],
+            rpcUrls: ["https://goerli-rollup.arbitrum.io/rpc"],
+            blockExplorerUrls: ["https://goerli.arbiscan.io/"],
           },
         ],
       });
@@ -299,9 +299,9 @@ function App() {
     async (chainIdHex: string) => {
       const chainId = parseInt(chainIdHex);
       const correctChainID =
-        process.env.REACT_APP_ENV === "production"
+      process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
           ? CHAINID.ARBITRUM_MAINNET
-          : CHAINID.ARBITRUM_RINKEBY;
+          : CHAINID.ARBITRUM_GOERLI;
       if (chainId !== correctChainID) {
         disconnect();
       }
@@ -327,16 +327,16 @@ function App() {
     const SUBGRAPH_URI =
       network?.id !== undefined
         ? SUBGRAPH_URL[network?.id]
-        : process.env.REACT_APP_ENV === "production"
+        : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
         ? SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
-        : SUBGRAPH_URL[CHAINID.ARBITRUM_RINKEBY];
+        : SUBGRAPH_URL[CHAINID.ARBITRUM_GOERLI];
 
     const OPYN_SUBGRAPH_URI =
       network?.id !== undefined
         ? OPYN_SUBGRAPH_URL[network?.id]
-        : process.env.REACT_APP_ENV === "production"
+        : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
         ? OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
-        : OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_RINKEBY];
+        : OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_GOERLI];
 
     const ryskSubgraph = new HttpLink({
       uri: SUBGRAPH_URI,
@@ -352,7 +352,32 @@ function App() {
         opynSubgraph, // <= apollo will send to this if clientName is "opyn"
         ryskSubgraph // <= otherwise will send to this
       ),
-      cache: new InMemoryCache(),
+      cache: new InMemoryCache({
+        typePolicies: {
+          Query: {
+            fields: {
+              writeOptionsActions: {
+                keyArgs: false,
+                merge(existing = [], incoming) {
+                  return [...existing, ...incoming];
+                },
+              },
+              buybackOptionActions: {
+                keyArgs: false,
+                merge(existing = [], incoming) {
+                  return [...existing, ...incoming];
+                },
+              },
+              rebalanceDeltaActions: {
+                keyArgs: false,
+                merge(existing = [], incoming) {
+                  return [...existing, ...incoming];
+                },
+              },
+            },
+          },
+        },
+      }),
     });
 
     setApolloClient(client);
@@ -385,6 +410,12 @@ function App() {
       <GlobalContextProvider>
         <ApolloProvider client={apolloClient}>
           <div className="App bg-bone font-dm-mono flex flex-col min-h-screen">
+            {process.env.REACT_APP_ENV !== "production" && (
+              <Helmet>
+                <meta name="robots" content="noindex, nofollow"></meta>
+              </Helmet>
+            )}
+
             <LegalDisclaimer />
             <MobileWarning />
             <Header />

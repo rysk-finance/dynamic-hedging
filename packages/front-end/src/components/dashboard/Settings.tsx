@@ -1,8 +1,6 @@
-import React from "react";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { ActionType, AppSettings } from "../../state/types";
-import { Toggle } from "../shared/Toggle";
 
 export const LOCAL_STORAGE_SETTINGS_KEY = "settings";
 

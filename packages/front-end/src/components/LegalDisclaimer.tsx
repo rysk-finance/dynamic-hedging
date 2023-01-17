@@ -1,7 +1,4 @@
-import { link, linkSync } from "fs";
-import React, { useCallback, useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { AppPaths } from "../config/appPaths";
+import { useCallback, useEffect, useState } from "react";
 import { PP_LINK, TERMS_LINK } from "../config/links";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { Button } from "./shared/Button";

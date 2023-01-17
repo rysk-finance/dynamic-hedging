@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
+
 import { useWalletContext } from "../../App";
 import OptionHandler from "../../abis/OptionHandler.json";
 import OptionRegistry from "../../abis/OptionRegistry.json";
@@ -15,7 +16,6 @@ import { OrderDetails } from "./OrderDetails";
 import ERC20ABI from "../../abis/erc20.json";
 import { BigNumber, ethers } from "ethers";
 import { BigNumberDisplay } from "../BigNumberDisplay";
-import { getAddress } from "@ethersproject/address";
 
 const STRANGLE_REGEX = /^([0-9]+)(-[0-9]+)$/;
 
@@ -28,6 +28,7 @@ export const OTCPageContent = () => {
 
   const [orderId, setOrderId] = useState<string | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
+  const [isBuyer, setIsBuyer] = useState<boolean>(false);
 
   const [optionSeriesContract, setOptionContract] =
     useState<ethers.Contract | null>(null);
@@ -163,12 +164,12 @@ export const OTCPageContent = () => {
   ]);
 
   useEffect(() => {
-    if (account && order) {
-      if (account.toLowerCase() !== order.buyer.toLowerCase()) {
-        setError(`❌ Please connect with account ${order.buyer}`);
-      }
+    if (account && (order || strangle)) {
+      // NOTE: this presumes buyer of call/put in strangle is same
+      const buyerAddress = order?.buyer ?? strangle?.call.buyer;
+      setIsBuyer(account.toLowerCase() === buyerAddress?.toLowerCase());
     }
-  }, [account, order]);
+  }, [account, order, strangle]);
 
   // Regular order handlers
   const handleApprove = useCallback(async () => {
@@ -512,48 +513,50 @@ export const OTCPageContent = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex">
-                    <Button
-                      className={`w-full border-b-0 border-x-0 !py-4`}
-                      onClick={
-                        order
-                          ? order.isBuyBack
-                            ? handleApproveBuyBack
-                            : handleApprove
-                          : strangle
-                          ? handleApprove
-                          : () => {}
-                      }
-                      color="black"
-                      disabled={approveDisabled}
-                    >
-                      {isApproved
-                        ? "✅ Approved"
-                        : isListeningForApproval
-                        ? "⏱ Awaiting Approval"
-                        : "Approve"}
-                    </Button>
-                    <Button
-                      className={`w-full border-b-0 border-x-0 !py-4 `}
-                      color="black"
-                      onClick={
-                        order
-                          ? order.isBuyBack
-                            ? handleCompleteBuyBack
-                            : handleComplete
-                          : strangle
-                          ? handleComplete
-                          : () => {}
-                      }
-                      disabled={completeDisabled}
-                    >
-                      {isListeningForComplete
-                        ? "⏱ Awaiting Completion"
-                        : order?.isBuyBack
-                        ? "Complete Sale"
-                        : "Complete Purchase"}
-                    </Button>
-                  </div>
+                  {isBuyer && (
+                    <div className="flex">
+                      <Button
+                        className={`w-full border-b-0 border-x-0 !py-4`}
+                        onClick={
+                          order
+                            ? order.isBuyBack
+                              ? handleApproveBuyBack
+                              : handleApprove
+                            : strangle
+                            ? handleApprove
+                            : () => {}
+                        }
+                        color="black"
+                        disabled={approveDisabled}
+                      >
+                        {isApproved
+                          ? "✅ Approved"
+                          : isListeningForApproval
+                          ? "⏱ Awaiting Approval"
+                          : "Approve"}
+                      </Button>
+                      <Button
+                        className={`w-full border-b-0 border-x-0 !py-4 `}
+                        color="black"
+                        onClick={
+                          order
+                            ? order.isBuyBack
+                              ? handleCompleteBuyBack
+                              : handleComplete
+                            : strangle
+                            ? handleComplete
+                            : () => {}
+                        }
+                        disabled={completeDisabled}
+                      >
+                        {isListeningForComplete
+                          ? "⏱ Awaiting Completion"
+                          : order?.isBuyBack
+                          ? "Complete Sale"
+                          : "Complete Purchase"}
+                      </Button>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="p-4">
