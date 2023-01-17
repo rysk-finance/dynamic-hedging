@@ -1,70 +1,53 @@
-import hre, { ethers, network } from "hardhat"
-import {
-	BigNumberish,
-	Contract,
-	utils,
-	Signer,
-	BigNumber,
-	ContractTransaction,
-	ContractReceipt
-} from "ethers"
-import { AbiCoder, serializeTransaction } from "ethers/lib/utils"
-//@ts-ignore
-import greeks from "greeks"
-//@ts-ignore
 import bs from "black-scholes"
-import {
-	toWei,
-	tFormatEth,
-	fromWei,
-	toUSDC,
-	toOpyn,
-	tFormatUSDC,
-	scaleNum,
-	truncate,
-	genOptionTimeFromUnix
-} from "../utils/conversion-helper"
-import moment from "moment"
 import { expect } from "chai"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import { BigNumber, Contract, ContractReceipt, ContractTransaction, Signer, utils } from "ethers"
+import { AbiCoder } from "ethers/lib/utils"
+import hre, { ethers, network } from "hardhat"
+
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import HandlerSol from "../artifacts/contracts/OptionHandler.sol/OptionHandler.json"
-import { ERC20 } from "../types/ERC20"
-import { ERC20Interface } from "../types/ERC20Interface"
-import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry } from "../types/OptionRegistry"
-import { Otoken as IOToken } from "../types/Otoken"
-import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { Volatility } from "../types/Volatility"
-import { WETH } from "../types/WETH"
-import { Protocol } from "../types/Protocol"
-import { Controller } from "../types/Controller"
 import { AddressBook } from "../types/AddressBook"
-import { Oracle } from "../types/Oracle"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle, setOpynOracleExpiryPrice, setupOracle } from "./helpers"
-import {
-	ADDRESS_BOOK,
-	GAMMA_CONTROLLER,
-	MARGIN_POOL,
-	OTOKEN_FACTORY,
-	USDC_ADDRESS,
-	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS,
-	CONTROLLER_OWNER,
-	CHAINLINK_WETH_PRICER,
-	oTokenDecimalShift18
-} from "./constants"
-import { deployOpyn } from "../utils/opyn-deployer"
+import { ERC20Interface } from "../types/ERC20Interface"
+import { LiquidityPool } from "../types/LiquidityPool"
+import { MintableERC20 } from "../types/MintableERC20"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { MockPortfolioValuesFeed } from "../types/MockPortfolioValuesFeed"
-import { VolatilityFeed } from "../types/VolatilityFeed"
 import { NewController } from "../types/NewController"
+import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import { OptionHandler } from "../types/OptionHandler"
+import { OptionRegistry } from "../types/OptionRegistry"
+import { Oracle } from "../types/Oracle"
+import { Otoken as IOToken } from "../types/Otoken"
+import { PriceFeed } from "../types/PriceFeed"
+import { Protocol } from "../types/Protocol"
+import { Volatility } from "../types/Volatility"
+import { VolatilityFeed } from "../types/VolatilityFeed"
+import { WETH } from "../types/WETH"
+import {
+	fromWei,
+	genOptionTimeFromUnix,
+	scaleNum,
+	tFormatEth,
+	tFormatUSDC,
+	toOpyn,
+	toUSDC,
+	toWei,
+	truncate
+} from "../utils/conversion-helper"
+import { getMatchingEvents, WRITE_OPTION } from "../utils/events"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
-import { getMatchingEvents, WRITE_OPTION, BUYBACK_OPTION } from "../utils/events"
+import { deployOpyn } from "../utils/opyn-deployer"
 import { getPortfolioValues } from "../utils/portfolioValues"
+import {
+	CHAINLINK_WETH_PRICER,
+	CONTROLLER_OWNER,
+	oTokenDecimalShift18,
+	WETH_ADDRESS
+} from "./constants"
+import { setOpynOracleExpiryPrice, setupTestOracle } from "./helpers"
+
+dayjs.extend(utc)
 
 type Series = {
 	expiration: number
@@ -78,6 +61,7 @@ type WrittenOption = {
 	amount: BigNumber
 	series: Series
 }
+
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: ERC20Interface
@@ -99,7 +83,6 @@ let portfolioValuesFeed: MockPortfolioValuesFeed
 let handler: OptionHandler
 let portfolioValueArgs: [LiquidityPool, NewController, OptionRegistry, PriceFeed, Oracle]
 
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 // delta of first put written
 const expected_put_delta = 0.433
 // delta of first call written
@@ -127,7 +110,6 @@ const liquidityPoolUsdcDeposit = "10000"
 const liquidityPoolWethDeposit = "1"
 
 // balance to withdraw after deposit
-const liquidityPoolWethWithdraw = "0.1"
 const liquidityPoolUsdcWithdraw = "10000"
 
 const minCallStrikePrice = utils.parseEther("500")
@@ -154,7 +136,7 @@ const expiryToValue = [
 
 /* --- end variables to change --- */
 
-const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
+const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
 
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true

@@ -1,12 +1,16 @@
-import { useState, useEffect } from "react";
 import { gql, useQuery } from "@apollo/client";
-import moment from "moment";
-import { CHAINID, DECIMALS, SCAN_URL } from "../config/constants";
-import NumberFormat from "react-number-format";
-import { optionSymbolFormat } from "../utils";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import { useEffect, useState } from "react";
 import { FullScreen, useFullScreenHandle } from "react-full-screen";
-import useElementOnScreen from "../hooks/useElementOnScreen";
+import NumberFormat from "react-number-format";
+
 import ContentLoader from "react-content-loader";
+import { CHAINID, DECIMALS, SCAN_URL } from "../config/constants";
+import useElementOnScreen from "../hooks/useElementOnScreen";
+import { optionSymbolFormat } from "../utils";
+
+dayjs.extend(utc);
 
 const TEN_DAYS_IN_SECONDS = 864000;
 const TIMESTAMP_LIMIT = 1664553600;
@@ -255,10 +259,9 @@ export const VaultTrades = () => {
                             ref={i === trades.length - 1 ? containerRef : null}
                           />
                         )}
-                        {moment
-                          .utc(trade.timestamp * 1000)
-                          .format("DD-MMM-YY HH:mm")}{" "}
-                        UTC
+                        {`${dayjs
+                          .unix(trade.timestamp)
+                          .format("DD-MMM-YY HH:mm")} UTC`}
                       </th>
                       <td className="py-4 px-6 text-md bg-bone font-parabole">
                         <div className="flex lg:flex-row flex-col justify-between items-center">

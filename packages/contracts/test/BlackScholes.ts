@@ -11,10 +11,8 @@ import {
 	percentDiff,
 	BlackScholesCalcArgs
 } from "../utils/conversion-helper"
-import moment from "moment"
-//@ts-ignore
+import dayjs from "dayjs"
 import bs from "black-scholes"
-//@ts-ignore
 import greeks from "greeks"
 import { expect } from "chai"
 import { BlackScholesTest as IBlackScholesTest } from "../types/BlackScholesTest"
@@ -31,8 +29,8 @@ describe("Pricing options", function () {
 	it("correctly prices in the money call with a one year time to expiration", async function () {
 		const strike = 250
 		const price = 300
-		const now: moment.Moment = moment()
-		const oneYear = moment(now).add(12, "M")
+		const now = dayjs()
+		const oneYear = now.add(12, "months")
 		const time = genOptionTime(now, oneYear)
 		const vol = 0.15
 		const rfr = 0
@@ -45,8 +43,8 @@ describe("Pricing options", function () {
 	it("correctly  prices out of the money call with one year time", async () => {
 		const strike = 350
 		const price = 300
-		const now: moment.Moment = moment()
-		const oneYear = moment(now).add(12, "M")
+		const now = dayjs()
+		const oneYear = now.add(12, "months")
 		const time = genOptionTime(now, oneYear)
 		const vol = 0.15
 		const rfr = 0
@@ -59,8 +57,8 @@ describe("Pricing options", function () {
 	it("correctly prices out of the money call with one year time high volatility", async () => {
 		const strike = 350
 		const price = 300
-		const now: moment.Moment = moment()
-		const oneYear = moment(now).add(12, "M")
+		const now = dayjs()
+		const oneYear = now.add(12, "months")
 		const time = genOptionTime(now, oneYear)
 		const vol = 1.5
 		const rfr = 0
@@ -73,8 +71,8 @@ describe("Pricing options", function () {
 	it("correctly prices in the money call with one month expiration high volatility", async () => {
 		const strike = 250
 		const price = 300
-		const now: moment.Moment = moment()
-		const oneYear = moment(now).add(12, "M")
+		const now = dayjs()
+		const oneYear = now.add(12, "months")
 		const time = genOptionTime(now, oneYear)
 		const vol = 1.5
 		const rfr = 0
@@ -87,8 +85,8 @@ describe("Pricing options", function () {
 	it("correctly prices in the money put with one year time", async () => {
 		const strike = 250
 		const price = 200
-		const now: moment.Moment = moment()
-		const oneYear = moment(now).add(12, "M")
+		const now = dayjs()
+		const oneYear = now.add(12, "months")
 		const time = genOptionTime(now, oneYear)
 		const vol = 0.15
 		const rfr = 0
@@ -101,8 +99,8 @@ describe("Pricing options", function () {
 	it("correctly prices in the money put with one year time high volatility", async () => {
 		const strike = 250
 		const price = 200
-		const now: moment.Moment = moment()
-		const oneYear = moment(now).add(12, "M")
+		const now = dayjs()
+		const oneYear = now.add(12, "months")
 		const time = genOptionTime(now, oneYear)
 		const vol = 1.5
 		const rfr = 0
@@ -115,8 +113,8 @@ describe("Pricing options", function () {
 	it("correctly prices in the money put with one month time high volatility", async () => {
 		const strike = 250
 		const price = 200
-		const now: moment.Moment = moment()
-		const future = moment(now).add(1, "M")
+		const now = dayjs()
+		const future = now.add(1, "months")
 		const time = genOptionTime(now, future)
 		const vol = 1.5
 		const rfr = 0
@@ -129,8 +127,8 @@ describe("Pricing options", function () {
 	it("correctly prices in the money put with one month time high volatility", async () => {
 		const strike = 250
 		const price = 200
-		const now: moment.Moment = moment()
-		const future = moment(now).add(1, "M")
+		const now = dayjs()
+		const future = now.add(1, "months")
 		const time = genOptionTime(now, future)
 		const vol = 1.5
 		const rfr = 0
@@ -143,8 +141,8 @@ describe("Pricing options", function () {
 	it("correctly prices at the money put with one month time high volatility", async () => {
 		const strike = 200
 		const price = 200
-		const now: moment.Moment = moment()
-		const future = moment(now).add(1, "M")
+		const now = dayjs()
+		const future = now.add(1, "months")
 		const time = genOptionTime(now, future)
 		const vol = 1.5
 		const rfr = 0
@@ -157,8 +155,8 @@ describe("Pricing options", function () {
 	it("correctly prices near the money put with one month time high volatility", async () => {
 		const strike = 190
 		const price = 200
-		const now: moment.Moment = moment()
-		const future = moment(now).add(1, "M")
+		const now = dayjs()
+		const future = now.add(1, "months")
 		const time = genOptionTime(now, future)
 		const vol = 1.5
 		const rfr = 0
@@ -171,8 +169,8 @@ describe("Pricing options", function () {
 	it("correctly prices out of the money put with one month time high volatility", async () => {
 		const strike = 150
 		const price = 200
-		const now: moment.Moment = moment()
-		const future = moment(now).add(1, "M")
+		const now = dayjs()
+		const future = now.add(1, "months")
 		const time = genOptionTime(now, future)
 		const vol = 1.5
 		const rfr = 0
@@ -185,8 +183,8 @@ describe("Pricing options", function () {
 	it("correctly prices out of the money put with one month time", async () => {
 		const strike = 150
 		const price = 200
-		const now: moment.Moment = moment()
-		const future = moment(now).add(1, "M")
+		const now = dayjs()
+		const future = now.add(1, "months")
 		const time = genOptionTime(now, future)
 		const vol = 0.15
 		const rfr = 0
@@ -199,8 +197,8 @@ describe("Pricing options", function () {
 	it("correctly computes delta of out of the money call with one month time", async () => {
 		const strike = 220
 		const price = 200
-		const now: moment.Moment = moment()
-		const future = moment(now).add(1, "M")
+		const now = dayjs()
+		const future = now.add(1, "months")
 		const time = genOptionTime(now, future)
 		const vol = 0.15
 		const rfr = 0
@@ -213,8 +211,8 @@ describe("Pricing options", function () {
 	it("correctly computes delta of out of the money put with one month time", async () => {
 		const strike = 190
 		const price = 200
-		const now: moment.Moment = moment()
-		const future = moment(now).add(1, "M")
+		const now = dayjs()
+		const future = now.add(1, "months")
 		const time = genOptionTime(now, future)
 		const vol = 0.15
 		const rfr = 0
@@ -227,7 +225,7 @@ describe("Pricing options", function () {
 	it("Estimated portfolio deltas should deviate by more than 10% compared with cached values at scale", async () => {
 		// This test is to confirm that used cached values can not be relied upon to accurately compute portfolio delta
 		let iterations = 10000
-		const now: moment.Moment = moment()
+		const now = dayjs()
 		const priceRange = Array.from({ length: 200 }, (_, i) => i + 100)
 		const amountRange = Array.from({ length: 200 }, (_, i) => i + 1)
 		const timeRange = Array.from({ length: 365 }, (_, i) => (i + 1) / 365)
@@ -278,7 +276,7 @@ describe("Pricing options", function () {
 		const traditionalCallDelta = options
 			.filter(o => o.optType == "call")
 			.map(option => {
-				const future = moment(now).add(option.time, "M")
+				const future = now.add(option.time, "months")
 				const time = genOptionTime(now, future)
 				const delta = greeks.getDelta(
 					currentPrice,
@@ -294,7 +292,7 @@ describe("Pricing options", function () {
 		const traditionalPutDelta = options
 			.filter(o => o.optType == "put")
 			.map(option => {
-				const future = moment(now).add(option.time, "M")
+				const future = now.add(option.time, "months")
 				const time = genOptionTime(now, future)
 				const delta = greeks.getDelta(
 					currentPrice,
@@ -307,9 +305,9 @@ describe("Pricing options", function () {
 				return option.amount * delta
 			})
 			.reduce((a, b) => a + b)
-		const future = moment(now).add(weightedTimeCall, "M")
+		const future = now.add(weightedTimeCall, "months")
 		const time = genOptionTime(now, future)
-		const futurePut = moment(now).add(weightedTimePut, "M")
+		const futurePut = now.add(weightedTimePut, "months")
 		const timePut = genOptionTime(now, futurePut)
 		const callDelta = greeks.getDelta(
 			currentPrice,

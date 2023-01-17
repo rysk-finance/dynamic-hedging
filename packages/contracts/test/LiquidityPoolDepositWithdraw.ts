@@ -15,7 +15,8 @@ import {
 	scaleNum,
 	fromWeiToUSDC
 } from "../utils/conversion-helper"
-import moment from "moment"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
@@ -53,6 +54,8 @@ import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deplo
 import { OptionHandler } from "../types/OptionHandler"
 import { Accounting } from "../types/Accounting"
 import exp from "constants"
+
+dayjs.extend(utc)
 
 let usd: MintableERC20
 let weth: WETH
@@ -126,7 +129,7 @@ const expiryToValue = [
 
 /* --- end variables to change --- */
 
-const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
+const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
 
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true

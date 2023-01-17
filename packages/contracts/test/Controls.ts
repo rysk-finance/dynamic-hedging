@@ -1,27 +1,11 @@
-import hre, { ethers, network } from "hardhat"
-import { BigNumberish, Contract, utils, Signer, BigNumber, providers } from "ethers"
-import {
-	toWei,
-	truncate,
-	tFormatEth,
-	fromWei,
-	percentDiff,
-	toUSDC,
-	fromOpyn,
-	toOpyn,
-	tFormatUSDC,
-	scaleNum
-} from "../utils/conversion-helper"
-import moment from "moment"
-//@ts-ignore
-import bs from "black-scholes"
-import { deployOpyn } from "../utils/opyn-deployer"
 import { expect } from "chai"
-import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
+import { utils, Signer } from "ethers"
+import hre, { ethers, network } from "hardhat"
+
+import { toUSDC, scaleNum } from "../utils/conversion-helper"
+import { deployOpyn } from "../utils/opyn-deployer"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
-import { Otoken as IOToken } from "../types/Otoken"
 import { PriceFeed } from "../types/PriceFeed"
 import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
 import { LiquidityPool } from "../types/LiquidityPool"
@@ -34,34 +18,13 @@ import { AddressBook } from "../types/AddressBook"
 import { Oracle } from "../types/Oracle"
 import { NewMarginCalculator } from "../types/NewMarginCalculator"
 import { Authority } from "../types/Authority"
-import {
-	setupTestOracle,
-	setupOracle,
-	calculateOptionQuoteLocally,
-	getBlackScholesQuote,
-	increaseTo,
-	setOpynOracleExpiryPrice,
-	calculateOptionDeltaLocally
-} from "./helpers"
-import {
-	GAMMA_CONTROLLER,
-	MARGIN_POOL,
-	OTOKEN_FACTORY,
-	USDC_ADDRESS,
-	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS,
-	ADDRESS_BOOK,
-	UNISWAP_V3_SWAP_ROUTER,
-	CONTROLLER_OWNER,
-	GAMMA_ORACLE_NEW,
-	CHAINLINK_WETH_PRICER
-} from "./constants"
+import { setupTestOracle } from "./helpers"
+import { CONTROLLER_OWNER, CHAINLINK_WETH_PRICER } from "./constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import exp from "constants"
 import { deployLiquidityPool, deploySystem } from "../utils/alpha-system-deployer"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
-import { Console } from "console"
+
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: ERC20Interface
@@ -75,23 +38,15 @@ let volatility: Volatility
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
-let uniswapV3HedgingReactor: UniswapV3HedgingReactor
-let rate: string
 let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
-let putOptionToken: IOToken
-let putOptionToken2: IOToken
-let collateralAllocatedToVault1: BigNumber
-let proposedSeries: any
 let handler: AlphaOptionHandler
 let authority: Authority
 
-const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 /* --- variables to change --- */
 
@@ -106,22 +61,6 @@ const invalidExpiryDateShort: string = "2022-03-01"
 const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
-const oTokenDecimalShift18 = 10000000000
-const collatDecimalShift = BigNumber.from(1000000000000)
-// amount of dollars OTM written options will be (both puts and calls)
-// use negative numbers for ITM options
-const strike = "20"
-
-// hardcoded value for strike price that is outside of accepted bounds
-const invalidStrikeHigh = utils.parseEther("12500")
-const invalidStrikeLow = utils.parseEther("200")
-
-// balances to deposit into the LP
-const liquidityPoolUsdcDeposit = "600000"
-const liquidityPoolWethDeposit = "1"
-
-// balance to withdraw after deposit
-const liquidityPoolWethWidthdraw = "0.1"
 
 const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("10000")
@@ -133,12 +72,6 @@ const minExpiry = 86400 * 7
 const maxExpiry = 86400 * 50
 
 // time travel period between each expiry
-const expiryPeriod = {
-	days: 0,
-	weeks: 0,
-	months: 1,
-	years: 0
-}
 const productSpotShockValue = scaleNum("0.6", 27)
 // array of time to expiry
 const day = 60 * 60 * 24
@@ -153,18 +86,7 @@ const expiryToValue = [
 	scaleNum("0.5", 27)
 ]
 
-let noOfExpiries = 10
-let noOfStrikes = 5
-
 /* --- end variables to change --- */
-const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
-const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
-const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
-
-const CALL_FLAVOR = false
-const PUT_FLAVOR = true
-let predictedQuote = BigNumber.from(0)
-let predictedDelta = BigNumber.from(0)
 
 describe("Authority tests", async () => {
 	before(async function () {

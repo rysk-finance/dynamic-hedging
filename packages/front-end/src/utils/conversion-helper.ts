@@ -1,6 +1,6 @@
+import type { Dayjs } from "dayjs";
+
 import { BigNumber, BigNumberish, utils } from "ethers";
-// import BigNumber from 'bignumber.js'
-import moment from "moment";
 
 export const formatEth = (x: BigNumberish) => Number(utils.formatEther(x));
 export function truncate(num: number, places: number = 3): number {
@@ -16,7 +16,7 @@ export const CALL = false;
 export const PUT = true;
 export const SECONDS_IN_DAY = 86400;
 export const SECONDS_IN_YEAR = SECONDS_IN_DAY * 365.25;
-export const genOptionTime = (now: moment.Moment, future: moment.Moment) =>
+export const genOptionTime = (now: Dayjs, future: Dayjs) =>
   (future.unix() - now.unix()) / SECONDS_IN_YEAR;
 export const fromWei = (x: BigNumberish) => utils.formatEther(x);
 export const fromUSDC = (x: BigNumberish) => utils.formatUnits(x, 6);
@@ -29,7 +29,7 @@ export const toWeiFromUSDC = (x: string) => utils.parseUnits(x, 12);
 export const fromWeiToUSDC = (x: string) =>
   utils.parseUnits(utils.formatEther(x), 6);
 export const fromOpyn = (x: BigNumberish) => utils.formatUnits(x, 8);
-export const getDiffSeconds = (now: moment.Moment, future: moment.Moment) =>
+export const getDiffSeconds = (now: Dayjs, future: Dayjs) =>
   future.unix() - now.unix();
 export const convertRounded = (x: BigNumberish): number =>
   Math.round(Number(x.toString()));
