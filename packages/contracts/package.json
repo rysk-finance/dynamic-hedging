@@ -52,7 +52,7 @@
 		"bip39": "^3.0.4",
 		"chai": "^4.3.7",
 		"ethereum-waffle": "^3.4.4",
-		"ethers": "5.7.2",
+		"ethers": "5.4.0",
 		"hardhat": "^2.12.6",
 		"hardhat-contract-sizer": "^2.7.0",
 		"hardhat-dependency-compiler": "^1.1.3",
