@@ -63,6 +63,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	uint256 public collateralSwapPriceTolerance = 5e15; // 0.5%
 	/// @notice price tolerance for opening/closing positions
 	uint256 public positionPriceTolerance = 5e15; // 0.5%
+	/// @notice tolerance on collateral to remove on full closures
+	int256 public collateralRemovalPercentage = 9900; // 99%
 	/// @notice address of the price feed used for getting asset prices
 	address public priceFeed;
 	/// @notice the GMX position router contract
@@ -160,6 +162,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		_onlyGovernor();
 		positionPriceTolerance = _positionPriceTolerance;
 	}
+
+	function setCollateralRemovalPercentage(int256 _collateralRemovalPercentage) external {
+		_onlyGovernor();
+		collateralRemovalPercentage = _collateralRemovalPercentage;
+	}
+
 
 	////////////////////////////////////////////
 	/// access-controlled external functions ///
@@ -670,7 +678,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 					// we need to adjust the collateral to remove by 1% to account for oracle price changes between this call and the gmx callback
 					collateralToRemove =
 						(((int256(position[1] / 1e12) - ((int256(position[0]) / 1e12).mul(1e18 - int256(d)).div(int256(leverageFactor)))) -
-						int256(position[8] / 1e12)) * 9900) / 10000;
+						int256(position[8] / 1e12)) * collateralRemovalPercentage) / 10000;
 				}
 			}
 			uint256 adjustedCollateralToRemove;
