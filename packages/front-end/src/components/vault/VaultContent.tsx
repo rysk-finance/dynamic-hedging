@@ -8,7 +8,6 @@ import { VaultWithdraw } from "./VaultWithdraw";
 import { VaultStrategy } from "../VaultStrategy";
 import { VaultRisks } from "../VaultRisks";
 import { DHV_NAME, SCAN_URL } from "../../config/constants";
-import * as Scroll from "react-scroll";
 
 import { useWalletContext } from "../../App";
 import { CHAINID } from "../../config/constants";
@@ -19,10 +18,7 @@ import addresses from "../../contracts.json";
 import { DISCORD_LINK } from "../../config/links";
 
 export const VaultContent = () => {
-  const { chainId, network, account } = useWalletContext();
-
-  const Link = Scroll.Link;
-  const Element = Scroll.Element;
+  const { network, account } = useWalletContext();
 
   const envChainID = process.env.REACT_APP_CHAIN_ID;
 
@@ -98,17 +94,6 @@ export const VaultContent = () => {
           neutrality in order reduce the directional risk associated with ETH
           price movements.
         </p>
-        {/* <Link
-          className="underline hover:font-medium cursor-pointer text-cyan-dark"
-          activeClass="active"
-          to="overviewScroll"
-          spy={true}
-          smooth={true}
-          offset={-150}
-          duration={500}
-        >
-          Learn more
-        </Link> */}
 
         <LPStats />
       </div>
@@ -126,7 +111,7 @@ export const VaultContent = () => {
         ></Card>
       </div>
 
-      <Element name="overviewScroll" className="col-start-1 col-end-17 mt-16">
+      <section className="col-start-1 col-end-17 mt-16">
         <Card
           tabs={[
             {
@@ -150,8 +135,8 @@ export const VaultContent = () => {
               content: <VaultTrades />,
             },
           ]}
-        ></Card>
-      </Element>
+        />
+      </section>
     </>
   );
 };
