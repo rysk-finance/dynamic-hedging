@@ -1,3 +1,12 @@
-rm -r ../front-end/src/types
+# Clean out the types directory.
+rm -rf ../front-end/src/types/*
 
-cp -r ./types ../front-end/src
+# Copy only the required types.
+cp \
+./types/common.ts \
+./types/ERC20.ts \
+./types/LiquidityPool.ts \
+./types/OptionRegistry.ts \
+./types/PortfolioValuesFeed.ts \
+./types/PriceFeed.ts \
+../front-end/src/types/
