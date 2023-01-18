@@ -8,7 +8,6 @@ import "hardhat-contract-sizer"
 import "hardhat-dependency-compiler"
 import "hardhat-deploy"
 import "hardhat-gas-reporter"
-import "hardhat-tracer"
 import path from "path"
 import "solidity-coverage"
 // Task imports
@@ -43,7 +42,7 @@ const rinkeby = process.env.RINKEBY || new ethers.providers.InfuraProvider("rink
 const arbitrumRinkeby =
 	process.env.ARBITRUM_RINKEBY || new ethers.providers.InfuraProvider("arbitrum-rinkeby").connection.url
 const arbitrum = process.env.ARBITRUM || new ethers.providers.InfuraProvider("arbitrum").connection.url
-
+const arbitrumGoerli = process.env.ARBITRUM_GOERLI
 module.exports = {
 	typechain: {
 		outDir: "types",
@@ -160,6 +159,13 @@ module.exports = {
 		arbitrumRinkeby: {
 			url: arbitrumRinkeby,
 			chainId: 421611,
+			saveDeployments: true,
+			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
+			gas: 500000000
+		},
+		arbitrumGoerli: {
+			url: arbitrumGoerli,
+			chainId: 421613,
 			saveDeployments: true,
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
 			gas: 500000000
