@@ -56,6 +56,9 @@ import { BeyondOptionHandler } from "../types/BeyondOptionHandler"
 import { BeyondPricer } from "../types/BeyondPricer"
 import { OptionExchange } from "../types/OptionExchange"
 import { OptionCatalogue } from "../types/OptionCatalogue"
+
+dayjs.extend(utc)
+
 let usd: MintableERC20
 let weth: WETH
 let optionRegistry: OptionRegistry
@@ -80,6 +83,8 @@ let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let exchange: OptionExchange
 let pricer: BeyondPricer
 let authority: string
+let catalogue: OptionCatalogue
+
 
 /* --- variables to change --- */
 

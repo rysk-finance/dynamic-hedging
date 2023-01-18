@@ -15,7 +15,8 @@ import {
 	fromOpyn,
 	toOpyn,
 	tFormatUSDC,
-	scaleNum
+	scaleNum,
+	emptySeries
 } from "../utils/conversion-helper"
 import { deployOpyn } from "../utils/opyn-deployer"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
@@ -120,7 +121,7 @@ const invalidStrikeHigh = utils.parseEther("12500")
 const invalidStrikeLow = utils.parseEther("200")
 
 // balances to deposit into the LP
-const liquidityPoolUsdcDeposit = "100000"
+const liquidityPoolUsdcDeposit = "500000"
 
 const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("10000")
@@ -2108,7 +2109,7 @@ describe("Liquidity Pools", async () => {
 			amount,
 			pricer,
 			true,
-			exchange,
+			catalogue,
 			localDelta.div(amount.div(toWei("1"))),
 			toWei("0").sub(toWei("50"))
 		)

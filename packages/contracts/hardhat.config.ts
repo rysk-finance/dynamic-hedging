@@ -160,13 +160,6 @@ module.exports = {
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
 			gas: 500000000
 		},
-		arbitrumGoerli: {
-			url: arbitrumGoerli,
-			chainId: 421613,
-			saveDeployments: true,
-			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
-			gas: 500000000
-		}
 	},
 	etherscan: {
 		apiKey: {
