@@ -44,7 +44,9 @@ import {
 	setupTestOracle,
 	makeIssueAndBuy,
 	makeBuy,
-	getSeriesWithe18Strike
+	getSeriesWithe18Strike,
+	setupTestOracle,
+	setupOracle
 } from "./helpers"
 import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
 import { BeyondOptionHandler } from "../types/BeyondOptionHandler"
