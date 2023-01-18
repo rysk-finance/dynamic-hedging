@@ -1,7 +1,8 @@
 import hre, { ethers, network } from "hardhat"
 import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
 import { toWei, toUSDC, scaleNum, fromUSDC } from "../utils/conversion-helper"
-import moment from "moment"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
 import { AbiCoder } from "ethers/lib/utils"
 //@ts-ignore
 import { expect } from "chai"
@@ -28,6 +29,8 @@ import { BeyondPricer } from "../types/BeyondPricer"
 import { NewWhitelist } from "../types/NewWhitelist"
 import { OptionExchange } from "../types/OptionExchange"
 import { OptionCatalogue } from "../types/OptionCatalogue"
+
+dayjs.extend(utc)
 
 let usd: MintableERC20
 let weth: WETH
@@ -71,14 +74,6 @@ const invalidExpiryDateShort: string = "2022-03-01"
 const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
-const oTokenDecimalShift18 = 10000000000
-// amount of dollars OTM written options will be (both puts and calls)
-// use negative numbers for ITM options
-const strike = "20"
-
-// hardcoded value for strike price that is outside of accepted bounds
-const invalidStrikeHigh = utils.parseEther("12500")
-const invalidStrikeLow = utils.parseEther("200")
 
 // balances to deposit into the LP
 const liquidityPoolUsdcDeposit = "100000"
@@ -118,11 +113,8 @@ const expiryToValue = [
 
 /* --- end variables to change --- */
 
-const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
-const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
-const expiration3 = moment.utc(expiryDate).add(2, "w").add(8, "h").valueOf() / 1000
-const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
-const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
+const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
+const expiration2 = dayjs.utc(expiryDate).add(1, "weeks").add(8, "hours").unix() // have another batch of options exire 1 week after the first
 const abiCode = new AbiCoder()
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
@@ -415,7 +407,6 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
-			console.log({ quoteResponse: fromUSDC(quoteResponse[0]), localQuoteNoSpread })
 			expect(singleSellQuote).to.eq(quoteResponse[0].div(1000))
 			expect(parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread).to.be.within(-0.1, 0.1)
 		})
