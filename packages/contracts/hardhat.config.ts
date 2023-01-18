@@ -35,7 +35,7 @@ if (mnemonic) {
 		})
 	}
 }
-const arbitrum = process.env.ARBITRUM || new ethers.providers.InfuraProvider("arbitrum").connection.url
+const arbitrum = process.env.ARBITRUM || new ethers.providers.AlchemyProvider("arbitrum").connection.url
 const arbitrumGoerli = process.env.ARBITRUM_GOERLI || new ethers.providers.AlchemyProvider("arbitrum-goerli").connection.url
 module.exports = {
 	typechain: {
@@ -133,7 +133,7 @@ module.exports = {
 			chainId: 1337
 		},
 		arbitrum: {
-			url: `https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA}`,
+			url: arbitrum,
 			chainId: 42161,
 			saveDeployments: true,
 			accounts: process.env.MAINNET_PRIVATE_KEY ? [process.env.MAINNET_PRIVATE_KEY] : accounts,
