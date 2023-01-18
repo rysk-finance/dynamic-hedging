@@ -1,4 +1,3 @@
-import React from "react";
 import { OptionsTradingContent } from "../components/optionsTrading/OptionsTradingContent";
 import { SetOptionParams } from "../components/optionsTrading/SetOptionParams";
 import { WIPPopup } from "../components/optionsTrading/WIPPopup";

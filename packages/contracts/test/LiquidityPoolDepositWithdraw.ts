@@ -17,7 +17,8 @@ import {
 	emptySeries,
 	ZERO_ADDRESS
 } from "../utils/conversion-helper"
-import moment from "moment"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
 import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
@@ -57,6 +58,8 @@ import exp from "constants"
 import { BeyondPricer } from "../types/BeyondPricer"
 import { OptionExchange } from "../types/OptionExchange"
 import { OptionCatalogue } from "../types/OptionCatalogue"
+
+dayjs.extend(utc)
 
 let usd: MintableERC20
 let weth: WETH
@@ -130,7 +133,7 @@ const expiryToValue = [
 
 /* --- end variables to change --- */
 
-const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
+const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
 
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
@@ -1160,5 +1163,37 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		await expect(liquidityPool.connect(signers[3]).executeEpochCalculation()).to.be.revertedWith(
 			"NotKeeper()"
 		)
+	})
+})
+
+describe("bug: stuck after initiating a withdrawal with shares amount less than 1e12", async () => {
+	it("should not be stuck", async () => {
+		const user = signers[2]
+		const amount = utils.parseUnits("1000", 6)
+
+		await usd.connect(user).approve(liquidityPool.address, amount)
+		await liquidityPool.connect(user).deposit(amount, { gasLimit: 1000000 })
+
+		await liquidityPool.pauseTradingAndRequest()
+		await liquidityPool.executeEpochCalculation()
+
+		const shareFraction = "99999999999" // 1e12 - 1
+		await liquidityPool.connect(user).initiateWithdraw(shareFraction, { gasLimit: 1000000 })
+
+		await liquidityPool.pauseTradingAndRequest()
+		await liquidityPool.executeEpochCalculation()
+
+		// this should not fail
+		await expect(liquidityPool.connect(user).completeWithdraw()).to.not.be.reverted
+
+		// this is expected to execute since there is no pending withdrawal because completewithdraw executed
+		const sharesInRegularRange = utils.parseUnits("10")
+		await expect(liquidityPool.connect(user).initiateWithdraw(sharesInRegularRange)).to.not.be
+			.reverted
+
+		const withdrawalEpoch = await liquidityPool.withdrawalEpoch()
+		const pricePerShare = await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpoch.sub(1))
+		const amountForShares = await accounting.amountForShares(shareFraction, pricePerShare)
+		expect(amountForShares).to.eq("0")
 	})
 })

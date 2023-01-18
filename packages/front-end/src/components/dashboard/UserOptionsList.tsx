@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { gql, useQuery } from "@apollo/client";
 import { BigNumber, utils } from "ethers";
 import { useState } from "react";
@@ -9,15 +9,10 @@ import { renameOtoken } from "../../utils/conversion-helper";
 import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import { RadioButtonSlider } from "../shared/RadioButtonSlider";
-import { BuyBack } from "./BuyBack";
 import { useContract } from "../../hooks/useContract";
 import OpynController from "../../abis/OpynController.json";
 import { toast } from "react-toastify";
-import {
-  BIG_NUMBER_DECIMALS,
-  DECIMALS,
-  ZERO_ADDRESS,
-} from "../../config/constants";
+import { DECIMALS, ZERO_ADDRESS } from "../../config/constants";
 import { useExpiryPriceData } from "../../hooks/useExpiryPriceData";
 
 enum OptionState {
@@ -37,13 +32,13 @@ interface Position {
   otokenId: string;
   expiryPrice: string;
   underlyingAsset: string;
-  isRedeemable: boolean
+  isRedeemable: boolean;
 }
 
 export const UserOptionsList = () => {
   const { account } = useWalletContext();
 
-  const { allOracleAssets } = useExpiryPriceData()
+  const { allOracleAssets } = useExpiryPriceData();
 
   const OPTIONS_BUTTONS: Option<OptionState>[] = [
     {
@@ -90,7 +85,7 @@ export const UserOptionsList = () => {
       // premium converted to 1e18
       const entryPrice =
         otokenBalance > 0 && totPremium > 0
-          ? totPremium / ( otokenBalance * 10 ** (DECIMALS.RYSK - DECIMALS.OPYN) )
+          ? totPremium / (otokenBalance * 10 ** (DECIMALS.RYSK - DECIMALS.OPYN))
           : 0;
 
       // TODO add current price and PNL
@@ -105,7 +100,7 @@ export const UserOptionsList = () => {
         amount: otokenBalance,
         entryPrice: Number(entryPrice).toFixed(2),
         otokenId: position.oToken.id,
-        underlyingAsset: position.oToken.underlyingAsset.id
+        underlyingAsset: position.oToken.underlyingAsset.id,
       };
     });
 
@@ -115,69 +110,72 @@ export const UserOptionsList = () => {
   // TODO: Add typings here
   useQuery(
     gql`
-    query($account: String) {
-      positions(first: 1000, where: { account_contains: "${account?.toLowerCase()}" }) {
-        id
-        amount
-        oToken {
-          id
-          symbol
-          expiryTimestamp
-          strikePrice
-          isPut
-          underlyingAsset {
-            id
-          }
-        }
-        writeOptionsTransactions {
+      query ($account: String) {
+        positions(first: 1000, where: { account_contains: $account }) {
           id
           amount
-          premium
-          timestamp
-        }
-        account {
-          balances {
-            balance
-            token {
+          oToken {
+            id
+            symbol
+            expiryTimestamp
+            strikePrice
+            isPut
+            underlyingAsset {
               id
+            }
+          }
+          writeOptionsTransactions {
+            id
+            amount
+            premium
+            timestamp
+          }
+          account {
+            balances {
+              balance
+              token {
+                id
+              }
             }
           }
         }
       }
-    }
-  `,
+    `,
     {
       onCompleted: parsePositions,
       onError: (err) => {
         console.log(err);
       },
+      variables: {
+        account: account?.toLowerCase(),
+      },
+      skip: !account,
     }
   );
 
   useEffect(() => {
-
     const updatePositions = () => {
-      const expiredPositions = positions?.filter( position => position.expired)
+      const expiredPositions = positions?.filter(
+        (position) => position.expired
+      );
 
-      expiredPositions?.map( position => {
+      expiredPositions?.map((position) => {
         // get oracle prices for expired
-        const asset = allOracleAssets?.find(a => a.asset.id === position.underlyingAsset)
+        const asset = allOracleAssets?.find(
+          (a) => a.asset.id === position.underlyingAsset
+        );
 
-        const expiryPrice = asset.prices.find( 
-          (item: { expiry: string; }) => {
-            return item.expiry === position.expiryTimestamp
-          }
-        )?.price 
+        const expiryPrice = asset.prices.find((item: { expiry: string }) => {
+          return item.expiry === position.expiryTimestamp;
+        })?.price;
 
-        position.expiryPrice = expiryPrice
+        position.expiryPrice = expiryPrice;
 
-        position.isRedeemable = position.isPut 
-                                ? Number(expiryPrice) <= Number(position.strikePrice) 
-                                : Number(expiryPrice) >= Number(position.strikePrice)
-
-      }) 
+        position.isRedeemable = position.isPut
+          ? Number(expiryPrice) <= Number(position.strikePrice)
+          : Number(expiryPrice) >= Number(position.strikePrice);
+      });
     };
-
 
     if (allOracleAssets && positions) {
       (() => {
@@ -231,7 +229,12 @@ export const UserOptionsList = () => {
         },
       });
     },
-    [ActionType.Redeem, account, opynControllerContract, opynControllerContractCall]
+    [
+      ActionType.Redeem,
+      account,
+      opynControllerContract,
+      opynControllerContractCall,
+    ]
   );
 
   return (
@@ -310,7 +313,9 @@ export const UserOptionsList = () => {
                                       />
                                     </div>
                                     <div className="col-span-3 text-center">
-                                      <p className="text-sm">Contact team to close position</p>
+                                      <p className="text-sm">
+                                        Contact team to close position
+                                      </p>
                                     </div>
                                   </div>
                                 </div>
@@ -327,7 +332,9 @@ export const UserOptionsList = () => {
                         <div className="col-span-3">Option</div>
                         <div className="col-span-2 text-right">Size</div>
                         <div className="col-span-2 text-right">Entry Price</div>
-                        <div className="col-span-2 text-right">Settlement Price</div>
+                        <div className="col-span-2 text-right">
+                          Settlement Price
+                        </div>
                         <div className="col-span-2 text-center">Actions</div>
                       </div>
                       <div>
@@ -376,7 +383,7 @@ export const UserOptionsList = () => {
                                   </div>
                                   <div className="col-span-2 text-right">
                                     <NumberFormat
-                                      value={( 
+                                      value={(
                                         Number(position.expiryPrice) /
                                         10 ** DECIMALS.OPYN
                                       ).toFixed(2)}
@@ -386,19 +393,19 @@ export const UserOptionsList = () => {
                                     />
                                   </div>
                                   <div className="col-span-2 text-center">
-                                    { position.isRedeemable && <Button
-                                      onClick={() =>
-                                        completeRedeem(
-                                          position.otokenId,
-                                          position.amount
-                                        )
-                                      }
-                                      className="min-w-[50%]"
-                                    >
-                                      Redeem
-                                    </Button>
-                                    }
-                                  
+                                    {position.isRedeemable && (
+                                      <Button
+                                        onClick={() =>
+                                          completeRedeem(
+                                            position.otokenId,
+                                            position.amount
+                                          )
+                                        }
+                                        className="min-w-[50%]"
+                                      >
+                                        Redeem
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
                               </div>

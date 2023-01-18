@@ -1,6 +1,5 @@
-import { ethers } from "ethers";
-import moment from "moment";
-import React from "react";
+import dayjs from "dayjs";
+
 import { BIG_NUMBER_DECIMALS } from "../../config/constants";
 import { Currency, OptionSeries } from "../../types";
 import { parseTimestamp } from "../../utils/parseTimestamp";
@@ -10,27 +9,22 @@ type OptionSeriesInfoProps = {
   option: OptionSeries | null;
 };
 
-export const OptionSeriesInfo: React.FC<OptionSeriesInfoProps> = ({
-  option,
-}) => {
-
-  const returnType = option?.isPut ? "PUT" : "CALL"
-  const returnExpiry = parseTimestamp(Number(option?.expiration) * 1000)
-  const optionSymbol = `ETH 
-                        ${moment.unix(Number(option?.expiration) ).format("DD-MMM-YY").toUpperCase()} 
-                        $${option?.strike.div(BIG_NUMBER_DECIMALS.OPYN)}
-                        ${returnType}`
+export const OptionSeriesInfo = ({ option }: OptionSeriesInfoProps) => {
+  const date = dayjs
+    .unix(Number(option?.expiration))
+    .format("DD-MMM-YY")
+    .toUpperCase();
+  const price = option?.strike.div(BIG_NUMBER_DECIMALS.OPYN);
+  const returnType = option?.isPut ? "PUT" : "CALL";
+  const returnExpiry = parseTimestamp(Number(option?.expiration) * 1000);
+  const optionSymbol = `ETH ${date} $${price} ${returnType}`;
 
   return option ? (
     <div className="w-full">
       <div className="flex items-center">
-        <h4 className="font-parabole mr-2 pb-2">
-           {optionSymbol}
-        </h4>
+        <h4 className="font-parabole mr-2 pb-2">{optionSymbol}</h4>
       </div>
-      <p className="pt-2">
-        Type: {returnType}
-      </p>
+      <p className="pt-2">Type: {returnType}</p>
       <p className="pt-2">
         Strike:{" "}
         <BigNumberDisplay currency={Currency.OPYN} suffix="USDC">

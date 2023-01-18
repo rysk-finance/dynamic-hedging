@@ -4,10 +4,13 @@
     "es2021": true
   },
   "extends": [
+    "react-app",
+    "react-app/jest",
     "eslint:recommended",
     "plugin:react/recommended",
     "plugin:react-hooks/recommended",
-    "plugin:@typescript-eslint/recommended"
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
@@ -20,6 +23,7 @@
   "plugins": ["react", "@typescript-eslint"],
   "rules": {
     "react/prop-types": "off",
+    "react/react-in-jsx-scope": "off",
     "no-debugger": "off",
     "@typescript-eslint/no-empty-function": "off",
     "@typescript-eslint/ban-ts-comment": "off",

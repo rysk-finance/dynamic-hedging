@@ -1,44 +1,35 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
-
-name: Hardhat full test suite CI
+name: Hardhat
 
 on:
- push:
-  branches:
-   - "**" # matches every branch
-
+  push:
+    paths:
+      - "packages/contracts/**"
+      - "package.json"
+      - ".github/workflows/hardhat.yml"
 
 defaults:
   run:
     working-directory: ./packages/contracts
 
-
 jobs:
- test:
-  runs-on: ubuntu-latest
-  env:
-    ALCHEMY: ${{ secrets.ALCHEMY }}
-    TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
+  test:
+    runs-on: ubuntu-latest
+    env:
+      ALCHEMY: ${{ secrets.ALCHEMY }}
+      TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
 
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: "yarn"
 
-  steps:
-    - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v2
-      with:
-        node-version: 16
+      - name: Install modules
+        run: yarn
 
-    - name: Node module cache
-      uses: actions/cache@v2
-      id: node-cache
-      with:
-        path: "**/node_modules"
-        key: npm-v2-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: npm-v2-
-    - name: Install dependencies
-      run: npm install
-      if: steps.node-cache.outputs.cache-hit != 'true'
+      - name: Compile
+        run: yarn workspace contracts compile
 
-    - run: npm run compile
-    - run: npx hardhat test ./test/*.ts
+      - name: Test
+        run: yarn workspace contracts test ./test/*.ts

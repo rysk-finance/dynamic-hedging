@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useContract } from "../hooks/useContract";
 import LPABI from "../abis/LiquidityPool.json";
-import { gql, useQuery } from "@apollo/client";
 import { useWalletContext } from "../App";
 import { BigNumber } from "ethers";
 import { DepositReceipt } from "../types";

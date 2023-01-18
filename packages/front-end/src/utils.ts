@@ -1,5 +1,6 @@
+import dayjs from "dayjs";
 import { BigNumber } from "ethers";
-import moment from "moment";
+
 import { BIG_NUMBER_DECIMALS } from "./config/constants";
 
 export const truncateAddress = (address: string) => {
@@ -35,12 +36,13 @@ export const optionSymbolFormat = (
   expiryTimestamp: string,
   strikePrice: string
 ) => {
+  const date = dayjs
+    .unix(Number(expiryTimestamp))
+    .format("DD-MMM-YY")
+    .toUpperCase();
+  const price = BigNumber.from(strikePrice).div(BIG_NUMBER_DECIMALS.OPYN);
+  const returnType = isPut ? "PUT" : "CALL";
+  const optionSymbol = `ETH ${date} $${price} ${returnType}`;
 
-  const returnType = isPut ? "PUT" : "CALL"
-  const optionSymbol = `ETH 
-                      ${moment.unix(Number(expiryTimestamp) ).format("DD-MMM-YY").toUpperCase()} 
-                      $${BigNumber.from(strikePrice).div(BIG_NUMBER_DECIMALS.OPYN)}
-                      ${returnType}`
-                      
-  return optionSymbol
-}
+  return optionSymbol;
+};

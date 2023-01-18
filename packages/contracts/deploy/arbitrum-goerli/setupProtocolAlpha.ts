@@ -6,7 +6,8 @@
 
 import { ethers } from "hardhat"
 import { BigNumber, utils } from "ethers"
-import moment from "moment"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
 import dotenv from "dotenv"
 import { toWei, toUSDC } from "../../utils/conversion-helper"
 import { calculateOptionQuoteLocally } from "../../test/helpers"
@@ -14,19 +15,21 @@ import { LiquidityPool } from "../../types/LiquidityPool"
 import { OptionRegistry } from "../../types/OptionRegistry"
 import { MintableERC20 } from "../../types/MintableERC20"
 import { PriceFeed } from "../../types/PriceFeed"
+
+dayjs.extend(utc)
 dotenv.config()
 
-// arbitrum rinkeby alpha addresses
-const liquidityPoolAddress = "0x022601eB546e007562A6dD4AE4840544E6B85c9B"
-const usdcAddress = "0x33a010E74A354bd784a62cca3A4047C1A84Ceeab"
-const pvFeedAddress = "0x4D2f15471F0d60474d7B1953a27f2c9d642B91C1"
-const priceFeedAddress = "0x27F70AC0453254B3CaA0A0400dB78387c474FAdD"
-const wethAddress = "0xFCfbfcC11d12bCf816415794E5dc1BBcc5304e01"
-const handlerAddress = "0x1c4dB5B6028EE95ad4E07cf83F3AcC797f478125"
+// arbitrum goerli alpha addresses
+const liquidityPoolAddress = "0x2ceDe96cd46C9B751EeB868A57FEDeD060Dbe6Bf"
+const usdcAddress = "0x6775842ae82bf2f0f987b10526768ad89d79536e"
+const pvFeedAddress = "0xbFC1eDc5c07ada83e0244b37A784486633910cD7"
+const priceFeedAddress = "0xDcA6c35228acb82363406CB2e7eee81B40c692aE"
+const wethAddress = "0x53320bE2A35649E9B2a0f244f9E9474929d3B699"
+const handlerAddress = "0x8a265fa22aa5AF86fa763dC2cF04661bf06A52E6"
 
 const deployer = new ethers.Wallet(
 	process.env.DEPLOYER_PRIVATE_KEY as string,
-	new ethers.providers.InfuraProvider("arbitrum-rinkeby")
+	new ethers.providers.InfuraProvider("arbitrum-goerli")
 )
 
 console.log({ deployer: deployer.address })
@@ -35,7 +38,7 @@ const deposit = async () => {
 	const depositAmount = toUSDC("1000000")
 	const balance = await deployer.getBalance()
 	const liquidityPool = await ethers.getContractAt("LiquidityPool", liquidityPoolAddress, deployer)
-	const usdc = await ethers.getContractAt("MockERC20", usdcAddress, deployer)
+	const usdc = await ethers.getContractAt("MintableERC20", usdcAddress, deployer)
 	const priceFeed = (await ethers.getContractAt(
 		"PriceFeed",
 		priceFeedAddress,
@@ -69,7 +72,7 @@ const deposit = async () => {
 const sellOptions = async (strikePrice: number, weeksUntilExpiry: number, isPut: boolean) => {
 	console.log({ balance: await deployer.getBalance() })
 	const optionHandler = await ethers.getContractAt("AlphaOptionHandler", handlerAddress, deployer)
-	const usdc = (await ethers.getContractAt("MockERC20", usdcAddress, deployer)) as MintableERC20
+	const usdc = (await ethers.getContractAt("MintableERC20", usdcAddress, deployer)) as MintableERC20
 	const liquidityPool = (await ethers.getContractAt(
 		"LiquidityPool",
 		liquidityPoolAddress,
@@ -82,8 +85,8 @@ const sellOptions = async (strikePrice: number, weeksUntilExpiry: number, isPut:
 	)) as PriceFeed
 
 	const amount = toWei("1")
-	const todayDate = moment().format("YYYY-MM-DD")
-	const expiration = moment.utc(todayDate).add(weeksUntilExpiry, "w").add(8, "h").valueOf() / 1000
+	const todayDate = dayjs().format("YYYY-MM-DD")
+	const expiration = dayjs.utc(todayDate).add(weeksUntilExpiry, "weeks").add(8, "hours").unix()
 	const strikePriceFormatted = toWei(strikePrice.toString())
 
 	const balance = await usdc.balanceOf(liquidityPoolAddress)
@@ -99,20 +102,20 @@ const sellOptions = async (strikePrice: number, weeksUntilExpiry: number, isPut:
 		collateral: usdcAddress
 	}
 	console.log({ optionSeries })
-	// const pvFeed = await ethers.getContractAt("PortfolioValuesFeed", pvFeedAddress, deployer)
-	// const price = await priceFeed.getNormalizedRate(wethAddress, usdcAddress)
-	// console.log({ price })
-	// await pvFeed.fulfill(
-	// 	utils.formatBytes32String("1"),
-	// 	wethAddress,
-	// 	usdcAddress,
-	// 	BigNumber.from(0),
-	// 	BigNumber.from(0),
-	// 	BigNumber.from(0),
-	// 	BigNumber.from(0),
-	// 	BigNumber.from(0),
-	// 	price
-	// )
+	const pvFeed = await ethers.getContractAt("PortfolioValuesFeed", pvFeedAddress, deployer)
+	const price = await priceFeed.getNormalizedRate(wethAddress, usdcAddress)
+	console.log({ price })
+	await pvFeed.fulfill(
+		utils.formatBytes32String("1"),
+		wethAddress,
+		usdcAddress,
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		BigNumber.from(0),
+		price
+	)
 
 	const [quote] = await liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, false)
 	console.log({ quote })
@@ -122,11 +125,11 @@ const sellOptions = async (strikePrice: number, weeksUntilExpiry: number, isPut:
 }
 
 // Deposit liquidity into pool then sell an option series
-// deposit().then(() => {
-// 	sellOptions(1500, 3, true)
-// })
+deposit().then(() => {
+	sellOptions(1100, 3, true)
+})
 
 // sell an option series without depositing more
 // sellOptions(1500, 3, true)
 
-deposit()
+// deposit()

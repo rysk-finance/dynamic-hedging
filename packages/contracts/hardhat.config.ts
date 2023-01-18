@@ -138,27 +138,16 @@ module.exports = {
 			allowUnlimitedContractSize: true,
 			chainId: 1337
 		},
-		ropsten: {
-			url: ropsten,
-			accounts,
-			chainId: 3
-		},
-		rinkeby: {
-			url: rinkeby,
-			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
-			chainId: 4,
-			saveDeployments: true
-		},
 		arbitrum: {
-			url: arbitrum,
+			url: `https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA}`,
 			chainId: 42161,
 			saveDeployments: true,
 			accounts: process.env.MAINNET_PRIVATE_KEY ? [process.env.MAINNET_PRIVATE_KEY] : accounts,
 			gas: 500000000
 		},
-		arbitrumRinkeby: {
-			url: arbitrumRinkeby,
-			chainId: 421611,
+		arbitrumGoerli: {
+			url: `https://arbitrum-goerli.infura.io/v3/${process.env.INFURA}`,
+			chainId: 421613,
 			saveDeployments: true,
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
 			gas: 500000000
@@ -172,7 +161,19 @@ module.exports = {
 		}
 	},
 	etherscan: {
-		apiKey: process.env.ARBISCAN_API_KEY
+		apiKey: {
+			arbitrumGoerli: process.env.ARBISCAN_API_KEY
+		},
+		customChains: [
+			{
+				network: "arbitrumGoerli",
+				chainId: 421613,
+				urls: {
+					apiURL: "https://api-goerli.arbiscan.io/api",
+					browserURL: "https://goerli.arbiscan.io"
+				}
+			}
+		]
 	},
 	gasReporter: {
 		currency: "USD",

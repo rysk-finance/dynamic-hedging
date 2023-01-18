@@ -1,3 +1,5 @@
+import type { PropsWithChildren } from "react";
+
 import {
   createContext,
   useCallback,
@@ -7,7 +9,6 @@ import {
 } from "react";
 import { globalReducer } from "./reducer";
 import { ActionType, AppSettings, GlobalContext, GlobalState } from "./types";
-import React from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../components/dashboard/Settings";
 
@@ -35,7 +36,9 @@ export const GlobalReactContext = createContext<GlobalContext>({
   dispatch: () => {},
 });
 
-export const GlobalContextProvider: React.FC = ({ children }) => {
+export const GlobalContextProvider = ({
+  children,
+}: PropsWithChildren<unknown>) => {
   const [state, dispatch] = useReducer(globalReducer, defaultGlobalState);
   const [getFromLocalStorage] = useLocalStorage();
 
