@@ -34,7 +34,7 @@ if (mnemonic) {
 			balance: "1000000000000000000000"
 		})
 	}
-
+}
 const arbitrum = process.env.ARBITRUM || new ethers.providers.InfuraProvider("arbitrum").connection.url
 const arbitrumGoerli = process.env.ARBITRUM_GOERLI || new ethers.providers.AlchemyProvider("arbitrum-goerli").connection.url
 module.exports = {
