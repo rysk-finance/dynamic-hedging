@@ -17,6 +17,8 @@ jobs:
     env:
       ALCHEMY: ${{ secrets.ALCHEMY }}
       TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
+      ARBITRUM: ${{ secrets.ARBITRUM }}
+      ARBITRUM_GOERLI: ${{ secrets.ARBITRUM_GOERLI }}
 
     steps:
       - uses: actions/checkout@v3
