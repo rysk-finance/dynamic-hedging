@@ -20,9 +20,11 @@
 
 1. Deploy new AlphaOptionHandler with fee recipient and fee per contract
 2. Remove current AlphaOptionHandler from liquiditypool
-3. Add new AlphaOptionHandler to the liquidityPool
-4. Check cor for references to the price feed contract and switch out the address
-5. Change notion and gitbook docs to reflect new contract
+3. Remove current AlphaOptionHandler from portfolioValuesFeed
+4. Add new AlphaOptionHandler to the liquidityPool
+5. Add new AlphaOptionHandler as keeper and handler on portfolioValuesFeed
+6. Check cor for references to the price feed contract and switch out the address
+7. Change notion and gitbook docs to reflect new contract
 
 **Accounting**
 
@@ -49,5 +51,6 @@
 
 1. Deploy exchange contract
 2. Set as handler and reactor on the liquidity pool
-3. Check cor for references to the price feed contract and switch out the address
-4. Change notion and gitbook docs to reflect new contract
+4. Set as a keeper and handler on the portfolioValuesFeed
+5. Check cor for references to the price feed contract and switch out the address
+6. Change notion and gitbook docs to reflect new contract
