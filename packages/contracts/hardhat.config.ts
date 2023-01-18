@@ -35,8 +35,7 @@ if (mnemonic) {
 		})
 	}
 }
-const arbitrum = process.env.ARBITRUM || new ethers.providers.AlchemyProvider("arbitrum").connection.url
-const arbitrumGoerli = process.env.ARBITRUM_GOERLI || new ethers.providers.AlchemyProvider("arbitrum-goerli").connection.url
+
 module.exports = {
 	typechain: {
 		outDir: "types",
@@ -133,14 +132,14 @@ module.exports = {
 			chainId: 1337
 		},
 		arbitrum: {
-			url: arbitrum,
+			url: process.env.ARBITRUM_RPC || new ethers.providers.AlchemyProvider("arbitrum").connection.url,
 			chainId: 42161,
 			saveDeployments: true,
 			accounts: process.env.MAINNET_PRIVATE_KEY ? [process.env.MAINNET_PRIVATE_KEY] : accounts,
 			gas: 500000000
 		},
 		arbitrumGoerli: {
-			url: arbitrumGoerli,
+			url: process.env.ARBITRUM_GOERLI || new ethers.providers.AlchemyProvider("arbitrum-goerli").connection.url,
 			chainId: 421613,
 			saveDeployments: true,
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
