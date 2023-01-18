@@ -132,7 +132,7 @@ module.exports = {
 			chainId: 1337
 		},
 		arbitrum: {
-			url: process.env.ARBITRUM_RPC || new ethers.providers.AlchemyProvider("arbitrum").connection.url,
+			url: process.env.ARBITRUM || new ethers.providers.AlchemyProvider("arbitrum").connection.url,
 			chainId: 42161,
 			saveDeployments: true,
 			accounts: process.env.MAINNET_PRIVATE_KEY ? [process.env.MAINNET_PRIVATE_KEY] : accounts,
