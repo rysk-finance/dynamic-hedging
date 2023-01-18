@@ -136,20 +136,20 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	function setRiskFreeRate(uint256 _riskFreeRate) external {
 		_onlyGovernor();
-		riskFreeRate = _riskFreeRate;
 		emit RiskFreeRateChanged(_riskFreeRate, riskFreeRate);
+		riskFreeRate = _riskFreeRate;
 	}
 
 	function setBidAskIVSpread(uint256 _bidAskIVSpread) external {
 		_onlyGovernor();
-		bidAskIVSpread= _bidAskIVSpread;
 		emit BidAskIVSpreadChanged(_bidAskIVSpread, bidAskIVSpread);
+		bidAskIVSpread= _bidAskIVSpread;
 	}
 
 	function setFeePerContract(uint256 _feePerContract) external {
 		_onlyGovernor();
-		feePerContract = _feePerContract;
 		emit FeePerContractChanged(_feePerContract, feePerContract);
+		feePerContract = _feePerContract;
 	}
 
 	function setSlippageGradient(uint256 _slippageGradient) external {
