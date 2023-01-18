@@ -15,7 +15,8 @@ import {
 	tFormatUSDC,
 	scaleNum
 } from "../utils/conversion-helper"
-import moment from "moment"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
 import { AbiCoder } from "ethers/lib/utils"
 //@ts-ignore
 import bs from "black-scholes"
@@ -69,6 +70,9 @@ import { NewWhitelist } from "../types/NewWhitelist"
 import { OptionExchange } from "../types/OptionExchange"
 import { OtokenFactory } from "../types/OtokenFactory"
 import { OptionCatalogue } from "../types/OptionCatalogue"
+
+dayjs.extend(utc)
+
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: MintableERC20
@@ -177,11 +181,8 @@ const emptySeries = {
 }
 /* --- end variables to change --- */
 
-const expiration = moment.utc(expiryDate).add(3, "d").add(8, "h").valueOf() / 1000
-const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
-const expiration3 = moment.utc(expiryDate).add(2, "w").add(8, "h").valueOf() / 1000
-const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
-const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
+const expiration = dayjs.utc(expiryDate).add(3, "days").add(8, "hours").unix()
+const expiration2 = dayjs.utc(expiryDate).add(1, "weeks").add(8, "hours").unix()// have another batch of options exire 1 week after the first
 const abiCode = new AbiCoder()
 
 const bcsLowerStrike = toWei("2200")
