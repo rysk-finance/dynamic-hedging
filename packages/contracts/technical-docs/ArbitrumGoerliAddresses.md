@@ -30,7 +30,7 @@
   | PerpHedgingReactor | 0x162d251F38e0E0c8Dc2eadfE84057E59B34367Af |
 
   ## Libraries and Auxiliaries
-| Contract | Address |
+  | Contract | Address |
   | --- | --- |
   | OpynInteractions - Library | 0x9A9F018194a5c228bD5a1Eb62922aA3413124C6c |
   | NormDist - Library | 0x8212EA68C4c0da99684bA3AEEB255C7A5891f1e3 |
@@ -39,5 +39,5 @@
   | ChainlinkOracle - Auxiliary| 0x62CAe0FA2da220f43a51F86Db2EDb36DcA9A5A08 |
   | SequencerUptimeOracle - Auxiliary| 0x62CAe0FA2da220f43a51F86Db2EDb36DcA9A5A08 |
   | UNISWAPV3Router - Auxiliary | 0xE592427A0AEce92De3Edee1F18E0157C05861564 |
- | USDC - Auxiliary | 0x6775842ae82bf2f0f987b10526768ad89d79536e |
+  | USDC - Auxiliary | 0x6775842ae82bf2f0f987b10526768ad89d79536e |
   | WETH - Auxiliary | 0x53320bE2A35649E9B2a0f244f9E9474929d3B699 |

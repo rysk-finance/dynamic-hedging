@@ -384,8 +384,8 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		optionProtocol: optionProtocol,
 		authority: authority,
 		opynInteractions: interactions,
-		blackScholes : blackScholes,
-		normDist : normDist
+		blackScholes: blackScholes,
+		normDist: normDist
 	}
 }
 
@@ -679,7 +679,7 @@ export async function deployLiquidityPool(
 	try {
 		await hre.run("verify:verify", {
 			address: exchange.address,
-			constructorArguments: [		authority,
+			constructorArguments: [authority,
 				optionProtocol.address,
 				liquidityPool.address,
 				pricer.address,
