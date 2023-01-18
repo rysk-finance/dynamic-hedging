@@ -89,6 +89,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/////////////////////////
 
 	event FeePerContractChanged(uint256 newFeePerContract, uint256 oldFeePerContract);
+	event RiskFreeRateChanged(uint256 newRiskFreeRate, uint256 oldRiskFreeRate);
+	event BidAskIVSpreadChanged(uint256 newBidAskIVSpread, uint256 oldBidAskIVSpread);
 
 	error InvalidSlippageGradientMultipliersArrayLength();
 	error InvalidSlippageGradientMultiplierValue();
@@ -131,6 +133,18 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	///////////////
 	/// setters ///
 	///////////////
+
+	function setRiskFreeRate(uint256 _riskFreeRate) external {
+		_onlyGovernor();
+		riskFreeRate = _riskFreeRate;
+		emit RiskFreeRateChanged(_riskFreeRate, riskFreeRate);
+	}
+
+	function setBidAskIVSpread(uint256 _bidAskIVSpread) external {
+		_onlyGovernor();
+		bidAskIVSpread= _bidAskIVSpread;
+		emit BidAskIVSpreadChanged(_bidAskIVSpread, bidAskIVSpread);
+	}
 
 	function setFeePerContract(uint256 _feePerContract) external {
 		_onlyGovernor();
