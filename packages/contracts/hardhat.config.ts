@@ -42,7 +42,7 @@ const rinkeby = process.env.RINKEBY || new ethers.providers.InfuraProvider("rink
 const arbitrumRinkeby =
 	process.env.ARBITRUM_RINKEBY || new ethers.providers.InfuraProvider("arbitrum-rinkeby").connection.url
 const arbitrum = process.env.ARBITRUM || new ethers.providers.InfuraProvider("arbitrum").connection.url
-const arbitrumGoerli = process.env.ARBITRUM_GOERLI
+const arbitrumGoerli = process.env.ARBITRUM_GOERLI || new ethers.providers.InfuraProvider("arbitrum-goerli").connection.url
 module.exports = {
 	typechain: {
 		outDir: "types",
