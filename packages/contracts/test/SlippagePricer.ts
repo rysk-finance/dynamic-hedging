@@ -1,7 +1,8 @@
 import hre, { ethers, network } from "hardhat"
 import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
 import { toWei, toUSDC, scaleNum } from "../utils/conversion-helper"
-import moment from "moment"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
 import { AbiCoder } from "ethers/lib/utils"
 //@ts-ignore
 import { expect } from "chai"
@@ -26,6 +27,9 @@ import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deplo
 import { BeyondPricer } from "../types/BeyondPricer"
 import { NewWhitelist } from "../types/NewWhitelist"
 import { OptionExchange } from "../types/OptionExchange"
+
+dayjs.extend(utc)
+
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: MintableERC20
@@ -114,11 +118,8 @@ const expiryToValue = [
 
 /* --- end variables to change --- */
 
-const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
-const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
-const expiration3 = moment.utc(expiryDate).add(2, "w").add(8, "h").valueOf() / 1000
-const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
-const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
+const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
+const expiration2 = dayjs.utc(expiryDate).add(1, "weeks").add(8, "hours").unix() // have another batch of options exire 1 week after the first
 const abiCode = new AbiCoder()
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true

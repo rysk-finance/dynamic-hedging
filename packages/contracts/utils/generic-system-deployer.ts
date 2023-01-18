@@ -5,30 +5,19 @@ import { expect } from "chai"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 
-import { ERC20Interface } from "../types/ERC20Interface"
-import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry } from "../types/OptionRegistry"
-import { AlphaPortfolioValuesFeed, PortfolioValuesStruct } from "../types/AlphaPortfolioValuesFeed"
-import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { WETH } from "../types/WETH"
-import { Protocol } from "../types/Protocol"
-import { Volatility } from "../types/Volatility"
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
 	MARGIN_POOL,
 	OTOKEN_FACTORY,
+	UNISWAP_V3_SWAP_ROUTER,
 	USDC_ADDRESS,
-	WETH_ADDRESS,
 	USDC_OWNER_ADDRESS,
-	UNISWAP_V3_SWAP_ROUTER
+	WETH_ADDRESS
 } from "../test/constants"
 import { Accounting } from "../types/Accounting"
-import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import { Oracle } from "../types/Oracle"
-import { VolatilityFeed } from "../types/VolatilityFeed"
+
 
 dayjs.extend(utc)
 
@@ -37,6 +26,10 @@ import { OptionExchange } from "../types/OptionExchange"
 import { BeyondPricer } from "../types/BeyondPricer"
 import { OptionCatalogue } from "../types/OptionCatalogue"
 import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
+import { AlphaPortfolioValuesFeed, ERC20Interface, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionRegistry, Oracle, PriceFeed, Protocol, Volatility, VolatilityFeed, WETH } from "../types"
+
+dayjs.extend(utc)
+
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 // edit depending on the chain id to be tested on
