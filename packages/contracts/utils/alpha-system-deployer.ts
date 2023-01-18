@@ -1,36 +1,37 @@
-import hre, { ethers, network } from "hardhat"
-import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
-import { toWei } from "./conversion-helper"
-//@ts-ignore
 import { expect } from "chai"
-import { ERC20Interface } from "../types/ERC20Interface"
-import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry } from "../types/OptionRegistry"
-import { OptionCatalogue } from "../types/OptionCatalogue"
-import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
-import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { WETH } from "../types/WETH"
-import { Protocol } from "../types/Protocol"
-import { Volatility } from "../types/Volatility"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
+import { Contract, Signer, utils } from "ethers"
+import hre, { ethers, network } from "hardhat"
+
 import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { AddressBook } from "../types/AddressBook"
-import { Oracle } from "../types/Oracle"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { Accounting } from "../types/Accounting"
-import moment from "moment"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
 	MARGIN_POOL,
 	OTOKEN_FACTORY,
 	USDC_ADDRESS,
-	WETH_ADDRESS,
-	USDC_OWNER_ADDRESS
+	USDC_OWNER_ADDRESS,
+	WETH_ADDRESS
 } from "../test/constants"
-import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import { VolatilityFeed } from "../types/VolatilityFeed"
+import { Accounting } from "../types/Accounting"
 import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
+import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
+import { ERC20Interface } from "../types/ERC20Interface"
+import { LiquidityPool } from "../types/LiquidityPool"
+import { MintableERC20 } from "../types/MintableERC20"
+import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
+import { OptionRegistry } from "../types/OptionRegistry"
+import { Oracle } from "../types/Oracle"
+import { PriceFeed } from "../types/PriceFeed"
+import { Protocol } from "../types/Protocol"
+import { Volatility } from "../types/Volatility"
+import { VolatilityFeed } from "../types/VolatilityFeed"
+import { WETH } from "../types/WETH"
+import { toWei } from "./conversion-helper"
+
+dayjs.extend(utc)
+
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 // edit depending on the chain id to be tested on
@@ -103,7 +104,7 @@ export async function deploySystem(
 	const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
 	const volFeed = (await volFeedFactory.deploy(authority.address)) as VolatilityFeed
 	const expiryDate: string = "2022-04-05"
-	let expiration = moment.utc(expiryDate).add(30, "d").add(8, "h").valueOf() / 1000
+	let expiration = dayjs.utc(expiryDate).add(30, "days").add(8, "hours").unix()
 	const proposedSabrParams = {
 		callAlpha: 250000,
 		callBeta: 1_000000,

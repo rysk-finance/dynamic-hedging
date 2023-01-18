@@ -1,4 +1,3 @@
-<!-- PROJECT LOGO -->
 <br />
 <p align="center">
   <a href="https://github.com/github_username/repo_name">
@@ -13,115 +12,88 @@
   </p>
 </p>
 
-<!-- GETTING STARTED -->
-
 ## Getting Started
 
 To get a local copy up and running follow these simple steps.
 
 ### Prerequisites
 
-- npm
+At Rysk, we use Yarn for package management with Yarn workspaces. To get started with Yarn if you haven't installed it yet, you can run:
 
 ```sh
-npm install npm@latest -g
+npm install --global yarn
 ```
 
 ### Installation
 
 1. Clone the repo
 
-```sh
-git clone
-```
+    ```sh
+    git clone
+    ```
 
-2. Install NPM packages
+2. Install packages
 
-```sh
-npm install
-```
-
-or
-
-```sh
-yarn
-```
+    ```sh
+    yarn
+    ```
 
 3. Add environment variables
 
-Create free API keys for alchemy and infura
+    You will need to create free API keys for Alchemy and Infura. You can then:
 
-a. Create /packages/contracts/.env with:
+    - Create `/packages/contracts/.env`
+    - Add `ALCHEMY=<your-alchemy-key>`
+    - Create `/packages/front-end/.env`
+    - Add `REACT_APP_INFURA_KEY=<your-infura-key>`
 
-```sh
-ALCHEMY_KEY=<your-alchemy-key>
-```
+4. Compile contracts
 
-b. Create /packages/front-end/.env with:
+    ```sh
+    yarn workspace contracts compile
+    ```
 
-```sh
-REACT_APP_INFURA_KEY=<your-infura-key>
-```
+5. Deploy contracts and update ABIs + address
 
-4. Start a hardhat node as mainnet fork
+    ```sh
+    yarn workspace contracts deploy:localhost
+    ```
 
-```sh
-cd packages/contracts
-npm run mainnet-fork
-```
+6. Start the front end
 
-From a new terminal window
+    ```sh
+    yarn workspace front-end start
+    ```
 
-5. Compile contracts
+## Usage examples
 
-```sh
-cd packages/contracts
-npm run compile
-```
+### Testing Contracts
 
-6. Deploy contracts and update ABIs + address
+Complete steps 1 to 3 from the installation section and then:
 
-```sh
-cd packages/contracts
-npm run deploy:localhost
-```
+1. Compile all files
 
-7. Start the React app
+    ```sh
+    yarn workspace contracts compile
+    ```
 
-```sh
-cd packages/front-end
-npm run start
-```
+2. Run all tests
 
-<!-- USAGE EXAMPLES -->
+    ```sh
+    yarn workspace contracts test
+    ```
 
-## Testing Contracts
+    To run a specific test suite, e.g. `LiquidityPool.ts`
 
-Complete steps 1 to 3 from above:
+    ```sh
+    yarn workspace contracts test test/LiquidityPool.ts
+    ```
 
-Compile all files
+    Run test coverage
 
-```sh
-npm run compile
-```
-
-Run all tests
-
-```sh
-npx hardhat test
-```
-
-To run a specific test suite, e.g. LiquidityPool.ts
-
-```sh
-npx hardhat test test/LiquidityPool.ts
-```
-
-Run test coverage
-
-```sh
-npm run test-coverage
-```
+    ```sh
+    yarn workspace contracts test-coverage
+    ```
 
 Run foundry fuzzing
 
@@ -130,12 +102,13 @@ Run foundry fuzzing
 
 ## Contract Architecture
 
-![Rysk Architecture](./images/RyskArchitecture.png) ![Diagram C](./images/DiagramC.png)
+![Rysk Architecture](./images/RyskArchitecture.png)
+![Diagram C](./images/DiagramC.png)
 ![Diagram F](./images/DiagramF.png)
 
 ## Contract layout
 
-```
+```bash
 contracts
 ├── hedging
 │   ├── GMXHedgingReactor.sol

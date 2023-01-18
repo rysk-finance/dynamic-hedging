@@ -1,4 +1,3 @@
-import React, { useCallback } from "react";
 import { gql, useQuery } from "@apollo/client";
 import { BigNumber } from "ethers/lib/ethers";
 import { useEffect, useState } from "react";
@@ -11,7 +10,6 @@ import {
   BIG_NUMBER_DECIMALS,
   DHV_NAME,
   SUBGRAPH_URL,
-  ZERO_UINT_256,
 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { Currency, DepositReceipt } from "../../types";
@@ -238,7 +236,7 @@ export const UserVault = () => {
                           borderColor="black"
                         >
                           Your USDC will be available to redeem as shares every
-                          Friday at 11am UTC
+                          Friday
                         </ReactTooltip>
                       </div>
                     )}

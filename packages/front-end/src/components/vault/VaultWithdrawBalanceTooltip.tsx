@@ -1,4 +1,3 @@
-import React from "react";
 import { DHV_NAME, ZERO_UINT_256 } from "../../config/constants";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { Currency } from "../../types";

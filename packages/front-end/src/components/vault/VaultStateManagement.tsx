@@ -1,4 +1,3 @@
-import React from "react";
 import { BigNumber } from "ethers";
 import { useCallback, useEffect } from "react";
 import { toast } from "react-toastify";

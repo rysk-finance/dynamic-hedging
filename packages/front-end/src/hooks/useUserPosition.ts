@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 import { useContract } from "./useContract";
 import LPABI from "../abis/LiquidityPool.json";
 import { BigNumber } from "ethers";

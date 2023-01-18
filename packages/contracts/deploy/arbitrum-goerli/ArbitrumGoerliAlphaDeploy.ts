@@ -253,7 +253,7 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		usdcAddress
 	)) as MintableERC20
 
-	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
+	const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
 	const priceFeed = (await priceFeedFactory.deploy(authority.address)) as PriceFeed
 	console.log("priceFeed deployed")
 
@@ -496,7 +496,6 @@ export async function deployLiquidityPool(
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	console.log("registry lp set")
 
-	await liquidityPool.setBidAskSpread(bidAskSpread)
 	await pvFeed.setLiquidityPool(liquidityPool.address)
 	await pvFeed.setProtocol(optionProtocol.address)
 	await pvFeed.setKeeper(liquidityPool.address, true)

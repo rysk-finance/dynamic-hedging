@@ -1,15 +1,14 @@
 import { BigNumber } from "@ethersproject/bignumber";
-import { Serie } from "@nivo/line";
 import { ethers } from "ethers";
-import React, { useState } from "react";
+import { useState } from "react";
 import { toast } from "react-toastify";
+
 import ERC20ABI from "../../abis/erc20.json";
 import { useWalletContext } from "../../App";
 import OptionHandlerABI from "../../abis/OptionHandler.json";
 import OptionRegistryABI from "../../abis/OptionRegistry.json";
 import {
   BIG_NUMBER_DECIMALS,
-  CHAINID,
   MAX_UINT_256,
   ZERO_ADDRESS,
 } from "../../config/constants";
@@ -30,7 +29,7 @@ const DUMMY_OPTION_SERIES: OptionSeries = {
   isPut: false,
 };
 
-export const Purchase: React.FC = () => {
+export const Purchase = () => {
   // Context state
   const {
     state: { settings },

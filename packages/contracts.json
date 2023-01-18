@@ -1,26 +1,5 @@
 {
     "localhost": {},
-    "arbitrumRinkeby": {
-        "OpynController": "0x2acb561509a082bf2c58ce86cd30df6c2c2017f6",
-        "OpynAddressBook": "0x2d3E178FFd961BD8C0b035C926F9f2363a436DdC",
-        "OpynOracle": "0xe4d64aed5e76bCcE2C255f3c819f4C3817D42f19",
-        "OpynNewCalculator": "0xa91B46bDDB891fED2cEE626FB03E2929702951A6",
-        "OpynOptionRegistry": "0x4e33E9c74C3422467c292085Ffc0BC8cdA05dbde",
-        "priceFeed": "0x29538D47b207f4CC174d7595cA381cc47475c9AD",
-        "volFeed": "0x146a99Da793A4263cF57c414Af0F8Dde2A1544f1",
-        "optionProtocol": "0xc2cc362aB484cb4AC243e28c8c8C01F2e0499591",
-        "liquidityPool": "0xeF9bE7a6aA3DcD8a3F98DD0333CD7e119FdC0B5C",
-        "authority": "0xacAb120E9866DFFEaE7281b8Abf4908641A2C680",
-        "portfolioValuesFeed": "0xdD52424Eb09a6596784769D630163d1a578755b6",
-        "optionHandler": "0xe555e1BcD932b16855D7aFc1CC0b80848524dB63",
-        "opynInteractions": "0xB9339032eA4C0EC42913aC3a0986A88b95e2D0A9",
-        "normDist": "0xE0452AbD47a8c2753aCCB486b9988728a306F7e4",
-        "BlackScholes": "0x32737D8c1297f220606C5e34c7F167dA7E677d2B",
-        "optionsCompute": "0xed652E08488c0d02Ba8B108F5432Bee8F03fDcc9",
-        "accounting": "0xDE50B29508386648101569548133e9b5c43a3BF3",
-        "uniswapV3HedgingReactor": "0xA2e85C479085bC9e77C462D283Bc4AFA1b128F4B",
-        "perpHedgingReactor": "0xDe0B888aee5804E742F3589b587a7fFAC0AABF3c"
-    },
     "arbitrum": {
         "OpynController": "0x594bD4eC29F7900AE29549c140Ac53b5240d4019",
         "OpynAddressBook": "0xCa19F26c52b11186B4b1e76a662a14DA5149EA5a",
@@ -43,5 +22,28 @@
         "perpHedgingReactor": "0xDd418b4Ec8396191D08957bD42F549e215B8e89a",
         "USDC": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
         "WETH": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
+    },
+    "arbitrumGoerli": {
+        "OpynController": "0x11a602a5F5D823c103bb8b7184e22391Aae5F4C2",
+        "OpynAddressBook": "0xd6e67bF0b1Cdb34C37f31A2652812CB30746a94A",
+        "OpynOracle": "0x35578F5A49E1f1Cf34ed780B46A0BdABA23D4C0b",
+        "OpynNewCalculator": "0xcD270e755C2653e806e16dD3f78E16C89B7a1c9e",
+        "OpynOptionRegistry": "0x48A74b742bd97545ace8B0876F5BA7ED19DF6579",
+        "priceFeed": "0xDcA6c35228acb82363406CB2e7eee81B40c692aE",
+        "volFeed": "0x9Fc909273C6aF5b6fFd389Fa2B44492ff88a3be6",
+        "optionProtocol": "0x865Bd85b7275a33C87E8a7E31a125DD6338e6747",
+        "liquidityPool": "0x2ceDe96cd46C9B751EeB868A57FEDeD060Dbe6Bf",
+        "authority": "0xA524f4F9046a243c67A07dDE2D9477bf320Ed89E",
+        "portfolioValuesFeed": "0xbFC1eDc5c07ada83e0244b37A784486633910cD7",
+        "optionHandler": "0x8a265fa22aa5AF86fa763dC2cF04661bf06A52E6",
+        "opynInteractions": "0x5e5A98E2F7c71B159B9Ed771E4138d4B2464708c",
+        "normDist": "0xf63395764CAA20a54bF33fdCCdbC03b2BDc67453",
+        "BlackScholes": "0x8D3ac248d2598c0C43e1D48e5ad59093F9Cb1d40",
+        "optionsCompute": "0x8090b463afd758B59089905dc956300824cb2388",
+        "accounting": "0xCCc6ebF870aCcD83043e8dafaeB4366A4D1a2836",
+        "uniswapV3HedgingReactor": "0xE5b8F3b414a80b8C40ba438292Eb37918324d285",
+        "perpHedgingReactor": "0x34f5c89fC6b053728F264cd7f9F1cdFB887AEf86",
+        "USDC": "0x6775842ae82bf2f0f987b10526768ad89d79536e",
+        "WETH": "0x53320bE2A35649E9B2a0f244f9E9474929d3B699"
     }
 }

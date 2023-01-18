@@ -1,5 +1,9 @@
+import { expect } from "chai"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
 import hre, { ethers, network } from "hardhat"
-import { BigNumberish, Contract, utils, Signer, BigNumber, providers } from "ethers"
+import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
+
 import {
 	toWei,
 	truncate,
@@ -7,17 +11,14 @@ import {
 	fromWei,
 	percentDiff,
 	toUSDC,
-	fromWeiToUSDC,
 	toWeiFromUSDC,
 	fromOpyn,
 	toOpyn,
 	tFormatUSDC,
-	scaleNum
+	scaleNum,
+	emptySeries
 } from "../utils/conversion-helper"
-import moment from "moment"
-//@ts-ignore
 import { deployOpyn } from "../utils/opyn-deployer"
-import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { MintableERC20 } from "../types/MintableERC20"
@@ -61,6 +62,8 @@ import { OptionExchange } from "../types/OptionExchange"
 import { BeyondPricer } from "../types/BeyondPricer"
 import { OptionCatalogue } from "../types/OptionCatalogue"
 
+dayjs.extend(utc)
+
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: ERC20Interface
@@ -76,7 +79,6 @@ let priceFeed: PriceFeed
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
 let pricer: BeyondPricer
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
-let rate: string
 let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
@@ -84,13 +86,11 @@ let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 let putOptionToken: IOToken
 let putOptionToken2: IOToken
-let collateralAllocatedToVault1: BigNumber
 let proposedSeries: any
 let exchange: OptionExchange
 let authority: string
 let catalogue: OptionCatalogue
 
-const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
@@ -103,6 +103,7 @@ const expiryDate: string = "2022-04-05"
 
 const invalidExpiryDateLong: string = "2022-04-22"
 const invalidExpiryDateShort: string = "2022-03-01"
+
 // decimal representation of a percentage
 const rfr: string = "0"
 // edit depending on the chain id to be tested on
@@ -119,10 +120,6 @@ const invalidStrikeLow = utils.parseEther("200")
 
 // balances to deposit into the LP
 const liquidityPoolUsdcDeposit = "500000"
-const liquidityPoolWethDeposit = "1"
-
-// balance to withdraw after deposit
-const liquidityPoolWethWidthdraw = "0.1"
 
 const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("10000")
@@ -134,12 +131,6 @@ const minExpiry = 86400 * 7
 const maxExpiry = 86400 * 50
 
 // time travel period between each expiry
-const expiryPeriod = {
-	days: 0,
-	weeks: 0,
-	months: 1,
-	years: 0
-}
 const productSpotShockValue = scaleNum("0.6", 27)
 // array of time to expiry
 const day = 60 * 60 * 24
@@ -161,18 +152,11 @@ const highDeltaSlippageMultiplier = toWei("1") // multiplier for >25d contracts
 
 /* --- end variables to change --- */
 
-const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
-const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
-const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
-const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
-const emptySeries = {
-	expiration: 1,
-	strike: 1,
-	isPut: true,
-	collateral: ZERO_ADDRESS,
-	underlying: ZERO_ADDRESS,
-	strikeAsset: ZERO_ADDRESS
-}
+const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
+const expiration2 = dayjs.utc(expiryDate).add(1, "weeks").add(8, "hours").unix() // have another batch of options expire 1 week after the first
+const invalidExpirationLong = dayjs.utc(invalidExpiryDateLong).add(8, "hours").unix()
+const invalidExpirationShort = dayjs.utc(invalidExpiryDateShort).add(8, "hours").unix()
+
 const CALL_FLAVOR = false
 const PUT_FLAVOR = true
 
@@ -2121,7 +2105,7 @@ describe("Liquidity Pools", async () => {
 			amount,
 			pricer,
 			true,
-			exchange,
+			catalogue,
 			localDelta.div(amount.div(toWei("1"))),
 			toWei("0").sub(toWei("50"))
 		)

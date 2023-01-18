@@ -1,4 +1,3 @@
-import React from "react";
 import { DHV_NAME } from "../config/constants";
 // import { AlphaBanner } from "./shared/AlphaBanner";
 // import { Card } from "./shared/Card";

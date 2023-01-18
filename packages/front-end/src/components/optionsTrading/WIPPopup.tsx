@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { DISCORD_LINK } from "../../config/links";
 import { Card } from "../shared/Card";
 

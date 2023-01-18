@@ -1,17 +1,18 @@
-import React from "react";
+import type { ReactNode, ReactElement, HTMLProps } from "react";
+
 import ReactTooltip, { TooltipProps } from "react-tooltip";
 
 type RyskTooltipProps = {
-  message: React.ReactChild;
+  message: ReactNode;
   id: string;
   color?: "green" | "yellow" | "red" | "white";
   tooltipProps?: TooltipProps;
-  icon?: React.ReactElement;
-  html?: boolean,
-  iconProps?: React.HTMLProps<HTMLDivElement>;
+  icon?: ReactElement;
+  html?: boolean;
+  iconProps?: HTMLProps<HTMLDivElement>;
 };
 
-export const RyskTooltip: React.FC<RyskTooltipProps> = ({
+export const RyskTooltip = ({
   message,
   id,
   color,
@@ -19,7 +20,7 @@ export const RyskTooltip: React.FC<RyskTooltipProps> = ({
   icon,
   html,
   iconProps: { className: iconClassName, ...restIconProps } = {},
-}) => {
+}: RyskTooltipProps) => {
   return (
     <>
       <ReactTooltip

@@ -1,4 +1,3 @@
-import React from "react";
 import { OTCPageContent } from "../components/OTC/OTCPageContent";
 
 export const OTC = () => {

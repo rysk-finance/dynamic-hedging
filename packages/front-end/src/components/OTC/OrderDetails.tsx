@@ -1,6 +1,5 @@
+import { useEffect, useState } from "react";
 
-import React, { useEffect, useState } from "react";
-import { BIG_NUMBER_DECIMALS } from "../../config/constants";
 import { Currency, Order } from "../../types";
 import { parseTimestamp } from "../../utils/parseTimestamp";
 import { BigNumberDisplay } from "../BigNumberDisplay";
@@ -11,20 +10,18 @@ type OrderDetailsProps = {
   order: Order | null;
 };
 
-export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
-
+export const OrderDetails = ({ order }: OrderDetailsProps) => {
   const [countDown, setCountDown] = useState(
-    (Number(order?.orderExpiry) ) - Math.floor(Date.now() / 1000)
+    Number(order?.orderExpiry) - Math.floor(Date.now() / 1000)
   );
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCountDown( (Number(order?.orderExpiry) * 1000 ) - Math.floor(Date.now()) );
+      setCountDown(Number(order?.orderExpiry) * 1000 - Math.floor(Date.now()));
     }, 1000);
 
     return () => clearInterval(interval);
   }, [order]);
-
 
   const getReturnValues = (countDown: number) => {
     // const days = Math.floor(countDown / (1000 * 60 * 60 * 24));
@@ -34,7 +31,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
     const minutes = Math.floor((countDown % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((countDown % (1000 * 60)) / 1000);
 
-    return `${hours}hr ${minutes}m ${seconds}s`
+    return `${hours}hr ${minutes}m ${seconds}s`;
   };
 
   return (
@@ -44,12 +41,17 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
           <OptionSeriesInfo option={order.optionSeries} />
           <hr className="my-2 border-black" />
           <p className="pt-2">
-            Buyer Address: <AddressDisplay>{order.buyer}</AddressDisplay>
+            {order.isBuyBack ? "Seller" : "Buyer"} Address:
+            <AddressDisplay>{order.buyer}</AddressDisplay>
           </p>
           <p className="pt-2">
-            Order Expiry: { parseTimestamp(Number(order.orderExpiry) * 1000) } { " "}
+            Order Expiry: {parseTimestamp(Number(order.orderExpiry) * 1000)}{" "}
             {/* ({ secondsToExpiry <= 0 ? 'expired' : secondsToExpiry}) */}
-            <b>{ countDown > 0 ? `EXPIRING IN: ${getReturnValues(countDown)}` : 'EXPIRED' }</b>
+            <b>
+              {countDown > 0
+                ? `EXPIRING IN: ${getReturnValues(countDown)}`
+                : "EXPIRED"}
+            </b>
           </p>
           <p className="pt-2">
             Size:{" "}

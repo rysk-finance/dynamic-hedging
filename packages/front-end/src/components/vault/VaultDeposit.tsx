@@ -1,4 +1,3 @@
-import React from "react";
 import { BigNumber, ethers } from "ethers";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
@@ -8,7 +7,6 @@ import LPABI from "../../abis/LiquidityPool.json";
 import {
   BIG_NUMBER_DECIMALS,
   DECIMALS,
-  DHV_NAME,
   MAX_UINT_256,
   ZERO_UINT_256,
 } from "../../config/constants";
@@ -34,7 +32,6 @@ import { DEPOSIT_SHARES_EPOCH } from "../../config/messages";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
-import { UnredeemedDepositBreakdown } from "./UnredeemedDepositBreakdown";
 import { PositionTooltip } from "./PositionTooltip";
 
 export const VaultDeposit = () => {

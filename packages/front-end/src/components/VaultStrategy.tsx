@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { DHV_NAME } from "../config/constants";
 import { Button } from "./shared/Button";
 
@@ -17,7 +17,7 @@ const STRATEGY_STEPS = [
     title: "2. Dynamically Hedge",
     src: "/images/hedge.png",
     description: [
-      `The ${DHV_NAME} dynamically hedges its positions as market conditions cause its delta exposure to move away from the target`
+      `The ${DHV_NAME} dynamically hedges its positions as market conditions cause its delta exposure to move away from the target`,
     ],
   },
 ];

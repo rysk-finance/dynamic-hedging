@@ -129,9 +129,8 @@ contract MockPortfolioValuesFeed is AccessControl, ChainlinkClient {
 		int256 _vega,
 		int256 _theta,
 		int256 _callPutsValue,
-		uint256 _spotPrice
-	) external // recordChainlinkFulfillment(_requestId)
-	{
+		uint256 _spotPrice // recordChainlinkFulfillment(_requestId)
+	) external {
 		Types.PortfolioValues memory portfolioValue = Types.PortfolioValues({
 			delta: _delta,
 			gamma: _gamma,

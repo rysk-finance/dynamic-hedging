@@ -35,14 +35,7 @@ if (mnemonic) {
 		})
 	}
 }
-const ropsten = process.env.ROPSTEN || new ethers.providers.InfuraProvider("ropsten").connection.url
 
-const rinkeby = process.env.RINKEBY || new ethers.providers.InfuraProvider("rinkeby").connection.url
-
-const arbitrumRinkeby =
-	process.env.ARBITRUM_RINKEBY || new ethers.providers.InfuraProvider("arbitrum-rinkeby").connection.url
-const arbitrum = process.env.ARBITRUM || new ethers.providers.InfuraProvider("arbitrum").connection.url
-const arbitrumGoerli = process.env.ARBITRUM_GOERLI || new ethers.providers.AlchemyProvider("arbitrum-goerli").connection.url
 module.exports = {
 	typechain: {
 		outDir: "types",
@@ -138,33 +131,15 @@ module.exports = {
 			allowUnlimitedContractSize: true,
 			chainId: 1337
 		},
-		ropsten: {
-			url: ropsten,
-			accounts,
-			chainId: 3
-		},
-		rinkeby: {
-			url: rinkeby,
-			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
-			chainId: 4,
-			saveDeployments: true
-		},
 		arbitrum: {
-			url: arbitrum,
+			url: process.env.ARBITRUM || new ethers.providers.AlchemyProvider("arbitrum").connection.url,
 			chainId: 42161,
 			saveDeployments: true,
 			accounts: process.env.MAINNET_PRIVATE_KEY ? [process.env.MAINNET_PRIVATE_KEY] : accounts,
 			gas: 500000000
 		},
-		arbitrumRinkeby: {
-			url: arbitrumRinkeby,
-			chainId: 421611,
-			saveDeployments: true,
-			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
-			gas: 500000000
-		},
 		arbitrumGoerli: {
-			url: arbitrumGoerli,
+			url: process.env.ARBITRUM_GOERLI || new ethers.providers.AlchemyProvider("arbitrum-goerli").connection.url,
 			chainId: 421613,
 			saveDeployments: true,
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
@@ -172,7 +147,19 @@ module.exports = {
 		}
 	},
 	etherscan: {
-		apiKey: process.env.ARBISCAN_API_KEY
+		apiKey: {
+			arbitrumGoerli: process.env.ARBISCAN_API_KEY
+		},
+		customChains: [
+			{
+				network: "arbitrumGoerli",
+				chainId: 421613,
+				urls: {
+					apiURL: "https://api-goerli.arbiscan.io/api",
+					browserURL: "https://goerli.arbiscan.io"
+				}
+			}
+		]
 	},
 	gasReporter: {
 		currency: "USD",

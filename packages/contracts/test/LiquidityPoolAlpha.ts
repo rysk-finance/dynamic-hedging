@@ -1,8 +1,11 @@
+import { expect } from "chai"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
 import hre, { ethers, network } from "hardhat"
-import { BigNumberish, Contract, utils, Signer, BigNumber, providers } from "ethers"
+import { Contract, utils, Signer, BigNumber } from "ethers"
+
 import {
 	toWei,
-	truncate,
 	tFormatEth,
 	fromWei,
 	percentDiff,
@@ -13,14 +16,8 @@ import {
 	tFormatUSDC,
 	scaleNum
 } from "../utils/conversion-helper"
-import moment from "moment"
-//@ts-ignore
-import bs from "black-scholes"
 import { deployOpyn } from "../utils/opyn-deployer"
-import { expect } from "chai"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
 import { MintableERC20 } from "../types/MintableERC20"
 import { OptionRegistry } from "../types/OptionRegistry"
 import { Otoken as IOToken } from "../types/Otoken"
@@ -45,27 +42,16 @@ import {
 	increaseTo,
 	getNetDhvExposure
 } from "./helpers"
-import {
-	GAMMA_CONTROLLER,
-	MARGIN_POOL,
-	OTOKEN_FACTORY,
-	USDC_ADDRESS,
-	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS,
-	ADDRESS_BOOK,
-	UNISWAP_V3_SWAP_ROUTER,
-	CONTROLLER_OWNER,
-	GAMMA_ORACLE_NEW,
-	CHAINLINK_WETH_PRICER
-} from "./constants"
+import { MARGIN_POOL, CONTROLLER_OWNER, CHAINLINK_WETH_PRICER } from "./constants"
 import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import exp from "constants"
 import { deployLiquidityPool, deploySystem } from "../utils/alpha-system-deployer"
 import { ERC20Interface } from "../types/ERC20Interface"
 import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
-import { Console } from "console"
 import { AbiCoder } from "ethers/lib/utils"
 import { OptionCatalogue } from "../types/OptionCatalogue"
+
+dayjs.extend(utc)
+
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: ERC20Interface
@@ -79,24 +65,16 @@ let volatility: Volatility
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
-let uniswapV3HedgingReactor: UniswapV3HedgingReactor
-let rate: string
 let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
-let putOptionToken: IOToken
-let putOptionToken2: IOToken
-let collateralAllocatedToVault1: BigNumber
-let proposedSeries: any
 let handler: AlphaOptionHandler
 let authority: string
 let catalogue: OptionCatalogue
 
-const IMPLIED_VOL = "60"
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 /* --- variables to change --- */
 
@@ -105,8 +83,6 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 // First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
 
-const invalidExpiryDateLong: string = "2022-04-22"
-const invalidExpiryDateShort: string = "2022-03-01"
 // decimal representation of a percentage
 const rfr: string = "0"
 // edit depending on the chain id to be tested on
@@ -117,16 +93,8 @@ const collatDecimalShift = BigNumber.from(1000000000000)
 // use negative numbers for ITM options
 const strike = "20"
 
-// hardcoded value for strike price that is outside of accepted bounds
-const invalidStrikeHigh = utils.parseEther("12500")
-const invalidStrikeLow = utils.parseEther("200")
-
 // balances to deposit into the LP
 const liquidityPoolUsdcDeposit = "60000"
-const liquidityPoolWethDeposit = "1"
-
-// balance to withdraw after deposit
-const liquidityPoolWethWidthdraw = "0.1"
 
 const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("10000")
@@ -138,12 +106,6 @@ const minExpiry = 86400 * 7
 const maxExpiry = 86400 * 50
 
 // time travel period between each expiry
-const expiryPeriod = {
-	days: 0,
-	weeks: 0,
-	months: 1,
-	years: 0
-}
 const productSpotShockValue = scaleNum("0.6", 27)
 // array of time to expiry
 const day = 60 * 60 * 24
@@ -160,13 +122,8 @@ const expiryToValue = [
 
 /* --- end variables to change --- */
 
-const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
-const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
-const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
-const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
-
-const CALL_FLAVOR = false
-const PUT_FLAVOR = true
+const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
+const expiration2 = dayjs.utc(expiryDate).add(1, "weeks").add(8, "hours").unix() // have another batch of options expire 1 week after the first
 
 // test ITM option when expired but not settled
 // test OTM option when expired but not settled

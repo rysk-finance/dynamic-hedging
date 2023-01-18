@@ -12,11 +12,8 @@ import { OptionRegistry } from "../types/OptionRegistry";
 import { PriceFeed } from "../types/PriceFeed";
 import { PortfolioValuesFeed } from "../types/PortfolioValuesFeed";
 
-//@ts-ignore
 import bs from "black-scholes";
-//@ts-ignore
 import greeks from "greeks";
-//@ts-ignore
 import impliedVol from "implied-volatility";
 import { truncateDecimalString } from "../utils";
 

@@ -1,26 +1,39 @@
 {
-  "name": "dynamic-hedging",
-  "version": "1.0.0",
-  "description": "<!-- PROJECT LOGO --> <br /> <p align=\"center\">   <a href=\"https://github.com/github_username/repo_name\">     <img src=\"./packages/front-end/public/logo.png\" alt=\"Logo\" width=\"auto\" height=\"200\" style=\"filter: brightness(100);\">   </a>",
-  "main": "index.js",
-  "dependencies": {
-    "react-tiny-popover": "^7.0.1",
-    "npm": "^8.9.0",
-    "i": "^0.3.7"
-  },
-  "devDependencies": {},
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build-front-end": "./buildFrontEnd.sh"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rysk-finance/dynamic-hedging.git"
-  },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/rysk-finance/dynamic-hedging/issues"
-  },
-  "homepage": "https://github.com/rysk-finance/dynamic-hedging#readme"
+    "name": "dynamic-hedging",
+    "version": "1.0.0",
+    "description": "<!-- PROJECT LOGO --> <br /> <p align=\"center\">   <a href=\"https://github.com/github_username/repo_name\">     <img src=\"./packages/front-end/public/logo.png\" alt=\"Logo\" width=\"auto\" height=\"200\" style=\"filter: brightness(100);\">   </a>",
+    "license": "ISC",
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/rysk-finance/dynamic-hedging.git"
+    },
+    "bugs": {
+        "url": "https://github.com/rysk-finance/dynamic-hedging/issues"
+    },
+    "homepage": "https://github.com/rysk-finance/dynamic-hedging#readme",
+    "author": "",
+    "workspaces": {
+        "packages": [
+            "packages/*"
+        ]
+    },
+    "scripts": {
+        "upgrade": "yarn upgrade-interactive --latest"
+    },
+    "dependencies": {
+        "black-scholes": "^1.1.0",
+        "dayjs": "^1.11.7",
+        "greeks": "^1.0.0"
+    },
+    "devDependencies": {
+        "@typescript-eslint/eslint-plugin": "^5.48.2",
+        "@typescript-eslint/parser": "^5.48.2",
+        "dotenv": "^16.0.3",
+        "eslint": "^8.32.0",
+        "eslint-config-prettier": "^8.6.0",
+        "eslint-plugin-react": "^7.32.1",
+        "prettier": "2.8.3",
+        "typescript": "^4.9.4"
+    }
 }
