@@ -17,7 +17,7 @@
 	},
 	"scripts": {
 		"buyoption:testnet": "npx hardhat run scripts/buySample.ts --network arbitrumRinkeby",
-		"compile": "hardhat clean && hardhat compile && hardhat typechain && ./copyABIsToFrontend.sh",
+		"compile": "hardhat clean && hardhat compile && ./copyABIsToFrontend.sh",
 		"create-otc-order:testnet": "npx hardhat run scripts/createOTCOrder.ts --network arbitrumRinkeby",
 		"create-otc-strangle:testnet": "npx hardhat run scripts/createOTCStrangle.ts --network arbitrumRinkeby",
 		"deploy:arbitrumGoerli": "npx hardhat run deploy/arbitrum-goerli/ArbitrumGoerliDeploy.ts --network arbitrumGoerli",
