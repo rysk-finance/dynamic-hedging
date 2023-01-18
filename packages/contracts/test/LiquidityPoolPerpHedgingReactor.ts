@@ -43,7 +43,9 @@ import {
 	setOpynOracleExpiryPrice,
 	makeIssueAndBuy,
 	makeBuy,
-	getSeriesWithe18Strike
+	getSeriesWithe18Strike,
+	setupTestOracle,
+	setupOracle
 } from "./helpers"
 import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
 import { BeyondPricer } from "../types/BeyondPricer"
@@ -85,6 +87,7 @@ let pricer: BeyondPricer
 let authority: string
 let catalogue: OptionCatalogue
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 /* --- variables to change --- */
 
 // Date for option to expire on format yyyy-mm-dd

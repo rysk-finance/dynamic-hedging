@@ -1,6 +1,6 @@
 import { BigNumber, Contract, Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
-import { toWei } from "./conversion-helper"
+import { toUSDC, toWei } from "./conversion-helper"
 import { expect } from "chai"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
@@ -11,6 +11,7 @@ import {
 	GAMMA_CONTROLLER,
 	MARGIN_POOL,
 	OTOKEN_FACTORY,
+	UNISWAP_V3_SWAP_ROUTER,
 	USDC_ADDRESS,
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS
@@ -20,6 +21,7 @@ import { OptionExchange } from "../types/OptionExchange"
 import { BeyondPricer } from "../types/BeyondPricer"
 import { OptionCatalogue } from "../types/OptionCatalogue"
 import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
+import { AlphaPortfolioValuesFeed, ERC20Interface, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionRegistry, Oracle, PriceFeed, Protocol, Volatility, VolatilityFeed, WETH } from "../types"
 
 dayjs.extend(utc)
 
