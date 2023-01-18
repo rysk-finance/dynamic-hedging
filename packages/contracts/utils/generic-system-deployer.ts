@@ -243,6 +243,7 @@ export async function deployLiquidityPool(
 	await pvFeed.fulfill(weth.address, usd.address)
 	const AccountingFactory = await ethers.getContractFactory("Accounting")
 	const Accounting = (await AccountingFactory.deploy(liquidityPool.address)) as Accounting
+	await optionProtocol.changeAccounting(Accounting.address)
 	const PricerFactory = await ethers.getContractFactory("BeyondPricer", {
 		libraries: {
 			BlackScholes: blackScholesDeploy.address
@@ -304,7 +305,6 @@ export async function deployLiquidityPool(
 		0
 	)) as BeyondPricer
 	await pricer.setSlippageGradient(toWei("0.0001"))
-	await optionProtocol.changeAccounting(Accounting.address)
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
@@ -319,7 +319,6 @@ export async function deployLiquidityPool(
 			OpynInteractions: interactions.address
 		}
 	})
-	const feeRecipient = await signers[9].getAddress()
 	const exchange = (await exchangeFactory.deploy(
 		authority,
 		optionProtocol.address,
