@@ -16,7 +16,6 @@ import { AddressBook, AlphaPortfolioValuesFeed, BeyondPricer, ChainLinkPricer, L
 //@ts-ignore
 import bs from "black-scholes"
 import { expect } from "chai"
-import { OptionSeriesStruct } from "../types/IAlphaOptionHandler"
 
 const MAX_BPS = 10000
 const { provider } = ethers
@@ -33,7 +32,7 @@ export async function getNetDhvExposure(strikePrice: BigNumberish, collateral: s
 	)
 	return await catalogue.netDhvExposure(oHash)
 }
-export async function getSeriesWithe18Strike(proposedSeries: OptionSeriesStruct, optionRegistry: OptionRegistry) {
+export async function getSeriesWithe18Strike(proposedSeries: any, optionRegistry: OptionRegistry) {
 	const formattedStrike = await optionRegistry.formatStrikePrice(
 		proposedSeries.strike,
 		proposedSeries.collateral
@@ -53,7 +52,7 @@ export async function compareQuotes(
 	quoteResponse: any,
 	liquidityPool: LiquidityPool,
 	priceFeed: PriceFeed,
-	proposedSeries: OptionSeriesStruct,
+	proposedSeries: any,
 	amount: BigNumber,
 	isSell: boolean,
 	exchange: OptionExchange,
@@ -62,12 +61,10 @@ export async function compareQuotes(
 	pricer: BeyondPricer,
 	netDhvExposureOverride: BigNumberish = 1
 ) {
-	console.log("Y")
 	const catalogue = (await ethers.getContractAt(
 		"OptionCatalogue",
 		await exchange.catalogue()
 	)) as OptionCatalogue
-	console.log("Y")
 	const feePerContract = await pricer.feePerContract()
 	const localDelta = await calculateOptionDeltaLocally(
 		liquidityPool,
@@ -76,7 +73,6 @@ export async function compareQuotes(
 		amount,
 		isSell
 	)
-	console.log("Y")
 	const localQuote = await localQuoteOptionPrice(
 		liquidityPool,
 		optionRegistry,
@@ -90,7 +86,6 @@ export async function compareQuotes(
 		localDelta.div(amount.div(toWei("1"))),
 		netDhvExposureOverride
 	)
-	console.log("Y")
 	expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.11, 0.11)
 	expect(quoteResponse.totalDelta.abs().sub(localDelta.abs())).to.be.within(-1e14, 1e14)
 	if (proposedSeries.isPut) {
@@ -169,7 +164,7 @@ export async function getExchangeParams(
 		netDhvExposure
 	}
 }
-export async function makeBuy(exchange: OptionExchange, senderAddress: string, optionToken: string, amount: BigNumber, proposedSeries: OptionSeriesStruct) {
+export async function makeBuy(exchange: OptionExchange, senderAddress: string, optionToken: string, amount: BigNumber, proposedSeries: any) {
 	await exchange.operate([
 		{
 			operation: 1,
@@ -195,7 +190,7 @@ export async function makeIssueAndBuy(
 	senderAddress: string,
 	optionToken: string,
 	amount: BigNumber,
-	proposedSeries: OptionSeriesStruct
+	proposedSeries: any
 ) {
 	await exchange.operate([
 		{
@@ -228,7 +223,7 @@ export async function makeIssueAndBuy(
 	])
 }
 
-export async function makeSellBack(exchange: OptionExchange, senderAddress: string, optionToken: any, amount: BigNumber, proposedSeries: OptionSeriesStruct) {
+export async function makeSellBack(exchange: OptionExchange, senderAddress: string, optionToken: any, amount: BigNumber, proposedSeries: any) {
 	await exchange.operate([
 		{
 			operation: 1,
@@ -306,7 +301,7 @@ export async function whitelistProduct(
 		expiryToValue
 	)
 }
-export async function createFakeOtoken(senderAddress: string, proposedSeries: OptionSeriesStruct, addressBook: AddressBook) {
+export async function createFakeOtoken(senderAddress: string, proposedSeries: any, addressBook: AddressBook) {
 	const otokenInstance = await ethers.getContractFactory("Otoken")
 	const newOtoken = (await otokenInstance.deploy()) as Otoken
 	await newOtoken.init(
@@ -322,7 +317,7 @@ export async function createFakeOtoken(senderAddress: string, proposedSeries: Op
 }
 export async function createAndMintOtoken(
 	addressBook: AddressBook,
-	optionSeries: OptionSeriesStruct,
+	optionSeries: any,
 	usd: MintableERC20,
 	weth: WETH,
 	collateral: any,
@@ -563,7 +558,7 @@ export async function calculateOptionQuoteLocally(
 			priceNorm,
 			fromWei(optionSeries.strike),
 			timeToExpiration,
-			isSell ? Number(fromWei(iv)) * (1 - Number(bidAskSpread)) : fromWei(iv),
+			isSell ? Number(fromWei(iv)) * (1 - Number(fromWei(bidAskSpread))) : fromWei(iv),
 			fromWei(rfr),
 			optionSeries.isPut ? "put" : "call"
 		) * parseFloat(fromWei(amount))
@@ -594,7 +589,7 @@ export async function calculateOptionQuoteLocallyAlpha(
 		optionSeries.expiration
 	)
 
-	const bidAskSpread = 0
+	const bidAskSpread = 0.01
 	const rfr = 0.01
 	const localBS =
 		bs.blackScholes(
@@ -602,7 +597,7 @@ export async function calculateOptionQuoteLocallyAlpha(
 			fromWei(optionSeries.strike),
 			timeToExpiration,
 			isSell ? Number(fromWei(iv)) * (1 - Number(bidAskSpread)) : fromWei(iv),
-			0,
+			rfr,
 			optionSeries.isPut ? "put" : "call"
 		) * parseFloat(fromWei(amount))
 	return localBS
@@ -661,7 +656,7 @@ export async function localQuoteOptionPrice(
 export async function applySlippageLocally(
 	beyondPricer: BeyondPricer,
 	catalogue: OptionCatalogue,
-	optionSeries: OptionSeriesStruct,
+	optionSeries: any,
 	amount: BigNumber,
 	optionDelta: BigNumber,
 	isSell: boolean = false, // from perspective of user
@@ -687,9 +682,6 @@ export async function applySlippageLocally(
 		(parseFloat(fromWei(optionDelta.abs())) * 100) /
 		parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
 	)
-	console.log(optionDelta.toString())
-	console.log(deltaBandIndex)
-	console.log(beyondPricer.address)
 	if (parseFloat(fromWei(optionDelta)) < 0) {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
@@ -791,7 +783,8 @@ export async function calculateOptionDeltaLocally(
 		collateral: string
 	},
 	amount: BigNumber,
-	isSell: boolean // from perspective of user
+	isSell: boolean, // from perspective of user
+	ignoreBASpread: boolean = false 
 ) {
 	const priceQuote = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
 	const blockNum = await ethers.provider.getBlockNumber()
@@ -805,12 +798,17 @@ export async function calculateOptionDeltaLocally(
 		optionSeries.expiration
 	)
 	const rfr = "0.01"
+	let bidAskSpread: BigNumberish = 0
+	if (!ignoreBASpread) {
+		bidAskSpread = toWei("0.01")
+	}
+
 	const opType = optionSeries.isPut ? "put" : "call"
 	let localDelta = greeks.getDelta(
 		fromWei(priceQuote),
 		fromWei(optionSeries.strike),
 		time,
-		fromWei(vol),
+		isSell ? Number(fromWei(vol)) * (1 - Number(fromWei(bidAskSpread))) : fromWei(vol),
 		rfr,
 		opType
 	)

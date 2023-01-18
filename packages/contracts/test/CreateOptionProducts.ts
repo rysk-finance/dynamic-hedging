@@ -336,12 +336,9 @@ describe("Structured Product maker", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			console.log("X")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
-			console.log("X")
 			let quote = quoteResponse[0].add(quoteResponse[2])
-			console.log("X")
 			const before = await getExchangeParams(
 				liquidityPool,
 				exchange,
@@ -352,7 +349,6 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
-			console.log("X")
 			await usd.approve(exchange.address, quote)
 			await exchange.operate([
 				{
@@ -383,7 +379,6 @@ describe("Structured Product maker", async () => {
 					]
 				}
 			])
-			console.log("X")
 			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			oTokenUSDCXC = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
 			optionToken = oTokenUSDCXC
@@ -2085,6 +2080,9 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
+			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
+			quote = quoteResponse[0].sub(quoteResponse[2])
 			expect(after.senderOtokenBalance).to.eq(0)
 			expect(
 				after.senderUSDBalance.sub(before.senderUSDBalance).sub(quote).add(marginRequirement)

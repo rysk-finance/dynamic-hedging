@@ -29,7 +29,7 @@ const maxiCallStrikePrice = utils.parseEther("10000")
 const miniPutStrikePrice = utils.parseEther("500")
 const maxiPutStrikePrice = utils.parseEther("10000")
 // one week in seconds
-const miniExpiry = 86400 * 1
+const miniExpiry = 86400 * 7
 // 365 days in seconds
 const maxiExpiry = 86400 * 50
 
@@ -293,7 +293,8 @@ export async function deployLiquidityPool(
 		0
 	)) as BeyondPricer
 	await pricer.setSlippageGradient(toWei("0.0001"))
-	await pricer.setR
+	await pricer.setRiskFreeRate(toWei("0.01"))
+	await pricer.setBidAskIVSpread(toWei("0.01"))
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
@@ -335,6 +336,7 @@ export async function deployLiquidityPool(
 	await pvFeed.setKeeper(await signers[0].getAddress(), true)
 	await pvFeed.setHandler(handler.address, true)
 	await pvFeed.setHandler(exchange.address, true)
+	await pvFeed.setRFR(toWei("0.01"))
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,

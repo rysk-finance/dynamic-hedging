@@ -13,7 +13,7 @@ import {
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS
 } from "../test/constants"
-import { Accounting, AlphaOptionHandler, AlphaPortfolioValuesFeed, ERC20Interface, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionCatalogue, OptionRegistry, Oracle, PriceFeed, Protocol, Volatility, VolatilityFeed, WETH } from "../types"
+import { Accounting, AlphaOptionHandler, AlphaPortfolioValuesFeed, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionCatalogue, OptionRegistry, Oracle, PriceFeed, Protocol, Volatility, VolatilityFeed, WETH } from "../types"
 import { toWei, ZERO_ADDRESS } from "./conversion-helper"
 
 dayjs.extend(utc)
@@ -57,9 +57,9 @@ export async function deploySystem(
 		WETH_ADDRESS[chainId]
 	)) as WETH
 	const wethERC20 = (await ethers.getContractAt(
-		"ERC20Interface",
+		"contracts/tokens/ERC20.sol:ERC20",
 		WETH_ADDRESS[chainId]
-	)) as ERC20Interface
+	)) as MintableERC20
 	const usd = (await ethers.getContractAt(
 		"contracts/tokens/ERC20.sol:ERC20",
 		USDC_ADDRESS[chainId]
@@ -163,7 +163,7 @@ export async function deployLiquidityPool(
 	signers: Signer[],
 	optionProtocol: Protocol,
 	usd: MintableERC20,
-	weth: ERC20Interface,
+	weth: MintableERC20,
 	optionRegistry: OptionRegistry,
 	pvFeed: AlphaPortfolioValuesFeed,
 	authority: string,
@@ -253,6 +253,7 @@ export async function deployLiquidityPool(
 	await pvFeed.setKeeper(liquidityPool.address, true)
 	await pvFeed.setKeeper(await signers[0].getAddress(), true)
 	await pvFeed.setHandler(handler.address, true)
+	await pvFeed.setRFR(toWei("0.01"))
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,
