@@ -16,18 +16,16 @@
 		]
 	},
 	"scripts": {
-		"buyoption:testnet": "npx hardhat run scripts/buySample.ts --network arbitrumRinkeby",
+		"buyoption:testnet": "npx hardhat run scripts/buySample.ts --network arbitrumGoerli",
 		"compile": "hardhat clean && hardhat compile && hardhat typechain && ./copyABIsToFrontend.sh",
-		"create-otc-order:testnet": "npx hardhat run scripts/createOTCOrder.ts --network arbitrumRinkeby",
-		"create-otc-strangle:testnet": "npx hardhat run scripts/createOTCStrangle.ts --network arbitrumRinkeby",
+		"create-otc-order:testnet": "npx hardhat run scripts/createOTCOrder.ts --network arbitrumGoerli",
+		"create-otc-strangle:testnet": "npx hardhat run scripts/createOTCStrangle.ts --network arbitrumGoerli",
 		"deploy:arbitrumGoerli": "npx hardhat run deploy/arbitrum-goerli/ArbitrumGoerliDeploy.ts --network arbitrumGoerli",
 		"deploy:localhost": "npx hardhat deploy --network localhost --tags localhost && ./copyAddressesToFrontEnd.sh --deploy-scripts deploy/localhost",
-		"deploy:rinkeby": "hardhat deploy --network rinkeby --tags testnet --deploy-scripts deploy/rinkeby",
 		"deployAlpha:arbitrumGoerli": "npx hardhat run deploy/arbitrum-goerli/ArbitrumGoerliAlphaDeploy.ts --network arbitrumGoerli",
-		"deployAlpha:arbitrumRinkeby": "npx hardhat run deploy/arbitrum-rinkeby/ArbitrumRinkebyAlphaDeploy.ts --network arbitrumRinkeby",
 		"deployAlpha:mainnet": "npx hardhat run deploy/arbitrum/ArbitrumAlphaDeploy.ts --network arbitrum",
-		"execute-epoch:testnet": "npx hardhat run scripts/executeEpochTestnet.ts --network arbitrumRinkeby",
-		"fulfill:testnet": "npx hardhat run scripts/fulfill.ts --network arbitrumRinkeby",
+		"execute-epoch:testnet": "npx hardhat run scripts/executeEpochTestnet.ts --network arbitrumGoerli",
+		"fulfill:testnet": "npx hardhat run scripts/fulfill.ts --network arbitrumGoerli",
 		"test": "hardhat test",
 		"test-coverage": "export NODE_OPTIONS='--max-old-space-size=8192' && hardhat coverage --testfiles 'test/*.ts'"
 	},
