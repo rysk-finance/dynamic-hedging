@@ -41,7 +41,6 @@ import {
 	calculateOptionQuoteLocally,
 	applySlippageLocally,
 	calculateOptionDeltaLocally,
-	increase,
 	setOpynOracleExpiryPrice,
 	getSeriesWithe18Strike,
 	getNetDhvExposure,
