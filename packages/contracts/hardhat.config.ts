@@ -35,7 +35,6 @@ if (mnemonic) {
 		})
 	}
 }
-
 module.exports = {
 	typechain: {
 		outDir: "types",
@@ -140,6 +139,13 @@ module.exports = {
 		},
 		arbitrumGoerli: {
 			url: `https://arbitrum-goerli.infura.io/v3/${process.env.INFURA}`,
+			chainId: 421613,
+			saveDeployments: true,
+			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
+			gas: 500000000
+		},
+		arbitrumGoerli: {
+			url: arbitrumGoerli,
 			chainId: 421613,
 			saveDeployments: true,
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
