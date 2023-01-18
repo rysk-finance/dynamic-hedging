@@ -496,7 +496,6 @@ export async function deployLiquidityPool(
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	console.log("registry lp set")
 
-	await liquidityPool.setBidAskSpread(bidAskSpread)
 	await pvFeed.setLiquidityPool(liquidityPool.address)
 	await pvFeed.setProtocol(optionProtocol.address)
 	await pvFeed.setKeeper(liquidityPool.address, true)

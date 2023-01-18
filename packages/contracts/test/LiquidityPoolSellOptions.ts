@@ -15,7 +15,8 @@ import {
 	tFormatUSDC,
 	scaleNum
 } from "../utils/conversion-helper"
-import moment from "moment"
+import dayjs from "dayjs"
+import utc from "dayjs/plugin/utc"
 import { AbiCoder } from "ethers/lib/utils"
 //@ts-ignore
 import bs from "black-scholes"
@@ -76,6 +77,7 @@ import { OptionExchange } from "../types/OptionExchange"
 import { OtokenFactory } from "../types/OtokenFactory"
 import { OptionCatalogue } from "../types/OptionCatalogue"
 import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
+dayjs.extend(utc)
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: MintableERC20
@@ -177,11 +179,8 @@ const expiryToValue = [
 
 /* --- end variables to change --- */
 
-const expiration = moment.utc(expiryDate).add(8, "h").valueOf() / 1000
-const expiration2 = moment.utc(expiryDate).add(1, "w").add(8, "h").valueOf() / 1000 // have another batch of options exire 1 week after the first
-const expiration3 = moment.utc(expiryDate).add(2, "w").add(8, "h").valueOf() / 1000
-const invalidExpirationLong = moment.utc(invalidExpiryDateLong).add(8, "h").valueOf() / 1000
-const invalidExpirationShort = moment.utc(invalidExpiryDateShort).add(8, "h").valueOf() / 1000
+const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
+const expiration2 = dayjs.utc(expiryDate).add(1, "weeks").add(8, "hours").unix()// have another batch of options exire 1 week after the first
 const abiCode = new AbiCoder()
 
 const CALL_FLAVOR = false
@@ -3857,8 +3856,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				await pricer.setSlippageGradientMultipliers( slippageGradientMultipliers, slippageGradientMultipliers)
 				const acSlippageGradientMultipliers = await pricer.getCallSlippageGradientMultipliers()
 				const apSlippageGradientMultipliers = await pricer.getPutSlippageGradientMultipliers()
-				console.log(slippageGradientMultipliers)
-				console.log(acSlippageGradientMultipliers)
+
 				for (let i=0; i < slippageGradientMultipliers.length; i++) {
 					expect(acSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
 					expect(apSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
