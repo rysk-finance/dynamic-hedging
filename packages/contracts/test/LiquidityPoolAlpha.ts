@@ -52,6 +52,9 @@ import { AbiCoder } from "ethers/lib/utils"
 dayjs.extend(utc)
 
 import { OptionCatalogue } from "../types/OptionCatalogue"
+
+dayjs.extend(utc)
+
 let usd: MintableERC20
 let weth: WETH
 let wethERC20: ERC20Interface
