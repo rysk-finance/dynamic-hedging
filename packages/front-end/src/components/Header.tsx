@@ -1,22 +1,29 @@
 import { Link, useLocation } from "react-router-dom";
-import { useWalletContext } from "../App";
+import { useAccount, useConnect, useNetwork } from "wagmi";
+
 import { AppPaths } from "../config/appPaths";
 import { useGlobalContext } from "../state/GlobalContext";
 import { HeaderPopover } from "./HeaderPopover";
 import { Button } from "./shared/Button";
 
 export const Header = () => {
+  const { isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { chain } = useNetwork();
+
   const {
     state: { connectWalletIndicatorActive },
   } = useGlobalContext();
-  const { connectWallet, signer, disconnect, network } = useWalletContext();
   const { pathname } = useLocation();
 
   const envChainID = process.env.REACT_APP_CHAIN_ID;
-  const connectedChainId = network?.id;
+  const connectedChainId = chain?.id;
 
   const incorrectNetwork =
     connectedChainId && envChainID && connectedChainId !== Number(envChainID);
+
+  // Temp code until we use rainbow-kit
+  const connector = connectors[0];
 
   return (
     <div className="fixed w-full h-24 t-0 flex items-center px-16 justify-between border-b-2 border-black bg-bone z-10">
@@ -53,9 +60,9 @@ export const Header = () => {
             </button>
           </Link>
         </div>
-        {!signer ? (
+        {!isConnected ? (
           <Button
-            onClick={() => connectWallet?.()}
+            onClick={() => connect({ connector })}
             className={`origin-center transition-transform hover:scale-110 ${
               connectWalletIndicatorActive ? "scale-110" : ""
             }`}

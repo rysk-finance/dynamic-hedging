@@ -1,18 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { useWalletContext } from "../App";
+import { useAccount, useDisconnect } from "wagmi";
+
 import { EXPLORER_URL } from "../config/constants";
 import { useGlobalContext } from "../state/GlobalContext";
 import { ActionType } from "../state/types";
 import { Button } from "./shared/Button";
 
 export const HeaderPopover = () => {
+  const { address } = useAccount();
+  const { disconnect } = useDisconnect();
+
   const [isOpen, setIsOpen] = useState(false);
   const isOpenRef = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const { dispatch } = useGlobalContext();
-  const { account, disconnect } = useWalletContext();
 
   const handleClickOutside = (event: MouseEvent) => {
     if (
@@ -49,9 +52,9 @@ export const HeaderPopover = () => {
           className="h-4 w-auto mr-2"
           alt="Arbitrum"
         />
-        {`${account?.slice(0, 4)}...${account?.slice(
-          account.length - 4,
-          account.length
+        {`${address?.slice(0, 4)}...${address?.slice(
+          address.length - 4,
+          address.length
         )}`}{" "}
         {isOpen ? "▼" : "▲"}
       </Button>
@@ -61,7 +64,7 @@ export const HeaderPopover = () => {
           <div className="flex flex-col">
             <Button
               onClick={() => {
-                account && navigator.clipboard.writeText(account);
+                address && navigator.clipboard.writeText(address);
                 toast("✅ Address copied to clipboard", { autoClose: 1000 });
               }}
               className="mb-[-2px] bg-bone mb-[2px]"
@@ -71,7 +74,7 @@ export const HeaderPopover = () => {
 
             <Button
               onClick={() => {
-                account && window.open(`${EXPLORER_URL}address/${account}`);
+                address && window.open(`${EXPLORER_URL}address/${address}`);
               }}
               className="mb-4"
             >
@@ -80,7 +83,7 @@ export const HeaderPopover = () => {
 
             <Button
               onClick={() => {
-                disconnect?.();
+                disconnect();
                 dispatch({ type: ActionType.RESET_GLOBAL_STATE });
               }}
             >

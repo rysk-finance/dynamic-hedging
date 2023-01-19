@@ -1,19 +1,19 @@
-import { useCallback, useEffect } from "react";
 import { gql, useQuery } from "@apollo/client";
 import { BigNumber, utils } from "ethers";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import NumberFormat from "react-number-format";
-import { useWalletContext } from "../../App";
+import { useAccount } from "wagmi";
+
+import { toast } from "react-toastify";
+import OpynController from "../../abis/OpynController.json";
+import { DECIMALS, ZERO_ADDRESS } from "../../config/constants";
+import { useContract } from "../../hooks/useContract";
+import { useExpiryPriceData } from "../../hooks/useExpiryPriceData";
 import { Option } from "../../types";
 import { renameOtoken } from "../../utils/conversion-helper";
 import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import { RadioButtonSlider } from "../shared/RadioButtonSlider";
-import { useContract } from "../../hooks/useContract";
-import OpynController from "../../abis/OpynController.json";
-import { toast } from "react-toastify";
-import { DECIMALS, ZERO_ADDRESS } from "../../config/constants";
-import { useExpiryPriceData } from "../../hooks/useExpiryPriceData";
 
 enum OptionState {
   OPEN = "Open",
@@ -36,7 +36,7 @@ interface Position {
 }
 
 export const UserOptionsList = () => {
-  const { account } = useWalletContext();
+  const { address } = useAccount();
 
   const { allOracleAssets } = useExpiryPriceData();
 
@@ -147,9 +147,9 @@ export const UserOptionsList = () => {
         console.log(err);
       },
       variables: {
-        account: account?.toLowerCase(),
+        account: address?.toLowerCase(),
       },
-      skip: !account,
+      skip: !address,
     }
   );
 
@@ -210,7 +210,7 @@ export const UserOptionsList = () => {
       const args = {
         actionType: ActionType.Redeem,
         owner: ZERO_ADDRESS,
-        secondAddress: account,
+        secondAddress: address,
         asset: otokenId,
         vaultId: "0",
         amount: amount,
@@ -231,7 +231,7 @@ export const UserOptionsList = () => {
     },
     [
       ActionType.Redeem,
-      account,
+      address,
       opynControllerContract,
       opynControllerContractCall,
     ]

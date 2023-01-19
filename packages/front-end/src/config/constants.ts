@@ -36,19 +36,16 @@ export enum CHAINID {
   LOCALHOST = 1337,
 }
 
-export const IDToNetwork: Record<CHAINID, ETHNetwork> = {
-  [CHAINID.ARBITRUM_GOERLI]: ETHNetwork.ARBITRUM_GOERLI,
-  [CHAINID.ARBITRUM_MAINNET]: ETHNetwork.ARBITRUM_MAINNET,
-  [CHAINID.LOCALHOST]: ETHNetwork.LOCALHOST,
-};
+type URLMap = Record<number, string>;
 
-export const RPC_URL_MAP: Record<CHAINID, string> = {
+// PROBABLY REMOVE ONCE APOLLO SORTED!!!
+export const RPC_URL_MAP: URLMap = {
   [CHAINID.ARBITRUM_GOERLI]: `https://arbitrum-goerli.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
   [CHAINID.ARBITRUM_MAINNET]: `https://arbitrum-mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
   [CHAINID.LOCALHOST]: "",
 };
 
-export const SUBGRAPH_URL = {
+export const SUBGRAPH_URL: URLMap = {
   [CHAINID.ARBITRUM_GOERLI]:
     "https://api.thegraph.com/subgraphs/name/devey/rysk-goerli-yassine",
   [CHAINID.ARBITRUM_MAINNET]:
@@ -56,7 +53,7 @@ export const SUBGRAPH_URL = {
   [CHAINID.LOCALHOST]: "",
 };
 
-export const OPYN_SUBGRAPH_URL = {
+export const OPYN_SUBGRAPH_URL: URLMap = {
   [CHAINID.ARBITRUM_GOERLI]:
     "https://api.thegraph.com/subgraphs/name/devey/rysk-opyngamma-arbitrum-goerli",
   [CHAINID.ARBITRUM_MAINNET]:
@@ -64,7 +61,7 @@ export const OPYN_SUBGRAPH_URL = {
   [CHAINID.LOCALHOST]: "",
 };
 
-export const SCAN_URL = {
+export const SCAN_URL: URLMap = {
   [CHAINID.ARBITRUM_GOERLI]: "https://goerli.arbiscan.io",
   [CHAINID.ARBITRUM_MAINNET]: "https://arbiscan.io",
   [CHAINID.LOCALHOST]: "",

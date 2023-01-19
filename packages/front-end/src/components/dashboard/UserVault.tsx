@@ -3,8 +3,10 @@ import { BigNumber } from "ethers/lib/ethers";
 import { useEffect, useState } from "react";
 import NumberFormat from "react-number-format";
 import { Link } from "react-router-dom";
+import { useAccount, useNetwork } from "wagmi";
+
+import ReactTooltip from "react-tooltip";
 import LPABI from "../../abis/LiquidityPool.json";
-import { useWalletContext } from "../../App";
 import { AppPaths } from "../../config/appPaths";
 import {
   BIG_NUMBER_DECIMALS,
@@ -12,32 +14,25 @@ import {
   SUBGRAPH_URL,
 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
+import { useUserPosition } from "../../hooks/useUserPosition";
 import { Currency, DepositReceipt } from "../../types";
+import { BigNumberDisplay } from "../BigNumberDisplay";
+import { RequiresWalletConnection } from "../RequiresWalletConnection";
+import { RyskTooltip } from "../RyskTooltip";
 import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
-import ReactTooltip from "react-tooltip";
-import { RyskTooltip } from "../RyskTooltip";
-import { BigNumberDisplay } from "../BigNumberDisplay";
 import { PositionTooltip } from "../vault/PositionTooltip";
-import { useUserPosition } from "../../hooks/useUserPosition";
-import { RequiresWalletConnection } from "../RequiresWalletConnection";
 
 export const UserVault = () => {
-  const { account, network } = useWalletContext();
-  const SUBGRAPH_URI =
-    network?.id !== undefined ? SUBGRAPH_URL[network?.id] : "";
-  const [currentPosition, setCurrentPosition] = useState<BigNumber>(
-    BigNumber.from(0)
-  );
-  const [pricePerShare, setPricePerShare] = useState<BigNumber | null>(null);
+  const { address } = useAccount();
+  const { chain } = useNetwork();
+  const { userPositionValue, updatePosition } = useUserPosition();
+
+  const SUBGRAPH_URI = chain?.id !== undefined ? SUBGRAPH_URL[chain?.id] : "";
+
   const [depositBalance, setDepositBalance] = useState<BigNumber>(
     BigNumber.from(0)
   );
-
-  const [withdrawBalance, setWithdrawBalance] = useState<BigNumber>(
-    BigNumber.from(0)
-  );
-
   const [unredeemableCollateral, setUnredeemableCollateral] =
     useState<BigNumber>(BigNumber.from(0));
   const [unredeemedSharesValue, setUnredeemedSharesValue] = useState<BigNumber>(
@@ -50,20 +45,18 @@ export const UserVault = () => {
     readOnly: true,
   });
 
-  const { userPositionValue, updatePosition } = useUserPosition();
-
   useEffect(() => {
-    if (account) {
+    if (address) {
       (() => {
-        updatePosition(account);
+        updatePosition(address);
       })();
     }
-  }, [account, updatePosition]);
+  }, [address, updatePosition]);
 
   useQuery(
     gql`
       query($account: String) {
-        lpbalances(first: 1000, where: { id: "${account}" }) {
+        lpbalances(first: 1000, where: { id: "${address}" }) {
           id
           balance
         }
@@ -80,64 +73,38 @@ export const UserVault = () => {
 
   useEffect(() => {
     const getCurrentPosition = async (address: string) => {
-      const balance = await lpContract?.balanceOf(address);
-      const epoch = await lpContract?.epoch();
-      // TODO if makes sense to have the latest available epoch as -1
-      const pricePerShareAtEpoch = await lpContract?.epochPricePerShare(
-        epoch - 1
-      );
-      setPricePerShare(pricePerShareAtEpoch);
-
-      // converting to 1e6 - usdc for easy comparison
-      const positionValue =
-        balance.gt(0) && pricePerShareAtEpoch?.gt(0)
-          ? balance.mul(pricePerShareAtEpoch).div(BigNumber.from(10).pow(30))
-          : BigNumber.from(0);
-
-      setCurrentPosition(positionValue);
-
       const depositReceipt: DepositReceipt = await lpContract?.depositReceipts(
-        account
+        address
       );
-      const currentEpoch: BigNumber = await lpContract?.epoch();
       const previousUnredeemedShares = depositReceipt.unredeemedShares;
       const unredeemedShares = BigNumber.from(0);
-      // If true, the share price for the most recent deposit hasn't been calculated
-      // so we can only show the collateral balance, not the equivalent number of shares.
-      if (currentEpoch._hex === depositReceipt.epoch._hex) {
-        unredeemedShares.add(previousUnredeemedShares);
-        if (depositReceipt.amount.toNumber() !== 0) {
-          setUnredeemableCollateral(depositReceipt.amount);
-        }
-      } else {
-        const pricePerShareAtEpoch: BigNumber =
-          await lpContract?.epochPricePerShare(depositReceipt.epoch);
-        // TODO(HC): Price oracle is returning 1*10^18 for price so having to adjust price
-        // whilst building out to avoid share numbers being too small. Once price oracle is returning
-        // more accurate
-        const newUnredeemedShares = depositReceipt.amount
-          .div(BIG_NUMBER_DECIMALS.USDC)
-          .mul(BIG_NUMBER_DECIMALS.RYSK)
-          .div(pricePerShareAtEpoch)
-          .mul(BIG_NUMBER_DECIMALS.RYSK);
-        const sharesToRedeem =
-          previousUnredeemedShares.add(newUnredeemedShares);
-        unredeemedShares.add(sharesToRedeem);
 
-        const unredeemedSharesValue = sharesToRedeem
-          .mul(pricePerShareAtEpoch)
-          .div(BigNumber.from(10).pow(30));
+      const pricePerShareAtEpoch: BigNumber =
+        await lpContract?.depositEpochPricePerShare(depositReceipt.epoch);
+      // TODO(HC): Price oracle is returning 1*10^18 for price so having to adjust price
+      // whilst building out to avoid share numbers being too small. Once price oracle is returning
+      // more accurate
+      const newUnredeemedShares = depositReceipt.amount
+        .div(BIG_NUMBER_DECIMALS.USDC)
+        .mul(BIG_NUMBER_DECIMALS.RYSK)
+        .div(pricePerShareAtEpoch)
+        .mul(BIG_NUMBER_DECIMALS.RYSK);
+      const sharesToRedeem = previousUnredeemedShares.add(newUnredeemedShares);
+      unredeemedShares.add(sharesToRedeem);
 
-        setUnredeemedSharesValue(unredeemedSharesValue);
-      }
+      const unredeemedSharesValue = sharesToRedeem
+        .mul(pricePerShareAtEpoch)
+        .div(BigNumber.from(10).pow(30));
+
+      setUnredeemedSharesValue(unredeemedSharesValue);
     };
 
     (async () => {
-      if (account && lpContract) {
-        await getCurrentPosition(account);
+      if (address && lpContract) {
+        await getCurrentPosition(address);
       }
     })();
-  }, [account, lpContract, SUBGRAPH_URI]);
+  }, [address, lpContract, SUBGRAPH_URI]);
 
   return (
     <div>

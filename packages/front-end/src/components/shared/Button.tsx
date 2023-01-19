@@ -1,8 +1,8 @@
 import type { ButtonHTMLAttributes, DetailedHTMLProps } from "react";
 
 import { useCallback } from "react";
+import { useAccount, useConnect } from "wagmi";
 
-import { useWalletContext } from "../../App";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { ActionType } from "../../state/types";
 
@@ -20,7 +20,9 @@ export const Button = ({
   requiresConnection = false,
   ...props
 }: ButtonProps) => {
-  const { account, connectWallet } = useWalletContext();
+  const { isDisconnected } = useAccount();
+  const { connect, connectors } = useConnect();
+
   const { dispatch } = useGlobalContext();
 
   const handleMouseEnter = useCallback(() => {
@@ -37,15 +39,18 @@ export const Button = ({
     });
   }, [dispatch]);
 
-  if (requiresConnection && !account) {
+  // Temp code until we use rainbow-kit
+  const connector = connectors[0];
+
+  if (requiresConnection && isDisconnected) {
     return (
       <button
         className={`border-black border-2 text-md px-2 py-1 !bg-black text-white ${props.className}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={() => {
-          if (!account) {
-            connectWallet?.();
+          if (isDisconnected) {
+            connect({ connector });
           }
         }}
       >

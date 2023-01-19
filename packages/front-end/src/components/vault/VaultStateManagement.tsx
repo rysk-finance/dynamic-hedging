@@ -1,15 +1,16 @@
 import { BigNumber } from "ethers";
 import { useCallback, useEffect } from "react";
 import { toast } from "react-toastify";
-import { useWalletContext } from "../../App";
+import { useAccount } from "wagmi";
+
 import LPABI from "../../abis/LiquidityPool.json";
 import { useContract } from "../../hooks/useContract";
+import { useUserPosition } from "../../hooks/useUserPosition";
 import { VaultActionType } from "../../state/types";
 import { useVaultContext } from "../../state/VaultContext";
-import { useUserPosition } from "../../hooks/useUserPosition";
 
 export const VaultStateManagment = () => {
-  const { account } = useWalletContext();
+  const { address } = useAccount();
   const { dispatch } = useVaultContext();
   const { updatePosition } = useUserPosition();
 
@@ -61,17 +62,17 @@ export const VaultStateManagment = () => {
       type: VaultActionType.SET,
       data: { ...epochData },
     });
-    if (account) {
-      updatePosition(account);
+    if (address) {
+      updatePosition(address);
     }
-  }, [dispatch, getEpochData, updatePosition, account]);
+  }, [dispatch, getEpochData, updatePosition, address]);
 
   const getUserRyskBalance = useCallback(async () => {
-    if (lpContract && account) {
-      const balance: BigNumber = await lpContract.balanceOf(account);
+    if (lpContract && address) {
+      const balance: BigNumber = await lpContract.balanceOf(address);
       return balance;
     }
-  }, [lpContract, account]);
+  }, [lpContract, address]);
 
   useEffect(() => {
     const getInfo = async () => {

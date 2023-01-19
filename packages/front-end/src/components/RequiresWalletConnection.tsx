@@ -1,7 +1,8 @@
 import type { PropsWithChildren, ReactElement } from "react";
 
 import { useCallback } from "react";
-import { useWalletContext } from "../App";
+import { useAccount, useConnect } from "wagmi";
+
 import { useGlobalContext } from "../state/GlobalContext";
 import { ActionType } from "../state/types";
 import { Button } from "./shared/Button";
@@ -16,8 +17,13 @@ export const RequiresWalletConnection = ({
   fallbackComponent,
   children,
 }: PropsWithChildren<RequiresWalletConnectionProps>) => {
+  const { isConnected, isDisconnected } = useAccount();
+  const { connect, connectors } = useConnect();
+
   const { dispatch } = useGlobalContext();
-  const { account, connectWallet } = useWalletContext();
+
+  // Replace with rainbow-kit button.
+  const connector = connectors[0];
 
   const handleMouseEnter = useCallback(() => {
     dispatch({
@@ -33,7 +39,7 @@ export const RequiresWalletConnection = ({
     });
   }, [dispatch]);
 
-  if (account && children) {
+  if (isConnected && children) {
     return <>{children}</>;
   }
 
@@ -52,8 +58,8 @@ export const RequiresWalletConnection = ({
   return (
     <Button
       onClick={() => {
-        if (!account) {
-          connectWallet?.();
+        if (isDisconnected) {
+          connect({ connector });
         }
       }}
       onMouseEnter={handleMouseEnter}

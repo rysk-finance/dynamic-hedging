@@ -2,8 +2,9 @@ import { BigNumber, ethers } from "ethers";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import NumberFormat from "react-number-format";
 import ReactSlider from "react-slider";
+import { useAccount, useNetwork } from "wagmi";
+
 import ERC20ABI from "../../abis/erc20.json";
-import { useWalletContext } from "../../App";
 import LPABI from "../../abis/LiquidityPool.json";
 import {
   BIG_NUMBER_DECIMALS,
@@ -28,7 +29,9 @@ import { TextInput } from "../shared/TextInput";
 import { PositionTooltip } from "./PositionTooltip";
 
 export const VaultWithdraw = () => {
-  const { account, network } = useWalletContext();
+  const { address } = useAccount();
+  const { chain } = useNetwork();
+
   const {
     state: {
       depositEpoch: currentEpoch,
@@ -99,8 +102,8 @@ export const VaultWithdraw = () => {
   );
 
   const updateWithdrawState = useCallback(async () => {
-    if (account && currentEpoch && lpContract) {
-      const receipt = await getWithdrawalReceipt(account);
+    if (address && currentEpoch && lpContract) {
+      const receipt = await getWithdrawalReceipt(address);
       setWithdrawReceipt(receipt);
       const isReceipt = receipt.shares._hex !== ZERO_UINT_256;
       if (isReceipt) {
@@ -127,36 +130,20 @@ export const VaultWithdraw = () => {
         setWithdrawableUSDC(null);
       }
     }
-  }, [account, currentEpoch, getWithdrawalReceipt, lpContract]);
+  }, [address, currentEpoch, getWithdrawalReceipt, lpContract]);
 
   const epochListener = useCallback(async () => {
     updateWithdrawState();
-    if (account) {
-      updatePosition(account);
+    if (address) {
+      updatePosition(address);
     }
-  }, [updateWithdrawState, account, updatePosition]);
+  }, [updateWithdrawState, address, updatePosition]);
 
   useEffect(() => {
     (async () => {
       await updateWithdrawState();
     })();
   }, [updateWithdrawState]);
-
-  const handleInputChange = (value: string) => {
-    setWithdrawValue(value);
-    if (withdrawableDHV) {
-      // e18
-      const bigNumberPercentage = ethers.utils
-        .parseUnits(value, DECIMALS.RYSK)
-        .mul(BIG_NUMBER_DECIMALS.RYSK)
-        .div(withdrawableDHV);
-      const percentage = Math.round(
-        Number(ethers.utils.formatUnits(bigNumberPercentage, DECIMALS.RYSK)) *
-          100
-      );
-      setSlidePercentage(percentage);
-    }
-  };
 
   const handleSliderChange = useCallback(
     (value: number) => {
@@ -184,7 +171,7 @@ export const VaultWithdraw = () => {
   );
 
   const handleInitiateWithdraw = async () => {
-    if (usdcContract && lpContract && account && network && withdrawableDHV) {
+    if (usdcContract && lpContract && address && chain && withdrawableDHV) {
       const amount = withdrawableDHV.mul(sliderPercentage).div(100);
       await lpContractCall({
         method: lpContract.initiateWithdraw,
@@ -200,11 +187,11 @@ export const VaultWithdraw = () => {
 
         onComplete: () => {
           setListeningForInitiation(false);
-          if (account) {
-            updatePosition(account);
+          if (address) {
+            updatePosition(address);
           }
           updateWithdrawState();
-          updatePosition(account);
+          updatePosition(address);
           setWithdrawValue("");
         },
       });
@@ -226,8 +213,8 @@ export const VaultWithdraw = () => {
         onComplete: () => {
           setListeningForCompleteWithdraw(false);
           updateWithdrawState();
-          if (account) {
-            updatePosition(account);
+          if (address) {
+            updatePosition(address);
           }
         },
       });
@@ -241,7 +228,7 @@ export const VaultWithdraw = () => {
   }, [withdrawableDHV, handleSliderChange]);
 
   const initiatedIsDisabled =
-    !(withdrawValue && account) ||
+    !(withdrawValue && address) ||
     listeningForInitiation ||
     ethers.utils.parseUnits(withdrawValue)._hex === ZERO_UINT_256;
   const completeIsDisabled = listeningForCompleteWithdraw;
@@ -309,7 +296,6 @@ export const VaultWithdraw = () => {
                     )}
                   </RequiresWalletConnection>{" "}
                   USDC
-                  {/* <VaultWithdrawBalanceTooltip /> */}
                 </p>
               </div>
             </div>
@@ -429,11 +415,6 @@ export const VaultWithdraw = () => {
                     </RequiresWalletConnection>
                   </p>
                 </div>
-                {/* <RyskTooltip
-                  id="withdrawTip"
-                  message={WITHDRAW_ESTIMATE_MESSAGE}
-                  tooltipProps={{ className: "max-w-[350px] leading-4" }}
-                /> */}
               </div>
             </div>
 
@@ -504,9 +485,6 @@ export const VaultWithdraw = () => {
                 </div>
               </div>
             </div>
-            {/* <div className="p-2 border-b-2 border-black">
-          <p className="text-xs">{WITHDRAW_ESTIMATE_MESSAGE}</p>
-        </div> */}
           </>
         )}
 
@@ -532,10 +510,6 @@ export const VaultWithdraw = () => {
                     USDC
                   </p>
                 </div>
-                {/* <hr className="border-black mb-2 mt-1" />
-                <div className="text-xs text-right">
-                  <PendingWithdrawBreakdown />
-                </div> */}
               </div>
               <Button
                 onClick={() => {

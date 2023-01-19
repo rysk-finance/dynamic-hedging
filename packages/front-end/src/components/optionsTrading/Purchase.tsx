@@ -2,10 +2,10 @@ import { BigNumber } from "@ethersproject/bignumber";
 import { ethers } from "ethers";
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { useAccount } from "wagmi";
 
-import ERC20ABI from "../../abis/erc20.json";
-import { useWalletContext } from "../../App";
 import OptionHandlerABI from "../../abis/AlphaOptionHandler.json";
+import ERC20ABI from "../../abis/erc20.json";
 import OptionRegistryABI from "../../abis/OptionRegistry.json";
 import {
   BIG_NUMBER_DECIMALS,
@@ -30,6 +30,8 @@ const DUMMY_OPTION_SERIES: OptionSeries = {
 };
 
 export const Purchase = () => {
+  const { address } = useAccount();
+
   // Context state
   const {
     state: { settings },
@@ -38,8 +40,6 @@ export const Purchase = () => {
   const {
     state: { selectedOption },
   } = useOptionsTradingContext();
-
-  const { account } = useWalletContext();
 
   // Local state
   const [uiOrderSize, setUIOrderSize] = useState("");
@@ -73,7 +73,7 @@ export const Purchase = () => {
     if (usdcContract) {
       const amount = BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(uiOrderSize));
       const approvedAmount = (await usdcContract.allowance(
-        account,
+        address,
         contracts.arbitrum.optionHandler
       )) as BigNumber;
       try {
@@ -106,7 +106,7 @@ export const Purchase = () => {
       optionRegistryContract &&
       optionHandlerContract &&
       usdcContract &&
-      account
+      address
     ) {
       try {
         const amount = BIG_NUMBER_DECIMALS.RYSK.mul(
