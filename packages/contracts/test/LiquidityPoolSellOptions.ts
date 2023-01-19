@@ -1,82 +1,20 @@
-import hre, { ethers, network } from "hardhat"
-import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
-import {
-	toWei,
-	truncate,
-	tFormatEth,
-	call,
-	put,
-	genOptionTimeFromUnix,
-	fromWei,
-	percentDiff,
-	toUSDC,
-	fromOpyn,
-	toOpyn,
-	tFormatUSDC,
-	scaleNum
-} from "../utils/conversion-helper"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
+import { BigNumber, Signer, utils } from "ethers"
 import { AbiCoder } from "ethers/lib/utils"
+import hre, { ethers, network } from "hardhat"
+import {
+	CALL_FLAVOR, emptySeries, fromOpyn, fromWei,
+	percentDiff, PUT_FLAVOR, scaleNum, tFormatEth, tFormatUSDC, toOpyn, toUSDC, toWei, ZERO_ADDRESS
+} from "../utils/conversion-helper"
 //@ts-ignore
-import bs from "black-scholes"
 import { expect } from "chai"
-import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { OracleMock } from "../types/OracleMock"
-import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
-import { Otoken } from "../types/Otoken"
-import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { WETH } from "../types/WETH"
-import { Protocol } from "../types/Protocol"
-import { Volatility } from "../types/Volatility"
-import { VolatilityFeed } from "../types/VolatilityFeed"
-import { NewController } from "../types/NewController"
-import { AddressBook } from "../types/AddressBook"
-import { Oracle } from "../types/Oracle"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import {
-	setupTestOracle,
-	setupOracle,
-	calculateOptionQuoteLocally,
-	calculateOptionDeltaLocally,
-	increase,
-	setOpynOracleExpiryPrice,
-	createAndMintOtoken,
-	whitelistProduct,
-	getExchangeParams,
-	createFakeOtoken,
-	getSeriesWithe18Strike,
-	getNetDhvExposure,
-	compareQuotes,
-	calculateOptionQuoteLocallyAlpha
-} from "./helpers"
-import {
-	GAMMA_CONTROLLER,
-	MARGIN_POOL,
-	OTOKEN_FACTORY,
-	USDC_ADDRESS,
-	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS,
-	ADDRESS_BOOK,
-	UNISWAP_V3_SWAP_ROUTER,
-	CONTROLLER_OWNER,
-	GAMMA_ORACLE_NEW,
-	CHAINLINK_WETH_PRICER
-} from "./constants"
-import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import { deployOpyn } from "../utils/opyn-deployer"
-import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
-import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
+import { AddressBook, AlphaOptionHandler, AlphaPortfolioValuesFeed, BeyondPricer, LiquidityPool, MintableERC20, MockChainlinkAggregator, NewController, NewMarginCalculator, NewWhitelist, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, Otoken, OtokenFactory, PriceFeed, Protocol, UniswapV3HedgingReactor, VolatilityFeed, WETH } from "../types"
+
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
-import { BeyondPricer } from "../types/BeyondPricer"
-import { create } from "domain"
-import { NewWhitelist } from "../types/NewWhitelist"
-import { OptionExchange } from "../types/OptionExchange"
-import { OtokenFactory } from "../types/OtokenFactory"
-import { OptionCatalogue } from "../types/OptionCatalogue"
-import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
+import { deployOpyn } from "../utils/opyn-deployer"
+import { CHAINLINK_WETH_PRICER, MARGIN_POOL, UNISWAP_V3_SWAP_ROUTER, USDC_ADDRESS, WETH_ADDRESS } from "./constants"
+import { calculateOptionDeltaLocally, calculateOptionQuoteLocallyAlpha, compareQuotes, createAndMintOtoken, createFakeOtoken, getExchangeParams, getNetDhvExposure, getSeriesWithe18Strike, setOpynOracleExpiryPrice, setupOracle, setupTestOracle, whitelistProduct } from "./helpers"
 dayjs.extend(utc)
 let usd: MintableERC20
 let weth: WETH
@@ -88,10 +26,8 @@ let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
-let volatility: Volatility
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
-let rate: string
 let controller: NewController
 let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
@@ -108,16 +44,12 @@ let oTokenUSDC1650C: Otoken
 let oTokenUSDC1650NC: Otoken
 let oTokenBUSD3000P: Otoken
 let oTokenUSDCXCLaterExp2: Otoken
-let collateralAllocatedToVault1: BigNumber
 let spotHedgingReactor: UniswapV3HedgingReactor
 let exchange: OptionExchange
 let pricer: BeyondPricer
 let authority: string
 let catalogue: OptionCatalogue
 let handler: AlphaOptionHandler
-const IMPLIED_VOL = "60"
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 /* --- variables to change --- */
 
@@ -126,10 +58,6 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 // First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
 
-const invalidExpiryDateLong: string = "2024-09-03"
-const invalidExpiryDateShort: string = "2022-03-01"
-// decimal representation of a percentage
-const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
@@ -137,62 +65,29 @@ const oTokenDecimalShift18 = 10000000000
 // use negative numbers for ITM options
 const strike = "20"
 
-// hardcoded value for strike price that is outside of accepted bounds
-const invalidStrikeHigh = utils.parseEther("12500")
-const invalidStrikeLow = utils.parseEther("200")
-
 // balances to deposit into the LP
 const liquidityPoolUsdcDeposit = "100000"
 const liquidityPoolWethDeposit = "1"
 
-// balance to withdraw after deposit
-const liquidityPoolWethWidthdraw = "0.1"
-
-const minCallStrikePrice = utils.parseEther("500")
-const maxCallStrikePrice = utils.parseEther("10000")
-const minPutStrikePrice = utils.parseEther("500")
-const maxPutStrikePrice = utils.parseEther("10000")
-// one week in seconds
-const minExpiry = 86400 * 7
-// 365 days in seconds
-const maxExpiry = 86400 * 365
-
 // time travel period between each expiry
-const expiryPeriod = {
-	days: 0,
-	weeks: 0,
-	months: 1,
-	years: 0
-}
 const productSpotShockValue = scaleNum("0.6", 27)
 // array of time to expiry
 const day = 60 * 60 * 24
-const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56]
+const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56, day * 84]
 // array of upper bound value correspond to time to expiry
 const expiryToValue = [
 	scaleNum("0.1678", 27),
 	scaleNum("0.237", 27),
 	scaleNum("0.3326", 27),
 	scaleNum("0.4032", 27),
-	scaleNum("0.4603", 27)
+	scaleNum("0.4603", 27),
+	scaleNum("0.5", 27)
 ]
-
-/* --- end variables to change --- */
 
 const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
 const expiration2 = dayjs.utc(expiryDate).add(1, "weeks").add(8, "hours").unix()// have another batch of options exire 1 week after the first
 const abiCode = new AbiCoder()
 
-const CALL_FLAVOR = false
-const PUT_FLAVOR = true
-const emptySeries = {
-	expiration: 1,
-	strike: 1,
-	isPut: CALL_FLAVOR,
-	collateral: ZERO_ADDRESS,
-	underlying: ZERO_ADDRESS,
-	strikeAsset: ZERO_ADDRESS
-}
 describe("Liquidity Pools hedging reactor: gamma", async () => {
 	before(async function () {
 		await hre.network.provider.request({
@@ -213,7 +108,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			params: [CHAINLINK_WETH_PRICER[chainId]]
 		})
 		signers = await ethers.getSigners()
-		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
+		let opynParams = await deployOpyn(signers)
 		controller = opynParams.controller
 		addressBook = opynParams.addressBook
 		oracle = opynParams.oracle
@@ -240,18 +135,10 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			optionProtocol,
 			usd,
 			wethERC20,
-			rfr,
-			minCallStrikePrice,
-			minPutStrikePrice,
-			maxCallStrikePrice,
-			maxPutStrikePrice,
-			minExpiry,
-			maxExpiry,
 			optionRegistry,
 			portfolioValuesFeed,
 			authority
 		)
-		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		exchange = lpParams.exchange
 		catalogue = lpParams.catalogue
@@ -530,7 +417,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			await expect(exchange.operate([
 				{
 					operation: 1,
-					operationQueue: [ {
+					operationQueue: [{
 						actionType: 1,
 						owner: ZERO_ADDRESS,
 						secondAddress: senderAddress,
@@ -3853,17 +3740,17 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			})
 			it("SUCCEEDS: set slippage gradient multipliers on pricer", async () => {
 				const slippageGradientMultipliers = [utils.parseUnits("1.1", 18), utils.parseUnits("1.2", 18), utils.parseUnits("1.6", 18), utils.parseUnits("1.4", 18), utils.parseUnits("1.5", 18)]
-				await pricer.setSlippageGradientMultipliers( slippageGradientMultipliers, slippageGradientMultipliers)
+				await pricer.setSlippageGradientMultipliers(slippageGradientMultipliers, slippageGradientMultipliers)
 				const acSlippageGradientMultipliers = await pricer.getCallSlippageGradientMultipliers()
 				const apSlippageGradientMultipliers = await pricer.getPutSlippageGradientMultipliers()
 
-				for (let i=0; i < slippageGradientMultipliers.length; i++) {
+				for (let i = 0; i < slippageGradientMultipliers.length; i++) {
 					expect(acSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
 					expect(apSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
 				}
 			})
 			it("REVERTS: set slippage gradients on pricer when non governance calls", async () => {
-				await expect(pricer.connect(signers[1]).setSlippageGradientMultipliers( [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
+				await expect(pricer.connect(signers[1]).setSlippageGradientMultipliers([toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
 					"UNAUTHORIZED()"
 				)
 			})

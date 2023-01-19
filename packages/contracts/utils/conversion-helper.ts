@@ -14,8 +14,8 @@ export const call = false,
 	put = true
 export const emptySeries = { expiration: 1, strike: 1, isPut: true, collateral: ZERO_ADDRESS, underlying: ZERO_ADDRESS, strikeAsset: ZERO_ADDRESS }
 export const MAX_BPS = BigNumber.from(10000)
-export const CALL = false
-export const PUT = true
+export const CALL_FLAVOR = false
+export const PUT_FLAVOR = true
 export const SECONDS_IN_DAY = 86400
 export const SECONDS_IN_YEAR = SECONDS_IN_DAY * 365.25
 export const genOptionTime = (now: Dayjs, future: Dayjs) =>
