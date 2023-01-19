@@ -1,25 +1,37 @@
-import hre, { ethers, network } from "hardhat"
-import { Contract, utils, Signer, BigNumber } from "ethers"
-import { NewController } from "../types/NewController"
-import { AddressBook } from "../types/AddressBook"
-import { Oracle } from "../types/Oracle"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
+import { BigNumber, Signer } from "ethers"
+import { ethers, network } from "hardhat"
 import {
-	GAMMA_CONTROLLER,
-	USDC_ADDRESS,
-	WETH_ADDRESS,
-	CONTROLLER_OWNER,
-	ADDRESS_BOOK,
-	GAMMA_ORACLE_NEW
+	ADDRESS_BOOK, CONTROLLER_OWNER, GAMMA_ORACLE_NEW, USDC_ADDRESS,
+	WETH_ADDRESS
 } from "../test/constants"
-import { toWei } from "./conversion-helper"
+import { AddressBook } from "../types/AddressBook"
+import { NewController } from "../types/NewController"
+import { NewMarginCalculator } from "../types/NewMarginCalculator"
+import { Oracle } from "../types/Oracle"
+import { toWei, scaleNum } from "./conversion-helper"
+
 const chainId = 1
+
+// time travel period between each expiry
+const _productSpotShockValue = scaleNum("0.6", 27)
+// array of time to expiry
+const day = 60 * 60 * 24
+const _timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56, day * 84]
+// array of upper bound value correspond to time to expiry
+const _expiryToValue = [
+	scaleNum("0.1678", 27),
+	scaleNum("0.237", 27),
+	scaleNum("0.3326", 27),
+	scaleNum("0.4032", 27),
+	scaleNum("0.4603", 27),
+	scaleNum("0.5", 27)
+]
 
 export async function deployOpyn(
 	signers: Signer[],
-	productSpotShockValue: BigNumber,
-	timeToExpiry: number[],
-	expiryToValue: BigNumber[]
+	productSpotShockValue: BigNumber = _productSpotShockValue,
+	timeToExpiry: number[] = _timeToExpiry,
+	expiryToValue: BigNumber[] = _expiryToValue
 ) {
 	// impersonate the opyn controller owner
 	await network.provider.request({
