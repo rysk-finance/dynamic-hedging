@@ -1,13 +1,13 @@
-import hre, { ethers, network } from "hardhat"
-import { Signer, BigNumber } from "ethers"
-import { expect } from "chai"
-import { MintableERC20 } from "../types/MintableERC20"
-import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
-import { UniswapV3HedgingTest } from "../types/UniswapV3HedgingTest"
-import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_SWAP_ROUTER } from "./constants"
-import { PriceFeed } from "../types/PriceFeed"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
+import { expect } from "chai"
+import { BigNumber, Signer } from "ethers"
+import hre, { ethers, network } from "hardhat"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
+import { MintableERC20, PriceFeed, UniswapV3HedgingReactor, UniswapV3HedgingTest } from "../types"
+import {
+	ZERO_ADDRESS
+} from "../utils/conversion-helper"
+import { UNISWAP_V3_SWAP_ROUTER, USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS } from "./constants"
 let signers: Signer[]
 let usdcWhale: Signer
 let usdcWhaleAddress: string
@@ -19,7 +19,6 @@ let wethContract: MintableERC20
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
 let rate: string
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 // edit depending on the chain id to be tested on
 const chainId = 1

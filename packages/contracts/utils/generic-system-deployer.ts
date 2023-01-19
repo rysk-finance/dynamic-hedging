@@ -1,11 +1,10 @@
-import { BigNumber, Contract, Signer, utils } from "ethers"
-import hre, { ethers, network } from "hardhat"
-import { toUSDC, toWei } from "./conversion-helper"
 import { expect } from "chai"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
+import { Signer, utils } from "ethers"
+import hre, { ethers, network } from "hardhat"
+import { toUSDC, toWei } from "./conversion-helper"
 
-import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -16,20 +15,23 @@ import {
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS
 } from "../test/constants"
-import { Accounting } from "../types/Accounting"
-import { OptionExchange } from "../types/OptionExchange"
-import { BeyondPricer } from "../types/BeyondPricer"
-import { OptionCatalogue } from "../types/OptionCatalogue"
-import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
-import { AlphaPortfolioValuesFeed, ERC20Interface, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionRegistry, Oracle, PriceFeed, Protocol, Volatility, VolatilityFeed, WETH } from "../types"
+import { Accounting, AlphaOptionHandler, AlphaPortfolioValuesFeed, BeyondPricer, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, PriceFeed, Protocol, Volatility, VolatilityFeed, WETH } from "../types"
 
 dayjs.extend(utc)
 
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-
 // edit depending on the chain id to be tested on
 const chainId = 1
-const oTokenDecimalShift18 = 10000000000
+
+// decimal representation of a percentage
+const interestRate: string = "0.01"
+const miniCallStrikePrice = utils.parseEther("500")
+const maxiCallStrikePrice = utils.parseEther("10000")
+const miniPutStrikePrice = utils.parseEther("500")
+const maxiPutStrikePrice = utils.parseEther("10000")
+// one week in seconds
+const miniExpiry = 86400 * 7
+// 365 days in seconds
+const maxiExpiry = 86400 * 50
 
 export async function deploySystem(
 	signers: Signer[],
@@ -55,9 +57,9 @@ export async function deploySystem(
 		WETH_ADDRESS[chainId]
 	)) as WETH
 	const wethERC20 = (await ethers.getContractAt(
-		"ERC20Interface",
+		"contracts/tokens/ERC20.sol:ERC20",
 		WETH_ADDRESS[chainId]
-	)) as ERC20Interface
+	)) as MintableERC20
 	const usd = (await ethers.getContractAt(
 		"contracts/tokens/ERC20.sol:ERC20",
 		USDC_ADDRESS[chainId]
@@ -160,17 +162,17 @@ export async function deployLiquidityPool(
 	signers: Signer[],
 	optionProtocol: Protocol,
 	usd: MintableERC20,
-	weth: ERC20Interface,
-	rfr: string,
-	minCallStrikePrice: any,
-	minPutStrikePrice: any,
-	maxCallStrikePrice: any,
-	maxPutStrikePrice: any,
-	minExpiry: any,
-	maxExpiry: any,
+	weth: MintableERC20,
 	optionRegistry: OptionRegistry,
 	pvFeed: AlphaPortfolioValuesFeed,
-	authority: string
+	authority: string,
+	rfr: string = interestRate,
+	minCallStrikePrice: any = miniCallStrikePrice,
+	minPutStrikePrice: any = miniPutStrikePrice,
+	maxCallStrikePrice: any = maxiCallStrikePrice,
+	maxPutStrikePrice: any = maxiPutStrikePrice,
+	minExpiry: any = miniExpiry,
+	maxExpiry: any = maxiExpiry,
 ) {
 	const normDistFactory = await ethers.getContractFactory(
 		"contracts/libraries/NormalDist.sol:NormalDist",
@@ -201,7 +203,7 @@ export async function deployLiquidityPool(
 			OptionsCompute: optionsCompute.address
 		}
 	})
-	const lp = (await liquidityPoolFactory.deploy(
+	const liquidityPool = (await liquidityPoolFactory.deploy(
 		optionProtocol.address,
 		usd.address,
 		weth.address,
@@ -221,8 +223,6 @@ export async function deployLiquidityPool(
 		authority
 	)) as LiquidityPool
 
-	const lpAddress = lp.address
-	const liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
 	await liquidityPool.setMaxPriceDeviationThreshold(toWei("0.03"))
@@ -293,6 +293,8 @@ export async function deployLiquidityPool(
 		0
 	)) as BeyondPricer
 	await pricer.setSlippageGradient(toWei("0.0001"))
+	await pricer.setRiskFreeRate(toWei("0.01"))
+	await pricer.setBidAskIVSpread(toWei("0.01"))
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
@@ -334,6 +336,7 @@ export async function deployLiquidityPool(
 	await pvFeed.setKeeper(await signers[0].getAddress(), true)
 	await pvFeed.setHandler(handler.address, true)
 	await pvFeed.setHandler(exchange.address, true)
+	await pvFeed.setRFR(toWei("0.01"))
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,
