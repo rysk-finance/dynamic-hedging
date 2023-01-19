@@ -6,53 +6,30 @@ import { BigNumber, Signer } from "ethers"
 import hre, { ethers } from "hardhat"
 
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
-import { MintableERC20 } from "../types/MintableERC20"
-import { PriceFeed } from "../types/PriceFeed"
-import { VolatilityFeed } from "../types/VolatilityFeed"
-import { WETH } from "../types/WETH"
+import { MintableERC20, PriceFeed, VolatilityFeed, WETH } from "../types"
 import { tFormatEth, toWei } from "../utils/conversion-helper"
-import { USDC_ADDRESS, WETH_ADDRESS } from "./constants"
 import { increaseTo } from "./helpers"
 
 dayjs.extend(utc)
 
 let usd: MintableERC20
-let weth: WETH
+let weth: MintableERC20
 let signers: Signer[]
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
 
-// edit depending on the chain id to be tested on
-const chainId = 1
+
 // get the expiration to use
-const expiryDate: string = "2022-04-05"
-let start = dayjs.utc(expiryDate).add(8, "hours").unix()
-let expiration = dayjs.utc(expiryDate).add(30, "days").add(8, "hours").unix()
+let start = dayjs.utc().add(8, "hours").unix()
+let expiration = dayjs.utc().add(30, "days").add(8, "hours").unix()
 
 describe("Volatility Feed", async () => {
 	before(async function () {
-		await hre.network.provider.request({
-			method: "hardhat_reset",
-			params: [
-				{
-					forking: {
-						chainId: 1,
-						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
-						blockNumber: 14290000
-					}
-				}
-			]
-		})
 		signers = await ethers.getSigners()
-		weth = (await ethers.getContractAt(
-			"contracts/interfaces/WETH.sol:WETH",
-			WETH_ADDRESS[chainId]
-		)) as WETH
-		usd = (await ethers.getContractAt(
-			"contracts/tokens/ERC20.sol:ERC20",
-			USDC_ADDRESS[chainId]
-		)) as MintableERC20
+		const erc20Factory = await ethers.getContractFactory("contracts/tokens/MintableERC20.sol:MintableERC20")
+		weth = await erc20Factory.deploy("WETH", "WETH", 18) as MintableERC20
+		usd = await erc20Factory.deploy("USDC", "USDC", 6) as MintableERC20
 		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")
 		const senderAddress = await signers[0].getAddress()
