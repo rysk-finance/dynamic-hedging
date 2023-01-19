@@ -1,54 +1,39 @@
-import {
-  ApolloClient,
-  ApolloLink,
-  ApolloProvider,
-  HttpLink,
-  InMemoryCache,
-} from "@apollo/client";
-import { OnboardAPI } from "@web3-onboard/core";
+import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
 import injectedModule from "@web3-onboard/injected-wallets";
 import { init } from "@web3-onboard/react";
 import walletConnectModule from "@web3-onboard/walletconnect";
 import * as ethers from "ethers";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import * as Fathom from "fathom-client";
+import { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet";
 import { Route, Routes } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
+import { WagmiConfig } from "wagmi";
+
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
+import { wagmiClient } from "./clients/wagmi";
+import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
+import { LegalDisclaimer } from "./components/LegalDisclaimer";
+import { MobileWarning } from "./components/MobileWarning";
 import { AppPaths } from "./config/appPaths";
 import {
   CHAINID,
   DEFAULT_POLLING_INTERVAL,
-  IDToNetwork,
-  OPYN_SUBGRAPH_URL,
   RPC_URL_MAP,
-  SUBGRAPH_URL,
 } from "./config/constants";
-import { useLocalStorage } from "./hooks/useLocalStorage";
 import { Dashboard } from "./pages/Dashboard";
 import { OptionsTrading } from "./pages/OptionsTrading";
 import { OTC } from "./pages/OTC";
 import { Vault } from "./pages/Vault";
 import { GlobalContextProvider } from "./state/GlobalContext";
 import { ETHNetwork } from "./types";
-import { toHex } from "./utils";
 import {
   CONNECTED_FAVICON,
   DISCONNECTED_FAVICON,
   updateFavicon,
 } from "./utils/updateFavicon";
-import { Footer } from "./components/Footer";
-import * as Fathom from "fathom-client";
-import { LegalDisclaimer } from "./components/LegalDisclaimer";
-import { MobileWarning } from "./components/MobileWarning";
 
 const walletConnect = walletConnectModule();
 const injectedWallets = injectedModule();
@@ -83,55 +68,7 @@ const onboard = init({
   },
 });
 
-// Stores information relating to browser <-> wallet connect.
-type WalletContext = {
-  connectWallet: (() => Promise<void>) | null;
-  network: { name: ETHNetwork; id: CHAINID } | null;
-  switchNetwork: (() => Promise<void>) | null;
-  disconnect: (() => Promise<void>) | null;
-  signer: ethers.ethers.providers.JsonRpcSigner | null;
-  rpcURL: string | null;
-  account: string | null;
-  error: any | null;
-  chainId: string | null;
-  isLoading: boolean | null;
-};
-
-const WalletContext = createContext<WalletContext>({
-  connectWallet: null,
-  switchNetwork: null,
-  network: null,
-  disconnect: null,
-  signer: null,
-  rpcURL: null,
-  account: null,
-  error: null,
-  chainId: null,
-  isLoading: null,
-});
-
-export const useWalletContext = () => useContext(WalletContext);
-
-export const WALLETS_LOCAL_STORAGE_KEY = "connectedWallets";
-
 function App() {
-  const [web3Onboard, setWeb3Onboard] = useState<OnboardAPI | null>(null);
-  const [walletUnsubscribe, setWalletUnsubscribe] = useState<
-    (() => void) | null
-  >(null);
-  const [signer, setSigner] =
-    useState<ethers.ethers.providers.JsonRpcSigner | null>(null);
-  const [account, setAccount] = useState<string | null>(null);
-  const [error, setError] = useState<any>(null);
-  const [chainId, setChainId] = useState<string | null>(null);
-  const [network, setNetwork] = useState<WalletContext["network"] | null>(null);
-  //
-  const [rpcURL, setRPCURL] = useState<string>(
-    process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
-      ? RPC_URL_MAP[CHAINID.ARBITRUM_MAINNET]
-      : RPC_URL_MAP[CHAINID.ARBITRUM_GOERLI]
-  );
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   // Initialising to a client with undefined URL, rather than just null, as ApolloProvider
   // expects client to always be non-null. We overwrite with a new client with a defined
   // uri in a useEffect below.
@@ -142,29 +79,6 @@ function App() {
     })
   );
 
-  const [getLocalStorage, setLocalStorage] = useLocalStorage();
-
-  useEffect(() => {
-    setWeb3Onboard(onboard);
-  }, []);
-
-  useEffect(() => {
-    const walletsSub = web3Onboard?.state.select("wallets");
-    if (walletsSub) {
-      const { unsubscribe } = walletsSub.subscribe((wallets) => {
-        const connectedWallets = wallets.map(({ label }) => label);
-        setLocalStorage(WALLETS_LOCAL_STORAGE_KEY, connectedWallets);
-      });
-      if (walletUnsubscribe) {
-        setWalletUnsubscribe(unsubscribe);
-      }
-    }
-    return () => {
-      walletUnsubscribe?.();
-      setWalletUnsubscribe(null);
-    };
-  }, [web3Onboard, setLocalStorage, walletUnsubscribe]);
-
   const connectWallet = useCallback(async (wallet?: string) => {
     try {
       const wallets = await onboard.connectWallet(
@@ -172,8 +86,8 @@ function App() {
           ? { autoSelect: { label: wallet, disableModals: true } }
           : undefined
       );
-      setIsLoading(true);
-      const { accounts, chains, provider } = wallets[0];
+
+      const { provider } = wallets[0];
       const ethersProvider = new ethers.providers.Web3Provider(provider);
       ethersProvider.pollingInterval = DEFAULT_POLLING_INTERVAL;
       const initialNetwork = await ethersProvider.getNetwork();
@@ -194,39 +108,11 @@ function App() {
         }
       }
 
-      const networkId =
-      process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
-          ? CHAINID.ARBITRUM_MAINNET
-          : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_GOERLI
-          ? CHAINID.ARBITRUM_GOERLI
-          : null;
-      if (networkId) {
-        const networkName =
-          networkId in IDToNetwork ? IDToNetwork[networkId as CHAINID] : null;
-        if (networkName) {
-          setNetwork({ id: networkId, name: networkName });
-        }
-      }
-      const ethersSigner = ethersProvider.getSigner();
-      setSigner(ethersSigner);
-      setAccount(accounts[0].address);
-      const networkRPCURL = RPC_URL_MAP[networkId as CHAINID];
-      setRPCURL(networkRPCURL);
-      setChainId(String(networkId));
-      setIsLoading(false);
       updateFavicon(CONNECTED_FAVICON);
     } catch (error) {
-      setIsLoading(false);
-      setError(error);
+      console.error(error);
     }
   }, []);
-
-  useEffect(() => {
-    const wallets = getLocalStorage<string[]>(WALLETS_LOCAL_STORAGE_KEY);
-    if (wallets && wallets.length > 0) {
-      connectWallet(wallets[0]);
-    }
-  }, [getLocalStorage, connectWallet]);
 
   const addArbitrum = async () => {
     if (window.ethereum) {
@@ -274,32 +160,18 @@ function App() {
     }
   };
 
-  const switchNetwork = async () => {
-    if (network) {
-      await onboard.setChain({ chainId: toHex(network.id) });
-    }
-  };
-
   const disconnect = useCallback(async () => {
     const [primaryWallet] = await onboard.state.get().wallets;
     if (!primaryWallet) return;
     await onboard.disconnectWallet({ label: primaryWallet.label });
     updateFavicon(DISCONNECTED_FAVICON);
-    refreshState();
   }, []);
-
-  const refreshState = () => {
-    setAccount("");
-    setChainId("");
-    setSigner(null);
-    setNetwork(null);
-  };
 
   const handleChainChange = useCallback(
     async (chainIdHex: string) => {
       const chainId = parseInt(chainIdHex);
       const correctChainID =
-      process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
+        process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
           ? CHAINID.ARBITRUM_MAINNET
           : CHAINID.ARBITRUM_GOERLI;
       if (chainId !== correctChainID) {
@@ -323,65 +195,65 @@ function App() {
     };
   }, [disconnect, handleChainChange]);
 
-  useEffect(() => {
-    const SUBGRAPH_URI =
-      network?.id !== undefined
-        ? SUBGRAPH_URL[network?.id]
-        : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
-        ? SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
-        : SUBGRAPH_URL[CHAINID.ARBITRUM_GOERLI];
+  // useEffect(() => {
+  //   const SUBGRAPH_URI =
+  //     network?.id !== undefined
+  //       ? SUBGRAPH_URL[network?.id]
+  //       : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
+  //       ? SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
+  //       : SUBGRAPH_URL[CHAINID.ARBITRUM_GOERLI];
 
-    const OPYN_SUBGRAPH_URI =
-      network?.id !== undefined
-        ? OPYN_SUBGRAPH_URL[network?.id]
-        : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
-        ? OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
-        : OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_GOERLI];
+  //   const OPYN_SUBGRAPH_URI =
+  //     network?.id !== undefined
+  //       ? OPYN_SUBGRAPH_URL[network?.id]
+  //       : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
+  //       ? OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
+  //       : OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_GOERLI];
 
-    const ryskSubgraph = new HttpLink({
-      uri: SUBGRAPH_URI,
-    });
+  //   const ryskSubgraph = new HttpLink({
+  //     uri: SUBGRAPH_URI,
+  //   });
 
-    const opynSubgraph = new HttpLink({
-      uri: OPYN_SUBGRAPH_URI,
-    });
+  //   const opynSubgraph = new HttpLink({
+  //     uri: OPYN_SUBGRAPH_URI,
+  //   });
 
-    const client = new ApolloClient({
-      link: ApolloLink.split(
-        (operation) => operation.getContext().clientName === "opyn",
-        opynSubgraph, // <= apollo will send to this if clientName is "opyn"
-        ryskSubgraph // <= otherwise will send to this
-      ),
-      cache: new InMemoryCache({
-        typePolicies: {
-          Query: {
-            fields: {
-              writeOptionsActions: {
-                keyArgs: false,
-                merge(existing = [], incoming) {
-                  return [...existing, ...incoming];
-                },
-              },
-              buybackOptionActions: {
-                keyArgs: false,
-                merge(existing = [], incoming) {
-                  return [...existing, ...incoming];
-                },
-              },
-              rebalanceDeltaActions: {
-                keyArgs: false,
-                merge(existing = [], incoming) {
-                  return [...existing, ...incoming];
-                },
-              },
-            },
-          },
-        },
-      }),
-    });
+  //   const client = new ApolloClient({
+  //     link: ApolloLink.split(
+  //       (operation) => operation.getContext().clientName === "opyn",
+  //       opynSubgraph, // <= apollo will send to this if clientName is "opyn"
+  //       ryskSubgraph // <= otherwise will send to this
+  //     ),
+  //     cache: new InMemoryCache({
+  //       typePolicies: {
+  //         Query: {
+  //           fields: {
+  //             writeOptionsActions: {
+  //               keyArgs: false,
+  //               merge(existing = [], incoming) {
+  //                 return [...existing, ...incoming];
+  //               },
+  //             },
+  //             buybackOptionActions: {
+  //               keyArgs: false,
+  //               merge(existing = [], incoming) {
+  //                 return [...existing, ...incoming];
+  //               },
+  //             },
+  //             rebalanceDeltaActions: {
+  //               keyArgs: false,
+  //               merge(existing = [], incoming) {
+  //                 return [...existing, ...incoming];
+  //               },
+  //             },
+  //           },
+  //         },
+  //       },
+  //     }),
+  //   });
 
-    setApolloClient(client);
-  }, [network?.id]);
+  //   setApolloClient(client);
+  // }, [network?.id]);
 
   useEffect(() => {
     // Initialize Fathom when the app loads
@@ -393,20 +265,7 @@ function App() {
   }, []);
 
   return (
-    <WalletContext.Provider
-      value={{
-        connectWallet,
-        network,
-        switchNetwork,
-        disconnect,
-        signer,
-        rpcURL,
-        account,
-        error,
-        chainId,
-        isLoading,
-      }}
-    >
+    <WagmiConfig client={wagmiClient}>
       <GlobalContextProvider>
         <ApolloProvider client={apolloClient}>
           <div className="App bg-bone font-dm-mono flex flex-col min-h-screen">
@@ -439,7 +298,7 @@ function App() {
           />
         </ApolloProvider>
       </GlobalContextProvider>
-    </WalletContext.Provider>
+    </WagmiConfig>
   );
 }
 
