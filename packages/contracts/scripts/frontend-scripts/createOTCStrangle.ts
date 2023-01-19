@@ -2,9 +2,9 @@ import "@nomiclabs/hardhat-ethers"
 import { BigNumber, ethers } from "ethers"
 import hre from "hardhat"
 // This file doesn't exist in CI, only exists locally (in git ignore)
-import { arbitrumRinkeby } from "../contracts.json"
-import { abi as optionHandlerABI } from "../artifacts/contracts/AlphaOptionHandler.sol/AlphaOptionHandler.json"
-import { toWei } from "../utils/conversion-helper"
+import { arbitrumRinkeby } from "../../contracts.json"
+import { abi as optionHandlerABI } from "../../artifacts/contracts/AlphaOptionHandler.sol/AlphaOptionHandler.json"
+import { toWei } from "../../utils/conversion-helper"
 
 const ADDRESS = "0xed9d4593a9BD1aeDBA8C5F9013EF3323FEC5e4dC"
 

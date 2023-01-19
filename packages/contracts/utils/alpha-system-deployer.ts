@@ -1,10 +1,9 @@
 import { expect } from "chai"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
-import { Contract, Signer, utils } from "ethers"
+import { Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
 
-import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
 import {
 	ADDRESS_BOOK,
 	GAMMA_CONTROLLER,
@@ -14,29 +13,25 @@ import {
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS
 } from "../test/constants"
-import { Accounting } from "../types/Accounting"
-import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
-import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
-import { ERC20Interface } from "../types/ERC20Interface"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { MintableERC20 } from "../types/MintableERC20"
-import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import { OptionRegistry } from "../types/OptionRegistry"
-import { Oracle } from "../types/Oracle"
-import { PriceFeed } from "../types/PriceFeed"
-import { Protocol } from "../types/Protocol"
-import { Volatility } from "../types/Volatility"
-import { VolatilityFeed } from "../types/VolatilityFeed"
-import { WETH } from "../types/WETH"
-import { toWei } from "./conversion-helper"
+import { Accounting, AlphaOptionHandler, AlphaPortfolioValuesFeed, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionCatalogue, OptionRegistry, Oracle, PriceFeed, Protocol, Volatility, VolatilityFeed, WETH } from "../types"
+import { toWei, ZERO_ADDRESS } from "./conversion-helper"
 
 dayjs.extend(utc)
-
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
+
+// decimal representation of a percentage
+const interestRate: string = "0.01"
+const miniCallStrikePrice = utils.parseEther("500")
+const maxiCallStrikePrice = utils.parseEther("10000")
+const miniPutStrikePrice = utils.parseEther("500")
+const maxiPutStrikePrice = utils.parseEther("10000")
+// one week in seconds
+const miniExpiry = 86400 * 1
+// 365 days in seconds
+const maxiExpiry = 86400 * 50
 
 export async function deploySystem(
 	signers: Signer[],
@@ -62,9 +57,9 @@ export async function deploySystem(
 		WETH_ADDRESS[chainId]
 	)) as WETH
 	const wethERC20 = (await ethers.getContractAt(
-		"ERC20Interface",
+		"contracts/tokens/ERC20.sol:ERC20",
 		WETH_ADDRESS[chainId]
-	)) as ERC20Interface
+	)) as MintableERC20
 	const usd = (await ethers.getContractAt(
 		"contracts/tokens/ERC20.sol:ERC20",
 		USDC_ADDRESS[chainId]
@@ -169,17 +164,17 @@ export async function deployLiquidityPool(
 	signers: Signer[],
 	optionProtocol: Protocol,
 	usd: MintableERC20,
-	weth: ERC20Interface,
-	rfr: string,
-	minCallStrikePrice: any,
-	minPutStrikePrice: any,
-	maxCallStrikePrice: any,
-	maxPutStrikePrice: any,
-	minExpiry: any,
-	maxExpiry: any,
+	weth: MintableERC20,
 	optionRegistry: OptionRegistry,
 	pvFeed: AlphaPortfolioValuesFeed,
-	authority: string
+	authority: string,
+	rfr: string = interestRate,
+	minCallStrikePrice: any = miniCallStrikePrice,
+	minPutStrikePrice: any = miniPutStrikePrice,
+	maxCallStrikePrice: any = maxiCallStrikePrice,
+	maxPutStrikePrice: any = maxiPutStrikePrice,
+	minExpiry: any = miniExpiry,
+	maxExpiry: any = maxiExpiry,
 ) {
 	const normDistFactory = await ethers.getContractFactory(
 		"contracts/libraries/NormalDist.sol:NormalDist",
@@ -210,7 +205,7 @@ export async function deployLiquidityPool(
 			OptionsCompute: optionsCompute.address
 		}
 	})
-	const lp = (await liquidityPoolFactory.deploy(
+	const liquidityPool = (await liquidityPoolFactory.deploy(
 		optionProtocol.address,
 		usd.address,
 		weth.address,
@@ -230,8 +225,6 @@ export async function deployLiquidityPool(
 		authority
 	)) as LiquidityPool
 
-	const lpAddress = lp.address
-	const liquidityPool = new Contract(lpAddress, LiquidityPoolSol.abi, signers[0]) as LiquidityPool
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
 	await liquidityPool.setMaxPriceDeviationThreshold(toWei("0.03"))
@@ -261,6 +254,7 @@ export async function deployLiquidityPool(
 	await pvFeed.setKeeper(liquidityPool.address, true)
 	await pvFeed.setKeeper(await signers[0].getAddress(), true)
 	await pvFeed.setHandler(handler.address, true)
+	await pvFeed.setRFR(toWei("0.01"))
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,

@@ -4,51 +4,19 @@ import utc from "dayjs/plugin/utc"
 import { BigNumber, Contract, Signer, utils } from "ethers"
 import { AbiCoder } from "ethers/lib/utils"
 import hre, { ethers, network } from "hardhat"
+import { AlphaOptionHandler, AlphaPortfolioValuesFeed, Authority, ClearingHouse, LiquidityPool, Manager, MintableERC20, MockChainlinkAggregator, NewController, OptionRegistry, Oracle, Otoken, PerpHedgingReactor, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
 
-import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import { AddressBook } from "../types/AddressBook"
-import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
-import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
-import { Authority } from "../types/Authority"
-import { ClearingHouse } from "../types/ClearingHouse"
-import { ERC20Interface } from "../types/ERC20Interface"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { Manager } from "../types/Manager"
-import { MintableERC20 } from "../types/MintableERC20"
-import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import { NewController } from "../types/NewController"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { OptionRegistry } from "../types/OptionRegistry"
-import { Oracle } from "../types/Oracle"
-import { OracleMock } from "../types/OracleMock"
-import { Otoken as IOToken } from "../types/Otoken"
-import { PerpHedgingReactor } from "../types/PerpHedgingReactor"
-import { PriceFeed } from "../types/PriceFeed"
-import { Protocol } from "../types/Protocol"
-import { Volatility } from "../types/Volatility"
-import { VolatilityFeed } from "../types/VolatilityFeed"
-import { WETH } from "../types/WETH"
 import { deployLiquidityPool, deploySystem } from "../utils/alpha-system-deployer"
-import {
-	setupTestOracle,
-	setupOracle,
-	calculateOptionQuoteLocallyAlpha,
-	calculateOptionDeltaLocally,
-	increase,
-	setOpynOracleExpiryPrice,
-	increaseTo
-} from "./helpers"
 import {
 	fromOpyn,
 	fromWei,
-	percentDiff,
-	scaleNum,
-	tFormatEth,
+	percentDiff, tFormatEth,
 	tFormatUSDC,
 	toOpyn,
 	toUSDC,
 	toWei,
-	toWeiFromUSDC
+	toWeiFromUSDC,
+	ZERO_ADDRESS
 } from "../utils/conversion-helper"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { deployRage, deployRangeOrder } from "../utils/rage-deployer"
@@ -59,19 +27,21 @@ import {
 	USDC_ADDRESS,
 	WETH_ADDRESS
 } from "./constants"
+import {
+	calculateOptionDeltaLocally, calculateOptionQuoteLocallyAlpha, increaseTo, setupTestOracle
+} from "./helpers"
 
 dayjs.extend(utc)
 
 let usd: MintableERC20
 let weth: WETH
-let wethERC20: ERC20Interface
+let wethERC20: MintableERC20
 let optionRegistry: OptionRegistry
 let optionProtocol: Protocol
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
-let volatility: Volatility
 let manager: Manager
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
@@ -79,21 +49,15 @@ let portfolioValuesFeed: AlphaPortfolioValuesFeed
 let perpHedgingReactor: PerpHedgingReactor
 let vTokenAddress: string
 let vQuoteAddress: string
-let rageOracle: OracleMock
 let clearingHouse: ClearingHouse
 let poolId: string
-let settlementTokenOracle: OracleMock
 let collateralId: string
 let controller: NewController
-let addressBook: AddressBook
-let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 let handler: AlphaOptionHandler
 let authority: Authority
 let customOrderId: any
-
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 /* --- variables to change --- */
 
@@ -102,8 +66,6 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 // First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
 
-// decimal representation of a percentage
-const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
@@ -115,41 +77,8 @@ const strike = "20"
 // balances to deposit into the LP
 const liquidityPoolUsdcDeposit = "60000"
 
-const minCallStrikePrice = utils.parseEther("500")
-const maxCallStrikePrice = utils.parseEther("10000")
-const minPutStrikePrice = utils.parseEther("500")
-const maxPutStrikePrice = utils.parseEther("10000")
-// one week in seconds
-const minExpiry = 86400 * 7
-// 365 days in seconds
-const maxExpiry = 86400 * 50
-
-// time travel period between each expiry
-const productSpotShockValue = scaleNum("0.6", 27)
-// array of time to expiry
-const day = 60 * 60 * 24
-const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56, day * 84]
-// array of upper bound value correspond to time to expiry
-const expiryToValue = [
-	scaleNum("0.1678", 27),
-	scaleNum("0.237", 27),
-	scaleNum("0.3326", 27),
-	scaleNum("0.4032", 27),
-	scaleNum("0.4603", 27),
-	scaleNum("0.5", 27)
-]
-
-/* --- end variables to change --- */
-
 const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
 const expiration2 = dayjs.utc(expiryDate).add(1, "weeks").add(8, "hours").unix() // have another batch of options expire 1 week after the first
-
-// test ITM option when expired but not settled
-// test OTM option when expired but not settled
-// test ITM option when expired and settled and not removed
-// test OTM option when expired and settled and not removed
-// test ITM option when expired and settled and removed
-// test OTM option when expired and settled and removed
 
 describe("Liquidity Pool with alpha tests", async () => {
 	before(async function () {
@@ -171,11 +100,9 @@ describe("Liquidity Pool with alpha tests", async () => {
 			params: [CHAINLINK_WETH_PRICER[chainId]]
 		})
 		signers = await ethers.getSigners()
-		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
+		let opynParams = await deployOpyn(signers)
 		controller = opynParams.controller
-		addressBook = opynParams.addressBook
 		oracle = opynParams.oracle
-		newCalculator = opynParams.newCalculator
 		const [sender] = signers
 
 		const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
@@ -209,18 +136,10 @@ describe("Liquidity Pool with alpha tests", async () => {
 			optionProtocol,
 			usd,
 			wethERC20,
-			rfr,
-			minCallStrikePrice,
-			minPutStrikePrice,
-			maxCallStrikePrice,
-			maxPutStrikePrice,
-			minExpiry,
-			maxExpiry,
 			optionRegistry,
 			portfolioValuesFeed,
 			authority.address
 		)
-		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		handler = lpParams.handler
 		signers = await hre.ethers.getSigners()
@@ -259,8 +178,6 @@ describe("Liquidity Pool with alpha tests", async () => {
 			collateralId = rageParams.collateralId
 			vQuoteAddress = rageParams.vQuoteAddress
 			vTokenAddress = rageParams.vTokenAddress
-			rageOracle = rageParams.rageOracle
-			settlementTokenOracle = rageParams.settlementTokenOracle
 		})
 		it("SETUP: deploys the hedging reactor", async () => {
 			const perpHedgingReactorFactory = await ethers.getContractFactory("PerpHedgingReactor", {
@@ -461,7 +378,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 		})
 	})
 	describe("Create and execute a single buy order", async () => {
-		let optionToken: IOToken
+		let optionToken: Otoken
 		let customOrderPrice: number
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = {
@@ -579,7 +496,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
 			expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 			expect(await handler.orderIdCounter()).to.eq(1)
-			optionToken = new Contract(order.seriesAddress, Otoken.abi, receiver) as IOToken
+			optionToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
 			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		})
@@ -734,6 +651,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 					collateral: orderDeets.optionSeries.collateral
 				},
 				orderDeets.amount,
+				true,
 				true
 			)
 			const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
@@ -819,8 +737,8 @@ describe("Liquidity Pool with alpha tests", async () => {
 		let customStranglePrice: number
 		let strangleCallId: any
 		let stranglePutId: any
-		let strangleCallToken: IOToken
-		let stranglePutToken: IOToken
+		let strangleCallToken: Otoken
+		let stranglePutToken: Otoken
 		it("SUCCEEDS: creates a custom strangle order via manager", async () => {
 			let customOrderPriceMultiplier = 1
 			const [sender, receiver] = signers
@@ -896,8 +814,8 @@ describe("Liquidity Pool with alpha tests", async () => {
 			stranglePutId = orderIds[0]
 			const callOrder = await handler.orderStores(strangleCallId)
 			const putOrder = await handler.orderStores(stranglePutId)
-			strangleCallToken = new Contract(callOrder.seriesAddress, Otoken.abi, sender) as IOToken
-			stranglePutToken = new Contract(putOrder.seriesAddress, Otoken.abi, sender) as IOToken
+			strangleCallToken = await ethers.getContractAt("Otoken", callOrder.seriesAddress) as Otoken
+			stranglePutToken = await ethers.getContractAt("Otoken", putOrder.seriesAddress) as Otoken
 			const orderIdAfter = await handler.orderIdCounter()
 			const lpUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
 
@@ -1113,7 +1031,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 	})
 	// do for option that doesnt exist yet too
 	describe("Create and execute a single buyback order via manager", async () => {
-		let optionToken: IOToken
+		let optionToken: Otoken
 		let customOrderPrice: number
 		let customOrderId: BigNumber
 		it("SETUP: Creates a buy order", async () => {
@@ -1185,7 +1103,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
 			expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 			expect(await handler.orderIdCounter()).to.eq(4)
-			optionToken = new Contract(order.seriesAddress, Otoken.abi, receiver) as IOToken
+			optionToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
 			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		})
@@ -1373,7 +1291,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
 			expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 			expect(await handler.orderIdCounter()).to.eq(5)
-			optionToken = new Contract(order.seriesAddress, Otoken.abi, receiver) as IOToken
+			optionToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
 			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		})
@@ -1526,6 +1444,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 					collateral: orderDeets.optionSeries.collateral
 				},
 				orderDeets.amount,
+				true,
 				true
 			)
 			const deltaBefore = tFormatEth(await liquidityPool.getPortfolioDelta())
@@ -1547,7 +1466,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			)
 
 			await usd.connect(receiver).approve(handler.address, 100000000000)
-			await optionToken.approve(handler.address, toOpyn(fromWei(orderDeets.amount)))
+			await optionToken.connect(receiver).approve(handler.address, toOpyn(fromWei(orderDeets.amount)))
 			await handler.connect(receiver).executeBuyBackOrder(customOrderId)
 
 			// check ephemeral values update correctly
@@ -1672,7 +1591,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
 			expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 			expect(await handler.orderIdCounter()).to.eq(6)
-			optionToken = new Contract(order.seriesAddress, Otoken.abi, receiver) as IOToken
+			optionToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
 			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		})
@@ -1719,7 +1638,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 		})
 	})
 	describe("Create a buy order and fail to meet order in time", async () => {
-		let optionToken: IOToken
+		let optionToken: Otoken
 		let customOrderPrice: number
 		let customOrderId: any
 		it("SUCCEEDS: Creates a buy order", async () => {
@@ -1790,7 +1709,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(order.lowerSpotMovementRange.add(toWei("1"))).to.equal(priceQuote)
 			expect(order.isBuyBack).to.be.false
 			expect(await handler.orderIdCounter()).to.eq(7)
-			optionToken = new Contract(order.seriesAddress, Otoken.abi, receiver) as IOToken
+			optionToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
 			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		})
@@ -1800,7 +1719,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 		})
 	})
 	describe("Create a buy order and spot moves past deviation threshold", async () => {
-		let optionToken: IOToken
+		let optionToken: Otoken
 		let customOrderPrice: number
 		let customOrderId: any
 		it("SUCCEEDS: Creates a buy order", async () => {
@@ -1863,7 +1782,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(order.lowerSpotMovementRange.add(toWei("1"))).to.equal(priceQuote)
 			expect(order.isBuyBack).to.be.false
 			expect(await handler.orderIdCounter()).to.eq(8)
-			optionToken = new Contract(order.seriesAddress, Otoken.abi, receiver) as IOToken
+			optionToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
 			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		})
@@ -1896,7 +1815,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			value = vaultDetails.shortAmounts[0].div(2)
 			const seriesAddy = await portfolioValuesFeed.addressAtIndexInSet(0)
 			const abiCode = new AbiCoder()
-			const optionToken = new Contract(seriesAddy, Otoken.abi, signers[0]) as IOToken
+			const optionToken = await ethers.getContractAt("Otoken", seriesAddy) as Otoken
 			const liquidateArgs = [
 				{
 					actionType: 10,

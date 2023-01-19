@@ -1,6 +1,6 @@
 import { utils, Event, ContractReceipt } from "ethers"
-import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import OptionRegistrySol from "../artifacts/contracts/OptionRegistry.sol/OptionRegistry.json"
+import LiquidityPoolSol from "../../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
+import OptionRegistrySol from "../../artifacts/contracts/OptionRegistry.sol/OptionRegistry.json"
 
 const FAILED = "failed"
 // Event names

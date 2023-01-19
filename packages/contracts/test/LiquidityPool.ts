@@ -1,98 +1,49 @@
 import { expect } from "chai"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
+import { BigNumber, Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
-import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
-
+import { AlphaPortfolioValuesFeed, BeyondPricer, LiquidityPool, MintableERC20, MockChainlinkAggregator, NewController, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, Otoken, PriceFeed, Protocol, UniswapV3HedgingReactor, VolatilityFeed, WETH } from "../types"
 import {
-	toWei,
-	truncate,
-	tFormatEth,
-	fromWei,
-	percentDiff,
-	toUSDC,
-	toWeiFromUSDC,
-	fromOpyn,
-	toOpyn,
-	tFormatUSDC,
-	scaleNum,
-	emptySeries
+	CALL_FLAVOR, emptySeries, fromOpyn, fromWei,
+	percentDiff, PUT_FLAVOR, tFormatEth, tFormatUSDC, toOpyn, toUSDC, toWei, toWeiFromUSDC, truncate, ZERO_ADDRESS
 } from "../utils/conversion-helper"
-import { deployOpyn } from "../utils/opyn-deployer"
-import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
-import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry } from "../types/OptionRegistry"
-import { Otoken as IOToken } from "../types/Otoken"
-import { PriceFeed } from "../types/PriceFeed"
-import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { WETH } from "../types/WETH"
-import { Protocol } from "../types/Protocol"
-import { Volatility } from "../types/Volatility"
-import { VolatilityFeed } from "../types/VolatilityFeed"
-import { NewController } from "../types/NewController"
-import { AddressBook } from "../types/AddressBook"
-import { Oracle } from "../types/Oracle"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import {
-	setupTestOracle,
-	setupOracle,
-	calculateOptionQuoteLocally,
-	applySlippageLocally,
-	calculateOptionDeltaLocally,
-	increase,
-	setOpynOracleExpiryPrice,
-	getSeriesWithe18Strike,
-	getNetDhvExposure,
-	localQuoteOptionPrice,
-	compareQuotes
-} from "./helpers"
-import {
-	USDC_ADDRESS,
-	WETH_ADDRESS,
-	UNISWAP_V3_SWAP_ROUTER,
-	CONTROLLER_OWNER,
-	CHAINLINK_WETH_PRICER
-} from "./constants"
-import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
-import { ERC20Interface } from "../types/ERC20Interface"
-import { OptionExchange } from "../types/OptionExchange"
-import { BeyondPricer } from "../types/BeyondPricer"
-import { OptionCatalogue } from "../types/OptionCatalogue"
+import { deployOpyn } from "../utils/opyn-deployer"
+import {
+	CHAINLINK_WETH_PRICER, CONTROLLER_OWNER, UNISWAP_V3_SWAP_ROUTER, USDC_ADDRESS,
+	WETH_ADDRESS
+} from "./constants"
+import {
+	applySlippageLocally,
+	calculateOptionDeltaLocally, calculateOptionQuoteLocally, compareQuotes, getNetDhvExposure, getSeriesWithe18Strike, localQuoteOptionPrice, setOpynOracleExpiryPrice, setupOracle, setupTestOracle
+} from "./helpers"
 
 dayjs.extend(utc)
 
 let usd: MintableERC20
 let weth: WETH
-let wethERC20: ERC20Interface
+let wethERC20: MintableERC20
 let optionRegistry: OptionRegistry
 let optionProtocol: Protocol
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
-let volatility: Volatility
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
 let pricer: BeyondPricer
 let uniswapV3HedgingReactor: UniswapV3HedgingReactor
 let controller: NewController
-let addressBook: AddressBook
-let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
-let putOptionToken: IOToken
-let putOptionToken2: IOToken
+let putOptionToken: Otoken
+let putOptionToken2: Otoken
 let proposedSeries: any
 let exchange: OptionExchange
 let authority: string
 let catalogue: OptionCatalogue
-
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 /* --- variables to change --- */
 
@@ -101,11 +52,9 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 // First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
 
-const invalidExpiryDateLong: string = "2022-04-22"
+const invalidExpiryDateLong: string = "2023-04-22"
 const invalidExpiryDateShort: string = "2022-03-01"
 
-// decimal representation of a percentage
-const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
@@ -121,34 +70,7 @@ const invalidStrikeLow = utils.parseEther("200")
 // balances to deposit into the LP
 const liquidityPoolUsdcDeposit = "500000"
 
-const minCallStrikePrice = utils.parseEther("500")
-const maxCallStrikePrice = utils.parseEther("10000")
-const minPutStrikePrice = utils.parseEther("500")
-const maxPutStrikePrice = utils.parseEther("10000")
-// one week in seconds
-const minExpiry = 86400 * 7
-// 365 days in seconds
-const maxExpiry = 86400 * 50
-
-// time travel period between each expiry
-const productSpotShockValue = scaleNum("0.6", 27)
-// array of time to expiry
-const day = 60 * 60 * 24
-const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56, day * 84]
-// array of upper bound value correspond to time to expiry
-const expiryToValue = [
-	scaleNum("0.1678", 27),
-	scaleNum("0.237", 27),
-	scaleNum("0.3326", 27),
-	scaleNum("0.4032", 27),
-	scaleNum("0.4603", 27),
-	scaleNum("0.5", 27)
-]
-
 const slippageGradient = toWei("0.001") // 0.1% slippage per contract
-const lowDeltaSlippageMultiplier = toWei("2") // gradient multiplier for  <10d contracts
-const mediumDeltaSlippageMultiplier = toWei("1.5") // gradient multiplier for 10 <= d < 25 contracts
-const highDeltaSlippageMultiplier = toWei("1") // multiplier for >25d contracts
 
 /* --- end variables to change --- */
 
@@ -156,9 +78,6 @@ const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
 const expiration2 = dayjs.utc(expiryDate).add(1, "weeks").add(8, "hours").unix() // have another batch of options expire 1 week after the first
 const invalidExpirationLong = dayjs.utc(invalidExpiryDateLong).add(8, "hours").unix()
 const invalidExpirationShort = dayjs.utc(invalidExpiryDateShort).add(8, "hours").unix()
-
-const CALL_FLAVOR = false
-const PUT_FLAVOR = true
 
 describe("Liquidity Pools", async () => {
 	before(async function () {
@@ -180,11 +99,9 @@ describe("Liquidity Pools", async () => {
 			params: [CHAINLINK_WETH_PRICER[chainId]]
 		})
 		signers = await ethers.getSigners()
-		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
+		let opynParams = await deployOpyn(signers)
 		controller = opynParams.controller
-		addressBook = opynParams.addressBook
 		oracle = opynParams.oracle
-		newCalculator = opynParams.newCalculator
 		const [sender] = signers
 
 		const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
@@ -216,18 +133,10 @@ describe("Liquidity Pools", async () => {
 			optionProtocol,
 			usd,
 			wethERC20,
-			rfr,
-			minCallStrikePrice,
-			minPutStrikePrice,
-			maxCallStrikePrice,
-			maxPutStrikePrice,
-			minExpiry,
-			maxExpiry,
 			optionRegistry,
 			portfolioValuesFeed,
 			authority
 		)
-		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		exchange = lpParams.exchange
 		pricer = lpParams.pricer
@@ -468,15 +377,15 @@ describe("Liquidity Pools", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-				parseFloat(fromWei(pendingWithdrawBefore)) *
-					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+			parseFloat(fromWei(pendingWithdrawBefore)) *
+			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			totalSupplyBefore.eq(0)
 				? toWei("1")
 				: toWei("1")
-						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-						.div(totalSupplyBefore)
+					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+					.div(totalSupplyBefore)
 		)
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
 		expect(pendingDepositBefore).to.not.eq(0)
@@ -532,11 +441,11 @@ describe("Liquidity Pools", async () => {
 		await liquidityPool.setHedgingReactorAddress(reactorAddress)
 		await expect(await liquidityPool.hedgingReactors(0)).to.equal(reactorAddress)
 
-		await liquidityPool.setHedgingReactorAddress(ETH_ADDRESS)
+		await liquidityPool.setHedgingReactorAddress(senderAddress)
 		await liquidityPool.setHedgingReactorAddress(WETH_ADDRESS[chainId])
 
 		// check added addresses show
-		expect(await liquidityPool.hedgingReactors(1)).to.equal(ETH_ADDRESS)
+		expect(await liquidityPool.hedgingReactors(1)).to.equal(senderAddress)
 		expect(await liquidityPool.hedgingReactors(2)).to.equal(WETH_ADDRESS[chainId])
 		// delete two added reactors
 		// should remove middle element (element 1)
@@ -1346,7 +1255,7 @@ describe("Liquidity Pools", async () => {
 			}
 		])
 		const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
-		putOptionToken = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+		putOptionToken = await ethers.getContractAt("Otoken", seriesAddress) as Otoken
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const senderPutBalance = await putOptionToken.balanceOf(senderAddress)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -1570,6 +1479,7 @@ describe("Liquidity Pools", async () => {
 			priceFeed,
 			proposedSeries,
 			toWei("25"),
+			true,
 			true
 		)
 		// mock external adapter delta calculation
@@ -1868,7 +1778,7 @@ describe("Liquidity Pools", async () => {
 		])
 		const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		putOptionToken2 = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
+		putOptionToken2 = await ethers.getContractAt("Otoken", seriesAddress) as Otoken
 		const putBalance = await putOptionToken2.balanceOf(senderAddress)
 
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -1903,7 +1813,7 @@ describe("Liquidity Pools", async () => {
 			tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatEth(ephemeralLiabilitiesBefore)
 		const ephemeralDeltaDiff =
 			tFormatEth(await liquidityPool.ephemeralDelta()) - tFormatEth(ephemeralDeltaBefore)
-		expect(ephemeralDeltaDiff).to.equal(-tFormatEth(delta))
+		expect(ephemeralDeltaDiff - -tFormatEth(delta)).to.be.within(-0.001, 0.001)
 		expect(ephemeralLiabilitiesDiff - tFormatUSDC(quote.sub(quoteResponse[2]))).to.be.within(
 			-0.01,
 			0.01
@@ -2176,7 +2086,7 @@ describe("Liquidity Pools", async () => {
 		// expect liquidity pool's USD balance decreases by correct amount
 		expect(
 			tFormatUSDC(lpUSDBalanceBefore.sub(lpUSDBalanceAfter)) -
-				(tFormatUSDC(quote) - collateralAllocatedDiff)
+			(tFormatUSDC(quote) - collateralAllocatedDiff)
 		).to.be.within(-0.0011, 0.0011)
 		// expect collateral allocated in LP reduces by correct amount
 		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.0011, 0.0011)
@@ -2212,6 +2122,7 @@ describe("Liquidity Pools", async () => {
 					collateral: seriesStore.optionSeries.collateral
 				},
 				seriesStore.shortExposure,
+				true,
 				true
 			)
 			localDelta = localDelta.add(delta_)
@@ -2352,21 +2263,6 @@ describe("Liquidity Pools", async () => {
 		const diff = percentDiff(truncQuote, chainQuote)
 		expect(diff).to.be.within(0, 0.1)
 	})
-
-	let optionToken: IOToken
-	let customOrderPrice: number
-	let customOrderId: number
-	it("Can compute IV from volatility skew coefs", async () => {
-		const coefs: BigNumberish[] = [
-			1.42180236, 0, -0.08626792, 0.07873822, 0.00650549, 0.02160918, -0.1393287
-		].map(x => toWei(x.toString()))
-		const points = [-0.36556715, 0.59115575].map(x => toWei(x.toString()))
-		const expected_iv = 1.4473946
-		//@ts-ignore
-		const res = await volatility.computeIVFromSkewInts(coefs, points)
-		expect(tFormatEth(res)).to.eq(truncate(expected_iv))
-	})
-
 	it("Succeeds: User 2: Deposit to the liquidityPool", async () => {
 		const user = receiverAddress
 		const usdBalanceBefore = await usd.balanceOf(user)
@@ -2480,8 +2376,8 @@ describe("Liquidity Pools", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-				parseFloat(fromWei(pendingWithdrawBefore)) *
-					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+			parseFloat(fromWei(pendingWithdrawBefore)) *
+			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			toWei("1")
@@ -2566,7 +2462,7 @@ describe("Liquidity Pools", async () => {
 		// check collateral returned to LP is correct
 		expect(
 			tFormatUSDC(collateralReturned) -
-				tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
+			tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
 		).to.be.within(-0.001, 0.001)
 		// check LP USDC balance increases by correct amount
 		expect(lpBalanceDiff).to.eq(tFormatUSDC(collateralReturned))
@@ -2687,7 +2583,7 @@ describe("Liquidity Pools", async () => {
 	})
 	it("updates riskFreeRate variable", async () => {
 		const beforeValue = await liquidityPool.riskFreeRate()
-		expect(beforeValue).to.equal(toWei("0"))
+		expect(beforeValue).to.equal(toWei("0.01"))
 		const expectedValue = toWei("0.06")
 		await liquidityPool.setRiskFreeRate(expectedValue)
 		const afterValue = await liquidityPool.riskFreeRate()

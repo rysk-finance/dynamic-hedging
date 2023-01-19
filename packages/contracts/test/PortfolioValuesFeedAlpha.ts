@@ -3,27 +3,9 @@ import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import { BigNumber, Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
-
-import { AddressBook } from "../types/AddressBook"
-import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
-import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
-import { ERC20Interface } from "../types/ERC20Interface"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { MintableERC20 } from "../types/MintableERC20"
-import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import { NewController } from "../types/NewController"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { OptionRegistry } from "../types/OptionRegistry"
-import { Oracle } from "../types/Oracle"
-import { Otoken as IOToken } from "../types/Otoken"
-import { PriceFeed } from "../types/PriceFeed"
-import { Protocol } from "../types/Protocol"
-import { UniswapV3HedgingReactor } from "../types/UniswapV3HedgingReactor"
-import { Volatility } from "../types/Volatility"
-import { VolatilityFeed } from "../types/VolatilityFeed"
-import { WETH } from "../types/WETH"
+import { AlphaOptionHandler, AlphaPortfolioValuesFeed, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionRegistry, Oracle, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
 import { deployLiquidityPool, deploySystem } from "../utils/alpha-system-deployer"
-import { scaleNum, tFormatEth, toUSDC, toWei } from "../utils/conversion-helper"
+import { CALL_FLAVOR, PUT_FLAVOR, tFormatEth, toUSDC, toWei } from "../utils/conversion-helper"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { CHAINLINK_WETH_PRICER, CONTROLLER_OWNER } from "./constants"
 import {
@@ -37,20 +19,16 @@ dayjs.extend(utc)
 
 let usd: MintableERC20
 let weth: WETH
-let wethERC20: ERC20Interface
+let wethERC20: MintableERC20
 let optionRegistry: OptionRegistry
 let optionProtocol: Protocol
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
-let volatility: Volatility
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
-let controller: NewController
-let addressBook: AddressBook
-let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 let handler: AlphaOptionHandler
@@ -63,10 +41,6 @@ let authority: string
 // First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
 
-const invalidExpiryDateLong: string = "2022-04-22"
-const invalidExpiryDateShort: string = "2022-03-01"
-// decimal representation of a percentage
-const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
@@ -74,31 +48,6 @@ const oTokenDecimalShift18 = 10000000000
 // amount of dollars OTM written options will be (both puts and calls)
 // use negative numbers for ITM options
 const strike = "20"
-
-const minCallStrikePrice = utils.parseEther("500")
-const maxCallStrikePrice = utils.parseEther("10000")
-const minPutStrikePrice = utils.parseEther("500")
-const maxPutStrikePrice = utils.parseEther("10000")
-// one week in seconds
-const minExpiry = 86400 * 7
-// 365 days in seconds
-const maxExpiry = 86400 * 50
-
-// time travel period between each expiry
-const productSpotShockValue = scaleNum("0.6", 27)
-// array of time to expiry
-const day = 60 * 60 * 24
-const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56, day * 84]
-// array of upper bound value correspond to time to expiry
-const expiryToValue = [
-	scaleNum("0.1678", 27),
-	scaleNum("0.237", 27),
-	scaleNum("0.3326", 27),
-	scaleNum("0.4032", 27),
-	scaleNum("0.4603", 27),
-	scaleNum("0.5", 27)
-]
-
 let noOfExpiries = 10
 let noOfStrikes = 5
 
@@ -106,8 +55,6 @@ let noOfStrikes = 5
 
 const expiration2 = dayjs.utc(expiryDate).add(1, "week").add(8, "hours").unix() // have another batch of options exire 1 week after the first
 
-const CALL_FLAVOR = false
-const PUT_FLAVOR = true
 let predictedQuote = BigNumber.from(0)
 let predictedDelta = BigNumber.from(0)
 
@@ -131,11 +78,8 @@ describe("APVF gas tests", async () => {
 			params: [CHAINLINK_WETH_PRICER[chainId]]
 		})
 		signers = await ethers.getSigners()
-		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
-		controller = opynParams.controller
-		addressBook = opynParams.addressBook
+		let opynParams = await deployOpyn(signers)
 		oracle = opynParams.oracle
-		newCalculator = opynParams.newCalculator
 		const [sender] = signers
 
 		const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
@@ -169,18 +113,10 @@ describe("APVF gas tests", async () => {
 			optionProtocol,
 			usd,
 			wethERC20,
-			rfr,
-			minCallStrikePrice,
-			minPutStrikePrice,
-			maxCallStrikePrice,
-			maxPutStrikePrice,
-			minExpiry,
-			maxExpiry,
 			optionRegistry,
 			portfolioValuesFeed,
 			authority
 		)
-		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		handler = lpParams.handler
 		signers = await hre.ethers.getSigners()
@@ -334,6 +270,7 @@ describe("APVF gas tests", async () => {
 			await migratePortfolioValuesFeed.setHandler(portfolioValuesFeed.address, true)
 			await migratePortfolioValuesFeed.setLiquidityPool(liquidityPool.address)
 			await migratePortfolioValuesFeed.setProtocol(optionProtocol.address)
+			await migratePortfolioValuesFeed.setRFR(toWei("0.01"))
 		})
 		it("SUCCEEDS: Tries to migrate to a new portfolio values feed", async () => {
 			const originalLength = await portfolioValuesFeed.addressSetLength()

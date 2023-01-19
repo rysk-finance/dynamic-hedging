@@ -1,34 +1,15 @@
-import hre, { ethers, network } from "hardhat"
-import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
-import { toWei, toUSDC, scaleNum, fromUSDC } from "../utils/conversion-helper"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
-import { AbiCoder } from "ethers/lib/utils"
+import { BigNumber, Signer } from "ethers"
+import hre, { ethers, network } from "hardhat"
+import { CALL_FLAVOR, fromUSDC, PUT_FLAVOR, toUSDC, toWei } from "../utils/conversion-helper"
 //@ts-ignore
 import { expect } from "chai"
-import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
-import { Otoken } from "../types/Otoken"
-import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { WETH } from "../types/WETH"
-import { Protocol } from "../types/Protocol"
-import { Volatility } from "../types/Volatility"
-import { VolatilityFeed } from "../types/VolatilityFeed"
-import { NewController } from "../types/NewController"
-import { AddressBook } from "../types/AddressBook"
-import { Oracle } from "../types/Oracle"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle, calculateOptionQuoteLocally, compareQuotes } from "./helpers"
-import { CHAINLINK_WETH_PRICER } from "./constants"
-import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import { deployOpyn } from "../utils/opyn-deployer"
-import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
+import { AlphaPortfolioValuesFeed, BeyondPricer, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionExchange, OptionRegistry, Oracle, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
-import { BeyondPricer } from "../types/BeyondPricer"
-import { NewWhitelist } from "../types/NewWhitelist"
-import { OptionExchange } from "../types/OptionExchange"
-import { OptionCatalogue } from "../types/OptionCatalogue"
+import { deployOpyn } from "../utils/opyn-deployer"
+import { CHAINLINK_WETH_PRICER } from "./constants"
+import { calculateOptionQuoteLocally, compareQuotes, setupTestOracle } from "./helpers"
 
 dayjs.extend(utc)
 
@@ -42,24 +23,13 @@ let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
-let volatility: Volatility
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
-let rate: string
-let controller: NewController
-let addressBook: AddressBook
-let newCalculator: NewMarginCalculator
-let newWhitelist: NewWhitelist
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 let exchange: OptionExchange
 let pricer: BeyondPricer
 let authority: string
-let catalogue: OptionCatalogue
-
-const IMPLIED_VOL = "60"
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 
 /* --- variables to change --- */
 
@@ -68,10 +38,6 @@ const ETH_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
 // First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
 
-const invalidExpiryDateLong: string = "2024-09-03"
-const invalidExpiryDateShort: string = "2022-03-01"
-// decimal representation of a percentage
-const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
 
@@ -79,53 +45,9 @@ const chainId = 1
 const liquidityPoolUsdcDeposit = "100000"
 const liquidityPoolWethDeposit = "1"
 
-// balance to withdraw after deposit
-const liquidityPoolWethWidthdraw = "0.1"
-
-const minCallStrikePrice = utils.parseEther("500")
-const maxCallStrikePrice = utils.parseEther("10000")
-const minPutStrikePrice = utils.parseEther("500")
-const maxPutStrikePrice = utils.parseEther("10000")
-// one week in seconds
-const minExpiry = 86400 * 7
-// 365 days in seconds
-const maxExpiry = 86400 * 365
-
-// time travel period between each expiry
-const expiryPeriod = {
-	days: 0,
-	weeks: 0,
-	months: 1,
-	years: 0
-}
-const productSpotShockValue = scaleNum("0.6", 27)
-// array of time to expiry
-const day = 60 * 60 * 24
-const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56]
-// array of upper bound value correspond to time to expiry
-const expiryToValue = [
-	scaleNum("0.1678", 27),
-	scaleNum("0.237", 27),
-	scaleNum("0.3326", 27),
-	scaleNum("0.4032", 27),
-	scaleNum("0.4603", 27)
-]
-
-/* --- end variables to change --- */
-
 const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
 const expiration2 = dayjs.utc(expiryDate).add(1, "weeks").add(8, "hours").unix() // have another batch of options exire 1 week after the first
-const abiCode = new AbiCoder()
-const CALL_FLAVOR = false
-const PUT_FLAVOR = true
-const emptySeries = {
-	expiration: 1,
-	strike: 1,
-	isPut: CALL_FLAVOR,
-	collateral: ZERO_ADDRESS,
-	underlying: ZERO_ADDRESS,
-	strikeAsset: ZERO_ADDRESS
-}
+
 describe("Spread Pricer testing", async () => {
 	before(async function () {
 		await hre.network.provider.request({
@@ -146,12 +68,8 @@ describe("Spread Pricer testing", async () => {
 			params: [CHAINLINK_WETH_PRICER[chainId]]
 		})
 		signers = await ethers.getSigners()
-		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
-		controller = opynParams.controller
-		addressBook = opynParams.addressBook
+		let opynParams = await deployOpyn(signers)
 		oracle = opynParams.oracle
-		newCalculator = opynParams.newCalculator
-		newWhitelist = opynParams.newWhitelist
 		const [sender] = signers
 
 		// get the oracle
@@ -173,21 +91,12 @@ describe("Spread Pricer testing", async () => {
 			optionProtocol,
 			usd,
 			wethERC20,
-			rfr,
-			minCallStrikePrice,
-			minPutStrikePrice,
-			maxCallStrikePrice,
-			maxPutStrikePrice,
-			minExpiry,
-			maxExpiry,
 			optionRegistry,
 			portfolioValuesFeed,
 			authority
 		)
-		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		exchange = lpParams.exchange
-		catalogue = lpParams.catalogue
 		pricer = lpParams.pricer
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
@@ -287,7 +196,7 @@ describe("Spread Pricer testing", async () => {
 		})
 	})
 	describe("Get quotes successfully for small and big calls", async () => {
-		let proposedSeries: OptionSeriesStruct
+		let proposedSeries: any
 		let singleBuyQuote: BigNumber
 		let singleSellQuote: BigNumber
 		it("SUCCEEDS: get quote for 1 option when buying", async () => {
@@ -416,7 +325,7 @@ describe("Spread Pricer testing", async () => {
 		})
 	})
 	describe("Get quotes successfully for small and big puts", async () => {
-		let proposedSeries: OptionSeriesStruct
+		let proposedSeries: any
 		let singleBuyQuote: BigNumber
 		let singleSellQuote: BigNumber
 		it("SUCCEEDS: get quote for 1 option when buying", async () => {
@@ -545,7 +454,7 @@ describe("Spread Pricer testing", async () => {
 		})
 	})
 	describe("Compare lots of small quotes to one big quote", async () => {
-		let proposedSeries: OptionSeriesStruct
+		let proposedSeries: any
 		let buyQuoteLots: BigNumber
 		let sellQuoteLots: BigNumber
 		it("SUCCEEDS: get quote for 100 option when buying 100 times", async () => {

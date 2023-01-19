@@ -2,7 +2,7 @@ import "@nomiclabs/hardhat-ethers"
 import { utils } from "ethers"
 import hre, { ethers } from "hardhat"
 // This file doesn't exist in CI, only exists locally (in git ignore)
-import { arbitrumRinkeby } from "../contracts.json"
+import { arbitrumRinkeby } from "../../contracts.json"
 
 async function main() {
 	try {

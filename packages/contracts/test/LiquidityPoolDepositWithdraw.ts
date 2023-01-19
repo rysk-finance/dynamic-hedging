@@ -1,63 +1,14 @@
-import hre, { ethers, network } from "hardhat"
-import { BigNumberish, Contract, utils, Signer, BigNumber } from "ethers"
-import {
-	toWei,
-	tFormatEth,
-	call,
-	put,
-	fromWei,
-	toUSDC,
-	toWeiFromUSDC,
-	fromUSDC,
-	fmtExpiration,
-	toOpyn,
-	tFormatUSDC,
-	scaleNum,
-	fromWeiToUSDC,
-	emptySeries,
-	ZERO_ADDRESS
-} from "../utils/conversion-helper"
+import { expect } from "chai"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
-import { expect } from "chai"
+import { BigNumber, Contract, Signer, utils } from "ethers"
+import hre, { ethers } from "hardhat"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import LiquidityPoolSol from "../artifacts/contracts/LiquidityPool.sol/LiquidityPool.json"
-import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
-import { ERC20 } from "../types/ERC20"
-import { ERC20Interface } from "../types/ERC20Interface"
-import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry } from "../types/OptionRegistry"
-import { Otoken as IOToken, Otoken } from "../types/Otoken"
-import { PriceFeed } from "../types/PriceFeed"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { Volatility } from "../types/Volatility"
-import { WETH } from "../types/WETH"
-import { Protocol } from "../types/Protocol"
-import { NewController } from "../types/NewController"
-import { AddressBook } from "../types/AddressBook"
-import { Oracle } from "../types/Oracle"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { setupTestOracle, calculateOptionDeltaLocally, makeIssueAndBuy, makeBuy, getSeriesWithe18Strike } from "./helpers"
-import {
-	ADDRESS_BOOK,
-	GAMMA_CONTROLLER,
-	MARGIN_POOL,
-	OTOKEN_FACTORY,
-	USDC_ADDRESS,
-	USDC_OWNER_ADDRESS,
-	WETH_ADDRESS,
-	CONTROLLER_OWNER,
-	GAMMA_ORACLE_NEW
-} from "./constants"
-import { deployOpyn } from "../utils/opyn-deployer"
-import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import { VolatilityFeed } from "../types/VolatilityFeed"
+import { Accounting, AlphaPortfolioValuesFeed, BeyondPricer, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, Otoken as IOToken, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
+import { CALL_FLAVOR, emptySeries, fromUSDC, fromWei, PUT_FLAVOR, tFormatUSDC, toOpyn, toUSDC, toWei, toWeiFromUSDC, ZERO_ADDRESS } from "../utils/conversion-helper"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
-import { Accounting } from "../types/Accounting"
-import exp from "constants"
-import { BeyondPricer } from "../types/BeyondPricer"
-import { OptionExchange } from "../types/OptionExchange"
-import { OptionCatalogue } from "../types/OptionCatalogue"
+import { deployOpyn } from "../utils/opyn-deployer"
+import { calculateOptionDeltaLocally, getSeriesWithe18Strike, makeBuy, makeIssueAndBuy, setupTestOracle } from "./helpers"
 
 dayjs.extend(utc)
 
@@ -66,15 +17,11 @@ let weth: WETH
 let optionRegistry: OptionRegistry
 let optionProtocol: Protocol
 let signers: Signer[]
-let volatility: Volatility
 let volFeed: VolatilityFeed
 let senderAddress: string
 let receiverAddress: string
 let liquidityPool: LiquidityPool
 let priceFeed: PriceFeed
-let controller: NewController
-let addressBook: AddressBook
-let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
@@ -95,11 +42,6 @@ let catalogue: OptionCatalogue
 // First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
 
-// decimal representation of a percentage
-const rfr: string = "0"
-// edit depending on the chain id to be tested on
-const chainId = 1
-const oTokenDecimalShift18 = 10000000000
 const collatDecimalShift = BigNumber.from(1000000000000)
 // amount of dollars OTM written options will be (both puts and calls)
 // use negative numbers for ITM options
@@ -107,36 +49,8 @@ const strike = "20"
 
 // balances to deposit into the LP
 const liquidityPoolUsdcDeposit = "150000"
-const liquidityPoolUsdcWithdraw = "1000"
-
-const minCallStrikePrice = utils.parseEther("500")
-const maxCallStrikePrice = utils.parseEther("10000")
-const minPutStrikePrice = utils.parseEther("500")
-const maxPutStrikePrice = utils.parseEther("10000")
-// one week in seconds
-const minExpiry = 86400 * 7
-// 365 days in seconds
-const maxExpiry = 86400 * 365
-
-const productSpotShockValue = scaleNum("0.6", 27)
-// array of time to expiry
-const day = 60 * 60 * 24
-const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56]
-// array of upper bound value correspond to time to expiry
-const expiryToValue = [
-	scaleNum("0.1678", 27),
-	scaleNum("0.237", 27),
-	scaleNum("0.3326", 27),
-	scaleNum("0.4032", 27),
-	scaleNum("0.4603", 27)
-]
-
-/* --- end variables to change --- */
 
 const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
-
-const CALL_FLAVOR = false
-const PUT_FLAVOR = true
 
 describe("Liquidity Pools Deposit Withdraw", async () => {
 	before(async function () {
@@ -153,11 +67,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			]
 		})
 		signers = await ethers.getSigners()
-		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
-		controller = opynParams.controller
-		addressBook = opynParams.addressBook
+		let opynParams = await deployOpyn(signers)
 		oracle = opynParams.oracle
-		newCalculator = opynParams.newCalculator
 		// get the oracle
 		const res = await setupTestOracle(await signers[0].getAddress())
 		oracle = res[0] as Oracle
@@ -177,18 +88,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			optionProtocol,
 			usd,
 			wethERC20,
-			rfr,
-			minCallStrikePrice,
-			minPutStrikePrice,
-			maxCallStrikePrice,
-			maxPutStrikePrice,
-			minExpiry,
-			maxExpiry,
 			optionRegistry,
 			portfolioValuesFeed,
 			authority
 		)
-		volatility = lpParams.volatility
 		liquidityPool = lpParams.liquidityPool
 		exchange = lpParams.exchange
 		pricer = lpParams.pricer
