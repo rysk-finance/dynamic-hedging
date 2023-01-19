@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
 
+import NumberFormat from "react-number-format";
+import PVFABI from "../../abis/AlphaPortfolioValuesFeed.json";
+import ERC20ABI from "../../abis/erc20.json";
+import LPABI from "../../abis/LiquidityPool.json";
+import ORABI from "../../abis/OptionRegistry.json";
+import PFABI from "../../abis/PriceFeed.json";
+import { useWalletContext } from "../../App";
+import addresses from "../../contracts.json";
+import { useContract } from "../../hooks/useContract";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import {
@@ -7,27 +16,18 @@ import {
   OptionsTradingActionType,
   OptionType,
 } from "../../state/types";
-import LPABI from "../../abis/LiquidityPool.json";
-import ORABI from "../../abis/OptionRegistry.json";
-import ERC20ABI from "../../abis/erc20.json";
-import PFABI from "../../abis/PriceFeed.json";
-import PVFABI from "../../abis/PortfolioValuesFeed.json";
-import {
-  calculateOptionQuoteLocally,
-  calculateOptionDeltaLocally,
-  returnIVFromQuote,
-} from "../../utils/helpers";
-import { useContract } from "../../hooks/useContract";
-import { toWei, fromWei } from "../../utils/conversion-helper";
-import NumberFormat from "react-number-format";
-import addresses from "../../contracts.json";
-import { useWalletContext } from "../../App";
+import { ContractAddresses, ETHNetwork } from "../../types";
 import { ERC20 } from "../../types/ERC20";
-import { PortfolioValuesFeed } from "../../types/PortfolioValuesFeed";
-import { PriceFeed } from "../../types/PriceFeed";
 import { LiquidityPool } from "../../types/LiquidityPool";
 import { OptionRegistry } from "../../types/OptionRegistry";
-import { ContractAddresses, ETHNetwork } from "../../types";
+import { AlphaPortfolioValuesFeed } from "../../types/AlphaPortfolioValuesFeed";
+import { PriceFeed } from "../../types/PriceFeed";
+import { fromWei, toWei } from "../../utils/conversion-helper";
+import {
+  calculateOptionDeltaLocally,
+  calculateOptionQuoteLocally,
+  returnIVFromQuote,
+} from "../../utils/helpers";
 
 const suggestedCallOptionPriceDiff = [-100, 0, 100, 200, 300, 400, 600, 800];
 const suggestedPutOptionPriceDiff = [
@@ -116,7 +116,7 @@ export const OptionsTable = () => {
             const localQuote = await calculateOptionQuoteLocally(
               liquidityPool as LiquidityPool,
               optionRegistry as OptionRegistry,
-              portfolioValuesFeed as PortfolioValuesFeed,
+              portfolioValuesFeed as AlphaPortfolioValuesFeed,
               usdc as ERC20,
               priceFeed as PriceFeed,
               optionSeries,
