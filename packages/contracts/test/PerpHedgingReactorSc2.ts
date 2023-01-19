@@ -1,29 +1,20 @@
-import hre, { ethers, network } from "hardhat"
-import { Signer, BigNumber, BigNumberish } from "ethers"
-import { expect } from "chai"
 import { truncate } from "@ragetrade/sdk"
-import { parseTokenAmount, toUSDC, toWei } from "../utils/conversion-helper"
-import { MintableERC20 } from "../types/MintableERC20"
-import { PerpHedgingReactor } from "../types/PerpHedgingReactor"
-import { RageTradeFactory } from "../types/RageTradeFactory"
-import { PerpHedgingTest } from "../types/PerpHedgingTest"
-import { deployRage, deployRangeOrder } from "../utils/rage-deployer"
-//@ts-ignore
-import { IUniswapV3Pool } from "../artifacts/@uniswap/v3-core-0.8-support/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json"
-import { ClearingHouse } from "../types/ClearingHouse"
-import { OracleMock } from "../types/OracleMock"
-import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_SWAP_ROUTER } from "./constants"
-import { PriceFeed } from "../types/PriceFeed"
+import { expect } from "chai"
+import { BigNumber, Signer } from "ethers"
+import hre, { ethers, network } from "hardhat"
+import { toUSDC, toWei, ZERO_ADDRESS } from "../utils/conversion-helper"
+
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
-import { priceToSqrtPriceX96, sqrtPriceX96ToPrice, sqrtPriceX96ToTick } from "../utils/price-tick"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
-import { ClearingHouseLens } from "../types/ClearingHouseLens"
+import { ClearingHouse, ClearingHouseLens, MintableERC20, OracleMock, PerpHedgingReactor, PerpHedgingTest, PriceFeed } from "../types"
+import { priceToSqrtPriceX96 } from "../utils/price-tick"
+import { deployRage, deployRangeOrder } from "../utils/rage-deployer"
+import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS } from "./constants"
 
 let signers: Signer[]
 let usdcWhale: Signer
 let clearingHouse: ClearingHouse
 let poolId: string
-let settlementTokenOracle: OracleMock
 let collateralId: string
 let liquidityPoolDummy: PerpHedgingTest
 let liquidityPoolDummyAddress: string
@@ -36,9 +27,6 @@ let vTokenAddress: string
 let vQuoteAddress: string
 let rageOracle: OracleMock
 let clearingHouseLens: ClearingHouseLens
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const UNISWAP_V3_FACTORY_ADDRESS = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
-const UNISWAP_V3_DEFAULT_FEE_TIER = 500
 // edit depending on the chain id to be tested on
 const chainId = 1
 const USDC_SCALE = "1000000000000"
@@ -134,7 +122,6 @@ describe("PerpHedgingReactor Sc2", () => {
 		vQuoteAddress = rageParams.vQuoteAddress
 		vTokenAddress = rageParams.vTokenAddress
 		rageOracle = rageParams.rageOracle
-		settlementTokenOracle = rageParams.settlementTokenOracle
 		clearingHouseLens = rageParams.clearingHouseLens
 	})
 	it("#deploys the hedging reactor", async () => {
@@ -213,7 +200,7 @@ describe("PerpHedgingReactor Sc2", () => {
 		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		await liquidityPoolDummy.hedgeDelta(delta)
-		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorCollatBalanceAfter = (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
 		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
@@ -249,7 +236,7 @@ describe("PerpHedgingReactor Sc2", () => {
 		const collatRequired = ((price.mul(deltaHedge.add(reactorDeltaBefore)).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(delta)
 		await hedgeDeltaTx.wait()
-		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorCollatBalanceAfter = (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
 		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
@@ -286,7 +273,7 @@ describe("PerpHedgingReactor Sc2", () => {
 		const collatRequired = ((price.mul(deltaHedge.add(reactorDeltaBefore)).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(delta)
 		await hedgeDeltaTx.wait()
-		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorCollatBalanceAfter = (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
 		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
@@ -344,7 +331,7 @@ describe("PerpHedgingReactor Sc2", () => {
 		const collatRequired = ((price.mul(deltaHedge.add(reactorDeltaBefore)).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(delta)
 		await hedgeDeltaTx.wait()
-		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorCollatBalanceAfter = (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
 		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)

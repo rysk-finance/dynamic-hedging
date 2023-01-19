@@ -5,16 +5,9 @@ import { BigNumber, Contract, Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
 
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import { AddressBook } from "../types/AddressBook"
-import { ERC20Interface } from "../types/ERC20Interface"
-import { MintableERC20 } from "../types/MintableERC20"
-import { NewController } from "../types/NewController"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
+import { ERC20Interface, MintableERC20, NewController, NewMarginCalculator, Oracle, Otoken as IOToken, WETH } from "../types"
 import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
-import { Oracle } from "../types/Oracle"
-import { Otoken as IOToken } from "../types/Otoken"
-import { WETH } from "../types/WETH"
-import { call, createValidExpiry, MAX_BPS, put, scaleNum, toWei } from "../utils/conversion-helper"
+import { call, createValidExpiry, MAX_BPS, put, toWei, ZERO_ADDRESS } from "../utils/conversion-helper"
 import { deployOpyn } from "../utils/opyn-deployer"
 import {
 	ADDRESS_BOOK,
@@ -33,7 +26,6 @@ let usd: MintableERC20
 let wethERC20: ERC20Interface
 let weth: WETH
 let controller: NewController
-let addressBook: AddressBook
 let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let optionRegistry: OptionRegistry
@@ -55,20 +47,6 @@ let interactions: OpynInteractions
 // Will automatically convert to 08:00 UTC timestamp
 // First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-// time travel period between each expiry
-const productSpotShockValue = scaleNum("0.6", 27)
-// array of time to expiry
-const day = 60 * 60 * 24
-const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56]
-// array of upper bound value correspond to time to expiry
-const expiryToValue = [
-	scaleNum("0.1678", 27),
-	scaleNum("0.237", 27),
-	scaleNum("0.3326", 27),
-	scaleNum("0.4032", 27),
-	scaleNum("0.4603", 27)
-]
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
@@ -93,9 +71,8 @@ describe("Options protocol", function () {
 			]
 		})
 		signers = await ethers.getSigners()
-		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
+		let opynParams = await deployOpyn(signers)
 		controller = opynParams.controller
-		addressBook = opynParams.addressBook
 		oracle = opynParams.oracle
 		newCalculator = opynParams.newCalculator
 	})

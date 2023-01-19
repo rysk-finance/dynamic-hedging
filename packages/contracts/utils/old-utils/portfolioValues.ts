@@ -5,15 +5,15 @@ import greeks from "greeks"
 //@ts-ignore
 import bs from "black-scholes"
 import { BigNumber, Event, utils } from "ethers"
-import { BuybackOptionEvent, LiquidityPool } from "../types/LiquidityPool"
-import { NewController, VaultSettledEvent } from "../types/NewController"
-import { WriteOptionEvent } from "../types/LiquidityPool"
+import { BuybackOptionEvent, LiquidityPool } from "../../types/LiquidityPool"
+import { NewController, VaultSettledEvent } from "../../types/NewController"
+import { WriteOptionEvent } from "../../types/LiquidityPool"
 import {
 	OptionRegistry,
 	VaultLiquidationRegisteredEvent,
 	OptionsContractSettledEvent
-} from "../types/OptionRegistry"
-import { PriceFeed } from "../types/PriceFeed"
+} from "../../types/OptionRegistry"
+import { PriceFeed } from "../../types/PriceFeed"
 import {
 	fromWei,
 	genOptionTimeFromUnix,
@@ -21,10 +21,10 @@ import {
 	fromOpynToWei,
 	tFormatUSDC,
 	toWei
-} from "../utils/conversion-helper"
-import { Oracle } from "../types/Oracle"
-import { ERC20 } from "../types/ERC20"
-import ERC20Artifact from "../artifacts/contracts/tokens/ERC20.sol/ERC20.json"
+} from "../conversion-helper"
+import { Oracle } from "../../types/Oracle"
+import { ERC20 } from "../../types/ERC20"
+import ERC20Artifact from "../../artifacts/contracts/tokens/ERC20.sol/ERC20.json"
 
 type GreekVariables = [string, string, number, string, number, "put" | "call"]
 type WriteEvent = WriteOptionEvent & Event

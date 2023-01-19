@@ -1,90 +1,30 @@
 import { expect } from "chai"
-import { utils, Signer } from "ethers"
+import { Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
+import { AlphaPortfolioValuesFeed, Authority, MintableERC20, MockChainlinkAggregator, OptionRegistry, Oracle, Protocol } from "../types"
 
-import { toUSDC, scaleNum } from "../utils/conversion-helper"
+import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
+import { toUSDC, ZERO_ADDRESS } from "../utils/conversion-helper"
 import { deployOpyn } from "../utils/opyn-deployer"
-import { MintableERC20 } from "../types/MintableERC20"
-import { OptionRegistry } from "../types/OptionRegistry"
-import { PriceFeed } from "../types/PriceFeed"
-import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
-import { LiquidityPool } from "../types/LiquidityPool"
-import { WETH } from "../types/WETH"
-import { Protocol } from "../types/Protocol"
-import { Volatility } from "../types/Volatility"
-import { VolatilityFeed } from "../types/VolatilityFeed"
-import { NewController } from "../types/NewController"
-import { AddressBook } from "../types/AddressBook"
-import { Oracle } from "../types/Oracle"
-import { NewMarginCalculator } from "../types/NewMarginCalculator"
-import { Authority } from "../types/Authority"
-import { setupTestOracle } from "./helpers"
-import { CONTROLLER_OWNER, CHAINLINK_WETH_PRICER } from "./constants"
-import { MockChainlinkAggregator } from "../types/MockChainlinkAggregator"
-import { deployLiquidityPool, deploySystem } from "../utils/alpha-system-deployer"
-import { ERC20Interface } from "../types/ERC20Interface"
-import { AlphaOptionHandler } from "../types/AlphaOptionHandler"
+import { CHAINLINK_WETH_PRICER, CONTROLLER_OWNER } from "./constants"
+import { setupTestOracle} from "./helpers"
 
 let usd: MintableERC20
-let weth: WETH
-let wethERC20: ERC20Interface
+let wethERC20: MintableERC20
 let optionRegistry: OptionRegistry
 let optionProtocol: Protocol
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
-let liquidityPool: LiquidityPool
-let volatility: Volatility
-let volFeed: VolatilityFeed
-let priceFeed: PriceFeed
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
-let controller: NewController
-let addressBook: AddressBook
-let newCalculator: NewMarginCalculator
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
-let handler: AlphaOptionHandler
 let authority: Authority
-
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 /* --- variables to change --- */
 
-// Date for option to expire on format yyyy-mm-dd
-// Will automatically convert to 08:00 UTC timestamp
-// First mined block will be timestamped 2022-02-27 19:05 UTC
-const expiryDate: string = "2022-04-05"
-
-const invalidExpiryDateLong: string = "2022-04-22"
-const invalidExpiryDateShort: string = "2022-03-01"
-// decimal representation of a percentage
-const rfr: string = "0"
 // edit depending on the chain id to be tested on
 const chainId = 1
-
-const minCallStrikePrice = utils.parseEther("500")
-const maxCallStrikePrice = utils.parseEther("10000")
-const minPutStrikePrice = utils.parseEther("500")
-const maxPutStrikePrice = utils.parseEther("10000")
-// one week in seconds
-const minExpiry = 86400 * 7
-// 365 days in seconds
-const maxExpiry = 86400 * 50
-
-// time travel period between each expiry
-const productSpotShockValue = scaleNum("0.6", 27)
-// array of time to expiry
-const day = 60 * 60 * 24
-const timeToExpiry = [day * 7, day * 14, day * 28, day * 42, day * 56, day * 84]
-// array of upper bound value correspond to time to expiry
-const expiryToValue = [
-	scaleNum("0.1678", 27),
-	scaleNum("0.237", 27),
-	scaleNum("0.3326", 27),
-	scaleNum("0.4032", 27),
-	scaleNum("0.4603", 27),
-	scaleNum("0.5", 27)
-]
 
 /* --- end variables to change --- */
 
@@ -108,11 +48,8 @@ describe("Authority tests", async () => {
 			params: [CHAINLINK_WETH_PRICER[chainId]]
 		})
 		signers = await ethers.getSigners()
-		let opynParams = await deployOpyn(signers, productSpotShockValue, timeToExpiry, expiryToValue)
-		controller = opynParams.controller
-		addressBook = opynParams.addressBook
+		let opynParams = await deployOpyn(signers)
 		oracle = opynParams.oracle
-		newCalculator = opynParams.newCalculator
 		const [sender] = signers
 
 		const signer = await ethers.getSigner(CONTROLLER_OWNER[chainId])
@@ -132,12 +69,9 @@ describe("Authority tests", async () => {
 		oracle = res[0] as Oracle
 		opynAggregator = res[1] as MockChainlinkAggregator
 		let deployParams = await deploySystem(signers, oracle, opynAggregator)
-		weth = deployParams.weth
 		wethERC20 = deployParams.wethERC20
 		usd = deployParams.usd
 		optionRegistry = deployParams.optionRegistry
-		priceFeed = deployParams.priceFeed
-		volFeed = deployParams.volFeed
 		portfolioValuesFeed = deployParams.portfolioValuesFeed
 		optionProtocol = deployParams.optionProtocol
 		authority = deployParams.authority as Authority
@@ -146,20 +80,10 @@ describe("Authority tests", async () => {
 			optionProtocol,
 			usd,
 			wethERC20,
-			rfr,
-			minCallStrikePrice,
-			minPutStrikePrice,
-			maxCallStrikePrice,
-			maxPutStrikePrice,
-			minExpiry,
-			maxExpiry,
 			optionRegistry,
 			portfolioValuesFeed,
 			authority.address
 		)
-		volatility = lpParams.volatility
-		liquidityPool = lpParams.liquidityPool
-		handler = lpParams.handler
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
