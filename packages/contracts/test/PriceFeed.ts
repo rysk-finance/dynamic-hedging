@@ -1,14 +1,12 @@
-import hre, { ethers } from "hardhat"
-import { Signer, BigNumber, providers } from "ethers"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
-import { MockChainlinkSequencerFeed } from "../types/MockChainlinkSequencerFeed"
-import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 import { expect } from "chai"
-import { MintableERC20 } from "../types/MintableERC20"
-import { PriceFeed } from "../types/PriceFeed"
-import { WETH } from "../types/WETH"
+import { BigNumber, Signer } from "ethers"
+import hre, { ethers } from "hardhat"
+import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
+import { MintableERC20, MockChainlinkSequencerFeed, PriceFeed, WETH } from "../types"
+import { ZERO_ADDRESS } from "../utils/conversion-helper"
 import { USDC_ADDRESS, WETH_ADDRESS } from "./constants"
-import { toWei } from "../utils/conversion-helper"
+
 let usd: MintableERC20
 let weth: WETH
 let signers: Signer[]
@@ -16,7 +14,6 @@ let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
 let sequencerUptimeFeed: MockChainlinkSequencerFeed
 
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 // edit depending on the chain id to be tested on
 const chainId = 1
 
