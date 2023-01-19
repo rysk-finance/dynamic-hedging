@@ -1,24 +1,18 @@
-import hre, { network } from "hardhat"
-import ethers from "hardhat"
-import { Signer, BigNumber, BigNumberish } from "ethers"
-import { expect } from "chai"
 import { truncate } from "@ragetrade/sdk"
-import {
-	parseTokenAmount, toUSDC, toWei,
-} from "../utils/conversion-helper"
+import { BigNumberish, Signer } from "ethers"
+import hre from "hardhat"
 import { MintableERC20 } from "../types/MintableERC20"
-import { PerpHedgingReactor } from "../types/PerpHedgingReactor"
 import { RageTradeFactory } from "../types/RageTradeFactory"
-import { PerpHedgingTest } from "../types/PerpHedgingTest"
+import {
+  parseTokenAmount
+} from "../utils/conversion-helper"
 //@ts-ignore
 import { IUniswapV3Pool } from "../artifacts/@uniswap/v3-core-0.8-support/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json"
+import { USDC_ADDRESS, WETH_ADDRESS } from "../test/constants"
 import { ClearingHouse } from "../types/ClearingHouse"
 import { ClearingHouseLens } from "../types/ClearingHouseLens"
-import {OracleMock} from "../types/OracleMock"
-import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_SWAP_ROUTER } from "../test/constants"
-import { PriceFeed } from "../types/PriceFeed"
-import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
-import { priceToSqrtPriceX96, sqrtPriceX96ToPrice, sqrtPriceX96ToTick } from '../utils/price-tick';
+import { OracleMock } from "../types/OracleMock"
+import { priceToSqrtPriceX96 } from '../utils/price-tick'
 const chainId = 1
 export async function initializePool(
     rageTradeFactory: RageTradeFactory,

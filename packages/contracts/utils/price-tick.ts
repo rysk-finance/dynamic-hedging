@@ -2,7 +2,7 @@
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { TickMath } from '@uniswap/v3-sdk';
 import JSBI from 'jsbi';
-import { fromQ128, fromQ96, Q96, toQ128, toQ96 } from './fixed-point';
+import { fromQ128, fromQ96, Q96, toQ128, toQ96 } from './old-utils/fixed-point';
 import hre from 'hardhat';
 
 export declare type ERC20Decimals = { decimals(): Promise<number> } | string | number; // C | MockContract<C> | FakeContract<C>;
