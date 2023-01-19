@@ -105,7 +105,8 @@ export async function deploySystem(
 		putAlpha: 250000,
 		putBeta: 1_000000,
 		putRho: -300000,
-		putVolvol: 1_500000
+		putVolvol: 1_500000,
+		interestRate: utils.parseEther("-0.001")
 	}
 	await volFeed.setSabrParameters(proposedSabrParams, expiration)
 	const normDistFactory = await ethers.getContractFactory(

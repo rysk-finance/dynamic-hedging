@@ -2,7 +2,7 @@ import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract
 import { expect } from "chai"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
-import { BigNumber, Signer } from "ethers"
+import { BigNumber, Signer, utils } from "ethers"
 import hre, { ethers } from "hardhat"
 
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
@@ -98,7 +98,8 @@ describe("Volatility Feed", async () => {
 				putAlpha: 250000,
 				putBeta: 1000000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.001")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -110,6 +111,7 @@ describe("Volatility Feed", async () => {
 			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 			const expiries = await volFeed.getExpiries()
 			expect(expiries.length).to.equal(1)
 		})
@@ -122,7 +124,8 @@ describe("Volatility Feed", async () => {
 				putAlpha: 250000,
 				putBeta: 1000000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.001")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -134,6 +137,7 @@ describe("Volatility Feed", async () => {
 			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 			const expiries = await volFeed.getExpiries()
 			expect(expiries.length).to.equal(1)
 		})
@@ -146,7 +150,8 @@ describe("Volatility Feed", async () => {
 				putAlpha: 250000,
 				putBeta: 1_000000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.001")
 			}
 			const expiry = expiration + 10
 			await volFeed.setSabrParameters(proposedSabrParams, expiry)
@@ -159,6 +164,7 @@ describe("Volatility Feed", async () => {
 			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 			const expiries = await volFeed.getExpiries()
 			expect(expiries.length).to.equal(2)
 		})
@@ -215,7 +221,8 @@ describe("Volatility Feed", async () => {
 					putAlpha: 1,
 					putBeta: 1,
 					putRho: 1,
-					putVolvol: 1
+					putVolvol: 1,
+					interestRate: utils.parseEther("-0.001")
 				},
 				10
 			)
@@ -233,7 +240,8 @@ describe("Volatility Feed", async () => {
 						putAlpha: 1,
 						putBeta: 1,
 						putRho: 1,
-						putVolvol: 1
+						putVolvol: 1,
+						interestRate: utils.parseEther("-0.001")
 					},
 					10
 				)
@@ -248,7 +256,8 @@ describe("Volatility Feed", async () => {
 						putAlpha: 1,
 						putBeta: 1,
 						putRho: 1,
-						putVolvol: 1
+						putVolvol: 1,
+						interestRate: utils.parseEther("-0.001")
 					},
 					10
 				)
@@ -263,7 +272,8 @@ describe("Volatility Feed", async () => {
 						putAlpha: 2 ** 31, // max value is 2 ** 31 - 1
 						putBeta: 1,
 						putRho: 1,
-						putVolvol: 1
+						putVolvol: 1,
+						interestRate: utils.parseEther("-0.001")
 					},
 					10
 				)
@@ -278,7 +288,8 @@ describe("Volatility Feed", async () => {
 						putAlpha: 1,
 						putBeta: 1,
 						putRho: 1,
-						putVolvol: 1
+						putVolvol: 1,
+						interestRate: utils.parseEther("-0.001")
 					},
 					10
 				)
@@ -293,7 +304,8 @@ describe("Volatility Feed", async () => {
 						putAlpha: 1,
 						putBeta: 1_100000,
 						putRho: 1,
-						putVolvol: 1
+						putVolvol: 1,
+						interestRate: utils.parseEther("-0.001")
 					},
 					10
 				)
@@ -308,7 +320,8 @@ describe("Volatility Feed", async () => {
 						putAlpha: 1,
 						putBeta: 0,
 						putRho: 1,
-						putVolvol: 1
+						putVolvol: 1,
+						interestRate: utils.parseEther("-0.001")
 					},
 					10
 				)
@@ -323,7 +336,8 @@ describe("Volatility Feed", async () => {
 						putAlpha: 1,
 						putBeta: 1,
 						putRho: 1,
-						putVolvol: 1
+						putVolvol: 1,
+						interestRate: utils.parseEther("-0.001")
 					},
 					10
 				)
@@ -338,7 +352,8 @@ describe("Volatility Feed", async () => {
 						putAlpha: 1,
 						putBeta: 1,
 						putRho: 1,
-						putVolvol: -1
+						putVolvol: -1,
+						interestRate: utils.parseEther("-0.001")
 					},
 					10
 				)
@@ -353,7 +368,8 @@ describe("Volatility Feed", async () => {
 						putAlpha: 1,
 						putBeta: 1,
 						putRho: 1,
-						putVolvol: 1
+						putVolvol: 1,
+						interestRate: utils.parseEther("-0.001")
 					},
 					10
 				)
@@ -368,7 +384,8 @@ describe("Volatility Feed", async () => {
 						putAlpha: 1,
 						putBeta: 1,
 						putRho: 1_000001,
-						putVolvol: 1
+						putVolvol: 1,
+						interestRate: utils.parseEther("-0.001")
 					},
 					10
 				)
@@ -385,7 +402,8 @@ describe("Volatility Feed", async () => {
 						putAlpha: 1,
 						putBeta: 1,
 						putRho: 1,
-						putVolvol: 1
+						putVolvol: 1,
+						interestRate: utils.parseEther("-0.001")
 					},
 					10
 				)
@@ -402,7 +420,8 @@ describe("Volatility Feed", async () => {
 				putAlpha: 250000,
 				putBeta: 800000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.001")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -414,6 +433,7 @@ describe("Volatility Feed", async () => {
 			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 		})
 		it("SUCCEEDS: get implied volatility for different strikes", async () => {
 			const underlyingPrice = toWei("100")

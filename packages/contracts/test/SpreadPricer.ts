@@ -203,7 +203,8 @@ describe("Spread Pricer testing", async () => {
 				putAlpha: 250000,
 				putBeta: 1_000000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.001")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -215,6 +216,7 @@ describe("Spread Pricer testing", async () => {
 			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 		})
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = {
@@ -225,7 +227,8 @@ describe("Spread Pricer testing", async () => {
 				putAlpha: 250000,
 				putBeta: 1_000000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+			    interestRate: utils.parseEther("-0.002")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration2)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration2)
@@ -237,6 +240,7 @@ describe("Spread Pricer testing", async () => {
 			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 		})
 		it("sets spread values to non-zero", async () => {
 			await pricer.setCollateralLendingRate(1000) // 10%
