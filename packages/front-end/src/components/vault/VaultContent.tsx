@@ -6,7 +6,7 @@ import { VaultPerformance } from "src/components/VaultPerformance/VaultPerforman
 import { LPStats } from "../../components/LPStats";
 import { Card } from "../../components/shared/Card";
 import { VaultTrades } from "../../components/VaultTrades";
-import { CHAINID, DHV_NAME, SCAN_URL } from "../../config/constants";
+import { CHAINID, DHV_NAME } from "../../config/constants";
 import { DISCORD_LINK } from "../../config/links";
 import addresses from "../../contracts.json";
 import { useUserPosition } from "../../hooks/useUserPosition";
@@ -66,9 +66,7 @@ export const VaultContent = () => {
         </p>
 
         <a
-          href={`${SCAN_URL[CHAINID.ARBITRUM_MAINNET]}/address/${
-            addresses.arbitrum.liquidityPool
-          }`}
+          href={`${process.env.REACT_APP_SCAN_URL}/address/${addresses.arbitrum.liquidityPool}`}
           target="_blank"
           rel="noreferrer"
           className="min-w-[240px] flex justify-end items-center"

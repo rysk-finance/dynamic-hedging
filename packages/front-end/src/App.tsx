@@ -1,9 +1,8 @@
-import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
-import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 
+import ApolloProvider from "./clients/Apollo/Apollo";
 import WalletProvider from "./clients/WalletProvider/Wallet";
 import Favicon from "./components/Favicon";
 import { Footer } from "./components/Footer";
@@ -20,88 +19,13 @@ import { GlobalContextProvider } from "./state/GlobalContext";
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 
-/////////////////////////////////////////////
-// - Move Apollo into its own client file. //
-// - Clean up App file.                    //
-/////////////////////////////////////////////
-
 function App() {
-  // Initialising to a client with undefined URL, rather than just null, as ApolloProvider
-  // expects client to always be non-null. We overwrite with a new client with a defined
-  // uri in a useEffect below.
-  const [apolloClient, setApolloClient] = useState(
-    new ApolloClient({
-      uri: undefined,
-      cache: new InMemoryCache(),
-    })
-  );
-
-  // useEffect(() => {
-  //   const SUBGRAPH_URI =
-  //     network?.id !== undefined
-  //       ? SUBGRAPH_URL[network?.id]
-  //       : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
-  //       ? SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
-  //       : SUBGRAPH_URL[CHAINID.ARBITRUM_GOERLI];
-
-  //   const OPYN_SUBGRAPH_URI =
-  //     network?.id !== undefined
-  //       ? OPYN_SUBGRAPH_URL[network?.id]
-  //       : process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
-  //       ? OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_MAINNET]
-  //       : OPYN_SUBGRAPH_URL[CHAINID.ARBITRUM_GOERLI];
-
-  //   const ryskSubgraph = new HttpLink({
-  //     uri: SUBGRAPH_URI,
-  //   });
-
-  //   const opynSubgraph = new HttpLink({
-  //     uri: OPYN_SUBGRAPH_URI,
-  //   });
-
-  //   const client = new ApolloClient({
-  //     link: ApolloLink.split(
-  //       (operation) => operation.getContext().clientName === "opyn",
-  //       opynSubgraph, // <= apollo will send to this if clientName is "opyn"
-  //       ryskSubgraph // <= otherwise will send to this
-  //     ),
-  //     cache: new InMemoryCache({
-  //       typePolicies: {
-  //         Query: {
-  //           fields: {
-  //             writeOptionsActions: {
-  //               keyArgs: false,
-  //               merge(existing = [], incoming) {
-  //                 return [...existing, ...incoming];
-  //               },
-  //             },
-  //             buybackOptionActions: {
-  //               keyArgs: false,
-  //               merge(existing = [], incoming) {
-  //                 return [...existing, ...incoming];
-  //               },
-  //             },
-  //             rebalanceDeltaActions: {
-  //               keyArgs: false,
-  //               merge(existing = [], incoming) {
-  //                 return [...existing, ...incoming];
-  //               },
-  //             },
-  //           },
-  //         },
-  //       },
-  //     }),
-  //   });
-
-  //   setApolloClient(client);
-  // }, [network?.id]);
-
   useFathom();
 
   return (
     <GlobalContextProvider>
       <WalletProvider>
-        <ApolloProvider client={apolloClient}>
+        <ApolloProvider>
           <div className="App bg-bone flex flex-col min-h-screen">
             <Favicon />
             {process.env.REACT_APP_ENV !== "production" && (

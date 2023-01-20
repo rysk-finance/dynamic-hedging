@@ -8,11 +8,7 @@ import { useAccount, useNetwork } from "wagmi";
 import ReactTooltip from "react-tooltip";
 import LPABI from "../../abis/LiquidityPool.json";
 import { AppPaths } from "../../config/appPaths";
-import {
-  BIG_NUMBER_DECIMALS,
-  DHV_NAME,
-  SUBGRAPH_URL,
-} from "../../config/constants";
+import { BIG_NUMBER_DECIMALS, DHV_NAME } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { Currency, DepositReceipt } from "../../types";
@@ -27,7 +23,8 @@ export const UserVault = () => {
   const { chain } = useNetwork();
   const { userPositionValue, updatePosition } = useUserPosition();
 
-  const SUBGRAPH_URI = chain?.id !== undefined ? SUBGRAPH_URL[chain?.id] : "";
+  const SUBGRAPH_URI =
+    chain?.id !== undefined ? process.env.REACT_APP_SUBGRAPH_URL : "";
 
   const [depositBalance, setDepositBalance] = useState<BigNumber>(
     BigNumber.from(0)
