@@ -1,6 +1,5 @@
 import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
-import * as Fathom from "fathom-client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Helmet } from "react-helmet";
 import { Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
@@ -11,6 +10,7 @@ import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { MobileWarning } from "./components/MobileWarning";
 import { AppPaths } from "./config/appPaths";
+import useFathom from "./hooks/useFathom";
 import { Dashboard } from "./pages/Dashboard";
 import { OptionsTrading } from "./pages/OptionsTrading";
 import { OTC } from "./pages/OTC";
@@ -96,14 +96,7 @@ function App() {
   //   setApolloClient(client);
   // }, [network?.id]);
 
-  useEffect(() => {
-    // Initialize Fathom when the app loads
-    // Example: yourdomain.com
-    //  - Do not include https://
-    //  - This must be an exact match of your domain.
-    //  - If you're using www. for your domain, make sure you include that here.
-    Fathom.load("SMDEXJZR", { excludedDomains: ["localhost:3000"] });
-  }, []);
+  useFathom();
 
   return (
     <GlobalContextProvider>
