@@ -149,7 +149,7 @@ describe("Actions tests", async () => {
 				putBeta: 1_000000,
 				putRho: -300000,
 				putVolvol: 1_500000,
-			    interestRate: utils.parseEther("-0.002")
+				interestRate: utils.parseEther("-0.002")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration2)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration2)
