@@ -1,6 +1,6 @@
 import { BigNumber } from "ethers";
 import { useCallback } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useNetwork } from "wagmi";
 
 import LPABI from "../abis/LiquidityPool.json";
 import { BIG_NUMBER_DECIMALS } from "../config/constants";
@@ -11,6 +11,7 @@ import { useContract } from "./useContract";
 
 export const useUserPosition = () => {
   const { address } = useAccount();
+  const { chain } = useNetwork();
 
   const [lpContract] = useContract({
     contract: "liquidityPool",
@@ -184,7 +185,7 @@ export const useUserPosition = () => {
         currentWithdrawalEpoch
       );
 
-      if (balance) {
+      if (balance && !chain?.unsupported) {
         const balanceValue = balance
           .mul(latestWithdrawalSharePrice)
           .div(BIG_NUMBER_DECIMALS.RYSK)
@@ -199,6 +200,7 @@ export const useUserPosition = () => {
     },
     [
       address,
+      chain,
       lpContract,
       parseDepositReceipt,
       parseWithdrawalReceipt,

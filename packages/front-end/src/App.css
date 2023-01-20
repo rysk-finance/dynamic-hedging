@@ -76,16 +76,7 @@
   overflow: hidden;
 }
 
-:root {
-  --onboard-connect-sidebar-background: #d1cdbf;
-  --onboard-main-scroll-container-background: #ede9dd;
-  --onboard-connect-header-background: #ede9dd;
-  --onboard-connect-sidebar-progress-color: #02c5e6;
-  --onboard-connect-sidebar-progress-background: black;
-  --onboard-wallet-button-background: white;
-  --onboard-wallet-button-background-hover: #f5f5f5;
-  --onboard-wallet-button-border-color: black;
-  --onboard-wallet-button-color: black;
-  --onboard-wallet-app-icon-border-color: black;
-  --onboard-font-family-normal: "DM Mono";
+:is( div[aria-labelledby=rk_account_modal_title], div[aria-labelledby=rk_connect_title], div[aria-labelledby=rk_chain_modal_title] )
+  :is(h1, div) {
+    font-weight: 500 !important;
 }

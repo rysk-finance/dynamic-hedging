@@ -17,14 +17,13 @@ import { useContract } from "../../hooks/useContract";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { Currency, DepositReceipt } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";
-import { RequiresWalletConnection } from "../RequiresWalletConnection";
 import { RyskTooltip } from "../RyskTooltip";
 import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import { PositionTooltip } from "../vault/PositionTooltip";
 
 export const UserVault = () => {
-  const { address } = useAccount();
+  const { address, isConnected, isDisconnected } = useAccount();
   const { chain } = useNetwork();
   const { userPositionValue, updatePosition } = useUserPosition();
 
@@ -117,60 +116,66 @@ export const UserVault = () => {
               content: (
                 <div className="py-12 px-8 flex flex-col lg:flex-row h-full">
                   <div className="flex h-full w-full lg:w-[70%] justify-around">
+                    {isDisconnected && (
+                      <h4 className="m-auto">{`Please connect a wallet`}</h4>
+                    )}
                     <div className="flex flex-col items-center justify-center h-full mb-8 lg:mb-0">
-                      <h4 className="mb-4">
-                        <RequiresWalletConnection className="w-[60px] h-[16px] mr-2 translate-y-[-2px]">
-                          <BigNumberDisplay
-                            currency={Currency.USDC}
-                            suffix="USDC"
-                            loaderProps={{
-                              className: "h-4 w-auto translate-y-[-2px]",
-                            }}
-                          >
-                            {userPositionValue}
-                          </BigNumberDisplay>
-                        </RequiresWalletConnection>
-                      </h4>
-                      <h4 className="mb-2">
-                        Your Position
-                        <PositionTooltip />
-                      </h4>
+                      {isConnected && (
+                        <>
+                          <h4 className="mb-4">
+                            <BigNumberDisplay
+                              currency={Currency.USDC}
+                              suffix="USDC"
+                              loaderProps={{
+                                className: "h-4 w-auto translate-y-[-2px]",
+                              }}
+                            >
+                              {userPositionValue}
+                            </BigNumberDisplay>
+                          </h4>
+                          <h4 className="mb-2">
+                            Your Position
+                            <PositionTooltip />
+                          </h4>
+                        </>
+                      )}
                     </div>
                     <div className="flex flex-col items-center justify-center h-full">
-                      <h4 className="mb-4">
-                        {/* TODO make sure if there is an error with subgraph this will not load */}
-                        <RequiresWalletConnection className="w-[60px] h-[16px] mr-2 translate-y-[-2px]">
-                          {depositBalance !== undefined &&
-                          depositBalance.toString() !== "0" &&
-                          userPositionValue !== null ? (
-                            <NumberFormat
-                              value={Number(
-                                userPositionValue
-                                  .sub(depositBalance)
-                                  .toNumber() / 1e6
-                              ).toFixed(2)}
-                              displayType={"text"}
-                              decimalScale={2}
-                              suffix=" USDC"
+                      {isConnected && (
+                        <>
+                          <h4 className="mb-4">
+                            {depositBalance !== undefined &&
+                            depositBalance.toString() !== "0" &&
+                            userPositionValue !== null ? (
+                              <NumberFormat
+                                value={Number(
+                                  userPositionValue
+                                    .sub(depositBalance)
+                                    .toNumber() / 1e6
+                                ).toFixed(2)}
+                                displayType={"text"}
+                                decimalScale={2}
+                                suffix=" USDC"
+                              />
+                            ) : (
+                              <NumberFormat
+                                value={(0).toFixed(2)}
+                                displayType={"text"}
+                                decimalScale={2}
+                                suffix=" USDC"
+                              />
+                            )}
+                          </h4>
+                          <h4 className="mb-2">
+                            PnL
+                            <RyskTooltip
+                              message={`Profit or Losses based on your current ${DHV_NAME} position in USDC net of deposits and withdraws`}
+                              color="white"
+                              id="pnlTip"
                             />
-                          ) : (
-                            <NumberFormat
-                              value={(0).toFixed(2)}
-                              displayType={"text"}
-                              decimalScale={2}
-                              suffix=" USDC"
-                            />
-                          )}
-                        </RequiresWalletConnection>
-                      </h4>
-                      <h4 className="mb-2">
-                        PnL
-                        <RyskTooltip
-                          message={`Profit or Losses based on your current ${DHV_NAME} position in USDC net of deposits and withdraws`}
-                          color="white"
-                          id="pnlTip"
-                        />
-                      </h4>
+                          </h4>
+                        </>
+                      )}
                     </div>
                     {unredeemableCollateral.gt(0) && (
                       <div className="flex flex-col items-center justify-center h-full">

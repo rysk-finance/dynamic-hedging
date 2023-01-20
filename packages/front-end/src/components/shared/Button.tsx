@@ -1,7 +1,8 @@
 import type { ButtonHTMLAttributes, DetailedHTMLProps } from "react";
 
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useCallback } from "react";
-import { useAccount, useConnect } from "wagmi";
+import { useAccount } from "wagmi";
 
 import { useGlobalContext } from "../../state/GlobalContext";
 import { ActionType } from "../../state/types";
@@ -20,8 +21,8 @@ export const Button = ({
   requiresConnection = false,
   ...props
 }: ButtonProps) => {
+  const { openConnectModal } = useConnectModal();
   const { isDisconnected } = useAccount();
-  const { connect, connectors } = useConnect();
 
   const { dispatch } = useGlobalContext();
 
@@ -39,9 +40,6 @@ export const Button = ({
     });
   }, [dispatch]);
 
-  // Temp code until we use rainbow-kit
-  const connector = connectors[0];
-
   if (requiresConnection && isDisconnected) {
     return (
       <button
@@ -49,12 +47,12 @@ export const Button = ({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={() => {
-          if (isDisconnected) {
-            connect({ connector });
+          if (isDisconnected && openConnectModal) {
+            openConnectModal();
           }
         }}
       >
-        Connect
+        {`Click to connect`}
       </button>
     );
   }

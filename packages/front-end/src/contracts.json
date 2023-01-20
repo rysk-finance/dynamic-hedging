@@ -41,7 +41,7 @@
     "USDC": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
     "WETH": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
   },
-  "arbitrumGoerli": {
+  "arbitrum-goerli": {
     "OpynController": "0x11a602a5F5D823c103bb8b7184e22391Aae5F4C2",
     "OpynAddressBook": "0xd6e67bF0b1Cdb34C37f31A2652812CB30746a94A",
     "OpynOracle": "0x35578F5A49E1f1Cf34ed780B46A0BdABA23D4C0b",

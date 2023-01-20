@@ -3,6 +3,7 @@ import type { Contract, ContractFunction, ContractInterface } from "ethers";
 import { TransactionResponse } from "@ethersproject/abstract-provider";
 import { captureException } from "@sentry/react";
 import { Contract as EthersContract } from "ethers";
+import { useAddRecentTransaction } from "@rainbow-me/rainbowkit";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useAccount, useNetwork, useProvider, useSigner } from "wagmi";
@@ -13,6 +14,7 @@ import addresses from "../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../types";
 import { trackRPCError } from "../utils/fathomEvents";
 import { DEFAULT_ERROR, isRPCError, parseError } from "../utils/parseRPCError";
+import { capitalise } from "src/utils/caseConvert";
 
 type EventName = string;
 type EventData = any[];
@@ -76,6 +78,8 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
   const { data: signer } = useSigner();
 
   const [ethersContract, setEthersContract] = useState<Contract | null>(null);
+
+  const addRecentTransaction = useAddRecentTransaction();
 
   const network = chain?.network as ETHNetwork;
 
@@ -143,6 +147,10 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
             </div>,
             { autoClose: 5000 }
           );
+          addRecentTransaction({
+            hash: transaction.hash,
+            description: methodName ? capitalise(methodName) : "Transaction",
+          });
           onSubmit?.();
           await transaction.wait();
           onComplete?.();
@@ -185,7 +193,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
 
   // Instances the ethers contract in state.
   useEffect(() => {
-    if (isConnected && !ethersContract) {
+    if (isConnected && !chain?.unsupported && !ethersContract) {
       if (args.readOnly) {
         const address =
           "contract" in args
@@ -206,7 +214,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
         }
       }
     }
-  }, [args, signer, network, ethersContract, isConnected]);
+  }, [args, signer, network, ethersContract, isConnected, chain]);
 
   // Update the local events map. The event handlers attached to the contract
   // look up the appropriate handler on this object, meaning we can update the

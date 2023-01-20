@@ -28,7 +28,6 @@ import {
 import { BigNumberDisplay } from "../BigNumberDisplay";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
 import { Loader } from "../Loader";
-import { RequiresWalletConnection } from "../RequiresWalletConnection";
 import { RyskTooltip } from "../RyskTooltip";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
@@ -36,7 +35,7 @@ import { Toggle } from "../shared/Toggle";
 import { PositionTooltip } from "./PositionTooltip";
 
 export const VaultDeposit = () => {
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const { chain } = useNetwork();
 
   const {
@@ -64,9 +63,6 @@ export const VaultDeposit = () => {
   );
   const [pendingDepositedUSDC, setPendingDepositedUSDC] =
     useState<BigNumber | null>(null);
-  const [unredeemedShares, setUnredeemedShares] = useState<BigNumber | null>(
-    null
-  );
   const [approvedAmount, setApprovedAmount] = useState<BigNumber | null>(null);
 
   // Contracts
@@ -170,14 +166,6 @@ export const VaultDeposit = () => {
             // Now back to e18
             .mul(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC))
         : BigNumber.from(0);
-
-      if (receiptAmountInShares && depositReceipt) {
-        const totalRedeemableShares = receiptAmountInShares.add(
-          depositReceipt.unredeemedShares
-        );
-
-        setUnredeemedShares(totalRedeemableShares);
-      }
     },
     []
   );
@@ -328,19 +316,26 @@ export const VaultDeposit = () => {
     <div className="flex-col items-center justify-between h-full">
       <div className="p-2 bg-black text-white mb-2">
         <p className="text-right font-medium text-lg">
-          Your Position:{" "}
-          <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
-            <BigNumberDisplay
-              currency={Currency.USDC}
-              suffix="USDC"
-              loaderProps={{
-                className: "h-4 w-auto translate-y-[-2px]",
-              }}
-            >
-              {userPositionValue}
-            </BigNumberDisplay>
-            <PositionTooltip />
-          </RequiresWalletConnection>
+          {isConnected ? (
+            <>
+              {`Your Position: `}
+              <BigNumberDisplay
+                currency={Currency.USDC}
+                suffix="USDC"
+                loaderProps={{
+                  className: "h-4 w-auto translate-y-[-2px]",
+                }}
+              >
+                {userPositionValue}
+              </BigNumberDisplay>
+              <PositionTooltip />
+            </>
+          ) : (
+            <Button
+              color="black"
+              requiresConnection
+            >{`Click to connect`}</Button>
+          )}
         </p>
       </div>
       <div className="w-full h-8 bg-black text-white px-2 flex items-center justify-start">
@@ -364,13 +359,17 @@ export const VaultDeposit = () => {
           <div className="w-full">
             <div className="p-2 text-right">
               <p className="text-xs">
-                Wallet Balance:{" "}
-                <RequiresWalletConnection className="w-[60px] h-[16px] mr-2 translate-y-[-2px]">
-                  <BigNumberDisplay currency={Currency.USDC}>
-                    {userUSDCBalance}
-                  </BigNumberDisplay>
-                </RequiresWalletConnection>{" "}
-                USDC
+                {isConnected ? (
+                  <>
+                    {`Wallet Balance: `}
+                    <BigNumberDisplay currency={Currency.USDC}>
+                      {userUSDCBalance}
+                    </BigNumberDisplay>
+                    {` USDC`}
+                  </>
+                ) : (
+                  <>{`Please connect a wallet to see your balance.`}</>
+                )}
               </p>
             </div>
           </div>
@@ -464,12 +463,16 @@ export const VaultDeposit = () => {
               <div className="h-4 flex items-center">
                 {listeningForDeposit && <Loader className="mr-2 !h-[24px]" />}
                 <p>
-                  <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                    <BigNumberDisplay currency={Currency.USDC}>
-                      {pendingDepositedUSDC}
-                    </BigNumberDisplay>
-                  </RequiresWalletConnection>{" "}
-                  USDC
+                  {isConnected ? (
+                    <>
+                      <BigNumberDisplay currency={Currency.USDC}>
+                        {pendingDepositedUSDC}
+                      </BigNumberDisplay>
+                      {` USDC`}
+                    </>
+                  ) : (
+                    <>{`Please connect a wallet.`}</>
+                  )}
                 </p>
               </div>
             </div>
