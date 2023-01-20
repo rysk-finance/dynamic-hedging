@@ -1,6 +1,6 @@
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
-import { BigNumber, Signer } from "ethers"
+import { BigNumber, Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
 import { CALL_FLAVOR, PUT_FLAVOR, toUSDC, toWei } from "../utils/conversion-helper"
 //@ts-ignore
@@ -113,7 +113,8 @@ describe("Slippage Pricer testing", async () => {
 				putAlpha: 250000,
 				putBeta: 1_000000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.001")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -125,6 +126,7 @@ describe("Slippage Pricer testing", async () => {
 			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 		})
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = {
@@ -135,7 +137,8 @@ describe("Slippage Pricer testing", async () => {
 				putAlpha: 250000,
 				putBeta: 1_000000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.002")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration2)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration2)
@@ -147,6 +150,7 @@ describe("Slippage Pricer testing", async () => {
 			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 		})
 		it("Deposit to the liquidityPool", async () => {
 			const USDC_WHALE = "0x55fe002aeff02f77364de339a1292923a15844b8"

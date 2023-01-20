@@ -1,7 +1,7 @@
 import { expect } from "chai"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
-import { BigNumber, Signer } from "ethers"
+import { BigNumber, Signer, utils } from "ethers"
 import hre, { ethers } from "hardhat"
 
 import { AlphaOptionHandler, AlphaPortfolioValuesFeed, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionRegistry, Oracle, Otoken, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
@@ -354,7 +354,8 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 				putAlpha: 250000,
 				putBeta: 1_000000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.001")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -366,6 +367,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 		})
 		it("SUCCEEDS: Creates a buy order", async () => {
 			let customOrderPriceMultiplier = 1

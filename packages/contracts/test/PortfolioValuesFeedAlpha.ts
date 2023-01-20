@@ -154,7 +154,8 @@ describe("APVF gas tests", async () => {
 						putAlpha: 250000,
 						putBeta: 1_000000,
 						putRho: -300000,
-						putVolvol: 1_500000
+						putVolvol: 1_500000,
+						interestRate: utils.parseEther("-0.001")
 					},
 					expiration
 				)
@@ -337,7 +338,8 @@ describe("APVF gas tests", async () => {
 					putAlpha: 250000,
 					putBeta: 1_000000,
 					putRho: -300000,
-					putVolvol: 1_500000
+					putVolvol: 1_500000,
+					interestRate: utils.parseEther("-0.001")
 				},
 				expiration
 			)

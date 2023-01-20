@@ -1,5 +1,6 @@
 import "@nomiclabs/hardhat-ethers"
-import hre from "hardhat"
+import { utils } from "ethers"
+import hre, { ethers } from "hardhat"
 // This file doesn't exist in CI, only exists locally (in git ignore)
 import { arbitrumRinkeby } from "../../contracts.json"
 
@@ -23,7 +24,8 @@ async function main() {
             putAlpha: 250000,
             putBeta: 1_000000,
             putRho: -300000,
-            putVolvol: 1_500000
+            putVolvol: 1_500000,
+			interestRate: utils.parseEther("-0.001")
         }
         // this should be configured properly
         const expiration = 1663920000
