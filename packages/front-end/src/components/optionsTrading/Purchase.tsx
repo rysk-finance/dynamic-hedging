@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 
 import ERC20ABI from "../../abis/erc20.json";
 import { useWalletContext } from "../../App";
-import OptionHandlerABI from "../../abis/OptionHandler.json";
+import OptionHandlerABI from "../../abis/AlphaOptionHandler.json";
 import OptionRegistryABI from "../../abis/OptionRegistry.json";
 import {
   BIG_NUMBER_DECIMALS,

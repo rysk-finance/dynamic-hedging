@@ -2,7 +2,7 @@ import { Button } from "../shared/Button";
 import { useState } from "react";
 import { useContract } from "../../hooks/useContract";
 import OptionRegistryABI from "../../abis/OptionRegistry.json";
-import OptionHandlerABI from "../../abis/OptionHandler.json";
+import OptionHandlerABI from "../../abis/AlphaOptionHandler.json";
 import { useWalletContext } from "../../App";
 import { TextInput } from "../shared/TextInput";
 import { BIG_NUMBER_DECIMALS } from "../../config/constants";

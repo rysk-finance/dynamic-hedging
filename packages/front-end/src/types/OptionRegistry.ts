@@ -15,34 +15,42 @@ import {
 } from "ethers";
 import { FunctionFragment, Result, EventFragment } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
-import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
+import type {
+  TypedEventFilter,
+  TypedEvent,
+  TypedListener,
+  OnEvent,
+} from "./common";
 
-export type OptionSeriesStruct = {
-  expiration: BigNumberish;
-  strike: BigNumberish;
-  isPut: boolean;
-  underlying: string;
-  strikeAsset: string;
-  collateral: string;
-};
+export declare namespace Types {
+  export type OptionSeriesStruct = {
+    expiration: BigNumberish;
+    strike: BigNumberish;
+    isPut: boolean;
+    underlying: string;
+    strikeAsset: string;
+    collateral: string;
+  };
 
-export type OptionSeriesStructOutput = [
-  BigNumber,
-  BigNumber,
-  boolean,
-  string,
-  string,
-  string
-] & {
-  expiration: BigNumber;
-  strike: BigNumber;
-  isPut: boolean;
-  underlying: string;
-  strikeAsset: string;
-  collateral: string;
-};
+  export type OptionSeriesStructOutput = [
+    BigNumber,
+    BigNumber,
+    boolean,
+    string,
+    string,
+    string
+  ] & {
+    expiration: BigNumber;
+    strike: BigNumber;
+    isPut: boolean;
+    underlying: string;
+    strikeAsset: string;
+    collateral: string;
+  };
+}
 
 export interface OptionRegistryInterface extends utils.Interface {
+  contractName: "OptionRegistry";
   functions: {
     "addressBook()": FunctionFragment;
     "adjustCollateral(uint256)": FunctionFragment;
@@ -123,11 +131,11 @@ export interface OptionRegistryInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "getCollateral",
-    values: [OptionSeriesStruct, BigNumberish]
+    values: [Types.OptionSeriesStruct, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "getIssuanceHash",
-    values: [OptionSeriesStruct]
+    values: [Types.OptionSeriesStruct]
   ): string;
   encodeFunctionData(
     functionFragment: "getOtoken",
@@ -135,7 +143,7 @@ export interface OptionRegistryInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "getSeries",
-    values: [OptionSeriesStruct]
+    values: [Types.OptionSeriesStruct]
   ): string;
   encodeFunctionData(
     functionFragment: "getSeriesAddress",
@@ -147,7 +155,7 @@ export interface OptionRegistryInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "issue",
-    values: [OptionSeriesStruct]
+    values: [Types.OptionSeriesStruct]
   ): string;
   encodeFunctionData(functionFragment: "keeper", values: [string]): string;
   encodeFunctionData(
@@ -376,6 +384,7 @@ export type VaultLiquidationRegisteredEventFilter =
   TypedEventFilter<VaultLiquidationRegisteredEvent>;
 
 export interface OptionRegistry extends BaseContract {
+  contractName: "OptionRegistry";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
@@ -451,13 +460,13 @@ export interface OptionRegistry extends BaseContract {
     gammaController(overrides?: CallOverrides): Promise<[string]>;
 
     getCollateral(
-      series: OptionSeriesStruct,
+      series: Types.OptionSeriesStruct,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
     getIssuanceHash(
-      _series: OptionSeriesStruct,
+      _series: Types.OptionSeriesStruct,
       overrides?: CallOverrides
     ): Promise<[string]>;
 
@@ -472,7 +481,7 @@ export interface OptionRegistry extends BaseContract {
     ): Promise<[string]>;
 
     getSeries(
-      _series: OptionSeriesStruct,
+      _series: Types.OptionSeriesStruct,
       overrides?: CallOverrides
     ): Promise<[string]>;
 
@@ -484,10 +493,10 @@ export interface OptionRegistry extends BaseContract {
     getSeriesInfo(
       series: string,
       overrides?: CallOverrides
-    ): Promise<[OptionSeriesStructOutput]>;
+    ): Promise<[Types.OptionSeriesStructOutput]>;
 
     issue(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -618,13 +627,13 @@ export interface OptionRegistry extends BaseContract {
   gammaController(overrides?: CallOverrides): Promise<string>;
 
   getCollateral(
-    series: OptionSeriesStruct,
+    series: Types.OptionSeriesStruct,
     amount: BigNumberish,
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
   getIssuanceHash(
-    _series: OptionSeriesStruct,
+    _series: Types.OptionSeriesStruct,
     overrides?: CallOverrides
   ): Promise<string>;
 
@@ -639,7 +648,7 @@ export interface OptionRegistry extends BaseContract {
   ): Promise<string>;
 
   getSeries(
-    _series: OptionSeriesStruct,
+    _series: Types.OptionSeriesStruct,
     overrides?: CallOverrides
   ): Promise<string>;
 
@@ -651,10 +660,10 @@ export interface OptionRegistry extends BaseContract {
   getSeriesInfo(
     series: string,
     overrides?: CallOverrides
-  ): Promise<OptionSeriesStructOutput>;
+  ): Promise<Types.OptionSeriesStructOutput>;
 
   issue(
-    optionSeries: OptionSeriesStruct,
+    optionSeries: Types.OptionSeriesStruct,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -785,13 +794,13 @@ export interface OptionRegistry extends BaseContract {
     gammaController(overrides?: CallOverrides): Promise<string>;
 
     getCollateral(
-      series: OptionSeriesStruct,
+      series: Types.OptionSeriesStruct,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     getIssuanceHash(
-      _series: OptionSeriesStruct,
+      _series: Types.OptionSeriesStruct,
       overrides?: CallOverrides
     ): Promise<string>;
 
@@ -806,7 +815,7 @@ export interface OptionRegistry extends BaseContract {
     ): Promise<string>;
 
     getSeries(
-      _series: OptionSeriesStruct,
+      _series: Types.OptionSeriesStruct,
       overrides?: CallOverrides
     ): Promise<string>;
 
@@ -818,10 +827,10 @@ export interface OptionRegistry extends BaseContract {
     getSeriesInfo(
       series: string,
       overrides?: CallOverrides
-    ): Promise<OptionSeriesStructOutput>;
+    ): Promise<Types.OptionSeriesStructOutput>;
 
     issue(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       overrides?: CallOverrides
     ): Promise<string>;
 
@@ -1008,13 +1017,13 @@ export interface OptionRegistry extends BaseContract {
     gammaController(overrides?: CallOverrides): Promise<BigNumber>;
 
     getCollateral(
-      series: OptionSeriesStruct,
+      series: Types.OptionSeriesStruct,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     getIssuanceHash(
-      _series: OptionSeriesStruct,
+      _series: Types.OptionSeriesStruct,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -1029,7 +1038,7 @@ export interface OptionRegistry extends BaseContract {
     ): Promise<BigNumber>;
 
     getSeries(
-      _series: OptionSeriesStruct,
+      _series: Types.OptionSeriesStruct,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -1044,7 +1053,7 @@ export interface OptionRegistry extends BaseContract {
     ): Promise<BigNumber>;
 
     issue(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -1159,13 +1168,13 @@ export interface OptionRegistry extends BaseContract {
     gammaController(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     getCollateral(
-      series: OptionSeriesStruct,
+      series: Types.OptionSeriesStruct,
       amount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     getIssuanceHash(
-      _series: OptionSeriesStruct,
+      _series: Types.OptionSeriesStruct,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -1180,7 +1189,7 @@ export interface OptionRegistry extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     getSeries(
-      _series: OptionSeriesStruct,
+      _series: Types.OptionSeriesStruct,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
@@ -1195,7 +1204,7 @@ export interface OptionRegistry extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     issue(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

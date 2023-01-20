@@ -15,62 +15,70 @@ import {
 } from "ethers";
 import { FunctionFragment, Result, EventFragment } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
-import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
+import type {
+  TypedEventFilter,
+  TypedEvent,
+  TypedListener,
+  OnEvent,
+} from "./common";
 
-export type OptionSeriesStruct = {
-  expiration: BigNumberish;
-  strike: BigNumberish;
-  isPut: boolean;
-  underlying: string;
-  strikeAsset: string;
-  collateral: string;
-};
+export declare namespace Types {
+  export type OptionSeriesStruct = {
+    expiration: BigNumberish;
+    strike: BigNumberish;
+    isPut: boolean;
+    underlying: string;
+    strikeAsset: string;
+    collateral: string;
+  };
 
-export type OptionSeriesStructOutput = [
-  BigNumber,
-  BigNumber,
-  boolean,
-  string,
-  string,
-  string
-] & {
-  expiration: BigNumber;
-  strike: BigNumber;
-  isPut: boolean;
-  underlying: string;
-  strikeAsset: string;
-  collateral: string;
-};
+  export type OptionSeriesStructOutput = [
+    BigNumber,
+    BigNumber,
+    boolean,
+    string,
+    string,
+    string
+  ] & {
+    expiration: BigNumber;
+    strike: BigNumber;
+    isPut: boolean;
+    underlying: string;
+    strikeAsset: string;
+    collateral: string;
+  };
 
-export type PortfolioValuesStruct = {
-  delta: BigNumberish;
-  gamma: BigNumberish;
-  vega: BigNumberish;
-  theta: BigNumberish;
-  callPutsValue: BigNumberish;
-  timestamp: BigNumberish;
-  spotPrice: BigNumberish;
-};
+  export type PortfolioValuesStruct = {
+    delta: BigNumberish;
+    gamma: BigNumberish;
+    vega: BigNumberish;
+    theta: BigNumberish;
+    callPutsValue: BigNumberish;
+    timestamp: BigNumberish;
+    spotPrice: BigNumberish;
+  };
 
-export type PortfolioValuesStructOutput = [
-  BigNumber,
-  BigNumber,
-  BigNumber,
-  BigNumber,
-  BigNumber,
-  BigNumber,
-  BigNumber
-] & {
-  delta: BigNumber;
-  gamma: BigNumber;
-  vega: BigNumber;
-  theta: BigNumber;
-  callPutsValue: BigNumber;
-  timestamp: BigNumber;
-  spotPrice: BigNumber;
-};
+  export type PortfolioValuesStructOutput = [
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber
+  ] & {
+    delta: BigNumber;
+    gamma: BigNumber;
+    vega: BigNumber;
+    theta: BigNumber;
+    callPutsValue: BigNumber;
+    timestamp: BigNumber;
+    spotPrice: BigNumber;
+  };
+}
 
 export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
+  contractName: "AlphaPortfolioValuesFeed";
   functions: {
     "accountLiquidatedSeries(address)": FunctionFragment;
     "addressAtIndexInSet(uint256)": FunctionFragment;
@@ -176,7 +184,7 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "updateStores",
-    values: [OptionSeriesStruct, BigNumberish, BigNumberish, string]
+    values: [Types.OptionSeriesStruct, BigNumberish, BigNumberish, string]
   ): string;
 
   decodeFunctionResult(
@@ -288,18 +296,19 @@ export type RequestedUpdateEvent = TypedEvent<
 export type RequestedUpdateEventFilter = TypedEventFilter<RequestedUpdateEvent>;
 
 export type StoresUpdatedEvent = TypedEvent<
-  [string, BigNumber, BigNumber, OptionSeriesStructOutput],
+  [string, BigNumber, BigNumber, Types.OptionSeriesStructOutput],
   {
     seriesAddress: string;
     shortExposure: BigNumber;
     longExposure: BigNumber;
-    optionSeries: OptionSeriesStructOutput;
+    optionSeries: Types.OptionSeriesStructOutput;
   }
 >;
 
 export type StoresUpdatedEventFilter = TypedEventFilter<StoresUpdatedEvent>;
 
 export interface AlphaPortfolioValuesFeed extends BaseContract {
+  contractName: "AlphaPortfolioValuesFeed";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
@@ -357,7 +366,7 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
       underlying: string,
       strike: string,
       overrides?: CallOverrides
-    ): Promise<[PortfolioValuesStructOutput]>;
+    ): Promise<[Types.PortfolioValuesStructOutput]>;
 
     handler(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
 
@@ -418,8 +427,8 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
       arg0: string,
       overrides?: CallOverrides
     ): Promise<
-      [OptionSeriesStructOutput, BigNumber, BigNumber] & {
-        optionSeries: OptionSeriesStructOutput;
+      [Types.OptionSeriesStructOutput, BigNumber, BigNumber] & {
+        optionSeries: Types.OptionSeriesStructOutput;
         shortExposure: BigNumber;
         longExposure: BigNumber;
       }
@@ -430,7 +439,7 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
     ): Promise<ContractTransaction>;
 
     updateStores(
-      _optionSeries: OptionSeriesStruct,
+      _optionSeries: Types.OptionSeriesStruct,
       shortExposure: BigNumberish,
       longExposure: BigNumberish,
       _seriesAddress: string,
@@ -469,7 +478,7 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
     underlying: string,
     strike: string,
     overrides?: CallOverrides
-  ): Promise<PortfolioValuesStructOutput>;
+  ): Promise<Types.PortfolioValuesStructOutput>;
 
   handler(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
@@ -530,8 +539,8 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
     arg0: string,
     overrides?: CallOverrides
   ): Promise<
-    [OptionSeriesStructOutput, BigNumber, BigNumber] & {
-      optionSeries: OptionSeriesStructOutput;
+    [Types.OptionSeriesStructOutput, BigNumber, BigNumber] & {
+      optionSeries: Types.OptionSeriesStructOutput;
       shortExposure: BigNumber;
       longExposure: BigNumber;
     }
@@ -542,7 +551,7 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
   ): Promise<ContractTransaction>;
 
   updateStores(
-    _optionSeries: OptionSeriesStruct,
+    _optionSeries: Types.OptionSeriesStruct,
     shortExposure: BigNumberish,
     longExposure: BigNumberish,
     _seriesAddress: string,
@@ -581,7 +590,7 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
       underlying: string,
       strike: string,
       overrides?: CallOverrides
-    ): Promise<PortfolioValuesStructOutput>;
+    ): Promise<Types.PortfolioValuesStructOutput>;
 
     handler(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
@@ -633,8 +642,8 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
       arg0: string,
       overrides?: CallOverrides
     ): Promise<
-      [OptionSeriesStructOutput, BigNumber, BigNumber] & {
-        optionSeries: OptionSeriesStructOutput;
+      [Types.OptionSeriesStructOutput, BigNumber, BigNumber] & {
+        optionSeries: Types.OptionSeriesStructOutput;
         shortExposure: BigNumber;
         longExposure: BigNumber;
       }
@@ -643,7 +652,7 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
     syncLooper(overrides?: CallOverrides): Promise<void>;
 
     updateStores(
-      _optionSeries: OptionSeriesStruct,
+      _optionSeries: Types.OptionSeriesStruct,
       shortExposure: BigNumberish,
       longExposure: BigNumberish,
       _seriesAddress: string,
@@ -796,7 +805,7 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
     ): Promise<BigNumber>;
 
     updateStores(
-      _optionSeries: OptionSeriesStruct,
+      _optionSeries: Types.OptionSeriesStruct,
       shortExposure: BigNumberish,
       longExposure: BigNumberish,
       _seriesAddress: string,
@@ -912,7 +921,7 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     updateStores(
-      _optionSeries: OptionSeriesStruct,
+      _optionSeries: Types.OptionSeriesStruct,
       shortExposure: BigNumberish,
       longExposure: BigNumberish,
       _seriesAddress: string,

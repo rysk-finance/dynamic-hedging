@@ -15,59 +15,67 @@ import {
 } from "ethers";
 import { FunctionFragment, Result, EventFragment } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
-import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
+import type {
+  TypedEventFilter,
+  TypedEvent,
+  TypedListener,
+  OnEvent,
+} from "./common";
 
-export type OptionParamsStruct = {
-  minCallStrikePrice: BigNumberish;
-  maxCallStrikePrice: BigNumberish;
-  minPutStrikePrice: BigNumberish;
-  maxPutStrikePrice: BigNumberish;
-  minExpiry: BigNumberish;
-  maxExpiry: BigNumberish;
-};
+export declare namespace Types {
+  export type OptionParamsStruct = {
+    minCallStrikePrice: BigNumberish;
+    maxCallStrikePrice: BigNumberish;
+    minPutStrikePrice: BigNumberish;
+    maxPutStrikePrice: BigNumberish;
+    minExpiry: BigNumberish;
+    maxExpiry: BigNumberish;
+  };
 
-export type OptionParamsStructOutput = [
-  BigNumber,
-  BigNumber,
-  BigNumber,
-  BigNumber,
-  BigNumber,
-  BigNumber
-] & {
-  minCallStrikePrice: BigNumber;
-  maxCallStrikePrice: BigNumber;
-  minPutStrikePrice: BigNumber;
-  maxPutStrikePrice: BigNumber;
-  minExpiry: BigNumber;
-  maxExpiry: BigNumber;
-};
+  export type OptionParamsStructOutput = [
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber
+  ] & {
+    minCallStrikePrice: BigNumber;
+    maxCallStrikePrice: BigNumber;
+    minPutStrikePrice: BigNumber;
+    maxPutStrikePrice: BigNumber;
+    minExpiry: BigNumber;
+    maxExpiry: BigNumber;
+  };
 
-export type OptionSeriesStruct = {
-  expiration: BigNumberish;
-  strike: BigNumberish;
-  isPut: boolean;
-  underlying: string;
-  strikeAsset: string;
-  collateral: string;
-};
+  export type OptionSeriesStruct = {
+    expiration: BigNumberish;
+    strike: BigNumberish;
+    isPut: boolean;
+    underlying: string;
+    strikeAsset: string;
+    collateral: string;
+  };
 
-export type OptionSeriesStructOutput = [
-  BigNumber,
-  BigNumber,
-  boolean,
-  string,
-  string,
-  string
-] & {
-  expiration: BigNumber;
-  strike: BigNumber;
-  isPut: boolean;
-  underlying: string;
-  strikeAsset: string;
-  collateral: string;
-};
+  export type OptionSeriesStructOutput = [
+    BigNumber,
+    BigNumber,
+    boolean,
+    string,
+    string,
+    string
+  ] & {
+    expiration: BigNumber;
+    strike: BigNumber;
+    isPut: boolean;
+    underlying: string;
+    strikeAsset: string;
+    collateral: string;
+  };
+}
 
 export interface LiquidityPoolInterface extends utils.Interface {
+  contractName: "LiquidityPool";
   functions: {
     "DOMAIN_SEPARATOR()": FunctionFragment;
     "aboveThresholdGradient()": FunctionFragment;
@@ -85,7 +93,7 @@ export interface LiquidityPoolInterface extends utils.Interface {
     "collateralAllocated()": FunctionFragment;
     "collateralAsset()": FunctionFragment;
     "collateralCap()": FunctionFragment;
-    "completeWithdraw(uint256)": FunctionFragment;
+    "completeWithdraw()": FunctionFragment;
     "decimals()": FunctionFragment;
     "deposit(uint256)": FunctionFragment;
     "depositEpoch()": FunctionFragment;
@@ -97,6 +105,7 @@ export interface LiquidityPoolInterface extends utils.Interface {
     "getAssets()": FunctionFragment;
     "getBalance(address)": FunctionFragment;
     "getExternalDelta()": FunctionFragment;
+    "getHedgingReactors()": FunctionFragment;
     "getImpliedVolatility(bool,uint256,uint256,uint256)": FunctionFragment;
     "getNAV()": FunctionFragment;
     "getPortfolioDelta()": FunctionFragment;
@@ -216,7 +225,7 @@ export interface LiquidityPoolInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "completeWithdraw",
-    values: [BigNumberish]
+    values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "decimals", values?: undefined): string;
   encodeFunctionData(
@@ -254,6 +263,10 @@ export interface LiquidityPoolInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "getHedgingReactors",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "getImpliedVolatility",
     values: [boolean, BigNumberish, BigNumberish, BigNumberish]
   ): string;
@@ -266,7 +279,7 @@ export interface LiquidityPoolInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "handlerBuybackOption",
     values: [
-      OptionSeriesStruct,
+      Types.OptionSeriesStruct,
       BigNumberish,
       string,
       string,
@@ -277,12 +290,12 @@ export interface LiquidityPoolInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "handlerIssue",
-    values: [OptionSeriesStruct]
+    values: [Types.OptionSeriesStruct]
   ): string;
   encodeFunctionData(
     functionFragment: "handlerIssueAndWriteOption",
     values: [
-      OptionSeriesStruct,
+      Types.OptionSeriesStruct,
       BigNumberish,
       BigNumberish,
       BigNumberish,
@@ -292,7 +305,7 @@ export interface LiquidityPoolInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "handlerWriteOption",
     values: [
-      OptionSeriesStruct,
+      Types.OptionSeriesStruct,
       string,
       BigNumberish,
       string,
@@ -369,7 +382,7 @@ export interface LiquidityPoolInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "protocol", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "quotePriceWithUtilizationGreeks",
-    values: [OptionSeriesStruct, BigNumberish, boolean]
+    values: [Types.OptionSeriesStruct, BigNumberish, boolean]
   ): string;
   encodeFunctionData(
     functionFragment: "rebalancePortfolioDelta",
@@ -575,6 +588,10 @@ export interface LiquidityPoolInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "getHedgingReactors",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "getImpliedVolatility",
     data: BytesLike
   ): Result;
@@ -769,8 +786,11 @@ export interface LiquidityPoolInterface extends utils.Interface {
     "DepositEpochExecuted(uint256)": EventFragment;
     "InitiateWithdraw(address,uint256,uint256)": EventFragment;
     "Paused(address)": EventFragment;
+    "RebalancePortfolioDelta(int256)": EventFragment;
     "Redeem(address,uint256,uint256)": EventFragment;
     "SettleVault(address,uint256,uint256,address)": EventFragment;
+    "TradingPaused()": EventFragment;
+    "TradingUnpaused()": EventFragment;
     "Transfer(address,address,uint256)": EventFragment;
     "Unpaused(address)": EventFragment;
     "Withdraw(address,uint256,uint256)": EventFragment;
@@ -785,8 +805,11 @@ export interface LiquidityPoolInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "DepositEpochExecuted"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "InitiateWithdraw"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Paused"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "RebalancePortfolioDelta"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Redeem"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "SettleVault"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TradingPaused"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TradingUnpaused"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Transfer"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Unpaused"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Withdraw"): EventFragment;
@@ -846,6 +869,14 @@ export type PausedEvent = TypedEvent<[string], { account: string }>;
 
 export type PausedEventFilter = TypedEventFilter<PausedEvent>;
 
+export type RebalancePortfolioDeltaEvent = TypedEvent<
+  [BigNumber],
+  { deltaChange: BigNumber }
+>;
+
+export type RebalancePortfolioDeltaEventFilter =
+  TypedEventFilter<RebalancePortfolioDeltaEvent>;
+
 export type RedeemEvent = TypedEvent<
   [string, BigNumber, BigNumber],
   { recipient: string; amount: BigNumber; epoch: BigNumber }
@@ -864,6 +895,14 @@ export type SettleVaultEvent = TypedEvent<
 >;
 
 export type SettleVaultEventFilter = TypedEventFilter<SettleVaultEvent>;
+
+export type TradingPausedEvent = TypedEvent<[], {}>;
+
+export type TradingPausedEventFilter = TypedEventFilter<TradingPausedEvent>;
+
+export type TradingUnpausedEvent = TypedEvent<[], {}>;
+
+export type TradingUnpausedEventFilter = TypedEventFilter<TradingUnpausedEvent>;
 
 export type TransferEvent = TypedEvent<
   [string, string, BigNumber],
@@ -905,6 +944,7 @@ export type WriteOptionEvent = TypedEvent<
 export type WriteOptionEventFilter = TypedEventFilter<WriteOptionEvent>;
 
 export interface LiquidityPool extends BaseContract {
+  contractName: "LiquidityPool";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
@@ -982,7 +1022,6 @@ export interface LiquidityPool extends BaseContract {
     collateralCap(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     completeWithdraw(
-      _shares: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -1027,6 +1066,8 @@ export interface LiquidityPool extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { externalDelta: BigNumber }>;
 
+    getHedgingReactors(overrides?: CallOverrides): Promise<[string[]]>;
+
     getImpliedVolatility(
       isPut: boolean,
       underlyingPrice: BigNumberish,
@@ -1042,7 +1083,7 @@ export interface LiquidityPool extends BaseContract {
     handler(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
 
     handlerBuybackOption(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       amount: BigNumberish,
       optionRegistry: string,
       seriesAddress: string,
@@ -1053,12 +1094,12 @@ export interface LiquidityPool extends BaseContract {
     ): Promise<ContractTransaction>;
 
     handlerIssue(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
     handlerIssueAndWriteOption(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       amount: BigNumberish,
       premium: BigNumberish,
       delta: BigNumberish,
@@ -1067,7 +1108,7 @@ export interface LiquidityPool extends BaseContract {
     ): Promise<ContractTransaction>;
 
     handlerWriteOption(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       seriesAddress: string,
       amount: BigNumberish,
       optionRegistry: string,
@@ -1149,7 +1190,7 @@ export interface LiquidityPool extends BaseContract {
     protocol(overrides?: CallOverrides): Promise<[string]>;
 
     quotePriceWithUtilizationGreeks(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       amount: BigNumberish,
       toBuy: boolean,
       overrides?: CallOverrides
@@ -1344,7 +1385,6 @@ export interface LiquidityPool extends BaseContract {
   collateralCap(overrides?: CallOverrides): Promise<BigNumber>;
 
   completeWithdraw(
-    _shares: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -1387,6 +1427,8 @@ export interface LiquidityPool extends BaseContract {
 
   getExternalDelta(overrides?: CallOverrides): Promise<BigNumber>;
 
+  getHedgingReactors(overrides?: CallOverrides): Promise<string[]>;
+
   getImpliedVolatility(
     isPut: boolean,
     underlyingPrice: BigNumberish,
@@ -1402,7 +1444,7 @@ export interface LiquidityPool extends BaseContract {
   handler(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
   handlerBuybackOption(
-    optionSeries: OptionSeriesStruct,
+    optionSeries: Types.OptionSeriesStruct,
     amount: BigNumberish,
     optionRegistry: string,
     seriesAddress: string,
@@ -1413,12 +1455,12 @@ export interface LiquidityPool extends BaseContract {
   ): Promise<ContractTransaction>;
 
   handlerIssue(
-    optionSeries: OptionSeriesStruct,
+    optionSeries: Types.OptionSeriesStruct,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
   handlerIssueAndWriteOption(
-    optionSeries: OptionSeriesStruct,
+    optionSeries: Types.OptionSeriesStruct,
     amount: BigNumberish,
     premium: BigNumberish,
     delta: BigNumberish,
@@ -1427,7 +1469,7 @@ export interface LiquidityPool extends BaseContract {
   ): Promise<ContractTransaction>;
 
   handlerWriteOption(
-    optionSeries: OptionSeriesStruct,
+    optionSeries: Types.OptionSeriesStruct,
     seriesAddress: string,
     amount: BigNumberish,
     optionRegistry: string,
@@ -1509,7 +1551,7 @@ export interface LiquidityPool extends BaseContract {
   protocol(overrides?: CallOverrides): Promise<string>;
 
   quotePriceWithUtilizationGreeks(
-    optionSeries: OptionSeriesStruct,
+    optionSeries: Types.OptionSeriesStruct,
     amount: BigNumberish,
     toBuy: boolean,
     overrides?: CallOverrides
@@ -1699,10 +1741,7 @@ export interface LiquidityPool extends BaseContract {
 
     collateralCap(overrides?: CallOverrides): Promise<BigNumber>;
 
-    completeWithdraw(
-      _shares: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
+    completeWithdraw(overrides?: CallOverrides): Promise<BigNumber>;
 
     decimals(overrides?: CallOverrides): Promise<number>;
 
@@ -1738,6 +1777,8 @@ export interface LiquidityPool extends BaseContract {
 
     getExternalDelta(overrides?: CallOverrides): Promise<BigNumber>;
 
+    getHedgingReactors(overrides?: CallOverrides): Promise<string[]>;
+
     getImpliedVolatility(
       isPut: boolean,
       underlyingPrice: BigNumberish,
@@ -1753,7 +1794,7 @@ export interface LiquidityPool extends BaseContract {
     handler(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
     handlerBuybackOption(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       amount: BigNumberish,
       optionRegistry: string,
       seriesAddress: string,
@@ -1764,12 +1805,12 @@ export interface LiquidityPool extends BaseContract {
     ): Promise<BigNumber>;
 
     handlerIssue(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       overrides?: CallOverrides
     ): Promise<string>;
 
     handlerIssueAndWriteOption(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       amount: BigNumberish,
       premium: BigNumberish,
       delta: BigNumberish,
@@ -1778,7 +1819,7 @@ export interface LiquidityPool extends BaseContract {
     ): Promise<[BigNumber, string]>;
 
     handlerWriteOption(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       seriesAddress: string,
       amount: BigNumberish,
       optionRegistry: string,
@@ -1856,7 +1897,7 @@ export interface LiquidityPool extends BaseContract {
     protocol(overrides?: CallOverrides): Promise<string>;
 
     quotePriceWithUtilizationGreeks(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       amount: BigNumberish,
       toBuy: boolean,
       overrides?: CallOverrides
@@ -2052,6 +2093,13 @@ export interface LiquidityPool extends BaseContract {
     "Paused(address)"(account?: null): PausedEventFilter;
     Paused(account?: null): PausedEventFilter;
 
+    "RebalancePortfolioDelta(int256)"(
+      deltaChange?: null
+    ): RebalancePortfolioDeltaEventFilter;
+    RebalancePortfolioDelta(
+      deltaChange?: null
+    ): RebalancePortfolioDeltaEventFilter;
+
     "Redeem(address,uint256,uint256)"(
       recipient?: null,
       amount?: null,
@@ -2071,6 +2119,12 @@ export interface LiquidityPool extends BaseContract {
       collateralLost?: null,
       closer?: null
     ): SettleVaultEventFilter;
+
+    "TradingPaused()"(): TradingPausedEventFilter;
+    TradingPaused(): TradingPausedEventFilter;
+
+    "TradingUnpaused()"(): TradingUnpausedEventFilter;
+    TradingUnpaused(): TradingUnpausedEventFilter;
 
     "Transfer(address,address,uint256)"(
       from?: string | null,
@@ -2168,7 +2222,6 @@ export interface LiquidityPool extends BaseContract {
     collateralCap(overrides?: CallOverrides): Promise<BigNumber>;
 
     completeWithdraw(
-      _shares: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -2205,6 +2258,8 @@ export interface LiquidityPool extends BaseContract {
 
     getExternalDelta(overrides?: CallOverrides): Promise<BigNumber>;
 
+    getHedgingReactors(overrides?: CallOverrides): Promise<BigNumber>;
+
     getImpliedVolatility(
       isPut: boolean,
       underlyingPrice: BigNumberish,
@@ -2220,7 +2275,7 @@ export interface LiquidityPool extends BaseContract {
     handler(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     handlerBuybackOption(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       amount: BigNumberish,
       optionRegistry: string,
       seriesAddress: string,
@@ -2231,12 +2286,12 @@ export interface LiquidityPool extends BaseContract {
     ): Promise<BigNumber>;
 
     handlerIssue(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     handlerIssueAndWriteOption(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       amount: BigNumberish,
       premium: BigNumberish,
       delta: BigNumberish,
@@ -2245,7 +2300,7 @@ export interface LiquidityPool extends BaseContract {
     ): Promise<BigNumber>;
 
     handlerWriteOption(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       seriesAddress: string,
       amount: BigNumberish,
       optionRegistry: string,
@@ -2316,7 +2371,7 @@ export interface LiquidityPool extends BaseContract {
     protocol(overrides?: CallOverrides): Promise<BigNumber>;
 
     quotePriceWithUtilizationGreeks(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       amount: BigNumberish,
       toBuy: boolean,
       overrides?: CallOverrides
@@ -2519,7 +2574,6 @@ export interface LiquidityPool extends BaseContract {
     collateralCap(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     completeWithdraw(
-      _shares: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -2561,6 +2615,10 @@ export interface LiquidityPool extends BaseContract {
 
     getExternalDelta(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    getHedgingReactors(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     getImpliedVolatility(
       isPut: boolean,
       underlyingPrice: BigNumberish,
@@ -2579,7 +2637,7 @@ export interface LiquidityPool extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     handlerBuybackOption(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       amount: BigNumberish,
       optionRegistry: string,
       seriesAddress: string,
@@ -2590,12 +2648,12 @@ export interface LiquidityPool extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     handlerIssue(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     handlerIssueAndWriteOption(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       amount: BigNumberish,
       premium: BigNumberish,
       delta: BigNumberish,
@@ -2604,7 +2662,7 @@ export interface LiquidityPool extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     handlerWriteOption(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       seriesAddress: string,
       amount: BigNumberish,
       optionRegistry: string,
@@ -2687,7 +2745,7 @@ export interface LiquidityPool extends BaseContract {
     protocol(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     quotePriceWithUtilizationGreeks(
-      optionSeries: OptionSeriesStruct,
+      optionSeries: Types.OptionSeriesStruct,
       amount: BigNumberish,
       toBuy: boolean,
       overrides?: CallOverrides

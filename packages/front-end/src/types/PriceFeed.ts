@@ -14,9 +14,15 @@ import {
 } from "ethers";
 import { FunctionFragment, Result, EventFragment } from "@ethersproject/abi";
 import { Listener, Provider } from "@ethersproject/providers";
-import { TypedEventFilter, TypedEvent, TypedListener, OnEvent } from "./common";
+import type {
+  TypedEventFilter,
+  TypedEvent,
+  TypedListener,
+  OnEvent,
+} from "./common";
 
 export interface PriceFeedInterface extends utils.Interface {
+  contractName: "PriceFeed";
   functions: {
     "addPriceFeed(address,address,address)": FunctionFragment;
     "authority()": FunctionFragment;
@@ -77,6 +83,7 @@ export type AuthorityUpdatedEventFilter =
   TypedEventFilter<AuthorityUpdatedEvent>;
 
 export interface PriceFeed extends BaseContract {
+  contractName: "PriceFeed";
   connect(signerOrProvider: Signer | Provider | string): this;
   attach(addressOrName: string): this;
   deployed(): Promise<this>;
