@@ -163,7 +163,8 @@ describe("Liquidity Pools", async () => {
 			putAlpha: 250000,
 			putBeta: 1_000000,
 			putRho: -300000,
-			putVolvol: 1_500000
+			putVolvol: 1_500000,
+			interestRate: utils.parseEther("-0.001")
 		}
 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -175,6 +176,7 @@ describe("Liquidity Pools", async () => {
 		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+		expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 	})
 	it("sets slippage gradient in pricer contract", async () => {
 		await pricer.setSlippageGradient(slippageGradient)
@@ -591,7 +593,8 @@ describe("Liquidity Pools", async () => {
 				putAlpha: 250000,
 				putBeta: 1_000000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.001")
 			},
 			invalidExpirationLong
 		)
@@ -647,7 +650,8 @@ describe("Liquidity Pools", async () => {
 				putAlpha: 250000,
 				putBeta: 1_000000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.001")
 			},
 			invalidExpirationShort
 		)
@@ -848,7 +852,8 @@ describe("Liquidity Pools", async () => {
 				putAlpha: 250000,
 				putBeta: 1_000000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.001")
 			},
 			invalidExpirationLong
 		)
@@ -902,7 +907,8 @@ describe("Liquidity Pools", async () => {
 				putAlpha: 250000,
 				putBeta: 1_000000,
 				putRho: -300000,
-				putVolvol: 1_500000
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.001")
 			},
 			invalidExpirationShort
 		)
@@ -1082,7 +1088,8 @@ describe("Liquidity Pools", async () => {
 			putAlpha: 250000,
 			putBeta: 1_000000,
 			putRho: -300000,
-			putVolvol: 1_500000
+			putVolvol: 1_500000,
+			interestRate: utils.parseEther("-0.001")
 		}
 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -1094,6 +1101,7 @@ describe("Liquidity Pools", async () => {
 		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+		expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 	})
 	it("REVERTs: when attempting to write a ETH/USD call with unapproved series", async () => {
 		const amount = toWei("7")
@@ -1447,7 +1455,8 @@ describe("Liquidity Pools", async () => {
 			putAlpha: 250000,
 			putBeta: 1_000000,
 			putRho: -300000,
-			putVolvol: 1_500000
+			putVolvol: 1_500000,
+			interestRate: utils.parseEther("-0.001")
 		}
 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
@@ -1459,6 +1468,7 @@ describe("Liquidity Pools", async () => {
 		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+		expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 	})
 	it("can compute portfolio delta", async function () {
 		expect(await liquidityPool.ephemeralDelta()).to.not.eq(0)
@@ -1638,7 +1648,8 @@ describe("Liquidity Pools", async () => {
 			putAlpha: 250000,
 			putBeta: 1_000000,
 			putRho: -300000,
-			putVolvol: 1_500000
+			putVolvol: 1_500000,
+			interestRate: utils.parseEther("-0.001")
 		}
 		await volFeed.setSabrParameters(proposedSabrParams, expiration2)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration2)
@@ -1650,6 +1661,7 @@ describe("Liquidity Pools", async () => {
 		expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
 		expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
 		expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+		expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 	})
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
