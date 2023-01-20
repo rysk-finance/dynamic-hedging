@@ -7,7 +7,7 @@ import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deplo
 import { toUSDC, ZERO_ADDRESS } from "../utils/conversion-helper"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { CHAINLINK_WETH_PRICER, CONTROLLER_OWNER } from "./constants"
-import { setupTestOracle} from "./helpers"
+import { setupTestOracle } from "./helpers"
 
 let usd: MintableERC20
 let wethERC20: MintableERC20

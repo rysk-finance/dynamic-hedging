@@ -26,8 +26,6 @@ contract VolatilityFeed is AccessControl {
 	mapping(address => bool) public keeper;
 	// expiry array
 	uint256[] public expiries;
-	// interest rate in e18 decimals
-	int256 public interestRate = -1e16;
 
 	//////////////////////////
 	/// constant variables ///
@@ -47,6 +45,7 @@ contract VolatilityFeed is AccessControl {
 		int32 putBeta;
 		int32 putRho;
 		int32 putVolvol;
+		int256 interestRate; // interest rate in e18
 	}
 
 	constructor(address _authority) AccessControl(IAuthority(_authority)) {}
@@ -59,6 +58,7 @@ contract VolatilityFeed is AccessControl {
 	error BetaError();
 	error RhoError();
 	error VolvolError();
+	error InterestRateError();
 
 	event SabrParamsSet(
 		uint256 indexed _expiry,
@@ -69,7 +69,8 @@ contract VolatilityFeed is AccessControl {
 		int32 putAlpha,
 		int32 putBeta,
 		int32 putRho,
-		int32 putVolvol
+		int32 putVolvol,
+		int256 interestRate
 	);
 
 	/**
@@ -102,6 +103,12 @@ contract VolatilityFeed is AccessControl {
 		) {
 			revert RhoError();
 		}
+		if(
+			_sabrParams.interestRate > 200e18 ||
+			_sabrParams.interestRate < -200e18 
+		) {
+			revert InterestRateError();
+		}
 		// if the expiry is not already a registered expiry then add it to the expiry list
 		if(sabrParams[_expiry].callAlpha == 0) {
 			expiries.push(_expiry);
@@ -116,18 +123,9 @@ contract VolatilityFeed is AccessControl {
 			_sabrParams.putAlpha,
 			_sabrParams.putBeta,
 			_sabrParams.putRho,
-			_sabrParams.putVolvol
+			_sabrParams.putVolvol,
+			_sabrParams.interestRate
 		);
-	}
-
-	/// @notice set the interest rate that is used to compute forward price
-	function setInterestRate(
-		int256 _interestRate
-	) public {
-		_onlyGovernor();
-		require(-100e18 < _interestRate, "Interest rate too small");
-		require(100e18 > _interestRate, "Interest rate too big");
-		interestRate = _interestRate;
 	}
 
 	/// @notice update the keepers
@@ -160,7 +158,7 @@ contract VolatilityFeed is AccessControl {
 		if (sabrParams_.callAlpha == 0) {
 			revert CustomErrors.IVNotFound();
 		}
-		int256 forwardPrice = int256(underlyingPrice).mul((PRBMathSD59x18.exp(interestRate.mul(time))));
+		int256 forwardPrice = int256(underlyingPrice).mul((PRBMathSD59x18.exp(sabrParams_.interestRate.mul(time))));
 		if (!isPut) {
 			vol = SABR.lognormalVol(
 				int256(strikePrice),
