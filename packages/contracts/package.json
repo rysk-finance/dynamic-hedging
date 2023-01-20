@@ -24,6 +24,7 @@
 		"deploy:localhost": "npx hardhat deploy --network localhost --tags localhost && ./copyAddressesToFrontEnd.sh --deploy-scripts deploy/localhost",
 		"deployAlpha:arbitrumGoerli": "npx hardhat run deploy/arbitrum-goerli/ArbitrumGoerliAlphaDeploy.ts --network arbitrumGoerli",
 		"deployAlpha:mainnet": "npx hardhat run deploy/arbitrum/ArbitrumAlphaDeploy.ts --network arbitrum",
+		"deployVolFeed:mainnet": "hardhat run deploy/arbitrum/deployNewVolFeed.ts --network arbitrum",
 		"execute-epoch:testnet": "npx hardhat run scripts/executeEpochTestnet.ts --network arbitrumGoerli",
 		"fulfill:testnet": "npx hardhat run scripts/fulfill.ts --network arbitrumGoerli",
 		"test": "hardhat test",
