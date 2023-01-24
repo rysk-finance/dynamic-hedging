@@ -4,8 +4,8 @@ import { VolatilityFeed } from "../../types/VolatilityFeed"
 
 // deploys a SABR vol feed contract
 
-const authorityAddress = "0xd6DE605977A8540BEf4A08429DA0A2BfB09f14Be"
-const optionProtocolAddress = "0x8964381a078e3b2C5F761d6141f8D210180b31b2"
+const authorityAddress = "0x0c83E447dc7f4045b8717d5321056D4e9E86dCD2"
+const optionProtocolAddress = "0x08674f64DaC31f36828B63A4468A3AC3C68Db5B2"
 
 export async function deployNewVolFeed() {
 	const volatilityFeedFactory = await ethers.getContractFactory("VolatilityFeed")
