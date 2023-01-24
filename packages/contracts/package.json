@@ -26,6 +26,7 @@
 		"deployAlpha:mainnet": "npx hardhat run deploy/arbitrum/ArbitrumAlphaDeploy.ts --network arbitrum",
     	"deployRangeOrderReactor:arbitrum": "npx hardhat run deploy/arbitrum/DeployRangeOrderReactor.ts --network arbitrum",
     	"deployRangeOrderReactor:arbitrumGoerli": "npx hardhat run deploy/arbitrum/DeployRangeOrderReactor.ts --network arbitrumGoerli",
+		"deployVolFeed:mainnet": "hardhat run deploy/arbitrum/deployNewVolFeed.ts --network arbitrum",
 		"execute-epoch:testnet": "npx hardhat run scripts/executeEpochTestnet.ts --network arbitrumGoerli",
 		"fulfill:testnet": "npx hardhat run scripts/fulfill.ts --network arbitrumGoerli",
 		"test": "hardhat test",
