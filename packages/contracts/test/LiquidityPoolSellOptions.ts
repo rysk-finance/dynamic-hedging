@@ -484,6 +484,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		})
 		it("REVERTS: sells the options to the exchange and go below net dhv exposure", async () => {
 			const amount = toWei("1")
+			await optionToken.approve(exchange.address, amount)
 			await expect(
 				exchange.operate([
 					{
