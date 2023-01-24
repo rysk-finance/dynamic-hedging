@@ -483,6 +483,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		if (_args.amount > maxTradeSize) revert TradeTooLarge();
 		// get the option details in the correct formats
 		IOptionRegistry optionRegistry = getOptionRegistry();
+		IAlphaPortfolioValuesFeed portfolioValuesFeed = getPortfolioValuesFeed();
 		BuyParams memory buyParams;
 		bytes32 oHash;
 		(buyParams.seriesAddress, buyParams.seriesToStore, buyParams.optionSeries, oHash) = _preChecks(
@@ -497,16 +498,14 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			buyParams.seriesToStore,
 			_args.amount,
 			false,
-			catalogue.netDhvExposure(oHash)
+			portfolioValuesFeed.netDhvExposure(oHash)
 		);
 		_handlePremiumTransfer(buyParams.premium, buyParams.fee);
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
-		int256 longExposure = getPortfolioValuesFeed()
+		int256 longExposure = portfolioValuesFeed
 			.storesForAddress(buyParams.seriesAddress)
 			.longExposure;
 		uint256 amount = _args.amount;
-		// update the net DHV exposure for this series
-		catalogue.updateNetDhvExposure(oHash, -int256(_args.amount));
 		emit OptionsBought(buyParams.seriesAddress, amount);
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
@@ -518,7 +517,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				boughtAmount / (10**CONVERSION_DECIMALS)
 			);
 			// update the series on the stores
-			getPortfolioValuesFeed().updateStores(
+			portfolioValuesFeed.updateStores(
 				buyParams.seriesToStore,
 				0,
 				-int256(boughtAmount),
@@ -533,7 +532,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			revert CustomErrors.CollateralAssetInvalid();
 		}
 		// add this series to the portfolio values feed so its stored on the book
-		getPortfolioValuesFeed().updateStores(
+		portfolioValuesFeed.updateStores(
 			buyParams.seriesToStore,
 			int256(amount),
 			0,
@@ -564,6 +563,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		if (_args.amount < minTradeSize) revert TradeTooSmall();
 		if (_args.amount > maxTradeSize) revert TradeTooLarge();
 		IOptionRegistry optionRegistry = getOptionRegistry();
+		IAlphaPortfolioValuesFeed portfolioValuesFeed = getPortfolioValuesFeed();
 		SellParams memory sellParams;
 		bytes32 oHash;
 		(sellParams.seriesAddress, sellParams.seriesToStore, sellParams.optionSeries, oHash) = _preChecks(
@@ -577,7 +577,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			sellParams.seriesToStore,
 			_args.amount,
 			true,
-			catalogue.netDhvExposure(oHash)
+			portfolioValuesFeed.netDhvExposure(oHash)
 		);
 		sellParams.amount = _args.amount;
 		sellParams.tempHoldings = heldTokens[msg.sender][sellParams.seriesAddress];
@@ -585,9 +585,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			sellParams.tempHoldings,
 			_args.amount
 		);
-		// update the net DHV exposure for this series
-		catalogue.updateNetDhvExposure(oHash, int256(_args.amount));
-		int256 shortExposure = getPortfolioValuesFeed()
+		int256 shortExposure = portfolioValuesFeed
 			.storesForAddress(sellParams.seriesAddress)
 			.shortExposure;
 		if (shortExposure > 0) {
@@ -619,7 +617,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				);
 			}
 			// update on the pvfeed stores
-			getPortfolioValuesFeed().updateStores(
+			portfolioValuesFeed.updateStores(
 				sellParams.seriesToStore,
 				0,
 				int256(sellParams.amount),
@@ -681,7 +679,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @notice get the portfolio values feed used by the liquidity pool
 	 * @return the portfolio values feed contract
 	 */
-	function getPortfolioValuesFeed() internal view returns (IAlphaPortfolioValuesFeed) {
+	function getPortfolioValuesFeed() public view returns (IAlphaPortfolioValuesFeed) {
 		return IAlphaPortfolioValuesFeed(protocol.portfolioValuesFeed());
 	}
 
