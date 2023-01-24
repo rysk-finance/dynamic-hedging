@@ -436,8 +436,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 
 		})
 		it("SETUP: set maxMetDhvExposure", async () => {
-			await catalogue.setMaxNetDhvExposure(toWei("3"))
-			expect(await catalogue.maxNetDhvExposure()).to.equal(toWei("3"))
+			await portfolioValuesFeed.setMaxNetDhvExposure(toWei("3"))
+			expect(await portfolioValuesFeed.maxNetDhvExposure()).to.equal(toWei("3"))
 		})
 		it("REVERTS: LP Writes a ETH/USD call fails because above netDhvExposure", async () => {
 			const amount = toWei("5")
@@ -506,8 +506,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			).to.be.revertedWithCustomError(catalogue, "MaxNetDhvExposureExceeded")
 		})
 		it("SETUP: set maxMetDhvExposure", async () => {
-			await catalogue.setMaxNetDhvExposure(toWei("50000"))
-			expect(await catalogue.maxNetDhvExposure()).to.equal(toWei("50000"))
+			await portfolioValuesFeed.setMaxNetDhvExposure(toWei("50000"))
+			expect(await portfolioValuesFeed.maxNetDhvExposure()).to.equal(toWei("50000"))
 		})
 		let customOrderPrice: any
 		let oToken: Otoken
@@ -590,7 +590,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
 			const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
 			const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
-			const netDhvExposureBefore = await getNetDhvExposure(orderDeets.optionSeries.strike.mul(utils.parseUnits("1", 10)), orderDeets.optionSeries.collateral, catalogue, orderDeets.optionSeries.expiration, orderDeets.optionSeries.isPut)
+			const netDhvExposureBefore = await getNetDhvExposure(orderDeets.optionSeries.strike.mul(utils.parseUnits("1", 10)), orderDeets.optionSeries.collateral, catalogue, portfolioValuesFeed, orderDeets.optionSeries.expiration, orderDeets.optionSeries.isPut)
 			expect(netDhvExposureBefore).to.equal(toWei("0").sub(toWei("5")))
 			const expectedCollateralAllocated = await optionRegistry.getCollateral(
 				{
@@ -656,7 +656,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const buyerBalAfter = await usd.balanceOf(senderAddress)
 			const senderBalAfter = await usd.balanceOf(senderAddress)
 			const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
-			const netDhvExposureAfter = await getNetDhvExposure(orderDeets.optionSeries.strike.mul(utils.parseUnits("1", 10)), orderDeets.optionSeries.collateral, catalogue, orderDeets.optionSeries.expiration, orderDeets.optionSeries.isPut)
+			const netDhvExposureAfter = await getNetDhvExposure(orderDeets.optionSeries.strike.mul(utils.parseUnits("1", 10)), orderDeets.optionSeries.collateral, catalogue, portfolioValuesFeed, orderDeets.optionSeries.expiration, orderDeets.optionSeries.isPut)
 			const collateralAllocatedDiff = tFormatUSDC(
 				collateralAllocatedAfter.sub(collateralAllocatedBefore)
 			)

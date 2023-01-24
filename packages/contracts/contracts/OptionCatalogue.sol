@@ -28,21 +28,10 @@ contract OptionCatalogue is AccessControl {
 
 	// storage of option information and approvals
 	mapping(bytes32 => OptionStores) public optionStores;
-	// maximum absolute netDhvExposure
-	uint256 public maxNetDhvExposure;
 	// array of expirations currently supported (mainly for frontend use)
 	uint64[] public expirations;
 	// details of supported options first key is expiration then isPut then an array of strikes (mainly for frontend use)
 	mapping(uint256 => mapping(bool => uint128[])) public optionDetails;
-	// approved to update netDhvExposure
-	mapping(address => bool) public updater;
-
-	/////////////////////////
-	/// dynamic variables ///
-	/////////////////////////
-
-	// net dhv exposure of the option
-	mapping(bytes32 => int256) public netDhvExposure;
 
 	//////////////////////////
 	/// constant variables ///
@@ -63,8 +52,6 @@ contract OptionCatalogue is AccessControl {
 		bool isSellable;
 	}
 
-	error MaxNetDhvExposureExceeded();
-
 	event SeriesApproved(
 		uint64 expiration,
 		uint128 strike,
@@ -81,78 +68,17 @@ contract OptionCatalogue is AccessControl {
 		bool isSellable
 	);
 	event UpdaterUpdated(address updater, bool auth);
-	event MaxNetDhvExposureUpdated(uint256 maxNetDhvExposure);
 
 	constructor(
 		address _authority,
-		address _collateralAsset,
-		uint256 _maxNetDhvExposure
+		address _collateralAsset
 	) AccessControl(IAuthority(_authority)) {
 		collateralAsset = _collateralAsset;
-		maxNetDhvExposure = _maxNetDhvExposure;
-	}
-
-	///////////////
-	/// setters ///
-	///////////////
-
-	/**
-	 * @notice change the status of a updater
-	 */
-	function setUpdater(address _updater, bool _auth) external {
-		_onlyGovernor();
-		if (_updater == address(0)) {
-			revert CustomErrors.InvalidAddress();
-		}
-		updater[_updater] = _auth;
-		emit UpdaterUpdated(_updater, _auth);
-	}
-
-	/**
-	 * @notice change the max net dhv exposure
-	 */
-	function setMaxNetDhvExposure(uint256 _maxNetDhvExposure) external {
-		_onlyGovernor();
-		maxNetDhvExposure = _maxNetDhvExposure;
-		emit MaxNetDhvExposureUpdated(_maxNetDhvExposure);
 	}
 
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
-
-	/**
-	 * @notice update the net dhv exposure
-	 * @param  oHash the hash of the option - uses formatted strike
-	 * @param  netDhvExposureChange the amount to change netDhvExposure by
-	 * @dev    only callable by an approved updater
-	 */
-	function updateNetDhvExposure(bytes32 oHash, int256 netDhvExposureChange) external {
-		_isUpdater();
-		netDhvExposure[oHash] += netDhvExposureChange;
-		if (uint256(netDhvExposure[oHash].abs()) > maxNetDhvExposure) revert MaxNetDhvExposureExceeded();
-	}
-
-	/**
-	 * @notice update the net dhv exposure
-	 * @param  optionSeries the option series represented - assumes strike in e18
-	 * @param  netDhvExposureChange the amount to change netDhvExposure by
-	 * @dev    only callable by an approved updater
-	 */
-	function updateNetDhvExposureWithOptionSeries(
-		Types.OptionSeries memory optionSeries,
-		int256 netDhvExposureChange
-	) external {
-		_isUpdater();
-		// make sure the strike gets formatted properly
-		uint128 strike = uint128(
-			formatStrikePrice(optionSeries.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
-		);
-		// get the hash of the option (how the option is stored on the books)
-		bytes32 oHash = keccak256(abi.encodePacked(optionSeries.expiration, strike, optionSeries.isPut));
-		netDhvExposure[oHash] += netDhvExposureChange;
-		if (uint256(netDhvExposure[oHash].abs()) > maxNetDhvExposure) revert MaxNetDhvExposureExceeded();
-	}
 
 	/**
 	 * @notice issue an option series for buying or sale
@@ -278,11 +204,5 @@ contract OptionCatalogue is AccessControl {
 		uint256 difference = OPYN_DECIMALS - collateralDecimals;
 		// round floor strike to prevent errors in Gamma protocol
 		return (price / (10**difference)) * (10**difference);
-	}
-
-	function _isUpdater() internal view {
-		if (!updater[msg.sender]) {
-			revert CustomErrors.NotUpdater();
-		}
 	}
 }

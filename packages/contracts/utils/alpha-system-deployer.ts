@@ -134,7 +134,8 @@ export async function deploySystem(
 		}
 	})
 	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
-		authority.address
+		authority.address,
+		toWei("50000")
 	)) as AlphaPortfolioValuesFeed
 
 	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
@@ -238,17 +239,14 @@ export async function deployLiquidityPool(
 	const catalogueFactory = await ethers.getContractFactory("OptionCatalogue")
 	const catalogue = (await catalogueFactory.deploy(
 		authority,
-		usd.address,
-		toWei("50000")
+		usd.address
 	)) as OptionCatalogue
 	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
 	const handler = (await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,
-		liquidityPool.address,
-		catalogue.address
+		liquidityPool.address
 	)) as AlphaOptionHandler
-	await catalogue.setUpdater(handler.address, true)
 	await liquidityPool.changeHandler(handler.address, true)
 	await pvFeed.setKeeper(handler.address, true)
 	await pvFeed.setKeeper(liquidityPool.address, true)
