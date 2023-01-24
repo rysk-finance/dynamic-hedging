@@ -78,15 +78,11 @@ export interface LiquidityPoolInterface extends utils.Interface {
   contractName: "LiquidityPool";
   functions: {
     "DOMAIN_SEPARATOR()": FunctionFragment;
-    "aboveThresholdGradient()": FunctionFragment;
-    "aboveThresholdYIntercept()": FunctionFragment;
     "adjustCollateral(uint256,bool)": FunctionFragment;
     "allowance(address,address)": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
     "authority()": FunctionFragment;
     "balanceOf(address)": FunctionFragment;
-    "belowThresholdGradient()": FunctionFragment;
-    "bidAskIVSpread()": FunctionFragment;
     "bufferPercentage()": FunctionFragment;
     "changeHandler(address,bool)": FunctionFragment;
     "checkBuffer()": FunctionFragment;
@@ -118,7 +114,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
     "initiateWithdraw(uint256)": FunctionFragment;
     "isTradingPaused()": FunctionFragment;
     "keeper(address)": FunctionFragment;
-    "maxDiscount()": FunctionFragment;
     "maxPriceDeviationThreshold()": FunctionFragment;
     "maxTimeDeviationThreshold()": FunctionFragment;
     "name()": FunctionFragment;
@@ -133,24 +128,20 @@ export interface LiquidityPoolInterface extends utils.Interface {
     "pendingWithdrawals()": FunctionFragment;
     "permit(address,address,uint256,uint256,uint8,bytes32,bytes32)": FunctionFragment;
     "protocol()": FunctionFragment;
-    "quotePriceWithUtilizationGreeks((uint64,uint128,bool,address,address,address),uint256,bool)": FunctionFragment;
     "rebalancePortfolioDelta(int256,uint256)": FunctionFragment;
     "redeem(uint256)": FunctionFragment;
     "removeHedgingReactorAddress(uint256,bool)": FunctionFragment;
     "resetEphemeralValues()": FunctionFragment;
     "riskFreeRate()": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
-    "setBidAskSpread(uint256)": FunctionFragment;
     "setBufferPercentage(uint256)": FunctionFragment;
     "setCollateralCap(uint256)": FunctionFragment;
     "setHedgingReactorAddress(address)": FunctionFragment;
     "setKeeper(address,bool)": FunctionFragment;
-    "setMaxDiscount(uint256)": FunctionFragment;
     "setMaxPriceDeviationThreshold(uint256)": FunctionFragment;
     "setMaxTimeDeviationThreshold(uint256)": FunctionFragment;
     "setNewOptionParams(uint128,uint128,uint128,uint128,uint128,uint128)": FunctionFragment;
     "setRiskFreeRate(uint256)": FunctionFragment;
-    "setUtilizationSkewParams(uint256,uint256,uint256)": FunctionFragment;
     "settleVault(address)": FunctionFragment;
     "strikeAsset()": FunctionFragment;
     "symbol()": FunctionFragment;
@@ -159,7 +150,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
     "transferFrom(address,address,uint256)": FunctionFragment;
     "underlyingAsset()": FunctionFragment;
     "unpause()": FunctionFragment;
-    "utilizationFunctionThreshold()": FunctionFragment;
     "withdrawalEpoch()": FunctionFragment;
     "withdrawalEpochPricePerShare(uint256)": FunctionFragment;
     "withdrawalReceipts(address)": FunctionFragment;
@@ -167,14 +157,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
 
   encodeFunctionData(
     functionFragment: "DOMAIN_SEPARATOR",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "aboveThresholdGradient",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "aboveThresholdYIntercept",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -191,14 +173,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "authority", values?: undefined): string;
   encodeFunctionData(functionFragment: "balanceOf", values: [string]): string;
-  encodeFunctionData(
-    functionFragment: "belowThresholdGradient",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "bidAskIVSpread",
-    values?: undefined
-  ): string;
   encodeFunctionData(
     functionFragment: "bufferPercentage",
     values?: undefined
@@ -328,10 +302,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "keeper", values: [string]): string;
   encodeFunctionData(
-    functionFragment: "maxDiscount",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "maxPriceDeviationThreshold",
     values?: undefined
   ): string;
@@ -381,10 +351,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "protocol", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "quotePriceWithUtilizationGreeks",
-    values: [Types.OptionSeriesStruct, BigNumberish, boolean]
-  ): string;
-  encodeFunctionData(
     functionFragment: "rebalancePortfolioDelta",
     values: [BigNumberish, BigNumberish]
   ): string;
@@ -409,10 +375,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
     values: [string]
   ): string;
   encodeFunctionData(
-    functionFragment: "setBidAskSpread",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setBufferPercentage",
     values: [BigNumberish]
   ): string;
@@ -427,10 +389,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "setKeeper",
     values: [string, boolean]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setMaxDiscount",
-    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "setMaxPriceDeviationThreshold",
@@ -454,10 +412,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "setRiskFreeRate",
     values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setUtilizationSkewParams",
-    values: [BigNumberish, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "settleVault", values: [string]): string;
   encodeFunctionData(
@@ -483,10 +437,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "utilizationFunctionThreshold",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "withdrawalEpoch",
     values?: undefined
   ): string;
@@ -504,14 +454,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "aboveThresholdGradient",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "aboveThresholdYIntercept",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "adjustCollateral",
     data: BytesLike
   ): Result;
@@ -519,14 +461,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "authority", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "belowThresholdGradient",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "bidAskIVSpread",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "bufferPercentage",
     data: BytesLike
@@ -631,10 +565,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "keeper", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "maxDiscount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "maxPriceDeviationThreshold",
     data: BytesLike
   ): Result;
@@ -673,10 +603,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "permit", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "protocol", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "quotePriceWithUtilizationGreeks",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "rebalancePortfolioDelta",
     data: BytesLike
   ): Result;
@@ -698,10 +624,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setBidAskSpread",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "setBufferPercentage",
     data: BytesLike
   ): Result;
@@ -714,10 +636,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setKeeper", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "setMaxDiscount",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "setMaxPriceDeviationThreshold",
     data: BytesLike
@@ -732,10 +650,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setRiskFreeRate",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setUtilizationSkewParams",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -761,10 +675,6 @@ export interface LiquidityPoolInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "unpause", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "utilizationFunctionThreshold",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(
     functionFragment: "withdrawalEpoch",
     data: BytesLike
@@ -973,10 +883,6 @@ export interface LiquidityPool extends BaseContract {
   functions: {
     DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<[string]>;
 
-    aboveThresholdGradient(overrides?: CallOverrides): Promise<[BigNumber]>;
-
-    aboveThresholdYIntercept(overrides?: CallOverrides): Promise<[BigNumber]>;
-
     adjustCollateral(
       lpCollateralDifference: BigNumberish,
       addToLpBalance: boolean,
@@ -998,10 +904,6 @@ export interface LiquidityPool extends BaseContract {
     authority(overrides?: CallOverrides): Promise<[string]>;
 
     balanceOf(arg0: string, overrides?: CallOverrides): Promise<[BigNumber]>;
-
-    belowThresholdGradient(overrides?: CallOverrides): Promise<[BigNumber]>;
-
-    bidAskIVSpread(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     bufferPercentage(overrides?: CallOverrides): Promise<[BigNumber]>;
 
@@ -1132,8 +1034,6 @@ export interface LiquidityPool extends BaseContract {
 
     keeper(arg0: string, overrides?: CallOverrides): Promise<[boolean]>;
 
-    maxDiscount(overrides?: CallOverrides): Promise<[BigNumber]>;
-
     maxPriceDeviationThreshold(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     maxTimeDeviationThreshold(overrides?: CallOverrides): Promise<[BigNumber]>;
@@ -1189,13 +1089,6 @@ export interface LiquidityPool extends BaseContract {
 
     protocol(overrides?: CallOverrides): Promise<[string]>;
 
-    quotePriceWithUtilizationGreeks(
-      optionSeries: Types.OptionSeriesStruct,
-      amount: BigNumberish,
-      toBuy: boolean,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber, BigNumber] & { quote: BigNumber; delta: BigNumber }>;
-
     rebalancePortfolioDelta(
       delta: BigNumberish,
       reactorIndex: BigNumberish,
@@ -1224,11 +1117,6 @@ export interface LiquidityPool extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    setBidAskSpread(
-      _bidAskSpread: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
     setBufferPercentage(
       _bufferPercentage: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1247,11 +1135,6 @@ export interface LiquidityPool extends BaseContract {
     setKeeper(
       _keeper: string,
       _auth: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    setMaxDiscount(
-      _maxDiscount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -1277,13 +1160,6 @@ export interface LiquidityPool extends BaseContract {
 
     setRiskFreeRate(
       _riskFreeRate: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    setUtilizationSkewParams(
-      _belowThresholdGradient: BigNumberish,
-      _aboveThresholdGradient: BigNumberish,
-      _utilizationFunctionThreshold: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -1317,10 +1193,6 @@ export interface LiquidityPool extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    utilizationFunctionThreshold(
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
     withdrawalEpoch(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     withdrawalEpochPricePerShare(
@@ -1337,10 +1209,6 @@ export interface LiquidityPool extends BaseContract {
   };
 
   DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<string>;
-
-  aboveThresholdGradient(overrides?: CallOverrides): Promise<BigNumber>;
-
-  aboveThresholdYIntercept(overrides?: CallOverrides): Promise<BigNumber>;
 
   adjustCollateral(
     lpCollateralDifference: BigNumberish,
@@ -1363,10 +1231,6 @@ export interface LiquidityPool extends BaseContract {
   authority(overrides?: CallOverrides): Promise<string>;
 
   balanceOf(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
-
-  belowThresholdGradient(overrides?: CallOverrides): Promise<BigNumber>;
-
-  bidAskIVSpread(overrides?: CallOverrides): Promise<BigNumber>;
 
   bufferPercentage(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -1493,8 +1357,6 @@ export interface LiquidityPool extends BaseContract {
 
   keeper(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
-  maxDiscount(overrides?: CallOverrides): Promise<BigNumber>;
-
   maxPriceDeviationThreshold(overrides?: CallOverrides): Promise<BigNumber>;
 
   maxTimeDeviationThreshold(overrides?: CallOverrides): Promise<BigNumber>;
@@ -1550,13 +1412,6 @@ export interface LiquidityPool extends BaseContract {
 
   protocol(overrides?: CallOverrides): Promise<string>;
 
-  quotePriceWithUtilizationGreeks(
-    optionSeries: Types.OptionSeriesStruct,
-    amount: BigNumberish,
-    toBuy: boolean,
-    overrides?: CallOverrides
-  ): Promise<[BigNumber, BigNumber] & { quote: BigNumber; delta: BigNumber }>;
-
   rebalancePortfolioDelta(
     delta: BigNumberish,
     reactorIndex: BigNumberish,
@@ -1585,11 +1440,6 @@ export interface LiquidityPool extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  setBidAskSpread(
-    _bidAskSpread: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   setBufferPercentage(
     _bufferPercentage: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -1608,11 +1458,6 @@ export interface LiquidityPool extends BaseContract {
   setKeeper(
     _keeper: string,
     _auth: boolean,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  setMaxDiscount(
-    _maxDiscount: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -1638,13 +1483,6 @@ export interface LiquidityPool extends BaseContract {
 
   setRiskFreeRate(
     _riskFreeRate: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  setUtilizationSkewParams(
-    _belowThresholdGradient: BigNumberish,
-    _aboveThresholdGradient: BigNumberish,
-    _utilizationFunctionThreshold: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -1678,8 +1516,6 @@ export interface LiquidityPool extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  utilizationFunctionThreshold(overrides?: CallOverrides): Promise<BigNumber>;
-
   withdrawalEpoch(overrides?: CallOverrides): Promise<BigNumber>;
 
   withdrawalEpochPricePerShare(
@@ -1694,10 +1530,6 @@ export interface LiquidityPool extends BaseContract {
 
   callStatic: {
     DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<string>;
-
-    aboveThresholdGradient(overrides?: CallOverrides): Promise<BigNumber>;
-
-    aboveThresholdYIntercept(overrides?: CallOverrides): Promise<BigNumber>;
 
     adjustCollateral(
       lpCollateralDifference: BigNumberish,
@@ -1720,10 +1552,6 @@ export interface LiquidityPool extends BaseContract {
     authority(overrides?: CallOverrides): Promise<string>;
 
     balanceOf(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
-
-    belowThresholdGradient(overrides?: CallOverrides): Promise<BigNumber>;
-
-    bidAskIVSpread(overrides?: CallOverrides): Promise<BigNumber>;
 
     bufferPercentage(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -1843,8 +1671,6 @@ export interface LiquidityPool extends BaseContract {
 
     keeper(arg0: string, overrides?: CallOverrides): Promise<boolean>;
 
-    maxDiscount(overrides?: CallOverrides): Promise<BigNumber>;
-
     maxPriceDeviationThreshold(overrides?: CallOverrides): Promise<BigNumber>;
 
     maxTimeDeviationThreshold(overrides?: CallOverrides): Promise<BigNumber>;
@@ -1896,13 +1722,6 @@ export interface LiquidityPool extends BaseContract {
 
     protocol(overrides?: CallOverrides): Promise<string>;
 
-    quotePriceWithUtilizationGreeks(
-      optionSeries: Types.OptionSeriesStruct,
-      amount: BigNumberish,
-      toBuy: boolean,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber, BigNumber] & { quote: BigNumber; delta: BigNumber }>;
-
     rebalancePortfolioDelta(
       delta: BigNumberish,
       reactorIndex: BigNumberish,
@@ -1929,11 +1748,6 @@ export interface LiquidityPool extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setBidAskSpread(
-      _bidAskSpread: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     setBufferPercentage(
       _bufferPercentage: BigNumberish,
       overrides?: CallOverrides
@@ -1952,11 +1766,6 @@ export interface LiquidityPool extends BaseContract {
     setKeeper(
       _keeper: string,
       _auth: boolean,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    setMaxDiscount(
-      _maxDiscount: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -1982,13 +1791,6 @@ export interface LiquidityPool extends BaseContract {
 
     setRiskFreeRate(
       _riskFreeRate: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    setUtilizationSkewParams(
-      _belowThresholdGradient: BigNumberish,
-      _aboveThresholdGradient: BigNumberish,
-      _utilizationFunctionThreshold: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -2019,8 +1821,6 @@ export interface LiquidityPool extends BaseContract {
     underlyingAsset(overrides?: CallOverrides): Promise<string>;
 
     unpause(overrides?: CallOverrides): Promise<void>;
-
-    utilizationFunctionThreshold(overrides?: CallOverrides): Promise<BigNumber>;
 
     withdrawalEpoch(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -2175,10 +1975,6 @@ export interface LiquidityPool extends BaseContract {
   estimateGas: {
     DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<BigNumber>;
 
-    aboveThresholdGradient(overrides?: CallOverrides): Promise<BigNumber>;
-
-    aboveThresholdYIntercept(overrides?: CallOverrides): Promise<BigNumber>;
-
     adjustCollateral(
       lpCollateralDifference: BigNumberish,
       addToLpBalance: boolean,
@@ -2200,10 +1996,6 @@ export interface LiquidityPool extends BaseContract {
     authority(overrides?: CallOverrides): Promise<BigNumber>;
 
     balanceOf(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
-
-    belowThresholdGradient(overrides?: CallOverrides): Promise<BigNumber>;
-
-    bidAskIVSpread(overrides?: CallOverrides): Promise<BigNumber>;
 
     bufferPercentage(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -2324,8 +2116,6 @@ export interface LiquidityPool extends BaseContract {
 
     keeper(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
 
-    maxDiscount(overrides?: CallOverrides): Promise<BigNumber>;
-
     maxPriceDeviationThreshold(overrides?: CallOverrides): Promise<BigNumber>;
 
     maxTimeDeviationThreshold(overrides?: CallOverrides): Promise<BigNumber>;
@@ -2370,13 +2160,6 @@ export interface LiquidityPool extends BaseContract {
 
     protocol(overrides?: CallOverrides): Promise<BigNumber>;
 
-    quotePriceWithUtilizationGreeks(
-      optionSeries: Types.OptionSeriesStruct,
-      amount: BigNumberish,
-      toBuy: boolean,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     rebalancePortfolioDelta(
       delta: BigNumberish,
       reactorIndex: BigNumberish,
@@ -2405,11 +2188,6 @@ export interface LiquidityPool extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    setBidAskSpread(
-      _bidAskSpread: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
     setBufferPercentage(
       _bufferPercentage: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -2428,11 +2206,6 @@ export interface LiquidityPool extends BaseContract {
     setKeeper(
       _keeper: string,
       _auth: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    setMaxDiscount(
-      _maxDiscount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -2458,13 +2231,6 @@ export interface LiquidityPool extends BaseContract {
 
     setRiskFreeRate(
       _riskFreeRate: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    setUtilizationSkewParams(
-      _belowThresholdGradient: BigNumberish,
-      _aboveThresholdGradient: BigNumberish,
-      _utilizationFunctionThreshold: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -2498,8 +2264,6 @@ export interface LiquidityPool extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    utilizationFunctionThreshold(overrides?: CallOverrides): Promise<BigNumber>;
-
     withdrawalEpoch(overrides?: CallOverrides): Promise<BigNumber>;
 
     withdrawalEpochPricePerShare(
@@ -2515,14 +2279,6 @@ export interface LiquidityPool extends BaseContract {
 
   populateTransaction: {
     DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    aboveThresholdGradient(
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    aboveThresholdYIntercept(
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
 
     adjustCollateral(
       lpCollateralDifference: BigNumberish,
@@ -2548,12 +2304,6 @@ export interface LiquidityPool extends BaseContract {
       arg0: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
-
-    belowThresholdGradient(
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    bidAskIVSpread(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     bufferPercentage(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -2689,8 +2439,6 @@ export interface LiquidityPool extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    maxDiscount(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
     maxPriceDeviationThreshold(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
@@ -2744,13 +2492,6 @@ export interface LiquidityPool extends BaseContract {
 
     protocol(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    quotePriceWithUtilizationGreeks(
-      optionSeries: Types.OptionSeriesStruct,
-      amount: BigNumberish,
-      toBuy: boolean,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     rebalancePortfolioDelta(
       delta: BigNumberish,
       reactorIndex: BigNumberish,
@@ -2779,11 +2520,6 @@ export interface LiquidityPool extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    setBidAskSpread(
-      _bidAskSpread: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
     setBufferPercentage(
       _bufferPercentage: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -2802,11 +2538,6 @@ export interface LiquidityPool extends BaseContract {
     setKeeper(
       _keeper: string,
       _auth: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setMaxDiscount(
-      _maxDiscount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -2832,13 +2563,6 @@ export interface LiquidityPool extends BaseContract {
 
     setRiskFreeRate(
       _riskFreeRate: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setUtilizationSkewParams(
-      _belowThresholdGradient: BigNumberish,
-      _aboveThresholdGradient: BigNumberish,
-      _utilizationFunctionThreshold: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -2870,10 +2594,6 @@ export interface LiquidityPool extends BaseContract {
 
     unpause(
       overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    utilizationFunctionThreshold(
-      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     withdrawalEpoch(overrides?: CallOverrides): Promise<PopulatedTransaction>;
