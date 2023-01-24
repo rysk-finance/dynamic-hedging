@@ -88,27 +88,6 @@
 		"type": "error"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "quote",
-				"type": "uint256"
-			},
-			{
-				"internalType": "int256",
-				"name": "delta",
-				"type": "int256"
-			}
-		],
-		"name": "DeltaQuoteError",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "IVNotFound",
-		"type": "error"
-	},
-	{
 		"inputs": [],
 		"name": "InvalidAddress",
 		"type": "error"
@@ -161,70 +140,6 @@
 	{
 		"inputs": [],
 		"name": "OptionStrikeInvalid",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "PRBMathSD59x18__AbsInputTooSmall",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "PRBMathSD59x18__DivInputTooSmall",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "rAbs",
-				"type": "uint256"
-			}
-		],
-		"name": "PRBMathSD59x18__DivOverflow",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "PRBMathSD59x18__MulInputTooSmall",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "rAbs",
-				"type": "uint256"
-			}
-		],
-		"name": "PRBMathSD59x18__MulOverflow",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "prod1",
-				"type": "uint256"
-			}
-		],
-		"name": "PRBMath__MulDivFixedPointOverflow",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "prod1",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "denominator",
-				"type": "uint256"
-			}
-		],
-		"name": "PRBMath__MulDivOverflow",
 		"type": "error"
 	},
 	{
@@ -621,32 +536,6 @@
 		"type": "function"
 	},
 	{
-		"inputs": [],
-		"name": "aboveThresholdGradient",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "aboveThresholdYIntercept",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [
 			{
 				"internalType": "uint256",
@@ -734,32 +623,6 @@
 			}
 		],
 		"name": "balanceOf",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "belowThresholdGradient",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "bidAskIVSpread",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -1484,19 +1347,6 @@
 	},
 	{
 		"inputs": [],
-		"name": "maxDiscount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
 		"name": "maxPriceDeviationThreshold",
 		"outputs": [
 			{
@@ -1735,72 +1585,6 @@
 	{
 		"inputs": [
 			{
-				"components": [
-					{
-						"internalType": "uint64",
-						"name": "expiration",
-						"type": "uint64"
-					},
-					{
-						"internalType": "uint128",
-						"name": "strike",
-						"type": "uint128"
-					},
-					{
-						"internalType": "bool",
-						"name": "isPut",
-						"type": "bool"
-					},
-					{
-						"internalType": "address",
-						"name": "underlying",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "strikeAsset",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "collateral",
-						"type": "address"
-					}
-				],
-				"internalType": "struct Types.OptionSeries",
-				"name": "optionSeries",
-				"type": "tuple"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bool",
-				"name": "toBuy",
-				"type": "bool"
-			}
-		],
-		"name": "quotePriceWithUtilizationGreeks",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "quote",
-				"type": "uint256"
-			},
-			{
-				"internalType": "int256",
-				"name": "delta",
-				"type": "int256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
 				"internalType": "int256",
 				"name": "delta",
 				"type": "int256"
@@ -1890,19 +1674,6 @@
 		"inputs": [
 			{
 				"internalType": "uint256",
-				"name": "_bidAskSpread",
-				"type": "uint256"
-			}
-		],
-		"name": "setBidAskSpread",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
 				"name": "_bufferPercentage",
 				"type": "uint256"
 			}
@@ -1952,19 +1723,6 @@
 			}
 		],
 		"name": "setKeeper",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_maxDiscount",
-				"type": "uint256"
-			}
-		],
-		"name": "setMaxDiscount",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -2042,29 +1800,6 @@
 			}
 		],
 		"name": "setRiskFreeRate",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_belowThresholdGradient",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_aboveThresholdGradient",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_utilizationFunctionThreshold",
-				"type": "uint256"
-			}
-		],
-		"name": "setUtilizationSkewParams",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -2198,19 +1933,6 @@
 		"name": "unpause",
 		"outputs": [],
 		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "utilizationFunctionThreshold",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
 		"type": "function"
 	},
 	{

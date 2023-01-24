@@ -5,10 +5,25 @@
 				"internalType": "address",
 				"name": "_authority",
 				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_sequencerUptimeFeedAddress",
+				"type": "address"
 			}
 		],
 		"stateMutability": "nonpayable",
 		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "GracePeriodNotOver",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "SequencerDown",
+		"type": "error"
 	},
 	{
 		"inputs": [],
@@ -137,6 +152,19 @@
 		"type": "function"
 	},
 	{
+		"inputs": [],
+		"name": "sequencerUptimeFeedAddress",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "contract IAuthority",
@@ -145,6 +173,19 @@
 			}
 		],
 		"name": "setAuthority",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_sequencerUptimeFeedAddress",
+				"type": "address"
+			}
+		],
+		"name": "setSequencerUptimeFeedAddress",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
