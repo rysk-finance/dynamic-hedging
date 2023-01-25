@@ -360,6 +360,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			expect(issueEvent.series).to.equal(seriesAddress)
 			expect(buyEvent.series).to.equal(seriesAddress)
+			expect(buyEvent.buyer).to.equal(senderAddress)
 			expect(buyEvent.optionAmount).to.equal(amount)
 			oTokenUSDCXC = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
 			optionToken = oTokenUSDCXC
@@ -875,6 +876,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const soldEvent = logs[0].args
 			expect(soldEvent.series).to.equal(optionToken.address)
 			expect(soldEvent.optionAmount).to.equal(amount)
+			expect(soldEvent.seller).to.equal(senderAddress)
 			const after = await getExchangeParams(
 				liquidityPool,
 				exchange,

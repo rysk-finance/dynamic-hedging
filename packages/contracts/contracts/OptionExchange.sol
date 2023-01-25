@@ -126,8 +126,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	}
 
 	event OptionsIssued(address indexed series);
-	event OptionsBought(address indexed series, uint256 optionAmount);
-	event OptionsSold(address indexed series, uint256 optionAmount);
+	event OptionsBought(address indexed series, address indexed buyer, uint256 optionAmount);
+	event OptionsSold(address indexed series, address indexed seller, uint256 optionAmount);
 	event OptionsRedeemed(
 		address indexed series,
 		uint256 optionAmount,
@@ -506,7 +506,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			.storesForAddress(buyParams.seriesAddress)
 			.longExposure;
 		uint256 amount = _args.amount;
-		emit OptionsBought(buyParams.seriesAddress, amount);
+		emit OptionsBought(buyParams.seriesAddress, recipient, amount);
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
 			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
@@ -660,7 +660,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				sellParams.premium - sellParams.fee
 			);
 		}
-		emit OptionsSold(sellParams.seriesAddress, _args.amount);
+		emit OptionsSold(sellParams.seriesAddress, _args.recipient, _args.amount);
 	}
 
 	///////////////////////////
