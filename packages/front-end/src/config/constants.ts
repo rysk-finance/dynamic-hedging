@@ -36,40 +36,6 @@ export enum CHAINID {
   LOCALHOST = 1337,
 }
 
-export const IDToNetwork: Record<CHAINID, ETHNetwork> = {
-  [CHAINID.ARBITRUM_GOERLI]: ETHNetwork.ARBITRUM_GOERLI,
-  [CHAINID.ARBITRUM_MAINNET]: ETHNetwork.ARBITRUM_MAINNET,
-  [CHAINID.LOCALHOST]: ETHNetwork.LOCALHOST,
-};
-
-export const RPC_URL_MAP: Record<CHAINID, string> = {
-  [CHAINID.ARBITRUM_GOERLI]: `https://arbitrum-goerli.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
-  [CHAINID.ARBITRUM_MAINNET]: `https://arbitrum-mainnet.infura.io/v3/${process.env.REACT_APP_INFURA_KEY}`,
-  [CHAINID.LOCALHOST]: "",
-};
-
-export const SUBGRAPH_URL = {
-  [CHAINID.ARBITRUM_GOERLI]:
-    "https://api.thegraph.com/subgraphs/name/devey/rysk-goerli-yassine",
-  [CHAINID.ARBITRUM_MAINNET]:
-    "https://api.thegraph.com/subgraphs/name/rysk-finance/rysk",
-  [CHAINID.LOCALHOST]: "",
-};
-
-export const OPYN_SUBGRAPH_URL = {
-  [CHAINID.ARBITRUM_GOERLI]:
-    "https://api.thegraph.com/subgraphs/name/devey/rysk-opyngamma-arbitrum-goerli",
-  [CHAINID.ARBITRUM_MAINNET]:
-    "https://api.thegraph.com/subgraphs/name/rysk-finance/rysk-opyn-gamma-arbitrum",
-  [CHAINID.LOCALHOST]: "",
-};
-
-export const SCAN_URL = {
-  [CHAINID.ARBITRUM_GOERLI]: "https://goerli.arbiscan.io",
-  [CHAINID.ARBITRUM_MAINNET]: "https://arbiscan.io",
-  [CHAINID.LOCALHOST]: "",
-};
-
 export const ORACLE_DISPUTE_PERIOD = 7200;
 export const ORACLE_LOCKING_PERIOD = 300;
 

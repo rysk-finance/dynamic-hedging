@@ -1,30 +1,28 @@
 import { useEffect, useMemo } from "react";
+import { useAccount, useNetwork } from "wagmi";
+
+import { useLocation } from "react-router-dom";
+import { VaultPerformance } from "src/components/VaultPerformance/VaultPerformance";
 import { LPStats } from "../../components/LPStats";
 import { Card } from "../../components/shared/Card";
-import { VaultDeposit } from "./VaultDeposit";
-import { VaultPerformance } from "src/components/VaultPerformance/VaultPerformance";
 import { VaultTrades } from "../../components/VaultTrades";
-import { VaultWithdraw } from "./VaultWithdraw";
-import { VaultStrategy } from "../VaultStrategy";
-import { VaultRisks } from "../VaultRisks";
-import { DHV_NAME, SCAN_URL } from "../../config/constants";
-
-import { useWalletContext } from "../../App";
-import { CHAINID } from "../../config/constants";
+import { CHAINID, DHV_NAME } from "../../config/constants";
+import { DISCORD_LINK } from "../../config/links";
+import addresses from "../../contracts.json";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { VaultMechanism } from "../VaultMechanism";
-import { useLocation } from "react-router-dom";
-import addresses from "../../contracts.json";
-import { DISCORD_LINK } from "../../config/links";
+import { VaultRisks } from "../VaultRisks";
+import { VaultStrategy } from "../VaultStrategy";
+import { VaultDeposit } from "./VaultDeposit";
+import { VaultWithdraw } from "./VaultWithdraw";
 
 export const VaultContent = () => {
-  const { network, account } = useWalletContext();
+  const { address } = useAccount();
+  const { chain } = useNetwork();
+  const { updatePosition } = useUserPosition();
+  const { search } = useLocation();
 
   const envChainID = process.env.REACT_APP_CHAIN_ID;
-
-  const { userPositionValue, updatePosition } = useUserPosition();
-
-  const { search } = useLocation();
 
   const initialTabIndex = useMemo(() => {
     if (search) {
@@ -37,12 +35,12 @@ export const VaultContent = () => {
   }, [search]);
 
   useEffect(() => {
-    if (account) {
+    if (address) {
       (() => {
-        updatePosition(account);
+        updatePosition(address);
       })();
     }
-  }, [account, updatePosition]);
+  }, [address, updatePosition]);
 
   return (
     <>
@@ -54,7 +52,7 @@ export const VaultContent = () => {
                 ? "Arbitrum"
                 : Number(envChainID) === CHAINID.ARBITRUM_GOERLI
                 ? "Arbitrum Testnet"
-                : network?.name}{" "}
+                : chain?.name}
             </p>
             {<img src="/arbitrum_logo.svg" className="h-6 w-auto ml-2" />}
           </div>
@@ -68,9 +66,7 @@ export const VaultContent = () => {
         </p>
 
         <a
-          href={`${SCAN_URL[CHAINID.ARBITRUM_MAINNET]}/address/${
-            addresses.arbitrum.liquidityPool
-          }`}
+          href={`${process.env.REACT_APP_SCAN_URL}/address/${addresses.arbitrum.liquidityPool}`}
           target="_blank"
           rel="noreferrer"
           className="min-w-[240px] flex justify-end items-center"

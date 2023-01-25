@@ -12,17 +12,15 @@
   },
   "dependencies": {
     "@apollo/client": "^3.7.4",
+    "@rainbow-me/rainbowkit": "^0.8.1",
     "@ramonak/react-progress-bar": "^5.0.3",
     "@sentry/react": "^7.31.0",
     "@sentry/tracing": "^7.31.0",
-    "@web3-onboard/core": "^2.2.5",
-    "@web3-onboard/injected-wallets": "^2.0.5",
-    "@web3-onboard/react": "^2.1.5",
-    "@web3-onboard/walletconnect": "^2.0.1",
     "ethers": "^5.6.4",
     "fathom-client": "^3.5.0",
     "framer-motion": "^8.4.3",
     "graphql": "^16.6.0",
+    "hex-to-css-filter": "^5.4.0",
     "implied-volatility": "^1.0.0",
     "react": "^18.2.0",
     "react-app-rewired": "^2.2.1",
@@ -39,6 +37,7 @@
     "react-toastify": "^9.1.1",
     "react-tooltip": "^4.5.1",
     "recharts": "^2.3.2",
+    "wagmi": "^0.10.11",
     "web-vitals": "^3.1.1"
   },
   "devDependencies": {

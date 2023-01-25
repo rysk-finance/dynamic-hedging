@@ -6,7 +6,7 @@ import { FullScreen, useFullScreenHandle } from "react-full-screen";
 import NumberFormat from "react-number-format";
 
 import ContentLoader from "react-content-loader";
-import { CHAINID, DECIMALS, SCAN_URL } from "../config/constants";
+import { CHAINID, DECIMALS } from "../config/constants";
 import useElementOnScreen from "../hooks/useElementOnScreen";
 import { optionSymbolFormat } from "../utils";
 
@@ -351,7 +351,7 @@ export const VaultTrades = () => {
                       <td className="bg-bone">
                         <th className="flex mx-5 justify-center items-center">
                           <a
-                            href={`${SCAN_URL[chainId]}/tx/${trade.transactionHash}`}
+                            href={`${process.env.REACT_APP_SCAN_URL}/tx/${trade.transactionHash}`}
                             target="_blank"
                             rel="noreferrer"
                           >

@@ -1,11 +1,11 @@
+import { BigNumber, ethers } from "ethers";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { useAccount, useNetwork, useSigner } from "wagmi";
 
-import { BigNumber, ethers } from "ethers";
 import OptionHandler from "../../abis/AlphaOptionHandler.json";
 import ERC20ABI from "../../abis/erc20.json";
 import OptionRegistry from "../../abis/OptionRegistry.json";
-import { useWalletContext } from "../../App";
 import { BIG_NUMBER_DECIMALS, ZERO_UINT_256 } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { useQueryParams } from "../../hooks/useQueryParams";
@@ -20,8 +20,11 @@ import { OrderDetails } from "./OrderDetails";
 const STRANGLE_REGEX = /^([0-9]+)(-[0-9]+)$/;
 
 export const OTCPageContent = () => {
+  const { address } = useAccount();
+  const { chain } = useNetwork();
+  const { data: signer } = useSigner();
+
   const query = useQueryParams();
-  const { network, account, signer } = useWalletContext();
   const {
     state: { ethPriceUpdateTime },
   } = useGlobalContext();
@@ -67,7 +70,7 @@ export const OTCPageContent = () => {
   // Parse order query param and fetch order / strangle from chain.
   useEffect(() => {
     const fetchOrder = async () => {
-      if (optionHandlerContract && network && account)
+      if (optionHandlerContract && chain && address)
         try {
           const id = query.get("id");
 
@@ -157,19 +160,19 @@ export const OTCPageContent = () => {
   }, [
     optionHandlerContract,
     query,
-    account,
-    network,
+    address,
+    chain,
     optionRegistryContract,
     signer,
   ]);
 
   useEffect(() => {
-    if (account && (order || strangle)) {
+    if (address && (order || strangle)) {
       // NOTE: this presumes buyer of call/put in strangle is same
       const buyerAddress = order?.buyer ?? strangle?.call.buyer;
-      setIsBuyer(account.toLowerCase() === buyerAddress?.toLowerCase());
+      setIsBuyer(address.toLowerCase() === buyerAddress?.toLowerCase());
     }
-  }, [account, order, strangle]);
+  }, [address, order, strangle]);
 
   // Regular order handlers
   const handleApprove = useCallback(async () => {
@@ -297,13 +300,13 @@ export const OTCPageContent = () => {
   }, [optionHandlerContract, optionHandlerContractCall, orderId]);
 
   const getAllowance = useCallback(async () => {
-    if (account && order && optionHandlerContract) {
+    if (address && order && optionHandlerContract) {
       // BuyBack order
       if (order.isBuyBack) {
         if (optionSeriesContract) {
           debugger;
           const allowance = await optionSeriesContract.allowance(
-            account,
+            address,
             optionHandlerContract.address
           );
           setApprovedAmount(allowance);
@@ -311,14 +314,14 @@ export const OTCPageContent = () => {
         // Regular order or strangle
       } else {
         const allowance = await usdcContract?.allowance(
-          account,
+          address,
           optionHandlerContract.address
         );
         setApprovedAmount(allowance);
       }
     }
   }, [
-    account,
+    address,
     usdcContract,
     optionHandlerContract,
     order,
@@ -331,7 +334,7 @@ export const OTCPageContent = () => {
 
   // Check approved amount against order amount to determine if order has been approved.
   useEffect(() => {
-    if (account && approvedAmount) {
+    if (address && approvedAmount) {
       if (order) {
         // Buyback order
         if (order.isBuyBack) {
@@ -367,53 +370,14 @@ export const OTCPageContent = () => {
         }
       }
     }
-  }, [account, approvedAmount, order, strangle]);
-
-  // useEffect(() => {
-  //   // Check if order is approved, doing some decimal scaling on the way.
-  //   const getIsOrderApproved = async () => {
-  //     {
-  //       if (account && (order || strangle)) {
-  //         // e6
-  //         const allowance: BigNumber | null = await getAllowance();
-  //         if (allowance && order) {
-  //           // e18
-  //           const scaledAllowance = allowance
-  //             .mul(BIG_NUMBER_DECIMALS.RYSK)
-  //             .div(BIG_NUMBER_DECIMALS.USDC);
-
-  //           // e18
-  //           const totalPrice =
-  //             order.price ?? strangle?.call.price.add(strangle?.put.price);
-  //           if (scaledAllowance.gte(totalPrice)) {
-  //             // setIsApproved(true);
-  //           }
-  //         }
-  //       }
-  //     }
-  //   };
-
-  //   const getIsBuyBackOrderApproved = async () => {
-  //     if (account && order) {
-  //       debugger;
-  //       const allowance: BigNumber | null = await getAllowance();
-  //       if (allowance && allowance.gte(order.amount)) {
-  //         setIsApproved(true);
-  //       }
-  //     }
-  //   };
-
-  //   if (order) {
-  //     order.isBuyBack ? getIsBuyBackOrderApproved() : getIsOrderApproved();
-  //   }
-  // }, [getAllowance, account, order, strangle]);
+  }, [address, approvedAmount, order, strangle]);
 
   useEffect(() => {
-    if (!network || !account) {
+    if (!chain || !address) {
       setOrder(null);
       setError("Please connect your wallet");
     }
-  }, [network, account]);
+  }, [chain, address]);
 
   const approveDisabled = isListeningForApproval || isApproved;
   const completeDisabled = !isApproved || isListeningForComplete;

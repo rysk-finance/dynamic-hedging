@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-
 import NumberFormat from "react-number-format";
+import { useNetwork } from "wagmi";
+
 import PVFABI from "../../abis/AlphaPortfolioValuesFeed.json";
 import ERC20ABI from "../../abis/erc20.json";
 import LPABI from "../../abis/LiquidityPool.json";
 import ORABI from "../../abis/OptionRegistry.json";
 import PFABI from "../../abis/PriceFeed.json";
-import { useWalletContext } from "../../App";
 import addresses from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
 import { useGlobalContext } from "../../state/GlobalContext";
@@ -14,19 +14,19 @@ import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import {
   Option,
   OptionsTradingActionType,
-  OptionType,
+  OptionType
 } from "../../state/types";
 import { ContractAddresses, ETHNetwork } from "../../types";
+import { AlphaPortfolioValuesFeed } from "../../types/AlphaPortfolioValuesFeed";
 import { ERC20 } from "../../types/ERC20";
 import { LiquidityPool } from "../../types/LiquidityPool";
 import { OptionRegistry } from "../../types/OptionRegistry";
-import { AlphaPortfolioValuesFeed } from "../../types/AlphaPortfolioValuesFeed";
 import { PriceFeed } from "../../types/PriceFeed";
 import { fromWei, toWei } from "../../utils/conversion-helper";
 import {
   calculateOptionDeltaLocally,
   calculateOptionQuoteLocally,
-  returnIVFromQuote,
+  returnIVFromQuote
 } from "../../utils/helpers";
 
 const suggestedCallOptionPriceDiff = [-100, 0, 100, 200, 300, 400, 600, 800];
@@ -35,11 +35,11 @@ const suggestedPutOptionPriceDiff = [
 ];
 
 export const OptionsTable = () => {
+  const { chain } = useNetwork();
+
   const {
     state: { ethPrice },
   } = useGlobalContext();
-
-  const { network } = useWalletContext();
 
   const [cachedEthPrice, setCachedEthPrice] = useState<number | null>(null);
 
@@ -82,7 +82,7 @@ export const OptionsTable = () => {
   });
 
   useEffect(() => {
-    if (cachedEthPrice && network && liquidityPool) {
+    if (cachedEthPrice && chain && liquidityPool) {
       const diffs =
         optionType === OptionType.CALL
           ? suggestedCallOptionPriceDiff
@@ -100,15 +100,16 @@ export const OptionsTable = () => {
           ETHNetwork,
           ContractAddresses
         >;
+        const network = chain.network as ETHNetwork;
         const suggestions = await Promise.all(
           strikes.map(async (strike) => {
             const optionSeries = {
               expiration: Number(expiryDate?.getTime()) / 1000,
               strike: toWei(strike.toString()),
               isPut: optionType !== OptionType.CALL,
-              strikeAsset: typedAddresses[network.name].USDC,
-              underlying: typedAddresses[network.name].WETH,
-              collateral: typedAddresses[network.name].USDC,
+              strikeAsset: typedAddresses[network].USDC,
+              underlying: typedAddresses[network].WETH,
+              collateral: typedAddresses[network].USDC,
             };
 
             console.log({ optionSeries });
@@ -155,7 +156,7 @@ export const OptionsTable = () => {
       fetchPrices().catch(console.error);
     }
   }, [
-    network,
+    chain,
     cachedEthPrice,
     optionType,
     customOptionStrikes,

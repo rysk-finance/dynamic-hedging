@@ -1,15 +1,17 @@
-import { useCallback } from "react";
-import { useContract } from "./useContract";
-import LPABI from "../abis/LiquidityPool.json";
 import { BigNumber } from "ethers";
-import { useWalletContext } from "../App";
+import { useCallback } from "react";
+import { useAccount, useNetwork } from "wagmi";
+
+import LPABI from "../abis/LiquidityPool.json";
 import { BIG_NUMBER_DECIMALS } from "../config/constants";
-import { DepositReceipt, WithdrawalReceipt } from "../types";
 import { useGlobalContext } from "../state/GlobalContext";
 import { ActionType, GlobalState } from "../state/types";
+import { DepositReceipt, WithdrawalReceipt } from "../types";
+import { useContract } from "./useContract";
 
 export const useUserPosition = () => {
-  const { account } = useWalletContext();
+  const { address } = useAccount();
+  const { chain } = useNetwork();
 
   const [lpContract] = useContract({
     contract: "liquidityPool",
@@ -50,14 +52,18 @@ export const useUserPosition = () => {
 
       let receiptEpochSharePrice: BigNumber | null = null;
 
-      if (currentDepositEpoch._hex === receipt.epoch._hex) {
+      if (
+        currentDepositEpoch &&
+        receipt &&
+        currentDepositEpoch._hex === receipt.epoch._hex
+      ) {
         receiptEpochSharePrice = latestEpochSharePrice;
         receiptUSDCValue = receiptUSDCValue.add(receipt.amount);
         setPositionBreakdown({
           usdcOnHold: receipt.amount,
           unredeemedShares: receipt.unredeemedShares,
         });
-      } else {
+      } else if (receipt) {
         receiptEpochSharePrice = await lpContract?.withdrawalEpochPricePerShare(
           receipt.epoch
         );
@@ -108,7 +114,11 @@ export const useUserPosition = () => {
       withdrawalReceipt: WithdrawalReceipt,
       currentWithdrawalEpoch: BigNumber
     ) => {
-      if (currentWithdrawalEpoch._hex === withdrawalReceipt.epoch._hex) {
+      if (
+        currentWithdrawalEpoch &&
+        withdrawalReceipt &&
+        currentWithdrawalEpoch._hex === withdrawalReceipt.epoch._hex
+      ) {
         const epochSharePrice = await lpContract?.withdrawalEpochPricePerShare(
           currentWithdrawalEpoch.sub(1)
         );
@@ -118,11 +128,12 @@ export const useUserPosition = () => {
             epochPrice: epochSharePrice,
           },
         });
+
         return withdrawalReceipt.shares
           .mul(epochSharePrice)
           .div(BIG_NUMBER_DECIMALS.RYSK)
           .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC));
-      } else {
+      } else if (withdrawalReceipt) {
         const epochSharePrice = await lpContract?.withdrawalEpochPricePerShare(
           withdrawalReceipt.epoch
         );
@@ -132,10 +143,13 @@ export const useUserPosition = () => {
             epochPrice: epochSharePrice,
           },
         });
+
         return withdrawalReceipt.shares
           .mul(epochSharePrice)
           .div(BIG_NUMBER_DECIMALS.RYSK)
           .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC));
+      } else {
+        return BigNumber.from(0);
       }
     },
     [lpContract, setPositionBreakdown]
@@ -155,13 +169,9 @@ export const useUserPosition = () => {
       setPositionBreakdown({
         currentWithdrawSharePrice: latestWithdrawalSharePrice,
       });
-      const balanceValue = balance
-        .mul(latestWithdrawalSharePrice)
-        .div(BIG_NUMBER_DECIMALS.RYSK)
-        .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC));
 
       const depositReceipt: DepositReceipt = await lpContract?.depositReceipts(
-        account
+        address
       );
       const depositReceiptValue = await parseDepositReceipt(
         depositReceipt,
@@ -169,20 +179,28 @@ export const useUserPosition = () => {
         currentWithdrawalEpoch
       );
       const withdrawalReceipt: WithdrawalReceipt =
-        await lpContract?.withdrawalReceipts(account);
+        await lpContract?.withdrawalReceipts(address);
       const withdrawalReceiptValue = await parseWithdrawalReceipt(
         withdrawalReceipt,
         currentWithdrawalEpoch
       );
 
-      const totalPosition = balanceValue
-        .add(depositReceiptValue)
-        .add(withdrawalReceiptValue);
+      if (balance && !chain?.unsupported) {
+        const balanceValue = balance
+          .mul(latestWithdrawalSharePrice)
+          .div(BIG_NUMBER_DECIMALS.RYSK)
+          .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC));
 
-      setPositionValue(totalPosition);
+        const totalPosition = balanceValue
+          .add(depositReceiptValue)
+          .add(withdrawalReceiptValue);
+
+        setPositionValue(totalPosition);
+      }
     },
     [
-      account,
+      address,
+      chain,
       lpContract,
       parseDepositReceipt,
       parseWithdrawalReceipt,

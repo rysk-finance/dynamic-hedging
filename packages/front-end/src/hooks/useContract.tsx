@@ -1,21 +1,20 @@
+import type { Contract, ContractFunction, ContractInterface } from "ethers";
+
 import { TransactionResponse } from "@ethersproject/abstract-provider";
-import * as ethers from "ethers";
+import { captureException } from "@sentry/react";
+import { Contract as EthersContract } from "ethers";
+import { useAddRecentTransaction } from "@rainbow-me/rainbowkit";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { useWalletContext } from "../App";
+import { useAccount, useNetwork, useProvider, useSigner } from "wagmi";
+
 import { TransactionDisplay } from "../components/shared/TransactionDisplay";
-import {
-  CHAINID,
-  DEFAULT_POLLING_INTERVAL,
-  GAS_LIMIT_MULTIPLIER_PERCENTAGE,
-  IDToNetwork,
-  RPC_URL_MAP,
-} from "../config/constants";
+import { GAS_LIMIT_MULTIPLIER_PERCENTAGE } from "../config/constants";
 import addresses from "../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../types";
 import { trackRPCError } from "../utils/fathomEvents";
 import { DEFAULT_ERROR, isRPCError, parseError } from "../utils/parseRPCError";
-import * as Sentry from "@sentry/react";
+import { capitalise } from "src/utils/caseConvert";
 
 type EventName = string;
 type EventData = any[];
@@ -36,7 +35,7 @@ type EventFilterMap<T extends Partial<Record<EventName, EventData>>> = {
 
 type useContractRyskContractArgs<T extends Record<EventName, EventData>> = {
   contract: keyof ContractAddresses;
-  ABI: ethers.ContractInterface;
+  ABI: ContractInterface;
   readOnly?: boolean;
   events?: EventHandlerMap<T>;
   isListening?: IsListeningMap<T>;
@@ -45,7 +44,7 @@ type useContractRyskContractArgs<T extends Record<EventName, EventData>> = {
 
 type useContractExternalContractArgs<T extends Record<EventName, EventData>> = {
   contractAddress: string;
-  ABI: ethers.ContractInterface;
+  ABI: ContractInterface;
   readOnly?: boolean;
   events?: EventHandlerMap<T>;
   isListening?: IsListeningMap<T>;
@@ -56,14 +55,6 @@ type useContractArgs<T extends Record<EventName, EventData>> =
   | useContractRyskContractArgs<T>
   | useContractExternalContractArgs<T>;
 
-const CHAIN_ID = Number(process.env.REACT_APP_CHAIN_ID) as CHAINID;
-const DEFAULT_NETWORK = IDToNetwork[CHAIN_ID];
-const DEFAULT_RPC_URL = RPC_URL_MAP[CHAIN_ID];
-const DEFAULT_RPC_PROVIDER = new ethers.providers.JsonRpcProvider(
-  DEFAULT_RPC_URL
-);
-DEFAULT_RPC_PROVIDER.pollingInterval = DEFAULT_POLLING_INTERVAL;
-
 /**
  *
  * @param args
@@ -72,6 +63,8 @@ DEFAULT_RPC_PROVIDER.pollingInterval = DEFAULT_POLLING_INTERVAL;
  *           be memoised using useCallback and NOT PASSED INLINE, as we use function references
  *           to determine when to add and remove listeners.
  *  isListening - a map of Event names to whether their handler should be listening or not.
+ * @param requiresWalletConnection - Does the contract call require a wallet connection. Defaults to true.
+ *
  * @returns
  * [
  *  the contract,
@@ -79,17 +72,23 @@ DEFAULT_RPC_PROVIDER.pollingInterval = DEFAULT_POLLING_INTERVAL;
  * ]
  */
 export const useContract = <T extends Record<EventName, EventData> = any>(
-  args: useContractArgs<T>
+  args: useContractArgs<T>,
+  requiresWalletConnection = true
 ) => {
-  const [network] = useState(
-    process.env.REACT_APP_NETWORK as keyof typeof addresses | undefined
-  );
+  const { isConnected } = useAccount();
+  const { chain } = useNetwork();
+  const provider = useProvider();
+  const { data: signer } = useSigner();
 
-  const { signer, rpcURL } = useWalletContext();
+  const [ethersContract, setEthersContract] = useState<Contract | null>(null);
 
-  const [ethersContract, setEthersContract] = useState<ethers.Contract | null>(
-    null
-  );
+  const addRecentTransaction = useAddRecentTransaction();
+
+  const network =
+    (chain?.network as ETHNetwork) ??
+    (process.env.REACT_APP_NETWORK as ETHNetwork);
+
+  provider.pollingInterval = 20000;
 
   // Store map of function handlers in ref so we can remove and add
   // handlers when required.
@@ -110,7 +109,7 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
       onComplete,
       onFail,
     }: {
-      method: ethers.ContractFunction;
+      method: ContractFunction;
       args: any[];
       // This bumps up the gas limit for the transaction as metamask can
       // sometimes underestimate.
@@ -153,6 +152,10 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
             </div>,
             { autoClose: 5000 }
           );
+          addRecentTransaction({
+            hash: transaction.hash,
+            description: methodName ? capitalise(methodName) : "Transaction",
+          });
           onSubmit?.();
           await transaction.wait();
           onComplete?.();
@@ -173,14 +176,14 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
             autoClose: 5000,
           });
           trackRPCError(err.code);
-          Sentry.captureException(new Error(err.message));
+          captureException(new Error(err.message));
           return;
         } else {
           toast(`❌ ${DEFAULT_ERROR}`, { autoClose: 5000 });
           if ("code" in err) {
             // Will create an UNTRACKED_ERROR event in fathom.
             trackRPCError(err.code);
-            Sentry.captureException(new Error(JSON.stringify(err)));
+            captureException(new Error(JSON.stringify(err)));
             return;
           }
         }
@@ -195,17 +198,18 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
 
   // Instances the ethers contract in state.
   useEffect(() => {
-    if (rpcURL && !ethersContract) {
+    if (
+      (isConnected && !chain?.unsupported && !ethersContract) ||
+      (!requiresWalletConnection && !ethersContract)
+    ) {
       if (args.readOnly) {
         const address =
           "contract" in args
-            ? (addresses as Record<ETHNetwork, ContractAddresses>)[
-                DEFAULT_NETWORK
-              ][(args as useContractRyskContractArgs<T>).contract]
+            ? (addresses as Record<ETHNetwork, ContractAddresses>)[network][
+                (args as useContractRyskContractArgs<T>).contract
+              ]
             : (args as useContractExternalContractArgs<T>).contractAddress;
-        setEthersContract(
-          new ethers.Contract(address, args.ABI, DEFAULT_RPC_PROVIDER)
-        );
+        setEthersContract(new EthersContract(address, args.ABI, provider));
       } else {
         if (signer && network) {
           const address =
@@ -214,11 +218,11 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
                   (args as useContractRyskContractArgs<T>).contract
                 ]
               : (args as useContractExternalContractArgs<T>).contractAddress;
-          setEthersContract(new ethers.Contract(address, args.ABI, signer));
+          setEthersContract(new EthersContract(address, args.ABI, signer));
         }
       }
     }
-  }, [args, signer, network, ethersContract, rpcURL]);
+  }, [args, signer, network, ethersContract, isConnected, chain]);
 
   // Update the local events map. The event handlers attached to the contract
   // look up the appropriate handler on this object, meaning we can update the

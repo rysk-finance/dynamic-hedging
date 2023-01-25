@@ -1,8 +1,9 @@
 import { BigNumber, ethers } from "ethers";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { useAccount, useNetwork } from "wagmi";
+
 import ERC20ABI from "../../abis/erc20.json";
-import { useWalletContext } from "../../App";
 import LPABI from "../../abis/LiquidityPool.json";
 import {
   BIG_NUMBER_DECIMALS,
@@ -10,8 +11,12 @@ import {
   MAX_UINT_256,
   ZERO_UINT_256,
 } from "../../config/constants";
+import { DEPOSIT_SHARES_EPOCH } from "../../config/messages";
 import addresses from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useUserPosition } from "../../hooks/useUserPosition";
+import { useGlobalContext } from "../../state/GlobalContext";
 import { ActionType, AppSettings, VaultActionType } from "../../state/types";
 import { useVaultContext } from "../../state/VaultContext";
 import {
@@ -21,21 +26,18 @@ import {
   ETHNetwork,
 } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";
+import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
 import { Loader } from "../Loader";
-import { RequiresWalletConnection } from "../RequiresWalletConnection";
 import { RyskTooltip } from "../RyskTooltip";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { Toggle } from "../shared/Toggle";
-import { useUserPosition } from "../../hooks/useUserPosition";
-import { DEPOSIT_SHARES_EPOCH } from "../../config/messages";
-import { useLocalStorage } from "../../hooks/useLocalStorage";
-import { useGlobalContext } from "../../state/GlobalContext";
-import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
 import { PositionTooltip } from "./PositionTooltip";
 
 export const VaultDeposit = () => {
-  const { account, network } = useWalletContext();
+  const { address, isConnected } = useAccount();
+  const { chain } = useNetwork();
+
   const {
     state: {
       depositEpoch: currentEpoch,
@@ -54,21 +56,13 @@ export const VaultDeposit = () => {
   const [inputValue, setInputValue] = useState("");
   const [listeningForApproval, setListeningForApproval] = useState(false);
   const [listeningForDeposit, setListeningForDeposit] = useState(false);
-  const [listeningForRedeem, setListeningForRedeem] = useState(false);
 
   // Chain state
   const [userUSDCBalance, setUserUSDCBalance] = useState<BigNumber | null>(
     null
   );
-  const [depositReceipt, setDepositReceipt] = useState<DepositReceipt | null>(
-    null
-  );
   const [pendingDepositedUSDC, setPendingDepositedUSDC] =
     useState<BigNumber | null>(null);
-  const [unredeemedShares, setUnredeemedShares] = useState<BigNumber | null>(
-    null
-  );
-
   const [approvedAmount, setApprovedAmount] = useState<BigNumber | null>(null);
 
   // Contracts
@@ -134,7 +128,7 @@ export const VaultDeposit = () => {
       const depositReceipt: DepositReceipt = await lpContract?.depositReceipts(
         address
       );
-      setDepositReceipt(depositReceipt);
+
       return depositReceipt;
     },
     [lpContract]
@@ -142,11 +136,13 @@ export const VaultDeposit = () => {
 
   const getPendingDepositedUSDC = useCallback(
     async (depositReceipt: DepositReceipt, currentEpoch: BigNumber) => {
-      const isPendingUSDC = depositReceipt.epoch.eq(currentEpoch);
-      if (isPendingUSDC) {
-        setPendingDepositedUSDC(depositReceipt.amount);
-      } else {
-        setPendingDepositedUSDC(BigNumber.from(0));
+      if (depositReceipt) {
+        const isPendingUSDC = depositReceipt.epoch.eq(currentEpoch);
+        if (isPendingUSDC) {
+          setPendingDepositedUSDC(depositReceipt.amount);
+        } else {
+          setPendingDepositedUSDC(BigNumber.from(0));
+        }
       }
     },
     []
@@ -158,7 +154,7 @@ export const VaultDeposit = () => {
       currentEpochSharePrice: BigNumber,
       currentEpoch: BigNumber
     ) => {
-      const receiptEpochHasRun = depositReceipt.epoch.lt(currentEpoch);
+      const receiptEpochHasRun = depositReceipt?.epoch.lt(currentEpoch);
       // When making conversion from amount (USDC) to RYSK, need to
       // account for decimals. Hence scaling by BIG_NUMBER_DECIMALS values.
       const receiptAmountInShares = receiptEpochHasRun
@@ -170,18 +166,14 @@ export const VaultDeposit = () => {
             // Now back to e18
             .mul(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC))
         : BigNumber.from(0);
-      const totalRedeemableShares = receiptAmountInShares.add(
-        depositReceipt.unredeemedShares
-      );
-      setUnredeemedShares(totalRedeemableShares);
     },
     []
   );
 
   const updateDepositState = useCallback(async () => {
-    if (account && currentPricePerShare && currentEpoch) {
-      await getUSDCBalance(account);
-      const depositReceipt = await getDepositReceipt(account);
+    if (address && currentPricePerShare && currentEpoch) {
+      await getUSDCBalance(address);
+      const depositReceipt = await getDepositReceipt(address);
       await getUnredeemedShares(
         depositReceipt,
         currentPricePerShare,
@@ -190,7 +182,7 @@ export const VaultDeposit = () => {
       await getPendingDepositedUSDC(depositReceipt, currentEpoch);
     }
   }, [
-    account,
+    address,
     currentEpoch,
     currentPricePerShare,
     getDepositReceipt,
@@ -201,21 +193,21 @@ export const VaultDeposit = () => {
 
   const epochListener = useCallback(async () => {
     updateDepositState();
-    if (account) {
-      getRedeemedShares(account);
-      updatePosition(account);
+    if (address) {
+      getRedeemedShares(address);
+      updatePosition(address);
     }
-  }, [updateDepositState, account, getRedeemedShares, updatePosition]);
+  }, [updateDepositState, address, getRedeemedShares, updatePosition]);
 
   const getAllowance = useCallback(async () => {
-    if (account) {
+    if (address) {
       const allowance = await usdcContract?.allowance(
-        account,
+        address,
         lpContract?.address
       );
       setApprovedAmount(allowance);
     }
-  }, [account, usdcContract, lpContract]);
+  }, [address, usdcContract, lpContract]);
 
   useEffect(() => {
     (async () => {
@@ -231,11 +223,12 @@ export const VaultDeposit = () => {
 
   // Handlers for the different possible vault interactions.
   const handleApproveSpend = async () => {
-    if (usdcContract && network) {
+    if (usdcContract && chain) {
       const amount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
+      const network = chain.network as ETHNetwork;
       const approvedAmount = (await usdcContract.allowance(
-        account,
-        (addresses as Record<ETHNetwork, ContractAddresses>)[network.name][
+        address,
+        (addresses as Record<ETHNetwork, ContractAddresses>)[network][
           "liquidityPool"
         ]
       )) as BigNumber;
@@ -247,9 +240,9 @@ export const VaultDeposit = () => {
           await usdcContractCall({
             method: usdcContract.approve,
             args: [
-              (addresses as Record<ETHNetwork, ContractAddresses>)[
-                network.name
-              ]["liquidityPool"],
+              (addresses as Record<ETHNetwork, ContractAddresses>)[network][
+                "liquidityPool"
+              ],
               settings.vaultDepositUnlimitedApproval
                 ? ethers.BigNumber.from(MAX_UINT_256)
                 : amount,
@@ -261,7 +254,7 @@ export const VaultDeposit = () => {
             completeMessage: "✅ Approval complete",
           });
         } else {
-          if (account && lpContract) {
+          if (address && lpContract) {
             toast("✅ Your transaction is already approved");
           }
         }
@@ -273,7 +266,7 @@ export const VaultDeposit = () => {
   };
 
   const handleDepositCollateral = async () => {
-    if (usdcContract && lpContract && account && network) {
+    if (usdcContract && lpContract && address && chain) {
       const amount = ethers.utils.parseUnits(inputValue, DECIMALS.USDC);
       await lpContractCall({
         method: lpContract.deposit,
@@ -290,35 +283,12 @@ export const VaultDeposit = () => {
           updateDepositState();
           setListeningForDeposit(false);
           getAllowance();
-          if (account) {
-            updatePosition(account);
+          if (address) {
+            updatePosition(address);
           }
         },
         onFail: () => {
           setListeningForDeposit(false);
-        },
-      });
-    }
-  };
-
-  const handleRedeemShares = async () => {
-    if (lpContract) {
-      await lpContractCall({
-        method: lpContract.redeem,
-        args: [MAX_UINT_256],
-        scaleGasLimit: true,
-        methodName: "redeem",
-        submitMessage: "✅ Redeem submitted",
-        onSubmit: () => {
-          setListeningForRedeem(true);
-        },
-        completeMessage: "✅ Redeem complete.",
-        onComplete: () => {
-          updateDepositState();
-          setListeningForRedeem(false);
-          if (account) {
-            updatePosition(account);
-          }
         },
       });
     }
@@ -340,26 +310,32 @@ export const VaultDeposit = () => {
     listeningForApproval ||
     ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256;
   const depositIsDisabled =
-    !(inputValue && account && approveIsDisabled) || listeningForDeposit;
-  const redeemIsDisabled = listeningForRedeem;
+    !(inputValue && address && approveIsDisabled) || listeningForDeposit;
 
   return (
     <div className="flex-col items-center justify-between h-full">
       <div className="p-2 bg-black text-white mb-2">
         <p className="text-right font-medium text-lg">
-          Your Position:{" "}
-          <RequiresWalletConnection className="!bg-white h-4 w-[100px] translate-y-[-2px]">
-            <BigNumberDisplay
-              currency={Currency.USDC}
-              suffix="USDC"
-              loaderProps={{
-                className: "h-4 w-auto translate-y-[-2px]",
-              }}
-            >
-              {userPositionValue}
-            </BigNumberDisplay>
-            <PositionTooltip />
-          </RequiresWalletConnection>
+          {isConnected ? (
+            <>
+              {`Your Position: `}
+              <BigNumberDisplay
+                currency={Currency.USDC}
+                suffix="USDC"
+                loaderProps={{
+                  className: "h-4 w-auto translate-y-[-2px]",
+                }}
+              >
+                {userPositionValue}
+              </BigNumberDisplay>
+              <PositionTooltip />
+            </>
+          ) : (
+            <Button
+              color="black"
+              requiresConnection
+            >{`Click to connect`}</Button>
+          )}
         </p>
       </div>
       <div className="w-full h-8 bg-black text-white px-2 flex items-center justify-start">
@@ -383,13 +359,17 @@ export const VaultDeposit = () => {
           <div className="w-full">
             <div className="p-2 text-right">
               <p className="text-xs">
-                Wallet Balance:{" "}
-                <RequiresWalletConnection className="w-[60px] h-[16px] mr-2 translate-y-[-2px]">
-                  <BigNumberDisplay currency={Currency.USDC}>
-                    {userUSDCBalance}
-                  </BigNumberDisplay>
-                </RequiresWalletConnection>{" "}
-                USDC
+                {isConnected ? (
+                  <>
+                    {`Wallet Balance: `}
+                    <BigNumberDisplay currency={Currency.USDC}>
+                      {userUSDCBalance}
+                    </BigNumberDisplay>
+                    {` USDC`}
+                  </>
+                ) : (
+                  <>{`Please connect a wallet to see your balance.`}</>
+                )}
               </p>
             </div>
           </div>
@@ -447,7 +427,7 @@ export const VaultDeposit = () => {
                   ? "⏱ Awaiting Approval"
                   : "Approve"}
               </Button>
-              {account && (
+              {address && (
                 <Button
                   onClick={() => {
                     if (inputValue) {
@@ -467,49 +447,7 @@ export const VaultDeposit = () => {
           </div>
         </div>
       </div>
-      {/* <div>
-        <div className="h-4" />
-        <div className="w-full h-8 bg-black text-white px-2 flex items-center justify-start">
-          <p>
-            <b>2. Redeem</b>
-          </p>
-        </div>
-        <div>
-          <div>
-            {unredeemedShares && unredeemedShares._hex !== ZERO_UINT_256 ? (
-              <>
-                <div className="px-2 py-4">
-                  <div className="flex justify-between">
-                    <p>Unredeemed Shares</p>
-                    <p>
-                      <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                        <BigNumberDisplay currency={Currency.RYSK}>
-                          {unredeemedShares}
-                        </BigNumberDisplay>
-                      </RequiresWalletConnection>{" "}
-                      {DHV_NAME}
-                    </p>
-                  </div>
-                  <hr className="border-black mb-2 mt-1" />
-                  <UnredeemedDepositBreakdown />
-                </div>
-                <Button
-                  onClick={() => {
-                    handleRedeemShares();
-                  }}
-                  className={`w-full !py-6 !border-b-0 !border-x-0 border-t-[2px] border-black bg-black text-white`}
-                  disabled={redeemIsDisabled}
-                  color="black"
-                >
-                  {redeemIsDisabled ? "⏱ Awaiting redeem" : "Redeem"}
-                </Button>
-              </>
-            ) : (
-              <p className="text-sm p-2">{DEPOSIT_SHARES_EPOCH}</p>
-            )}
-          </div>
-        </div>
-      </div> */}
+
       {pendingDepositedUSDC && pendingDepositedUSDC?._hex !== ZERO_UINT_256 && (
         <div>
           <div className="ml-[-2px] px-2 py-4 border-b-[2px] border-black text-[16px]">
@@ -525,12 +463,16 @@ export const VaultDeposit = () => {
               <div className="h-4 flex items-center">
                 {listeningForDeposit && <Loader className="mr-2 !h-[24px]" />}
                 <p>
-                  <RequiresWalletConnection className="translate-y-[-6px] w-[80px] h-[12px]">
-                    <BigNumberDisplay currency={Currency.USDC}>
-                      {pendingDepositedUSDC}
-                    </BigNumberDisplay>
-                  </RequiresWalletConnection>{" "}
-                  USDC
+                  {isConnected ? (
+                    <>
+                      <BigNumberDisplay currency={Currency.USDC}>
+                        {pendingDepositedUSDC}
+                      </BigNumberDisplay>
+                      {` USDC`}
+                    </>
+                  ) : (
+                    <>{`Please connect a wallet.`}</>
+                  )}
                 </p>
               </div>
             </div>
