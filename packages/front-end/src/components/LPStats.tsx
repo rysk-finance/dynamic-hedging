@@ -1,24 +1,27 @@
-import { ETHNetwork } from "../types";
-
-import { useEffect, useMemo, useState } from "react";
 import ProgressBar from "@ramonak/react-progress-bar";
-import { useContract } from "../hooks/useContract";
-import LPABI from "../abis/LiquidityPool.json";
 import { BigNumber, ethers } from "ethers";
-import { Loader } from "./Loader";
-import { BIG_NUMBER_DECIMALS, DECIMALS } from "../config/constants";
+import { useEffect, useMemo, useState } from "react";
 import NumberFormat from "react-number-format";
+
+import LPABI from "../abis/LiquidityPool.json";
+import { BIG_NUMBER_DECIMALS, DECIMALS } from "../config/constants";
+import { useContract } from "../hooks/useContract";
+import { ETHNetwork } from "../types";
+import { Loader } from "./Loader";
 
 export const LPStats = () => {
   const [depositedCollateral, setDepositedCollateral] =
     useState<BigNumber | null>(null);
   const [collateralCap, setCollateralCap] = useState<BigNumber | null>(null);
 
-  const [lpContract] = useContract({
-    contract: "liquidityPool",
-    ABI: LPABI,
-    readOnly: true,
-  });
+  const [lpContract] = useContract(
+    {
+      contract: "liquidityPool",
+      ABI: LPABI,
+      readOnly: true,
+    },
+    false
+  );
 
   useEffect(() => {
     const getDepositedCollateral = async () => {

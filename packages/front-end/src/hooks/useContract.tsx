@@ -63,6 +63,8 @@ type useContractArgs<T extends Record<EventName, EventData>> =
  *           be memoised using useCallback and NOT PASSED INLINE, as we use function references
  *           to determine when to add and remove listeners.
  *  isListening - a map of Event names to whether their handler should be listening or not.
+ * @param requiresWalletConnection - Does the contract call require a wallet connection. Defaults to true.
+ *
  * @returns
  * [
  *  the contract,
@@ -70,7 +72,8 @@ type useContractArgs<T extends Record<EventName, EventData>> =
  * ]
  */
 export const useContract = <T extends Record<EventName, EventData> = any>(
-  args: useContractArgs<T>
+  args: useContractArgs<T>,
+  requiresWalletConnection = true
 ) => {
   const { isConnected } = useAccount();
   const { chain } = useNetwork();
@@ -81,7 +84,9 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
 
   const addRecentTransaction = useAddRecentTransaction();
 
-  const network = chain?.network as ETHNetwork;
+  const network =
+    (chain?.network as ETHNetwork) ??
+    (process.env.REACT_APP_NETWORK as ETHNetwork);
 
   provider.pollingInterval = 20000;
 
@@ -193,7 +198,10 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
 
   // Instances the ethers contract in state.
   useEffect(() => {
-    if (isConnected && !chain?.unsupported && !ethersContract) {
+    if (
+      (isConnected && !chain?.unsupported && !ethersContract) ||
+      (!requiresWalletConnection && !ethersContract)
+    ) {
       if (args.readOnly) {
         const address =
           "contract" in args
