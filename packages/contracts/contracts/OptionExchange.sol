@@ -502,9 +502,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		);
 		_handlePremiumTransfer(buyParams.premium, buyParams.fee);
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
-		int256 longExposure = portfolioValuesFeed
-			.storesForAddress(buyParams.seriesAddress)
-			.longExposure;
+		int256 longExposure = portfolioValuesFeed.storesForAddress(buyParams.seriesAddress).longExposure;
 		uint256 amount = _args.amount;
 		emit OptionsBought(buyParams.seriesAddress, recipient, amount);
 		if (longExposure > 0) {
@@ -691,6 +689,18 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/// @inheritdoc IHedgingReactor
 	function getPoolDenominatedValue() external view returns (uint256) {
 		return ERC20(collateralAsset).balanceOf(address(this));
+	}
+
+	function getOptionDetails(address seriesAddress, Types.OptionSeries memory optionSeries)
+		external
+		view
+		returns (
+			address,
+			Types.OptionSeries memory,
+			uint128
+		)
+	{
+		return _getOptionDetails(seriesAddress, optionSeries, getOptionRegistry());
 	}
 
 	//////////////////////////
