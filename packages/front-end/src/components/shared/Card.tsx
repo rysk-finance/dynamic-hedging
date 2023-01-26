@@ -54,7 +54,7 @@ export const Card = ({
       {createElement(
         contentNodeType,
         {
-          className: `border-x-2 border-b-2 rounded-b-xl border-black overflow-hidden border-t-[2px] rounded-tr-lg ${contentClasses}`,
+          className: `bg-bone border-x-2 border-b-2 rounded-b-xl border-black overflow-hidden border-t-[2px] rounded-tr-lg drop-shadow-lg ${contentClasses}`,
         },
         tabs[selectedTabIndex].content
       )}
