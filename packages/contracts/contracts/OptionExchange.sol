@@ -75,6 +75,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	uint256 public maxTradeSize = 1000e18;
 	/// @notice minimum amount allowed for a single trade
 	uint256 public minTradeSize = 1e16;
+	/// @notice mapping of approved collateral for puts and calls
+	mapping(address => mapping(bool => bool)) public approvedCollateral;
 
 	///////////////////////////
 	/// transient variables ///
@@ -135,6 +137,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		address redeemAsset
 	);
 	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
+	event CollateralApprovalChanged(address indexed collateral, bool isPut, bool isApproved);
 
 	error TradeTooSmall();
 	error TradeTooLarge();
@@ -168,6 +171,14 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		catalogue = OptionCatalogue(_catalogue);
 		require(_feeRecipient != address(0));
 		feeRecipient = _feeRecipient;
+		approvedCollateral[collateralAsset][true] = true;
+		approvedCollateral[collateralAsset][false] = true;
+		approvedCollateral[underlyingAsset][true] = true;
+		approvedCollateral[underlyingAsset][false] = true;
+		emit CollateralApprovalChanged(collateralAsset, true, true);
+		emit CollateralApprovalChanged(collateralAsset, false, true);
+		emit CollateralApprovalChanged(underlyingAsset, true, true);
+		emit CollateralApprovalChanged(underlyingAsset, false, true);
 	}
 
 	///////////////
@@ -223,6 +234,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		maxTradeSize = _maxTradeSize;
 	}
 
+	/// @notice set whether a collateral is approved for selling to the vault
+	function changeApprovedCollateral(address collateral, bool isPut, bool isApproved) external {
+		_onlyGovernor();
+		approvedCollateral[collateral][isPut] = isApproved;
+		emit CollateralApprovalChanged(collateral, isPut, isApproved);
+
+	}
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
@@ -807,6 +825,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 		if (optionSeries.strikeAsset != strikeAsset) {
 			revert CustomErrors.StrikeAssetInvalid();
+		}
+		if (!approvedCollateral[optionSeries.collateral][optionSeries.isPut]) {
+			revert CustomErrors.CollateralAssetInvalid();
 		}
 	}
 
