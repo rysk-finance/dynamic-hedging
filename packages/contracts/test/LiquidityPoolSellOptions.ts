@@ -3216,6 +3216,41 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					}
 				])
 			})
+			it("SUCCEEDS: sells the options to the exchange fails if collateral is not approved", async () => {
+				const amount = toWei("4")
+				await expect(exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					}
+				])).to.be.revertedWith("CollateralAssetInvalid()")
+			})
+			it("SUCCEEDS: approve busd as collateral for puts", async () => {
+				expect(await exchange.approvedCollateral(busd.address, true)).to.be.false
+				const tx = await exchange.changeApprovedCollateral(busd.address, true, true)
+				expect(await exchange.approvedCollateral(busd.address, true)).to.be.true
+				const receipt = await tx.wait()
+				const events = receipt.events
+				const txEvents = events?.find(x => x.event == "CollateralApprovalChanged")
+				expect(txEvents?.args?.collateral).to.equal(busd.address)
+				expect(txEvents?.args?.isPut).to.equal(true)
+				expect(txEvents?.args?.isApproved).to.equal(true)
+			})
+			it("REVERTS: approve busd as collateral for puts fails by non-gov", async () => {
+				await expect(exchange.connect(signers[1]).changeApprovedCollateral(busd.address, true, true)).to.be.revertedWith("UNAUTHORIZED()")
+			})
 			it("SUCCEEDS: sells the options to the exchange", async () => {
 				const amount = toWei("4")
 				const before = await getExchangeParams(
