@@ -59,7 +59,6 @@ contract OptionCatalogue is AccessControl {
 		bool isBuyable,
 		bool isSellable
 	);
-	event SeriesDisabled(uint64 expiration, uint128 strike, bool isPut);
 	event SeriesAltered(
 		uint64 expiration,
 		uint128 strike,
@@ -67,7 +66,6 @@ contract OptionCatalogue is AccessControl {
 		bool isBuyable,
 		bool isSellable
 	);
-	event UpdaterUpdated(address updater, bool auth);
 
 	constructor(
 		address _authority,
