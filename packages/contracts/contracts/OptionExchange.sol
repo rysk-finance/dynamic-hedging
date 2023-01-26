@@ -138,6 +138,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	);
 	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
 	event CollateralApprovalChanged(address indexed collateral, bool isPut, bool isApproved);
+	event OtokenMigrated(address newOptionExchange, address otoken, uint256 amount);
 
 	error TradeTooSmall();
 	error TradeTooLarge();
@@ -235,12 +236,16 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	}
 
 	/// @notice set whether a collateral is approved for selling to the vault
-	function changeApprovedCollateral(address collateral, bool isPut, bool isApproved) external {
+	function changeApprovedCollateral(
+		address collateral,
+		bool isPut,
+		bool isApproved
+	) external {
 		_onlyGovernor();
 		approvedCollateral[collateral][isPut] = isApproved;
 		emit CollateralApprovalChanged(collateral, isPut, isApproved);
-
 	}
+
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
@@ -301,6 +306,21 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				);
 				emit RedemptionSent(redeemableCollateral, collateralAsset, address(liquidityPool));
 			}
+		}
+	}
+
+	/**
+	 * @notice migrate otokens held by this address to a new option exchange
+	 * @param newOptionExchange the option exchange to migrate to
+	 * @param otokens the otoken addresses to transfer
+	 */
+	function migrateOtokens(address newOptionExchange, address[] memory otokens) external {
+		_onlyGovernor();
+		uint256 len = otokens.length;
+		for (uint256 i = 0; i < len; i++) {
+			uint256 balance = ERC20(otokens[i]).balanceOf(address(this));
+			SafeTransferLib.safeTransfer(ERC20(otokens[i]), newOptionExchange, balance);
+			emit OtokenMigrated(newOptionExchange, otokens[i], balance);
 		}
 	}
 

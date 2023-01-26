@@ -13,7 +13,7 @@ import { AddressBook, AlphaOptionHandler, AlphaPortfolioValuesFeed, BeyondPricer
 
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { deployOpyn } from "../utils/opyn-deployer"
-import { CHAINLINK_WETH_PRICER, MARGIN_POOL, UNISWAP_V3_SWAP_ROUTER, USDC_ADDRESS, WETH_ADDRESS } from "./constants"
+import { ADDRESS_BOOK, CHAINLINK_WETH_PRICER, MARGIN_POOL, UNISWAP_V3_SWAP_ROUTER, USDC_ADDRESS, WETH_ADDRESS } from "./constants"
 import { calculateOptionDeltaLocally, calculateOptionQuoteLocallyAlpha, compareQuotes, createAndMintOtoken, createFakeOtoken, getExchangeParams, getNetDhvExposure, getSeriesWithe18Strike, setOpynOracleExpiryPrice, setupOracle, setupTestOracle, whitelistProduct } from "./helpers"
 dayjs.extend(utc)
 let usd: MintableERC20
@@ -1700,14 +1700,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					]
 				}
 			])
-			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
-			const localDelta = await calculateOptionDeltaLocally(
-				liquidityPool,
-				priceFeed,
-				proposedSeries,
-				toWei("5"),
-				true
-			)
 			optionToken = oTokenUSDC1650NC
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -3718,6 +3710,53 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					"0x4Fabb145d64652a948d72533023f6E7A623C7C53"
 				)) as MintableERC20
 				expect(await busd.balanceOf(exchange.address)).to.equal(0)
+			})
+		})
+		describe("Test migration functionality", async () => {
+			let migExchange: OptionExchange
+			it("SUCCEEDS: deploy new option exchange", async () => {
+				const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
+				const interactions = await interactionsFactory.deploy()
+				const exchangeFactory = await ethers.getContractFactory("OptionExchange", {
+					libraries: {
+						OpynInteractions: interactions.address
+					}
+				})
+				migExchange = (await exchangeFactory.deploy(
+					authority,
+					optionProtocol.address,
+					liquidityPool.address,
+					pricer.address,
+					ADDRESS_BOOK[chainId],
+					UNISWAP_V3_SWAP_ROUTER[chainId],
+					liquidityPool.address,
+					catalogue.address
+				)) as OptionExchange
+			})
+			it("REVERTS: migrate options if not governor", async () => {
+				await expect(exchange.connect(signers[1]).migrateOtokens(migExchange.address, [oTokenUSDC1650NC.address, oTokenETH1600C.address, oTokenUSDCSXC.address])).to.be.revertedWith("UNAUTHORIZED()")
+			})
+			it("SUCCEEDS: migrate options", async () => {
+				const otokens = [oTokenUSDCSXC]
+				const otokenArray = [oTokenUSDCSXC.address]
+				let otokenBalancesEx = [toWei("0"), 0, 0]
+				let otokenBalancesMigEx = [toWei("0"), 0, 0]
+				for (let i = 0; i < otokenArray.length; i++) {
+					expect(await otokens[i].balanceOf(exchange.address)).to.be.gt(0)
+					otokenBalancesEx[i] = (await otokens[i].balanceOf(exchange.address))
+					otokenBalancesMigEx[i] = (await otokens[i].balanceOf(migExchange.address))
+				}
+				const tx = await exchange.migrateOtokens(migExchange.address, otokenArray)
+				for (let i = 0; i < otokenArray.length; i++) {
+					expect(otokenBalancesEx[i].sub(await otokens[i].balanceOf(migExchange.address))).to.equal(0)
+					expect(await otokens[i].balanceOf(exchange.address)).to.equal(0)
+				}
+				const receipt = await tx.wait()
+				const events = receipt.events
+				const migrateEvent = events?.find(x => x.event == "OtokenMigrated")
+				expect(migrateEvent?.args?.newOptionExchange).to.equal(migExchange.address)
+				expect(migrateEvent?.args?.otoken).to.equal(oTokenUSDCSXC.address)
+				expect(migrateEvent?.args?.amount).to.equal(otokenBalancesEx[0])
 			})
 		})
 		describe("Admin functionality", async () => {
