@@ -13,6 +13,7 @@ module.exports = {
         white: "#ffffff",
         bone: "#EDE9DD",
         "bone-dark": "#D1CDBF",
+        "bone-light": "#F5F3EC",
         cyan: "#05f7e7",
         "cyan-dark": "#02c5e6",
         red: {
