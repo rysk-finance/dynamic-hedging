@@ -6,6 +6,7 @@ import ERC20ABI from "../../abis/erc20.json";
 import LPABI from "../../abis/LiquidityPool.json";
 import ORABI from "../../abis/OptionRegistry.json";
 import PFABI from "../../abis/PriceFeed.json";
+import BPABI from "../../abis/BeyondPricer.json";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import {
@@ -13,20 +14,17 @@ import {
   OptionsTradingActionType,
   OptionType
 } from "../../state/types";
+import { useContract } from "../../hooks/useContract";
+import NumberFormat from "react-number-format";
+import addresses from "../../contracts.json";
+import { ContractAddresses, ETHNetwork } from "../../types";
+import { LiquidityPool } from "../../types/LiquidityPool";
+import { PriceFeed } from "../../types/PriceFeed";
+import { fromWei, tFormatUSDC, toWei } from "../../utils/conversion-helper";
 import {
   calculateOptionDeltaLocally,
   returnIVFromQuote,
 } from "../../utils/helpers";
-import { useContract } from "../../hooks/useContract";
-import { toWei, fromWei } from "../../utils/conversion-helper";
-import NumberFormat from "react-number-format";
-import addresses from "../../contracts.json";
-import { ContractAddresses, ETHNetwork } from "../../types";
-import { ERC20 } from "../../types/ERC20";
-import { LiquidityPool } from "../../types/LiquidityPool";
-import { OptionRegistry } from "../../types/OptionRegistry";
-import { PortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed"
-import { PriceFeed } from "../../types/PriceFeed";
 
 const isNotTwoDigitsZero = (price: number) => {
   // TODO: Not sure this makes sense, come back to it after figuring out pricing
@@ -58,11 +56,17 @@ export const OptionsTable = () => {
     dispatch,
   } = useOptionsTradingContext();
 
-  const [suggestions, setSuggestions] = useState<Option[] | null>(null);
+  // TODO: put down the actual type
+  const [suggestions, setSuggestions] = useState<Array<any> | null>(null);
 
   const [liquidityPool] = useContract<any>({
     contract: "liquidityPool",
     ABI: LPABI,
+  });
+
+  const [beyondPricer] = useContract<any>({
+    contract: "beyondPricer",
+    ABI: BPABI,
   });
 
   const [optionRegistry] = useContract({
@@ -107,47 +111,125 @@ export const OptionsTable = () => {
         const network = chain.network as ETHNetwork;
         const suggestions = await Promise.all(
           strikes.map(async (strike) => {
-            const optionSeries = {
+            const optionSeriesCall = {
               // TODO make sure this UTC set is done in the right place
               expiration: Number(expiryDate?.setUTCHours(8, 0, 0)) / 1000,
               strike: toWei(strike.toString()),
-              isPut: optionType !== OptionType.CALL,
               strikeAsset: typedAddresses[network].USDC,
               underlying: typedAddresses[network].WETH,
               collateral: typedAddresses[network].USDC,
+              isPut: false,
             };
 
-            const localQuote = await calculateOptionQuoteLocally(
-              liquidityPool as LiquidityPool,
-              optionRegistry as OptionRegistry,
-              portfolioValuesFeed as PortfolioValuesFeed,
-              usdc as ERC20,
-              priceFeed as PriceFeed,
-              optionSeries,
-              toWei((1).toString()),
-              true
+            const optionSeriesPut = {
+              ...optionSeriesCall,
+              isPut: false, // TODO: Change this to true after figuring out why contracts reverts
+            };
+
+            const quoteAskCall = await beyondPricer?.quoteOptionPrice(
+              optionSeriesCall,
+              "1000000000000000000", // 1 for the table view but fetch if user wants to buy more
+              false,
+              0
+            );
+            const quoteAskPut = await beyondPricer?.quoteOptionPrice(
+              optionSeriesPut,
+              "1000000000000000000", // 1 for the table view but fetch if user wants to buy more
+              false,
+              0 // NOTE: not sure where to get this from
             );
 
-            const localDelta = await calculateOptionDeltaLocally(
+            const quoteAskCallTotal = tFormatUSDC(
+              quoteAskCall[0].add(quoteAskCall[2])
+            );
+            const quoteAskPutTotal = tFormatUSDC(
+              quoteAskPut[0].add(quoteAskPut[2])
+            );
+
+            const quoteBidCall = await beyondPricer?.quoteOptionPrice(
+              optionSeriesCall,
+              "1000000000000000000", // 1 for the table view but fetch if user wants to sell more
+              true,
+              0
+            );
+            const quoteBidPut = await beyondPricer?.quoteOptionPrice(
+              optionSeriesPut,
+              "1000000000000000000", // 1 for the table view but fetch if user wants to sell more
+              true,
+              0
+            );
+
+            const quoteBidCallTotal = tFormatUSDC(
+              quoteBidCall[0].add(quoteBidCall[2])
+            );
+            const quoteBidPutTotal = tFormatUSDC(
+              quoteBidPut[0].add(quoteBidPut[2])
+            );
+
+            const localDeltaCall = await calculateOptionDeltaLocally(
               liquidityPool as LiquidityPool,
               priceFeed as PriceFeed,
-              optionSeries,
+              optionSeriesCall,
               toWei((1).toString()),
               false
             );
 
-            const iv = await returnIVFromQuote(
-              localQuote,
+            const localDeltaPut = await calculateOptionDeltaLocally(
+              liquidityPool as LiquidityPool,
               priceFeed as PriceFeed,
-              optionSeries
+              optionSeriesPut,
+              toWei((1).toString()),
+              false // TODO: Figure out if we need 1 more column for shorting true
+            );
+
+            // QUESTION: Calculated on total including fees?
+            const ivAskCall = await returnIVFromQuote(
+              quoteAskCallTotal,
+              priceFeed as PriceFeed,
+              optionSeriesCall
+            );
+            const ivBidCall = await returnIVFromQuote(
+              quoteBidCallTotal,
+              priceFeed as PriceFeed,
+              optionSeriesCall
+            );
+
+            const ivAskPut = await returnIVFromQuote(
+              quoteAskPutTotal,
+              priceFeed as PriceFeed,
+              optionSeriesPut
+            );
+            const ivBidPut = await returnIVFromQuote(
+              quoteBidPutTotal,
+              priceFeed as PriceFeed,
+              optionSeriesPut
             );
 
             return {
               strike: strike,
-              IV: iv * 100,
-              delta: Number(fromWei(localDelta).toString()),
-              price: localQuote,
-              type: optionType,
+              IV: 13,
+              call: {
+                bid: {
+                  IV: ivBidCall,
+                  quote: quoteBidCallTotal,
+                },
+                ask: {
+                  IV: ivAskCall,
+                  quote: quoteAskCallTotal,
+                },
+                delta: Number(fromWei(localDeltaCall).toString()),
+              },
+              put: {
+                bid: {
+                  IV: ivBidPut,
+                  quote: quoteBidPutTotal,
+                },
+                ask: {
+                  IV: ivAskPut,
+                  quote: quoteAskPutTotal,
+                },
+                delta: Number(fromWei(localDeltaPut).toString()),
+              },
             };
           })
         );
@@ -208,7 +290,11 @@ export const OptionsTable = () => {
           >
             <td className="pr-4">
               <NumberFormat
-                value={isNotTwoDigitsZero(option.IV) ? option.IV : "-"}
+                value={
+                  isNotTwoDigitsZero(option.call.bid.IV)
+                    ? option.call.bid.IV
+                    : "-"
+                }
                 displayType={"text"}
                 decimalScale={2}
                 suffix={"%"}
@@ -216,7 +302,11 @@ export const OptionsTable = () => {
             </td>
             <td className="pr-4 text-red-700">
               <NumberFormat
-                value={isNotTwoDigitsZero(option.price) ? option.price : ""}
+                value={
+                  isNotTwoDigitsZero(option.call.bid.quote)
+                    ? option.call.bid.quote
+                    : ""
+                }
                 displayType={"text"}
                 decimalScale={2}
                 prefix={"$"}
@@ -224,7 +314,11 @@ export const OptionsTable = () => {
             </td>
             <td className="pr-4 text-green-700">
               <NumberFormat
-                value={isNotTwoDigitsZero(option.price) ? option.price : ""}
+                value={
+                  isNotTwoDigitsZero(option.call.ask.quote)
+                    ? option.call.ask.quote
+                    : ""
+                }
                 displayType={"text"}
                 decimalScale={2}
                 prefix={"$"}
@@ -232,7 +326,11 @@ export const OptionsTable = () => {
             </td>
             <td className="pr-4">
               <NumberFormat
-                value={isNotTwoDigitsZero(option.IV) ? option.IV : "-"}
+                value={
+                  isNotTwoDigitsZero(option.call.ask.IV)
+                    ? option.call.ask.IV
+                    : "-"
+                }
                 displayType={"text"}
                 decimalScale={2}
                 suffix={"%"}
@@ -240,7 +338,7 @@ export const OptionsTable = () => {
             </td>
             <td className="pr-4">
               <NumberFormat
-                value={option.delta}
+                value={option.call.delta}
                 displayType={"text"}
                 decimalScale={2}
               />
@@ -251,7 +349,11 @@ export const OptionsTable = () => {
             {/** TODO numbers below are same as calls here */}
             <td className="pr-4">
               <NumberFormat
-                value={isNotTwoDigitsZero(option.IV) ? option.IV : "-"}
+                value={
+                  isNotTwoDigitsZero(option.put.bid.IV)
+                    ? option.put.bid.IV
+                    : "-"
+                }
                 displayType={"text"}
                 decimalScale={2}
                 suffix={"%"}
@@ -259,7 +361,11 @@ export const OptionsTable = () => {
             </td>
             <td className="pr-4 text-red-700">
               <NumberFormat
-                value={isNotTwoDigitsZero(option.price) ? option.price : ""}
+                value={
+                  isNotTwoDigitsZero(option.put.bid.quote)
+                    ? option.put.bid.quote
+                    : ""
+                }
                 displayType={"text"}
                 decimalScale={2}
                 prefix={"$"}
@@ -267,7 +373,11 @@ export const OptionsTable = () => {
             </td>
             <td className="pr-4 text-green-700">
               <NumberFormat
-                value={isNotTwoDigitsZero(option.price) ? option.price : ""}
+                value={
+                  isNotTwoDigitsZero(option.put.ask.quote)
+                    ? option.put.ask.quote
+                    : ""
+                }
                 displayType={"text"}
                 decimalScale={2}
                 prefix={"$"}
@@ -275,7 +385,11 @@ export const OptionsTable = () => {
             </td>
             <td className="pr-4">
               <NumberFormat
-                value={isNotTwoDigitsZero(option.IV) ? option.IV : "-"}
+                value={
+                  isNotTwoDigitsZero(option.put.ask.IV)
+                    ? option.put.ask.IV
+                    : "-"
+                }
                 displayType={"text"}
                 decimalScale={2}
                 suffix={"%"}
@@ -283,7 +397,7 @@ export const OptionsTable = () => {
             </td>
             <td className="pr-4">
               <NumberFormat
-                value={option.delta}
+                value={option.put.delta}
                 displayType={"text"}
                 decimalScale={2}
               />
