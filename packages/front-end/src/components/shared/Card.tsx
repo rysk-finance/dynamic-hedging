@@ -1,13 +1,15 @@
 import type { ReactElement } from "react";
 
-import { useState } from "react";
+import { createElement, useState } from "react";
 
 interface CardProps {
   tabs: {
     label: string;
     content: ReactElement;
-    title?: ReactElement;
   }[];
+  contentNodeType?: string;
+  contentClasses?: string;
+  wrapperClasses?: string;
   tabWidth?: number;
   tabHeight?: number;
   initialTabIndex?: number;
@@ -15,6 +17,9 @@ interface CardProps {
 
 export const Card = ({
   tabs,
+  contentNodeType = "div",
+  contentClasses = "",
+  wrapperClasses = "",
   tabWidth = 180,
   tabHeight = 36,
   initialTabIndex = 0,
@@ -22,16 +27,16 @@ export const Card = ({
   const [selectedTabIndex, setSelectedTabIndex] = useState(initialTabIndex);
 
   return (
-    <div className="w-full h-full relative">
-      <div className="flex">
+    <div className={`w-full h-full relative ${wrapperClasses}`}>
+      <nav className="flex" role="tablist">
         {tabs.map((tab, index) => (
-          <div
+          <a
             key={tab.label}
             className={`bg-[url('./assets/CardTab.svg')] ${
               tabs.length > 1 && "cursor-pointer"
             } bg-[length:100%_100%] ${
               index !== selectedTabIndex ? "contrast-[50%]" : ""
-            } px-2 flex items-center`}
+            } px-2 flex items-center !text-white`}
             style={{
               transform: `translateX(-${index * 10}px)`,
               width: tabWidth,
@@ -39,23 +44,20 @@ export const Card = ({
               zIndex: index === selectedTabIndex ? 1 : 0,
             }}
             onClick={() => setSelectedTabIndex(index)}
+            role="tab"
           >
-            <p className="text-white">{tab.label}</p>
-          </div>
+            {tab.label}
+          </a>
         ))}
-      </div>
-      {tabs[selectedTabIndex].title && (
-        <div className="bg-black rounded-tr-lg h-[60px]">
-          <p>{tabs[selectedTabIndex].title}</p>
-        </div>
+      </nav>
+
+      {createElement(
+        contentNodeType,
+        {
+          className: `border-x-2 border-b-2 rounded-b-xl border-black overflow-hidden border-t-[2px] rounded-tr-lg ${contentClasses}`,
+        },
+        tabs[selectedTabIndex].content
       )}
-      <div
-        className={`border-x-2 border-b-2 rounded-b-xl border-black overflow-hidden ${
-          !tabs[selectedTabIndex].title && "border-t-[2px] rounded-tr-lg"
-        }`}
-      >
-        {tabs[selectedTabIndex].content}
-      </div>
     </div>
   );
 };
