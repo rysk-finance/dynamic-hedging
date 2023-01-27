@@ -34,44 +34,44 @@ $ sudo apt-get install jq
 
 1. Clone the repo
 
-   ```sh
-   git clone
-   ```
+    ```sh
+    git clone
+    ```
 
 2. Install packages
 
-   ```sh
-   yarn
-   ```
+    ```sh
+    yarn
+    ```
 
 3. Add environment variables
 
-   You will need to create free API keys for Alchemy and Infura. You can then:
+    You will need to create free API keys for Alchemy and Infura. You can then:
 
-   - Create `/packages/contracts/.env`
-   - Add `ALCHEMY=<your-alchemy-key>`
-   - Create `/packages/front-end/.env`
-   - Add `REACT_APP_INFURA_KEY=<your-infura-key>`
+    - Create `/packages/contracts/.env`
+    - Add `ALCHEMY=<your-alchemy-key>`
+    - Create `/packages/front-end/.env`
+    - Add `REACT_APP_INFURA_KEY=<your-infura-key>`
 
 4. Compile contracts
 
-   ```sh
-   yarn workspace contracts compile
-   ```
+    ```sh
+    yarn workspace contracts compile
+    ```
 
 5. Deploy contracts and update ABIs + address
 
-   ```sh
-   yarn workspace contracts deploy:localhost
-   ```
+    ```sh
+    yarn workspace contracts deploy:localhost
+    ```
 
 6. Start the front end
 
-   ```sh
-   yarn workspace front-end start
-   ```
+    ```sh
+    yarn workspace front-end start
+    ```
 
-   It will become accessible on http://localhost:3000
+    It will become accessible on http://localhost:3000
 
 ## Usage examples
 
@@ -81,27 +81,27 @@ Complete steps 1 to 3 from the installation section and then:
 
 1. Compile all files
 
-   ```sh
-   yarn workspace contracts compile
-   ```
+    ```sh
+    yarn workspace contracts compile
+    ```
 
 2. Run all tests
 
-   ```sh
-   yarn workspace contracts test
-   ```
+    ```sh
+    yarn workspace contracts test
+    ```
 
-   To run a specific test suite, e.g. `LiquidityPool.ts`
+    To run a specific test suite, e.g. `LiquidityPool.ts`
 
-   ```sh
-   yarn workspace contracts test test/LiquidityPool.ts
-   ```
+    ```sh
+    yarn workspace contracts test test/LiquidityPool.ts
+    ```
 
-   Run test coverage
+    Run test coverage
 
-   ```sh
-   yarn workspace contracts test-coverage
-   ```
+    ```sh
+    yarn workspace contracts test-coverage
+    ```
 
 ## Contract Architecture
 
