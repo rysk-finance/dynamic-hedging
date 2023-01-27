@@ -25,9 +25,16 @@ npm install --global yarn
 ```
 
 We use jq for formatting JSON files from the command line. To install it, you might have to run:
+For linux:
 
 ```sh
 $ sudo apt-get install jq
+```
+
+For macOS:
+
+```sh
+$ brew install jq
 ```
 
 ### Installation
