@@ -71,6 +71,8 @@ $ sudo apt-get install jq
    yarn workspace front-end start
    ```
 
+   It will become accessible on http://localhost:3000
+
 ## Usage examples
 
 ### Testing Contracts
