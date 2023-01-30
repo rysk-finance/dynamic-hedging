@@ -58,7 +58,10 @@ export const Chart = ({ chartData }: ChartProps) => (
             dayjs.unix(parseInt(value)).format("DD MMM")
           }
         />
-        <YAxis tickFormatter={(value: string) => `${value}%`} />
+        <YAxis
+          padding={{ top: 16, bottom: 16 }}
+          tickFormatter={(value: string) => `${value}%`}
+        />
         <Tooltip content={<CustomTooltip />} />
         <Legend verticalAlign="bottom" formatter={() => "Cumulative Yield"} />
       </LineChart>
