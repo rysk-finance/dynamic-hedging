@@ -1,6 +1,9 @@
 import type { ReactElement } from "react";
 
 import { createElement, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+
+import FadeInOut from "src/animation/FadeInOut";
 
 interface CardProps {
   tabs: {
@@ -29,32 +32,39 @@ export const Card = ({
   return (
     <div className={`w-full h-full relative ${wrapperClasses}`}>
       <nav className="flex" role="tablist">
-        {tabs.map((tab, index) => (
-          <a
-            key={tab.label}
-            className={`bg-[url('./assets/CardTab.svg')] ${
-              tabs.length > 1 && "cursor-pointer"
-            } bg-[length:100%_100%] ${
-              index !== selectedTabIndex ? "contrast-[50%]" : ""
-            } px-2 flex items-center !text-white`}
-            style={{
-              transform: `translateX(-${index * 10}px)`,
-              width: tabWidth,
-              height: tabHeight,
-              zIndex: index === selectedTabIndex ? 1 : 0,
-            }}
-            onClick={() => setSelectedTabIndex(index)}
-            role="tab"
-          >
-            {tab.label}
-          </a>
-        ))}
+        <AnimatePresence
+          initial={false}
+          mode={tabs.length > 1 ? "sync" : "wait"}
+        >
+          {tabs.map((tab, index) => (
+            <a
+              key={tab.label}
+              className={`bg-[url('./assets/CardTab.svg')] ${
+                tabs.length > 1 && "cursor-pointer"
+              } bg-[length:100%_100%] ${
+                index !== selectedTabIndex ? "contrast-[50%]" : ""
+              } px-2 flex items-center !text-white`}
+              style={{
+                transform: `translateX(-${index * 10}px)`,
+                width: tabWidth,
+                height: tabHeight,
+                zIndex: index === selectedTabIndex ? 1 : 0,
+              }}
+              onClick={() => setSelectedTabIndex(index)}
+              role="tab"
+            >
+              <motion.p key={tab.label} {...FadeInOut(0.75)}>
+                {tab.label}
+              </motion.p>
+            </a>
+          ))}
+        </AnimatePresence>
       </nav>
 
       {createElement(
         contentNodeType,
         {
-          className: `bg-bone border-x-2 border-b-2 rounded-b-xl border-black overflow-hidden border-t-[2px] rounded-tr-lg drop-shadow-lg ${contentClasses}`,
+          className: `min-h-[3.75rem] bg-bone border-x-2 border-b-2 rounded-b-xl border-black overflow-hidden border-t-[2px] rounded-tr-lg drop-shadow-lg ${contentClasses}`,
         },
         tabs[selectedTabIndex].content
       )}
