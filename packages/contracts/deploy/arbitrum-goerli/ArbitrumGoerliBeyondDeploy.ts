@@ -36,7 +36,7 @@ const gammaOracleAddress = "0x35578F5A49E1f1Cf34ed780B46A0BdABA23D4C0b"
 const opynControllerProxyAddress = "0x11a602a5F5D823c103bb8b7184e22391Aae5F4C2"
 const opynAddressBookAddress = "0xd6e67bF0b1Cdb34C37f31A2652812CB30746a94A"
 const opynNewCalculatorAddress = "0xcD270e755C2653e806e16dD3f78E16C89B7a1c9e"
-const oTokenFactoryAddress = "0xB19d2eA6f662b13F530CB84B048877E5Ed0bD8FE"
+const oTokenFactoryAddress = "0x7595F9c5B93f1478dC0836BdFCb87fF3A8970B10"
 const marginPoolAddress = "0x0E0Ad3eA82EFAeAFb4476f5E8225b4746B88FD9f"
 const sequencerUptimeAddress = "0x4da69F028a5790fCCAfe81a75C0D24f46ceCDd69"
 
@@ -295,14 +295,15 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		}
 	})
 	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
-		authority.address
+		authority.address,
+		toWei("50000")
 	)) as AlphaPortfolioValuesFeed
 	console.log("alpha portfolio values feed deployed")
 
 	try {
 		await hre.run("verify:verify", {
 			address: portfolioValuesFeed.address,
-			constructorArguments: [authority.address]
+			constructorArguments: [authority.addres, toWei("50000")]
 		})
 
 		console.log("portfolio values feed verified")
@@ -645,14 +646,13 @@ export async function deployLiquidityPool(
 	const catalogueFactory = await ethers.getContractFactory("OptionCatalogue")
 	const catalogue = (await catalogueFactory.deploy(
 		authority,
-		usd.address,
-		toWei("50000")
+		usd.address
 	)) as OptionCatalogue
 
 	try {
 		await hre.run("verify:verify", {
 			address: catalogue.address,
-			constructorArguments: [authority, usd.address, toWei("50000")]
+			constructorArguments: [authority, usd.address]
 		})
 		console.log("catalogue verified")
 	} catch (err: any) {
@@ -694,7 +694,6 @@ export async function deployLiquidityPool(
 	}
 	console.log("exchange deployed")
 
-	await catalogue.setUpdater(exchange.address, true)
 	await liquidityPool.changeHandler(exchange.address, true)
 	await liquidityPool.setHedgingReactorAddress(exchange.address)
 
@@ -702,22 +701,20 @@ export async function deployLiquidityPool(
 	const handler = (await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,
-		liquidityPool.address,
-		catalogue.address
+		liquidityPool.address
 	)) as AlphaOptionHandler
 	console.log("option handler deployed")
 
 	try {
 		await hre.run("verify:verify", {
 			address: handler.address,
-			constructorArguments: [authority, optionProtocol.address, liquidityPool.address, catalogue.address]
+			constructorArguments: [authority, optionProtocol.address, liquidityPool.address]
 		})
 		console.log("optionHandler verified")
 	} catch (err: any) {
 		console.log(err)
 	}
 
-	await catalogue.setUpdater(handler.address, true)
 	await liquidityPool.changeHandler(handler.address, true)
 	await pvFeed.setKeeper(handler.address, true)
 	await pvFeed.setKeeper(exchange.address, true)
