@@ -24,6 +24,20 @@ At Rysk, we use Yarn for package management with Yarn workspaces. To get started
 npm install --global yarn
 ```
 
+We use jq for formatting JSON files from the command line. To install it, you might have to run:
+
+For linux:
+
+```sh
+$ sudo apt-get install jq
+```
+
+For macOS:
+
+```sh
+$ brew install jq
+```
+
 ### Installation
 
 1. Clone the repo
@@ -64,6 +78,8 @@ npm install --global yarn
     ```sh
     yarn workspace front-end start
     ```
+
+    It will become accessible on http://localhost:3000
 
 ## Usage examples
 
