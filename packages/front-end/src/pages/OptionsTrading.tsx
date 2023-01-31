@@ -6,7 +6,7 @@ import { OptionsTradingProvider } from "../state/OptionsTradingContext";
 export const OptionsTrading = () => {
   return (
     <OptionsTradingProvider>
-      <WIPPopup />
+      {/*<WIPPopup />*/}
       <SetOptionParams />
       <OptionsTradingContent />
     </OptionsTradingProvider>
