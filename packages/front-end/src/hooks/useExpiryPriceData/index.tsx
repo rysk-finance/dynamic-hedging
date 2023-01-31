@@ -1,14 +1,19 @@
+import type { OracleAsset, OracleAssets } from "./types";
+
 import { gql, useQuery } from "@apollo/client";
+import { captureException } from "@sentry/react";
 import { useState } from "react";
 
 export function useExpiryPriceData() {
-  const [allOracleAssets, setAllOracleAssets] = useState<any[] | null>(null);
+  const [allOracleAssets, setAllOracleAssets] = useState<OracleAsset[] | null>(
+    null
+  );
 
-  const getOracleAssetsAndPricers = (data: any) => {
+  const getOracleAssetsAndPricers = (data: OracleAssets) => {
     setAllOracleAssets(data.oracleAssets);
   };
 
-  useQuery(
+  useQuery<OracleAssets>(
     gql`
       query {
         oracleAssets {
@@ -35,6 +40,7 @@ export function useExpiryPriceData() {
     {
       onCompleted: getOracleAssetsAndPricers,
       onError: (err) => {
+        captureException(err);
         console.log(err);
       },
       context: { clientName: "opyn" },
