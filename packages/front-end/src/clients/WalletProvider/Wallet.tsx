@@ -80,7 +80,7 @@ const WalletProvider = ({ children }: PropsWithChildren<unknown>) => {
         showRecentTransactions={true}
         theme={CustomTheme}
       >
-        <div className="toilet">{children}</div>
+        <div>{children}</div>
       </RainbowKitProvider>
     </WagmiConfig>
   );
