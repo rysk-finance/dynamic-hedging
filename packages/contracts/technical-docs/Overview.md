@@ -16,7 +16,6 @@ OTC via the AlphaOptionHandler: This is a contract that is authorised to interac
 
 Exchange via the OptionExchange: This is a contract that is authorised to interact with options buying/selling functionality of the LiquidityPool. It acts as an options exchange between the users and the dhv, users are able to buy options from the vault and sell options to the vault refer to OptionExchange.md. When users are buying options they can purchase these from the liquidityPool which will collateralise and sell these to the user. Options that users are able to purchase are defined in the OptionCatalogue which keeps record of options that have been approved for sale or purchase.
 
-
 Options are priced by the BeyondPricer.sol described in BeyondPricer.md.
 
 Then the liquidityPool will take the instruction from the handler, process it and pass it to the optionsRegistry for processing on the [opyn-rysk gamma protocol](https://github.com/rysk-finance/GammaProtocol) alongside any funds needed to collateralise the option positon if it is a write operation.
