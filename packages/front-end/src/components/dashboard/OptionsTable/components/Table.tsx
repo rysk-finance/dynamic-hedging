@@ -79,7 +79,9 @@ const Table = ({ positions, completeRedeem }: TableProps) => (
               displayType={"text"}
               decimalScale={2}
               renderText={(value) => (
-                <td className="col-span-2 text-right">{value}</td>
+                <td className="col-span-2 text-right">
+                  {amount ? value : "-"}
+                </td>
               )}
             />
             <NumberFormat
@@ -88,7 +90,9 @@ const Table = ({ positions, completeRedeem }: TableProps) => (
               prefix="$"
               decimalScale={2}
               renderText={(value) => (
-                <td className="col-span-2 text-right">{value}</td>
+                <td className="col-span-2 text-right">
+                  {Number(entryPrice) ? value : "-"}
+                </td>
               )}
             />
             <NumberFormat
