@@ -29,6 +29,11 @@ export const toWeiFromUSDC = (x: string) => utils.parseUnits(x, 12);
 export const fromWeiToUSDC = (x: string) =>
   utils.parseUnits(utils.formatEther(x), 6);
 export const fromOpyn = (x: BigNumberish) => utils.formatUnits(x, 8);
+export const fromOpynHumanised = (x?: BigNumberish) => {
+  if (!x) return undefined;
+
+  return Number(utils.formatUnits(x, 8)).toFixed(2);
+};
 export const getDiffSeconds = (now: Dayjs, future: Dayjs) =>
   future.unix() - now.unix();
 export const convertRounded = (x: BigNumberish): number =>
