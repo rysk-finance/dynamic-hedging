@@ -2,7 +2,7 @@
 
 ### `fulfill(address underlying, address strikeAsset) external` *No Access Control*
 
-This function is responsible for doing the calculation for determining the portfolio delta and portfolio valuation. It achieves this by storing all the addresses of series held by the liquidityPool in an addressSet where each address is a key to a mapping that contains details on the option position [option series (with strike in e18) and amount in e18], then looping over all of these and computing the delta and value of each one, then finally summing those to form the portfolio delta and value. The amount incremented is the netExposure (shortExposure - longExposure)
+This function is responsible for doing the calculation for determining the portfolio delta and portfolio valuation. It achieves this by storing all the addresses of series held by the liquidityPool in an addressSet where each address is a key to a mapping that contains details on the option position [option series (with strike in e18) and amount in e18], then looping over all of these and computing the delta and value of each one, then finally summing those to form the portfolio delta and value. The amount incremented is the netExposure (shortExposure - longExposure).
 
 
 It works by looping through the `addressSet` then searching the `storesForAddress` mapping using the address of the loop. It first checks that the series being calculated has expired, if it has expired the fulfill will revert (the revert will also provide the address and index that it reverted at), what this indicates is that the oToken vault needs to be settled or redeemed and then removed from the loop via `syncLooper` or `cleanLooperManually`. This is done to prevent any miscalculated values of the pool due to expired options, since valuations are done manually and infrequently, this is reasonable to do. After that the volatility is determined from the `VolatilityFeed` and the black scholes delta and value of the option of the loop is determined. These values then increment the portfolioValues. Once the loop is complete, the delta and `portfolioValues` are pushed to storage.
@@ -15,6 +15,8 @@ Update stores is the function that tells the Portfolio values feed any new posit
 An EnumerableSet.AddressSet by OpenZeppelin is used as it is easier to clean and much easier to search through.
 
 Update stores can theoretically be pushed to by any set of contracts, meaning that a buyside products could also be used and could share the same liquidityPool liquidity and be represented by the same portfolio. Long exposure and short exposure are updated seperately and they are ints so that reducing positions is easily done via `updateStores`.
+
+The netdhvexposure is also stored this represents a running count of the exposure of a given option (collateral is not used as part of the option hash (same option hash as OptionCatalogue) as unlike the stores, we want to know exposure of an option regardless of collateral, whereas stores cares about the collateral of the option series). The netdhvexposure including the change cannot exceed the maxNetDhvExposure which is a governance settable limit.
 
 ### `syncLooper() external` *Only Accessible by keeper or above*
 
