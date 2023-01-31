@@ -2,7 +2,7 @@ import { AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
 
 import { Card } from "src/components/shared/Card";
-import LoadingOrError from "src/components/shared/Loading";
+import LoadingOrError from "src/components/shared/LoadingOrError";
 import Disconnected from "./components/Disconnected";
 import NoneFound from "./components/NoneFound";
 import Table from "./components/Table";

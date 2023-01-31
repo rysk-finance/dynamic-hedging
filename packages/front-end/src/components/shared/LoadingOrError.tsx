@@ -8,7 +8,7 @@ import FadeInOut from "src/animation/FadeInOut";
 const errorString =
   "A fatal error occurred, please try again later - SIGABRT (Error code: 0x79759)";
 const loadingStrings = [
-  "Booting Rysk v1.0.0...",
+  `Booting Rysk v1.0.0...`,
   "Fetching data from Subgraph...",
   "Loading...",
 ];
