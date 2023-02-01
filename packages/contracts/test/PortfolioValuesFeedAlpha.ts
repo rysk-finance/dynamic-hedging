@@ -265,7 +265,8 @@ describe("APVF gas tests", async () => {
 				}
 			})
 			migratePortfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
-				authority
+				authority,
+				toWei("50000")
 			)) as AlphaPortfolioValuesFeed
 			await migratePortfolioValuesFeed.setHandler(portfolioValuesFeed.address, true)
 			await migratePortfolioValuesFeed.setLiquidityPool(liquidityPool.address)
