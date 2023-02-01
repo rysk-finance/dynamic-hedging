@@ -5,6 +5,11 @@
 				"internalType": "address",
 				"name": "_authority",
 				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_maxNetDhvExposure",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "nonpayable",
@@ -13,6 +18,11 @@
 	{
 		"inputs": [],
 		"name": "IncorrectSeriesToRemove",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "MaxNetDhvExposureExceeded",
 		"type": "error"
 	},
 	{
@@ -44,6 +54,11 @@
 			}
 		],
 		"name": "OptionHasExpiredInStores",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "PRBMathSD59x18__AbsInputTooSmall",
 		"type": "error"
 	},
 	{
@@ -116,6 +131,19 @@
 			}
 		],
 		"name": "DataFullfilled",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "maxNetDhvExposure",
+				"type": "uint256"
+			}
+		],
+		"name": "MaxNetDhvExposureUpdated",
 		"type": "event"
 	},
 	{
@@ -434,6 +462,19 @@
 		"type": "function"
 	},
 	{
+		"inputs": [],
+		"name": "maxNetDhvExposure",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "contract IPortfolioValuesFeed",
@@ -444,6 +485,25 @@
 		"name": "migrate",
 		"outputs": [],
 		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"name": "netDhvExposure",
+		"outputs": [
+			{
+				"internalType": "int256",
+				"name": "",
+				"type": "int256"
+			}
+		],
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -554,6 +614,19 @@
 			}
 		],
 		"name": "setLiquidityPool",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_maxNetDhvExposure",
+				"type": "uint256"
+			}
+		],
+		"name": "setMaxNetDhvExposure",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"

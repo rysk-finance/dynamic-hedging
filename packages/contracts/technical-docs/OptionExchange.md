@@ -113,12 +113,6 @@ CloseOption -> _sellOption(isClose) [for a seller to ONLY close options to the d
 
 ## Function by Function
 
-### ```issueNewSeries(Types.Option[] memory options) ``` ***Access Controlled***
-This function allows the manager to enable options that can be bought or sold. It first converts the strike to a valid strike that has been correctly formatted. Then an optionHash is made ```keccak256(abi.encodePacked(o.expiration, strike, o.isPut))```. This option hash is approved on the approvedOptions mapping then whether the option hash isBuyable and isSellable (this is taken from the perspective of the user). For frontend use we store the expiration in an array (we do not repeat expirations in the array) then we also store strike in an array which is stored in optionDetails[expiration][isPut] depending on the option (strikes and expirations should never be repeated in the same array)
-
-### ```changeOptionBuyOrSell(Types.Option[] memory options) ``` ***Access Controlled***
-This function allows the manager to alter the buy and sell status for an option already approved. It first converts the strike to a valid strike that has been correctly formatted. Then an optionHash is made ```keccak256(abi.encodePacked(o.expiration, strike, o.isPut))```.
-
 ### ```createOtoken(Types.OptionSeries memory optionSeries) ``` ***NonTrustedAccessible***
 This function creates an otoken with the specified optionSeries, note: it takes in an e18 value and converts this to an e8 strike that is correctly rounded as opyn would round it.
 
@@ -130,6 +124,10 @@ As there can be otokens held by the exchange contract when a user sells options 
 
 ### ```withdraw, update, hedgeDelta ``` ***Access Controlled to the LiquidityPool***
 These are functions required by the IHedgingReactor interface which is necessary because the exchange is a reactor. update returns 0 and hedgeDelta reverts such that if it is accidentally called it doesnt trigger a RebalancePortfolioDelta event on the LiquidityPool. Whereas withdraw simply returns any loose USDC held in the exchange to the liquidity pool if called.
+
+### ```migrateOtokens(address[] memory _series) ``` ***Access Controlled***
+As there can be otokens held by the exchange contract when a user sells options to the exchange, in the event of an upgrade of the OptionExchange we need to transfer any otokens in the contract to the new contract, this function simply transfers a list of addresses passed in to the new options exchange. It is access controlled to Governor.
+
 
 
 

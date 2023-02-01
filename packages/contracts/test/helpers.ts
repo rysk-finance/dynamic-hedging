@@ -22,7 +22,7 @@ const { provider } = ethers
 const { parseEther } = ethers.utils
 const chainId = 1
 
-export async function getNetDhvExposure(strikePrice: BigNumberish, collateral: string, catalogue: OptionCatalogue, expiration: BigNumberish, flavor: boolean) {
+export async function getNetDhvExposure(strikePrice: BigNumberish, collateral: string, catalogue: OptionCatalogue, portfolioValuesFeed: AlphaPortfolioValuesFeed, expiration: BigNumberish, flavor: boolean) {
 	const formattedStrikePrice = (await catalogue.formatStrikePrice(strikePrice, collateral)).mul(
 		ethers.utils.parseUnits("1", 10)
 	)
@@ -30,7 +30,7 @@ export async function getNetDhvExposure(strikePrice: BigNumberish, collateral: s
 		["uint64", "uint128", "bool"],
 		[expiration, formattedStrikePrice, flavor]
 	)
-	return await catalogue.netDhvExposure(oHash)
+	return await portfolioValuesFeed.netDhvExposure(oHash)
 }
 export async function getSeriesWithe18Strike(proposedSeries: any, optionRegistry: OptionRegistry) {
 	const formattedStrike = await optionRegistry.formatStrikePrice(
@@ -65,6 +65,10 @@ export async function compareQuotes(
 		"OptionCatalogue",
 		await exchange.catalogue()
 	)) as OptionCatalogue
+	const portfolioValuesFeed = await (ethers.getContractAt(
+		"AlphaPortfolioValuesFeed",
+		await exchange.getPortfolioValuesFeed()
+	)) as AlphaPortfolioValuesFeed
 	const feePerContract = await pricer.feePerContract()
 	const localDelta = await calculateOptionDeltaLocally(
 		liquidityPool,
@@ -83,6 +87,7 @@ export async function compareQuotes(
 		pricer,
 		isSell,
 		catalogue,
+		portfolioValuesFeed,
 		localDelta.div(amount.div(toWei("1"))),
 		netDhvExposureOverride
 	)
@@ -143,6 +148,7 @@ export async function getExchangeParams(
 			(await optionToken.strikePrice()).mul(utils.parseUnits("1", 10)),
 			usd.address,
 			(await ethers.getContractAt("OptionCatalogue", await exchange.catalogue())) as OptionCatalogue,
+			(await ethers.getContractAt("AlphaPortfolioValuesFeed", await exchange.getPortfolioValuesFeed())) as AlphaPortfolioValuesFeed,
 			await optionToken.expiryTimestamp(),
 			await optionToken.isPut()
 		)
@@ -613,6 +619,7 @@ export async function localQuoteOptionPrice(
 	pricer: BeyondPricer,
 	isSell: boolean, // from perspective of user,
 	catalogue: OptionCatalogue,
+	portfolioValuesFeed: AlphaPortfolioValuesFeed,
 	optionDelta: BigNumber,
 	netDhvExposure: BigNumberish = 1
 ) {
@@ -629,6 +636,7 @@ export async function localQuoteOptionPrice(
 	const slip = await applySlippageLocally(
 		pricer,
 		catalogue,
+		portfolioValuesFeed,
 		optionSeries,
 		amount,
 		optionDelta,
@@ -656,6 +664,7 @@ export async function localQuoteOptionPrice(
 export async function applySlippageLocally(
 	beyondPricer: BeyondPricer,
 	catalogue: OptionCatalogue,
+	portfolioValuesFeed: AlphaPortfolioValuesFeed, 
 	optionSeries: any,
 	amount: BigNumber,
 	optionDelta: BigNumber,
@@ -670,7 +679,7 @@ export async function applySlippageLocally(
 		[optionSeries.expiration, formattedStrikePrice, optionSeries.isPut]
 	)
 	if (netDhvExposure == 1) {
-		netDhvExposure = await catalogue.netDhvExposure(oHash)
+		netDhvExposure = await portfolioValuesFeed.netDhvExposure(oHash)
 	}
 	const newExposureCoefficient = isSell
 		? parseFloat(fromWei(netDhvExposure)) + parseFloat(fromWei(amount))

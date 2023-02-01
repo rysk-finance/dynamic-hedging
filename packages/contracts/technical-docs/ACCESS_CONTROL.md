@@ -35,21 +35,18 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
     - pricer [the contract used for pricing options]: GOVERNOR
     - feeRecipient [the recipient of protocol fees]: GOVERNOR
     - poolFee [pool fees associated with swapping redeemed assets]
+    - approvedCollateral [mapping for collaterals we are enabling]
 - OptionExchange: withdraw: LIQUIDITY POOL
     - withdraw [give any loose USDC to the liquidityPool]
 - OptionExchange accessed controlled functions: MANAGER, GOVERNOR
     - redeem [redeem options held by the exchange]: MANAGER, GOVERNOR
+    - changeApprovedCollateral [change collateral allowed for the exchange]: GOVERNOR
+    - migrateOtokens [migrate held otokens to a new exchange]: GOVERNOR
 
 
 ## OptionCatalogue
 ### (GOVERNOR, MANAGER)
 
-- OptionCatalogue setters: GOVERNOR
-    - updater [able to update the netDhvExposure]: GOVERNOR
-    - maxNetDhvExposure [the maximum netDhvExposure that is allowed for a particular option series]: GOVERNOR
-- OptionExchange: UPDATER (OptionExchange and AlphaOptionHandler)
-    - updateNetDhvExposure [function that allows an updater to update the netdhvexposure of a given series, using the oHash]
-    - updateNetDhvExposureWithOptionSeries [function that allows an updater to update the netdhvexposure of a given series, using the option series struct]
 - OptionExchange accessed controlled functions: MANAGER, GOVERNOR
     - issueNewSeries [approve a new option type for trading]: MANAGER, GOVERNOR
     - changeOptionBuyOrSell [change whether an option type is available for buy or sell]: MANAGER, GOVERNOR
@@ -82,6 +79,7 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
     - rfr [riskFreeRate]: GOVERNOR
     - keeper [keepers can interact with maintenance tasks]: GOVERNOR
     - handler [handlers are contracts that can update the options storage]: GOVERNOR
+    - maxNetDhvExposure [the maximum netDhvExposure that is allowed for a particular option series]: GOVERNOR
 - AlphaPortfolioValuesFeed updateStores [update the options book of the contract]: HANDLER
 - AlphaPortfolioValuesFeed syncLooper [cleans the array used for storing options of expired options]: KEEPER
 - AlphaPortfolioValuesFeed cleanLooperManually [manually clean the for loop of a specific series]: KEEPER

@@ -235,7 +235,8 @@ describe("Volatility Feed", async () => {
 							putAlpha: 1,
 							putBeta: 1,
 							putRho: 1,
-							putVolvol: 1
+							putVolvol: 1,
+							interestRate: utils.parseEther("-0.001")
 						},
 						10
 					)
@@ -255,7 +256,8 @@ describe("Volatility Feed", async () => {
 							putAlpha: 2 ** 31, // max value is 2 ** 31 - 1
 							putBeta: 1,
 							putRho: 1,
-							putVolvol: 1
+							putVolvol: 1,
+							interestRate: utils.parseEther("-0.001")
 						},
 						10
 					)
