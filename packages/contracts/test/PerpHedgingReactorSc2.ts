@@ -2,22 +2,20 @@ import hre, { ethers, network } from "hardhat"
 import { Signer, BigNumber, BigNumberish } from "ethers"
 import { expect } from "chai"
 import { truncate } from "@ragetrade/sdk"
-import {
-	parseTokenAmount, toUSDC, toWei,
-} from "../utils/conversion-helper"
+import { parseTokenAmount, toUSDC, toWei } from "../utils/conversion-helper"
 import { MintableERC20 } from "../types/MintableERC20"
 import { PerpHedgingReactor } from "../types/PerpHedgingReactor"
 import { RageTradeFactory } from "../types/RageTradeFactory"
 import { PerpHedgingTest } from "../types/PerpHedgingTest"
-import {deployRage, deployRangeOrder} from "../utils/rage-deployer"
+import { deployRage, deployRangeOrder } from "../utils/rage-deployer"
 //@ts-ignore
 import { IUniswapV3Pool } from "../artifacts/@uniswap/v3-core-0.8-support/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json"
 import { ClearingHouse } from "../types/ClearingHouse"
-import {OracleMock} from "../types/OracleMock"
+import { OracleMock } from "../types/OracleMock"
 import { USDC_ADDRESS, USDC_OWNER_ADDRESS, WETH_ADDRESS, UNISWAP_V3_SWAP_ROUTER } from "./constants"
 import { PriceFeed } from "../types/PriceFeed"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
-import { priceToSqrtPriceX96, sqrtPriceX96ToPrice, sqrtPriceX96ToTick } from '../utils/price-tick';
+import { priceToSqrtPriceX96, sqrtPriceX96ToPrice, sqrtPriceX96ToTick } from "../utils/price-tick"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 import { ClearingHouseLens } from "../types/ClearingHouseLens"
 
@@ -34,17 +32,17 @@ let usdcContract: MintableERC20
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
 let rate: string
-let vTokenAddress : string
-let vQuoteAddress : string
-let rageOracle : OracleMock
+let vTokenAddress: string
+let vQuoteAddress: string
+let rageOracle: OracleMock
 let clearingHouseLens: ClearingHouseLens
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const UNISWAP_V3_FACTORY_ADDRESS = '0x1F98431c8aD98523631AE4a59f267346ea31F984'
-const UNISWAP_V3_DEFAULT_FEE_TIER = 500;
+const UNISWAP_V3_FACTORY_ADDRESS = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+const UNISWAP_V3_DEFAULT_FEE_TIER = 500
 // edit depending on the chain id to be tested on
 const chainId = 1
-const USDC_SCALE = '1000000000000'
-const e18 = '1000000000000000000'
+const USDC_SCALE = "1000000000000"
+const e18 = "1000000000000000000"
 
 describe("PerpHedgingReactor Sc2", () => {
 	before(async function () {
@@ -77,15 +75,18 @@ describe("PerpHedgingReactor Sc2", () => {
 			params: [USDC_OWNER_ADDRESS[chainId]]
 		})
 		usdcWhale = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
-		usdcContract = (await ethers.getContractAt("contracts/tokens/ERC20.sol:ERC20", USDC_ADDRESS[chainId])) as MintableERC20
+		usdcContract = (await ethers.getContractAt(
+			"contracts/tokens/ERC20.sol:ERC20",
+			USDC_ADDRESS[chainId]
+		)) as MintableERC20
 
 		await usdcContract
 			.connect(usdcWhale)
-			.transfer(liquidityPoolDummyAddress, (ethers.utils.parseUnits("1000000", 6)))
+			.transfer(liquidityPoolDummyAddress, ethers.utils.parseUnits("1000000", 6))
 		await usdcContract
 			.connect(usdcWhale)
 			.transfer(await signers[0].getAddress(), ethers.utils.parseUnits("1000000", 6))
-			await usdcContract
+		await usdcContract
 			.connect(usdcWhale)
 			.transfer(await signers[1].getAddress(), ethers.utils.parseUnits("10000000", 6))
 		const LPContractBalance = parseFloat(
@@ -118,7 +119,6 @@ describe("PerpHedgingReactor Sc2", () => {
 			"55340232221128660932"
 		)
 		await ethUSDAggregator.mock.decimals.returns("6")
-		
 	})
 
 	it("#deploys rage", async () => {
@@ -133,12 +133,9 @@ describe("PerpHedgingReactor Sc2", () => {
 		clearingHouseLens = rageParams.clearingHouseLens
 	})
 	it("#deploys the hedging reactor", async () => {
-		const perpHedgingReactorFactory = await ethers.getContractFactory(
-			"PerpHedgingReactor",
-			{
-				signer: signers[0]
-			}
-		)
+		const perpHedgingReactorFactory = await ethers.getContractFactory("PerpHedgingReactor", {
+			signer: signers[0]
+		})
 		perpHedgingReactor = (await perpHedgingReactorFactory.deploy(
 			clearingHouse.address,
 			USDC_ADDRESS[chainId],
@@ -153,9 +150,16 @@ describe("PerpHedgingReactor Sc2", () => {
 		expect(perpHedgingReactor).to.have.property("hedgeDelta")
 	})
 
-	it('#deploy range order', async () => {
-		await deployRangeOrder(signers, clearingHouse, usdcContract, collateralId, vTokenAddress, vQuoteAddress)
-	  });
+	it("#deploy range order", async () => {
+		await deployRangeOrder(
+			signers,
+			clearingHouse,
+			usdcContract,
+			collateralId,
+			vTokenAddress,
+			vQuoteAddress
+		)
+	})
 	it("sets reactor address on LP contract", async () => {
 		const reactorAddress = perpHedgingReactor.address
 
@@ -173,8 +177,11 @@ describe("PerpHedgingReactor Sc2", () => {
 		const delta = ethers.utils.parseEther("-20")
 		const deltaHedge = ethers.utils.parseEther("20")
 
-		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
-		const realSqrtPrice = await priceToSqrtPriceX96(2500, 6, 18);
+		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
+		const realSqrtPrice = await priceToSqrtPriceX96(2500, 6, 18)
 
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
@@ -183,13 +190,21 @@ describe("PerpHedgingReactor Sc2", () => {
 			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
-		await rageOracle.setSqrtPriceX96(realSqrtPrice);
+		await rageOracle.setSqrtPriceX96(realSqrtPrice)
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
 		const accountId = await perpHedgingReactor.accountId()
 		const collateralId = await perpHedgingReactor.collateralId()
-		const reactorCollatBalanceBefore =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorCollatBalanceBefore = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
 		expect(reactorWethBalanceBefore).to.equal(0)
-		const collatRequired = -((price.mul(delta).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE).add(1)
+		const collatRequired = -price
+			.mul(delta)
+			.div(toWei("1"))
+			.mul(await perpHedgingReactor.healthFactor())
+			.div(10000)
+			.div(USDC_SCALE)
+			.add(1)
 		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		await liquidityPoolDummy.hedgeDelta(delta)
@@ -204,14 +219,19 @@ describe("PerpHedgingReactor Sc2", () => {
 	})
 	it("hedges more negative delta", async () => {
 		const delta = ethers.utils.parseEther("-0.5")
-		const deltaHedge =  ethers.utils.parseEther("0.5")
+		const deltaHedge = ethers.utils.parseEther("0.5")
 		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
-		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
 		const accountId = await perpHedgingReactor.accountId()
 		const collateralId = await perpHedgingReactor.collateralId()
-		const reactorCollatBalanceBefore =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
-		const realSqrtPrice = await priceToSqrtPriceX96(2800, 6, 18);
+		const reactorCollatBalanceBefore = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
+		const realSqrtPrice = await priceToSqrtPriceX96(2800, 6, 18)
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			"2800000000",
@@ -219,7 +239,7 @@ describe("PerpHedgingReactor Sc2", () => {
 			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
-		await rageOracle.setSqrtPriceX96(realSqrtPrice);
+		await rageOracle.setSqrtPriceX96(realSqrtPrice)
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
 		const collatRequired = ((price.mul(deltaHedge.add(reactorDeltaBefore)).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(delta)
@@ -230,18 +250,25 @@ describe("PerpHedgingReactor Sc2", () => {
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		expect(reactorDeltaAfter).to.equal(reactorDeltaBefore.sub(delta))
 		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore.sub(delta))
-		expect(LpUsdcBalanceBefore.sub(LpUsdcBalanceAfter)).to.equal(reactorCollatBalanceAfter.sub(reactorCollatBalanceBefore)).to.equal(collatRequired.sub(reactorCollatBalanceBefore))
+		expect(LpUsdcBalanceBefore.sub(LpUsdcBalanceAfter))
+			.to.equal(reactorCollatBalanceAfter.sub(reactorCollatBalanceBefore))
+			.to.equal(collatRequired.sub(reactorCollatBalanceBefore))
 	})
 	it("hedges a positive delta", async () => {
 		const delta = ethers.utils.parseEther("0.5")
 		const deltaHedge = ethers.utils.parseEther("-0.5")
 		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
-		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
 		const accountId = await perpHedgingReactor.accountId()
 		const collateralId = await perpHedgingReactor.collateralId()
-		const reactorCollatBalanceBefore =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
-		const realSqrtPrice = await priceToSqrtPriceX96(2900, 6, 18);
+		const reactorCollatBalanceBefore = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
+		const realSqrtPrice = await priceToSqrtPriceX96(2900, 6, 18)
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			"2900000000",
@@ -249,7 +276,7 @@ describe("PerpHedgingReactor Sc2", () => {
 			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
-		await rageOracle.setSqrtPriceX96(realSqrtPrice);
+		await rageOracle.setSqrtPriceX96(realSqrtPrice)
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
 		const collatRequired = ((price.mul(deltaHedge.add(reactorDeltaBefore)).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(delta)
@@ -260,7 +287,9 @@ describe("PerpHedgingReactor Sc2", () => {
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		expect(reactorDeltaAfter).to.equal(reactorDeltaBefore.sub(delta))
 		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore.sub(delta))
-		expect(LpUsdcBalanceBefore.sub(LpUsdcBalanceAfter)).to.equal(reactorCollatBalanceAfter.sub(reactorCollatBalanceBefore)).to.equal(collatRequired.sub(reactorCollatBalanceBefore))
+		expect(LpUsdcBalanceBefore.sub(LpUsdcBalanceAfter))
+			.to.equal(reactorCollatBalanceAfter.sub(reactorCollatBalanceBefore))
+			.to.equal(collatRequired.sub(reactorCollatBalanceBefore))
 	})
 	it("syncs profits", async () => {
 		const hedgeDeltaTx = await liquidityPoolDummy.syncAndUpdate()
@@ -279,7 +308,7 @@ describe("PerpHedgingReactor Sc2", () => {
 		const netProfit = await clearingHouse.getAccountNetProfit(0)
 		const accountId = await perpHedgingReactor.accountId()
 		const collateralId = await perpHedgingReactor.collateralId()
-		const collat =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const collat = (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
 		const val = (await perpHedgingReactor.getPoolDenominatedValue()).div(USDC_SCALE)
 		expect(usdBalance.add(netProfit).add(collat)).to.eq(val)
 	})
@@ -288,11 +317,16 @@ describe("PerpHedgingReactor Sc2", () => {
 		const deltaHedge = ethers.utils.parseEther("0.3")
 		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
-		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
 		const accountId = await perpHedgingReactor.accountId()
 		const collateralId = await perpHedgingReactor.collateralId()
-		const reactorCollatBalanceBefore =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
-		const realSqrtPrice = await priceToSqrtPriceX96(3000, 6, 18);
+		const reactorCollatBalanceBefore = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
+		const realSqrtPrice = await priceToSqrtPriceX96(3000, 6, 18)
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			"3000000000",
@@ -300,7 +334,7 @@ describe("PerpHedgingReactor Sc2", () => {
 			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
-		await rageOracle.setSqrtPriceX96(realSqrtPrice);
+		await rageOracle.setSqrtPriceX96(realSqrtPrice)
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
 		const collatRequired = ((price.mul(deltaHedge.add(reactorDeltaBefore)).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(delta)
@@ -311,12 +345,17 @@ describe("PerpHedgingReactor Sc2", () => {
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		expect(reactorDeltaAfter).to.equal(reactorDeltaBefore.sub(delta))
 		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore.sub(delta))
-		expect(LpUsdcBalanceBefore.sub(LpUsdcBalanceAfter)).to.equal(reactorCollatBalanceAfter.sub(reactorCollatBalanceBefore)).to.equal(collatRequired.sub(reactorCollatBalanceBefore))
+		expect(LpUsdcBalanceBefore.sub(LpUsdcBalanceAfter))
+			.to.equal(reactorCollatBalanceAfter.sub(reactorCollatBalanceBefore))
+			.to.equal(collatRequired.sub(reactorCollatBalanceBefore))
 	})
 	it("hedges a negative delta with insufficient funds", async () => {
 		// attempts to hedge a very large amount should fail
 		const delta = ethers.utils.parseEther("-9000")
-		await expect((liquidityPoolDummy.hedgeDelta(delta))).to.be.revertedWith("WithdrawExceedsLiquidity()")
+		await expect(liquidityPoolDummy.hedgeDelta(delta)).to.be.revertedWithCustomError(
+			perpHedgingReactor,
+			"WithdrawExceedsLiquidity"
+		)
 	})
 	it("syncs profits", async () => {
 		const hedgeDeltaTx = await liquidityPoolDummy.syncAndUpdate()
@@ -327,11 +366,16 @@ describe("PerpHedgingReactor Sc2", () => {
 	it("liquidates a bit of position and withdraws sufficient funds", async () => {
 		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
-		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
 		const accountId = await perpHedgingReactor.accountId()
 		const collateralId = await perpHedgingReactor.collateralId()
-		const reactorCollatBalanceBefore =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
-		const realSqrtPrice = await priceToSqrtPriceX96(3100, 6, 18);
+		const reactorCollatBalanceBefore = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
+		const realSqrtPrice = await priceToSqrtPriceX96(3100, 6, 18)
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
 			"3100000000",
@@ -339,18 +383,21 @@ describe("PerpHedgingReactor Sc2", () => {
 			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
-		await rageOracle.setSqrtPriceX96(realSqrtPrice);
+		await rageOracle.setSqrtPriceX96(realSqrtPrice)
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
 		const reactorUsdcBalanceBefore = await usdcContract.balanceOf(perpHedgingReactor.address)
 		const withdrawAmount = "10000"
 		const newCollat = reactorCollatBalanceBefore.sub(toUSDC(withdrawAmount))
 		const expectedDelta = newCollat.mul(10000).mul(e18).div((await perpHedgingReactor.healthFactor()).mul(price.div(USDC_SCALE)));
 		// withdraw more than current balance
-		await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18)
+		await liquidityPoolDummy.withdraw(ethers.utils.parseUnits(withdrawAmount, 18))
+		const reactorCollatBalanceAfter = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
+		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
 		)
-		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
-		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		expect(reactorDeltaAfter).to.equal(reactorDeltaBefore)
@@ -360,7 +407,7 @@ describe("PerpHedgingReactor Sc2", () => {
 	})
 
 	it("update fixes balances one way", async () => {
-		const realSqrtPrice = await priceToSqrtPriceX96(2600, 6, 18);
+		const realSqrtPrice = await priceToSqrtPriceX96(2600, 6, 18)
 
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
@@ -369,19 +416,29 @@ describe("PerpHedgingReactor Sc2", () => {
 			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
-		await rageOracle.setSqrtPriceX96(realSqrtPrice);
+		await rageOracle.setSqrtPriceX96(realSqrtPrice)
 		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
-		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
 		const accountId = await perpHedgingReactor.accountId()
 		const collateralId = await perpHedgingReactor.collateralId()
-		const reactorCollatBalanceBefore =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorCollatBalanceBefore = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
 		const reactorUsdcBalanceBefore = await usdcContract.balanceOf(perpHedgingReactor.address)
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
 		const collatRequired = ((price.mul(reactorDeltaBefore).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
 		const tx = await liquidityPoolDummy.update()
-		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
-		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorCollatBalanceAfter = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
+		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		const reactorUsdcBalanceAfter = await usdcContract.balanceOf(perpHedgingReactor.address)
@@ -389,10 +446,12 @@ describe("PerpHedgingReactor Sc2", () => {
 		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore)
 		expect(reactorCollatBalanceAfter).to.eq(collatRequired)
 		expect(reactorUsdcBalanceAfter).to.eq(reactorUsdcBalanceBefore)
-		expect(LpUsdcBalanceAfter.sub(LpUsdcBalanceBefore)).to.eq((reactorCollatBalanceBefore.sub(reactorCollatBalanceAfter)))
+		expect(LpUsdcBalanceAfter.sub(LpUsdcBalanceBefore)).to.eq(
+			reactorCollatBalanceBefore.sub(reactorCollatBalanceAfter)
+		)
 	})
 	it("update fixes balances other way", async () => {
-		const realSqrtPrice = await priceToSqrtPriceX96(2400, 6, 18);
+		const realSqrtPrice = await priceToSqrtPriceX96(2400, 6, 18)
 
 		await ethUSDAggregator.mock.latestRoundData.returns(
 			"55340232221128660932",
@@ -401,19 +460,34 @@ describe("PerpHedgingReactor Sc2", () => {
 			BigNumber.from((await ethers.provider.getBlock("latest")).timestamp).toString(),
 			"55340232221128660932"
 		)
-		await rageOracle.setSqrtPriceX96(realSqrtPrice);
+		await rageOracle.setSqrtPriceX96(realSqrtPrice)
 		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
-		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
 		const accountId = await perpHedgingReactor.accountId()
 		const collateralId = await perpHedgingReactor.collateralId()
-		const reactorCollatBalanceBefore =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorCollatBalanceBefore = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
 		const reactorUsdcBalanceBefore = await usdcContract.balanceOf(perpHedgingReactor.address)
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-		const collatRequired = ((price.mul(reactorDeltaBefore).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
+		const collatRequired = price
+			.mul(reactorDeltaBefore)
+			.div(toWei("1"))
+			.mul(await perpHedgingReactor.healthFactor())
+			.div(10000)
+			.div(USDC_SCALE)
 		const tx = await liquidityPoolDummy.update()
-		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
-		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorCollatBalanceAfter = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
+		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		const reactorUsdcBalanceAfter = await usdcContract.balanceOf(perpHedgingReactor.address)
@@ -421,21 +495,38 @@ describe("PerpHedgingReactor Sc2", () => {
 		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore)
 		expect(reactorCollatBalanceAfter).to.eq(collatRequired)
 		expect(reactorUsdcBalanceAfter).to.eq(reactorUsdcBalanceBefore)
-		expect(LpUsdcBalanceAfter.sub(LpUsdcBalanceBefore)).to.eq((reactorCollatBalanceBefore.sub(reactorCollatBalanceAfter)))
+		expect(LpUsdcBalanceAfter.sub(LpUsdcBalanceBefore)).to.eq(
+			reactorCollatBalanceBefore.sub(reactorCollatBalanceAfter)
+		)
 	})
 	it("update returns 0", async () => {
 		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
-		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
 		const accountId = await perpHedgingReactor.accountId()
 		const collateralId = await perpHedgingReactor.collateralId()
-		const reactorCollatBalanceBefore =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorCollatBalanceBefore = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
 		const reactorUsdcBalanceBefore = await usdcContract.balanceOf(perpHedgingReactor.address)
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
-		const collatRequired = ((price.mul(reactorDeltaBefore).div(toWei('1'))).mul(await perpHedgingReactor.healthFactor()).div(10000)).div(USDC_SCALE)
+		const collatRequired = price
+			.mul(reactorDeltaBefore)
+			.div(toWei("1"))
+			.mul(await perpHedgingReactor.healthFactor())
+			.div(10000)
+			.div(USDC_SCALE)
 		const tx = await liquidityPoolDummy.update()
-		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
-		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorCollatBalanceAfter = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
+		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		const reactorUsdcBalanceAfter = await usdcContract.balanceOf(perpHedgingReactor.address)
@@ -443,27 +534,37 @@ describe("PerpHedgingReactor Sc2", () => {
 		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore)
 		expect(reactorCollatBalanceAfter).to.eq(collatRequired)
 		expect(reactorUsdcBalanceAfter).to.eq(reactorUsdcBalanceBefore)
-		expect(LpUsdcBalanceAfter.sub(LpUsdcBalanceBefore)).to.eq(reactorCollatBalanceBefore.sub(collatRequired))
+		expect(LpUsdcBalanceAfter.sub(LpUsdcBalanceBefore)).to.eq(
+			reactorCollatBalanceBefore.sub(collatRequired)
+		)
 	})
 
 	it("liquidates all positions and withdraws", async () => {
 		// If withdraw amount is greater than the value of assets in the reactor, it should liquidate everything and send all to the LP
 		const reactorDeltaBefore = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
-		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorWethBalanceBefore = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
 		const accountId = await perpHedgingReactor.accountId()
 		const collateralId = await perpHedgingReactor.collateralId()
-		const reactorCollatBalanceBefore =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
+		const reactorCollatBalanceBefore = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
 		const price = await priceFeed.getNormalizedRate(WETH_ADDRESS[chainId], USDC_ADDRESS[chainId])
 		await liquidityPoolDummy.hedgeDelta(reactorDeltaBefore)
 		const withdrawAmount = "100000000" //100 million
-		const tx = await liquidityPoolDummy.withdraw(
-			ethers.utils.parseUnits(withdrawAmount, 18)
-		)
+		const tx = await liquidityPoolDummy.withdraw(ethers.utils.parseUnits(withdrawAmount, 18))
 
 		await tx.wait()
-		const reactorCollatBalanceAfter =  (await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId))[1]
-		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(0, truncate(vTokenAddress))
+		const reactorCollatBalanceAfter = (
+			await clearingHouseLens.getAccountCollateralInfo(accountId, collateralId)
+		)[1]
+		const reactorWethBalanceAfter = await clearingHouse.getAccountNetTokenPosition(
+			0,
+			truncate(vTokenAddress)
+		)
 		const reactorDeltaAfter = await liquidityPoolDummy.getDelta()
 		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
 		const reactorUsdcBalanceAfter = await usdcContract.balanceOf(perpHedgingReactor.address)

@@ -369,15 +369,15 @@ describe("APVF gas tests", async () => {
 			expect(await portfolioValuesFeed.isAddressInSet(addressAtIndex0)).to.be.false
 		})
 		it("FAILS: Cleans one expired option manually with incorrect address", async () => {
-			await expect(portfolioValuesFeed.cleanLooperManually(optionRegistry.address)).to.be.revertedWith(
-				"IncorrectSeriesToRemove()"
-			)
+			await expect(
+				portfolioValuesFeed.cleanLooperManually(optionRegistry.address)
+			).to.be.revertedWithCustomError(portfolioValuesFeed, "IncorrectSeriesToRemove")
 		})
 		it("FAILS: Cleans one option that is not expired", async () => {
 			const addressAtIndex30 = await portfolioValuesFeed.addressAtIndexInSet(30)
-			await expect(portfolioValuesFeed.cleanLooperManually(addressAtIndex30)).to.be.revertedWith(
-				"SeriesNotExpired()"
-			)
+			await expect(
+				portfolioValuesFeed.cleanLooperManually(addressAtIndex30)
+			).to.be.revertedWithCustomError(portfolioValuesFeed, "SeriesNotExpired")
 		})
 		it("SUCCEEDS: Cleans all expired options", async () => {
 			const originalLength = await portfolioValuesFeed.addressSetLength()
@@ -544,9 +544,9 @@ describe("APVF gas tests", async () => {
 			increaseTo(ffExpiration.add(100))
 		})
 		it("FAILS: Fulfill fails because of expired options not cleaned", async () => {
-			await expect(portfolioValuesFeed.fulfill(weth.address, usd.address)).to.be.revertedWith(
-				'OptionHasExpiredInStores(10, "0x46C14EE9ACF2872F80b5b1242C70AF2CFE4c862C")'
-			)
+			await expect(portfolioValuesFeed.fulfill(weth.address, usd.address))
+				.to.be.revertedWithCustomError(portfolioValuesFeed, "OptionHasExpiredInStores")
+				.withArgs("10", "0x46C14EE9ACF2872F80b5b1242C70AF2CFE4c862C")
 		})
 		it("SUCCEEDS: Cleans all expired options", async () => {
 			const originalLength = await portfolioValuesFeed.addressSetLength()
@@ -758,14 +758,16 @@ describe("APVF gas tests", async () => {
 		})
 		it("REVERTS: cant account liquidated series with no short", async () => {
 			const addy = await portfolioValuesFeed.addressAtIndexInSet(10)
-			await expect(portfolioValuesFeed.accountLiquidatedSeries(addy)).to.be.revertedWith(
-				"NoShortPositions()"
+			await expect(portfolioValuesFeed.accountLiquidatedSeries(addy)).to.be.revertedWithCustomError(
+				portfolioValuesFeed,
+				"NoShortPositions"
 			)
 		})
 		it("REVERTS: cant account with no vault", async () => {
 			const addy = await portfolioValuesFeed.addressAtIndexInSet(9)
-			await expect(portfolioValuesFeed.accountLiquidatedSeries(addy)).to.be.revertedWith(
-				"NoVaultForShortPositions()"
+			await expect(portfolioValuesFeed.accountLiquidatedSeries(addy)).to.be.revertedWithCustomError(
+				portfolioValuesFeed,
+				"NoVaultForShortPositions"
 			)
 		})
 	})
@@ -777,7 +779,7 @@ describe("APVF gas tests", async () => {
 		it("FAILS: set liquidity pool when not approved", async () => {
 			await expect(
 				portfolioValuesFeed.connect(signers[1]).setLiquidityPool(optionRegistry.address)
-			).to.be.revertedWith("UNAUTHORIZED()")
+			).to.be.revertedWithCustomError(portfolioValuesFeed, "UNAUTHORIZED")
 		})
 		it("SUCCEEDS: set protocol", async () => {
 			await portfolioValuesFeed.setProtocol(optionRegistry.address)
@@ -786,15 +788,16 @@ describe("APVF gas tests", async () => {
 		it("FAILS: set protocol when not approved", async () => {
 			await expect(
 				portfolioValuesFeed.connect(signers[1]).setProtocol(optionRegistry.address)
-			).to.be.revertedWith("UNAUTHORIZED()")
+			).to.be.revertedWithCustomError(portfolioValuesFeed, "UNAUTHORIZED")
 		})
 		it("SUCCEEDS: set rfr", async () => {
 			await portfolioValuesFeed.setRFR(0)
 			expect(await portfolioValuesFeed.rfr()).to.equal(0)
 		})
 		it("FAILS: set rfr when not approved", async () => {
-			await expect(portfolioValuesFeed.connect(signers[1]).setRFR(0)).to.be.revertedWith(
-				"UNAUTHORIZED()"
+			await expect(portfolioValuesFeed.connect(signers[1]).setRFR(0)).to.be.revertedWithCustomError(
+				portfolioValuesFeed,
+				"UNAUTHORIZED"
 			)
 		})
 		it("SUCCEEDS: set keeper", async () => {
@@ -808,7 +811,7 @@ describe("APVF gas tests", async () => {
 		it("FAILS: set keeper when not approved", async () => {
 			await expect(
 				portfolioValuesFeed.connect(signers[1]).setKeeper(optionRegistry.address, true)
-			).to.be.revertedWith("UNAUTHORIZED()")
+			).to.be.revertedWithCustomError(portfolioValuesFeed, "UNAUTHORIZED")
 		})
 		it("SUCCEEDS: set handler", async () => {
 			await portfolioValuesFeed.setHandler(optionRegistry.address, true)
@@ -838,19 +841,20 @@ describe("APVF gas tests", async () => {
 			).to.be.reverted
 		})
 		it("FAILS: sync looper if not handler", async () => {
-			await expect(portfolioValuesFeed.connect(signers[1]).syncLooper()).to.be.revertedWith(
-				"NotKeeper()"
+			await expect(portfolioValuesFeed.connect(signers[1]).syncLooper()).to.be.revertedWithCustomError(
+				portfolioValuesFeed,
+				"NotKeeper"
 			)
 		})
 		it("FAILS: clean looper manually if not handler", async () => {
 			await expect(
 				portfolioValuesFeed.connect(signers[1]).cleanLooperManually(optionRegistry.address)
-			).to.be.revertedWith("NotKeeper()")
+			).to.be.revertedWithCustomError(portfolioValuesFeed, "NotKeeper")
 		})
 		it("FAILS: migration if not governance", async () => {
 			await expect(
 				portfolioValuesFeed.connect(signers[1]).migrate(portfolioValuesFeed.address)
-			).to.be.revertedWith("UNAUTHORIZED")
+			).to.be.revertedWithCustomError(portfolioValuesFeed, "UNAUTHORIZED")
 		})
 	})
 })
