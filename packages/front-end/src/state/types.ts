@@ -96,7 +96,7 @@ export type OptionsTradingState = {
   expiryDate: Date | null;
   optionParams: OptionParams | null;
   customOptionStrikes: number[];
-  selectedOption: Option | null;
+  selectedOption: SelectedOption | null;
 };
 
 export type OptionsTradingContext = {
@@ -109,12 +109,36 @@ export enum OptionType {
   PUT = "PUT",
 }
 
-export type Option = {
-  type: OptionType;
+export type SelectedOption = {
+  bidOrAsk: "bid" | "ask";
+  callOrPut: "call" | "put";
+  strikeOptions: StrikeOptions;
+};
+
+export type StrikeOptions = {
   strike: number;
-  IV: number;
-  delta: number;
-  price: number;
+  call: {
+    bid: {
+      IV: number;
+      quote: number;
+    };
+    ask: {
+      IV: number;
+      quote: number;
+    };
+    delta: number;
+  };
+  put: {
+    bid: {
+      IV: number;
+      quote: number;
+    };
+    ask: {
+      IV: number;
+      quote: number;
+    };
+    delta: number;
+  };
 };
 
 export type OptionParams = {
@@ -149,7 +173,7 @@ export type OptionsTradingAction =
     }
   | {
       type: OptionsTradingActionType.SET_SELECTED_OPTION;
-      option: Option | null;
+      option: SelectedOption | null;
     }
   | {
       type: OptionsTradingActionType.SET_OPTION_PARAMS;

@@ -2,31 +2,25 @@ import { BigNumber } from "@ethersproject/bignumber";
 import { ethers } from "ethers";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { useAccount } from "wagmi";
+import { useAccount, useNetwork } from "wagmi";
 import OptionHandlerABI from "../../abis/AlphaOptionHandler.json";
 import ERC20ABI from "../../abis/erc20.json";
 import OptionRegistryABI from "../../abis/OptionRegistry.json";
+import OptionExchangeABI from "../../abis/OptionExchange.json";
 import {
   BIG_NUMBER_DECIMALS,
   MAX_UINT_256,
   ZERO_ADDRESS,
 } from "../../config/constants";
-import contracts from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
-import { OptionSeries } from "../../types";
+import { ContractAddresses, ETHNetwork } from "../../types";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
-
-const DUMMY_OPTION_SERIES: OptionSeries = {
-  strike: BigNumber.from("2000").mul(BIG_NUMBER_DECIMALS.RYSK),
-  strikeAsset: contracts.arbitrum.USDC,
-  collateral: contracts.arbitrum.USDC,
-  underlying: contracts.arbitrum.WETH,
-  expiration: "1657267200",
-  isPut: false,
-};
+import addresses from "../../contracts.json";
+import NumberFormat from "react-number-format";
+import { toUSDC, toWei } from "../../utils/conversion-helper";
 
 const formatOptionDate = (date: Date | null) => {
   const expirationDate = date
@@ -46,6 +40,12 @@ const formatOptionDate = (date: Date | null) => {
 };
 
 export const Purchase = () => {
+  const { address } = useAccount();
+  const { chain } = useNetwork();
+
+  const network = chain?.network as ETHNetwork;
+  const typedAddresses = addresses as Record<ETHNetwork, ContractAddresses>;
+
   // Context state
   const {
     state: { settings },
@@ -66,9 +66,15 @@ export const Purchase = () => {
     readOnly: false,
   });
 
-  const [optionHandlerContract, optionHandlerContractCall] = useContract({
+  const [optionHandlerContract] = useContract({
     contract: "optionHandler",
     ABI: OptionHandlerABI,
+    readOnly: false,
+  });
+
+  const [optionExchangeContract] = useContract({
+    contract: "optionExchange",
+    ABI: OptionExchangeABI,
     readOnly: false,
   });
 
@@ -84,21 +90,27 @@ export const Purchase = () => {
   };
 
   const handleApproveSpend = async () => {
-    if (usdcContract) {
-      const amount = BIG_NUMBER_DECIMALS.RYSK.mul(BigNumber.from(uiOrderSize));
+    if (usdcContract && strikeOptions && callOrPut && bidOrAsk) {
+      const amount = toUSDC(
+        (
+          strikeOptions[callOrPut][bidOrAsk].quote * Number(uiOrderSize)
+        ).toString()
+      );
+
       const approvedAmount = (await usdcContract.allowance(
         address,
-        contracts.arbitrum.optionHandler
+        addresses[network].optionExchange
       )) as BigNumber;
+
       try {
         if (
           !settings.optionsTradingUnlimitedApproval ||
           approvedAmount.lt(amount)
         ) {
           await usdcContractCall({
-            method: usdcContract.approve,
+            method: usdcContract?.approve,
             args: [
-              contracts.arbitrum.optionHandler,
+              addresses[network].optionExchange,
               settings.optionsTradingUnlimitedApproval
                 ? ethers.BigNumber.from(MAX_UINT_256)
                 : amount,
@@ -119,49 +131,58 @@ export const Purchase = () => {
     if (
       optionRegistryContract &&
       optionHandlerContract &&
+      optionExchangeContract &&
       usdcContract &&
-      address
+      address &&
+      expiryDate &&
+      selectedOption &&
+      chain
     ) {
       try {
         const amount = BIG_NUMBER_DECIMALS.RYSK.mul(
           BigNumber.from(uiOrderSize)
         );
-        const seriesAddress = await optionRegistryContract.getSeries({
-          ...DUMMY_OPTION_SERIES,
-          // We create option series using e18, but when our contracts interact with
-          // Opyn, this gets converted to e8, so we need to use e8 when checking
-          // otokens.
-          strike: DUMMY_OPTION_SERIES.strike.div(
-            BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.OPYN)
-          ),
-        });
-        // Series hasn't been created yet
-        if (seriesAddress === ZERO_ADDRESS) {
-          await optionHandlerContractCall({
-            method: optionHandlerContract.issueAndWriteOption,
-            args: [DUMMY_OPTION_SERIES, amount],
-            onSubmit: () => {
-              setUIOrderSize("");
-              setIsApproved(false);
+        const proposedSeries = {
+          expiration: (expiryDate.getTime() / 1000).toFixed(0),
+          strike: toWei(selectedOption.strikeOptions.strike.toString()),
+          isPut: selectedOption.callOrPut == "put",
+          strikeAsset: typedAddresses[network].USDC,
+          underlying: typedAddresses[network].WETH,
+          collateral: typedAddresses[network].USDC,
+        };
+
+        optionExchangeContract?.operate(
+          [
+            {
+              operation: 1,
+              operationQueue: [
+                {
+                  actionType: 0,
+                  owner: ZERO_ADDRESS,
+                  secondAddress: ZERO_ADDRESS,
+                  asset: ZERO_ADDRESS,
+                  vaultId: 0,
+                  amount: 0,
+                  optionSeries: proposedSeries,
+                  index: 0,
+                  data: "0x",
+                },
+                {
+                  actionType: 1,
+                  owner: ZERO_ADDRESS,
+                  secondAddress: address,
+                  asset: ZERO_ADDRESS,
+                  vaultId: 0,
+                  amount: amount,
+                  optionSeries: proposedSeries,
+                  index: 0,
+                  data: "0x",
+                },
+              ],
             },
-            onFail: () => {
-              setIsApproved(false);
-            },
-          });
-          // Series already exists.
-        } else {
-          await optionHandlerContractCall({
-            method: optionHandlerContract.writeOption,
-            args: [seriesAddress, amount],
-            onSubmit: () => {
-              setUIOrderSize("");
-              setIsApproved(false);
-            },
-            onFail: () => {
-              setIsApproved(false);
-            },
-          });
-        }
+          ],
+          { gasLimit: 2500000 }
+        );
       } catch (err) {
         console.log(err);
       }
@@ -171,9 +192,13 @@ export const Purchase = () => {
   const approveIsDisabled = !uiOrderSize || isApproved;
   const buyIsDisabled = !uiOrderSize || !isApproved;
 
+  const callOrPut = selectedOption?.callOrPut;
+  const bidOrAsk = selectedOption?.bidOrAsk;
+  const strikeOptions = selectedOption?.strikeOptions;
+
   return (
     <div>
-      {selectedOption ? (
+      {strikeOptions && callOrPut && bidOrAsk ? (
         <>
           <div className="w-full flex justify-between relative">
             <div className="w-1/2 border-r-2 border-black">
@@ -181,13 +206,39 @@ export const Purchase = () => {
                 <div className="flex items-center">
                   <h4 className="font-parabole mr-2 pb-2">Option:</h4>
                   {selectedOption && (
-                    <p className="pb-1">{selectedOption.type}</p>
+                    <p className="pb-1">{callOrPut.toUpperCase()}</p>
                   )}
                 </div>
-                <p>Strike: {selectedOption.strike}</p>
-                <p>IV: {selectedOption.IV}</p>
-                <p>Delta: {selectedOption.delta}</p>
-                <p>Price: {selectedOption.price}</p>
+                <p>Strike: {strikeOptions.strike}</p>
+                <p>
+                  IV:{" "}
+                  <NumberFormat
+                    value={strikeOptions[callOrPut][bidOrAsk].IV}
+                    displayType={"text"}
+                    decimalScale={2}
+                    renderText={(value) => value}
+                    suffix={"%"}
+                  />
+                </p>
+                <p>
+                  Delta:{" "}
+                  <NumberFormat
+                    value={strikeOptions[callOrPut].delta}
+                    displayType={"text"}
+                    decimalScale={2}
+                    renderText={(value) => value}
+                  />
+                </p>
+                <p>
+                  Price:{" "}
+                  <NumberFormat
+                    value={strikeOptions[callOrPut][bidOrAsk].quote}
+                    displayType={"text"}
+                    decimalScale={2}
+                    renderText={(value) => value}
+                    prefix={"$"}
+                  />
+                </p>
               </div>
               <div className="w-full ">
                 <TextInput
@@ -196,7 +247,7 @@ export const Purchase = () => {
                   className="text-right border-r-0 w-full"
                   iconLeft={
                     <div className="px-2 flex items-center h-full">
-                      <p className="text-gray-600">Shares</p>
+                      <p className="text-gray-600">Amount</p>
                     </div>
                   }
                   numericOnly
@@ -209,15 +260,18 @@ export const Purchase = () => {
                 <div className="w-full -mb-1">
                   <div className="w-full p-4 flex flex-col">
                     <h5 className={`mb-10 tracking-tight`}>
-                      1. ETH-{formatOptionDate(expiryDate)}-
-                      {selectedOption.strike}-
-                      {selectedOption.type === "CALL" ? "P" : "C"}
+                      ETH-{formatOptionDate(expiryDate)}-{strikeOptions?.strike}
+                      -{selectedOption.callOrPut === "put" ? "P" : "C"}
                     </h5>
 
                     {uiOrderSize && (
                       <>
                         <h4 className="font-parabole mr-2">Total price:</h4>
-                        <p>{Number(uiOrderSize) * selectedOption.price} USDC</p>
+                        <p>
+                          {Number(uiOrderSize) *
+                            strikeOptions[callOrPut][bidOrAsk].quote}{" "}
+                          USDC
+                        </p>
                       </>
                     )}
                   </div>
