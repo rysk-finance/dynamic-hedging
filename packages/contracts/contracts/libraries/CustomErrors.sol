@@ -17,8 +17,11 @@ interface CustomErrors {
 	error IssuanceFailed();
 	error EpochNotClosed();
 	error InvalidDecimals();
+	error InActivePosition();
+	error NoActivePosition();
 	error TradingNotPaused();
 	error NotLiquidityPool();
+	error UnauthorizedExit();
 	error DeltaNotDecreased();
 	error NonExistentOtoken();
 	error OrderExpiryTooLong();
@@ -28,9 +31,11 @@ interface CustomErrors {
 	error StrikeAssetInvalid();
 	error OptionStrikeInvalid();
 	error OptionExpiryInvalid();
+	error RangeOrderNotFilled();
 	error NoExistingWithdrawal();
 	error SpotMovedBeyondRange();
 	error ReactorAlreadyExists();
+    error UnauthorizedFulfill();
 	error CollateralAssetInvalid();
 	error UnderlyingAssetInvalid();
 	error CollateralAmountInvalid();

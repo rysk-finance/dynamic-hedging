@@ -178,14 +178,14 @@ describe("Volatility Feed", async () => {
 			const strikePrice = 0
 			await expect(
 				volFeed.getImpliedVolatility(false, underlyingPrice, toWei(strikePrice.toString()), expiration)
-			).to.be.revertedWith("IVNotFound()")
+			).to.be.revertedWithCustomError(volFeed, "IVNotFound")
 		})
 		it("REVERTS: when strike is zero", async () => {
 			const underlyingPrice = toWei("0")
 			const strikePrice = 160
 			await expect(
 				volFeed.getImpliedVolatility(false, underlyingPrice, toWei(strikePrice.toString()), expiration)
-			).to.be.revertedWith("IVNotFound()")
+			).to.be.revertedWithCustomError(volFeed, "IVNotFound")
 		})
 	})
 	describe("VolatilityFeed: setters", async () => {
@@ -196,9 +196,9 @@ describe("Volatility Feed", async () => {
 		})
 		it("REVERTS: cannot set keeper if not governor", async () => {
 			let receiver = await signers[1].getAddress()
-			await expect(volFeed.connect(signers[1]).setKeeper(receiver, true)).to.be.revertedWith(
-				"UNAUTHORIZED"
-			)
+			await expect(
+				volFeed.connect(signers[1]).setKeeper(receiver, true)
+			).to.be.revertedWithCustomError(volFeed, "UNAUTHORIZED")
 		})
 		it("SUCCEEDS: set sabrParams", async () => {
 			await volFeed.connect(signers[1]).setSabrParameters(
@@ -232,37 +232,47 @@ describe("Volatility Feed", async () => {
 					},
 					10
 				)
-			).to.be.revertedWith("AlphaError()")
-			await expect(
-				volFeed.setSabrParameters(
-					{
-						callAlpha: 2 ** 31, // max value is 2 ** 31 - 1
-						callBeta: 1,
-						callRho: 1,
-						callVolvol: 1,
-						putAlpha: 1,
-						putBeta: 1,
-						putRho: 1,
-						putVolvol: 1
-					},
-					10
-				)
-			).to.be.reverted
-			await expect(
-				volFeed.setSabrParameters(
-					{
-						callAlpha: 1,
-						callBeta: 1,
-						callRho: 1,
-						callVolvol: 1,
-						putAlpha: 2 ** 31, // max value is 2 ** 31 - 1
-						putBeta: 1,
-						putRho: 1,
-						putVolvol: 1
-					},
-					10
-				)
-			).to.be.reverted
+			).to.be.revertedWithCustomError(volFeed, "AlphaError")
+			// This test may not run because 'callAlpha' is an out of bounds value, which confirms the purpose of the parameter.
+			try {
+				await expect(
+					volFeed.setSabrParameters(
+						{
+							callAlpha: (2 ** 31).toString(), // max value is 2 ** 31 - 1
+							callBeta: 1,
+							callRho: 1,
+							callVolvol: 1,
+							putAlpha: 1,
+							putBeta: 1,
+							putRho: 1,
+							putVolvol: 1
+						},
+						10
+					)
+				).to.be.reverted
+			} catch (e) {
+				expect(e.reason).to.equal("value out-of-bounds")
+			}
+			// Test may not run because out of bounds value is being passed in.
+			try {
+				await expect(
+					volFeed.setSabrParameters(
+						{
+							callAlpha: 1,
+							callBeta: 1,
+							callRho: 1,
+							callVolvol: 1,
+							putAlpha: 2 ** 31, // max value is 2 ** 31 - 1
+							putBeta: 1,
+							putRho: 1,
+							putVolvol: 1
+						},
+						10
+					)
+				).to.be.reverted
+			} catch (e) {
+				expect(e.reason).to.equal("value out-of-bounds")
+			}
 			await expect(
 				volFeed.setSabrParameters(
 					{
@@ -277,7 +287,7 @@ describe("Volatility Feed", async () => {
 					},
 					10
 				)
-			).to.be.revertedWith("VolvolError()")
+			).to.be.revertedWithCustomError(volFeed, "VolvolError")
 			await expect(
 				volFeed.setSabrParameters(
 					{
@@ -292,7 +302,7 @@ describe("Volatility Feed", async () => {
 					},
 					10
 				)
-			).to.be.revertedWith("BetaError()")
+			).to.be.revertedWithCustomError(volFeed, "BetaError")
 			await expect(
 				volFeed.setSabrParameters(
 					{
@@ -307,7 +317,7 @@ describe("Volatility Feed", async () => {
 					},
 					10
 				)
-			).to.be.revertedWith("BetaError()")
+			).to.be.revertedWithCustomError(volFeed, "BetaError")
 			await expect(
 				volFeed.setSabrParameters(
 					{
@@ -322,7 +332,7 @@ describe("Volatility Feed", async () => {
 					},
 					10
 				)
-			).to.be.revertedWith("VolvolError()")
+			).to.be.revertedWithCustomError(volFeed, "VolvolError")
 			await expect(
 				volFeed.setSabrParameters(
 					{
@@ -337,7 +347,7 @@ describe("Volatility Feed", async () => {
 					},
 					10
 				)
-			).to.be.revertedWith("VolvolError()")
+			).to.be.revertedWithCustomError(volFeed, "VolvolError")
 			await expect(
 				volFeed.setSabrParameters(
 					{
@@ -352,7 +362,7 @@ describe("Volatility Feed", async () => {
 					},
 					10
 				)
-			).to.be.revertedWith("RhoError()")
+			).to.be.revertedWithCustomError(volFeed, "RhoError")
 			await expect(
 				volFeed.setSabrParameters(
 					{
@@ -367,7 +377,7 @@ describe("Volatility Feed", async () => {
 					},
 					10
 				)
-			).to.be.revertedWith("RhoError()")
+			).to.be.revertedWithCustomError(volFeed, "RhoError")
 		})
 		it("REVERTS: cannot set sabrParams if not keeper", async () => {
 			await expect(
@@ -384,7 +394,7 @@ describe("Volatility Feed", async () => {
 					},
 					10
 				)
-			).to.be.revertedWith("NotKeeper()")
+			).to.be.revertedWithCustomError(volFeed, "NotKeeper")
 		})
 	})
 	describe("Set beta != 1", async () => {

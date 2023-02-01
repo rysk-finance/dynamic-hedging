@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0;
+pragma solidity >=0.8.9;
 
 import "./Types.sol";
 import "./CustomErrors.sol";
@@ -23,16 +23,30 @@ library OptionsCompute {
 			revert();
 		}
 		uint256 difference = SCALE_DECIMALS - decimals;
-		return value / (10**difference);
+		return value / (10 ** difference);
 	}
 
 	/// @dev converts from specified decimals to e18
-	function convertFromDecimals(uint256 value, uint256 decimals) internal pure returns (uint256) {
+	function convertFromDecimals(uint256 value, uint256 decimals) internal pure returns (uint256 difference) {
 		if (decimals > SCALE_DECIMALS) {
 			revert();
 		}
-		uint256 difference = SCALE_DECIMALS - decimals;
-		return value * (10**difference);
+		difference = SCALE_DECIMALS - decimals;
+		return value * (10 ** difference);
+	}
+
+	/// @dev converts from specified decimalsA to decimalsB
+	function convertFromDecimals(uint256 value, uint8 decimalsA, uint8 decimalsB)
+		internal 
+		pure
+		returns (uint256) {
+		uint8 difference;
+		if (decimalsA > decimalsB) {
+			difference = decimalsA - decimalsB;
+			return value / (10 ** difference);
+		}
+		difference = decimalsB - decimalsA;
+		return value * (10 ** difference);
 	}
 
 	// doesnt allow for interest bearing collateral

@@ -762,10 +762,16 @@ describe("Options protocol Vault Health", function () {
 		expect(healthF).to.equal(healthFactor)
 	})
 	it("reverts when trying to adjust a healthy vault", async () => {
-		await expect(optionRegistry.adjustCollateral(1)).to.be.revertedWith("HealthyVault()")
+		await expect(optionRegistry.adjustCollateral(1)).to.be.revertedWithCustomError(
+			optionRegistry,
+			"HealthyVault"
+		)
 	})
 	it("reverts adjustCollateralCaller when trying to adjust a healthy vault", async () => {
-		await expect(optionRegistry.adjustCollateralCaller(1)).to.be.revertedWith("HealthyVault()")
+		await expect(optionRegistry.adjustCollateralCaller(1)).to.be.revertedWithCustomError(
+			optionRegistry,
+			"HealthyVault"
+		)
 	})
 	it("moves the price and changes vault health ETH to negative rebalance stage", async () => {
 		const currentPrice = await oracle.getPrice(weth.address)
@@ -1725,6 +1731,9 @@ describe("Options protocol Vault Health", function () {
 		expect(collatAmounts3).to.eq(0)
 		const usdBalAft = await usd.balanceOf(senderAddress)
 		expect(usdBalAft.sub(liqBalAft)).to.eq(0)
-		await expect(optionRegistry.registerLiquidatedVault(4)).to.be.revertedWith("VaultNotLiquidated()")
+		await expect(optionRegistry.registerLiquidatedVault(4)).to.be.revertedWithCustomError(
+			optionRegistry,
+			"VaultNotLiquidated"
+		)
 	})
 })

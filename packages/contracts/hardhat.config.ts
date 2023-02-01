@@ -1,8 +1,8 @@
 import { Wallet } from "@ethersproject/wallet"
 import "@nomiclabs/hardhat-ethers"
 import "@nomiclabs/hardhat-etherscan"
-import "@nomiclabs/hardhat-waffle"
 import "@typechain/hardhat"
+import "@nomicfoundation/hardhat-chai-matchers"
 import * as dotenv from "dotenv"
 import "hardhat-contract-sizer"
 import "hardhat-dependency-compiler"
@@ -36,6 +36,20 @@ if (mnemonic) {
 	}
 }
 
+const UNISWAP_COMPILER_SETTINGS = {
+	version: "0.7.6",
+	settings: {
+		evmVersion: "istanbul",
+		optimizer: {
+			enabled: true,
+			runs: 1_000_000
+		},
+		metadata: {
+			bytecodeHash: "none"
+		}
+	}
+}
+
 module.exports = {
 	typechain: {
 		outDir: "types",
@@ -66,6 +80,7 @@ module.exports = {
 					}
 				}
 			},
+			UNISWAP_COMPILER_SETTINGS,
 			{
 				version: "0.8.9",
 				settings: {
@@ -123,14 +138,14 @@ module.exports = {
 			chainId: 1337
 		},
 		arbitrum: {
-			url: `https://arbitrum-mainnet.infura.io/v3/${process.env.INFURA}`,
+      url: 'https://arb1.arbitrum.io/rpc',
 			chainId: 42161,
 			saveDeployments: true,
 			accounts: process.env.MAINNET_PRIVATE_KEY ? [process.env.MAINNET_PRIVATE_KEY] : accounts,
 			gas: 500000000
 		},
 		arbitrumGoerli: {
-			url: `https://arbitrum-goerli.infura.io/v3/${process.env.INFURA}`,
+			url: `https://goerli-rollup.arbitrum.io/rpc`,
 			chainId: 421613,
 			saveDeployments: true,
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,

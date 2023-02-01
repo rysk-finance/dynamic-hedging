@@ -202,24 +202,24 @@ describe("Authority tests", async () => {
 			expect(await authority.guardian(receiverAddress)).to.be.false
 		})
 		it("FAILS: revoke guardian when not auth", async () => {
-			await expect(authority.connect(signers[1]).revokeGuardian(senderAddress)).to.be.revertedWith(
-				"UNAUTHORIZED()"
-			)
+			await expect(
+				authority.connect(signers[1]).revokeGuardian(senderAddress)
+			).to.be.revertedWithCustomError(authority, "UNAUTHORIZED")
 		})
 		it("FAILS: set governor when not auth", async () => {
-			await expect(authority.connect(signers[1]).pushGovernor(receiverAddress)).to.be.revertedWith(
-				"UNAUTHORIZED()"
-			)
+			await expect(
+				authority.connect(signers[1]).pushGovernor(receiverAddress)
+			).to.be.revertedWithCustomError(authority, "UNAUTHORIZED")
 		})
 		it("FAILS: set manager when not auth", async () => {
-			await expect(authority.connect(signers[1]).pushManager(receiverAddress)).to.be.revertedWith(
-				"UNAUTHORIZED()"
-			)
+			await expect(
+				authority.connect(signers[1]).pushManager(receiverAddress)
+			).to.be.revertedWithCustomError(authority, "UNAUTHORIZED")
 		})
 		it("FAILS: set guardian when not auth", async () => {
-			await expect(authority.connect(signers[1]).pushGuardian(receiverAddress)).to.be.revertedWith(
-				"UNAUTHORIZED()"
-			)
+			await expect(
+				authority.connect(signers[1]).pushGuardian(receiverAddress)
+			).to.be.revertedWithCustomError(authority, "UNAUTHORIZED")
 		})
 		it("FAILS: rando tries to pull governor rank", async () => {
 			await expect(authority.connect(signers[2]).pullGovernor()).to.be.revertedWith("!newGovernor")
@@ -228,13 +228,22 @@ describe("Authority tests", async () => {
 			await expect(authority.connect(signers[2]).pullManager()).to.be.revertedWith("!newManager")
 		})
 		it("FAILS: set Governor to zero address", async () => {
-			await expect(authority.pushGovernor(ZERO_ADDRESS)).to.be.revertedWith("InvalidAddress()")
+			await expect(authority.pushGovernor(ZERO_ADDRESS)).to.be.revertedWithCustomError(
+				authority,
+				"InvalidAddress"
+			)
 		})
 		it("FAILS: set manager to zero address", async () => {
-			await expect(authority.pushManager(ZERO_ADDRESS)).to.be.revertedWith("InvalidAddress()")
+			await expect(authority.pushManager(ZERO_ADDRESS)).to.be.revertedWithCustomError(
+				authority,
+				"InvalidAddress"
+			)
 		})
 		it("FAILS: set manager to zero address", async () => {
-			await expect(authority.pushGuardian(ZERO_ADDRESS)).to.be.revertedWith("InvalidAddress()")
+			await expect(authority.pushGuardian(ZERO_ADDRESS)).to.be.revertedWithCustomError(
+				authority,
+				"InvalidAddress"
+			)
 		})
 	})
 })

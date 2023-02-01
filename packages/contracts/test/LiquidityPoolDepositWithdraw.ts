@@ -361,9 +361,18 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	})
 	it("Reverts: User 1: Tries Zero on all functions", async () => {
 		const user = senderAddress
-		await expect(liquidityPool.deposit(0)).to.be.revertedWith("InvalidAmount()")
-		await expect(liquidityPool.redeem(0)).to.be.revertedWith("InvalidShareAmount()")
-		await expect(liquidityPool.initiateWithdraw(0)).to.be.revertedWith("InvalidShareAmount()")
+		await expect(liquidityPool.deposit(0)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"InvalidAmount"
+		)
+		await expect(liquidityPool.redeem(0)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"InvalidShareAmount"
+		)
+		await expect(liquidityPool.initiateWithdraw(0)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"InvalidShareAmount"
+		)
 	})
 	it("Reverts: User 1: Attempts to redeem before epoch initiation", async () => {
 		const user = senderAddress
@@ -371,16 +380,23 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	})
 	it("Reverts: User 1: Attempts to initiate withdraw before epoch initiation", async () => {
 		const user = senderAddress
-		await expect(liquidityPool.initiateWithdraw(toWei("100000"))).to.be.revertedWith(
-			"InsufficientShareBalance()"
+		await expect(liquidityPool.initiateWithdraw(toWei("100000"))).to.be.revertedWithCustomError(
+			accounting,
+			"InsufficientShareBalance"
 		)
 	})
 	it("Reverts: User 1: Attempts to complete withdraw before epoch initiation", async () => {
 		const user = senderAddress
-		await expect(liquidityPool.completeWithdraw()).to.be.revertedWith("NoExistingWithdrawal()")
+		await expect(liquidityPool.completeWithdraw()).to.be.revertedWithCustomError(
+			accounting,
+			"NoExistingWithdrawal"
+		)
 	})
 	it("Reverts: execute epoch before pause", async () => {
-		await expect(liquidityPool.executeEpochCalculation()).to.be.revertedWith("TradingNotPaused()")
+		await expect(liquidityPool.executeEpochCalculation()).to.be.revertedWithCustomError(
+			liquidityPool,
+			"TradingNotPaused"
+		)
 	})
 	it("Succeeds: pauses trading", async () => {
 		await liquidityPool.pauseTradingAndRequest()
@@ -502,11 +518,12 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 	it("Reverts: User 3: Attempts to initiate withdraw before epoch initiation", async () => {
 		await expect(
 			liquidityPool.connect(signers[2]).initiateWithdraw(toWei("100000"))
-		).to.be.revertedWith("InsufficientShareBalance()")
+		).to.be.revertedWithCustomError(accounting, "InsufficientShareBalance")
 	})
 	it("Reverts: User 3: Attempts to complete withdraw before epoch initiation", async () => {
-		await expect(liquidityPool.connect(signers[2]).completeWithdraw()).to.be.revertedWith(
-			"NoExistingWithdrawal()"
+		await expect(liquidityPool.connect(signers[2]).completeWithdraw()).to.be.revertedWithCustomError(
+			accounting,
+			"NoExistingWithdrawal"
 		)
 	})
 	it("Succeed: User 1: redeems all shares", async () => {
@@ -701,7 +718,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		const user = senderAddress
 		const amount = toWei("2")
 		await usd.approve(liquidityPool.address, toWei("1"))
-		await expect(handler.writeOption(optionToken1, amount)).to.be.revertedWith("TradingPaused()")
+		await expect(handler.writeOption(optionToken1, amount)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"TradingPaused"
+		)
 	})
 	it("Reverts: User 1: cant issue and write option", async () => {
 		const user = senderAddress
@@ -717,8 +737,9 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			collateral: usd.address
 		}
 		await usd.approve(liquidityPool.address, toWei("1"))
-		await expect(handler.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWith(
-			"TradingPaused()"
+		await expect(handler.issueAndWriteOption(proposedSeries, amount)).to.be.revertedWithCustomError(
+			liquidityPool,
+			"TradingPaused"
 		)
 	})
 	it("Succeeds: execute epoch", async () => {
@@ -1011,7 +1032,10 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		expect(tFormatUSDC(balance.sub(balanceNew), 0)).to.eq(tFormatEth(singleQ, 0))
 	})
 	it("Reverts: User 1: cannot complete withdrawal because of epoch not closed", async () => {
-		await expect(liquidityPool.completeWithdraw()).to.be.revertedWith("EpochNotClosed()")
+		await expect(liquidityPool.completeWithdraw()).to.be.revertedWithCustomError(
+			accounting,
+			"EpochNotClosed"
+		)
 	})
 	it("Succeeds: pauses trading", async () => {
 		await liquidityPool.pauseTradingAndRequest()
@@ -1096,16 +1120,19 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore))
 	})
 	it("Reverts: User 1: still cannot complete withdrawal because of withdrawal epoch not closed", async () => {
-		await expect(liquidityPool.completeWithdraw()).to.be.revertedWith("EpochNotClosed()")
+		await expect(liquidityPool.completeWithdraw()).to.be.revertedWithCustomError(
+			accounting,
+			"EpochNotClosed"
+		)
 	})
 	it("Succeeds: Reduces collateral cap", async () => {
 		await liquidityPool.setCollateralCap(toUSDC("100"))
 		expect(await liquidityPool.collateralCap()).to.equal(toUSDC("100"))
 	})
 	it("Reverts: User 1: Deposit to the liquidityPool but hits collat cap", async () => {
-		await expect(liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit))).to.be.revertedWith(
-			"TotalSupplyReached()"
-		)
+		await expect(
+			liquidityPool.deposit(toUSDC(liquidityPoolUsdcDeposit))
+		).to.be.revertedWithCustomError(accounting, "TotalSupplyReached")
 	})
 	it("Succeeds: Raises collateral cap", async () => {
 		await liquidityPool.setCollateralCap(toWei("100000000000000000"))
@@ -1198,14 +1225,14 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		).to.equal(lplpBalanceAfter.sub(lplpBalanceBefore).add(pendingWithdrawBefore))
 	})
 	it("Reverts: pauses trading from unauthorised", async () => {
-		await expect(liquidityPool.connect(signers[3]).pauseTradingAndRequest()).to.be.revertedWith(
-			"NotKeeper()"
-		)
+		await expect(
+			liquidityPool.connect(signers[3]).pauseTradingAndRequest()
+		).to.be.revertedWithCustomError(liquidityPool, "NotKeeper")
 	})
 	it("Reverts: execute epoch from unauthorised", async () => {
-		await expect(liquidityPool.connect(signers[3]).executeEpochCalculation()).to.be.revertedWith(
-			"NotKeeper()"
-		)
+		await expect(
+			liquidityPool.connect(signers[3]).executeEpochCalculation()
+		).to.be.revertedWithCustomError(liquidityPool, "NotKeeper")
 	})
 })
 

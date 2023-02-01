@@ -18,6 +18,15 @@ contract UniswapV3HedgingTest {
 		);
 	}
 
+	function setHedgingReactorAddressAndToken(address _address, address _tokenAddress) public {
+		uniswapV3HedgingReactor = _address;
+		SafeTransferLib.safeApprove(
+			ERC20(_tokenAddress),
+			_address,
+			MAX_UINT
+		);
+	}
+
 	function hedgeDelta(int256 _delta) public returns (int256 deltaChange) {
 		return IHedgingReactor(uniswapV3HedgingReactor).hedgeDelta(_delta);
 	}
