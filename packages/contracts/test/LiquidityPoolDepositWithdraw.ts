@@ -599,7 +599,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		await usd.approve(exchange.address, toWei("1"))
 		await expect(
 			makeBuy(exchange, senderAddress, optionToken1.address, amount, emptySeries)
-		).to.be.revertedWith("TradingPaused()")
+		).to.be.revertedWithCustomError(liquidityPool, "TradingPaused")
 	})
 	it("Reverts: User 1: cant issue and write option", async () => {
 		const user = senderAddress
@@ -617,7 +617,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		await usd.approve(exchange.address, toWei("1"))
 		await expect(
 			makeIssueAndBuy(exchange, senderAddress, ZERO_ADDRESS, amount, proposedSeries)
-		).to.be.revertedWith("TradingPaused()")
+		).to.be.revertedWithCustomError(liquidityPool, "TradingPaused")
 	})
 	it("Succeeds: execute epoch", async () => {
 		const depositEpochBefore = await liquidityPool.depositEpoch()
