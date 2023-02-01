@@ -37,9 +37,17 @@
 
 1. Deploy OptionCatalogue contract
 2. Add as parameter on OptionExchange
-3. Set AlphaOptionHandler as an updater
-4. Set OptionExchange as an updater
-5. Change notion and gitbook docs to reflect new contract
+3. Change notion and gitbook docs to reflect new contract
+
+**AlphaPortfolioValuesFeed**
+
+1. Make sure current alpha pv feed doesnt have any open positions
+2. Deploy new AlphaPortfolioValuesFeed contract
+3. Change portfolio values feed on the protocol contract
+4. set the liquidity pool and protocol on the contract
+5. set liquidity pool as a keeper
+6. Check cor for references and fix
+7. Change notion and gitbook docs to reflect new contract
 
 **BeyondPricer**
 
@@ -51,6 +59,6 @@
 
 1. Deploy exchange contract
 2. Set as handler and reactor on the liquidity pool
-4. Set as a keeper and handler on the portfolioValuesFeed
-5. Check cor for references to the price feed contract and switch out the address
-6. Change notion and gitbook docs to reflect new contract
+3. Set as a keeper and handler on the portfolioValuesFeed
+4. Check cor for references to the price feed contract and switch out the address
+5. Change notion and gitbook docs to reflect new contract
