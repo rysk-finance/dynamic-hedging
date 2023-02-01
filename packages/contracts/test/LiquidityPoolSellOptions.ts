@@ -13,7 +13,7 @@ import { AddressBook, AlphaOptionHandler, AlphaPortfolioValuesFeed, BeyondPricer
 
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { deployOpyn } from "../utils/opyn-deployer"
-import { CHAINLINK_WETH_PRICER, MARGIN_POOL, UNISWAP_V3_SWAP_ROUTER, USDC_ADDRESS, WETH_ADDRESS } from "./constants"
+import { ADDRESS_BOOK, CHAINLINK_WETH_PRICER, MARGIN_POOL, UNISWAP_V3_SWAP_ROUTER, USDC_ADDRESS, WETH_ADDRESS } from "./constants"
 import { calculateOptionDeltaLocally, calculateOptionQuoteLocallyAlpha, compareQuotes, createAndMintOtoken, createFakeOtoken, getExchangeParams, getNetDhvExposure, getSeriesWithe18Strike, setOpynOracleExpiryPrice, setupOracle, setupTestOracle, whitelistProduct } from "./helpers"
 dayjs.extend(utc)
 let usd: MintableERC20
@@ -360,6 +360,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 			expect(issueEvent.series).to.equal(seriesAddress)
 			expect(buyEvent.series).to.equal(seriesAddress)
+			expect(buyEvent.buyer).to.equal(senderAddress)
 			expect(buyEvent.optionAmount).to.equal(amount)
 			oTokenUSDCXC = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
 			optionToken = oTokenUSDCXC
@@ -436,8 +437,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 
 		})
 		it("SETUP: set maxMetDhvExposure", async () => {
-			await catalogue.setMaxNetDhvExposure(toWei("3"))
-			expect(await catalogue.maxNetDhvExposure()).to.equal(toWei("3"))
+			await portfolioValuesFeed.setMaxNetDhvExposure(toWei("3"))
+			expect(await portfolioValuesFeed.maxNetDhvExposure()).to.equal(toWei("3"))
 		})
 		it("REVERTS: LP Writes a ETH/USD call fails because above netDhvExposure", async () => {
 			const amount = toWei("5")
@@ -479,11 +480,12 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						index: 0,
 						data: "0x"
 					}]
-				}])).to.be.revertedWithCustomError(catalogue, "MaxNetDhvExposureExceeded")
+				}])).to.be.revertedWithCustomError(portfolioValuesFeed, "MaxNetDhvExposureExceeded")
 
 		})
 		it("REVERTS: sells the options to the exchange and go below net dhv exposure", async () => {
 			const amount = toWei("1")
+			await optionToken.approve(exchange.address, amount)
 			await expect(
 				exchange.operate([
 					{
@@ -503,11 +505,11 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWithCustomError(catalogue, "MaxNetDhvExposureExceeded")
+			).to.be.revertedWithCustomError(portfolioValuesFeed, "MaxNetDhvExposureExceeded")
 		})
 		it("SETUP: set maxMetDhvExposure", async () => {
-			await catalogue.setMaxNetDhvExposure(toWei("50000"))
-			expect(await catalogue.maxNetDhvExposure()).to.equal(toWei("50000"))
+			await portfolioValuesFeed.setMaxNetDhvExposure(toWei("50000"))
+			expect(await portfolioValuesFeed.maxNetDhvExposure()).to.equal(toWei("50000"))
 		})
 		let customOrderPrice: any
 		let oToken: Otoken
@@ -590,7 +592,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const prevalues = await portfolioValuesFeed.getPortfolioValues(weth.address, usd.address)
 			const ephemeralDeltaBefore = await liquidityPool.ephemeralDelta()
 			const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
-			const netDhvExposureBefore = await getNetDhvExposure(orderDeets.optionSeries.strike.mul(utils.parseUnits("1", 10)), orderDeets.optionSeries.collateral, catalogue, orderDeets.optionSeries.expiration, orderDeets.optionSeries.isPut)
+			const netDhvExposureBefore = await getNetDhvExposure(orderDeets.optionSeries.strike.mul(utils.parseUnits("1", 10)), orderDeets.optionSeries.collateral, catalogue, portfolioValuesFeed, orderDeets.optionSeries.expiration, orderDeets.optionSeries.isPut)
 			expect(netDhvExposureBefore).to.equal(toWei("0").sub(toWei("5")))
 			const expectedCollateralAllocated = await optionRegistry.getCollateral(
 				{
@@ -656,7 +658,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const buyerBalAfter = await usd.balanceOf(senderAddress)
 			const senderBalAfter = await usd.balanceOf(senderAddress)
 			const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
-			const netDhvExposureAfter = await getNetDhvExposure(orderDeets.optionSeries.strike.mul(utils.parseUnits("1", 10)), orderDeets.optionSeries.collateral, catalogue, orderDeets.optionSeries.expiration, orderDeets.optionSeries.isPut)
+			const netDhvExposureAfter = await getNetDhvExposure(orderDeets.optionSeries.strike.mul(utils.parseUnits("1", 10)), orderDeets.optionSeries.collateral, catalogue, portfolioValuesFeed, orderDeets.optionSeries.expiration, orderDeets.optionSeries.isPut)
 			const collateralAllocatedDiff = tFormatUSDC(
 				collateralAllocatedAfter.sub(collateralAllocatedBefore)
 			)
@@ -874,6 +876,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			const soldEvent = logs[0].args
 			expect(soldEvent.series).to.equal(optionToken.address)
 			expect(soldEvent.optionAmount).to.equal(amount)
+			expect(soldEvent.seller).to.equal(senderAddress)
 			const after = await getExchangeParams(
 				liquidityPool,
 				exchange,
@@ -1697,14 +1700,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					]
 				}
 			])
-			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
-			const localDelta = await calculateOptionDeltaLocally(
-				liquidityPool,
-				priceFeed,
-				proposedSeries,
-				toWei("5"),
-				true
-			)
 			optionToken = oTokenUSDC1650NC
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -3213,6 +3208,41 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					}
 				])
 			})
+			it("SUCCEEDS: sells the options to the exchange fails if collateral is not approved", async () => {
+				const amount = toWei("4")
+				await expect(exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					}
+				])).to.be.revertedWithCustomError(exchange, "CollateralAssetInvalid")
+			})
+			it("SUCCEEDS: approve busd as collateral for puts", async () => {
+				expect(await exchange.approvedCollateral(busd.address, true)).to.be.false
+				const tx = await exchange.changeApprovedCollateral(busd.address, true, true)
+				expect(await exchange.approvedCollateral(busd.address, true)).to.be.true
+				const receipt = await tx.wait()
+				const events = receipt.events
+				const txEvents = events?.find(x => x.event == "CollateralApprovalChanged")
+				expect(txEvents?.args?.collateral).to.equal(busd.address)
+				expect(txEvents?.args?.isPut).to.equal(true)
+				expect(txEvents?.args?.isApproved).to.equal(true)
+			})
+			it("REVERTS: approve busd as collateral for puts fails by non-gov", async () => {
+				await expect(exchange.connect(signers[1]).changeApprovedCollateral(busd.address, true, true)).to.be.revertedWithCustomError(exchange, "UNAUTHORIZED")
+			})
 			it("SUCCEEDS: sells the options to the exchange", async () => {
 				const amount = toWei("4")
 				const before = await getExchangeParams(
@@ -3680,6 +3710,53 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					"0x4Fabb145d64652a948d72533023f6E7A623C7C53"
 				)) as MintableERC20
 				expect(await busd.balanceOf(exchange.address)).to.equal(0)
+			})
+		})
+		describe("Test migration functionality", async () => {
+			let migExchange: OptionExchange
+			it("SUCCEEDS: deploy new option exchange", async () => {
+				const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
+				const interactions = await interactionsFactory.deploy()
+				const exchangeFactory = await ethers.getContractFactory("OptionExchange", {
+					libraries: {
+						OpynInteractions: interactions.address
+					}
+				})
+				migExchange = (await exchangeFactory.deploy(
+					authority,
+					optionProtocol.address,
+					liquidityPool.address,
+					pricer.address,
+					ADDRESS_BOOK[chainId],
+					UNISWAP_V3_SWAP_ROUTER[chainId],
+					liquidityPool.address,
+					catalogue.address
+				)) as OptionExchange
+			})
+			it("REVERTS: migrate options if not governor", async () => {
+				await expect(exchange.connect(signers[1]).migrateOtokens(migExchange.address, [oTokenUSDC1650NC.address, oTokenETH1600C.address, oTokenUSDCSXC.address])).to.be.revertedWithCustomError(exchange, "UNAUTHORIZED")
+			})
+			it("SUCCEEDS: migrate options", async () => {
+				const otokens = [oTokenUSDCSXC]
+				const otokenArray = [oTokenUSDCSXC.address]
+				let otokenBalancesEx = [toWei("0"), 0, 0]
+				let otokenBalancesMigEx = [toWei("0"), 0, 0]
+				for (let i = 0; i < otokenArray.length; i++) {
+					expect(await otokens[i].balanceOf(exchange.address)).to.be.gt(0)
+					otokenBalancesEx[i] = (await otokens[i].balanceOf(exchange.address))
+					otokenBalancesMigEx[i] = (await otokens[i].balanceOf(migExchange.address))
+				}
+				const tx = await exchange.migrateOtokens(migExchange.address, otokenArray)
+				for (let i = 0; i < otokenArray.length; i++) {
+					expect(otokenBalancesEx[i].sub(await otokens[i].balanceOf(migExchange.address))).to.equal(0)
+					expect(await otokens[i].balanceOf(exchange.address)).to.equal(0)
+				}
+				const receipt = await tx.wait()
+				const events = receipt.events
+				const migrateEvent = events?.find(x => x.event == "OtokenMigrated")
+				expect(migrateEvent?.args?.newOptionExchange).to.equal(migExchange.address)
+				expect(migrateEvent?.args?.otoken).to.equal(oTokenUSDCSXC.address)
+				expect(migrateEvent?.args?.amount).to.equal(otokenBalancesEx[0])
 			})
 		})
 		describe("Admin functionality", async () => {

@@ -17,12 +17,15 @@ import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 
+import "prb-math/contracts/PRBMathSD59x18.sol";
+
 /**
  * @title AlphaPortfolioValuesFeed contract
  * @notice Options portfolio storage and calculations
  */
 contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	using EnumerableSet for EnumerableSet.AddressSet;
+	using PRBMathSD59x18 for int256;
 
 	struct OptionStores {
 		Types.OptionSeries optionSeries;
@@ -45,6 +48,8 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	EnumerableSet.AddressSet internal addressSet;
 	// portfolio values
 	mapping(address => mapping(address => Types.PortfolioValues)) private portfolioValues;
+	// net dhv exposure of the option
+	mapping(bytes32 => int256) public netDhvExposure;
 
 	/////////////////////////////////
 	/// govern settable variables ///
@@ -58,6 +63,8 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	mapping(address => bool) public keeper;
 	// risk free rate
 	uint256 public rfr = 0;
+	// maximum absolute netDhvExposure
+	uint256 public maxNetDhvExposure;
 
 	//////////////
 	/// events ///
@@ -79,8 +86,10 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		int256 longExposure,
 		Types.OptionSeries optionSeries
 	);
+	event MaxNetDhvExposureUpdated(uint256 maxNetDhvExposure);
 
 	error OptionHasExpiredInStores(uint256 index, address seriesAddress);
+	error MaxNetDhvExposureExceeded();
 	error NoVaultForShortPositions();
 	error IncorrectSeriesToRemove();
 	error SeriesNotExpired();
@@ -90,7 +99,9 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	 * @notice Executes once when a contract is created to initialize state variables
 	 *		   Make sure the protocol is configured after deployment
 	 */
-	constructor(address _authority) AccessControl(IAuthority(_authority)) {}
+	constructor(address _authority, uint256 _maxNetDhvExposure) AccessControl(IAuthority(_authority)) {		
+		maxNetDhvExposure = _maxNetDhvExposure;
+		}
 
 	///////////////
 	/// setters ///
@@ -125,6 +136,15 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	function setHandler(address _handler, bool _auth) external {
 		_onlyGovernor();
 		handler[_handler] = _auth;
+	}
+
+	/**
+	 * @notice change the max net dhv exposure
+	 */
+	function setMaxNetDhvExposure(uint256 _maxNetDhvExposure) external {
+		_onlyGovernor();
+		maxNetDhvExposure = _maxNetDhvExposure;
+		emit MaxNetDhvExposureUpdated(_maxNetDhvExposure);
 	}
 
 	/**
@@ -218,6 +238,11 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 			storesForAddress[_seriesAddress].shortExposure += shortExposure;
 			storesForAddress[_seriesAddress].longExposure += longExposure;
 		}
+		// get the hash of the option (how the option is stored on the books)
+		bytes32 oHash = keccak256(abi.encodePacked(_optionSeries.expiration, _optionSeries.strike, _optionSeries.isPut));
+		netDhvExposure[oHash] -= shortExposure;
+		netDhvExposure[oHash] += longExposure;
+		if (uint256(netDhvExposure[oHash].abs()) > maxNetDhvExposure) revert MaxNetDhvExposureExceeded();
 		emit StoresUpdated(_seriesAddress, shortExposure, longExposure, _optionSeries);
 	}
 
