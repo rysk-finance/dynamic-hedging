@@ -166,8 +166,10 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")
 		const senderAddress = await signers[0].getAddress()
 		authority = (await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)).address
+		const sequencerUptimeFeedFactory = await ethers.getContractFactory("MockChainlinkSequencerFeed")
+		const sequencerUptimeFeed = await sequencerUptimeFeedFactory.deploy()
 		const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
-		const _priceFeed = (await priceFeedFactory.deploy(authority)) as PriceFeed
+		const _priceFeed = (await priceFeedFactory.deploy(authority, sequencerUptimeFeed.address)) as PriceFeed
 		priceFeed = _priceFeed
 		await priceFeed.addPriceFeed(ZERO_ADDRESS, USDC_ADDRESS[chainId], ethUSDAggregator.address)
 		await priceFeed.addPriceFeed(
