@@ -88,6 +88,12 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// structs && events ///
 	/////////////////////////
 
+	event SlippageGradientMultipliersChanged();
+	event DeltaBandWidthChanged(uint256 newDeltaBandWidth, uint256 oldDeltaBandWidth);
+	event ShortDeltaBorrowRateChanged(uint256 newShortDeltaBorrowRate, uint256 oldShortDeltaBorrowRate);
+	event LongDeltaBorrowRateChanged(uint256 newLongDeltaBorrowRate, uint256 oldLongDeltaBorrowRate);
+	event CollateralLendingRateChanged(uint256 newCollateralLendingRate, uint256 oldCollateralLendingRate);
+	event SlippageGradientChanged(uint256 newSlippageGradient, uint256 oldSlippageGradient);
 	event FeePerContractChanged(uint256 newFeePerContract, uint256 oldFeePerContract);
 	event RiskFreeRateChanged(uint256 newRiskFreeRate, uint256 oldRiskFreeRate);
 	event BidAskIVSpreadChanged(uint256 newBidAskIVSpread, uint256 oldBidAskIVSpread);
@@ -154,21 +160,25 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	function setSlippageGradient(uint256 _slippageGradient) external {
 		_onlyManager();
+		emit SlippageGradientChanged(_slippageGradient, slippageGradient);
 		slippageGradient = _slippageGradient;
 	}
 
 	function setCollateralLendingRate(uint256 _collateralLendingRate) external {
 		_onlyManager();
+		emit CollateralLendingRateChanged(_collateralLendingRate, collateralLendingRate);
 		collateralLendingRate = _collateralLendingRate;
 	}
 
 	function setShortDeltaBorrowRate(uint256 _shortDeltaBorrowRate) external {
 		_onlyManager();
+		emit ShortDeltaBorrowRateChanged(_shortDeltaBorrowRate, shortDeltaBorrowRate);
 		shortDeltaBorrowRate = _shortDeltaBorrowRate;
 	}
 
 	function setLongDeltaBorrowRate(uint256 _longDeltaBorrowRate) external {
 		_onlyManager();
+		emit LongDeltaBorrowRateChanged(_longDeltaBorrowRate, longDeltaBorrowRate);
 		longDeltaBorrowRate = _longDeltaBorrowRate;
 	}
 
@@ -179,6 +189,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256[] memory _putSlippageGradientMultipliers
 	) external {
 		_onlyManager();
+		emit DeltaBandWidthChanged(_deltaBandWidth, deltaBandWidth);
 		deltaBandWidth = _deltaBandWidth;
 		setSlippageGradientMultipliers(_callSlippageGradientMultipliers, _putSlippageGradientMultipliers);
 	}
@@ -203,6 +214,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		}
 		callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
 		putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
+		emit SlippageGradientMultipliersChanged();
 	}
 
 	///////////////////////

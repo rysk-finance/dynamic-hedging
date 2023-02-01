@@ -75,6 +75,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	uint256 public maxTradeSize = 1000e18;
 	/// @notice minimum amount allowed for a single trade
 	uint256 public minTradeSize = 1e16;
+	/// @notice mapping of approved collateral for puts and calls
+	mapping(address => mapping(bool => bool)) public approvedCollateral;
 
 	///////////////////////////
 	/// transient variables ///
@@ -126,8 +128,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	}
 
 	event OptionsIssued(address indexed series);
-	event OptionsBought(address indexed series, uint256 optionAmount);
-	event OptionsSold(address indexed series, uint256 optionAmount);
+	event OptionsBought(address indexed series, address indexed buyer, uint256 optionAmount);
+	event OptionsSold(address indexed series, address indexed seller, uint256 optionAmount);
 	event OptionsRedeemed(
 		address indexed series,
 		uint256 optionAmount,
@@ -135,6 +137,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		address redeemAsset
 	);
 	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
+	event CollateralApprovalChanged(address indexed collateral, bool isPut, bool isApproved);
+	event OtokenMigrated(address newOptionExchange, address otoken, uint256 amount);
 
 	error TradeTooSmall();
 	error TradeTooLarge();
@@ -168,6 +172,14 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		catalogue = OptionCatalogue(_catalogue);
 		require(_feeRecipient != address(0));
 		feeRecipient = _feeRecipient;
+		approvedCollateral[collateralAsset][true] = true;
+		approvedCollateral[collateralAsset][false] = true;
+		approvedCollateral[underlyingAsset][true] = true;
+		approvedCollateral[underlyingAsset][false] = true;
+		emit CollateralApprovalChanged(collateralAsset, true, true);
+		emit CollateralApprovalChanged(collateralAsset, false, true);
+		emit CollateralApprovalChanged(underlyingAsset, true, true);
+		emit CollateralApprovalChanged(underlyingAsset, false, true);
 	}
 
 	///////////////
@@ -221,6 +233,17 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_onlyGovernor();
 		minTradeSize = _minTradeSize;
 		maxTradeSize = _maxTradeSize;
+	}
+
+	/// @notice set whether a collateral is approved for selling to the vault
+	function changeApprovedCollateral(
+		address collateral,
+		bool isPut,
+		bool isApproved
+	) external {
+		_onlyGovernor();
+		approvedCollateral[collateral][isPut] = isApproved;
+		emit CollateralApprovalChanged(collateral, isPut, isApproved);
 	}
 
 	//////////////////////////////////////////////////////
@@ -283,6 +306,21 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				);
 				emit RedemptionSent(redeemableCollateral, collateralAsset, address(liquidityPool));
 			}
+		}
+	}
+
+	/**
+	 * @notice migrate otokens held by this address to a new option exchange
+	 * @param newOptionExchange the option exchange to migrate to
+	 * @param otokens the otoken addresses to transfer
+	 */
+	function migrateOtokens(address newOptionExchange, address[] memory otokens) external {
+		_onlyGovernor();
+		uint256 len = otokens.length;
+		for (uint256 i = 0; i < len; i++) {
+			uint256 balance = ERC20(otokens[i]).balanceOf(address(this));
+			SafeTransferLib.safeTransfer(ERC20(otokens[i]), newOptionExchange, balance);
+			emit OtokenMigrated(newOptionExchange, otokens[i], balance);
 		}
 	}
 
@@ -483,6 +521,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		if (_args.amount > maxTradeSize) revert TradeTooLarge();
 		// get the option details in the correct formats
 		IOptionRegistry optionRegistry = getOptionRegistry();
+		IAlphaPortfolioValuesFeed portfolioValuesFeed = getPortfolioValuesFeed();
 		BuyParams memory buyParams;
 		bytes32 oHash;
 		(buyParams.seriesAddress, buyParams.seriesToStore, buyParams.optionSeries, oHash) = _preChecks(
@@ -497,17 +536,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			buyParams.seriesToStore,
 			_args.amount,
 			false,
-			catalogue.netDhvExposure(oHash)
+			portfolioValuesFeed.netDhvExposure(oHash)
 		);
 		_handlePremiumTransfer(buyParams.premium, buyParams.fee);
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
-		int256 longExposure = getPortfolioValuesFeed()
-			.storesForAddress(buyParams.seriesAddress)
-			.longExposure;
+		int256 longExposure = portfolioValuesFeed.storesForAddress(buyParams.seriesAddress).longExposure;
 		uint256 amount = _args.amount;
-		// update the net DHV exposure for this series
-		catalogue.updateNetDhvExposure(oHash, -int256(_args.amount));
-		emit OptionsBought(buyParams.seriesAddress, amount);
+		emit OptionsBought(buyParams.seriesAddress, recipient, amount);
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
 			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
@@ -518,7 +553,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				boughtAmount / (10**CONVERSION_DECIMALS)
 			);
 			// update the series on the stores
-			getPortfolioValuesFeed().updateStores(
+			portfolioValuesFeed.updateStores(
 				buyParams.seriesToStore,
 				0,
 				-int256(boughtAmount),
@@ -533,7 +568,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			revert CustomErrors.CollateralAssetInvalid();
 		}
 		// add this series to the portfolio values feed so its stored on the book
-		getPortfolioValuesFeed().updateStores(
+		portfolioValuesFeed.updateStores(
 			buyParams.seriesToStore,
 			int256(amount),
 			0,
@@ -564,6 +599,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		if (_args.amount < minTradeSize) revert TradeTooSmall();
 		if (_args.amount > maxTradeSize) revert TradeTooLarge();
 		IOptionRegistry optionRegistry = getOptionRegistry();
+		IAlphaPortfolioValuesFeed portfolioValuesFeed = getPortfolioValuesFeed();
 		SellParams memory sellParams;
 		bytes32 oHash;
 		(sellParams.seriesAddress, sellParams.seriesToStore, sellParams.optionSeries, oHash) = _preChecks(
@@ -577,7 +613,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			sellParams.seriesToStore,
 			_args.amount,
 			true,
-			catalogue.netDhvExposure(oHash)
+			portfolioValuesFeed.netDhvExposure(oHash)
 		);
 		sellParams.amount = _args.amount;
 		sellParams.tempHoldings = heldTokens[msg.sender][sellParams.seriesAddress];
@@ -585,9 +621,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			sellParams.tempHoldings,
 			_args.amount
 		);
-		// update the net DHV exposure for this series
-		catalogue.updateNetDhvExposure(oHash, int256(_args.amount));
-		int256 shortExposure = getPortfolioValuesFeed()
+		int256 shortExposure = portfolioValuesFeed
 			.storesForAddress(sellParams.seriesAddress)
 			.shortExposure;
 		if (shortExposure > 0) {
@@ -619,7 +653,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				);
 			}
 			// update on the pvfeed stores
-			getPortfolioValuesFeed().updateStores(
+			portfolioValuesFeed.updateStores(
 				sellParams.seriesToStore,
 				0,
 				int256(sellParams.amount),
@@ -662,7 +696,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				sellParams.premium - sellParams.fee
 			);
 		}
-		emit OptionsSold(sellParams.seriesAddress, _args.amount);
+		emit OptionsSold(sellParams.seriesAddress, _args.recipient, _args.amount);
 	}
 
 	///////////////////////////
@@ -681,7 +715,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @notice get the portfolio values feed used by the liquidity pool
 	 * @return the portfolio values feed contract
 	 */
-	function getPortfolioValuesFeed() internal view returns (IAlphaPortfolioValuesFeed) {
+	function getPortfolioValuesFeed() public view returns (IAlphaPortfolioValuesFeed) {
 		return IAlphaPortfolioValuesFeed(protocol.portfolioValuesFeed());
 	}
 
@@ -693,6 +727,18 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/// @inheritdoc IHedgingReactor
 	function getPoolDenominatedValue() external view returns (uint256) {
 		return ERC20(collateralAsset).balanceOf(address(this));
+	}
+
+	function getOptionDetails(address seriesAddress, Types.OptionSeries memory optionSeries)
+		external
+		view
+		returns (
+			address,
+			Types.OptionSeries memory,
+			uint128
+		)
+	{
+		return _getOptionDetails(seriesAddress, optionSeries, getOptionRegistry());
 	}
 
 	//////////////////////////
@@ -799,6 +845,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 		if (optionSeries.strikeAsset != strikeAsset) {
 			revert CustomErrors.StrikeAssetInvalid();
+		}
+		if (!approvedCollateral[optionSeries.collateral][optionSeries.isPut]) {
+			revert CustomErrors.CollateralAssetInvalid();
 		}
 	}
 

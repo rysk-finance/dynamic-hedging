@@ -3,7 +3,6 @@ pragma solidity >=0.8.0;
 
 import "./Protocol.sol";
 import "./PriceFeed.sol";
-import "./OptionCatalogue.sol";
 
 import "./tokens/ERC20.sol";
 import "./libraries/Types.sol";
@@ -50,8 +49,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	uint256 public orderIdCounter;
 	// custom option orders
 	mapping(uint256 => Types.Order) public orderStores;
-	/// @notice option catalogue
-	OptionCatalogue public catalogue;
 
 	/////////////////////////////////////
 	/// governance settable variables ///
@@ -79,8 +76,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	constructor(
 		address _authority,
 		address _protocol,
-		address _liquidityPool,
-		address _catalogue
+		address _liquidityPool
 	) AccessControl(IAuthority(_authority)) {
 		protocol = Protocol(_protocol);
 		liquidityPool = ILiquidityPool(_liquidityPool);
@@ -88,7 +84,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		underlyingAsset = liquidityPool.underlyingAsset();
 		strikeAsset = liquidityPool.strikeAsset();
 		feeRecipient = _liquidityPool;
-		catalogue = OptionCatalogue(_catalogue);
 	}
 
 	function setFeePerContract(uint256 _feePerContract) external {
@@ -100,11 +95,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		_onlyGovernor();
 		require(_feeRecipient != address(0));
 		feeRecipient = _feeRecipient;
-	}
-
-	function setOptionCatalogue(address _catalogue) external {
-		_onlyGovernor();
-		catalogue = OptionCatalogue(_catalogue);
 	}
 
 	//////////////////////////////////////////////////////
@@ -285,7 +275,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			strikeAsset,
 			collateralAsset
 		);
-		catalogue.updateNetDhvExposureWithOptionSeries(seriesToStore, -int256(order.amount));
 		getPortfolioValuesFeed().updateStores(
 			seriesToStore,
 			int256(order.amount),
@@ -357,7 +346,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			strikeAsset,
 			collateralAsset
 		);
-		catalogue.updateNetDhvExposureWithOptionSeries(seriesToStore, int256(order.amount));
 		getPortfolioValuesFeed().updateStores(
 			seriesToStore,
 			-int256(order.amount),

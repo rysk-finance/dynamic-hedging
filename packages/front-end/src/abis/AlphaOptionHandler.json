@@ -15,11 +15,6 @@
 				"internalType": "address",
 				"name": "_liquidityPool",
 				"type": "address"
-			},
-			{
-				"internalType": "address",
-				"name": "_catalogue",
-				"type": "address"
 			}
 		],
 		"stateMutability": "nonpayable",
@@ -116,19 +111,6 @@
 		"outputs": [
 			{
 				"internalType": "contract IAuthority",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "catalogue",
-		"outputs": [
-			{
-				"internalType": "contract OptionCatalogue",
 				"name": "",
 				"type": "address"
 			}
@@ -598,19 +580,6 @@
 			}
 		],
 		"name": "setFeeRecipient",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_catalogue",
-				"type": "address"
-			}
-		],
-		"name": "setOptionCatalogue",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
