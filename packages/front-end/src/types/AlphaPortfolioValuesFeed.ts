@@ -92,7 +92,9 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
     "isAddressInSet(address)": FunctionFragment;
     "keeper(address)": FunctionFragment;
     "liquidityPool()": FunctionFragment;
+    "maxNetDhvExposure()": FunctionFragment;
     "migrate(address)": FunctionFragment;
+    "netDhvExposure(bytes32)": FunctionFragment;
     "protocol()": FunctionFragment;
     "requestPortfolioData(address,address)": FunctionFragment;
     "rfr()": FunctionFragment;
@@ -100,6 +102,7 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
     "setHandler(address,bool)": FunctionFragment;
     "setKeeper(address,bool)": FunctionFragment;
     "setLiquidityPool(address)": FunctionFragment;
+    "setMaxNetDhvExposure(uint256)": FunctionFragment;
     "setProtocol(address)": FunctionFragment;
     "setRFR(uint256)": FunctionFragment;
     "storesForAddress(address)": FunctionFragment;
@@ -146,7 +149,15 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
     functionFragment: "liquidityPool",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "maxNetDhvExposure",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "migrate", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "netDhvExposure",
+    values: [BytesLike]
+  ): string;
   encodeFunctionData(functionFragment: "protocol", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "requestPortfolioData",
@@ -168,6 +179,10 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "setLiquidityPool",
     values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setMaxNetDhvExposure",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "setProtocol", values: [string]): string;
   encodeFunctionData(
@@ -223,7 +238,15 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
     functionFragment: "liquidityPool",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "maxNetDhvExposure",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "migrate", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "netDhvExposure",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "protocol", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "requestPortfolioData",
@@ -238,6 +261,10 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "setKeeper", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "setLiquidityPool",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setMaxNetDhvExposure",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -258,12 +285,14 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
   events: {
     "AuthorityUpdated(address)": EventFragment;
     "DataFullfilled(address,address,int256,int256,int256,int256,int256)": EventFragment;
+    "MaxNetDhvExposureUpdated(uint256)": EventFragment;
     "RequestedUpdate(address,address)": EventFragment;
     "StoresUpdated(address,int256,int256,tuple)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "DataFullfilled"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "MaxNetDhvExposureUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RequestedUpdate"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "StoresUpdated"): EventFragment;
 }
@@ -287,6 +316,14 @@ export type DataFullfilledEvent = TypedEvent<
 >;
 
 export type DataFullfilledEventFilter = TypedEventFilter<DataFullfilledEvent>;
+
+export type MaxNetDhvExposureUpdatedEvent = TypedEvent<
+  [BigNumber],
+  { maxNetDhvExposure: BigNumber }
+>;
+
+export type MaxNetDhvExposureUpdatedEventFilter =
+  TypedEventFilter<MaxNetDhvExposureUpdatedEvent>;
 
 export type RequestedUpdateEvent = TypedEvent<
   [string, string],
@@ -376,10 +413,17 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
 
     liquidityPool(overrides?: CallOverrides): Promise<[string]>;
 
+    maxNetDhvExposure(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     migrate(
       _migrateContract: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    netDhvExposure(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
 
     protocol(overrides?: CallOverrides): Promise<[string]>;
 
@@ -410,6 +454,11 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
 
     setLiquidityPool(
       _liquidityPool: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setMaxNetDhvExposure(
+      _maxNetDhvExposure: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -488,10 +537,17 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
 
   liquidityPool(overrides?: CallOverrides): Promise<string>;
 
+  maxNetDhvExposure(overrides?: CallOverrides): Promise<BigNumber>;
+
   migrate(
     _migrateContract: string,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
+
+  netDhvExposure(
+    arg0: BytesLike,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
 
   protocol(overrides?: CallOverrides): Promise<string>;
 
@@ -522,6 +578,11 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
 
   setLiquidityPool(
     _liquidityPool: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setMaxNetDhvExposure(
+    _maxNetDhvExposure: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -600,7 +661,14 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
 
     liquidityPool(overrides?: CallOverrides): Promise<string>;
 
+    maxNetDhvExposure(overrides?: CallOverrides): Promise<BigNumber>;
+
     migrate(_migrateContract: string, overrides?: CallOverrides): Promise<void>;
+
+    netDhvExposure(
+      arg0: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
 
     protocol(overrides?: CallOverrides): Promise<string>;
 
@@ -631,6 +699,11 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
 
     setLiquidityPool(
       _liquidityPool: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setMaxNetDhvExposure(
+      _maxNetDhvExposure: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -682,6 +755,13 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
       theta?: null,
       callPutsValue?: null
     ): DataFullfilledEventFilter;
+
+    "MaxNetDhvExposureUpdated(uint256)"(
+      maxNetDhvExposure?: null
+    ): MaxNetDhvExposureUpdatedEventFilter;
+    MaxNetDhvExposureUpdated(
+      maxNetDhvExposure?: null
+    ): MaxNetDhvExposureUpdatedEventFilter;
 
     "RequestedUpdate(address,address)"(
       _underlying?: null,
@@ -748,9 +828,16 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
 
     liquidityPool(overrides?: CallOverrides): Promise<BigNumber>;
 
+    maxNetDhvExposure(overrides?: CallOverrides): Promise<BigNumber>;
+
     migrate(
       _migrateContract: string,
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    netDhvExposure(
+      arg0: BytesLike,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     protocol(overrides?: CallOverrides): Promise<BigNumber>;
@@ -782,6 +869,11 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
 
     setLiquidityPool(
       _liquidityPool: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setMaxNetDhvExposure(
+      _maxNetDhvExposure: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -864,9 +956,16 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
 
     liquidityPool(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    maxNetDhvExposure(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     migrate(
       _migrateContract: string,
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    netDhvExposure(
+      arg0: BytesLike,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     protocol(overrides?: CallOverrides): Promise<PopulatedTransaction>;
@@ -898,6 +997,11 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
 
     setLiquidityPool(
       _liquidityPool: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setMaxNetDhvExposure(
+      _maxNetDhvExposure: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
