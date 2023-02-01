@@ -85,8 +85,8 @@ describe("Price Feed", async () => {
 		// set answer to 1 meaning sequencer is down
 		await sequencerUptimeFeed.setAnswer(1)
 
-		await expect(priceFeed.getNormalizedRate(weth.address, usd.address)).to.be.revertedWith(
-			"SequencerDown()"
+		await expect(priceFeed.getNormalizedRate(weth.address, usd.address)).to.be.revertedWithCustomError(priceFeed,
+			"SequencerDown"
 		)
 	})
 	it("should revert when the sequencer is back online but has not completed its grace period", async () => {
@@ -100,8 +100,8 @@ describe("Price Feed", async () => {
 		await ethers.provider.send("evm_increaseTime", [1740])
 		await ethers.provider.send("evm_mine")
 
-		await expect(priceFeed.getNormalizedRate(weth.address, usd.address)).to.be.revertedWith(
-			"GracePeriodNotOver()"
+		await expect(priceFeed.getNormalizedRate(weth.address, usd.address)).to.be.revertedWithCustomError(priceFeed,
+			"GracePeriodNotOver"
 		)
 	})
 	it("should return a price once grade period is over", async () => {

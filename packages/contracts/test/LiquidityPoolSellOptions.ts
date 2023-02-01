@@ -432,7 +432,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						index: 0,
 						data: "0x"
 					}]
-				}])).to.be.revertedWith("UnapprovedSeries()")
+				}])).to.be.revertedWithCustomError(exchange, "UnapprovedSeries")
 
 		})
 		it("SETUP: set maxMetDhvExposure", async () => {
@@ -479,7 +479,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						index: 0,
 						data: "0x"
 					}]
-				}])).to.be.revertedWith("MaxNetDhvExposureExceeded()")
+				}])).to.be.revertedWithCustomError(catalogue, "MaxNetDhvExposureExceeded")
 
 		})
 		it("REVERTS: sells the options to the exchange and go below net dhv exposure", async () => {
@@ -503,7 +503,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("MaxNetDhvExposureExceeded()")
+			).to.be.revertedWithCustomError(catalogue, "MaxNetDhvExposureExceeded")
 		})
 		it("SETUP: set maxMetDhvExposure", async () => {
 			await catalogue.setMaxNetDhvExposure(toWei("50000"))
@@ -732,7 +732,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("TradeTooSmall()")
+			).to.be.revertedWithCustomError(exchange, "TradeTooSmall")
 		})
 		it("REVERTS: buys the options from the exchange on a series where amount is too small", async () => {
 			const amount = toWei("0.009")
@@ -755,7 +755,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("TradeTooSmall()")
+			).to.be.revertedWithCustomError(exchange, "TradeTooSmall")
 		})
 		it("REVERTS: sells the options to the exchange on a series where amount is too large", async () => {
 			const amount = toWei("1000.001")
@@ -778,7 +778,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("TradeTooLarge()")
+			).to.be.revertedWithCustomError(exchange, "TradeTooLarge")
 		})
 		it("REVERTS: buys the options from the exchange on a series where amount is too large", async () => {
 			const amount = toWei("1000.001")
@@ -801,7 +801,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("TradeTooLarge()")
+			).to.be.revertedWithCustomError(exchange, "TradeTooLarge")
 		})
 		it("REVERTS: sells the options to the exchange on a series not approved for selling", async () => {
 			const amount = toWei("4")
@@ -824,7 +824,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("SeriesNotSellable()")
+			).to.be.revertedWithCustomError(exchange, "SeriesNotSellable")
 		})
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -933,7 +933,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("NonExistentOtoken()")
+			).to.be.revertedWithCustomError(exchange, "NonExistentOtoken")
 		})
 		it("REVERTS: buy the option positions fails because not approved", async () => {
 			const amount = toWei("2")
@@ -957,7 +957,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("SeriesNotBuyable()")
+			).to.be.revertedWithCustomError(exchange, "SeriesNotBuyable")
 		})
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -1499,7 +1499,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("TokenImbalance()")
+			).to.be.revertedWithCustomError(exchange, "TokenImbalance")
 		})
 		it("REVERTS: LP Sells a ETH/USD call using temp holdings and sells too much", async () => {
 			const amount = toWei("10")
@@ -1818,7 +1818,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("CollateralAssetInvalid()")
+			).to.be.revertedWithCustomError(exchange, "CollateralAssetInvalid")
 		})
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -1854,7 +1854,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("SeriesNotSellable()")
+			).to.be.revertedWithCustomError(exchange, "SeriesNotSellable")
 		})
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -1957,7 +1957,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("SeriesNotBuyable()")
+			).to.be.revertedWithCustomError(exchange, "SeriesNotBuyable")
 		})
 		it("SETUP: change option buy or sell on series", async () => {
 			const tx = await catalogue.changeOptionBuyOrSell([
@@ -2446,7 +2446,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("NonWhitelistedOtoken()")
+			).to.be.revertedWithCustomError(exchange, "NonWhitelistedOtoken")
 		})
 		it("REVERTS: LP tries to write an ETH/USD call that is not a valid otoken", async () => {
 			const amount = toWei("3")
@@ -2491,7 +2491,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("NonExistentOtoken()")
+			).to.be.revertedWithCustomError(exchange, "NonExistentOtoken")
 			await usd.approve(exchange.address, 0)
 		})
 	})
@@ -2705,7 +2705,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("NothingToClose()")
+			).to.be.revertedWithCustomError(exchange, "NothingToClose")
 		})
 		it("REVERTS: closes the options on the exchange when size to close is too large", async () => {
 			const amount = toWei("10")
@@ -2739,7 +2739,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("CloseSizeTooLarge()")
+			).to.be.revertedWithCustomError(exchange, "CloseSizeTooLarge")
 		})
 		it("SUCCEEDS: closes the options on the exchange", async () => {
 			const amount = toWei("4")
@@ -3048,7 +3048,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("CollateralAssetInvalid()")
+			).to.be.revertedWithCustomError(exchange, "CollateralAssetInvalid")
 		})
 		it("SUCCEEDS: sells the options to the exchange", async () => {
 			const amount = toWei("4")
@@ -3610,7 +3610,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							]
 						}
 					])
-				).to.be.revertedWith("OptionExpiryInvalid()")
+				).to.be.revertedWithCustomError(exchange, "OptionExpiryInvalid")
 			})
 			it("SUCCEEDS: redeems options held", async () => {
 				optionToken = oTokenUSDC1650C
@@ -3653,7 +3653,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		describe("Settles and redeems busd otoken", async () => {
 			it("REVERTS: cannot redeem option when pool fee not set", async () => {
 				optionToken = oTokenBUSD3000P
-				await expect(exchange.redeem([optionToken.address])).to.be.revertedWith("PoolFeeNotSet()")
+				await expect(exchange.redeem([optionToken.address])).to.be.revertedWithCustomError(exchange, "PoolFeeNotSet")
 			})
 			it("SETUP: set pool fee for busd", async () => {
 				await exchange.setPoolFee("0x4Fabb145d64652a948d72533023f6E7A623C7C53", 500)
@@ -3688,8 +3688,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.pricer()).to.equal(senderAddress)
 			})
 			it("REVERTS: set pricer when non governance calls", async () => {
-				await expect(exchange.connect(signers[1]).setPricer(senderAddress)).to.be.revertedWith(
-					"UNAUTHORIZED()"
+				await expect(exchange.connect(signers[1]).setPricer(senderAddress)).to.be.revertedWithCustomError(exchange, 
+					"UNAUTHORIZED"
 				)
 				await exchange.setPricer(pricer.address)
 				expect(await exchange.pricer()).to.equal(pricer.address)
@@ -3699,8 +3699,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.catalogue()).to.equal(senderAddress)
 			})
 			it("REVERTS: set catalogue when non governance calls", async () => {
-				await expect(exchange.connect(signers[1]).setOptionCatalogue(senderAddress)).to.be.revertedWith(
-					"UNAUTHORIZED()"
+				await expect(exchange.connect(signers[1]).setOptionCatalogue(senderAddress)).to.be.revertedWithCustomError(exchange, 
+					"UNAUTHORIZED"
 				)
 				await exchange.setOptionCatalogue(catalogue.address)
 				expect(await exchange.catalogue()).to.equal(catalogue.address)
@@ -3711,8 +3711,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.minTradeSize()).to.equal(toWei("1000"))
 			})
 			it("REVERTS: set trade size limits when non governance calls", async () => {
-				await expect(exchange.connect(signers[1]).setTradeSizeLimits(0, 0)).to.be.revertedWith(
-					"UNAUTHORIZED()"
+				await expect(exchange.connect(signers[1]).setTradeSizeLimits(0, 0)).to.be.revertedWithCustomError(exchange, 
+					"UNAUTHORIZED"
 				)
 				await exchange.setTradeSizeLimits(toWei("0.01"), toWei("1000"))
 				expect(await exchange.maxTradeSize()).to.equal(toWei("1000"))
@@ -3723,23 +3723,23 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await pricer.deltaBandWidth()).to.equal(toWei("20"))
 			})
 			it("REVERTS: set delta band width on pricer when non governance calls", async () => {
-				await expect(pricer.connect(signers[1]).setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
-					"UNAUTHORIZED()"
+				await expect(pricer.connect(signers[1]).setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer, 
+					"UNAUTHORIZED"
 				)
 			})
 			it("REVERTS: set delta band width with incorrect length arrays", async () => {
-				await expect(pricer.setDeltaBandWidth(toWei("5"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
-					"InvalidSlippageGradientMultipliersArrayLength()"
+				await expect(pricer.setDeltaBandWidth(toWei("5"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer, 
+					"InvalidSlippageGradientMultipliersArrayLength"
 				)
 			})
 			it("REVERTS: set delta band width with incorrect length arrays", async () => {
-				await expect(pricer.setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
-					"InvalidSlippageGradientMultipliersArrayLength()"
+				await expect(pricer.setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer, 
+					"InvalidSlippageGradientMultipliersArrayLength"
 				)
 			})
 			it("REVERTS: set delta band width with a param below 0", async () => {
-				await expect(pricer.setDeltaBandWidth(toWei("20"), [toWei("0.9"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
-					"InvalidSlippageGradientMultiplierValue()"
+				await expect(pricer.setDeltaBandWidth(toWei("20"), [toWei("0.9"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer,
+					"InvalidSlippageGradientMultiplierValue"
 				)
 			})
 			it("SUCCEEDS: set slippage gradient multipliers on pricer", async () => {
@@ -3754,8 +3754,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				}
 			})
 			it("REVERTS: set slippage gradients on pricer when non governance calls", async () => {
-				await expect(pricer.connect(signers[1]).setSlippageGradientMultipliers([toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWith(
-					"UNAUTHORIZED()"
+				await expect(pricer.connect(signers[1]).setSlippageGradientMultipliers([toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer,
+					"UNAUTHORIZED"
 				)
 			})
 			it("SUCCEEDS: set pool fee", async () => {
@@ -3763,8 +3763,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.poolFees(senderAddress)).to.equal(1000)
 			})
 			it("REVERTS: set pool fee when non governance calls", async () => {
-				await expect(exchange.connect(signers[1]).setPoolFee(senderAddress, 0)).to.be.revertedWith(
-					"UNAUTHORIZED()"
+				await expect(exchange.connect(signers[1]).setPoolFee(senderAddress, 0)).to.be.revertedWithCustomError(exchange,
+					"UNAUTHORIZED"
 				)
 				await exchange.setPoolFee(senderAddress, 0)
 				expect(await exchange.poolFees(senderAddress)).to.equal(0)
@@ -3774,8 +3774,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.feeRecipient()).to.equal(receiverAddress)
 			})
 			it("REVERTS: set fee recipient", async () => {
-				await expect(exchange.connect(signers[1]).setFeeRecipient(senderAddress)).to.be.revertedWith(
-					"UNAUTHORIZED()"
+				await expect(exchange.connect(signers[1]).setFeeRecipient(senderAddress)).to.be.revertedWithCustomError(exchange, 
+					"UNAUTHORIZED"
 				)
 				await exchange.setFeeRecipient(senderAddress)
 				expect(await exchange.feeRecipient()).to.equal(senderAddress)

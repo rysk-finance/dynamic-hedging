@@ -209,7 +209,7 @@ describe("Actions tests", async () => {
 						index: 0,
 						data: "0x"
 					}]
-				}])).to.be.revertedWith("OperatorNotApproved()")
+				}])).to.be.revertedWithCustomError(exchange, "OperatorNotApproved")
 		})
 	})
 	describe("Opyn Open Vault Action checks", async () => {
@@ -341,7 +341,7 @@ describe("Actions tests", async () => {
 						index: 0,
 						data: "0x"
 					}]
-				}])).to.be.revertedWith("UnauthorisedSender()")
+				}])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
 		})
 	})
 	describe("Opyn Deposit Collateral Action checks", async () => {
@@ -516,7 +516,7 @@ describe("Actions tests", async () => {
 						index: 0,
 						data: "0x"
 					}]
-				}])).to.be.revertedWith("UnauthorisedSender()")
+				}])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
 		})
 		it("REVERTS: OPYN deposit collateral fails with invalid owner", async () => {
 			const margin = toUSDC("1000")
@@ -545,7 +545,7 @@ describe("Actions tests", async () => {
 						index: 0,
 						data: "0x"
 					}]
-				}])).to.be.revertedWith("UnauthorisedSender()")
+				}])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
 		})
 	})
 	describe("Opyn Mint/Burn/Deposit/Withdraw Short Option Action checks", async () => {
@@ -695,7 +695,7 @@ describe("Actions tests", async () => {
 						data: "0x"
 					},
 					]
-				}])).to.be.revertedWith("TokenImbalance()")
+				}])).to.be.revertedWithCustomError(exchange, "TokenImbalance")
 			await usd.approve(exchange.address, 0)
 		})
 		it("SUCCEED: OPYN mint short option with collateral deposited via exchange then burn the option", async () => {
@@ -815,7 +815,7 @@ describe("Actions tests", async () => {
 						data: "0x"
 					},
 					]
-				}])).to.be.revertedWith("UnauthorisedSender()")
+				}])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
 			await usd.approve(exchange.address, 0)
 		})
 		it("SUCCEED: OPYN mint short option with collateral deposited via exchange then deposits the long option from sender in vault 1", async () => {
@@ -949,7 +949,7 @@ describe("Actions tests", async () => {
 							data: "0x"
 						}]
 				},
-			])).to.be.revertedWith("UnauthorisedSender()")
+			])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
 			await usd.approve(exchange.address, 0)
 			await otokenERC.approve(MARGIN_POOL[chainId], 0)
 		})
@@ -1095,7 +1095,7 @@ describe("Actions tests", async () => {
 							data: "0x"
 						}]
 				},
-			])).to.be.revertedWith("TokenImbalance()")
+			])).to.be.revertedWithCustomError(exchange, "TokenImbalance")
 			await usd.approve(exchange.address, 0)
 			await otokenERC.approve(MARGIN_POOL[chainId], 0)
 		})
@@ -1116,7 +1116,7 @@ describe("Actions tests", async () => {
 						index: 0,
 						data: "0x"
 					}]
-				}])).to.be.revertedWith("ForbiddenAction()")
+				}])).to.be.revertedWithCustomError(exchange, "ForbiddenAction")
 		})
 		it("REVERTS: OPYN call", async () => {
 			await expect(exchange.operate([
@@ -1133,7 +1133,7 @@ describe("Actions tests", async () => {
 						index: 0,
 						data: "0x"
 					}]
-				}])).to.be.revertedWith("ForbiddenAction()")
+				}])).to.be.revertedWithCustomError(exchange, "ForbiddenAction")
 		})
 		it("REVERTS: OPYN redeem", async () => {
 			await expect(exchange.operate([
@@ -1150,7 +1150,7 @@ describe("Actions tests", async () => {
 						index: 0,
 						data: "0x"
 					}]
-				}])).to.be.revertedWith("ForbiddenAction()")
+				}])).to.be.revertedWithCustomError(exchange, "ForbiddenAction")
 		})
 	})
 })

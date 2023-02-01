@@ -1605,7 +1605,7 @@ describe("Structured Product maker", async () => {
 						]
 					}
 				])
-			).to.be.revertedWith("PremiumTooSmall()")
+			).to.be.revertedWithCustomError(exchange, "PremiumTooSmall")
 		})
 		it("SUCCEED: buys more of option amount than has short", async () => {
 			const amount = toWei("10")

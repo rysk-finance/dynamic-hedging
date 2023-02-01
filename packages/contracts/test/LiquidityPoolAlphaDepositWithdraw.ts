@@ -104,6 +104,7 @@ describe("Liquidity Pools Alpha Deposit Withdraw", async () => {
 		)
 		liquidityPool = lpParams.liquidityPool
 		handler = lpParams.handler
+		accounting = lpParams.accounting
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
