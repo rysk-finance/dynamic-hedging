@@ -480,7 +480,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						index: 0,
 						data: "0x"
 					}]
-				}])).to.be.revertedWithCustomError(catalogue, "MaxNetDhvExposureExceeded")
+				}])).to.be.revertedWithCustomError(portfolioValuesFeed, "MaxNetDhvExposureExceeded")
 
 		})
 		it("REVERTS: sells the options to the exchange and go below net dhv exposure", async () => {
@@ -505,7 +505,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-			).to.be.revertedWithCustomError(catalogue, "MaxNetDhvExposureExceeded")
+			).to.be.revertedWithCustomError(portfolioValuesFeed, "MaxNetDhvExposureExceeded")
 		})
 		it("SETUP: set maxMetDhvExposure", async () => {
 			await portfolioValuesFeed.setMaxNetDhvExposure(toWei("50000"))
@@ -3227,7 +3227,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							}
 						]
 					}
-				])).to.be.revertedWith("CollateralAssetInvalid()")
+				])).to.be.revertedWithCustomError(exchange, "CollateralAssetInvalid")
 			})
 			it("SUCCEEDS: approve busd as collateral for puts", async () => {
 				expect(await exchange.approvedCollateral(busd.address, true)).to.be.false
@@ -3241,7 +3241,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(txEvents?.args?.isApproved).to.equal(true)
 			})
 			it("REVERTS: approve busd as collateral for puts fails by non-gov", async () => {
-				await expect(exchange.connect(signers[1]).changeApprovedCollateral(busd.address, true, true)).to.be.revertedWith("UNAUTHORIZED()")
+				await expect(exchange.connect(signers[1]).changeApprovedCollateral(busd.address, true, true)).to.be.revertedWithCustomError(exchange, "UNAUTHORIZED")
 			})
 			it("SUCCEEDS: sells the options to the exchange", async () => {
 				const amount = toWei("4")
@@ -3734,7 +3734,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				)) as OptionExchange
 			})
 			it("REVERTS: migrate options if not governor", async () => {
-				await expect(exchange.connect(signers[1]).migrateOtokens(migExchange.address, [oTokenUSDC1650NC.address, oTokenETH1600C.address, oTokenUSDCSXC.address])).to.be.revertedWith("UNAUTHORIZED()")
+				await expect(exchange.connect(signers[1]).migrateOtokens(migExchange.address, [oTokenUSDC1650NC.address, oTokenETH1600C.address, oTokenUSDCSXC.address])).to.be.revertedWithCustomError(exchange, "UNAUTHORIZED")
 			})
 			it("SUCCEEDS: migrate options", async () => {
 				const otokens = [oTokenUSDCSXC]
