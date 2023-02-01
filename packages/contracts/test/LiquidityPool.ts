@@ -190,7 +190,7 @@ describe("Liquidity Pools", async () => {
 	it("reverts when unauthorised party tries to update slippage variables", async () => {
 		await expect(
 			pricer.connect((await ethers.getSigners())[4]).setSlippageGradient(0)
-		).to.be.revertedWith("UNAUTHORIZED")
+		).to.be.revertedWithCustomError(pricer, "UNAUTHORIZED")
 	})
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -268,7 +268,7 @@ describe("Liquidity Pools", async () => {
 					isBuyable: false
 				}
 			])
-		).to.be.revertedWith("UnapprovedSeries()")
+		).to.be.revertedWithCustomError(exchange, "UnapprovedSeries")
 	})
 	it("SUCCEEDs: reapprove series doesn't work", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -462,9 +462,9 @@ describe("Liquidity Pools", async () => {
 	it("reverts when adding invalid reactor address", async () => {
 		await expect(
 			liquidityPool.setHedgingReactorAddress(uniswapV3HedgingReactor.address)
-		).to.be.revertedWith("ReactorAlreadyExists()")
-		await expect(liquidityPool.setHedgingReactorAddress(ZERO_ADDRESS)).to.be.revertedWith(
-			"InvalidAddress()"
+		).to.be.revertedWithCustomError(liquidityPool, "ReactorAlreadyExists")
+		await expect(liquidityPool.setHedgingReactorAddress(ZERO_ADDRESS)).to.be.revertedWithCustomError(
+			liquidityPool, "InvalidAddress"
 		)
 	})
 	it("SETUP: sets the exchange as a hedging reactor", async function () {
@@ -644,7 +644,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("OptionExpiryInvalid()")
+		).to.be.revertedWithCustomError(exchange, "OptionExpiryInvalid")
 		await volFeed.setSabrParameters(
 			{
 				callAlpha: 250000,
@@ -699,7 +699,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("OptionExpiryInvalid()")
+		).to.be.revertedWithCustomError(exchange, "OptionExpiryInvalid")
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
 		// check to make sure no balances have changed
@@ -771,7 +771,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("OptionStrikeInvalid()")
+		).to.be.revertedWithCustomError(liquidityPool, "OptionStrikeInvalid")
 		// Series with strike price too low
 
 		const proposedSeries2 = {
@@ -814,7 +814,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("OptionStrikeInvalid()")
+		).to.be.revertedWithCustomError(liquidityPool, "OptionStrikeInvalid")
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
 		// check to make sure no balances have changed
@@ -901,7 +901,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("OptionExpiryInvalid()")
+		).to.be.revertedWithCustomError(exchange, "OptionExpiryInvalid")
 		await volFeed.setSabrParameters(
 			{
 				callAlpha: 250000,
@@ -956,7 +956,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("OptionExpiryInvalid()")
+		).to.be.revertedWithCustomError(exchange, "OptionExpiryInvalid")
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
 		// check to make sure no balances have changed
@@ -1028,7 +1028,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("OptionStrikeInvalid()")
+		).to.be.revertedWithCustomError(liquidityPool, "OptionStrikeInvalid")
 		// Series with strike price too low
 
 		const proposedSeries2 = {
@@ -1071,7 +1071,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("OptionStrikeInvalid()")
+		).to.be.revertedWithCustomError(liquidityPool, "OptionStrikeInvalid")
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
 		// check to make sure no balances have changed
@@ -1153,7 +1153,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("UnapprovedSeries()")
+		).to.be.revertedWithCustomError(exchange, "UnapprovedSeries")
 	})
 	it("LP Writes a ETH/USD put for premium", async () => {
 		const [sender] = signers
@@ -1364,7 +1364,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("SeriesNotBuyable()")
+		).to.be.revertedWithCustomError(exchange, "SeriesNotBuyable")
 	})
 	it("REVERTs: LP writes a ETH/USD put for premium for series not approved for sale", async () => {
 		const [sender] = signers
@@ -1391,7 +1391,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("SeriesNotBuyable()")
+		).to.be.revertedWithCustomError(exchange, "SeriesNotBuyable")
 	})
 	it("REVERTs: LP buyback a ETH/USD put for premium for series not approved for buying", async () => {
 		const [sender] = signers
@@ -1418,7 +1418,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("SeriesNotSellable()")
+		).to.be.revertedWithCustomError(exchange, "SeriesNotSellable")
 	})
 	it("SETUP: change option buy or sell on series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -2190,7 +2190,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("MaxLiquidityBufferReached")
+		).to.be.revertedWithCustomError(liquidityPool, "MaxLiquidityBufferReached")
 
 		const lpUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -2520,7 +2520,7 @@ describe("Liquidity Pools", async () => {
 					]
 				}
 			])
-		).to.be.revertedWith("OptionExpiryInvalid()")
+		).to.be.revertedWithCustomError(exchange, "OptionExpiryInvalid")
 	})
 	it("Reverts: tries to write an option that doesnt exist in the handler", async () => {
 		await expect(
