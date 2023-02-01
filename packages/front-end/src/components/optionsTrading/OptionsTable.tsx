@@ -14,7 +14,7 @@ import addresses from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
-import { Option, OptionsTradingActionType } from "../../state/types";
+import { SelectedOption, OptionsTradingActionType } from "../../state/types";
 import { ContractAddresses, ETHNetwork } from "../../types";
 import { LiquidityPool } from "../../types/LiquidityPool";
 import { PriceFeed } from "../../types/PriceFeed";
@@ -215,7 +215,6 @@ export const OptionsTable = () => {
             // TODO check which ones are buyable and sellable and gray out not available options
             return {
               strike: Number(fromWei(strike).toString()),
-              IV: 13,
               call: {
                 bid: {
                   IV: ivBidCall,
@@ -259,7 +258,7 @@ export const OptionsTable = () => {
     usdc,
   ]);
 
-  const setSelectedOption = (option: Option) => {
+  const setSelectedOption = (option: SelectedOption) => {
     dispatch({ type: OptionsTradingActionType.SET_SELECTED_OPTION, option });
   };
 
@@ -292,8 +291,7 @@ export const OptionsTable = () => {
           <tr
             className={`text-right h-12 ${
               index % 2 === 0 ? "bg-gray-300" : ""
-            } cursor-pointer`}
-            onClick={() => setSelectedOption(option)}
+            }`}
             key={option.strike}
           >
             <td className="pr-4">
@@ -320,7 +318,16 @@ export const OptionsTable = () => {
                 prefix={"$"}
               />
             </td>
-            <td className="pr-4 text-green-700">
+            <td
+              className="pr-4 text-green-700 cursor-pointer"
+              onClick={() =>
+                setSelectedOption({
+                  callOrPut: "call",
+                  bidOrAsk: "ask",
+                  strikeOptions: option,
+                })
+              }
+            >
               <NumberFormat
                 value={
                   isNotTwoDigitsZero(option.call.ask.quote)
@@ -384,7 +391,16 @@ export const OptionsTable = () => {
                 prefix={"$"}
               />
             </td>
-            <td className="pr-4 text-green-700">
+            <td
+              className="pr-4 text-green-700 cursor-pointer"
+              onClick={() =>
+                setSelectedOption({
+                  callOrPut: "put",
+                  bidOrAsk: "ask",
+                  strikeOptions: option,
+                })
+              }
+            >
               <NumberFormat
                 value={
                   isNotTwoDigitsZero(option.put.ask.quote)
