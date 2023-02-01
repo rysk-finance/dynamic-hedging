@@ -303,7 +303,7 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	try {
 		await hre.run("verify:verify", {
 			address: portfolioValuesFeed.address,
-			constructorArguments: [authority.addres, toWei("50000")]
+			constructorArguments: [authority.address, toWei("50000")]
 		})
 
 		console.log("portfolio values feed verified")
