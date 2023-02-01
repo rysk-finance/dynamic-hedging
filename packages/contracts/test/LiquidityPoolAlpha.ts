@@ -444,7 +444,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 					toWei("1"),
 					toWei("1")
 				])
-			).to.be.revertedWith("InvalidPrice()")
+			).to.be.revertedWithCustomError(handler, "InvalidPrice")
 		})
 		it("REVERTS: Cant create buy order if order expiry too long", async () => {
 			const [sender, receiver] = signers
@@ -466,14 +466,15 @@ describe("Liquidity Pool with alpha tests", async () => {
 					toWei("1"),
 					toWei("1")
 				])
-			).to.be.revertedWith("OrderExpiryTooLong()")
+			).to.be.revertedWithCustomError(handler, "OrderExpiryTooLong")
 		})
 		it("REVERTS: cant exercise order if not buyer", async () => {
-			await expect(handler.executeOrder(1)).to.be.revertedWith("InvalidBuyer()")
+			await expect(handler.executeOrder(1)).to.be.revertedWithCustomError(handler, "InvalidBuyer")
 		})
 		it("REVERTS: Cant execute sell order to buyback order", async () => {
-			await expect(handler.connect(signers[1]).executeBuyBackOrder(1)).to.be.revertedWith(
-				"InvalidOrder()"
+			await expect(handler.connect(signers[1]).executeBuyBackOrder(1)).to.be.revertedWithCustomError(
+				handler,
+				"InvalidOrder"
 			)
 		})
 		it("SUCCEEDS: Executes a buy order", async () => {
@@ -1190,7 +1191,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 					toWei("1"),
 					toWei("1")
 				])
-			).to.be.revertedWith("InvalidPrice()")
+			).to.be.revertedWithCustomError(handler, "InvalidPrice")
 		})
 		it("REVERTS: Cant create buyback order if order expiry too long", async () => {
 			const [sender, receiver] = signers
@@ -1212,13 +1213,19 @@ describe("Liquidity Pool with alpha tests", async () => {
 					toWei("1"),
 					toWei("1")
 				])
-			).to.be.revertedWith("OrderExpiryTooLong()")
+			).to.be.revertedWithCustomError(handler, "OrderExpiryTooLong")
 		})
 		it("REVERTS: cant exercise order if not buyer", async () => {
-			await expect(handler.executeBuyBackOrder(5)).to.be.revertedWith("InvalidBuyer()")
+			await expect(handler.executeBuyBackOrder(5)).to.be.revertedWithCustomError(
+				handler,
+				"InvalidBuyer"
+			)
 		})
 		it("REVERTS: Cant execute buyback order to sell order", async () => {
-			await expect(handler.connect(signers[1]).executeOrder(5)).to.be.revertedWith("InvalidOrder()")
+			await expect(handler.connect(signers[1]).executeOrder(5)).to.be.revertedWithCustomError(
+				handler,
+				"InvalidOrder"
+			)
 		})
 		it("SUCCEEDS: Executes a buyback order", async () => {
 			const [sender, receiver] = signers
@@ -1515,7 +1522,10 @@ describe("Liquidity Pool with alpha tests", async () => {
 		})
 		it("REVERTS: Cant execute after order expires", async () => {
 			increaseTo(expiration - 1000)
-			await expect(handler.connect(signers[1]).executeOrder(7)).to.be.revertedWith("OrderExpired()")
+			await expect(handler.connect(signers[1]).executeOrder(7)).to.be.revertedWithCustomError(
+				handler,
+				"OrderExpired"
+			)
 		})
 	})
 	describe("Create a buy order and spot moves past deviation threshold", async () => {
@@ -1584,8 +1594,9 @@ describe("Liquidity Pool with alpha tests", async () => {
 		it("REVERTS: Cant execute after spot moves too much up", async () => {
 			const latestPrice = await priceFeed.getRate(weth.address, usd.address)
 			await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from("100000010")))
-			await expect(handler.connect(signers[1]).executeOrder(8)).to.be.revertedWith(
-				"SpotMovedBeyondRange()"
+			await expect(handler.connect(signers[1]).executeOrder(8)).to.be.revertedWithCustomError(
+				handler,
+				"SpotMovedBeyondRange"
 			)
 			// set price back
 			await opynAggregator.setLatestAnswer(latestPrice.sub(BigNumber.from("100000010")))
@@ -1593,8 +1604,9 @@ describe("Liquidity Pool with alpha tests", async () => {
 		it("REVERTS: Cant execute after spot moves too much down", async () => {
 			const latestPrice = await priceFeed.getRate(weth.address, usd.address)
 			await opynAggregator.setLatestAnswer(latestPrice.sub(BigNumber.from("100000010")))
-			await expect(handler.connect(signers[1]).executeOrder(8)).to.be.revertedWith(
-				"SpotMovedBeyondRange()"
+			await expect(handler.connect(signers[1]).executeOrder(8)).to.be.revertedWithCustomError(
+				handler,
+				"SpotMovedBeyondRange"
 			)
 			// set price back
 			await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from("100000010")))
@@ -1640,7 +1652,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 		it("REVERTS: cant account series that isnt stored", async () => {
 			await expect(
 				portfolioValuesFeed.accountLiquidatedSeries(optionRegistry.address)
-			).to.be.revertedWith("IncorrectSeriesToRemove()")
+			).to.be.revertedWithCustomError(portfolioValuesFeed, "IncorrectSeriesToRemove")
 		})
 	})
 	describe("Deposit funds into the liquidityPool and withdraw", async () => {

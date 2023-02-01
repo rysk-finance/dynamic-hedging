@@ -24,6 +24,10 @@ export const USDC_ADDRESS = {
 	[CHAINID.AVAX_FUJI]: "0x6275B63A4eE560004c34431e573314426906cee9"
 }
 
+export const USDT_ADDRESS = {
+	[CHAINID.ETH_MAINNET]: "0xdac17f958d2ee523a2206206994597c13d831ec7"
+}
+
 export const USDC_OWNER_ADDRESS = {
 	[CHAINID.ETH_MAINNET]: "0x47ac0fb4f2d84898e4d9e7b4dab3c24507a6d503",
 	[CHAINID.AVAX_MAINNET]: "0x50ff3b278fcc70ec7a9465063d68029ab460ea04",
@@ -106,3 +110,8 @@ export const ADDRESS_BOOK = {
 export const ORACLE_DISPUTE_PERIOD = 7200
 export const ORACLE_LOCKING_PERIOD = 300
 export const oTokenDecimalShift18 = 10000000000
+/**
+ * Uniswap
+ */
+// Factory is deployed to same address on all networks
+export const UNISWAP_V3_FACTORY = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
