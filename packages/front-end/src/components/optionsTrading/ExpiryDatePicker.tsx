@@ -1,12 +1,13 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useOnClickOutside } from "../../hooks/useOnClickOutside";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { OptionsTradingActionType } from "../../state/types";
 import { Option } from "../../types";
 import { formatShortDate } from "../../utils/formatShortDate";
-import { getSuggestedExpiryDates } from "../../utils/getSuggestedExpiryDates";
 import { RadioButtonList } from "../shared/RadioButtonList";
+import { useContract } from "../../hooks/useContract";
+import OCABI from "../../abis/OptionCatalogue.json";
 
 export const ExpiryDatePicker = () => {
   const {
@@ -15,6 +16,9 @@ export const ExpiryDatePicker = () => {
   } = useOptionsTradingContext();
 
   const [datePickerIsOpen, setDatePickerIsOpen] = useState(false);
+  const [expiryDateOptions, setExpiryDateOptions] = useState<Option<Date>[]>(
+    []
+  );
 
   const datePickerRef = useRef<HTMLDivElement | null>(null);
 
@@ -51,15 +55,29 @@ export const ExpiryDatePicker = () => {
     [setExpiryDate]
   );
 
-  const expiryDateOptions = useMemo(() => {
-    const dates = getSuggestedExpiryDates();
-    setExpiryDate(dates[0]);
-    return dates.map<Option<Date>>((date) => ({
-      value: date,
-      label: formatShortDate(date),
-      key: date.toISOString(),
-    }));
-  }, [setExpiryDate]);
+  const [optionCatalogue] = useContract({
+    contract: "optionCatalogue",
+    ABI: OCABI,
+  });
+
+  useEffect(() => {
+    const fetchExpirations = async () => {
+      const expirations = await optionCatalogue?.getExpirations();
+
+      if (expirations) {
+        setExpiryDateOptions(
+          expirations.map((date: number) => ({
+            value: new Date(date * 1000),
+            label: formatShortDate(new Date(date * 1000)),
+            key: new Date(date * 1000).toISOString(),
+          }))
+        );
+        setExpiryDate(new Date(expirations[0] * 1000));
+      }
+    };
+
+    fetchExpirations();
+  }, [optionCatalogue, setExpiryDate]);
 
   return (
     <div className="w-full">

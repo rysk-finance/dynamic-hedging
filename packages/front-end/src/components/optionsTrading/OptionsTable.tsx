@@ -1,22 +1,20 @@
 import { useEffect, useState } from "react";
+import NumberFormat from "react-number-format";
 import { useNetwork } from "wagmi";
+import { BigNumber } from "ethers";
 
 import PVFABI from "../../abis/AlphaPortfolioValuesFeed.json";
 import ERC20ABI from "../../abis/erc20.json";
 import LPABI from "../../abis/LiquidityPool.json";
 import ORABI from "../../abis/OptionRegistry.json";
 import PFABI from "../../abis/PriceFeed.json";
+import OCABI from "../../abis/OptionCatalogue.json";
 import BPABI from "../../abis/BeyondPricer.json";
+import addresses from "../../contracts.json";
+import { useContract } from "../../hooks/useContract";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
-import {
-  Option,
-  OptionsTradingActionType,
-  OptionType
-} from "../../state/types";
-import { useContract } from "../../hooks/useContract";
-import NumberFormat from "react-number-format";
-import addresses from "../../contracts.json";
+import { Option, OptionsTradingActionType } from "../../state/types";
 import { ContractAddresses, ETHNetwork } from "../../types";
 import { LiquidityPool } from "../../types/LiquidityPool";
 import { PriceFeed } from "../../types/PriceFeed";
@@ -25,16 +23,12 @@ import {
   calculateOptionDeltaLocally,
   returnIVFromQuote,
 } from "../../utils/helpers";
+import { formatShortDate } from "../../utils/formatShortDate";
 
 const isNotTwoDigitsZero = (price: number) => {
   // TODO: Not sure this makes sense, come back to it after figuring out pricing
   return price.toFixed(2) != "0.00";
 };
-
-const suggestedCallOptionPriceDiff = [-100, 0, 100, 200, 300, 400, 600, 800];
-const suggestedPutOptionPriceDiff = [
-  -800, -600, -400, -300, -200, -100, 0, 100,
-];
 
 export const OptionsTable = () => {
   const { chain } = useNetwork();
@@ -89,21 +83,35 @@ export const OptionsTable = () => {
     ABI: ERC20ABI,
   });
 
+  const [optionCatalogue] = useContract({
+    contract: "optionCatalogue",
+    ABI: OCABI,
+  });
+
   useEffect(() => {
-    if (cachedEthPrice && chain && liquidityPool) {
-      const diffs =
-        optionType === OptionType.CALL
-          ? suggestedCallOptionPriceDiff
-          : suggestedPutOptionPriceDiff;
-
-      const strikes = [
-        ...diffs.map<number>((diff) =>
-          Number((cachedEthPrice + diff).toFixed(0))
-        ),
-        ...customOptionStrikes,
-      ].sort((a, b) => a - b);
-
+    if (cachedEthPrice && chain && liquidityPool && expiryDate) {
       const fetchPrices = async () => {
+        const unixDateWithoutMilliseconds = parseInt(
+          (expiryDate.getTime() / 1000).toFixed(0)
+        );
+
+        const expiryDateCallStrikes = await optionCatalogue?.getOptionDetails(
+          unixDateWithoutMilliseconds,
+          false
+        );
+        const expiryDatePutStrikes = await optionCatalogue?.getOptionDetails(
+          unixDateWithoutMilliseconds,
+          false
+        );
+
+        const strikes: string[] = [];
+
+        [...expiryDateCallStrikes, ...expiryDatePutStrikes].forEach(
+          (strike) =>
+            !strikes.includes(strike.toString()) &&
+            strikes.push(strike.toString())
+        );
+
         const typedAddresses = addresses as Record<
           ETHNetwork,
           ContractAddresses
@@ -114,7 +122,7 @@ export const OptionsTable = () => {
             const optionSeriesCall = {
               // TODO make sure this UTC set is done in the right place
               expiration: Number(expiryDate?.setUTCHours(8, 0, 0)) / 1000,
-              strike: toWei(strike.toString()),
+              strike: BigNumber.from(strike),
               strikeAsset: typedAddresses[network].USDC,
               underlying: typedAddresses[network].WETH,
               collateral: typedAddresses[network].USDC,
@@ -204,9 +212,9 @@ export const OptionsTable = () => {
               priceFeed as PriceFeed,
               optionSeriesPut
             );
-
+            // TODO check which ones are buyable and sellable and gray out not available options
             return {
-              strike: strike,
+              strike: Number(fromWei(strike).toString()),
               IV: 13,
               call: {
                 bid: {
@@ -262,7 +270,7 @@ export const OptionsTable = () => {
           <th colSpan={5} className={"py-2"}>
             CALLS
           </th>
-          <th colSpan={1}>Dec 30</th>
+          <th colSpan={1}>{expiryDate && formatShortDate(expiryDate)}</th>
           <th colSpan={5}>PUTS</th>
         </tr>
         <tr className="text-center">
@@ -344,7 +352,12 @@ export const OptionsTable = () => {
               />
             </td>
             <td className="w-20 text-center bg-bone-dark border-x border-black">
-              {option.strike}
+              {}
+              <NumberFormat
+                value={option.strike}
+                displayType={"text"}
+                decimalScale={0}
+              />
             </td>
             {/** TODO numbers below are same as calls here */}
             <td className="pr-4">
