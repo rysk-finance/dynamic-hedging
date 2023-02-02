@@ -104,12 +104,10 @@ export const OptionsTable = () => {
           false
         );
 
-        const strikes: string[] = [];
+        const strikes: Set<string> = new Set();
 
-        [...expiryDateCallStrikes, ...expiryDatePutStrikes].forEach(
-          (strike) =>
-            !strikes.includes(strike.toString()) &&
-            strikes.push(strike.toString())
+        [...expiryDateCallStrikes, ...expiryDatePutStrikes].forEach((strike) =>
+          strikes.add(strike.toString())
         );
 
         const typedAddresses = addresses as Record<
@@ -118,10 +116,9 @@ export const OptionsTable = () => {
         >;
         const network = chain.network as ETHNetwork;
         const suggestions = await Promise.all(
-          strikes.map(async (strike) => {
+          Array.from(strikes).map(async (strike) => {
             const optionSeriesCall = {
-              // TODO make sure this UTC set is done in the right place
-              expiration: Number(expiryDate?.setUTCHours(8, 0, 0)) / 1000,
+              expiration: unixDateWithoutMilliseconds,
               strike: BigNumber.from(strike),
               strikeAsset: typedAddresses[network].USDC,
               underlying: typedAddresses[network].WETH,
@@ -131,7 +128,7 @@ export const OptionsTable = () => {
 
             const optionSeriesPut = {
               ...optionSeriesCall,
-              isPut: false, // TODO: Change this to true after figuring out why contracts reverts
+              isPut: true,
             };
 
             const quoteAskCall = await beyondPricer?.quoteOptionPrice(
