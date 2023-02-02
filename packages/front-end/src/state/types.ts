@@ -109,13 +109,13 @@ export enum OptionType {
   PUT = "PUT",
 }
 
-export type SelectedOption = {
+export interface SelectedOption {
   bidOrAsk: "bid" | "ask";
   callOrPut: "call" | "put";
   strikeOptions: StrikeOptions;
-};
+}
 
-export type StrikeOptions = {
+export interface StrikeOptions {
   strike: number;
   call: {
     bid: {
@@ -139,7 +139,7 @@ export type StrikeOptions = {
     };
     delta: number;
   };
-};
+}
 
 export type OptionParams = {
   minCallStrikePrice: BigNumber;
