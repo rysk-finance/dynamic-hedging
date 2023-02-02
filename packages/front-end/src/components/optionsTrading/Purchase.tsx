@@ -3,7 +3,6 @@ import { ethers } from "ethers";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import { useAccount, useNetwork } from "wagmi";
-import OptionHandlerABI from "../../abis/AlphaOptionHandler.json";
 import ERC20ABI from "../../abis/erc20.json";
 import OptionRegistryABI from "../../abis/OptionRegistry.json";
 import OptionExchangeABI from "../../abis/OptionExchange.json";
@@ -66,12 +65,6 @@ export const Purchase = () => {
     readOnly: false,
   });
 
-  const [optionHandlerContract] = useContract({
-    contract: "optionHandler",
-    ABI: OptionHandlerABI,
-    readOnly: false,
-  });
-
   const [optionExchangeContract] = useContract({
     contract: "optionExchange",
     ABI: OptionExchangeABI,
@@ -130,7 +123,6 @@ export const Purchase = () => {
   const handleBuy = async () => {
     if (
       optionRegistryContract &&
-      optionHandlerContract &&
       optionExchangeContract &&
       usdcContract &&
       address &&
