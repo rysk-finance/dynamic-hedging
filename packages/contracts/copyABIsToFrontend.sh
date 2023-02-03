@@ -14,6 +14,9 @@ cp \
 ./types/OptionRegistry.ts \
 ./types/AlphaPortfolioValuesFeed.ts \
 ./types/PriceFeed.ts \
+./types/OptionExchange.ts \
+./types/OptionCatalogue.ts \
+./types/BeyondPricer.ts \
 ../front-end/src/types/
 
 # Clean out the ABIs directory.
@@ -22,7 +25,7 @@ rm -rf ../front-end/src/abis/*
 ### ABI ###
 
 # Copy only the required ABIs from artifacts dir.
-for FILE_NAME in 'LiquidityPool' 'AlphaOptionHandler' 'OptionRegistry' 'AlphaPortfolioValuesFeed' 'PriceFeed'
+for FILE_NAME in 'LiquidityPool' 'AlphaOptionHandler' 'OptionRegistry' 'AlphaPortfolioValuesFeed' 'PriceFeed' 'OptionExchange' 'OptionCatalogue' 'BeyondPricer'
 do
     jq --indent 4 --tab '.abi' \
     ./artifacts/contracts/$FILE_NAME.sol/$FILE_NAME.json \
