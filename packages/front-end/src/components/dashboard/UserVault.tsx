@@ -205,21 +205,21 @@ export const UserVault = () => {
                   </div>
                 )}
 
-                {unredeemedSharesValue.gt(0) && (
-                  <div className="flex flex-col items-center justify-center h-full">
-                    <h3 className="mb-2">
-                      <NumberFormat
-                        value={Number(unredeemedSharesValue.toNumber() / 1e6)}
-                        displayType={"text"}
-                        decimalScale={2}
-                      />
-                    </h3>
-                    <h4 className="mb-2">Shares to be reedemed</h4>
-                    <a href="#" className="underline">
-                      Learn more
-                    </a>
-                  </div>
-                )}
+                {/*{unredeemedSharesValue.gt(0) && (*/}
+                {/*  <div className="flex flex-col items-center justify-center h-full">*/}
+                {/*    <h3 className="mb-2">*/}
+                {/*      <NumberFormat*/}
+                {/*        value={Number(unredeemedSharesValue.toNumber() / 1e6)}*/}
+                {/*        displayType={"text"}*/}
+                {/*        decimalScale={2}*/}
+                {/*      />*/}
+                {/*    </h3>*/}
+                {/*    <h4 className="mb-2">Shares to be reedemed</h4>*/}
+                {/*    <a href="#" className="underline">*/}
+                {/*      Learn more*/}
+                {/*    </a>*/}
+                {/*  </div>*/}
+                {/*)}*/}
               </div>
               <div className="flex flex-col w-full lg:w-[30%] h-full justify-around items-center">
                 <Link
