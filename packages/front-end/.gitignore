@@ -4,3 +4,6 @@ src/artifacts/
 # ignore lock files
 package-lock.json
 yarn.lock
+
+.graphqlconfig
+rysk-schema--remote.json
