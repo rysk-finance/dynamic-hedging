@@ -16,12 +16,14 @@ import {
 } from "../../config/constants";
 import addresses from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
+import useTenderlySimulator from "../../hooks/useTenderlySimulator";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { ContractAddresses, ETHNetwork } from "../../types";
 import { toUSDC, toWei } from "../../utils/conversion-helper";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
+import { captureException } from "@sentry/react";
 
 const formatOptionDate = (date: number | null) => {
   if (date) {
@@ -35,6 +37,11 @@ export const Purchase = () => {
 
   const network = chain?.network as ETHNetwork;
   const typedAddresses = addresses as Record<ETHNetwork, ContractAddresses>;
+
+  const [simulateOperation, simulateError, simulateIsLoading] =
+    useTenderlySimulator({
+      to: addresses[network].optionExchange,
+    });
 
   // Context state
   const {
@@ -128,44 +135,55 @@ export const Purchase = () => {
         const proposedSeries = {
           expiration: expiryDate,
           strike: toWei(selectedOption.strikeOptions.strike.toString()),
-          isPut: selectedOption.callOrPut == "put",
+          isPut: selectedOption.callOrPut === "put",
           strikeAsset: typedAddresses[network].USDC,
           underlying: typedAddresses[network].WETH,
           collateral: typedAddresses[network].USDC,
         };
 
-        optionExchangeContract?.operate(
-          [
-            {
-              operation: 1,
-              operationQueue: [
-                {
-                  actionType: 0,
-                  owner: ZERO_ADDRESS,
-                  secondAddress: ZERO_ADDRESS,
-                  asset: ZERO_ADDRESS,
-                  vaultId: 0,
-                  amount: 0,
-                  optionSeries: proposedSeries,
-                  index: 0,
-                  data: "0x",
-                },
-                {
-                  actionType: 1,
-                  owner: ZERO_ADDRESS,
-                  secondAddress: address,
-                  asset: ZERO_ADDRESS,
-                  vaultId: 0,
-                  amount: amount,
-                  optionSeries: proposedSeries,
-                  index: 0,
-                  data: "0x",
-                },
-              ],
-            },
-          ],
-          { gasLimit: 2500000 }
-        );
+        const txData = [
+          {
+            operation: 1,
+            operationQueue: [
+              {
+                actionType: 0,
+                owner: ZERO_ADDRESS,
+                secondAddress: ZERO_ADDRESS,
+                asset: ZERO_ADDRESS,
+                vaultId: 0,
+                amount: 0,
+                optionSeries: proposedSeries,
+                index: 0,
+                data: "0x",
+              },
+              {
+                actionType: 1,
+                owner: ZERO_ADDRESS,
+                secondAddress: address,
+                asset: ZERO_ADDRESS,
+                vaultId: 0,
+                amount: amount,
+                optionSeries: proposedSeries,
+                index: 0,
+                data: "0x",
+              },
+            ],
+          },
+        ];
+
+        const { data } =
+          await optionExchangeContract.populateTransaction.operate(txData);
+
+        if (data) {
+          const response = await simulateOperation(data, 2500000, 0, 0);
+
+          if (response?.simulation.status === true) {
+            captureException(response);
+            optionExchangeContract?.operate(txData, { gasLimit: 2500000 });
+          } else {
+            toast("❌ Transaction would fail, reach out to the team.");
+          }
+        }
       } catch (err) {
         console.log(err);
       }
@@ -178,6 +196,8 @@ export const Purchase = () => {
   const callOrPut = selectedOption?.callOrPut;
   const bidOrAsk = selectedOption?.bidOrAsk;
   const strikeOptions = selectedOption?.strikeOptions;
+
+  simulateError && toast(simulateError as string);
 
   return (
     <div>
@@ -276,7 +296,7 @@ export const Purchase = () => {
                   }`}
                   onClick={handleBuy}
                 >
-                  Buy
+                  {simulateIsLoading ? "Simulating..." : "Buy"}
                 </Button>
               </div>
             </div>
