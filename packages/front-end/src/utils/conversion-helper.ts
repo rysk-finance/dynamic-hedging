@@ -1,6 +1,7 @@
 import type { Dayjs } from "dayjs";
 
 import { BigNumber, BigNumberish, utils } from "ethers";
+import { BIG_NUMBER_DECIMALS } from "../config/constants";
 
 export const formatEth = (x: BigNumberish) => Number(utils.formatEther(x));
 export function truncate(num: number, places: number = 3): number {
@@ -99,4 +100,8 @@ export const renameOtoken = (string: string) => {
   const strike = `$${string.split("-").pop()?.slice(0, -1)}`;
 
   return "ETH " + expiry + " " + strike + " " + isPut;
+};
+
+export const baseRyskToUsdc = (value: BigNumber) => {
+  return value.div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC));
 };

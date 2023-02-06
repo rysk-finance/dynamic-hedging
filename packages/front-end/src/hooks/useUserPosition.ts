@@ -52,15 +52,17 @@ export const useUserPosition = () => {
 
       let receiptEpochSharePrice: BigNumber | null = null;
 
+      // still to be processed deposit epoch
       if (
         currentDepositEpoch &&
         receipt &&
         currentDepositEpoch._hex === receipt.epoch._hex
       ) {
         receiptEpochSharePrice = latestEpochSharePrice;
+        // amount of the deposit
         receiptUSDCValue = receiptUSDCValue.add(receipt.amount);
         setPositionBreakdown({
-          usdcOnHold: receipt.amount,
+          usdcOnHold: receipt.amount, // waiting to be deposited
           unredeemedShares: receipt.unredeemedShares,
         });
       } else if (receipt) {
@@ -77,10 +79,10 @@ export const useUserPosition = () => {
         // e6
         const amountInShares = receipt.amount
           .mul(BIG_NUMBER_DECIMALS.RYSK)
-          .div(depositEpochSharePrice);
+          .div(depositEpochSharePrice); // deposit epoch share price for current receipt epoch
         // e6
         const sharesCurrentValue = amountInShares
-          .mul(latestEpochSharePrice)
+          .mul(latestEpochSharePrice) // withdrawal epoch share price for receipt epoch - 1
           .div(BIG_NUMBER_DECIMALS.RYSK);
         receiptUSDCValue = receiptUSDCValue.add(sharesCurrentValue);
 
@@ -96,8 +98,8 @@ export const useUserPosition = () => {
       }
 
       if (receiptEpochSharePrice) {
-        const unredeemedSharesValue = receipt.unredeemedShares
-          .mul(receiptEpochSharePrice)
+        const unredeemedSharesValue = receipt.unredeemedShares // unredeemedShares is total of all shares besides last receipt amount
+          .mul(latestEpochSharePrice)
           .div(BIG_NUMBER_DECIMALS.RYSK)
           .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC));
 
