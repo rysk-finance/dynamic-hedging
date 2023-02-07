@@ -7,7 +7,6 @@ export enum CHAINID {
 	ARBITRUM_GOERLI = 421613, // eslint-disable-line no-unused-vars
 	AVAX_MAINNET = 43114, // eslint-disable-line no-unused-vars
 	AVAX_FUJI = 43113, // eslint-disable-line no-unused-vars
-	ARBITRUM = 42161
 }
 
 /**
@@ -21,6 +20,10 @@ export const WETH_ADDRESS = {
 export const USDC_ADDRESS = {
 	[CHAINID.ETH_MAINNET]: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
 	[CHAINID.ARBITRUM]: "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
+}
+
+export const USDT_ADDRESS = {
+	[CHAINID.ETH_MAINNET]: "0xdac17f958d2ee523a2206206994597c13d831ec7"
 }
 
 export const USDC_OWNER_ADDRESS = {

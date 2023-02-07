@@ -51,7 +51,6 @@ const executeIncreasePosition = async () => {
 	const logs = await gmxReactor.queryFilter(gmxReactor.filters.CreateIncreasePosition(), 0)
 	const positionKey = logs[logs.length - 1].args[0]
 	await gmxReactor.executeIncreasePosition(positionKey)
-	console.log("increase position executed")
 }
 
 const executeDecreasePosition = async () => {
@@ -62,7 +61,6 @@ const executeDecreasePosition = async () => {
 	const logs = await gmxReactor.queryFilter(gmxReactor.filters.CreateDecreasePosition(), 0)
 	const positionKey = logs[logs.length - 1].args[0]
 	await gmxReactor.executeDecreasePosition(positionKey)
-	console.log("decrease position executed")
 }
 
 describe("GMX Hedging Reactor", () => {
@@ -310,7 +308,6 @@ describe("GMX Hedging Reactor", () => {
 			[wethAddress],
 			[true]
 		)
-		console.log({ positionsBefore })
 
 		await gmxReactor.update()
 		await executeDecreasePosition()
@@ -464,7 +461,6 @@ describe("GMX Hedging Reactor", () => {
 			[wethAddress],
 			[false]
 		)
-		console.log({ positionsBefore })
 
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta1}`), 2)
 		await executeDecreasePosition()
@@ -482,10 +478,8 @@ describe("GMX Hedging Reactor", () => {
 			[wethAddress],
 			[false]
 		)
-		console.log({ positionsAfter })
 		const deltaAfter = await gmxReactor.internalDelta()
 		// 8000 USDC should be removed from collateral, plus 3000 USDC in unrealised pnl
-		console.log({ usdcBalanceDiff })
 		expect(usdcBalanceDiff).to.be.within(10900, 11000)
 		expect(deltaAfter).to.eq(utils.parseEther("-5"))
 
@@ -649,7 +643,6 @@ describe("GMX Hedging Reactor", () => {
 			[wethAddress],
 			[true]
 		)
-		console.log(longPositionBefore)
 
 		const usdcBalanceBeforeLP = parseFloat(
 			utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6)
@@ -928,7 +921,6 @@ describe("change to 4x leverage factor", async () => {
 			[wethAddress],
 			[true]
 		)
-		console.log({ positionBefore })
 
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
 		await executeDecreasePosition()
@@ -944,10 +936,8 @@ describe("change to 4x leverage factor", async () => {
 			[wethAddress],
 			[true]
 		)
-		console.log({ positionAfter })
 		const deltaAfter = await gmxReactor.internalDelta()
 		// 2500 USDC should be removed from collateral, plus 500 USDC in unrealised pnl
-		console.log({ usdcBalanceDiff })
 		expect(usdcBalanceDiff).to.be.within(2980, 3000)
 		expect(deltaAfter).to.eq(utils.parseEther("5"))
 
@@ -979,7 +969,6 @@ describe("change to 4x leverage factor", async () => {
 			[wethAddress],
 			[true]
 		)
-		console.log({ positionBefore })
 		expect(positionBefore[0]).to.eq(utils.parseUnits("8000", 30))
 		expect(parseFloat(utils.formatUnits(positionBefore[1], 30))).to.be.within(1490, 1500)
 		expect(parseFloat(utils.formatUnits(positionBefore[8], 30))).to.eq(5000)
@@ -998,13 +987,10 @@ describe("change to 4x leverage factor", async () => {
 			[wethAddress],
 			[true]
 		)
-		console.log("max lev:", await gmxVault.maxLeverage())
 		const expectedUdscDiff =
 			parseFloat(utils.formatUnits(positionBefore[1], 30)) -
 			parseFloat(utils.formatUnits(positionAfter[0], 30)) /
 				(((await gmxVault.maxLeverage()) / 10000) * 0.9)
-		console.log({ expectedUdscDiff })
-		console.log({ usdcBalanceDiff })
 		expect(usdcBalanceDiff).to.be.within(expectedUdscDiff - 10, expectedUdscDiff)
 		expect(positionAfter[0]).to.eq(utils.parseUnits("8000", 30))
 		// remaining collat should be 1/90th of pos size (maxLeverage * 0.9)
@@ -1028,7 +1014,6 @@ describe("change to 4x leverage factor", async () => {
 			[wethAddress],
 			[true]
 		)
-		console.log({ positionBefore })
 		expect(positionBefore[0]).to.eq(utils.parseUnits("8000", 30))
 		expect(parseFloat(utils.formatUnits(positionBefore[1], 30))).to.be.within(88, 89)
 		expect(parseFloat(utils.formatUnits(positionBefore[8], 30))).to.eq(7000)
@@ -1070,7 +1055,6 @@ describe("change to 4x leverage factor", async () => {
 			[wethAddress],
 			[true]
 		)
-		console.log({ positionBefore })
 		expect(positionBefore[0]).to.eq(utils.parseUnits("8000", 30))
 		expect(parseFloat(utils.formatUnits(positionBefore[1], 30))).to.be.within(88, 89)
 		expect(parseFloat(utils.formatUnits(positionBefore[8], 30))).to.eq(7000)
@@ -1146,7 +1130,6 @@ describe("change to 4x leverage factor", async () => {
 			[wethAddress],
 			[true]
 		)
-		console.log({ positionAfter })
 		expect(positionAfter[0]).to.eq(utils.parseUnits("1006400", 30))
 		// collateral should be 1/90th of position size minus 0.1% trading fee
 		expect(parseFloat(utils.formatUnits(positionAfter[1], 30))).to.be.within(10150, 10180)
@@ -1189,7 +1172,6 @@ describe("price moves between submitting and executing orders", async () => {
 		await funder.sendTransaction({ to: gmxReactor.address, value: utils.parseEther("1") })
 
 		const delta = await gmxReactor.internalDelta()
-		console.log({ delta })
 		const positionBefore = await gmxReader.getPositions(
 			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
 			gmxReactor.address,
@@ -1199,7 +1181,6 @@ describe("price moves between submitting and executing orders", async () => {
 		)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("200000", 8))
 
-		console.log({ positionBefore })
 		await liquidityPool.rebalancePortfolioDelta(delta, 2)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("199998", 8))
 
@@ -1212,7 +1193,6 @@ describe("price moves between submitting and executing orders", async () => {
 			[wethAddress],
 			[true]
 		)
-		console.log({ positionAfter })
 	})
 	it("opens a long position", async () => {
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("2000", 8))

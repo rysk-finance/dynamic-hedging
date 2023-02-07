@@ -1,0 +1,1119 @@
+[
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_collateralAsset",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_oTokenFactory",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_gammaController",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_marginPool",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_liquidityPool",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_addressBook",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_authority",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "AlreadyExpired",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "HealthyVault",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InsufficientBalance",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidCollateral",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidDecimals",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NoVault",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NonExistentSeries",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NotExpired",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NotKeeper",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NotLiquidityPool",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "UNAUTHORIZED",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "VaultExpired",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "VaultNotLiquidated",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "WithdrawExceedsLiquidity",
+		"type": "error"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "contract IAuthority",
+				"name": "authority",
+				"type": "address"
+			}
+		],
+		"name": "AuthorityUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "token",
+				"type": "address"
+			}
+		],
+		"name": "OptionTokenCreated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "series",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "vaultId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "closedAmount",
+				"type": "uint256"
+			}
+		],
+		"name": "OptionsContractClosed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "series",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "vaultId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "optionsAmount",
+				"type": "uint256"
+			}
+		],
+		"name": "OptionsContractOpened",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "series",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "collateralReturned",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "collateralLost",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amountLost",
+				"type": "uint256"
+			}
+		],
+		"name": "OptionsContractSettled",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "series",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "underlyingAmount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "strikeAmount",
+				"type": "uint256"
+			}
+		],
+		"name": "SeriesRedeemed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "series",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "vaultId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amountLiquidated",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "collateralLiquidated",
+				"type": "uint256"
+			}
+		],
+		"name": "VaultLiquidationRegistered",
+		"type": "event"
+	},
+	{
+		"inputs": [],
+		"name": "addressBook",
+		"outputs": [
+			{
+				"internalType": "contract AddressBookInterface",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "vaultId",
+				"type": "uint256"
+			}
+		],
+		"name": "adjustCollateral",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "vaultId",
+				"type": "uint256"
+			}
+		],
+		"name": "adjustCollateralCaller",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "authority",
+		"outputs": [
+			{
+				"internalType": "contract IAuthority",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "callLowerHealthFactor",
+		"outputs": [
+			{
+				"internalType": "uint64",
+				"name": "",
+				"type": "uint64"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "callUpperHealthFactor",
+		"outputs": [
+			{
+				"internalType": "uint64",
+				"name": "",
+				"type": "uint64"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "vaultId",
+				"type": "uint256"
+			}
+		],
+		"name": "checkVaultHealth",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "isBelowMin",
+				"type": "bool"
+			},
+			{
+				"internalType": "bool",
+				"name": "isAboveMax",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "healthFactor",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "upperHealthFactor",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "collatRequired",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "collatAsset",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_series",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "close",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "collateralAsset",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "strikePrice",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "collateral",
+				"type": "address"
+			}
+		],
+		"name": "formatStrikePrice",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "gammaController",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint64",
+						"name": "expiration",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint128",
+						"name": "strike",
+						"type": "uint128"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPut",
+						"type": "bool"
+					},
+					{
+						"internalType": "address",
+						"name": "underlying",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "strikeAsset",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "collateral",
+						"type": "address"
+					}
+				],
+				"internalType": "struct Types.OptionSeries",
+				"name": "series",
+				"type": "tuple"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "getCollateral",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint64",
+						"name": "expiration",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint128",
+						"name": "strike",
+						"type": "uint128"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPut",
+						"type": "bool"
+					},
+					{
+						"internalType": "address",
+						"name": "underlying",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "strikeAsset",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "collateral",
+						"type": "address"
+					}
+				],
+				"internalType": "struct Types.OptionSeries",
+				"name": "_series",
+				"type": "tuple"
+			}
+		],
+		"name": "getIssuanceHash",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "underlying",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "strikeAsset",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "expiration",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isPut",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "strike",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "collateral",
+				"type": "address"
+			}
+		],
+		"name": "getOtoken",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint64",
+						"name": "expiration",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint128",
+						"name": "strike",
+						"type": "uint128"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPut",
+						"type": "bool"
+					},
+					{
+						"internalType": "address",
+						"name": "underlying",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "strikeAsset",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "collateral",
+						"type": "address"
+					}
+				],
+				"internalType": "struct Types.OptionSeries",
+				"name": "_series",
+				"type": "tuple"
+			}
+		],
+		"name": "getSeries",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "issuanceHash",
+				"type": "bytes32"
+			}
+		],
+		"name": "getSeriesAddress",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "series",
+				"type": "address"
+			}
+		],
+		"name": "getSeriesInfo",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint64",
+						"name": "expiration",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint128",
+						"name": "strike",
+						"type": "uint128"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPut",
+						"type": "bool"
+					},
+					{
+						"internalType": "address",
+						"name": "underlying",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "strikeAsset",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "collateral",
+						"type": "address"
+					}
+				],
+				"internalType": "struct Types.OptionSeries",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint64",
+						"name": "expiration",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint128",
+						"name": "strike",
+						"type": "uint128"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPut",
+						"type": "bool"
+					},
+					{
+						"internalType": "address",
+						"name": "underlying",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "strikeAsset",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "collateral",
+						"type": "address"
+					}
+				],
+				"internalType": "struct Types.OptionSeries",
+				"name": "optionSeries",
+				"type": "tuple"
+			}
+		],
+		"name": "issue",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "keeper",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "liquidityPool",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_series",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "collateralAmount",
+				"type": "uint256"
+			}
+		],
+		"name": "open",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "putLowerHealthFactor",
+		"outputs": [
+			{
+				"internalType": "uint64",
+				"name": "",
+				"type": "uint64"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "putUpperHealthFactor",
+		"outputs": [
+			{
+				"internalType": "uint64",
+				"name": "",
+				"type": "uint64"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_series",
+				"type": "address"
+			}
+		],
+		"name": "redeem",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "vaultId",
+				"type": "uint256"
+			}
+		],
+		"name": "registerLiquidatedVault",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "seriesInfo",
+		"outputs": [
+			{
+				"internalType": "uint64",
+				"name": "expiration",
+				"type": "uint64"
+			},
+			{
+				"internalType": "uint128",
+				"name": "strike",
+				"type": "uint128"
+			},
+			{
+				"internalType": "bool",
+				"name": "isPut",
+				"type": "bool"
+			},
+			{
+				"internalType": "address",
+				"name": "underlying",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "strikeAsset",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "collateral",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "contract IAuthority",
+				"name": "_newAuthority",
+				"type": "address"
+			}
+		],
+		"name": "setAuthority",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint64",
+				"name": "_putLower",
+				"type": "uint64"
+			},
+			{
+				"internalType": "uint64",
+				"name": "_putUpper",
+				"type": "uint64"
+			},
+			{
+				"internalType": "uint64",
+				"name": "_callLower",
+				"type": "uint64"
+			},
+			{
+				"internalType": "uint64",
+				"name": "_callUpper",
+				"type": "uint64"
+			}
+		],
+		"name": "setHealthThresholds",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_target",
+				"type": "address"
+			},
+			{
+				"internalType": "bool",
+				"name": "_auth",
+				"type": "bool"
+			}
+		],
+		"name": "setKeeper",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_newLiquidityPool",
+				"type": "address"
+			}
+		],
+		"name": "setLiquidityPool",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_series",
+				"type": "address"
+			}
+		],
+		"name": "settle",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "vaultCount",
+		"outputs": [
+			{
+				"internalType": "uint64",
+				"name": "",
+				"type": "uint64"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "vaultIds",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "vaultId",
+				"type": "uint256"
+			}
+		],
+		"name": "wCollatLiquidatedVault",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+]
