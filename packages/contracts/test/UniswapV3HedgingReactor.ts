@@ -427,7 +427,6 @@ describe("UniswapV3HedgingReactor", () => {
 				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
 			)
 		)
-		console.log("reactorWethBalanceBefore", reactorWethBalanceBefore)
 		expect(reactorWethBalanceBefore).to.be.above(0)
 		const withdrawAmount = "100000000" //100 million
 		const tx = await liquidityPoolDummy.withdraw(ethers.utils.parseUnits(withdrawAmount, 18))
@@ -451,7 +450,6 @@ describe("UniswapV3HedgingReactor", () => {
 				BigNumber.from(await wethContract.balanceOf(uniswapV3HedgingReactor.address))
 			)
 		)
-		console.log("reactorWethBalanceAfter", reactorWethBalanceAfter)
 
 		expect(LpUsdcBalanceAfter - LpUsdcBalanceBefore).to.be.below(parseFloat(withdrawAmount))
 		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore)
