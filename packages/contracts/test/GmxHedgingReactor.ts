@@ -416,7 +416,7 @@ describe("GMX Hedging Reactor", () => {
 		// this should revert to stop long and short coexisting
 		await expect(
 			liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${-delta}`), 2)
-		).to.be.revertedWith("GmxCallbackPending()")
+		).to.be.revertedWithCustomError(gmxReactor, "GmxCallbackPending")
 		await executeIncreasePosition()
 
 		const usdcBalanceAfterLP = parseFloat(
@@ -1079,9 +1079,9 @@ describe("change to 4x leverage factor", async () => {
 		// Try to send a fraudulent callback - must revert
 		const logs = await gmxReactor.queryFilter(gmxReactor.filters.CreateDecreasePosition(), 0)
 		const positionKey = logs[logs.length - 1].args[0]
-		await expect(gmxReactor.gmxPositionCallback(positionKey, true, false)).to.be.revertedWith(
-			"InvalidGmxCallback()"
-		)
+		await expect(
+			gmxReactor.gmxPositionCallback(positionKey, true, false)
+		).to.be.revertedWithCustomError(gmxReactor, "InvalidGmxCallback")
 		// execute position
 		await executeDecreasePosition()
 
