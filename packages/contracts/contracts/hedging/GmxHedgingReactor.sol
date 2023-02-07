@@ -250,6 +250,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			_removeCollateral(collatToTransfer, internalDelta > 0);
 			return collatToTransfer;
 		}
+		return 0;
 	}
 
 	/**
