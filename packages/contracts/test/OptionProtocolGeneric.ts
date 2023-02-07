@@ -849,15 +849,10 @@ describe("Options protocol", function () {
 	})
 	it("sets the health threshold", async () => {
 		await optionRegistry.setHealthThresholds(1000, 1000, 1000, 1000)
-		console.log("first set")
 		expect(await optionRegistry.putLowerHealthFactor()).to.equal(1000)
-		console.log("second set")
 		expect(await optionRegistry.putUpperHealthFactor()).to.equal(1000)
-		console.log("third set")
 		expect(await optionRegistry.callLowerHealthFactor()).to.equal(1000)
-		console.log("fourth set")
 		expect(await optionRegistry.callUpperHealthFactor()).to.equal(1000)
-		console.log("fifth set")
 		await expect(optionRegistry.connect(signers[1]).setHealthThresholds(1000, 1000, 1000, 1000)).to.be
 			.reverted
 	})
