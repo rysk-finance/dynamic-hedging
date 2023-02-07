@@ -1,5 +1,3 @@
-import React from "react";
-
 type ToggleSize = "sm" | "md" | "lg";
 
 type ToggleProps = {
@@ -19,11 +17,7 @@ const TEXT_SIZE_MAP: Record<ToggleSize, number> = {
   md: 16,
   lg: 20,
 };
-export const Toggle: React.FC<ToggleProps> = ({
-  value,
-  setValue,
-  size = "md",
-}) => {
+export const Toggle = ({ value, setValue, size = "md" }: ToggleProps) => {
   return (
     <div className="flex items-center">
       <p className={`mr-2`} style={{ fontSize: TEXT_SIZE_MAP[size] }}>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { gql, useQuery } from "@apollo/client";
 import { BigNumber, utils } from "ethers";
 import { useState } from "react";
@@ -9,15 +9,10 @@ import { renameOtoken } from "../../utils/conversion-helper";
 import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import { RadioButtonSlider } from "../shared/RadioButtonSlider";
-import { BuyBack } from "./BuyBack";
 import { useContract } from "../../hooks/useContract";
 import OpynController from "../../abis/OpynController.json";
 import { toast } from "react-toastify";
-import {
-  BIG_NUMBER_DECIMALS,
-  DECIMALS,
-  ZERO_ADDRESS,
-} from "../../config/constants";
+import { DECIMALS, ZERO_ADDRESS } from "../../config/constants";
 import { useExpiryPriceData } from "../../hooks/useExpiryPriceData";
 
 enum OptionState {
@@ -115,42 +110,46 @@ export const UserOptionsList = () => {
   // TODO: Add typings here
   useQuery(
     gql`
-    query($account: String) {
-      positions(first: 1000, where: { account_contains: "${account?.toLowerCase()}" }) {
-        id
-        amount
-        oToken {
-          id
-          symbol
-          expiryTimestamp
-          strikePrice
-          isPut
-          underlyingAsset {
-            id
-          }
-        }
-        writeOptionsTransactions {
+      query ($account: String) {
+        positions(first: 1000, where: { account_contains: $account }) {
           id
           amount
-          premium
-          timestamp
-        }
-        account {
-          balances {
-            balance
-            token {
+          oToken {
+            id
+            symbol
+            expiryTimestamp
+            strikePrice
+            isPut
+            underlyingAsset {
               id
+            }
+          }
+          writeOptionsTransactions {
+            id
+            amount
+            premium
+            timestamp
+          }
+          account {
+            balances {
+              balance
+              token {
+                id
+              }
             }
           }
         }
       }
-    }
-  `,
+    `,
     {
       onCompleted: parsePositions,
       onError: (err) => {
         console.log(err);
       },
+      variables: {
+        account: account?.toLowerCase(),
+      },
+      skip: !account,
     }
   );
 

@@ -1,6 +1,5 @@
-import { ethers } from "ethers";
 import moment from "moment";
-import React from "react";
+
 import { BIG_NUMBER_DECIMALS } from "../../config/constants";
 import { Currency, OptionSeries } from "../../types";
 import { parseTimestamp } from "../../utils/parseTimestamp";
@@ -10,9 +9,7 @@ type OptionSeriesInfoProps = {
   option: OptionSeries | null;
 };
 
-export const OptionSeriesInfo: React.FC<OptionSeriesInfoProps> = ({
-  option,
-}) => {
+export const OptionSeriesInfo = ({ option }: OptionSeriesInfoProps) => {
   const returnType = option?.isPut ? "PUT" : "CALL";
   const returnExpiry = parseTimestamp(Number(option?.expiration) * 1000);
   const optionSymbol = `ETH 

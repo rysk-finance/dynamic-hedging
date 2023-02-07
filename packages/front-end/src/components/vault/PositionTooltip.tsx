@@ -1,9 +1,4 @@
-import React from "react";
-import {
-  BIG_NUMBER_DECIMALS,
-  DHV_NAME,
-  ZERO_UINT_256,
-} from "../../config/constants";
+import { BIG_NUMBER_DECIMALS, ZERO_UINT_256 } from "../../config/constants";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { Currency } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";

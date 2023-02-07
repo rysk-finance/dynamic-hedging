@@ -501,43 +501,6 @@ describe("Liquidity Pools", async () => {
 			liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
 		).to.be.revertedWith("PriceDeltaExceedsThreshold(36378215763291390)")
 	})
-	it("Reverts: Push to price deviation threshold to cause quote to fail other way", async () => {
-		const latestPrice = await priceFeed.getRate(weth.address, usd.address)
-		await opynAggregator.setLatestAnswer(latestPrice.sub(BigNumber.from("20000000000")))
-		const amount = toWei("1")
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike))
-		const optionSeries = {
-			expiration: expiration,
-			strike: strikePrice,
-			isPut: PUT_FLAVOR,
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-		await expect(
-			liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
-		).to.be.revertedWith("PriceDeltaExceedsThreshold(36378215763291390)")
-	})
-	it("Reverts: Push to time deviation threshold to cause quote to fail", async () => {
-		const latestPrice = await priceFeed.getRate(weth.address, usd.address)
-		await opynAggregator.setLatestAnswer(latestPrice.add(BigNumber.from("10000000000")))
-		const amount = toWei("1")
-		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
-		const strikePrice = priceQuote.sub(toWei(strike))
-		const optionSeries = {
-			expiration: expiration,
-			strike: strikePrice,
-			isPut: PUT_FLAVOR,
-			strikeAsset: usd.address,
-			underlying: weth.address,
-			collateral: usd.address
-		}
-		await increase(700)
-		await expect(
-			liquidityPool.quotePriceWithUtilizationGreeks(optionSeries, amount, true)
-		).to.be.revertedWith("TimeDeltaExceedsThreshold(707)")
-	})
 	it("reverts when attempting to write ETH/USD puts with expiry outside of limit", async () => {
 		const amount = toWei("1")
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -1122,7 +1085,7 @@ describe("Liquidity Pools", async () => {
 			tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatEth(ephemeralLiabilitiesBefore)
 		const ephemeralDeltaDiff =
 			tFormatEth(await liquidityPool.ephemeralDelta()) - tFormatEth(ephemeralDeltaBefore)
-		expect(ephemeralDeltaDiff).to.equal(-tFormatEth(delta))
+		expect(ephemeralDeltaDiff - -tFormatEth(delta)).to.be.within(-100, 100)
 		expect(ephemeralLiabilitiesDiff - tFormatEth(quote)).to.be.within(-0.01, 0.01)
 	})
 

@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import React, { useState } from "react";
+import { useState } from "react";
 import { BIG_NUMBER_DECIMALS, DECIMALS } from "../../config/constants";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { OptionsTradingActionType, OptionType } from "../../state/types";
@@ -7,7 +7,7 @@ import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { ExpiryDatePicker } from "./ExpiryDatePicker";
 
-export const CustomOptionOrder: React.FC = () => {
+export const CustomOptionOrder = () => {
   const {
     state: { optionType, optionParams },
     dispatch,

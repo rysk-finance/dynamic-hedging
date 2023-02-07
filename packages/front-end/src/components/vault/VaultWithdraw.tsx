@@ -1,5 +1,5 @@
 import { BigNumber, ethers } from "ethers";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import NumberFormat from "react-number-format";
 import ReactSlider from "react-slider";
 import ERC20ABI from "../../abis/erc20.json";
@@ -8,8 +8,6 @@ import LPABI from "../../abis/LiquidityPool.json";
 import {
   BIG_NUMBER_DECIMALS,
   DECIMALS,
-  DHV_NAME,
-  MAX_UINT_256,
   ZERO_UINT_256,
 } from "../../config/constants";
 import {

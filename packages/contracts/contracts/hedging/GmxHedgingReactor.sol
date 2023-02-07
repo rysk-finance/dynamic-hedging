@@ -63,6 +63,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	uint256 public collateralSwapPriceTolerance = 5e15; // 0.5%
 	/// @notice price tolerance for opening/closing positions
 	uint256 public positionPriceTolerance = 5e15; // 0.5%
+	/// @notice tolerance on collateral to remove on full closures
+	int256 public collateralRemovalPercentage = 9900; // 99%
 	/// @notice address of the price feed used for getting asset prices
 	address public priceFeed;
 	/// @notice the GMX position router contract
@@ -87,6 +89,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	event CreateIncreasePosition(bytes32 positionKey);
 	event CreateDecreasePosition(bytes32 positionKey);
+	event RebalancePortfolioDeltaFailed(int256 delta);
 
 	constructor(
 		address _gmxPositionRouter,
@@ -159,6 +162,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		_onlyGovernor();
 		positionPriceTolerance = _positionPriceTolerance;
 	}
+
+	function setCollateralRemovalPercentage(int256 _collateralRemovalPercentage) external {
+		_onlyGovernor();
+		collateralRemovalPercentage = _collateralRemovalPercentage;
+	}
+
 
 	////////////////////////////////////////////
 	/// access-controlled external functions ///
@@ -662,11 +671,14 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				// position in loss
 				// with positions in loss, what is entered into the createDecreasePosition function is what you receive
 				// however the pnl is still reduced proportionally
-				uint256 d = _amount.mul(position[2]).div(position[0]);
+				// we need to make sure that adjustedAmount can never be greater than position[0].div(position[2]) which is the actual size of position the dhv has
+				uint256 adjustedAmount = _amount < position[0].div(position[2]) ? _amount : position[0].div(position[2]);
+				uint256 d = adjustedAmount.mul(position[2]).div(position[0]);
 				{
+					// we need to adjust the collateral to remove by 1% to account for oracle price changes between this call and the gmx callback
 					collateralToRemove =
-						(int256(position[1] / 1e12) - ((int256(position[0]) / 1e12).mul(1e18 - int256(d)).div(int256(leverageFactor)))) -
-						int256(position[8] / 1e12);
+						(((int256(position[1] / 1e12) - ((int256(position[0]) / 1e12).mul(1e18 - int256(d)).div(int256(leverageFactor)))) -
+						int256(position[8] / 1e12)) * collateralRemovalPercentage) / 10000;
 				}
 			}
 			uint256 adjustedCollateralToRemove;
@@ -731,6 +743,13 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				internalDelta += increaseOrderDeltaChange[positionKey];
 			} else {
 				internalDelta += decreaseOrderDeltaChange[positionKey];
+			}
+		} else {
+			// if there was a failure record the failure by emitting an event
+			if (isIncrease) {
+				emit RebalancePortfolioDeltaFailed(increaseOrderDeltaChange[positionKey]);
+			} else {
+				emit RebalancePortfolioDeltaFailed(decreaseOrderDeltaChange[positionKey]);
 			}
 		}
 		if (isIncrease) {

@@ -1,4 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { ETHNetwork } from "../types";
+
+import { useEffect, useMemo, useState } from "react";
 import ProgressBar from "@ramonak/react-progress-bar";
 import { useContract } from "../hooks/useContract";
 import LPABI from "../abis/LiquidityPool.json";
@@ -28,7 +30,7 @@ export const LPStats = () => {
     const getCollateralCap = async () => {
       // TODO uncomment this before production and remove lines below
       if (lpContract) {
-        if (process.env.REACT_APP_ENV === "production") {
+        if (process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET) {
           const cap = await lpContract.collateralCap();
           setCollateralCap(cap);
         } else {
@@ -94,19 +96,21 @@ export const LPStats = () => {
           </div>
         )}
       </div>
-      <ProgressBar
-        completed={Math.round(
-          (Number(showDeposit ? showDeposit : depositedCollateral) /
-            Number(collateralCap)) *
-            100
-        )}
-        bgColor={"#000"}
-        height={"24px"}
-        baseBgColor={"#ebebeb"}
-        animateOnRender={true}
-        borderRadius={"9px"}
-        className={"border-2 border-2 rounded-xl border-black"}
-      />
+      {depositedCollateral && (
+        <ProgressBar
+          completed={Math.round(
+            (Number(showDeposit ? showDeposit : depositedCollateral) /
+              Number(collateralCap)) *
+              100
+          )}
+          bgColor={"#000"}
+          height={"24px"}
+          baseBgColor={"#ebebeb"}
+          animateOnRender={true}
+          borderRadius={"9px"}
+          className={"border-2 border-2 rounded-xl border-black"}
+        />
+      )}
     </div>
   );
 };
