@@ -26,7 +26,6 @@ let vTokenAddress: string
 let vQuoteAddress: string
 let rageOracle: OracleMock
 let clearingHouseLens: ClearingHouseLens
-
 // edit depending on the chain id to be tested on
 const chainId = 1
 const USDC_SCALE = "1000000000000"
