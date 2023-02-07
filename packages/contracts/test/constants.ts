@@ -6,18 +6,20 @@ export enum CHAINID {
 	ARBITRUM = 42161, // eslint-disable-line no-unused-vars
 	ARBITRUM_GOERLI = 421613, // eslint-disable-line no-unused-vars
 	AVAX_MAINNET = 43114, // eslint-disable-line no-unused-vars
-	AVAX_FUJI = 43113 // eslint-disable-line no-unused-vars
+	AVAX_FUJI = 43113, // eslint-disable-line no-unused-vars
 }
 
 /**
  * Tokens and owners
  */
 export const WETH_ADDRESS = {
-	[CHAINID.ETH_MAINNET]: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+	[CHAINID.ETH_MAINNET]: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+	[CHAINID.ARBITRUM]: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
 }
 
 export const USDC_ADDRESS = {
-	[CHAINID.ETH_MAINNET]: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+	[CHAINID.ETH_MAINNET]: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+	[CHAINID.ARBITRUM]: "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
 }
 
 export const USDT_ADDRESS = {
@@ -79,8 +81,7 @@ export const GAMMA_WHITELIST_OWNER = {
 }
 
 export const GAMMA_CONTROLLER = {
-	[CHAINID.ETH_MAINNET]: "0x4ccc2339F87F6c59c6893E1A678c2266cA58dC72",
-	[CHAINID.ETH_KOVAN]: "0xdEE7D0f8CcC0f7AC7e45Af454e5e7ec1552E8e4e"
+	[CHAINID.ETH_MAINNET]: "0x4ccc2339F87F6c59c6893E1A678c2266cA58dC72"
 }
 
 export const ORACLE_OWNER = {

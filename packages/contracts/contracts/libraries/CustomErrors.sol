@@ -17,6 +17,7 @@ interface CustomErrors {
 	error InvalidAddress();
 	error IssuanceFailed();
 	error EpochNotClosed();
+	error NoPositionsOpen();
 	error InvalidDecimals();
 	error InActivePosition();
 	error NoActivePosition();
@@ -28,6 +29,8 @@ interface CustomErrors {
 	error DeltaNotDecreased();
 	error NonExistentOtoken();
 	error SeriesNotSellable();
+	error InvalidGmxCallback();
+	error GmxCallbackPending();
 	error OrderExpiryTooLong();
 	error InvalidShareAmount();
 	error ExistingWithdrawal();
