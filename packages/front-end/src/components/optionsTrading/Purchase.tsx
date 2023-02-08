@@ -75,11 +75,11 @@ export const Purchase = () => {
 
   const handleApproveSpend = async () => {
     if (usdcContract && strikeOptions && callOrPut && bidOrAsk) {
-      const amount = toUSDC(
-        (
-          strikeOptions[callOrPut][bidOrAsk].quote * Number(uiOrderSize)
-        ).toString()
-      );
+      const total =
+        strikeOptions[callOrPut][bidOrAsk].quote * Number(uiOrderSize);
+      const withBuffer = total * 1.05;
+      const amount = toUSDC(withBuffer.toString());
+      console.log(total, amount);
 
       const approvedAmount = (await usdcContract.allowance(
         address,
