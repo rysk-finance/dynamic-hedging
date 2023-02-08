@@ -318,7 +318,7 @@ export const OptionsTable = () => {
                   value={
                     isNotTwoDigitsZero(option.call.bid.quote)
                       ? option.call.bid.quote
-                      : "-"
+                      : ""
                   }
                   displayType={"text"}
                   decimalScale={2}
@@ -339,7 +339,7 @@ export const OptionsTable = () => {
                   value={
                     isNotTwoDigitsZero(option.call.ask.quote)
                       ? option.call.ask.quote
-                      : "-"
+                      : ""
                   }
                   displayType={"text"}
                   decimalScale={2}
@@ -390,7 +390,7 @@ export const OptionsTable = () => {
                   value={
                     isNotTwoDigitsZero(option.put.bid.quote)
                       ? option.put.bid.quote
-                      : "-"
+                      : ""
                   }
                   displayType={"text"}
                   decimalScale={2}
@@ -411,7 +411,7 @@ export const OptionsTable = () => {
                   value={
                     isNotTwoDigitsZero(option.put.ask.quote)
                       ? option.put.ask.quote
-                      : "-"
+                      : ""
                   }
                   displayType={"text"}
                   decimalScale={2}
