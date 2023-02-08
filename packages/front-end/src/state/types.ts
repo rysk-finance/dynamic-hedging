@@ -119,23 +119,27 @@ export interface StrikeOptions {
   strike: number;
   call: {
     bid: {
-      IV: number;
+      IV: number | string;
       quote: number;
+      disabled: boolean;
     };
     ask: {
-      IV: number;
+      IV: number | string;
       quote: number;
+      disabled: boolean;
     };
     delta: number;
   };
   put: {
     bid: {
-      IV: number;
+      IV: number | string;
       quote: number;
+      disabled: boolean;
     };
     ask: {
-      IV: number;
+      IV: number | string;
       quote: number;
+      disabled: boolean;
     };
     delta: number;
   };
@@ -156,6 +160,15 @@ export enum OptionsTradingActionType {
   SET_SELECTED_OPTION,
   ADD_CUSTOM_STRIKE,
   SET_OPTION_PARAMS,
+}
+
+export interface OptionSeries {
+  expiration: BigNumber;
+  strike: BigNumber;
+  strikeAsset: HexString;
+  underlying: HexString;
+  collateral: HexString;
+  isPut: boolean;
 }
 
 export type OptionsTradingAction =
