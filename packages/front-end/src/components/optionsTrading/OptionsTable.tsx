@@ -1,3 +1,9 @@
+import type {
+  SelectedOption,
+  StrikeOptions,
+  OptionSeries,
+} from "../../state/types";
+
 import dayjs from "dayjs";
 import { BigNumber, utils } from "ethers";
 import { useEffect, useState } from "react";
@@ -11,7 +17,7 @@ import { BeyondPricerABI } from "src/abis/BeyondPricer_ABI";
 import addresses from "../../contracts.json";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
-import { OptionsTradingActionType, SelectedOption } from "../../state/types";
+import { OptionsTradingActionType } from "../../state/types";
 import { ContractAddresses, ETHNetwork } from "../../types";
 import { fromWei, tFormatUSDC, toWei } from "../../utils/conversion-helper";
 import {
@@ -19,46 +25,6 @@ import {
   calculateOptionDeltaLocally,
   returnIVFromQuote,
 } from "../../utils/helpers";
-
-interface OptionSeries {
-  expiration: BigNumber;
-  strike: BigNumber;
-  strikeAsset: HexString;
-  underlying: HexString;
-  collateral: HexString;
-  isPut: boolean;
-}
-
-interface ChainRow {
-  strike: number;
-  call: {
-    bid: {
-      IV: number;
-      quote: number;
-    };
-    ask: {
-      IV: number;
-      quote: number;
-    };
-    delta: number;
-  };
-  put: {
-    bid: {
-      IV: number;
-      quote: number;
-    };
-    ask: {
-      IV: number;
-      quote: number;
-    };
-    delta: number;
-  };
-}
-
-const isNotTwoDigitsZero = (price: number) => {
-  // TODO: Not sure this makes sense, come back to it after figuring out pricing
-  return price.toFixed(2) != "0.00";
-};
 
 export const OptionsTable = () => {
   const { chain } = useNetwork();
@@ -73,7 +39,7 @@ export const OptionsTable = () => {
     dispatch,
   } = useOptionsTradingContext();
 
-  const [chainRows, setChainRows] = useState<ChainRow[]>([]);
+  const [chainRows, setChainRows] = useState<StrikeOptions[]>([]);
 
   const beyondPricer = useContract({
     address: getContractAddress("beyondPricer"),
@@ -153,7 +119,7 @@ export const OptionsTable = () => {
               isPut: true,
             };
 
-            const _buildRow = async (
+            const _getQuoteTotal = async (
               series: OptionSeries,
               netDhvExposure: BigNumber,
               isSell: boolean = false
@@ -166,23 +132,23 @@ export const OptionsTable = () => {
               );
               const quoteTotal = tFormatUSDC(quote[0].add(quote[2]));
 
-              return quoteTotal;
+              return quoteTotal >= 0.01 ? quoteTotal : 0;
             };
 
-            const quoteAskCallTotal = await _buildRow(
+            const quoteAskCallTotal = await _getQuoteTotal(
               optionSeriesCall,
               callExposure
             );
-            const quoteAskPutTotal = await _buildRow(
+            const quoteAskPutTotal = await _getQuoteTotal(
               optionSeriesPut,
               putExposure
             );
-            const quoteBidCallTotal = await _buildRow(
+            const quoteBidCallTotal = await _getQuoteTotal(
               optionSeriesCall,
               callExposure,
               true
             );
-            const quoteBidPutTotal = await _buildRow(
+            const quoteBidPutTotal = await _getQuoteTotal(
               optionSeriesPut,
               putExposure,
               true
@@ -221,23 +187,27 @@ export const OptionsTable = () => {
               strike: Number(fromWei(strike).toString()),
               call: {
                 bid: {
-                  IV: ivBidCall,
-                  quote: callAvailability.isBuyable ? quoteBidCallTotal : 0,
+                  IV: ivBidCall >= 0.1 ? ivBidCall : "-",
+                  quote: quoteBidCallTotal,
+                  disabled: !callAvailability.isBuyable,
                 },
                 ask: {
-                  IV: ivAskCall,
-                  quote: callAvailability.isSellable ? quoteAskCallTotal : 0,
+                  IV: ivAskCall >= 0.1 ? ivAskCall : "-",
+                  quote: quoteAskCallTotal,
+                  disabled: !callAvailability.isSellable,
                 },
                 delta: Number(fromWei(localDeltaCall).toString()),
               },
               put: {
                 bid: {
-                  IV: ivBidPut,
-                  quote: putAvailability.isBuyable ? quoteBidPutTotal : 0,
+                  IV: ivBidPut >= 0.1 ? ivBidPut : "-",
+                  quote: quoteBidPutTotal,
+                  disabled: !putAvailability.isBuyable,
                 },
                 ask: {
-                  IV: ivAskPut,
-                  quote: putAvailability.isSellable ? quoteAskPutTotal : 0,
+                  IV: ivAskPut >= 0.1 ? ivAskPut : "-",
+                  quote: quoteAskPutTotal,
+                  disabled: !putAvailability.isSellable,
                 },
                 delta: Number(fromWei(localDeltaPut).toString()),
               },
@@ -294,20 +264,11 @@ export const OptionsTable = () => {
       </thead>
       <tbody>
         {Boolean(chainRows.length) &&
-          chainRows.map((option, index) => (
-            <tr
-              className={`text-right h-12 ${
-                index % 2 === 0 ? "bg-gray-300" : ""
-              }`}
-              key={option.strike}
-            >
+          chainRows.map((option) => (
+            <tr className="text-right h-12 odd:bg-gray-300" key={option.strike}>
               <td className="pr-4">
                 <NumberFormat
-                  value={
-                    isNotTwoDigitsZero(option.call.bid.IV)
-                      ? option.call.bid.IV
-                      : "-"
-                  }
+                  value={option.call.bid.IV}
                   displayType={"text"}
                   decimalScale={2}
                   suffix={"%"}
@@ -315,44 +276,49 @@ export const OptionsTable = () => {
               </td>
               <td className="pr-4 text-red-700">
                 <NumberFormat
-                  value={
-                    isNotTwoDigitsZero(option.call.bid.quote)
-                      ? option.call.bid.quote
-                      : ""
-                  }
+                  value={option.call.bid.quote}
                   displayType={"text"}
                   decimalScale={2}
                   prefix={"$"}
                 />
               </td>
-              <td
-                className="pr-4 text-green-700 cursor-pointer"
-                onClick={() =>
-                  setSelectedOption({
-                    callOrPut: "call",
-                    bidOrAsk: "ask",
-                    strikeOptions: option,
-                  })
-                }
-              >
-                <NumberFormat
-                  value={
-                    isNotTwoDigitsZero(option.call.ask.quote)
-                      ? option.call.ask.quote
-                      : ""
-                  }
-                  displayType={"text"}
-                  decimalScale={2}
-                  prefix={"$"}
-                />
-              </td>
+              <NumberFormat
+                value={option.call.ask.quote}
+                displayType={"text"}
+                decimalScale={2}
+                prefix={"$"}
+                renderText={(value) => {
+                  const disabled =
+                    option.call.ask.disabled || !option.call.ask.quote;
+
+                  return (
+                    <td
+                      className={`pr-4 ${
+                        disabled ? "text-gray-600" : "text-green-700"
+                      }`}
+                    >
+                      <button
+                        className={
+                          disabled ? "cursor-not-allowed" : "cursor-pointer"
+                        }
+                        onClick={() =>
+                          setSelectedOption({
+                            callOrPut: "call",
+                            bidOrAsk: "ask",
+                            strikeOptions: option,
+                          })
+                        }
+                        disabled={disabled}
+                      >
+                        {value}
+                      </button>
+                    </td>
+                  );
+                }}
+              />
               <td className="pr-4">
                 <NumberFormat
-                  value={
-                    isNotTwoDigitsZero(option.call.ask.IV)
-                      ? option.call.ask.IV
-                      : "-"
-                  }
+                  value={option.call.ask.IV}
                   displayType={"text"}
                   decimalScale={2}
                   suffix={"%"}
@@ -366,7 +332,6 @@ export const OptionsTable = () => {
                 />
               </td>
               <td className="w-20 text-center bg-bone-dark border-x border-black">
-                {}
                 <NumberFormat
                   value={option.strike}
                   displayType={"text"}
@@ -375,11 +340,7 @@ export const OptionsTable = () => {
               </td>
               <td className="pr-4">
                 <NumberFormat
-                  value={
-                    isNotTwoDigitsZero(option.put.bid.IV)
-                      ? option.put.bid.IV
-                      : "-"
-                  }
+                  value={option.put.bid.IV}
                   displayType={"text"}
                   decimalScale={2}
                   suffix={"%"}
@@ -387,44 +348,49 @@ export const OptionsTable = () => {
               </td>
               <td className="pr-4 text-red-700">
                 <NumberFormat
-                  value={
-                    isNotTwoDigitsZero(option.put.bid.quote)
-                      ? option.put.bid.quote
-                      : ""
-                  }
+                  value={option.put.bid.quote}
                   displayType={"text"}
                   decimalScale={2}
                   prefix={"$"}
                 />
               </td>
-              <td
-                className="pr-4 text-green-700 cursor-pointer"
-                onClick={() =>
-                  setSelectedOption({
-                    callOrPut: "put",
-                    bidOrAsk: "ask",
-                    strikeOptions: option,
-                  })
-                }
-              >
-                <NumberFormat
-                  value={
-                    isNotTwoDigitsZero(option.put.ask.quote)
-                      ? option.put.ask.quote
-                      : ""
-                  }
-                  displayType={"text"}
-                  decimalScale={2}
-                  prefix={"$"}
-                />
-              </td>
+              <NumberFormat
+                value={option.put.ask.quote}
+                displayType={"text"}
+                decimalScale={2}
+                prefix={"$"}
+                renderText={(value) => {
+                  const disabled =
+                    option.put.ask.disabled || !option.put.ask.quote;
+
+                  return (
+                    <td
+                      className={`pr-4 ${
+                        disabled ? "text-gray-600" : "text-green-700"
+                      }`}
+                    >
+                      <button
+                        className={
+                          disabled ? "cursor-not-allowed" : "cursor-pointer"
+                        }
+                        onClick={() =>
+                          setSelectedOption({
+                            callOrPut: "put",
+                            bidOrAsk: "ask",
+                            strikeOptions: option,
+                          })
+                        }
+                        disabled={disabled}
+                      >
+                        {value}
+                      </button>
+                    </td>
+                  );
+                }}
+              />
               <td className="pr-4">
                 <NumberFormat
-                  value={
-                    isNotTwoDigitsZero(option.put.ask.IV)
-                      ? option.put.ask.IV
-                      : "-"
-                  }
+                  value={option.put.ask.IV}
                   displayType={"text"}
                   decimalScale={2}
                   suffix={"%"}
