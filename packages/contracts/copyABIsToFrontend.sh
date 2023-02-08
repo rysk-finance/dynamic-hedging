@@ -25,11 +25,15 @@ rm -rf ../front-end/src/abis/*
 ### ABI ###
 
 # Copy only the required ABIs from artifacts dir.
+# Copy them as JSON and as TS variables.
 for FILE_NAME in 'LiquidityPool' 'AlphaOptionHandler' 'OptionRegistry' 'AlphaPortfolioValuesFeed' 'PriceFeed' 'OptionExchange' 'OptionCatalogue' 'BeyondPricer'
 do
-    jq --indent 4 --tab '.abi' \
-    ./artifacts/contracts/$FILE_NAME.sol/$FILE_NAME.json \
-    > ../front-end/src/abis/$FILE_NAME.json
+    ABI=$(jq --indent 4 --tab '.abi' ./artifacts/contracts/$FILE_NAME.sol/$FILE_NAME.json)
+
+    echo "$ABI" > ../front-end/src/abis/$FILE_NAME.json
+
+    echo "export const ${FILE_NAME}ABI = $ABI as const" \
+    > ../front-end/src/abis/${FILE_NAME}_ABI.ts
 done
 
 # Copy package ABIs from artifacts dir.
