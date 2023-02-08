@@ -93,7 +93,7 @@ export type VaultContext = {
 // Options trading context
 export type OptionsTradingState = {
   optionType: OptionType;
-  expiryDate: Date | null;
+  expiryDate: number | null;
   optionParams: OptionParams | null;
   customOptionStrikes: number[];
   selectedOption: SelectedOption | null;
@@ -165,7 +165,7 @@ export type OptionsTradingAction =
     }
   | {
       type: OptionsTradingActionType.SET_EXPIRY_DATE;
-      date: Date | null;
+      date: number | null;
     }
   | {
       type: OptionsTradingActionType.ADD_CUSTOM_STRIKE;
