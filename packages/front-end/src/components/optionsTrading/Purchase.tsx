@@ -1,41 +1,32 @@
 import { BigNumber } from "@ethersproject/bignumber";
+import dayjs from "dayjs";
 import { ethers } from "ethers";
 import { useState } from "react";
+import NumberFormat from "react-number-format";
 import { toast } from "react-toastify";
 import { useAccount, useNetwork } from "wagmi";
+
 import ERC20ABI from "../../abis/erc20.json";
-import OptionRegistryABI from "../../abis/OptionRegistry.json";
 import OptionExchangeABI from "../../abis/OptionExchange.json";
+import OptionRegistryABI from "../../abis/OptionRegistry.json";
 import {
   BIG_NUMBER_DECIMALS,
   MAX_UINT_256,
   ZERO_ADDRESS,
 } from "../../config/constants";
+import addresses from "../../contracts.json";
 import { useContract } from "../../hooks/useContract";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { ContractAddresses, ETHNetwork } from "../../types";
+import { toUSDC, toWei } from "../../utils/conversion-helper";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
-import addresses from "../../contracts.json";
-import NumberFormat from "react-number-format";
-import { toUSDC, toWei } from "../../utils/conversion-helper";
 
-const formatOptionDate = (date: Date | null) => {
-  const expirationDate = date
-    ?.toLocaleString("en-GB", {
-      month: "short",
-      day: "numeric",
-      year: "2-digit",
-    })
-    .toUpperCase()
-    .replace(",", "")
-    .split(" ");
-
-  return (
-    expirationDate &&
-    `${expirationDate[0]}${expirationDate[1]}${expirationDate[2]}`
-  );
+const formatOptionDate = (date: number | null) => {
+  if (date) {
+    return dayjs.unix(date).format("DDMMMYY").toUpperCase();
+  }
 };
 
 export const Purchase = () => {
@@ -135,7 +126,7 @@ export const Purchase = () => {
           BigNumber.from(uiOrderSize)
         );
         const proposedSeries = {
-          expiration: (expiryDate.getTime() / 1000).toFixed(0),
+          expiration: expiryDate,
           strike: toWei(selectedOption.strikeOptions.strike.toString()),
           isPut: selectedOption.callOrPut == "put",
           strikeAsset: typedAddresses[network].USDC,
