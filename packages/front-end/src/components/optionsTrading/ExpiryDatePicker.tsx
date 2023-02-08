@@ -1,13 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import dayjs from "dayjs";
+import { BigNumber } from "ethers";
+import { useCallback, useEffect, useState } from "react";
+import { useContractRead } from "wagmi";
 
-import { useOnClickOutside } from "../../hooks/useOnClickOutside";
+import { captureException } from "@sentry/react";
+import { OptionCatalogueABI } from "src/abis/OptionCatalogue_ABI";
+import { getContractAddress } from "src/utils/helpers";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { OptionsTradingActionType } from "../../state/types";
-import { Option } from "../../types";
-import { formatShortDate } from "../../utils/formatShortDate";
 import { RadioButtonList } from "../shared/RadioButtonList";
-import { useContract } from "../../hooks/useContract";
-import OCABI from "../../abis/OptionCatalogue.json";
+
+interface OptionExpiryDict {
+  value: number;
+  label: string;
+  key: string;
+}
 
 export const ExpiryDatePicker = () => {
   const {
@@ -15,69 +22,60 @@ export const ExpiryDatePicker = () => {
     dispatch,
   } = useOptionsTradingContext();
 
-  const [datePickerIsOpen, setDatePickerIsOpen] = useState(false);
-  const [expiryDateOptions, setExpiryDateOptions] = useState<Option<Date>[]>(
-    []
-  );
-
-  const datePickerRef = useRef<HTMLDivElement | null>(null);
-
-  const onClickOffDatePicker = useCallback(() => {
-    setDatePickerIsOpen(false);
-  }, []);
-
-  useOnClickOutside(
-    datePickerRef,
-    datePickerIsOpen,
-    onClickOffDatePicker,
-    (_, event) => {
-      // Need to do this custom DOM check because react datepicker dynamically
-      // adds and removes the month scroll buttons from the DOM, which interferes
-      // with some logic on the useOnClickOutside hook.
-      const clickIsInsideDatePicker = (
-        event.target as HTMLElement
-      ).className.includes("react-datepicker");
-      return !clickIsInsideDatePicker;
-    }
-  );
+  const [expiryDateOptions, setExpiryDateOptions] = useState<any[]>([]);
 
   const setExpiryDate = useCallback(
-    (date: Date | null) => {
+    (date: number | null) => {
       dispatch({ type: OptionsTradingActionType.SET_EXPIRY_DATE, date });
     },
     [dispatch]
   );
 
   const handleRadioExpiryClick = useCallback(
-    (date: Date) => {
+    (date: number) => {
       setExpiryDate(date);
     },
     [setExpiryDate]
   );
 
-  const [optionCatalogue] = useContract({
-    contract: "optionCatalogue",
-    ABI: OCABI,
+  const { data, error } = useContractRead({
+    address: getContractAddress("optionCatalogue"),
+    abi: OptionCatalogueABI,
+    functionName: "getExpirations",
   });
 
   useEffect(() => {
     const fetchExpirations = async () => {
-      const expirations = await optionCatalogue?.getExpirations();
+      if (data) {
+        const expirationsToDict = data.reduce(
+          (expirationDicts: OptionExpiryDict[], expiration: BigNumber) => {
+            const now = dayjs().unix();
+            const date = dayjs.unix(BigNumber.from(expiration._hex).toNumber());
 
-      if (expirations) {
-        setExpiryDateOptions(
-          expirations.map((date: number) => ({
-            value: new Date(date * 1000),
-            label: formatShortDate(new Date(date * 1000)),
-            key: new Date(date * 1000).toISOString(),
-          }))
+            if (date.unix() > now) {
+              expirationDicts.push({
+                value: date.unix(),
+                label: date.format("MMM DD"),
+                key: date.toISOString(),
+              });
+            }
+
+            return expirationDicts;
+          },
+          []
         );
-        setExpiryDate(new Date(expirations[0] * 1000));
+
+        setExpiryDateOptions(expirationsToDict);
+        setExpiryDate(expirationsToDict[0].value);
       }
     };
 
-    fetchExpirations();
-  }, [optionCatalogue, setExpiryDate]);
+    if (error) {
+      captureException(error);
+    } else {
+      fetchExpirations();
+    }
+  }, [data, setExpiryDate]);
 
   return (
     <div className="w-full">
