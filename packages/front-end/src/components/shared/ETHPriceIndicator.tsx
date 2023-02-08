@@ -13,6 +13,17 @@ export const ETHPriceIndicator = () => {
     updatePrice();
   }, [updatePrice]);
 
+  useEffect(() => {
+    // Refreshing the price every 60 seconds to force a recalculation of premiums.
+    // Would probably be better if we used a websocket once we find an efficient way
+    // to query all of the data from the graph.
+    const priceCheckInternal = setInterval(() => {
+      updatePrice();
+    }, 60000);
+
+    return () => clearInterval(priceCheckInternal);
+  }, []);
+
   return (
     <button
       onClick={updatePrice}
