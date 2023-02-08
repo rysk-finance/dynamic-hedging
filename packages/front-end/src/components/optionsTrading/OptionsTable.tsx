@@ -1,28 +1,26 @@
 import type {
+  OptionSeries,
   SelectedOption,
   StrikeOptions,
-  OptionSeries,
 } from "../../state/types";
 
+import { captureException } from "@sentry/react";
 import dayjs from "dayjs";
 import { BigNumber, utils } from "ethers";
 import { useEffect, useState } from "react";
 import NumberFormat from "react-number-format";
-import { captureException } from "@sentry/react";
 import { useContract, useNetwork, useProvider } from "wagmi";
 
 import { AlphaPortfolioValuesFeedABI } from "src/abis/AlphaPortfolioValuesFeed_ABI";
-import { OptionCatalogueABI } from "src/abis/OptionCatalogue_ABI";
 import { BeyondPricerABI } from "src/abis/BeyondPricer_ABI";
-import addresses from "../../contracts.json";
+import { OptionCatalogueABI } from "src/abis/OptionCatalogue_ABI";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { OptionsTradingActionType } from "../../state/types";
-import { ContractAddresses, ETHNetwork } from "../../types";
 import { fromWei, tFormatUSDC, toWei } from "../../utils/conversion-helper";
 import {
-  getContractAddress,
   calculateOptionDeltaLocally,
+  getContractAddress,
   returnIVFromQuote,
 } from "../../utils/helpers";
 
@@ -69,8 +67,6 @@ export const OptionsTable = () => {
       beyondPricer
     ) {
       const bigNumberExpiry = BigNumber.from(expiryDate);
-      const typedAddresses = addresses as Record<ETHNetwork, ContractAddresses>;
-      const network = chain.network as ETHNetwork;
 
       const fetchPrices = async () => {
         const strikeData = await Promise.all([
@@ -108,9 +104,9 @@ export const OptionsTable = () => {
             const optionSeriesCall: OptionSeries = {
               expiration: bigNumberExpiry,
               strike: BigNumber.from(strike),
-              strikeAsset: typedAddresses[network].USDC as HexString,
-              underlying: typedAddresses[network].WETH as HexString,
-              collateral: typedAddresses[network].USDC as HexString,
+              strikeAsset: getContractAddress("USDC"),
+              underlying: getContractAddress("WETH"),
+              collateral: getContractAddress("USDC"),
               isPut: false,
             };
 
