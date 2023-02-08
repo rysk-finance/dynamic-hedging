@@ -24,6 +24,7 @@ import { toUSDC, toWei } from "../../utils/conversion-helper";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { captureException } from "@sentry/react";
+import useApproveExchange from "../../hooks/useApproveExchange";
 
 const formatOptionDate = (date: number | null) => {
   if (date) {
@@ -34,6 +35,8 @@ const formatOptionDate = (date: number | null) => {
 export const Purchase = () => {
   const { address } = useAccount();
   const { chain } = useNetwork();
+
+  const [approveExchange, exchangeIsApproved] = useApproveExchange();
 
   const network = chain?.network as ETHNetwork;
   const typedAddresses = addresses as Record<ETHNetwork, ContractAddresses>;
@@ -206,7 +209,7 @@ export const Purchase = () => {
           <div className="w-full flex justify-between relative">
             <div className="w-1/2 border-r-2 border-black">
               <div className="w-full p-4">
-                <div className="flex items-center">
+                <div className="flex items-center justify-between">
                   <h4 className="font-parabole mr-2 pb-2">Option:</h4>
                   {selectedOption && (
                     <p className="pb-1">{callOrPut.toUpperCase()}</p>
@@ -258,15 +261,14 @@ export const Purchase = () => {
                 />
               </div>
             </div>
-            <div className="w-1/2 flex flex-col justify-between">
-              <div className="w-full">
+            <div className="w-2/3 flex flex-row justify-between">
+              <div className="w-1/2">
                 <div className="w-full -mb-1">
                   <div className="w-full p-4 flex flex-col">
                     <h5 className={`mb-10 tracking-tight`}>
                       ETH-{formatOptionDate(expiryDate)}-{strikeOptions?.strike}
                       -{selectedOption.callOrPut === "put" ? "P" : "C"}
                     </h5>
-
                     {uiOrderSize && (
                       <>
                         <h4 className="font-parabole mr-2">Total price:</h4>
@@ -280,18 +282,27 @@ export const Purchase = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex">
+              <div className="w-2/3 flex flex-col justify-end">
+                {/** TODO - missing a condition && of only when user is minting oTokens */}
+                {!exchangeIsApproved && approveExchange && (
+                  <Button
+                    className={"w-full mb-2 !py-2 text-white !bg-black"}
+                    onClick={() => approveExchange()}
+                  >
+                    One Time Exchange Approval
+                  </Button>
+                )}
                 <Button
-                  className={`w-full border-l-0 !py-2 text-white ${
+                  className={`w-full mb-2 !py-2 text-white ${
                     approveIsDisabled ? "!bg-gray-300 " : "!bg-black"
                   }`}
                   onClick={handleApproveSpend}
                 >
-                  {`${isApproved ? "Approved ✅" : "Approve"}`}
+                  {`${isApproved ? "Approved ✅" : "Approve Collateral"}`}
                 </Button>
                 <Button
                   disabled={buyIsDisabled}
-                  className={`w-full border-l-0 !py-2 text-white ${
+                  className={`w-full !py-2 text-white ${
                     buyIsDisabled ? "!bg-gray-300" : "!bg-black"
                   }`}
                   onClick={handleBuy}
