@@ -93,7 +93,7 @@ export type VaultContext = {
 // Options trading context
 export type OptionsTradingState = {
   optionType: OptionType;
-  expiryDate: Date | null;
+  expiryDate: number | null;
   optionParams: OptionParams | null;
   customOptionStrikes: number[];
   selectedOption: SelectedOption | null;
@@ -119,23 +119,27 @@ export interface StrikeOptions {
   strike: number;
   call: {
     bid: {
-      IV: number;
+      IV: number | string;
       quote: number;
+      disabled: boolean;
     };
     ask: {
-      IV: number;
+      IV: number | string;
       quote: number;
+      disabled: boolean;
     };
     delta: number;
   };
   put: {
     bid: {
-      IV: number;
+      IV: number | string;
       quote: number;
+      disabled: boolean;
     };
     ask: {
-      IV: number;
+      IV: number | string;
       quote: number;
+      disabled: boolean;
     };
     delta: number;
   };
@@ -158,6 +162,15 @@ export enum OptionsTradingActionType {
   SET_OPTION_PARAMS,
 }
 
+export interface OptionSeries {
+  expiration: BigNumber;
+  strike: BigNumber;
+  strikeAsset: HexString;
+  underlying: HexString;
+  collateral: HexString;
+  isPut: boolean;
+}
+
 export type OptionsTradingAction =
   | {
       type: OptionsTradingActionType.SET_OPTION_TYPE;
@@ -165,7 +178,7 @@ export type OptionsTradingAction =
     }
   | {
       type: OptionsTradingActionType.SET_EXPIRY_DATE;
-      date: Date | null;
+      date: number | null;
     }
   | {
       type: OptionsTradingActionType.ADD_CUSTOM_STRIKE;
