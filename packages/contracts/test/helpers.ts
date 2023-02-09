@@ -806,7 +806,11 @@ export async function calculateOptionDeltaLocally(
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block
 	const time = genOptionTimeFromUnix(timestamp, optionSeries.expiration)
-	const vol = await liquidityPool.getImpliedVolatility(
+	const volFeed = (await ethers.getContractAt(
+		"VolatilityFeed",
+		await liquidityPool._getVolatilityFeed()
+	)) as VolatilityFeed
+	const vol = await volFeed.getImpliedVolatilityWithForward(
 		optionSeries.isPut,
 		priceQuote,
 		optionSeries.strike,
@@ -820,10 +824,10 @@ export async function calculateOptionDeltaLocally(
 
 	const opType = optionSeries.isPut ? "put" : "call"
 	let localDelta = greeks.getDelta(
-		fromWei(priceQuote),
+		fromWei(vol[1]),
 		fromWei(optionSeries.strike),
 		time,
-		isSell ? Number(fromWei(vol)) * (1 - Number(fromWei(bidAskSpread))) : fromWei(vol),
+		isSell ? Number(fromWei(vol[0])) * (1 - Number(fromWei(bidAskSpread))) : fromWei(vol[0]),
 		rfr,
 		opType
 	)
