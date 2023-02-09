@@ -16,6 +16,7 @@ import {
 	PriceFeed,
 	MockChainlinkAggregator
 } from "../types"
+import { fail } from "assert"
 // edit depending on the chain id to be tested on
 const chainId = 42161
 
@@ -1645,5 +1646,66 @@ describe("price moves between submitting and executing orders", async () => {
 		const logs = await gmxReactor.queryFilter(gmxReactor.filters.RebalancePortfolioDeltaFailed(), 0)
 		// no orders should have failed
 		expect(logs.length).to.eq(0)
+	})
+	it("attempts to open a short position but execution fails", async () => {
+		// set price to $2000
+		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("2000", 8))
+		expect(await gmxReactor.internalDelta()).to.eq(0)
+		const delta = 10
+		const usdcBalanceBeforeLP = parseFloat(
+			utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6)
+		)
+
+		const failedOrderEventsBefore = await gmxReactor.queryFilter(
+			gmxReactor.filters.RebalancePortfolioDeltaFailed(),
+			0
+		)
+		expect(failedOrderEventsBefore.length).to.eq(0)
+
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
+		const usdcBalance2 = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+
+		// set price to much lower value
+		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1800", 8))
+
+		await expect(executeIncreasePosition()).to.be.revertedWith(
+			"BasePositionManager: mark price lower than limit"
+		)
+
+		const usdcBalance3 = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
+
+		console.log({ usdcBalanceBeforeLP, usdcBalance2, usdcBalance3 })
+		const failedOrderEventsAfter = await gmxReactor.queryFilter(
+			gmxReactor.filters.RebalancePortfolioDeltaFailed(),
+			0
+		)
+		expect(failedOrderEventsAfter.length).to.eq(1)
+
+		const usdcBalanceAfterLP = parseFloat(
+			utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6)
+		)
+		const usdcBalanceDiff = usdcBalanceBeforeLP - usdcBalanceAfterLP
+		expect(usdcBalanceDiff).to.eq(10000)
+
+		const positionsAfter = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[usdcAddress],
+			[wethAddress],
+			[false]
+		)
+		expect(positionsAfter[0]).to.eq(utils.parseUnits("20000", 30))
+		expect(parseFloat(utils.formatUnits(positionsAfter[1], 30))).to.be.within(9950, 10000)
+		expect(positionsAfter[2]).to.eq(utils.parseUnits("2000", 30))
+		expect(positionsAfter[8]).to.eq(0)
+		// check internalDelta var is correct
+		const deltaAfter = await gmxReactor.internalDelta()
+		expect(deltaAfter).to.eq(utils.parseEther("-10"))
+
+		// check getPoolDemoninatedvalue is correct
+		const poolDenominatedValue = parseFloat(
+			utils.formatEther(await gmxReactor.callStatic.getPoolDenominatedValue())
+		)
+		expect(poolDenominatedValue).to.eq(parseFloat(utils.formatUnits(positionsAfter[1], 30)))
 	})
 })
