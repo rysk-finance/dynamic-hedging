@@ -2034,7 +2034,7 @@ describe("Liquidity Pools", async () => {
 		let quote = quoteResponse[0].sub(quoteResponse[2])
 		let expectedDeltaChange = quoteResponse[1]
 		let localQuoteWithSlippage = await localQuoteOptionPrice(
-			liquidityPool,
+			liquidityPool, volFeed,
 			optionRegistry,
 			usd,
 			priceFeed,
