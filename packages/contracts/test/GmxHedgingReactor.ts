@@ -136,7 +136,7 @@ describe("GMX Hedging Reactor", () => {
 		gmxVault = (await ethers.getContractAt("IGmxVault", gmxVaultAddress)) as any
 		gmxReader = (await ethers.getContractAt("IReader", gmxReaderAddress)) as IReader
 		gmxPositionRouter = (await ethers.getContractAt(
-			"contracts/gmx-contracts/core/PositionRouter.sol:PositionRouter",
+			"contracts/interfaces/IPositionRouter.sol:IPositionRouter",
 			gmxPositionRouterAddress
 		)) as IPositionRouter
 
