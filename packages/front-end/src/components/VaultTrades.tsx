@@ -265,7 +265,7 @@ export const VaultTrades = () => {
                       </th>
                       <td className="py-4 px-6 text-md bg-bone font-parabole">
                         <div className="flex lg:flex-row flex-col justify-between items-center">
-                          <span className="font-semibold">
+                          <span className="font-bold">
                             {trade.typename === "WriteOptionsAction" && "SHORT"}
                             {trade.typename === "BuybackOptionAction" &&
                               "BUYBACK"}
