@@ -203,6 +203,7 @@ describe("Slippage Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
