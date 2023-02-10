@@ -54,6 +54,7 @@ module.exports = {
         "border-round": "border-round 5s ease-in-out",
       },
       fontFamily: {
+        "dm-mono": ["DM Mono"],
         "dm-sans": ["DM Sans"],
         parabole: ["Parabole"],
       },
