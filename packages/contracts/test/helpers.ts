@@ -816,7 +816,7 @@ export async function calculateOptionDeltaLocally(
 		optionSeries.strike,
 		optionSeries.expiration
 	)
-	const rfr = "0.01"
+	const rfr = 0
 	let bidAskSpread: BigNumberish = 0
 	if (!ignoreBASpread) {
 		bidAskSpread = toWei("0.01")
@@ -855,7 +855,11 @@ export async function getBlackScholesQuote(
 		WETH_ADDRESS[chainId],
 		USDC_ADDRESS[chainId]
 	)
-	const iv = await liquidityPool.getImpliedVolatility(
+	const volFeed = (await ethers.getContractAt(
+		"VolatilityFeed",
+		await liquidityPool._getVolatilityFeed()
+	)) as VolatilityFeed
+	const iv = await volFeed.getImpliedVolatilityWithForward(
 		optionSeries.isPut,
 		underlyingPrice,
 		optionSeries.strike,
@@ -865,17 +869,17 @@ export async function getBlackScholesQuote(
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block
 	const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), optionSeries.expiration)
-	const rfr = "0.01"
-	const priceNorm = fromWei(underlyingPrice)
+	const rfr = 0
+	const priceNorm = fromWei(iv[1])
 	const localBS =
-		bs.blackScholes(
+		(bs.blackScholes(
 			priceNorm,
 			fromWei(optionSeries.strike),
 			timeToExpiration,
-			Number(fromWei(iv)),
-			parseFloat(rfr),
+			Number(fromWei(iv[0])),
+			rfr,
 			optionSeries.isPut ? "put" : "call"
-		) * parseFloat(fromWei(amount))
+		) * parseFloat(fromWei(underlyingPrice)) / parseFloat(fromWei(iv[1]))) * parseFloat(fromWei(amount))
 
 	return localBS
 }
