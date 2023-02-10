@@ -258,7 +258,7 @@ export const OptionsTable = () => {
           <th>Delta</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody className="font-dm-mono">
         {Boolean(chainRows.length) &&
           chainRows.map((option) => (
             <tr className="text-right h-12 odd:bg-gray-300" key={option.strike}>
