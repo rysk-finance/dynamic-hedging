@@ -302,6 +302,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		} else {
 			value = (position[1] - position[8]) / 1e12;
 		}
+		value += OptionsCompute.convertFromDecimals(ERC20(collateralAsset).balanceOf(address(this)), ERC20(collateralAsset).decimals());
 	}
 
 	/** @notice function to check the health of the margin account
@@ -798,6 +799,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				emit PositionExecuted(decreaseOrderDeltaChange[positionKey]);
 			}
 		} else {
+			// in the case of a failure there might be some collateral left over, we need to 
+			// send anything left over back to the liquidity pool
+			uint256 balance = ERC20(collateralAsset).balanceOf(address(this));
+			if (balance > 0) {
+				SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, balance);
+			}
 			// if there was a failure record the failure by emitting an event
 			if (isIncrease) {
 				emit RebalancePortfolioDeltaFailed(increaseOrderDeltaChange[positionKey]);

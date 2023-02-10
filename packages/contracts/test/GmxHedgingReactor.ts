@@ -1689,8 +1689,6 @@ describe("price moves between submitting and executing orders", async () => {
 		await gmxPositionRouter.connect(await ethers.getSigner(admin)).setPositionKeeper(await deployer.getAddress(), true)
 		await gmxPositionRouter.connect(deployer).executeIncreasePositions(50000, admin)
 		const usdcBalance3 = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
-
-		console.log({ usdcBalanceBeforeLP, usdcBalance2, usdcBalance3 })
 		const failedOrderEventsAfter = await gmxReactor.queryFilter(
 			gmxReactor.filters.RebalancePortfolioDeltaFailed(),
 			0
@@ -1709,9 +1707,6 @@ describe("price moves between submitting and executing orders", async () => {
 		)
 		const usdcBalanceDiff = usdcBalanceAfterLP - usdcBalanceBeforeLP
 		expect(positionsAfter[0]).to.eq(positionsAfter[1]).to.eq(positionsAfter[8]).to.eq(0)
-		// expect balance to be 12050 minus trading fees
-		expect(usdcBalanceDiff).to.be.lt(12050)
-		expect(usdcBalanceDiff).to.be.gt(11900)
 
 		// check internalDelta var is correct
 		const deltaAfter = await gmxReactor.internalDelta()
@@ -1722,5 +1717,9 @@ describe("price moves between submitting and executing orders", async () => {
 			utils.formatEther(await gmxReactor.callStatic.getPoolDenominatedValue())
 		)
 		expect(poolDenominatedValue).to.eq(0)
+		expect(usdcBalanceDiff).to.eq(0)
+		expect(await usdc.balanceOf(gmxReactor.address)).to.eq(0)
+		expect(await gmxReactor.internalDelta()).to.eq(0)
+
 	})
 })
