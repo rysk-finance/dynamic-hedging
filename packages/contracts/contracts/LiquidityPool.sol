@@ -984,7 +984,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice get the volatility feed used by the liquidity pool
 	 * @return the volatility feed contract interface
 	 */
-	function _getVolatilityFeed() internal view returns (VolatilityFeed) {
+	function _getVolatilityFeed() public view returns (VolatilityFeed) {
 		return VolatilityFeed(protocol.volatilityFeed());
 	}
 

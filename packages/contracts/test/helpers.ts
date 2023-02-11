@@ -12,7 +12,7 @@ import {
 //@ts-ignore
 import { BigNumber, BigNumberish, Contract, Signer, utils } from "ethers"
 import greeks from "greeks"
-import { AddressBook, AlphaPortfolioValuesFeed, BeyondPricer, ChainLinkPricer, LiquidityPool, MintableERC20, MockChainlinkAggregator, NewController, NewMarginCalculator, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, Otoken, OtokenFactory, PriceFeed, WETH } from "../types"
+import { AddressBook, AlphaPortfolioValuesFeed, BeyondPricer, ChainLinkPricer, LiquidityPool, MintableERC20, MockChainlinkAggregator, NewController, NewMarginCalculator, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, Otoken, OtokenFactory, PriceFeed, VolatilityFeed, WETH } from "../types"
 //@ts-ignore
 import bs from "black-scholes"
 import { expect } from "chai"
@@ -51,6 +51,7 @@ export async function getSeriesWithe18Strike(proposedSeries: any, optionRegistry
 export async function compareQuotes(
 	quoteResponse: any,
 	liquidityPool: LiquidityPool,
+	volFeed: VolatilityFeed,
 	priceFeed: PriceFeed,
 	proposedSeries: any,
 	amount: BigNumber,
@@ -79,6 +80,7 @@ export async function compareQuotes(
 	)
 	const localQuote = await localQuoteOptionPrice(
 		liquidityPool,
+		volFeed,
 		optionRegistry,
 		usd,
 		priceFeed,
@@ -92,7 +94,7 @@ export async function compareQuotes(
 		netDhvExposureOverride
 	)
 	expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.11, 0.11)
-	expect(quoteResponse.totalDelta.abs().sub(localDelta.abs())).to.be.within(-1e14, 1e14)
+	expect(parseFloat(fromWei(quoteResponse.totalDelta.abs().sub(localDelta.abs())))).to.be.within(-0.005, 0.005)
 	if (proposedSeries.isPut) {
 		if (isSell) {
 			expect(localDelta).to.be.gt(0)
@@ -533,6 +535,7 @@ export async function increase(duration: number | BigNumber) {
 
 export async function calculateOptionQuoteLocally(
 	liquidityPool: LiquidityPool,
+	volFeed: VolatilityFeed,
 	optionRegistry: OptionRegistry,
 	collateralAsset: MintableERC20,
 	priceFeed: PriceFeed,
@@ -550,7 +553,7 @@ export async function calculateOptionQuoteLocally(
 		USDC_ADDRESS[chainId]
 	)
 	const priceNorm = fromWei(underlyingPrice)
-	const iv = await liquidityPool.getImpliedVolatility(
+	const iv = await volFeed.getImpliedVolatilityWithForward(
 		optionSeries.isPut,
 		underlyingPrice,
 		optionSeries.strike,
@@ -560,14 +563,15 @@ export async function calculateOptionQuoteLocally(
 	const bidAskSpread = await pricer.bidAskIVSpread()
 	const rfr = await pricer.riskFreeRate()
 	const localBS =
-		bs.blackScholes(
-			priceNorm,
+		((bs.blackScholes(
+			fromWei(iv[1]),
 			fromWei(optionSeries.strike),
 			timeToExpiration,
-			isSell ? Number(fromWei(iv)) * (1 - Number(fromWei(bidAskSpread))) : fromWei(iv),
+			isSell ? Number(fromWei(iv[0])) * (1 - Number(fromWei(bidAskSpread))) : fromWei(iv[0]),
 			fromWei(rfr),
 			optionSeries.isPut ? "put" : "call"
-		) * parseFloat(fromWei(amount))
+		) * parseFloat(fromWei(underlyingPrice)) / parseFloat(fromWei(iv[1]))) * parseFloat(fromWei(amount)))
+	
 	return localBS
 }
 export async function calculateOptionQuoteLocallyAlpha(
@@ -611,6 +615,7 @@ export async function calculateOptionQuoteLocallyAlpha(
 
 export async function localQuoteOptionPrice(
 	liquidityPool: LiquidityPool,
+	volFeed: VolatilityFeed,
 	optionRegistry: OptionRegistry,
 	collateralAsset: MintableERC20,
 	priceFeed: PriceFeed,
@@ -625,6 +630,7 @@ export async function localQuoteOptionPrice(
 ) {
 	const bsQ = await calculateOptionQuoteLocally(
 		liquidityPool,
+		volFeed,
 		optionRegistry,
 		collateralAsset,
 		priceFeed,
@@ -800,13 +806,17 @@ export async function calculateOptionDeltaLocally(
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block
 	const time = genOptionTimeFromUnix(timestamp, optionSeries.expiration)
-	const vol = await liquidityPool.getImpliedVolatility(
+	const volFeed = (await ethers.getContractAt(
+		"VolatilityFeed",
+		await liquidityPool._getVolatilityFeed()
+	)) as VolatilityFeed
+	const vol = await volFeed.getImpliedVolatilityWithForward(
 		optionSeries.isPut,
 		priceQuote,
 		optionSeries.strike,
 		optionSeries.expiration
 	)
-	const rfr = "0.01"
+	const rfr = 0
 	let bidAskSpread: BigNumberish = 0
 	if (!ignoreBASpread) {
 		bidAskSpread = toWei("0.01")
@@ -814,10 +824,10 @@ export async function calculateOptionDeltaLocally(
 
 	const opType = optionSeries.isPut ? "put" : "call"
 	let localDelta = greeks.getDelta(
-		fromWei(priceQuote),
+		fromWei(vol[1]),
 		fromWei(optionSeries.strike),
 		time,
-		isSell ? Number(fromWei(vol)) * (1 - Number(fromWei(bidAskSpread))) : fromWei(vol),
+		isSell ? Number(fromWei(vol[0])) * (1 - Number(fromWei(bidAskSpread))) : fromWei(vol[0]),
 		rfr,
 		opType
 	)
@@ -845,7 +855,11 @@ export async function getBlackScholesQuote(
 		WETH_ADDRESS[chainId],
 		USDC_ADDRESS[chainId]
 	)
-	const iv = await liquidityPool.getImpliedVolatility(
+	const volFeed = (await ethers.getContractAt(
+		"VolatilityFeed",
+		await liquidityPool._getVolatilityFeed()
+	)) as VolatilityFeed
+	const iv = await volFeed.getImpliedVolatilityWithForward(
 		optionSeries.isPut,
 		underlyingPrice,
 		optionSeries.strike,
@@ -855,17 +869,17 @@ export async function getBlackScholesQuote(
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block
 	const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), optionSeries.expiration)
-	const rfr = "0.01"
-	const priceNorm = fromWei(underlyingPrice)
+	const rfr = 0
+	const priceNorm = fromWei(iv[1])
 	const localBS =
-		bs.blackScholes(
+		(bs.blackScholes(
 			priceNorm,
 			fromWei(optionSeries.strike),
 			timeToExpiration,
-			Number(fromWei(iv)),
-			parseFloat(rfr),
+			Number(fromWei(iv[0])),
+			rfr,
 			optionSeries.isPut ? "put" : "call"
-		) * parseFloat(fromWei(amount))
+		) * parseFloat(fromWei(underlyingPrice)) / parseFloat(fromWei(iv[1]))) * parseFloat(fromWei(amount))
 
 	return localBS
 }

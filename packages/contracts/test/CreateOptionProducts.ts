@@ -341,7 +341,7 @@ describe("Structured Product maker", async () => {
 				collateral: usd.address
 			}
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			const before = await getExchangeParams(
 				liquidityPool,
@@ -387,7 +387,7 @@ describe("Structured Product maker", async () => {
 			oTokenUSDCXC = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
 			optionToken = oTokenUSDCXC
 			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			quote = quoteResponse[0].add(quoteResponse[2])
 			const after = await getExchangeParams(
 				liquidityPool,
@@ -458,10 +458,10 @@ describe("Structured Product maker", async () => {
 				)
 			).add(toUSDC("100"))
 			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, false, 0)
-			await compareQuotes(lowerQuoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(lowerQuoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let lowerQuote = lowerQuoteResponse[0].add(lowerQuoteResponse[2])
 			let upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, 0)
-			await compareQuotes(upperQuoteResponse, liquidityPool, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(upperQuoteResponse, liquidityPool, volFeed, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 
 			await usd.approve(
@@ -574,10 +574,10 @@ describe("Structured Product maker", async () => {
 			])
 
 			lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, false, 0)
-			await compareQuotes(lowerQuoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(lowerQuoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			lowerQuote = lowerQuoteResponse[0].add(lowerQuoteResponse[2])
 			upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, 0)
-			await compareQuotes(upperQuoteResponse, liquidityPool, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(upperQuoteResponse, liquidityPool, volFeed, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 			const upperAfter = await getExchangeParams(
 				liquidityPool,
@@ -680,10 +680,10 @@ describe("Structured Product maker", async () => {
 			).add(toUSDC("100"))
 
 			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, 0)
-			await compareQuotes(lowerQuoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(lowerQuoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
 			let upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, false, 0)
-			await compareQuotes(upperQuoteResponse, liquidityPool, priceFeed, upperProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(upperQuoteResponse, liquidityPool, volFeed, priceFeed, upperProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let upperQuote = upperQuoteResponse[0].add(upperQuoteResponse[2])
 
 			await usd.approve(MARGIN_POOL[chainId], marginRequirement)
@@ -793,10 +793,10 @@ describe("Structured Product maker", async () => {
 			])
 
 			lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, 0)
-			await compareQuotes(lowerQuoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(lowerQuoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
 			upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, false, 0)
-			await compareQuotes(upperQuoteResponse, liquidityPool, priceFeed, upperProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(upperQuoteResponse, liquidityPool, volFeed, priceFeed, upperProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			upperQuote = upperQuoteResponse[0].add(upperQuoteResponse[2])
 			const upperAfter = await getExchangeParams(
 				liquidityPool,
@@ -947,13 +947,13 @@ describe("Structured Product maker", async () => {
 				amount
 			)
 			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, false, lowerBefore.netDhvExposure)
-			await compareQuotes(lowerQuoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, lowerBefore.netDhvExposure)
+			await compareQuotes(lowerQuoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, lowerBefore.netDhvExposure)
 			let lowerQuote = lowerQuoteResponse[0].add(lowerQuoteResponse[2])
 			let midQuoteResponse = await pricer.quoteOptionPrice(midProposedSeries, amount.mul(2), true, midBefore.netDhvExposure)
-			await compareQuotes(midQuoteResponse, liquidityPool, priceFeed, midProposedSeries, amount.mul(2), true, exchange, optionRegistry, usd, pricer, midBefore.netDhvExposure)
+			await compareQuotes(midQuoteResponse, liquidityPool, volFeed, priceFeed, midProposedSeries, amount.mul(2), true, exchange, optionRegistry, usd, pricer, midBefore.netDhvExposure)
 			let midQuote = midQuoteResponse[0].sub(midQuoteResponse[2])
 			let upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, false, upperBefore.netDhvExposure)
-			await compareQuotes(upperQuoteResponse, liquidityPool, priceFeed, upperProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, upperBefore.netDhvExposure)
+			await compareQuotes(upperQuoteResponse, liquidityPool, volFeed, priceFeed, upperProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, upperBefore.netDhvExposure)
 			let upperQuote = upperQuoteResponse[0].add(upperQuoteResponse[2])
 			await exchange.operate([
 				{
@@ -1057,13 +1057,13 @@ describe("Structured Product maker", async () => {
 			])
 
 			lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, false, lowerBefore.netDhvExposure)
-			await compareQuotes(lowerQuoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, lowerBefore.netDhvExposure)
+			await compareQuotes(lowerQuoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, lowerBefore.netDhvExposure)
 			lowerQuote = lowerQuoteResponse[0].add(lowerQuoteResponse[2])
 			midQuoteResponse = await pricer.quoteOptionPrice(midProposedSeries, amount.mul(2), true, midBefore.netDhvExposure)
-			await compareQuotes(midQuoteResponse, liquidityPool, priceFeed, midProposedSeries, amount.mul(2), true, exchange, optionRegistry, usd, pricer, midBefore.netDhvExposure)
+			await compareQuotes(midQuoteResponse, liquidityPool, volFeed, priceFeed, midProposedSeries, amount.mul(2), true, exchange, optionRegistry, usd, pricer, midBefore.netDhvExposure)
 			midQuote = midQuoteResponse[0].sub(midQuoteResponse[2])
 			upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, false, upperBefore.netDhvExposure)
-			await compareQuotes(upperQuoteResponse, liquidityPool, priceFeed, upperProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, upperBefore.netDhvExposure)
+			await compareQuotes(upperQuoteResponse, liquidityPool, volFeed, priceFeed, upperProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, upperBefore.netDhvExposure)
 			upperQuote = upperQuoteResponse[0].add(upperQuoteResponse[2])
 			const upperAfter = await getExchangeParams(
 				liquidityPool,
@@ -1232,10 +1232,10 @@ describe("Structured Product maker", async () => {
 				amount
 			)
 			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, lowerBefore.netDhvExposure)
-			await compareQuotes(lowerQuoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, lowerBefore.netDhvExposure)
+			await compareQuotes(lowerQuoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, lowerBefore.netDhvExposure)
 			let lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
 			let upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, upperBefore.netDhvExposure)
-			await compareQuotes(upperQuoteResponse, liquidityPool, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, upperBefore.netDhvExposure)
+			await compareQuotes(upperQuoteResponse, liquidityPool, volFeed, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, upperBefore.netDhvExposure)
 			let upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 
 			await exchange.operate([
@@ -1345,10 +1345,10 @@ describe("Structured Product maker", async () => {
 			])
 
 			lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, 0)
-			await compareQuotes(lowerQuoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(lowerQuoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
 			upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, 0)
-			await compareQuotes(upperQuoteResponse, liquidityPool, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(upperQuoteResponse, liquidityPool, volFeed, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 			const upperAfter = await getExchangeParams(
 				liquidityPool,
@@ -1466,10 +1466,10 @@ describe("Structured Product maker", async () => {
 				)
 			).add(toUSDC("100"))
 			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, 0)
-			await compareQuotes(lowerQuoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(lowerQuoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
 			let upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, 0)
-			await compareQuotes(upperQuoteResponse, liquidityPool, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(upperQuoteResponse, liquidityPool, volFeed, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 
 			await usd.approve(exchange.address, lowerMarginRequirement.add(upperMarginRequirement))
@@ -1629,7 +1629,7 @@ describe("Structured Product maker", async () => {
 				amount
 			)
 			let quoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, false, before.netDhvExposure)
-			await compareQuotes(quoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			await usd.approve(exchange.address, quote)
 			await exchange.operate([
@@ -1672,7 +1672,7 @@ describe("Structured Product maker", async () => {
 				amount
 			)
 			quoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, false, before.netDhvExposure)
-			await compareQuotes(quoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			quote = quoteResponse[0].add(quoteResponse[2])
 			expect(after.senderOtokenBalance.sub(before.senderOtokenBalance)).to.eq(after.opynAmount)
 			expect(after.exchangeOTokenBalance).to.eq(0)
@@ -1776,10 +1776,10 @@ describe("Structured Product maker", async () => {
 				amount
 			)
 			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, lowerBefore.netDhvExposure)
-			await compareQuotes(lowerQuoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, lowerBefore.netDhvExposure)
+			await compareQuotes(lowerQuoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, lowerBefore.netDhvExposure)
 			let lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
 			let upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, upperBefore.netDhvExposure)
-			await compareQuotes(upperQuoteResponse, liquidityPool, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, upperBefore.netDhvExposure)
+			await compareQuotes(upperQuoteResponse, liquidityPool, volFeed, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, upperBefore.netDhvExposure)
 			let upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 			await exchange.operate([
 				{
@@ -1907,10 +1907,10 @@ describe("Structured Product maker", async () => {
 				amount
 			)
 			lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, lowerBefore.netDhvExposure)
-			await compareQuotes(lowerQuoteResponse, liquidityPool, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, lowerBefore.netDhvExposure)
+			await compareQuotes(lowerQuoteResponse, liquidityPool, volFeed, priceFeed, lowerProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, lowerBefore.netDhvExposure)
 			lowerQuote = lowerQuoteResponse[0].sub(lowerQuoteResponse[2])
 			upperQuoteResponse = await pricer.quoteOptionPrice(upperProposedSeries, amount, true, upperBefore.netDhvExposure)
-			await compareQuotes(upperQuoteResponse, liquidityPool, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, upperBefore.netDhvExposure)
+			await compareQuotes(upperQuoteResponse, liquidityPool, volFeed, priceFeed, upperProposedSeries, amount, true, exchange, optionRegistry, usd, pricer, upperBefore.netDhvExposure)
 			upperQuote = upperQuoteResponse[0].sub(upperQuoteResponse[2])
 			expect(upperAfter.exchangeOTokenBalance).to.eq(toOpyn(fromWei(amount)))
 			expect(lowerAfter.exchangeOTokenBalance).to.eq(toOpyn(fromWei(amount)))
@@ -1968,7 +1968,7 @@ describe("Structured Product maker", async () => {
 				collateral: usd.address
 			}
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
-			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].sub(quoteResponse[2])
 			const otokenFactory = (await ethers.getContractAt(
 				"OtokenFactory",
@@ -2085,7 +2085,7 @@ describe("Structured Product maker", async () => {
 				amount
 			)
 			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
-			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, toWei("0"))
 			quote = quoteResponse[0].sub(quoteResponse[2])
 			expect(after.senderOtokenBalance).to.eq(0)
 			expect(
@@ -2132,7 +2132,7 @@ describe("Structured Product maker", async () => {
 				amount
 			)
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].add(quoteResponse[2])
 			await usd.approve(exchange.address, quote)
 			await exchange.operate([
@@ -2180,7 +2180,7 @@ describe("Structured Product maker", async () => {
 				amount
 			)
 			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
+			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			quote = quoteResponse[0].add(quoteResponse[2])
 			expect(after.senderOtokenBalance).to.eq(after.opynAmount)
 			expect(after.exchangeOTokenBalance).to.eq(0)
@@ -2247,7 +2247,7 @@ describe("Structured Product maker", async () => {
 				amount
 			)
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, before.netDhvExposure)
-			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			let quote = quoteResponse[0].sub(quoteResponse[2])
 			await usd.approve(MARGIN_POOL[chainId], marginRequirement)
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
@@ -2319,7 +2319,7 @@ describe("Structured Product maker", async () => {
 				amount
 			)
 			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, before.netDhvExposure)
-			await compareQuotes(quoteResponse, liquidityPool, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
+			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			quote = quoteResponse[0].sub(quoteResponse[2])
 			expect(after.exchangeOTokenBalance).to.eq(0)
 			expect(

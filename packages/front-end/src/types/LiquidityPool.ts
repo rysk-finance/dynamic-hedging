@@ -78,6 +78,7 @@ export interface LiquidityPoolInterface extends utils.Interface {
   contractName: "LiquidityPool";
   functions: {
     "DOMAIN_SEPARATOR()": FunctionFragment;
+    "_getVolatilityFeed()": FunctionFragment;
     "adjustCollateral(uint256,bool)": FunctionFragment;
     "allowance(address,address)": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
@@ -157,6 +158,10 @@ export interface LiquidityPoolInterface extends utils.Interface {
 
   encodeFunctionData(
     functionFragment: "DOMAIN_SEPARATOR",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "_getVolatilityFeed",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -451,6 +456,10 @@ export interface LiquidityPoolInterface extends utils.Interface {
 
   decodeFunctionResult(
     functionFragment: "DOMAIN_SEPARATOR",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "_getVolatilityFeed",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -883,6 +892,8 @@ export interface LiquidityPool extends BaseContract {
   functions: {
     DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<[string]>;
 
+    _getVolatilityFeed(overrides?: CallOverrides): Promise<[string]>;
+
     adjustCollateral(
       lpCollateralDifference: BigNumberish,
       addToLpBalance: boolean,
@@ -1210,6 +1221,8 @@ export interface LiquidityPool extends BaseContract {
 
   DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<string>;
 
+  _getVolatilityFeed(overrides?: CallOverrides): Promise<string>;
+
   adjustCollateral(
     lpCollateralDifference: BigNumberish,
     addToLpBalance: boolean,
@@ -1530,6 +1543,8 @@ export interface LiquidityPool extends BaseContract {
 
   callStatic: {
     DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<string>;
+
+    _getVolatilityFeed(overrides?: CallOverrides): Promise<string>;
 
     adjustCollateral(
       lpCollateralDifference: BigNumberish,
@@ -1975,6 +1990,8 @@ export interface LiquidityPool extends BaseContract {
   estimateGas: {
     DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<BigNumber>;
 
+    _getVolatilityFeed(overrides?: CallOverrides): Promise<BigNumber>;
+
     adjustCollateral(
       lpCollateralDifference: BigNumberish,
       addToLpBalance: boolean,
@@ -2279,6 +2296,10 @@ export interface LiquidityPool extends BaseContract {
 
   populateTransaction: {
     DOMAIN_SEPARATOR(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    _getVolatilityFeed(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     adjustCollateral(
       lpCollateralDifference: BigNumberish,

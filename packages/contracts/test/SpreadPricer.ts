@@ -211,7 +211,7 @@ describe("Spread Pricer testing", async () => {
 			const amount = toWei("1")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -223,7 +223,7 @@ describe("Spread Pricer testing", async () => {
 			singleBuyQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -240,7 +240,7 @@ describe("Spread Pricer testing", async () => {
 			const amount = toWei("1")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -252,7 +252,7 @@ describe("Spread Pricer testing", async () => {
 			singleSellQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -269,7 +269,7 @@ describe("Spread Pricer testing", async () => {
 			const amount = toWei("1000")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -280,7 +280,7 @@ describe("Spread Pricer testing", async () => {
 			)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -298,7 +298,7 @@ describe("Spread Pricer testing", async () => {
 			const amount = toWei("1000")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -309,7 +309,7 @@ describe("Spread Pricer testing", async () => {
 			)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -340,7 +340,7 @@ describe("Spread Pricer testing", async () => {
 			const amount = toWei("1")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -352,7 +352,7 @@ describe("Spread Pricer testing", async () => {
 			singleBuyQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -369,7 +369,7 @@ describe("Spread Pricer testing", async () => {
 			const amount = toWei("1")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -381,7 +381,7 @@ describe("Spread Pricer testing", async () => {
 			singleSellQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -398,7 +398,7 @@ describe("Spread Pricer testing", async () => {
 			const amount = toWei("1000")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -409,7 +409,7 @@ describe("Spread Pricer testing", async () => {
 			)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -427,7 +427,7 @@ describe("Spread Pricer testing", async () => {
 			const amount = toWei("1000")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -438,7 +438,7 @@ describe("Spread Pricer testing", async () => {
 			)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -467,7 +467,7 @@ describe("Spread Pricer testing", async () => {
 				collateral: usd.address
 			}
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -490,7 +490,7 @@ describe("Spread Pricer testing", async () => {
 				)
 				await compareQuotes(
 					quoteResponse,
-					liquidityPool,
+					liquidityPool, volFeed,
 					priceFeed,
 					proposedSeries,
 					amount,
@@ -509,7 +509,7 @@ describe("Spread Pricer testing", async () => {
 		it("SUCCEEDS: get quote for 100 options when selling 100 times", async () => {
 			sellQuoteLots = toWei("0")
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -531,7 +531,7 @@ describe("Spread Pricer testing", async () => {
 				)
 				await compareQuotes(
 					quoteResponse,
-					liquidityPool,
+					liquidityPool, volFeed,
 					priceFeed,
 					proposedSeries,
 					amount,
@@ -551,7 +551,7 @@ describe("Spread Pricer testing", async () => {
 		it("SUCCEEDS: get quote for 100 options when buying 1 time", async () => {
 			const amount = toWei("100")
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -563,7 +563,7 @@ describe("Spread Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -580,7 +580,7 @@ describe("Spread Pricer testing", async () => {
 		it("SUCCEEDS: get quote for 100 options when selling 1 time", async () => {
 			const amount = toWei("100")
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -592,7 +592,7 @@ describe("Spread Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -616,7 +616,7 @@ describe("Spread Pricer testing", async () => {
 				collateral: usd.address
 			}
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -641,7 +641,7 @@ describe("Spread Pricer testing", async () => {
 
 				await compareQuotes(
 					quoteResponse,
-					liquidityPool,
+					liquidityPool, volFeed,
 					priceFeed,
 					proposedSeries,
 					amount,
@@ -669,7 +669,7 @@ describe("Spread Pricer testing", async () => {
 			}
 			buyQuoteLots = toWei("0")
 			const localQuoteNoSpread = await calculateOptionQuoteLocally(
-				liquidityPool,
+				liquidityPool, volFeed,
 				optionRegistry,
 				usd,
 				priceFeed,
@@ -699,7 +699,7 @@ describe("Spread Pricer testing", async () => {
 
 				await compareQuotes(
 					quoteResponse,
-					liquidityPool,
+					liquidityPool, volFeed,
 					priceFeed,
 					proposedSeries,
 					amount,
