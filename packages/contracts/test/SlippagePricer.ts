@@ -203,6 +203,7 @@ describe("Slippage Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -221,6 +222,7 @@ describe("Slippage Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -237,7 +239,7 @@ describe("Slippage Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -256,7 +258,7 @@ describe("Slippage Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -288,7 +290,7 @@ describe("Slippage Pricer testing", async () => {
 			singleBuyQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -306,7 +308,7 @@ describe("Slippage Pricer testing", async () => {
 			singleSellQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -323,7 +325,7 @@ describe("Slippage Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -341,7 +343,7 @@ describe("Slippage Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -379,7 +381,7 @@ describe("Slippage Pricer testing", async () => {
 				)
 				await compareQuotes(
 					quoteResponse,
-					liquidityPool,
+					liquidityPool, volFeed,
 					priceFeed,
 					proposedSeries,
 					amount,
@@ -405,7 +407,7 @@ describe("Slippage Pricer testing", async () => {
 				)
 				await compareQuotes(
 					quoteResponse,
-					liquidityPool,
+					liquidityPool, volFeed,
 					priceFeed,
 					proposedSeries,
 					amount,
@@ -424,7 +426,7 @@ describe("Slippage Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -442,7 +444,7 @@ describe("Slippage Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -476,7 +478,7 @@ describe("Slippage Pricer testing", async () => {
 			const singleBuyQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool,
+				liquidityPool, volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,

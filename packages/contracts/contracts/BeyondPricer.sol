@@ -236,7 +236,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		)
 	{
 		uint256 underlyingPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
-		uint256 iv = _getVolatilityFeed().getImpliedVolatility(
+		(uint256 iv, uint256 forward) = _getVolatilityFeed().getImpliedVolatilityWithForward(
 			_optionSeries.isPut,
 			underlyingPrice,
 			_optionSeries.strike,
@@ -248,8 +248,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			bidAskIVSpread,
 			riskFreeRate,
 			iv,
-			underlyingPrice
+			forward
 		);
+		vanillaPremium = vanillaPremium.mul(underlyingPrice).div(forward);
 		uint256 premium = vanillaPremium.mul(
 			_getSlippageMultiplier(_amount, delta, netDhvExposure, isSell)
 		);
