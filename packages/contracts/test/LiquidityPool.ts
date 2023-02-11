@@ -503,6 +503,7 @@ describe("Liquidity Pools", async () => {
 		await compareQuotes(
 			quoteResponse,
 			liquidityPool,
+			volFeed,
 			priceFeed,
 			optionSeries,
 			amount,
@@ -531,6 +532,7 @@ describe("Liquidity Pools", async () => {
 
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			volFeed,
 			optionRegistry,
 			usd,
 			priceFeed,
@@ -1183,6 +1185,7 @@ describe("Liquidity Pools", async () => {
 
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			volFeed,
 			optionRegistry,
 			usd,
 			priceFeed,
@@ -1531,6 +1534,7 @@ describe("Liquidity Pools", async () => {
 
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			volFeed,
 			optionRegistry,
 			usd,
 			priceFeed,
@@ -1726,6 +1730,7 @@ describe("Liquidity Pools", async () => {
 		)
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			volFeed,
 			optionRegistry,
 			usd,
 			priceFeed,
@@ -1864,6 +1869,7 @@ describe("Liquidity Pools", async () => {
 
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			volFeed,
 			optionRegistry,
 			usd,
 			priceFeed,
@@ -2010,6 +2016,7 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			volFeed,
 			optionRegistry,
 			usd,
 			priceFeed,
@@ -2034,7 +2041,7 @@ describe("Liquidity Pools", async () => {
 		let quote = quoteResponse[0].sub(quoteResponse[2])
 		let expectedDeltaChange = quoteResponse[1]
 		let localQuoteWithSlippage = await localQuoteOptionPrice(
-			liquidityPool,
+			liquidityPool, volFeed,
 			optionRegistry,
 			usd,
 			priceFeed,
@@ -2247,6 +2254,7 @@ describe("Liquidity Pools", async () => {
 		}
 		const localQuote = await calculateOptionQuoteLocally(
 			liquidityPool,
+			volFeed,
 			optionRegistry,
 			usd,
 			priceFeed,

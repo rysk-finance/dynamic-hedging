@@ -212,7 +212,7 @@ describe("APVF gas tests", async () => {
 					expect(await portfolioValuesFeed.addressAtIndexInSet(n)).to.equal(order.seriesAddress)
 					expect(await portfolioValuesFeed.isAddressInSet(order.seriesAddress)).to.be.true
 					predictedDelta = predictedDelta.add(
-						await calculateOptionDeltaLocally(liquidityPool, priceFeed, convertedSeries, amount, true)
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, convertedSeries, amount, true, true)
 					)
 					predictedQuote = predictedQuote.add(
 						toWei(
@@ -271,7 +271,6 @@ describe("APVF gas tests", async () => {
 			await migratePortfolioValuesFeed.setHandler(portfolioValuesFeed.address, true)
 			await migratePortfolioValuesFeed.setLiquidityPool(liquidityPool.address)
 			await migratePortfolioValuesFeed.setProtocol(optionProtocol.address)
-			await migratePortfolioValuesFeed.setRFR(toWei("0.01"))
 		})
 		it("SUCCEEDS: Tries to migrate to a new portfolio values feed", async () => {
 			const originalLength = await portfolioValuesFeed.addressSetLength()
