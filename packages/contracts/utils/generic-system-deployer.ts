@@ -295,7 +295,6 @@ export async function deployLiquidityPool(
 		0
 	)) as BeyondPricer
 	await pricer.setSlippageGradient(toWei("0.0001"))
-	await pricer.setRiskFreeRate(toWei("0.01"))
 	await pricer.setBidAskIVSpread(toWei("0.01"))
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
@@ -334,7 +333,7 @@ export async function deployLiquidityPool(
 	await pvFeed.setKeeper(await signers[0].getAddress(), true)
 	await pvFeed.setHandler(handler.address, true)
 	await pvFeed.setHandler(exchange.address, true)
-	await pvFeed.setRFR(toWei("0.01"))
+
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,

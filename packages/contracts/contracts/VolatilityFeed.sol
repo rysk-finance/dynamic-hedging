@@ -144,14 +144,50 @@ contract VolatilityFeed is AccessControl {
 	 * @param underlyingPrice The underlying price
 	 * @param strikePrice The strike price of the option
 	 * @param expiration expiration timestamp of option as a PRBMath Float
-	 * @return Implied volatility adjusted for volatility surface
+	 * @return vol Implied volatility adjusted for volatility surface
 	 */
 	function getImpliedVolatility(
 		bool isPut,
 		uint256 underlyingPrice,
 		uint256 strikePrice,
 		uint256 expiration
-	) external view returns (uint256) {
+	) external view returns (uint256 vol) {
+		(vol,) = _getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+	}
+
+	/**
+	 * @notice get the current implied volatility from the feed
+	 * @param isPut Is the option a call or put?
+	 * @param underlyingPrice The underlying price
+	 * @param strikePrice The strike price of the option
+	 * @param expiration expiration timestamp of option as a PRBMath Float
+	 * @return vol Implied volatility adjusted for volatility surface
+	 * @return forward price of spot accounting for the interest rate
+	 */
+	function getImpliedVolatilityWithForward(
+		bool isPut,
+		uint256 underlyingPrice,
+		uint256 strikePrice,
+		uint256 expiration
+	) external view returns (uint256 vol, uint256 forward) {
+		(vol, forward) = _getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+	}
+
+	/**
+	 * @notice get the current implied volatility from the feed
+	 * @param isPut Is the option a call or put?
+	 * @param underlyingPrice The underlying price
+	 * @param strikePrice The strike price of the option
+	 * @param expiration expiration timestamp of option as a PRBMath Float
+	 * @return Implied volatility adjusted for volatility surface
+	 * @return forward price of spot accounting for the interest rate
+	 */
+	function _getImpliedVolatility(
+		bool isPut,
+		uint256 underlyingPrice,
+		uint256 strikePrice,
+		uint256 expiration
+	) internal view returns (uint256, uint256) {
 		int256 time = (int256(expiration) - int256(block.timestamp)).div(ONE_YEAR_SECONDS);
 		int256 vol;
 		SABRParams memory sabrParams_ = sabrParams[expiration];
@@ -183,7 +219,7 @@ contract VolatilityFeed is AccessControl {
 		if (vol <= 0) {
 			revert CustomErrors.IVNotFound();
 		}
-		return uint256(vol);
+		return (uint256(vol), uint256(forwardPrice));
 	}
 
 	/**

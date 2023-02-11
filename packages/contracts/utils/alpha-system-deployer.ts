@@ -252,7 +252,7 @@ export async function deployLiquidityPool(
 	await pvFeed.setKeeper(liquidityPool.address, true)
 	await pvFeed.setKeeper(await signers[0].getAddress(), true)
 	await pvFeed.setHandler(handler.address, true)
-	await pvFeed.setRFR(toWei("0.01"))
+
 	return {
 		volatility: volatility,
 		liquidityPool: liquidityPool,
