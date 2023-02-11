@@ -18,6 +18,7 @@ import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
+import "prb-math/contracts/PRBMathUD60x18.sol";
 
 /**
  * @title AlphaPortfolioValuesFeed contract
@@ -26,6 +27,7 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
 contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	using EnumerableSet for EnumerableSet.AddressSet;
 	using PRBMathSD59x18 for int256;
+	using PRBMathUD60x18 for uint256;
 
 	struct OptionStores {
 		Types.OptionSeries optionSeries;
@@ -163,6 +165,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		// get the spot price
 		uint256 spotPrice = _getUnderlyingPrice(_underlying, _strikeAsset);
 		VolatilityFeed volFeed = _getVolatilityFeed();
+		uint256 _rfr = rfr;
 		for (uint256 i = 0; i < lengthAddy; i++) {
 			// get series
 			OptionStores memory _optionStores = storesForAddress[addressSet.at(i)];
@@ -172,7 +175,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 				revert OptionHasExpiredInStores(i, addressSet.at(i));
 			}
 			// get the vol
-			uint256 vol = volFeed.getImpliedVolatility(
+			(uint256 vol, uint256 forward) = volFeed.getImpliedVolatilityWithForward(
 				_optionStores.optionSeries.isPut,
 				spotPrice,
 				_optionStores.optionSeries.strike,
@@ -180,13 +183,14 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 			);
 			// compute the delta and the price
 			(uint256 _callPutsValue, int256 _delta) = BlackScholes.blackScholesCalcGreeks(
-				spotPrice,
+				forward,
 				_optionStores.optionSeries.strike,
 				_optionStores.optionSeries.expiration,
 				vol,
-				rfr,
+				_rfr,
 				_optionStores.optionSeries.isPut
 			);
+			_callPutsValue = _callPutsValue.mul(spotPrice).div(forward);
 			// calculate the net exposure
 			int256 netExposure = _optionStores.shortExposure - _optionStores.longExposure;
 			// increment the deltas by adding if the option is long and subtracting if the option is short
