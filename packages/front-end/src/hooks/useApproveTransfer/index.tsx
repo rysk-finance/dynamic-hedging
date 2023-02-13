@@ -62,6 +62,8 @@ const useApproveTransfer = (): [
   // Utils
   const isApproved = allowance.gte(amount);
 
+  console.log("Allowance: ", allowance.toString());
+
   // Interface
   return [
     write, // approve exchange address to transfer from user
