@@ -23,6 +23,12 @@ import {
   getContractAddress,
   returnIVFromQuote,
 } from "../../utils/helpers";
+import { formatShortDate } from "../../utils/formatShortDate";
+
+const isNotTwoDigitsZero = (price: number) => {
+  // TODO: Not sure this makes sense, come back to it after figuring out pricing
+  return price.toFixed(2) !== "0.00";
+};
 
 export const OptionsTable = () => {
   const { chain } = useNetwork();
@@ -270,7 +276,16 @@ export const OptionsTable = () => {
                   suffix={"%"}
                 />
               </td>
-              <td className="pr-4 text-red-700">
+              <td
+                  className="pr-4 text-red-700 cursor-pointer"
+                  onClick={() =>
+                      setSelectedOption({
+                          callOrPut: "call",
+                          bidOrAsk: "bid",
+                          strikeOptions: option,
+                      })
+                  }
+              >
                 <NumberFormat
                   value={option.call.bid.quote}
                   displayType={"text"}
@@ -342,7 +357,16 @@ export const OptionsTable = () => {
                   suffix={"%"}
                 />
               </td>
-              <td className="pr-4 text-red-700">
+              <td
+                  className="pr-4 text-red-700 cursor-pointer"
+                  onClick={() =>
+                      setSelectedOption({
+                          callOrPut: "put",
+                          bidOrAsk: "bid",
+                          strikeOptions: option,
+                      })
+                  }
+              >
                 <NumberFormat
                   value={option.put.bid.quote}
                   displayType={"text"}
