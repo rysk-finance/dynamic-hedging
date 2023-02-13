@@ -21,7 +21,7 @@ const useMarginRequirement = () => {
     amount: string,
     underlyingStrikePrice: string,
     underlyingCurrentPrice: string,
-    expiryTimestamp: string,
+    expiryTimestamp: number,
     isPut: boolean
   ) => {
     return await readContract({
