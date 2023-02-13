@@ -12,6 +12,15 @@ export const MAX_UINT_256 =
 export const ZERO_UINT_256 = "0x00";
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
+export const EMPTY_SERIES = {
+  expiration: 1,
+  strike: 1,
+  isPut: true,
+  collateral: ZERO_ADDRESS,
+  underlying: ZERO_ADDRESS,
+  strikeAsset: ZERO_ADDRESS,
+};
+
 export const DECIMALS: Record<Token, number> = {
   USDC: 6,
   OPYN: 8,
