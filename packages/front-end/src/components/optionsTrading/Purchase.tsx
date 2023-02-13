@@ -77,12 +77,14 @@ export const Purchase = () => {
   useEffect(() => {
     if (selectedOption && expiryDate) {
       setOptionSeries({
-        expiration: ((expiryDate as Date).getTime() / 1000).toFixed(0),
+        expiration: expiryDate.toString(),
         strike: toWei(selectedOption.strikeOptions.strike.toString()),
         isPut: selectedOption.callOrPut === "put",
       });
     }
-  }, [selectedOption, expiryDate, setOptionSeries]);
+  }, [selectedOption, expiryDate]);
+
+  console.log("Approve");
 
   // Contracts
   const [optionRegistryContract] = useContract({

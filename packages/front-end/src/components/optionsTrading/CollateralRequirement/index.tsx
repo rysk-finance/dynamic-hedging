@@ -19,7 +19,7 @@ const CollateralRequirement = ({
 }: {
   selectedOption: SelectedOption;
   strike: number;
-  expiry: Date;
+  expiry: number;
   isPut: boolean;
   onChange: (value: string) => void;
 }) => {
@@ -38,9 +38,6 @@ const CollateralRequirement = ({
   const [margin, setMargin] = useState<string | null>(null);
   const [userInputCollateral, setUserInputCollateral] = useState<string>("");
 
-  // Props adapted
-  const expiryTimestamp = (expiry.getTime() / 1000).toFixed(0);
-
   // Setters
   const handleCollateralChange = (value: string) => {
     setUserInputCollateral(value);
@@ -55,7 +52,7 @@ const CollateralRequirement = ({
         "100000000", // TODO - this is hardcoded for now, use the user input amount
         toOpyn(strike.toString()).toString(), // TODO - pass as BigInt ?
         (underlyingPrice as BigNumber).toString(), // TODO - pass as BigInt ?
-        expiryTimestamp,
+        expiry,
         isPut
       );
 
@@ -63,15 +60,9 @@ const CollateralRequirement = ({
     };
 
     fetchMargin().catch(console.log);
-  }, [
-    selectedOption,
-    expiryTimestamp,
-    isPut,
-    strike,
-    underlying,
-    getMarginRequirement,
-    getOraclePrice,
-  ]);
+  }, [selectedOption, expiry, isPut, strike, underlying]);
+
+  console.log("Collateral Requirement");
 
   return (
     <div className="w-full p-4">
