@@ -1,8 +1,8 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import dayjs from "dayjs";
 import { ethers } from "ethers";
-import { useState } from "react";
 import NumberFormat from "react-number-format";
+import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useAccount, useNetwork } from "wagmi";
 
@@ -20,11 +20,14 @@ import useTenderlySimulator from "../../hooks/useTenderlySimulator";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { ContractAddresses, ETHNetwork } from "../../types";
-import { toUSDC, toWei } from "../../utils/conversion-helper";
+import { toOpyn, toUSDC, toWei } from "../../utils/conversion-helper";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { captureException } from "@sentry/react";
 import useApproveExchange from "../../hooks/useApproveExchange";
+import CollateralRequirement from "./CollateralRequirement";
+import useApproveTransfer from "../../hooks/useApproveTransfer";
+import useSellOperate from "../../hooks/useSellOperate";
 
 const formatOptionDate = (date: number | null) => {
   if (date) {
@@ -37,6 +40,16 @@ export const Purchase = () => {
   const { chain } = useNetwork();
 
   const [approveExchange, exchangeIsApproved] = useApproveExchange();
+  const [
+    approveUSDCTransfer,
+    allowanceUSDC,
+    setApprovalUSDCAmount,
+    isUSDCApproved,
+  ] = useApproveTransfer();
+  const [sellOperate, setMarginUSDCAmount, setSellAmount, setOptionSeries] =
+    useSellOperate();
+
+  console.log("allowance usdc 2:", allowanceUSDC?.toString());
 
   const network = chain?.network as ETHNetwork;
   const typedAddresses = addresses as Record<ETHNetwork, ContractAddresses>;
@@ -58,6 +71,18 @@ export const Purchase = () => {
   // Local state
   const [uiOrderSize, setUIOrderSize] = useState("");
   const [isApproved, setIsApproved] = useState(false);
+  const [, setCollateral] = useState("");
+
+  // note - to avoid using state i'm saving this in the hook for now
+  useEffect(() => {
+    if (selectedOption && expiryDate) {
+      setOptionSeries({
+        expiration: ((expiryDate as Date).getTime() / 1000).toFixed(0),
+        strike: toWei(selectedOption.strikeOptions.strike.toString()),
+        isPut: selectedOption.callOrPut === "put",
+      });
+    }
+  }, [selectedOption, expiryDate, setOptionSeries]);
 
   // Contracts
   const [optionRegistryContract] = useContract({
@@ -78,12 +103,21 @@ export const Purchase = () => {
     readOnly: false,
   });
 
+  // note - need to let hook know about amount update for now
   const handleInputChange = (value: string) => {
     setIsApproved(false);
     setUIOrderSize(value);
+    setSellAmount(toOpyn(value));
   };
 
-  const handleApproveSpend = async () => {
+  // note - need to let hooks know about state update for now
+  const handleCollateralChange = (value: string) => {
+    setApprovalUSDCAmount(toUSDC(value));
+    setMarginUSDCAmount(toUSDC(value));
+    setCollateral(value);
+  };
+
+  const handleApprovePremium = async () => {
     if (usdcContract && strikeOptions && callOrPut && bidOrAsk) {
       const total =
         strikeOptions[callOrPut][bidOrAsk].quote * Number(uiOrderSize);
@@ -118,6 +152,18 @@ export const Purchase = () => {
       } catch {
         toast("❌ There was an error approving your transaction.");
       }
+    }
+  };
+
+  const handleApproveCollateral = async () => {
+    if (approveUSDCTransfer) {
+      approveUSDCTransfer();
+    }
+  };
+
+  const handleSell = async () => {
+    if (sellOperate) {
+      sellOperate();
     }
   };
 
@@ -195,6 +241,7 @@ export const Purchase = () => {
 
   const approveIsDisabled = !uiOrderSize || isApproved;
   const buyIsDisabled = !uiOrderSize || !isApproved;
+  const sellIsDisabled = !uiOrderSize || !isUSDCApproved;
 
   const callOrPut = selectedOption?.callOrPut;
   const bidOrAsk = selectedOption?.bidOrAsk;
@@ -261,6 +308,19 @@ export const Purchase = () => {
                 />
               </div>
             </div>
+            {bidOrAsk === "bid" && (
+              <div className="w-1/2 border-r-2 border-black">
+                {selectedOption && expiryDate && (
+                  <CollateralRequirement
+                    selectedOption={selectedOption}
+                    strike={strikeOptions.strike}
+                    expiry={expiryDate}
+                    isPut={callOrPut === "put"}
+                    onChange={handleCollateralChange}
+                  />
+                )}
+              </div>
+            )}
             <div className="w-2/3 flex flex-row justify-between">
               <div className="w-1/2">
                 <div className="w-full -mb-1">
@@ -292,22 +352,32 @@ export const Purchase = () => {
                     One Time Exchange Approval
                   </Button>
                 )}
+                {!isUSDCApproved && (
+                  <Button
+                    className={"w-full mb-2 !py-2 text-white !bg-black"}
+                    onClick={handleApproveCollateral}
+                  >
+                    {`${isApproved ? "Approved ✅" : "Approve Collateral"}`}
+                  </Button>
+                )}
+                {uiOrderSize && bidOrAsk === "ask" && (
+                  <Button
+                    className={`w-full mb-2 !py-2 text-white ${
+                      approveIsDisabled ? "!bg-gray-300 " : "!bg-black"
+                    }`}
+                    onClick={handleApprovePremium}
+                  >
+                    {`${isApproved ? "Approved ✅" : "Approve Premium"}`}
+                  </Button>
+                )}
                 <Button
-                  className={`w-full mb-2 !py-2 text-white ${
-                    approveIsDisabled ? "!bg-gray-300 " : "!bg-black"
-                  }`}
-                  onClick={handleApproveSpend}
-                >
-                  {`${isApproved ? "Approved ✅" : "Approve Collateral"}`}
-                </Button>
-                <Button
-                  disabled={buyIsDisabled}
+                  disabled={sellIsDisabled} // TODO - missing a condition for buy
                   className={`w-full !py-2 text-white ${
-                    buyIsDisabled ? "!bg-gray-300" : "!bg-black"
+                    sellIsDisabled ? "!bg-gray-300" : "!bg-black" // TODO - missing a condition for buy
                   }`}
-                  onClick={handleBuy}
+                  onClick={bidOrAsk === "ask" ? handleBuy : handleSell}
                 >
-                  {simulateIsLoading ? "Simulating..." : "Buy"}
+                  {simulateIsLoading ? "Simulating..." : bidOrAsk === "ask" ? "Buy" : "Sell"}
                 </Button>
               </div>
             </div>
