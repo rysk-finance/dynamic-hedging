@@ -1,10 +1,9 @@
 import type { PropsWithChildren } from "react";
-
-import "@rainbow-me/rainbowkit/styles.css";
+import type { Chain } from "wagmi";
 
 import {
   connectorsForWallets,
-  RainbowKitProvider,
+  RainbowKitProvider
 } from "@rainbow-me/rainbowkit";
 import {
   coinbaseWallet,
@@ -12,7 +11,7 @@ import {
   ledgerWallet,
   metaMaskWallet,
   trustWallet,
-  walletConnectWallet,
+  walletConnectWallet
 } from "@rainbow-me/rainbowkit/wallets";
 import { configureChains, createClient, WagmiConfig } from "wagmi";
 import { arbitrum, arbitrumGoerli } from "wagmi/chains";
@@ -20,12 +19,14 @@ import { alchemyProvider } from "wagmi/providers/alchemy";
 import { infuraProvider } from "wagmi/providers/infura";
 import { publicProvider } from "wagmi/providers/public";
 
+import "@rainbow-me/rainbowkit/styles.css";
+
 import { ETHNetwork } from "src/types";
 import Avatar from "./components/Avatar";
 import Disclaimer from "./components/Disclaimer";
 import CustomTheme from "./styles/Theme";
 
-const defaultChains =
+const defaultChains: [Chain] =
   process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
     ? [arbitrum]
     : [arbitrumGoerli];
