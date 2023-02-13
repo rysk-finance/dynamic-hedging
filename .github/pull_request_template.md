@@ -11,6 +11,7 @@ Please include a summary of the change. Please also include relevant motivation 
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] Document update
 - [ ] Quality of life improvement
+- [ ] Package upgrades
 
 ## Checklist
 
