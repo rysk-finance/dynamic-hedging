@@ -19,7 +19,7 @@
         ]
     },
     "scripts": {
-        "upgrade": "yarn upgrade-interactive --latest"
+        "deps:upgrade": "yarn upgrade-interactive --latest"
     },
     "dependencies": {
         "black-scholes": "^1.1.0",
