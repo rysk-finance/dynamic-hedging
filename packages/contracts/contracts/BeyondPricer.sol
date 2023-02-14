@@ -316,7 +316,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		int256 _netDhvExposure,
 		bool _isSell
 	) internal view returns (uint256 slippageMultiplier) {
-		// divide _amount by 2 to obtain the average exposure throughout the tx. Stops large orders being disproportionately penalised.
 		// slippage will be exponential with the exponent being the DHV's net exposure
 		int256 newExposureExponent = _isSell
 			? _netDhvExposure + int256(_amount)
@@ -335,6 +334,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			slippageMultiplier = 1e18;
 			return slippageMultiplier;
 		}
+		// integrate the exponential function to get the slippage multiplier as this represents the average exposure
 		// if it is a sell then we need to do lower bound is old exposure exponent, upper bound is new exposure exponent
 		// if it is a buy then we need to do lower bound is new exposure exponent, upper bound is old exposure exponent
 		int256 slippageFactor = int256(1e18 + modifiedSlippageGradient);
