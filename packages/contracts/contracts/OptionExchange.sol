@@ -741,6 +741,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		return _getOptionDetails(seriesAddress, optionSeries, getOptionRegistry());
 	}
 
+	function checkHash(
+		Types.OptionSeries memory optionSeries,
+		uint128 strikeDecimalConverted,
+		bool isSell
+	) external view returns (bytes32 oHash) {
+		return _checkHash(optionSeries, strikeDecimalConverted, isSell);
+	}
 	//////////////////////////
 	/// internal utilities ///
 	//////////////////////////
@@ -819,7 +826,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		Types.OptionSeries memory optionSeries,
 		uint128 strikeDecimalConverted,
 		bool isSell
-	) public view returns (bytes32 oHash) {
+	) internal view returns (bytes32 oHash) {
 		// check if the option series is approved
 		oHash = keccak256(
 			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
