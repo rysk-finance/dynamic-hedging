@@ -1,5 +1,4 @@
 import { useGlobalContext } from "../../state/GlobalContext";
-import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { ETHPriceIndicator } from "../shared/ETHPriceIndicator";
 import { OptionsTable } from "./OptionsTable";
 import { Purchase } from "./Purchase";
@@ -29,7 +28,7 @@ export const OptionsTradingContent = () => {
             <ETHPriceIndicator />
           </div>
         </div>
-        <div className="border-x-2 border-black">
+        <div className="border-2 border-black">
           <div className="w-full">
             <div className="">
               <ExpiryDatePicker />
