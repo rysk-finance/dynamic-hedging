@@ -510,12 +510,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/**
 	 * @notice function that allows a user to buy options from the dhv where they pay the dhv using the collateral asset
 	 * @param _args RyskAction struct containing details on the option to buy
-	 * @return the number of options bought by the user
 	 */
 	function _buyOption(RyskActions.BuyOptionArgs memory _args)
 		internal
 		whenNotPaused
-		returns (uint256)
 	{
 		if (_args.amount < minTradeSize) revert TradeTooSmall();
 		if (_args.amount > maxTradeSize) revert TradeTooLarge();
@@ -561,7 +559,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			);
 			amount -= boughtAmount;
 			if (amount == 0) {
-				return _args.amount;
+				return;
 			}
 		}
 		if (buyParams.optionSeries.collateral != collateralAsset) {
@@ -575,16 +573,15 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			buyParams.seriesAddress
 		);
 		// get the liquidity pool to write the options
-		return
-			liquidityPool.handlerWriteOption(
-				buyParams.optionSeries,
-				buyParams.seriesAddress,
-				amount,
-				optionRegistry,
-				buyParams.premium,
-				buyParams.delta,
-				recipient
-			);
+		liquidityPool.handlerWriteOption(
+			buyParams.optionSeries,
+			buyParams.seriesAddress,
+			amount,
+			optionRegistry,
+			buyParams.premium,
+			buyParams.delta,
+			recipient
+		);
 	}
 
 	/**
