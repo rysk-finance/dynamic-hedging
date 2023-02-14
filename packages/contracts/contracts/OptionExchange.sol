@@ -851,10 +851,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 	}
 
-	/** @notice function to sell exact amount of wETH to decrease delta
-	 *  @param _amountIn the exact amount of wETH to sell
-	 *  @param _amountOutMinimum the min amount of stablecoin willing to receive. Slippage limit.
-	 *  @param _assetIn the stablecoin to buy
+	/** @notice function to sell exact amount of amountIn to the minimum amountOutMinimum of assetIn
+	 *  @param _amountIn the exact amount of assetIn to sell
+	 *  @param _amountOutMinimum the min amount of collateral asset willing to receive. Slippage limit.
+	 *  @param _assetIn the asset to swap from
 	 *  @return the amount of usdc received
 	 */
 	function _swapExactInputSingle(
