@@ -270,7 +270,7 @@ export const Purchase = () => {
   simulateError && toast(simulateError as string);
 
   return (
-    <div>
+    <div className="grow flex flex-col">
       {strikeOptions && callOrPut && bidOrAsk ? (
         <>
           <div className="w-full flex justify-between relative">
