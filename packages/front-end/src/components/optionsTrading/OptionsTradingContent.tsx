@@ -23,17 +23,6 @@ export const OptionsTradingContent = () => {
           </div>
         </div>
         <div className="grow rounded-br-lg flex flex-col">
-          {/** TODO move this into Purchase component */}
-          {/*<div className="bg-black p-2 text-white flex justify-between">*/}
-          {/*  {selectedOption && (*/}
-          {/*    <button*/}
-          {/*      className="text-xl top-4 right-4 text-white"*/}
-          {/*      onClick={() => setSelectedOption(null)}*/}
-          {/*    >*/}
-          {/*      ✕*/}
-          {/*    </button>*/}
-          {/*  )}*/}
-          {/*</div>*/}
           <div>
             <Purchase />
           </div>
