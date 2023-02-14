@@ -101,12 +101,12 @@ export declare namespace CombinedActions {
 export interface OptionExchangeInterface extends utils.Interface {
   contractName: "OptionExchange";
   functions: {
-    "_checkHash((uint64,uint128,bool,address,address,address),uint128,bool)": FunctionFragment;
     "addressbook()": FunctionFragment;
     "approvedCollateral(address,bool)": FunctionFragment;
     "authority()": FunctionFragment;
     "catalogue()": FunctionFragment;
     "changeApprovedCollateral(address,bool,bool)": FunctionFragment;
+    "checkHash((uint64,uint128,bool,address,address,address),uint128,bool)": FunctionFragment;
     "collateralAsset()": FunctionFragment;
     "createOtoken((uint64,uint128,bool,address,address,address))": FunctionFragment;
     "feeRecipient()": FunctionFragment;
@@ -143,10 +143,6 @@ export interface OptionExchangeInterface extends utils.Interface {
   };
 
   encodeFunctionData(
-    functionFragment: "_checkHash",
-    values: [Types.OptionSeriesStruct, BigNumberish, boolean]
-  ): string;
-  encodeFunctionData(
     functionFragment: "addressbook",
     values?: undefined
   ): string;
@@ -159,6 +155,10 @@ export interface OptionExchangeInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "changeApprovedCollateral",
     values: [string, boolean, boolean]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "checkHash",
+    values: [Types.OptionSeriesStruct, BigNumberish, boolean]
   ): string;
   encodeFunctionData(
     functionFragment: "collateralAsset",
@@ -263,7 +263,6 @@ export interface OptionExchangeInterface extends utils.Interface {
     values: [BigNumberish]
   ): string;
 
-  decodeFunctionResult(functionFragment: "_checkHash", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "addressbook",
     data: BytesLike
@@ -278,6 +277,7 @@ export interface OptionExchangeInterface extends utils.Interface {
     functionFragment: "changeApprovedCollateral",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "checkHash", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "collateralAsset",
     data: BytesLike
@@ -481,13 +481,6 @@ export interface OptionExchange extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
-    _checkHash(
-      optionSeries: Types.OptionSeriesStruct,
-      strikeDecimalConverted: BigNumberish,
-      isSell: boolean,
-      overrides?: CallOverrides
-    ): Promise<[string] & { oHash: string }>;
-
     addressbook(overrides?: CallOverrides): Promise<[string]>;
 
     approvedCollateral(
@@ -506,6 +499,13 @@ export interface OptionExchange extends BaseContract {
       isApproved: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    checkHash(
+      optionSeries: Types.OptionSeriesStruct,
+      strikeDecimalConverted: BigNumberish,
+      isSell: boolean,
+      overrides?: CallOverrides
+    ): Promise<[string] & { oHash: string }>;
 
     collateralAsset(overrides?: CallOverrides): Promise<[string]>;
 
@@ -631,13 +631,6 @@ export interface OptionExchange extends BaseContract {
     ): Promise<ContractTransaction>;
   };
 
-  _checkHash(
-    optionSeries: Types.OptionSeriesStruct,
-    strikeDecimalConverted: BigNumberish,
-    isSell: boolean,
-    overrides?: CallOverrides
-  ): Promise<string>;
-
   addressbook(overrides?: CallOverrides): Promise<string>;
 
   approvedCollateral(
@@ -656,6 +649,13 @@ export interface OptionExchange extends BaseContract {
     isApproved: boolean,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
+
+  checkHash(
+    optionSeries: Types.OptionSeriesStruct,
+    strikeDecimalConverted: BigNumberish,
+    isSell: boolean,
+    overrides?: CallOverrides
+  ): Promise<string>;
 
   collateralAsset(overrides?: CallOverrides): Promise<string>;
 
@@ -779,13 +779,6 @@ export interface OptionExchange extends BaseContract {
   ): Promise<ContractTransaction>;
 
   callStatic: {
-    _checkHash(
-      optionSeries: Types.OptionSeriesStruct,
-      strikeDecimalConverted: BigNumberish,
-      isSell: boolean,
-      overrides?: CallOverrides
-    ): Promise<string>;
-
     addressbook(overrides?: CallOverrides): Promise<string>;
 
     approvedCollateral(
@@ -804,6 +797,13 @@ export interface OptionExchange extends BaseContract {
       isApproved: boolean,
       overrides?: CallOverrides
     ): Promise<void>;
+
+    checkHash(
+      optionSeries: Types.OptionSeriesStruct,
+      strikeDecimalConverted: BigNumberish,
+      isSell: boolean,
+      overrides?: CallOverrides
+    ): Promise<string>;
 
     collateralAsset(overrides?: CallOverrides): Promise<string>;
 
@@ -1000,13 +1000,6 @@ export interface OptionExchange extends BaseContract {
   };
 
   estimateGas: {
-    _checkHash(
-      optionSeries: Types.OptionSeriesStruct,
-      strikeDecimalConverted: BigNumberish,
-      isSell: boolean,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     addressbook(overrides?: CallOverrides): Promise<BigNumber>;
 
     approvedCollateral(
@@ -1024,6 +1017,13 @@ export interface OptionExchange extends BaseContract {
       isPut: boolean,
       isApproved: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    checkHash(
+      optionSeries: Types.OptionSeriesStruct,
+      strikeDecimalConverted: BigNumberish,
+      isSell: boolean,
+      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     collateralAsset(overrides?: CallOverrides): Promise<BigNumber>;
@@ -1149,13 +1149,6 @@ export interface OptionExchange extends BaseContract {
   };
 
   populateTransaction: {
-    _checkHash(
-      optionSeries: Types.OptionSeriesStruct,
-      strikeDecimalConverted: BigNumberish,
-      isSell: boolean,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     addressbook(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     approvedCollateral(
@@ -1173,6 +1166,13 @@ export interface OptionExchange extends BaseContract {
       isPut: boolean,
       isApproved: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    checkHash(
+      optionSeries: Types.OptionSeriesStruct,
+      strikeDecimalConverted: BigNumberish,
+      isSell: boolean,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     collateralAsset(overrides?: CallOverrides): Promise<PopulatedTransaction>;
