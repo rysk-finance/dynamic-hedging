@@ -72,6 +72,9 @@ module.exports = {
         16: "16",
         17: "17",
       },
+      gridTemplateColumns: {
+        13: "repeat(13, minmax(0, 1fr))",
+      },
     },
   },
   variants: {
