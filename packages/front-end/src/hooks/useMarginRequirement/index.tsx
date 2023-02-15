@@ -1,20 +1,16 @@
-import { getNetwork, readContract } from "@wagmi/core";
-import addresses from "../../contracts.json";
-import { ETHNetwork } from "../../types";
+import { readContract } from "@wagmi/core";
 import MarginCollateralABI from "../../abis/opyn/NewMarginCalculator.json";
 import { DECIMALS } from "../../config/constants";
+import { getContractAddress } from "../../utils/helpers";
 
 const useMarginRequirement = () => {
-  // Global state
-  // TODO: this is repetitive code
-  const { chain } = getNetwork();
-  const network = chain?.network as ETHNetwork;
-
-  const marginCalculatorAddress = addresses[network].OpynNewCalculator;
-
-  const strikeAsset = addresses[network].USDC;
-  const underlying = addresses[network].WETH;
-  const collateral = addresses[network].USDC;
+  // Addresses
+  const marginCalculatorAddress = getContractAddress("OpynNewCalculator");
+  const usdcAddress = getContractAddress("USDC");
+  const wethAddress = getContractAddress("WETH");
+  const strikeAsset = usdcAddress;
+  const underlying = wethAddress;
+  const collateral = usdcAddress;
 
   // Contract read
   const getMargin = async (
@@ -25,7 +21,7 @@ const useMarginRequirement = () => {
     isPut: boolean
   ) => {
     return await readContract({
-      address: marginCalculatorAddress as `0x${string}`, // TODO update after rebasing Tim's branch
+      address: marginCalculatorAddress,
       abi: MarginCollateralABI,
       functionName: "getNakedMarginRequired",
       args: [

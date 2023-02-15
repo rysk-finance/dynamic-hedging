@@ -1,12 +1,11 @@
 import { usePrepareContractWrite, useContractWrite, useAccount } from "wagmi";
 import { EMPTY_SERIES, ZERO_ADDRESS } from "../../config/constants";
-import { ETHNetwork, OptionSeries } from "../../types";
-import addresses from "../../contracts.json";
-import { getNetwork } from "@wagmi/core";
+import { OptionSeries } from "../../types";
 import OptionExchangeABI from "../../abis/OptionExchange.json";
 import { AbiCoder } from "ethers/lib/utils";
 import { useState } from "react";
 import { BigNumber } from "ethers";
+import { getContractAddress } from "../../utils/helpers";
 
 const abiCode = new AbiCoder();
 
@@ -17,15 +16,15 @@ const useSellOperate = (): [
   (value: Partial<OptionSeries>) => void
 ] => {
   // Global state
-  // TODO - this is repetitive code
-  const { chain } = getNetwork();
   const { address } = useAccount();
-  const network = chain?.network as ETHNetwork;
 
-  const exchangeAddress = addresses[network].optionExchange;
-  const collateral = addresses[network].USDC;
-  const strike = addresses[network].USDC;
-  const underlying = addresses[network].WETH;
+  // Addresses
+  const exchangeAddress = getContractAddress("optionExchange");
+  const usdcAddress = getContractAddress("USDC");
+  const wethAddress = getContractAddress("WETH");
+  const collateral = usdcAddress;
+  const strike = usdcAddress;
+  const underlying = wethAddress;
 
   // Internal state
   // note - set by user and it's the collateral they want to put down
@@ -48,7 +47,7 @@ const useSellOperate = (): [
 
   // Contract write
   const { config } = usePrepareContractWrite({
-    address: exchangeAddress as `0x${string}`, // TODO update after rebasing Tim's branch
+    address: exchangeAddress,
     abi: OptionExchangeABI,
     functionName: "operate",
     args: [

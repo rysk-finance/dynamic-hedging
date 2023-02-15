@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { useAccount, useContractWrite, usePrepareContractWrite } from "wagmi";
-import { getNetwork, readContract } from "@wagmi/core";
-import addresses from "../../contracts.json";
-import { ETHNetwork } from "../../types";
+import { readContract } from "@wagmi/core";
 import ERC20ABI from "../../abis/erc20.json";
 import { BigNumber } from "ethers";
+import { getContractAddress } from "../../utils/helpers";
 
 const useApproveTransfer = (): [
   ((overrideConfig?: undefined) => void) | undefined,
@@ -13,14 +12,13 @@ const useApproveTransfer = (): [
   boolean
 ] => {
   // Global state
-  // TODO: this is repetitive code
-  const { chain } = getNetwork();
   const { address } = useAccount();
-  const network = chain?.network as ETHNetwork;
 
-  const controllerAddress = addresses[network].OpynController;
-  const exchangeAddress = addresses[network].optionExchange;
-  const collateral = addresses[network].USDC;
+  // Addresses
+  const controllerAddress = getContractAddress("OpynController");
+  const exchangeAddress = getContractAddress("optionExchange");
+  const usdcAddress = getContractAddress("USDC");
+  const collateral = usdcAddress;
 
   // Internal state
   const [allowance, setAllowance] = useState<BigNumber>(BigNumber.from("0"));
@@ -35,7 +33,7 @@ const useApproveTransfer = (): [
   useEffect(() => {
     const readAllowance = async () => {
       const current = await readContract({
-        address: collateral as `0x${string}`, // TODO update after rebasing Tim's branch
+        address: collateral,
         abi: ERC20ABI,
         functionName: "allowance",
         args: [address, exchangeAddress],
@@ -50,7 +48,7 @@ const useApproveTransfer = (): [
 
   // Contract write - approve
   const { config } = usePrepareContractWrite({
-    address: collateral as `0x${string}`, // TODO update after rebasing Tim's branch
+    address: collateral,
     abi: ERC20ABI,
     functionName: "approve",
     args: [exchangeAddress, amount],
