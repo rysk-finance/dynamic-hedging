@@ -1796,7 +1796,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					isSellable: true,
 					isBuyable: true
 				}
-			])).to.be.revertedWithCustomError(catalogue, "InvalidExpiry()")
+			])).to.be.revertedWithCustomError(catalogue, "InvalidExpiry")
 		})
 		it("REVERTS: cant write eth options to the liquidity pool", async () => {
 			const amount = toWei("4")
