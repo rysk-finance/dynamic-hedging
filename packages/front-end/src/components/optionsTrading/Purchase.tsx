@@ -7,15 +7,15 @@ import NumberFormat from "react-number-format";
 import { toast } from "react-toastify";
 import { useAccount, useNetwork } from "wagmi";
 
+import { getContractAddress } from "src/utils/helpers";
 import ERC20ABI from "../../abis/erc20.json";
 import OptionExchangeABI from "../../abis/OptionExchange.json";
 import OptionRegistryABI from "../../abis/OptionRegistry.json";
 import {
   BIG_NUMBER_DECIMALS,
   MAX_UINT_256,
-  ZERO_ADDRESS,
+  ZERO_ADDRESS
 } from "../../config/constants";
-import addresses from "../../contracts.json";
 import useApproveExchange from "../../hooks/useApproveExchange";
 import useApproveTransfer from "../../hooks/useApproveTransfer";
 import { useContract } from "../../hooks/useContract";
@@ -24,7 +24,6 @@ import useSellOperate from "../../hooks/useSellOperate";
 import useTenderlySimulator from "../../hooks/useTenderlySimulator";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
-import { ContractAddresses, ETHNetwork } from "../../types";
 import { toOpyn, toUSDC, toWei } from "../../utils/conversion-helper";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
@@ -57,14 +56,9 @@ export const Purchase = () => {
 
   const [getOToken] = useOToken();
 
-  console.log("allowance usdc 2:", allowanceUSDC?.toString());
-
-  const network = chain?.network as ETHNetwork;
-  const typedAddresses = addresses as Record<ETHNetwork, ContractAddresses>;
-
   const [simulateOperation, simulateError, simulateIsLoading] =
     useTenderlySimulator({
-      to: addresses[network].optionExchange,
+      to: getContractAddress("optionExchange"),
     });
 
   // Context state
@@ -146,7 +140,7 @@ export const Purchase = () => {
 
       const approvedAmount = (await usdcContract.allowance(
         address,
-        addresses[network].optionExchange
+        getContractAddress("optionExchange")
       )) as BigNumber;
 
       try {
@@ -157,7 +151,7 @@ export const Purchase = () => {
           await usdcContractCall({
             method: usdcContract?.approve,
             args: [
-              addresses[network].optionExchange,
+              getContractAddress("optionExchange"),
               settings.optionsTradingUnlimitedApproval
                 ? ethers.BigNumber.from(MAX_UINT_256)
                 : amount,
@@ -206,9 +200,9 @@ export const Purchase = () => {
           expiration: expiryDate,
           strike: toWei(selectedOption.strikeOptions.strike.toString()),
           isPut: selectedOption.callOrPut === "put",
-          strikeAsset: typedAddresses[network].USDC,
-          underlying: typedAddresses[network].WETH,
-          collateral: typedAddresses[network].USDC,
+          strikeAsset: getContractAddress("USDC"),
+          underlying: getContractAddress("WETH"),
+          collateral: getContractAddress("optionExchange"),
         };
 
         const txData = [
