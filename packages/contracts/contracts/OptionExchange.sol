@@ -976,16 +976,16 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				)
 			);
 		}
-		sellParams.premiumSent = sellParams.premium.div(sellParams.amount).mul(sellParams.transferAmount);
+		sellParams.premiumSent = sellParams.premium.mul(sellParams.transferAmount).div(sellParams.amount);
 		uint256 soldBackAmount = liquidityPool.handlerBuybackOption(
 			sellParams.optionSeries,
 			sellParams.transferAmount,
 			optionRegistry,
 			sellParams.seriesAddress,
 			sellParams.premiumSent,
-			sellParams.delta.div(OptionsCompute.toInt256(sellParams.amount)).mul(
+			sellParams.delta.mul(
 				OptionsCompute.toInt256(sellParams.transferAmount)
-			),
+			).div(OptionsCompute.toInt256(sellParams.amount)),
 			address(this)
 		);
 		// update the series on the stores
