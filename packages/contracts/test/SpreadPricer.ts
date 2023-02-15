@@ -152,12 +152,12 @@ describe("Spread Pricer testing", async () => {
 			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 		})
 		it("sets spread values to non-zero", async () => {
-			await pricer.setCollateralLendingRate(1000) // 10%
-			expect(await pricer.collateralLendingRate()).to.eq(1000)
-			await pricer.setShortDeltaBorrowRate(1000) // 10%
-			expect(await pricer.shortDeltaBorrowRate()).to.eq(1000)
-			await pricer.setLongDeltaBorrowRate(1500) // 15%
-			expect(await pricer.longDeltaBorrowRate()).to.eq(1500)
+			await pricer.setCollateralLendingRate(100000) // 10%
+			expect(await pricer.collateralLendingRate()).to.eq(100000)
+			await pricer.setShortDeltaBorrowRate(100000) // 10%
+			expect(await pricer.shortDeltaBorrowRate()).to.eq(100000)
+			await pricer.setLongDeltaBorrowRate(150000) // 15%
+			expect(await pricer.longDeltaBorrowRate()).to.eq(150000)
 		})
 		it("sets slippage vars to zero", async () => {
 			await pricer.setSlippageGradient(0)

@@ -67,11 +67,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	uint256[] public callSlippageGradientMultipliers;
 	uint256[] public putSlippageGradientMultipliers;
 
-	// represents the lending rate of collateral used to collateralise short options by the DHV. denominated in bips
+	// represents the lending rate of collateral used to collateralise short options by the DHV. denominated in 6 dps
 	uint256 public collateralLendingRate;
-	// long delta borrow rate. denominated in bips
+	// long delta borrow rate. denominated in 6 dps
 	uint256 public longDeltaBorrowRate;
-	// short delta borrow rate. denominated in bips
+	// short delta borrow rate. denominated in 6 dps
 	uint256 public shortDeltaBorrowRate;
 
 	//////////////////////////
@@ -79,7 +79,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	//////////////////////////
 
 	// BIPS
-	uint256 private constant MAX_BPS = 10_000;
+	uint256 private constant SIX_DPS = 1_000_000;
 	uint256 private constant ONE_YEAR_SECONDS = 31557600;
 	// used to convert e18 to e8
 	uint256 private constant SCALE_FROM = 10**10;
@@ -383,7 +383,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
 		// calculate the collateral cost portion of the spread
-		uint256 collateralLendingPremium = ((1e18 + (collateralLendingRate * 1e18) / MAX_BPS).pow(time))
+		uint256 collateralLendingPremium = ((1e18 + (collateralLendingRate * 1e18) / SIX_DPS).pow(time))
 			.mul(collateralToLend) - collateralToLend;
 		// this is just a magnitude value, sign doesnt matter
 		uint256 dollarDelta = uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice);
@@ -391,12 +391,12 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		if (_optionDelta < 0) {
 			// option is negative delta, resulting in long delta exposure for DHV. needs hedging with a short pos
 			deltaBorrowPremium =
-				dollarDelta.mul((1e18 + (shortDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
+				dollarDelta.mul((1e18 + (shortDeltaBorrowRate * 1e18) / SIX_DPS).pow(time)) -
 				dollarDelta;
 		} else {
 			// option is positive delta, resulting in short delta exposure for DHV. needs hedging with a long pos
 			deltaBorrowPremium =
-				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
+				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / SIX_DPS).pow(time)) -
 				dollarDelta;
 		}
 		return collateralLendingPremium + deltaBorrowPremium;
