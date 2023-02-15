@@ -168,7 +168,9 @@ export const Purchase = () => {
           toast("✅ Your transaction is already approved");
         }
         setIsApproved(true);
-      } catch {
+      } catch (error) {
+        captureException(error);
+        console.error(error);
         toast("❌ There was an error approving your transaction.");
       }
     }
