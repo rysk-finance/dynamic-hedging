@@ -1787,7 +1787,17 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				}
 			])
 		})
-
+		it("REVERT: approve series fails if expiration is not at 8am", async () => {
+			await expect(catalogue.issueNewSeries([
+				{
+					expiration: proposedSeries.expiration + 1,
+					isPut: proposedSeries.isPut,
+					strike: proposedSeries.strike,
+					isSellable: true,
+					isBuyable: true
+				}
+			])).to.be.revertedWithCustomError(catalogue, "InvalidExpiry()")
+		})
 		it("REVERTS: cant write eth options to the liquidity pool", async () => {
 			const amount = toWei("4")
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
