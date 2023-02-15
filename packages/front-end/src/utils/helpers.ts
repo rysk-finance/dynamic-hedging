@@ -1,27 +1,42 @@
-import { BigNumber, ethers, utils } from "ethers";
-import {
-  toWei,
-  genOptionTimeFromUnix,
-  fromWei,
-  tFormatUSDC,
-  tFormatEth,
-} from "./conversion-helper";
-import { LiquidityPool } from "../types/LiquidityPool";
-import { ERC20 } from "../types/ERC20";
-import { OptionRegistry } from "../types/OptionRegistry";
-import { PriceFeed } from "../types/PriceFeed";
-import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed";
+import type { ContractAddresses, ETHNetwork } from "src/types";
 
+import { getNetwork } from "@wagmi/core";
 import bs from "black-scholes";
+import { BigNumber, ethers, utils } from "ethers";
 import greeks from "greeks";
 import impliedVol from "implied-volatility";
+
+import addresses from "src/contracts.json";
+import { AlphaPortfolioValuesFeed } from "../types/AlphaPortfolioValuesFeed";
+import { ERC20 } from "../types/ERC20";
+import { LiquidityPool } from "../types/LiquidityPool";
+import { OptionRegistry } from "../types/OptionRegistry";
+import { PriceFeed } from "../types/PriceFeed";
 import { truncateDecimalString } from "../utils";
+import {
+  fromWei,
+  genOptionTimeFromUnix,
+  tFormatEth,
+  tFormatUSDC,
+  toWei,
+} from "./conversion-helper";
 
 const rfr = "0.03";
 const belowUtilizationThresholdGradient = 0.1;
 const aboveUtilizationThresholdGradient = 1.5;
 const utilizationFunctionThreshold = 0.6;
 const yIntercept = -0.84;
+
+export const getContractAddress = (contractName: keyof ContractAddresses) => {
+  const { chain } = getNetwork();
+  const typedAddresses = addresses as Record<ETHNetwork, ContractAddresses>;
+  const network = chain?.unsupported
+    ? (process.env.REACT_APP_NETWORK as ETHNetwork)
+    : (chain?.network as ETHNetwork) ||
+      (process.env.REACT_APP_NETWORK as ETHNetwork);
+
+  return typedAddresses[network][contractName] as `0x${string}`;
+};
 
 export async function calculateOptionQuoteLocally(
   liquidityPool: LiquidityPool,
