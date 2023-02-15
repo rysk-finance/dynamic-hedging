@@ -245,11 +245,11 @@ export const Purchase = () => {
           await optionExchangeContract.populateTransaction.operate(txData);
 
         if (data) {
-          const response = await simulateOperation(data, 2500000, 0, 0);
+          const response = await simulateOperation(data, 3000000, 0, 0);
 
           if (response?.simulation.status === true) {
             captureException(response);
-            optionExchangeContract?.operate(txData, { gasLimit: 2500000 });
+            optionExchangeContract?.operate(txData, { gasLimit: 3000000 });
           } else {
             toast("❌ Transaction would fail, reach out to the team.");
           }
