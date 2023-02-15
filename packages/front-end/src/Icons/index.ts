@@ -1,4 +1,6 @@
+import { DownChevron } from "./DownChevron";
 import { LeftArrow } from "./LeftArrow";
 import { RightArrow } from "./RightArrow";
+import { UpChevron } from "./UpChevron";
 
-export { LeftArrow, RightArrow };
+export { DownChevron, LeftArrow, RightArrow, UpChevron };
