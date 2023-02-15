@@ -188,10 +188,6 @@ describe("Actions tests", async () => {
 			await liquidityPool.executeEpochCalculation()
 			await liquidityPool.redeem(toWei("10000000"))
 		})
-		it("SETUP: set the pool fee", async function () {
-			await exchange.setPoolFee(weth.address, 500)
-			expect(await exchange.poolFees(weth.address)).to.equal(500)
-		})
 	})
 	describe("Action checks without operator approved", async () => {
 		it("REVERTS: OPYN open vault without operator approved", async () => {

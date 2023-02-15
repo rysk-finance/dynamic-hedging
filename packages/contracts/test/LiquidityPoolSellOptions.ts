@@ -1793,7 +1793,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, toWei("0"))
 			let quote = quoteResponse[0].add(quoteResponse[2])
-			await usd.approve(exchange.address, quote)
+			await usd.approve(exchange.address, quote.add(100))
 			await expect(
 				exchange.operate([
 					{
@@ -3646,7 +3646,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				optionToken = oTokenUSDC1650C
 				const reactorOtokenBalanceBefore = await optionToken.balanceOf(exchange.address)
 				const liquidityPoolUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-				const redeem = await exchange.redeem([optionToken.address])
+				const redeem = await exchange.redeem([optionToken.address], [0])
 				const receipt = await redeem.wait()
 				const events = receipt.events
 				const redemptionEvent = events?.find(x => x.event == "RedemptionSent")
@@ -3662,11 +3662,15 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		})
 
 		describe("Settles and redeems eth otoken", async () => {
+			it("REVERTS: redeems options held fails because past AmountOutMinimum", async () => {
+				optionToken = oTokenETH1500C
+				await expect(exchange.redeem([optionToken.address], [toWei("10000")])).to.be.revertedWith("Too little received")
+			})
 			it("SUCCEEDS: redeems options held", async () => {
 				optionToken = oTokenETH1500C
 				const reactorOtokenBalanceBefore = await optionToken.balanceOf(exchange.address)
 				const liquidityPoolUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-				const redeem = await exchange.redeem([optionToken.address])
+				const redeem = await exchange.redeem([optionToken.address], [0])
 				const receipt = await redeem.wait()
 				const events = receipt.events
 				const redemptionEvent = events?.find(x => x.event == "RedemptionSent")
@@ -3683,7 +3687,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		describe("Settles and redeems busd otoken", async () => {
 			it("REVERTS: cannot redeem option when pool fee not set", async () => {
 				optionToken = oTokenBUSD3000P
-				await expect(exchange.redeem([optionToken.address])).to.be.revertedWithCustomError(exchange, "PoolFeeNotSet")
+				await expect(exchange.redeem([optionToken.address], [0])).to.be.revertedWithCustomError(exchange, "PoolFeeNotSet")
 			})
 			it("SETUP: set pool fee for busd", async () => {
 				await exchange.setPoolFee("0x4Fabb145d64652a948d72533023f6E7A623C7C53", 500)
@@ -3693,7 +3697,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				optionToken = oTokenBUSD3000P
 				const reactorOtokenBalanceBefore = await optionToken.balanceOf(exchange.address)
 				const liquidityPoolUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
-				const redeem = await exchange.redeem([optionToken.address])
+				const redeem = await exchange.redeem([optionToken.address], [0])
 				const receipt = await redeem.wait()
 				const events = receipt.events
 				const redemptionEvent = events?.find(x => x.event == "RedemptionSent")

@@ -62,6 +62,11 @@ export const OptionExchangeABI = [
 	},
 	{
 		"inputs": [],
+		"name": "InvalidInput",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "NonExistentOtoken",
 		"type": "error"
 	},
@@ -1077,6 +1082,11 @@ export const OptionExchangeABI = [
 				"internalType": "address[]",
 				"name": "_series",
 				"type": "address[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "amountOutMinimums",
+				"type": "uint256[]"
 			}
 		],
 		"name": "redeem",

@@ -274,9 +274,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @notice get the dhv to redeem an expired otoken
 	 * @param _series the list of series to redeem
 	 */
-	function redeem(address[] memory _series) external {
+	function redeem(address[] memory _series, uint256[] memory amountOutMinimums) external {
 		_onlyManager();
 		uint256 adLength = _series.length;
+		if (adLength != amountOutMinimums.length) revert CustomErrors.InvalidInput();
 		for (uint256 i; i < adLength; i++) {
 			// get the number of otokens held by this address for the specified series
 			uint256 optionAmount = ERC20(_series[i]).balanceOf(address(this));
@@ -298,7 +299,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), redeemAmount);
 				emit RedemptionSent(redeemAmount, collateralAsset, address(liquidityPool));
 			} else {
-				uint256 redeemableCollateral = _swapExactInputSingle(redeemAmount, 0, otokenCollateralAsset);
+				uint256 redeemableCollateral = _swapExactInputSingle(redeemAmount, amountOutMinimums[i], otokenCollateralAsset);
 				SafeTransferLib.safeTransfer(
 					ERC20(collateralAsset),
 					address(liquidityPool),
