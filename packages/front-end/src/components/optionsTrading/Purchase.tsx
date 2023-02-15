@@ -1,8 +1,9 @@
 import { BigNumber } from "@ethersproject/bignumber";
+import { captureException } from "@sentry/react";
 import dayjs from "dayjs";
 import { ethers } from "ethers";
-import NumberFormat from "react-number-format";
 import { useEffect, useState } from "react";
+import NumberFormat from "react-number-format";
 import { toast } from "react-toastify";
 import { useAccount, useNetwork } from "wagmi";
 
@@ -15,7 +16,11 @@ import {
   ZERO_ADDRESS,
 } from "../../config/constants";
 import addresses from "../../contracts.json";
+import useApproveExchange from "../../hooks/useApproveExchange";
+import useApproveTransfer from "../../hooks/useApproveTransfer";
 import { useContract } from "../../hooks/useContract";
+import useOToken from "../../hooks/useOToken";
+import useSellOperate from "../../hooks/useSellOperate";
 import useTenderlySimulator from "../../hooks/useTenderlySimulator";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
@@ -23,12 +28,7 @@ import { ContractAddresses, ETHNetwork } from "../../types";
 import { toOpyn, toUSDC, toWei } from "../../utils/conversion-helper";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
-import { captureException } from "@sentry/react";
-import useApproveExchange from "../../hooks/useApproveExchange";
 import CollateralRequirement from "./CollateralRequirement";
-import useApproveTransfer from "../../hooks/useApproveTransfer";
-import useSellOperate from "../../hooks/useSellOperate";
-import useOToken from "../../hooks/useOToken";
 
 const formatOptionDate = (date: number | null) => {
   if (date) {
@@ -142,8 +142,7 @@ export const Purchase = () => {
       const total =
         strikeOptions[callOrPut][bidOrAsk].quote * Number(uiOrderSize);
       const withBuffer = total * 1.05;
-      const amount = toUSDC(withBuffer.toString());
-      console.log(total, amount);
+      const amount = toUSDC(String(withBuffer));
 
       const approvedAmount = (await usdcContract.allowance(
         address,
