@@ -127,7 +127,7 @@ export interface OptionExchangeInterface extends utils.Interface {
     "poolFees(address)": FunctionFragment;
     "pricer()": FunctionFragment;
     "protocol()": FunctionFragment;
-    "redeem(address[])": FunctionFragment;
+    "redeem(address[],uint256[])": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "setFeeRecipient(address)": FunctionFragment;
     "setOptionCatalogue(address)": FunctionFragment;
@@ -222,7 +222,10 @@ export interface OptionExchangeInterface extends utils.Interface {
   encodeFunctionData(functionFragment: "poolFees", values: [string]): string;
   encodeFunctionData(functionFragment: "pricer", values?: undefined): string;
   encodeFunctionData(functionFragment: "protocol", values?: undefined): string;
-  encodeFunctionData(functionFragment: "redeem", values: [string[]]): string;
+  encodeFunctionData(
+    functionFragment: "redeem",
+    values: [string[], BigNumberish[]]
+  ): string;
   encodeFunctionData(
     functionFragment: "setAuthority",
     values: [string]
@@ -578,6 +581,7 @@ export interface OptionExchange extends BaseContract {
 
     redeem(
       _series: string[],
+      amountOutMinimums: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -726,6 +730,7 @@ export interface OptionExchange extends BaseContract {
 
   redeem(
     _series: string[],
+    amountOutMinimums: BigNumberish[],
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -870,7 +875,11 @@ export interface OptionExchange extends BaseContract {
 
     protocol(overrides?: CallOverrides): Promise<string>;
 
-    redeem(_series: string[], overrides?: CallOverrides): Promise<void>;
+    redeem(
+      _series: string[],
+      amountOutMinimums: BigNumberish[],
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     setAuthority(
       _newAuthority: string,
@@ -1095,6 +1104,7 @@ export interface OptionExchange extends BaseContract {
 
     redeem(
       _series: string[],
+      amountOutMinimums: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -1251,6 +1261,7 @@ export interface OptionExchange extends BaseContract {
 
     redeem(
       _series: string[],
+      amountOutMinimums: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

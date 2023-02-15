@@ -190,10 +190,6 @@ describe("Spread Pricer testing", async () => {
 			await liquidityPool.setHedgingReactorAddress(exchange.address)
 			expect(await liquidityPool.hedgingReactors(0)).to.equal(exchange.address)
 		})
-		it("SETUP: set the pool fee", async function () {
-			await exchange.setPoolFee(weth.address, 500)
-			expect(await exchange.poolFees(weth.address)).to.equal(500)
-		})
 	})
 	describe("Get quotes successfully for small and big calls", async () => {
 		let proposedSeries: any
