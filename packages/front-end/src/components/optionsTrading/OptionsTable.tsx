@@ -303,208 +303,299 @@ export const OptionsTable = () => {
   };
 
   return (
-    <table className="w-full bg-white border-b-2 border-black">
-      <thead className="text-left border-b-2 border-black">
-        <tr className="text-center bg-gray-500 border-b-2 border-black">
-          <th colSpan={6} className={"py-2"}>
-            CALLS
-          </th>
-          <th colSpan={1}>
+    <table className="block bg-bone">
+      <thead className="block border-t border-gray-500">
+        <tr className="grid grid-cols-13 bg-bone-dark [&_th]:py-3 [&_th]:px-0">
+          <th className="col-span-6">CALLS</th>
+          <th className="col-span-1">
             {expiryDate && dayjs.unix(expiryDate).format("MMM DD")}
           </th>
-          <th colSpan={6}>PUTS</th>
+          <th className="col-span-6">PUTS</th>
         </tr>
-        <tr className="text-center">
-          <th className="py-2">Bid IV</th>
-          <th className="">Bid</th>
-          <th className="">Ask</th>
-          <th>Ask IV</th>
-          <th>Delta</th>
-          <th>Pos</th>
-          <th className="bg-bone-dark border-x border-black">Strike</th>
-          <th>Bid IV</th>
-          <th className="">Bid</th>
-          <th className="">Ask</th>
-          <th>Ask IV</th>
-          <th>Delta</th>
-          <th>Pos</th>
+        <tr className="grid grid-cols-13 [&_th]:py-3">
+          <th className="col-span-1">Bid IV</th>
+          <th className="col-span-1">Bid</th>
+          <th className="col-span-1">Ask</th>
+          <th className="col-span-1">Ask IV</th>
+          <th className="col-span-1">Delta</th>
+          <th className="col-span-1">Pos</th>
+          <th className="col-span-1 bg-bone-dark">Strike</th>
+          <th className="col-span-1">Bid IV</th>
+          <th className="col-span-1">Bid</th>
+          <th className="col-span-1">Ask</th>
+          <th className="col-span-1">Ask IV</th>
+          <th className="col-span-1">Delta</th>
+          <th className="col-span-1">Pos</th>
         </tr>
       </thead>
-      <tbody className="font-dm-mono">
+      <tbody className="block font-dm-mono text-sm">
         {Boolean(chainRows.length) &&
-          chainRows.map((option) => (
-            <tr className="text-right h-12 odd:bg-gray-300" key={option.strike}>
-              <td className="pr-4">
-                <NumberFormat
-                  value={option.call.bid.IV}
-                  displayType={"text"}
-                  decimalScale={2}
-                  suffix={"%"}
-                />
-              </td>
-              <td
-                className="pr-4 text-red-700 cursor-pointer"
-                onClick={() =>
-                  setSelectedOption({
-                    callOrPut: "call",
-                    bidOrAsk: "bid",
-                    strikeOptions: option,
-                  })
-                }
+          chainRows.map((option) => {
+            const getColorClasses = (
+              option: StrikeOptions,
+              side: SelectedOption["callOrPut"]
+            ) => {
+              const strikeSelected =
+                option.strike === selectedOption?.strikeOptions.strike;
+              const callRowSelected =
+                selectedOption?.callOrPut === "call" && strikeSelected;
+              const putRowSelected =
+                selectedOption?.callOrPut === "put" && strikeSelected;
+              const callITM = ethPrice && option.strike <= ethPrice;
+              const putITM = ethPrice && option.strike >= ethPrice;
+
+              switch (true) {
+                case (callRowSelected && callITM && side === "call") ||
+                  (putRowSelected && putITM && side === "put"):
+                  return "bg-green-100";
+
+                case (callITM && side === "call") || (putITM && side === "put"):
+                  return "bg-green-100/25 hover:bg-green-100";
+
+                case (callRowSelected && side === "call") ||
+                  (putRowSelected && side === "put"):
+                  return "bg-bone-dark/60";
+
+                default:
+                  return "hover:bg-bone-dark/50";
+              }
+            };
+
+            return (
+              <tr
+                className="grid grid-cols-13 even:bg-bone odd:bg-bone-light even:bg-[url('./assets/wave-lines.png')] bg-right bg-no-repeat text-right [&_td]:col-span-1 [&_td]:border [&_td]:border-dashed [&_td]:border-gray-500 [&_td]:ease-in-out [&_td]:duration-100 [&_td]:cursor-default"
+                key={option.strike}
               >
+                <td
+                  className={`!border-l-0 p-3 ${getColorClasses(
+                    option,
+                    "call"
+                  )}`}
+                >
+                  <NumberFormat
+                    value={option.call.bid.IV}
+                    displayType={"text"}
+                    decimalScale={2}
+                    suffix={"%"}
+                  />
+                </td>
                 <NumberFormat
                   value={option.call.bid.quote}
                   displayType={"text"}
                   decimalScale={2}
                   prefix={"$"}
-                />
-              </td>
-              <NumberFormat
-                value={option.call.ask.quote}
-                displayType={"text"}
-                decimalScale={2}
-                prefix={"$"}
-                renderText={(value) => {
-                  const disabled =
-                    option.call.ask.disabled || !option.call.ask.quote;
+                  renderText={(value) => {
+                    const disabled =
+                      option.call.bid.disabled || !option.call.bid.quote;
 
-                  return (
-                    <td
-                      className={`pr-4 ${
-                        disabled ? "text-gray-600" : "text-green-700"
-                      }`}
-                    >
-                      <button
-                        className={
-                          disabled ? "cursor-not-allowed" : "cursor-pointer"
+                    return (
+                      <td
+                        className={`${
+                          disabled ? "text-gray-600" : "text-red-700"
                         }
-                        onClick={() =>
-                          setSelectedOption({
-                            callOrPut: "call",
-                            bidOrAsk: "ask",
-                            strikeOptions: option,
-                          })
-                        }
-                        disabled={disabled}
+                        ${getColorClasses(option, "call")}`}
                       >
-                        {value}
-                      </button>
-                    </td>
-                  );
-                }}
-              />
-              <td className="pr-4">
+                        <button
+                          className={`${
+                            disabled ? "cursor-not-allowed" : "cursor-pointer"
+                          } p-3 w-full text-right`}
+                          onClick={() =>
+                            setSelectedOption({
+                              callOrPut: "call",
+                              bidOrAsk: "bid",
+                              strikeOptions: option,
+                            })
+                          }
+                          disabled={disabled}
+                        >
+                          {value}
+                        </button>
+                      </td>
+                    );
+                  }}
+                />
                 <NumberFormat
-                  value={option.call.ask.IV}
+                  value={option.call.ask.quote}
                   displayType={"text"}
                   decimalScale={2}
-                  suffix={"%"}
+                  prefix={"$"}
+                  renderText={(value) => {
+                    const disabled =
+                      option.call.ask.disabled || !option.call.ask.quote;
+
+                    return (
+                      <td
+                        className={`${
+                          disabled ? "text-gray-600" : "text-green-700"
+                        }
+                        ${getColorClasses(option, "call")}`}
+                      >
+                        <button
+                          className={`${
+                            disabled ? "cursor-not-allowed" : "cursor-pointer"
+                          } p-3 w-full text-right`}
+                          onClick={() =>
+                            setSelectedOption({
+                              callOrPut: "call",
+                              bidOrAsk: "ask",
+                              strikeOptions: option,
+                            })
+                          }
+                          disabled={disabled}
+                        >
+                          {value}
+                        </button>
+                      </td>
+                    );
+                  }}
                 />
-              </td>
-              <td className="pr-4">
-                <NumberFormat
-                  value={option.call.delta}
-                  displayType={"text"}
-                  decimalScale={2}
-                />
-              </td>
-              <td className="pr-4">
-                <NumberFormat
-                  value={option.call.pos}
-                  displayType={"text"}
-                  decimalScale={2}
-                />
-              </td>
-              <td className="w-20 text-center bg-bone-dark border-x border-black">
-                <NumberFormat
-                  value={option.strike}
-                  displayType={"text"}
-                  decimalScale={0}
-                />
-              </td>
-              <td className="pr-4">
-                <NumberFormat
-                  value={option.put.bid.IV}
-                  displayType={"text"}
-                  decimalScale={2}
-                  suffix={"%"}
-                />
-              </td>
-              <td
-                className="pr-4 text-red-700 cursor-pointer"
-                onClick={() =>
-                  setSelectedOption({
-                    callOrPut: "put",
-                    bidOrAsk: "bid",
-                    strikeOptions: option,
-                  })
-                }
-              >
+                <td className={`p-3 ${getColorClasses(option, "call")}`}>
+                  <NumberFormat
+                    value={option.call.ask.IV}
+                    displayType={"text"}
+                    decimalScale={2}
+                    suffix={"%"}
+                  />
+                </td>
+                <td className={`p-3 ${getColorClasses(option, "call")}`}>
+                  <NumberFormat
+                    value={option.call.delta}
+                    displayType={"text"}
+                    decimalScale={2}
+                  />
+                </td>
+                <td
+                  className={`!border-r-0 p-3 ${getColorClasses(
+                    option,
+                    "call"
+                  )}`}
+                >
+                  <NumberFormat
+                    value={option.call.pos}
+                    displayType={"text"}
+                    decimalScale={2}
+                  />
+                </td>
+                <td className="text-center bg-bone-dark !border-0 font-medium p-3">
+                  <NumberFormat
+                    value={option.strike}
+                    displayType={"text"}
+                    decimalScale={0}
+                  />
+                </td>
+                <td
+                  className={`!border-l-0 p-3 ${getColorClasses(
+                    option,
+                    "put"
+                  )}`}
+                >
+                  <NumberFormat
+                    value={option.put.bid.IV}
+                    displayType={"text"}
+                    decimalScale={2}
+                    suffix={"%"}
+                  />
+                </td>
                 <NumberFormat
                   value={option.put.bid.quote}
                   displayType={"text"}
                   decimalScale={2}
                   prefix={"$"}
-                />
-              </td>
-              <NumberFormat
-                value={option.put.ask.quote}
-                displayType={"text"}
-                decimalScale={2}
-                prefix={"$"}
-                renderText={(value) => {
-                  const disabled =
-                    option.put.ask.disabled || !option.put.ask.quote;
+                  renderText={(value) => {
+                    const disabled =
+                      option.put.bid.disabled || !option.put.bid.quote;
 
-                  return (
-                    <td
-                      className={`pr-4 ${
-                        disabled ? "text-gray-600" : "text-green-700"
-                      }`}
-                    >
-                      <button
-                        className={
-                          disabled ? "cursor-not-allowed" : "cursor-pointer"
+                    return (
+                      <td
+                        className={`${
+                          disabled ? "text-gray-600" : "text-red-700"
                         }
-                        onClick={() =>
-                          setSelectedOption({
-                            callOrPut: "put",
-                            bidOrAsk: "ask",
-                            strikeOptions: option,
-                          })
-                        }
-                        disabled={disabled}
+                        ${getColorClasses(option, "put")}`}
                       >
-                        {value}
-                      </button>
-                    </td>
-                  );
-                }}
-              />
-              <td className="pr-4">
+                        <button
+                          className={`${
+                            disabled ? "cursor-not-allowed" : "cursor-pointer"
+                          } p-3 w-full text-right`}
+                          onClick={() =>
+                            setSelectedOption({
+                              callOrPut: "put",
+                              bidOrAsk: "bid",
+                              strikeOptions: option,
+                            })
+                          }
+                          disabled={disabled}
+                        >
+                          {value}
+                        </button>
+                      </td>
+                    );
+                  }}
+                />
                 <NumberFormat
-                  value={option.put.ask.IV}
+                  value={option.put.ask.quote}
                   displayType={"text"}
                   decimalScale={2}
-                  suffix={"%"}
+                  prefix={"$"}
+                  renderText={(value) => {
+                    const disabled =
+                      option.put.ask.disabled || !option.put.ask.quote;
+
+                    return (
+                      <td
+                        className={`${
+                          disabled ? "text-gray-600" : "text-green-700"
+                        }
+                      ${getColorClasses(option, "put")}`}
+                      >
+                        <button
+                          className={`${
+                            disabled ? "cursor-not-allowed" : "cursor-pointer"
+                          } p-3 w-full text-right`}
+                          onClick={() =>
+                            setSelectedOption({
+                              callOrPut: "put",
+                              bidOrAsk: "ask",
+                              strikeOptions: option,
+                            })
+                          }
+                          disabled={disabled}
+                        >
+                          {value}
+                        </button>
+                      </td>
+                    );
+                  }}
                 />
-              </td>
-              <td className="pr-4">
-                <NumberFormat
-                  value={option.put.delta}
-                  displayType={"text"}
-                  decimalScale={2}
-                />
-              </td>
-              <td className="pr-4">
-                <NumberFormat
-                  value={option.put.pos}
-                  displayType={"text"}
-                  decimalScale={2}
-                />
-              </td>
-            </tr>
-          ))}
+                <td className={`p-3 ${getColorClasses(option, "put")}`}>
+                  <NumberFormat
+                    value={option.put.ask.IV}
+                    displayType={"text"}
+                    decimalScale={2}
+                    suffix={"%"}
+                  />
+                </td>
+                <td className={`p-3 ${getColorClasses(option, "put")}`}>
+                  <NumberFormat
+                    value={option.put.delta}
+                    displayType={"text"}
+                    decimalScale={2}
+                  />
+                </td>
+                <td
+                  className={`!border-r-0 p-3 ${getColorClasses(
+                    option,
+                    "put"
+                  )}`}
+                >
+                  <NumberFormat
+                    value={option.put.pos}
+                    displayType={"text"}
+                    decimalScale={2}
+                  />
+                </td>
+              </tr>
+            );
+          })}
       </tbody>
     </table>
   );
