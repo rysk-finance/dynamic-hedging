@@ -185,12 +185,12 @@ export const OptionsTable = () => {
                 bid: {
                   IV: ivBidCall >= 0.1 ? ivBidCall : "-",
                   quote: quoteBidCallTotal,
-                  disabled: !callAvailability.isBuyable,
+                  disabled: !callAvailability.isSellable,
                 },
                 ask: {
                   IV: ivAskCall >= 0.1 ? ivAskCall : "-",
                   quote: quoteAskCallTotal,
-                  disabled: !callAvailability.isSellable,
+                  disabled: !callAvailability.isBuyable,
                 },
                 delta: Number(fromWei(localDeltaCall).toString()),
               },
@@ -198,12 +198,12 @@ export const OptionsTable = () => {
                 bid: {
                   IV: ivBidPut >= 0.1 ? ivBidPut : "-",
                   quote: quoteBidPutTotal,
-                  disabled: !putAvailability.isBuyable,
+                  disabled: !putAvailability.isSellable,
                 },
                 ask: {
                   IV: ivAskPut >= 0.1 ? ivAskPut : "-",
                   quote: quoteAskPutTotal,
-                  disabled: !putAvailability.isSellable,
+                  disabled: !putAvailability.isBuyable,
                 },
                 delta: Number(fromWei(localDeltaPut).toString()),
               },
