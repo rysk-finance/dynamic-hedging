@@ -129,6 +129,7 @@ export interface StrikeOptions {
       disabled: boolean;
     };
     delta: number;
+    pos: string;
   };
   put: {
     bid: {
@@ -142,6 +143,7 @@ export interface StrikeOptions {
       disabled: boolean;
     };
     delta: number;
+    pos: string;
   };
 }
 
