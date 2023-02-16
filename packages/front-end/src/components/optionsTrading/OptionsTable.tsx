@@ -4,12 +4,13 @@ import type {
   StrikeOptions,
 } from "../../state/types";
 
+import { gql, useQuery } from "@apollo/client";
 import { captureException } from "@sentry/react";
 import dayjs from "dayjs";
 import { BigNumber, utils } from "ethers";
 import { useEffect, useState } from "react";
 import NumberFormat from "react-number-format";
-import { useContract, useProvider } from "wagmi";
+import { useContract, useProvider, useAccount } from "wagmi";
 
 import { AlphaPortfolioValuesFeedABI } from "src/abis/AlphaPortfolioValuesFeed_ABI";
 import { BeyondPricerABI } from "src/abis/BeyondPricer_ABI";
@@ -17,14 +18,21 @@ import { OptionCatalogueABI } from "src/abis/OptionCatalogue_ABI";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { OptionsTradingActionType } from "../../state/types";
-import { fromWei, tFormatUSDC, toWei } from "../../utils/conversion-helper";
+import {
+  fromWei,
+  tFormatUSDC,
+  toWei,
+  fromOpyn,
+} from "../../utils/conversion-helper";
 import {
   calculateOptionDeltaLocally,
   getContractAddress,
   returnIVFromQuote,
 } from "../../utils/helpers";
+import { BIG_NUMBER_DECIMALS } from "src/config/constants";
 
 export const OptionsTable = () => {
+  const { address } = useAccount();
   const provider = useProvider();
 
   const {
@@ -32,11 +40,38 @@ export const OptionsTable = () => {
   } = useGlobalContext();
 
   const {
-    state: { optionType, customOptionStrikes, expiryDate },
+    state: { optionType, customOptionStrikes, expiryDate, selectedOption },
     dispatch,
   } = useOptionsTradingContext();
 
   const [chainRows, setChainRows] = useState<StrikeOptions[]>([]);
+
+  const { data: userData, refetch } = useQuery(
+    gql`
+      query ($address: String) {
+        account(id: $address) {
+          balances {
+            token {
+              isPut
+              expiryTimestamp
+              strikePrice
+            }
+            balance
+          }
+        }
+      }
+    `,
+    {
+      onError: (err) => {
+        captureException(err);
+        console.error(err);
+      },
+      variables: {
+        address: address?.toLowerCase(),
+      },
+      skip: !address,
+    }
+  );
 
   const beyondPricer = useContract({
     address: getContractAddress("beyondPricer"),
@@ -64,6 +99,8 @@ export const OptionsTable = () => {
       portfolioValuesFeed &&
       beyondPricer
     ) {
+      address && refetch();
+
       const bigNumberExpiry = BigNumber.from(expiryDate);
 
       const fetchPrices = async () => {
@@ -177,6 +214,35 @@ export const OptionsTable = () => {
               optionSeriesPut
             );
 
+            const positions = userData?.account?.balances.reduce(
+              (
+                acc: {
+                  call: string;
+                  put: string;
+                },
+                { token, balance }: { token: any; balance: string }
+              ) => {
+                const matchesExpiry =
+                  Number(token.expiryTimestamp) === expiryDate;
+                const matchesStrike =
+                  BigNumber.from(token.strikePrice)
+                    .div(BIG_NUMBER_DECIMALS.OPYN)
+                    .mul(BIG_NUMBER_DECIMALS.RYSK)
+                    .toString() === strike;
+
+                if (matchesExpiry && matchesStrike && token.isPut) {
+                  acc.put = fromOpyn(balance);
+                }
+
+                if (matchesExpiry && matchesStrike && !token.isPut) {
+                  acc.call = fromOpyn(balance);
+                }
+
+                return acc;
+              },
+              { call: "-", put: "-" }
+            );
+
             return {
               strike: Number(fromWei(strike).toString()),
               call: {
@@ -191,6 +257,7 @@ export const OptionsTable = () => {
                   disabled: !callAvailability.isBuyable,
                 },
                 delta: Number(fromWei(localDeltaCall).toString()),
+                pos: positions ? positions.call : "-",
               },
               put: {
                 bid: {
@@ -204,6 +271,7 @@ export const OptionsTable = () => {
                   disabled: !putAvailability.isBuyable,
                 },
                 delta: Number(fromWei(localDeltaPut).toString()),
+                pos: positions ? positions.put : "-",
               },
             };
           })
@@ -222,6 +290,7 @@ export const OptionsTable = () => {
       });
     }
   }, [
+    userData?.account,
     ethPrice,
     optionType,
     customOptionStrikes,
@@ -237,13 +306,13 @@ export const OptionsTable = () => {
     <table className="w-full bg-white border-b-2 border-black">
       <thead className="text-left border-b-2 border-black">
         <tr className="text-center bg-gray-500 border-b-2 border-black">
-          <th colSpan={5} className={"py-2"}>
+          <th colSpan={6} className={"py-2"}>
             CALLS
           </th>
           <th colSpan={1}>
             {expiryDate && dayjs.unix(expiryDate).format("MMM DD")}
           </th>
-          <th colSpan={5}>PUTS</th>
+          <th colSpan={6}>PUTS</th>
         </tr>
         <tr className="text-center">
           <th className="py-2">Bid IV</th>
@@ -251,12 +320,14 @@ export const OptionsTable = () => {
           <th className="">Ask</th>
           <th>Ask IV</th>
           <th>Delta</th>
+          <th>Pos</th>
           <th className="bg-bone-dark border-x border-black">Strike</th>
           <th>Bid IV</th>
           <th className="">Bid</th>
           <th className="">Ask</th>
           <th>Ask IV</th>
           <th>Delta</th>
+          <th>Pos</th>
         </tr>
       </thead>
       <tbody className="font-dm-mono">
@@ -333,6 +404,13 @@ export const OptionsTable = () => {
               <td className="pr-4">
                 <NumberFormat
                   value={option.call.delta}
+                  displayType={"text"}
+                  decimalScale={2}
+                />
+              </td>
+              <td className="pr-4">
+                <NumberFormat
+                  value={option.call.pos}
                   displayType={"text"}
                   decimalScale={2}
                 />
@@ -414,6 +492,13 @@ export const OptionsTable = () => {
               <td className="pr-4">
                 <NumberFormat
                   value={option.put.delta}
+                  displayType={"text"}
+                  decimalScale={2}
+                />
+              </td>
+              <td className="pr-4">
+                <NumberFormat
+                  value={option.put.pos}
                   displayType={"text"}
                   decimalScale={2}
                 />
