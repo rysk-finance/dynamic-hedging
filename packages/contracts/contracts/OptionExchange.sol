@@ -856,7 +856,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 	}
 
-	/** @notice function to sell exact amount of amountIn to the minimum amountOutMinimum of assetIn
+	/** @notice function to sell exact amount of assetIn to the minimum amountOutMinimum of collateralAsset
 	 *  @param _amountIn the exact amount of assetIn to sell
 	 *  @param _amountOutMinimum the min amount of collateral asset willing to receive. Slippage limit.
 	 *  @param _assetIn the asset to swap from
