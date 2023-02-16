@@ -9,7 +9,7 @@ import dayjs from "dayjs";
 import { BigNumber, utils } from "ethers";
 import { useEffect, useState } from "react";
 import NumberFormat from "react-number-format";
-import { useContract, useNetwork, useProvider } from "wagmi";
+import { useContract, useProvider } from "wagmi";
 
 import { AlphaPortfolioValuesFeedABI } from "src/abis/AlphaPortfolioValuesFeed_ABI";
 import { BeyondPricerABI } from "src/abis/BeyondPricer_ABI";
@@ -25,7 +25,6 @@ import {
 } from "../../utils/helpers";
 
 export const OptionsTable = () => {
-  const { chain } = useNetwork();
   const provider = useProvider();
 
   const {
@@ -60,7 +59,6 @@ export const OptionsTable = () => {
   useEffect(() => {
     if (
       ethPrice &&
-      chain &&
       expiryDate &&
       optionCatalogue &&
       portfolioValuesFeed &&
@@ -220,7 +218,6 @@ export const OptionsTable = () => {
       });
     }
   }, [
-    chain,
     ethPrice,
     optionType,
     customOptionStrikes,
