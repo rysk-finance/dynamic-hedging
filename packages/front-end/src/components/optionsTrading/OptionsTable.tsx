@@ -209,7 +209,11 @@ export const OptionsTable = () => {
           })
         );
 
-        setChainRows(optionsChainRows);
+        // Might be temp, possibly do this at the graph level
+        // once we can get all this data from there?
+        const sorted = optionsChainRows.sort((a, b) => a.strike - b.strike);
+
+        setChainRows(sorted);
       };
 
       fetchPrices().catch((error) => {
