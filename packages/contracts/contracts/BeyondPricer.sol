@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0;
+pragma solidity >=0.8.9;
 
 import "./Protocol.sol";
 import "./PriceFeed.sol";
@@ -67,11 +67,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	uint256[] public callSlippageGradientMultipliers;
 	uint256[] public putSlippageGradientMultipliers;
 
-	// represents the lending rate of collateral used to collateralise short options by the DHV. denominated in bips
+	// represents the lending rate of collateral used to collateralise short options by the DHV. denominated in 6 dps
 	uint256 public collateralLendingRate;
-	// long delta borrow rate. denominated in bips
+	// long delta borrow rate. denominated in 6 dps
 	uint256 public longDeltaBorrowRate;
-	// short delta borrow rate. denominated in bips
+	// short delta borrow rate. denominated in 6 dps
 	uint256 public shortDeltaBorrowRate;
 
 	//////////////////////////
@@ -79,7 +79,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	//////////////////////////
 
 	// BIPS
-	uint256 private constant MAX_BPS = 10_000;
+	uint256 private constant SIX_DPS = 1_000_000;
 	uint256 private constant ONE_YEAR_SECONDS = 31557600;
 	// used to convert e18 to e8
 	uint256 private constant SCALE_FROM = 10**10;
@@ -316,7 +316,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		int256 _netDhvExposure,
 		bool _isSell
 	) internal view returns (uint256 slippageMultiplier) {
-		// divide _amount by 2 to obtain the average exposure throughout the tx. Stops large orders being disproportionately penalised.
 		// slippage will be exponential with the exponent being the DHV's net exposure
 		int256 newExposureExponent = _isSell
 			? _netDhvExposure + int256(_amount)
@@ -335,6 +334,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			slippageMultiplier = 1e18;
 			return slippageMultiplier;
 		}
+		// integrate the exponential function to get the slippage multiplier as this represents the average exposure
 		// if it is a sell then we need to do lower bound is old exposure exponent, upper bound is new exposure exponent
 		// if it is a buy then we need to do lower bound is new exposure exponent, upper bound is old exposure exponent
 		int256 slippageFactor = int256(1e18 + modifiedSlippageGradient);
@@ -383,7 +383,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
 		// calculate the collateral cost portion of the spread
-		uint256 collateralLendingPremium = ((1e18 + (collateralLendingRate * 1e18) / MAX_BPS).pow(time))
+		uint256 collateralLendingPremium = ((1e18 + (collateralLendingRate * 1e18) / SIX_DPS).pow(time))
 			.mul(collateralToLend) - collateralToLend;
 		// this is just a magnitude value, sign doesnt matter
 		uint256 dollarDelta = uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice);
@@ -391,12 +391,12 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		if (_optionDelta < 0) {
 			// option is negative delta, resulting in long delta exposure for DHV. needs hedging with a short pos
 			deltaBorrowPremium =
-				dollarDelta.mul((1e18 + (shortDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
+				dollarDelta.mul((1e18 + (shortDeltaBorrowRate * 1e18) / SIX_DPS).pow(time)) -
 				dollarDelta;
 		} else {
 			// option is positive delta, resulting in short delta exposure for DHV. needs hedging with a long pos
 			deltaBorrowPremium =
-				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
+				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / SIX_DPS).pow(time)) -
 				dollarDelta;
 		}
 		return collateralLendingPremium + deltaBorrowPremium;

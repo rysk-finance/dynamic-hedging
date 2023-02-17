@@ -152,12 +152,12 @@ describe("Spread Pricer testing", async () => {
 			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 		})
 		it("sets spread values to non-zero", async () => {
-			await pricer.setCollateralLendingRate(1000) // 10%
-			expect(await pricer.collateralLendingRate()).to.eq(1000)
-			await pricer.setShortDeltaBorrowRate(1000) // 10%
-			expect(await pricer.shortDeltaBorrowRate()).to.eq(1000)
-			await pricer.setLongDeltaBorrowRate(1500) // 15%
-			expect(await pricer.longDeltaBorrowRate()).to.eq(1500)
+			await pricer.setCollateralLendingRate(100000) // 10%
+			expect(await pricer.collateralLendingRate()).to.eq(100000)
+			await pricer.setShortDeltaBorrowRate(100000) // 10%
+			expect(await pricer.shortDeltaBorrowRate()).to.eq(100000)
+			await pricer.setLongDeltaBorrowRate(150000) // 15%
+			expect(await pricer.longDeltaBorrowRate()).to.eq(150000)
 		})
 		it("sets slippage vars to zero", async () => {
 			await pricer.setSlippageGradient(0)
@@ -189,10 +189,6 @@ describe("Spread Pricer testing", async () => {
 		it("SETUP: sets the exchange as a hedging reactor", async function () {
 			await liquidityPool.setHedgingReactorAddress(exchange.address)
 			expect(await liquidityPool.hedgingReactors(0)).to.equal(exchange.address)
-		})
-		it("SETUP: set the pool fee", async function () {
-			await exchange.setPoolFee(weth.address, 500)
-			expect(await exchange.poolFees(weth.address)).to.equal(500)
 		})
 	})
 	describe("Get quotes successfully for small and big calls", async () => {

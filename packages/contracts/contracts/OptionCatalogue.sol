@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0;
+pragma solidity >=0.8.9;
 
 import "./tokens/ERC20.sol";
 import "./libraries/Types.sol";
@@ -92,6 +92,9 @@ contract OptionCatalogue is AccessControl {
 			uint128 strike = uint128(
 				formatStrikePrice(o.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
 			);
+			if((o.expiration - 28800) % 86400 != 0) {
+				revert CustomErrors.InvalidExpiry();
+			}
 			// get the hash of the option (how the option is stored on the books)
 			bytes32 optionHash = keccak256(abi.encodePacked(o.expiration, strike, o.isPut));
 			// if the option is already issued then skip it

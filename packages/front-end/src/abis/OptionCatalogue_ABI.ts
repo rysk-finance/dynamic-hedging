@@ -17,6 +17,11 @@ export const OptionCatalogueABI = [
 	},
 	{
 		"inputs": [],
+		"name": "InvalidExpiry",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "UNAUTHORIZED",
 		"type": "error"
 	},

@@ -62,6 +62,11 @@
 	},
 	{
 		"inputs": [],
+		"name": "InvalidInput",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "NonExistentOtoken",
 		"type": "error"
 	},
@@ -418,67 +423,6 @@
 		"type": "event"
 	},
 	{
-		"inputs": [
-			{
-				"components": [
-					{
-						"internalType": "uint64",
-						"name": "expiration",
-						"type": "uint64"
-					},
-					{
-						"internalType": "uint128",
-						"name": "strike",
-						"type": "uint128"
-					},
-					{
-						"internalType": "bool",
-						"name": "isPut",
-						"type": "bool"
-					},
-					{
-						"internalType": "address",
-						"name": "underlying",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "strikeAsset",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "collateral",
-						"type": "address"
-					}
-				],
-				"internalType": "struct Types.OptionSeries",
-				"name": "optionSeries",
-				"type": "tuple"
-			},
-			{
-				"internalType": "uint128",
-				"name": "strikeDecimalConverted",
-				"type": "uint128"
-			},
-			{
-				"internalType": "bool",
-				"name": "isSell",
-				"type": "bool"
-			}
-		],
-		"name": "_checkHash",
-		"outputs": [
-			{
-				"internalType": "bytes32",
-				"name": "oHash",
-				"type": "bytes32"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"name": "addressbook",
 		"outputs": [
@@ -562,6 +506,67 @@
 		"name": "changeApprovedCollateral",
 		"outputs": [],
 		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint64",
+						"name": "expiration",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint128",
+						"name": "strike",
+						"type": "uint128"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPut",
+						"type": "bool"
+					},
+					{
+						"internalType": "address",
+						"name": "underlying",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "strikeAsset",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "collateral",
+						"type": "address"
+					}
+				],
+				"internalType": "struct Types.OptionSeries",
+				"name": "optionSeries",
+				"type": "tuple"
+			},
+			{
+				"internalType": "uint128",
+				"name": "strikeDecimalConverted",
+				"type": "uint128"
+			},
+			{
+				"internalType": "bool",
+				"name": "isSell",
+				"type": "bool"
+			}
+		],
+		"name": "checkHash",
+		"outputs": [
+			{
+				"internalType": "bytes32",
+				"name": "oHash",
+				"type": "bytes32"
+			}
+		],
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -1077,6 +1082,11 @@
 				"internalType": "address[]",
 				"name": "_series",
 				"type": "address[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "amountOutMinimums",
+				"type": "uint256[]"
 			}
 		],
 		"name": "redeem",

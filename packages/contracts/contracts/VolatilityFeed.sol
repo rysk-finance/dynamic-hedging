@@ -189,6 +189,9 @@ contract VolatilityFeed is AccessControl {
 		uint256 expiration
 	) internal view returns (uint256, uint256) {
 		int256 time = (int256(expiration) - int256(block.timestamp)).div(ONE_YEAR_SECONDS);
+		if (time <= 0) {
+			revert CustomErrors.OptionExpiryInvalid();
+		}
 		int256 vol;
 		SABRParams memory sabrParams_ = sabrParams[expiration];
 		if (sabrParams_.callAlpha == 0) {
