@@ -17,7 +17,7 @@ import { AddressBook, AlphaPortfolioValuesFeed, BeyondPricer, ChainLinkPricer, L
 import bs from "black-scholes"
 import { expect } from "chai"
 
-const MAX_BPS = 10000
+const SIX_DPS = 1000000
 const { provider } = ethers
 const { parseEther } = ethers.utils
 const chainId = 1
@@ -766,7 +766,7 @@ export async function applySpreadLocally(
 	const timeToExpiry = (optionSeries.expiration - timestamp) / SECONDS_IN_YEAR
 	const collateralLendingRate = await beyondPricer.collateralLendingRate()
 	const collateralLendingPremium =
-		(1 + collateralLendingRate / MAX_BPS) ** timeToExpiry * collateralToLend - collateralToLend
+		(1 + collateralLendingRate / SIX_DPS) ** timeToExpiry * collateralToLend - collateralToLend
 
 	const dollarDelta =
 		parseFloat(fromWei(optionDelta.abs())) *
@@ -777,11 +777,11 @@ export async function applySpreadLocally(
 	if (optionDelta < toWei("0")) {
 		const longDeltaBorrowRate = await beyondPricer.shortDeltaBorrowRate()
 		deltaBorrowPremium =
-			dollarDelta * (1 + longDeltaBorrowRate / MAX_BPS) ** timeToExpiry - dollarDelta
+			dollarDelta * (1 + longDeltaBorrowRate / SIX_DPS) ** timeToExpiry - dollarDelta
 	} else {
 		const shortDeltaBorrowRate = await beyondPricer.longDeltaBorrowRate()
 		deltaBorrowPremium =
-			dollarDelta * (1 + shortDeltaBorrowRate / MAX_BPS) ** timeToExpiry - dollarDelta
+			dollarDelta * (1 + shortDeltaBorrowRate / SIX_DPS) ** timeToExpiry - dollarDelta
 	}
 	return collateralLendingPremium + deltaBorrowPremium
 }
