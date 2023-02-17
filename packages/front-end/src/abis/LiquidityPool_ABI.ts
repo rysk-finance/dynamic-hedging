@@ -536,6 +536,19 @@ export const LiquidityPoolABI = [
 		"type": "function"
 	},
 	{
+		"inputs": [],
+		"name": "_getVolatilityFeed",
+		"outputs": [
+			{
+				"internalType": "contract VolatilityFeed",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "uint256",
