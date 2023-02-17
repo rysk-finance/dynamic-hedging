@@ -2,7 +2,6 @@
 pragma solidity >=0.8.9;
 
 import "../../contracts/OptionRegistry.sol";
-import "../../contracts/packages/opyn/core/Controller.sol";
 
 contract VaultCollateralMulticall {
 	address executorAddress;
@@ -15,7 +14,7 @@ contract VaultCollateralMulticall {
 		optionRegistry = OptionRegistry(_optionRegistry);
 	}
 
-	function adjustVaults(uint256[] vaultIds) external {
+	function adjustVaults(uint256[] calldata vaultIds) external {
 		if (msg.sender != executorAddress) {
 			revert invalidMsgSender();
 		}
