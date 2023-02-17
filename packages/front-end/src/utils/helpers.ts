@@ -1,13 +1,13 @@
-import type { ETHNetwork, ContractAddresses } from "src/types";
+import type { ContractAddresses, ETHNetwork } from "src/types";
 
 import { getNetwork, readContract } from "@wagmi/core";
 import { BigNumber } from "ethers";
 import greeks from "greeks";
 import impliedVol from "implied-volatility";
 
-import addresses from "src/contracts.json";
-import { PriceFeedABI } from "src/abis/PriceFeed_ABI";
 import { LiquidityPoolABI } from "src/abis/LiquidityPool_ABI";
+import { PriceFeedABI } from "src/abis/PriceFeed_ABI";
+import addresses from "src/contracts.json";
 import { fromWei, genOptionTimeFromUnix, toWei } from "./conversion-helper";
 
 const rfr = "0.03";
@@ -15,9 +15,12 @@ const rfr = "0.03";
 export const getContractAddress = (contractName: keyof ContractAddresses) => {
   const { chain } = getNetwork();
   const typedAddresses = addresses as Record<ETHNetwork, ContractAddresses>;
-  const network = (chain?.network as ETHNetwork) || (process.env.REACT_APP_NETWORK as ETHNetwork);
+  const network =
+    !chain?.unsupported && chain?.network
+      ? (chain.network as ETHNetwork)
+      : (process.env.REACT_APP_NETWORK as ETHNetwork);
 
-  return typedAddresses[network][contractName] as HexString;
+  return typedAddresses[network][contractName] as `0x${string}`;
 };
 
 export const calculateOptionDeltaLocally = async (
@@ -43,17 +46,34 @@ export const calculateOptionDeltaLocally = async (
     address: getContractAddress("liquidityPool"),
     abi: LiquidityPoolABI,
     functionName: "getImpliedVolatility",
-    args: [optionSeries.isPut, priceQuote, optionSeries.strike, optionSeries.expiration],
+    args: [
+      optionSeries.isPut,
+      priceQuote,
+      optionSeries.strike,
+      optionSeries.expiration,
+    ],
   });
 
   const timestamp = Math.round(+new Date() / 1000);
-  const time = genOptionTimeFromUnix(timestamp, optionSeries.expiration.toNumber());
+  const time = genOptionTimeFromUnix(
+    timestamp,
+    optionSeries.expiration.toNumber()
+  );
 
   const opType = optionSeries.isPut ? "put" : "call";
-  let localDelta = greeks.getDelta(fromWei(priceQuote), fromWei(optionSeries.strike), time, fromWei(vol), rfr, opType);
+  let localDelta = greeks.getDelta(
+    fromWei(priceQuote),
+    fromWei(optionSeries.strike),
+    time,
+    fromWei(vol),
+    rfr,
+    opType
+  );
   localDelta = isShort ? -localDelta : localDelta;
   // TODO make sure this rounding is appropriate
-  return toWei(parseFloat(localDelta.toString()).toFixed(5)).mul(amount.div(toWei("1")));
+  return toWei(parseFloat(localDelta.toString()).toFixed(5)).mul(
+    amount.div(toWei("1"))
+  );
 };
 
 export const returnIVFromQuote = async (
@@ -77,9 +97,19 @@ export const returnIVFromQuote = async (
   const priceNorm = fromWei(underlyingPrice);
 
   const timestamp = Math.round(+new Date() / 1000);
-  const timeToExpiration = genOptionTimeFromUnix(Number(timestamp), optionSeries.expiration.toNumber());
+  const timeToExpiration = genOptionTimeFromUnix(
+    Number(timestamp),
+    optionSeries.expiration.toNumber()
+  );
 
   const type = optionSeries.isPut ? "put" : "call";
 
-  return impliedVol.getImpliedVolatility(quote, priceNorm, fromWei(optionSeries.strike), timeToExpiration, rfr, type);
+  return impliedVol.getImpliedVolatility(
+    quote,
+    priceNorm,
+    fromWei(optionSeries.strike),
+    timeToExpiration,
+    rfr,
+    type
+  );
 };

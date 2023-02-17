@@ -2,26 +2,26 @@ import ProgressBar from "@ramonak/react-progress-bar";
 import { BigNumber, ethers } from "ethers";
 import { useEffect, useMemo, useState } from "react";
 import NumberFormat from "react-number-format";
+import { useContract, useProvider } from "wagmi";
 
 import LPABI from "../abis/LiquidityPool.json";
 import { BIG_NUMBER_DECIMALS, DECIMALS } from "../config/constants";
-import { useContract } from "../hooks/useContract";
 import { ETHNetwork } from "../types";
 import { Loader } from "./Loader";
+import { getContractAddress } from "src/utils/helpers";
 
 export const LPStats = () => {
+  const provider = useProvider();
+
   const [depositedCollateral, setDepositedCollateral] =
     useState<BigNumber | null>(null);
   const [collateralCap, setCollateralCap] = useState<BigNumber | null>(null);
 
-  const [lpContract] = useContract(
-    {
-      contract: "liquidityPool",
-      ABI: LPABI,
-      readOnly: true,
-    },
-    false
-  );
+  const lpContract = useContract({
+    address: getContractAddress("liquidityPool"),
+    abi: LPABI,
+    signerOrProvider: provider,
+  });
 
   useEffect(() => {
     const getDepositedCollateral = async () => {
