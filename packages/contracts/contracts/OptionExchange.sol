@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0;
+pragma solidity >=0.8.9;
 
 import "./Protocol.sol";
 import "./PriceFeed.sol";
@@ -274,9 +274,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @notice get the dhv to redeem an expired otoken
 	 * @param _series the list of series to redeem
 	 */
-	function redeem(address[] memory _series) external {
+	function redeem(address[] memory _series, uint256[] memory amountOutMinimums) external {
 		_onlyManager();
 		uint256 adLength = _series.length;
+		if (adLength != amountOutMinimums.length) revert CustomErrors.InvalidInput();
 		for (uint256 i; i < adLength; i++) {
 			// get the number of otokens held by this address for the specified series
 			uint256 optionAmount = ERC20(_series[i]).balanceOf(address(this));
@@ -298,7 +299,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				SafeTransferLib.safeTransfer(ERC20(collateralAsset), address(liquidityPool), redeemAmount);
 				emit RedemptionSent(redeemAmount, collateralAsset, address(liquidityPool));
 			} else {
-				uint256 redeemableCollateral = _swapExactInputSingle(redeemAmount, 0, otokenCollateralAsset);
+				uint256 redeemableCollateral = _swapExactInputSingle(redeemAmount, amountOutMinimums[i], otokenCollateralAsset);
 				SafeTransferLib.safeTransfer(
 					ERC20(collateralAsset),
 					address(liquidityPool),
@@ -510,12 +511,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/**
 	 * @notice function that allows a user to buy options from the dhv where they pay the dhv using the collateral asset
 	 * @param _args RyskAction struct containing details on the option to buy
-	 * @return the number of options bought by the user
 	 */
 	function _buyOption(RyskActions.BuyOptionArgs memory _args)
 		internal
 		whenNotPaused
-		returns (uint256)
 	{
 		if (_args.amount < minTradeSize) revert TradeTooSmall();
 		if (_args.amount > maxTradeSize) revert TradeTooLarge();
@@ -561,7 +560,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			);
 			amount -= boughtAmount;
 			if (amount == 0) {
-				return _args.amount;
+				return;
 			}
 		}
 		if (buyParams.optionSeries.collateral != collateralAsset) {
@@ -575,16 +574,15 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			buyParams.seriesAddress
 		);
 		// get the liquidity pool to write the options
-		return
-			liquidityPool.handlerWriteOption(
-				buyParams.optionSeries,
-				buyParams.seriesAddress,
-				amount,
-				optionRegistry,
-				buyParams.premium,
-				buyParams.delta,
-				recipient
-			);
+		liquidityPool.handlerWriteOption(
+			buyParams.optionSeries,
+			buyParams.seriesAddress,
+			amount,
+			optionRegistry,
+			buyParams.premium,
+			buyParams.delta,
+			recipient
+		);
 	}
 
 	/**
@@ -741,6 +739,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		return _getOptionDetails(seriesAddress, optionSeries, getOptionRegistry());
 	}
 
+	function checkHash(
+		Types.OptionSeries memory optionSeries,
+		uint128 strikeDecimalConverted,
+		bool isSell
+	) external view returns (bytes32 oHash) {
+		return _checkHash(optionSeries, strikeDecimalConverted, isSell);
+	}
 	//////////////////////////
 	/// internal utilities ///
 	//////////////////////////
@@ -819,7 +824,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		Types.OptionSeries memory optionSeries,
 		uint128 strikeDecimalConverted,
 		bool isSell
-	) public view returns (bytes32 oHash) {
+	) internal view returns (bytes32 oHash) {
 		// check if the option series is approved
 		oHash = keccak256(
 			abi.encodePacked(optionSeries.expiration, strikeDecimalConverted, optionSeries.isPut)
@@ -851,10 +856,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 	}
 
-	/** @notice function to sell exact amount of wETH to decrease delta
-	 *  @param _amountIn the exact amount of wETH to sell
-	 *  @param _amountOutMinimum the min amount of stablecoin willing to receive. Slippage limit.
-	 *  @param _assetIn the stablecoin to buy
+	/** @notice function to sell exact amount of assetIn to the minimum amountOutMinimum of collateralAsset
+	 *  @param _amountIn the exact amount of assetIn to sell
+	 *  @param _amountOutMinimum the min amount of collateral asset willing to receive. Slippage limit.
+	 *  @param _assetIn the asset to swap from
 	 *  @return the amount of usdc received
 	 */
 	function _swapExactInputSingle(
@@ -971,16 +976,16 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				)
 			);
 		}
-		sellParams.premiumSent = sellParams.premium.div(sellParams.amount).mul(sellParams.transferAmount);
+		sellParams.premiumSent = sellParams.premium.mul(sellParams.transferAmount).div(sellParams.amount);
 		uint256 soldBackAmount = liquidityPool.handlerBuybackOption(
 			sellParams.optionSeries,
 			sellParams.transferAmount,
 			optionRegistry,
 			sellParams.seriesAddress,
 			sellParams.premiumSent,
-			sellParams.delta.div(OptionsCompute.toInt256(sellParams.amount)).mul(
+			sellParams.delta.mul(
 				OptionsCompute.toInt256(sellParams.transferAmount)
-			),
+			).div(OptionsCompute.toInt256(sellParams.amount)),
 			address(this)
 		);
 		// update the series on the stores

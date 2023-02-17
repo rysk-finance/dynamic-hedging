@@ -12,6 +12,7 @@ interface CustomErrors {
 	error InvalidBuyer();
 	error InvalidOrder();
 	error OrderExpired();
+	error InvalidExpiry();
 	error InvalidAmount();
 	error TradingPaused();
 	error InvalidAddress();
