@@ -210,10 +210,6 @@ describe("Structured Product maker", async () => {
 			await liquidityPool.setHedgingReactorAddress(exchange.address)
 			expect(await liquidityPool.hedgingReactors(0)).to.equal(exchange.address)
 		})
-		it("SETUP: set the pool fee", async function () {
-			await exchange.setPoolFee(weth.address, 500)
-			expect(await exchange.poolFees(weth.address)).to.equal(500)
-		})
 		it("can compute portfolio delta", async function () {
 			const delta = await liquidityPool.getPortfolioDelta()
 			expect(delta).to.equal(0)
