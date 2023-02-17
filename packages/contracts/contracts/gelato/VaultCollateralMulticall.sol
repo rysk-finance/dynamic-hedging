@@ -20,7 +20,8 @@ contract VaultCollateralMulticall {
 		}
 
 		uint256 i = 0;
-		for (i; i < vaultIds.length; i++) {
+		uint256 length = vaultIds.length;
+		for (i; i < length; i++) {
 			try optionRegistry.adjustCollateral(vaultIds[i]) {} catch {}
 		}
 	}
