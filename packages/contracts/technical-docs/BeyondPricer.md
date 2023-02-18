@@ -5,7 +5,7 @@
 The Beyond Pricer contains logic for Rysk's option pricing. It prices the options using the
 Black-Scholes model and applies slippage, a spread, and fees to the Black-Scholes quote based on the
 state of the protocol.
-https://rysk.notion.site/Slippage-5be84802101c425d86d1d6f3917cac16
+https://rysk.notion.site/Mk1-Options-Pricing-Model-1165471865f644e99a590707a08f3572
 
 ## Function by function
 
@@ -13,8 +13,8 @@ https://rysk.notion.site/Slippage-5be84802101c425d86d1d6f3917cac16
 
 This is the entry point of thhe contract for obtaining a quote (denominated in the strike asset) of
 an order, as well as the total delta exposure of the options in the order and fees applied to the
-order. The function first obtains an IV value to price the option at from our Volatility Feed
-contract, then returns a "vanilla" Black-Scholes quote for the option series using that IV.
+order. The function first obtains an IV and forward value to price the option at from our Volatility Feed
+contract, the forward price is passed to the black scholes equation then returns a "vanilla" Black-Scholes quote for the option series using that IV, the price is then discounted by the forward.
 
 A slippage multiplier value is obtained from the internal function `_getslippageMultiplier()` which
 the vanilla price is multiplied by. This function is explained below. A spread premium is then added
