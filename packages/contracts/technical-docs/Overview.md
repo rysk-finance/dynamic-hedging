@@ -23,32 +23,32 @@ Then the liquidityPool will take the instruction from the handler, process it an
 The pool can hedge its delta off using other derivatives such as perps or spot by using contracts known as hedging reactors these reactors take funds directly from the liquidityPool.
 
 
-# total system - contracts are labelled with a star * is TO BE audited
+# total system
 
 ```
 contracts
 ├── libraries
 │   ├── BlackScholes.sol
-│   ├── CombinedActions.sol * 
-│   ├── RyskActions.sol *
-│   ├── SABR.sol **
+│   ├── CombinedActions.sol ***
+│   ├── RyskActions.sol ***
+│   ├── SABR.sol ***
 │   ├── CustomErrors.sol
 │   ├── NormalDist.sol
-│   ├── OptionsCompute.sol *
-│   ├── OpynInteractions.sol *
+│   ├── OptionsCompute.sol 
+│   ├── OpynInteractions.sol 
 │   ├── AccessControl.sol
 │   ├── SafeTransferLib.sol
 │   └── Types.sol
-├── Accounting.sol *
+├── Accounting.sol 
 ├── Authority.sol
-├── LiquidityPool.sol **
-├── OptionRegistry.sol **
-├── AlphaOptionHandler.sol *
+├── LiquidityPool.sol 
+├── OptionRegistry.sol 
+├── AlphaOptionHandler.sol 
 ├── BeyondPricer.sol ***
 ├── OptionCatalogue.sol ***
 ├── OptionExchange.sol ***
 ├── Protocol.sol
-├── AlphaPortfolioValuesFeed.sol **
-├── VolatilityFeed.sol **
-└── PriceFeed.sol *
+├── AlphaPortfolioValuesFeed.sol 
+├── VolatilityFeed.sol ***
+└── PriceFeed.sol 
 ```
