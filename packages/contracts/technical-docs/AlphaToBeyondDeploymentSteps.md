@@ -9,13 +9,6 @@
 5. Check cor for references to the price feed contract and switch out the address 
 6. Change notion and gitbook docs to reflect new contract
 
-**VolatilityFeed**
-
-1. Deploy new VolatilityFeed with an interestRate
-2. Change volatility feed on Protocol.sol
-3. Check cor for references to the price feed contract and switch out the address
-4. Change notion and gitbook docs to reflect new contract
-
 **AlphaOptionHandler**
 
 1. Deploy new AlphaOptionHandler with fee recipient and fee per contract
