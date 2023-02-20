@@ -462,19 +462,124 @@ describe("Options protocol Vault Health", function () {
 		await optionRegistry.setLiquidityPool(liquidityPool.address)
 
 		const currentPrice = await oracle.getPrice(weth.address)
+
 		const settlePrice = currentPrice.sub(toWei("500").div(oTokenDecimalShift18))
 		await aggregator.setLatestAnswer(settlePrice)
 		await aggregator.setRoundAnswer(0, settlePrice)
 		await aggregator.setRoundTimestamp(0)
+		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		let vaultIdsBefore: number[] = await checkAllVaultHealths(4)
 
 		// vaults 1,2,4 are unhealthy
-		expect(vaultIdsBefore.length).to.eq(3)
+		expect(vaultIdsBefore.join("")).to.eq("124")
+		const vault3HealthFactorBefore = (await optionRegistry.checkVaultHealth(3)).healthFactor
+
+		// check balances:
+		const vaultCollat1 = await (
+			await controller.getVault(optionRegistry.address, 1)
+		).collateralAmounts[0]
+		const vaultCollat2 = await (
+			await controller.getVault(optionRegistry.address, 2)
+		).collateralAmounts[0]
+
+		const vaultCollat3 = await (
+			await controller.getVault(optionRegistry.address, 3)
+		).collateralAmounts[0]
+		const vaultCollat4 = await (
+			await controller.getVault(optionRegistry.address, 4)
+		).collateralAmounts[0]
+
+		const marginReq1 = (
+			await newCalculator.getNakedMarginRequired(
+				weth.address,
+				usd.address,
+				usd.address,
+				(
+					await controller.getVault(optionRegistry.address, 1)
+				).shortAmounts[0],
+				strike1.div(oTokenDecimalShift18),
+				await oracle.getPrice(weth.address),
+				expiration,
+				6,
+				false
+			)
+		)
+			.mul(await optionRegistry.callUpperHealthFactor())
+			.div(MAX_BPS)
+		const marginReq2 = (
+			await newCalculator.getNakedMarginRequired(
+				weth.address,
+				usd.address,
+				usd.address,
+				(
+					await controller.getVault(optionRegistry.address, 2)
+				).shortAmounts[0],
+				strike2.div(oTokenDecimalShift18),
+				await oracle.getPrice(weth.address),
+				expiration,
+				6,
+				false
+			)
+		)
+			.mul(await optionRegistry.callUpperHealthFactor())
+			.div(MAX_BPS)
+		const marginReq3 = (
+			await newCalculator.getNakedMarginRequired(
+				weth.address,
+				usd.address,
+				usd.address,
+				(
+					await controller.getVault(optionRegistry.address, 3)
+				).shortAmounts[0],
+				strike3.div(oTokenDecimalShift18),
+				await oracle.getPrice(weth.address),
+				expiration,
+				6,
+				true
+			)
+		)
+			.mul(await optionRegistry.putUpperHealthFactor())
+			.div(MAX_BPS)
+		const marginReq4 = (
+			await newCalculator.getNakedMarginRequired(
+				weth.address,
+				usd.address,
+				usd.address,
+				(
+					await controller.getVault(optionRegistry.address, 4)
+				).shortAmounts[0],
+				strike4.div(oTokenDecimalShift18),
+				await oracle.getPrice(weth.address),
+				expiration,
+				6,
+				true
+			)
+		)
+			.mul(await optionRegistry.putUpperHealthFactor())
+			.div(MAX_BPS)
+
+		const totalCollatOutflows = marginReq1
+			.sub(vaultCollat1)
+			.add(marginReq2.sub(vaultCollat2))
+			.add(marginReq4.sub(vaultCollat4))
+
 		// throw vault 3 in even though it is healthy
 		const tx = await multicall.adjustVaults([1, 2, 3, 4])
 		await tx.wait()
 		let vaultIdsAfter: number[] = await checkAllVaultHealths(4)
 		// all vaults are healthy
 		expect(vaultIdsAfter.length).to.eq(0)
+		expect(await (await optionRegistry.checkVaultHealth(1)).healthFactor).to.eq(12999)
+		expect(await (await optionRegistry.checkVaultHealth(2)).healthFactor).to.eq(12999)
+		expect(await (await optionRegistry.checkVaultHealth(3)).healthFactor).to.eq(
+			vault3HealthFactorBefore
+		)
+		// put vault has lower upperHealthFactor
+		expect(await (await optionRegistry.checkVaultHealth(4)).healthFactor).to.eq(11999)
+
+		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const lpBalanceDiff = lpBalanceBefore.sub(lpBalanceAfter)
+		expect(lpBalanceDiff).to.eq(totalCollatOutflows)
+		console.log({ 1: totalCollatOutflows.toNumber(), 2: lpBalanceDiff.toNumber() })
 	})
 })
