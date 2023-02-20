@@ -86,16 +86,24 @@ const checkAllVaultHealths = async (numberOfVaults: number) => {
 	const upperhealthFactorBuffer = 1.1
 	let vaultIds = []
 	for (let i = 1; i <= numberOfVaults; i++) {
-		let [isBelowMin, isAboveMax, healthFactor, upperHealthFactor, collateralAmount, collateralAsset] =
-			await optionRegistry.checkVaultHealth(i)
-		console.log(i, healthFactor.toNumber(), isBelowMin, upperHealthFactor.toNumber())
-		if (
-			(isAboveMax &&
-				healthFactor.toNumber() > upperhealthFactorBuffer * upperHealthFactor.toNumber()) ||
-			isBelowMin
-		) {
-			vaultIds.push(i)
-		}
+		try {
+			let [
+				isBelowMin,
+				isAboveMax,
+				healthFactor,
+				upperHealthFactor,
+				collateralAmount,
+				collateralAsset
+			] = await optionRegistry.checkVaultHealth(i)
+			console.log(i, healthFactor.toNumber(), isBelowMin, upperHealthFactor.toNumber())
+			if (
+				(isAboveMax &&
+					healthFactor.toNumber() > upperhealthFactorBuffer * upperHealthFactor.toNumber()) ||
+				isBelowMin
+			) {
+				vaultIds.push(i)
+			}
+		} catch {}
 	}
 	return vaultIds
 }
@@ -452,6 +460,10 @@ describe("Options protocol Vault Health", function () {
 
 		// vaults 1,2,3 are unhealthy
 		expect(vaultIdsBefore.length).to.eq(3)
+		const multicallUnhealthyVaults = (await multicall.checkVaults([1, 2, 3, 4])).map(id =>
+			id.toNumber()
+		)
+		expect(multicallUnhealthyVaults.join("")).to.eq("1230")
 		const tx = await multicall.adjustVaults(vaultIdsBefore)
 		await tx.wait()
 		let vaultIdsAfter: number[] = await checkAllVaultHealths(4)
@@ -472,6 +484,12 @@ describe("Options protocol Vault Health", function () {
 
 		// vaults 1,2,4 are unhealthy
 		expect(vaultIdsBefore.join("")).to.eq("124")
+
+		const multicallUnhealthyVaults = (await multicall.checkVaults([1, 2, 3, 4])).map(id =>
+			id.toNumber()
+		)
+		expect(multicallUnhealthyVaults.join("")).to.eq("1204")
+
 		const vault3HealthFactorBefore = (await optionRegistry.checkVaultHealth(3)).healthFactor
 
 		// check balances:
@@ -581,5 +599,35 @@ describe("Options protocol Vault Health", function () {
 		const lpBalanceDiff = lpBalanceBefore.sub(lpBalanceAfter)
 		expect(lpBalanceDiff).to.eq(totalCollatOutflows)
 		console.log({ 1: totalCollatOutflows.toNumber(), 2: lpBalanceDiff.toNumber() })
+	})
+	it("multicall check health returns zero for an expired vault ID", async () => {
+		const currentPrice = await oracle.getPrice(weth.address)
+
+		const settlePrice = currentPrice.sub(toWei("500").div(oTokenDecimalShift18))
+		await aggregator.setLatestAnswer(settlePrice)
+		await aggregator.setRoundAnswer(0, settlePrice)
+		await aggregator.setRoundTimestamp(0)
+		const lpBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		let vaultIdsBefore: number[] = await checkAllVaultHealths(4)
+
+		// vaults 1,2,4 are unhealthy
+		expect(vaultIdsBefore.join("")).to.eq("123")
+		const multicallUnhealthyVaultsBefore = (await multicall.checkVaults([1, 2, 3, 4])).map(id =>
+			id.toNumber()
+		)
+		expect(multicallUnhealthyVaultsBefore.join("")).to.eq("1230")
+
+		// fast forward 3 months so vaults expire bnut have not seen settled
+		await ethers.provider.send("evm_increaseTime", [7776000])
+		await ethers.provider.send("evm_mine")
+
+		let vaultIdsAfter: number[] = await checkAllVaultHealths(4)
+
+		// vaults 1,2,4 are unhealthy
+		expect(vaultIdsAfter.join("")).to.eq("")
+		const multicallUnhealthyVaultsAfter = (await multicall.checkVaults([1, 2, 3, 4])).map(id =>
+			id.toNumber()
+		)
+		expect(multicallUnhealthyVaultsAfter.join("")).to.eq("0000")
 	})
 })
