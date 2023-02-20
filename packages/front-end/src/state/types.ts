@@ -9,8 +9,11 @@ export type AppSettings = {
 // Global context
 export type GlobalState = {
   ethPrice: number | null;
-  eth24hChange: number | null;
+  eth24hChange: number;
+  eth24hHigh: number | null;
+  eth24hLow: number | null;
   ethPriceUpdateTime: Date | null;
+  ethPriceError: boolean;
   userPositionValue: BigNumber | null;
   positionBreakdown: {
     redeemedShares: BigNumber | null;
@@ -28,6 +31,7 @@ export type GlobalState = {
 
 export enum ActionType {
   SET_ETH_PRICE,
+  SET_ETH_PRICE_ERROR,
   SET_POSITION_VALUE,
   SET_POSITION_BREAKDOWN,
   SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
@@ -41,6 +45,13 @@ export type GlobalAction =
       price: number;
       change?: number;
       date: Date;
+      high: number;
+      low: number;
+      error: boolean;
+    }
+  | {
+      type: ActionType.SET_ETH_PRICE_ERROR;
+      error: boolean;
     }
   | {
       type: ActionType.SET_POSITION_VALUE;
