@@ -8,6 +8,7 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
   const barEndColorPosition =
     change < 0 ? "bg-red-900 mr-auto" : "bg-green-900 ml-auto";
   const widthChunk = change * (50 / (Math.ceil(Math.abs(change) / 5) * 5));
+  
 
   return (
     <div className="flex flex-col justify-center w-1/3 px-4">
@@ -24,12 +25,14 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
 
       <div className="relative flex justify-center w-full h-4 bg-bone-dark overflow-hidden">
         <div className="w-2 h-4 bg-white" />
-        <div
-          className={`absolute h-4 ease-in-out duration-300 ${barWidthColor}`}
-          style={{ width: `${Math.abs(widthChunk)}%` }}
-        >
-          <div className={`relative w-4 h-4 ${barEndColorPosition}`} />
-        </div>
+        {Boolean(change) && (
+          <div
+            className={`absolute h-4 ease-in-out duration-300 ${barWidthColor}`}
+            style={{ width: `calc(${Math.abs(widthChunk)}% + 1rem)` }}
+          >
+            <div className={`relative w-4 h-4 ${barEndColorPosition}`} />
+          </div>
+        )}
       </div>
     </div>
   );
