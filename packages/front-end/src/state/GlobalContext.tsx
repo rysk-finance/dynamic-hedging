@@ -14,8 +14,11 @@ import { LOCAL_STORAGE_SETTINGS_KEY } from "../components/dashboard/Settings";
 
 const defaultGlobalState: GlobalState = {
   ethPrice: null,
-  eth24hChange: null,
+  eth24hChange: 0,
+  eth24hHigh: null,
+  eth24hLow: null,
   ethPriceUpdateTime: null,
+  ethPriceError: false,
   userPositionValue: null,
   positionBreakdown: {
     redeemedShares: null,

@@ -1,15 +1,16 @@
+import dayjs from "dayjs";
 import { useCallback } from "react";
 
 import { CMC_API_KEY, endpoints } from "../config/endpoints";
 import { useGlobalContext } from "../state/GlobalContext";
 import { ActionType } from "../state/types";
 
-type EthPriceResponse = [
-  {
-    current_price: number;
-    price_change_percentage_24h: number;
-  }
-];
+interface EthPriceResponse {
+  current_price: number;
+  price_change_percentage_24h: number;
+  high_24h: number;
+  low_24h: number;
+}
 
 export const useUpdateEthPrice = () => {
   const { dispatch } = useGlobalContext();
@@ -22,7 +23,7 @@ export const useUpdateEthPrice = () => {
           Accept: "application/json",
         },
       });
-      const data: EthPriceResponse = await response.json();
+      const data: EthPriceResponse[] = await response.json();
 
       return data[0];
     } catch (err) {
@@ -39,7 +40,15 @@ export const useUpdateEthPrice = () => {
         type: ActionType.SET_ETH_PRICE,
         price: priceData.current_price,
         change: priceData.price_change_percentage_24h,
-        date: new Date(),
+        date: dayjs().toDate(),
+        high: priceData.high_24h,
+        low: priceData.low_24h,
+        error: false,
+      });
+    } else {
+      dispatch({
+        type: ActionType.SET_ETH_PRICE_ERROR,
+        error: true,
       });
     }
   }, [dispatch]);
