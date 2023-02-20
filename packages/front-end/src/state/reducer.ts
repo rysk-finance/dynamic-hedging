@@ -22,6 +22,14 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ethPrice: action.price,
         eth24hChange: action.change ?? state.eth24hChange,
         ethPriceUpdateTime: action.date,
+        eth24hHigh: action.high,
+        eth24hLow: action.low,
+        ethPriceError: action.error,
+      };
+    case ActionType.SET_ETH_PRICE_ERROR:
+      return {
+        ...state,
+        ethPriceError: action.error,
       };
     case ActionType.SET_POSITION_VALUE:
       return {

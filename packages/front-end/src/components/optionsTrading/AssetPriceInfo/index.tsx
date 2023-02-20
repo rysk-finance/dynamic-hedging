@@ -1,30 +1,70 @@
-import dayjs from "dayjs";
+import { AnimatePresence, motion } from "framer-motion";
 
-import { ETHPriceIndicator } from "src/components/shared/ETHPriceIndicator";
+import FadeInOut from "src/animation/FadeInOut";
+import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";
+import { RyskFavicon } from "src/Icons";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { CurrentPrice } from "./components/CurrentPrice";
+import { Error } from "./components/Error";
+import { OneDayChange } from "./components/OneDayChange";
+import { usePrice } from "./hooks/usePrice";
 
 export const AssetPriceInfo = () => {
   const {
-    state: { ethPriceUpdateTime },
+    state: {
+      ethPrice,
+      ethPriceUpdateTime,
+      eth24hHigh,
+      eth24hLow,
+      eth24hChange,
+      ethPriceError,
+    },
   } = useGlobalContext();
 
+  const [update] = usePrice();
+
+  const ready = Boolean(
+    !ethPriceError &&
+      ethPrice &&
+      ethPriceUpdateTime &&
+      eth24hHigh &&
+      eth24hLow &&
+      eth24hChange
+  );
+
   return (
-    <div className="flex justify-stretch items-stretch">
+    <motion.button
+      className="w-full h-24 flex items-stretch"
+      onClick={update}
+      {...FadeInOut()}
+      title="Click to refetch price data."
+    >
       <img
         src="/icons/ethereum.svg"
         alt="Ethereum logo"
-        className="px-6 py-4 border-r-2 border-black"
+        className="min-w-[6rem] h-24 py-4 border-r-2 border-black"
       />
-      <div className="flex items-center justify-between grow px-4">
-        <span className="my-auto">
-          <h4 className="font-bold">{`Ether`}</h4>
-          <small className="text-gray-600 text-xs">
-            {`Latest Update: ${dayjs(ethPriceUpdateTime).format("HH:mm:ss A")}`}
-          </small>
-        </span>
 
-        <ETHPriceIndicator />
-      </div>
-    </div>
+      <AnimatePresence mode="wait">
+        {ready && (
+          <motion.div
+            className="flex w-full bg-[url('./assets/white-ascii-50.png')] bg-cover bg-center"
+            {...FadeInOutFixedDelay}
+          >
+            <CurrentPrice price={ethPrice} latestUpdate={ethPriceUpdateTime} />
+
+            <OneDayChange
+              high={eth24hHigh}
+              low={eth24hLow}
+              change={eth24hChange}
+            />
+          </motion.div>
+        )}
+
+        {ethPriceError && <Error />}
+      </AnimatePresence>
+
+      <RyskFavicon className="min-w-[6rem] w-24 h-24 py-4 ml-auto border-l-2 border-black" />
+    </motion.button>
   );
 };
