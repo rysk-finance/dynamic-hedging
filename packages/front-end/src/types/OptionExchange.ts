@@ -369,10 +369,10 @@ export interface OptionExchangeInterface extends utils.Interface {
   events: {
     "AuthorityUpdated(address)": EventFragment;
     "CollateralApprovalChanged(address,bool,bool)": EventFragment;
-    "OptionsBought(address,address,uint256)": EventFragment;
+    "OptionsBought(address,address,uint256,uint256,uint256)": EventFragment;
     "OptionsIssued(address)": EventFragment;
     "OptionsRedeemed(address,uint256,uint256,address)": EventFragment;
-    "OptionsSold(address,address,uint256)": EventFragment;
+    "OptionsSold(address,address,uint256,uint256,uint256)": EventFragment;
     "OtokenMigrated(address,address,uint256)": EventFragment;
     "Paused(address)": EventFragment;
     "RedemptionSent(uint256,address,address)": EventFragment;
@@ -405,8 +405,14 @@ export type CollateralApprovalChangedEventFilter =
   TypedEventFilter<CollateralApprovalChangedEvent>;
 
 export type OptionsBoughtEvent = TypedEvent<
-  [string, string, BigNumber],
-  { series: string; buyer: string; optionAmount: BigNumber }
+  [string, string, BigNumber, BigNumber, BigNumber],
+  {
+    series: string;
+    buyer: string;
+    optionAmount: BigNumber;
+    premium: BigNumber;
+    fee: BigNumber;
+  }
 >;
 
 export type OptionsBoughtEventFilter = TypedEventFilter<OptionsBoughtEvent>;
@@ -428,8 +434,14 @@ export type OptionsRedeemedEvent = TypedEvent<
 export type OptionsRedeemedEventFilter = TypedEventFilter<OptionsRedeemedEvent>;
 
 export type OptionsSoldEvent = TypedEvent<
-  [string, string, BigNumber],
-  { series: string; seller: string; optionAmount: BigNumber }
+  [string, string, BigNumber, BigNumber, BigNumber],
+  {
+    series: string;
+    seller: string;
+    optionAmount: BigNumber;
+    premium: BigNumber;
+    fee: BigNumber;
+  }
 >;
 
 export type OptionsSoldEventFilter = TypedEventFilter<OptionsSoldEvent>;
@@ -941,15 +953,19 @@ export interface OptionExchange extends BaseContract {
       isApproved?: null
     ): CollateralApprovalChangedEventFilter;
 
-    "OptionsBought(address,address,uint256)"(
+    "OptionsBought(address,address,uint256,uint256,uint256)"(
       series?: string | null,
       buyer?: string | null,
-      optionAmount?: null
+      optionAmount?: null,
+      premium?: null,
+      fee?: null
     ): OptionsBoughtEventFilter;
     OptionsBought(
       series?: string | null,
       buyer?: string | null,
-      optionAmount?: null
+      optionAmount?: null,
+      premium?: null,
+      fee?: null
     ): OptionsBoughtEventFilter;
 
     "OptionsIssued(address)"(series?: string | null): OptionsIssuedEventFilter;
@@ -968,15 +984,19 @@ export interface OptionExchange extends BaseContract {
       redeemAsset?: null
     ): OptionsRedeemedEventFilter;
 
-    "OptionsSold(address,address,uint256)"(
+    "OptionsSold(address,address,uint256,uint256,uint256)"(
       series?: string | null,
       seller?: string | null,
-      optionAmount?: null
+      optionAmount?: null,
+      premium?: null,
+      fee?: null
     ): OptionsSoldEventFilter;
     OptionsSold(
       series?: string | null,
       seller?: string | null,
-      optionAmount?: null
+      optionAmount?: null,
+      premium?: null,
+      fee?: null
     ): OptionsSoldEventFilter;
 
     "OtokenMigrated(address,address,uint256)"(
