@@ -272,6 +272,18 @@
 				"internalType": "uint256",
 				"name": "optionAmount",
 				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "premium",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "fee",
+				"type": "uint256"
 			}
 		],
 		"name": "OptionsBought",
@@ -340,6 +352,18 @@
 				"indexed": false,
 				"internalType": "uint256",
 				"name": "optionAmount",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "premium",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "fee",
 				"type": "uint256"
 			}
 		],

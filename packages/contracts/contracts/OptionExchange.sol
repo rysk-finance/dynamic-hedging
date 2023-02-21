@@ -128,8 +128,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	}
 
 	event OptionsIssued(address indexed series);
-	event OptionsBought(address indexed series, address indexed buyer, uint256 optionAmount);
-	event OptionsSold(address indexed series, address indexed seller, uint256 optionAmount);
+	event OptionsBought(address indexed series, address indexed buyer, uint256 optionAmount, uint256 premium, uint256 fee);
+	event OptionsSold(address indexed series, address indexed seller, uint256 optionAmount, uint256 premium, uint256 fee);
 	event OptionsRedeemed(
 		address indexed series,
 		uint256 optionAmount,
@@ -541,7 +541,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
 		int256 longExposure = portfolioValuesFeed.storesForAddress(buyParams.seriesAddress).longExposure;
 		uint256 amount = _args.amount;
-		emit OptionsBought(buyParams.seriesAddress, recipient, amount);
+		emit OptionsBought(buyParams.seriesAddress, recipient, amount, buyParams.premium, buyParams.fee);
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
 			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
@@ -694,7 +694,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				sellParams.premium - sellParams.fee
 			);
 		}
-		emit OptionsSold(sellParams.seriesAddress, _args.recipient, _args.amount);
+		emit OptionsSold(sellParams.seriesAddress, _args.recipient, _args.amount, sellParams.premium, sellParams.fee);
 	}
 
 	///////////////////////////
