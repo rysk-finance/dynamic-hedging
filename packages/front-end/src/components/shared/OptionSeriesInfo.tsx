@@ -22,7 +22,7 @@ export const OptionSeriesInfo = ({ option }: OptionSeriesInfoProps) => {
   return option ? (
     <div className="w-full">
       <div className="flex items-center">
-        <h4 className="font-parabole mr-2 pb-2">{optionSymbol}</h4>
+        <h4 className="font-parabole text-xl mr-2 pb-2">{optionSymbol}</h4>
       </div>
       <p className="pt-2">Type: {returnType}</p>
       <p className="pt-2">

@@ -15,31 +15,6 @@
   overflow-x: hidden;
 }
 
-#root h1 {
-  font-size: 64px;
-  line-height: 64px;
-}
-
-#root h2 {
-  font-size: 48px;
-  line-height: 52px;
-}
-
-#root h3 {
-  font-size: 36px;
-  line-height: 40px;
-}
-
-#root h4 {
-  font-size: 24px;
-  line-height: 26px;
-}
-
-#root h5 {
-  font-size: 18px;
-  line-height: 20px;
-}
-
 .root-grid a {
   color: #02c5e6;
 }
@@ -79,4 +54,11 @@
 :is( div[aria-labelledby=rk_account_modal_title], div[aria-labelledby=rk_connect_title], div[aria-labelledby=rk_chain_modal_title] )
   :is(h1, div) {
     font-weight: 500 !important;
+}
+
+.number-input-hide-arrows::-webkit-outer-spin-button,
+.number-input-hide-arrows::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+  -moz-appearance: textfield !important;
 }

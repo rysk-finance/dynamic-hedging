@@ -5,7 +5,7 @@ export const VaultMechanism = () => {
     <div className="pb-8 py-12 px-8">
       <div className="grid grid-cols-2">
         <div>
-          <h4>Deposit</h4>
+          <h4 className="text-xl">Deposit</h4>
           <p className="pt-4">
             <ul className="list-decimal px-8">
               <li className="pb-2">Deposit USDC into the {DHV_NAME} vault.</li>
@@ -22,7 +22,7 @@ export const VaultMechanism = () => {
             </ul>
           </p>
 
-          <h4 className="pt-8">Withdraw</h4>
+          <h4 className="pt-8 text-xl">Withdraw</h4>
           <p className="pt-4">
             <ul className="list-decimal px-8">
               <li className="pb-2">
