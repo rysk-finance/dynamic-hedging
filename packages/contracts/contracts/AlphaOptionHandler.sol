@@ -72,6 +72,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 
 	event OrderCreated(uint256 orderId);
 	event OrderExecuted(uint256 orderId);
+	event OptionsBought(address indexed series, address indexed buyer, uint256 optionAmount, uint256 premium, uint256 fee);
+	event OptionsSold(address indexed series, address indexed seller, uint256 optionAmount, uint256 premium, uint256 fee);
 
 	constructor(
 		address _authority,
@@ -281,6 +283,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			0,
 			order.seriesAddress
 		);
+		emit OptionsBought(order.seriesAddress, msg.sender, order.amount, convertedPrem, expectedFee);
 		emit OrderExecuted(_orderId);
 		// invalidate the order
 		delete orderStores[_orderId];
@@ -352,6 +355,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			0,
 			order.seriesAddress
 		);
+		emit OptionsSold(order.seriesAddress, msg.sender, order.amount, convertedPrem, 0);
 		emit OrderExecuted(_orderId);
 		// invalidate the order
 		delete orderStores[_orderId];
