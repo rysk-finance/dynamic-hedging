@@ -1,13 +1,10 @@
 module.exports = {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
-  screens: {
-    sm: "480px",
-    md: "768px",
-    lg: "976px",
-    xl: "1440px",
-  },
   theme: {
     extend: {
+      animation: {
+        "border-round": "border-round 5s ease-in-out",
+      },
       colors: {
         black: "#000000",
         white: "#ffffff",
@@ -44,27 +41,6 @@ module.exports = {
           600: "#989898",
         },
       },
-      fontSize: {
-        lg: ["18px", "20px"],
-        xl: ["24px", "26px"],
-        "2xl": ["36px", "40px"],
-        "3xl": ["48px", "52px"],
-        "4xl": ["64px", "64px"],
-      },
-      keyframes: {
-        "border-round": {
-          "0%": { borderRadius: "0px" },
-          "100%": { borderRadius: "9999px" },
-        },
-      },
-      animation: {
-        "border-round": "border-round 5s ease-in-out",
-      },
-      fontFamily: {
-        "dm-mono": ["DM Mono"],
-        "dm-sans": ["DM Sans"],
-        parabole: ["Parabole"],
-      },
       gridColumnStart: {
         13: "13",
         14: "14",
@@ -78,6 +54,28 @@ module.exports = {
         15: "15",
         16: "16",
         17: "17",
+      },
+      fontFamily: {
+        "dm-mono": ["DM Mono"],
+        "dm-sans": ["DM Sans"],
+        parabole: ["Parabole"],
+      },
+      fontSize: {
+        "2xs": ["10px", "12px"],
+        lg: ["18px", "20px"],
+        xl: ["24px", "26px"],
+        "2xl": ["36px", "40px"],
+        "3xl": ["48px", "52px"],
+        "4xl": ["64px", "64px"],
+      },
+      keyframes: {
+        "border-round": {
+          "0%": { borderRadius: "0px" },
+          "100%": { borderRadius: "9999px" },
+        },
+      },
+      screens: {
+        "2xl": "1440px",
       },
     },
   },
