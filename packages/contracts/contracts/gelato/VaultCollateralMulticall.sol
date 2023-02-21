@@ -16,6 +16,13 @@ contract VaultCollateralMulticall {
 		optionRegistry = OptionRegistry(_optionRegistry);
 	}
 
+	function setExecutor(address _executorAddress) external {
+		if (msg.sender != executorAddress) {
+			revert invalidMsgSender();
+		}
+		executorAddress = _executorAddress;
+	}
+
 	function checkVaults(uint256[] calldata vaultIds) external view returns (uint256[] memory) {
 		// create fixed length dynamic memory array to return
 		uint256[] memory unhealthyVaults = new uint256[](vaultIds.length);

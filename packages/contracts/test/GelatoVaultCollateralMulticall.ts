@@ -4,6 +4,7 @@ import utc from "dayjs/plugin/utc"
 import { BigNumber, Contract, Signer, utils } from "ethers"
 import { AbiCoder } from "ethers/lib/utils"
 import hre, { ethers, network } from "hardhat"
+import { mul } from "prb-math"
 
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import {
@@ -629,5 +630,14 @@ describe("Options protocol Vault Health", function () {
 			id.toNumber()
 		)
 		expect(multicallUnhealthyVaultsAfter.join("")).to.eq("0000")
+	})
+	it("can change the executor", async () => {
+		expect(await multicall.executorAddress()).to.eq(senderAddress)
+		await multicall.setExecutor(ZERO_ADDRESS)
+		expect(await multicall.executorAddress()).to.eq(ZERO_ADDRESS)
+		await expect(multicall.setExecutor(senderAddress)).to.be.revertedWithCustomError(
+			multicall,
+			"invalidMsgSender"
+		)
 	})
 })
