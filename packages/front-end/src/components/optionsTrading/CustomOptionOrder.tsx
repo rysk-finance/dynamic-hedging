@@ -64,7 +64,9 @@ export const CustomOptionOrder = () => {
           </div>
           <div className="flex flex-col p-4">
             <div className="flex items-center">
-              <h4 className="font-parabole mr-2 pb-1">Custom Strike:</h4>
+              <h4 className="font-parabole mr-2 pb-1 text-xl">
+                Custom Strike:
+              </h4>
               {uiStrikePrice && <p>{uiStrikePrice} USDC</p>}
             </div>
             <p className="text-gray-500 text-xs">

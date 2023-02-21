@@ -113,12 +113,12 @@ export const UserVault = () => {
             <div className="py-12 px-8 flex flex-col lg:flex-row h-full">
               <div className="flex h-full w-full lg:w-[70%] justify-around">
                 {isDisconnected && (
-                  <h4 className="m-auto">{`Please connect a wallet`}</h4>
+                  <h4 className="m-auto text-xl">{`Please connect a wallet`}</h4>
                 )}
                 <div className="flex flex-col items-center justify-center h-full mb-8 lg:mb-0">
                   {isConnected && (
                     <>
-                      <h4 className="mb-4">
+                      <h4 className="mb-4 text-xl">
                         <BigNumberDisplay
                           currency={Currency.USDC}
                           suffix="USDC"
@@ -129,7 +129,7 @@ export const UserVault = () => {
                           {userPositionValue}
                         </BigNumberDisplay>
                       </h4>
-                      <h4 className="mb-2">
+                      <h4 className="mb-2 text-xl">
                         Your Position
                         <PositionTooltip />
                       </h4>
@@ -139,7 +139,7 @@ export const UserVault = () => {
                 <div className="flex flex-col items-center justify-center h-full">
                   {isConnected && (
                     <>
-                      <h4 className="mb-4">
+                      <h4 className="mb-4 text-xl">
                         {depositBalance !== undefined &&
                         depositBalance.toString() !== "0" &&
                         userPositionValue !== null ? (
@@ -161,7 +161,7 @@ export const UserVault = () => {
                           />
                         )}
                       </h4>
-                      <h4 className="mb-2">
+                      <h4 className="mb-2 text-xl">
                         P/L
                         <RyskTooltip
                           message={`Profit or Losses based on your current ${DHV_NAME} position in USDC net of deposits and withdraws`}
@@ -174,7 +174,7 @@ export const UserVault = () => {
                 </div>
                 {unredeemableCollateral.gt(0) && (
                   <div className="flex flex-col items-center justify-center h-full">
-                    <h3 className="mb-2">
+                    <h3 className="mb-2 text-3xl">
                       <NumberFormat
                         value={Number(unredeemableCollateral.toNumber() / 1e6)}
                         displayType={"text"}
@@ -182,7 +182,7 @@ export const UserVault = () => {
                         suffix=" USDC"
                       />
                     </h3>
-                    <h4 className="mb-2">Queued Deposit</h4>
+                    <h4 className="mb-2 text-xl">Queued Deposit</h4>
                     <button
                       data-tip
                       data-for="queuedTip"
