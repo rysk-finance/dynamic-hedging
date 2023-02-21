@@ -1,12 +1,15 @@
 import type { PropsWithChildren } from "react";
 
-import { createContext, useContext, useReducer } from "react";
-import { optionsTradingReducer } from "./reducer";
-import {
+import type {
   OptionsTradingContext,
   OptionsTradingState,
-  OptionType,
+  ColumNames,
 } from "./types";
+
+import { createContext, useContext, useReducer } from "react";
+
+import { optionsTradingReducer } from "./reducer";
+import { OptionType } from "./types";
 
 export const defaultOptionTradingState: OptionsTradingState = {
   optionType: OptionType.CALL,
@@ -14,6 +17,15 @@ export const defaultOptionTradingState: OptionsTradingState = {
   optionParams: null,
   customOptionStrikes: [],
   selectedOption: null,
+  visibleStrikeRange: ['', ''],
+  visibleColumns: new Set([
+    "bid",
+    "ask",
+    "bid iv",
+    "ask iv",
+    "delta",
+    "pos",
+  ] as ColumNames[]),
 };
 
 export const OptionsTradingReactContext = createContext<OptionsTradingContext>({
