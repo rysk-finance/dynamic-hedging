@@ -3,6 +3,7 @@ import type { RefObject } from "react";
 import type { OneDayChangeProps } from "../types";
 
 import CountUp from "react-countup";
+import NumberFormat from "react-number-format";
 
 import { easeOutCubic } from "src/animation/easing";
 import { toTwoDecimalPlaces as round } from "src/utils/rounding";
@@ -22,7 +23,15 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
       </div>
 
       <div className="flex justify-between font-dm-mono text-xs xl:text-base pb-1">
-        <p className="text-red-500">{`$ ${low}`}</p>
+        <NumberFormat
+          value={low}
+          displayType="text"
+          decimalScale={2}
+          fixedDecimalScale
+          prefix={"$ "}
+          renderText={(value) => <p className="text-red-500">{value}</p>}
+        />
+        {/* <p className="text-red-500">{`$ ${low}`}</p> */}
         <CountUp
           decimals={2}
           duration={0.3}
@@ -39,7 +48,14 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
             />
           )}
         </CountUp>
-        <p className="text-green-500">{`$ ${high}`}</p>
+        <NumberFormat
+          value={high}
+          displayType="text"
+          decimalScale={2}
+          fixedDecimalScale
+          prefix={"$ "}
+          renderText={(value) => <p className="text-green-500">{value}</p>}
+        />
       </div>
 
       <div className="relative flex justify-center w-full h-4 bg-bone-dark overflow-hidden">
