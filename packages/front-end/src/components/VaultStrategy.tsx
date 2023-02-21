@@ -29,7 +29,7 @@ export const VaultStrategy = () => {
     <div className="pb-8 py-12 px-8">
       <div className="grid grid-cols-2 mb-16">
         <div className="pr-8">
-          <h4>Dynamic Hedging Overview</h4>
+          <h4 className="text-xl">Dynamic Hedging Overview</h4>
           <p className="pt-4">
             USDC deposited into {DHV_NAME} vault is used to fund ETH options
             strategies.
