@@ -1,6 +1,6 @@
 import { usePrepareContractWrite, useContractWrite, useAccount } from "wagmi";
 import { EMPTY_SERIES, ZERO_ADDRESS } from "../../config/constants";
-import { OptionSeries } from "../../types";
+import { Address, OptionSeries } from "../../types";
 import OptionExchangeABI from "../../abis/OptionExchange.json";
 import { AbiCoder } from "ethers/lib/utils";
 import { useState } from "react";
@@ -13,7 +13,8 @@ const useSellOperate = (): [
   ((overrideConfig?: undefined) => void) | undefined,
   (value: BigNumber) => void,
   (value: BigNumber) => void,
-  (value: Partial<OptionSeries>) => void
+  (value: Partial<OptionSeries>) => void,
+  (value: Address) => void
 ] => {
   // Global state
   const { address } = useAccount();
@@ -33,6 +34,8 @@ const useSellOperate = (): [
   const [amount, setAmount] = useState<BigNumber>(BigNumber.from("0"));
   // note - partial option series as assets are hardcoded above
   const [optionSeries, setOptionSeries] = useState<Partial<OptionSeries>>();
+  // note - callStatic.createOtoken, could be derived from data above
+  const [oToken, setOToken] = useState<Address>();
 
   // Setters
   const updateMargin = (amount: BigNumber) => {
@@ -43,6 +46,9 @@ const useSellOperate = (): [
   };
   const updateOptionSeries = (optionSeries: Partial<OptionSeries>) => {
     setOptionSeries(optionSeries);
+  };
+  const updateOToken = (address: Address) => {
+    setOToken(address);
   };
 
   // Contract write
@@ -81,7 +87,7 @@ const useSellOperate = (): [
               actionType: 1, // 1 represents a mint otoken operation (minting an option contract, this only works if there is enough collateral)
               owner: address,
               secondAddress: exchangeAddress, // most of the time this should be set to exchange address, this helps avoid an extra approval from the user on the otoken when selling to the dhv
-              asset: ZERO_ADDRESS, // TODO this should be the oToken that is being sold address
+              asset: oToken,
               vaultId: 1, // TODO vaultId,
               amount: amount, // amount needs to be in e8 decimals
               optionSeries: EMPTY_SERIES,
@@ -126,6 +132,7 @@ const useSellOperate = (): [
     updateMargin, // user defined collateral for oToken
     updateAmount, // amount of options to be minted
     updateOptionSeries, // option series to be sold
+    updateOToken, // oToken to be sold
   ];
 };
 
