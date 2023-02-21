@@ -3,7 +3,7 @@ import type { Chain } from "wagmi";
 
 import {
   connectorsForWallets,
-  RainbowKitProvider
+  RainbowKitProvider,
 } from "@rainbow-me/rainbowkit";
 import {
   coinbaseWallet,
@@ -11,7 +11,7 @@ import {
   ledgerWallet,
   metaMaskWallet,
   trustWallet,
-  walletConnectWallet
+  walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { configureChains, createClient, WagmiConfig } from "wagmi";
 import { arbitrum, arbitrumGoerli } from "wagmi/chains";
@@ -41,7 +41,9 @@ const infura = process.env.REACT_APP_INFURA_KEY
 
 const providers = [...alchemy, ...infura, publicProvider()];
 
-const { chains, provider } = configureChains(defaultChains, providers);
+const { chains, provider } = configureChains(defaultChains, providers, {
+  pollingInterval: 10000,
+});
 
 const connectors = connectorsForWallets([
   {
