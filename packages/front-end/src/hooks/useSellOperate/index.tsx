@@ -1,4 +1,5 @@
 import { usePrepareContractWrite, useContractWrite, useAccount } from "wagmi";
+import { gql, useQuery } from "@apollo/client";
 import { EMPTY_SERIES, ZERO_ADDRESS } from "../../config/constants";
 import { Address, OptionSeries } from "../../types";
 import OptionExchangeABI from "../../abis/OptionExchange.json";
@@ -6,6 +7,7 @@ import { AbiCoder } from "ethers/lib/utils";
 import { useState } from "react";
 import { BigNumber } from "ethers";
 import { getContractAddress } from "../../utils/helpers";
+import { QueryData } from "./types";
 
 const abiCode = new AbiCoder();
 
@@ -37,6 +39,20 @@ const useSellOperate = (): [
   // note - callStatic.createOtoken, could be derived from data above
   const [oToken, setOToken] = useState<Address>();
 
+  const { data } = useQuery<QueryData>(
+    gql`
+      query Account($account: String!) {
+        account(id: $account) {
+          id
+          vaultCount
+        }
+      }
+    `,
+    {
+      variables: { account: address?.toLowerCase() },
+    }
+  );
+
   // Setters
   const updateMargin = (amount: BigNumber) => {
     setMargin(amount);
@@ -66,18 +82,18 @@ const useSellOperate = (): [
               owner: address,
               secondAddress: address,
               asset: ZERO_ADDRESS,
-              vaultId: 1, // vaultId, // TODO vaultId, each short position the user holds will be held in a unique vaultId, we need to find an easy way to retrieve this
+              vaultId: Number(data?.account.vaultCount) + 1, // TODO vaultId, each different short position the user holds will be held in a unique vaultId, for now putting it in new vaults
               amount: BigNumber.from("0"),
               optionSeries: EMPTY_SERIES,
               index: 0,
-              data: abiCode.encode(["uint256"], [1]), // 1 here represents partially collateralised, 0 represents fully collateralised
+              data: abiCode.encode(["uint256"], [0]), // 1 here represents partially collateralised, 0 represents fully collateralised
             },
             {
               actionType: 5, // 5 represents a Deposit Collateral action
               owner: address,
               secondAddress: exchangeAddress, // this can be set as the senderAddress or exchange address, if set to the exchange address then the user approval goes to the exchange, if set to the sender address then the user approval goes to the opyn margin pool
               asset: collateral, // TODO proposedSeries.collateral
-              vaultId: 1, // vaultId, // TODO vault id to deposit collateral into
+              vaultId: Number(data?.account.vaultCount) + 1,
               amount: margin,
               optionSeries: EMPTY_SERIES,
               index: 0,
@@ -88,7 +104,7 @@ const useSellOperate = (): [
               owner: address,
               secondAddress: exchangeAddress, // most of the time this should be set to exchange address, this helps avoid an extra approval from the user on the otoken when selling to the dhv
               asset: oToken,
-              vaultId: 1, // TODO vaultId,
+              vaultId: Number(data?.account.vaultCount) + 1,
               amount: amount, // amount needs to be in e8 decimals
               optionSeries: EMPTY_SERIES,
               index: 0,
@@ -119,9 +135,13 @@ const useSellOperate = (): [
         },
       ],
     ],
-    enabled: optionSeries && amount.gt("0") && margin.gt("0"),
+    enabled:
+      optionSeries &&
+      amount.gt("0") &&
+      margin.gt("0") &&
+      Boolean(data?.account.vaultCount),
     overrides: {
-      gasLimit: BigNumber.from("2500000"),
+      gasLimit: BigNumber.from("3000000"),
     },
   });
 
