@@ -485,8 +485,13 @@ describe("Liquidity Pool with alpha tests", async () => {
 
 			await usd.connect(receiver).approve(handler.address, 100000000000)
 			await optionToken.approve(handler.address, toOpyn(fromWei(orderDeets.amount)))
-			await handler.connect(receiver).executeOrder(customOrderId)
-
+			const exec = await handler.connect(receiver).executeOrder(customOrderId)
+			let receipt = await exec.wait()
+			const events = receipt.events
+			const buyEvent = events?.find(x => x.event == "OptionsBought")
+			expect(buyEvent?.args?.series).to.equal(orderDeets.seriesAddress)
+			expect(buyEvent?.args?.buyer).to.equal(receiverAddress)
+			expect(buyEvent?.args?.optionAmount).to.equal(orderDeets.amount)
 			// check ephemeral values update correctly
 			const ephemeralLiabilitiesDiff =
 				tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatEth(ephemeralLiabilitiesBefore)
@@ -1243,8 +1248,13 @@ describe("Liquidity Pool with alpha tests", async () => {
 
 			await usd.connect(receiver).approve(handler.address, 100000000000)
 			await optionToken.connect(receiver).approve(handler.address, toOpyn(fromWei(orderDeets.amount)))
-			await handler.connect(receiver).executeBuyBackOrder(customOrderId)
-
+			const exec = await handler.connect(receiver).executeBuyBackOrder(customOrderId)
+			let receipt = await exec.wait()
+			const events = receipt.events
+			const sellEvent = events?.find(x => x.event == "OptionsSold")
+			expect(sellEvent?.args?.series).to.equal(orderDeets.seriesAddress)
+			expect(sellEvent?.args?.seller).to.equal(receiverAddress)
+			expect(sellEvent?.args?.optionAmount).to.equal(orderDeets.amount)
 			// check ephemeral values update correctly
 			const ephemeralLiabilitiesDiff =
 				tFormatEth(ephemeralLiabilitiesBefore) - tFormatEth(await liquidityPool.ephemeralLiabilities())
