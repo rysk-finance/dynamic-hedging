@@ -28,6 +28,7 @@ import useApproveExchange from "../../hooks/useApproveExchange";
 import CollateralRequirement from "./CollateralRequirement";
 import useApproveTransfer from "../../hooks/useApproveTransfer";
 import useSellOperate from "../../hooks/useSellOperate";
+import useOToken from "../../hooks/useOToken";
 
 const formatOptionDate = (date: number | null) => {
   if (date) {
@@ -46,8 +47,15 @@ export const Purchase = () => {
     setApprovalUSDCAmount,
     isUSDCApproved,
   ] = useApproveTransfer();
-  const [sellOperate, setMarginUSDCAmount, setSellAmount, setOptionSeries] =
-    useSellOperate();
+  const [
+    sellOperate,
+    setMarginUSDCAmount,
+    setSellAmount,
+    setOptionSeries,
+    setOToken,
+  ] = useSellOperate();
+
+  const [getOToken] = useOToken();
 
   console.log("allowance usdc 2:", allowanceUSDC?.toString());
 
@@ -76,11 +84,23 @@ export const Purchase = () => {
   // note - to avoid using state i'm saving this in the hook for now
   useEffect(() => {
     if (selectedOption && expiryDate) {
-      setOptionSeries({
+      const optionDetails = {
         expiration: expiryDate.toString(),
         strike: toWei(selectedOption.strikeOptions.strike.toString()),
         isPut: selectedOption.callOrPut === "put",
-      });
+      };
+
+      const retrieveOtoken = async () => {
+        const oToken = await getOToken(
+          optionDetails.expiration,
+          optionDetails.strike,
+          optionDetails.isPut
+        );
+        setOToken(oToken);
+      };
+
+      setOptionSeries(optionDetails);
+      retrieveOtoken();
     }
   }, [selectedOption, expiryDate]);
 
