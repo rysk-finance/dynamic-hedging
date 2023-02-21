@@ -1,3 +1,5 @@
+import type { RefObject } from "react";
+
 import type {
   ColumNames,
   OptionSeries,
@@ -11,6 +13,7 @@ import dayjs from "dayjs";
 import { BigNumber, utils } from "ethers";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
+import CountUp from "react-countup";
 import NumberFormat from "react-number-format";
 import { useDebounce } from "use-debounce";
 import { useAccount, useContract, useProvider } from "wagmi";
@@ -18,13 +21,15 @@ import { useAccount, useContract, useProvider } from "wagmi";
 import { AlphaPortfolioValuesFeedABI } from "src/abis/AlphaPortfolioValuesFeed_ABI";
 import { BeyondPricerABI } from "src/abis/BeyondPricer_ABI";
 import { OptionCatalogueABI } from "src/abis/OptionCatalogue_ABI";
+import { easeOutCubic } from "src/animation/easing";
 import FadeInOut from "src/animation/FadeInOut";
 import { BIG_NUMBER_DECIMALS } from "src/config/constants";
+import { toTwoDecimalPlaces } from "src/utils/rounding";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
 import { OptionsTradingActionType } from "../../state/types";
 import {
-  fromOpyn,
+  fromOpynToNumber,
   fromWei,
   tFormatUSDC,
   toWei,
@@ -58,6 +63,7 @@ export const OptionsTable = () => {
   const [chainRows, setChainRows] = useState<StrikeOptions[]>([]);
   const [strikeRange] = useDebounce(visibleStrikeRange, 300);
 
+  // TODO: Type this properly when I refactor this file.
   const { data: userData, refetch } = useQuery(
     gql`
       query ($address: String) {
@@ -226,11 +232,14 @@ export const OptionsTable = () => {
               optionSeriesPut
             );
 
-            const positions = userData?.account?.balances.reduce(
+            const positions: {
+              call: number;
+              put: number;
+            } = userData?.account?.balances.reduce(
               (
                 acc: {
-                  call: string;
-                  put: string;
+                  call: number;
+                  put: number;
                 },
                 { token, balance }: { token: any; balance: string }
               ) => {
@@ -243,47 +252,47 @@ export const OptionsTable = () => {
                     .toString() === strike;
 
                 if (matchesExpiry && matchesStrike && token.isPut) {
-                  acc.put = fromOpyn(balance);
+                  acc.put = fromOpynToNumber(balance);
                 }
 
                 if (matchesExpiry && matchesStrike && !token.isPut) {
-                  acc.call = fromOpyn(balance);
+                  acc.call = fromOpynToNumber(balance);
                 }
 
                 return acc;
               },
-              { call: "-", put: "-" }
+              { call: 0, put: 0 }
             );
 
             return {
               strike: Number(fromWei(strike).toString()),
               call: {
                 bid: {
-                  IV: ivBidCall >= 0.1 ? ivBidCall : "-",
+                  IV: toTwoDecimalPlaces(ivBidCall),
                   quote: quoteBidCallTotal,
                   disabled: !callAvailability.isSellable,
                 },
                 ask: {
-                  IV: ivAskCall >= 0.1 ? ivAskCall : "-",
+                  IV: toTwoDecimalPlaces(ivAskCall),
                   quote: quoteAskCallTotal,
                   disabled: !callAvailability.isBuyable,
                 },
                 delta: Number(fromWei(localDeltaCall).toString()),
-                pos: positions ? positions.call : "-",
+                pos: positions.call,
               },
               put: {
                 bid: {
-                  IV: ivBidPut >= 0.1 ? ivBidPut : "-",
+                  IV: toTwoDecimalPlaces(ivBidPut),
                   quote: quoteBidPutTotal,
                   disabled: !putAvailability.isSellable,
                 },
                 ask: {
-                  IV: ivAskPut >= 0.1 ? ivAskPut : "-",
+                  IV: toTwoDecimalPlaces(ivAskPut),
                   quote: quoteAskPutTotal,
                   disabled: !putAvailability.isBuyable,
                 },
                 delta: Number(fromWei(localDeltaPut).toString()),
-                pos: positions ? positions.put : "-",
+                pos: positions.put,
               },
             };
           })
@@ -416,13 +425,19 @@ export const OptionsTable = () => {
                         "call"
                       )}`}
                     >
-                      <NumberFormat
-                        value={option.call.bid.IV}
-                        displayType={"text"}
-                        decimalScale={2}
-                        fixedDecimalScale
-                        suffix={"%"}
-                      />
+                      {option.call.bid.IV ? (
+                        <CountUp
+                          decimals={2}
+                          duration={0.3}
+                          easingFn={easeOutCubic}
+                          end={option.call.bid.IV}
+                          preserveValue
+                          suffix={" %"}
+                          useEasing
+                        />
+                      ) : (
+                        <span>{"-"}</span>
+                      )}
                     </td>
                   )}
                   <td
@@ -431,21 +446,26 @@ export const OptionsTable = () => {
                       "call"
                     )}`}
                   >
-                    <NumberFormat
-                      value={option.call.bid.quote}
-                      displayType={"text"}
-                      decimalScale={2}
-                      fixedDecimalScale
-                      prefix={"$"}
+                    <CountUp
+                      decimals={2}
+                      duration={0.3}
+                      easingFn={easeOutCubic}
+                      end={option.call.bid.quote}
+                      preserveValue
+                      prefix={"$ "}
+                      useEasing
                     />
                   </td>
-                  <NumberFormat
-                    value={option.call.ask.quote}
-                    displayType={"text"}
-                    decimalScale={2}
-                    fixedDecimalScale
-                    prefix={"$"}
-                    renderText={(value) => {
+                  <CountUp
+                    decimals={2}
+                    duration={0.3}
+                    easingFn={easeOutCubic}
+                    end={option.call.ask.quote}
+                    preserveValue
+                    prefix={"$ "}
+                    useEasing
+                  >
+                    {({ countUpRef }) => {
                       const disabled =
                         option.call.ask.disabled || !option.call.ask.quote;
 
@@ -454,7 +474,7 @@ export const OptionsTable = () => {
                           className={`p-0 ${
                             disabled ? "text-gray-600" : "text-green-700"
                           }
-                        ${getColorClasses(option, "call")}`}
+                      ${getColorClasses(option, "call")}`}
                         >
                           <button
                             className={`${
@@ -468,13 +488,12 @@ export const OptionsTable = () => {
                               })
                             }
                             disabled={disabled}
-                          >
-                            {value}
-                          </button>
+                            ref={countUpRef as RefObject<HTMLButtonElement>}
+                          />
                         </td>
                       );
                     }}
-                  />
+                  </CountUp>
                   {showCol("ask iv") && (
                     <td
                       className={`py-4 xl:py-3 px-1 xl:px-2 ${getColorClasses(
@@ -482,13 +501,19 @@ export const OptionsTable = () => {
                         "call"
                       )}`}
                     >
-                      <NumberFormat
-                        value={option.call.ask.IV}
-                        displayType={"text"}
-                        decimalScale={2}
-                        fixedDecimalScale
-                        suffix={"%"}
-                      />
+                      {option.call.ask.IV ? (
+                        <CountUp
+                          decimals={2}
+                          duration={0.3}
+                          easingFn={easeOutCubic}
+                          end={option.call.ask.IV}
+                          preserveValue
+                          suffix={" %"}
+                          useEasing
+                        />
+                      ) : (
+                        <span>{"-"}</span>
+                      )}
                     </td>
                   )}
                   {showCol("delta") && (
@@ -498,11 +523,13 @@ export const OptionsTable = () => {
                         "call"
                       )}`}
                     >
-                      <NumberFormat
-                        value={option.call.delta}
-                        displayType={"text"}
-                        decimalScale={2}
-                        fixedDecimalScale
+                      <CountUp
+                        decimals={2}
+                        duration={0.3}
+                        easingFn={easeOutCubic}
+                        end={option.call.delta}
+                        preserveValue
+                        useEasing
                       />
                     </td>
                   )}
@@ -513,12 +540,18 @@ export const OptionsTable = () => {
                         "call"
                       )}`}
                     >
-                      <NumberFormat
-                        value={option.call.pos}
-                        displayType={"text"}
-                        decimalScale={2}
-                        fixedDecimalScale
-                      />
+                      {option.call.pos ? (
+                        <CountUp
+                          decimals={2}
+                          duration={0.3}
+                          easingFn={easeOutCubic}
+                          end={option.call.pos}
+                          preserveValue
+                          useEasing
+                        />
+                      ) : (
+                        <span>{"-"}</span>
+                      )}
                     </td>
                   )}
                   <td className="text-center bg-bone-dark !border-0 font-medium py-4 xl:py-3 px-1 xl:px-2">
@@ -535,13 +568,19 @@ export const OptionsTable = () => {
                         "put"
                       )}`}
                     >
-                      <NumberFormat
-                        value={option.put.bid.IV}
-                        displayType={"text"}
-                        decimalScale={2}
-                        fixedDecimalScale
-                        suffix={"%"}
-                      />
+                      {option.put.bid.IV ? (
+                        <CountUp
+                          decimals={2}
+                          duration={0.3}
+                          easingFn={easeOutCubic}
+                          end={option.put.bid.IV}
+                          preserveValue
+                          suffix={" %"}
+                          useEasing
+                        />
+                      ) : (
+                        <span>{"-"}</span>
+                      )}
                     </td>
                   )}
                   <td
@@ -550,50 +589,58 @@ export const OptionsTable = () => {
                       "put"
                     )}`}
                   >
-                    <NumberFormat
-                      value={option.put.bid.quote}
-                      displayType={"text"}
-                      decimalScale={2}
-                      fixedDecimalScale
-                      prefix={"$"}
+                    <CountUp
+                      decimals={2}
+                      duration={0.3}
+                      easingFn={easeOutCubic}
+                      end={option.put.bid.quote}
+                      preserveValue
+                      prefix={"$ "}
+                      useEasing
                     />
                   </td>
-                  <NumberFormat
-                    value={option.put.ask.quote}
-                    displayType={"text"}
-                    decimalScale={2}
-                    fixedDecimalScale
-                    prefix={"$"}
-                    renderText={(value) => {
-                      const disabled =
-                        option.put.ask.disabled || !option.put.ask.quote;
+                  <CountUp
+                    decimals={2}
+                    duration={0.3}
+                    easingFn={easeOutCubic}
+                    end={option.put.ask.quote}
+                    preserveValue
+                    prefix={"$ "}
+                    useEasing
+                  >
+                    {({ countUpRef }) => {
+                      {
+                        const disabled =
+                          option.put.ask.disabled || !option.put.ask.quote;
 
-                      return (
-                        <td
-                          className={`p-0 ${
-                            disabled ? "text-gray-600" : "text-green-700"
-                          }
-                        ${getColorClasses(option, "put")}`}
-                        >
-                          <button
-                            className={`${
-                              disabled ? "cursor-not-allowed" : "cursor-pointer"
-                            } py-4 xl:py-3 px-1 xl:px-2 w-full text-right`}
-                            onClick={() =>
-                              setSelectedOption({
-                                callOrPut: "put",
-                                bidOrAsk: "ask",
-                                strikeOptions: option,
-                              })
+                        return (
+                          <td
+                            className={`p-0 ${
+                              disabled ? "text-gray-600" : "text-green-700"
                             }
-                            disabled={disabled}
+                          ${getColorClasses(option, "put")}`}
                           >
-                            {value}
-                          </button>
-                        </td>
-                      );
+                            <button
+                              className={`${
+                                disabled
+                                  ? "cursor-not-allowed"
+                                  : "cursor-pointer"
+                              } py-4 xl:py-3 px-1 xl:px-2 w-full text-right`}
+                              onClick={() =>
+                                setSelectedOption({
+                                  callOrPut: "put",
+                                  bidOrAsk: "ask",
+                                  strikeOptions: option,
+                                })
+                              }
+                              disabled={disabled}
+                              ref={countUpRef as RefObject<HTMLButtonElement>}
+                            />
+                          </td>
+                        );
+                      }
                     }}
-                  />
+                  </CountUp>
                   {showCol("ask iv") && (
                     <td
                       className={`py-4 xl:py-3 px-1 xl:px-2 ${getColorClasses(
@@ -601,13 +648,19 @@ export const OptionsTable = () => {
                         "put"
                       )}`}
                     >
-                      <NumberFormat
-                        value={option.put.ask.IV}
-                        displayType={"text"}
-                        decimalScale={2}
-                        fixedDecimalScale
-                        suffix={"%"}
-                      />
+                      {option.put.ask.IV ? (
+                        <CountUp
+                          decimals={2}
+                          duration={0.3}
+                          easingFn={easeOutCubic}
+                          end={option.put.ask.IV}
+                          preserveValue
+                          suffix={" %"}
+                          useEasing
+                        />
+                      ) : (
+                        <span>{"-"}</span>
+                      )}
                     </td>
                   )}
                   {showCol("delta") && (
@@ -617,11 +670,13 @@ export const OptionsTable = () => {
                         "put"
                       )}`}
                     >
-                      <NumberFormat
-                        value={option.put.delta}
-                        displayType={"text"}
-                        decimalScale={2}
-                        fixedDecimalScale
+                      <CountUp
+                        decimals={2}
+                        duration={0.3}
+                        easingFn={easeOutCubic}
+                        end={option.put.delta}
+                        preserveValue
+                        useEasing
                       />
                     </td>
                   )}
@@ -632,12 +687,18 @@ export const OptionsTable = () => {
                         "put"
                       )}`}
                     >
-                      <NumberFormat
-                        value={option.put.pos}
-                        displayType={"text"}
-                        decimalScale={2}
-                        fixedDecimalScale
-                      />
+                      {option.put.pos ? (
+                        <CountUp
+                          decimals={2}
+                          duration={0.3}
+                          easingFn={easeOutCubic}
+                          end={option.put.pos}
+                          preserveValue
+                          useEasing
+                        />
+                      ) : (
+                        <span>{"-"}</span>
+                      )}
                     </td>
                   )}
                 </motion.tr>

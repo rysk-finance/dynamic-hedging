@@ -35,6 +35,7 @@ export const fromOpynHumanised = (x?: BigNumberish) => {
 
   return Number(utils.formatUnits(x, 8)).toFixed(2);
 };
+export const fromOpynToNumber = (x: BigNumberish) => Number(fromOpyn(x));
 export const getDiffSeconds = (now: Dayjs, future: Dayjs) =>
   future.unix() - now.unix();
 export const convertRounded = (x: BigNumberish): number =>
