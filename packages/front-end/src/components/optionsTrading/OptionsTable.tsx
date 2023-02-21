@@ -278,7 +278,7 @@ export const OptionsTable = () => {
                   disabled: !callAvailability.isBuyable,
                 },
                 delta: Number(fromWei(localDeltaCall).toString()),
-                pos: positions.call,
+                pos: positions?.call || 0,
               },
               put: {
                 bid: {
@@ -292,7 +292,7 @@ export const OptionsTable = () => {
                   disabled: !putAvailability.isBuyable,
                 },
                 delta: Number(fromWei(localDeltaPut).toString()),
-                pos: positions.put,
+                pos: positions?.put || 0,
               },
             };
           })
