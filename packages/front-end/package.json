@@ -37,6 +37,7 @@
     "react-toastify": "^9.1.1",
     "react-tooltip": "^4.5.1",
     "recharts": "^2.5.0",
+    "use-debounce": "^9.0.3",
     "wagmi": "^0.12.2",
     "web-vitals": "^3.3.0"
   },
