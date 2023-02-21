@@ -108,7 +108,13 @@ export type OptionsTradingState = {
   optionParams: OptionParams | null;
   customOptionStrikes: number[];
   selectedOption: SelectedOption | null;
+  visibleStrikeRange: StrikeRangeTuple;
+  visibleColumns: Set<ColumNames>;
 };
+
+export type StrikeRangeTuple = [string, string];
+
+export type ColumNames = "bid" | "ask" | "bid iv" | "ask iv" | "delta" | "pos";
 
 export type OptionsTradingContext = {
   state: OptionsTradingState;
@@ -167,14 +173,6 @@ export type OptionParams = {
   maxExpiry: BigNumber;
 };
 
-export enum OptionsTradingActionType {
-  SET_OPTION_TYPE,
-  SET_EXPIRY_DATE,
-  SET_SELECTED_OPTION,
-  ADD_CUSTOM_STRIKE,
-  SET_OPTION_PARAMS,
-}
-
 export interface OptionSeries {
   expiration: BigNumber;
   strike: BigNumber;
@@ -182,6 +180,18 @@ export interface OptionSeries {
   underlying: HexString;
   collateral: HexString;
   isPut: boolean;
+}
+
+export enum OptionsTradingActionType {
+  SET_OPTION_TYPE,
+  SET_EXPIRY_DATE,
+  SET_SELECTED_OPTION,
+  ADD_CUSTOM_STRIKE,
+  SET_OPTION_PARAMS,
+  SET_VISIBLE_STRIKE_RANGE,
+  RESET_VISIBLE_STRIKE_RANGE,
+  SET_VISIBLE_COLUMNS,
+  RESET_VISIBLE_COLUMNS,
 }
 
 export type OptionsTradingAction =
@@ -204,4 +214,18 @@ export type OptionsTradingAction =
   | {
       type: OptionsTradingActionType.SET_OPTION_PARAMS;
       params: OptionParams | null;
+    }
+  | {
+      type: OptionsTradingActionType.SET_VISIBLE_STRIKE_RANGE;
+      visibleStrikeRange: StrikeRangeTuple;
+    }
+  | {
+      type: OptionsTradingActionType.RESET_VISIBLE_STRIKE_RANGE;
+    }
+  | {
+      type: OptionsTradingActionType.SET_VISIBLE_COLUMNS;
+      column: ColumNames;
+    }
+  | {
+      type: OptionsTradingActionType.RESET_VISIBLE_COLUMNS;
     };

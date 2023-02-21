@@ -1,15 +1,16 @@
-import { Reducer } from "react";
-import {
-  ActionType,
+import type {
   GlobalAction,
   GlobalState,
-  OptionsTradingState,
   OptionsTradingAction,
-  OptionsTradingActionType,
+  OptionsTradingState,
   VaultAction,
   VaultState,
-  VaultActionType,
 } from "./types";
+
+import { Reducer } from "react";
+
+import { ActionType, OptionsTradingActionType, VaultActionType } from "./types";
+import { defaultOptionTradingState } from "./OptionsTradingContext";
 
 export const globalReducer: Reducer<GlobalState, GlobalAction> = (
   state,
@@ -103,6 +104,32 @@ export const optionsTradingReducer: Reducer<
       return {
         ...state,
         optionParams: action.params,
+      };
+    case OptionsTradingActionType.SET_VISIBLE_STRIKE_RANGE:
+      return {
+        ...state,
+        visibleStrikeRange: action.visibleStrikeRange,
+      };
+    case OptionsTradingActionType.RESET_VISIBLE_STRIKE_RANGE:
+      return {
+        ...state,
+        visibleStrikeRange: defaultOptionTradingState.visibleStrikeRange,
+      };
+    case OptionsTradingActionType.SET_VISIBLE_COLUMNS:
+      const newSet = new Set(state.visibleColumns);
+
+      newSet.has(action.column)
+        ? newSet.delete(action.column)
+        : newSet.add(action.column);
+
+      return {
+        ...state,
+        visibleColumns: newSet,
+      };
+    case OptionsTradingActionType.RESET_VISIBLE_COLUMNS:
+      return {
+        ...state,
+        visibleColumns: defaultOptionTradingState.visibleColumns,
       };
   }
 };
