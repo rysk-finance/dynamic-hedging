@@ -12071,6 +12071,14 @@ react-countup@^6.4.1:
     "@rollup/plugin-babel" "^6.0.3"
     countup.js "^2.5.0"
 
+react-countup@^6.4.1:
+  version "6.4.1"
+  resolved "https://registry.yarnpkg.com/react-countup/-/react-countup-6.4.1.tgz#cbbda64a64065cb12376eff23e5aa084665e6c4d"
+  integrity sha512-FxQ7qaNnnbA+Px9RebOZY4Tbawa1bhgpVPlUqRemZb90mh3f3OqyHVgr1SZqnJgaRxR3uEYqgkszgkDgFVCeEw==
+  dependencies:
+    "@rollup/plugin-babel" "^6.0.2"
+    countup.js "^2.4.1"
+
 react-datepicker@^4.10.0:
   version "4.11.0"
   resolved "https://registry.yarnpkg.com/react-datepicker/-/react-datepicker-4.11.0.tgz#40e73b4729a284ed206fdb322b8e84eb566e11a3"

@@ -1,3 +1,5 @@
+import type { RefObject } from "react";
+
 import type { CurrentPriceProps } from "../types";
 
 import dayjs from "dayjs";

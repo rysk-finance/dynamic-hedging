@@ -1,3 +1,5 @@
+import type { RefObject } from "react";
+
 import type { OneDayChangeProps } from "../types";
 
 import NumberFormat from "react-number-format";
