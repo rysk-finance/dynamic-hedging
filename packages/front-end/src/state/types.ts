@@ -136,31 +136,31 @@ export interface StrikeOptions {
   strike: number;
   call: {
     bid: {
-      IV: number | string;
+      IV: number;
       quote: number;
       disabled: boolean;
     };
     ask: {
-      IV: number | string;
+      IV: number;
       quote: number;
       disabled: boolean;
     };
     delta: number;
-    pos: string;
+    pos: number;
   };
   put: {
     bid: {
-      IV: number | string;
+      IV: number;
       quote: number;
       disabled: boolean;
     };
     ask: {
-      IV: number | string;
+      IV: number;
       quote: number;
       disabled: boolean;
     };
     delta: number;
-    pos: string;
+    pos: number;
   };
 }
 
