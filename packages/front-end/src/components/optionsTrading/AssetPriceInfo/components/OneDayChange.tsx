@@ -15,13 +15,13 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
   const widthChunk = change * (50 / (Math.ceil(Math.abs(change) / 5) * 5));
 
   return (
-    <div className="flex flex-col justify-center w-1/3 px-4">
-      <div className="flex justify-between">
+    <div className="flex flex-col justify-center px-4 w-1/2">
+      <div className="flex justify-between pb-1">
         <small className="text-gray-600 text-xs">{`24hr Low`}</small>
         <small className="text-gray-600 text-xs">{`24hr High`}</small>
       </div>
 
-      <div className="flex justify-between font-dm-mono">
+      <div className="flex justify-between font-dm-mono text-xs xl:text-base pb-1">
         <p className="text-red-500">{`$ ${low}`}</p>
         <CountUp
           decimals={2}
