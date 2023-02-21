@@ -17,7 +17,7 @@ export const VaultRisks = () => {
       <div className="pb-8 py-12 px-8">
         <div className="grid grid-cols-2">
           <div>
-            <h4>Financial Risks</h4>
+            <h4 className="text-xl">Financial Risks</h4>
             <p className="pt-4">
               <ul className="list-disc px-8">
                 <li className="pb-2">
@@ -44,7 +44,7 @@ export const VaultRisks = () => {
           </div>
 
           <div>
-            <h4>Smart Contract Risks</h4>
+            <h4 className="text-xl">Smart Contract Risks</h4>
             <p className="pt-4">
               <ul className="list-disc px-8">
                 <li className="pb-2">

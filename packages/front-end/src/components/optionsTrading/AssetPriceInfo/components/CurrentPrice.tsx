@@ -26,7 +26,7 @@ export const CurrentPrice = ({ price, latestUpdate }: CurrentPriceProps) => {
         >
           {({ countUpRef }) => (
             <h4
-              className="font-medium font-dm-mono"
+              className="font-medium font-dm-mono text-xl"
               ref={countUpRef as RefObject<HTMLHeadingElement>}
             />
           )}

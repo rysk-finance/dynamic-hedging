@@ -401,7 +401,7 @@ export const OTCPageContent = () => {
                     </div>
                     <div className="flex items-center justify-between grow px-4">
                       <div className="flex flex-col justify-around">
-                        <h4>
+                        <h4 className="text-xl">
                           <b>Ether</b>
                         </h4>
                         <p className="text-gray-600 text-xs">
