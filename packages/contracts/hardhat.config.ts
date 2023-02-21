@@ -63,6 +63,15 @@ module.exports = {
 	solidity: {
 		compilers: [
 			{
+				version: "0.6.6",
+				settings: {
+					optimizer: {
+						enabled: true,
+						runs: 200
+					}
+				}
+			},
+			{
 				version: "0.6.8",
 				settings: {
 					optimizer: {
@@ -172,7 +181,7 @@ module.exports = {
 			chainId: 1337
 		},
 		arbitrum: {
-      url: 'https://arb1.arbitrum.io/rpc',
+			url: "https://arb1.arbitrum.io/rpc",
 			chainId: 42161,
 			saveDeployments: true,
 			accounts: process.env.MAINNET_PRIVATE_KEY ? [process.env.MAINNET_PRIVATE_KEY] : accounts,
@@ -184,10 +193,11 @@ module.exports = {
 			saveDeployments: true,
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
 			gas: 500000000
-		},
+		}
 	},
 	etherscan: {
 		apiKey: {
+			arbitrumOne: process.env.ARBISCAN_API_KEY,
 			arbitrumGoerli: process.env.ARBISCAN_API_KEY
 		},
 		customChains: [
