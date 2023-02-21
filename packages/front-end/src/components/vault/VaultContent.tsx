@@ -77,8 +77,8 @@ export const VaultContent = () => {
       </div>
       <div className="col-start-1 col-end-8">
         <div className="font-parabole mb-8">
-          <h4 className="pb-4">Dynamic Hedging Vault</h4>
-          <h1>{DHV_NAME}</h1>
+          <h4 className="pb-4 text-xl">Dynamic Hedging Vault</h4>
+          <h1 className="text-4xl">{DHV_NAME}</h1>
         </div>
 
         <p className="mt-8">

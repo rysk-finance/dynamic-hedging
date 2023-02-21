@@ -44,6 +44,13 @@ module.exports = {
           600: "#989898",
         },
       },
+      fontSize: {
+        lg: ["18px", "20px"],
+        xl: ["24px", "26px"],
+        "2xl": ["36px", "40px"],
+        "3xl": ["48px", "52px"],
+        "4xl": ["64px", "64px"],
+      },
       keyframes: {
         "border-round": {
           "0%": { borderRadius: "0px" },
@@ -71,9 +78,6 @@ module.exports = {
         15: "15",
         16: "16",
         17: "17",
-      },
-      gridTemplateColumns: {
-        13: "repeat(13, minmax(0, 1fr))",
       },
     },
   },
