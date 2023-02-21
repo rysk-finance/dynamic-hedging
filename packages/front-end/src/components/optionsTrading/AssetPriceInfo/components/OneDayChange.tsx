@@ -28,22 +28,23 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
           displayType="text"
           decimalScale={2}
           fixedDecimalScale
-          prefix={"$ "}
-          renderText={(value) => <p className="text-red-500">{value}</p>}
+          renderText={(value) => (
+            <p className="text-red-500 before:content-['$'] before:mr-1">
+              {value}
+            </p>
+          )}
         />
-        {/* <p className="text-red-500">{`$ ${low}`}</p> */}
         <CountUp
           decimals={2}
           duration={0.3}
           easingFn={easeOutCubic}
           end={round(change) || 0}
           preserveValue
-          suffix=" %"
           useEasing
         >
           {({ countUpRef }) => (
             <p
-              className="text-gray-600"
+              className="text-gray-600 after:content-['%'] after:ml-1"
               ref={countUpRef as RefObject<HTMLHeadingElement>}
             />
           )}
@@ -53,8 +54,11 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
           displayType="text"
           decimalScale={2}
           fixedDecimalScale
-          prefix={"$ "}
-          renderText={(value) => <p className="text-green-500">{value}</p>}
+          renderText={(value) => (
+            <p className="text-green-500 before:content-['$'] before:mr-1">
+              {value}
+            </p>
+          )}
         />
       </div>
 

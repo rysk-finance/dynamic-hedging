@@ -19,14 +19,13 @@ export const CurrentPrice = ({ price, latestUpdate }: CurrentPriceProps) => {
           duration={0.3}
           easingFn={easeOutCubic}
           end={price || 0}
-          prefix="Ether: $ "
           preserveValue
           separator=","
           useEasing
         >
           {({ countUpRef }) => (
             <h4
-              className="font-medium font-dm-mono text-lg lg:text-xl"
+              className="font-medium font-dm-mono text-lg lg:text-xl before:content-['Ether:_$'] before:mr-1"
               ref={countUpRef as RefObject<HTMLHeadingElement>}
             />
           )}

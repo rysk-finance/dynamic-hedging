@@ -427,12 +427,12 @@ export const OptionsTable = () => {
                     >
                       {option.call.bid.IV ? (
                         <CountUp
+                          className="after:content-['%'] after:ml-1"
                           decimals={2}
                           duration={0.3}
                           easingFn={easeOutCubic}
                           end={option.call.bid.IV}
                           preserveValue
-                          suffix={" %"}
                           useEasing
                         />
                       ) : (
@@ -447,12 +447,12 @@ export const OptionsTable = () => {
                     )}`}
                   >
                     <CountUp
+                      className="before:content-['$'] before:mr-1"
                       decimals={2}
                       duration={0.3}
                       easingFn={easeOutCubic}
                       end={option.call.bid.quote}
                       preserveValue
-                      prefix={"$ "}
                       useEasing
                     />
                   </td>
@@ -462,7 +462,6 @@ export const OptionsTable = () => {
                     easingFn={easeOutCubic}
                     end={option.call.ask.quote}
                     preserveValue
-                    prefix={"$ "}
                     useEasing
                   >
                     {({ countUpRef }) => {
@@ -479,7 +478,7 @@ export const OptionsTable = () => {
                           <button
                             className={`${
                               disabled ? "cursor-not-allowed" : "cursor-pointer"
-                            } py-4 xl:py-3 px-1 xl:px-2 w-full text-right`}
+                            } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
                             onClick={() =>
                               setSelectedOption({
                                 callOrPut: "call",
@@ -503,12 +502,12 @@ export const OptionsTable = () => {
                     >
                       {option.call.ask.IV ? (
                         <CountUp
+                          className="after:content-['%'] after:ml-1"
                           decimals={2}
                           duration={0.3}
                           easingFn={easeOutCubic}
                           end={option.call.ask.IV}
                           preserveValue
-                          suffix={" %"}
                           useEasing
                         />
                       ) : (
@@ -570,12 +569,12 @@ export const OptionsTable = () => {
                     >
                       {option.put.bid.IV ? (
                         <CountUp
+                          className="after:content-['%'] after:ml-1"
                           decimals={2}
                           duration={0.3}
                           easingFn={easeOutCubic}
                           end={option.put.bid.IV}
                           preserveValue
-                          suffix={" %"}
                           useEasing
                         />
                       ) : (
@@ -590,12 +589,12 @@ export const OptionsTable = () => {
                     )}`}
                   >
                     <CountUp
+                      className="before:content-['$'] before:mr-1"
                       decimals={2}
                       duration={0.3}
                       easingFn={easeOutCubic}
                       end={option.put.bid.quote}
                       preserveValue
-                      prefix={"$ "}
                       useEasing
                     />
                   </td>
@@ -605,7 +604,6 @@ export const OptionsTable = () => {
                     easingFn={easeOutCubic}
                     end={option.put.ask.quote}
                     preserveValue
-                    prefix={"$ "}
                     useEasing
                   >
                     {({ countUpRef }) => {
@@ -625,7 +623,7 @@ export const OptionsTable = () => {
                                 disabled
                                   ? "cursor-not-allowed"
                                   : "cursor-pointer"
-                              } py-4 xl:py-3 px-1 xl:px-2 w-full text-right`}
+                              } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
                               onClick={() =>
                                 setSelectedOption({
                                   callOrPut: "put",
@@ -650,12 +648,12 @@ export const OptionsTable = () => {
                     >
                       {option.put.ask.IV ? (
                         <CountUp
+                          className="after:content-['%'] after:ml-1"
                           decimals={2}
                           duration={0.3}
                           easingFn={easeOutCubic}
                           end={option.put.ask.IV}
                           preserveValue
-                          suffix={" %"}
                           useEasing
                         />
                       ) : (
