@@ -70,7 +70,10 @@ export const DateList = ({
                   strokeWidth={4}
                 />
 
-                <time className="mx-4" dateTime={datetime.format("YYYY-MM-DD")}>
+                <time
+                  className="mx-4 text-sm xl:text-base"
+                  dateTime={datetime.format("YYYY-MM-DD")}
+                >
                   {`${datetime.format("MMM DD")}`}
                 </time>
 

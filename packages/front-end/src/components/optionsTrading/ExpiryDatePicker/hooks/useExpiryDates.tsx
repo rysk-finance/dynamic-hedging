@@ -4,7 +4,7 @@ import type {
   ExpiryDateList,
   UserExpiryStatus,
   UserPositions,
-  VisibleRange
+  VisibleRange,
 } from "../types";
 
 import { gql, useQuery } from "@apollo/client";
