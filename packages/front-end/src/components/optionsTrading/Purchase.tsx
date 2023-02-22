@@ -79,20 +79,19 @@ export const Purchase = () => {
   // Local state
   const [uiOrderSize, setUIOrderSize] = useState("");
   const [isApproved, setIsApproved] = useState(false);
-  const [, setCollateral] = useState("");
 
   // note - to avoid using state i'm saving this in the hook for now
   useEffect(() => {
     if (selectedOption && expiryDate) {
       const optionDetails = {
-        expiration: expiryDate.toString(),
+        expiration: BigNumber.from(expiryDate),
         strike: toWei(selectedOption.strikeOptions.strike.toString()),
         isPut: selectedOption.callOrPut === "put",
       };
 
       const retrieveOtoken = async () => {
         const oToken = await getOToken(
-          optionDetails.expiration,
+          optionDetails.expiration.toString(),
           optionDetails.strike,
           optionDetails.isPut
         );
@@ -136,7 +135,6 @@ export const Purchase = () => {
   const handleCollateralChange = (value: string) => {
     setApprovalUSDCAmount(toUSDC(value));
     setMarginUSDCAmount(toUSDC(value));
-    setCollateral(value);
   };
 
   const handleApprovePremium = async () => {
@@ -399,7 +397,11 @@ export const Purchase = () => {
                   }`}
                   onClick={bidOrAsk === "ask" ? handleBuy : handleSell}
                 >
-                  {simulateIsLoading ? "Simulating..." : bidOrAsk === "ask" ? "Buy" : "Sell"}
+                  {simulateIsLoading
+                    ? "Simulating..."
+                    : bidOrAsk === "ask"
+                    ? "Buy"
+                    : "Sell"}
                 </Button>
               </div>
             </div>
