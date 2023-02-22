@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAccount, useContractWrite, usePrepareContractWrite } from "wagmi";
 import { readContract } from "@wagmi/core";
-import ERC20ABI from "../../abis/erc20.json";
+import { erc20ABI } from "../../abis/erc20_ABI";
 import { BigNumber } from "ethers";
 import { getContractAddress } from "../../utils/helpers";
+import { ZERO_ADDRESS } from "../../config/constants";
+import { captureException } from "@sentry/react";
 
 const useApproveTransfer = (): [
   ((overrideConfig?: undefined) => void) | undefined,
@@ -13,6 +15,8 @@ const useApproveTransfer = (): [
 ] => {
   // Global state
   const { address } = useAccount();
+
+  const addressOrDefault = address || ZERO_ADDRESS;
 
   // Addresses
   const controllerAddress = getContractAddress("OpynController");
@@ -34,22 +38,25 @@ const useApproveTransfer = (): [
     const readAllowance = async () => {
       const current = await readContract({
         address: collateral,
-        abi: ERC20ABI,
+        abi: erc20ABI,
         functionName: "allowance",
-        args: [address, exchangeAddress],
+        args: [addressOrDefault, exchangeAddress],
       });
 
-      setAllowance(current as BigNumber);
+      setAllowance(current);
     };
 
-    readAllowance().catch(console.log);
+    readAllowance().catch((e: any) => {
+      console.log(e);
+      captureException(e);
+    });
     // note - only address can change here, the rest not because we don't allow network change
   }, [address, exchangeAddress, controllerAddress, collateral]);
 
   // Contract write - approve
   const { config } = usePrepareContractWrite({
     address: collateral,
-    abi: ERC20ABI,
+    abi: erc20ABI,
     functionName: "approve",
     args: [exchangeAddress, amount],
     enabled: amount?.gt("0"),

@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useAccount, useContractWrite, usePrepareContractWrite } from "wagmi";
 import { readContract } from "@wagmi/core";
-import OpynControllerABI from "../../abis/OpynController.json";
+import { OpynControllerABI } from "../../abis/OpynController_ABI";
 import { getContractAddress } from "../../utils/helpers";
+import { ZERO_ADDRESS } from "../../config/constants";
 
 const useApproveExchange = (): [
   ((overrideConfig?: undefined) => void) | undefined,
@@ -10,6 +11,8 @@ const useApproveExchange = (): [
 ] => {
   // Global state
   const { address } = useAccount();
+
+  const addressOrDefault = address || ZERO_ADDRESS;
 
   // Addresses
   const controllerAddress = getContractAddress("OpynController");
@@ -28,7 +31,7 @@ const useApproveExchange = (): [
         address: controllerAddress,
         abi: OpynControllerABI,
         functionName: "isOperator",
-        args: [address, exchangeAddress],
+        args: [addressOrDefault, exchangeAddress],
       });
 
       setIsApproved(current as boolean);

@@ -60,12 +60,12 @@ export type ContractAddresses = RyskContractAddresses &
   ExternalContractAddresses;
 
 export type OptionSeries = {
-  expiration: TimestampSeconds;
+  expiration: BigNumber;
   strike: BigNumber;
   isPut: boolean;
-  underlying: Address;
-  strikeAsset: Address;
-  collateral: Address;
+  underlying: HexString;
+  strikeAsset: HexString;
+  collateral: HexString;
 };
 
 export type Order = {
