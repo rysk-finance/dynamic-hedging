@@ -4,11 +4,9 @@ import { TextInput } from "../../shared/TextInput";
 import useOraclePrice from "../../../hooks/useOraclePrice";
 import useMarginRequirement from "../../../hooks/useMarginRequirement";
 import { tFormatUSDC, toOpyn } from "../../../utils/conversion-helper";
-import { ETHNetwork } from "../../../types";
-import addresses from "../../../contracts.json";
-import { getNetwork } from "@wagmi/core";
 import { BigNumber } from "ethers";
 import { SelectedOption } from "../../../state/types";
+import { getContractAddress } from "../../../utils/helpers";
 
 const CollateralRequirement = ({
   selectedOption,
@@ -23,19 +21,14 @@ const CollateralRequirement = ({
   isPut: boolean;
   onChange: (value: string) => void;
 }) => {
-  // Global state
-  const { chain } = getNetwork();
-  const network = chain?.network as ETHNetwork;
-
   // Addresses
-  const underlying = addresses[network].WETH;
+  const underlying = getContractAddress("WETH");
 
   // Hooks
-  const [getMarginRequirement] = useMarginRequirement();
+  const [margin, updateMarginParams] = useMarginRequirement();
   const [getOraclePrice] = useOraclePrice();
 
   // Internal state
-  const [margin, setMargin] = useState<string | null>(null);
   const [userInputCollateral, setUserInputCollateral] = useState<string>("");
 
   // Setters
@@ -48,15 +41,13 @@ const CollateralRequirement = ({
     const fetchMargin = async () => {
       const underlyingPrice = await getOraclePrice(underlying);
 
-      const marginRequirement = await getMarginRequirement(
-        "100000000", // TODO - this is hardcoded for now, use the user input amount
-        toOpyn(strike.toString()).toString(), // TODO - pass as BigInt ?
-        (underlyingPrice as BigNumber).toString(), // TODO - pass as BigInt ?
-        expiry,
-        isPut
-      );
-
-      setMargin(marginRequirement as string);
+      updateMarginParams({
+        amount: BigNumber.from("100000000"), // TODO - this is hardcoded for now, use the user input amount
+        underlyingStrikePrice: toOpyn(strike.toString()),
+        underlyingCurrentPrice: underlyingPrice as BigNumber,
+        expiryTimestamp: BigNumber.from(expiry),
+        isPut: isPut,
+      });
     };
 
     fetchMargin().catch(console.log);

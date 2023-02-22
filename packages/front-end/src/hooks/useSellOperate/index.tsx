@@ -1,8 +1,8 @@
 import { usePrepareContractWrite, useContractWrite, useAccount } from "wagmi";
 import { gql, useQuery } from "@apollo/client";
 import { EMPTY_SERIES, ZERO_ADDRESS } from "../../config/constants";
-import { Address, OptionSeries } from "../../types";
-import OptionExchangeABI from "../../abis/OptionExchange.json";
+import { OptionSeries } from "../../types";
+import { OptionExchangeABI } from "../../abis/OptionExchange_ABI";
 import { AbiCoder } from "ethers/lib/utils";
 import { useState } from "react";
 import { BigNumber } from "ethers";
@@ -15,11 +15,13 @@ const useSellOperate = (): [
   ((overrideConfig?: undefined) => void) | undefined,
   (value: BigNumber) => void,
   (value: BigNumber) => void,
-  (value: Partial<OptionSeries>) => void,
-  (value: Address) => void
+  (value: Pick<OptionSeries, "expiration" | "strike" | "isPut">) => void,
+  (value: HexString) => void
 ] => {
   // Global state
   const { address } = useAccount();
+
+  const addressOrDefault = address || ZERO_ADDRESS;
 
   // Addresses
   const exchangeAddress = getContractAddress("optionExchange");
@@ -30,14 +32,20 @@ const useSellOperate = (): [
   const underlying = wethAddress;
 
   // Internal state
-  // note - set by user and it's the collateral they want to put down
+  // note - set by user, and it's the collateral they want to put down
   const [margin, setMargin] = useState<BigNumber>(BigNumber.from("0"));
   // note - amount of otokens to be minted
   const [amount, setAmount] = useState<BigNumber>(BigNumber.from("0"));
   // note - partial option series as assets are hardcoded above
-  const [optionSeries, setOptionSeries] = useState<Partial<OptionSeries>>();
+  const [optionSeries, setOptionSeries] = useState<
+    Pick<OptionSeries, "expiration" | "strike" | "isPut">
+  >({
+    expiration: BigNumber.from(1),
+    strike: BigNumber.from(1),
+    isPut: true,
+  });
   // note - callStatic.createOtoken, could be derived from data above
-  const [oToken, setOToken] = useState<Address>();
+  const [oToken, setOToken] = useState<HexString>(ZERO_ADDRESS);
 
   const { data } = useQuery<QueryData>(
     gql`
@@ -53,6 +61,8 @@ const useSellOperate = (): [
     }
   );
 
+  const nextVaultId = BigNumber.from(Number(data?.account.vaultCount) + 1 || 0);
+
   // Setters
   const updateMargin = (amount: BigNumber) => {
     setMargin(amount);
@@ -60,10 +70,12 @@ const useSellOperate = (): [
   const updateAmount = (amount: BigNumber) => {
     setAmount(amount);
   };
-  const updateOptionSeries = (optionSeries: Partial<OptionSeries>) => {
+  const updateOptionSeries = (
+    optionSeries: Pick<OptionSeries, "expiration" | "strike" | "isPut">
+  ) => {
     setOptionSeries(optionSeries);
   };
-  const updateOToken = (address: Address) => {
+  const updateOToken = (address: HexString) => {
     setOToken(address);
   };
 
@@ -75,39 +87,39 @@ const useSellOperate = (): [
     args: [
       [
         {
-          operation: 0, // 0 means opyn operation
+          operation: 0, // 0 means Opyn operation
           operationQueue: [
             {
-              actionType: 0, // 0 on an opyn operation means Open Vault which is represented by a vaultId
-              owner: address,
-              secondAddress: address,
+              actionType: BigNumber.from(0), // 0 on an Opyn operation means Open Vault which is represented by a vaultId
+              owner: addressOrDefault,
+              secondAddress: addressOrDefault,
               asset: ZERO_ADDRESS,
-              vaultId: Number(data?.account.vaultCount) + 1, // TODO vaultId, each different short position the user holds will be held in a unique vaultId, for now putting it in new vaults
+              vaultId: nextVaultId, // TODO vaultId, each different short position the user holds will be held in a unique vaultId, for now putting it in new vaults
               amount: BigNumber.from("0"),
               optionSeries: EMPTY_SERIES,
-              index: 0,
-              data: abiCode.encode(["uint256"], [0]), // 1 here represents partially collateralised, 0 represents fully collateralised
+              index: BigNumber.from(0),
+              data: abiCode.encode(["uint256"], [0]) as `0x${string}`, // 1 here represents partially collateralized, 0 represents fully collateralized
             },
             {
-              actionType: 5, // 5 represents a Deposit Collateral action
-              owner: address,
-              secondAddress: exchangeAddress, // this can be set as the senderAddress or exchange address, if set to the exchange address then the user approval goes to the exchange, if set to the sender address then the user approval goes to the opyn margin pool
+              actionType: BigNumber.from(5), // 5 represents a Deposit Collateral action
+              owner: addressOrDefault,
+              secondAddress: exchangeAddress, // this can be set as the senderAddress or exchange address, if set to the exchange address then the user approval goes to the exchange, if set to the sender address then the user approval goes to the Opyn margin pool
               asset: collateral, // TODO proposedSeries.collateral
-              vaultId: Number(data?.account.vaultCount) + 1,
+              vaultId: nextVaultId,
               amount: margin,
               optionSeries: EMPTY_SERIES,
-              index: 0,
+              index: BigNumber.from(0),
               data: ZERO_ADDRESS,
             },
             {
-              actionType: 1, // 1 represents a mint otoken operation (minting an option contract, this only works if there is enough collateral)
-              owner: address,
+              actionType: BigNumber.from(1), // 1 represents a mint otoken operation (minting an option contract, this only works if there is enough collateral)
+              owner: addressOrDefault,
               secondAddress: exchangeAddress, // most of the time this should be set to exchange address, this helps avoid an extra approval from the user on the otoken when selling to the dhv
               asset: oToken,
-              vaultId: Number(data?.account.vaultCount) + 1,
+              vaultId: nextVaultId,
               amount: amount, // amount needs to be in e8 decimals
               optionSeries: EMPTY_SERIES,
-              index: 0,
+              index: BigNumber.from(0),
               data: ZERO_ADDRESS,
             },
           ],
@@ -116,19 +128,19 @@ const useSellOperate = (): [
           operation: 1, // indicates a rysk operation
           operationQueue: [
             {
-              actionType: 2, // this is a sell action
+              actionType: BigNumber.from(2), // this is a sell action
               owner: ZERO_ADDRESS,
-              secondAddress: address,
+              secondAddress: addressOrDefault,
               asset: ZERO_ADDRESS,
-              vaultId: 0, // i guess all dhv options are in this vault
-              amount: amount.mul(BigNumber.from("10000000000")).toString(), // amount needs to be in e18 decimals
+              vaultId: BigNumber.from(0), // I guess all dhv options are in this vault
+              amount: amount.mul(BigNumber.from("10000000000")), // amount needs to be in e18 decimals
               optionSeries: {
-                ...optionSeries,
                 strikeAsset: strike,
                 collateral,
                 underlying,
+                ...optionSeries,
               },
-              index: 0,
+              index: BigNumber.from(0),
               data: "0x",
             },
           ],
