@@ -217,7 +217,7 @@ describe("Options protocol", function () {
 		oracle = opynParams.oracle
 		newCalculator = opynParams.newCalculator
 	})
-	it("deploys the Gelato Resolver and returns false due price already set", async () => {
+	it("deploys the Gelato Resolver and returns true when time is correct and price has not been set already", async () => {
 		const resolverFactory = await ethers.getContractFactory("OpynPricerResolver")
 		resolver = (await resolverFactory.deploy(
 			CHAINLINK_WETH_PRICER[chainId],
