@@ -1,6 +1,6 @@
 import hre, { ethers } from "hardhat"
 
-const executorAddress = "0x0000000000000000000000000000000000000000" // zero address for test purposes
+const executorAddress = "0xA67D0C1180E0e183f482304A9b5436A3478F0674" // rysk deployer mainnet
 const optionRegistryAddress = "0x04706DE6cE851a284b569EBaE2e258225D952368"
 
 const main = async () => {
