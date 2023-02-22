@@ -44,9 +44,9 @@ export const VaultPerformance = () => {
     if (data) {
       const { pricePerShares } = data;
 
-      const publicLaunchOffset = parseFloat(
-        pricePerShares[0].growthSinceFirstEpoch
-      );
+      const publicLaunchOffset = pricePerShares.length
+        ? parseFloat(pricePerShares[0].growthSinceFirstEpoch)
+        : 0;
 
       const adjustedChartData = pricePerShares.map((pricePoint) => {
         const pricePointGrowth = parseFloat(pricePoint.growthSinceFirstEpoch);
