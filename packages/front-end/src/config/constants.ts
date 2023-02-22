@@ -10,11 +10,12 @@ export const MAX_UINT_256 =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
 export const ZERO_UINT_256 = "0x00";
-export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+export const ZERO_ADDRESS: HexString =
+  "0x0000000000000000000000000000000000000000";
 
 export const EMPTY_SERIES = {
-  expiration: 1,
-  strike: 1,
+  expiration: BigNumber.from(1),
+  strike: BigNumber.from(1),
   isPut: true,
   collateral: ZERO_ADDRESS,
   underlying: ZERO_ADDRESS,

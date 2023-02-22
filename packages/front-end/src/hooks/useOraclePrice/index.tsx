@@ -1,5 +1,5 @@
-import { readContract, getNetwork } from "@wagmi/core";
-import OpynOracleABI from "../../abis/opyn/Oracle.json";
+import { readContract } from "@wagmi/core";
+import { OpynOracleABI } from "../../abis/OpynOracle_ABI";
 import { getContractAddress } from "../../utils/helpers";
 
 const useOraclePrice = () => {
@@ -7,7 +7,7 @@ const useOraclePrice = () => {
   const opynOracleAddress = getContractAddress("OpynOracle");
 
   // Contract read
-  const getPrice = async (asset: string) => {
+  const getPrice = async (asset: HexString) => {
     return await readContract({
       address: opynOracleAddress,
       abi: OpynOracleABI,
