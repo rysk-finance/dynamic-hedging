@@ -294,7 +294,7 @@ export const UserEpochPNL = () => {
                         yAxisId="right"
                         /** TODO bar size doesn't work with current scale and type on xAxis */
                         barSize={20}
-                        fill={"#64748b"}
+                        fill={"#D1CDBF"}
                         dataKey={({ change }) =>
                           parseFloat(utils.formatUnits(change, DECIMALS.USDC))
                         }
