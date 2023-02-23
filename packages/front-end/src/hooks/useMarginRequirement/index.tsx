@@ -7,6 +7,12 @@ import { useState } from "react";
 import { useContractRead } from "wagmi";
 import { MarginParams } from "./types";
 
+/**
+ * @author Yassine
+ * @title Hook: Margin Requirement
+ * @notice Retrieve margin requirement for selling option
+ * @dev This is how the flow should be versus using readContract
+ */
 const useMarginRequirement = (): [
   BigNumber | undefined,
   (params: MarginParams) => void
