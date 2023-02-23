@@ -7,6 +7,12 @@ import { getContractAddress } from "../../utils/helpers";
 import { ZERO_ADDRESS } from "../../config/constants";
 import { captureException } from "@sentry/react";
 
+/**
+ * @author Yassine
+ * @title Hook: Approve Transfer
+ * @notice  Retrieves allowance and allows to update it
+ * @dev Instead of readContract it would be better to use useContractRead
+ */
 const useApproveTransfer = (): [
   ((overrideConfig?: undefined) => void) | undefined,
   BigNumber | null,

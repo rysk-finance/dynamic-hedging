@@ -5,6 +5,12 @@ import { OpynControllerABI } from "../../abis/OpynController_ABI";
 import { getContractAddress } from "../../utils/helpers";
 import { ZERO_ADDRESS } from "../../config/constants";
 
+/**
+ * @author Yassine
+ * @title Hook: Approve Exchange
+ * @notice Allows to set exchange as operator for selling options
+ * @dev A better approach would be to use useContractRead
+ */
 const useApproveExchange = (): [
   ((overrideConfig?: undefined) => void) | undefined,
   boolean | null
@@ -54,7 +60,6 @@ const useApproveExchange = (): [
   console.log("Is approved: ", isApproved);
 
   // interface
-
   return [write, isApproved];
 };
 
