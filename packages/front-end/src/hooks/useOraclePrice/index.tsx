@@ -2,6 +2,13 @@ import { readContract } from "@wagmi/core";
 import { OpynOracleABI } from "../../abis/OpynOracle_ABI";
 import { getContractAddress } from "../../utils/helpers";
 
+/**
+ * @author Yassine
+ * @title Hook: Oracle Price
+ * @notice Retrieve price of asset from Opyn Oracle
+ * @dev This is mainly used for the price of the underlying asset
+ * @dev A better approach would be to use useContractRead
+ */
 const useOraclePrice = () => {
   // Addresses
   const opynOracleAddress = getContractAddress("OpynOracle");

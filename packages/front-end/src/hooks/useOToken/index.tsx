@@ -3,6 +3,12 @@ import { getContractAddress } from "../../utils/helpers";
 import { OptionExchangeABI } from "../../abis/OptionExchange_ABI";
 import { BigNumber, ethers } from "ethers";
 
+/**
+ * @author Yassine
+ * @title Hook:  OToken
+ * @notice It allows to read OToken address
+ * @dev The OToken is not created here as this is a static call
+ */
 const useOToken = () => {
   // Global state
   const provider = useProvider();
