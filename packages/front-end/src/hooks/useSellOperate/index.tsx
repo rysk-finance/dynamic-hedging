@@ -11,6 +11,12 @@ import { QueryData } from "./types";
 
 const abiCode = new AbiCoder();
 
+/**
+ * @author Yassine
+ * @title Hook: Sell Operate
+ * @notice It allows to send actions for selling option to the OptionExchange
+ * @dev This is the flow that mints the oToken instead of selling one the user owns
+ */
 const useSellOperate = (): [
   ((overrideConfig?: undefined) => void) | undefined,
   (value: BigNumber) => void,
