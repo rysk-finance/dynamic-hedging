@@ -14,7 +14,7 @@ import OptionRegistryABI from "../../abis/OptionRegistry.json";
 import {
   BIG_NUMBER_DECIMALS,
   MAX_UINT_256,
-  ZERO_ADDRESS
+  ZERO_ADDRESS,
 } from "../../config/constants";
 import useApproveExchange from "../../hooks/useApproveExchange";
 import useApproveTransfer from "../../hooks/useApproveTransfer";
@@ -202,7 +202,7 @@ export const Purchase = () => {
           isPut: selectedOption.callOrPut === "put",
           strikeAsset: getContractAddress("USDC"),
           underlying: getContractAddress("WETH"),
-          collateral: getContractAddress("optionExchange"),
+          collateral: getContractAddress("USDC"),
         };
 
         const txData = [
