@@ -473,7 +473,7 @@ export const OptionsTable = () => {
                   <NumberFormat
                     value={option.call.pos}
                     displayType={"text"}
-                    decimalScale={2}
+                    decimalScale={1}
                   />
                 </td>
                 <td className="text-center bg-bone-dark !border-0 font-medium p-3">
@@ -590,7 +590,7 @@ export const OptionsTable = () => {
                   <NumberFormat
                     value={option.put.pos}
                     displayType={"text"}
-                    decimalScale={2}
+                    decimalScale={1}
                   />
                 </td>
               </tr>
