@@ -6,7 +6,7 @@ export const getAddresses = (network: string) => {
 				collateralAsset: "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", // USDC
 				underlyingAsset: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", // WETH
 				liquidityPool: "0xC10B976C671Ce9bFf0723611F01422ACbAe100A5",
-				poolFee: 3000, // 30 BPS
+				poolFee: 500, // 5 BPS
 				priceFeed: "0xA5a095f2a2Beb2d53382293b0FfE0f520dDEC297",
 				authority: "0x0c83E447dc7f4045b8717d5321056D4e9E86dCD2"
 			}
