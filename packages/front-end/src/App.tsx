@@ -10,6 +10,7 @@ import { Header } from "./components/Header";
 import { MobileWarning } from "./components/MobileWarning";
 import { AppPaths } from "./config/appPaths";
 import useFathom from "./hooks/useFathom";
+import { useSentry } from "./hooks/useSentry";
 import { Dashboard } from "./pages/Dashboard";
 import { OptionsTrading } from "./pages/OptionsTrading";
 import { OTC } from "./pages/OTC";
@@ -21,6 +22,7 @@ import "./App.css";
 
 function App() {
   useFathom();
+  useSentry();
 
   return (
     <GlobalContextProvider>
