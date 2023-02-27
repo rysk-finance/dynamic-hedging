@@ -33,8 +33,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
     /// @notice address of the parent liquidity pool contract
     address public immutable parentLiquidityPool;
-    /// @notice address of the price feed used for getting asset prices
-    address public immutable priceFeed;
     /// @notice stablecoin address to trade against the underlying
     address public immutable collateralAsset;
     /// @notice address of the underlying contract
@@ -51,6 +49,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     /// governance settable variables ///
     /////////////////////////////////////
 
+    /// @notice address of the price feed used for getting asset prices
+    address public priceFeed;
     /// @notice uniswap v3 pool fee expressed at 10e6
     uint24 public poolFee;
     /// @notice instance of the uniswap V3 pool
@@ -93,6 +93,11 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
 
     event SetPoolFee(
         uint24 poolFee,
+        address caller
+    );
+
+    event SetPriceFeed(
+        address priceFeed,
         address caller
     );
 
@@ -139,6 +144,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     ///////////////
     /// setters ///
     ///////////////
+
+    /// @notice set the price feed address
+    function setPriceFeed(address _priceFeed) external {
+        _onlyGovernor();
+        priceFeed = _priceFeed;
+        emit SetPriceFeed(_priceFeed, msg.sender);
+    }
 
     /// @notice set if orders can be fulfilled by anyone or only authorized
     function setAuthorizedFulfill(bool _onlyAuthorizedFulfill) external {
