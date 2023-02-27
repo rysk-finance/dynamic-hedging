@@ -10,6 +10,7 @@ export const ExpiryDatePicker = () => {
     visibleRange,
     handleExpirySelection,
     scrollExpiries,
+    balances
   ] = useExpiryDates();
 
   return (
@@ -27,6 +28,7 @@ export const ExpiryDatePicker = () => {
         visibleRange={visibleRange}
         expiryDate={expiryDate}
         handleExpirySelection={handleExpirySelection}
+        balances={balances}
       />
 
       <ArrowButton
