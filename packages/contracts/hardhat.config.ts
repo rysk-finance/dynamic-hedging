@@ -188,6 +188,7 @@ module.exports = {
 	},
 	etherscan: {
 		apiKey: {
+			arbitrumOne: process.env.ARBISCAN_API_KEY,
 			arbitrumGoerli: process.env.ARBISCAN_API_KEY
 		},
 		customChains: [
