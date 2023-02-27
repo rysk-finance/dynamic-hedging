@@ -1,4 +1,4 @@
-import { ChangeEvent } from "react";
+import type { ChangeEvent } from "react";
 
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { OptionsTradingActionType } from "src/state/types";
