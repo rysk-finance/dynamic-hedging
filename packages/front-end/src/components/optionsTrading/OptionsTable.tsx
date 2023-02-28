@@ -440,22 +440,43 @@ export const OptionsTable = () => {
                       )}
                     </td>
                   )}
-                  <td
-                    className={`text-red-700 py-4 xl:py-3 px-1 xl:px-2 ${getColorClasses(
-                      option,
-                      "call"
-                    )}`}
+                  <CountUp
+                    decimals={2}
+                    duration={0.3}
+                    easingFn={easeOutCubic}
+                    end={option.call.bid.quote}
+                    preserveValue
+                    useEasing
                   >
-                    <CountUp
-                      className="before:content-['$'] before:mr-1"
-                      decimals={2}
-                      duration={0.3}
-                      easingFn={easeOutCubic}
-                      end={option.call.bid.quote}
-                      preserveValue
-                      useEasing
-                    />
-                  </td>
+                    {({ countUpRef }) => {
+                      const disabled =
+                        option.call.bid.disabled || !option.call.bid.quote;
+
+                      return (
+                        <td
+                          className={`p-0 ${
+                            disabled ? "text-gray-600" : "text-red-700"
+                          }
+                      ${getColorClasses(option, "call")}`}
+                        >
+                          <button
+                            className={`${
+                              disabled ? "cursor-not-allowed" : "cursor-pointer"
+                            } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
+                            onClick={() =>
+                              setSelectedOption({
+                                callOrPut: "call",
+                                bidOrAsk: "bid",
+                                strikeOptions: option,
+                              })
+                            }
+                            disabled={disabled}
+                            ref={countUpRef as RefObject<HTMLButtonElement>}
+                          />
+                        </td>
+                      );
+                    }}
+                  </CountUp>
                   <CountUp
                     decimals={2}
                     duration={0.3}
@@ -582,22 +603,47 @@ export const OptionsTable = () => {
                       )}
                     </td>
                   )}
-                  <td
-                    className={`text-red-700 py-4 xl:py-3 px-1 xl:px-2 ${getColorClasses(
-                      option,
-                      "put"
-                    )}`}
+                  <CountUp
+                    decimals={2}
+                    duration={0.3}
+                    easingFn={easeOutCubic}
+                    end={option.put.bid.quote}
+                    preserveValue
+                    useEasing
                   >
-                    <CountUp
-                      className="before:content-['$'] before:mr-1"
-                      decimals={2}
-                      duration={0.3}
-                      easingFn={easeOutCubic}
-                      end={option.put.bid.quote}
-                      preserveValue
-                      useEasing
-                    />
-                  </td>
+                    {({ countUpRef }) => {
+                      {
+                        const disabled =
+                          option.put.bid.disabled || !option.put.bid.quote;
+
+                        return (
+                          <td
+                            className={`p-0 ${
+                              disabled ? "text-gray-600" : "text-red-700"
+                            }
+                          ${getColorClasses(option, "put")}`}
+                          >
+                            <button
+                              className={`${
+                                disabled
+                                  ? "cursor-not-allowed"
+                                  : "cursor-pointer"
+                              } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
+                              onClick={() =>
+                                setSelectedOption({
+                                  callOrPut: "put",
+                                  bidOrAsk: "bid",
+                                  strikeOptions: option,
+                                })
+                              }
+                              disabled={disabled}
+                              ref={countUpRef as RefObject<HTMLButtonElement>}
+                            />
+                          </td>
+                        );
+                      }
+                    }}
+                  </CountUp>
                   <CountUp
                     decimals={2}
                     duration={0.3}
