@@ -500,7 +500,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     /**
-     * @param price the price of token0/token1 in token1/token0 in token1 decimals
+     * @param price the price of token0/token1 in token1 decimals converted to 1e18
      * @param direction the direction of the range order
      * @return params the parameters needed to mint a range order with average price when filled
      */
@@ -508,7 +508,11 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         private
         view
         returns (RangeOrderParams memory) {
-        uint160 sqrtPriceX96 = sqrtPriceFromWei(price, inversed, token0.decimals());
+        uint160 sqrtPriceX96;
+        {
+            uint256 convertedPrice = OptionsCompute.convertToDecimals(price, token1.decimals());
+            sqrtPriceX96 = sqrtPriceFromWei(convertedPrice, inversed, token0.decimals());
+        }
         int24 tickSpacing = pool.tickSpacing();
         int24 nearestTick = _sqrtPriceX96ToNearestTick(sqrtPriceX96, tickSpacing);
         int24 lowerTick = direction == RangeOrderDirection.ABOVE ? nearestTick + tickSpacing : nearestTick - (2 * tickSpacing);
