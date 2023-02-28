@@ -30,6 +30,9 @@ import {
 	UNISWAP_POOL_COLLECT
 } from "../utils/events"
 import { WETH } from "../types/WETH"
+import { LiquidityPool } from "../types/LiquidityPool"
+import { arbitrum as addresses } from "../contracts.json"
+import { sign } from "crypto"
 
 enum Direction {
 	ABOVE = 0,
@@ -622,10 +625,12 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const receipt = await hedgeDeltaTx.wait()
 		const lpBalanceAfter = await fromUSDC(await usdcContract.balanceOf(liquidityPoolDummy.address))
 		const reactorDeltaAfter = Number(fromWei(await liquidityPoolDummy.getDelta()))
-		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown as [MintEvent]
+		const [mintEvent] = (getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown) as [MintEvent]
 		const reactorWethBalance = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
-		const { activeLowerTick: lowerTickAfer, activeUpperTick: upperTickAfter } =
-			await uniswapV3RangeOrderReactor.currentPosition()
+		const {
+			activeLowerTick: lowerTickAfer,
+			activeUpperTick: upperTickAfter
+		} = await uniswapV3RangeOrderReactor.currentPosition()
 		const wethDifference =
 			Math.round(
 				(Number(fromWei(reactorWethBalanceBefore)) - Number(fromWei(reactorWethBalance))) * 1000
@@ -643,9 +648,11 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(toWei("0.2"))
 		const receipt = await hedgeDeltaTx.wait()
 		const [burnEvent] = getMatchingEvents(receipt, UNISWAP_POOL_BURN)
-		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown as [MintEvent]
-		const { activeLowerTick: lowerTickAfer, activeUpperTick: upperTickAfter } =
-			await uniswapV3RangeOrderReactor.currentPosition()
+		const [mintEvent] = (getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown) as [MintEvent]
+		const {
+			activeLowerTick: lowerTickAfer,
+			activeUpperTick: upperTickAfter
+		} = await uniswapV3RangeOrderReactor.currentPosition()
 		const wethBalanceAfter = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
 		const wethDifference =
 			Math.round((Number(fromWei(wethBalanceAfter)) - Number(fromWei(wethBalanceBefore))) * 1000) /
@@ -705,7 +712,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(toWei("0.3"))
 		const receipt = await hedgeDeltaTx.wait()
 		const [collectEvent] = getMatchingEvents(receipt, UNISWAP_POOL_COLLECT)
-		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown as [MintEvent]
+		const [mintEvent] = (getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown) as [MintEvent]
 		expect(mintEvent.amount1).to.eq(toWei("0.3"))
 		// should be less than previous hedge
 		expect(collectEvent.amount1).to.be.lt(toWei("0.2"))
@@ -744,8 +751,10 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const fulfillAttempt = await uniswapV3RangeOrderReactor.fulfillActiveRangeOrder()
 		const receipt = await fulfillAttempt.wait()
 		const [collectEvent] = getMatchingEvents(receipt, UNISWAP_POOL_COLLECT)
-		const { activeLowerTick: activeLowerAfter, activeUpperTick: activeUpperAfter } =
-			await uniswapV3RangeOrderReactor.currentPosition()
+		const {
+			activeLowerTick: activeLowerAfter,
+			activeUpperTick: activeUpperAfter
+		} = await uniswapV3RangeOrderReactor.currentPosition()
 		const deltaDifference = Math.round((reactorDelta - reactorDeltaAfter) * 100) / 100
 		const average = Math.sqrt(Number(weth_usdc_price_before) * Number(weth_usdc_price_after))
 		// USDC amount
@@ -842,8 +851,10 @@ describe("UniswapV3RangeOrderReactor", () => {
 
 	it("Properly quotes pool denominated value", async () => {
 		const poolValue = await uniswapV3RangeOrderReactor.getPoolDenominatedValue()
-		const { amount0Current, amount1Current } =
-			await uniswapV3RangeOrderReactor.getUnderlyingBalances()
+		const {
+			amount0Current,
+			amount1Current
+		} = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
 		const ethPrice = Number(
 			fromWei(await priceFeed.getNormalizedRate(wethContract.address, usdcContract.address))
 		)
@@ -891,8 +902,10 @@ describe("UniswapV3RangeOrderReactor", () => {
 		)
 		const exitTx = await uniswapV3RangeOrderReactor.exitActiveRangeOrder()
 		const receipt = await exitTx.wait()
-		const { activeLowerTick: activeLowerTickAfter, activeUpperTick: activeUpperTickAfter } =
-			await uniswapV3RangeOrderReactor.currentPosition()
+		const {
+			activeLowerTick: activeLowerTickAfter,
+			activeUpperTick: activeUpperTickAfter
+		} = await uniswapV3RangeOrderReactor.currentPosition()
 		const [burnEvent] = getMatchingEvents(receipt, UNISWAP_POOL_BURN)
 		expect(burnEvent.tickLower).to.eq(activeLowerTick)
 		expect(burnEvent.tickUpper).to.eq(activeUpperTick)
@@ -1097,5 +1110,107 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const maxSQRTPriceUint = "340256786836388094070642339899681172748067254072799124246"
 		const maxSqrtPriceUint = await uniswapConversions.sqrtToPrice(maxSqrtPrice, "18")
 		expect(maxSqrtPriceUint).to.eq(maxSQRTPriceUint)
+	})
+
+	it("Convert price to sqrtPriceX96 - Uniswap Conversions", async () => {
+		// Given
+		const weiPrice = "1603355000000000000000" // 1,603,355 tokens of A per token of B
+		const inversed = false
+		const token0Decimals = 18
+
+		// When
+		const sqrtPriceX96 = await uniswapConversions.priceToSqrt(weiPrice, inversed, token0Decimals)
+		console.log("sqrtPriceX96", sqrtPriceX96.toString())
+	})
+})
+
+const arbitrumChainId = 42161
+let arbitrumRyskDHVAddress: string = "0xC10B976C671Ce9bFf0723611F01422ACbAe100A5"
+const deployerAddress: string = "0xFBdE2e477Ed031f54ed5Ad52f35eE43CD82cF2A6" // governor multisig address
+const funderAddress = "0xf89d7b9c864f589bbF53a82105107622B35EaA40"
+const liquidityPoolAddress: string = addresses.liquidityPool
+let liquidityPool: LiquidityPool
+let deployer: Signer
+describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
+	before(async function () {
+		await network.provider.request({
+			method: "hardhat_reset",
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY}`,
+						blockNumber: 65181534,
+						chainId: arbitrumChainId
+					}
+				}
+			]
+		})
+	})
+
+	it("Obtains Rysk contracts - Arbitrum", async () => {
+		signers = await ethers.getSigners()
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [deployerAddress]
+		})
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [funderAddress]
+		})
+		deployer = await ethers.getSigner(deployerAddress)
+		const funder = await ethers.getSigner(funderAddress)
+		await funder.sendTransaction({ to: deployerAddress, value: utils.parseEther("100") })
+		liquidityPool = (await ethers.getContractAt(
+			"LiquidityPool",
+			liquidityPoolAddress,
+			deployer
+		)) as LiquidityPool
+
+		expect(liquidityPool).to.have.property("setHedgingReactorAddress")
+		expect(liquidityPool).to.have.property("rebalancePortfolioDelta")
+	})
+
+	it("deploys the UniswapV3RangeOrderReactor contract - Arbitrum", async () => {
+		const uniswapV3RangeOrderReactorFactory = await ethers.getContractFactory(
+			"UniswapV3RangeOrderReactor",
+			{
+				signer: signers[0]
+			}
+		)
+
+		const authority = await liquidityPool.authority()
+		const POOL_FEE = 500
+		uniswapV3RangeOrderReactor = (await uniswapV3RangeOrderReactorFactory.deploy(
+			UNISWAP_V3_FACTORY,
+			USDC_ADDRESS[arbitrumChainId],
+			WETH_ADDRESS[arbitrumChainId],
+			liquidityPoolAddress,
+			POOL_FEE,
+			addresses.priceFeed,
+			authority
+		)) as UniswapV3RangeOrderReactor
+		expect(uniswapV3RangeOrderReactor).to.have.property("hedgeDelta")
+		let token0 = await uniswapV3RangeOrderReactor.token0()
+	})
+
+	it("adds the UniswapV3RangeOrderReactor contract to the LiquidityPool contract - Arbitrum", async () => {
+		const tx = await liquidityPool.setHedgingReactorAddress(uniswapV3RangeOrderReactor.address)
+		const receipt = await tx.wait()
+		expect(receipt.status).to.eq(1)
+		expect(await liquidityPool.hedgingReactors(3)).to.eq(uniswapV3RangeOrderReactor.address)
+	})
+
+	it("Puts on a hedge range order - Arbitrum", async () => {
+		const currentPosition = await uniswapV3RangeOrderReactor.currentPosition()
+		expect(currentPosition.activeLowerTick).to.eq(0)
+		expect(currentPosition.activeUpperTick).to.eq(0)
+		const deltaAmount = toWei("-0.1")
+		const hedgeDeltaTx = await liquidityPool.rebalancePortfolioDelta(deltaAmount, 3)
+		const hedgeDeltaReceipt = await hedgeDeltaTx.wait()
+		const [event] = getMatchingEvents(hedgeDeltaReceipt, UNISWAP_POOL_MINT)
+		const currentPositionAfter = await uniswapV3RangeOrderReactor.currentPosition()
+		expect(currentPositionAfter.activeLowerTick).to.not.eq(0)
+		expect(currentPositionAfter.activeLowerTick).to.equal(event.tickLower)
+		expect(currentPositionAfter.activeUpperTick).to.equal(event.tickUpper)
 	})
 })
