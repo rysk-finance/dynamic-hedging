@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.13;
 
-import { sqrtPriceX96ToUint, encodePriceSqrt, getPriceToUse, RangeOrderDirection, tickToTokenPrice } from "../vendor/uniswap/RangeOrderUtils.sol";
+import { sqrtPriceX96ToUint, encodePriceSqrt, getPriceToUse, RangeOrderDirection, tickToTokenPrice, sqrtPriceFromWei } from "../vendor/uniswap/RangeOrderUtils.sol";
 
 contract UniswapConversionsTest {
 
@@ -19,6 +19,15 @@ contract UniswapConversionsTest {
         returns (uint256)
     {
         return sqrtPriceX96ToUint(sqrtPriceX96, token0Decimals);
+    }
+
+    function priceToSqrt(uint256 weiPrice, bool inversed, uint8 token0Decimals)
+        public
+        pure
+        returns (uint160 sqrtPriceX96)
+    {
+        uint256 token0Token1 = inversed ? 10 ** token0Decimals / weiPrice : weiPrice;
+        return encodePriceSqrt(token0Token1, token0Decimals);
     }
 
     function testPriceToUse(
