@@ -53,7 +53,7 @@ export const DateList = ({
           return (
             <motion.li
               key={timestamp}
-              className={`text-center ease-in-out hover:bg-bone-dark ${
+              className={`text-center ease-in-out duration-100 hover:bg-bone-dark ${
                 timestamp === expiryDate ? "bg-bone-dark" : "bg-none"
               }`}
               onClick={handleExpirySelection(timestamp)}
@@ -70,7 +70,10 @@ export const DateList = ({
                   strokeWidth={4}
                 />
 
-                <time className="mx-4" dateTime={datetime.format("YYYY-MM-DD")}>
+                <time
+                  className="mx-4 text-sm xl:text-base"
+                  dateTime={datetime.format("YYYY-MM-DD")}
+                >
                   {`${datetime.format("MMM DD")}`}
                 </time>
 

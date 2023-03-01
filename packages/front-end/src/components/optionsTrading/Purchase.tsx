@@ -272,7 +272,7 @@ export const Purchase = () => {
             <div className="w-1/2 border-r-2 border-black">
               <div className="w-full p-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-parabole mr-2 pb-2">Option:</h4>
+                  <h4 className="font-parabole text-xl mr-2 pb-2">Option:</h4>
                   {selectedOption && (
                     <p className="pb-1">{callOrPut.toUpperCase()}</p>
                   )}
@@ -340,13 +340,15 @@ export const Purchase = () => {
               <div className="w-1/2">
                 <div className="w-full -mb-1">
                   <div className="w-full p-4 flex flex-col">
-                    <h5 className={`mb-10 tracking-tight`}>
+                    <h5 className={`mb-10 tracking-tight text-lg`}>
                       ETH-{formatOptionDate(expiryDate)}-{strikeOptions?.strike}
                       -{selectedOption.callOrPut === "put" ? "P" : "C"}
                     </h5>
                     {uiOrderSize && (
                       <>
-                        <h4 className="font-parabole mr-2">Total price:</h4>
+                        <h4 className="font-parabole text-xl mr-2">
+                          Total price:
+                        </h4>
                         <p>
                           {Number(uiOrderSize) *
                             strikeOptions[callOrPut][bidOrAsk].quote}{" "}

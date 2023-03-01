@@ -1,15 +1,16 @@
-import { Reducer } from "react";
-import {
-  ActionType,
+import type {
   GlobalAction,
   GlobalState,
-  OptionsTradingState,
   OptionsTradingAction,
-  OptionsTradingActionType,
+  OptionsTradingState,
   VaultAction,
   VaultState,
-  VaultActionType,
 } from "./types";
+
+import { Reducer } from "react";
+
+import { ActionType, OptionsTradingActionType, VaultActionType } from "./types";
+import { defaultOptionTradingState } from "./OptionsTradingContext";
 
 export const globalReducer: Reducer<GlobalState, GlobalAction> = (
   state,
@@ -22,6 +23,14 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ethPrice: action.price,
         eth24hChange: action.change ?? state.eth24hChange,
         ethPriceUpdateTime: action.date,
+        eth24hHigh: action.high,
+        eth24hLow: action.low,
+        ethPriceError: action.error,
+      };
+    case ActionType.SET_ETH_PRICE_ERROR:
+      return {
+        ...state,
+        ethPriceError: action.error,
       };
     case ActionType.SET_POSITION_VALUE:
       return {
@@ -95,6 +104,32 @@ export const optionsTradingReducer: Reducer<
       return {
         ...state,
         optionParams: action.params,
+      };
+    case OptionsTradingActionType.SET_VISIBLE_STRIKE_RANGE:
+      return {
+        ...state,
+        visibleStrikeRange: action.visibleStrikeRange,
+      };
+    case OptionsTradingActionType.RESET_VISIBLE_STRIKE_RANGE:
+      return {
+        ...state,
+        visibleStrikeRange: defaultOptionTradingState.visibleStrikeRange,
+      };
+    case OptionsTradingActionType.SET_VISIBLE_COLUMNS:
+      const newSet = new Set(state.visibleColumns);
+
+      newSet.has(action.column)
+        ? newSet.delete(action.column)
+        : newSet.add(action.column);
+
+      return {
+        ...state,
+        visibleColumns: newSet,
+      };
+    case OptionsTradingActionType.RESET_VISIBLE_COLUMNS:
+      return {
+        ...state,
+        visibleColumns: defaultOptionTradingState.visibleColumns,
       };
   }
 };

@@ -9,8 +9,11 @@ export type AppSettings = {
 // Global context
 export type GlobalState = {
   ethPrice: number | null;
-  eth24hChange: number | null;
+  eth24hChange: number;
+  eth24hHigh: number | null;
+  eth24hLow: number | null;
   ethPriceUpdateTime: Date | null;
+  ethPriceError: boolean;
   userPositionValue: BigNumber | null;
   positionBreakdown: {
     redeemedShares: BigNumber | null;
@@ -28,6 +31,7 @@ export type GlobalState = {
 
 export enum ActionType {
   SET_ETH_PRICE,
+  SET_ETH_PRICE_ERROR,
   SET_POSITION_VALUE,
   SET_POSITION_BREAKDOWN,
   SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
@@ -41,6 +45,13 @@ export type GlobalAction =
       price: number;
       change?: number;
       date: Date;
+      high: number;
+      low: number;
+      error: boolean;
+    }
+  | {
+      type: ActionType.SET_ETH_PRICE_ERROR;
+      error: boolean;
     }
   | {
       type: ActionType.SET_POSITION_VALUE;
@@ -97,7 +108,13 @@ export type OptionsTradingState = {
   optionParams: OptionParams | null;
   customOptionStrikes: number[];
   selectedOption: SelectedOption | null;
+  visibleStrikeRange: StrikeRangeTuple;
+  visibleColumns: Set<ColumNames>;
 };
+
+export type StrikeRangeTuple = [string, string];
+
+export type ColumNames = "bid" | "ask" | "bid iv" | "ask iv" | "delta" | "pos";
 
 export type OptionsTradingContext = {
   state: OptionsTradingState;
@@ -119,31 +136,31 @@ export interface StrikeOptions {
   strike: number;
   call: {
     bid: {
-      IV: number | string;
+      IV: number;
       quote: number;
       disabled: boolean;
     };
     ask: {
-      IV: number | string;
+      IV: number;
       quote: number;
       disabled: boolean;
     };
     delta: number;
-    pos: string;
+    pos: number;
   };
   put: {
     bid: {
-      IV: number | string;
+      IV: number;
       quote: number;
       disabled: boolean;
     };
     ask: {
-      IV: number | string;
+      IV: number;
       quote: number;
       disabled: boolean;
     };
     delta: number;
-    pos: string;
+    pos: number;
   };
 }
 
@@ -156,14 +173,6 @@ export type OptionParams = {
   maxExpiry: BigNumber;
 };
 
-export enum OptionsTradingActionType {
-  SET_OPTION_TYPE,
-  SET_EXPIRY_DATE,
-  SET_SELECTED_OPTION,
-  ADD_CUSTOM_STRIKE,
-  SET_OPTION_PARAMS,
-}
-
 export interface OptionSeries {
   expiration: BigNumber;
   strike: BigNumber;
@@ -171,6 +180,18 @@ export interface OptionSeries {
   underlying: HexString;
   collateral: HexString;
   isPut: boolean;
+}
+
+export enum OptionsTradingActionType {
+  SET_OPTION_TYPE,
+  SET_EXPIRY_DATE,
+  SET_SELECTED_OPTION,
+  ADD_CUSTOM_STRIKE,
+  SET_OPTION_PARAMS,
+  SET_VISIBLE_STRIKE_RANGE,
+  RESET_VISIBLE_STRIKE_RANGE,
+  SET_VISIBLE_COLUMNS,
+  RESET_VISIBLE_COLUMNS,
 }
 
 export type OptionsTradingAction =
@@ -193,4 +214,18 @@ export type OptionsTradingAction =
   | {
       type: OptionsTradingActionType.SET_OPTION_PARAMS;
       params: OptionParams | null;
+    }
+  | {
+      type: OptionsTradingActionType.SET_VISIBLE_STRIKE_RANGE;
+      visibleStrikeRange: StrikeRangeTuple;
+    }
+  | {
+      type: OptionsTradingActionType.RESET_VISIBLE_STRIKE_RANGE;
+    }
+  | {
+      type: OptionsTradingActionType.SET_VISIBLE_COLUMNS;
+      column: ColumNames;
+    }
+  | {
+      type: OptionsTradingActionType.RESET_VISIBLE_COLUMNS;
     };
