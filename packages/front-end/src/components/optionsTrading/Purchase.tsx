@@ -45,6 +45,7 @@ export const Purchase = () => {
     allowanceUSDC,
     setApprovalUSDCAmount,
     isUSDCApproved,
+    approveUSDCStatus,
   ] = useApproveTransfer();
   const [
     sellOperate,
@@ -376,7 +377,13 @@ export const Purchase = () => {
                     className={"w-full mb-2 !py-2 text-white !bg-black"}
                     onClick={handleApproveCollateral}
                   >
-                    {`${isApproved ? "Approved ✅" : "Approve Collateral"}`}
+                    {approveUSDCStatus.isSuccess
+                      ? "TX Sent ✅"
+                      : approveUSDCStatus.isError
+                      ? "Error ❌"
+                      : approveUSDCStatus.isLoading
+                      ? "Loading..."
+                      : "Approve Collateral"}
                   </Button>
                 )}
                 {uiOrderSize && bidOrAsk === "ask" && (
