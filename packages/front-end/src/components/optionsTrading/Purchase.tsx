@@ -178,9 +178,7 @@ export const Purchase = () => {
   };
 
   const handleSell = async () => {
-    if (sellOperate) {
-      sellOperate();
-    }
+    sellOperate?.();
   };
 
   const handleBuy = async () => {
