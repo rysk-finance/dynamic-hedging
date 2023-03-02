@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { useAccount, useContractWrite, usePrepareContractWrite } from "wagmi";
+import {
+  useAccount,
+  useContractWrite,
+  usePrepareContractWrite,
+  useWaitForTransaction,
+} from "wagmi";
 import { readContract } from "@wagmi/core";
 import { erc20ABI } from "../../abis/erc20_ABI";
 import { BigNumber } from "ethers";
@@ -17,7 +22,8 @@ const useApproveTransfer = (): [
   ((overrideConfig?: undefined) => void) | undefined,
   BigNumber | null,
   (value: BigNumber) => void,
-  boolean
+  boolean,
+  { isLoading: boolean; isSuccess: boolean; isError: boolean }
 ] => {
   // Global state
   const { address } = useAccount();
@@ -39,6 +45,24 @@ const useApproveTransfer = (): [
     setAmount(amount);
   };
 
+  // Contract write - approve
+  const { config } = usePrepareContractWrite({
+    address: collateral,
+    abi: erc20ABI,
+    functionName: "approve",
+    args: [exchangeAddress, amount],
+    enabled: amount?.gt("0"),
+  });
+
+  const { data, write } = useContractWrite(config);
+
+  const { isLoading, isSuccess, isError } = useWaitForTransaction({
+    hash: data?.hash,
+  });
+
+  // Utils
+  const isApproved = allowance.gte(amount);
+
   // Contract read - read allowance
   useEffect(() => {
     const readAllowance = async () => {
@@ -57,23 +81,7 @@ const useApproveTransfer = (): [
       captureException(e);
     });
     // note - only address can change here, the rest not because we don't allow network change
-  }, [address, exchangeAddress, controllerAddress, collateral]);
-
-  // Contract write - approve
-  const { config } = usePrepareContractWrite({
-    address: collateral,
-    abi: erc20ABI,
-    functionName: "approve",
-    args: [exchangeAddress, amount],
-    enabled: amount?.gt("0"),
-  });
-
-  const { write } = useContractWrite(config);
-
-  // Utils
-  const isApproved = allowance.gte(amount);
-
-  console.log("Allowance: ", allowance.toString());
+  }, [address, exchangeAddress, controllerAddress, collateral, isSuccess]);
 
   // Interface
   return [
@@ -81,6 +89,7 @@ const useApproveTransfer = (): [
     allowance, // currently approved amount
     updateAmount, // update amount requested to approve on write
     isApproved, // whether user has already approved enough
+    { isLoading, isSuccess, isError }, // transaction status (loading, success, error)
   ];
 };
 
