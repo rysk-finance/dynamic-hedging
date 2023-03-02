@@ -58,6 +58,7 @@ const useApproveTransfer = (): [
 
   const { isLoading, isSuccess, isError } = useWaitForTransaction({
     hash: data?.hash,
+    confirmations: 2,
   });
 
   // Utils
