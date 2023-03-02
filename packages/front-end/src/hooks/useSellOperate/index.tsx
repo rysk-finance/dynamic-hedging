@@ -8,6 +8,8 @@ import { useState } from "react";
 import { BigNumber } from "ethers";
 import { getContractAddress } from "../../utils/helpers";
 import { QueryData } from "./types";
+import { toast } from "react-toastify";
+import useTenderlySimulator from "../useTenderlySimulator";
 
 const abiCode = new AbiCoder();
 
@@ -28,6 +30,11 @@ const useSellOperate = (): [
   const { address } = useAccount();
 
   const addressOrDefault = address || ZERO_ADDRESS;
+
+  // Hooks
+  const [simulateOperation] = useTenderlySimulator({
+    to: getContractAddress("optionExchange"),
+  });
 
   // Addresses
   const exchangeAddress = getContractAddress("optionExchange");
@@ -86,7 +93,7 @@ const useSellOperate = (): [
   };
 
   // Contract write
-  const { config } = usePrepareContractWrite({
+  const { config, data: prepareWriteData } = usePrepareContractWrite({
     address: exchangeAddress,
     abi: OptionExchangeABI,
     functionName: "operate",
@@ -165,8 +172,21 @@ const useSellOperate = (): [
 
   const { write } = useContractWrite(config);
 
+  const simulateAndWrite = async () => {
+    const requestData = prepareWriteData?.request?.data;
+    if (requestData && write) {
+      const response = await simulateOperation(requestData, 0, 0, 0);
+
+      if (response?.simulation.status === true) {
+        write();
+      } else {
+        toast("❌ Transaction would fail, reach out to the team.");
+      }
+    }
+  };
+
   return [
-    write, // send operate to mint and sell oToken
+    simulateAndWrite, // send operate to mint and sell oToken
     updateMargin, // user defined collateral for oToken
     updateAmount, // amount of options to be minted
     updateOptionSeries, // option series to be sold
