@@ -1113,14 +1113,11 @@ describe("UniswapV3RangeOrderReactor", () => {
 	})
 
 	it("Convert price to sqrtPriceX96 - Uniswap Conversions", async () => {
-		// Given
 		const weiPrice = "1603355000000000000000" // 1,603,355 tokens of A per token of B
 		const inversed = false
 		const token0Decimals = 18
 
-		// When
 		const sqrtPriceX96 = await uniswapConversions.priceToSqrt(weiPrice, inversed, token0Decimals)
-		console.log("sqrtPriceX96", sqrtPriceX96.toString())
 	})
 })
 
@@ -1131,6 +1128,7 @@ const funderAddress = "0xf89d7b9c864f589bbF53a82105107622B35EaA40"
 const liquidityPoolAddress: string = addresses.liquidityPool
 let liquidityPool: LiquidityPool
 let deployer: Signer
+let funder: Signer
 describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
 	before(async function () {
 		await network.provider.request({
@@ -1158,7 +1156,7 @@ describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
 			params: [funderAddress]
 		})
 		deployer = await ethers.getSigner(deployerAddress)
-		const funder = await ethers.getSigner(funderAddress)
+		funder = await ethers.getSigner(funderAddress)
 		await funder.sendTransaction({ to: deployerAddress, value: utils.parseEther("100") })
 		liquidityPool = (await ethers.getContractAt(
 			"LiquidityPool",
@@ -1168,6 +1166,27 @@ describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
 
 		expect(liquidityPool).to.have.property("setHedgingReactorAddress")
 		expect(liquidityPool).to.have.property("rebalancePortfolioDelta")
+
+		wethContract = (await ethers.getContractAt(
+			"contracts/tokens/WETH.sol:WETH",
+			WETH_ADDRESS[arbitrumChainId]
+		)) as WETH
+		const provider = ethers.provider
+		bigSignerAddress = await signers[1].getAddress()
+		// 100,000 * 1e18
+		const ONE_HUNDRED_THOUSAND_HEX = "0x152D02C7E14AF6800000"
+		await hre.network.provider.request({
+			method: "hardhat_setBalance",
+			params: [bigSignerAddress, ONE_HUNDRED_THOUSAND_HEX]
+		})
+		const signer1BalanceAfter = await provider.getBalance(await signers[1].getAddress())
+		expect(signer1BalanceAfter).to.equal(ONE_HUNDRED_THOUSAND_HEX)
+
+		usdcContract = (await ethers.getContractAt(
+			"contracts/tokens/ERC20.sol:ERC20",
+			USDC_ADDRESS[arbitrumChainId]
+		)) as MintableERC20
+		const balance = await usdcContract.balanceOf(funderAddress)
 	})
 
 	it("deploys the UniswapV3RangeOrderReactor contract - Arbitrum", async () => {
@@ -1200,7 +1219,7 @@ describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
 		expect(await liquidityPool.hedgingReactors(3)).to.eq(uniswapV3RangeOrderReactor.address)
 	})
 
-	it("Puts on a hedge range order - Arbitrum", async () => {
+	it("Enters a range to hedge a negative delta - Arbitrum", async () => {
 		const currentPosition = await uniswapV3RangeOrderReactor.currentPosition()
 		expect(currentPosition.activeLowerTick).to.eq(0)
 		expect(currentPosition.activeUpperTick).to.eq(0)
@@ -1212,5 +1231,84 @@ describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
 		expect(currentPositionAfter.activeLowerTick).to.not.eq(0)
 		expect(currentPositionAfter.activeLowerTick).to.equal(event.tickLower)
 		expect(currentPositionAfter.activeUpperTick).to.equal(event.tickUpper)
+	})
+
+	it("Does not allow removing an unfilled negative hedge order", async () => {
+		const fulfillAttempt = uniswapV3RangeOrderReactor.fulfillActiveRangeOrder()
+		expect(fulfillAttempt).to.be.revertedWithCustomError(
+			uniswapV3RangeOrderReactor,
+			"RangeOrderNotFilled"
+		)
+	})
+
+	it("Does not allow removing a partially filled negative hedge order - Arbitrum", async () => {
+		const poolAddress = await uniswapV3RangeOrderReactor.pool()
+		uniswapUSDCWETHPool = new ethers.Contract(poolAddress, IUniswapV3PoolABI, funder)
+		uniswapRouter = new ethers.Contract(SWAP_ROUTER_ADDRESS, ISwapRouterABI, funder)
+
+		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const amountToSwap = toWei("100")
+		await wethContract.connect(funder).deposit({ value: amountToSwap })
+		await wethContract.connect(funder).approve(uniswapRouter.address, amountToSwap)
+		// setup swap trade params
+		let params = {
+			tokenIn: poolInfo.token0.address,
+			tokenOut: poolInfo.token1.address,
+			fee: poolInfo.fee,
+			recipient: funderAddress,
+			deadline: Math.floor(Date.now() / 1000) + 60 * 10,
+			amountIn: amountToSwap,
+			amountOutMinimum: 0,
+			sqrtPriceLimitX96: 0
+		}
+		const swapTx = await uniswapRouter.exactInputSingle(params)
+		const { tick } = await uniswapUSDCWETHPool.slot0()
+		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		expect(tick).to.be.gt(activeLowerTick)
+		expect(tick).to.be.lte(activeUpperTick)
+		const fulfillAttempt = uniswapV3RangeOrderReactor.fulfillActiveRangeOrder()
+		expect(fulfillAttempt).to.be.revertedWithCustomError(
+			uniswapV3RangeOrderReactor,
+			"RangeOrderNotFilled"
+		)
+	})
+
+	it("Removes a filled negative hedge order when market moves into range- Arbitrum", async () => {
+		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const amountToSwap = toWei("900")
+		await wethContract.connect(funder).deposit({ value: amountToSwap })
+		await wethContract.connect(funder).approve(uniswapRouter.address, amountToSwap)
+		// setup swap trade params
+		let params = {
+			tokenIn: poolInfo.token0.address,
+			tokenOut: poolInfo.token1.address,
+			fee: poolInfo.fee,
+			recipient: funderAddress,
+			deadline: Math.floor(Date.now() / 1000) + 60 * 10,
+			amountIn: amountToSwap,
+			amountOutMinimum: 0,
+			sqrtPriceLimitX96: 0
+		}
+		const swapTx = await uniswapRouter.exactInputSingle(params)
+		const { tick } = await uniswapUSDCWETHPool.slot0()
+		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		expect(tick).to.be.lt(activeLowerTick)
+		expect(tick).to.be.lt(activeUpperTick)
+		const fullfilledRange = await uniswapV3RangeOrderReactor.fulfillActiveRangeOrder()
+		const fullfilledRangeReceipt = await fullfilledRange.wait()
+		const [burnEvent] = getMatchingEvents(fullfilledRangeReceipt, UNISWAP_POOL_BURN)
+		const [collectEvent] = getMatchingEvents(fullfilledRangeReceipt, UNISWAP_POOL_COLLECT)
+		const burnReceived = burnEvent.amount0
+		const collectReceived = collectEvent.amount0
+		const feesCollected = collectReceived.sub(burnReceived)
+		const estimatedFees = Number(collectReceived) * 0.0005
+		const estimatedVsActualFees = Math.abs(estimatedFees - Number(feesCollected))
+		expect(estimatedVsActualFees).to.be.lte(1)
+
+		const currentPositionAfter = await uniswapV3RangeOrderReactor.currentPosition()
+		expect(currentPositionAfter.activeLowerTick).to.eq(0)
+		expect(currentPositionAfter.activeUpperTick).to.eq(0)
+		let reactorDelta = Number(fromWei(await uniswapV3RangeOrderReactor.getDelta()))
+		expect(reactorDelta).to.be.within(0.09, 0.11)
 	})
 })
