@@ -241,9 +241,8 @@ export const Purchase = () => {
           const response = await simulateOperation(data, 0, 0, 0);
 
           if (response?.simulation.status === true) {
-            captureException(response);
             optionExchangeContract?.operate(txData, {
-              gasLimit: (response.simulation.gas_used * 1.1).toFixed(0),
+              gasLimit: String(Math.ceil(response.simulation.gas_used * 1.1)),
             });
           } else {
             toast("❌ Transaction would fail, reach out to the team.");
