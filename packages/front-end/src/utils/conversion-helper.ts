@@ -26,6 +26,7 @@ export const tFormatUSDC = (x: BigNumberish, places: number = 3) =>
 export const fmtExpiration = (x: number) => toWei(x.toString());
 export const toUSDC = (x: string) => utils.parseUnits(x, 6);
 export const toOpyn = (x: string) => utils.parseUnits(x, 8);
+export const toRysk = (x: string) => utils.parseUnits(x, 18);
 export const toWeiFromUSDC = (x: string) => utils.parseUnits(x, 12);
 export const fromWeiToUSDC = (x: string) =>
   utils.parseUnits(utils.formatEther(x), 6);
@@ -36,6 +37,7 @@ export const fromOpynHumanised = (x?: BigNumberish) => {
   return Number(utils.formatUnits(x, 8)).toFixed(2);
 };
 export const fromOpynToNumber = (x: BigNumberish) => Number(fromOpyn(x));
+export const fromOpynNoDecimal = (x: BigNumberish) => fromOpyn(x).split(".")[0];
 export const getDiffSeconds = (now: Dayjs, future: Dayjs) =>
   future.unix() - now.unix();
 export const convertRounded = (x: BigNumberish): number =>
