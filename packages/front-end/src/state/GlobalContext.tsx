@@ -19,6 +19,7 @@ const defaultGlobalState: GlobalState = {
   eth24hLow: null,
   ethPriceUpdateTime: null,
   ethPriceError: false,
+  userOptionPositions: [],
   userPositionValue: null,
   positionBreakdown: {
     redeemedShares: null,

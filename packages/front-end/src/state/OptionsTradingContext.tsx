@@ -1,9 +1,9 @@
 import type { PropsWithChildren } from "react";
 
 import type {
+  ColumNames,
   OptionsTradingContext,
   OptionsTradingState,
-  ColumNames,
 } from "./types";
 
 import { createContext, useContext, useReducer } from "react";
@@ -17,7 +17,7 @@ export const defaultOptionTradingState: OptionsTradingState = {
   optionParams: null,
   customOptionStrikes: [],
   selectedOption: null,
-  visibleStrikeRange: ['', ''],
+  visibleStrikeRange: ["", ""],
   visibleColumns: new Set([
     "bid",
     "ask",
@@ -26,6 +26,8 @@ export const defaultOptionTradingState: OptionsTradingState = {
     "delta",
     "pos",
   ] as ColumNames[]),
+  chainData: {},
+  sellModalOpen: false,
 };
 
 export const OptionsTradingReactContext = createContext<OptionsTradingContext>({
