@@ -23,14 +23,7 @@ export const AssetPriceInfo = () => {
 
   const [update] = usePrice();
 
-  const ready = Boolean(
-    !ethPriceError &&
-      ethPrice &&
-      ethPriceUpdateTime &&
-      eth24hHigh &&
-      eth24hLow &&
-      eth24hChange
-  );
+  const ready = Boolean(!ethPriceError && ethPrice && ethPriceUpdateTime);
 
   return (
     <motion.button
