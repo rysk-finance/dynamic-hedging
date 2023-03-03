@@ -40,7 +40,7 @@ export const StrikeRange = () => {
         {`Minimum`}
       </label>
       <input
-        className="text-center h-12 number-input-hide-arrows bg-bone-light"
+        className="text-center w-28 h-12 number-input-hide-arrows bg-bone-light"
         type="number"
         id="strike-min"
         name="strike-min"
@@ -55,7 +55,7 @@ export const StrikeRange = () => {
         {`Maximum`}
       </label>
       <input
-        className="text-center h-12 number-input-hide-arrows bg-bone-light"
+        className="text-center w-28 h-12 number-input-hide-arrows bg-bone-light"
         type="number"
         id="strike-max"
         name="strike-max"
