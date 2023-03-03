@@ -1,34 +1,46 @@
 import type { ApolloError } from "@apollo/client";
-import type { CompleteRedeem, ParsedPosition, Position } from "./types";
+import type { Position as ParsedPosition } from "src/state/types";
+import type { CompleteRedeem, Position } from "./types";
 
 import { gql, useQuery } from "@apollo/client";
 import { captureException } from "@sentry/react";
+import { prepareWriteContract, writeContract } from "@wagmi/core";
 import dayjs from "dayjs";
 import { BigNumber } from "ethers";
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
 
+import { OpynControllerABI } from "src/abis/OpynController_ABI";
 import OpynActionType from "src/enums/OpynActionType";
-import OpynController from "../../../abis/OpynController.json";
+import { useGraphPolling } from "src/hooks/useGraphPolling";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
+import { getContractAddress } from "src/utils/helpers";
 import { DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
-import { useContract } from "../../../hooks/useContract";
 import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
+import { QueriesEnum } from "src/clients/Apollo/Queries";
 
 /**
  * Hook using GraphQL to fetch all positions for the user
- * and sort them into consumable data.
+ * and sort them into consumable data. Also places the
+ * users positions into global context state.
  *
  * @returns [positions, loading, error]
  */
 const usePositions = () => {
   const { address, isDisconnected } = useAccount();
 
+  const { dispatch } = useGlobalContext();
+
   const { allOracleAssets } = useExpiryPriceData();
   const [positions, setPositions] = useState<ParsedPosition[] | null>(null);
 
-  const { loading, error, data } = useQuery<{ positions: Position[] }>(
+  const { loading, error, data, startPolling } = useQuery<{
+    positions: Position[];
+  }>(
     gql`
-      query ($account: String) {
+      query ${QueriesEnum.DASHBOARD_USER_POSITIONS} ($account: String) {
         positions(first: 1000, where: { account: $account }) {
           id
           oToken {
@@ -40,6 +52,7 @@ const usePositions = () => {
             underlyingAsset {
               id
             }
+            createdAt
           }
           writeOptionsTransactions {
             premium
@@ -66,6 +79,8 @@ const usePositions = () => {
       skip: !address,
     }
   );
+
+  useGraphPolling(data, startPolling);
 
   useEffect(() => {
     if (isDisconnected) {
@@ -96,16 +111,18 @@ const usePositions = () => {
               ? Number(matchingToken.balance)
               : 0;
 
-          // 1e8
+          // 1e18 - TODO: does not account for sales
           const totPremium = writeOptionsTransactions.length
             ? writeOptionsTransactions.reduce(
-                (prev: number, { premium }: { premium: BigNumber }) =>
-                  prev + Number(premium),
+                (prev: number, { premium }) => prev + Number(premium),
                 0
               )
             : 0;
 
-          // premium converted to 1e18
+          // Total premium converted to 1e18 - TODO: does not account for sales
+          const totalPremium = totPremium / 10 ** DECIMALS.RYSK;
+
+          // per token premium converted to 1e18
           const entryPrice =
             otokenBalance > 0 && totPremium > 0
               ? Number(
@@ -139,7 +156,14 @@ const usePositions = () => {
                 return "Closed";
 
               case !expired:
-                return "Contact team to close";
+                return (
+                  <Link
+                    className="p-4"
+                    to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&ref=sell`}
+                  >
+                    {`Sell position`}
+                  </Link>
+                );
 
               default:
                 return "Expired";
@@ -148,16 +172,17 @@ const usePositions = () => {
 
           return {
             ...oToken,
-            id,
-            expired,
             amount: otokenBalance,
             entryPrice,
-            underlyingAsset: underlyingAsset.id,
-            side: "LONG",
+            expired,
             expiryPrice,
+            id,
             isRedeemable,
             otokenId,
+            side: "LONG",
             status: getStatusMessage(),
+            totalPremium,
+            underlyingAsset: underlyingAsset.id,
           };
         }
       );
@@ -179,6 +204,10 @@ const usePositions = () => {
         );
       });
 
+      dispatch({
+        type: ActionType.SET_USER_OPTION_POSITIONS,
+        userOptionPositions: parsedPositions,
+      });
       setPositions(parsedPositions);
     }
   }, [data, allOracleAssets, isDisconnected]);
@@ -199,37 +228,34 @@ const usePositions = () => {
 const useRedeem = () => {
   const { address } = useAccount();
 
-  const [opynControllerContract, opynControllerContractCall] = useContract({
-    contract: "OpynController",
-    ABI: OpynController,
-    readOnly: false,
-  });
-
   const completeRedeem = useCallback(
     async (otokenId: string, amount: number) => {
-      const args = {
-        actionType: OpynActionType.Redeem,
-        owner: ZERO_ADDRESS,
-        secondAddress: address,
-        asset: otokenId,
-        vaultId: "0",
-        amount,
-        index: "0",
-        data: ZERO_ADDRESS,
-      };
+      const args = [
+        {
+          actionType: OpynActionType.Redeem,
+          owner: ZERO_ADDRESS as HexString,
+          secondAddress: address as HexString,
+          asset: otokenId as HexString,
+          vaultId: BigNumber.from(0),
+          amount: BigNumber.from(amount),
+          index: BigNumber.from(0),
+          data: ZERO_ADDRESS as HexString,
+        },
+      ];
 
-      await opynControllerContractCall({
-        method: opynControllerContract?.operate,
-        args: [[args]],
-        completeMessage: "✅ Order complete",
+      const config = await prepareWriteContract({
+        address: getContractAddress("OpynController"),
+        abi: OpynControllerABI,
+        functionName: "operate",
+        args: [args],
+        overrides: {
+          gasLimit: BigNumber.from("3000000"),
+        },
       });
+
+      await writeContract(config);
     },
-    [
-      OpynActionType.Redeem,
-      address,
-      opynControllerContract,
-      opynControllerContractCall,
-    ]
+    [OpynActionType.Redeem, address]
   );
 
   return [completeRedeem] as [CompleteRedeem];
