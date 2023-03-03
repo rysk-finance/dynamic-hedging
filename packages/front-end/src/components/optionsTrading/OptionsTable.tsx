@@ -39,6 +39,8 @@ import {
   getContractAddress,
   returnIVFromQuote,
 } from "../../utils/helpers";
+import { QueriesEnum } from "src/clients/Apollo/Queries";
+import { useGraphPolling } from "src/hooks/useGraphPolling";
 
 export const OptionsTable = () => {
   const { address } = useAccount();
@@ -56,6 +58,7 @@ export const OptionsTable = () => {
       selectedOption,
       visibleStrikeRange,
       visibleColumns,
+      chainData,
     },
     dispatch,
   } = useOptionsTradingContext();
@@ -64,9 +67,9 @@ export const OptionsTable = () => {
   const [strikeRange] = useDebounce(visibleStrikeRange, 300);
 
   // TODO: Type this properly when I refactor this file.
-  const { data: userData, refetch } = useQuery(
+  const { data: userData, startPolling } = useQuery(
     gql`
-      query ($address: String) {
+      query ${QueriesEnum.USER_BALANCE_DATA} ($address: String) {
         account(id: $address) {
           balances {
             token {
@@ -90,6 +93,8 @@ export const OptionsTable = () => {
       skip: !address,
     }
   );
+
+  useGraphPolling(userData, startPolling);
 
   const beyondPricer = useContract({
     address: getContractAddress("beyondPricer"),
@@ -117,7 +122,9 @@ export const OptionsTable = () => {
       portfolioValuesFeed &&
       beyondPricer
     ) {
-      address && refetch();
+      if (chainData[expiryDate]) {
+        setChainRows(chainData[expiryDate]);
+      }
 
       const bigNumberExpiry = BigNumber.from(expiryDate);
 
@@ -304,6 +311,11 @@ export const OptionsTable = () => {
         // once we can get all this data from there?
         const sorted = optionsChainRows.sort((a, b) => a.strike - b.strike);
 
+        dispatch({
+          type: OptionsTradingActionType.SET_CHAIN_DATA_FOR_EXPIRY,
+          expiry: expiryDate,
+          data: sorted,
+        });
         setChainRows(sorted);
       };
 
@@ -313,7 +325,7 @@ export const OptionsTable = () => {
       });
     }
   }, [
-    userData?.account,
+    userData,
     ethPrice,
     optionType,
     customOptionStrikes,
@@ -566,7 +578,7 @@ export const OptionsTable = () => {
                     >
                       {option.call.pos ? (
                         <CountUp
-                          decimals={2}
+                          decimals={1}
                           duration={0.3}
                           easingFn={easeOutCubic}
                           end={option.call.pos}
@@ -758,7 +770,7 @@ export const OptionsTable = () => {
                     >
                       {option.put.pos ? (
                         <CountUp
-                          decimals={2}
+                          decimals={1}
                           duration={0.3}
                           easingFn={easeOutCubic}
                           end={option.put.pos}
