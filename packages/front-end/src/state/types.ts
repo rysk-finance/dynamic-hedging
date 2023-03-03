@@ -114,7 +114,14 @@ export type OptionsTradingState = {
 
 export type StrikeRangeTuple = [string, string];
 
-export type ColumNames = "bid" | "ask" | "bid iv" | "ask iv" | "delta" | "pos";
+export type ColumNames =
+  | "bid"
+  | "ask"
+  | "bid iv"
+  | "ask iv"
+  | "delta"
+  | "pos"
+  | "exposure";
 
 export type OptionsTradingContext = {
   state: OptionsTradingState;
@@ -147,6 +154,7 @@ export interface StrikeOptions {
     };
     delta: number;
     pos: number;
+    exposure: number;
   };
   put: {
     bid: {
@@ -161,6 +169,7 @@ export interface StrikeOptions {
     };
     delta: number;
     pos: number;
+    exposure: number;
   };
 }
 
