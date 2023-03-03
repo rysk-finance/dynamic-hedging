@@ -55,6 +55,7 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
     case ActionType.RESET_GLOBAL_STATE:
       return {
         ...state,
+        userOptionPositions: [],
         userPositionValue: null,
         positionBreakdown: {
           currentWithdrawSharePrice: null,
@@ -63,6 +64,11 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           unredeemedShares: null,
           usdcOnHold: null,
         },
+      };
+    case ActionType.SET_USER_OPTION_POSITIONS:
+      return {
+        ...state,
+        userOptionPositions: action.userOptionPositions,
       };
   }
 };
@@ -130,6 +136,16 @@ export const optionsTradingReducer: Reducer<
       return {
         ...state,
         visibleColumns: defaultOptionTradingState.visibleColumns,
+      };
+    case OptionsTradingActionType.SET_CHAIN_DATA_FOR_EXPIRY:
+      return {
+        ...state,
+        chainData: { ...state.chainData, [action.expiry]: action.data },
+      };
+    case OptionsTradingActionType.SET_SELL_MODAL_VISIBLE:
+      return {
+        ...state,
+        sellModalOpen: action.visible,
       };
   }
 };
