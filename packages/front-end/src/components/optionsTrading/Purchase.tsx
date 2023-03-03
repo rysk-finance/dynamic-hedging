@@ -28,6 +28,7 @@ import { toOpyn, toUSDC, toWei } from "../../utils/conversion-helper";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import CollateralRequirement from "./CollateralRequirement";
+import { toTwoDecimalPlaces } from "src/utils/rounding";
 
 const formatOptionDate = (date: number | null) => {
   if (date) {
@@ -98,8 +99,6 @@ export const Purchase = () => {
     }
   }, [selectedOption, expiryDate]);
 
-  console.log("Approve");
-
   // Contracts
   const [optionRegistryContract] = useContract({
     contract: "OpynOptionRegistry",
@@ -136,7 +135,7 @@ export const Purchase = () => {
     if (usdcContract && strikeOptions && callOrPut && bidOrAsk) {
       const total =
         strikeOptions[callOrPut][bidOrAsk].quote * Number(uiOrderSize);
-      const withBuffer = total * 1.05;
+      const withBuffer = toTwoDecimalPlaces(total * 1.05);
       const amount = toUSDC(String(withBuffer));
 
       const approvedAmount = (await usdcContract.allowance(
