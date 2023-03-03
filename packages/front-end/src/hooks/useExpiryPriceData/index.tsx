@@ -4,6 +4,8 @@ import { gql, useQuery } from "@apollo/client";
 import { captureException } from "@sentry/react";
 import { useState } from "react";
 
+import { QueriesEnum } from "src/clients/Apollo/Queries";
+
 export function useExpiryPriceData() {
   const [allOracleAssets, setAllOracleAssets] = useState<OracleAsset[] | null>(
     null
@@ -15,7 +17,7 @@ export function useExpiryPriceData() {
 
   useQuery<OracleAssets>(
     gql`
-      query {
+      query ${QueriesEnum.ORACLE_ASSETS} {
         oracleAssets {
           asset {
             id

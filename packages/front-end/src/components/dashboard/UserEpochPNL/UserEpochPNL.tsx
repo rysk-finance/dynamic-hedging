@@ -23,8 +23,10 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { toTwoDecimalPlaces } from "src/utils/rounding";
 import { useAccount } from "wagmi";
+
+import { QueriesEnum } from "src/clients/Apollo/Queries";
+import { toTwoDecimalPlaces } from "src/utils/rounding";
 import { BIG_NUMBER_DECIMALS, DECIMALS } from "../../../config/constants";
 import { baseRyskToUsdc } from "../../../utils/conversion-helper";
 import { Card } from "../../shared/Card";
@@ -97,7 +99,7 @@ export const UserEpochPNL = () => {
   // and there is no way for user to reverse the withdrawal action
   useQuery<QueryData>(
     gql`
-            query {
+            query ${QueriesEnum.USER_EPOCH_PNL} {
                 pricePerShares (orderBy: timestamp) {
                     id
                     growthSinceFirstEpoch
