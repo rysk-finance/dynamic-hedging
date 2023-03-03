@@ -1,7 +1,12 @@
+import type { BigNumberish } from "ethers";
 import type { ChangeEvent } from "react";
+
+import { useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { OptionsTradingActionType } from "src/state/types";
+import { fromOpynNoDecimal } from "src/utils/conversion-helper";
 
 enum TupleIndexEnum {
   MIN = 0,
@@ -9,10 +14,25 @@ enum TupleIndexEnum {
 }
 
 export const StrikeRange = () => {
+  const [searchParams] = useSearchParams();
+
   const {
     dispatch,
     state: { visibleStrikeRange },
   } = useOptionsTradingContext();
+
+  useEffect(() => {
+    const strikePrice = searchParams.has("strike")
+      ? fromOpynNoDecimal(searchParams.get("strike") as BigNumberish)
+      : undefined;
+
+    if (strikePrice) {
+      dispatch({
+        type: OptionsTradingActionType.SET_VISIBLE_STRIKE_RANGE,
+        visibleStrikeRange: [strikePrice, strikePrice],
+      });
+    }
+  }, []);
 
   const handleChange =
     (index: number) => (event: ChangeEvent<HTMLInputElement>) => {
