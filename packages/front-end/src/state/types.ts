@@ -1,10 +1,29 @@
 import { BigNumber } from "ethers";
-import { Dispatch } from "react";
+import { Dispatch, ReactNode } from "react";
 
 export type AppSettings = {
   vaultDepositUnlimitedApproval: boolean;
   optionsTradingUnlimitedApproval: boolean;
 };
+
+export interface Position {
+  amount: number;
+  createdAt: string;
+  entryPrice: string;
+  expired: boolean;
+  expiryPrice?: string;
+  expiryTimestamp: string;
+  id: string;
+  isPut: boolean;
+  isRedeemable: boolean;
+  otokenId: string;
+  side: string;
+  status: string | ReactNode;
+  strikePrice: string;
+  symbol: string;
+  totalPremium: number;
+  underlyingAsset: string;
+}
 
 // Global context
 export type GlobalState = {
@@ -14,6 +33,7 @@ export type GlobalState = {
   eth24hLow: number | null;
   ethPriceUpdateTime: Date | null;
   ethPriceError: boolean;
+  userOptionPositions: Position[];
   userPositionValue: BigNumber | null;
   positionBreakdown: {
     redeemedShares: BigNumber | null;
@@ -37,6 +57,7 @@ export enum ActionType {
   SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
   SET_SETTINGS,
   RESET_GLOBAL_STATE,
+  SET_USER_OPTION_POSITIONS,
 }
 
 export type GlobalAction =
@@ -71,6 +92,10 @@ export type GlobalAction =
     }
   | {
       type: ActionType.RESET_GLOBAL_STATE;
+    }
+  | {
+      type: ActionType.SET_USER_OPTION_POSITIONS;
+      userOptionPositions: Position[];
     };
 
 export type GlobalContext = {
@@ -110,6 +135,8 @@ export type OptionsTradingState = {
   selectedOption: SelectedOption | null;
   visibleStrikeRange: StrikeRangeTuple;
   visibleColumns: Set<ColumNames>;
+  chainData: { [expiry: string]: StrikeOptions[] };
+  sellModalOpen: boolean;
 };
 
 export type StrikeRangeTuple = [string, string];
@@ -201,6 +228,8 @@ export enum OptionsTradingActionType {
   RESET_VISIBLE_STRIKE_RANGE,
   SET_VISIBLE_COLUMNS,
   RESET_VISIBLE_COLUMNS,
+  SET_CHAIN_DATA_FOR_EXPIRY,
+  SET_SELL_MODAL_VISIBLE,
 }
 
 export type OptionsTradingAction =
@@ -237,4 +266,13 @@ export type OptionsTradingAction =
     }
   | {
       type: OptionsTradingActionType.RESET_VISIBLE_COLUMNS;
+    }
+  | {
+      type: OptionsTradingActionType.SET_CHAIN_DATA_FOR_EXPIRY;
+      expiry: number;
+      data: StrikeOptions[];
+    }
+  | {
+      type: OptionsTradingActionType.SET_SELL_MODAL_VISIBLE;
+      visible: boolean;
     };
