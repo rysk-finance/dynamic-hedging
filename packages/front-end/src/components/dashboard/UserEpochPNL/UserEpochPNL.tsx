@@ -1,32 +1,34 @@
 import type {
-  InitiateWithdrawAction,
-  DepositAction,
   CustomTooltipProps,
+  DepositAction,
+  InitiateWithdrawAction,
   PNL,
   PricePerShare,
   QueryData,
 } from "./UserEpochPNL.types";
 
-import { useState } from "react";
 import { gql, useQuery } from "@apollo/client";
+import dayjs from "dayjs";
 import { BigNumber, utils } from "ethers/lib/ethers";
+import { useState } from "react";
 import NumberFormat from "react-number-format";
-import { BIG_NUMBER_DECIMALS, DECIMALS } from "../../../config/constants";
 import {
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
+  Bar,
   CartesianGrid,
   ComposedChart,
-  Bar,
+  Legend,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
-import { Card } from "../../shared/Card";
 import { useAccount } from "wagmi";
-import dayjs from "dayjs";
+
+import { QueriesEnum } from "src/clients/Apollo/Queries";
+import { BIG_NUMBER_DECIMALS, DECIMALS } from "../../../config/constants";
 import { baseRyskToUsdc } from "../../../utils/conversion-helper";
+import { Card } from "../../shared/Card";
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (label && active && payload && payload.length) {
@@ -96,7 +98,7 @@ export const UserEpochPNL = () => {
   // and there is no way for user to reverse the withdrawal action
   useQuery<QueryData>(
     gql`
-            query {
+            query ${QueriesEnum.USER_EPOCH_PNL} {
                 pricePerShares (orderBy: timestamp) {
                     id
                     growthSinceFirstEpoch
