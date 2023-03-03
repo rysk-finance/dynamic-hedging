@@ -1,17 +1,18 @@
-import type { QueryData, ChartData } from "./VaultPerformance.types";
+import type { ChartData, QueryData } from "./VaultPerformance.types";
 
 import { gql, useQuery } from "@apollo/client";
 import { captureException } from "@sentry/react";
-import { useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
 
 import { toTwoDecimalPlaces } from "src/utils/rounding";
 
+import { QueriesEnum } from "src/clients/Apollo/Queries";
 import { Chart } from "./subcomponents/Chart";
 import { Disclaimer } from "./subcomponents/Disclaimer";
 import { Error } from "./subcomponents/Error";
-import { Loading } from "./subcomponents/Loading";
 import { FadeWrapper } from "./subcomponents/FadeWrapper";
+import { Loading } from "./subcomponents/Loading";
 import { Stats } from "./subcomponents/Stats";
 
 export const VaultPerformance = () => {
@@ -19,7 +20,7 @@ export const VaultPerformance = () => {
 
   const { loading, error, data } = useQuery<QueryData>(
     gql`
-      query {
+      query ${QueriesEnum.VAULT_PERFORMANCE} {
         pricePerShares(
           orderBy: "epoch"
           orderDirection: "asc"

@@ -6,6 +6,7 @@ import { FullScreen, useFullScreenHandle } from "react-full-screen";
 import NumberFormat from "react-number-format";
 
 import ContentLoader from "react-content-loader";
+import { QueriesEnum } from "src/clients/Apollo/Queries";
 import { CHAINID, DECIMALS } from "../config/constants";
 import useElementOnScreen from "../hooks/useElementOnScreen";
 import { optionSymbolFormat } from "../utils";
@@ -74,7 +75,7 @@ export const VaultTrades = () => {
 
   const { fetchMore, data, loading, error } = useQuery(
     gql`
-      query ($timestamp1: Int, $timestamp2: Int) {
+      query ${QueriesEnum.VAULT_TRADE} ($timestamp1: Int, $timestamp2: Int) {
         writeOptionsActions(
           orderBy: timestamp
           orderDirection: desc
