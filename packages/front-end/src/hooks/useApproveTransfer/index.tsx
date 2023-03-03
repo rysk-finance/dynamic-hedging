@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
+import { captureException } from "@sentry/react";
+import { readContract } from "@wagmi/core";
+import { BigNumber } from "ethers";
+import { useEffect, useState } from "react";
 import {
   useAccount,
   useContractWrite,
   usePrepareContractWrite,
   useWaitForTransaction,
 } from "wagmi";
-import { readContract } from "@wagmi/core";
+
 import { erc20ABI } from "../../abis/erc20_ABI";
-import { BigNumber } from "ethers";
-import { getContractAddress } from "../../utils/helpers";
 import { ZERO_ADDRESS } from "../../config/constants";
-import { captureException } from "@sentry/react";
+import { getContractAddress } from "../../utils/helpers";
 
 /**
  * @author Yassine

@@ -57,8 +57,6 @@ const useApproveExchange = (): [
 
   const { write } = useContractWrite(config);
 
-  console.log("Is approved: ", isApproved);
-
   // interface
   return [write, isApproved];
 };
