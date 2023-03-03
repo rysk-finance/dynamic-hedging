@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 import { useAccount, useContractWrite, usePrepareContractWrite } from "wagmi";
 
 import { QueriesEnum } from "src/clients/Apollo/Queries";
+import OperationType from "src/enums/OperationType";
 import { OptionExchangeABI } from "../../abis/OptionExchange_ABI";
 import { EMPTY_SERIES, ZERO_ADDRESS } from "../../config/constants";
 import { getContractAddress } from "../../utils/helpers";
@@ -103,7 +104,7 @@ const useSellOperate = (): [
     args: [
       [
         {
-          operation: 0, // 0 means Opyn operation
+          operation: OperationType.OpynAction,
           operationQueue: [
             {
               actionType: BigNumber.from(0), // 0 on an Opyn operation means Open Vault which is represented by a vaultId
@@ -141,7 +142,7 @@ const useSellOperate = (): [
           ],
         },
         {
-          operation: 1, // indicates a rysk operation
+          operation: OperationType.RyskAction, // indicates a rysk operation
           operationQueue: [
             {
               actionType: BigNumber.from(2), // this is a sell action
