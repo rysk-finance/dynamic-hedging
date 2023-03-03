@@ -1,17 +1,14 @@
-import type { ButtonHTMLAttributes, DetailedHTMLProps } from "react";
+import type { HTMLMotionProps } from "framer-motion";
 
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useCallback } from "react";
 import { useAccount } from "wagmi";
+import { motion } from "framer-motion";
 
 import { useGlobalContext } from "../../state/GlobalContext";
 import { ActionType } from "../../state/types";
 
-interface ButtonProps
-  extends DetailedHTMLProps<
-    ButtonHTMLAttributes<HTMLButtonElement>,
-    HTMLButtonElement
-  > {
+interface ButtonProps extends HTMLMotionProps<"button"> {
   color?: "white" | "black";
   requiresConnection?: boolean;
 }
@@ -42,7 +39,7 @@ export const Button = ({
 
   if (requiresConnection && isDisconnected) {
     return (
-      <button
+      <motion.button
         className={`border-black border-2 text-md px-2 py-1 !bg-black text-white ${props.className}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -53,13 +50,13 @@ export const Button = ({
         }}
       >
         {`Click to connect`}
-      </button>
+      </motion.button>
     );
   }
   return (
-    <button
+    <motion.button
       {...props}
-      className={`border-black border-2  text-md px-2 py-1 transition-all ${
+      className={`border-black border-2 text-md px-2 py-1 transition-all ${
         color === "black" ? "bg-black text-white" : "bg-white text-black"
       } ${props.className ?? ""} ${
         props.disabled ? "!bg-gray-300 !cursor-default !text-gray-600" : ""
