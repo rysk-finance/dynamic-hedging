@@ -279,6 +279,7 @@ export const OptionsTable = () => {
                 },
                 delta: Number(fromWei(localDeltaCall).toString()),
                 pos: positions?.call || 0,
+                exposure: callExposure.div(BIG_NUMBER_DECIMALS.RYSK).toNumber(),
               },
               put: {
                 bid: {
@@ -293,6 +294,7 @@ export const OptionsTable = () => {
                 },
                 delta: Number(fromWei(localDeltaPut).toString()),
                 pos: positions?.put || 0,
+                exposure: putExposure.div(BIG_NUMBER_DECIMALS.RYSK).toNumber(),
               },
             };
           })
@@ -331,8 +333,8 @@ export const OptionsTable = () => {
   );
 
   return (
-    <table className="block bg-bone">
-      <thead className="block border-t border-gray-500">
+    <table className="block bg-bone overflow-x-auto">
+      <thead className="block w-[150%] lg:w-full border-t border-gray-500">
         <tr
           className="grid bg-bone-dark [&_th]:text-sm [&_th]:xl:text-base [&_th]:py-3 [&_th]:px-0"
           style={{ gridTemplateColumns: `repeat(${colSize}, minmax(0, 1fr))` }}
@@ -357,6 +359,7 @@ export const OptionsTable = () => {
           {showCol("ask iv") && <th className="col-span-1">Ask IV</th>}
           {showCol("delta") && <th className="col-span-1">Delta</th>}
           {showCol("pos") && <th className="col-span-1">Pos</th>}
+          {showCol("exposure") && <th className="col-span-1">DHV</th>}
           <th className="col-span-1 bg-bone-dark">Strike</th>
           {showCol("bid iv") && <th className="col-span-1">Bid IV</th>}
           <th className="col-span-1">Bid</th>
@@ -364,10 +367,11 @@ export const OptionsTable = () => {
           {showCol("ask iv") && <th className="col-span-1">Ask IV</th>}
           {showCol("delta") && <th className="col-span-1">Delta</th>}
           {showCol("pos") && <th className="col-span-1">Pos</th>}
+          {showCol("exposure") && <th className="col-span-1">DHV</th>}
         </tr>
       </thead>
 
-      <tbody className="block font-dm-mono text-sm">
+      <tbody className="block w-[150%] lg:w-full font-dm-mono text-sm">
         <AnimatePresence initial={false}>
           {Boolean(chainRows.length) &&
             chainRows.map((option) => {
@@ -411,7 +415,7 @@ export const OptionsTable = () => {
 
               return (
                 <motion.tr
-                  className="grid even:bg-bone odd:bg-bone-light bg-[url('./assets/wave-lines.png')] even:bg-[top_right_-50%] even:lg:bg-[top_right_-15%] even:xl:bg-[top_right_0%] odd:bg-[top_left_-80%] odd:lg:bg-[top_left_-40%] odd:xl:bg-[top_left_-20%] bg-no-repeat text-right [&_td]:col-span-1 [&_td]:border [&_td]:border-dashed [&_td]:border-gray-500 [&_td]:ease-in-out [&_td]:duration-100 [&_td]:cursor-default [&_td]:text-2xs [&_td]:lg:text-xs [&_td]:xl:text-base"
+                  className="grid even:bg-bone odd:bg-bone-light bg-[url('./assets/wave-lines.png')] even:bg-[top_right_-50%] even:lg:bg-[top_right_-15%] even:xl:bg-[top_right_0%] odd:bg-[top_left_-80%] odd:lg:bg-[top_left_-40%] odd:xl:bg-[top_left_-20%] bg-no-repeat text-right [&_td]:col-span-1 [&_td]:border [&_td]:border-dashed [&_td]:border-gray-500 [&_td]:ease-in-out [&_td]:duration-100 [&_td]:cursor-default [&_td]:text-2xs [&_td]:xl:text-base"
                   key={option.strike}
                   style={{
                     gridTemplateColumns: `repeat(${colSize}, minmax(0, 1fr))`,
@@ -566,6 +570,27 @@ export const OptionsTable = () => {
                           duration={0.3}
                           easingFn={easeOutCubic}
                           end={option.call.pos}
+                          preserveValue
+                          useEasing
+                        />
+                      ) : (
+                        <span>{"-"}</span>
+                      )}
+                    </td>
+                  )}
+                  {showCol("exposure") && (
+                    <td
+                      className={`!border-r-0 py-4 xl:py-3 px-1 xl:px-2 ${getColorClasses(
+                        option,
+                        "call"
+                      )}`}
+                    >
+                      {option.call.exposure ? (
+                        <CountUp
+                          decimals={2}
+                          duration={0.3}
+                          easingFn={easeOutCubic}
+                          end={option.call.exposure}
                           preserveValue
                           useEasing
                         />
@@ -737,6 +762,27 @@ export const OptionsTable = () => {
                           duration={0.3}
                           easingFn={easeOutCubic}
                           end={option.put.pos}
+                          preserveValue
+                          useEasing
+                        />
+                      ) : (
+                        <span>{"-"}</span>
+                      )}
+                    </td>
+                  )}
+                  {showCol("exposure") && (
+                    <td
+                      className={`!border-r-0 py-4 xl:py-3 px-1 xl:px-2 ${getColorClasses(
+                        option,
+                        "put"
+                      )}`}
+                    >
+                      {option.put.exposure ? (
+                        <CountUp
+                          decimals={2}
+                          duration={0.3}
+                          easingFn={easeOutCubic}
+                          end={option.put.exposure}
                           preserveValue
                           useEasing
                         />
