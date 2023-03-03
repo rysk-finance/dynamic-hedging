@@ -1,4 +1,6 @@
-import type { BigNumber } from "ethers";
+import type { BigNumberish } from "ethers";
+
+import type { Position as ParsedPosition } from "src/state/types";
 
 type CompleteRedeem = (otokenId: string, amount: number) => Promise<void>;
 
@@ -12,7 +14,7 @@ interface Balance {
 }
 
 interface writeOptionsTransaction {
-  premium: BigNumber;
+  premium: BigNumberish;
 }
 
 interface Position {
@@ -29,29 +31,13 @@ interface Position {
       __typename: string;
       id: string;
     };
+    createdAt: string;
   };
   writeOptionsTransactions: writeOptionsTransaction[];
   account: {
     __typename: string;
     balances: Balance[];
   };
-}
-
-interface ParsedPosition {
-  status: string;
-  amount: number;
-  entryPrice: string;
-  expired: boolean;
-  expiryPrice?: string;
-  expiryTimestamp: string;
-  id: string;
-  isPut: boolean;
-  isRedeemable: boolean;
-  otokenId: string;
-  side: string;
-  strikePrice: string;
-  symbol: string;
-  underlyingAsset: string;
 }
 
 interface TableProps {
