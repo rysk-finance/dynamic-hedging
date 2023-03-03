@@ -21,10 +21,10 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
       return {
         ...state,
         ethPrice: action.price,
-        eth24hChange: action.change ?? state.eth24hChange,
+        eth24hChange: action.change || state.eth24hChange,
         ethPriceUpdateTime: action.date,
-        eth24hHigh: action.high,
-        eth24hLow: action.low,
+        eth24hHigh: action.high || state.eth24hHigh,
+        eth24hLow: action.low || state.eth24hLow,
         ethPriceError: action.error,
       };
     case ActionType.SET_ETH_PRICE_ERROR:
