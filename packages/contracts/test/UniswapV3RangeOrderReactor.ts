@@ -21,6 +21,7 @@ import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
 import { abi as IUniswapV3PoolABI } from "@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json"
 import { abi as ISwapRouterABI } from "@uniswap/v3-periphery/artifacts/contracts/interfaces/ISwapRouter.sol/ISwapRouter.json"
+import { abi as IPriceFeedABI } from "../artifacts/contracts/PriceFeed.sol/PriceFeed.json"
 import { getPoolInfo } from "../utils/uniswap"
 import { fromUSDC, fromWei, toUSDC, toWei } from "../utils/conversion-helper"
 import {
@@ -33,6 +34,7 @@ import { WETH } from "../types/WETH"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { arbitrum as addresses } from "../contracts.json"
 import { sign } from "crypto"
+import { min } from "bn.js"
 
 enum Direction {
 	ABOVE = 0,
@@ -1310,5 +1312,46 @@ describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
 		expect(currentPositionAfter.activeUpperTick).to.eq(0)
 		let reactorDelta = Number(fromWei(await uniswapV3RangeOrderReactor.getDelta()))
 		expect(reactorDelta).to.be.within(0.09, 0.11)
+	})
+
+	it("Enters a range to hedge a positive delta - sell underlying - Arbitrum", async () => {
+		const priceFeedAddress = await uniswapV3RangeOrderReactor.priceFeed()
+		// swap back to push price above chainlink price
+		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const amountToSwap = toUSDC("2000000")
+		await usdcContract.connect(funder).approve(uniswapRouter.address, amountToSwap)
+		let params = {
+			tokenIn: poolInfo.token1.address,
+			tokenOut: poolInfo.token0.address,
+			fee: poolInfo.fee,
+			recipient: funderAddress,
+			deadline: Math.floor(Date.now() / 1000) + 60 * 10,
+			amountIn: amountToSwap,
+			amountOutMinimum: 0,
+			sqrtPriceLimitX96: 0
+		}
+		const swapPriceMoveTx = await uniswapRouter.exactInputSingle(params)
+
+		// ensure no current reactor position
+		const currentPosition = await uniswapV3RangeOrderReactor.currentPosition()
+		expect(currentPosition.activeLowerTick).to.equal(0)
+		expect(currentPosition.activeUpperTick).to.equal(0)
+		// enter range below
+		const reactorWethBalanceBefore = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		const deltaAmount = toWei("0.1")
+		const hedgeDeltaTx = await liquidityPool.rebalancePortfolioDelta(deltaAmount, 3)
+		const receipt = await hedgeDeltaTx.wait()
+		const [mintEvent] = (getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown) as [MintEvent]
+		const reactorWethBalance = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		const wethDifference =
+			Math.round(
+				(Number(fromWei(reactorWethBalanceBefore)) - Number(fromWei(reactorWethBalance))) * 1000
+			) / 1000
+		expect(activeLowerTick).to.not.eq(currentPosition.activeLowerTick)
+		expect(activeUpperTick).to.not.eq(currentPosition.activeUpperTick)
+		expect(mintEvent.tickLower).to.eq(activeLowerTick)
+		expect(mintEvent.tickUpper).to.eq(activeUpperTick)
+		expect(wethDifference).to.eq(0.1)
 	})
 })
