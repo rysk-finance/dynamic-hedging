@@ -137,6 +137,7 @@ export type OptionsTradingState = {
   visibleColumns: Set<ColumNames>;
   chainData: { [expiry: string]: StrikeOptions[] };
   sellModalOpen: boolean;
+  tutorialIndex?: number;
 };
 
 export type StrikeRangeTuple = [string, string];
@@ -230,6 +231,7 @@ export enum OptionsTradingActionType {
   RESET_VISIBLE_COLUMNS,
   SET_CHAIN_DATA_FOR_EXPIRY,
   SET_SELL_MODAL_VISIBLE,
+  SET_TUTORIAL_INDEX,
 }
 
 export type OptionsTradingAction =
@@ -275,4 +277,8 @@ export type OptionsTradingAction =
   | {
       type: OptionsTradingActionType.SET_SELL_MODAL_VISIBLE;
       visible: boolean;
+    }
+  | {
+      type: OptionsTradingActionType.SET_TUTORIAL_INDEX;
+      index?: number;
     };
