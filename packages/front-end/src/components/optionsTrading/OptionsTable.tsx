@@ -345,7 +345,7 @@ export const OptionsTable = () => {
   );
 
   return (
-    <table className="block bg-bone overflow-x-auto">
+    <table className="block bg-bone overflow-x-auto" id="options-chain">
       <thead className="block w-[150%] lg:w-full border-t border-gray-500">
         <tr
           className="grid bg-bone-dark [&_th]:text-sm [&_th]:xl:text-base [&_th]:py-3 [&_th]:px-0"
