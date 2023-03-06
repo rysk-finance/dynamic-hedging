@@ -1,15 +1,20 @@
 import { AnimatePresence, motion } from "framer-motion";
+import Joyride, { ACTIONS, STATUS } from "react-joyride";
 
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";
-import { RyskFavicon } from "src/Icons";
+import { Question } from "src/Icons";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
+import { OptionsTradingActionType } from "src/state/types";
 import { CurrentPrice } from "./components/CurrentPrice";
 import { Error } from "./components/Error";
 import { OneDayChange } from "./components/OneDayChange";
 import { usePrice } from "./hooks/usePrice";
 
 export const AssetPriceInfo = () => {
+  const { dispatch } = useOptionsTradingContext();
+
   const {
     state: {
       ethPrice,
@@ -23,41 +28,56 @@ export const AssetPriceInfo = () => {
 
   const [update] = usePrice();
 
+  const handleHelpClick = () => {
+    dispatch({ type: OptionsTradingActionType.SET_TUTORIAL_INDEX, index: 0 });
+  };
+
   const ready = Boolean(!ethPriceError && ethPrice && ethPriceUpdateTime);
 
   return (
-    <motion.button
-      className="w-full h-24 flex items-stretch"
-      onClick={update}
-      {...FadeInOut()}
-      title="Click to refetch price data."
-    >
-      <img
-        src="/icons/ethereum.svg"
-        alt="Ethereum logo"
-        className="min-w-[6rem] h-24 py-4 border-r-2 border-black"
-      />
+    <motion.div className="flex" {...FadeInOut()}>
+      <button
+        className="w-full h-24 flex items-stretch"
+        id="chain-price-info"
+        onClick={update}
+        title="Click to refetch price data."
+      >
+        <img
+          src="/icons/ethereum.svg"
+          alt="Ethereum logo"
+          className="min-w-[6rem] h-24 py-4 border-r-2 border-black"
+        />
 
-      <AnimatePresence mode="wait">
-        {ready && (
-          <motion.div
-            className="flex w-full bg-[url('./assets/white-ascii-50.png')] bg-cover bg-center"
-            {...FadeInOutFixedDelay}
-          >
-            <CurrentPrice price={ethPrice} latestUpdate={ethPriceUpdateTime} />
+        <AnimatePresence mode="wait">
+          {ready && (
+            <motion.div
+              className="flex w-full bg-[url('./assets/white-ascii-50.png')] bg-cover bg-center"
+              {...FadeInOutFixedDelay}
+            >
+              <CurrentPrice
+                price={ethPrice}
+                latestUpdate={ethPriceUpdateTime}
+              />
 
-            <OneDayChange
-              high={eth24hHigh}
-              low={eth24hLow}
-              change={eth24hChange}
-            />
-          </motion.div>
-        )}
+              <OneDayChange
+                high={eth24hHigh}
+                low={eth24hLow}
+                change={eth24hChange}
+              />
+            </motion.div>
+          )}
 
-        {ethPriceError && <Error />}
-      </AnimatePresence>
+          {ethPriceError && <Error />}
+        </AnimatePresence>
+      </button>
 
-      <RyskFavicon className="min-w-[6rem] w-24 h-24 py-4 ml-auto border-l-2 border-black" />
-    </motion.button>
+      <button
+        className="ml-auto border-l-2 border-black"
+        onClick={handleHelpClick}
+        title="Click to go through our introduction to the Rysk options chain."
+      >
+        <Question className="min-w-[6rem] w-24 h-24 py-4" />
+      </button>
+    </motion.div>
   );
 };
