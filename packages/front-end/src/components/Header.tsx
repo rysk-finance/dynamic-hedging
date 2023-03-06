@@ -4,9 +4,9 @@ import { AppPaths } from "../config/appPaths";
 import { Connect } from "src/clients/WalletProvider/components/Connect";
 
 const links = [
-  { path: AppPaths.VAULT, label: "Vault" },
-  { path: AppPaths.TRADE, label: "Trade Options" },
-  { path: AppPaths.DASHBOARD, label: "Dashboard" },
+  { id: "header-vault", path: AppPaths.VAULT, label: "Vault" },
+  { id: "header-options", path: AppPaths.TRADE, label: "Trade Options" },
+  { id: "header-dashboard", path: AppPaths.DASHBOARD, label: "Dashboard" },
 ];
 
 export const Header = () => {
@@ -20,9 +20,10 @@ export const Header = () => {
 
       <div className="flex items-center">
         <div className="mr-4">
-          {links.map(({ path, label }) => (
+          {links.map(({ id, path, label }) => (
             <Link
               key={path}
+              id={id}
               to={path}
               className={`mr-2 border-none bg-transparent p-2 underline-offset-2 ${
                 pathname === path ? "underline" : ""
