@@ -147,5 +147,10 @@ export const optionsTradingReducer: Reducer<
         ...state,
         sellModalOpen: action.visible,
       };
+    case OptionsTradingActionType.SET_TUTORIAL_INDEX:
+      return {
+        ...state,
+        tutorialIndex: action.index,
+      };
   }
 };
