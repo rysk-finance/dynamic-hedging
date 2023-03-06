@@ -28,6 +28,7 @@ export const defaultOptionTradingState: OptionsTradingState = {
   ] as ColumNames[]),
   chainData: {},
   sellModalOpen: false,
+  tutorialIndex: undefined,
 };
 
 export const OptionsTradingReactContext = createContext<OptionsTradingContext>({
