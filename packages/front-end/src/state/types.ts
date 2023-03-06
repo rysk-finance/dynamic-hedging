@@ -45,8 +45,8 @@ export type GlobalAction =
       price: number;
       change?: number;
       date: Date;
-      high: number;
-      low: number;
+      high?: number;
+      low?: number;
       error: boolean;
     }
   | {
