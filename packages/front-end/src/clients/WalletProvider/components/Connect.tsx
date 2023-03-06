@@ -22,6 +22,7 @@ const Connect = () => {
               <button
                 onClick={openConnectModal}
                 className={buttonStyles}
+                id="connect-wallet"
                 title={`Click to connect your wallet.`}
                 type="button"
               >
@@ -33,6 +34,7 @@ const Connect = () => {
               <button
                 onClick={openChainModal}
                 className={buttonStyles}
+                id="connect-wallet"
                 title={`Click to switch networks.`}
                 type="button"
               >
@@ -44,6 +46,7 @@ const Connect = () => {
               <button
                 onClick={openAccountModal}
                 className={buttonStyles}
+                id="connect-wallet"
                 title={`Connected to ${chain.name}.`}
                 type="button"
               >

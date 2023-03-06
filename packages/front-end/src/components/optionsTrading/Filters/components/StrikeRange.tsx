@@ -54,7 +54,7 @@ export const StrikeRange = () => {
     };
 
   return (
-    <div className="flex items-center my-2 xl:my-0 xl:ml-auto xl:border-x-2 border-black px-4">
+    <div className="flex items-center my-2 xl:my-0 xl:ml-auto xl:border-x-2 border-black px-4" id="filter-strike-range">
       <p className="pr-2 font-medium text-sm 2xl:text-base">{`Filter strike range:`}</p>
       <label htmlFor="strike-min" hidden>
         {`Minimum`}

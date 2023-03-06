@@ -65,7 +65,7 @@ export const Checkboxes = () => {
   ];
 
   return (
-    <div className="flex items-center justify-evenly xl:justify-start h-12 px-4 [&>*]:mx-2 [&>*]:p-3 [&_*]:ease-in-out [&_*]:duration-100 [&_label]:whitespace-nowrap">
+    <div className="flex items-center justify-evenly xl:justify-start h-12 px-4 [&>*]:mx-2 [&>*]:p-3 [&_*]:ease-in-out [&_*]:duration-100 [&_label]:whitespace-nowrap" id="filter-checkboxes">
       {checkboxes.map((checkbox) => (
         <label
           className="flex items-center select-none cursor-pointer"
