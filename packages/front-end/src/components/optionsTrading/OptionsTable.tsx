@@ -444,6 +444,7 @@ export const OptionsTable = () => {
                       {option.call.bid.IV ? (
                         <CountUp
                           className="after:content-['%'] after:ml-1"
+                          delay={0}
                           decimals={2}
                           duration={0.3}
                           easingFn={easeOutCubic}
@@ -457,6 +458,7 @@ export const OptionsTable = () => {
                     </td>
                   )}
                   <CountUp
+                    delay={0}
                     decimals={2}
                     duration={0.3}
                     easingFn={easeOutCubic}
@@ -494,6 +496,7 @@ export const OptionsTable = () => {
                     }}
                   </CountUp>
                   <CountUp
+                    delay={0}
                     decimals={2}
                     duration={0.3}
                     easingFn={easeOutCubic}
@@ -540,6 +543,7 @@ export const OptionsTable = () => {
                       {option.call.ask.IV ? (
                         <CountUp
                           className="after:content-['%'] after:ml-1"
+                          delay={0}
                           decimals={2}
                           duration={0.3}
                           easingFn={easeOutCubic}
@@ -560,6 +564,7 @@ export const OptionsTable = () => {
                       )}`}
                     >
                       <CountUp
+                        delay={0}
                         decimals={2}
                         duration={0.3}
                         easingFn={easeOutCubic}
@@ -599,6 +604,7 @@ export const OptionsTable = () => {
                     >
                       {option.call.exposure ? (
                         <CountUp
+                          delay={0}
                           decimals={2}
                           duration={0.3}
                           easingFn={easeOutCubic}
@@ -628,6 +634,7 @@ export const OptionsTable = () => {
                       {option.put.bid.IV ? (
                         <CountUp
                           className="after:content-['%'] after:ml-1"
+                          delay={0}
                           decimals={2}
                           duration={0.3}
                           easingFn={easeOutCubic}
@@ -641,6 +648,7 @@ export const OptionsTable = () => {
                     </td>
                   )}
                   <CountUp
+                    delay={0}
                     decimals={2}
                     duration={0.3}
                     easingFn={easeOutCubic}
@@ -682,6 +690,7 @@ export const OptionsTable = () => {
                     }}
                   </CountUp>
                   <CountUp
+                    delay={0}
                     decimals={2}
                     duration={0.3}
                     easingFn={easeOutCubic}
@@ -732,6 +741,7 @@ export const OptionsTable = () => {
                       {option.put.ask.IV ? (
                         <CountUp
                           className="after:content-['%'] after:ml-1"
+                          delay={0}
                           decimals={2}
                           duration={0.3}
                           easingFn={easeOutCubic}
@@ -752,6 +762,7 @@ export const OptionsTable = () => {
                       )}`}
                     >
                       <CountUp
+                        delay={0}
                         decimals={2}
                         duration={0.3}
                         easingFn={easeOutCubic}
@@ -791,6 +802,7 @@ export const OptionsTable = () => {
                     >
                       {option.put.exposure ? (
                         <CountUp
+                          delay={0}
                           decimals={2}
                           duration={0.3}
                           easingFn={easeOutCubic}

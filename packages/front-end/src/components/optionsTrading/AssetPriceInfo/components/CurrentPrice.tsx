@@ -16,6 +16,7 @@ export const CurrentPrice = ({ price, latestUpdate }: CurrentPriceProps) => {
       <span className="flex flex-col">
         <CountUp
           decimals={2}
+          delay={0}
           duration={0.3}
           easingFn={easeOutCubic}
           end={price || 0}
@@ -32,6 +33,7 @@ export const CurrentPrice = ({ price, latestUpdate }: CurrentPriceProps) => {
         </CountUp>
 
         <CountUp
+          delay={0}
           duration={0.3}
           easingFn={easeOutCubic}
           end={blockHeight || 0}
