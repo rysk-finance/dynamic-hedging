@@ -161,7 +161,7 @@ const usePositions = () => {
                     className="p-4"
                     to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&ref=sell`}
                   >
-                    {`Sell position`}
+                    {`Close position`}
                   </Link>
                 );
 
