@@ -72,7 +72,7 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
 - OptionRegistry registerLiquidatedVault: GOVERNOR, MANAGER, KEEPER
 
 ## AlphaPortfolioValuesFeed
-### (GOVERNOR)
+### (GOVERNOR, KEEPER)
 
 - AlphaPortfolioValuesFeed setters: GOVERNOR
     - liquidityPool [liquidityPool contract authorised to interact with options capabilitites]: GOVERNOR
