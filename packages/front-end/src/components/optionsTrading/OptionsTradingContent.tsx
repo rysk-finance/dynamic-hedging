@@ -6,6 +6,7 @@ import { ExpiryDatePicker } from "./ExpiryDatePicker";
 import { Filters } from "./Filters/Filters";
 import { AssetPriceInfo } from "./AssetPriceInfo";
 import { SellOptionModal } from "./SellOptionModal";
+import { Tutorial } from "./Tutorial";
 
 import { useSellModal } from "./hooks/useSellModal";
 
@@ -14,6 +15,8 @@ export const OptionsTradingContent = () => {
 
   return (
     <section className="col-start-1 col-end-17 -mt-16">
+      <Tutorial />
+
       <AssetPriceInfo />
 
       <div className="relative border-2 border-black">
