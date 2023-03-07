@@ -27,6 +27,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
           <span className="flex mx-auto py-4">
             <CountUp
               decimals={2}
+              delay={0}
               duration={0.3}
               easingFn={easeOutCubic}
               end={totalPaid}
@@ -51,6 +52,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
           >
             <CountUp
               decimals={2}
+              delay={0}
               duration={0.3}
               easingFn={easeOutCubic}
               end={totalValue}
