@@ -11,11 +11,12 @@ import { gql, useQuery } from "@apollo/client";
 import { captureException } from "@sentry/react";
 import { readContract } from "@wagmi/core";
 import dayjs from "dayjs";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 
-import { useCallback, useEffect, useState } from "react";
-
 import { OptionCatalogueABI } from "src/abis/OptionCatalogue_ABI";
+import { QueriesEnum } from "src/clients/Apollo/Queries";
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { OptionsTradingActionType } from "src/state/types";
 import { getContractAddress } from "src/utils/helpers";
@@ -36,6 +37,9 @@ import { getContractAddress } from "src/utils/helpers";
  */
 export const useExpiryDates = () => {
   const { address } = useAccount();
+  const [searchParams] = useSearchParams();
+
+  const queryExpiry = Number(searchParams.get("expiry"));
 
   const {
     state: { expiryDate },
@@ -75,7 +79,8 @@ export const useExpiryDates = () => {
               const now = dayjs().unix();
               const timestamp = expiration.toNumber();
 
-              if (timestamp > now) {
+              // Hide any expiries that are in the past or do not end at 8am.
+              if (timestamp > now && dayjs.unix(timestamp).utc().hour() === 8) {
                 expiryDates.push(timestamp);
               }
 
@@ -83,8 +88,15 @@ export const useExpiryDates = () => {
             }, [])
             .sort((a, b) => a - b);
 
+          if (queryExpiry && expiryTimestamps.includes(queryExpiry)) {
+            const index = expiryTimestamps.indexOf(queryExpiry);
+
+            setExpiryDate(expiryTimestamps[index]);
+          } else {
+            setExpiryDate(expiryTimestamps[0]);
+          }
+
           setExpiryDates(expiryTimestamps);
-          setExpiryDate(expiryTimestamps[0]);
           setVisibleRange([0, Math.min(3, expiryTimestamps.length - 1)]);
         }
       } catch (error) {
@@ -94,11 +106,11 @@ export const useExpiryDates = () => {
     };
 
     fetchExpirations();
-  }, [setExpiryDate]);
+  }, []);
 
   const { data } = useQuery<UserPositions>(
     gql`
-      query ($address: String) {
+      query ${QueriesEnum.OPTIONS_CHAIN_EXPIRY_DATES} ($address: String) {
         account(id: $address) {
           balances {
             token {

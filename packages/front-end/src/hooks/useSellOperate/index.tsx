@@ -1,14 +1,18 @@
-import { usePrepareContractWrite, useContractWrite, useAccount } from "wagmi";
+import type { OptionSeries } from "src/state/types";
+import type { QueryData } from "./types";
+
 import { gql, useQuery } from "@apollo/client";
-import { EMPTY_SERIES, ZERO_ADDRESS } from "../../config/constants";
-import { OptionSeries } from "../../types";
-import { OptionExchangeABI } from "../../abis/OptionExchange_ABI";
+import { BigNumber } from "ethers";
 import { AbiCoder } from "ethers/lib/utils";
 import { useState } from "react";
-import { BigNumber } from "ethers";
-import { getContractAddress } from "../../utils/helpers";
-import { QueryData } from "./types";
 import { toast } from "react-toastify";
+import { useAccount, useContractWrite, usePrepareContractWrite } from "wagmi";
+
+import { QueriesEnum } from "src/clients/Apollo/Queries";
+import OperationType from "src/enums/OperationType";
+import { OptionExchangeABI } from "../../abis/OptionExchange_ABI";
+import { EMPTY_SERIES, ZERO_ADDRESS } from "../../config/constants";
+import { getContractAddress } from "../../utils/helpers";
 import useTenderlySimulator from "../useTenderlySimulator";
 
 const abiCode = new AbiCoder();
@@ -62,7 +66,7 @@ const useSellOperate = (): [
 
   const { data } = useQuery<QueryData>(
     gql`
-      query Account($account: String!) {
+      query ${QueriesEnum.USER_VAULT_COUNT} ($account: String!) {
         account(id: $account) {
           id
           vaultCount
@@ -100,7 +104,7 @@ const useSellOperate = (): [
     args: [
       [
         {
-          operation: 0, // 0 means Opyn operation
+          operation: OperationType.OpynAction,
           operationQueue: [
             {
               actionType: BigNumber.from(0), // 0 on an Opyn operation means Open Vault which is represented by a vaultId
@@ -138,7 +142,7 @@ const useSellOperate = (): [
           ],
         },
         {
-          operation: 1, // indicates a rysk operation
+          operation: OperationType.RyskAction, // indicates a rysk operation
           operationQueue: [
             {
               actionType: BigNumber.from(2), // this is a sell action

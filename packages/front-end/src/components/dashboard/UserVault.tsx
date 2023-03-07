@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { useAccount, useNetwork } from "wagmi";
 
 import ReactTooltip from "react-tooltip";
+import { QueriesEnum } from "src/clients/Apollo/Queries";
 import LPABI from "../../abis/LiquidityPool.json";
 import { AppPaths } from "../../config/appPaths";
 import { BIG_NUMBER_DECIMALS, DHV_NAME } from "../../config/constants";
@@ -50,7 +51,7 @@ export const UserVault = () => {
 
   useQuery(
     gql`
-      query($account: String) {
+      query ${QueriesEnum.USER_VAULT} ($account: String) {
         lpbalances(first: 1000, where: { id: "${address}" }) {
           id
           balance
