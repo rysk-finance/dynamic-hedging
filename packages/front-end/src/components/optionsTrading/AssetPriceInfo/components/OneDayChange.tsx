@@ -36,6 +36,7 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
         />
         <CountUp
           decimals={2}
+          delay={0}
           duration={0.3}
           easingFn={easeOutCubic}
           end={round(change) || 0}
