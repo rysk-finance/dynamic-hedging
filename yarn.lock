@@ -2502,14 +2502,6 @@
     "@babel/helper-module-imports" "^7.10.4"
     "@rollup/pluginutils" "^3.1.0"
 
-"@rollup/plugin-babel@^6.0.2":
-  version "6.0.3"
-  resolved "https://registry.yarnpkg.com/@rollup/plugin-babel/-/plugin-babel-6.0.3.tgz#07ccde15de278c581673034ad6accdb4a153dfeb"
-  integrity sha512-fKImZKppa1A/gX73eg4JGo+8kQr/q1HBQaCGKECZ0v4YBBv3lFqi14+7xyApECzvkLTHCifx+7ntcrvtBIRcpg==
-  dependencies:
-    "@babel/helper-module-imports" "^7.18.6"
-    "@rollup/pluginutils" "^5.0.1"
-
 "@rollup/plugin-node-resolve@^11.2.1":
   version "11.2.1"
   resolved "https://registry.yarnpkg.com/@rollup/plugin-node-resolve/-/plugin-node-resolve-11.2.1.tgz#82aa59397a29cd4e13248b106e6a4a1880362a60"
@@ -2538,15 +2530,6 @@
     "@types/estree" "0.0.39"
     estree-walker "^1.0.1"
     picomatch "^2.2.2"
-
-"@rollup/pluginutils@^5.0.1":
-  version "5.0.2"
-  resolved "https://registry.yarnpkg.com/@rollup/pluginutils/-/pluginutils-5.0.2.tgz#012b8f53c71e4f6f9cb317e311df1404f56e7a33"
-  integrity sha512-pTd9rIsP92h+B6wWwFbW8RkZv4hiR/xKsqre4SIuAOaOEQRxi0lqLke9k2/7WegC85GgUs9pjmOjCUi3In4vwA==
-  dependencies:
-    "@types/estree" "^1.0.0"
-    estree-walker "^2.0.2"
-    picomatch "^2.3.1"
 
 "@rushstack/eslint-patch@^1.1.0":
   version "1.2.0"
@@ -3278,7 +3261,7 @@
     "@types/estree" "*"
     "@types/json-schema" "*"
 
-"@types/estree@*", "@types/estree@^1.0.0":
+"@types/estree@*":
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.0.tgz#5fb2e536c1ae9bf35366eed879e827fa59ca41c2"
   integrity sha512-WulqXMDUTYAXCjZnk6JtIHPigp55cVtDgDrO2gHRwhyJto21+1zbVCtOYB2L1F9w4qCQ0rOGWBnBe0FNTiEJIQ==
@@ -5967,11 +5950,6 @@ cosmiconfig@^7.0.0:
     path-type "^4.0.0"
     yaml "^1.10.0"
 
-countup.js@^2.4.1:
-  version "2.5.0"
-  resolved "https://registry.yarnpkg.com/countup.js/-/countup.js-2.5.0.tgz#156d300044b6dd8239f6e8315addfc3f8143b5a3"
-  integrity sha512-/59H8Q6wzu6VfHeqGUgXoyh6kgboGr5mALmRKi8YA11DlcaXSnT1PZG6mTyBRLco4ZjExKlmfNHeMbQgZvis9Q==
-
 crc-32@^1.2.0:
   version "1.2.2"
   resolved "https://registry.yarnpkg.com/crc-32/-/crc-32-1.2.2.tgz#3cad35a934b8bf71f25ca524b6da51fb7eace2ff"
@@ -7303,11 +7281,6 @@ estree-walker@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/estree-walker/-/estree-walker-1.0.1.tgz#31bc5d612c96b704106b477e6dd5d8aa138cb700"
   integrity sha512-1fMXF3YP4pZZVozF8j/ZLfvnR8NSIljt56UhbZ5PeeDmmGHpgpdwQt7ITlGvYaQukCvuBRMLEiKiYC+oeIg4cg==
-
-estree-walker@^2.0.2:
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/estree-walker/-/estree-walker-2.0.2.tgz#52f010178c2a4c117a7757cfe942adb7d2da4cac"
-  integrity sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==
 
 esutils@^2.0.2:
   version "2.0.3"
@@ -12168,14 +12141,6 @@ react-content-loader@^6.2.0:
   resolved "https://registry.yarnpkg.com/react-content-loader/-/react-content-loader-6.2.0.tgz#cd8fee8160b8fda6610d0c69ce5aee7b8094cba6"
   integrity sha512-r1dI6S+uHNLW68qraLE2njJYOuy6976PpCExuCZUcABWbfnF3FMcmuESRI8L4Bj45wnZ7n8g71hkPLzbma7/Cw==
 
-react-countup@^6.4.1:
-  version "6.4.1"
-  resolved "https://registry.yarnpkg.com/react-countup/-/react-countup-6.4.1.tgz#cbbda64a64065cb12376eff23e5aa084665e6c4d"
-  integrity sha512-FxQ7qaNnnbA+Px9RebOZY4Tbawa1bhgpVPlUqRemZb90mh3f3OqyHVgr1SZqnJgaRxR3uEYqgkszgkDgFVCeEw==
-  dependencies:
-    "@rollup/plugin-babel" "^6.0.2"
-    countup.js "^2.4.1"
-
 react-datepicker@^4.10.0:
   version "4.10.0"
   resolved "https://registry.yarnpkg.com/react-datepicker/-/react-datepicker-4.10.0.tgz#3f386ac5873dac5ea56544e51cdc01109938796c"
@@ -14396,10 +14361,22 @@ use-callback-ref@^1.3.0:
   dependencies:
     tslib "^2.0.0"
 
+use-count-up@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/use-count-up/-/use-count-up-3.0.1.tgz#315edf4e4be91ead94e6dd34444349d9b8c2c6c3"
+  integrity sha512-jlVsXJYje6jh+xwQaCEYrwHoB+nRyillNEmr21bhe9kw7tpRzyrSq9jQs9UOlo+8hCFkuOmjUihL3IjEK/piVg==
+  dependencies:
+    use-elapsed-time "3.0.2"
+
 use-debounce@^9.0.3:
   version "9.0.3"
   resolved "https://registry.yarnpkg.com/use-debounce/-/use-debounce-9.0.3.tgz#bac660c19ab7b38662e08608fee23c7ad303f532"
   integrity sha512-FhtlbDtDXILJV7Lix5OZj5yX/fW1tzq+VrvK1fnT2bUrPOGruU9Rw8NCEn+UI9wopfERBEZAOQ8lfeCJPllgnw==
+
+use-elapsed-time@3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/use-elapsed-time/-/use-elapsed-time-3.0.2.tgz#ef22bf520e60f9873fd102925a2d5cbc5d4faaf5"
+  integrity sha512-2EY9lJ5DWbAvT8wWiEp6Ztnl46DjXz2j78uhWbXaz/bg3OfpbgVucCAlcN8Bih6hTJfFTdVYX9L6ySMn5py/wQ==
 
 use-sidecar@^1.1.2:
   version "1.1.2"
