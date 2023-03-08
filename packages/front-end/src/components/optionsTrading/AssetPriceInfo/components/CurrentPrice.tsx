@@ -1,12 +1,9 @@
-import type { RefObject } from "react";
-
 import type { CurrentPriceProps } from "../types";
 
 import dayjs from "dayjs";
 import { useBlockNumber } from "wagmi";
-import CountUp from "react-countup";
 
-import { easeOutCubic } from "src/animation/easing";
+import { RyskCountUp } from "src/components/shared/RyskCountUp";
 
 export const CurrentPrice = ({ price, latestUpdate }: CurrentPriceProps) => {
   const { data: blockHeight } = useBlockNumber({ watch: true });
@@ -14,41 +11,14 @@ export const CurrentPrice = ({ price, latestUpdate }: CurrentPriceProps) => {
   return (
     <div className="flex items-center justify-between grow px-4">
       <span className="flex flex-col">
-        <CountUp
-          decimals={2}
-          delay={0}
-          duration={0.3}
-          easingFn={easeOutCubic}
-          end={price || 0}
-          preserveValue
-          separator=","
-          useEasing
-        >
-          {({ countUpRef }) => (
-            <h4
-              className="font-medium font-dm-mono text-lg lg:text-xl before:content-['Ether:_$'] before:mr-1"
-              ref={countUpRef as RefObject<HTMLHeadingElement>}
-            />
-          )}
-        </CountUp>
+        <h4 className="font-medium font-dm-mono text-lg lg:text-xl before:content-['Ether:_$'] before:mr-1">
+          <RyskCountUp value={price || 0} />
+        </h4>
 
-        <CountUp
-          delay={0}
-          duration={0.3}
-          easingFn={easeOutCubic}
-          end={blockHeight || 0}
-          prefix="Block Height: "
-          preserveValue
-          separator=","
-          useEasing
-        >
-          {({ countUpRef }) => (
-            <small
-              className="text-gray-600 text-xs text-left my-1"
-              ref={countUpRef}
-            />
-          )}
-        </CountUp>
+        <small className="text-gray-600 text-xs text-left my-1">
+          {`Block Height: `}
+          <RyskCountUp format="Integer" value={blockHeight || 0} />
+        </small>
 
         <small className="text-gray-600 text-xs text-left">
           {`Latest Update: ${dayjs(latestUpdate).format("HH:mm:ss A")}`}
