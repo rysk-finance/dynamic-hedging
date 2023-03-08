@@ -473,7 +473,7 @@ export const OptionsTable = () => {
                       return (
                         <td
                           className={`p-0 ${
-                            disabled ? "text-gray-600" : "text-red-700"
+                            disabled ? "text-gray-600" : "text-green-700"
                           }
                       ${getColorClasses(option, "call")}`}
                         >
@@ -511,7 +511,7 @@ export const OptionsTable = () => {
                       return (
                         <td
                           className={`p-0 ${
-                            disabled ? "text-gray-600" : "text-green-700"
+                            disabled ? "text-gray-600" : "text-red-700"
                           }
                       ${getColorClasses(option, "call")}`}
                         >
@@ -664,7 +664,7 @@ export const OptionsTable = () => {
                         return (
                           <td
                             className={`p-0 ${
-                              disabled ? "text-gray-600" : "text-red-700"
+                              disabled ? "text-gray-600" : "text-green-700"
                             }
                           ${getColorClasses(option, "put")}`}
                           >
@@ -706,7 +706,7 @@ export const OptionsTable = () => {
                         return (
                           <td
                             className={`p-0 ${
-                              disabled ? "text-gray-600" : "text-green-700"
+                              disabled ? "text-gray-600" : "text-red-700"
                             }
                           ${getColorClasses(option, "put")}`}
                           >
