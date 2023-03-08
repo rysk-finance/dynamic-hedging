@@ -330,6 +330,7 @@ export const Purchase = () => {
                     strike={strikeOptions.strike}
                     expiry={expiryDate}
                     isPut={callOrPut === "put"}
+                    orderSize={uiOrderSize}
                     onChange={handleCollateralChange}
                   />
                 )}
