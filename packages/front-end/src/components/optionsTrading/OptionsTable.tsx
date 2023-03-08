@@ -1,5 +1,3 @@
-import type { RefObject } from "react";
-
 import type {
   ColumNames,
   OptionSeries,
@@ -13,17 +11,16 @@ import dayjs from "dayjs";
 import { BigNumber, utils } from "ethers";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
-import CountUp from "react-countup";
-import NumberFormat from "react-number-format";
 import { useDebounce } from "use-debounce";
 import { useAccount, useContract, useProvider } from "wagmi";
 
 import { AlphaPortfolioValuesFeedABI } from "src/abis/AlphaPortfolioValuesFeed_ABI";
 import { BeyondPricerABI } from "src/abis/BeyondPricer_ABI";
 import { OptionCatalogueABI } from "src/abis/OptionCatalogue_ABI";
-import { easeOutCubic } from "src/animation/easing";
 import FadeInOut from "src/animation/FadeInOut";
+import { QueriesEnum } from "src/clients/Apollo/Queries";
 import { BIG_NUMBER_DECIMALS } from "src/config/constants";
+import { useGraphPolling } from "src/hooks/useGraphPolling";
 import { toTwoDecimalPlaces } from "src/utils/rounding";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
@@ -39,8 +36,7 @@ import {
   getContractAddress,
   returnIVFromQuote,
 } from "../../utils/helpers";
-import { QueriesEnum } from "src/clients/Apollo/Queries";
-import { useGraphPolling } from "src/hooks/useGraphPolling";
+import { RyskCountUp } from "../shared/RyskCountUp";
 
 export const OptionsTable = () => {
   const { address } = useAccount();
@@ -425,6 +421,15 @@ export const OptionsTable = () => {
                 return null;
               }
 
+              const callBidDisabled =
+                option.call.bid.disabled || !option.call.bid.quote;
+              const callAskDisabled =
+                option.call.ask.disabled || !option.call.ask.quote;
+              const putBidDisabled =
+                option.put.bid.disabled || !option.put.bid.quote;
+              const putAskDisabled =
+                option.put.ask.disabled || !option.put.ask.quote;
+
               return (
                 <motion.tr
                   className="grid even:bg-bone odd:bg-bone-light bg-[url('./assets/wave-lines.png')] even:bg-[top_right_-50%] even:lg:bg-[top_right_-15%] even:xl:bg-[top_right_0%] odd:bg-[top_left_-80%] odd:lg:bg-[top_left_-40%] odd:xl:bg-[top_left_-20%] bg-no-repeat text-right [&_td]:col-span-1 [&_td]:border [&_td]:border-dashed [&_td]:border-gray-500 [&_td]:ease-in-out [&_td]:duration-100 [&_td]:cursor-default [&_td]:text-2xs [&_td]:xl:text-base"
@@ -441,98 +446,65 @@ export const OptionsTable = () => {
                         "call"
                       )}`}
                     >
-                      {option.call.bid.IV ? (
-                        <CountUp
-                          className="after:content-['%'] after:ml-1"
-                          delay={0}
-                          decimals={2}
-                          duration={0.3}
-                          easingFn={easeOutCubic}
-                          end={option.call.bid.IV}
-                          preserveValue
-                          useEasing
-                        />
-                      ) : (
-                        <span>{"-"}</span>
-                      )}
+                      <span
+                        className={
+                          option.call.bid.IV
+                            ? "after:content-['%'] after:ml-1"
+                            : ""
+                        }
+                      >
+                        <RyskCountUp value={option.call.bid.IV} />
+                      </span>
                     </td>
                   )}
-                  <CountUp
-                    delay={0}
-                    decimals={2}
-                    duration={0.3}
-                    easingFn={easeOutCubic}
-                    end={option.call.bid.quote}
-                    preserveValue
-                    useEasing
-                  >
-                    {({ countUpRef }) => {
-                      const disabled =
-                        option.call.bid.disabled || !option.call.bid.quote;
-
-                      return (
-                        <td
-                          className={`p-0 ${
-                            disabled ? "text-gray-600" : "text-green-700"
-                          }
+                  <td
+                    className={`p-0 ${
+                      callBidDisabled ? "text-gray-600" : "text-green-700"
+                    }
                       ${getColorClasses(option, "call")}`}
-                        >
-                          <button
-                            className={`${
-                              disabled ? "cursor-not-allowed" : "cursor-pointer"
-                            } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
-                            onClick={() =>
-                              setSelectedOption({
-                                callOrPut: "call",
-                                bidOrAsk: "bid",
-                                strikeOptions: option,
-                              })
-                            }
-                            disabled={disabled}
-                            ref={countUpRef as RefObject<HTMLButtonElement>}
-                          />
-                        </td>
-                      );
-                    }}
-                  </CountUp>
-                  <CountUp
-                    delay={0}
-                    decimals={2}
-                    duration={0.3}
-                    easingFn={easeOutCubic}
-                    end={option.call.ask.quote}
-                    preserveValue
-                    useEasing
                   >
-                    {({ countUpRef }) => {
-                      const disabled =
-                        option.call.ask.disabled || !option.call.ask.quote;
-
-                      return (
-                        <td
-                          className={`p-0 ${
-                            disabled ? "text-gray-600" : "text-red-700"
-                          }
+                    <button
+                      className={`${
+                        callBidDisabled
+                          ? "cursor-not-allowed"
+                          : "cursor-pointer"
+                      } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
+                      onClick={() =>
+                        setSelectedOption({
+                          callOrPut: "call",
+                          bidOrAsk: "bid",
+                          strikeOptions: option,
+                        })
+                      }
+                      disabled={callBidDisabled}
+                    >
+                      <RyskCountUp value={option.call.bid.quote} />
+                    </button>
+                  </td>
+                  <td
+                    className={`p-0 ${
+                      callAskDisabled ? "text-gray-600" : "text-red-700"
+                    }
                       ${getColorClasses(option, "call")}`}
-                        >
-                          <button
-                            className={`${
-                              disabled ? "cursor-not-allowed" : "cursor-pointer"
-                            } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
-                            onClick={() =>
-                              setSelectedOption({
-                                callOrPut: "call",
-                                bidOrAsk: "ask",
-                                strikeOptions: option,
-                              })
-                            }
-                            disabled={disabled}
-                            ref={countUpRef as RefObject<HTMLButtonElement>}
-                          />
-                        </td>
-                      );
-                    }}
-                  </CountUp>
+                  >
+                    <button
+                      className={`${
+                        callAskDisabled
+                          ? "cursor-not-allowed"
+                          : "cursor-pointer"
+                      } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
+                      onClick={() =>
+                        setSelectedOption({
+                          callOrPut: "call",
+                          bidOrAsk: "ask",
+                          strikeOptions: option,
+                        })
+                      }
+                      disabled={callAskDisabled}
+                    >
+                      <RyskCountUp value={option.call.ask.quote} />
+                    </button>
+                  </td>
                   {showCol("ask iv") && (
                     <td
                       className={`py-4 xl:py-3 px-1 xl:px-2 ${getColorClasses(
@@ -540,20 +512,15 @@ export const OptionsTable = () => {
                         "call"
                       )}`}
                     >
-                      {option.call.ask.IV ? (
-                        <CountUp
-                          className="after:content-['%'] after:ml-1"
-                          delay={0}
-                          decimals={2}
-                          duration={0.3}
-                          easingFn={easeOutCubic}
-                          end={option.call.ask.IV}
-                          preserveValue
-                          useEasing
-                        />
-                      ) : (
-                        <span>{"-"}</span>
-                      )}
+                      <span
+                        className={
+                          option.call.ask.IV
+                            ? "after:content-['%'] after:ml-1"
+                            : ""
+                        }
+                      >
+                        <RyskCountUp value={option.call.ask.IV} />
+                      </span>
                     </td>
                   )}
                   {showCol("delta") && (
@@ -563,15 +530,7 @@ export const OptionsTable = () => {
                         "call"
                       )}`}
                     >
-                      <CountUp
-                        delay={0}
-                        decimals={2}
-                        duration={0.3}
-                        easingFn={easeOutCubic}
-                        end={option.call.delta}
-                        preserveValue
-                        useEasing
-                      />
+                      <RyskCountUp value={option.call.delta} />
                     </td>
                   )}
                   {showCol("pos") && (
@@ -581,18 +540,9 @@ export const OptionsTable = () => {
                         "call"
                       )}`}
                     >
-                      {option.call.pos ? (
-                        <CountUp
-                          decimals={1}
-                          duration={0.3}
-                          easingFn={easeOutCubic}
-                          end={option.call.pos}
-                          preserveValue
-                          useEasing
-                        />
-                      ) : (
-                        <span>{"-"}</span>
-                      )}
+                      <span>
+                        <RyskCountUp value={option.call.pos} />
+                      </span>
                     </td>
                   )}
                   {showCol("exposure") && (
@@ -602,27 +552,13 @@ export const OptionsTable = () => {
                         "call"
                       )}`}
                     >
-                      {option.call.exposure ? (
-                        <CountUp
-                          delay={0}
-                          decimals={2}
-                          duration={0.3}
-                          easingFn={easeOutCubic}
-                          end={option.call.exposure}
-                          preserveValue
-                          useEasing
-                        />
-                      ) : (
-                        <span>{"-"}</span>
-                      )}
+                      <span>
+                        <RyskCountUp value={option.call.exposure} />
+                      </span>
                     </td>
                   )}
                   <td className="text-center bg-bone-dark !border-0 font-medium py-4 xl:py-3 px-1 xl:px-2">
-                    <NumberFormat
-                      value={option.strike}
-                      displayType={"text"}
-                      decimalScale={0}
-                    />
+                    <RyskCountUp value={option.strike} format="Integer" />
                   </td>
                   {showCol("bid iv") && (
                     <td
@@ -631,106 +567,61 @@ export const OptionsTable = () => {
                         "put"
                       )}`}
                     >
-                      {option.put.bid.IV ? (
-                        <CountUp
-                          className="after:content-['%'] after:ml-1"
-                          delay={0}
-                          decimals={2}
-                          duration={0.3}
-                          easingFn={easeOutCubic}
-                          end={option.put.bid.IV}
-                          preserveValue
-                          useEasing
-                        />
-                      ) : (
-                        <span>{"-"}</span>
-                      )}
+                      <span
+                        className={
+                          option.put.bid.IV
+                            ? "after:content-['%'] after:ml-1"
+                            : ""
+                        }
+                      >
+                        <RyskCountUp value={option.put.bid.IV} />
+                      </span>
                     </td>
                   )}
-                  <CountUp
-                    delay={0}
-                    decimals={2}
-                    duration={0.3}
-                    easingFn={easeOutCubic}
-                    end={option.put.bid.quote}
-                    preserveValue
-                    useEasing
-                  >
-                    {({ countUpRef }) => {
-                      {
-                        const disabled =
-                          option.put.bid.disabled || !option.put.bid.quote;
-
-                        return (
-                          <td
-                            className={`p-0 ${
-                              disabled ? "text-gray-600" : "text-green-700"
-                            }
+                  <td
+                    className={`p-0 ${
+                      putBidDisabled ? "text-gray-600" : "text-green-700"
+                    }
                           ${getColorClasses(option, "put")}`}
-                          >
-                            <button
-                              className={`${
-                                disabled
-                                  ? "cursor-not-allowed"
-                                  : "cursor-pointer"
-                              } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
-                              onClick={() =>
-                                setSelectedOption({
-                                  callOrPut: "put",
-                                  bidOrAsk: "bid",
-                                  strikeOptions: option,
-                                })
-                              }
-                              disabled={disabled}
-                              ref={countUpRef as RefObject<HTMLButtonElement>}
-                            />
-                          </td>
-                        );
-                      }
-                    }}
-                  </CountUp>
-                  <CountUp
-                    delay={0}
-                    decimals={2}
-                    duration={0.3}
-                    easingFn={easeOutCubic}
-                    end={option.put.ask.quote}
-                    preserveValue
-                    useEasing
                   >
-                    {({ countUpRef }) => {
-                      {
-                        const disabled =
-                          option.put.ask.disabled || !option.put.ask.quote;
-
-                        return (
-                          <td
-                            className={`p-0 ${
-                              disabled ? "text-gray-600" : "text-red-700"
-                            }
-                          ${getColorClasses(option, "put")}`}
-                          >
-                            <button
-                              className={`${
-                                disabled
-                                  ? "cursor-not-allowed"
-                                  : "cursor-pointer"
-                              } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
-                              onClick={() =>
-                                setSelectedOption({
-                                  callOrPut: "put",
-                                  bidOrAsk: "ask",
-                                  strikeOptions: option,
-                                })
-                              }
-                              disabled={disabled}
-                              ref={countUpRef as RefObject<HTMLButtonElement>}
-                            />
-                          </td>
-                        );
+                    <button
+                      className={`${
+                        putBidDisabled ? "cursor-not-allowed" : "cursor-pointer"
+                      } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
+                      onClick={() =>
+                        setSelectedOption({
+                          callOrPut: "put",
+                          bidOrAsk: "bid",
+                          strikeOptions: option,
+                        })
                       }
-                    }}
-                  </CountUp>
+                      disabled={putBidDisabled}
+                    >
+                      <RyskCountUp value={option.put.bid.quote} />
+                    </button>
+                  </td>
+                  <td
+                    className={`p-0 ${
+                      putAskDisabled ? "text-gray-600" : "text-red-700"
+                    }
+                          ${getColorClasses(option, "put")}`}
+                  >
+                    <button
+                      className={`${
+                        putAskDisabled ? "cursor-not-allowed" : "cursor-pointer"
+                      } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
+                      onClick={() =>
+                        setSelectedOption({
+                          callOrPut: "put",
+                          bidOrAsk: "ask",
+                          strikeOptions: option,
+                        })
+                      }
+                      disabled={putAskDisabled}
+                    >
+                      <RyskCountUp value={option.put.ask.quote} />
+                    </button>
+                  </td>
                   {showCol("ask iv") && (
                     <td
                       className={`py-4 xl:py-3 px-1 xl:px-2 ${getColorClasses(
@@ -738,20 +629,15 @@ export const OptionsTable = () => {
                         "put"
                       )}`}
                     >
-                      {option.put.ask.IV ? (
-                        <CountUp
-                          className="after:content-['%'] after:ml-1"
-                          delay={0}
-                          decimals={2}
-                          duration={0.3}
-                          easingFn={easeOutCubic}
-                          end={option.put.ask.IV}
-                          preserveValue
-                          useEasing
-                        />
-                      ) : (
-                        <span>{"-"}</span>
-                      )}
+                      <span
+                        className={
+                          option.put.ask.IV
+                            ? "after:content-['%'] after:ml-1"
+                            : ""
+                        }
+                      >
+                        <RyskCountUp value={option.put.ask.IV} />
+                      </span>
                     </td>
                   )}
                   {showCol("delta") && (
@@ -761,15 +647,7 @@ export const OptionsTable = () => {
                         "put"
                       )}`}
                     >
-                      <CountUp
-                        delay={0}
-                        decimals={2}
-                        duration={0.3}
-                        easingFn={easeOutCubic}
-                        end={option.put.delta}
-                        preserveValue
-                        useEasing
-                      />
+                      <RyskCountUp value={option.put.delta} />
                     </td>
                   )}
                   {showCol("pos") && (
@@ -779,18 +657,7 @@ export const OptionsTable = () => {
                         "put"
                       )}`}
                     >
-                      {option.put.pos ? (
-                        <CountUp
-                          decimals={1}
-                          duration={0.3}
-                          easingFn={easeOutCubic}
-                          end={option.put.pos}
-                          preserveValue
-                          useEasing
-                        />
-                      ) : (
-                        <span>{"-"}</span>
-                      )}
+                      <RyskCountUp value={option.put.pos} />
                     </td>
                   )}
                   {showCol("exposure") && (
@@ -800,19 +667,7 @@ export const OptionsTable = () => {
                         "put"
                       )}`}
                     >
-                      {option.put.exposure ? (
-                        <CountUp
-                          delay={0}
-                          decimals={2}
-                          duration={0.3}
-                          easingFn={easeOutCubic}
-                          end={option.put.exposure}
-                          preserveValue
-                          useEasing
-                        />
-                      ) : (
-                        <span>{"-"}</span>
-                      )}
+                      <RyskCountUp value={option.put.exposure} />
                     </td>
                   )}
                 </motion.tr>

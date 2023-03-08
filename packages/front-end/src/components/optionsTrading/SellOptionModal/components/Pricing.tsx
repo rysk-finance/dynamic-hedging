@@ -1,13 +1,10 @@
-import type { RefObject } from "react";
-
 import type { PricingProps } from "../types";
 
 import { AnimatePresence, motion } from "framer-motion";
-import CountUp from "react-countup";
 
-import { easeOutCubic } from "src/animation/easing";
 import FadeInOut from "src/animation/FadeInOut";
 import LoadingOrError from "src/components/shared/LoadingOrError";
+import { RyskCountUp } from "src/components/shared/RyskCountUp";
 
 export const Pricing = ({ positionData }: PricingProps) => {
   const { created, inProfit, now, title, totalPaid, totalValue } = positionData;
@@ -25,23 +22,10 @@ export const Pricing = ({ positionData }: PricingProps) => {
           </p>
 
           <span className="flex mx-auto py-4">
-            <CountUp
-              decimals={2}
-              delay={0}
-              duration={0.3}
-              easingFn={easeOutCubic}
-              end={totalPaid}
-              prefix="Price paid: $ "
-              preserveValue
-              useEasing
-            >
-              {({ countUpRef }) => (
-                <p
-                  className="mr-2"
-                  ref={countUpRef as RefObject<HTMLParagraphElement>}
-                />
-              )}
-            </CountUp>
+            <p className="mr-2">
+              {`Price paid: $ `}
+              <RyskCountUp value={totalPaid} />
+            </p>
             <small className="leading-6 text-gray-600">{`Last updated: ${created}`}</small>
           </span>
 
@@ -50,23 +34,10 @@ export const Pricing = ({ positionData }: PricingProps) => {
               inProfit ? "text-green-700" : "text-red-700"
             }`}
           >
-            <CountUp
-              decimals={2}
-              delay={0}
-              duration={0.3}
-              easingFn={easeOutCubic}
-              end={totalValue}
-              prefix="Current value: $ "
-              preserveValue
-              useEasing
-            >
-              {({ countUpRef }) => (
-                <p
-                  className="mr-2"
-                  ref={countUpRef as RefObject<HTMLParagraphElement>}
-                />
-              )}
-            </CountUp>
+            <p className="mr-2">
+              {`Current value: $ `}
+              <RyskCountUp value={totalValue} />
+            </p>
             <small className="leading-6 text-gray-600">{`Last updated: ${now}`}</small>
           </span>
         </motion.span>

@@ -1,12 +1,9 @@
-import type { RefObject } from "react";
-
 import type { OneDayChangeProps } from "../types";
 
-import CountUp from "react-countup";
 import NumberFormat from "react-number-format";
 
-import { easeOutCubic } from "src/animation/easing";
 import { toTwoDecimalPlaces as round } from "src/utils/rounding";
+import { RyskCountUp } from "src/components/shared/RyskCountUp";
 
 export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
   const barWidthColor =
@@ -34,22 +31,11 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
             </p>
           )}
         />
-        <CountUp
-          decimals={2}
-          delay={0}
-          duration={0.3}
-          easingFn={easeOutCubic}
-          end={round(change) || 0}
-          preserveValue
-          useEasing
-        >
-          {({ countUpRef }) => (
-            <p
-              className="text-gray-600 after:content-['%'] after:ml-1"
-              ref={countUpRef as RefObject<HTMLHeadingElement>}
-            />
-          )}
-        </CountUp>
+
+        <p className="text-gray-600 after:content-['%'] after:ml-1">
+          <RyskCountUp value={round(change) || 0} />
+        </p>
+
         <NumberFormat
           value={high}
           displayType="text"
