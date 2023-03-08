@@ -42,12 +42,12 @@ export const Tutorial = () => {
         {
           target: "#chain-price-info",
           content:
-            "Here you can see the current asset price and the 24-hour price change. This data will be refreshed automatically every 120 seconds, or you can manually update it every 30 seconds by clicking this area.",
+            "Here you can see the current underlying spot price and the 24-hour price change. This data will be refreshed automatically every 120 seconds, or you can manually update it every 30 seconds by clicking this area.",
         },
         {
           target: "#expiry-data-picker",
           content:
-            "In this section, you can select the expiry date that you are interested in. You may use the arrows to see other available dates.",
+            "In this section, you can select the expiry date of the options that you are interested in. You may use the arrows to see other available dates.",
         },
         {
           target: "#filter-checkboxes",
@@ -57,7 +57,7 @@ export const Tutorial = () => {
         {
           target: "#filter-strike-range",
           content:
-            "These inputs are used to filter the chain by strike price. You can enter both an upper and lower underlying price.",
+            "These inputs are used to filter the options chain by strike price. You can enter both an upper and lower strike price.",
         },
         {
           target: "#filter-reset",
@@ -67,7 +67,7 @@ export const Tutorial = () => {
         {
           target: "#options-chain",
           content:
-            "This is the options chain. To buy an option, you can click on the price in either the bid (sell) or ask (buy) column. Once you do so, you can approve and complete your purchase.",
+            "This is the options chain. To trade an option, you can click on the price in the bid column to buy, or in the ask column to sell. Once you do so, you can approve and complete your trade.",
         },
         {
           target: "#header-dashboard",
