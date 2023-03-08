@@ -24,11 +24,17 @@ import useSellOperate from "../../hooks/useSellOperate";
 import useTenderlySimulator from "../../hooks/useTenderlySimulator";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { useOptionsTradingContext } from "../../state/OptionsTradingContext";
-import { toOpyn, toUSDC, toWei } from "../../utils/conversion-helper";
+import {
+  tFormatUSDC,
+  toOpyn,
+  toUSDC,
+  toWei,
+} from "../../utils/conversion-helper";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import CollateralRequirement from "./CollateralRequirement";
 import { toTwoDecimalPlaces } from "src/utils/rounding";
+import { useQuoteOptionPrice } from "./hooks/useQuoteOptionPrice";
 
 const formatOptionDate = (date: number | null) => {
   if (date) {
@@ -76,6 +82,15 @@ export const Purchase = () => {
   const [uiOrderSize, setUIOrderSize] = useState("");
   const [isApproved, setIsApproved] = useState(false);
 
+  // get the current price of the option
+  const [premium, fees] = useQuoteOptionPrice({
+    orderSize: uiOrderSize,
+    expiryDate,
+    selectedOption,
+  });
+
+  console.log("Premium and Fees: ", premium, fees);
+
   // note - to avoid using state i'm saving this in the hook for now
   useEffect(() => {
     if (selectedOption && expiryDate) {
@@ -93,7 +108,6 @@ export const Purchase = () => {
         );
         setOToken(oToken);
       };
-
       setOptionSeries(optionDetails);
       retrieveOtoken();
     }
@@ -340,20 +354,20 @@ export const Purchase = () => {
               <div className="w-1/2">
                 <div className="w-full -mb-1">
                   <div className="w-full p-4 flex flex-col">
-                    <h5 className={`mb-10 tracking-tight text-lg`}>
+                    <h5 className={`mb-3 tracking-tight text-lg`}>
                       ETH-{formatOptionDate(expiryDate)}-{strikeOptions?.strike}
                       -{selectedOption.callOrPut === "put" ? "P" : "C"}
                     </h5>
-                    {uiOrderSize && (
+                    {premium && fees && (
                       <>
-                        <h4 className="font-parabole text-xl mr-2">
-                          Total price:
-                        </h4>
-                        <p>
-                          {Number(uiOrderSize) *
-                            strikeOptions[callOrPut][bidOrAsk].quote}{" "}
-                          USDC
+                        <h4 className="font-parabole text-md mr-2">Premium:</h4>
+                        <p className="text-md">
+                          {tFormatUSDC(premium, 2)} USDC
                         </p>
+                        <h4 className="font-parabole text-md mr-2">Fees:</h4>
+                        <p className="text-md">{tFormatUSDC(fees, 2)} USDC</p>
+                        <h4 className="font-parabole text-xl mr-2">Total:</h4>
+                        <p>{tFormatUSDC(premium.add(fees), 2)} USDC</p>
                       </>
                     )}
                   </div>
