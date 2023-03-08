@@ -1,13 +1,19 @@
 import Joyride, { ACTIONS, STATUS } from "react-joyride";
+import { useNetwork } from "wagmi";
 
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { OptionsTradingActionType } from "src/state/types";
+import { kebabToCapital } from "src/utils/caseConvert";
 
 export const Tutorial = () => {
   const {
     dispatch,
     state: { tutorialIndex },
   } = useOptionsTradingContext();
+
+  const { chain } = useNetwork();
+
+  const network = chain?.name || kebabToCapital(process.env.REACT_APP_NETWORK);
 
   const handleCallback = (data: any) => {
     if (
@@ -36,8 +42,7 @@ export const Tutorial = () => {
         {
           disableBeacon: true,
           target: "#connect-wallet",
-          content:
-            "If you haven't already, you can begin by clicking here to connect your wallet.",
+          content: `If you haven't already, you can begin by clicking here to connect your wallet to ${network}.`,
         },
         {
           target: "#chain-price-info",
