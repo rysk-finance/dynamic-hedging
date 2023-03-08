@@ -104,12 +104,14 @@ export const returnIVFromQuote = async (
 
   const type = optionSeries.isPut ? "put" : "call";
 
-  return impliedVol.getImpliedVolatility(
-    quote,
-    priceNorm,
-    fromWei(optionSeries.strike),
-    timeToExpiration,
-    rfr,
-    type
+  return (
+    impliedVol.getImpliedVolatility(
+      quote,
+      priceNorm,
+      fromWei(optionSeries.strike),
+      timeToExpiration,
+      rfr,
+      type
+    ) * 100
   );
 };
