@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "./interfaces/IAlphaOptionHandler.sol";
-import "./interfaces/ILiquidityPool.sol";
+import "./LiquidityPool.sol";
 import "./OptionExchange.sol";
 import "./OptionCatalogue.sol";
 import "./BeyondPricer.sol";
@@ -25,7 +25,7 @@ contract Manager is AccessControl {
 	// option handler
 	IAlphaOptionHandler public optionHandler;
 	// liquidity pool
-	ILiquidityPool public liquidityPool;
+	LiquidityPool public liquidityPool;
 	// option catalogue
 	OptionCatalogue public optionCatalogue;
 	// option exchange
@@ -49,7 +49,7 @@ contract Manager is AccessControl {
 		address _optionExchange,
 		address _beyondPricer
 	) AccessControl(IAuthority(_authority)) {
-		liquidityPool = ILiquidityPool(_liquidityPool);
+		liquidityPool = LiquidityPool(_liquidityPool);
 		optionHandler = IAlphaOptionHandler(_optionHandler);
 		optionCatalogue = OptionCatalogue(_optionCatalogue);
 		optionExchange = OptionExchange(_optionExchange);
