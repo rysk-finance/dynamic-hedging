@@ -616,6 +616,76 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				])
 			).to.be.revertedWithCustomError(exchange, "TooMuchSlippage")
 		})
+		it("REVERTS: buys the options from the exchange on a series where premium passes slippage limit", async () => {
+			const amount = toWei("5")
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const strikePrice = priceQuote.add(toWei(strike))
+			const proposedSeries = {
+				expiration: expiration,
+				strike: BigNumber.from(strikePrice),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, amount)
+			let quote = quoteResponse[0].add(quoteResponse[2])
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 1,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: quote.sub(1e6),
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "TooMuchSlippage")
+		})
+		it("REVERTS: sells the options to the exchange on a series where premium passes slippage limit", async () => {
+			const amount = toWei("5")
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const strikePrice = priceQuote.add(toWei(strike))
+			const proposedSeries = {
+				expiration: expiration,
+				strike: BigNumber.from(strikePrice),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, amount)
+			let quote = quoteResponse[0]
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: quote.add(1e6),
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "TooMuchSlippage")
+		})
 		it("SETUP: set maxMetDhvExposure", async () => {
 			await portfolioValuesFeed.setMaxNetDhvExposure(toWei("3"))
 			expect(await portfolioValuesFeed.maxNetDhvExposure()).to.equal(toWei("3"))
