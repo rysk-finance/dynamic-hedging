@@ -96,7 +96,6 @@ const checkAllVaultHealths = async (numberOfVaults: number) => {
 				collateralAmount,
 				collateralAsset
 			] = await optionRegistry.checkVaultHealth(i)
-			console.log(i, healthFactor.toNumber(), isBelowMin, upperHealthFactor.toNumber())
 			if (
 				(isAboveMax &&
 					healthFactor.toNumber() > upperhealthFactorBuffer * upperHealthFactor.toNumber()) ||
@@ -187,7 +186,6 @@ describe("Options protocol Vault Health", function () {
 			optionRegistry.address,
 			USDC_ADDRESS[chainId]
 		)) as LiquidityPoolAdjustCollateralTest
-		console.log("LP ADDRESS", liquidityPool.address)
 		await usd
 			.connect(signer)
 			.transfer(liquidityPool.address, toWei("1000000").div(oTokenDecimalShift18))
@@ -205,7 +203,6 @@ describe("Options protocol Vault Health", function () {
 	it("Creates a USDC collataralised call option token series", async () => {
 		const [sender] = signers
 		const currentPrice = parseInt(await oracle.getPrice(weth.address), 16)
-		console.log({ currentPrice })
 		proposedSeries = {
 			expiration: expiration,
 			strike: strike1,
@@ -245,7 +242,6 @@ describe("Options protocol Vault Health", function () {
 	it("Creates a USDC collataralised put option token series", async () => {
 		const [sender] = signers
 		const currentPrice = parseInt(await oracle.getPrice(weth.address), 16)
-		console.log({ currentPrice })
 		proposedSeries = {
 			expiration: expiration,
 			strike: strike3,
@@ -599,7 +595,6 @@ describe("Options protocol Vault Health", function () {
 		const lpBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const lpBalanceDiff = lpBalanceBefore.sub(lpBalanceAfter)
 		expect(lpBalanceDiff).to.eq(totalCollatOutflows)
-		console.log({ 1: totalCollatOutflows.toNumber(), 2: lpBalanceDiff.toNumber() })
 	})
 	it("multicall check health returns zero for an expired vault ID", async () => {
 		const currentPrice = await oracle.getPrice(weth.address)

@@ -176,7 +176,6 @@ describe("Options protocol", function () {
 
 		const checkerResult = await resolver.checker()
 		const decodedResult = hexToUtf8(checkerResult.execPayload)
-		console.log({ decodedResult })
 
 		expect(decodedResult).to.eq("Incorrect time")
 	})
@@ -189,12 +188,10 @@ describe("Options protocol", function () {
 		const date = new Date(timestamp * 1000)
 		// time is 19:05 UTC.
 		expect(date.getUTCHours()).to.eq(8)
-		console.log({ timestamp, date, dateHour: date.getUTCHours() })
 		const checkerResult = await resolver.checker()
 		const decodedResult = hexToUtf8(checkerResult.execPayload)
 		expect(decodedResult).to.eq("latest chainlink price before expiry")
 
-		console.log(decodedResult, checkerResult)
 	})
 	it("re-forks network at between 8am and 9am", async () => {
 		// fork network shortly after 8am when a price will have been set already
@@ -229,7 +226,6 @@ describe("Options protocol", function () {
 	})
 	it("returns false due to price already set ", async () => {
 		const oracleOwner = await oracle.owner()
-		console.log({ oracleOwner })
 
 		await hre.network.provider.request({
 			method: "hardhat_impersonateAccount",
