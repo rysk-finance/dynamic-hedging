@@ -373,7 +373,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							index: quote,
 							data: "0x"
 						}
 					]
@@ -562,7 +562,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: lowerProposedSeries,
-							index: 0,
+							index: lowerQuote,
 							data: "0x"
 						}
 					]
@@ -781,7 +781,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: upperProposedSeries,
-							index: 0,
+							index: upperQuote,
 							data: "0x"
 						}
 					]
@@ -1023,7 +1023,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: upperProposedSeries,
-							index: 0,
+							index: upperQuote,
 							data: "0x"
 						},
 						{
@@ -1045,7 +1045,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: lowerProposedSeries,
-							index: 0,
+							index: lowerQuote,
 							data: "0x"
 						}
 					]
@@ -1651,7 +1651,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: lowerProposedSeries,
-							index: 0,
+							index: quote,
 							data: "0x"
 						}
 					]
@@ -2154,7 +2154,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							index: quote,
 							data: "0x"
 						}
 					]

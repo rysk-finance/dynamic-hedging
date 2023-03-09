@@ -37,6 +37,9 @@ library RyskActions {
         uint256 amount;
         // option series (if any)
         Types.OptionSeries optionSeries;
+        // acceptable premium (if option is being sold to the dhv then the actual premium should be more than this number (i.e. max price),
+        // if option is being bought from the dhv then the actual premium should be less than this number (i.e. max price))
+        uint256 acceptablePremium;
         // any other data that needs to be passed in for arbitrary function calls
         bytes data;
     }
@@ -55,6 +58,8 @@ library RyskActions {
         uint256 amount;
         // recipient of the options
         address recipient;
+        // acceptable premium for the trade, the actual premium must be smaller than this number
+        uint256 acceptablePremium;
     }
 
     struct SellOptionArgs {
@@ -68,6 +73,8 @@ library RyskActions {
         uint256 amount;
         // recipient of premium
         address recipient;
+        // acceptable premium for the trade, the actual premium must be bigger than this number
+        uint256 acceptablePremium;
     }
 
     /**
@@ -92,7 +99,8 @@ library RyskActions {
                 optionSeries: _args.optionSeries,
                 seriesAddress: _args.asset,
                 amount: _args.amount,
-                recipient: _args.secondAddress
+                recipient: _args.secondAddress,
+                acceptablePremium: _args.acceptablePremium
             });
     }
 
@@ -110,7 +118,8 @@ library RyskActions {
                 seriesAddress: _args.asset,
                 vaultId: _args.vaultId,
                 amount: _args.amount,
-                recipient: _args.secondAddress
+                recipient: _args.secondAddress,
+                acceptablePremium: _args.acceptablePremium
             });
     }
 

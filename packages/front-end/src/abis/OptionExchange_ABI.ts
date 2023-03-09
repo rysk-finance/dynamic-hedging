@@ -180,6 +180,22 @@ export const OptionExchangeABI = [
 		"type": "error"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "actualPremium",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "acceptablePremium",
+				"type": "uint256"
+			}
+		],
+		"name": "TooMuchSlippage",
+		"type": "error"
+	},
+	{
 		"inputs": [],
 		"name": "TradeTooLarge",
 		"type": "error"
