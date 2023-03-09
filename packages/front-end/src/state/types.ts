@@ -47,6 +47,7 @@ export type GlobalState = {
   };
   connectWalletIndicatorActive: boolean;
   settings: AppSettings;
+  unstoppableDomain: string | null;
 };
 
 export enum ActionType {
@@ -58,6 +59,7 @@ export enum ActionType {
   SET_SETTINGS,
   RESET_GLOBAL_STATE,
   SET_USER_OPTION_POSITIONS,
+  SET_UNSTOPPABLE_DOMAIN,
 }
 
 export type GlobalAction =
@@ -96,6 +98,10 @@ export type GlobalAction =
   | {
       type: ActionType.SET_USER_OPTION_POSITIONS;
       userOptionPositions: Position[];
+    }
+  | {
+      type: ActionType.SET_UNSTOPPABLE_DOMAIN;
+      unstoppableDomain: string | null;
     };
 
 export type GlobalContext = {
