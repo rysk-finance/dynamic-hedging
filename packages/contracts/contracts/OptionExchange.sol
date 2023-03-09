@@ -150,6 +150,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	error CloseSizeTooLarge();
 	error UnauthorisedSender();
 	error OperatorNotApproved();
+	error TooMuchSlippage(uint256 actualPremium, uint256 acceptablePremium);
 
 	constructor(
 		address _authority,
@@ -537,6 +538,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			false,
 			portfolioValuesFeed.netDhvExposure(oHash)
 		);
+		if (buyParams.premium + buyParams.fee > _args.acceptablePremium) {
+			revert TooMuchSlippage(buyParams.premium + buyParams.fee, _args.acceptablePremium);
+		}
 		_handlePremiumTransfer(buyParams.premium, buyParams.fee);
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
 		int256 longExposure = portfolioValuesFeed.storesForAddress(buyParams.seriesAddress).longExposure;
@@ -613,6 +617,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			true,
 			portfolioValuesFeed.netDhvExposure(oHash)
 		);
+		if (sellParams.premium < _args.acceptablePremium) {
+			revert TooMuchSlippage(sellParams.premium, _args.acceptablePremium);
+		}
 		sellParams.amount = _args.amount;
 		sellParams.tempHoldings = heldTokens[msg.sender][sellParams.seriesAddress];
 		heldTokens[msg.sender][sellParams.seriesAddress] -= OptionsCompute.min(

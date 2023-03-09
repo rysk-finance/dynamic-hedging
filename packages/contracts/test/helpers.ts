@@ -185,7 +185,7 @@ export async function makeBuy(exchange: OptionExchange, senderAddress: string, o
 					vaultId: 0,
 					amount: amount,
 					optionSeries: proposedSeries,
-					index: 0,
+					index: amount,
 					data: "0x"
 				}
 			]
@@ -223,7 +223,7 @@ export async function makeIssueAndBuy(
 					vaultId: 0,
 					amount: amount,
 					optionSeries: proposedSeries,
-					index: 0,
+					index: amount,
 					data: "0x"
 				}
 			]
