@@ -70,6 +70,11 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ...state,
         userOptionPositions: action.userOptionPositions,
       };
+    case ActionType.SET_UNSTOPPABLE_DOMAIN:
+      return {
+        ...state,
+        unstoppableDomain: action.unstoppableDomain,
+      };
   }
 };
 
