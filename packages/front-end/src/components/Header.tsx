@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { motion, LayoutGroup } from "framer-motion";
 
 import { AppPaths } from "../config/appPaths";
 import { Connect } from "src/clients/WalletProvider/components/Connect";
@@ -19,22 +20,24 @@ export const Header = () => {
       </Link>
 
       <div className="flex items-center">
-        <div className="mr-4">
-          {links.map(({ id, path, label }) => (
-            <Link
-              key={path}
-              id={id}
-              to={path}
-              className={`mr-2 border-none bg-transparent p-2 underline-offset-2 ${
-                pathname === path ? "underline" : ""
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
+        <LayoutGroup>
+          <motion.div className="mr-4" layout="position">
+            {links.map(({ id, path, label }) => (
+              <Link
+                key={path}
+                id={id}
+                to={path}
+                className={`mr-2 border-none bg-transparent p-2 underline-offset-2 ${
+                  pathname === path ? "underline" : ""
+                }`}
+              >
+                {label}
+              </Link>
+            ))}
+          </motion.div>
 
-        <Connect />
+          <Connect />
+        </LayoutGroup>
       </div>
     </div>
   );
