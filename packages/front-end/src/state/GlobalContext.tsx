@@ -33,6 +33,7 @@ const defaultGlobalState: GlobalState = {
     vaultDepositUnlimitedApproval: false,
     optionsTradingUnlimitedApproval: false,
   },
+  unstoppableDomain: null,
 };
 
 export const GlobalReactContext = createContext<GlobalContext>({
