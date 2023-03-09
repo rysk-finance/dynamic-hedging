@@ -459,7 +459,7 @@ export const OptionsTable = () => {
                   )}
                   <td
                     className={`p-0 ${
-                      callBidDisabled ? "text-gray-600" : "text-green-700"
+                      callBidDisabled ? "text-gray-600" : "text-red-700"
                     }
                       ${getColorClasses(option, "call")}`}
                   >
@@ -483,7 +483,7 @@ export const OptionsTable = () => {
                   </td>
                   <td
                     className={`p-0 ${
-                      callAskDisabled ? "text-gray-600" : "text-red-700"
+                      callAskDisabled ? "text-gray-600" : "text-green-700"
                     }
                       ${getColorClasses(option, "call")}`}
                   >
@@ -580,7 +580,7 @@ export const OptionsTable = () => {
                   )}
                   <td
                     className={`p-0 ${
-                      putBidDisabled ? "text-gray-600" : "text-green-700"
+                      putBidDisabled ? "text-gray-600" : "text-red-700"
                     }
                           ${getColorClasses(option, "put")}`}
                   >
@@ -602,7 +602,7 @@ export const OptionsTable = () => {
                   </td>
                   <td
                     className={`p-0 ${
-                      putAskDisabled ? "text-gray-600" : "text-red-700"
+                      putAskDisabled ? "text-gray-600" : "text-green-700"
                     }
                           ${getColorClasses(option, "put")}`}
                   >
