@@ -16,6 +16,7 @@
     "@ramonak/react-progress-bar": "^5.0.3",
     "@sentry/react": "^7.37.1",
     "@sentry/tracing": "^7.37.1",
+    "@unstoppabledomains/resolution": "^8.5.0",
     "fathom-client": "^3.5.0",
     "framer-motion": "^9.0.2",
     "graphql": "^16.6.0",
