@@ -21,6 +21,7 @@ import { publicProvider } from "wagmi/providers/public";
 
 import "@rainbow-me/rainbowkit/styles.css";
 
+import { useUnstoppableDomain } from "src/hooks/useUnstoppableDomain";
 import { ETHNetwork } from "src/types";
 import Avatar from "./components/Avatar";
 import Disclaimer from "./components/Disclaimer";
@@ -71,6 +72,8 @@ const wagmiClient = createClient({
 });
 
 const WalletProvider = ({ children }: PropsWithChildren<unknown>) => {
+  useUnstoppableDomain();
+
   return (
     <WagmiConfig client={wagmiClient}>
       <RainbowKitProvider
