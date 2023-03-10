@@ -1,7 +1,7 @@
 import type { ContractAddresses, ETHNetwork } from "src/types";
 
 import { getNetwork, readContract } from "@wagmi/core";
-import { BigNumber } from "ethers";
+import { BigNumber, BigNumberish, utils } from "ethers";
 import greeks from "greeks";
 import impliedVol from "implied-volatility";
 
@@ -114,4 +114,15 @@ export const returnIVFromQuote = async (
       type
     ) * 100
   );
+};
+
+export const getOptionHash = (
+  expiry: number,
+  strike: BigNumberish,
+  isPut: boolean
+) => {
+  return utils.solidityKeccak256(
+    ["uint64", "uint128", "bool"],
+    [expiry, strike, isPut]
+  ) as HexString;
 };
