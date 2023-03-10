@@ -93,8 +93,6 @@ export const Purchase = () => {
     selectedOption,
   });
 
-  console.log("Premium and Fees: ", premium, fees);
-
   // note - to avoid using state i'm saving this in the hook for now
   useEffect(() => {
     if (selectedOption && activeExpiry) {
