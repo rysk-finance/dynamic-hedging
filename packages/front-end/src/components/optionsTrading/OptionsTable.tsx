@@ -8,7 +8,7 @@ import type {
 import { gql, useQuery } from "@apollo/client";
 import { captureException } from "@sentry/react";
 import dayjs from "dayjs";
-import { BigNumber, utils } from "ethers";
+import { BigNumber } from "ethers";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
@@ -34,6 +34,7 @@ import {
 import {
   calculateOptionDeltaLocally,
   getContractAddress,
+  getOptionHash,
   returnIVFromQuote,
 } from "../../utils/helpers";
 import { RyskCountUp } from "../shared/RyskCountUp";
@@ -134,14 +135,8 @@ export const OptionsTable = () => {
 
         const optionsChainRows = await Promise.all(
           Array.from(strikes).map(async (strike) => {
-            const oHashCall = utils.solidityKeccak256(
-              ["uint64", "uint128", "bool"],
-              [expiryDate, strike, false]
-            ) as HexString;
-            const oHashPut: HexString = utils.solidityKeccak256(
-              ["uint64", "uint128", "bool"],
-              [expiryDate, strike, true]
-            ) as HexString;
+            const oHashCall = getOptionHash(expiryDate, strike, false);
+            const oHashPut = getOptionHash(expiryDate, strike, true);
 
             const callAvailability = await optionCatalogue.getOptionStores(
               oHashCall
