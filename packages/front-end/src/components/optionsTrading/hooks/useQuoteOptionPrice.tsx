@@ -1,13 +1,11 @@
 import { useContractRead } from "wagmi";
-import { utils } from "ethers";
 import { BigNumber } from "@ethersproject/bignumber";
 
 import { BeyondPricerABI } from "../../../abis/BeyondPricer_ABI";
 import { AlphaPortfolioValuesFeedABI } from "../../../abis/AlphaPortfolioValuesFeed_ABI";
-import { getContractAddress } from "../../../utils/helpers";
-import { toWei } from "../../../utils/conversion-helper";
+import { getContractAddress, getOptionHash } from "../../../utils/helpers";
+import { toWei, toRysk } from "../../../utils/conversion-helper";
 import { SelectedOption } from "../../../state/types";
-import { ZERO_ADDRESS } from "../../../config/constants";
 
 /**
  * @author Yassine
@@ -26,23 +24,20 @@ export const useQuoteOptionPrice = ({
 }) => {
   // compute oHash for quoting on order size change
   const oHash =
-    expiryDate &&
-    selectedOption &&
-    (utils.solidityKeccak256(
-      ["uint64", "uint128", "bool"],
-      [
-        expiryDate,
-        selectedOption.strikeOptions.strike,
-        selectedOption.callOrPut === "put",
-      ]
-    ) as HexString);
+    expiryDate && selectedOption
+      ? getOptionHash(
+          expiryDate,
+          toRysk(selectedOption.strikeOptions.strike.toString()),
+          selectedOption.callOrPut === "put"
+        )
+      : "0x";
 
   const { data: exposure } = useContractRead({
     abi: AlphaPortfolioValuesFeedABI,
     address: getContractAddress("portfolioValuesFeed"),
     functionName: "netDhvExposure",
-    args: [oHash || ZERO_ADDRESS],
-    enabled: Boolean(oHash),
+    args: [oHash],
+    enabled: oHash !== "0x",
   });
 
   const { data: quote } = useContractRead({
@@ -52,7 +47,7 @@ export const useQuoteOptionPrice = ({
     args: [
       {
         expiration: BigNumber.from(expiryDate || 0),
-        strike: toWei(selectedOption?.strikeOptions.strike.toString() || "0"),
+        strike: toRysk(selectedOption?.strikeOptions.strike.toString() || "0"),
         strikeAsset: getContractAddress("USDC"),
         underlying: getContractAddress("WETH"),
         collateral: getContractAddress("USDC"),
