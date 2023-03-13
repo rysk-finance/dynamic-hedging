@@ -6,6 +6,8 @@ import { useEffect } from "react";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 
+export const resolution = new Resolution();
+
 export const useUnstoppableDomain = () => {
   const { dispatch } = useGlobalContext();
 
@@ -15,8 +17,6 @@ export const useUnstoppableDomain = () => {
     const getDomain = async () => {
       try {
         if (address) {
-          const resolution = new Resolution();
-
           const domain = await resolution.reverse(address);
 
           if (domain) {
