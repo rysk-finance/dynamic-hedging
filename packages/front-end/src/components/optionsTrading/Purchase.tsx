@@ -87,11 +87,15 @@ export const Purchase = () => {
   const [isApproved, setIsApproved] = useState(false);
 
   // get the current price of the option
-  const [premium, fees] = useQuoteOptionPrice({
+  const [premium, fees, loadingQuote, quoteError] = useQuoteOptionPrice({
     orderSize: uiOrderSize,
     expiryDate: Number(activeExpiry),
     selectedOption,
   });
+
+  if (quoteError) {
+    toast(quoteError.message, { type: "error" });
+  }
 
   // note - to avoid using state i'm saving this in the hook for now
   useEffect(() => {
@@ -363,7 +367,7 @@ export const Purchase = () => {
                       {strikeOptions?.strike}-
                       {selectedOption.callOrPut === "put" ? "P" : "C"}
                     </h5>
-                    {premium && fees && (
+                    {premium && fees ? (
                       <>
                         <h4 className="font-parabole text-md mr-2">Premium:</h4>
                         <p className="text-md">
@@ -374,6 +378,8 @@ export const Purchase = () => {
                         <h4 className="font-parabole text-xl mr-2">Total:</h4>
                         <p>{tFormatUSDC(premium.add(fees), 2)} USDC</p>
                       </>
+                    ) : (
+                      loadingQuote && "Quoting..."
                     )}
                   </div>
                 </div>
