@@ -21,7 +21,7 @@ export const useQuoteOptionPrice = ({
   selectedOption: SelectedOption | null;
   expiryDate: number | null;
   orderSize: string;
-}) => {
+}): [BigNumber | null, BigNumber | null, boolean, Error | null] => {
   // compute oHash for quoting on order size change
   const oHash =
     expiryDate && selectedOption
@@ -40,7 +40,11 @@ export const useQuoteOptionPrice = ({
     enabled: oHash !== "0x",
   });
 
-  const { data: quote } = useContractRead({
+  const {
+    data: quote,
+    isLoading,
+    error,
+  } = useContractRead({
     address: getContractAddress("beyondPricer"),
     abi: BeyondPricerABI,
     functionName: "quoteOptionPrice",
@@ -62,5 +66,10 @@ export const useQuoteOptionPrice = ({
       Boolean(expiryDate && selectedOption && orderSize),
   });
 
-  return [quote?.[0], quote?.[2]];
+  return [
+    quote?.totalPremium || null,
+    quote?.totalFees || null,
+    isLoading,
+    error,
+  ];
 };
