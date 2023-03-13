@@ -42,7 +42,7 @@ export const Head = () => {
   ];
 
   return (
-    <thead className="block w-[150%] lg:w-full border-t border-gray-500">
+    <thead className="block w-[150%] lg:w-full border-t-2 border-black">
       <tr
         className="grid bg-bone-dark [&_th]:text-sm [&_th]:xl:text-base [&_th]:py-3 [&_th]:px-0"
         style={{ gridTemplateColumns: `repeat(${colSize}, minmax(0, 1fr))` }}
