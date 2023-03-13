@@ -66,19 +66,38 @@ const useSellOperate = (): [
 
   const { data } = useQuery<QueryData>(
     gql`
-      query ${QueriesEnum.USER_VAULT_COUNT} ($account: String!) {
+      query ${QueriesEnum.USER_VAULT_COUNT} ($account: String!, $oToken: String!) {
         account(id: $account) {
           id
           vaultCount
         }
+        vaults(
+          orderBy: vaultId,
+          orderDirection: desc,
+          first: 1,
+          where: {owner: $account, shortOToken: $oToken}
+        ) { 
+            vaultId
+            shortOToken {
+               id 
+            }
+        }
       }
     `,
     {
-      variables: { account: address?.toLowerCase() },
+      variables: {
+        account: address?.toLowerCase(),
+        oToken: oToken?.toLowerCase(),
+      },
     }
   );
 
-  const nextVaultId = BigNumber.from(Number(data?.account.vaultCount) + 1 || 0);
+  const vaultId =
+    data?.vaults.length === 1
+      ? // user has a vault with a short position for this option series
+        BigNumber.from(data.vaults[0].vaultId)
+      : // user does not have a vault with a short position for this option series
+        BigNumber.from(Number(data?.account.vaultCount) + 1 || 0);
 
   // Setters
   const updateMargin = (amount: BigNumber) => {
@@ -111,7 +130,7 @@ const useSellOperate = (): [
               owner: addressOrDefault,
               secondAddress: addressOrDefault,
               asset: ZERO_ADDRESS,
-              vaultId: nextVaultId, // TODO vaultId, each different short position the user holds will be held in a unique vaultId, for now putting it in new vaults
+              vaultId: vaultId,
               amount: BigNumber.from("0"),
               optionSeries: EMPTY_SERIES,
               index: BigNumber.from(0),
@@ -122,7 +141,7 @@ const useSellOperate = (): [
               owner: addressOrDefault,
               secondAddress: exchangeAddress, // this can be set as the senderAddress or exchange address, if set to the exchange address then the user approval goes to the exchange, if set to the sender address then the user approval goes to the Opyn margin pool
               asset: collateral, // TODO proposedSeries.collateral
-              vaultId: nextVaultId,
+              vaultId: vaultId,
               amount: margin,
               optionSeries: EMPTY_SERIES,
               index: BigNumber.from(0),
@@ -133,7 +152,7 @@ const useSellOperate = (): [
               owner: addressOrDefault,
               secondAddress: exchangeAddress, // most of the time this should be set to exchange address, this helps avoid an extra approval from the user on the otoken when selling to the dhv
               asset: oToken,
-              vaultId: nextVaultId,
+              vaultId: vaultId,
               amount: amount, // amount needs to be in e8 decimals
               optionSeries: EMPTY_SERIES,
               index: BigNumber.from(0),
