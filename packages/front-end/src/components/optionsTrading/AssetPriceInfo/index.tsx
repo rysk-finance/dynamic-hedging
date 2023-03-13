@@ -1,5 +1,4 @@
 import { AnimatePresence, motion } from "framer-motion";
-import Joyride, { ACTIONS, STATUS } from "react-joyride";
 
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";

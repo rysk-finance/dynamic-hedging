@@ -1,7 +1,4 @@
-import type { ColumNames } from "src/state/types";
-
 import dayjs from "dayjs";
-import { useCallback } from "react";
 
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { useShowColumn } from "../hooks/useShowColumn";
