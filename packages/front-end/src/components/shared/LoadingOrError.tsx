@@ -1,7 +1,8 @@
 import type { ApolloError } from "@apollo/client";
+import type { HTMLMotionProps } from "framer-motion";
 
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 import FadeInOut from "src/animation/FadeInOut";
 
@@ -13,13 +14,18 @@ const loadingStrings = [
   "Loading...",
 ];
 
+interface LoadingOrErrorProps extends HTMLMotionProps<"div"> {
+  error?: ApolloError;
+  extraStrings?: string[];
+  stringSpeed?: number;
+}
+
 const LoadingOrError = ({
   error,
   extraStrings,
-}: {
-  error?: ApolloError;
-  extraStrings?: string[];
-}) => {
+  stringSpeed = 400,
+  ...props
+}: LoadingOrErrorProps) => {
   const [visible, setVisible] = useState<string[]>([loadingStrings[0]]);
 
   const strings = [...loadingStrings, ...(extraStrings ? extraStrings : [])];
@@ -28,7 +34,7 @@ const LoadingOrError = ({
     if (!error && visible.length < strings.length) {
       const timer = setTimeout(() => {
         setVisible((visible) => [...visible, strings[visible.length]]);
-      }, Math.max(Math.random() * 400, 200));
+      }, Math.max(Math.random() * stringSpeed, 200));
 
       return () => {
         clearTimeout(timer);
@@ -41,7 +47,11 @@ const LoadingOrError = ({
   }, [error, visible]);
 
   return (
-    <motion.div className="p-4 [&>code]:block" {...FadeInOut(0.75)}>
+    <motion.div
+      {...props}
+      className={`p-4 [&>code]:block ${props.className}`}
+      {...FadeInOut(0.75)}
+    >
       {visible.map((string) => (
         <code key={string}>{string}</code>
       ))}
