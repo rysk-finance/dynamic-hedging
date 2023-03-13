@@ -5,4 +5,10 @@ export interface QueryData {
     id: Address;
     vaultCount: string;
   };
+  vaults: Array<{
+    vaultId: string;
+    shortOToken: {
+      id: string;
+    };
+  }>;
 }
