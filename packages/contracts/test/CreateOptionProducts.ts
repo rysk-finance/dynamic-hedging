@@ -362,7 +362,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -373,7 +373,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: quote,
+							indexOrAcceptablePremium: quote,
 							data: "0x"
 						}
 					]
@@ -502,7 +502,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: 0,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: abiCode.encode(["uint256"], [1])
 						},
 						{
@@ -513,7 +513,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: marginRequirement,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						},
 						{
@@ -524,7 +524,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: amount.div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						}
 					]
@@ -540,7 +540,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: upperProposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -551,7 +551,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: lowerProposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -562,7 +562,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: lowerProposedSeries,
-							index: lowerQuote,
+							indexOrAcceptablePremium: lowerQuote,
 							data: "0x"
 						}
 					]
@@ -721,7 +721,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: 0,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: abiCode.encode(["uint256"], [1])
 						},
 						{
@@ -732,7 +732,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: marginRequirement,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						},
 						{
@@ -743,7 +743,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: amount.div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						}
 					]
@@ -759,7 +759,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: lowerProposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -770,7 +770,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: upperProposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -781,7 +781,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: upperProposedSeries,
-							index: upperQuote,
+							indexOrAcceptablePremium: upperQuote,
 							data: "0x"
 						}
 					]
@@ -963,7 +963,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: 0,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: abiCode.encode(["uint256"], [1])
 						},
 						{
@@ -974,7 +974,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: marginRequirement,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						},
 						{
@@ -985,7 +985,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: amount.mul(2).div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						}
 					]
@@ -1001,7 +1001,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount.mul(2),
 							optionSeries: midProposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1012,7 +1012,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: upperProposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1023,7 +1023,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: upperProposedSeries,
-							index: upperQuote,
+							indexOrAcceptablePremium: upperQuote,
 							data: "0x"
 						},
 						{
@@ -1034,7 +1034,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: lowerProposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1045,7 +1045,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: lowerProposedSeries,
-							index: lowerQuote,
+							indexOrAcceptablePremium: lowerQuote,
 							data: "0x"
 						}
 					]
@@ -1246,7 +1246,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: 0,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: abiCode.encode(["uint256"], [1])
 						},
 						{
@@ -1257,7 +1257,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: lowerMarginRequirement,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						},
 						{
@@ -1268,7 +1268,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: amount.div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						}
 					]
@@ -1284,7 +1284,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId.add(1),
 							amount: 0,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: abiCode.encode(["uint256"], [1])
 						},
 						{
@@ -1295,7 +1295,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId.add(1),
 							amount: upperMarginRequirement,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						},
 						{
@@ -1306,7 +1306,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId.add(1),
 							amount: amount.div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						}
 					]
@@ -1322,7 +1322,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: lowerProposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1333,7 +1333,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: upperProposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -1508,7 +1508,7 @@ describe("Structured Product maker", async () => {
 								vaultId: vaultId,
 								amount: 0,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: abiCode.encode(["uint256"], [1])
 							},
 							{
@@ -1519,7 +1519,7 @@ describe("Structured Product maker", async () => {
 								vaultId: vaultId,
 								amount: lowerMarginRequirement,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							},
 							{
@@ -1530,7 +1530,7 @@ describe("Structured Product maker", async () => {
 								vaultId: vaultId,
 								amount: amount.div(ethers.utils.parseUnits("1", 10)),
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							}
 						]
@@ -1546,7 +1546,7 @@ describe("Structured Product maker", async () => {
 								vaultId: vaultId.add(1),
 								amount: 0,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: abiCode.encode(["uint256"], [1])
 							},
 							{
@@ -1557,7 +1557,7 @@ describe("Structured Product maker", async () => {
 								vaultId: vaultId.add(1),
 								amount: upperMarginRequirement,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							},
 							{
@@ -1568,7 +1568,7 @@ describe("Structured Product maker", async () => {
 								vaultId: vaultId.add(1),
 								amount: amount.div(ethers.utils.parseUnits("1", 10)),
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							}
 						]
@@ -1584,7 +1584,7 @@ describe("Structured Product maker", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: lowerProposedSeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							},
 							{
@@ -1595,7 +1595,7 @@ describe("Structured Product maker", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: upperProposedSeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -1640,7 +1640,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: lowerProposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1651,7 +1651,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: lowerProposedSeries,
-							index: quote,
+							indexOrAcceptablePremium: quote,
 							data: "0x"
 						}
 					]
@@ -1789,7 +1789,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: 0,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: abiCode.encode(["uint256"], [1])
 						},
 						{
@@ -1800,7 +1800,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: lowerMarginRequirement,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						},
 						{
@@ -1811,7 +1811,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: amount.div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						}
 					]
@@ -1827,7 +1827,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId.add(1),
 							amount: 0,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: abiCode.encode(["uint256"], [1])
 						},
 						{
@@ -1838,7 +1838,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId.add(1),
 							amount: upperMarginRequirement,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						},
 						{
@@ -1849,7 +1849,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId.add(1),
 							amount: amount.div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						}
 					]
@@ -1865,7 +1865,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: lowerProposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1876,7 +1876,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: upperProposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -2026,7 +2026,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: 0,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: abiCode.encode(["uint256"], [1])
 						},
 						{
@@ -2037,7 +2037,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: marginRequirement,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						},
 						{
@@ -2048,7 +2048,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: amount.div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						}
 					]
@@ -2064,7 +2064,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -2143,7 +2143,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -2154,7 +2154,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: quote,
+							indexOrAcceptablePremium: quote,
 							data: "0x"
 						}
 					]
@@ -2260,7 +2260,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: 0,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: abiCode.encode(["uint256"], [1])
 						},
 						{
@@ -2271,7 +2271,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: marginRequirement,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						},
 						{
@@ -2282,7 +2282,7 @@ describe("Structured Product maker", async () => {
 							vaultId: vaultId,
 							amount: amount.div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						}
 					]
@@ -2298,7 +2298,7 @@ describe("Structured Product maker", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
