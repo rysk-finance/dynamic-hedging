@@ -202,7 +202,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])).to.be.revertedWithCustomError(exchange, "OperatorNotApproved")
@@ -226,7 +226,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])
@@ -246,7 +246,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], ["1"])
 					}]
 				}])
@@ -266,7 +266,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter - 1,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], ["1"])
 					}]
 				}])).to.be.revertedWith("C15")
@@ -283,7 +283,7 @@ describe("Actions tests", async () => {
 						vaultId: 2,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], ["1"])
 					}]
 				}])).to.be.reverted
@@ -300,7 +300,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], ["2"])
 					}]
 				}])).to.be.revertedWith("A3")
@@ -317,7 +317,7 @@ describe("Actions tests", async () => {
 						vaultId: 1000,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])).to.be.revertedWith("C15")
@@ -334,7 +334,7 @@ describe("Actions tests", async () => {
 						vaultId: 2,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
@@ -355,7 +355,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -366,7 +366,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])
@@ -391,7 +391,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -402,7 +402,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])
@@ -427,7 +427,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -438,7 +438,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])
@@ -463,7 +463,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -474,7 +474,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])
@@ -498,7 +498,7 @@ describe("Actions tests", async () => {
 						vaultId: 4,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -509,7 +509,7 @@ describe("Actions tests", async () => {
 						vaultId: 4,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
@@ -527,7 +527,7 @@ describe("Actions tests", async () => {
 						vaultId: 4,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -538,7 +538,7 @@ describe("Actions tests", async () => {
 						vaultId: 4,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
@@ -561,7 +561,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], [1])
 					},
 					{
@@ -572,7 +572,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -583,7 +583,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: tinyAmount,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					]
@@ -613,7 +613,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], [1])
 					},
 					{
@@ -624,7 +624,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -635,7 +635,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: tinyAmount,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					]
@@ -665,7 +665,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], [1])
 					},
 					{
@@ -676,7 +676,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -687,7 +687,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: tinyAmount,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					]
@@ -710,7 +710,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], [1])
 					},
 					{
@@ -721,7 +721,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -732,7 +732,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: tinyAmount,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -743,7 +743,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: tinyAmount,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 
@@ -774,7 +774,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], [1])
 					},
 					{
@@ -785,7 +785,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -796,7 +796,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: tinyAmount,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -807,7 +807,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: tinyAmount,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					]
@@ -832,7 +832,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], [1])
 					},
 					{
@@ -843,7 +843,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -854,7 +854,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: tinyAmount,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				},
@@ -869,7 +869,7 @@ describe("Actions tests", async () => {
 							vaultId: 1,
 							amount: tinyAmount,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}]
 				},
@@ -904,7 +904,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], [1])
 					},
 					{
@@ -915,7 +915,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -926,7 +926,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: tinyAmount,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				},
@@ -941,7 +941,7 @@ describe("Actions tests", async () => {
 							vaultId: 1,
 							amount: tinyAmount,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}]
 				},
@@ -967,7 +967,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], [1])
 					},
 					{
@@ -978,7 +978,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -989,7 +989,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: tinyAmount,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				},
@@ -1004,7 +1004,7 @@ describe("Actions tests", async () => {
 							vaultId: 1,
 							amount: tinyAmount,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}]
 				},
@@ -1039,7 +1039,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: abiCode.encode(["uint256"], [1])
 					},
 					{
@@ -1050,7 +1050,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: margin,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -1061,7 +1061,7 @@ describe("Actions tests", async () => {
 						vaultId: vaultIdCounter,
 						amount: tinyAmount,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				},
@@ -1076,7 +1076,7 @@ describe("Actions tests", async () => {
 							vaultId: 1,
 							amount: tinyAmount,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1087,7 +1087,7 @@ describe("Actions tests", async () => {
 							vaultId: 1,
 							amount: tinyAmount,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}]
 				},
@@ -1109,7 +1109,7 @@ describe("Actions tests", async () => {
 						vaultId: 1,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])).to.be.revertedWithCustomError(exchange, "ForbiddenAction")
@@ -1126,7 +1126,7 @@ describe("Actions tests", async () => {
 						vaultId: 1,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])).to.be.revertedWithCustomError(exchange, "ForbiddenAction")
@@ -1143,7 +1143,7 @@ describe("Actions tests", async () => {
 						vaultId: 1,
 						amount: 0,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])).to.be.revertedWithCustomError(exchange, "ForbiddenAction")

@@ -631,7 +631,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -642,7 +642,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries1,
-							index: amount,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -686,7 +686,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries2,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -697,7 +697,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries2,
-							index: amount,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -758,7 +758,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -769,7 +769,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries1,
-							index: amount,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -801,7 +801,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries2,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -812,7 +812,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries2,
-							index: amount,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -888,7 +888,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -899,7 +899,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries1,
-							index: amount,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -943,7 +943,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries2,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -954,7 +954,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries2,
-							index: amount,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -1015,7 +1015,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1026,7 +1026,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries1,
-							index: amount,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -1058,7 +1058,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries2,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1069,7 +1069,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries2,
-							index: amount,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -1140,7 +1140,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1151,7 +1151,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries1,
-							index: amount,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -1248,7 +1248,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: 0,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -1259,7 +1259,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: amount,
+						indexOrAcceptablePremium: amount,
 						data: "0x"
 					}
 				]
@@ -1354,7 +1354,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1365,7 +1365,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: amount,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -1392,7 +1392,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -1419,7 +1419,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -1588,7 +1588,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: quote,
+						indexOrAcceptablePremium: quote,
 						data: "0x"
 					}
 				]
@@ -1642,7 +1642,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -1776,7 +1776,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: 0,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -1787,7 +1787,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: quote,
+						indexOrAcceptablePremium: quote,
 						data: "0x"
 					}
 				]
@@ -1929,7 +1929,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}
 				]
@@ -2082,7 +2082,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}
 				]
@@ -2192,7 +2192,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -2203,7 +2203,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: amount,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -2535,7 +2535,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: toWei("3"),
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -2557,7 +2557,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: toWei("3"),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]

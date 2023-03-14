@@ -1027,7 +1027,7 @@ export const OptionExchangeABI = [
 							},
 							{
 								"internalType": "uint256",
-								"name": "index",
+								"name": "indexOrAcceptablePremium",
 								"type": "uint256"
 							},
 							{
