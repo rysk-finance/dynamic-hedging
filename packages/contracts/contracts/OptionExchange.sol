@@ -538,8 +538,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			false,
 			portfolioValuesFeed.netDhvExposure(oHash)
 		);
-		if (buyParams.premium + buyParams.fee > _args.acceptablePremium) {
-			revert TooMuchSlippage(buyParams.premium + buyParams.fee, _args.acceptablePremium);
+		if (buyParams.premium > _args.acceptablePremium) {
+			revert TooMuchSlippage(buyParams.premium, _args.acceptablePremium);
 		}
 		_handlePremiumTransfer(buyParams.premium, buyParams.fee);
 		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral

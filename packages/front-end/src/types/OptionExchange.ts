@@ -58,7 +58,7 @@ export declare namespace CombinedActions {
     vaultId: BigNumberish;
     amount: BigNumberish;
     optionSeries: Types.OptionSeriesStruct;
-    index: BigNumberish;
+    indexOrAcceptablePremium: BigNumberish;
     data: BytesLike;
   };
 
@@ -80,7 +80,7 @@ export declare namespace CombinedActions {
     vaultId: BigNumber;
     amount: BigNumber;
     optionSeries: Types.OptionSeriesStructOutput;
-    index: BigNumber;
+    indexOrAcceptablePremium: BigNumber;
     data: string;
   };
 
