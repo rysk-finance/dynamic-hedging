@@ -37,7 +37,7 @@ library CombinedActions {
         // each vault can hold multiple short / long / collateral assets but we are restricting the scope to only 1 of each in this version
         // OR for rysk actions it is the acceptable premium (if option is being sold to the dhv then the actual premium should be more than this number (i.e. max price),
         // if option is being bought from the dhv then the actual premium should be less than this number (i.e. max price))
-        uint256 index;
+        uint256 indexOrAcceptablePremium;
         // any other data that needs to be passed in for arbitrary function calls
         bytes data;
     }
@@ -55,7 +55,7 @@ library CombinedActions {
             asset: _args.asset,
             vaultId: _args.vaultId,
             amount: _args.amount,
-            index: _args.index,
+            index: _args.indexOrAcceptablePremium,
             data: _args.data
         });
     }
@@ -73,7 +73,7 @@ library CombinedActions {
             vaultId: _args.vaultId,
             amount: _args.amount,
             optionSeries: _args.optionSeries,
-            acceptablePremium: _args.index,
+            acceptablePremium: _args.indexOrAcceptablePremium,
             data: _args.data
         });
     }
