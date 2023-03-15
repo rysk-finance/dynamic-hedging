@@ -79,6 +79,33 @@ contract DHVLensMK1 {
 		return _getOptionChain();
 	}
 
+    function getExpirations() external view returns (uint64[] memory) {
+        return catalogue.getExpirations();
+    }
+
+    function getOptionExpirationDrill(uint64 expiration) external view returns (OptionExpirationDrill memory) {
+        	uint128[] memory callStrikes = catalogue.getOptionDetails(expiration, false);
+			uint128[] memory putStrikes = catalogue.getOptionDetails(expiration, true);
+			OptionStrikeDrill[] memory callStrikeDrill = _constructStrikesDrill(
+				expiration,
+				callStrikes,
+				false
+			);
+			OptionStrikeDrill[] memory putStrikeDrill = _constructStrikesDrill(
+				expiration,
+				putStrikes,
+				true
+			);
+			OptionExpirationDrill memory optionExpirationDrill = OptionExpirationDrill(
+				expiration,
+                callStrikes,
+				callStrikeDrill,
+                putStrikes,
+				putStrikeDrill
+			);
+            return optionExpirationDrill;
+    }
+
 	function _getOptionChain() internal view returns (OptionChain memory) {
 		uint64[] memory allExpirations = catalogue.getExpirations();
         bool[] memory expirationMask = new bool[](allExpirations.length);
