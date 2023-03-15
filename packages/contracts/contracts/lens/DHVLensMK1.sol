@@ -48,14 +48,14 @@ contract DHVLensMK1 {
 
 	struct OptionExpirationDrill {
 		uint64 expiration;
-        uint128[] callStrikes;
+		uint128[] callStrikes;
 		OptionStrikeDrill[] callOptionDrill;
-        uint128[] putStrikes;
+		uint128[] putStrikes;
 		OptionStrikeDrill[] putOptionDrill;
 	}
 
 	struct OptionChain {
-        uint64[] expirations;
+		uint64[] expirations;
 		OptionExpirationDrill[] optionExpirationDrills;
 	}
 
@@ -79,57 +79,55 @@ contract DHVLensMK1 {
 		return _getOptionChain();
 	}
 
-    function getExpirations() external view returns (uint64[] memory) {
-        return catalogue.getExpirations();
-    }
+	function getExpirations() external view returns (uint64[] memory) {
+		return catalogue.getExpirations();
+	}
 
-    function getOptionExpirationDrill(uint64 expiration) external view returns (OptionExpirationDrill memory) {
-        	uint128[] memory callStrikes = catalogue.getOptionDetails(expiration, false);
-			uint128[] memory putStrikes = catalogue.getOptionDetails(expiration, true);
-			OptionStrikeDrill[] memory callStrikeDrill = _constructStrikesDrill(
-				expiration,
-				callStrikes,
-				false
-			);
-			OptionStrikeDrill[] memory putStrikeDrill = _constructStrikesDrill(
-				expiration,
-				putStrikes,
-				true
-			);
-			OptionExpirationDrill memory optionExpirationDrill = OptionExpirationDrill(
-				expiration,
-                callStrikes,
-				callStrikeDrill,
-                putStrikes,
-				putStrikeDrill
-			);
-            return optionExpirationDrill;
-    }
+	function getOptionExpirationDrill(
+		uint64 expiration
+	) external view returns (OptionExpirationDrill memory) {
+		uint128[] memory callStrikes = catalogue.getOptionDetails(expiration, false);
+		uint128[] memory putStrikes = catalogue.getOptionDetails(expiration, true);
+		OptionStrikeDrill[] memory callStrikeDrill = _constructStrikesDrill(
+			expiration,
+			callStrikes,
+			false
+		);
+		OptionStrikeDrill[] memory putStrikeDrill = _constructStrikesDrill(expiration, putStrikes, true);
+		OptionExpirationDrill memory optionExpirationDrill = OptionExpirationDrill(
+			expiration,
+			callStrikes,
+			callStrikeDrill,
+			putStrikes,
+			putStrikeDrill
+		);
+		return optionExpirationDrill;
+	}
 
 	function _getOptionChain() internal view returns (OptionChain memory) {
 		uint64[] memory allExpirations = catalogue.getExpirations();
-        bool[] memory expirationMask = new bool[](allExpirations.length);
-        uint8 validCount;
+		bool[] memory expirationMask = new bool[](allExpirations.length);
+		uint8 validCount;
 		OptionChain memory optionChain;
-        for (uint i; i < allExpirations.length; i++) {
-            if (allExpirations[i] < block.timestamp) {
-                continue;
-            }
-            if((allExpirations[i] - 28800) % 86400 != 0) {
+		for (uint i; i < allExpirations.length; i++) {
+			if (allExpirations[i] < block.timestamp) {
 				continue;
 			}
-            expirationMask[i] = true;
-            validCount++;
-        }
-        uint64[] memory expirations = new uint64[](validCount);
-        uint8 c;
-        for (uint i; i < expirationMask.length; i++) {
-            if (expirationMask[i]) {
-                expirations[c] = allExpirations[i];
-                c++;
-            }
-        }
-        OptionExpirationDrill[] memory optionExpirationDrills = new OptionExpirationDrill[](validCount);
+			if ((allExpirations[i] - 28800) % 86400 != 0) {
+				continue;
+			}
+			expirationMask[i] = true;
+			validCount++;
+		}
+		uint64[] memory expirations = new uint64[](validCount);
+		uint8 c;
+		for (uint i; i < expirationMask.length; i++) {
+			if (expirationMask[i]) {
+				expirations[c] = allExpirations[i];
+				c++;
+			}
+		}
+		OptionExpirationDrill[] memory optionExpirationDrills = new OptionExpirationDrill[](validCount);
 		for (uint i; i < expirations.length; i++) {
 			uint128[] memory callStrikes = catalogue.getOptionDetails(expirations[i], false);
 			uint128[] memory putStrikes = catalogue.getOptionDetails(expirations[i], true);
@@ -145,14 +143,14 @@ contract DHVLensMK1 {
 			);
 			OptionExpirationDrill memory optionExpirationDrill = OptionExpirationDrill(
 				expirations[i],
-                callStrikes,
+				callStrikes,
 				callStrikeDrill,
-                putStrikes,
+				putStrikes,
 				putStrikeDrill
 			);
 			optionExpirationDrills[i] = optionExpirationDrill;
 		}
-        optionChain.expirations = expirations;
+		optionChain.expirations = expirations;
 		optionChain.optionExpirationDrills = optionExpirationDrills;
 		return optionChain;
 	}
