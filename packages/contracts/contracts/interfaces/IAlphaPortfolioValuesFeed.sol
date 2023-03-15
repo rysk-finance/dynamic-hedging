@@ -20,7 +20,7 @@ interface IAlphaPortfolioValuesFeed {
 		returns (bytes32 requestId);
 
 	function updateStores(Types.OptionSeries memory _optionSeries, int256 _shortExposure, int256 _longExposure, address _seriesAddress) external;
-	function netDhvExposure(bytes32 oHash) external returns (int256);
+	function netDhvExposure(bytes32 oHash) external view returns (int256);
 	///////////////////////////
 	/// non-complex getters ///
 	///////////////////////////
