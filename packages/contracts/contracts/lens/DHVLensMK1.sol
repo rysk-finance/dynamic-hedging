@@ -160,13 +160,13 @@ contract DHVLensMK1 {
 				Types.OptionSeries(
 					uint64(expiration),
 					strike,
-					false,
+					isPut,
 					underlyingAsset,
 					strikeAsset,
 					collateralAsset
 				),
 				1e18,
-				false,
+				isSell,
 				netDhvExposure
 			)
 		returns (uint256 _premium, int256 _delta, uint256 _fee) {
