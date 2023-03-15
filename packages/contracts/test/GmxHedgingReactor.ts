@@ -227,6 +227,15 @@ describe("GMX Hedging Reactor", () => {
 		)
 
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`-${delta}`), 2)
+
+		// check getPoolDemoninatedvalue is correct during pending position increase
+		const poolDenominatedValueBeforeExecute = parseFloat(
+			utils.formatEther(await gmxReactor.callStatic.getPoolDenominatedValue())
+		)
+		const usdcBalanceIntermediateLP = parseFloat(
+			utils.formatUnits(await usdc.balanceOf(liquidityPoolAddress), 6)
+		)
+		expect(poolDenominatedValueBeforeExecute).to.eq(usdcBalanceBeforeLP - usdcBalanceIntermediateLP)
 		await executeIncreasePosition()
 
 		const usdcBalanceAfterLP = parseFloat(
@@ -235,7 +244,7 @@ describe("GMX Hedging Reactor", () => {
 		const usdcBalanceAfterReactor = parseFloat(
 			utils.formatUnits(await usdc.balanceOf(gmxReactor.address), 6)
 		)
-		// check that the reactor doesnt hold any USDC before or after
+		// check that the reactor doesnt hold any USDC before or after 
 		expect(usdcBalanceBeforeReactor).to.eq(usdcBalanceAfterReactor).to.eq(0)
 		// check that the correct amount of USDC was taken from LP
 		expect(
@@ -260,10 +269,10 @@ describe("GMX Hedging Reactor", () => {
 		checkPositionExecutedEvent(delta)
 
 		// check getPoolDemoninatedvalue is correct
-		const poolDenominatedValue = parseFloat(
+		const poolDenominatedValueAfterExecute = parseFloat(
 			utils.formatEther(await gmxReactor.callStatic.getPoolDenominatedValue())
 		)
-		expect(poolDenominatedValue).to.eq(parseFloat(utils.formatUnits(positions[1], 30)))
+		expect(poolDenominatedValueAfterExecute).to.eq(parseFloat(utils.formatUnits(positions[1], 30)))
 	})
 	it("rebalances the collateral on an open long position that has unrealised loss", async () => {
 		// set price to 1800
@@ -1034,7 +1043,7 @@ describe("change to 4x leverage factor", async () => {
 		const expectedUdscDiff =
 			parseFloat(utils.formatUnits(positionBefore[1], 30)) -
 			parseFloat(utils.formatUnits(positionAfter[0], 30)) /
-			(((await gmxVault.maxLeverage()) / 10000) * 0.9)
+				(((await gmxVault.maxLeverage()) / 10000) * 0.9)
 		expect(usdcBalanceDiff).to.be.within(expectedUdscDiff - 10, expectedUdscDiff)
 		expect(positionAfter[0]).to.eq(utils.parseUnits("8000", 30))
 		// remaining collat should be 1/90th of pos size (maxLeverage * 0.9)
@@ -1154,8 +1163,8 @@ describe("change to 4x leverage factor", async () => {
 		expect(positionAfter[8]).to.eq(positionAfter[2].sub(utils.parseUnits("1000", 30)).mul(4))
 		expect(
 			parseFloat(utils.formatUnits(positionAfter[0], 30)) /
-			(parseFloat(utils.formatUnits(positionAfter[1], 30)) -
-				parseFloat(utils.formatUnits(positionAfter[8], 30)))
+				(parseFloat(utils.formatUnits(positionAfter[1], 30)) -
+					parseFloat(utils.formatUnits(positionAfter[8], 30)))
 		).to.be.within(4, 4.1)
 		const healthLogsAfter = await gmxReactor.checkVaultHealth()
 		expect(healthLogsAfter.health).to.be.gt(0)
@@ -1686,7 +1695,9 @@ describe("price moves between submitting and executing orders", async () => {
 			method: "hardhat_impersonateAccount",
 			params: [admin]
 		})
-		await gmxPositionRouter.connect(await ethers.getSigner(admin)).setPositionKeeper(await deployer.getAddress(), true)
+		await gmxPositionRouter
+			.connect(await ethers.getSigner(admin))
+			.setPositionKeeper(await deployer.getAddress(), true)
 		await gmxPositionRouter.connect(deployer).executeIncreasePositions(50000, admin)
 		const usdcBalance3 = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
 		const failedOrderEventsAfter = await gmxReactor.queryFilter(
@@ -1720,6 +1731,5 @@ describe("price moves between submitting and executing orders", async () => {
 		expect(usdcBalanceDiff).to.eq(0)
 		expect(await usdc.balanceOf(gmxReactor.address)).to.eq(0)
 		expect(await gmxReactor.internalDelta()).to.eq(0)
-
 	})
 })
