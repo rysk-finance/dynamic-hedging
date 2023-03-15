@@ -50,6 +50,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	bool public pendingDecreaseCallback;
 	mapping(bytes32 => int256) public increaseOrderDeltaChange;
 	mapping(bytes32 => int256) public decreaseOrderDeltaChange;
+	uint public pendingIncreaseCollateralValue;
 
 	/////////////////////////////////////
 	/// governance settable variables ///
@@ -79,7 +80,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	//////////////////////////
 
 	/// @notice used for unlimited token approval
-	uint256 private constant MAX_UINT = 2**256 - 1;
+	uint256 private constant MAX_UINT = 2 ** 256 - 1;
 	/// @notice max bips
 	uint256 private constant MAX_BIPS = 10_000;
 
@@ -266,10 +267,10 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	 *	@param _collateralAmount amount of collateral tokens to add. Denominated in e6
 	 *	@param _isLong whether the perp position is long or short
 	 **/
-	function _addCollateral(uint256 _collateralAmount, bool _isLong)
-		internal
-		returns (bytes32 positionKey, int256 deltaChange)
-	{
+	function _addCollateral(
+		uint256 _collateralAmount,
+		bool _isLong
+	) internal returns (bytes32 positionKey, int256 deltaChange) {
 		return _increasePosition(0, _collateralAmount, _isLong);
 	}
 
@@ -278,10 +279,10 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	 *	@param _collateralAmount amount of collateral tokens to add. Denominated in e6
 	 *	@param _isLong whether the perp position is long or short
 	 **/
-	function _removeCollateral(uint256 _collateralAmount, bool _isLong)
-		internal
-		returns (bytes32 positionKey, int256 deltaChange)
-	{
+	function _removeCollateral(
+		uint256 _collateralAmount,
+		bool _isLong
+	) internal returns (bytes32 positionKey, int256 deltaChange) {
 		return _decreasePosition(0, _collateralAmount, _isLong);
 	}
 
@@ -302,7 +303,16 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		} else {
 			value = (position[1] - position[8]) / 1e12;
 		}
-		value += OptionsCompute.convertFromDecimals(ERC20(collateralAsset).balanceOf(address(this)), ERC20(collateralAsset).decimals());
+		value += OptionsCompute.convertFromDecimals(
+			ERC20(collateralAsset).balanceOf(address(this)),
+			ERC20(collateralAsset).decimals()
+		);
+		if (pendingIncreaseCallback) {
+			value += OptionsCompute.convertFromDecimals(
+				pendingIncreaseCollateralValue,
+				ERC20(collateralAsset).decimals()
+			);
+		}
 	}
 
 	/** @notice function to check the health of the margin account
@@ -499,6 +509,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		);
 		emit CreateIncreasePosition(positionKey);
 		pendingIncreaseCallback = true;
+		pendingIncreaseCollateralValue = _collateralSize;
 		return (positionKey, _isLong ? int256(_size) : -int256(_size));
 	}
 
@@ -760,11 +771,10 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	 *	@param positionSize USD size of existing position as given by GMX. e30
 	 *	@return USD size to change position by. e30
 	 */
-	function _getPositionSizeDeltaUsd(uint256 _size, uint256 positionSize)
-		private
-		view
-		returns (uint256)
-	{
+	function _getPositionSizeDeltaUsd(
+		uint256 _size,
+		uint256 positionSize
+	) private view returns (uint256) {
 		return _size.mul(positionSize).div(uint256(internalDelta.abs()));
 	}
 
@@ -782,11 +792,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	 *	@param isExecuted if the position change was executed successfully
 	 *	@param isIncrease if the position was increased
 	 */
-	function gmxPositionCallback(
-		bytes32 positionKey,
-		bool isExecuted,
-		bool isIncrease
-	) external {
+	function gmxPositionCallback(bytes32 positionKey, bool isExecuted, bool isIncrease) external {
 		if (msg.sender != address(gmxPositionRouter)) {
 			revert CustomErrors.InvalidGmxCallback();
 		}
@@ -799,7 +805,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				emit PositionExecuted(decreaseOrderDeltaChange[positionKey]);
 			}
 		} else {
-			// in the case of a failure there might be some collateral left over, we need to 
+			// in the case of a failure there might be some collateral left over, we need to
 			// send anything left over back to the liquidity pool
 			uint256 balance = ERC20(collateralAsset).balanceOf(address(this));
 			if (balance > 0) {
@@ -815,6 +821,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		if (isIncrease) {
 			pendingIncreaseCallback = false;
 			delete increaseOrderDeltaChange[positionKey];
+			delete pendingIncreaseCollateralValue;
 		} else {
 			pendingDecreaseCallback = false;
 			delete decreaseOrderDeltaChange[positionKey];
@@ -827,11 +834,10 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	 * @param _strikeAsset the asset that the underlying value is denominated in
 	 * @return the underlying price
 	 */
-	function getUnderlyingPrice(address underlying, address _strikeAsset)
-		internal
-		view
-		returns (uint256)
-	{
+	function getUnderlyingPrice(
+		address underlying,
+		address _strikeAsset
+	) internal view returns (uint256) {
 		return PriceFeed(priceFeed).getNormalizedRate(underlying, _strikeAsset);
 	}
 
