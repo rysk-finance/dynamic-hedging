@@ -39,20 +39,24 @@ contract DHVLensMK1 {
 	}
 
 	struct OptionStrikeDrill {
-		uint256 strike;
+		uint128 strike;
 		TradingSpec bid; // buy
 		TradingSpec ask; // sell
 		int256 delta;
 		int256 exposure;
 	}
 
-	struct OptionExpiryDrill {
-		uint256 expiry;
+	struct OptionExpirationDrill {
+		uint64 expiration;
+        uint128[] callStrikes;
 		OptionStrikeDrill[] callOptionDrill;
+        uint128[] putStrikes;
 		OptionStrikeDrill[] putOptionDrill;
 	}
-	struct OptionChainStruct {
-		OptionExpiryDrill[] optionExpiryDrills;
+
+	struct OptionChain {
+        uint64[] expirations;
+		OptionExpirationDrill[] optionExpirationDrills;
 	}
 
 	constructor(
@@ -71,14 +75,34 @@ contract DHVLensMK1 {
 		pricer = BeyondPricer(_pricer);
 	}
 
-	function getOptionChain() external view returns (OptionChainStruct memory) {
+	function getOptionChain() external view returns (OptionChain memory) {
 		return _getOptionChain();
 	}
 
-	function _getOptionChain() internal view returns (OptionChainStruct memory) {
-		uint64[] memory expirations = catalogue.getExpirations();
-		OptionChainStruct memory optionChain;
-		OptionExpiryDrill[] memory optionExpiryDrills = new OptionExpiryDrill[](expirations.length);
+	function _getOptionChain() internal view returns (OptionChain memory) {
+		uint64[] memory allExpirations = catalogue.getExpirations();
+        bool[] memory expirationMask = new bool[](allExpirations.length);
+        uint8 validCount;
+		OptionChain memory optionChain;
+        for (uint i; i < allExpirations.length; i++) {
+            if (allExpirations[i] < block.timestamp) {
+                continue;
+            }
+            if((allExpirations[i] - 28800) % 86400 != 0) {
+				continue;
+			}
+            expirationMask[i] = true;
+            validCount++;
+        }
+        uint64[] memory expirations = new uint64[](validCount);
+        uint8 c;
+        for (uint i; i < expirationMask.length; i++) {
+            if (expirationMask[i]) {
+                expirations[c] = allExpirations[i];
+                c++;
+            }
+        }
+        OptionExpirationDrill[] memory optionExpirationDrills = new OptionExpirationDrill[](validCount);
 		for (uint i; i < expirations.length; i++) {
 			uint128[] memory callStrikes = catalogue.getOptionDetails(expirations[i], false);
 			uint128[] memory putStrikes = catalogue.getOptionDetails(expirations[i], true);
@@ -92,19 +116,22 @@ contract DHVLensMK1 {
 				putStrikes,
 				true
 			);
-			OptionExpiryDrill memory optionExpiryDrill = OptionExpiryDrill(
+			OptionExpirationDrill memory optionExpirationDrill = OptionExpirationDrill(
 				expirations[i],
+                callStrikes,
 				callStrikeDrill,
+                putStrikes,
 				putStrikeDrill
 			);
-			optionExpiryDrills[i] = optionExpiryDrill;
+			optionExpirationDrills[i] = optionExpirationDrill;
 		}
-		optionChain.optionExpiryDrills = optionExpiryDrills;
+        optionChain.expirations = expirations;
+		optionChain.optionExpirationDrills = optionExpirationDrills;
 		return optionChain;
 	}
 
 	function _constructStrikesDrill(
-		uint256 expiration,
+		uint64 expiration,
 		uint128[] memory strikes,
 		bool isPut
 	) internal view returns (OptionStrikeDrill[] memory) {
@@ -142,7 +169,7 @@ contract DHVLensMK1 {
 	}
 
 	function _constructTradingSpec(
-		uint256 expiration,
+		uint64 expiration,
 		uint128 strike,
 		bool isPut,
 		int256 netDhvExposure,
@@ -151,7 +178,6 @@ contract DHVLensMK1 {
 	) internal view returns (TradingSpec memory, int256 delta) {
 		OptionCatalogue.OptionStores memory stores = catalogue.getOptionStores(optionHash);
 		uint256 premium;
-		int256 delta;
 		uint256 fee;
 		uint256 iv;
 
@@ -182,7 +208,7 @@ contract DHVLensMK1 {
 		iv = _getIv(isPut, strike, expiration);
 
 		// check and switch disabled
-		bool disabled = isSell ? stores.isSellable : stores.isBuyable;
+		bool disabled = isSell ? !stores.isSellable : !stores.isBuyable;
 		return (TradingSpec(iv, premium, fee, disabled), delta);
 	}
 
