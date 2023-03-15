@@ -42,7 +42,7 @@ contract DHVLensMK1 {
 		uint256 strike;
 		TradingSpec bid; // buy
 		TradingSpec ask; // sell
-        int256 delta;
+		int256 delta;
 		int256 exposure;
 	}
 
@@ -121,7 +121,7 @@ contract DHVLensMK1 {
 				optionHash,
 				false
 			);
-			(TradingSpec memory askTradingSpec,) = _constructTradingSpec(
+			(TradingSpec memory askTradingSpec, ) = _constructTradingSpec(
 				expiration,
 				strikes[j],
 				isPut,
@@ -133,7 +133,7 @@ contract DHVLensMK1 {
 				strikes[j],
 				bidTradingSpec,
 				askTradingSpec,
-                delta,
+				delta,
 				netDhvExposure
 			);
 			optionStrikeDrills[j] = optionStrikeDrill;
@@ -179,14 +179,18 @@ contract DHVLensMK1 {
 			fee = 418;
 		}
 		// retrieve iv
-        iv =  _getIv(isPut, strike, expiration);
+		iv = _getIv(isPut, strike, expiration);
 
 		// check and switch disabled
 		bool disabled = isSell ? stores.isSellable : stores.isBuyable;
 		return (TradingSpec(iv, premium, fee, disabled), delta);
 	}
 
-    function _getIv(bool isPut, uint128 strike, uint256 expiration) internal view returns (uint256 iv) {
+	function _getIv(
+		bool isPut,
+		uint128 strike,
+		uint256 expiration
+	) internal view returns (uint256 iv) {
 		try
 			_getVolatilityFeed().getImpliedVolatility(
 				isPut,
@@ -199,7 +203,8 @@ contract DHVLensMK1 {
 		} catch {
 			iv = 418;
 		}
-    }
+	}
+
 	///////////////////////////
 	/// non-complex getters ///
 	///////////////////////////
