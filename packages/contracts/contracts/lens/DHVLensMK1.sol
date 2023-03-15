@@ -34,7 +34,6 @@ contract DHVLensMK1 {
 	struct TradingSpec {
 		uint256 iv;
 		uint256 quote;
-		int256 delta;
 		uint256 fee;
 		bool disabled;
 	}
@@ -43,6 +42,7 @@ contract DHVLensMK1 {
 		uint256 strike;
 		TradingSpec bid; // buy
 		TradingSpec ask; // sell
+        int256 delta;
 		int256 exposure;
 	}
 
@@ -113,7 +113,7 @@ contract DHVLensMK1 {
 			// get the hash of the option (how the option is stored on the books)
 			bytes32 optionHash = keccak256(abi.encodePacked(expiration, strikes[j], isPut));
 			int256 netDhvExposure = getPortfolioValuesFeed().netDhvExposure(optionHash);
-			TradingSpec memory bidTradingSpec = _constructTradingSpec(
+			(TradingSpec memory bidTradingSpec, int256 delta) = _constructTradingSpec(
 				expiration,
 				strikes[j],
 				isPut,
@@ -121,7 +121,7 @@ contract DHVLensMK1 {
 				optionHash,
 				false
 			);
-			TradingSpec memory askTradingSpec = _constructTradingSpec(
+			(TradingSpec memory askTradingSpec,) = _constructTradingSpec(
 				expiration,
 				strikes[j],
 				isPut,
@@ -133,6 +133,7 @@ contract DHVLensMK1 {
 				strikes[j],
 				bidTradingSpec,
 				askTradingSpec,
+                delta,
 				netDhvExposure
 			);
 			optionStrikeDrills[j] = optionStrikeDrill;
@@ -147,7 +148,7 @@ contract DHVLensMK1 {
 		int256 netDhvExposure,
 		bytes32 optionHash,
 		bool isSell
-	) internal view returns (TradingSpec memory) {
+	) internal view returns (TradingSpec memory, int256 delta) {
 		OptionCatalogue.OptionStores memory stores = catalogue.getOptionStores(optionHash);
 		uint256 premium;
 		int256 delta;
@@ -180,11 +181,9 @@ contract DHVLensMK1 {
 		// retrieve iv
         iv =  _getIv(isPut, strike, expiration);
 
-		// check and switch delta
-		delta = isSell ? -delta : delta;
 		// check and switch disabled
 		bool disabled = isSell ? stores.isSellable : stores.isBuyable;
-		return TradingSpec(iv, premium, delta, fee, disabled);
+		return (TradingSpec(iv, premium, fee, disabled), delta);
 	}
 
     function _getIv(bool isPut, uint128 strike, uint256 expiration) internal view returns (uint256 iv) {
