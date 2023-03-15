@@ -1,10 +1,24 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { AnimatePresence, motion } from "framer-motion";
+
+import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";
+import { useGlobalContext } from "src/state/GlobalContext";
 
 const { Custom } = ConnectButton;
 
-const buttonStyles = `flex items-center px-4 py-0 h-11 bg-black text-white`;
+const buttonProps = {
+  className: "flex items-center px-4 py-0 h-11 bg-black text-white",
+  id: "connect-wallet",
+  layout: "position" as const,
+  type: "button" as const,
+  ...FadeInOutFixedDelay,
+};
 
 const Connect = () => {
+  const {
+    state: { unstoppableDomain },
+  } = useGlobalContext();
+
   return (
     <Custom>
       {({
@@ -17,38 +31,35 @@ const Connect = () => {
         const connected = account && chain;
 
         return (
-          <>
+          <AnimatePresence mode="wait">
             {!connected && (
-              <button
+              <motion.button
                 onClick={openConnectModal}
-                className={buttonStyles}
-                id="connect-wallet"
                 title={`Click to connect your wallet.`}
-                type="button"
+                key="connect"
+                {...buttonProps}
               >
                 {`Connect`}
-              </button>
+              </motion.button>
             )}
 
             {connected && chain.unsupported && (
-              <button
+              <motion.button
                 onClick={openChainModal}
-                className={buttonStyles}
-                id="connect-wallet"
                 title={`Click to switch networks.`}
-                type="button"
+                key="unsupported"
+                {...buttonProps}
               >
                 {`Wrong network`}
-              </button>
+              </motion.button>
             )}
 
             {connected && !chain.unsupported && (
-              <button
+              <motion.button
                 onClick={openAccountModal}
-                className={buttonStyles}
-                id="connect-wallet"
                 title={`Connected to ${chain.name}.`}
-                type="button"
+                key="connected"
+                {...buttonProps}
               >
                 {chain.iconUrl && (
                   <img
@@ -57,10 +68,10 @@ const Connect = () => {
                     className="w-4 h-4 m-0 mr-2"
                   />
                 )}
-                {account.ensName ?? account.displayName}
-              </button>
+                {unstoppableDomain || account.ensName || account.displayName}
+              </motion.button>
             )}
-          </>
+          </AnimatePresence>
         );
       }}
     </Custom>
