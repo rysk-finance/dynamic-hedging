@@ -17,6 +17,7 @@ cp \
 ./types/OptionExchange.ts \
 ./types/OptionCatalogue.ts \
 ./types/BeyondPricer.ts \
+./types/DHVLensMK1.ts \
 ../front-end/src/types/
 
 # Clean out the ABIs directory.
@@ -36,15 +37,41 @@ do
     > ../front-end/src/abis/${FILE_NAME}_ABI.ts
 done
 
-# Copy package ABIs from artifacts dir.
-jq --indent 4 --tab '.abi' \
-./artifacts/contracts/packages/opyn/new/NewController.sol/NewController.json \
-> ../front-end/src/abis/OpynController.json
+# Copy lens contract ABIs.
+for FILE_NAME in 'DHVLensMK1'
+do
+    ABI=$(jq --indent 4 --tab '.abi' ./artifacts/contracts/lens/$FILE_NAME.sol/$FILE_NAME.json)
+
+    echo "$ABI" > ../front-end/src/abis/$FILE_NAME.json
+
+    echo "export const ${FILE_NAME}ABI = $ABI as const" \
+    > ../front-end/src/abis/${FILE_NAME}_ABI.ts
+done
 
 # Copy ABIs from abis dir.
 for FILE_NAME in 'erc20'
 do
-    jq --indent 4 --tab '.' \
-    ./abis/$FILE_NAME.json \
-    > ../front-end/src/abis/$FILE_NAME.json
+    ABI=$(jq --indent 4 --tab '.' ./abis/$FILE_NAME.json)
+
+    echo "$ABI" > ../front-end/src/abis/$FILE_NAME.json
+
+    echo "export const ${FILE_NAME}ABI = $ABI as const" \
+    > ../front-end/src/abis/${FILE_NAME}_ABI.ts
 done
+
+# Copy Opyn package ABIs from artifacts dir.
+for ABI_PATH in 'new/NewController/NewController' 'core/Oracle/Oracle' 'new/NewCalculator/NewMarginCalculator'
+do
+    IFS='/'
+
+    read -a ABI_PATH_ARR <<< "$ABI_PATH"
+
+    ABI=$(jq --indent 4 --tab '.abi' ./artifacts/contracts/packages/opyn/${ABI_PATH_ARR[0]}/${ABI_PATH_ARR[1]}.sol/${ABI_PATH_ARR[2]}.json)
+
+    echo "$ABI" > ../front-end/src/abis/${ABI_PATH_ARR[2]}.json
+
+    echo "export const ${ABI_PATH_ARR[2]}ABI = $ABI as const" \
+    > ../front-end/src/abis/${ABI_PATH_ARR[2]}_ABI.ts
+done
+
+read -p "Press enter to continue..."
