@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAccount, useContractWrite, usePrepareContractWrite } from "wagmi";
 import { readContract } from "@wagmi/core";
-import { OpynControllerABI } from "../../abis/OpynController_ABI";
+import { NewControllerABI } from "../../abis/NewController_ABI";
 import { getContractAddress } from "../../utils/helpers";
 import { ZERO_ADDRESS } from "../../config/constants";
 
@@ -35,7 +35,7 @@ const useApproveExchange = (): [
     const readIsOperator = async () => {
       const current = await readContract({
         address: controllerAddress,
-        abi: OpynControllerABI,
+        abi: NewControllerABI,
         functionName: "isOperator",
         args: [addressOrDefault, exchangeAddress],
       });
@@ -50,7 +50,7 @@ const useApproveExchange = (): [
   // Contract write
   const { config } = usePrepareContractWrite({
     address: controllerAddress,
-    abi: OpynControllerABI,
+    abi: NewControllerABI,
     functionName: "setOperator",
     args: [exchangeAddress, isOperator],
   });
