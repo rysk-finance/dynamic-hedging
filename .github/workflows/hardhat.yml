@@ -31,7 +31,7 @@ jobs:
         run: yarn
 
       - name: Compile
-        run: yarn workspace contracts compile
+        run: yarn workspace contracts compile:ci
 
       - name: Test
         run: yarn workspace contracts test ./test/*.ts
