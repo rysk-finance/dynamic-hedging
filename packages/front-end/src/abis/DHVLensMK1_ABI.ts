@@ -253,6 +253,11 @@ export const DHVLensMK1ABI = [
 								"internalType": "struct DHVLensMK1.OptionStrikeDrill[]",
 								"name": "putOptionDrill",
 								"type": "tuple[]"
+							},
+							{
+								"internalType": "uint256",
+								"name": "underlyingPrice",
+								"type": "uint256"
 							}
 						],
 						"internalType": "struct DHVLensMK1.OptionExpirationDrill[]",
@@ -446,6 +451,11 @@ export const DHVLensMK1ABI = [
 						"internalType": "struct DHVLensMK1.OptionStrikeDrill[]",
 						"name": "putOptionDrill",
 						"type": "tuple[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "underlyingPrice",
+						"type": "uint256"
 					}
 				],
 				"internalType": "struct DHVLensMK1.OptionExpirationDrill",
