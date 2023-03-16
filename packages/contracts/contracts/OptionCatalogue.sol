@@ -53,6 +53,7 @@ contract OptionCatalogue is AccessControl {
 	}
 
 	event SeriesApproved(
+		bytes32 indexed optionHash,
 		uint64 expiration,
 		uint128 strike,
 		bool isPut,
@@ -60,6 +61,7 @@ contract OptionCatalogue is AccessControl {
 		bool isSellable
 	);
 	event SeriesAltered(
+		bytes32 indexed optionHash,
 		uint64 expiration,
 		uint128 strike,
 		bool isPut,
@@ -119,7 +121,7 @@ contract OptionCatalogue is AccessControl {
 			// there shouldnt be any duplicates in the strike array or expiration array
 			optionDetails[o.expiration][o.isPut].push(strike);
 			// emit an event of the series creation, now users can write options on this series
-			emit SeriesApproved(o.expiration, strike, o.isPut, o.isBuyable, o.isSellable);
+			emit SeriesApproved(optionHash, o.expiration, strike, o.isPut, o.isBuyable, o.isSellable);
 		}
 	}
 
@@ -144,7 +146,7 @@ contract OptionCatalogue is AccessControl {
 			if (optionStores[optionHash].approvedOption) {
 				optionStores[optionHash].isBuyable = o.isBuyable;
 				optionStores[optionHash].isSellable = o.isSellable;
-				emit SeriesAltered(o.expiration, strike, o.isPut, o.isBuyable, o.isSellable);
+				emit SeriesAltered(optionHash, o.expiration, strike, o.isPut, o.isBuyable, o.isSellable);
 			} else {
 				revert CustomErrors.UnapprovedSeries();
 			}
