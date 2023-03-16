@@ -110,9 +110,6 @@ describe("Options protocol", function () {
 		await weth.deposit({ value: utils.parseEther("99") })
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
-			OTOKEN_FACTORY[chainId],
-			controller.address,
-			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId],
 			authority.address
@@ -121,9 +118,6 @@ describe("Options protocol", function () {
 		expect(optionRegistry).to.have.property("deployTransaction")
 		const _optionRegistryETH = (await optionRegistryFactory.deploy(
 			WETH_ADDRESS[chainId],
-			OTOKEN_FACTORY[chainId],
-			controller.address,
-			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId],
 			authority.address

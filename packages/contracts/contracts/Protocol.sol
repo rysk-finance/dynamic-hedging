@@ -7,16 +7,12 @@ import "./libraries/AccessControl.sol";
  *  @title Contract used for storage of important contracts for the liquidity pool
  */
 contract Protocol is AccessControl {
-	////////////////////////
-	/// static variables ///
-	////////////////////////
-
-	address public immutable optionRegistry;
 
 	/////////////////////////////////////
 	/// governance settable variables ///
 	/////////////////////////////////////
 
+	address public optionRegistry;
 	address public volatilityFeed;
 	address public portfolioValuesFeed;
 	address public accounting;
@@ -57,5 +53,10 @@ contract Protocol is AccessControl {
 	function changePriceFeed(address _priceFeed) external {
 		_onlyGovernor();
 		priceFeed = _priceFeed;
+	}
+
+	function changeOptionRegistry(address _optionRegistry) external {
+		_onlyGovernor();
+		optionRegistry = _optionRegistry;
 	}
 }
