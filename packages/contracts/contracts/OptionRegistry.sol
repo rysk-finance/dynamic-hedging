@@ -26,16 +26,10 @@ contract OptionRegistry is AccessControl {
 	/// immutable variables ///
 	///////////////////////////
 
-	// address of the opyn oTokenFactory for oToken minting
-	address internal immutable oTokenFactory;
-	// address of the gammaController for oToken operations
-	address public immutable gammaController;
 	// address of the collateralAsset
 	address public immutable collateralAsset;
 	// address of the opyn addressBook for accessing important opyn modules
 	AddressBookInterface public immutable addressBook;
-	// address of the marginPool, contract for storing options collateral
-	address internal immutable marginPool;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -112,9 +106,6 @@ contract OptionRegistry is AccessControl {
 
 	constructor(
 		address _collateralAsset,
-		address _oTokenFactory,
-		address _gammaController,
-		address _marginPool,
 		address _liquidityPool,
 		address _addressBook,
 		address _authority
@@ -123,9 +114,6 @@ contract OptionRegistry is AccessControl {
 		if (ERC20(_collateralAsset).decimals() > 18) {
 			revert CustomErrors.InvalidDecimals();
 		}
-		oTokenFactory = _oTokenFactory;
-		gammaController = _gammaController;
-		marginPool = _marginPool;
 		liquidityPool = _liquidityPool;
 		addressBook = AddressBookInterface(_addressBook);
 	}
@@ -203,7 +191,7 @@ contract OptionRegistry is AccessControl {
 		);
 		// check for an opyn oToken if it doesn't exist deploy it
 		address series = OpynInteractions.getOrDeployOtoken(
-			oTokenFactory,
+			addressBook.getOtokenFactory(),
 			optionSeries.collateral,
 			optionSeries.underlying,
 			optionSeries.strikeAsset,
@@ -249,7 +237,7 @@ contract OptionRegistry is AccessControl {
 		// transfer collateral to this contract, collateral will depend on the option type
 		SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
 		// mint the option token following the opyn interface
-		IController controller = IController(gammaController);
+		IController controller = IController(addressBook.getController());
 		// check if a vault for this option already exists
 		uint256 vaultId_ = vaultIds[_series];
 		if (vaultId_ == 0) {
@@ -257,8 +245,8 @@ contract OptionRegistry is AccessControl {
 			vaultCount++;
 		}
 		uint256 mintAmount = OpynInteractions.createShort(
-			gammaController,
-			marginPool,
+			address(controller),
+			addressBook.getMarginPool(),
 			_series,
 			collateralAmount,
 			vaultId_,
@@ -302,7 +290,7 @@ contract OptionRegistry is AccessControl {
 		SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), convertedAmount);
 		// burn the oToken tracking the amount of collateral returned
 		uint256 collatReturned = OpynInteractions.burnShort(
-			gammaController,
+			addressBook.getController(),
 			_series,
 			convertedAmount,
 			vaultId
@@ -345,7 +333,7 @@ contract OptionRegistry is AccessControl {
 		uint256 vaultId = vaultIds[_series];
 		// settle the vault
 		(uint256 collatReturned, uint256 collatLost, uint256 amountShort) = OpynInteractions.settle(
-			gammaController,
+			addressBook.getController(),
 			vaultId
 		);
 		// transfer the collateral back to the liquidity pool
@@ -375,6 +363,7 @@ contract OptionRegistry is AccessControl {
 		if (!isBelowMin && !isAboveMax) {
 			revert HealthyVault();
 		}
+		address gammaController = addressBook.getController();
 		if (isBelowMin) {
 			LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, false);
 			if (LiquidityPool(liquidityPool).getBalance(collateralAsset) < collateralAmount) {
@@ -390,7 +379,7 @@ contract OptionRegistry is AccessControl {
 			// increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
 			OpynInteractions.depositCollat(
 				gammaController,
-				marginPool,
+				addressBook.getMarginPool(),
 				_collateralAsset,
 				collateralAmount,
 				vaultId
@@ -425,8 +414,8 @@ contract OptionRegistry is AccessControl {
 		SafeTransferLib.safeTransferFrom(_collateralAsset, msg.sender, address(this), collateralAmount);
 		// increase the collateral in the vault
 		OpynInteractions.depositCollat(
-			gammaController,
-			marginPool,
+			addressBook.getController(),
+			addressBook.getMarginPool(),
 			_collateralAsset,
 			collateralAmount,
 			vaultId
@@ -440,6 +429,7 @@ contract OptionRegistry is AccessControl {
 	 */
 	function wCollatLiquidatedVault(uint256 vaultId) external {
 		_isKeeper();
+		address gammaController = addressBook.getController();
 		// get the vault details from the vaultId
 		GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
 		require(vault.shortAmounts[0] == 0, "Vault has short positions [amount]");
@@ -469,6 +459,7 @@ contract OptionRegistry is AccessControl {
 	 */
 	function registerLiquidatedVault(uint256 vaultId) external {
 		_isKeeper();
+		address gammaController = addressBook.getController();
 		// get the vault liquidation details from the vaultId
 		(address series, uint256 amount, uint256 collateralLiquidated) = IController(gammaController)
 			.getVaultLiquidationDetails(address(this), vaultId);
@@ -509,8 +500,8 @@ contract OptionRegistry is AccessControl {
 		SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), seriesBalance);
 		// redeem
 		uint256 collatReturned = OpynInteractions.redeem(
-			gammaController,
-			marginPool,
+			addressBook.getController(),
+			addressBook.getMarginPool(),
 			_series,
 			seriesBalance
 		);
@@ -573,7 +564,7 @@ contract OptionRegistry is AccessControl {
 	) external view returns (address) {
 		// check for an opyn oToken
 		address series = OpynInteractions.getOtoken(
-			oTokenFactory,
+			addressBook.getOtokenFactory(),
 			collateral,
 			underlying,
 			strikeAsset,
@@ -606,9 +597,10 @@ contract OptionRegistry is AccessControl {
 			address collatAsset
 		)
 	{
+		IController gammaController = IController(addressBook.getController());
 		// run checks on the vault health
 		// get the vault details from the vaultId
-		GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
+		GammaTypes.Vault memory vault = gammaController.getVault(address(this), vaultId);
 		// get the series
 		Types.OptionSeries memory series = seriesInfo[vault.shortOtokens[0]];
 		if (series.expiration < block.timestamp) {

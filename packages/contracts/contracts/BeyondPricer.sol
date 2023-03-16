@@ -13,7 +13,6 @@ import "./libraries/OptionsCompute.sol";
 import "./libraries/SafeTransferLib.sol";
 
 import "./interfaces/IOracle.sol";
-import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IMarginCalculator.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
