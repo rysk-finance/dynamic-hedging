@@ -47,6 +47,12 @@ export const OptionCatalogueABI = [
 		"anonymous": false,
 		"inputs": [
 			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "optionHash",
+				"type": "bytes32"
+			},
+			{
 				"indexed": false,
 				"internalType": "uint64",
 				"name": "expiration",
@@ -83,6 +89,12 @@ export const OptionCatalogueABI = [
 	{
 		"anonymous": false,
 		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "optionHash",
+				"type": "bytes32"
+			},
 			{
 				"indexed": false,
 				"internalType": "uint64",
