@@ -1284,4 +1284,4 @@ export const OptionExchangeABI = [
 		"stateMutability": "nonpayable",
 		"type": "function"
 	}
-] as const
+] as const;

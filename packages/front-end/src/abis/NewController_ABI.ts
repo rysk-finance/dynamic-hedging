@@ -1389,4 +1389,4 @@ export const NewControllerABI = [
 		"stateMutability": "view",
 		"type": "function"
 	}
-] as const
+] as const;
