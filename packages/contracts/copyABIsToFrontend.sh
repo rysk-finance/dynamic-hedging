@@ -35,7 +35,7 @@ do
 
     echo "$ABI" > ../front-end/src/abis/$FILE_NAME.json
 
-    echo "export const ${FILE_NAME}ABI = $ABI as const" \
+    echo "export const ${FILE_NAME}ABI = $ABI as const;" \
     > ../front-end/src/abis/${FILE_NAME}_ABI.ts
 done
 
@@ -46,7 +46,7 @@ do
 
     echo "$ABI" > ../front-end/src/abis/$FILE_NAME.json
 
-    echo "export const ${FILE_NAME}ABI = $ABI as const" \
+    echo "export const ${FILE_NAME}ABI = $ABI as const;" \
     > ../front-end/src/abis/${FILE_NAME}_ABI.ts
 done
 
@@ -57,7 +57,7 @@ do
 
     echo "$ABI" > ../front-end/src/abis/$FILE_NAME.json
 
-    echo "export const ${FILE_NAME}ABI = $ABI as const" \
+    echo "export const ${FILE_NAME}ABI = $ABI as const;" \
     > ../front-end/src/abis/${FILE_NAME}_ABI.ts
 done
 
@@ -72,6 +72,6 @@ do
 
     echo "$ABI" > ../front-end/src/abis/${ABI_PATH_ARR[2]}.json
 
-    echo "export const ${ABI_PATH_ARR[2]}ABI = $ABI as const" \
+    echo "export const ${ABI_PATH_ARR[2]}ABI = $ABI as const;" \
     > ../front-end/src/abis/${ABI_PATH_ARR[2]}_ABI.ts
 done

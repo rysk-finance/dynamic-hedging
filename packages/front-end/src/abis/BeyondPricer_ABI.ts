@@ -844,4 +844,4 @@ export const BeyondPricerABI = [
 		"stateMutability": "view",
 		"type": "function"
 	}
-] as const
+] as const;

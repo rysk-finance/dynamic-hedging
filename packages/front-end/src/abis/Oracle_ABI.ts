@@ -564,4 +564,4 @@ export const OracleABI = [
 		"stateMutability": "nonpayable",
 		"type": "function"
 	}
-] as const
+] as const;
