@@ -168,9 +168,6 @@ describe("Options protocol Vault Health", function () {
 		await weth.deposit({ value: utils.parseEther("99") })
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
-			OTOKEN_FACTORY[chainId],
-			GAMMA_CONTROLLER[chainId],
-			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId],
 			authority.address
