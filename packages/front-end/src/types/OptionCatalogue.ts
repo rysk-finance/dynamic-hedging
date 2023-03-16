@@ -192,8 +192,8 @@ export interface OptionCatalogueInterface extends utils.Interface {
 
   events: {
     "AuthorityUpdated(address)": EventFragment;
-    "SeriesAltered(uint64,uint128,bool,bool,bool)": EventFragment;
-    "SeriesApproved(uint64,uint128,bool,bool,bool)": EventFragment;
+    "SeriesAltered(bytes32,uint64,uint128,bool,bool,bool)": EventFragment;
+    "SeriesApproved(bytes32,uint64,uint128,bool,bool,bool)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
@@ -207,8 +207,9 @@ export type AuthorityUpdatedEventFilter =
   TypedEventFilter<AuthorityUpdatedEvent>;
 
 export type SeriesAlteredEvent = TypedEvent<
-  [BigNumber, BigNumber, boolean, boolean, boolean],
+  [string, BigNumber, BigNumber, boolean, boolean, boolean],
   {
+    optionHash: string;
     expiration: BigNumber;
     strike: BigNumber;
     isPut: boolean;
@@ -220,8 +221,9 @@ export type SeriesAlteredEvent = TypedEvent<
 export type SeriesAlteredEventFilter = TypedEventFilter<SeriesAlteredEvent>;
 
 export type SeriesApprovedEvent = TypedEvent<
-  [BigNumber, BigNumber, boolean, boolean, boolean],
+  [string, BigNumber, BigNumber, boolean, boolean, boolean],
   {
+    optionHash: string;
     expiration: BigNumber;
     strike: BigNumber;
     isPut: boolean;
@@ -477,7 +479,8 @@ export interface OptionCatalogue extends BaseContract {
     "AuthorityUpdated(address)"(authority?: null): AuthorityUpdatedEventFilter;
     AuthorityUpdated(authority?: null): AuthorityUpdatedEventFilter;
 
-    "SeriesAltered(uint64,uint128,bool,bool,bool)"(
+    "SeriesAltered(bytes32,uint64,uint128,bool,bool,bool)"(
+      optionHash?: BytesLike | null,
       expiration?: null,
       strike?: null,
       isPut?: null,
@@ -485,6 +488,7 @@ export interface OptionCatalogue extends BaseContract {
       isSellable?: null
     ): SeriesAlteredEventFilter;
     SeriesAltered(
+      optionHash?: BytesLike | null,
       expiration?: null,
       strike?: null,
       isPut?: null,
@@ -492,7 +496,8 @@ export interface OptionCatalogue extends BaseContract {
       isSellable?: null
     ): SeriesAlteredEventFilter;
 
-    "SeriesApproved(uint64,uint128,bool,bool,bool)"(
+    "SeriesApproved(bytes32,uint64,uint128,bool,bool,bool)"(
+      optionHash?: BytesLike | null,
       expiration?: null,
       strike?: null,
       isPut?: null,
@@ -500,6 +505,7 @@ export interface OptionCatalogue extends BaseContract {
       isSellable?: null
     ): SeriesApprovedEventFilter;
     SeriesApproved(
+      optionHash?: BytesLike | null,
       expiration?: null,
       strike?: null,
       isPut?: null,
