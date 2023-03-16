@@ -812,4 +812,4 @@ export const AlphaPortfolioValuesFeedABI = [
 		"stateMutability": "nonpayable",
 		"type": "function"
 	}
-] as const
+] as const;
