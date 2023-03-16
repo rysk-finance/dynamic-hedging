@@ -16,6 +16,7 @@ import "./interfaces/GammaInterface.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
+import "./interfaces/AddressBookInterface.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
@@ -329,7 +330,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		}
 		// get the vault details and reset the short exposure to whatever it is
 		uint256 shortAmounts = OptionsCompute.convertFromDecimals(
-			IController(optionRegistry.gammaController())
+			IController(AddressBookInterface(optionRegistry.addressBook()).getController())
 				.getVault(address(optionRegistry), vaultId)
 				.shortAmounts[0],
 			oTokenDecimals
