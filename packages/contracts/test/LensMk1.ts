@@ -500,6 +500,14 @@ describe("Lens", async () => {
                 // console.log(lensVals.optionExpirationDrills[3].callOptionDrill)
 
             })
+            it("ping the lens contract", async () => {
+                const lensVals = await lens.getExpirations()
+                for (let i=0; i < lensVals.length; i++) {
+                    const con = await lens.getOptionExpirationDrill(lensVals[i])
+                    // console.log(con)
+                }
+
+            })
         })
         describe("Settles and redeems usd otoken", async () => {
             it("fastforward", async () => {
