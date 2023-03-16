@@ -52,6 +52,7 @@ contract DHVLensMK1 {
 		OptionStrikeDrill[] callOptionDrill;
 		uint128[] putStrikes;
 		OptionStrikeDrill[] putOptionDrill;
+		uint256 underlyingPrice;
 	}
 
 	struct OptionChain {
@@ -86,20 +87,34 @@ contract DHVLensMK1 {
 	function getOptionExpirationDrill(
 		uint64 expiration
 	) external view returns (OptionExpirationDrill memory) {
+		return _constructExpirationDrill(expiration);
+	}
+
+	function _constructExpirationDrill(
+		uint64 expiration
+	) internal view returns (OptionExpirationDrill memory) {
 		uint128[] memory callStrikes = catalogue.getOptionDetails(expiration, false);
 		uint128[] memory putStrikes = catalogue.getOptionDetails(expiration, true);
+		uint256 underlyingPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		OptionStrikeDrill[] memory callStrikeDrill = _constructStrikesDrill(
 			expiration,
 			callStrikes,
-			false
+			false,
+			underlyingPrice
 		);
-		OptionStrikeDrill[] memory putStrikeDrill = _constructStrikesDrill(expiration, putStrikes, true);
+		OptionStrikeDrill[] memory putStrikeDrill = _constructStrikesDrill(
+			expiration,
+			putStrikes,
+			true,
+			underlyingPrice
+		);
 		OptionExpirationDrill memory optionExpirationDrill = OptionExpirationDrill(
 			expiration,
 			callStrikes,
 			callStrikeDrill,
 			putStrikes,
-			putStrikeDrill
+			putStrikeDrill,
+			underlyingPrice
 		);
 		return optionExpirationDrill;
 	}
@@ -129,26 +144,7 @@ contract DHVLensMK1 {
 		}
 		OptionExpirationDrill[] memory optionExpirationDrills = new OptionExpirationDrill[](validCount);
 		for (uint i; i < expirations.length; i++) {
-			uint128[] memory callStrikes = catalogue.getOptionDetails(expirations[i], false);
-			uint128[] memory putStrikes = catalogue.getOptionDetails(expirations[i], true);
-			OptionStrikeDrill[] memory callStrikeDrill = _constructStrikesDrill(
-				expirations[i],
-				callStrikes,
-				false
-			);
-			OptionStrikeDrill[] memory putStrikeDrill = _constructStrikesDrill(
-				expirations[i],
-				putStrikes,
-				true
-			);
-			OptionExpirationDrill memory optionExpirationDrill = OptionExpirationDrill(
-				expirations[i],
-				callStrikes,
-				callStrikeDrill,
-				putStrikes,
-				putStrikeDrill
-			);
-			optionExpirationDrills[i] = optionExpirationDrill;
+			optionExpirationDrills[i] = _constructExpirationDrill(expirations[i]);
 		}
 		optionChain.expirations = expirations;
 		optionChain.optionExpirationDrills = optionExpirationDrills;
@@ -158,7 +154,8 @@ contract DHVLensMK1 {
 	function _constructStrikesDrill(
 		uint64 expiration,
 		uint128[] memory strikes,
-		bool isPut
+		bool isPut,
+		uint256 underlyingPrice
 	) internal view returns (OptionStrikeDrill[] memory) {
 		OptionStrikeDrill[] memory optionStrikeDrills = new OptionStrikeDrill[](strikes.length);
 		for (uint j; j < strikes.length; j++) {
@@ -170,16 +167,16 @@ contract DHVLensMK1 {
 				strikes[j],
 				isPut,
 				netDhvExposure,
-				optionHash,
-				false
+				false,
+				underlyingPrice
 			);
 			(TradingSpec memory askTradingSpec, ) = _constructTradingSpec(
 				expiration,
 				strikes[j],
 				isPut,
 				netDhvExposure,
-				optionHash,
-				true
+				true,
+				underlyingPrice
 			);
 			OptionStrikeDrill memory optionStrikeDrill = OptionStrikeDrill(
 				strikes[j],
@@ -198,13 +195,14 @@ contract DHVLensMK1 {
 		uint128 strike,
 		bool isPut,
 		int256 netDhvExposure,
-		bytes32 optionHash,
-		bool isSell
+		bool isSell,
+		uint256 underlyingPrice
 	) internal view returns (TradingSpec memory, int256 delta) {
-		OptionCatalogue.OptionStores memory stores = catalogue.getOptionStores(optionHash);
+		OptionCatalogue.OptionStores memory stores = catalogue.getOptionStores(
+			keccak256(abi.encodePacked(expiration, strike, isPut))
+		);
 		uint256 premium;
 		uint256 fee;
-		uint256 iv;
 
 		try
 			pricer.quoteOptionPrice(
@@ -229,26 +227,26 @@ contract DHVLensMK1 {
 			delta = 418;
 			fee = 418;
 		}
-		// retrieve iv
-		iv = _getIv(isPut, strike, expiration);
 
-		// check and switch disabled
-		bool disabled = isSell ? !stores.isSellable : !stores.isBuyable;
-		return (TradingSpec(iv, premium, fee, disabled), delta);
+		return (
+			TradingSpec(
+				_getIv(isPut, strike, expiration, underlyingPrice),
+				premium,
+				fee,
+				isSell ? !stores.isSellable : !stores.isBuyable
+			),
+			delta
+		);
 	}
 
 	function _getIv(
 		bool isPut,
 		uint128 strike,
-		uint256 expiration
+		uint256 expiration,
+		uint256 underlyingPrice
 	) internal view returns (uint256 iv) {
 		try
-			_getVolatilityFeed().getImpliedVolatility(
-				isPut,
-				_getUnderlyingPrice(underlyingAsset, strikeAsset),
-				strike,
-				expiration
-			)
+			_getVolatilityFeed().getImpliedVolatility(isPut, underlyingPrice, strike, expiration)
 		returns (uint256 _iv) {
 			iv = _iv;
 		} catch {
