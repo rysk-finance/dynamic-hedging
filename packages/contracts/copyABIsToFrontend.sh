@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # To run this script you will need jq installed.
 # https://stedolan.github.io/jq/download/
 
@@ -73,5 +75,3 @@ do
     echo "export const ${ABI_PATH_ARR[2]}ABI = $ABI as const" \
     > ../front-end/src/abis/${ABI_PATH_ARR[2]}_ABI.ts
 done
-
-read -p "Press enter to continue..."
