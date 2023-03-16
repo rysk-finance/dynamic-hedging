@@ -508,4 +508,4 @@ export const DHVLensMK1ABI = [
 		"stateMutability": "view",
 		"type": "function"
 	}
-] as const
+] as const;

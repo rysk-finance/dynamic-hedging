@@ -830,4 +830,4 @@ export const NewMarginCalculatorABI = [
 		"stateMutability": "nonpayable",
 		"type": "function"
 	}
-] as const
+] as const;

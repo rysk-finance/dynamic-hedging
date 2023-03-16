@@ -190,4 +190,4 @@ export const PriceFeedABI = [
 		"stateMutability": "nonpayable",
 		"type": "function"
 	}
-] as const
+] as const;
