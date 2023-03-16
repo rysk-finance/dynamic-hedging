@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
 
-import { OpynControllerABI } from "src/abis/OpynController_ABI";
+import { NewControllerABI } from "src/abis/NewController_ABI";
 import OpynActionType from "src/enums/OpynActionType";
 import { useGraphPolling } from "src/hooks/useGraphPolling";
 import { useGlobalContext } from "src/state/GlobalContext";
@@ -245,7 +245,7 @@ const useRedeem = () => {
 
       const config = await prepareWriteContract({
         address: getContractAddress("OpynController"),
-        abi: OpynControllerABI,
+        abi: NewControllerABI,
         functionName: "operate",
         args: [args],
         overrides: {
