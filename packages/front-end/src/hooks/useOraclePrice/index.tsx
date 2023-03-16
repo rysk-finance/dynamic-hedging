@@ -1,5 +1,5 @@
 import { readContract } from "@wagmi/core";
-import { OpynOracleABI } from "../../abis/OpynOracle_ABI";
+import { OracleABI } from "../../abis/Oracle_ABI";
 import { getContractAddress } from "../../utils/helpers";
 
 /**
@@ -17,7 +17,7 @@ const useOraclePrice = () => {
   const getPrice = async (asset: HexString) => {
     return await readContract({
       address: opynOracleAddress,
-      abi: OpynOracleABI,
+      abi: OracleABI,
       functionName: "getPrice",
       args: [asset],
     });

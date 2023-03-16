@@ -1,4 +1,4 @@
-import { OpynNewMarginCalculatorABI } from "src/abis/OpynNewMarginCalculator_ABI";
+import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
 
 import { DECIMALS } from "../../config/constants";
 import { getContractAddress } from "../../utils/helpers";
@@ -44,7 +44,7 @@ const useMarginRequirement = (): [
   // Contract read
   const { data: margin } = useContractRead({
     address: marginCalculatorAddress,
-    abi: OpynNewMarginCalculatorABI,
+    abi: NewMarginCalculatorABI,
     functionName: "getNakedMarginRequired",
     args: [
       underlying,
