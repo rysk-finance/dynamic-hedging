@@ -63,6 +63,7 @@ export declare namespace DHVLensMK1 {
     callOptionDrill: DHVLensMK1.OptionStrikeDrillStruct[];
     putStrikes: BigNumberish[];
     putOptionDrill: DHVLensMK1.OptionStrikeDrillStruct[];
+    underlyingPrice: BigNumberish;
   };
 
   export type OptionExpirationDrillStructOutput = [
@@ -70,13 +71,15 @@ export declare namespace DHVLensMK1 {
     BigNumber[],
     DHVLensMK1.OptionStrikeDrillStructOutput[],
     BigNumber[],
-    DHVLensMK1.OptionStrikeDrillStructOutput[]
+    DHVLensMK1.OptionStrikeDrillStructOutput[],
+    BigNumber
   ] & {
     expiration: BigNumber;
     callStrikes: BigNumber[];
     callOptionDrill: DHVLensMK1.OptionStrikeDrillStructOutput[];
     putStrikes: BigNumber[];
     putOptionDrill: DHVLensMK1.OptionStrikeDrillStructOutput[];
+    underlyingPrice: BigNumber;
   };
 
   export type OptionChainStruct = {
