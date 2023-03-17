@@ -4,8 +4,8 @@ import type { ChangeEvent } from "react";
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import { OptionsTradingActionType } from "src/state/types";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
 import { fromOpynNoDecimal } from "src/utils/conversion-helper";
 
 enum TupleIndexEnum {
@@ -19,7 +19,7 @@ export const StrikeRange = () => {
   const {
     dispatch,
     state: { visibleStrikeRange },
-  } = useOptionsTradingContext();
+  } = useGlobalContext();
 
   useEffect(() => {
     const strikePrice = searchParams.has("strike")
@@ -28,7 +28,7 @@ export const StrikeRange = () => {
 
     if (strikePrice) {
       dispatch({
-        type: OptionsTradingActionType.SET_VISIBLE_STRIKE_RANGE,
+        type: ActionType.SET_VISIBLE_STRIKE_RANGE,
         visibleStrikeRange: [strikePrice, strikePrice],
       });
     }
@@ -40,21 +40,24 @@ export const StrikeRange = () => {
 
       if (index === TupleIndexEnum.MIN) {
         dispatch({
-          type: OptionsTradingActionType.SET_VISIBLE_STRIKE_RANGE,
+          type: ActionType.SET_VISIBLE_STRIKE_RANGE,
           visibleStrikeRange: [filterValue, visibleStrikeRange[1]],
         });
       }
 
       if (index === TupleIndexEnum.MAX) {
         dispatch({
-          type: OptionsTradingActionType.SET_VISIBLE_STRIKE_RANGE,
+          type: ActionType.SET_VISIBLE_STRIKE_RANGE,
           visibleStrikeRange: [visibleStrikeRange[0], filterValue],
         });
       }
     };
 
   return (
-    <div className="flex items-center my-2 xl:my-0 xl:ml-auto xl:border-x-2 border-black px-4" id="filter-strike-range">
+    <div
+      className="flex items-center my-2 xl:my-0 xl:ml-auto xl:border-x-2 border-black px-4"
+      id="filter-strike-range"
+    >
       <p className="pr-2 font-medium text-sm 2xl:text-base">{`Filter strike range:`}</p>
       <label htmlFor="strike-min" hidden>
         {`Minimum`}

@@ -3,6 +3,7 @@ import type { SelectedOption, StrikeOptions } from "src/state/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
 import { useDebounce } from "use-debounce";
+import { useSearchParams } from "react-router-dom";
 
 import FadeInOut from "src/animation/FadeInOut";
 import { useGlobalContext } from "src/state/GlobalContext";
@@ -13,13 +14,15 @@ import { Cell, Delta, Exposure, IV, Position, Quote, Strike } from "./Cells";
 
 export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
   const {
-    state: { ethPrice },
+    state: { ethPrice, visibleStrikeRange },
   } = useGlobalContext();
 
   const {
-    state: { selectedOption, visibleStrikeRange },
+    state: { selectedOption },
     dispatch,
   } = useOptionsTradingContext();
+
+  const [_, setSearchParams] = useSearchParams();
 
   const [colSize, , showCol] = useShowColumn();
 
@@ -148,13 +151,22 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               {showCol("pos") && (
                 <Cell
-                  cellClasses=""
+                  cellClasses="!p-0"
                   ethPrice={ethPrice}
                   option={option}
                   side="call"
                   selectedOption={selectedOption}
                 >
-                  <Position value={option.call.pos} />
+                  <Position
+                    clickFn={() => {
+                      setSearchParams({
+                        ref: "close",
+                        token: option.call.tokenID || "",
+                      });
+                    }}
+                    disabled={!option.call.pos}
+                    value={option.call.pos}
+                  />
                 </Cell>
               )}
 
@@ -250,13 +262,22 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               {showCol("pos") && (
                 <Cell
-                  cellClasses=""
+                  cellClasses="!p-0"
                   ethPrice={ethPrice}
                   option={option}
                   side="put"
                   selectedOption={selectedOption}
                 >
-                  <Position value={option.put.pos} />
+                  <Position
+                    clickFn={() => {
+                      setSearchParams({
+                        ref: "close",
+                        token: option.put.tokenID || "",
+                      });
+                    }}
+                    disabled={!option.put.pos}
+                    value={option.put.pos}
+                  />
                 </Cell>
               )}
 

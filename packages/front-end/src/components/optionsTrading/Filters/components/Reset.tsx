@@ -1,16 +1,16 @@
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import { OptionsTradingActionType } from "src/state/types";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
 
 export const Reset = () => {
-  const { dispatch } = useOptionsTradingContext();
+  const { dispatch } = useGlobalContext();
 
   const handleClick = () => {
     dispatch({
-      type: OptionsTradingActionType.RESET_VISIBLE_STRIKE_RANGE,
+      type: ActionType.SET_VISIBLE_STRIKE_RANGE,
     });
 
     dispatch({
-      type: OptionsTradingActionType.RESET_VISIBLE_COLUMNS,
+      type: ActionType.SET_VISIBLE_COLUMNS,
     });
   };
 
