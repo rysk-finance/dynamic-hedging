@@ -65,11 +65,17 @@ export const Delta = ({ value }: DeltaProps) => {
   );
 };
 
-export const Position = ({ value }: PositionProps) => {
+export const Position = ({ clickFn, disabled, value }: PositionProps) => {
   return (
-    <span>
+    <button
+      className={`${
+        disabled ? "cursor-not-allowed" : "cursor-pointer"
+      } py-4 xl:py-3 px-1 xl:px-2 w-full text-right`}
+      onClick={clickFn}
+      disabled={disabled}
+    >
       <RyskCountUp value={value} />
-    </span>
+    </button>
   );
 };
 
