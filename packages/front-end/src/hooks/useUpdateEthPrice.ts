@@ -17,6 +17,17 @@ interface EthPriceResponse {
   low_24h: number;
 }
 
+export const priceFeedGetRate = async () => {
+  const ethPrice = await readContract({
+    address: getContractAddress("priceFeed"),
+    abi: PriceFeedABI,
+    functionName: "getRate",
+    args: [getContractAddress("WETH"), getContractAddress("USDC")],
+  });
+
+  return fromOpynToNumber(ethPrice);
+};
+
 /**
  * Hook to update Ether price in global state.
  *
@@ -48,14 +59,7 @@ export const useUpdateEthPrice = () => {
 
   const getPriceFeedRate = async () => {
     try {
-      const ethPrice = await readContract({
-        address: getContractAddress("priceFeed"),
-        abi: PriceFeedABI,
-        functionName: "getRate",
-        args: [getContractAddress("WETH"), getContractAddress("USDC")],
-      });
-
-      return fromOpynToNumber(ethPrice);
+      return await priceFeedGetRate();
     } catch (error) {
       captureException(error);
 
