@@ -7,10 +7,9 @@ import WalletProvider from "./clients/WalletProvider/Wallet";
 import Favicon from "./components/Favicon";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
+import { Init } from "./components/Init";
 import { MobileWarning } from "./components/MobileWarning";
 import { AppPaths } from "./config/appPaths";
-import useFathom from "./hooks/useFathom";
-import { useSentry } from "./hooks/useSentry";
 import { Dashboard } from "./pages/Dashboard";
 import { OptionsTrading } from "./pages/OptionsTrading";
 import { OTC } from "./pages/OTC";
@@ -21,13 +20,11 @@ import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 
 function App() {
-  useFathom();
-  useSentry();
-
   return (
     <GlobalContextProvider>
       <WalletProvider>
         <ApolloProvider>
+          <Init />
           <div className="App bg-bone flex flex-col min-h-screen">
             <Favicon />
             {process.env.REACT_APP_ENV !== "production" && (
