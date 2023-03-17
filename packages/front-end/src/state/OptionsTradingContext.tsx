@@ -9,24 +9,9 @@ import type {
 import { createContext, useContext, useReducer } from "react";
 
 import { optionsTradingReducer } from "./reducer";
-import { OptionType } from "./types";
 
 export const defaultOptionTradingState: OptionsTradingState = {
-  optionType: OptionType.CALL,
-  expiryDate: null,
-  optionParams: null,
-  customOptionStrikes: [],
   selectedOption: null,
-  visibleStrikeRange: ["", ""],
-  visibleColumns: new Set([
-    "bid",
-    "ask",
-    "bid iv",
-    "ask iv",
-    "delta",
-    "pos",
-  ] as ColumNames[]),
-  chainData: {},
   sellModalOpen: false,
   tutorialIndex: undefined,
 };
