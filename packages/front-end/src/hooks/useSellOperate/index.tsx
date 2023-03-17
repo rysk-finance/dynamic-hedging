@@ -97,7 +97,7 @@ const useSellOperate = (): [
       ? // user has a vault with a short position for this option series
         BigNumber.from(data.vaults[0].vaultId)
       : // user does not have a vault with a short position for this option series
-        BigNumber.from(Number(data?.account.vaultCount) + 1 || 0);
+        BigNumber.from(Number(data?.account?.vaultCount) + 1 || 0);
 
   // Setters
   const updateMargin = (amount: BigNumber) => {
@@ -187,7 +187,7 @@ const useSellOperate = (): [
       optionSeries &&
       amount.gt("0") &&
       margin.gt("0") &&
-      Boolean(data?.account.vaultCount),
+      Boolean(data?.account?.vaultCount),
     overrides: {
       gasLimit: BigNumber.from("3000000"),
     },
