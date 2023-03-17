@@ -4,13 +4,13 @@ import type {
   OptionsTradingAction,
   OptionsTradingState,
   VaultAction,
-  VaultState,
+  VaultState
 } from "./types";
 
 import { Reducer } from "react";
 
+import { defaultGlobalState } from "./GlobalContext";
 import { ActionType, OptionsTradingActionType, VaultActionType } from "./types";
-import { defaultOptionTradingState } from "./OptionsTradingContext";
 
 export const globalReducer: Reducer<GlobalState, GlobalAction> = (
   state,
@@ -65,16 +65,48 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           usdcOnHold: null,
         },
       };
-    case ActionType.SET_USER_OPTION_POSITIONS:
-      return {
-        ...state,
-        userOptionPositions: action.userOptionPositions,
-      };
     case ActionType.SET_UNSTOPPABLE_DOMAIN:
       return {
         ...state,
         unstoppableDomain: action.unstoppableDomain,
       };
+    case ActionType.SET_OPTIONS:
+      return {
+        ...state,
+        options: {
+          activeExpiry: action.activeExpiry || state.options.activeExpiry,
+          data: action.data || state.options.data,
+          error: action.error || state.options.error,
+          expiries: action.expiries || state.options.expiries,
+          loading: action.loading ?? state.options.loading,
+          refresh: action.refresh || state.options.refresh,
+          userPositions: action.userPositions || state.options.userPositions,
+        },
+      };
+    case ActionType.SET_VISIBLE_STRIKE_RANGE:
+      return {
+        ...state,
+        visibleStrikeRange:
+          action.visibleStrikeRange || defaultGlobalState.visibleStrikeRange,
+      };
+    case ActionType.SET_VISIBLE_COLUMNS:
+      const newSet = new Set(state.visibleColumns);
+
+      if (action.column) {
+        newSet.has(action.column)
+          ? newSet.delete(action.column)
+          : newSet.add(action.column);
+
+        return {
+          ...state,
+          visibleColumns: newSet,
+        };
+      } else {
+        return {
+          ...state,
+          visibleColumns: defaultGlobalState.visibleColumns,
+        };
+      }
   }
 };
 
@@ -96,57 +128,8 @@ export const optionsTradingReducer: Reducer<
   OptionsTradingAction
 > = (state, action) => {
   switch (action.type) {
-    case OptionsTradingActionType.SET_OPTION_TYPE:
-      return {
-        ...state,
-        optionType: action.optionType,
-        customOptionStrikes: [],
-      };
-    case OptionsTradingActionType.SET_EXPIRY_DATE:
-      return { ...state, expiryDate: action.date };
     case OptionsTradingActionType.SET_SELECTED_OPTION:
       return { ...state, selectedOption: action.option };
-    case OptionsTradingActionType.ADD_CUSTOM_STRIKE:
-      return {
-        ...state,
-        customOptionStrikes: [...state.customOptionStrikes, action.strike],
-      };
-    case OptionsTradingActionType.SET_OPTION_PARAMS:
-      return {
-        ...state,
-        optionParams: action.params,
-      };
-    case OptionsTradingActionType.SET_VISIBLE_STRIKE_RANGE:
-      return {
-        ...state,
-        visibleStrikeRange: action.visibleStrikeRange,
-      };
-    case OptionsTradingActionType.RESET_VISIBLE_STRIKE_RANGE:
-      return {
-        ...state,
-        visibleStrikeRange: defaultOptionTradingState.visibleStrikeRange,
-      };
-    case OptionsTradingActionType.SET_VISIBLE_COLUMNS:
-      const newSet = new Set(state.visibleColumns);
-
-      newSet.has(action.column)
-        ? newSet.delete(action.column)
-        : newSet.add(action.column);
-
-      return {
-        ...state,
-        visibleColumns: newSet,
-      };
-    case OptionsTradingActionType.RESET_VISIBLE_COLUMNS:
-      return {
-        ...state,
-        visibleColumns: defaultOptionTradingState.visibleColumns,
-      };
-    case OptionsTradingActionType.SET_CHAIN_DATA_FOR_EXPIRY:
-      return {
-        ...state,
-        chainData: { ...state.chainData, [action.expiry]: action.data },
-      };
     case OptionsTradingActionType.SET_SELL_MODAL_VISIBLE:
       return {
         ...state,
