@@ -1,15 +1,15 @@
 import type {
   CellProps,
-  IVProps,
-  QuoteProps,
   DeltaProps,
-  PositionProps,
   ExposureProps,
+  IVProps,
+  PositionProps,
+  QuoteProps,
   StrikeProps,
 } from "./types";
 
-import { getColorClasses } from "../../utils/getColorClasses";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
+import { getColorClasses } from "../../utils/getColorClasses";
 
 export const Cell = ({
   children,
@@ -38,7 +38,7 @@ export const Cell = ({
 export const IV = ({ value }: IVProps) => {
   return (
     <span className={value ? "after:content-['%'] after:ml-1" : ""}>
-      <RyskCountUp value={value} />
+      <RyskCountUp format="IV" value={value} />
     </span>
   );
 };
