@@ -13,29 +13,35 @@ import { OptionsTradingActionType } from "src/state/types";
  *
  * @returns [boolean]
  */
-export const useSellModal = () => {
+export const useCloseModal = () => {
   const [searchParams] = useSearchParams();
+
   const {
-    state: { userOptionPositions },
+    state: {
+      options: { activeExpiry, userPositions },
+    },
   } = useGlobalContext();
+
   const {
     state: { sellModalOpen },
     dispatch,
   } = useOptionsTradingContext();
 
   useEffect(() => {
-    const hasSellRef = searchParams.get("ref") === "sell";
-    const hasUserPosition = userOptionPositions.find(
-      ({ otokenId }) => otokenId === searchParams.get("token")
-    );
+    if (activeExpiry) {
+      const hasSellRef = searchParams.get("ref") === "close";
+      const hasUserPosition = userPositions[activeExpiry]?.tokens.find(
+        ({ id }) => id === searchParams.get("token")
+      );
 
-    if (hasSellRef && hasUserPosition) {
-      dispatch({
-        type: OptionsTradingActionType.SET_SELL_MODAL_VISIBLE,
-        visible: true,
-      });
+      if (hasSellRef && hasUserPosition) {
+        dispatch({
+          type: OptionsTradingActionType.SET_SELL_MODAL_VISIBLE,
+          visible: true,
+        });
+      }
     }
-  }, [searchParams]);
+  }, [activeExpiry, searchParams]);
 
   return [sellModalOpen] as const;
 };
