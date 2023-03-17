@@ -20,6 +20,9 @@ export const SECONDS_IN_YEAR = SECONDS_IN_DAY * 365.25;
 export const genOptionTime = (now: Dayjs, future: Dayjs) =>
   (future.unix() - now.unix()) / SECONDS_IN_YEAR;
 export const fromWei = (x: BigNumberish) => utils.formatEther(x);
+export const fromWeiToOpyn = (x: BigNumberish) =>
+  utils.parseUnits(utils.formatEther(x), 8);
+export const fromWeiToInt = (x: BigNumberish) => Number(utils.formatEther(x));
 export const fromUSDC = (x: BigNumberish) => utils.formatUnits(x, 6);
 export const tFormatUSDC = (x: BigNumberish, places: number = 3) =>
   truncate(Number(fromUSDC(x)), places);
@@ -38,6 +41,7 @@ export const fromOpynHumanised = (x?: BigNumberish) => {
 };
 export const fromOpynToNumber = (x: BigNumberish) => Number(fromOpyn(x));
 export const fromOpynNoDecimal = (x: BigNumberish) => fromOpyn(x).split(".")[0];
+export const fromRysk = (x: string) => utils.formatUnits(x, 18);
 export const getDiffSeconds = (now: Dayjs, future: Dayjs) =>
   future.unix() - now.unix();
 export const convertRounded = (x: BigNumberish): number =>
