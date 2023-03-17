@@ -40,8 +40,8 @@ contract DHVLensMK1 {
 
 	struct OptionStrikeDrill {
 		uint128 strike;
-		TradingSpec bid; // buy
-		TradingSpec ask; // sell
+		TradingSpec bid; // sell
+		TradingSpec ask; // buy
 		int256 delta;
 		int256 exposure;
 	}
@@ -167,7 +167,7 @@ contract DHVLensMK1 {
 				strikes[j],
 				isPut,
 				netDhvExposure,
-				false,
+				true,
 				underlyingPrice
 			);
 			(TradingSpec memory askTradingSpec, ) = _constructTradingSpec(
@@ -175,7 +175,7 @@ contract DHVLensMK1 {
 				strikes[j],
 				isPut,
 				netDhvExposure,
-				true,
+				false,
 				underlyingPrice
 			);
 			OptionStrikeDrill memory optionStrikeDrill = OptionStrikeDrill(
