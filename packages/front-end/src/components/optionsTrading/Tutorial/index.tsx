@@ -72,7 +72,7 @@ export const Tutorial = () => {
         {
           target: "#options-chain",
           content:
-            "This is the options chain. To trade an option, you can click on the price in the bid column to sell, or in the ask column to buy. Once you do so, you can approve and complete your trade.",
+            "This is the options chain. To trade an option, you can click on the price in the bid column to sell, or in the ask column to buy. Once you do so, you can approve and complete your trade. You can also click on any active long positions you have to close all or part of them.",
         },
         {
           target: "#header-dashboard",
