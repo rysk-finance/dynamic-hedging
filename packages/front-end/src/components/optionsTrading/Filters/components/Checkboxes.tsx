@@ -1,17 +1,17 @@
 import type { ColumNames } from "src/state/types";
 
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import { OptionsTradingActionType } from "src/state/types";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
 
 export const Checkboxes = () => {
   const {
     dispatch,
     state: { visibleColumns },
-  } = useOptionsTradingContext();
+  } = useGlobalContext();
 
   const handleChange = (column: ColumNames) => () => {
     dispatch({
-      type: OptionsTradingActionType.SET_VISIBLE_COLUMNS,
+      type: ActionType.SET_VISIBLE_COLUMNS,
       column,
     });
   };
@@ -65,7 +65,10 @@ export const Checkboxes = () => {
   ];
 
   return (
-    <div className="flex items-center justify-evenly xl:justify-start h-12 px-4 [&>*]:mx-2 [&>*]:p-3 [&_*]:ease-in-out [&_*]:duration-100 [&_label]:whitespace-nowrap" id="filter-checkboxes">
+    <div
+      className="flex items-center justify-evenly xl:justify-start h-12 px-4 [&>*]:mx-2 [&>*]:p-3 [&_*]:ease-in-out [&_*]:duration-100 [&_label]:whitespace-nowrap"
+      id="filter-checkboxes"
+    >
       {checkboxes.map((checkbox) => (
         <label
           className="flex items-center select-none cursor-pointer"

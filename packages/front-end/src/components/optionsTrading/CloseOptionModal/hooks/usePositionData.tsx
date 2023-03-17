@@ -9,8 +9,7 @@ import { useAccount } from "wagmi";
 
 import { erc20ABI } from "src/abis/erc20_ABI";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import { fromOpynToNumber } from "src/utils/conversion-helper";
+import { fromOpynToNumber, fromWeiToInt } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { renameOtoken } from "src/utils/conversion-helper";
 
@@ -25,11 +24,10 @@ export const usePositionData = () => {
 
   // Context state.
   const {
-    state: { userOptionPositions },
+    state: {
+      options: { activeExpiry, data, userPositions },
+    },
   } = useGlobalContext();
-  const {
-    state: { chainData },
-  } = useOptionsTradingContext();
 
   // User allowance state for the oToken.
   const [allowance, setAllowance] = useState<AllowanceState>({
@@ -70,9 +68,9 @@ export const usePositionData = () => {
 
   // Get user position data.
   useEffect(() => {
-    if (tokenAddress && userOptionPositions.length) {
-      const userPosition = userOptionPositions.find(
-        ({ otokenId }) => otokenId === tokenAddress
+    if (activeExpiry && tokenAddress && userPositions) {
+      const userPosition = userPositions[activeExpiry]?.tokens.find(
+        ({ id }) => id === searchParams.get("token")
       );
 
       if (userPosition) {
@@ -81,14 +79,15 @@ export const usePositionData = () => {
           .format("lll");
         const now = dayjs().format("lll");
 
-        const chainRow = chainData[userPosition.expiryTimestamp]?.find(
-          ({ strike }) => strike === fromOpynToNumber(userPosition.strikePrice)
-        );
+        const chainRow =
+          data[userPosition.expiryTimestamp][
+            fromOpynToNumber(userPosition.strikePrice)
+          ];
         const currentValue =
-          chainRow?.[userPosition.isPut ? "put" : "call"].bid.quote;
+          chainRow[userPosition.isPut ? "put" : "call"].bid.quote;
 
-        if (currentValue) {
-          const totalSize = fromOpynToNumber(userPosition.amount);
+        if (currentValue >= 0) {
+          const totalSize = fromWeiToInt(userPosition.amount);
           const totalValue = totalSize * currentValue;
           const totalPaid = userPosition.totalPremium;
           const inProfit = totalValue > totalPaid;
@@ -106,7 +105,7 @@ export const usePositionData = () => {
         }
       }
     }
-  }, [tokenAddress, userOptionPositions, chainData]);
+  }, [activeExpiry, data, tokenAddress, userPositions]);
 
   const addresses: Addresses = {
     exchange: exchangeAddress,

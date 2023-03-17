@@ -6,8 +6,6 @@ import { prepareWriteContract, writeContract } from "@wagmi/core";
 import { BigNumber } from "ethers";
 
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
-import { RyskApolloClient } from "src/clients/Apollo/Apollo";
-import { QueriesEnum } from "src/clients/Apollo/Queries";
 import { EMPTY_SERIES, ZERO_ADDRESS } from "src/config/constants";
 import OperationType from "src/enums/OperationType";
 import RyskActionType from "src/enums/RyskActionType";
@@ -15,7 +13,8 @@ import { fetchSimulation } from "src/hooks/useTenderlySimulator";
 
 export const sell = async (
   addresses: AddressesRequired,
-  amount: BigNumberType
+  amount: BigNumberType,
+  refresh: () => void
 ) => {
   const txData = [
     {
@@ -59,12 +58,7 @@ export const sell = async (
 
       await wait(1);
 
-      RyskApolloClient.refetchQueries({
-        include: [
-          QueriesEnum.DASHBOARD_USER_POSITIONS,
-          QueriesEnum.USER_BALANCE_DATA,
-        ],
-      });
+      refresh();
 
       return hash;
     } else {

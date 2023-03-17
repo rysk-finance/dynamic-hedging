@@ -1,6 +1,5 @@
 import type { BigNumberish } from "ethers";
-
-import type { Position as ParsedPosition } from "src/state/types";
+import type { ReactNode } from "react";
 
 type CompleteRedeem = (otokenId: string, amount: number) => Promise<void>;
 
@@ -38,6 +37,25 @@ interface Position {
     __typename: string;
     balances: Balance[];
   };
+}
+
+interface ParsedPosition {
+  amount: number;
+  createdAt: string;
+  entryPrice: string;
+  expired: boolean;
+  expiryPrice?: string;
+  expiryTimestamp: string;
+  id: string;
+  isPut: boolean;
+  isRedeemable: boolean;
+  otokenId: string;
+  side: string;
+  status: string | ReactNode;
+  strikePrice: string;
+  symbol: string;
+  totalPremium: number;
+  underlyingAsset: string;
 }
 
 interface TableProps {
