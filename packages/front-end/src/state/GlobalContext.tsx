@@ -1,5 +1,7 @@
 import type { PropsWithChildren } from "react";
 
+import type { ColumNames } from "./types";
+
 import {
   createContext,
   useCallback,
@@ -12,14 +14,13 @@ import { ActionType, AppSettings, GlobalContext, GlobalState } from "./types";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../components/dashboard/Settings";
 
-const defaultGlobalState: GlobalState = {
+export const defaultGlobalState: GlobalState = {
   ethPrice: null,
   eth24hChange: 0,
   eth24hHigh: null,
   eth24hLow: null,
   ethPriceUpdateTime: null,
   ethPriceError: false,
-  userOptionPositions: [],
   userPositionValue: null,
   positionBreakdown: {
     redeemedShares: null,
@@ -34,6 +35,28 @@ const defaultGlobalState: GlobalState = {
     optionsTradingUnlimitedApproval: false,
   },
   unstoppableDomain: null,
+
+  // Data related to useInitialData hook.
+  options: {
+    activeExpiry: undefined,
+    data: {},
+    error: undefined,
+    expiries: [],
+    loading: true,
+    refresh: () => {},
+    userPositions: {},
+  },
+
+  // Options chain state.
+  visibleStrikeRange: ["", ""],
+  visibleColumns: new Set([
+    "bid",
+    "ask",
+    "bid iv",
+    "ask iv",
+    "delta",
+    "pos",
+  ] as ColumNames[]),
 };
 
 export const GlobalReactContext = createContext<GlobalContext>({
