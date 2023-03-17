@@ -19,6 +19,9 @@ export const RyskCountUp = ({
       setStart(end);
       setEnd(value);
       setKey(crypto.randomUUID());
+    } else {
+      setStart(0);
+      setEnd(0);
     }
   }, [value]);
 
