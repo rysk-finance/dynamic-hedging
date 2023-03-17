@@ -1,6 +1,5 @@
 import type { ApolloError } from "@apollo/client";
-import type { Position as ParsedPosition } from "src/state/types";
-import type { CompleteRedeem, Position } from "./types";
+import type { CompleteRedeem, Position, ParsedPosition } from "./types";
 
 import { gql, useQuery } from "@apollo/client";
 import { captureException } from "@sentry/react";
@@ -14,8 +13,6 @@ import { useAccount } from "wagmi";
 import { NewControllerABI } from "src/abis/NewController_ABI";
 import OpynActionType from "src/enums/OpynActionType";
 import { useGraphPolling } from "src/hooks/useGraphPolling";
-import { useGlobalContext } from "src/state/GlobalContext";
-import { ActionType } from "src/state/types";
 import { getContractAddress } from "src/utils/helpers";
 import { DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
 import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
@@ -30,8 +27,6 @@ import { QueriesEnum } from "src/clients/Apollo/Queries";
  */
 const usePositions = () => {
   const { address, isDisconnected } = useAccount();
-
-  const { dispatch } = useGlobalContext();
 
   const { allOracleAssets } = useExpiryPriceData();
   const [positions, setPositions] = useState<ParsedPosition[] | null>(null);
@@ -204,10 +199,6 @@ const usePositions = () => {
         );
       });
 
-      dispatch({
-        type: ActionType.SET_USER_OPTION_POSITIONS,
-        userOptionPositions: parsedPositions,
-      });
       setPositions(parsedPositions);
     }
   }, [data, allOracleAssets, isDisconnected]);
