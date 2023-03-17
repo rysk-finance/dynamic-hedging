@@ -1,4 +1,4 @@
-export type ExpiryDateList = number[];
+export type ExpiryDateList = string[];
 export type VisibleRange = [number, number];
 
 export interface UserPositions {
@@ -24,9 +24,6 @@ export interface UserExpiryStatus {
 export type UserExpiryStatusNoTimestamp = Omit<UserExpiryStatus, "timestamp">;
 
 export interface DateListProps {
-  expiryDates: ExpiryDateList;
   visibleRange: VisibleRange;
-  expiryDate: number | null;
-  handleExpirySelection: (date: number) => VoidFunction;
-  balances?: UserExpiryStatus[];
+  handleExpirySelection: (date: string) => VoidFunction;
 }

@@ -14,7 +14,9 @@ import { Loading } from "src/Icons";
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { OptionsTradingActionType } from "src/state/types";
 import { toOpyn, toRysk } from "src/utils/conversion-helper";
+import { useSearchParams } from "react-router-dom";
 
+import { useGlobalContext } from "src/state/GlobalContext";
 import { Disclaimer } from "./components/Disclaimer";
 import { Header } from "./components/Header";
 import { Modal } from "./components/Modal";
@@ -25,8 +27,16 @@ import { sell } from "./utils/sell";
 
 dayjs.extend(LocalizedFormat);
 
-export const SellOptionModal = () => {
+export const CloseOptionModal = () => {
   const addRecentTransaction = useAddRecentTransaction();
+
+  const [_, setSearchParams] = useSearchParams();
+
+  const {
+    state: {
+      options: { refresh },
+    },
+  } = useGlobalContext();
 
   const { dispatch } = useOptionsTradingContext();
 
@@ -114,7 +124,11 @@ export const SellOptionModal = () => {
       if (addresses.token && addresses.user) {
         const amount = toRysk(amountToSell);
 
-        const hash = await sell(addresses as AddressesRequired, amount);
+        const hash = await sell(
+          addresses as AddressesRequired,
+          amount,
+          refresh
+        );
 
         if (hash) {
           setTransactionPending(false);
@@ -124,6 +138,7 @@ export const SellOptionModal = () => {
             type: OptionsTradingActionType.SET_SELL_MODAL_VISIBLE,
             visible: false,
           });
+          setSearchParams({});
         }
       }
     } catch (error) {

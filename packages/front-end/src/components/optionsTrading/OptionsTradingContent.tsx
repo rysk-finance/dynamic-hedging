@@ -1,17 +1,16 @@
 import { AnimatePresence } from "framer-motion";
 
-import { OptionsTable } from "./OptionsTable";
-import { Purchase } from "./Purchase";
+import { AssetPriceInfo } from "./AssetPriceInfo";
+import { Chain } from "./Chain";
+import { CloseOptionModal } from "./CloseOptionModal";
 import { ExpiryDatePicker } from "./ExpiryDatePicker";
 import { Filters } from "./Filters/Filters";
-import { AssetPriceInfo } from "./AssetPriceInfo";
-import { SellOptionModal } from "./SellOptionModal";
+import { useCloseModal } from "./hooks/useCloseModal";
+import { Purchase } from "./Purchase";
 import { Tutorial } from "./Tutorial";
 
-import { useSellModal } from "./hooks/useSellModal";
-
 export const OptionsTradingContent = () => {
-  const [sellModalOpen] = useSellModal();
+  const [closeModalOpen] = useCloseModal();
 
   return (
     <section className="col-start-1 col-end-17 -mt-16">
@@ -22,13 +21,13 @@ export const OptionsTradingContent = () => {
       <div className="relative border-2 border-black">
         <ExpiryDatePicker />
         <Filters />
-        <OptionsTable />
+        <Chain />
       </div>
 
       <Purchase />
 
       <AnimatePresence mode="wait">
-        {sellModalOpen && <SellOptionModal />}
+        {closeModalOpen && <CloseOptionModal />}
       </AnimatePresence>
     </section>
   );

@@ -1,6 +1,6 @@
 import type { ColumNames } from "src/state/types";
 
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
+import { useGlobalContext } from "src/state/GlobalContext";
 
 import { useCallback } from "react";
 
@@ -16,7 +16,7 @@ import { useCallback } from "react";
 export const useShowColumn = () => {
   const {
     state: { visibleColumns },
-  } = useOptionsTradingContext();
+  } = useGlobalContext();
 
   const colSize = visibleColumns.size * 2 + 1;
   const sideSize = visibleColumns.size;

@@ -1,12 +1,14 @@
 import dayjs from "dayjs";
 
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { useShowColumn } from "../hooks/useShowColumn";
+import { useGlobalContext } from "src/state/GlobalContext";
 
 export const Head = () => {
   const {
-    state: { expiryDate },
-  } = useOptionsTradingContext();
+    state: {
+      options: { activeExpiry },
+    },
+  } = useGlobalContext();
 
   const [colSize, sideSize, showCol] = useShowColumn();
 
@@ -50,9 +52,11 @@ export const Head = () => {
         <th style={{ gridColumn: `span ${sideSize} / span ${sideSize}` }}>
           {`CALLS`}
         </th>
+
         <th className="col-span-1">
-          {expiryDate && dayjs.unix(expiryDate).format("MMM DD")}
+          {activeExpiry && dayjs.unix(Number(activeExpiry)).format("MMM DD")}
         </th>
+
         <th style={{ gridColumn: `span ${sideSize} / span ${sideSize}` }}>
           {`PUTS`}
         </th>
