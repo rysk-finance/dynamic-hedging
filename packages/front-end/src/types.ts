@@ -44,11 +44,12 @@ export type RyskContractAddresses = {
   optionHandler: string;
   opynInteractions: string;
   normDist: string;
+  BlackScholes: string;
+  optionsCompute: string;
   beyondPricer: string;
   optionExchange: string;
   optionCatalogue: string;
-  BlackScholes: string;
-  optionsCompute: string;
+  DHVLens: string;
 };
 
 export type ExternalContractAddresses = {
