@@ -199,6 +199,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		// the signs must be flipped when going into _changePosition
 		// make sure the caller is the vault
 		require(msg.sender == parentLiquidityPool, "!vault");
+		sync();
 		deltaChange = _changePosition(-_delta);
 	}
 
@@ -226,22 +227,28 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	}
 
 	/// @notice function to re-calibrate internalDelta in case of liquidation
-	function sync() external returns (int256) {
+	function sync() public returns (int256) {
 		_isKeeper();
+		(int _internalDelta, uint _longDelta, uint _shortDelta) = _getLiveDelta();
+		openLongDelta = _longDelta;
+		openShortDelta = _shortDelta;
+		internalDelta = _internalDelta;
+		return _internalDelta;
+	}
+
+	function _getLiveDelta() internal view returns (int256, uint, uint) {
 		uint256[] memory longPosition = _getPosition(true);
 		uint256[] memory shortPosition = _getPosition(false);
 		uint256 longDelta = longPosition[0] > 0 ? (longPosition[0]).div(longPosition[2]) : 0;
 		uint256 shortDelta = shortPosition[0] > 0 ? (shortPosition[0]).div(shortPosition[2]) : 0;
-		openLongDelta = longDelta;
-		openShortDelta = shortDelta;
-		internalDelta = int256(longDelta) - int256(shortDelta);
-		return internalDelta;
+		return (int256(longDelta) - int256(shortDelta), longDelta, shortDelta);
 	}
 
 	/// @inheritdoc IHedgingReactor
 	function update() external returns (uint256) {
 		_isKeeper();
-		if (internalDelta == 0 && openLongDelta == 0 && openShortDelta == 0) {
+		int _internalDelta = sync();
+		if (_internalDelta == 0 && openLongDelta == 0 && openShortDelta == 0) {
 			revert CustomErrors.NoPositionsOpen();
 		}
 		if (pendingIncreaseCallback || pendingDecreaseCallback) {
@@ -259,7 +266,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			// need to consolidate positions
 			uint collateralToRemoveLong;
 			uint collateralToRemoveShort;
-			if (internalDelta >= 0) {
+			if (_internalDelta >= 0) {
 				// we are net long/neutral. close shorts
 				uint256[] memory shortPosition = _getPosition(false);
 				uint256 shortDelta = (shortPosition[0]).div(shortPosition[2]);
@@ -290,7 +297,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		}
 		if (isBelowMin) {
 			// collateral needs adding to position
-			_addCollateral(collatToTransfer, internalDelta > 0);
+			_addCollateral(collatToTransfer, _internalDelta > 0);
 			return collatToTransfer;
 		} else if (isAboveMax) {
 			// collateral needs removing
@@ -306,7 +313,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 					return 0;
 				}
 			}
-			_removeCollateral(collatToTransfer, internalDelta > 0);
+			_removeCollateral(collatToTransfer, _internalDelta > 0);
 			return collatToTransfer;
 		}
 		return 0;
@@ -341,13 +348,15 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	///////////////////////
 
 	/// @inheritdoc IHedgingReactor
-	function getDelta() external view returns (int256 delta) {
-		return internalDelta;
+	function getDelta() external view returns (int256) {
+		(int _internalDelta, , ) = _getLiveDelta();
+		return _internalDelta;
 	}
 
 	/// @inheritdoc IHedgingReactor
 	function getPoolDenominatedValue() external view returns (uint256 value) {
-		uint256[] memory position = _getPosition(internalDelta > 0);
+		(int _internalDelta, , ) = _getLiveDelta();
+		uint256[] memory position = _getPosition(_internalDelta > 0);
 		if (position[7] == 1) {
 			value = (position[1] + position[8]) / 1e12;
 		} else {
@@ -365,7 +374,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		}
 		if (longAndShortOpen) {
 			// we have a position open on the opposite side to the one above, so add that to value
-			uint256[] memory otherPosition = _getPosition(internalDelta <= 0);
+			uint256[] memory otherPosition = _getPosition(_internalDelta <= 0);
 			if (otherPosition[7] == 1) {
 				value += (otherPosition[1] + otherPosition[8]) / 1e12;
 			} else {
@@ -392,7 +401,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			bool
 		)
 	{
-		position = _getPosition(internalDelta > 0);
+		(int _internalDelta, , ) = _getLiveDelta();
+		position = _getPosition(_internalDelta > 0);
 		// position[0] = position size in USD
 		// position[1] = collateral amount in USD
 		// position[2] = average entry price of position
