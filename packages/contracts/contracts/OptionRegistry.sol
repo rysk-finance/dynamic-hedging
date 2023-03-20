@@ -244,6 +244,7 @@ contract OptionRegistry is AccessControl {
 			vaultId_ = (controller.getAccountVaultCounter(address(this))) + 1;
 			vaultCount++;
 		}
+		vaultIds[_series] = vaultId_;
 		uint256 mintAmount = OpynInteractions.createShort(
 			address(controller),
 			addressBook.getMarginPool(),
@@ -256,7 +257,6 @@ contract OptionRegistry is AccessControl {
 		emit OptionsContractOpened(_series, vaultId_, mintAmount);
 		// transfer the option to the liquidity pool
 		SafeTransferLib.safeTransfer(ERC20(_series), msg.sender, mintAmount);
-		vaultIds[_series] = vaultId_;
 		// returns in collateral decimals
 		return (true, collateralAmount);
 	}
