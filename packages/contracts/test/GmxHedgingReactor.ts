@@ -2064,7 +2064,19 @@ describe("multi leg hedges fail resulting in simultaneous long and short", async
 		expect(healthLogs[5]).to.be.false
 	})
 })
-describe("closing the gmx reactor down", async () => {
+describe("gmx reactor auxilliary functions", async () => {
+	it("reset position router address while position is pending", async () => {
+		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("2100", 8))
+
+		await gmxReactor.update()
+		await expect(gmxReactor.connect(deployer).setPositionRouter(ZERO_ADDRESS)).to.be.reverted
+		await executeDecreasePosition()
+		expect(await gmxReactor.gmxPositionRouter()).to.eq(gmxPositionRouter.address)
+
+		await gmxReactor.connect(deployer).setPositionRouter(ZERO_ADDRESS)
+		expect(await gmxReactor.gmxPositionRouter()).to.eq(ZERO_ADDRESS)
+		await gmxReactor.connect(deployer).setPositionRouter(gmxPositionRouter.address)
+	})
 	it("reverts when trying to remove gmx reactor from liquidity pool while a position execution is pending", async () => {
 		// will be reverted due to liquidity pool calling hedgeDelta on the reactor, resulting in a pending decrease pos
 		await expect(liquidityPool.removeHedgingReactorAddress(2, false)).to.be.reverted
