@@ -215,6 +215,7 @@ describe("GMX Hedging Reactor", () => {
 		await gmxReactor.connect(deployer).setKeeper(signers[0].getAddress(), true)
 
 		expect(await gmxReactor.parentLiquidityPool()).to.eq(liquidityPoolAddress)
+		expect(await gmxReactor.collateralAssetDecimals()).to.eq(6)
 		expect(await gmxReactor.getDelta()).to.eq(0)
 	})
 	it("adds GMX router to liquidity pool", async () => {
@@ -2048,7 +2049,6 @@ describe("multi leg hedges fail resulting in simultaneous long and short", async
 		expect(healthLogs.health).to.be.within(expectedHealth - 20, expectedHealth + 20)
 		expect(healthLogs[5]).to.be.true
 	})
-	// it()
 	it("calls update and neutralises both legs, leaving 5 delta short open", async () => {
 		await gmxReactor.update()
 
