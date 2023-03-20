@@ -449,7 +449,14 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				if (action.secondAddress != msg.sender) {
 					revert UnauthorisedSender();
 				}
-				// check the from address to see whether it is being sent from the user or is held from a temporary balance
+			} else if (actionType == IController.ActionType.WithdrawCollateral) {
+				if (action.secondAddress != msg.sender) {
+					revert UnauthorisedSender();
+				}
+			} else if (actionType == IController.ActionType.SettleVault) {
+				if (action.secondAddress != msg.sender) {
+					revert UnauthorisedSender();
+				}
 			} else if (actionType == IController.ActionType.Redeem) {
 				revert ForbiddenAction();
 			} else if (actionType == IController.ActionType.Liquidate) {
