@@ -244,7 +244,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		if (internalDelta == 0 && openLongDelta == 0 && openShortDelta == 0) {
 			revert CustomErrors.NoPositionsOpen();
 		}
-
+		if (pendingIncreaseCallback || pendingDecreaseCallback) {
+			revert CustomErrors.GmxCallbackPending();
+		}
 		(
 			bool isBelowMin,
 			bool isAboveMax,
