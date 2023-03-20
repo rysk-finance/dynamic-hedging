@@ -17,7 +17,7 @@ import {
 	MockChainlinkAggregator
 } from "../types"
 import { fail } from "assert"
-import { toWei } from "../utils/conversion-helper"
+import { toWei, ZERO_ADDRESS } from "../utils/conversion-helper"
 // edit depending on the chain id to be tested on
 const chainId = 42161
 
@@ -2062,5 +2062,20 @@ describe("multi leg hedges fail resulting in simultaneous long and short", async
 		const healthLogs = await gmxReactor.checkVaultHealth()
 		expect(healthLogs.health).to.be.within(5000, 5050)
 		expect(healthLogs[5]).to.be.false
+	})
+})
+describe("closing the gmx reactor down", async () => {
+	it("reverts when trying to remove gmx reactor from liquidity pool while a position execution is pending", async () => {
+		// will be reverted due to liquidity pool calling hedgeDelta on the reactor, resulting in a pending decrease pos
+		await expect(liquidityPool.removeHedgingReactorAddress(2, false)).to.be.reverted
+	})
+	it("hedges pos then shuts it down", async () => {
+		const delta = 5
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`-${delta}`), 2)
+		await executeDecreasePosition()
+
+		await liquidityPool.removeHedgingReactorAddress(2, false)
+
+		await expect(liquidityPool.hedgingReactors(2)).to.be.reverted
 	})
 })
