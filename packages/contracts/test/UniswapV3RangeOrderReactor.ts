@@ -627,12 +627,10 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const receipt = await hedgeDeltaTx.wait()
 		const lpBalanceAfter = await fromUSDC(await usdcContract.balanceOf(liquidityPoolDummy.address))
 		const reactorDeltaAfter = Number(fromWei(await liquidityPoolDummy.getDelta()))
-		const [mintEvent] = (getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown) as [MintEvent]
+		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown as [MintEvent]
 		const reactorWethBalance = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
-		const {
-			activeLowerTick: lowerTickAfer,
-			activeUpperTick: upperTickAfter
-		} = await uniswapV3RangeOrderReactor.currentPosition()
+		const { activeLowerTick: lowerTickAfer, activeUpperTick: upperTickAfter } =
+			await uniswapV3RangeOrderReactor.currentPosition()
 		const wethDifference =
 			Math.round(
 				(Number(fromWei(reactorWethBalanceBefore)) - Number(fromWei(reactorWethBalance))) * 1000
@@ -650,11 +648,9 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(toWei("0.2"))
 		const receipt = await hedgeDeltaTx.wait()
 		const [burnEvent] = getMatchingEvents(receipt, UNISWAP_POOL_BURN)
-		const [mintEvent] = (getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown) as [MintEvent]
-		const {
-			activeLowerTick: lowerTickAfer,
-			activeUpperTick: upperTickAfter
-		} = await uniswapV3RangeOrderReactor.currentPosition()
+		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown as [MintEvent]
+		const { activeLowerTick: lowerTickAfer, activeUpperTick: upperTickAfter } =
+			await uniswapV3RangeOrderReactor.currentPosition()
 		const wethBalanceAfter = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
 		const wethDifference =
 			Math.round((Number(fromWei(wethBalanceAfter)) - Number(fromWei(wethBalanceBefore))) * 1000) /
@@ -714,7 +710,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const hedgeDeltaTx = await liquidityPoolDummy.hedgeDelta(toWei("0.3"))
 		const receipt = await hedgeDeltaTx.wait()
 		const [collectEvent] = getMatchingEvents(receipt, UNISWAP_POOL_COLLECT)
-		const [mintEvent] = (getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown) as [MintEvent]
+		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown as [MintEvent]
 		expect(mintEvent.amount1).to.eq(toWei("0.3"))
 		// should be less than previous hedge
 		expect(collectEvent.amount1).to.be.lt(toWei("0.2"))
@@ -753,10 +749,8 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const fulfillAttempt = await uniswapV3RangeOrderReactor.fulfillActiveRangeOrder()
 		const receipt = await fulfillAttempt.wait()
 		const [collectEvent] = getMatchingEvents(receipt, UNISWAP_POOL_COLLECT)
-		const {
-			activeLowerTick: activeLowerAfter,
-			activeUpperTick: activeUpperAfter
-		} = await uniswapV3RangeOrderReactor.currentPosition()
+		const { activeLowerTick: activeLowerAfter, activeUpperTick: activeUpperAfter } =
+			await uniswapV3RangeOrderReactor.currentPosition()
 		const deltaDifference = Math.round((reactorDelta - reactorDeltaAfter) * 100) / 100
 		const average = Math.sqrt(Number(weth_usdc_price_before) * Number(weth_usdc_price_after))
 		// USDC amount
@@ -853,10 +847,8 @@ describe("UniswapV3RangeOrderReactor", () => {
 
 	it("Properly quotes pool denominated value", async () => {
 		const poolValue = await uniswapV3RangeOrderReactor.getPoolDenominatedValue()
-		const {
-			amount0Current,
-			amount1Current
-		} = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
+		const { amount0Current, amount1Current } =
+			await uniswapV3RangeOrderReactor.getUnderlyingBalances()
 		const ethPrice = Number(
 			fromWei(await priceFeed.getNormalizedRate(wethContract.address, usdcContract.address))
 		)
@@ -904,10 +896,8 @@ describe("UniswapV3RangeOrderReactor", () => {
 		)
 		const exitTx = await uniswapV3RangeOrderReactor.exitActiveRangeOrder()
 		const receipt = await exitTx.wait()
-		const {
-			activeLowerTick: activeLowerTickAfter,
-			activeUpperTick: activeUpperTickAfter
-		} = await uniswapV3RangeOrderReactor.currentPosition()
+		const { activeLowerTick: activeLowerTickAfter, activeUpperTick: activeUpperTickAfter } =
+			await uniswapV3RangeOrderReactor.currentPosition()
 		const [burnEvent] = getMatchingEvents(receipt, UNISWAP_POOL_BURN)
 		expect(burnEvent.tickLower).to.eq(activeLowerTick)
 		expect(burnEvent.tickUpper).to.eq(activeUpperTick)
@@ -1338,10 +1328,10 @@ describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
 		expect(currentPosition.activeUpperTick).to.equal(0)
 		// enter range below
 		const reactorWethBalanceBefore = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
-		const deltaAmount = toWei("0.1")
+		const deltaAmount = toWei("0.05")
 		const hedgeDeltaTx = await liquidityPool.rebalancePortfolioDelta(deltaAmount, 3)
 		const receipt = await hedgeDeltaTx.wait()
-		const [mintEvent] = (getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown) as [MintEvent]
+		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown as [MintEvent]
 		const reactorWethBalance = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
 		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
 		const wethDifference =
@@ -1352,6 +1342,30 @@ describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
 		expect(activeUpperTick).to.not.eq(currentPosition.activeUpperTick)
 		expect(mintEvent.tickLower).to.eq(activeLowerTick)
 		expect(mintEvent.tickUpper).to.eq(activeUpperTick)
-		expect(wethDifference).to.eq(0.1)
+		expect(wethDifference).to.eq(0.05)
+	})
+
+	it("Enters a new range to adjust a positive delta hedge - arbitrum", async () => {
+		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		const wethBalanceBefore = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		const deltaAmount = toWei("0.1")
+		const hedgeDeltaTx = await liquidityPool.rebalancePortfolioDelta(deltaAmount, 3)
+		const receipt = await hedgeDeltaTx.wait()
+		const [burnEvent] = getMatchingEvents(receipt, UNISWAP_POOL_BURN)
+		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown as [MintEvent]
+		const { activeLowerTick: lowerTickAfer, activeUpperTick: upperTickAfter } =
+			await uniswapV3RangeOrderReactor.currentPosition()
+		const wethBalanceAfter = await wethContract.balanceOf(uniswapV3RangeOrderReactor.address)
+		const wethDifference =
+			Math.round((Number(fromWei(wethBalanceAfter)) - Number(fromWei(wethBalanceBefore))) * 1000) /
+			1000
+		expect(wethDifference).to.eq(-0.05)
+		expect(burnEvent.tickLower).to.eq(activeLowerTick)
+		expect(burnEvent.tickUpper).to.eq(activeUpperTick)
+		// price did not change
+		expect(activeLowerTick).to.eq(lowerTickAfer)
+		expect(activeUpperTick).to.eq(upperTickAfter)
+		expect(mintEvent.tickLower).to.eq(lowerTickAfer)
+		expect(mintEvent.tickUpper).to.eq(upperTickAfter)
 	})
 })
