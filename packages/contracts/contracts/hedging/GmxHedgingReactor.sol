@@ -143,6 +143,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	function setPositionRouter(address _gmxPositionRouter) external {
 		_onlyGovernor();
+		require(!pendingIncreaseCallback && !pendingDecreaseCallback, "position execution pending");
 		router.denyPlugin(address(gmxPositionRouter));
 		gmxPositionRouter = IPositionRouter(_gmxPositionRouter);
 		router.approvePlugin(_gmxPositionRouter);
