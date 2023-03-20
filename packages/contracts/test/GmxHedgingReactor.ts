@@ -576,12 +576,30 @@ describe("GMX Hedging Reactor", () => {
 		expect(longPositionBefore[0]).to.eq(0)
 
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
-		// -------- execute the decrease short request
-		await executeDecreasePosition()
-		await checkPositionExecutedEvent(5)
-
 		// -------- execute the increase long request
 		await executeIncreasePosition()
+		await checkPositionExecutedEvent(5)
+
+		const longPositionAfter = await gmxReader.getPositions(
+			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
+			gmxReactor.address,
+			[wethAddress],
+			[wethAddress],
+			[true]
+		)
+		// check getPoolDemoninatedvalue is correct
+		const poolDenominatedValueIntermediate = parseInt(
+			utils.formatEther(await gmxReactor.callStatic.getPoolDenominatedValue())
+		)
+		expect(poolDenominatedValueIntermediate).to.eq(
+			parseInt(
+				parseFloat(utils.formatUnits(shortPositionBefore[1].add(shortPositionBefore[8]), 30)) +
+					parseFloat(utils.formatUnits(longPositionAfter[1].add(longPositionAfter[8]), 30))
+			)
+		)
+
+		// -------- execute the decrease short request
+		await executeDecreasePosition()
 		await checkPositionExecutedEvent(5)
 
 		// positions after
@@ -591,13 +609,6 @@ describe("GMX Hedging Reactor", () => {
 			[usdcAddress],
 			[wethAddress],
 			[false]
-		)
-		const longPositionAfter = await gmxReader.getPositions(
-			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
-			gmxReactor.address,
-			[wethAddress],
-			[wethAddress],
-			[true]
 		)
 
 		expect(shortPositionAfter[0]).to.eq(0)
@@ -704,15 +715,10 @@ describe("GMX Hedging Reactor", () => {
 
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 2)
 
-		// -------- execute the decrease long request
-		await executeDecreasePosition()
-		await checkPositionExecutedEvent(-10)
-
 		// -------- execute the increase short request
 		await executeIncreasePosition()
 		await checkPositionExecutedEvent(-10)
 
-		// positions after
 		const shortPositionAfter = await gmxReader.getPositions(
 			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
 			gmxReactor.address,
@@ -720,6 +726,21 @@ describe("GMX Hedging Reactor", () => {
 			[wethAddress],
 			[false]
 		)
+		// check getPoolDemoninatedvalue is correct
+		const poolDenominatedValueIntermediate = parseInt(
+			utils.formatEther(await gmxReactor.callStatic.getPoolDenominatedValue())
+		)
+		expect(poolDenominatedValueIntermediate).to.eq(
+			parseInt(
+				parseFloat(utils.formatUnits(longPositionBefore[1].sub(longPositionBefore[8]), 30)) +
+					parseFloat(utils.formatUnits(shortPositionAfter[1].add(shortPositionAfter[8]), 30))
+			)
+		)
+
+		// -------- execute the decrease long request
+		await executeDecreasePosition()
+		await checkPositionExecutedEvent(-10)
+
 		const longPositionAfter = await gmxReader.getPositions(
 			"0x489ee077994B6658eAfA855C308275EAd8097C4A",
 			gmxReactor.address,
