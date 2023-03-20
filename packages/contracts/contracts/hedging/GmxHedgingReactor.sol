@@ -204,6 +204,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	/// @inheritdoc IHedgingReactor
 	function withdraw(uint256 _amount) external returns (uint256) {
 		require(msg.sender == parentLiquidityPool, "!vault");
+		if (_amount == type(uint256).max) {
+			require(!pendingIncreaseCallback && !pendingDecreaseCallback, "position execution pending");
+		}
 		// check the holdings if enough just lying around then transfer it
 		// assume amount is passed in as collateral decimals
 		uint256 balance = ERC20(collateralAsset).balanceOf(address(this));
