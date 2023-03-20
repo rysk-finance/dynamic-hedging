@@ -422,7 +422,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				if (action.secondAddress != msg.sender) {
 					revert UnauthorisedSender();
 				}
-				// check the from address to make sure it comes from the user or if we are holding them temporarily then they are held here
+			} else if (actionType == IController.ActionType.OpenVault) {
+			// check the from address to make sure it comes from the user or if we are holding them temporarily then they are held here
 			} else if (actionType == IController.ActionType.WithdrawLongOption) {
 				// check the to address to see whether it is being sent to the user or held here temporarily
 				if (action.secondAddress == address(this)) {
@@ -457,11 +458,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				if (action.secondAddress != msg.sender) {
 					revert UnauthorisedSender();
 				}
-			} else if (actionType == IController.ActionType.Redeem) {
-				revert ForbiddenAction();
-			} else if (actionType == IController.ActionType.Liquidate) {
-				revert ForbiddenAction();
-			} else if (actionType == IController.ActionType.Call) {
+			} else {
 				revert ForbiddenAction();
 			}
 			_opynArgs[i] = action;
