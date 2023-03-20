@@ -542,13 +542,13 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			revert TooMuchSlippage(buyParams.premium, _args.acceptablePremium);
 		}
 		_handlePremiumTransfer(buyParams.premium, buyParams.fee);
-		// get what our long exposure is on this asset, as this can be used instead of the dhv having to lock up collateral
-		int256 longExposure = portfolioValuesFeed.storesForAddress(buyParams.seriesAddress).longExposure;
+		// get what the exchange's balance is on this asset, as this can be used instead of the dhv having to lock up collateral
+		uint256 longExposure = ERC20(buyParams.seriesAddress).balanceOf(address(this)) * 10**CONVERSION_DECIMALS;
 		uint256 amount = _args.amount;
 		emit OptionsBought(buyParams.seriesAddress, recipient, amount, buyParams.premium, buyParams.fee);
 		if (longExposure > 0) {
 			// calculate the maximum amount that should be bought by the user
-			uint256 boughtAmount = uint256(longExposure) > amount ? amount : uint256(longExposure);
+			uint256 boughtAmount = longExposure > amount ? amount : uint256(longExposure);
 			// transfer the otokens to the user
 			SafeTransferLib.safeTransfer(
 				ERC20(buyParams.seriesAddress),
