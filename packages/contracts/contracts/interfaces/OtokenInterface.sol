@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.6.10;
+pragma solidity 0.8.9;
 
 interface OtokenInterface {
     function controller() external view returns (address);
