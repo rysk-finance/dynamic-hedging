@@ -95,7 +95,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	function setFeePerContract(uint256 _feePerContract) external {
 		_onlyGovernor();
 		feePerContract = _feePerContract;
-		emit FeePerContractUpdated(_feeRecipient);
+		emit FeePerContractUpdated(_feePerContract);
 	}
 
 	function setFeeRecipient(address _feeRecipient) external {

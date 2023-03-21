@@ -359,26 +359,36 @@ export interface OptionExchangeInterface extends utils.Interface {
 
   events: {
     "AuthorityUpdated(address)": EventFragment;
+    "CatalogueUpdated(address)": EventFragment;
     "CollateralApprovalChanged(address,bool,bool)": EventFragment;
+    "FeeRecipientUpdated(address)": EventFragment;
     "OptionsBought(address,address,uint256,uint256,uint256)": EventFragment;
     "OptionsIssued(address)": EventFragment;
     "OptionsRedeemed(address,uint256,uint256,address)": EventFragment;
     "OptionsSold(address,address,uint256,uint256,uint256)": EventFragment;
     "OtokenMigrated(address,address,uint256)": EventFragment;
     "Paused(address)": EventFragment;
+    "PoolFeeUpdated(address,uint24)": EventFragment;
+    "PricerUpdated(address)": EventFragment;
     "RedemptionSent(uint256,address,address)": EventFragment;
+    "TradeSizeLimitsUpdated(uint256,uint256)": EventFragment;
     "Unpaused(address)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "CatalogueUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "CollateralApprovalChanged"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "FeeRecipientUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OptionsBought"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OptionsIssued"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OptionsRedeemed"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OptionsSold"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OtokenMigrated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Paused"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "PoolFeeUpdated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "PricerUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RedemptionSent"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TradeSizeLimitsUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Unpaused"): EventFragment;
 }
 
@@ -387,6 +397,11 @@ export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
 export type AuthorityUpdatedEventFilter =
   TypedEventFilter<AuthorityUpdatedEvent>;
 
+export type CatalogueUpdatedEvent = TypedEvent<[string], { catalogue: string }>;
+
+export type CatalogueUpdatedEventFilter =
+  TypedEventFilter<CatalogueUpdatedEvent>;
+
 export type CollateralApprovalChangedEvent = TypedEvent<
   [string, boolean, boolean],
   { collateral: string; isPut: boolean; isApproved: boolean }
@@ -394,6 +409,14 @@ export type CollateralApprovalChangedEvent = TypedEvent<
 
 export type CollateralApprovalChangedEventFilter =
   TypedEventFilter<CollateralApprovalChangedEvent>;
+
+export type FeeRecipientUpdatedEvent = TypedEvent<
+  [string],
+  { feeRecipient: string }
+>;
+
+export type FeeRecipientUpdatedEventFilter =
+  TypedEventFilter<FeeRecipientUpdatedEvent>;
 
 export type OptionsBoughtEvent = TypedEvent<
   [string, string, BigNumber, BigNumber, BigNumber],
@@ -448,12 +471,31 @@ export type PausedEvent = TypedEvent<[string], { account: string }>;
 
 export type PausedEventFilter = TypedEventFilter<PausedEvent>;
 
+export type PoolFeeUpdatedEvent = TypedEvent<
+  [string, number],
+  { asset: string; fee: number }
+>;
+
+export type PoolFeeUpdatedEventFilter = TypedEventFilter<PoolFeeUpdatedEvent>;
+
+export type PricerUpdatedEvent = TypedEvent<[string], { pricer: string }>;
+
+export type PricerUpdatedEventFilter = TypedEventFilter<PricerUpdatedEvent>;
+
 export type RedemptionSentEvent = TypedEvent<
   [BigNumber, string, string],
   { redeemAmount: BigNumber; redeemAsset: string; recipient: string }
 >;
 
 export type RedemptionSentEventFilter = TypedEventFilter<RedemptionSentEvent>;
+
+export type TradeSizeLimitsUpdatedEvent = TypedEvent<
+  [BigNumber, BigNumber],
+  { minTradeSize: BigNumber; maxTradeSize: BigNumber }
+>;
+
+export type TradeSizeLimitsUpdatedEventFilter =
+  TypedEventFilter<TradeSizeLimitsUpdatedEvent>;
 
 export type UnpausedEvent = TypedEvent<[string], { account: string }>;
 
@@ -915,6 +957,9 @@ export interface OptionExchange extends BaseContract {
     "AuthorityUpdated(address)"(authority?: null): AuthorityUpdatedEventFilter;
     AuthorityUpdated(authority?: null): AuthorityUpdatedEventFilter;
 
+    "CatalogueUpdated(address)"(catalogue?: null): CatalogueUpdatedEventFilter;
+    CatalogueUpdated(catalogue?: null): CatalogueUpdatedEventFilter;
+
     "CollateralApprovalChanged(address,bool,bool)"(
       collateral?: string | null,
       isPut?: null,
@@ -925,6 +970,11 @@ export interface OptionExchange extends BaseContract {
       isPut?: null,
       isApproved?: null
     ): CollateralApprovalChangedEventFilter;
+
+    "FeeRecipientUpdated(address)"(
+      feeRecipient?: null
+    ): FeeRecipientUpdatedEventFilter;
+    FeeRecipientUpdated(feeRecipient?: null): FeeRecipientUpdatedEventFilter;
 
     "OptionsBought(address,address,uint256,uint256,uint256)"(
       series?: string | null,
@@ -986,6 +1036,15 @@ export interface OptionExchange extends BaseContract {
     "Paused(address)"(account?: null): PausedEventFilter;
     Paused(account?: null): PausedEventFilter;
 
+    "PoolFeeUpdated(address,uint24)"(
+      asset?: null,
+      fee?: null
+    ): PoolFeeUpdatedEventFilter;
+    PoolFeeUpdated(asset?: null, fee?: null): PoolFeeUpdatedEventFilter;
+
+    "PricerUpdated(address)"(pricer?: null): PricerUpdatedEventFilter;
+    PricerUpdated(pricer?: null): PricerUpdatedEventFilter;
+
     "RedemptionSent(uint256,address,address)"(
       redeemAmount?: null,
       redeemAsset?: null,
@@ -996,6 +1055,15 @@ export interface OptionExchange extends BaseContract {
       redeemAsset?: null,
       recipient?: null
     ): RedemptionSentEventFilter;
+
+    "TradeSizeLimitsUpdated(uint256,uint256)"(
+      minTradeSize?: null,
+      maxTradeSize?: null
+    ): TradeSizeLimitsUpdatedEventFilter;
+    TradeSizeLimitsUpdated(
+      minTradeSize?: null,
+      maxTradeSize?: null
+    ): TradeSizeLimitsUpdatedEventFilter;
 
     "Unpaused(address)"(account?: null): UnpausedEventFilter;
     Unpaused(account?: null): UnpausedEventFilter;
