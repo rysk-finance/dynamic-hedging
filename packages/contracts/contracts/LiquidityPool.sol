@@ -568,7 +568,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 	/**
 	 * @notice function for adding liquidity to the options liquidity pool
-	 * @param _amount    amount of the strike asset to deposit
+	 * @param _amount    amount of the collateral asset to deposit
 	 * @return success
 	 * @dev    entry point to provide liquidity to dynamic hedging vault
 	 */
