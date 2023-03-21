@@ -536,19 +536,6 @@ export const LiquidityPoolABI = [
 		"type": "function"
 	},
 	{
-		"inputs": [],
-		"name": "_getVolatilityFeed",
-		"outputs": [
-			{
-				"internalType": "contract VolatilityFeed",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [
 			{
 				"internalType": "uint256",
@@ -981,6 +968,19 @@ export const LiquidityPoolABI = [
 				"internalType": "int256",
 				"name": "",
 				"type": "int256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getVolatilityFeed",
+		"outputs": [
+			{
+				"internalType": "contract VolatilityFeed",
+				"name": "",
+				"type": "address"
 			}
 		],
 		"stateMutability": "view",
