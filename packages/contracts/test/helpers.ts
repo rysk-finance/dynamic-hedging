@@ -805,7 +805,7 @@ export async function calculateOptionDeltaLocally(
 	const time = genOptionTimeFromUnix(timestamp, optionSeries.expiration)
 	const volFeed = (await ethers.getContractAt(
 		"VolatilityFeed",
-		await liquidityPool._getVolatilityFeed()
+		await liquidityPool.getVolatilityFeed()
 	)) as VolatilityFeed
 	const vol = await volFeed.getImpliedVolatilityWithForward(
 		optionSeries.isPut,
