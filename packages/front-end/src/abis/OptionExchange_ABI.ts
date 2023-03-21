@@ -247,6 +247,19 @@ export const OptionExchangeABI = [
 		"anonymous": false,
 		"inputs": [
 			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "catalogue",
+				"type": "address"
+			}
+		],
+		"name": "CatalogueUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
 				"indexed": true,
 				"internalType": "address",
 				"name": "collateral",
@@ -266,6 +279,19 @@ export const OptionExchangeABI = [
 			}
 		],
 		"name": "CollateralApprovalChanged",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "feeRecipient",
+				"type": "address"
+			}
+		],
+		"name": "FeeRecipientUpdated",
 		"type": "event"
 	},
 	{
@@ -429,6 +455,38 @@ export const OptionExchangeABI = [
 		"inputs": [
 			{
 				"indexed": false,
+				"internalType": "address",
+				"name": "asset",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint24",
+				"name": "fee",
+				"type": "uint24"
+			}
+		],
+		"name": "PoolFeeUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "pricer",
+				"type": "address"
+			}
+		],
+		"name": "PricerUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
 				"internalType": "uint256",
 				"name": "redeemAmount",
 				"type": "uint256"
@@ -447,6 +505,25 @@ export const OptionExchangeABI = [
 			}
 		],
 		"name": "RedemptionSent",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "minTradeSize",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "maxTradeSize",
+				"type": "uint256"
+			}
+		],
+		"name": "TradeSizeLimitsUpdated",
 		"type": "event"
 	},
 	{

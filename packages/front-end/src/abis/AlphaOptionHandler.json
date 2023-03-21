@@ -83,6 +83,32 @@
 		"anonymous": false,
 		"inputs": [
 			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "feePerContract",
+				"type": "uint256"
+			}
+		],
+		"name": "FeePerContractUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "feeRecipient",
+				"type": "address"
+			}
+		],
+		"name": "FeeRecipientUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
 				"indexed": true,
 				"internalType": "address",
 				"name": "series",
