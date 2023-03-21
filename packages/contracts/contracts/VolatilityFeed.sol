@@ -74,7 +74,7 @@ contract VolatilityFeed is AccessControl {
 		int32 putVolvol,
 		int256 interestRate
 	);
-
+	event KeeperUpdated(address keeper, bool auth);
 	/**
 	 * @notice set the sabr volatility params
 	 * @param _sabrParams set the SABR parameters
@@ -134,6 +134,7 @@ contract VolatilityFeed is AccessControl {
 	function setKeeper(address _keeper, bool _auth) external {
 		_onlyGovernor();
 		keeper[_keeper] = _auth;
+		emit KeeperUpdated(_keeper, _auth);
 	}
 
 	///////////////////////

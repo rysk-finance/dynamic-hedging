@@ -139,6 +139,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
 	event CollateralApprovalChanged(address indexed collateral, bool isPut, bool isApproved);
 	event OtokenMigrated(address newOptionExchange, address otoken, uint256 amount);
+	event PricerUpdated(address pricer);
+	event CatalogueUpdated(address catalogue);
+	event FeeRecipientUpdated(address feeRecipient);
+	event PoolFeeUpdated(address asset, uint24 fee);
+	event TradeSizeLimitsUpdated(uint256 minTradeSize, uint256 maxTradeSize);
 
 	error TradeTooSmall();
 	error TradeTooLarge();
@@ -203,6 +208,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function setPricer(address _pricer) external {
 		_onlyGovernor();
 		pricer = BeyondPricer(_pricer);
+		emit PricerUpdated(_pricer);
 	}
 
 	/**
@@ -211,6 +217,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function setOptionCatalogue(address _catalogue) external {
 		_onlyGovernor();
 		catalogue = OptionCatalogue(_catalogue);
+		emit CatalogueUpdated(_catalogue);
 	}
 
 	/**
@@ -220,6 +227,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_onlyGovernor();
 		require(_feeRecipient != address(0));
 		feeRecipient = _feeRecipient;
+		emit FeeRecipientUpdated(_feeRecipient);
 	}
 
 	/// @notice set the uniswap v3 pool fee for a given asset, also give the asset max approval on the uni v3 swap router
@@ -227,6 +235,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_onlyGovernor();
 		poolFees[asset] = fee;
 		SafeTransferLib.safeApprove(ERC20(asset), address(swapRouter), MAX_UINT);
+		emit PoolFeeUpdated(asset, fee);
 	}
 
 	/// @notice set the maximum and minimum trade size
@@ -234,6 +243,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_onlyGovernor();
 		minTradeSize = _minTradeSize;
 		maxTradeSize = _maxTradeSize;
+		emit TradeSizeLimitsUpdated(_minTradeSize, _maxTradeSize);
 	}
 
 	/// @notice set whether a collateral is approved for selling to the vault
@@ -853,18 +863,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				revert CustomErrors.SeriesNotBuyable();
 			}
 		}
-		if (optionSeries.expiration <= block.timestamp) {
-			revert CustomErrors.OptionExpiryInvalid();
-		}
-		if (optionSeries.underlying != underlyingAsset) {
-			revert CustomErrors.UnderlyingAssetInvalid();
-		}
-		if (optionSeries.strikeAsset != strikeAsset) {
-			revert CustomErrors.StrikeAssetInvalid();
-		}
-		if (!approvedCollateral[optionSeries.collateral][optionSeries.isPut]) {
-			revert CustomErrors.CollateralAssetInvalid();
-		}
 	}
 
 	/** @notice function to sell exact amount of assetIn to the minimum amountOutMinimum of collateralAsset
@@ -946,6 +944,18 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		) = _getOptionDetails(_seriesAddress, _optionSeries, _optionRegistry);
 		// check the option hash and option series for validity
 		bytes32 oHash = _checkHash(optionSeries, strikeDecimalConverted, isSell);
+		if (optionSeries.expiration <= block.timestamp) {
+			revert CustomErrors.OptionExpiryInvalid();
+		}
+		if (optionSeries.underlying != underlyingAsset) {
+			revert CustomErrors.UnderlyingAssetInvalid();
+		}
+		if (optionSeries.strikeAsset != strikeAsset) {
+			revert CustomErrors.StrikeAssetInvalid();
+		}
+		if (!approvedCollateral[optionSeries.collateral][optionSeries.isPut]) {
+			revert CustomErrors.CollateralAssetInvalid();
+		}
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			optionSeries.expiration,
