@@ -85,16 +85,16 @@ function hexToUtf8(hexEncodedMessage: any) {
 	)
 }
 
-describe("Options protocol", function () {
+describe("Gelato option registry tests", function () {
 	before(async function () {
 		await hre.network.provider.request({
 			method: "hardhat_reset",
 			params: [
 				{
 					forking: {
-						chainId: 1,
-						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
-						blockNumber: 14290000
+						jsonRpcUrl: `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY}`,
+						chainId: 42161,
+						blockNumber: 36000000
 					}
 				}
 			]
@@ -114,10 +114,13 @@ describe("Options protocol", function () {
 		// deploy libraries
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
 		interactions = (await interactionsFactory.deploy()) as OpynInteractions
+		const computeFactory = await hre.ethers.getContractFactory("contracts/libraries/OptionsCompute.sol:OptionsCompute")
+		const compute = await computeFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
-				OpynInteractions: interactions.address
+				OpynInteractions: interactions.address,
+				OptionsCompute: compute.address
 			}
 		})
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")
