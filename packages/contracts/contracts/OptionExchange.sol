@@ -339,7 +339,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// deploy an oToken contract address
 		// assumes strike is passed in e18, converts to e8
 		uint128 formattedStrike = uint128(
-			formatStrikePrice(optionSeries.strike, optionSeries.collateral)
+			OptionsCompute.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
 		);
 		// check for an opyn oToken if it doesn't exist deploy it
 		series = OpynInteractions.getOrDeployOtoken(
@@ -495,7 +495,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	{
 		// format the strike correctly
 		uint128 strike = uint128(
-			formatStrikePrice(_args.optionSeries.strike, collateralAsset) * 10**CONVERSION_DECIMALS
+			OptionsCompute.formatStrikePrice(_args.optionSeries.strike, collateralAsset) * 10**CONVERSION_DECIMALS
 		);
 		// check if the option series is approved
 		bytes32 oHash = keccak256(
@@ -787,7 +787,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			);
 			optionSeries = Types.OptionSeries(
 				optionSeries.expiration,
-				uint128(formatStrikePrice(optionSeries.strike, collateralAsset)),
+				uint128(OptionsCompute.formatStrikePrice(optionSeries.strike, collateralAsset)),
 				optionSeries.isPut,
 				optionSeries.underlying,
 				optionSeries.strikeAsset,
@@ -1014,22 +1014,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	///////////////////////
 	/// complex getters ///
 	///////////////////////
-
-	/**
-	 * @notice Converts strike price to 1e8 format and floors least significant digits if needed
-	 * @param  strikePrice strikePrice in 1e18 format
-	 * @param  collateral address of collateral asset
-	 * @return if the transaction succeeded
-	 */
-	function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256) {
-		// convert strike to 1e8 format
-		uint256 price = strikePrice / (10**10);
-		uint256 collateralDecimals = ERC20(collateral).decimals();
-		if (collateralDecimals >= OPYN_DECIMALS) return price;
-		uint256 difference = OPYN_DECIMALS - collateralDecimals;
-		// round floor strike to prevent errors in Gamma protocol
-		return (price / (10**difference)) * (10**difference);
-	}
 
 	/// @inheritdoc IHedgingReactor
 	function update() external pure returns (uint256) {
