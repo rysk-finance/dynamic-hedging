@@ -35,6 +35,8 @@ contract VolatilityFeed is AccessControl {
 	int256 private constant ONE_YEAR_SECONDS = 31557600;
 	int256 private constant BIPS_SCALE = 1e12;
 	int256 private constant BIPS = 1e6;
+	int256 private constant maxInterestRate = 200e18;
+	int256 private constant minInterestRate = -200e18;
 
 	struct SABRParams {
 		int32 callAlpha; // not bigger or less than an int32 and above 0
@@ -104,8 +106,8 @@ contract VolatilityFeed is AccessControl {
 			revert RhoError();
 		}
 		if(
-			_sabrParams.interestRate > 200e18 ||
-			_sabrParams.interestRate < -200e18 
+			_sabrParams.interestRate > maxInterestRate ||
+			_sabrParams.interestRate < minInterestRate
 		) {
 			revert InterestRateError();
 		}

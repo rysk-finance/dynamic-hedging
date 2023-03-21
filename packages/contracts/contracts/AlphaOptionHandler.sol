@@ -63,6 +63,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
+	// OPYN DECIMALS
+	uint8 private constant OPYN_DECIMALS = 8;
 	// custom order maximum time for liveness
 	uint256 private constant maxOrderExpiry = 1800;
 
@@ -271,7 +273,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			order.optionSeries.expiration,
-			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, 8)),
+			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, OPYN_DECIMALS)),
 			order.optionSeries.isPut,
 			underlyingAsset,
 			strikeAsset,
@@ -343,7 +345,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			order.optionSeries.expiration,
-			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, 8)),
+			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, OPYN_DECIMALS)),
 			order.optionSeries.isPut,
 			underlyingAsset,
 			strikeAsset,

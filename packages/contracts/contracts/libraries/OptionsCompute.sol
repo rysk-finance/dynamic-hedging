@@ -17,8 +17,11 @@ library OptionsCompute {
 	using PRBMathSD59x18 for int256;
 
 	uint8 private constant SCALE_DECIMALS = 18;
+	uint256 private constant SCALE_UP = 10**18;
 	// oToken decimals
 	uint8 private constant OPYN_DECIMALS = 8;
+	// otoken conversion decimal
+	uint8 private constant OPYN_CONVERSION_DECIMAL = 10;
 
 	/// @dev assumes decimals are coming in as e18
 	function convertToDecimals(uint256 value, uint256 decimals) internal pure returns (uint256) {
@@ -60,7 +63,7 @@ library OptionsCompute {
 	) internal pure returns (uint256 convertedQuote) {
 		if (optionSeries.strikeAsset != optionSeries.collateral) {
 			// convert value from strike asset to collateral asset
-			return (quote * 1e18) / underlyingPrice;
+			return (quote * SCALE_UP) / underlyingPrice;
 		} else {
 			return quote;
 		}
@@ -114,7 +117,7 @@ library OptionsCompute {
 	 */
 	function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256) {
 		// convert strike to 1e8 format
-		uint256 price = strikePrice / (10**10);
+		uint256 price = strikePrice / (10**OPYN_CONVERSION_DECIMAL);
 		uint256 collateralDecimals = ERC20(collateral).decimals();
 		if (collateralDecimals >= OPYN_DECIMALS) return price;
 		uint256 difference = OPYN_DECIMALS - collateralDecimals;
@@ -141,7 +144,7 @@ library OptionsCompute {
 		}
 		// reduce IV by a factor of bidAskIVSpread if we are buying the options
 		if (isBuying) {
-			iv = (iv * (1e18 - (bidAskIVSpread))) / 1e18;
+			iv = (iv * (SCALE_UP - (bidAskIVSpread))) / SCALE_UP;
 		}
 		// revert CustomErrors.if the expiry is in the past
 		if (optionSeries.expiration <= block.timestamp) {

@@ -70,6 +70,8 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	uint256 private constant MAX_UINT = 2**256 - 1;
 	/// @notice max bips
 	uint256 private constant MAX_BIPS = 10_000;
+	/// @notice scale up
+	uint256 private constant SCALE_UP = 1e18;
 
 	//////////////
 	/// errors ///
@@ -211,8 +213,8 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		// check the collateral health of positions
 		// get the amount of collateral that should be expected for a given amount
 		uint256 collatRequired = netPosition >= 0
-			? (((uint256(netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS
-			: (((uint256(-netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS;
+			? (((uint256(netPosition) * currentPrice) / SCALE_UP) * healthFactor) / MAX_BIPS
+			: (((uint256(-netPosition) * currentPrice) / SCALE_UP) * healthFactor) / MAX_BIPS;
 		// if there is not enough collateral then request more
 		// if there is too much collateral then return some to the pool
 		if (collatRequired > collat) {
@@ -307,11 +309,11 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		// check the collateral health of positions
 		// get the amount of collateral that should be expected for a given amount
 		health = netPosition >= 0
-			? (unsignedAccountMarketValue * MAX_BIPS) / ((uint256(netPosition) * currentPrice) / 1e18)
-			: (unsignedAccountMarketValue * MAX_BIPS) / ((uint256(-netPosition) * currentPrice)/ 1e18);
+			? (unsignedAccountMarketValue * MAX_BIPS) / ((uint256(netPosition) * currentPrice) / SCALE_UP)
+			: (unsignedAccountMarketValue * MAX_BIPS) / ((uint256(-netPosition) * currentPrice)/ SCALE_UP);
 		uint256 collatRequired = netPosition >= 0
-			? (((uint256(netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS
-			: (((uint256(-netPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS;
+			? (((uint256(netPosition) * currentPrice) / SCALE_UP) * healthFactor) / MAX_BIPS
+			: (((uint256(-netPosition) * currentPrice) / SCALE_UP) * healthFactor) / MAX_BIPS;
 		// if there is not enough collateral then request more
 		// if there is too much collateral then return some to the pool
 		if (collatRequired > unsignedAccountMarketValue) {
@@ -358,8 +360,8 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		// calculate the margin requirement for newPosition making sure to account for the health factor of the pool
 		// as we want the position to be overcollateralised
 		uint256 totalCollatNeeded = newPosition >= 0
-			? (((uint256(newPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS
-			: (((uint256(-newPosition) * currentPrice) / 1e18) * healthFactor) / MAX_BIPS;
+			? (((uint256(newPosition) * currentPrice) / SCALE_UP) * healthFactor) / MAX_BIPS
+			: (((uint256(-newPosition) * currentPrice) / SCALE_UP) * healthFactor) / MAX_BIPS;
 		// if there is not enough collateral then increase the margin collateral balance
 		// if there is too much collateral then decrease the margin collateral balance
 		if (totalCollatNeeded > collat) {
