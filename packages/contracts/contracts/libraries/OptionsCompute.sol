@@ -4,6 +4,7 @@ pragma solidity >=0.8.9;
 import "./Types.sol";
 import "./CustomErrors.sol";
 import "./BlackScholes.sol";
+import "../tokens/ERC20.sol";
 
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
@@ -16,6 +17,8 @@ library OptionsCompute {
 	using PRBMathSD59x18 for int256;
 
 	uint8 private constant SCALE_DECIMALS = 18;
+	// oToken decimals
+	uint8 private constant OPYN_DECIMALS = 8;
 
 	/// @dev assumes decimals are coming in as e18
 	function convertToDecimals(uint256 value, uint256 decimals) internal pure returns (uint256) {
@@ -104,61 +107,19 @@ library OptionsCompute {
 	}
 
 	/**
-	 *	@notice calculates the utilization price of an option using the liquidity pool's utilisation skew algorithm
+	 * @notice Converts strike price to 1e8 format and floors least significant digits if needed
+	 * @param  strikePrice strikePrice in 1e18 format
+	 * @param  collateral address of collateral asset
+	 * @return if the transaction succeeded
 	 */
-	function getUtilizationPrice(
-		uint256 _utilizationBefore,
-		uint256 _utilizationAfter,
-		uint256 _totalOptionPrice,
-		uint256 _utilizationFunctionThreshold,
-		uint256 _belowThresholdGradient,
-		uint256 _aboveThresholdGradient,
-		uint256 _aboveThresholdYIntercept
-	) internal pure returns (uint256 utilizationPrice) {
-		if (
-			_utilizationBefore <= _utilizationFunctionThreshold &&
-			_utilizationAfter <= _utilizationFunctionThreshold
-		) {
-			// linear function up to threshold utilization
-			// take average of before and after utilization and multiply the average by belowThresholdGradient
-
-			uint256 multiplicationFactor = (_utilizationBefore + _utilizationAfter)
-				.mul(_belowThresholdGradient)
-				.div(2e18);
-			return _totalOptionPrice + _totalOptionPrice.mul(multiplicationFactor);
-		} else if (
-			_utilizationBefore >= _utilizationFunctionThreshold &&
-			_utilizationAfter >= _utilizationFunctionThreshold
-		) {
-			// over threshold utilization the skew factor will follow a steeper line
-
-			uint256 multiplicationFactor = _aboveThresholdGradient
-				.mul(_utilizationBefore + _utilizationAfter)
-				.div(2e18) - _aboveThresholdYIntercept;
-
-			return _totalOptionPrice + _totalOptionPrice.mul(multiplicationFactor);
-		} else {
-			// in this case the utilization after is above the threshold and
-			// utilization before is below it.
-			// _utilizationAfter will always be greater than _utilizationBefore
-			// finds the ratio of the distance below the threshold to the distance above the threshold
-			uint256 weightingRatio = (_utilizationFunctionThreshold - _utilizationBefore).div(
-				_utilizationAfter - _utilizationFunctionThreshold
-			);
-			// finds the average y value on the part of the function below threshold
-			uint256 averageFactorBelow = (_utilizationFunctionThreshold + _utilizationBefore).div(2e18).mul(
-				_belowThresholdGradient
-			);
-			// finds average y value on part of the function above threshold
-			uint256 averageFactorAbove = (_utilizationAfter + _utilizationFunctionThreshold).div(2e18).mul(
-				_aboveThresholdGradient
-			) - _aboveThresholdYIntercept;
-			// finds the weighted average of the two above averaged to find the average utilization skew over the range of utilization
-			uint256 multiplicationFactor = (weightingRatio.mul(averageFactorBelow) + averageFactorAbove).div(
-				1e18 + weightingRatio
-			);
-			return _totalOptionPrice + _totalOptionPrice.mul(multiplicationFactor);
-		}
+	function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256) {
+		// convert strike to 1e8 format
+		uint256 price = strikePrice / (10**10);
+		uint256 collateralDecimals = ERC20(collateral).decimals();
+		if (collateralDecimals >= OPYN_DECIMALS) return price;
+		uint256 difference = OPYN_DECIMALS - collateralDecimals;
+		// round floor strike to prevent errors in Gamma protocol
+		return (price / (10**difference)) * (10**difference);
 	}
 
 	/**
