@@ -770,9 +770,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-				ethers.utils.parseUnits("1", 10)
-			)
+			const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
+			).mul(ethers.utils.parseUnits("1", 12))
 			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
@@ -901,9 +900,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-				ethers.utils.parseUnits("1", 10)
-			)
+			const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
+			).mul(ethers.utils.parseUnits("1", 12))
 			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
@@ -1035,9 +1033,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-				ethers.utils.parseUnits("1", 10)
-			)
+			const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
+			).mul(ethers.utils.parseUnits("1", 12))
 			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
@@ -3904,9 +3901,12 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			it("SUCCEEDS: deploy new option exchange", async () => {
 				const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 				const interactions = await interactionsFactory.deploy()
+				const computeFactory = await hre.ethers.getContractFactory("OptionsCompute")
+				const compute = await computeFactory.deploy()
 				const exchangeFactory = await ethers.getContractFactory("OptionExchange", {
 					libraries: {
-						OpynInteractions: interactions.address
+						OpynInteractions: interactions.address,
+						OptionsCompute: compute.address
 					}
 				})
 				migExchange = (await exchangeFactory.deploy(
@@ -3952,7 +3952,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.pricer()).to.equal(senderAddress)
 			})
 			it("REVERTS: set pricer when non governance calls", async () => {
-				await expect(exchange.connect(signers[1]).setPricer(senderAddress)).to.be.revertedWithCustomError(exchange, 
+				await expect(exchange.connect(signers[1]).setPricer(senderAddress)).to.be.revertedWithCustomError(exchange,
 					"UNAUTHORIZED"
 				)
 				await exchange.setPricer(pricer.address)
@@ -3963,7 +3963,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.catalogue()).to.equal(senderAddress)
 			})
 			it("REVERTS: set catalogue when non governance calls", async () => {
-				await expect(exchange.connect(signers[1]).setOptionCatalogue(senderAddress)).to.be.revertedWithCustomError(exchange, 
+				await expect(exchange.connect(signers[1]).setOptionCatalogue(senderAddress)).to.be.revertedWithCustomError(exchange,
 					"UNAUTHORIZED"
 				)
 				await exchange.setOptionCatalogue(catalogue.address)
@@ -3975,7 +3975,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.minTradeSize()).to.equal(toWei("1000"))
 			})
 			it("REVERTS: set trade size limits when non governance calls", async () => {
-				await expect(exchange.connect(signers[1]).setTradeSizeLimits(0, 0)).to.be.revertedWithCustomError(exchange, 
+				await expect(exchange.connect(signers[1]).setTradeSizeLimits(0, 0)).to.be.revertedWithCustomError(exchange,
 					"UNAUTHORIZED"
 				)
 				await exchange.setTradeSizeLimits(toWei("0.01"), toWei("1000"))
@@ -3987,17 +3987,17 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await pricer.deltaBandWidth()).to.equal(toWei("20"))
 			})
 			it("REVERTS: set delta band width on pricer when non governance calls", async () => {
-				await expect(pricer.connect(signers[1]).setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer, 
+				await expect(pricer.connect(signers[1]).setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer,
 					"UNAUTHORIZED"
 				)
 			})
 			it("REVERTS: set delta band width with incorrect length arrays", async () => {
-				await expect(pricer.setDeltaBandWidth(toWei("5"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer, 
+				await expect(pricer.setDeltaBandWidth(toWei("5"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer,
 					"InvalidSlippageGradientMultipliersArrayLength"
 				)
 			})
 			it("REVERTS: set delta band width with incorrect length arrays", async () => {
-				await expect(pricer.setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer, 
+				await expect(pricer.setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer,
 					"InvalidSlippageGradientMultipliersArrayLength"
 				)
 			})
@@ -4038,7 +4038,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.feeRecipient()).to.equal(receiverAddress)
 			})
 			it("REVERTS: set fee recipient", async () => {
-				await expect(exchange.connect(signers[1]).setFeeRecipient(senderAddress)).to.be.revertedWithCustomError(exchange, 
+				await expect(exchange.connect(signers[1]).setFeeRecipient(senderAddress)).to.be.revertedWithCustomError(exchange,
 					"UNAUTHORIZED"
 				)
 				await exchange.setFeeRecipient(senderAddress)
