@@ -108,16 +108,16 @@ const checkAllVaultHealths = async (numberOfVaults: number) => {
 	return vaultIds
 }
 
-describe("Options protocol Vault Health", function () {
+describe("Gelato Options registry Vault Health", function () {
 	before(async function () {
 		await hre.network.provider.request({
 			method: "hardhat_reset",
 			params: [
 				{
 					forking: {
-						chainId: 1,
-						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
-						blockNumber: 14290000
+						jsonRpcUrl: `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY}`,
+						chainId: 42161,
+						blockNumber: 36000000
 					}
 				}
 			]
@@ -141,10 +141,13 @@ describe("Options protocol Vault Health", function () {
 		// deploy libraries
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
 		const interactions = await interactionsFactory.deploy()
+		const computeFactory = await hre.ethers.getContractFactory("contracts/libraries/OptionsCompute.sol:OptionsCompute")
+		const compute = await computeFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
-				OpynInteractions: interactions.address
+				OpynInteractions: interactions.address,
+				OptionsCompute: compute.address
 			}
 		})
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")
