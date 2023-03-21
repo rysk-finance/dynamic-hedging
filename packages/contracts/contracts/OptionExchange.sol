@@ -17,8 +17,9 @@ import "./libraries/OpynInteractions.sol";
 
 import "./interfaces/IWhitelist.sol";
 import "./interfaces/ILiquidityPool.sol";
-import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IHedgingReactor.sol";
+import "./interfaces/IOptionRegistry.sol";
+import "./interfaces/OtokenInterface.sol";
 import "./interfaces/AddressBookInterface.sol";
 import "./interfaces/IAlphaPortfolioValuesFeed.sol";
 
@@ -330,6 +331,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_onlyGovernor();
 		uint256 len = otokens.length;
 		for (uint256 i = 0; i < len; i++) {
+			if (OtokenInterface(otokens[i]).underlyingAsset() != underlyingAsset) { 
+				revert CustomErrors.NonWhitelistedOtoken();
+			}
 			uint256 balance = ERC20(otokens[i]).balanceOf(address(this));
 			SafeTransferLib.safeTransfer(ERC20(otokens[i]), newOptionExchange, balance);
 			emit OtokenMigrated(newOptionExchange, otokens[i], balance);
