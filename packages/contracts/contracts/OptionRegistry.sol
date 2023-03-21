@@ -69,8 +69,6 @@ contract OptionRegistry is AccessControl {
 	uint256 private constant MAX_BPS = 10_000;
 	// used to convert e18 to e8
 	uint256 private constant SCALE_FROM = 10**10;
-	// oToken decimals
-	uint8 private constant OPYN_DECIMALS = 8;
 
 	/////////////////////////////////////
 	/// events && errors && modifiers ///
@@ -178,7 +176,7 @@ contract OptionRegistry is AccessControl {
 		}
 		// assumes strike is passed in e18, converts to e8
 		uint128 formattedStrike = uint128(
-			formatStrikePrice(optionSeries.strike, optionSeries.collateral)
+			OptionsCompute.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
 		);
 		// create option storage hash
 		bytes32 issuanceHash = getIssuanceHash(
@@ -568,7 +566,7 @@ contract OptionRegistry is AccessControl {
 			collateral,
 			underlying,
 			strikeAsset,
-			formatStrikePrice(strike, collateral),
+			OptionsCompute.formatStrikePrice(strike, collateral),
 			expiration,
 			isPut
 		);
@@ -696,22 +694,6 @@ contract OptionRegistry is AccessControl {
 	//////////////////////////
 	/// internal utilities ///
 	//////////////////////////
-
-	/**
-	 * @notice Converts strike price to 1e8 format and floors least significant digits if needed
-	 * @param  strikePrice strikePrice in 1e18 format
-	 * @param  collateral address of collateral asset
-	 * @return if the transaction succeeded
-	 */
-	function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256) {
-		// convert strike to 1e8 format
-		uint256 price = strikePrice / (10**10);
-		uint256 collateralDecimals = ERC20(collateral).decimals();
-		if (collateralDecimals >= OPYN_DECIMALS) return price;
-		uint256 difference = OPYN_DECIMALS - collateralDecimals;
-		// round floor strike to prevent errors in Gamma protocol
-		return (price / (10**difference)) * (10**difference);
-	}
 
 	function _isLiquidityPool() internal view {
 		if (msg.sender != liquidityPool) {

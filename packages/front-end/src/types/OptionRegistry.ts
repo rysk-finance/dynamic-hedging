@@ -61,7 +61,6 @@ export interface OptionRegistryInterface extends utils.Interface {
     "checkVaultHealth(uint256)": FunctionFragment;
     "close(address,uint256)": FunctionFragment;
     "collateralAsset()": FunctionFragment;
-    "formatStrikePrice(uint256,address)": FunctionFragment;
     "getCollateral((uint64,uint128,bool,address,address,address),uint256)": FunctionFragment;
     "getIssuanceHash((uint64,uint128,bool,address,address,address))": FunctionFragment;
     "getOtoken(address,address,uint256,bool,uint256,address)": FunctionFragment;
@@ -119,10 +118,6 @@ export interface OptionRegistryInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "collateralAsset",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "formatStrikePrice",
-    values: [BigNumberish, string]
   ): string;
   encodeFunctionData(
     functionFragment: "getCollateral",
@@ -230,10 +225,6 @@ export interface OptionRegistryInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "close", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "collateralAsset",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "formatStrikePrice",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -442,12 +433,6 @@ export interface OptionRegistry extends BaseContract {
 
     collateralAsset(overrides?: CallOverrides): Promise<[string]>;
 
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
     getCollateral(
       series: Types.OptionSeriesStruct,
       amount: BigNumberish,
@@ -607,12 +592,6 @@ export interface OptionRegistry extends BaseContract {
 
   collateralAsset(overrides?: CallOverrides): Promise<string>;
 
-  formatStrikePrice(
-    strikePrice: BigNumberish,
-    collateral: string,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
   getCollateral(
     series: Types.OptionSeriesStruct,
     amount: BigNumberish,
@@ -771,12 +750,6 @@ export interface OptionRegistry extends BaseContract {
     ): Promise<[boolean, BigNumber]>;
 
     collateralAsset(overrides?: CallOverrides): Promise<string>;
-
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
 
     getCollateral(
       series: Types.OptionSeriesStruct,
@@ -993,12 +966,6 @@ export interface OptionRegistry extends BaseContract {
 
     collateralAsset(overrides?: CallOverrides): Promise<BigNumber>;
 
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getCollateral(
       series: Types.OptionSeriesStruct,
       amount: BigNumberish,
@@ -1141,12 +1108,6 @@ export interface OptionRegistry extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     collateralAsset(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
 
     getCollateral(
       series: Types.OptionSeriesStruct,
