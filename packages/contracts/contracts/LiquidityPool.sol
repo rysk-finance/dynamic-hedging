@@ -720,7 +720,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint256 strikePrice,
 		uint256 expiration
 	) public view returns (uint256) {
-		return _getVolatilityFeed().getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+		return getVolatilityFeed().getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
 	}
 
 	function getAssets() external view returns (uint256) {
@@ -984,7 +984,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice get the volatility feed used by the liquidity pool
 	 * @return the volatility feed contract interface
 	 */
-	function _getVolatilityFeed() public view returns (VolatilityFeed) {
+	function getVolatilityFeed() public view returns (VolatilityFeed) {
 		return VolatilityFeed(protocol.volatilityFeed());
 	}
 
