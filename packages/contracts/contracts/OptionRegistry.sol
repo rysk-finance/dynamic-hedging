@@ -69,6 +69,8 @@ contract OptionRegistry is AccessControl {
 	uint256 private constant MAX_BPS = 10_000;
 	// used to convert e18 to e8
 	uint256 private constant SCALE_FROM = 10**10;
+	// scale decimals
+	uint8 private constant SCALE = 18;
 
 	/////////////////////////////////////
 	/// events && errors && modifiers ///
@@ -109,7 +111,7 @@ contract OptionRegistry is AccessControl {
 		address _authority
 	) AccessControl(IAuthority(_authority)) {
 		collateralAsset = _collateralAsset;
-		if (ERC20(_collateralAsset).decimals() > 18) {
+		if (ERC20(_collateralAsset).decimals() > SCALE) {
 			revert CustomErrors.InvalidDecimals();
 		}
 		liquidityPool = _liquidityPool;
@@ -512,7 +514,7 @@ contract OptionRegistry is AccessControl {
 	///////////////////////
 
 	/**
-	 * @notice Send collateral funds for an option to be minted
+	 * @notice Calculate collateral funds for an option to be minted
 	 * @dev series.strike should be scaled by 1e8.
 	 * @param  series details of the option series
 	 * @param  amount amount of options to mint always in e18
