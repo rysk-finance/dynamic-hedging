@@ -82,6 +82,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	uint256 private constant ONE_YEAR_SECONDS = 31557600;
 	// used to convert e18 to e8
 	uint256 private constant SCALE_FROM = 10**10;
+	uint256 private constant ONE_DELTA = 100e18;
+	uint256 private constant ONE_SCALE = 1e18;
 
 	/////////////////////////
 	/// structs && events ///
@@ -115,8 +117,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	) AccessControl(IAuthority(_authority)) {
 		// option delta can span a range of 100, so ensure delta bands match this range
 		if (
-			_callSlippageGradientMultipliers.length != 100e18 / _deltaBandWidth ||
-			_putSlippageGradientMultipliers.length != 100e18 / _deltaBandWidth
+			_callSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+			_putSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth
 		) {
 			revert InvalidSlippageGradientMultipliersArrayLength();
 		}
@@ -199,15 +201,15 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	) public {
 		_onlyManager();
 		if (
-			_callSlippageGradientMultipliers.length != 100e18 / deltaBandWidth ||
-			_putSlippageGradientMultipliers.length != 100e18 / deltaBandWidth
+			_callSlippageGradientMultipliers.length != ONE_DELTA / deltaBandWidth ||
+			_putSlippageGradientMultipliers.length != ONE_DELTA / deltaBandWidth
 		) {
 			revert InvalidSlippageGradientMultipliersArrayLength();
 		}
 		for (uint256 i = 0; i < _callSlippageGradientMultipliers.length; i++) {
 			// arrays must be same length so can check both in same loop
 			// ensure no multiplier is less than 1 due to human error.
-			if (_callSlippageGradientMultipliers[i] < 1e18 || _putSlippageGradientMultipliers[i] < 1e18) {
+			if (_callSlippageGradientMultipliers[i] < ONE_SCALE || _putSlippageGradientMultipliers[i] < ONE_SCALE) {
 				revert InvalidSlippageGradientMultiplierValue();
 			}
 		}
@@ -330,13 +332,13 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			modifiedSlippageGradient = slippageGradient.mul(putSlippageGradientMultipliers[deltaBandIndex]);
 		}
 		if (slippageGradient == 0) {
-			slippageMultiplier = 1e18;
+			slippageMultiplier = ONE_SCALE;
 			return slippageMultiplier;
 		}
 		// integrate the exponential function to get the slippage multiplier as this represents the average exposure
 		// if it is a sell then we need to do lower bound is old exposure exponent, upper bound is new exposure exponent
 		// if it is a buy then we need to do lower bound is new exposure exponent, upper bound is old exposure exponent
-		int256 slippageFactor = int256(1e18 + modifiedSlippageGradient);
+		int256 slippageFactor = int256(ONE_SCALE + modifiedSlippageGradient);
 		if (_isSell) {
 			slippageMultiplier = uint256(
 				(slippageFactor.pow(-oldExposureExponent) - slippageFactor.pow(-newExposureExponent)).div(
@@ -382,7 +384,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
 		// calculate the collateral cost portion of the spread
-		uint256 collateralLendingPremium = ((1e18 + (collateralLendingRate * 1e18) / SIX_DPS).pow(time))
+		uint256 collateralLendingPremium = ((ONE_SCALE + (collateralLendingRate * ONE_SCALE) / SIX_DPS).pow(time))
 			.mul(collateralToLend) - collateralToLend;
 		// this is just a magnitude value, sign doesnt matter
 		uint256 dollarDelta = uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice);
@@ -390,17 +392,18 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		if (_optionDelta < 0) {
 			// option is negative delta, resulting in long delta exposure for DHV. needs hedging with a short pos
 			deltaBorrowPremium =
-				dollarDelta.mul((1e18 + (shortDeltaBorrowRate * 1e18) / SIX_DPS).pow(time)) -
+				dollarDelta.mul((ONE_SCALE + (shortDeltaBorrowRate * ONE_SCALE) / SIX_DPS).pow(time)) -
 				dollarDelta;
 		} else {
 			// option is positive delta, resulting in short delta exposure for DHV. needs hedging with a long pos
 			deltaBorrowPremium =
-				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / SIX_DPS).pow(time)) -
+				dollarDelta.mul((ONE_SCALE + (longDeltaBorrowRate * ONE_SCALE) / SIX_DPS).pow(time)) -
 				dollarDelta;
 		}
 		return collateralLendingPremium + deltaBorrowPremium;
 	}
 
+	// TODO: Decouple from USD
 	function _getCollateralRequirements(Types.OptionSeries memory _optionSeries, uint256 _amount)
 		internal
 		view

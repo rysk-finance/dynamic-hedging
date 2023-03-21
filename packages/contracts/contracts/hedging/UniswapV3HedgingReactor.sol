@@ -62,6 +62,8 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 	uint256 private constant MAX_UINT = 2**256 - 1;
 	/// @notice max bips, representative of 100%
 	uint256 private constant MAX_BPS = 10000;
+	/// @notice slippage conversion decimals
+	uint256 private constant SLIPPAGE_CONVERSION_DECIMALS = 1e22;
 
 	constructor(
 		ISwapRouter _swapRouter,
@@ -124,7 +126,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 				ERC20(collateralAsset).decimals()
 			) *
 				uint256(-_delta) *
-				(MAX_BPS + buySlippage)) / 1e22;
+				(MAX_BPS + buySlippage)) / SLIPPAGE_CONVERSION_DECIMALS;
 			(deltaChange, ) = _swapExactOutputSingle(uint256(-_delta), amountInMaximum, collateralAsset);
 			internalDelta += deltaChange;
 			SafeTransferLib.safeTransfer(
@@ -147,7 +149,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 					ERC20(collateralAsset).decimals()
 				) *
 					ethBalance *
-					(MAX_BPS - sellSlippage)) / 1e22;
+					(MAX_BPS - sellSlippage)) / SLIPPAGE_CONVERSION_DECIMALS;
 				(deltaChange, ) = _swapExactInputSingle(ethBalance, amountOutMinimum, collateralAsset);
 				internalDelta += deltaChange;
 			} else {
@@ -157,7 +159,7 @@ contract UniswapV3HedgingReactor is IHedgingReactor, AccessControl {
 					ERC20(collateralAsset).decimals()
 				) *
 					uint256(_delta) *
-					(MAX_BPS - sellSlippage)) / 1e22;
+					(MAX_BPS - sellSlippage)) / SLIPPAGE_CONVERSION_DECIMALS;
 				(deltaChange, ) = _swapExactInputSingle(uint256(_delta), amountOutMinimum, collateralAsset);
 				internalDelta += deltaChange;
 			}
