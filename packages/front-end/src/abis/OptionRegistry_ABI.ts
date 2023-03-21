@@ -425,30 +425,6 @@ export const OptionRegistryABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "uint256",
-				"name": "strikePrice",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "collateral",
-				"type": "address"
-			}
-		],
-		"name": "formatStrikePrice",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
 				"components": [
 					{
 						"internalType": "uint64",
