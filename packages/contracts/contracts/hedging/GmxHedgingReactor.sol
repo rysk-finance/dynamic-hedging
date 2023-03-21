@@ -17,7 +17,6 @@ import "../interfaces/IPositionRouter.sol";
 import "../interfaces/IReader.sol";
 import "../interfaces/IGmxVault.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "hardhat/console.sol";
 
 /**
  *  @title A hedging reactor that will manage delta by opening or closing short or long perp positions using GMX
@@ -209,6 +208,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	/// @inheritdoc IHedgingReactor
 	function withdraw(uint256 _amount) external returns (uint256) {
 		require(msg.sender == parentLiquidityPool, "!vault");
+		// this is likely due to the liquidity pool removing this reactor
+		// so ensure no pending positions first
 		if (_amount == type(uint256).max) {
 			require(!pendingIncreaseCallback && !pendingDecreaseCallback, "position execution pending");
 		}
@@ -613,9 +614,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		uint256 _collateralSize,
 		bool _isLong
 	) internal returns (bytes32 positionKey, int256 deltaChange) {
-		// if (pendingDecreaseCallback) {
-		// 	revert CustomErrors.GmxCallbackPending();
-		// }
 		uint256[] memory position = _getPosition(_isLong);
 		uint256 currentPrice = getUnderlyingPrice(wETH, collateralAsset);
 
@@ -898,8 +896,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		if (msg.sender != address(gmxPositionRouter)) {
 			revert CustomErrors.InvalidGmxCallback();
 		}
-		console.logBytes32(positionKey);
-		console.log(isExecuted, isIncrease);
 		if (isExecuted) {
 			if (isIncrease) {
 				int deltaChange = increaseOrderDeltaChange[positionKey];
@@ -921,7 +917,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				emit PositionExecuted(deltaChange);
 			} else {
 				int deltaChange = decreaseOrderDeltaChange[positionKey];
-				console.logInt(deltaChange);
 				internalDelta += deltaChange;
 				if (deltaChange > 0) {
 					// decrease position results in positive delta change => must be a short
