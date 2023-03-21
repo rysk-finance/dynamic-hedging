@@ -90,10 +90,13 @@ describe("Options protocol Vault Health", function () {
 		// deploy libraries
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
 		const interactions = await interactionsFactory.deploy()
+		const computeFactory = await hre.ethers.getContractFactory("contracts/libraries/OptionsCompute.sol:OptionsCompute")
+		const compute = await computeFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
-				OpynInteractions: interactions.address
+				OpynInteractions: interactions.address,
+				OptionsCompute: compute.address
 			}
 		})
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")

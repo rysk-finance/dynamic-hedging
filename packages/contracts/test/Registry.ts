@@ -5,7 +5,7 @@ import { BigNumber, Contract, Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
 
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import { ERC20Interface, MintableERC20, NewController, NewMarginCalculator, Oracle, Otoken as IOToken, WETH } from "../types"
+import { ERC20Interface, MintableERC20, NewController, NewMarginCalculator, OpynInteractions, Oracle, Otoken as IOToken, WETH } from "../types"
 import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
 import { call, createValidExpiry, MAX_BPS, put, toWei, ZERO_ADDRESS } from "../utils/conversion-helper"
 import { deployOpyn } from "../utils/opyn-deployer"
@@ -81,15 +81,6 @@ describe("Options protocol", function () {
 		signers = await ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
-		// deploy libraries
-		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
-		interactions = (await interactionsFactory.deploy()) as OpynInteractions
-		// deploy options registry
-		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
-			libraries: {
-				OpynInteractions: interactions.address
-			}
-		})
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")
 		const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
 		// get and transfer weth
@@ -108,6 +99,18 @@ describe("Options protocol", function () {
 		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
 		await usd.connect(signer).transfer(senderAddress, toWei("1000000").div(usdDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
+		// deploy libraries
+		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
+		interactions = (await interactionsFactory.deploy())
+		const computeFactory = await hre.ethers.getContractFactory("contracts/libraries/OptionsCompute.sol:OptionsCompute")
+		const compute = await computeFactory.deploy()
+		// deploy options registry
+		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
+			libraries: {
+				OpynInteractions: interactions.address,
+				OptionsCompute: compute.address
+						}
+			})
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
 			senderAddress,

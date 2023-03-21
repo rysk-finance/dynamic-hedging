@@ -23,9 +23,9 @@ const { parseEther } = ethers.utils
 const chainId = 1
 
 export async function getNetDhvExposure(strikePrice: BigNumberish, collateral: string, catalogue: OptionCatalogue, portfolioValuesFeed: AlphaPortfolioValuesFeed, expiration: BigNumberish, flavor: boolean) {
-	const formattedStrikePrice = (await catalogue.formatStrikePrice(strikePrice, collateral)).mul(
-		ethers.utils.parseUnits("1", 10)
-	)
+	const formattedStrikePrice = (
+		(strikePrice.div(ethers.utils.parseUnits("1", 12))) 
+	).mul(ethers.utils.parseUnits("1", 12))
 	const oHash = ethers.utils.solidityKeccak256(
 		["uint64", "uint128", "bool"],
 		[expiration, formattedStrikePrice, flavor]
@@ -33,10 +33,7 @@ export async function getNetDhvExposure(strikePrice: BigNumberish, collateral: s
 	return await portfolioValuesFeed.netDhvExposure(oHash)
 }
 export async function getSeriesWithe18Strike(proposedSeries: any, optionRegistry: OptionRegistry) {
-	const formattedStrike = await optionRegistry.formatStrikePrice(
-		proposedSeries.strike,
-		proposedSeries.collateral
-	)
+	const formattedStrike = (proposedSeries.strike.div(ethers.utils.parseUnits("1", 12))).mul(ethers.utils.parseUnits("1", 2)) 
 	const seriesAddress = await optionRegistry.getSeries({
 		expiration: proposedSeries.expiration,
 		isPut: proposedSeries.isPut,
@@ -678,8 +675,8 @@ export async function applySlippageLocally(
 	netDhvExposure: BigNumberish = 1
 ) {
 	const formattedStrikePrice = (
-		await catalogue.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
-	).mul(ethers.utils.parseUnits("1", 10))
+		(optionSeries.strike.div(ethers.utils.parseUnits("1", 12))) 
+	).mul(ethers.utils.parseUnits("1", 12))
 	const oHash = ethers.utils.solidityKeccak256(
 		["uint64", "uint128", "bool"],
 		[optionSeries.expiration, formattedStrikePrice, optionSeries.isPut]

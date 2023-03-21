@@ -110,7 +110,6 @@ export interface OptionExchangeInterface extends utils.Interface {
     "collateralAsset()": FunctionFragment;
     "createOtoken((uint64,uint128,bool,address,address,address))": FunctionFragment;
     "feeRecipient()": FunctionFragment;
-    "formatStrikePrice(uint256,address)": FunctionFragment;
     "getDelta()": FunctionFragment;
     "getOptionDetails(address,(uint64,uint128,bool,address,address,address))": FunctionFragment;
     "getPoolDenominatedValue()": FunctionFragment;
@@ -171,10 +170,6 @@ export interface OptionExchangeInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "feeRecipient",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "formatStrikePrice",
-    values: [BigNumberish, string]
   ): string;
   encodeFunctionData(functionFragment: "getDelta", values?: undefined): string;
   encodeFunctionData(
@@ -291,10 +286,6 @@ export interface OptionExchangeInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "feeRecipient",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "formatStrikePrice",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getDelta", data: BytesLike): Result;
@@ -531,12 +522,6 @@ export interface OptionExchange extends BaseContract {
 
     feeRecipient(overrides?: CallOverrides): Promise<[string]>;
 
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
     getDelta(
       overrides?: CallOverrides
     ): Promise<[BigNumber] & { delta: BigNumber }>;
@@ -682,12 +667,6 @@ export interface OptionExchange extends BaseContract {
 
   feeRecipient(overrides?: CallOverrides): Promise<string>;
 
-  formatStrikePrice(
-    strikePrice: BigNumberish,
-    collateral: string,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
   getDelta(overrides?: CallOverrides): Promise<BigNumber>;
 
   getOptionDetails(
@@ -830,12 +809,6 @@ export interface OptionExchange extends BaseContract {
     ): Promise<string>;
 
     feeRecipient(overrides?: CallOverrides): Promise<string>;
-
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
 
     getDelta(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -1064,12 +1037,6 @@ export interface OptionExchange extends BaseContract {
 
     feeRecipient(overrides?: CallOverrides): Promise<BigNumber>;
 
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getDelta(overrides?: CallOverrides): Promise<BigNumber>;
 
     getOptionDetails(
@@ -1213,12 +1180,6 @@ export interface OptionExchange extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     feeRecipient(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
 
     getDelta(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 

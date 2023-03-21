@@ -68,7 +68,6 @@ export interface OptionCatalogueInterface extends utils.Interface {
     "changeOptionBuyOrSell((uint64,uint128,bool,bool,bool)[])": FunctionFragment;
     "collateralAsset()": FunctionFragment;
     "expirations(uint256)": FunctionFragment;
-    "formatStrikePrice(uint256,address)": FunctionFragment;
     "getExpirations()": FunctionFragment;
     "getOptionDetails(uint64,bool)": FunctionFragment;
     "getOptionStores(bytes32)": FunctionFragment;
@@ -96,10 +95,6 @@ export interface OptionCatalogueInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "expirations",
     values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "formatStrikePrice",
-    values: [BigNumberish, string]
   ): string;
   encodeFunctionData(
     functionFragment: "getExpirations",
@@ -153,10 +148,6 @@ export interface OptionCatalogueInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "expirations",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "formatStrikePrice",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -281,12 +272,6 @@ export interface OptionCatalogue extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber]>;
 
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
     getExpirations(overrides?: CallOverrides): Promise<[BigNumber[]]>;
 
     getOptionDetails(
@@ -352,12 +337,6 @@ export interface OptionCatalogue extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber>;
 
-  formatStrikePrice(
-    strikePrice: BigNumberish,
-    collateral: string,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
   getExpirations(overrides?: CallOverrides): Promise<BigNumber[]>;
 
   getOptionDetails(
@@ -420,12 +399,6 @@ export interface OptionCatalogue extends BaseContract {
 
     expirations(
       arg0: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -534,12 +507,6 @@ export interface OptionCatalogue extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getExpirations(overrides?: CallOverrides): Promise<BigNumber>;
 
     getOptionDetails(
@@ -597,12 +564,6 @@ export interface OptionCatalogue extends BaseContract {
 
     expirations(
       arg0: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 

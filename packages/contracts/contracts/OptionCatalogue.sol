@@ -92,7 +92,7 @@ contract OptionCatalogue is AccessControl {
 			Types.Option memory o = options[i];
 			// make sure the strike gets formatted properly
 			uint128 strike = uint128(
-				formatStrikePrice(o.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
+				OptionsCompute.formatStrikePrice(o.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
 			);
 			if((o.expiration - 28800) % 86400 != 0) {
 				revert CustomErrors.InvalidExpiry();
@@ -138,7 +138,7 @@ contract OptionCatalogue is AccessControl {
 			// make sure the strike gets formatted properly, we get it to e8 format in the converter
 			// then convert it back to e18
 			uint128 strike = uint128(
-				formatStrikePrice(o.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
+				OptionsCompute.formatStrikePrice(o.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
 			);
 			// get the option hash
 			bytes32 optionHash = keccak256(abi.encodePacked(o.expiration, strike, o.isPut));
@@ -189,23 +189,4 @@ contract OptionCatalogue is AccessControl {
 		return optionStores[oHash].approvedOption;
 	}
 
-	///////////////////////
-	/// complex getters ///
-	///////////////////////
-
-	/**
-	 * @notice Converts strike price to 1e8 format and floors least significant digits if needed
-	 * @param  strikePrice strikePrice in 1e18 format
-	 * @param  collateral address of collateral asset
-	 * @return if the transaction succeeded
-	 */
-	function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256) {
-		// convert strike to 1e8 format
-		uint256 price = strikePrice / (10**10);
-		uint256 collateralDecimals = ERC20(collateral).decimals();
-		if (collateralDecimals >= OPYN_DECIMALS) return price;
-		uint256 difference = OPYN_DECIMALS - collateralDecimals;
-		// round floor strike to prevent errors in Gamma protocol
-		return (price / (10**difference)) * (10**difference);
-	}
 }
