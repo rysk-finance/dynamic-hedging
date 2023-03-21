@@ -74,6 +74,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 
 	event OrderCreated(uint256 orderId);
 	event OrderExecuted(uint256 orderId);
+	event FeeRecipientUpdated(address feeRecipient);
+	event FeePerContractUpdated(uint256 feePerContract);
 	event OptionsBought(address indexed series, address indexed buyer, uint256 optionAmount, uint256 premium, uint256 fee);
 	event OptionsSold(address indexed series, address indexed seller, uint256 optionAmount, uint256 premium, uint256 fee);
 
@@ -93,12 +95,14 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	function setFeePerContract(uint256 _feePerContract) external {
 		_onlyGovernor();
 		feePerContract = _feePerContract;
+		emit FeePerContractUpdated(_feeRecipient);
 	}
 
 	function setFeeRecipient(address _feeRecipient) external {
 		_onlyGovernor();
 		require(_feeRecipient != address(0));
 		feeRecipient = _feeRecipient;
+		emit FeeRecipientUpdated(_feeRecipient);
 	}
 
 	//////////////////////////////////////////////////////
