@@ -41,6 +41,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	///////////////////////////
 
 	uint256 constant oTokenDecimals = 8;
+	int256 private constant SCALE = 1e18;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -195,10 +196,10 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 			// calculate the net exposure
 			int256 netExposure = _optionStores.shortExposure - _optionStores.longExposure;
 			// increment the deltas by adding if the option is long and subtracting if the option is short
-			delta -= (_delta * netExposure) / 1e18;
+			delta -= (_delta * netExposure) / SCALE;
 			// increment the values by subtracting if the option is long (as this represents liabilities in the liquidity pool) and adding if the option is short as this value
 			// represents liabilities
-			callPutsValue += (int256(_callPutsValue) * netExposure) / 1e18;
+			callPutsValue += (int256(_callPutsValue) * netExposure) / SCALE;
 		}
 		// update the portfolio values
 		Types.PortfolioValues memory portfolioValue = Types.PortfolioValues({
