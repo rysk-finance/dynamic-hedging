@@ -944,6 +944,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		) = _getOptionDetails(_seriesAddress, _optionSeries, _optionRegistry);
 		// check the option hash and option series for validity
 		bytes32 oHash = _checkHash(optionSeries, strikeDecimalConverted, isSell);
+		// check details of the option series
 		if (optionSeries.expiration <= block.timestamp) {
 			revert CustomErrors.OptionExpiryInvalid();
 		}
