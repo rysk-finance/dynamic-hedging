@@ -44,8 +44,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	/// dynamic variables ///
 	/////////////////////////
 
-	/// @notice number of decimals on the collateralAsset ERC20 contract
-	uint8 public collateralAssetDecimals;
 	/// @notice delta of the pool
 	int256 public internalDelta;
 	/// @notice magnitude of delta held in open shorts
@@ -96,6 +94,10 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	uint private constant BUFFER = 11_000;
 	/// @notice for converting from GMX's e30 notation to e18
 	uint private constant GMX_DECIMAL_CONVERT = 1e12;
+	/// @notice conversion from GMX e30 to collateral decimals
+	uint private constant GMX_TO_COLLATERAL_DECIMALS = 1e24;
+	/// @notice number of decimals on the collateralAsset ERC20 contract
+	uint8 private constant COLLATERAL_ASSET_DECIMALS = 6;
 
 	//////////////
 	/// events ///
@@ -125,7 +127,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		parentLiquidityPool = _parentLiquidityPool;
 		wETH = _wethAddress;
 		collateralAsset = _collateralAsset;
-		collateralAssetDecimals = ERC20(_collateralAsset).decimals();
 		priceFeed = _priceFeed;
 	}
 
@@ -290,7 +291,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				(bytes32 key2, int deltaChange2) = _decreasePosition(shortDelta, collateralToRemoveLong, true);
 				decreaseOrderDeltaChange[key2] += deltaChange2;
 			} else {
-				// we are net long
+				// we are net short
 				uint256[] memory longPosition = _getPosition(true);
 				uint256 longDelta = (longPosition[0]).div(longPosition[2]);
 				collateralToRemoveLong = _getCollateralSizeDeltaUsd(false, false, longDelta, true);
@@ -311,16 +312,15 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			// collateral needs removing
 			// check if collateral removed would put position within 10% of liquidation limit
 			// where positionSize / collateral is >= maxLeverage()
-			uint _collateralAssetDecimals = collateralAssetDecimals;
 			if (
 				// maxLeverage is multiplied by 10000 in contract. divide by 11000 to allow for 10% buffer.
-				int256(position[1] / 10 ** (30 - _collateralAssetDecimals)) - int256(collatToTransfer) <
-				int256((position[0] / 10 ** (30 - _collateralAssetDecimals)) / (vault.maxLeverage() / BUFFER))
+				int256(position[1] / GMX_TO_COLLATERAL_DECIMALS) - int256(collatToTransfer) <
+				int256((position[0] / GMX_TO_COLLATERAL_DECIMALS) / (vault.maxLeverage() / BUFFER))
 			) {
 				collatToTransfer =
 					position[1] /
-					10 ** (30 - _collateralAssetDecimals) -
-					(position[0] / 10 ** (30 - _collateralAssetDecimals)) /
+					GMX_TO_COLLATERAL_DECIMALS -
+					(position[0] / GMX_TO_COLLATERAL_DECIMALS) /
 					(vault.maxLeverage() / BUFFER);
 				if (collatToTransfer == 0) {
 					return 0;
@@ -377,12 +377,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		}
 		value += OptionsCompute.convertFromDecimals(
 			ERC20(collateralAsset).balanceOf(address(this)),
-			collateralAssetDecimals
+			COLLATERAL_ASSET_DECIMALS
 		);
 		if (pendingIncreaseCallback) {
 			value += OptionsCompute.convertFromDecimals(
 				pendingIncreaseCollateralValue,
-				collateralAssetDecimals
+				COLLATERAL_ASSET_DECIMALS
 			);
 		}
 		if (longAndShortOpen) {
@@ -448,7 +448,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			collatToTransfer =
 				((uint256(health) - healthFactor) * position[0]) /
 				MAX_BIPS /
-				10 ** (30 - collateralAssetDecimals);
+				GMX_TO_COLLATERAL_DECIMALS;
 		} else if (health < int256(healthFactor)) {
 			// position undercollateralised
 			// more collateral needs adding
@@ -457,7 +457,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			collatToTransfer = uint256(
 				((int256(healthFactor) - health) * int256(position[0])) /
 					int256(MAX_BIPS) /
-					int(10 ** (30 - collateralAssetDecimals))
+					int(GMX_TO_COLLATERAL_DECIMALS)
 			);
 		} else {
 			// health factor is perfect
@@ -632,7 +632,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		}(
 			_createPathDecreasePosition(_isLong),
 			wETH,
-			_collateralSize * 10 ** (30 - collateralAssetDecimals),
+			_collateralSize * GMX_TO_COLLATERAL_DECIMALS,
 			positionSizeDeltaUsd,
 			_isLong,
 			parentLiquidityPool,
@@ -744,21 +744,20 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	) private view returns (uint256) {
 		// calculate amount of collateral to add or remove denominated in USDC
 		//  for increase positions this is equal to collateral needed for extra margin plus rebalancing collateral to bring health factor back to 5000
-		uint _collateralAssetDecimals = collateralAssetDecimals;
 		if (_isIncreasePosition) {
 			if (_closedOppositeSideFirst) {
 				// this is a new position so no pnl to account for
 				return
 					OptionsCompute.convertToDecimals(
 						(_amount.mul(getUnderlyingPrice(wETH, collateralAsset)) * healthFactor) / MAX_BIPS,
-						_collateralAssetDecimals
+						COLLATERAL_ASSET_DECIMALS
 					);
 			}
 			(, bool isAboveMax, , uint256 collatToTransfer, , ) = checkVaultHealth();
 			// this is the collateral needed to increase position with no health factor rebalancing
 			uint256 extraPositionCollateral = OptionsCompute.convertToDecimals(
 				(_amount.mul(getUnderlyingPrice(wETH, collateralAsset)) * healthFactor) / MAX_BIPS,
-				_collateralAssetDecimals
+				COLLATERAL_ASSET_DECIMALS
 			);
 			uint256 totalCollateralToAdd;
 			if (isAboveMax && collatToTransfer > extraPositionCollateral) {
@@ -782,17 +781,17 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			uint256 minAllowedCollateral = OptionsCompute.convertToDecimals(
 				((position[0] / GMX_DECIMAL_CONVERT + _amount.mul(getUnderlyingPrice(wETH, collateralAsset)))) /
 					(vault.maxLeverage() / BUFFER),
-				_collateralAssetDecimals
+				COLLATERAL_ASSET_DECIMALS
 			);
 			if (
-				OptionsCompute.convertToDecimals(position[1] / GMX_DECIMAL_CONVERT, _collateralAssetDecimals) +
+				OptionsCompute.convertToDecimals(position[1] / GMX_DECIMAL_CONVERT, COLLATERAL_ASSET_DECIMALS) +
 					totalCollateralToAdd <
 				minAllowedCollateral
 			) {
 				// position[1] cannot be bigger than minAllowedCollateral here - no underflow
 				totalCollateralToAdd =
 					minAllowedCollateral -
-					OptionsCompute.convertToDecimals(position[1] / GMX_DECIMAL_CONVERT, _collateralAssetDecimals);
+					OptionsCompute.convertToDecimals(position[1] / GMX_DECIMAL_CONVERT, COLLATERAL_ASSET_DECIMALS);
 			}
 			return totalCollateralToAdd;
 		} else {
@@ -868,7 +867,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 					}
 				}
 			}
-			return OptionsCompute.convertToDecimals(adjustedCollateralToRemove, collateralAssetDecimals);
+			return OptionsCompute.convertToDecimals(adjustedCollateralToRemove, COLLATERAL_ASSET_DECIMALS);
 		}
 	}
 
