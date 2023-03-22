@@ -952,6 +952,16 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		return amount;
 	}
 
+	function adjustVariables(
+		uint256 collateralAmount,
+		uint256 optionsValue,
+		int256 delta,
+		bool isSale
+	) external {
+		_isHandler();
+		_adjustVariables(collateralAmount, optionsValue, delta, isSale);
+	}
+	
 	/**
 	 * @notice adjust the variables of the pool
 	 * @param  collateralAmount the amount of collateral transferred to change on collateral allocated in collateral decimals
