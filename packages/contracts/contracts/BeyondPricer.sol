@@ -261,7 +261,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			spread = _getSpreadValue(_optionSeries, _amount, delta, netDhvExposure, underlyingPrice);
 		}
 		// note the delta returned is the delta of a long position of the option the sign of delta should be handled elsewhere.
-		totalPremium = (premium.mul(_amount) + spread) / 1e12;
+		totalPremium = OptionsCompute.convertToDecimals(premium.mul(_amount) + spread, ERC20(collateralAsset).decimals());
 		totalDelta = delta.mul(int256(_amount));
 		totalFees = feePerContract.mul(_amount);
 	}
@@ -379,13 +379,16 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				? 0
 				: _amount - uint256(_netDhvExposure);
 		}
-		// find collateral requirements for net short options
-		uint256 collateralToLend = _getCollateralRequirements(_optionSeries, netShortContracts);
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
-		// calculate the collateral cost portion of the spread
-		uint256 collateralLendingPremium = ((ONE_SCALE + (collateralLendingRate * ONE_SCALE) / SIX_DPS).pow(time))
-			.mul(collateralToLend) - collateralToLend;
+		if (_optionSeries.collateral ==  collateralAsset) {
+			// find collateral requirements for net short options
+			uint256 collateralToLend = _getCollateralRequirements(_optionSeries, netShortContracts);
+			// calculate the collateral cost portion of the spread
+			uint256 collateralLendingPremium = ((ONE_SCALE + (collateralLendingRate * ONE_SCALE) / SIX_DPS).pow(time))
+				.mul(collateralToLend) - collateralToLend;
+			spreadPremium += collateralLendingPremium;
+		}
 		// this is just a magnitude value, sign doesnt matter
 		uint256 dollarDelta = uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice);
 		uint256 deltaBorrowPremium;
@@ -400,10 +403,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				dollarDelta.mul((ONE_SCALE + (longDeltaBorrowRate * ONE_SCALE) / SIX_DPS).pow(time)) -
 				dollarDelta;
 		}
-		return collateralLendingPremium + deltaBorrowPremium;
+		spreadPremium += deltaBorrowPremium;
 	}
 
-	// TODO: Decouple from USD
 	function _getCollateralRequirements(Types.OptionSeries memory _optionSeries, uint256 _amount)
 		internal
 		view
