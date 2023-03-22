@@ -210,7 +210,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		// make sure the caller is the vault
 		require(msg.sender == parentLiquidityPool, "!vault");
 		sync();
-		deltaChange = _changePosition(-_delta);
+		_changePosition(-_delta);
+		return 0;
 	}
 
 	/// @inheritdoc IHedgingReactor
@@ -478,9 +479,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	 *	at any one time to aavoid paying borrow fees both ways.
 	 *	This function will close off any shorts before opening longs and vice versa.
 	 *  @param _amount the amount of delta to change exposure by. e18
-	 *  @return deltaChange The resulting difference in delta exposure
 	 */
-	function _changePosition(int256 _amount) internal returns (int256) {
+	function _changePosition(int256 _amount) internal {
 		bool closedOppositeSideFirst = false;
 		int256 closedPositionDeltaChange;
 		if (_amount > 0) {
@@ -502,7 +502,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 				// remove the adjustedPositionSize from _amount to get remaining amount of delta to hedge to open shorts with
 				_amount = _amount - int256(adjustedPositionSize);
-				if (_amount == 0) return int256(adjustedPositionSize);
+				if (_amount == 0) return;
 				closedPositionDeltaChange = deltaChange;
 				closedOppositeSideFirst = true;
 			}
@@ -516,7 +516,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			(positionKey, deltaChange) = _increasePosition(uint256(_amount), collateralToAdd, true);
 			// update deltaChange for callback function
 			increaseOrderDeltaChange[positionKey] += deltaChange;
-			return deltaChange + closedPositionDeltaChange;
 		} else {
 			// _amount is negative
 			// enter a short position
@@ -537,7 +536,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 				// remove the adjustedPositionSize from _amount to get remaining amount of delta to hedge to open shorts with
 				_amount = _amount + int256(adjustedPositionSize); // _amount is negative so addition needed
-				if (_amount == 0) return -int256(adjustedPositionSize);
+				if (_amount == 0) return;
 				closedPositionDeltaChange = deltaChange;
 				closedOppositeSideFirst = true;
 			}
@@ -551,7 +550,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			(positionKey, deltaChange) = _increasePosition(uint256(-_amount), collateralToAdd, false);
 			// update deltaChange for callback function
 			increaseOrderDeltaChange[positionKey] += deltaChange;
-			return deltaChange + closedPositionDeltaChange;
 		}
 	}
 
