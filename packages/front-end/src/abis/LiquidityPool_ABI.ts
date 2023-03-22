@@ -556,6 +556,34 @@ export const LiquidityPoolABI = [
 	{
 		"inputs": [
 			{
+				"internalType": "uint256",
+				"name": "collateralAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "optionsValue",
+				"type": "uint256"
+			},
+			{
+				"internalType": "int256",
+				"name": "delta",
+				"type": "int256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isSale",
+				"type": "bool"
+			}
+		],
+		"name": "adjustVariables",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "address",
 				"name": "",
 				"type": "address"

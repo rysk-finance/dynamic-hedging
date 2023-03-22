@@ -79,6 +79,7 @@ export interface LiquidityPoolInterface extends utils.Interface {
   functions: {
     "DOMAIN_SEPARATOR()": FunctionFragment;
     "adjustCollateral(uint256,bool)": FunctionFragment;
+    "adjustVariables(uint256,uint256,int256,bool)": FunctionFragment;
     "allowance(address,address)": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
     "authority()": FunctionFragment;
@@ -163,6 +164,10 @@ export interface LiquidityPoolInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "adjustCollateral",
     values: [BigNumberish, boolean]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "adjustVariables",
+    values: [BigNumberish, BigNumberish, BigNumberish, boolean]
   ): string;
   encodeFunctionData(
     functionFragment: "allowance",
@@ -460,6 +465,10 @@ export interface LiquidityPoolInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "adjustCollateral",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "adjustVariables",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "allowance", data: BytesLike): Result;
@@ -898,6 +907,14 @@ export interface LiquidityPool extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    adjustVariables(
+      collateralAmount: BigNumberish,
+      optionsValue: BigNumberish,
+      delta: BigNumberish,
+      isSale: boolean,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     allowance(
       arg0: string,
       arg1: string,
@@ -1227,6 +1244,14 @@ export interface LiquidityPool extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  adjustVariables(
+    collateralAmount: BigNumberish,
+    optionsValue: BigNumberish,
+    delta: BigNumberish,
+    isSale: boolean,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   allowance(
     arg0: string,
     arg1: string,
@@ -1547,6 +1572,14 @@ export interface LiquidityPool extends BaseContract {
     adjustCollateral(
       lpCollateralDifference: BigNumberish,
       addToLpBalance: boolean,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    adjustVariables(
+      collateralAmount: BigNumberish,
+      optionsValue: BigNumberish,
+      delta: BigNumberish,
+      isSale: boolean,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -1996,6 +2029,14 @@ export interface LiquidityPool extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    adjustVariables(
+      collateralAmount: BigNumberish,
+      optionsValue: BigNumberish,
+      delta: BigNumberish,
+      isSale: boolean,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     allowance(
       arg0: string,
       arg1: string,
@@ -2300,6 +2341,14 @@ export interface LiquidityPool extends BaseContract {
     adjustCollateral(
       lpCollateralDifference: BigNumberish,
       addToLpBalance: boolean,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    adjustVariables(
+      collateralAmount: BigNumberish,
+      optionsValue: BigNumberish,
+      delta: BigNumberish,
+      isSale: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

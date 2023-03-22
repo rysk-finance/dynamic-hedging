@@ -63,6 +63,8 @@ interface ILiquidityPool is I_ERC20 {
 	/// functions ///
 	/////////////////
 
+	function adjustVariables(uint256 collateralAmount, uint256 optionsValue, int256 delta, bool isSale) external;
+	
 	function handlerIssue(Types.OptionSeries memory optionSeries) external returns (address);
 
 	function resetEphemeralValues() external;
