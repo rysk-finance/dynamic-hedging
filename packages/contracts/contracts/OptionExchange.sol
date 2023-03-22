@@ -580,6 +580,12 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				-int256(boughtAmount),
 				buyParams.seriesAddress
 			);
+			liquidityPool.adjustVariables(
+				0, 
+				buyParams.premium.mul(boughtAmount).div(_args.amount), 
+				buyParams.delta.mul(int256(boughtAmount)).div(int256(_args.amount)), 
+				true
+				);
 			amount -= boughtAmount;
 			if (amount == 0) {
 				return;
@@ -601,8 +607,8 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			buyParams.seriesAddress,
 			amount,
 			optionRegistry,
-			buyParams.premium,
-			buyParams.delta,
+			buyParams.premium.mul(amount).div(_args.amount),
+			buyParams.delta.mul(int256(amount)).div(int256(_args.amount)),
 			recipient
 		);
 	}
@@ -682,6 +688,12 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 				int256(sellParams.amount),
 				sellParams.seriesAddress
 			);
+			liquidityPool.adjustVariables(
+				0,
+				sellParams.premium.mul(sellParams.amount).div(_args.amount),
+				sellParams.delta.mul(int256(sellParams.amount)).div(int256(_args.amount)),
+				false
+				);
 		}
 		// this accounts for premium sent from buyback as well as any rounding errors from the dhv buyback
 		if (sellParams.premium > sellParams.premiumSent) {
