@@ -32,7 +32,7 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import { IOtoken, IController } from "./interfaces/GammaInterface.sol";
-
+import "hardhat/console.sol";
 /**
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
@@ -639,11 +639,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			revert TooMuchSlippage(sellParams.premium, _args.acceptablePremium);
 		}
 		sellParams.amount = _args.amount;
-		sellParams.tempHoldings = heldTokens[msg.sender][sellParams.seriesAddress];
-		heldTokens[msg.sender][sellParams.seriesAddress] -= OptionsCompute.min(
-			sellParams.tempHoldings,
+		sellParams.tempHoldings = OptionsCompute.min(
+			heldTokens[msg.sender][sellParams.seriesAddress],
 			_args.amount
 		);
+		heldTokens[msg.sender][sellParams.seriesAddress] -= sellParams.tempHoldings;
 		int256 shortExposure = portfolioValuesFeed
 			.storesForAddress(sellParams.seriesAddress)
 			.shortExposure;
