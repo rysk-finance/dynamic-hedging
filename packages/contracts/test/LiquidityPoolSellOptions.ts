@@ -2849,7 +2849,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, before.netDhvExposure)
 			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			// do not subtract the fee as we expect it to be waived
-			let quote = quoteResponse[0]
+			let quote = quoteResponse[0].sub((quoteResponse[0].mul(toWei("12.5")).div(toWei("100"))))
 			const after = await getExchangeParams(
 				liquidityPool,
 				exchange,
