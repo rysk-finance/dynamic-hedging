@@ -32,7 +32,7 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import { IOtoken, IController } from "./interfaces/GammaInterface.sol";
-import "hardhat/console.sol";
+
 /**
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
@@ -720,8 +720,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		if ((sellParams.premium >> 3) > sellParams.fee) {
 			SafeTransferLib.safeTransfer(ERC20(collateralAsset), feeRecipient, sellParams.fee);
 		} else {
-			// if the total fee is greater than premium / 8 then the fee is waived, this is to avoid disincentivising selling back to the pool for collateral release
-			sellParams.fee = 0;
+			// if the total fee is greater than premium / 8 then the fee is capped at , this is to avoid disincentivising selling back to the pool for collateral release
+			sellParams.fee = sellParams.premium >> 3;
+			SafeTransferLib.safeTransfer(ERC20(collateralAsset), feeRecipient, sellParams.fee);
 		}
 		// if the recipient is this address then update the temporary holdings now to indicate the premium is temporarily being held here
 		if (_args.recipient == address(this)) {
