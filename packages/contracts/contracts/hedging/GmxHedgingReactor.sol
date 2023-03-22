@@ -590,9 +590,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			_createPathIncreasePosition(_isLong),
 			wETH,
 			_collateralSize,
-			(_collateralSize * GMX_DECIMAL_CONVERT).mul(1e18 - collateralSwapPriceTolerance).div(
-				currentPrice
-			),
+			_isLong
+				? (_collateralSize * GMX_DECIMAL_CONVERT).mul(1e18 - collateralSwapPriceTolerance).div(
+					currentPrice
+				)
+				: 0,
 			_size.mul(currentPrice) * GMX_DECIMAL_CONVERT,
 			_isLong,
 			_isLong
