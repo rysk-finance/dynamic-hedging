@@ -199,6 +199,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	/// @inheritdoc IHedgingReactor
 	function hedgeDelta(int256 _delta) external returns (int256 deltaChange) {
 		require(_delta != 0, "delta change is zero");
+		if (pendingIncreaseCallback || pendingDecreaseCallback) {
+			revert CustomErrors.GmxCallbackPending();
+		}
 
 		// delta is passed in as the delta that the pool has so this function must hedge the opposite
 		// if delta comes in negative then the pool must go long
