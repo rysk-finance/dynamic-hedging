@@ -492,7 +492,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(_amount), false);
 				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(
 					false,
-					closedOppositeSideFirst,
+					false,
 					adjustedPositionSize,
 					false
 				);
@@ -527,7 +527,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				uint256 adjustedPositionSize = _adjustedReducePositionSize(uint256(-_amount), true);
 				uint256 collateralToRemove = _getCollateralSizeDeltaUsd(
 					false,
-					closedOppositeSideFirst,
+					false,
 					adjustedPositionSize,
 					true
 				);
