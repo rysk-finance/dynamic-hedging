@@ -523,6 +523,9 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		if (!optionStore.isBuyable) {
 			revert CustomErrors.SeriesNotBuyable();
 		}
+		if (_args.optionSeries.strikeAsset != _args.optionSeries.collateral) {
+			revert CustomErrors.CollateralAssetInvalid();
+		}
 		series = liquidityPool.handlerIssue(_args.optionSeries);
 		emit OptionsIssued(series);
 	}
