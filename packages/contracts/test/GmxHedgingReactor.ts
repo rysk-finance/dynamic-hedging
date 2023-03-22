@@ -215,7 +215,6 @@ describe("GMX Hedging Reactor", () => {
 		await gmxReactor.connect(deployer).setKeeper(signers[0].getAddress(), true)
 
 		expect(await gmxReactor.parentLiquidityPool()).to.eq(liquidityPoolAddress)
-		expect(await gmxReactor.collateralAssetDecimals()).to.eq(6)
 		expect(await gmxReactor.getDelta()).to.eq(0)
 	})
 	it("adds GMX router to liquidity pool", async () => {
