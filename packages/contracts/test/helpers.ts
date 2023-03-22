@@ -854,7 +854,7 @@ export async function getBlackScholesQuote(
 	)
 	const volFeed = (await ethers.getContractAt(
 		"VolatilityFeed",
-		await liquidityPool._getVolatilityFeed()
+		await liquidityPool.getVolatilityFeed()
 	)) as VolatilityFeed
 	const iv = await volFeed.getImpliedVolatilityWithForward(
 		optionSeries.isPut,
