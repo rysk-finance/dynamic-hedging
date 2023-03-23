@@ -80,6 +80,7 @@ export interface OptionRegistryInterface extends utils.Interface {
     "setHealthThresholds(uint64,uint64,uint64,uint64)": FunctionFragment;
     "setKeeper(address,bool)": FunctionFragment;
     "setLiquidityPool(address)": FunctionFragment;
+    "setOperator(address,bool)": FunctionFragment;
     "settle(address)": FunctionFragment;
     "vaultCount()": FunctionFragment;
     "vaultIds(address)": FunctionFragment;
@@ -186,6 +187,10 @@ export interface OptionRegistryInterface extends utils.Interface {
     functionFragment: "setLiquidityPool",
     values: [string]
   ): string;
+  encodeFunctionData(
+    functionFragment: "setOperator",
+    values: [string, boolean]
+  ): string;
   encodeFunctionData(functionFragment: "settle", values: [string]): string;
   encodeFunctionData(
     functionFragment: "vaultCount",
@@ -279,6 +284,10 @@ export interface OptionRegistryInterface extends utils.Interface {
     functionFragment: "setLiquidityPool",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "setOperator",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "settle", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "vaultCount", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "vaultIds", data: BytesLike): Result;
@@ -289,6 +298,10 @@ export interface OptionRegistryInterface extends utils.Interface {
 
   events: {
     "AuthorityUpdated(address)": EventFragment;
+    "HealthThresholdsUpdated(uint64,uint64,uint64,uint64)": EventFragment;
+    "KeeperUpdated(address,bool)": EventFragment;
+    "LiquidityPoolUpdated(address)": EventFragment;
+    "OperatorUpdated(address,bool)": EventFragment;
     "OptionTokenCreated(address)": EventFragment;
     "OptionsContractClosed(address,uint256,uint256)": EventFragment;
     "OptionsContractOpened(address,uint256,uint256)": EventFragment;
@@ -298,6 +311,10 @@ export interface OptionRegistryInterface extends utils.Interface {
   };
 
   getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "HealthThresholdsUpdated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "KeeperUpdated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "LiquidityPoolUpdated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "OperatorUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OptionTokenCreated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OptionsContractClosed"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OptionsContractOpened"): EventFragment;
@@ -310,6 +327,41 @@ export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
 
 export type AuthorityUpdatedEventFilter =
   TypedEventFilter<AuthorityUpdatedEvent>;
+
+export type HealthThresholdsUpdatedEvent = TypedEvent<
+  [BigNumber, BigNumber, BigNumber, BigNumber],
+  {
+    putLower: BigNumber;
+    putUpper: BigNumber;
+    callLower: BigNumber;
+    callUpper: BigNumber;
+  }
+>;
+
+export type HealthThresholdsUpdatedEventFilter =
+  TypedEventFilter<HealthThresholdsUpdatedEvent>;
+
+export type KeeperUpdatedEvent = TypedEvent<
+  [string, boolean],
+  { target: string; auth: boolean }
+>;
+
+export type KeeperUpdatedEventFilter = TypedEventFilter<KeeperUpdatedEvent>;
+
+export type LiquidityPoolUpdatedEvent = TypedEvent<
+  [string],
+  { newLiquidityPool: string }
+>;
+
+export type LiquidityPoolUpdatedEventFilter =
+  TypedEventFilter<LiquidityPoolUpdatedEvent>;
+
+export type OperatorUpdatedEvent = TypedEvent<
+  [string, boolean],
+  { operator: string; isOperator: boolean }
+>;
+
+export type OperatorUpdatedEventFilter = TypedEventFilter<OperatorUpdatedEvent>;
 
 export type OptionTokenCreatedEvent = TypedEvent<[string], { token: string }>;
 
@@ -537,6 +589,12 @@ export interface OptionRegistry extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    setOperator(
+      _operator: string,
+      _isOperator: boolean,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     settle(
       _series: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -696,6 +754,12 @@ export interface OptionRegistry extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  setOperator(
+    _operator: string,
+    _isOperator: boolean,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   settle(
     _series: string,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -852,6 +916,12 @@ export interface OptionRegistry extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setOperator(
+      _operator: string,
+      _isOperator: boolean,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     settle(
       _series: string,
       overrides?: CallOverrides
@@ -870,6 +940,41 @@ export interface OptionRegistry extends BaseContract {
   filters: {
     "AuthorityUpdated(address)"(authority?: null): AuthorityUpdatedEventFilter;
     AuthorityUpdated(authority?: null): AuthorityUpdatedEventFilter;
+
+    "HealthThresholdsUpdated(uint64,uint64,uint64,uint64)"(
+      putLower?: null,
+      putUpper?: null,
+      callLower?: null,
+      callUpper?: null
+    ): HealthThresholdsUpdatedEventFilter;
+    HealthThresholdsUpdated(
+      putLower?: null,
+      putUpper?: null,
+      callLower?: null,
+      callUpper?: null
+    ): HealthThresholdsUpdatedEventFilter;
+
+    "KeeperUpdated(address,bool)"(
+      target?: null,
+      auth?: null
+    ): KeeperUpdatedEventFilter;
+    KeeperUpdated(target?: null, auth?: null): KeeperUpdatedEventFilter;
+
+    "LiquidityPoolUpdated(address)"(
+      newLiquidityPool?: null
+    ): LiquidityPoolUpdatedEventFilter;
+    LiquidityPoolUpdated(
+      newLiquidityPool?: null
+    ): LiquidityPoolUpdatedEventFilter;
+
+    "OperatorUpdated(address,bool)"(
+      operator?: null,
+      isOperator?: null
+    ): OperatorUpdatedEventFilter;
+    OperatorUpdated(
+      operator?: null,
+      isOperator?: null
+    ): OperatorUpdatedEventFilter;
 
     "OptionTokenCreated(address)"(token?: null): OptionTokenCreatedEventFilter;
     OptionTokenCreated(token?: null): OptionTokenCreatedEventFilter;
@@ -1058,6 +1163,12 @@ export interface OptionRegistry extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    setOperator(
+      _operator: string,
+      _isOperator: boolean,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     settle(
       _series: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1208,6 +1319,12 @@ export interface OptionRegistry extends BaseContract {
 
     setLiquidityPool(
       _newLiquidityPool: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setOperator(
+      _operator: string,
+      _isOperator: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
