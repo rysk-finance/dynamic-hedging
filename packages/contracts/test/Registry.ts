@@ -2,12 +2,13 @@ import { expect } from "chai"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import { BigNumber, Contract, Signer, utils } from "ethers"
+import { AbiCoder } from "ethers/lib/utils"
 import hre, { ethers, network } from "hardhat"
 
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
 import { ERC20Interface, MintableERC20, NewController, NewMarginCalculator, OpynInteractions, Oracle, Otoken as IOToken, WETH } from "../types"
 import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
-import { call, createValidExpiry, MAX_BPS, put, toWei, ZERO_ADDRESS } from "../utils/conversion-helper"
+import { call, createValidExpiry, MAX_BPS, put, toOpyn, toWei, ZERO_ADDRESS } from "../utils/conversion-helper"
 import { deployOpyn } from "../utils/opyn-deployer"
 import {
 	ADDRESS_BOOK,
@@ -98,6 +99,7 @@ describe("Options protocol", function () {
 		})
 		const signer = await ethers.getSigner(USDC_OWNER_ADDRESS[chainId])
 		await usd.connect(signer).transfer(senderAddress, toWei("1000000").div(usdDecimalShift18))
+		await usd.connect(signer).transfer(receiverAddress, toWei("1000000").div(usdDecimalShift18))
 		await weth.deposit({ value: utils.parseEther("99") })
 		// deploy libraries
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
@@ -466,6 +468,62 @@ describe("Options protocol", function () {
 			"NonExistentSeries"
 		)
 	})
+	it("SUCCEED: sets operator on registry", async () => {
+		await optionRegistry.setOperator(receiverAddress, true)
+		expect(await controller.isOperator(optionRegistry.address, receiverAddress)).to.be.true
+	})
+	it("SUCCEED: theoretical new option registry operates on old option registry behalf", async () => {
+		const [sender, receiver] = signers
+		const abiCode = new AbiCoder()
+		const currentPrice = await oracle.getPrice(weth.address)
+		const vaultId = await (await controller.getAccountVaultCounter(optionRegistry.address)).add(1)
+		let marginReq = await newCalculator.getNakedMarginRequired(
+			weth.address,
+			usd.address,
+			usd.address,
+			toOpyn("1"),
+			strike.div(oTokenDecimalShift18),
+			currentPrice,
+			expiration,
+			6,
+			false
+		)
+		await usd.connect(receiver).approve(MARGIN_POOL[chainId], marginReq.add(1))
+		const mintArgs = [
+			{
+				actionType: 0,
+				owner: optionRegistry.address,
+				secondAddress: receiverAddress,
+				asset: ZERO_ADDRESS,
+				vaultId: vaultId,
+				amount: "0",
+				index: 0,
+				data: abiCode.encode(["uint256"], ["1"])
+			},
+			{
+				actionType: 5,
+				owner: optionRegistry.address,
+				secondAddress: receiverAddress,
+				asset: usd.address,
+				vaultId: vaultId,
+				amount: marginReq,
+				index: 0,
+				data: ZERO_ADDRESS
+			},
+			{
+				actionType: 1,
+				owner: optionRegistry.address,
+				secondAddress: receiverAddress,
+				asset: optionTokenUSDC.address,
+				vaultId: vaultId,
+				amount: toOpyn("1"),
+				index: 0,
+				data: ZERO_ADDRESS
+			}
+		]
+		await controller.connect(receiver).operate(mintArgs)
+
+	})
 	it("#fastforwards time and sets oracle price", async () => {
 		const diff = 200
 		// get the desired settlement price
@@ -761,7 +819,7 @@ describe("Options protocol", function () {
 		const settlePrice = strike.sub(toWei("200")).div(oTokenDecimalShift18)
 		// collateralBalance
 		const collatBalance = (
-			await controller.getVault(optionRegistry.address, await optionRegistry.vaultCount())
+			await controller.getVault(optionRegistry.address, (await (await optionRegistry.vaultCount()).add(1)))
 		).collateralAmounts[0]
 		// get the oracle
 		const oracle = await setupOracle(CHAINLINK_WETH_PRICER[chainId], senderAddress, true)
@@ -805,10 +863,10 @@ describe("Options protocol", function () {
 		// get the desired settlement price
 		const settlePrice = strike.sub(toWei(diff.toString())).div(oTokenDecimalShift18)
 		const opUSDbal = (
-			await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()).sub(1))
+			await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()))
 		).shortAmounts[0]
 		const collatBal = (
-			await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()).sub(1))
+			await controller.getVault(optionRegistry.address, (await optionRegistry.vaultCount()))
 		).collateralAmounts[0]
 		// call settle from the options registry
 		await optionRegistry.settle(erc20PutOptionUSDC.address)
@@ -844,6 +902,7 @@ describe("Options protocol", function () {
 		expect(opBalRegistry).to.equal(0)
 		expect(opBalSender).to.equal(0)
 	})
+
 	it("sets the health threshold", async () => {
 		await optionRegistry.setHealthThresholds(1000, 1000, 1000, 1000)
 		expect(await optionRegistry.putLowerHealthFactor()).to.equal(1000)
