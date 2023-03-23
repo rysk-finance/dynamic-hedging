@@ -167,10 +167,17 @@ describe("Spread Pricer testing", async () => {
 		it("sets spread values to non-zero", async () => {
 			await pricer.setCollateralLendingRate(100000) // 10%
 			expect(await pricer.collateralLendingRate()).to.eq(100000)
-			await pricer.setShortDeltaBorrowRate(100000) // 10%
-			expect(await pricer.shortDeltaBorrowRate()).to.eq(100000)
-			await pricer.setLongDeltaBorrowRate(150000) // 15%
-			expect(await pricer.longDeltaBorrowRate()).to.eq(150000)
+			await pricer.setDeltaBorrowRates({
+				sellLong: 150000,
+				sellShort: 100000,
+				buyLong: 150000,
+				buyShort: 100000
+			})
+			const newBorrowRates = await pricer.deltaBorrowRates()
+			expect(newBorrowRates.sellLong).to.eq(150000)
+			expect(newBorrowRates.sellShort).to.eq(100000)
+			expect(newBorrowRates.buyLong).to.eq(150000)
+			expect(newBorrowRates.buyShort).to.eq(100000)
 		})
 		it("sets slippage vars to zero", async () => {
 			await pricer.setSlippageGradient(0)

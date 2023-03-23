@@ -15,7 +15,24 @@ import {
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS
 } from "../test/constants"
-import { Accounting, AlphaOptionHandler, AlphaPortfolioValuesFeed, BeyondPricer, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, PriceFeed, Protocol, Volatility, VolatilityFeed, WETH } from "../types"
+import {
+	Accounting,
+	AlphaOptionHandler,
+	AlphaPortfolioValuesFeed,
+	BeyondPricer,
+	LiquidityPool,
+	MintableERC20,
+	MockChainlinkAggregator,
+	OptionCatalogue,
+	OptionExchange,
+	OptionRegistry,
+	Oracle,
+	PriceFeed,
+	Protocol,
+	Volatility,
+	VolatilityFeed,
+	WETH
+} from "../types"
 
 dayjs.extend(utc)
 
@@ -174,7 +191,7 @@ export async function deployLiquidityPool(
 	maxCallStrikePrice: any = maxiCallStrikePrice,
 	maxPutStrikePrice: any = maxiPutStrikePrice,
 	minExpiry: any = miniExpiry,
-	maxExpiry: any = maxiExpiry,
+	maxExpiry: any = maxiExpiry
 ) {
 	const normDistFactory = await ethers.getContractFactory(
 		"contracts/libraries/NormalDist.sol:NormalDist",
@@ -291,8 +308,7 @@ export async function deployLiquidityPool(
 			toWei("2.9")
 		],
 		0,
-		0,
-		0
+		{ sellLong: 0, sellShort: 0, buyLong: 0, buyShort: 0 }
 	)) as BeyondPricer
 	await pricer.setSlippageGradient(toWei("0.0001"))
 	await pricer.setBidAskIVSpread(toWei("0.01"))
@@ -306,10 +322,7 @@ export async function deployLiquidityPool(
 			OptionsCompute: compute.address
 		}
 	})
-	const catalogue = (await catalogueFactory.deploy(
-		authority,
-		usd.address
-	)) as OptionCatalogue
+	const catalogue = (await catalogueFactory.deploy(authority, usd.address)) as OptionCatalogue
 	const exchangeFactory = await ethers.getContractFactory("OptionExchange", {
 		libraries: {
 			OpynInteractions: interactions.address,
