@@ -32,7 +32,7 @@ export const usePrice = () => {
     }, 1000 * 5);
 
     return () => clearInterval(priceCheckInterval);
-  }, [ethPrice, manualUpdateTimestamp]);
+  }, [ethPrice, manualUpdateTimestamp, refresh]);
 
   // Rate limit manual updates to every 15 seconds.
   // Manual update also resets the cycle on the automatic updates.
