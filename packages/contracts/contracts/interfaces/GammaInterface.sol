@@ -129,7 +129,8 @@ interface IController {
 		// amount of oTokens that is to be redeemed
 		uint256 amount;
 	}
-
+	function setOperator(address _operator, bool _isOperator) external;
+	
 	function getPayout(address _otoken, uint256 _amount) external view returns (uint256);
 
 	function operate(ActionArgs[] calldata _actions) external;

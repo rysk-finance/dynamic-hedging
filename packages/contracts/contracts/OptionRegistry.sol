@@ -92,7 +92,11 @@ contract OptionRegistry is AccessControl {
 		uint256 amountLiquidated,
 		uint256 collateralLiquidated
 	);
-
+	event OperatorUpdated(address operator, bool isOperator);
+	event KeeperUpdated(address target, bool auth);
+	event LiquidityPoolUpdated(address newLiquidityPool);
+	event HealthThresholdsUpdated(uint64 putLower, uint64 putUpper, uint64 callLower, uint64 callUpper);
+	
 	error NoVault();
 	error NotKeeper();
 	error NotExpired();
@@ -129,6 +133,7 @@ contract OptionRegistry is AccessControl {
 	function setLiquidityPool(address _newLiquidityPool) external {
 		_onlyGovernor();
 		liquidityPool = _newLiquidityPool;
+		emit LiquidityPoolUpdated(_newLiquidityPool);
 	}
 
 	/**
@@ -139,6 +144,7 @@ contract OptionRegistry is AccessControl {
 	function setKeeper(address _target, bool _auth) external {
 		_onlyGovernor();
 		keeper[_target] = _auth;
+		emit KeeperUpdated(_target, _auth);
 	}
 
 	/**
@@ -159,8 +165,14 @@ contract OptionRegistry is AccessControl {
 		putUpperHealthFactor = _putUpper;
 		callLowerHealthFactor = _callLower;
 		callUpperHealthFactor = _callUpper;
+		emit HealthThresholdsUpdated(_putLower, _putUpper, _callLower, _callUpper);
 	}
 
+	function setOperator(address _operator, bool _isOperator) external {
+		_onlyGovernor();
+		IController(addressBook.getController()).setOperator(_operator, _isOperator);
+		emit OperatorUpdated(_operator, _isOperator);
+	}
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
