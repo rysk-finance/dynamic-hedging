@@ -113,6 +113,88 @@ export const OptionRegistryABI = [
 		"inputs": [
 			{
 				"indexed": false,
+				"internalType": "uint64",
+				"name": "putLower",
+				"type": "uint64"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint64",
+				"name": "putUpper",
+				"type": "uint64"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint64",
+				"name": "callLower",
+				"type": "uint64"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint64",
+				"name": "callUpper",
+				"type": "uint64"
+			}
+		],
+		"name": "HealthThresholdsUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "target",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "auth",
+				"type": "bool"
+			}
+		],
+		"name": "KeeperUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "newLiquidityPool",
+				"type": "address"
+			}
+		],
+		"name": "LiquidityPoolUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "operator",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "bool",
+				"name": "isOperator",
+				"type": "bool"
+			}
+		],
+		"name": "OperatorUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
 				"internalType": "address",
 				"name": "token",
 				"type": "address"
@@ -981,6 +1063,24 @@ export const OptionRegistryABI = [
 			}
 		],
 		"name": "setLiquidityPool",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_operator",
+				"type": "address"
+			},
+			{
+				"internalType": "bool",
+				"name": "_isOperator",
+				"type": "bool"
+			}
+		],
+		"name": "setOperator",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
