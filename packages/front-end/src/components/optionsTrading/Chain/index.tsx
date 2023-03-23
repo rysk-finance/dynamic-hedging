@@ -9,13 +9,15 @@ import { Head } from "./components/Head";
 export const Chain = () => {
   const {
     state: {
-      options: { activeExpiry, data, error, loading },
+      options: { activeExpiry, data, error },
     },
   } = useGlobalContext();
 
+  const hasData = Object.values(data).length;
+
   return (
     <AnimatePresence mode="wait">
-      {!loading ? (
+      {hasData ? (
         <motion.table
           className="block bg-bone overflow-x-auto"
           id="options-chain"
