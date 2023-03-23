@@ -723,6 +723,10 @@ export async function localQuoteOptionPrice(
 		netDhvExposure,
 		isSell
 	)
+	if (spread < 0) {
+		spread = 0
+	}
+	console.log("total spread", spread)
 
 	return isSell ? bsQ * slip - spread : bsQ * slip + spread
 }
@@ -837,24 +841,32 @@ export async function applySpreadLocally(
 		parseFloat(fromWei(amount)) *
 		parseFloat(fromWei(underlyingPrice))
 	let deltaBorrowPremium
-	const longDeltaBorrowRate = await beyondPricer.longDeltaBorrowRate()
-	const shortDeltaBorrowRate = await beyondPricer.shortDeltaBorrowRate()
-	if (optionDelta < toWei("0")) {
-		// option delta is flipped in case of sale, so no need for ternary
-		deltaBorrowPremium =
-			dollarDelta * (1 + shortDeltaBorrowRate / SIX_DPS) ** timeToExpiry - dollarDelta
-	} else {
-		console.log("JS POSITIVE DELTA")
-
-		console.log({ shortDeltaBorrowRate, longDeltaBorrowRate, isSell })
-		deltaBorrowPremium =
-			dollarDelta * (1 + longDeltaBorrowRate / SIX_DPS) ** timeToExpiry - dollarDelta
+	const sellLongDeltaBorrowRate = (await beyondPricer.deltaBorrowRates()).sellLong
+	const sellShortDeltaBorrowRate = (await beyondPricer.deltaBorrowRates()).sellShort
+	const buyLongDeltaBorrowRate = (await beyondPricer.deltaBorrowRates()).buyLong
+	const buyShortDeltaBorrowRate = (await beyondPricer.deltaBorrowRates()).buyShort
+	let realOptionDelta = optionDelta
+	if (isSell) {
+		realOptionDelta = -optionDelta
 	}
-	console.log(
-		collateralLendingPremium,
-		deltaBorrowPremium,
-		collateralLendingPremium + deltaBorrowPremium
-	)
+
+	// option delta is flipped in case of sale, so flip back
+	if (realOptionDelta < toWei("0")) {
+		deltaBorrowPremium =
+			dollarDelta *
+				(1 + (isSell ? sellLongDeltaBorrowRate : buyShortDeltaBorrowRate) / SIX_DPS) ** timeToExpiry -
+			dollarDelta
+	} else {
+		deltaBorrowPremium =
+			dollarDelta *
+				(1 + (isSell ? sellShortDeltaBorrowRate : buyLongDeltaBorrowRate) / SIX_DPS) ** timeToExpiry -
+			dollarDelta
+	}
+	// console.log(
+	// 	collateralLendingPremium,
+	// 	deltaBorrowPremium,
+	// 	collateralLendingPremium + deltaBorrowPremium
+	// )
 	return collateralLendingPremium + deltaBorrowPremium
 }
 
