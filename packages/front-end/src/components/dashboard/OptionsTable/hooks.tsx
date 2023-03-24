@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
 
 import { NewControllerABI } from "src/abis/NewController_ABI";
-import OpynActionType from "src/enums/OpynActionType";
+import { OpynActionType } from "src/enums/OpynActionType";
 import { useGraphPolling } from "src/hooks/useGraphPolling";
 import { getContractAddress } from "src/utils/helpers";
 import { DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
