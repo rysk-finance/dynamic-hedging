@@ -26,14 +26,22 @@ export declare namespace DHVLensMK1 {
     quote: BigNumberish;
     fee: BigNumberish;
     disabled: boolean;
+    premiumTooSmall: boolean;
   };
 
   export type TradingSpecStructOutput = [
     BigNumber,
     BigNumber,
     BigNumber,
+    boolean,
     boolean
-  ] & { iv: BigNumber; quote: BigNumber; fee: BigNumber; disabled: boolean };
+  ] & {
+    iv: BigNumber;
+    quote: BigNumber;
+    fee: BigNumber;
+    disabled: boolean;
+    premiumTooSmall: boolean;
+  };
 
   export type OptionStrikeDrillStruct = {
     strike: BigNumberish;
