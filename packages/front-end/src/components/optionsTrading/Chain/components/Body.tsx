@@ -77,6 +77,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 gridTemplateColumns: `repeat(${colSize}, minmax(0, 1fr))`,
               }}
               {...FadeInOut()}
+              layout="position"
             >
               {showCol("bid iv") && (
                 <Cell
