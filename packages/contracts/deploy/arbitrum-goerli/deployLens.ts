@@ -1,7 +1,5 @@
-import { toWei } from "../../utils/conversion-helper"
 import hre, { ethers } from "hardhat"
 import { DHVLensMK1 } from "../../types/DHVLensMK1"
-
 
 // update these addresses to connect to the appropriate set of contracts
 
@@ -12,7 +10,6 @@ const pricerAddress = "0x1b8ffC43aA54e63CDDc0B5df23fb3A128D41A0b1"
 const optionProtocolAddress = "0x20E97A4fd0633eDa3112392CC0D8BD62a846011f"
 
 export async function deployLens() {
-
 	const lensFactory = await ethers.getContractFactory("DHVLensMK1")
 	const lens = (await lensFactory.deploy(
 		optionProtocolAddress,
@@ -39,11 +36,9 @@ export async function deployLens() {
 		})
 		console.log("lens verified")
 	} catch (err: any) {
-		if (err.message.includes("Reason: Already Verified")) {
-			console.log("lens contract already verified")
-		}
+		console.log(err)
+		console.log("lens contract already verified")
 	}
-
 }
 
 deployLens()
