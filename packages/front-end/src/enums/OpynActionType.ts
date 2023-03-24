@@ -1,4 +1,4 @@
-enum OpynActionType {
+export enum OpynActionType {
   OpenVault,
   MintShortOption,
   BurnShortOption,
@@ -13,4 +13,7 @@ enum OpynActionType {
   InvalidAction,
 }
 
-export default OpynActionType;
+export enum OpenVaultCollateralType {
+  Fully,
+  Partially,
+}

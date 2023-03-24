@@ -10,10 +10,15 @@ import { useAccount, useContractWrite, usePrepareContractWrite } from "wagmi";
 
 import { QueriesEnum } from "src/clients/Apollo/Queries";
 import OperationType from "src/enums/OperationType";
+import {
+  OpynActionType,
+  OpenVaultCollateralType,
+} from "src/enums/OpynActionType";
 import { OptionExchangeABI } from "../../abis/OptionExchange_ABI";
 import { EMPTY_SERIES, ZERO_ADDRESS } from "../../config/constants";
 import { getContractAddress } from "../../utils/helpers";
 import useTenderlySimulator from "../useTenderlySimulator";
+import RyskActionType from "src/enums/RyskActionType";
 
 const abiCode = new AbiCoder();
 
@@ -126,18 +131,21 @@ const useSellOperate = (): [
           operation: OperationType.OpynAction,
           operationQueue: [
             {
-              actionType: BigNumber.from(0), // 0 on an Opyn operation means Open Vault which is represented by a vaultId
+              actionType: BigNumber.from(OpynActionType.OpenVault),
               owner: addressOrDefault,
               secondAddress: addressOrDefault,
               asset: ZERO_ADDRESS,
               vaultId: vaultId,
-              amount: BigNumber.from("0"),
+              amount: BigNumber.from(0),
               optionSeries: EMPTY_SERIES,
               index: BigNumber.from(0),
-              data: abiCode.encode(["uint256"], [0]) as `0x${string}`, // 1 here represents partially collateralized, 0 represents fully collateralized
+              data: abiCode.encode(
+                ["uint256"],
+                [OpenVaultCollateralType.Partially]
+              ) as HexString,
             },
             {
-              actionType: BigNumber.from(5), // 5 represents a Deposit Collateral action
+              actionType: BigNumber.from(OpynActionType.DepositCollateral),
               owner: addressOrDefault,
               secondAddress: exchangeAddress, // this can be set as the senderAddress or exchange address, if set to the exchange address then the user approval goes to the exchange, if set to the sender address then the user approval goes to the Opyn margin pool
               asset: collateral, // TODO proposedSeries.collateral
@@ -148,7 +156,7 @@ const useSellOperate = (): [
               data: ZERO_ADDRESS,
             },
             {
-              actionType: BigNumber.from(1), // 1 represents a mint otoken operation (minting an option contract, this only works if there is enough collateral)
+              actionType: BigNumber.from(OpynActionType.MintShortOption),
               owner: addressOrDefault,
               secondAddress: exchangeAddress, // most of the time this should be set to exchange address, this helps avoid an extra approval from the user on the otoken when selling to the dhv
               asset: oToken,
@@ -164,7 +172,7 @@ const useSellOperate = (): [
           operation: OperationType.RyskAction, // indicates a rysk operation
           operationQueue: [
             {
-              actionType: BigNumber.from(2), // this is a sell action
+              actionType: BigNumber.from(RyskActionType.SellOption),
               owner: ZERO_ADDRESS,
               secondAddress: addressOrDefault,
               asset: ZERO_ADDRESS,
