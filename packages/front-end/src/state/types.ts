@@ -14,13 +14,13 @@ export type AppSettings = {
 export type Expiries = string[];
 
 interface UserPositionToken extends PositionOToken {
-  amount: BigNumberish;
+  netAmount: BigNumberish;
   totalPremium: number;
 }
 
 export interface UserPositions {
   [expiry: string]: {
-    amount: BigNumberish;
+    netAmount: BigNumberish;
     isLong: boolean;
     isShort: boolean;
     tokens: UserPositionToken[];
