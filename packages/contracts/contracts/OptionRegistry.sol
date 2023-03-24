@@ -100,6 +100,7 @@ contract OptionRegistry is AccessControl {
 	error NoVault();
 	error NotKeeper();
 	error NotExpired();
+	error NotOperator();
 	error HealthyVault();
 	error AlreadyExpired();
 	error NotLiquidityPool();
@@ -179,7 +180,7 @@ contract OptionRegistry is AccessControl {
 
 	function setVaultIds(address _seriesAddress, uint256 _id) external {
 		if (!IController(addressBook.getController()).isOperator(address(this), msg.sender)) {
-			revert CustomErrors.InvalidSender();
+			revert NotOperator();
 		}
 		if (vaultIds[_seriesAddress] != 0) {
 			revert VaultAlreadySet();
@@ -189,13 +190,13 @@ contract OptionRegistry is AccessControl {
 
 	function setSeriesInfoAndAddress(Types.OptionSeries memory _optionSeries, address _seriesAddress, bytes32 _issuanceHash) external {
 		if (!IController(addressBook.getController()).isOperator(address(this), msg.sender)) {
-			revert CustomErrors.InvalidSender();
+			revert NotOperator();
 		}
 		if (seriesAddress[_issuanceHash] != address(0)) {
 			revert SeriesAddressAlreadySet();
 		}
 		seriesAddress[_issuanceHash] = _seriesAddress;
-		if (seriesInfo[_seriesAddress].expiration != address(0)) {
+		if (seriesInfo[_seriesAddress].expiration != 0) {
 			revert SeriesInfoAlreadySet();
 		}
 		seriesInfo[_seriesAddress] = _optionSeries;
