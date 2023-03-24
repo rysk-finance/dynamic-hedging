@@ -303,13 +303,15 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
         })}
 
         {loading && (
-          <motion.div
-            className="flex items-center absolute inset-0 z-10 w-full h-full bg-black/10"
+          <motion.tr
+            className="absolute inset-0 z-10 w-full h-full bg-black/10"
             key="data-loading"
             {...FadeInOut()}
           >
-            <Loading className="h-12 mx-auto animate-spin text-bone-light" />
-          </motion.div>
+            <td className="h-full flex items-center">
+              <Loading className="h-12 mx-auto animate-spin text-bone-light" />
+            </td>
+          </motion.tr>
         )}
       </AnimatePresence>
     </tbody>
