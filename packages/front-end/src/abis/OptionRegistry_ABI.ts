@@ -77,7 +77,27 @@ export const OptionRegistryABI = [
 	},
 	{
 		"inputs": [],
+		"name": "NotOperator",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "SeriesAddressAlreadySet",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "SeriesInfoAlreadySet",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "UNAUTHORIZED",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "VaultAlreadySet",
 		"type": "error"
 	},
 	{
@@ -1081,6 +1101,79 @@ export const OptionRegistryABI = [
 			}
 		],
 		"name": "setOperator",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint64",
+						"name": "expiration",
+						"type": "uint64"
+					},
+					{
+						"internalType": "uint128",
+						"name": "strike",
+						"type": "uint128"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPut",
+						"type": "bool"
+					},
+					{
+						"internalType": "address",
+						"name": "underlying",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "strikeAsset",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "collateral",
+						"type": "address"
+					}
+				],
+				"internalType": "struct Types.OptionSeries",
+				"name": "_optionSeries",
+				"type": "tuple"
+			},
+			{
+				"internalType": "address",
+				"name": "_seriesAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "_issuanceHash",
+				"type": "bytes32"
+			}
+		],
+		"name": "setSeriesInfoAndAddress",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_seriesAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_id",
+				"type": "uint256"
+			}
+		],
+		"name": "setVaultIds",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
