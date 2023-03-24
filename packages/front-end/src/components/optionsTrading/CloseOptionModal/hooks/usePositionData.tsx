@@ -87,7 +87,7 @@ export const usePositionData = () => {
           chainRow[userPosition.isPut ? "put" : "call"].bid.quote;
 
         if (currentValue >= 0) {
-          const totalSize = fromWeiToInt(userPosition.amount);
+          const totalSize = fromWeiToInt(userPosition.netAmount);
           const totalValue = totalSize * currentValue;
           const totalPaid = userPosition.totalPremium;
           const inProfit = totalValue > totalPaid;
