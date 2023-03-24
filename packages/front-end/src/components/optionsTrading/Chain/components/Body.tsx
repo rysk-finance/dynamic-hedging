@@ -2,10 +2,11 @@ import type { SelectedOption, StrikeOptions } from "src/state/types";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
-import { useDebounce } from "use-debounce";
 import { useSearchParams } from "react-router-dom";
+import { useDebounce } from "use-debounce";
 
 import FadeInOut from "src/animation/FadeInOut";
+import { Loading } from "src/Icons";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { OptionsTradingActionType } from "src/state/types";
@@ -14,7 +15,11 @@ import { Cell, Delta, Exposure, IV, Position, Quote, Strike } from "./Cells";
 
 export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
   const {
-    state: { ethPrice, visibleStrikeRange },
+    state: {
+      ethPrice,
+      options: { loading },
+      visibleStrikeRange,
+    },
   } = useGlobalContext();
 
   const {
@@ -52,7 +57,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
   };
 
   return (
-    <tbody className="block w-[150%] lg:w-full font-dm-mono text-sm">
+    <tbody className="relative block w-[150%] lg:w-full font-dm-mono text-sm">
       <AnimatePresence initial={false}>
         {filteredChainRows.map((option) => {
           const callBidDisabled =
@@ -295,6 +300,16 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
             </motion.tr>
           );
         })}
+
+        {loading && (
+          <motion.div
+            className="flex items-center absolute inset-0 z-10 w-full h-full bg-black/10"
+            key="data-loading"
+            {...FadeInOut()}
+          >
+            <Loading className="h-12 mx-auto animate-spin text-bone-light" />
+          </motion.div>
+        )}
       </AnimatePresence>
     </tbody>
   );

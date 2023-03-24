@@ -86,6 +86,21 @@ export const useInitialData = () => {
   }, [address, loading]);
 
   useEffect(() => {
+    if (loading) {
+      dispatch({
+        type: ActionType.SET_OPTIONS,
+        loading,
+      });
+    }
+
+    if (error && !loading) {
+      dispatch({
+        type: ActionType.SET_OPTIONS,
+        error,
+        loading,
+      });
+    }
+
     if (data && !loading) {
       updatePriceData();
 
