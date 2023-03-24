@@ -81,6 +81,8 @@ export interface OptionRegistryInterface extends utils.Interface {
     "setKeeper(address,bool)": FunctionFragment;
     "setLiquidityPool(address)": FunctionFragment;
     "setOperator(address,bool)": FunctionFragment;
+    "setSeriesInfoAndAddress((uint64,uint128,bool,address,address,address),address,bytes32)": FunctionFragment;
+    "setVaultIds(address,uint256)": FunctionFragment;
     "settle(address)": FunctionFragment;
     "vaultCount()": FunctionFragment;
     "vaultIds(address)": FunctionFragment;
@@ -191,6 +193,14 @@ export interface OptionRegistryInterface extends utils.Interface {
     functionFragment: "setOperator",
     values: [string, boolean]
   ): string;
+  encodeFunctionData(
+    functionFragment: "setSeriesInfoAndAddress",
+    values: [Types.OptionSeriesStruct, string, BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setVaultIds",
+    values: [string, BigNumberish]
+  ): string;
   encodeFunctionData(functionFragment: "settle", values: [string]): string;
   encodeFunctionData(
     functionFragment: "vaultCount",
@@ -286,6 +296,14 @@ export interface OptionRegistryInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setOperator",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setSeriesInfoAndAddress",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setVaultIds",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "settle", data: BytesLike): Result;
@@ -595,6 +613,19 @@ export interface OptionRegistry extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    setSeriesInfoAndAddress(
+      _optionSeries: Types.OptionSeriesStruct,
+      _seriesAddress: string,
+      _issuanceHash: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setVaultIds(
+      _seriesAddress: string,
+      _id: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     settle(
       _series: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -760,6 +791,19 @@ export interface OptionRegistry extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  setSeriesInfoAndAddress(
+    _optionSeries: Types.OptionSeriesStruct,
+    _seriesAddress: string,
+    _issuanceHash: BytesLike,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setVaultIds(
+    _seriesAddress: string,
+    _id: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   settle(
     _series: string,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -919,6 +963,19 @@ export interface OptionRegistry extends BaseContract {
     setOperator(
       _operator: string,
       _isOperator: boolean,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setSeriesInfoAndAddress(
+      _optionSeries: Types.OptionSeriesStruct,
+      _seriesAddress: string,
+      _issuanceHash: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setVaultIds(
+      _seriesAddress: string,
+      _id: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -1169,6 +1226,19 @@ export interface OptionRegistry extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    setSeriesInfoAndAddress(
+      _optionSeries: Types.OptionSeriesStruct,
+      _seriesAddress: string,
+      _issuanceHash: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setVaultIds(
+      _seriesAddress: string,
+      _id: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     settle(
       _series: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1325,6 +1395,19 @@ export interface OptionRegistry extends BaseContract {
     setOperator(
       _operator: string,
       _isOperator: boolean,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setSeriesInfoAndAddress(
+      _optionSeries: Types.OptionSeriesStruct,
+      _seriesAddress: string,
+      _issuanceHash: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setVaultIds(
+      _seriesAddress: string,
+      _id: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
