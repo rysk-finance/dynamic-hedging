@@ -20,20 +20,20 @@ export const Checkboxes = () => {
     {
       inputProps: {
         name: "bid-iv-visible",
-        onChange: handleChange("bid iv"),
-        checked: visibleColumns.has("bid iv"),
+        onChange: handleChange("iv sell"),
+        checked: visibleColumns.has("iv sell"),
       },
-      label: "Bid IV",
-      title: "Switch the bid IV column visibility.",
+      label: "IV (Sell)",
+      title: "Switch the IV (Sell) column visibility.",
     },
     {
       inputProps: {
         name: "ask-iv-visible",
-        onChange: handleChange("ask iv"),
-        checked: visibleColumns.has("ask iv"),
+        onChange: handleChange("iv buy"),
+        checked: visibleColumns.has("iv buy"),
       },
-      label: "Ask IV",
-      title: "Switch the ask IV column visibility.",
+      label: "IV (Buy)",
+      title: "Switch the IV (Buy) column visibility.",
     },
     {
       inputProps: {

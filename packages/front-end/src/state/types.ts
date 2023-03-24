@@ -45,8 +45,8 @@ export type StrikeRangeTuple = [string, string];
 export type ColumNames =
   | "bid"
   | "ask"
-  | "bid iv"
-  | "ask iv"
+  | "iv sell"
+  | "iv buy"
   | "delta"
   | "pos"
   | "exposure";

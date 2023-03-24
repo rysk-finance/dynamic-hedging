@@ -52,8 +52,8 @@ export const defaultGlobalState: GlobalState = {
   visibleColumns: new Set([
     "bid",
     "ask",
-    "bid iv",
-    "ask iv",
+    "iv sell",
+    "iv buy",
     "delta",
     "pos",
   ] as ColumNames[]),
