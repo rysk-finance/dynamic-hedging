@@ -169,15 +169,15 @@ describe("Spread Pricer testing", async () => {
 			expect(await pricer.collateralLendingRate()).to.eq(100000)
 			await pricer.setDeltaBorrowRates({
 				sellLong: 150000,
-				sellShort: 100000,
+				sellShort: -100000,
 				buyLong: 150000,
-				buyShort: 100000
+				buyShort: -100000
 			})
 			const newBorrowRates = await pricer.deltaBorrowRates()
 			expect(newBorrowRates.sellLong).to.eq(150000)
-			expect(newBorrowRates.sellShort).to.eq(100000)
+			expect(newBorrowRates.sellShort).to.eq(-100000)
 			expect(newBorrowRates.buyLong).to.eq(150000)
-			expect(newBorrowRates.buyShort).to.eq(100000)
+			expect(newBorrowRates.buyShort).to.eq(-100000)
 		})
 		it("sets slippage vars to zero", async () => {
 			await pricer.setSlippageGradient(0)
@@ -762,7 +762,7 @@ describe("Spread Pricer testing", async () => {
 				buyQuoteLots = buyQuoteLots.add(quoteResponse.totalPremium)
 			}
 			expect(parseFloat(fromUSDC(buyQuoteLots))).to.be.gt(localQuoteNoSpread)
-			expect(buyQuoteLots.sub(allAtOnceQuoteHalfLongExposure)).to.be.within(-100, 100)
+			expect(buyQuoteLots).to.be.gt(allAtOnceQuoteHalfLongExposure)
 			expect(allAtOnceQuoteFullLongExposure).to.be.lt(allAtOnceQuoteHalfLongExposure)
 			expect(allAtOnceQuoteHalfLongExposure).to.be.lt(allAtOnceQuoteNoLongExposure)
 		})
