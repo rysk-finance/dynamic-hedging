@@ -64,7 +64,7 @@ export const usePositionData = () => {
     };
 
     checkApproval();
-  }, [address, tokenAddress]);
+  }, [address, allowance.approved, tokenAddress]);
 
   // Get user position data.
   useEffect(() => {
