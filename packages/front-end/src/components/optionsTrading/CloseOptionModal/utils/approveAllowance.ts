@@ -6,6 +6,7 @@ import { prepareWriteContract, writeContract } from "@wagmi/core";
 import { BigNumber } from "ethers";
 
 import { erc20ABI } from "src/abis/erc20_ABI";
+import { GAS_MULTIPLIER } from "src/config/constants";
 import { fetchSimulation } from "src/hooks/useTenderlySimulator";
 
 export const approveAllowance = async (
@@ -28,7 +29,7 @@ export const approveAllowance = async (
 
     if (simulationResponse.simulation.status) {
       config.request.gasLimit = BigNumber.from(
-        simulationResponse.simulation.gas_used
+        simulationResponse.simulation.gas_used * GAS_MULTIPLIER
       );
 
       const { hash, wait } = await writeContract(config);
