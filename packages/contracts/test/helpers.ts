@@ -726,8 +726,6 @@ export async function localQuoteOptionPrice(
 	if (spread < 0) {
 		spread = 0
 	}
-	console.log("total spread", spread)
-
 	return isSell ? bsQ * slip - spread : bsQ * slip + spread
 }
 
@@ -862,11 +860,7 @@ export async function applySpreadLocally(
 				(1 + (isSell ? sellShortDeltaBorrowRate : buyLongDeltaBorrowRate) / SIX_DPS) ** timeToExpiry -
 			dollarDelta
 	}
-	// console.log(
-	// 	collateralLendingPremium,
-	// 	deltaBorrowPremium,
-	// 	collateralLendingPremium + deltaBorrowPremium
-	// )
+
 	return collateralLendingPremium + deltaBorrowPremium
 }
 

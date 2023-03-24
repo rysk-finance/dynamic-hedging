@@ -75,14 +75,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	// represents the lending rate of collateral used to collateralise short options by the DHV. denominated in 6 dps
 	uint256 public collateralLendingRate;
-	// long delta borrow rate for users selling to DHV. denominated in 6 dps
-	int256 public sellLongDeltaBorrowRate;
-	// short delta borrow rate for users selling to DHV. denominated in 6 dps
-	int256 public sellShortDeltaBorrowRate;
-	// long delta borrow rate for users selling from the DHV. denominated in 6 dps
-	int256 public buyLongDeltaBorrowRate;
-	// short delta borrow rate for users buying from the DHV. denominated in 6 dps
-	int256 public buyShortDeltaBorrowRate;
+	//  delta borrow rates for spread func. All denominated in 6 dps
 	DeltaBorrowRates public deltaBorrowRates;
 
 	//////////////////////////
@@ -105,28 +98,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	event SlippageGradientMultipliersChanged();
 	event DeltaBandWidthChanged(uint256 newDeltaBandWidth, uint256 oldDeltaBandWidth);
-	event SellShortDeltaBorrowRateChanged(
-		int256 newSellShortDeltaBorrowRate,
-		int256 oldSellShortDeltaBorrowRate
-	);
-	event SellLongDeltaBorrowRateChanged(
-		int256 newSellLongDeltaBorrowRate,
-		int256 oldSellLongDeltaBorrowRate
-	);
-	event BuyShortDeltaBorrowRateChanged(
-		int256 newBuyShortDeltaBorrowRate,
-		int256 oldBuyShortDeltaBorrowRate
-	);
-	event BuyLongDeltaBorrowRateChanged(
-		int256 newBuyLongDeltaBorrowRate,
-		int256 oldBuyLongDeltaBorrowRate
-	);
-
 	event CollateralLendingRateChanged(
 		uint256 newCollateralLendingRate,
 		uint256 oldCollateralLendingRate
 	);
-
 	event DeltaBorrowRatesChanged(
 		DeltaBorrowRates newDeltaBorrowRates,
 		DeltaBorrowRates oldDeltaBorrowRates
@@ -287,7 +262,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			netDhvExposure,
 			underlyingPrice
 		);
-
 		if (spread < 0) {
 			spread = 0;
 		}
