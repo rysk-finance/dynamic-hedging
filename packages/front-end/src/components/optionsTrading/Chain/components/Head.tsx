@@ -14,20 +14,20 @@ export const Head = () => {
 
   const columns = [
     {
-      label: "Bid IV",
-      visible: showCol("bid iv"),
+      label: "IV (Sell)",
+      visible: showCol("iv sell"),
     },
     {
-      label: "Bid",
+      label: "Sell",
       visible: true,
     },
     {
-      label: "Ask",
+      label: "Buy",
       visible: true,
     },
     {
-      label: "Ask IV",
-      visible: showCol("ask iv"),
+      label: "IV (Buy)",
+      visible: showCol("iv buy"),
     },
     {
       label: "Delta",

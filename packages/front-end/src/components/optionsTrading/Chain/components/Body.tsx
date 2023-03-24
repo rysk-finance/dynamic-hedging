@@ -79,7 +79,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
               {...FadeInOut()}
               layout="position"
             >
-              {showCol("bid iv") && (
+              {showCol("iv sell") && (
                 <Cell
                   cellClasses="!border-l-0 "
                   ethPrice={ethPrice}
@@ -131,7 +131,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 />
               </Cell>
 
-              {showCol("ask iv") && (
+              {showCol("iv buy") && (
                 <Cell
                   cellClasses=""
                   ethPrice={ethPrice}
@@ -190,7 +190,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               <Strike value={option.strike} />
 
-              {showCol("bid iv") && (
+              {showCol("iv sell") && (
                 <Cell
                   cellClasses="!border-l-0 "
                   ethPrice={ethPrice}
@@ -242,7 +242,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 />
               </Cell>
 
-              {showCol("ask iv") && (
+              {showCol("iv buy") && (
                 <Cell
                   cellClasses=""
                   ethPrice={ethPrice}
