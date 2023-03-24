@@ -1,4 +1,4 @@
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 
 import { AssetPriceInfo } from "./AssetPriceInfo";
 import { Chain } from "./Chain";
@@ -18,11 +18,13 @@ export const OptionsTradingContent = () => {
 
       <AssetPriceInfo />
 
-      <div className="relative border-2 border-black">
-        <ExpiryDatePicker />
-        <Filters />
-        <Chain />
-      </div>
+      <LayoutGroup>
+        <div className="relative border-2 border-black">
+          <ExpiryDatePicker />
+          <Filters />
+          <Chain />
+        </div>
+      </LayoutGroup>
 
       <Purchase />
 
