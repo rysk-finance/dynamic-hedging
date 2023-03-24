@@ -16,7 +16,7 @@ export const ExpiryDatePicker = () => {
 
   return (
     <div
-      className="grid grid-cols-12 items-center font-medium bg-[url('./assets/wave-lines.png')] bg-[top_right_-50%] lg:bg-[top_right_-15%] xl:bg-[top_right_0%] bg-no-repeat"
+      className="grid grid-cols-12 items-center font-medium bg-[url('./assets/wave-lines.png')] bg-[top_right_-50%] lg:bg-[top_right_-15%] xl:bg-[top_right_0%] bg-no-repeat bg-contain"
       id="expiry-data-picker"
     >
       <ArrowButton
