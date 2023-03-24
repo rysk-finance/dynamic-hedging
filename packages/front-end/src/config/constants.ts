@@ -50,3 +50,5 @@ export const ORACLE_DISPUTE_PERIOD = 7200;
 export const ORACLE_LOCKING_PERIOD = 300;
 
 export const DHV_NAME = "Rysk DHV ETH/USDC";
+
+export const GAS_MULTIPLIER = Number(process.env.REACT_APP_GAS_MULTIPLIER) || 1;

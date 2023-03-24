@@ -13,6 +13,7 @@ import OptionExchangeABI from "../../abis/OptionExchange.json";
 import OptionRegistryABI from "../../abis/OptionRegistry.json";
 import {
   BIG_NUMBER_DECIMALS,
+  GAS_MULTIPLIER,
   MAX_UINT_256,
   ZERO_ADDRESS,
 } from "../../config/constants";
@@ -244,7 +245,9 @@ export const Purchase = () => {
 
           if (response?.simulation.status === true) {
             optionExchangeContract?.operate(txData, {
-              gasLimit: String(Math.ceil(response.simulation.gas_used * 1.1)),
+              gasLimit: String(
+                Math.ceil(response.simulation.gas_used * GAS_MULTIPLIER)
+              ),
             });
           } else {
             toast("❌ Transaction would fail, reach out to the team.");
