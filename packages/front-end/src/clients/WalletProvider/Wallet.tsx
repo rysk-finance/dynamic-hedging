@@ -43,7 +43,7 @@ const infura = process.env.REACT_APP_INFURA_KEY
 const providers = [...alchemy, ...infura, publicProvider()];
 
 const { chains, provider } = configureChains(defaultChains, providers, {
-  pollingInterval: 10000,
+  pollingInterval: 15000,
 });
 
 const connectors = connectorsForWallets([
