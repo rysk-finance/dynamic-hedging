@@ -107,6 +107,9 @@ contract OptionRegistry is AccessControl {
 	error InvalidCollateral();
 	error VaultNotLiquidated();
 	error InsufficientBalance();
+	error VaultAlreadySet();
+	error SeriesAddressAlreadySet();
+	error SeriesInfoAlreadySet();
 
 	constructor(
 		address _collateralAsset,
@@ -173,6 +176,31 @@ contract OptionRegistry is AccessControl {
 		IController(addressBook.getController()).setOperator(_operator, _isOperator);
 		emit OperatorUpdated(_operator, _isOperator);
 	}
+
+	function setVaultIds(address _seriesAddress, uint256 _id) external {
+		if (!IController(addressBook.getController()).isOperator(address(this), msg.sender)) {
+			revert CustomErrors.InvalidSender();
+		}
+		if (vaultIds[_seriesAddress] != 0) {
+			revert VaultAlreadySet();
+		}
+		vaultIds[_seriesAddress] = _id;
+	}
+
+	function setSeriesInfoAndAddress(Types.OptionSeries memory _optionSeries, address _seriesAddress, bytes32 _issuanceHash) external {
+		if (!IController(addressBook.getController()).isOperator(address(this), msg.sender)) {
+			revert CustomErrors.InvalidSender();
+		}
+		if (seriesAddress[_issuanceHash] != address(0)) {
+			revert SeriesAddressAlreadySet();
+		}
+		seriesAddress[_issuanceHash] = _seriesAddress;
+		if (seriesInfo[_seriesAddress].expiration != address(0)) {
+			revert SeriesInfoAlreadySet();
+		}
+		seriesInfo[_seriesAddress] = _optionSeries;
+	}
+
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
