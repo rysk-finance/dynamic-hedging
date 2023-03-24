@@ -25,7 +25,7 @@ export const sell = async (
       operation: OperationType.RyskAction,
       operationQueue: [
         {
-          actionType: BigNumber.from(RyskActionType.SellOption),
+          actionType: BigNumber.from(RyskActionType.CloseOption),
           owner: ZERO_ADDRESS,
           secondAddress: addresses.user,
           asset: addresses.token,
