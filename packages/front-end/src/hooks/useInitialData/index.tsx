@@ -6,10 +6,10 @@ import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
-import { QueriesEnum } from "src/clients/Apollo/Queries";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 import { useUpdateEthPrice } from "../useUpdateEthPrice";
+import { initialDataQuery } from "./graphQuery";
 import { getInitialData } from "./utils";
 
 /**
@@ -39,34 +39,7 @@ export const useInitialData = () => {
   const { updatePriceData } = useUpdateEthPrice();
 
   const { data, error, loading } = useQuery<InitialDataQuery>(
-    gql`
-      query ${QueriesEnum.INITIAL_DATA} ($address: String, $now: String) {
-        expiries(
-          where: { timestamp_gte: $now }
-        ) {
-          timestamp
-        }
-
-        positions(
-          where: { account: $address, amount_not: "0", active: true }
-        ) {
-          amount
-          oToken {
-            createdAt
-            expiryTimestamp
-            id
-            isPut
-            strikePrice
-            symbol
-          }
-          optionsBoughtTransactions {
-            amount
-            fee
-            premium
-          }
-        }
-      }
-    `,
+    gql(initialDataQuery),
     {
       onError: captureException,
       skip: skip,

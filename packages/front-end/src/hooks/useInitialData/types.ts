@@ -13,14 +13,16 @@ export interface PositionOToken {
   symbol: string;
 }
 
+export interface OptionsTransaction {
+  fee: string;
+  premium: string;
+}
+
 interface Position {
-  amount: BigNumberish;
+  netAmount: string;
   oToken: PositionOToken;
-  optionsBoughtTransactions: {
-    amount: BigNumberish;
-    fee: string;
-    premium: string;
-  }[];
+  optionsBoughtTransactions: OptionsTransaction[];
+  optionsSoldTransactions: OptionsTransaction[];
 }
 
 export interface InitialDataQuery {

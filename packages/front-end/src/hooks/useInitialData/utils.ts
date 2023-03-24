@@ -7,7 +7,7 @@ import type {
   UserPositions,
 } from "src/state/types";
 import type { DHVLensMK1 } from "src/types/DHVLensMK1";
-import type { InitialDataQuery } from "./types";
+import type { InitialDataQuery, OptionsTransaction } from "./types";
 
 import { captureException } from "@sentry/react";
 import { readContracts } from "@wagmi/core";
@@ -20,10 +20,9 @@ import {
   fromUSDC,
   fromWei,
   fromWeiToInt,
+  fromWeiToOpyn,
   SECONDS_IN_YEAR,
   tFormatUSDC,
-  toOpyn,
-  fromWeiToOpyn,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { toTwoDecimalPlaces } from "src/utils/rounding";
@@ -40,31 +39,43 @@ const getExpiries = (expiries: InitialDataQuery["expiries"]) => {
 
 const getUserPositions = (positions: InitialDataQuery["positions"]) => {
   return positions.reduce(
-    (positions, { amount, oToken, optionsBoughtTransactions }) => {
+    (
+      positions,
+      { netAmount, oToken, optionsBoughtTransactions, optionsSoldTransactions }
+    ) => {
       const { expiryTimestamp } = oToken;
-      const isLong = Number(amount) > 0;
-      const isShort = Number(amount) < 0;
+      const isLong = Number(netAmount) > 0;
+      const isShort = Number(netAmount) < 0;
       const key = positions[expiryTimestamp];
 
-      const totalPremium = optionsBoughtTransactions.reduce(
-        (acc, { amount, fee, premium }) => {
-          const paid = (Number(fee) + Number(premium)) * fromWeiToInt(amount);
+      const _getPremium = (
+        transactions: OptionsTransaction[],
+        plusFee: boolean
+      ) => {
+        return transactions.reduce((acc, { fee, premium }) => {
+          const paid = plusFee
+            ? Number(premium) + Number(fee)
+            : Number(premium) - Number(fee);
           const total = tFormatUSDC(paid, 2) + acc;
 
           return total;
-        },
-        0
-      );
+        }, 0);
+      };
+
+      const totalPremiumBought = _getPremium(optionsBoughtTransactions, true);
+      const totalPremiumSold = _getPremium(optionsSoldTransactions, false);
+      // This figure is only relevant to net long positions so we can display their value.
+      const totalPremium = totalPremiumBought - totalPremiumSold;
 
       const token = {
         ...oToken,
-        amount,
+        netAmount,
         totalPremium,
       };
 
       if (!key) {
         positions[expiryTimestamp] = {
-          amount,
+          netAmount,
           isLong,
           isShort,
           tokens: [token],
@@ -150,7 +161,7 @@ const getChainData = async (
           sideData[strikeUSDC] = {
             [side]: {
               bid: {
-                disabled: bid.disabled,
+                disabled: bid.disabled || bid.premiumTooSmall,
                 IV: _getIV(Number(fromUSDC(bid.quote))),
                 quote: _getQuote(bid),
               },
@@ -160,7 +171,7 @@ const getChainData = async (
                 quote: _getQuote(ask),
               },
               delta: toTwoDecimalPlaces(Number(fromWei(delta))),
-              pos: fromWeiToInt(position?.amount || 0),
+              pos: fromWeiToInt(position?.netAmount || 0),
               exposure: Number(fromWei(exposure)),
               tokenID: position?.id,
             },
