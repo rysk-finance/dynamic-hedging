@@ -18,6 +18,7 @@
 	"scripts": {
 		"buyoption:testnet": "npx hardhat run scripts/buySample.ts --network arbitrumGoerli",
 		"compile": "hardhat clean && hardhat compile && hardhat typechain && ./copyABIsToFrontend.sh",
+		"compile:ci": "hardhat clean && hardhat compile && hardhat typechain",
 		"create-otc-order:testnet": "npx hardhat run scripts/createOTCOrder.ts --network arbitrumGoerli",
 		"create-otc-strangle:testnet": "npx hardhat run scripts/createOTCStrangle.ts --network arbitrumGoerli",
 		"deploy:arbitrumGoerli": "npx hardhat run deploy/arbitrum-goerli/ArbitrumGoerliDeploy.ts --network arbitrumGoerli",
@@ -26,6 +27,7 @@
 		"deployAlpha:mainnet": "npx hardhat run deploy/arbitrum/ArbitrumAlphaDeploy.ts --network arbitrum",
 		"deployRangeOrderReactor:arbitrum": "npx hardhat run deploy/arbitrum/DeployRangeOrderReactor.ts --network arbitrum",
 		"deployRangeOrderReactor:arbitrumGoerli": "npx hardhat run deploy/arbitrum/DeployRangeOrderReactor.ts --network arbitrumGoerli",
+		"deployLens:arbitrumGoerli": "npx hardhat run deploy/arbitrum-goerli/deployLens.ts --network arbitrumGoerli",
 		"execute-epoch:testnet": "npx hardhat run scripts/executeEpochTestnet.ts --network arbitrumGoerli",
 		"fulfill:testnet": "npx hardhat run scripts/fulfill.ts --network arbitrumGoerli",
 		"hardhat-run": "hardhat run",

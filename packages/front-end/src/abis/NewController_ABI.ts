@@ -1,4 +1,4 @@
-export const OpynControllerABI = [
+export const NewControllerABI = [
 	{
 		"anonymous": false,
 		"inputs": [

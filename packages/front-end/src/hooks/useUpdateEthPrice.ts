@@ -17,52 +17,49 @@ interface EthPriceResponse {
   low_24h: number;
 }
 
+export const priceFeedGetRate = async () => {
+  const ethPrice = await readContract({
+    address: getContractAddress("priceFeed"),
+    abi: PriceFeedABI,
+    functionName: "getRate",
+    args: [getContractAddress("WETH"), getContractAddress("USDC")],
+  });
+
+  return fromOpynToNumber(ethPrice);
+};
+
+/**
+ * Hook to update Ether price in global state.
+ *
+ * To update the Ether price along with historical data
+ * you can call updatePriceData.
+ *
+ * To explicitly update jus the Ether price you
+ * can call updatePrice.
+ *
+ * @returns { updatePriceData, updatePrice }
+ */
 export const useUpdateEthPrice = () => {
   const { dispatch } = useGlobalContext();
 
-  const getPrice = async () => {
-    const response = await fetch(endpoints.ethPrice, {
-      headers: {
-        "X-CMC_PRO_API_KEY": CMC_API_KEY,
-        Accept: "application/json",
-      },
-    });
-    const data: EthPriceResponse[] = await response.json();
-
-    return data[0];
+  const getCoinGeckoPriceData = async () => {
+    try {
+      const response = await fetch(endpoints.ethPrice, {
+        headers: {
+          "X-CMC_PRO_API_KEY": CMC_API_KEY,
+          Accept: "application/json",
+        },
+      });
+      const data: EthPriceResponse[] = await response.json();
+      return data[0];
+    } catch (error) {
+      captureException(error);
+    }
   };
 
-  const updatePrice = useCallback(async () => {
+  const getPriceFeedRate = async () => {
     try {
-      const priceData = await getPrice();
-
-      if (priceData) {
-        dispatch({
-          type: ActionType.SET_ETH_PRICE,
-          price: priceData.current_price,
-          change: priceData.price_change_percentage_24h,
-          date: dayjs().toDate(),
-          high: priceData.high_24h,
-          low: priceData.low_24h,
-          error: false,
-        });
-      } else {
-        const ethPrice = await readContract({
-          address: getContractAddress("priceFeed"),
-          abi: PriceFeedABI,
-          functionName: "getRate",
-          args: [getContractAddress("WETH"), getContractAddress("USDC")],
-        });
-
-        if (ethPrice) {
-          dispatch({
-            type: ActionType.SET_ETH_PRICE,
-            price: fromOpynToNumber(ethPrice),
-            date: dayjs().toDate(),
-            error: false,
-          });
-        }
-      }
+      return await priceFeedGetRate();
     } catch (error) {
       captureException(error);
 
@@ -71,7 +68,49 @@ export const useUpdateEthPrice = () => {
         error: true,
       });
     }
+  };
+
+  const updatePriceData = useCallback(async () => {
+    const ethPriceData = await getCoinGeckoPriceData();
+    const ethPrice = await getPriceFeedRate();
+
+    if (ethPriceData) {
+      dispatch({
+        type: ActionType.SET_ETH_PRICE,
+        price: ethPrice || ethPriceData.current_price,
+        change: ethPriceData.price_change_percentage_24h,
+        date: dayjs().toDate(),
+        high: ethPriceData.high_24h,
+        low: ethPriceData.low_24h,
+        error: false,
+      });
+    } else if (ethPrice) {
+      dispatch({
+        type: ActionType.SET_ETH_PRICE,
+        price: ethPrice,
+        date: dayjs().toDate(),
+        error: false,
+      });
+    } else {
+      dispatch({
+        type: ActionType.SET_ETH_PRICE_ERROR,
+        error: true,
+      });
+    }
   }, [dispatch]);
 
-  return { updatePrice };
+  const updatePrice = useCallback(async () => {
+    const ethPrice = await getPriceFeedRate();
+
+    if (ethPrice) {
+      dispatch({
+        type: ActionType.SET_ETH_PRICE,
+        price: ethPrice,
+        date: dayjs().toDate(),
+        error: false,
+      });
+    }
+  }, [dispatch]);
+
+  return { updatePriceData, updatePrice } as const;
 };

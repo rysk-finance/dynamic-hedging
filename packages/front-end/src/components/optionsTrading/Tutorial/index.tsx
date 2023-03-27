@@ -47,7 +47,7 @@ export const Tutorial = () => {
         {
           target: "#chain-price-info",
           content:
-            "Here you can see the current underlying spot price and the 24-hour price change. This data will be refreshed automatically every 120 seconds, or you can manually update it every 30 seconds by clicking this area.",
+            "Here you can see the current underlying spot price and the 24-hour price change. This data will be refreshed automatically every 5 seconds, or you can manually update it every 15 seconds by clicking this area.",
         },
         {
           target: "#expiry-data-picker",
@@ -72,7 +72,7 @@ export const Tutorial = () => {
         {
           target: "#options-chain",
           content:
-            "This is the options chain. To trade an option, you can click on the price in the bid column to sell, or in the ask column to buy. Once you do so, you can approve and complete your trade.",
+            "This is the options chain. To trade an option, you can click on the price in the bid column to sell, or in the ask column to buy. Once you do so, you can approve and complete your trade. You can also click on any active long positions you have to close all or part of them.",
         },
         {
           target: "#header-dashboard",

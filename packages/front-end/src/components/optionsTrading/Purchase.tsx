@@ -13,6 +13,7 @@ import OptionExchangeABI from "../../abis/OptionExchange.json";
 import OptionRegistryABI from "../../abis/OptionRegistry.json";
 import {
   BIG_NUMBER_DECIMALS,
+  GAS_MULTIPLIER,
   MAX_UINT_256,
   ZERO_ADDRESS,
 } from "../../config/constants";
@@ -65,11 +66,14 @@ export const Purchase = () => {
 
   // Context state
   const {
-    state: { settings },
+    state: {
+      options: { activeExpiry },
+      settings,
+    },
   } = useGlobalContext();
 
   const {
-    state: { selectedOption, expiryDate },
+    state: { selectedOption },
   } = useOptionsTradingContext();
 
   // Local state
@@ -78,9 +82,9 @@ export const Purchase = () => {
 
   // note - to avoid using state i'm saving this in the hook for now
   useEffect(() => {
-    if (selectedOption && expiryDate) {
+    if (selectedOption && activeExpiry) {
       const optionDetails = {
-        expiration: BigNumber.from(expiryDate),
+        expiration: BigNumber.from(activeExpiry),
         strike: toWei(selectedOption.strikeOptions.strike.toString()),
         isPut: selectedOption.callOrPut === "put",
       };
@@ -97,7 +101,7 @@ export const Purchase = () => {
       setOptionSeries(optionDetails);
       retrieveOtoken();
     }
-  }, [selectedOption, expiryDate]);
+  }, [selectedOption, activeExpiry]);
 
   // Contracts
   const [optionRegistryContract] = useContract({
@@ -186,7 +190,7 @@ export const Purchase = () => {
       optionExchangeContract &&
       usdcContract &&
       address &&
-      expiryDate &&
+      activeExpiry &&
       selectedOption &&
       chain
     ) {
@@ -195,7 +199,7 @@ export const Purchase = () => {
           BigNumber.from(uiOrderSize)
         );
         const proposedSeries = {
-          expiration: expiryDate,
+          expiration: activeExpiry,
           strike: toWei(selectedOption.strikeOptions.strike.toString()),
           isPut: selectedOption.callOrPut === "put",
           strikeAsset: getContractAddress("USDC"),
@@ -241,7 +245,9 @@ export const Purchase = () => {
 
           if (response?.simulation.status === true) {
             optionExchangeContract?.operate(txData, {
-              gasLimit: String(Math.ceil(response.simulation.gas_used * 1.1)),
+              gasLimit: String(
+                Math.ceil(response.simulation.gas_used * GAS_MULTIPLIER)
+              ),
             });
           } else {
             toast("❌ Transaction would fail, reach out to the team.");
@@ -324,11 +330,11 @@ export const Purchase = () => {
             </div>
             {bidOrAsk === "bid" && (
               <div className="w-1/2 border-r-2 border-black">
-                {selectedOption && expiryDate && (
+                {selectedOption && activeExpiry && (
                   <CollateralRequirement
                     selectedOption={selectedOption}
                     strike={strikeOptions.strike}
-                    expiry={expiryDate}
+                    expiry={Number(activeExpiry)}
                     isPut={callOrPut === "put"}
                     onChange={handleCollateralChange}
                   />
@@ -340,8 +346,9 @@ export const Purchase = () => {
                 <div className="w-full -mb-1">
                   <div className="w-full p-4 flex flex-col">
                     <h5 className={`mb-10 tracking-tight text-lg`}>
-                      ETH-{formatOptionDate(expiryDate)}-{strikeOptions?.strike}
-                      -{selectedOption.callOrPut === "put" ? "P" : "C"}
+                      ETH-{formatOptionDate(Number(activeExpiry))}-
+                      {strikeOptions?.strike}-
+                      {selectedOption.callOrPut === "put" ? "P" : "C"}
                     </h5>
                     {uiOrderSize && (
                       <>

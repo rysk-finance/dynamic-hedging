@@ -1,6 +1,5 @@
 import type { ApolloError } from "@apollo/client";
-import type { Position as ParsedPosition } from "src/state/types";
-import type { CompleteRedeem, Position } from "./types";
+import type { CompleteRedeem, Position, ParsedPosition } from "./types";
 
 import { gql, useQuery } from "@apollo/client";
 import { captureException } from "@sentry/react";
@@ -11,11 +10,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
 
-import { OpynControllerABI } from "src/abis/OpynController_ABI";
-import OpynActionType from "src/enums/OpynActionType";
+import { NewControllerABI } from "src/abis/NewController_ABI";
+import { OpynActionType } from "src/enums/OpynActionType";
 import { useGraphPolling } from "src/hooks/useGraphPolling";
-import { useGlobalContext } from "src/state/GlobalContext";
-import { ActionType } from "src/state/types";
 import { getContractAddress } from "src/utils/helpers";
 import { DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
 import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
@@ -30,8 +27,6 @@ import { QueriesEnum } from "src/clients/Apollo/Queries";
  */
 const usePositions = () => {
   const { address, isDisconnected } = useAccount();
-
-  const { dispatch } = useGlobalContext();
 
   const { allOracleAssets } = useExpiryPriceData();
   const [positions, setPositions] = useState<ParsedPosition[] | null>(null);
@@ -159,7 +154,7 @@ const usePositions = () => {
                 return (
                   <Link
                     className="p-4"
-                    to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&ref=sell`}
+                    to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&ref=close`}
                   >
                     {`Close position`}
                   </Link>
@@ -204,10 +199,6 @@ const usePositions = () => {
         );
       });
 
-      dispatch({
-        type: ActionType.SET_USER_OPTION_POSITIONS,
-        userOptionPositions: parsedPositions,
-      });
       setPositions(parsedPositions);
     }
   }, [data, allOracleAssets, isDisconnected]);
@@ -245,7 +236,7 @@ const useRedeem = () => {
 
       const config = await prepareWriteContract({
         address: getContractAddress("OpynController"),
-        abi: OpynControllerABI,
+        abi: NewControllerABI,
         functionName: "operate",
         args: [args],
         overrides: {
