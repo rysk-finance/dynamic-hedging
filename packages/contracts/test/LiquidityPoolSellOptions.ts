@@ -3446,6 +3446,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(diff).to.be.lt(1)
 				expect(strikeAmount).to.be.eq(usdBalance.sub(usdBalanceAfter))
 			})
+			let optionTokenAlt: Otoken
 			it("SUCCEEDS: LP Sells a ETH/USD call for premium with otoken created outside", async () => {
 				const amount = toWei("5")
 				const strikePrice = toWei("1750")
@@ -3458,7 +3459,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					collateral: usd.address
 				}
 				const otoken = await exchange.callStatic.createOtoken(proposedSeries)
-				const optionToken = (await ethers.getContractAt("Otoken", otoken)) as Otoken
+				optionTokenAlt = (await ethers.getContractAt("Otoken", otoken)) as Otoken
 				const marginRequirement = await (
 					await optionRegistry.getCollateral(
 						{
@@ -3480,7 +3481,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					usd,
 					wethERC20,
 					portfolioValuesFeed,
-					optionToken,
+					optionTokenAlt,
 					senderAddress,
 					amount
 				)
@@ -3532,8 +3533,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							{
 								actionType: 2,
 								owner: ZERO_ADDRESS,
-								secondAddress: exchange.address,
-								asset: optionToken.address,
+								secondAddress: senderAddress,
+								asset: optionTokenAlt.address,
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
@@ -3543,20 +3544,13 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
-				const localDelta = await calculateOptionDeltaLocally(
-					liquidityPool,
-					priceFeed,
-					proposedSeries,
-					toWei("5"),
-					true
-				)
 				const after = await getExchangeParams(
 					liquidityPool,
 					exchange,
 					usd,
 					wethERC20,
 					portfolioValuesFeed,
-					optionToken,
+					optionTokenAlt,
 					senderAddress,
 					amount
 				)
@@ -3586,6 +3580,115 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					.to.equal(usd.address)
 				expect(after.seriesStores.optionSeries.strike).to.equal(proposedSeries.strike)
 				expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
+			})
+			it("SUCCEEDS: LP Buys back their position and withdraws collateral", async () => {
+				const amount = toWei("5")
+				const strikePrice = toWei("1750")
+				const proposedSeries = {
+					expiration: expiration,
+					strike: strikePrice,
+					isPut: CALL_FLAVOR,
+					strikeAsset: usd.address,
+					underlying: weth.address,
+					collateral: usd.address
+				}
+				const vaultId = await controller.getAccountVaultCounter(senderAddress)
+				const vaultBalance = (await controller.getVault(senderAddress, vaultId)).collateralAmounts[0]
+				const before = await getExchangeParams(
+					liquidityPool,
+					exchange,
+					usd,
+					wethERC20,
+					portfolioValuesFeed,
+					optionTokenAlt,
+					senderAddress,
+					amount
+				)
+				let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, before.netDhvExposure)
+				await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
+				let quote = quoteResponse[0].add(quoteResponse[2])
+				await optionTokenAlt.approve(MARGIN_POOL[chainId], 0)
+				await exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 1,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionTokenAlt.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								index: 0,
+								data: "0x"
+							}
+						]
+					},
+					{
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: senderAddress,
+								secondAddress: senderAddress,
+								asset: optionTokenAlt.address,
+								vaultId: vaultId,
+								amount: amount.div(ethers.utils.parseUnits("1", 10)),
+								optionSeries: emptySeries,
+								index: 0,
+								data: ZERO_ADDRESS
+							},
+							{
+								actionType: 6,
+								owner: senderAddress,
+								secondAddress: senderAddress,
+								asset: usd.address,
+								vaultId: vaultId,
+								amount: vaultBalance,
+								optionSeries: emptySeries,
+								index: 0,
+								data: ZERO_ADDRESS
+							},
+						]
+					},
+				])
+				const after = await getExchangeParams(
+					liquidityPool,
+					exchange,
+					usd,
+					wethERC20,
+					portfolioValuesFeed,
+					optionTokenAlt,
+					senderAddress,
+					amount
+				)
+				quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, before.netDhvExposure)
+				await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
+				quote = quoteResponse[0].add(quoteResponse[2])
+				expect(after.senderOtokenBalance).to.eq(0)
+				expect(after.senderUSDBalance.sub(before.senderUSDBalance).sub(vaultBalance).add(quote)).to.be.within(
+					-10,
+					10
+				)
+				expect(after.poolUSDBalance.sub(before.poolUSDBalance).sub(quote)).to.be.within(-10, 10)
+				expect(before.exchangeOTokenBalance.sub(after.exchangeOTokenBalance)).to.equal(after.opynAmount)
+				expect(after.pfList.length - before.pfList.length).to.equal(0)
+				expect(before.seriesStores.longExposure.sub(after.seriesStores.longExposure)).to.equal(amount)
+				expect(after.seriesStores.shortExposure).to.equal(0)
+				expect(after.seriesStores.optionSeries.expiration).to.equal(proposedSeries.expiration)
+				expect(after.seriesStores.optionSeries.isPut).to.equal(proposedSeries.isPut)
+				expect(after.seriesStores.optionSeries.collateral)
+					.to.equal(proposedSeries.collateral)
+					.to.equal(usd.address)
+				expect(after.seriesStores.optionSeries.underlying)
+					.to.equal(proposedSeries.underlying)
+					.to.equal(weth.address)
+				expect(after.seriesStores.optionSeries.strikeAsset)
+					.to.equal(proposedSeries.strikeAsset)
+					.to.equal(usd.address)
+				expect(after.seriesStores.optionSeries.strike).to.equal(proposedSeries.strike)
+				expect(before.netDhvExposure.sub(after.netDhvExposure)).to.equal(amount)
 			})
 		})
 		describe("Settles and redeems usd otoken", async () => {
