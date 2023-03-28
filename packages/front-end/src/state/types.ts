@@ -191,9 +191,18 @@ export type VaultContext = {
 // Options trading context
 export type OptionsTradingState = {
   selectedOption: SelectedOption | null;
-  optionChainModalOpen: boolean;
+  optionChainModalOpen?: OptionChainModal;
   tutorialIndex?: number;
 };
+
+export enum OptionChainModalActions {
+  BUY = "buy",
+  CLOSE = "close",
+  SELL = "sell",
+}
+
+type OptionChainModal =
+  (typeof OptionChainModalActions)[keyof typeof OptionChainModalActions];
 
 export type OptionsTradingContext = {
   state: OptionsTradingState;
@@ -259,7 +268,7 @@ export type OptionsTradingAction =
     }
   | {
       type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE;
-      visible: boolean;
+      visible?: OptionChainModalActions;
     }
   | {
       type: OptionsTradingActionType.SET_TUTORIAL_INDEX;
