@@ -3,8 +3,8 @@ import type { SelectedOption, StrikeOptions } from "src/state/types";
 export const getColorClasses = (
   option: StrikeOptions,
   side: SelectedOption["callOrPut"],
-  selectedOption: SelectedOption | null,
-  ethPrice: number | null
+  ethPrice: number | null,
+  selectedOption?: SelectedOption
 ): string => {
   const strikeSelected = option.strike === selectedOption?.strikeOptions.strike;
   const callRowSelected =

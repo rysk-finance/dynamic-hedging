@@ -22,8 +22,8 @@ export const Cell = ({
   const tdColorClasses = getColorClasses(
     option,
     side,
-    selectedOption,
-    ethPrice
+    ethPrice,
+    selectedOption
   );
 
   return (
