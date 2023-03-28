@@ -191,7 +191,7 @@ export type VaultContext = {
 // Options trading context
 export type OptionsTradingState = {
   selectedOption: SelectedOption | null;
-  sellModalOpen: boolean;
+  optionChainModalOpen: boolean;
   tutorialIndex?: number;
 };
 
@@ -248,7 +248,7 @@ export interface OptionSeries {
 export enum OptionsTradingActionType {
   SET_EXPIRY_DATE,
   SET_SELECTED_OPTION,
-  SET_SELL_MODAL_VISIBLE,
+  SET_OPTION_CHAIN_MODAL_VISIBLE,
   SET_TUTORIAL_INDEX,
 }
 
@@ -258,7 +258,7 @@ export type OptionsTradingAction =
       option: SelectedOption | null;
     }
   | {
-      type: OptionsTradingActionType.SET_SELL_MODAL_VISIBLE;
+      type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE;
       visible: boolean;
     }
   | {
