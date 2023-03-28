@@ -1,8 +1,8 @@
-import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup } from "framer-motion";
 
 import { AssetPriceInfo } from "./AssetPriceInfo";
 import { Chain } from "./Chain";
-import { CloseOptionModal } from "./CloseOptionModal";
+import { CloseOptionModal } from "./Modals/CloseOptionModal";
 import { ExpiryDatePicker } from "./ExpiryDatePicker";
 import { Filters } from "./Filters/Filters";
 import { useCloseModal } from "./hooks/useCloseModal";

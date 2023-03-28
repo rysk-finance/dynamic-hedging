@@ -6,17 +6,17 @@ import dayjs from "dayjs";
 import LocalizedFormat from "dayjs/plugin/localizedFormat";
 import { AnimatePresence } from "framer-motion";
 import { ChangeEvent, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import FadeInOut from "src/animation/FadeInOut";
 import { Button } from "src/components/shared/Button";
 import { Loading } from "src/Icons";
+import { useGlobalContext } from "src/state/GlobalContext";
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { OptionsTradingActionType } from "src/state/types";
 import { toOpyn, toRysk } from "src/utils/conversion-helper";
-import { useSearchParams } from "react-router-dom";
 
-import { useGlobalContext } from "src/state/GlobalContext";
 import { Disclaimer } from "./components/Disclaimer";
 import { Header } from "./components/Header";
 import { Modal } from "./components/Modal";
