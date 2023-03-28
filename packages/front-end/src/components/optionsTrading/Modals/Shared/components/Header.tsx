@@ -13,7 +13,7 @@ export const Header = ({ children }: PropsWithChildren) => {
 
   const closeModal = () => {
     dispatch({
-      type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+      type: OptionsTradingActionType.RESET,
     });
     setSearchParams({});
   };

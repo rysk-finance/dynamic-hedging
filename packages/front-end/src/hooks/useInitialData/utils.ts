@@ -160,12 +160,12 @@ const getChainData = async (
 
           sideData[strikeUSDC] = {
             [side]: {
-              bid: {
+              sell: {
                 disabled: bid.disabled || bid.premiumTooSmall,
                 IV: _getIV(Number(fromUSDC(bid.quote))),
                 quote: _getQuote(bid),
               },
-              ask: {
+              buy: {
                 disabled: ask.disabled,
                 IV: _getIV(Number(fromUSDC(ask.quote))),
                 quote: _getQuote(ask),
