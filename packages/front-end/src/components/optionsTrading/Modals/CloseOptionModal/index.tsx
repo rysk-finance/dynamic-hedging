@@ -19,7 +19,7 @@ import { toOpyn, toRysk } from "src/utils/conversion-helper";
 
 import { Disclaimer } from "./components/Disclaimer";
 import { Header } from "./components/Header";
-import { Modal } from "./components/Modal";
+import { Modal } from "../Shared/Modal/Modal";
 import { Pricing } from "./components/Pricing";
 import { usePositionData } from "./hooks/usePositionData";
 import { approveAllowance } from "./utils/approveAllowance";
