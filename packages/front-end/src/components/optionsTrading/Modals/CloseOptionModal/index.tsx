@@ -135,7 +135,7 @@ export const CloseOptionModal = () => {
           addRecentTransaction({ hash, description: "Sale" });
           toast("Sale completed!");
           dispatch({
-            type: OptionsTradingActionType.SET_SELL_MODAL_VISIBLE,
+            type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
             visible: false,
           });
           setSearchParams({});
