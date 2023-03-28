@@ -44,11 +44,12 @@ export const IV = ({ value }: IVProps) => {
 };
 
 export const Quote = ({ clickFn, disabled, value }: QuoteProps) => {
+  const disabledClasses = disabled ? "cursor-not-allowed" : "cursor-pointer";
+  const beforeClasses = value ? "before:content-['$']" : "";
+
   return (
     <button
-      className={`${
-        disabled ? "cursor-not-allowed" : "cursor-pointer"
-      } py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:content-['$'] before:mr-1`}
+      className={`${disabledClasses} ${beforeClasses} py-4 xl:py-3 px-1 xl:px-2 w-full text-right before:mr-1`}
       onClick={clickFn}
       disabled={disabled}
     >
