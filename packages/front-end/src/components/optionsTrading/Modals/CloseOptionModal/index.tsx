@@ -18,7 +18,7 @@ import { OptionsTradingActionType } from "src/state/types";
 import { toOpyn, toRysk } from "src/utils/conversion-helper";
 
 import { Disclaimer } from "../Shared/Disclaimer/Disclaimer";
-import { Header } from "./components/Header";
+import { Header } from "../Shared/Header/Header";
 import { Modal } from "../Shared/Modal/Modal";
 import { Pricing } from "./components/Pricing";
 import { usePositionData } from "./hooks/usePositionData";
@@ -152,7 +152,7 @@ export const CloseOptionModal = () => {
 
   return (
     <Modal>
-      <Header />
+      <Header>{`Sell Position`}</Header>
       <Pricing positionData={positionData} />
 
       <div className="flex border-black border-y-2">
