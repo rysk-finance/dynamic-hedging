@@ -11,7 +11,7 @@ import { createContext, useContext, useReducer } from "react";
 import { optionsTradingReducer } from "./reducer";
 
 export const defaultOptionTradingState: OptionsTradingState = {
-  selectedOption: null,
+  selectedOption: undefined,
   optionChainModalOpen: undefined,
   tutorialIndex: undefined,
 };

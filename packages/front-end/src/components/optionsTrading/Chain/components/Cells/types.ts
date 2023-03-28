@@ -6,8 +6,8 @@ export interface CellProps extends PropsWithChildren {
   ethPrice: number | null;
   option: StrikeOptions;
   side: SelectedOption["callOrPut"];
-  selectedOption: SelectedOption | null;
 
+  selectedOption?: SelectedOption;
   cellClasses?: string;
 }
 
