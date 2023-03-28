@@ -12,7 +12,7 @@ import { optionsTradingReducer } from "./reducer";
 
 export const defaultOptionTradingState: OptionsTradingState = {
   selectedOption: null,
-  sellModalOpen: false,
+  optionChainModalOpen: false,
   tutorialIndex: undefined,
 };
 

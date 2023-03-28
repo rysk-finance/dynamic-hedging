@@ -4,7 +4,7 @@ import type {
   OptionsTradingAction,
   OptionsTradingState,
   VaultAction,
-  VaultState
+  VaultState,
 } from "./types";
 
 import { Reducer } from "react";
@@ -130,10 +130,10 @@ export const optionsTradingReducer: Reducer<
   switch (action.type) {
     case OptionsTradingActionType.SET_SELECTED_OPTION:
       return { ...state, selectedOption: action.option };
-    case OptionsTradingActionType.SET_SELL_MODAL_VISIBLE:
+    case OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE:
       return {
         ...state,
-        sellModalOpen: action.visible,
+        optionChainModalOpen: action.visible,
       };
     case OptionsTradingActionType.SET_TUTORIAL_INDEX:
       return {
