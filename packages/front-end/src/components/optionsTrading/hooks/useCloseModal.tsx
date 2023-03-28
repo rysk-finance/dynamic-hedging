@@ -23,7 +23,7 @@ export const useCloseModal = () => {
   } = useGlobalContext();
 
   const {
-    state: { sellModalOpen },
+    state: { optionChainModalOpen },
     dispatch,
   } = useOptionsTradingContext();
 
@@ -36,12 +36,12 @@ export const useCloseModal = () => {
 
       if (hasSellRef && hasUserPosition) {
         dispatch({
-          type: OptionsTradingActionType.SET_SELL_MODAL_VISIBLE,
+          type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: true,
         });
       }
     }
   }, [activeExpiry, searchParams]);
 
-  return [sellModalOpen] as const;
+  return [optionChainModalOpen] as const;
 };
