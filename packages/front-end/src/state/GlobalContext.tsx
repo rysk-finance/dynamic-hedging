@@ -50,8 +50,8 @@ export const defaultGlobalState: GlobalState = {
   // Options chain state.
   visibleStrikeRange: ["", ""],
   visibleColumns: new Set([
-    "bid",
-    "ask",
+    "sell",
+    "buy",
     "iv sell",
     "iv buy",
     "delta",

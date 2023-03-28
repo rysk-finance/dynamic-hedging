@@ -43,8 +43,8 @@ export type PutSide = {
 export type StrikeRangeTuple = [string, string];
 
 export type ColumNames =
-  | "bid"
-  | "ask"
+  | "sell"
+  | "buy"
   | "iv sell"
   | "iv buy"
   | "delta"
@@ -190,7 +190,7 @@ export type VaultContext = {
 
 // Options trading context
 export type OptionsTradingState = {
-  selectedOption: SelectedOption | null;
+  selectedOption?: SelectedOption;
   optionChainModalOpen?: OptionChainModal;
   tutorialIndex?: number;
 };
@@ -217,18 +217,18 @@ export enum OptionType {
 export type CallOrPut = "call" | "put";
 
 export interface SelectedOption {
-  bidOrAsk: "bid" | "ask";
+  buyOrSell: "sell" | "buy";
   callOrPut: CallOrPut;
   strikeOptions: StrikeOptions;
 }
 
 export interface StrikeSide {
-  bid: {
+  sell: {
     IV: number;
     quote: number;
     disabled: boolean;
   };
-  ask: {
+  buy: {
     IV: number;
     quote: number;
     disabled: boolean;
@@ -255,16 +255,16 @@ export interface OptionSeries {
 }
 
 export enum OptionsTradingActionType {
-  SET_EXPIRY_DATE,
   SET_SELECTED_OPTION,
   SET_OPTION_CHAIN_MODAL_VISIBLE,
   SET_TUTORIAL_INDEX,
+  RESET,
 }
 
 export type OptionsTradingAction =
   | {
       type: OptionsTradingActionType.SET_SELECTED_OPTION;
-      option: SelectedOption | null;
+      option?: SelectedOption;
     }
   | {
       type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE;
@@ -273,4 +273,7 @@ export type OptionsTradingAction =
   | {
       type: OptionsTradingActionType.SET_TUTORIAL_INDEX;
       index?: number;
+    }
+  | {
+      type: OptionsTradingActionType.RESET;
     };
