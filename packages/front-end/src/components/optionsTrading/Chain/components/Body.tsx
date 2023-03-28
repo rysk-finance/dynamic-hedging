@@ -165,10 +165,12 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 >
                   <Position
                     clickFn={() => {
-                      setSearchParams({
-                        ref: "close",
-                        token: option.call.tokenID || "",
-                      });
+                      if (option.call.pos > 0) {
+                        setSearchParams({
+                          ref: "close",
+                          token: option.call.tokenID || "",
+                        });
+                      }
                     }}
                     disabled={!option.call.pos}
                     value={option.call.pos}
@@ -276,10 +278,12 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 >
                   <Position
                     clickFn={() => {
-                      setSearchParams({
-                        ref: "close",
-                        token: option.put.tokenID || "",
-                      });
+                      if (option.put.pos > 0) {
+                        setSearchParams({
+                          ref: "close",
+                          token: option.put.tokenID || "",
+                        });
+                      }
                     }}
                     disabled={!option.put.pos}
                     value={option.put.pos}
