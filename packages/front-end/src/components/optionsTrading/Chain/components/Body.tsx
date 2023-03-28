@@ -60,14 +60,14 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
     <tbody className="relative block w-[150%] lg:w-full font-dm-mono text-sm">
       <AnimatePresence initial={false}>
         {filteredChainRows.map((option) => {
-          const callBidDisabled =
-            option.call.bid.disabled || !option.call.bid.quote;
-          const callAskDisabled =
-            option.call.ask.disabled || !option.call.ask.quote;
-          const putBidDisabled =
-            option.put.bid.disabled || !option.put.bid.quote;
-          const putAskDisabled =
-            option.put.ask.disabled || !option.put.ask.quote;
+          const callSellDisabled =
+            option.call.sell.disabled || !option.call.sell.quote;
+          const callBuyDisabled =
+            option.call.buy.disabled || !option.call.buy.quote;
+          const putSellDisabled =
+            option.put.sell.disabled || !option.put.sell.quote;
+          const putBuyDisabled =
+            option.put.buy.disabled || !option.put.buy.quote;
 
           return (
             <motion.tr
@@ -87,13 +87,13 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                   side="call"
                   selectedOption={selectedOption}
                 >
-                  <IV value={option.call.bid.IV} />
+                  <IV value={option.call.sell.IV} />
                 </Cell>
               )}
 
               <Cell
                 cellClasses={`${
-                  callBidDisabled ? "text-gray-600" : "text-red-700"
+                  callSellDisabled ? "text-gray-600" : "text-red-700"
                 } !p-0`}
                 ethPrice={ethPrice}
                 option={option}
@@ -103,17 +103,17 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 <Quote
                   clickFn={setSelectedOption({
                     callOrPut: "call",
-                    bidOrAsk: "bid",
+                    buyOrSell: "sell",
                     strikeOptions: option,
                   })}
-                  disabled={callBidDisabled}
-                  value={option.call.bid.quote}
+                  disabled={callSellDisabled}
+                  value={option.call.sell.quote}
                 />
               </Cell>
 
               <Cell
                 cellClasses={`${
-                  callAskDisabled ? "text-gray-600" : "text-green-700"
+                  callBuyDisabled ? "text-gray-600" : "text-green-700"
                 } !p-0`}
                 ethPrice={ethPrice}
                 option={option}
@@ -123,11 +123,11 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 <Quote
                   clickFn={setSelectedOption({
                     callOrPut: "call",
-                    bidOrAsk: "ask",
+                    buyOrSell: "buy",
                     strikeOptions: option,
                   })}
-                  disabled={callAskDisabled}
-                  value={option.call.ask.quote}
+                  disabled={callBuyDisabled}
+                  value={option.call.buy.quote}
                 />
               </Cell>
 
@@ -139,7 +139,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                   side="call"
                   selectedOption={selectedOption}
                 >
-                  <IV value={option.call.ask.IV} />
+                  <IV value={option.call.buy.IV} />
                 </Cell>
               )}
 
@@ -200,13 +200,13 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                   side="put"
                   selectedOption={selectedOption}
                 >
-                  <IV value={option.put.bid.IV} />
+                  <IV value={option.put.sell.IV} />
                 </Cell>
               )}
 
               <Cell
                 cellClasses={`${
-                  putBidDisabled ? "text-gray-600" : "text-red-700"
+                  putSellDisabled ? "text-gray-600" : "text-red-700"
                 } !p-0`}
                 ethPrice={ethPrice}
                 option={option}
@@ -216,17 +216,17 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 <Quote
                   clickFn={setSelectedOption({
                     callOrPut: "put",
-                    bidOrAsk: "bid",
+                    buyOrSell: "sell",
                     strikeOptions: option,
                   })}
-                  disabled={putBidDisabled}
-                  value={option.put.bid.quote}
+                  disabled={putSellDisabled}
+                  value={option.put.sell.quote}
                 />
               </Cell>
 
               <Cell
                 cellClasses={`${
-                  putAskDisabled ? "text-gray-600" : "text-green-700"
+                  putBuyDisabled ? "text-gray-600" : "text-green-700"
                 } !p-0`}
                 ethPrice={ethPrice}
                 option={option}
@@ -236,11 +236,11 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 <Quote
                   clickFn={setSelectedOption({
                     callOrPut: "put",
-                    bidOrAsk: "ask",
+                    buyOrSell: "buy",
                     strikeOptions: option,
                   })}
-                  disabled={putAskDisabled}
-                  value={option.put.ask.quote}
+                  disabled={putBuyDisabled}
+                  value={option.put.buy.quote}
                 />
               </Cell>
 
@@ -252,7 +252,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                   side="put"
                   selectedOption={selectedOption}
                 >
-                  <IV value={option.put.ask.IV} />
+                  <IV value={option.put.buy.IV} />
                 </Cell>
               )}
 
