@@ -17,7 +17,7 @@ import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { OptionsTradingActionType } from "src/state/types";
 import { toOpyn, toRysk } from "src/utils/conversion-helper";
 
-import { Disclaimer } from "./components/Disclaimer";
+import { Disclaimer } from "../Shared/Disclaimer/Disclaimer";
 import { Header } from "./components/Header";
 import { Modal } from "../Shared/Modal/Modal";
 import { Pricing } from "./components/Pricing";
@@ -183,7 +183,9 @@ export const CloseOptionModal = () => {
         </AnimatePresence>
       </div>
 
-      <Disclaimer />
+      <Disclaimer>
+        {`You are about to sell some or all of your position. Please ensure this is what you want because the action is irreversible.`}
+      </Disclaimer>
     </Modal>
   );
 };
