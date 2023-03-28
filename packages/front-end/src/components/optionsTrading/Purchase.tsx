@@ -94,7 +94,7 @@ export const Purchase = () => {
   });
 
   if (quoteError) {
-    toast(quoteError.message, { type: "error" });
+    // toast(quoteError.message, { type: "error" });
   }
 
   // note - to avoid using state i'm saving this in the hook for now
@@ -152,9 +152,9 @@ export const Purchase = () => {
   };
 
   const handleApprovePremium = async () => {
-    if (usdcContract && strikeOptions && callOrPut && bidOrAsk) {
+    if (usdcContract && strikeOptions && callOrPut && buyOrSell) {
       const total =
-        strikeOptions[callOrPut][bidOrAsk].quote * Number(uiOrderSize);
+        strikeOptions[callOrPut][buyOrSell].quote * Number(uiOrderSize);
       const withBuffer = toTwoDecimalPlaces(total * 1.05);
       const amount = toUSDC(String(withBuffer));
 
@@ -280,14 +280,14 @@ export const Purchase = () => {
   const sellIsDisabled = !uiOrderSize || !isUSDCApproved;
 
   const callOrPut = selectedOption?.callOrPut;
-  const bidOrAsk = selectedOption?.bidOrAsk;
+  const buyOrSell = selectedOption?.buyOrSell;
   const strikeOptions = selectedOption?.strikeOptions;
 
   simulateError && toast(simulateError as string);
 
   return (
     <div className="grow flex flex-col">
-      {strikeOptions && callOrPut && bidOrAsk ? (
+      {strikeOptions && callOrPut && buyOrSell ? (
         <>
           <div className="w-full flex justify-between relative">
             <div className="w-1/2 border-r-2 border-black">
@@ -302,7 +302,7 @@ export const Purchase = () => {
                 <p>
                   IV:{" "}
                   <NumberFormat
-                    value={strikeOptions[callOrPut][bidOrAsk].IV}
+                    value={strikeOptions[callOrPut][buyOrSell].IV}
                     displayType={"text"}
                     decimalScale={2}
                     renderText={(value) => value}
@@ -321,7 +321,7 @@ export const Purchase = () => {
                 <p>
                   Price:{" "}
                   <NumberFormat
-                    value={strikeOptions[callOrPut][bidOrAsk].quote}
+                    value={strikeOptions[callOrPut][buyOrSell].quote}
                     displayType={"text"}
                     decimalScale={2}
                     renderText={(value) => value}
@@ -344,7 +344,7 @@ export const Purchase = () => {
                 />
               </div>
             </div>
-            {bidOrAsk === "bid" && (
+            {buyOrSell === "sell" && (
               <div className="w-1/2 border-r-2 border-black">
                 {selectedOption && activeExpiry && (
                   <CollateralRequirement
@@ -408,7 +408,7 @@ export const Purchase = () => {
                       : "Approve Collateral"}
                   </Button>
                 )}
-                {uiOrderSize && bidOrAsk === "ask" && (
+                {uiOrderSize && buyOrSell === "buy" && (
                   <Button
                     className={`w-full mb-2 !py-2 text-white ${
                       approveIsDisabled ? "!bg-gray-300 " : "!bg-black"
@@ -423,11 +423,11 @@ export const Purchase = () => {
                   className={`w-full !py-2 text-white ${
                     sellIsDisabled ? "!bg-gray-300" : "!bg-black" // TODO - missing a condition for buy
                   }`}
-                  onClick={bidOrAsk === "ask" ? handleBuy : handleSell}
+                  onClick={buyOrSell === "buy" ? handleBuy : handleSell}
                 >
                   {simulateIsLoading
                     ? "Simulating..."
-                    : bidOrAsk === "ask"
+                    : buyOrSell === "buy"
                     ? "Buy"
                     : "Sell"}
                 </Button>

@@ -84,7 +84,7 @@ export const usePositionData = () => {
             fromOpynToNumber(userPosition.strikePrice)
           ];
         const currentValue =
-          chainRow[userPosition.isPut ? "put" : "call"].bid.quote;
+          chainRow[userPosition.isPut ? "put" : "call"].sell.quote;
 
         if (currentValue >= 0) {
           const totalSize = fromWeiToInt(userPosition.netAmount);

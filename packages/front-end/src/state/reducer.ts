@@ -10,6 +10,7 @@ import type {
 import { Reducer } from "react";
 
 import { defaultGlobalState } from "./GlobalContext";
+import { defaultOptionTradingState } from "./OptionsTradingContext";
 import { ActionType, OptionsTradingActionType, VaultActionType } from "./types";
 
 export const globalReducer: Reducer<GlobalState, GlobalAction> = (
@@ -140,5 +141,7 @@ export const optionsTradingReducer: Reducer<
         ...state,
         tutorialIndex: action.index,
       };
+    case OptionsTradingActionType.RESET:
+      return defaultOptionTradingState;
   }
 };
