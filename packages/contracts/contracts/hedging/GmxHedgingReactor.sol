@@ -188,6 +188,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		collateralRemovalPercentage = _collateralRemovalPercentage;
 	}
 
+	function resetPendingPositionCallbacks() external {
+		_onlyGovernor();
+		pendingIncreaseCallback = 0;
+		pendingDecreaseCallback = 0;
+	}
+
 	////////////////////////////////////////////
 	/// access-controlled external functions ///
 	////////////////////////////////////////////
@@ -904,12 +910,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	// ---- functions to force execution in case of GMX keeper failure
 	function executeIncreasePosition(bytes32 positionKey) external {
-		try gmxPositionRouter.executeIncreasePosition(positionKey, payable(address(this))) returns (
-			bool _wasExecuted
-		) {} catch {
-			try gmxPositionRouter.cancelIncreasePosition(positionKey, payable(address(this))) returns (
-				bool _wasCancelled
-			) {} catch {}
+		try gmxPositionRouter.executeIncreasePosition(positionKey, payable(address(this))) {} catch {
+			try gmxPositionRouter.cancelIncreasePosition(positionKey, payable(address(this))) {} catch {}
 		}
 	}
 
