@@ -1,3 +1,5 @@
+import type { ChangeEvent } from "react";
+
 import type { AddressesRequired } from "./types";
 
 import { useAddRecentTransaction } from "@rainbow-me/rainbowkit";
@@ -5,7 +7,7 @@ import { captureException } from "@sentry/react";
 import dayjs from "dayjs";
 import LocalizedFormat from "dayjs/plugin/localizedFormat";
 import { AnimatePresence } from "framer-motion";
-import { ChangeEvent, useState } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
