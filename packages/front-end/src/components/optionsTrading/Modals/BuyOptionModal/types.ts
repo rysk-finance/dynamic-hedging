@@ -11,3 +11,7 @@ export interface PositionDataState {
   requiredApproval: string;
   strike?: number;
 }
+
+export interface PricingProps {
+  positionData: PositionDataState;
+}
