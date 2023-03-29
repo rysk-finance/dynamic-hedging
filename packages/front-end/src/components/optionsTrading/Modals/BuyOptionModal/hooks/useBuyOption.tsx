@@ -26,6 +26,7 @@ export const useBuyOption = (amountToBuy: string) => {
   // Global state.
   const {
     state: {
+      ethPrice,
       options: { activeExpiry },
     },
   } = useGlobalContext();
@@ -147,7 +148,7 @@ export const useBuyOption = (amountToBuy: string) => {
     };
 
     setPriceData(Number(amountToBuy));
-  }, [amountToBuy]);
+  }, [amountToBuy, ethPrice]);
 
   const addresses: Addresses = {
     exchange: exchangeAddress,
