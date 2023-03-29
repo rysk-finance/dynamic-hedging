@@ -286,28 +286,38 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			if (_internalDelta >= 0) {
 				// we are net long/neutral. close shorts
 				uint256[] memory shortPosition = _getPosition(false);
-				uint256 shortDelta = (shortPosition[0]).div(shortPosition[2]);
-				collateralToRemoveShort = _getCollateralSizeDeltaUsd(false, false, shortDelta, false);
+				collateralToRemoveShort = _getCollateralSizeDeltaUsd(false, false, openShortDelta, false);
 				(bytes32 key1, int deltaChange1) = _decreasePosition(
-					shortDelta,
+					openShortDelta,
 					collateralToRemoveShort,
 					false
 				);
 				decreaseOrderDeltaChange[key1] += deltaChange1;
 				// then reduce longs by same delta
-				collateralToRemoveLong = _getCollateralSizeDeltaUsd(false, false, shortDelta, true);
-				(bytes32 key2, int deltaChange2) = _decreasePosition(shortDelta, collateralToRemoveLong, true);
+				collateralToRemoveLong = _getCollateralSizeDeltaUsd(false, false, openShortDelta, true);
+				(bytes32 key2, int deltaChange2) = _decreasePosition(
+					openShortDelta,
+					collateralToRemoveLong,
+					true
+				);
 				decreaseOrderDeltaChange[key2] += deltaChange2;
 			} else {
 				// we are net short
 				uint256[] memory longPosition = _getPosition(true);
-				uint256 longDelta = (longPosition[0]).div(longPosition[2]);
-				collateralToRemoveLong = _getCollateralSizeDeltaUsd(false, false, longDelta, true);
-				(bytes32 key1, int deltaChange1) = _decreasePosition(longDelta, collateralToRemoveLong, true);
+				collateralToRemoveLong = _getCollateralSizeDeltaUsd(false, false, openLongDelta, true);
+				(bytes32 key1, int deltaChange1) = _decreasePosition(
+					openLongDelta,
+					collateralToRemoveLong,
+					true
+				);
 				decreaseOrderDeltaChange[key1] += deltaChange1;
 				// then reduce shorts by same delta
-				collateralToRemoveShort = _getCollateralSizeDeltaUsd(false, false, longDelta, false);
-				(bytes32 key2, int deltaChange2) = _decreasePosition(longDelta, collateralToRemoveShort, false);
+				collateralToRemoveShort = _getCollateralSizeDeltaUsd(false, false, openLongDelta, false);
+				(bytes32 key2, int deltaChange2) = _decreasePosition(
+					openLongDelta,
+					collateralToRemoveShort,
+					false
+				);
 				decreaseOrderDeltaChange[key2] += deltaChange2;
 			}
 			return collateralToRemoveLong + collateralToRemoveShort;
