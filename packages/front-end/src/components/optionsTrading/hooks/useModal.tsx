@@ -12,14 +12,13 @@ import {
  * Hook that checks query params and state to determine if
  * the modal should be visible.
  *
- * The buy/sell modal are keyed from the `selectedOption`
- * state variable.
+ * The buy modal is keyed from the `selectedOption` state variable.
  *
  * The close long position modal is keyed from query params.
  *
  * Returns a boolean value for the modal state.
  *
- * @returns [boolean]
+ * @returns readonly [OptionChainModalActions | undefined]
  */
 export const useModal = () => {
   const [searchParams] = useSearchParams();
@@ -47,8 +46,11 @@ export const useModal = () => {
           type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.CLOSE,
         });
-      } else if (selectedOption) {
-        // do stuff here
+      } else if (selectedOption?.buyOrSell === "buy") {
+        dispatch({
+          type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          visible: OptionChainModalActions.BUY,
+        });
       }
     }
   }, [activeExpiry, searchParams, selectedOption]);
