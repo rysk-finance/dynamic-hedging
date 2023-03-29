@@ -10,6 +10,7 @@ import { CurrentPrice } from "./components/CurrentPrice";
 import { Error } from "./components/Error";
 import { OneDayChange } from "./components/OneDayChange";
 import { usePrice } from "./hooks/usePrice";
+import { Ether } from "src/Icons";
 
 export const AssetPriceInfo = () => {
   const { dispatch } = useOptionsTradingContext();
@@ -41,9 +42,8 @@ export const AssetPriceInfo = () => {
         onClick={update}
         title="Click to refetch price data."
       >
-        <img
-          src="/icons/ethereum.svg"
-          alt="Ethereum logo"
+        <Ether
+          aria-label="Ethereum logo"
           className="min-w-[6rem] h-24 py-4 border-r-2 border-black"
         />
 
