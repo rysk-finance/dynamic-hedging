@@ -13,7 +13,6 @@ import { toast } from "react-toastify";
 
 import FadeInOut from "src/animation/FadeInOut";
 import { Button } from "src/components/shared/Button";
-import { Loading } from "src/Icons";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { OptionsTradingActionType } from "src/state/types";
