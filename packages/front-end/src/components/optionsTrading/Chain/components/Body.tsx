@@ -61,13 +61,13 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
       <AnimatePresence initial={false}>
         {filteredChainRows.map((option) => {
           const callSellDisabled =
-            option.call.sell.disabled || !option.call.sell.quote;
+            option.call.sell.disabled || !option.call.sell.quote.total;
           const callBuyDisabled =
-            option.call.buy.disabled || !option.call.buy.quote;
+            option.call.buy.disabled || !option.call.buy.quote.total;
           const putSellDisabled =
-            option.put.sell.disabled || !option.put.sell.quote;
+            option.put.sell.disabled || !option.put.sell.quote.total;
           const putBuyDisabled =
-            option.put.buy.disabled || !option.put.buy.quote;
+            option.put.buy.disabled || !option.put.buy.quote.total;
 
           return (
             <motion.tr
@@ -107,7 +107,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                     strikeOptions: option,
                   })}
                   disabled={callSellDisabled}
-                  value={option.call.sell.quote}
+                  value={option.call.sell.quote.total}
                 />
               </Cell>
 
@@ -127,7 +127,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                     strikeOptions: option,
                   })}
                   disabled={callBuyDisabled}
-                  value={option.call.buy.quote}
+                  value={option.call.buy.quote.total}
                 />
               </Cell>
 
@@ -220,7 +220,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                     strikeOptions: option,
                   })}
                   disabled={putSellDisabled}
-                  value={option.put.sell.quote}
+                  value={option.put.sell.quote.total}
                 />
               </Cell>
 
@@ -240,7 +240,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                     strikeOptions: option,
                   })}
                   disabled={putBuyDisabled}
-                  value={option.put.buy.quote}
+                  value={option.put.buy.quote.total}
                 />
               </Cell>
 

@@ -222,15 +222,21 @@ export interface SelectedOption {
   strikeOptions: StrikeOptions;
 }
 
+export interface Quote {
+  fee: number;
+  quote: number;
+  total: number;
+}
+
 export interface StrikeSide {
   sell: {
     IV: number;
-    quote: number;
+    quote: Quote;
     disabled: boolean;
   };
   buy: {
     IV: number;
-    quote: number;
+    quote: Quote;
     disabled: boolean;
   };
   delta: number;
