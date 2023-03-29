@@ -35,7 +35,7 @@ function App() {
 
             <MobileWarning />
             <Header />
-            <div className="pt-16 px-16">
+            <div className="pt-16 px-16 overflow-hidden">
               <div className="root-grid py-24">
                 <Routes>
                   <Route path={AppPaths.VAULT} element={<Vault />} />

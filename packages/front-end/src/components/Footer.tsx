@@ -10,7 +10,7 @@ import {
 
 export const Footer = () => {
   return (
-    <div className="w-full bg-bone-dark px-8 md:px-24 py-6 flex justify-between mt-auto">
+    <div className="w-full bg-bone-dark px-8 md:px-24 py-6 flex justify-between mt-auto overflow-hidden">
       <p className="uppercase">Rysk - Crypto Uncorrelated Returns</p>
       <div className="flex">
         <button
