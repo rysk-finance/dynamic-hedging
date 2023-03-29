@@ -1,6 +1,6 @@
 import type { ChangeEvent } from "react";
 
-import type { AddressesRequired } from "./types";
+import type { AddressesRequired } from "../Shared/types";
 
 import { useAddRecentTransaction } from "@rainbow-me/rainbowkit";
 import { captureException } from "@sentry/react";
@@ -24,8 +24,10 @@ import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
 import { Pricing } from "./components/Pricing";
 import { usePositionData } from "./hooks/usePositionData";
-import { approveAllowance } from "./utils/approveAllowance";
-import { sell } from "./utils/sell";
+import { approveAllowance } from "../Shared/utils/transactions";
+import { sell } from "../Shared/utils/transactions";
+import { getButtonProps } from "../Shared/utils/getButtonProps";
+import { toTwoDecimalPlaces } from "src/utils/rounding";
 
 dayjs.extend(LocalizedFormat);
 
@@ -47,47 +49,13 @@ export const CloseOptionModal = () => {
   const [amountToSell, setAmountToSell] = useState("");
   const [transactionPending, setTransactionPending] = useState(false);
 
-  const getButtonProps = () => {
-    switch (true) {
-      case transactionPending:
-        return {
-          children: (
-            <Loading className="h-8 mx-auto animate-spin text-gray-600" />
-          ),
-          key: "pending",
-          onClick: () => {},
-          title: "Transaction pending.",
-        };
-
-      case allowance.approved:
-        return {
-          children: "Sell",
-          key: "sell",
-          onClick: handleSell,
-          title: "Click to sell your position.",
-        };
-
-      default:
-        return {
-          children: "Approve",
-          key: "approve",
-          onClick: handleApprove,
-          title: "Click to approve your position.",
-        };
-    }
-  };
-
-  const disableButton =
-    Number(amountToSell) > positionData.totalSize ||
-    !Number(amountToSell) ||
-    !addresses.user ||
-    !addresses.token;
-
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const amount = event.currentTarget.value;
-    const approved = Boolean(amount && toOpyn(amount).lte(allowance.amount));
+    const amount = toTwoDecimalPlaces(Number(event.currentTarget.value));
+    const approved = Boolean(
+      amount && toOpyn(amount.toString()).lte(allowance.amount)
+    );
 
-    setAmountToSell(amount.split(".")[0]);
+    setAmountToSell(amount.toString());
     setAllowance((currentState) => ({ ...currentState, approved }));
   };
 
@@ -167,7 +135,7 @@ export const CloseOptionModal = () => {
             name="sell-amount"
             onChange={handleChange}
             placeholder="How many would you like to sell?"
-            step={1}
+            step={0.01}
             type="number"
             value={amountToSell}
           />
@@ -176,10 +144,22 @@ export const CloseOptionModal = () => {
         <AnimatePresence mode="wait">
           <Button
             className="w-1/3 !border-0"
-            disabled={disableButton}
+            disabled={
+              Number(amountToSell) > positionData.totalSize ||
+              !Number(amountToSell) ||
+              !addresses.user ||
+              !addresses.token ||
+              transactionPending
+            }
             requiresConnection
             {...FadeInOut()}
-            {...getButtonProps()}
+            {...getButtonProps(
+              "sell",
+              transactionPending,
+              allowance.approved,
+              handleApprove,
+              handleSell
+            )}
           />
         </AnimatePresence>
       </div>
