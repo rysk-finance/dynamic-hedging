@@ -153,7 +153,7 @@ export const BuyOptionModal = () => {
       </div>
 
       <Disclaimer>
-        {`You are about to make a purchase which will consume your USDC balance. Please ensure this is what you want because the action is irreversible.`}
+        {`You are about to make a trade using your USDC balance to pay for the options premium and fees. Please ensure this is what you want because the action is irreversible.`}
       </Disclaimer>
     </Modal>
   );
