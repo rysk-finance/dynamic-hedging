@@ -1,4 +1,5 @@
-import type { Addresses, AllowanceState, PositionDataState } from "../types";
+import type { PositionDataState } from "../types";
+import type { Addresses, AllowanceState } from "../../Shared/types";
 
 import { readContract } from "@wagmi/core";
 import dayjs from "dayjs";
