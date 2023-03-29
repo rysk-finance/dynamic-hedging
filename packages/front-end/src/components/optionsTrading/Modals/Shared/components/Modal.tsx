@@ -12,7 +12,7 @@ export const Modal = ({ children }: PropsWithChildren) => (
   >
     <motion.div
       aria-modal="true"
-      className="flex flex-col col-span-4 col-start-5 my-auto border-black border-2 rounded-2xl bg-bone-light bg-[url('./assets/white-ascii-50.png')] bg-center overflow-hidden"
+      className="flex flex-col col-span-8 col-start-3 lg:col-span-6 lg:col-start-4 xl:col-span-4 xl:col-start-5 my-auto border-black border-2 rounded-2xl bg-bone-light bg-[url('./assets/white-ascii-50.png')] bg-center overflow-hidden"
       {...FadeInUpDelayed(0.3)}
     >
       {children}
