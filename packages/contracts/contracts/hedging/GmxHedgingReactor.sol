@@ -50,8 +50,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	uint public openShortDelta;
 	/// @notice magnitude of delta held in open longs
 	uint public openLongDelta;
-	bool public pendingIncreaseCallback;
-	bool public pendingDecreaseCallback;
+	uint8 public pendingIncreaseCallback;
+	uint8 public pendingDecreaseCallback;
 	mapping(bytes32 => int256) public increaseOrderDeltaChange;
 	mapping(bytes32 => int256) public decreaseOrderDeltaChange;
 	/// @notice value of any tokens that have been sent to GMX contract for positions that have not been executed/cancelled yet
@@ -150,7 +150,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	function setPositionRouter(address _gmxPositionRouter) external {
 		_onlyGovernor();
-		require(!pendingIncreaseCallback && !pendingDecreaseCallback, "position execution pending");
+		if (pendingIncreaseCallback != 0 || pendingDecreaseCallback != 0) {
+			revert CustomErrors.GmxCallbackPending();
+		}
 		router.denyPlugin(address(gmxPositionRouter));
 		gmxPositionRouter = IPositionRouter(_gmxPositionRouter);
 		router.approvePlugin(_gmxPositionRouter);
@@ -199,7 +201,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	/// @inheritdoc IHedgingReactor
 	function hedgeDelta(int256 _delta) external returns (int256 deltaChange) {
 		require(_delta != 0, "delta change is zero");
-		if (pendingIncreaseCallback || pendingDecreaseCallback) {
+		if (pendingIncreaseCallback != 0 || pendingDecreaseCallback != 0) {
 			revert CustomErrors.GmxCallbackPending();
 		}
 
@@ -220,7 +222,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		// this is likely due to the liquidity pool removing this reactor
 		// so ensure no pending positions first
 		if (_amount == type(uint256).max) {
-			require(!pendingIncreaseCallback && !pendingDecreaseCallback, "position execution pending");
+			if (pendingIncreaseCallback != 0 || pendingDecreaseCallback != 0) {
+				revert CustomErrors.GmxCallbackPending();
+			}
 		}
 		// check the holdings if enough just lying around then transfer it
 		// assume amount is passed in as collateral decimals
@@ -264,7 +268,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		if (_internalDelta == 0 && openLongDelta == 0 && openShortDelta == 0) {
 			revert CustomErrors.NoPositionsOpen();
 		}
-		if (pendingIncreaseCallback || pendingDecreaseCallback) {
+		if (pendingIncreaseCallback != 0 || pendingDecreaseCallback != 0) {
 			revert CustomErrors.GmxCallbackPending();
 		}
 		(
@@ -383,7 +387,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			ERC20(collateralAsset).balanceOf(address(this)),
 			COLLATERAL_ASSET_DECIMALS
 		);
-		if (pendingIncreaseCallback) {
+		if (pendingIncreaseCallback != 0) {
 			value += OptionsCompute.convertFromDecimals(
 				pendingIncreaseCollateralValue,
 				COLLATERAL_ASSET_DECIMALS
@@ -570,7 +574,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < _collateralSize) {
 			revert CustomErrors.WithdrawExceedsLiquidity();
 		}
-		if (pendingIncreaseCallback) {
+		if (pendingIncreaseCallback != 0) {
 			revert CustomErrors.GmxCallbackPending();
 		}
 		uint256 currentPrice = getUnderlyingPrice(wETH, collateralAsset);
@@ -605,7 +609,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			address(this)
 		);
 		emit CreateIncreasePosition(positionKey);
-		pendingIncreaseCallback = true;
+		pendingIncreaseCallback++;
 		pendingIncreaseCollateralValue = _collateralSize;
 		return (positionKey, _isLong ? int256(_size) : -int256(_size));
 	}
@@ -648,7 +652,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			address(this)
 		);
 		emit CreateDecreasePosition(positionKey);
-		pendingDecreaseCallback = true;
+		pendingDecreaseCallback++;
 		return (positionKey, _isLong ? -int256(_size) : int256(_size));
 	}
 
@@ -890,14 +894,23 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	// ---- functions to force execution in case of GMX keeper failure
 	function executeIncreasePosition(bytes32 positionKey) external {
-		pendingIncreaseCallback = false;
-		try gmxPositionRouter.executeIncreasePosition(positionKey, payable(address(this))) {} catch {}
+		try gmxPositionRouter.executeIncreasePosition(positionKey, payable(address(this))) returns (
+			bool _wasExecuted
+		) {} catch {
+			try gmxPositionRouter.cancelIncreasePosition(positionKey, payable(address(this))) returns (
+				bool _wasCancelled
+			) {} catch {}
+		}
 	}
 
 	function executeDecreasePosition(bytes32 positionKey) external {
-		pendingDecreaseCallback = false;
-
-		try gmxPositionRouter.executeDecreasePosition(positionKey, payable(address(this))) {} catch {}
+		try gmxPositionRouter.executeDecreasePosition(positionKey, payable(address(this))) returns (
+			bool _wasExecuted
+		) {} catch {
+			try gmxPositionRouter.cancelDecreasePosition(positionKey, payable(address(this))) returns (
+				bool _wasCancelled
+			) {} catch {}
+		}
 	}
 
 	/**	@notice function which will be called by a GMX keeper when they execute or reject our position request
@@ -962,11 +975,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			}
 		}
 		if (isIncrease) {
-			pendingIncreaseCallback = false;
+			pendingIncreaseCallback--;
 			delete increaseOrderDeltaChange[positionKey];
 			delete pendingIncreaseCollateralValue;
 		} else {
-			pendingDecreaseCallback = false;
+			pendingDecreaseCallback--;
 			delete decreaseOrderDeltaChange[positionKey];
 		}
 	}
