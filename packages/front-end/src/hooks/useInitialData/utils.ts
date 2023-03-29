@@ -131,11 +131,13 @@ const getChainData = async (
           const strikeUSDC = Number(fromWei(strike));
 
           const _getQuote = (bidAsk: DHVLensMK1.TradingSpecStruct) => {
-            const fee = bidAsk.fee as BigNumber;
-            const quote = bidAsk.quote as BigNumber;
-            const premium = Number(fromUSDC(quote.add(fee)));
+            const fee = Number(fromUSDC(bidAsk.fee as BigNumber));
+            const quote = Number(fromUSDC(bidAsk.quote as BigNumber));
+            const total = fee + quote;
 
-            return premium >= 0.01 ? premium : 0;
+            return total >= 0.01
+              ? { fee, total, quote }
+              : { fee: 0, total: 0, quote: 0 };
           };
 
           const _getIV = (quote: number) => {
