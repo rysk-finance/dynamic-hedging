@@ -29,15 +29,29 @@ interface IPositionRouter {
 		address _callbackTarget
 	) external payable returns (bytes32);
 
-	function executeIncreasePosition(bytes32 _key, address payable _executionFeeReceiver)
-		external
-		returns (bool);
+	function executeIncreasePosition(
+		bytes32 _key,
+		address payable _executionFeeReceiver
+	) external returns (bool);
 
-	function executeDecreasePosition(bytes32 _key, address payable _executionFeeReceiver)
-		external
-		returns (bool);
-	
+	function executeDecreasePosition(
+		bytes32 _key,
+		address payable _executionFeeReceiver
+	) external returns (bool);
+
+	function cancelIncreasePosition(
+		bytes32 _key,
+		address payable _executionFeeReceiver
+	) external returns (bool);
+
+	function cancelDecreasePosition(
+		bytes32 _key,
+		address payable _executionFeeReceiver
+	) external returns (bool);
+
 	function executeIncreasePositions(uint256, address payable) external;
+
+	function executeDecreasePositions(uint256, address payable) external;
 
 	function setPositionKeeper(address, bool) external;
 
