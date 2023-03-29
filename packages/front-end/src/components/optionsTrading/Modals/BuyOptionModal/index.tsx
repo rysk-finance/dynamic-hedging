@@ -2,19 +2,15 @@ import { ChangeEvent } from "react";
 
 import type { AddressesRequired } from "../Shared/types";
 
-import { useAddRecentTransaction } from "@rainbow-me/rainbowkit";
-import { captureException } from "@sentry/react";
 import { BigNumber } from "ethers";
 import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { toast } from "react-toastify";
 import { useDebounce } from "use-debounce";
 
 import FadeInOut from "src/animation/FadeInOut";
 import { Button } from "src/components/shared/Button";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import { OptionsTradingActionType } from "src/state/types";
 import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { toTwoDecimalPlaces } from "src/utils/rounding";
@@ -23,12 +19,11 @@ import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { approveAllowance, buy } from "../Shared/utils/transactions";
+import { useNotifications } from "../Shared/utils/useNotifications";
 import { Pricing } from "./components/Pricing";
 import { useBuyOption } from "./hooks/useBuyOption";
 
 export const BuyOptionModal = () => {
-  const addRecentTransaction = useAddRecentTransaction();
-
   const {
     state: {
       options: { activeExpiry, refresh },
@@ -37,7 +32,6 @@ export const BuyOptionModal = () => {
 
   const {
     state: { selectedOption },
-    dispatch,
   } = useOptionsTradingContext();
 
   const [amountToBuy, setAmountToBuy] = useState("");
@@ -46,6 +40,9 @@ export const BuyOptionModal = () => {
 
   const [addresses, allowance, setAllowance, positionData, loading] =
     useBuyOption(debouncedAmountToBuy);
+
+  const [notifyApprovalSuccess, handleTransactionSuccess, notifyFailure] =
+    useNotifications();
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const inputAmount = toTwoDecimalPlaces(Number(event.currentTarget.value));
@@ -67,16 +64,12 @@ export const BuyOptionModal = () => {
         if (hash) {
           setAllowance({ approved: true, amount });
           setTransactionPending(false);
-          addRecentTransaction({ hash, description: "Approval" });
-          toast("Transaction approved!");
+          notifyApprovalSuccess(hash);
         }
       }
     } catch (error) {
       setTransactionPending(false);
-      captureException(error);
-      toast(
-        "Sorry, but there was a problem completing your transaction. The team has been informed and we will be looking into it."
-      );
+      notifyFailure(error);
     }
   };
 
@@ -104,19 +97,12 @@ export const BuyOptionModal = () => {
 
         if (hash) {
           setTransactionPending(false);
-          addRecentTransaction({ hash, description: "Purchase" });
-          toast("Purchase completed!");
-          dispatch({
-            type: OptionsTradingActionType.RESET,
-          });
+          handleTransactionSuccess(hash, "Purchase");
         }
       }
     } catch (error) {
       setTransactionPending(false);
-      captureException(error);
-      toast(
-        "Sorry, but there was a problem completing your transaction. The team has been informed and we will be looking into it."
-      );
+      notifyFailure(error);
     }
   };
 
