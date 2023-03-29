@@ -916,12 +916,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	}
 
 	function executeDecreasePosition(bytes32 positionKey) external {
-		try gmxPositionRouter.executeDecreasePosition(positionKey, payable(address(this))) returns (
-			bool _wasExecuted
-		) {} catch {
-			try gmxPositionRouter.cancelDecreasePosition(positionKey, payable(address(this))) returns (
-				bool _wasCancelled
-			) {} catch {}
+		try gmxPositionRouter.executeDecreasePosition(positionKey, payable(address(this))) {} catch {
+			try gmxPositionRouter.cancelDecreasePosition(positionKey, payable(address(this))) {} catch {}
 		}
 	}
 
