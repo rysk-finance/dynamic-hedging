@@ -84,14 +84,16 @@ export const usePositionData = () => {
             fromOpynToNumber(userPosition.strikePrice)
           ];
         const currentValue =
-          chainRow[userPosition.isPut ? "put" : "call"].sell.quote;
+          chainRow[userPosition.isPut ? "put" : "call"].sell.quote.total;
 
         if (currentValue >= 0) {
           const totalSize = fromWeiToInt(userPosition.netAmount);
           const totalValue = totalSize * currentValue;
           const totalPaid = userPosition.totalPremium;
           const inProfit = totalValue > totalPaid;
-          const title = `${renameOtoken(userPosition.symbol)} (${totalSize})`;
+          const title = `${renameOtoken(
+            userPosition.symbol
+          )} (${totalSize})`.toUpperCase();
 
           setPositionData({
             created,
