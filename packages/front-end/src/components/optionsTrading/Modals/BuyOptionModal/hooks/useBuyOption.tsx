@@ -73,8 +73,6 @@ export const useBuyOption = (amountToBuy: string) => {
           args: [address, exchangeAddress],
         });
 
-        console.log(amount.toNumber());
-
         setAllowance((currentState) => ({ ...currentState, amount }));
       }
     };
