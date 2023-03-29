@@ -2,48 +2,39 @@ import type { ChangeEvent } from "react";
 
 import type { AddressesRequired } from "../Shared/types";
 
-import { useAddRecentTransaction } from "@rainbow-me/rainbowkit";
-import { captureException } from "@sentry/react";
 import dayjs from "dayjs";
 import LocalizedFormat from "dayjs/plugin/localizedFormat";
 import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { toast } from "react-toastify";
 
 import FadeInOut from "src/animation/FadeInOut";
 import { Button } from "src/components/shared/Button";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import { OptionsTradingActionType } from "src/state/types";
 import { toOpyn, toRysk } from "src/utils/conversion-helper";
 
+import { toTwoDecimalPlaces } from "src/utils/rounding";
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
+import { getButtonProps } from "../Shared/utils/getButtonProps";
+import { approveAllowance, sell } from "../Shared/utils/transactions";
+import { useNotifications } from "../Shared/utils/useNotifications";
 import { Pricing } from "./components/Pricing";
 import { usePositionData } from "./hooks/usePositionData";
-import { approveAllowance } from "../Shared/utils/transactions";
-import { sell } from "../Shared/utils/transactions";
-import { getButtonProps } from "../Shared/utils/getButtonProps";
-import { toTwoDecimalPlaces } from "src/utils/rounding";
 
 dayjs.extend(LocalizedFormat);
 
 export const CloseOptionModal = () => {
-  const addRecentTransaction = useAddRecentTransaction();
-
-  const [_, setSearchParams] = useSearchParams();
-
   const {
     state: {
       options: { refresh },
     },
   } = useGlobalContext();
 
-  const { dispatch } = useOptionsTradingContext();
-
   const [addresses, allowance, setAllowance, positionData] = usePositionData();
+
+  const [notifyApprovalSuccess, handleTransactionSuccess, notifyFailure] =
+    useNotifications();
 
   const [amountToSell, setAmountToSell] = useState("");
   const [transactionPending, setTransactionPending] = useState(false);
@@ -73,16 +64,12 @@ export const CloseOptionModal = () => {
         if (hash) {
           setAllowance({ approved: true, amount });
           setTransactionPending(false);
-          addRecentTransaction({ hash, description: "Approval" });
-          toast("Transaction approved!");
+          notifyApprovalSuccess(hash);
         }
       }
     } catch (error) {
       setTransactionPending(false);
-      captureException(error);
-      toast(
-        "Sorry, but there was a problem completing your transaction. The team has been informed and we will be looking into it."
-      );
+      notifyFailure(error);
     }
   };
 
@@ -101,20 +88,12 @@ export const CloseOptionModal = () => {
 
         if (hash) {
           setTransactionPending(false);
-          addRecentTransaction({ hash, description: "Sale" });
-          toast("Sale completed!");
-          dispatch({
-            type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-          });
-          setSearchParams({});
+          handleTransactionSuccess(hash, "Sale");
         }
       }
     } catch (error) {
       setTransactionPending(false);
-      captureException(error);
-      toast(
-        "Sorry, but there was a problem completing your transaction. The team has been informed and we will be looking into it."
-      );
+      notifyFailure(error);
     }
   };
 
