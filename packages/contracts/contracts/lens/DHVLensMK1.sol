@@ -41,8 +41,8 @@ contract DHVLensMK1 {
 
 	struct OptionStrikeDrill {
 		uint128 strike;
-		TradingSpec bid; // sell
-		TradingSpec ask; // buy
+		TradingSpec sell;
+		TradingSpec buy;
 		int256 delta;
 		int256 exposure;
 	}
@@ -163,7 +163,7 @@ contract DHVLensMK1 {
 			// get the hash of the option (how the option is stored on the books)
 			bytes32 optionHash = keccak256(abi.encodePacked(expiration, strikes[j], isPut));
 			int256 netDhvExposure = getPortfolioValuesFeed().netDhvExposure(optionHash);
-			(TradingSpec memory bidTradingSpec, int256 delta) = _constructTradingSpec(
+			(TradingSpec memory sellTradingSpec, int256 delta) = _constructTradingSpec(
 				expiration,
 				strikes[j],
 				isPut,
@@ -171,7 +171,7 @@ contract DHVLensMK1 {
 				true,
 				underlyingPrice
 			);
-			(TradingSpec memory askTradingSpec, ) = _constructTradingSpec(
+			(TradingSpec memory buyTradingSpec, ) = _constructTradingSpec(
 				expiration,
 				strikes[j],
 				isPut,
@@ -181,8 +181,8 @@ contract DHVLensMK1 {
 			);
 			OptionStrikeDrill memory optionStrikeDrill = OptionStrikeDrill(
 				strikes[j],
-				bidTradingSpec,
-				askTradingSpec,
+				sellTradingSpec,
+				buyTradingSpec,
 				delta,
 				netDhvExposure
 			);
