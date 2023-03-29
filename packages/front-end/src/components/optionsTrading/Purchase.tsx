@@ -154,7 +154,7 @@ export const Purchase = () => {
   const handleApprovePremium = async () => {
     if (usdcContract && strikeOptions && callOrPut && buyOrSell) {
       const total =
-        strikeOptions[callOrPut][buyOrSell].quote * Number(uiOrderSize);
+        strikeOptions[callOrPut][buyOrSell].quote.total * Number(uiOrderSize);
       const withBuffer = toTwoDecimalPlaces(total * 1.05);
       const amount = toUSDC(String(withBuffer));
 
@@ -321,7 +321,7 @@ export const Purchase = () => {
                 <p>
                   Price:{" "}
                   <NumberFormat
-                    value={strikeOptions[callOrPut][buyOrSell].quote}
+                    value={strikeOptions[callOrPut][buyOrSell].quote.total}
                     displayType={"text"}
                     decimalScale={2}
                     renderText={(value) => value}
