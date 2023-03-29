@@ -64,10 +64,14 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
             option.call.sell.disabled || !option.call.sell.quote.total;
           const callBuyDisabled =
             option.call.buy.disabled || !option.call.buy.quote.total;
+          const callPosDisabled =
+            !option.call.pos || !option.call.sell.quote.total;
           const putSellDisabled =
             option.put.sell.disabled || !option.put.sell.quote.total;
           const putBuyDisabled =
             option.put.buy.disabled || !option.put.buy.quote.total;
+          const putPosDisabled =
+            !option.put.pos || !option.put.sell.quote.total;
 
           return (
             <motion.tr
@@ -157,7 +161,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               {showCol("pos") && (
                 <Cell
-                  cellClasses="!p-0"
+                  cellClasses={`${callPosDisabled ? "text-gray-600" : ""} !p-0`}
                   ethPrice={ethPrice}
                   option={option}
                   side="call"
@@ -172,7 +176,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                         });
                       }
                     }}
-                    disabled={!option.call.pos}
+                    disabled={callPosDisabled}
                     value={option.call.pos}
                   />
                 </Cell>
@@ -270,7 +274,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               {showCol("pos") && (
                 <Cell
-                  cellClasses="!p-0"
+                  cellClasses={`${putPosDisabled ? "text-gray-600" : ""} !p-0`}
                   ethPrice={ethPrice}
                   option={option}
                   side="put"
@@ -285,7 +289,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                         });
                       }
                     }}
-                    disabled={!option.put.pos}
+                    disabled={putPosDisabled}
                     value={option.put.pos}
                   />
                 </Cell>
