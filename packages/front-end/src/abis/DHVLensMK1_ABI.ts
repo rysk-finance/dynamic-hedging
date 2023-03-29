@@ -133,7 +133,7 @@ export const DHVLensMK1ABI = [
 											}
 										],
 										"internalType": "struct DHVLensMK1.TradingSpec",
-										"name": "bid",
+										"name": "sell",
 										"type": "tuple"
 									},
 									{
@@ -165,7 +165,7 @@ export const DHVLensMK1ABI = [
 											}
 										],
 										"internalType": "struct DHVLensMK1.TradingSpec",
-										"name": "ask",
+										"name": "buy",
 										"type": "tuple"
 									},
 									{
@@ -224,7 +224,7 @@ export const DHVLensMK1ABI = [
 											}
 										],
 										"internalType": "struct DHVLensMK1.TradingSpec",
-										"name": "bid",
+										"name": "sell",
 										"type": "tuple"
 									},
 									{
@@ -256,7 +256,7 @@ export const DHVLensMK1ABI = [
 											}
 										],
 										"internalType": "struct DHVLensMK1.TradingSpec",
-										"name": "ask",
+										"name": "buy",
 										"type": "tuple"
 									},
 									{
@@ -351,7 +351,7 @@ export const DHVLensMK1ABI = [
 									}
 								],
 								"internalType": "struct DHVLensMK1.TradingSpec",
-								"name": "bid",
+								"name": "sell",
 								"type": "tuple"
 							},
 							{
@@ -383,7 +383,7 @@ export const DHVLensMK1ABI = [
 									}
 								],
 								"internalType": "struct DHVLensMK1.TradingSpec",
-								"name": "ask",
+								"name": "buy",
 								"type": "tuple"
 							},
 							{
@@ -442,7 +442,7 @@ export const DHVLensMK1ABI = [
 									}
 								],
 								"internalType": "struct DHVLensMK1.TradingSpec",
-								"name": "bid",
+								"name": "sell",
 								"type": "tuple"
 							},
 							{
@@ -474,7 +474,7 @@ export const DHVLensMK1ABI = [
 									}
 								],
 								"internalType": "struct DHVLensMK1.TradingSpec",
-								"name": "ask",
+								"name": "buy",
 								"type": "tuple"
 							},
 							{
