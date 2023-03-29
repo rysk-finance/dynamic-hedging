@@ -102,8 +102,8 @@ export const useBuyOption = (amountToBuy: string) => {
             selectedOption.buyOrSell === "sell"
           );
 
-          const fee = tFormatUSDC(totalFees);
-          const premium = tFormatUSDC(totalPremium);
+          const fee = tFormatUSDC(totalFees) / Number(amountToBuy);
+          const premium = tFormatUSDC(totalPremium) / Number(amountToBuy);
           const quote = tFormatUSDC(totalFees.add(totalPremium));
           const remainingBalance = balance ? balanceInt - quote : 0;
 
