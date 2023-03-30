@@ -75,6 +75,7 @@ contract VolatilityFeed is AccessControl {
 		int256 interestRate
 	);
 	event KeeperUpdated(address keeper, bool auth);
+
 	/**
 	 * @notice set the sabr volatility params
 	 * @param _sabrParams set the SABR parameters
@@ -105,14 +106,11 @@ contract VolatilityFeed is AccessControl {
 		) {
 			revert RhoError();
 		}
-		if(
-			_sabrParams.interestRate > maxInterestRate ||
-			_sabrParams.interestRate < minInterestRate
-		) {
+		if (_sabrParams.interestRate > maxInterestRate || _sabrParams.interestRate < minInterestRate) {
 			revert InterestRateError();
 		}
 		// if the expiry is not already a registered expiry then add it to the expiry list
-		if(sabrParams[_expiry].callAlpha == 0) {
+		if (sabrParams[_expiry].callAlpha == 0) {
 			expiries.push(_expiry);
 		}
 		sabrParams[_expiry] = _sabrParams;
@@ -155,7 +153,7 @@ contract VolatilityFeed is AccessControl {
 		uint256 strikePrice,
 		uint256 expiration
 	) external view returns (uint256 vol) {
-		(vol,) = _getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+		(vol, ) = _getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
 	}
 
 	/**
@@ -200,7 +198,9 @@ contract VolatilityFeed is AccessControl {
 		if (sabrParams_.callAlpha == 0) {
 			revert CustomErrors.IVNotFound();
 		}
-		int256 forwardPrice = int256(underlyingPrice).mul((PRBMathSD59x18.exp(sabrParams_.interestRate.mul(time))));
+		int256 forwardPrice = int256(underlyingPrice).mul(
+			(PRBMathSD59x18.exp(sabrParams_.interestRate.mul(time)))
+		);
 		if (!isPut) {
 			vol = SABR.lognormalVol(
 				int256(strikePrice),
