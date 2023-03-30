@@ -10,7 +10,7 @@ import { CurrentPrice } from "./components/CurrentPrice";
 import { Error } from "./components/Error";
 import { OneDayChange } from "./components/OneDayChange";
 import { usePrice } from "./hooks/usePrice";
-import { Ether } from "src/Icons";
+import { Ether, USDC } from "src/Icons";
 
 export const AssetPriceInfo = () => {
   const { dispatch } = useOptionsTradingContext();
@@ -42,10 +42,12 @@ export const AssetPriceInfo = () => {
         onClick={update}
         title="Click to refetch price data."
       >
-        <Ether
-          aria-label="Ethereum logo"
-          className="min-w-[6rem] h-24 py-4 border-r-2 border-black"
-        />
+        <span className="relative flex min-w-[8rem] py-4 border-r-2 border-black">
+          <div className="absolute left-4 z-10 flex items-center justify-center w-16 h-16 bg-[#ECEFF0]/90 rounded-full">
+            <Ether aria-label="Ethereum logo" className="h-12" />
+          </div>
+          <USDC aria-label="USDC logo" className="absolute right-4 z-0 h-16" />
+        </span>
 
         <AnimatePresence mode="wait">
           {ready && (
@@ -75,7 +77,7 @@ export const AssetPriceInfo = () => {
         onClick={handleHelpClick}
         title="Click to go through our introduction to the Rysk options chain."
       >
-        <Question className="min-w-[6rem] w-24 h-24 py-4" />
+        <Question className="min-w-[8rem] w-24 h-24 py-4" />
       </button>
     </motion.div>
   );
