@@ -121,8 +121,8 @@ const getChainData = async (
         (
           sideData,
           {
-            ask,
-            bid,
+            buy,
+            sell,
             strike,
             exposure,
             delta,
@@ -130,12 +130,14 @@ const getChainData = async (
         ) => {
           const strikeUSDC = Number(fromWei(strike));
 
-          const _getQuote = (bidAsk: DHVLensMK1.TradingSpecStruct) => {
-            const fee = bidAsk.fee as BigNumber;
-            const quote = bidAsk.quote as BigNumber;
-            const premium = Number(fromUSDC(quote.add(fee)));
+          const _getQuote = (buyOrSell: DHVLensMK1.TradingSpecStruct) => {
+            const fee = Number(fromUSDC(buyOrSell.fee as BigNumber));
+            const quote = Number(fromUSDC(buyOrSell.quote as BigNumber));
+            const total = fee + quote;
 
-            return premium >= 0.01 ? premium : 0;
+            return total >= 0.01
+              ? { fee, total, quote }
+              : { fee: 0, total: 0, quote: 0 };
           };
 
           const _getIV = (quote: number) => {
@@ -160,15 +162,15 @@ const getChainData = async (
 
           sideData[strikeUSDC] = {
             [side]: {
-              bid: {
-                disabled: bid.disabled || bid.premiumTooSmall,
-                IV: _getIV(Number(fromUSDC(bid.quote))),
-                quote: _getQuote(bid),
+              sell: {
+                disabled: sell.disabled || sell.premiumTooSmall,
+                IV: _getIV(Number(fromUSDC(sell.quote))),
+                quote: _getQuote(sell),
               },
-              ask: {
-                disabled: ask.disabled,
-                IV: _getIV(Number(fromUSDC(ask.quote))),
-                quote: _getQuote(ask),
+              buy: {
+                disabled: buy.disabled,
+                IV: _getIV(Number(fromUSDC(buy.quote))),
+                quote: _getQuote(buy),
               },
               delta: toTwoDecimalPlaces(Number(fromWei(delta))),
               pos: fromWeiToInt(position?.netAmount || 0),
@@ -187,7 +189,7 @@ const getChainData = async (
 
     return data.reduce(
       (
-        acc,
+        chainData,
         { callOptionDrill, expiration, putOptionDrill, underlyingPrice }
       ) => {
         const expiry = expiration.toNumber();
@@ -198,7 +200,7 @@ const getChainData = async (
           new Set([...Object.keys(calls), ...Object.keys(puts)])
         );
 
-        acc[expiry] = strikes.reduce(
+        chainData[expiry] = strikes.reduce(
           (strikeData, currentStrike) => {
             const strike = Number(currentStrike);
 
@@ -215,7 +217,7 @@ const getChainData = async (
           }
         );
 
-        return acc;
+        return chainData;
       },
       {} as ChainData
     );

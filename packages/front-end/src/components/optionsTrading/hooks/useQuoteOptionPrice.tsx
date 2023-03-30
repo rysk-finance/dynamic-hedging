@@ -58,7 +58,7 @@ export const useQuoteOptionPrice = ({
         isPut: selectedOption?.callOrPut === "put",
       },
       toWei(orderSize?.toString() || "0"), // 1 for the table view but fetch if user wants to buy more
-      selectedOption?.bidOrAsk === "bid",
+      selectedOption?.buyOrSell === "sell",
       exposure || BigNumber.from(0),
     ],
     enabled:

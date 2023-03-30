@@ -1,4 +1,5 @@
-import type { Addresses, AllowanceState, PositionDataState } from "../types";
+import type { PositionDataState } from "../types";
+import type { Addresses, AllowanceState } from "../../Shared/types";
 
 import { readContract } from "@wagmi/core";
 import dayjs from "dayjs";
@@ -84,14 +85,16 @@ export const usePositionData = () => {
             fromOpynToNumber(userPosition.strikePrice)
           ];
         const currentValue =
-          chainRow[userPosition.isPut ? "put" : "call"].bid.quote;
+          chainRow[userPosition.isPut ? "put" : "call"].sell.quote.total;
 
         if (currentValue >= 0) {
           const totalSize = fromWeiToInt(userPosition.netAmount);
           const totalValue = totalSize * currentValue;
           const totalPaid = userPosition.totalPremium;
           const inProfit = totalValue > totalPaid;
-          const title = `${renameOtoken(userPosition.symbol)} (${totalSize})`;
+          const title = `${renameOtoken(
+            userPosition.symbol
+          )} (${totalSize})`.toUpperCase();
 
           setPositionData({
             created,

@@ -43,8 +43,8 @@ export type PutSide = {
 export type StrikeRangeTuple = [string, string];
 
 export type ColumNames =
-  | "bid"
-  | "ask"
+  | "sell"
+  | "buy"
   | "iv sell"
   | "iv buy"
   | "delta"
@@ -190,10 +190,19 @@ export type VaultContext = {
 
 // Options trading context
 export type OptionsTradingState = {
-  selectedOption: SelectedOption | null;
-  sellModalOpen: boolean;
+  selectedOption?: SelectedOption;
+  optionChainModalOpen?: OptionChainModal;
   tutorialIndex?: number;
 };
+
+export enum OptionChainModalActions {
+  BUY = "buy",
+  CLOSE = "close",
+  SELL = "sell",
+}
+
+type OptionChainModal =
+  (typeof OptionChainModalActions)[keyof typeof OptionChainModalActions];
 
 export type OptionsTradingContext = {
   state: OptionsTradingState;
@@ -208,20 +217,26 @@ export enum OptionType {
 export type CallOrPut = "call" | "put";
 
 export interface SelectedOption {
-  bidOrAsk: "bid" | "ask";
+  buyOrSell: "sell" | "buy";
   callOrPut: CallOrPut;
   strikeOptions: StrikeOptions;
 }
 
+export interface Quote {
+  fee: number;
+  quote: number;
+  total: number;
+}
+
 export interface StrikeSide {
-  bid: {
+  sell: {
     IV: number;
-    quote: number;
+    quote: Quote;
     disabled: boolean;
   };
-  ask: {
+  buy: {
     IV: number;
-    quote: number;
+    quote: Quote;
     disabled: boolean;
   };
   delta: number;
@@ -246,22 +261,25 @@ export interface OptionSeries {
 }
 
 export enum OptionsTradingActionType {
-  SET_EXPIRY_DATE,
   SET_SELECTED_OPTION,
-  SET_SELL_MODAL_VISIBLE,
+  SET_OPTION_CHAIN_MODAL_VISIBLE,
   SET_TUTORIAL_INDEX,
+  RESET,
 }
 
 export type OptionsTradingAction =
   | {
       type: OptionsTradingActionType.SET_SELECTED_OPTION;
-      option: SelectedOption | null;
+      option?: SelectedOption;
     }
   | {
-      type: OptionsTradingActionType.SET_SELL_MODAL_VISIBLE;
-      visible: boolean;
+      type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE;
+      visible?: OptionChainModalActions;
     }
   | {
       type: OptionsTradingActionType.SET_TUTORIAL_INDEX;
       index?: number;
+    }
+  | {
+      type: OptionsTradingActionType.RESET;
     };

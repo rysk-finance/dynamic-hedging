@@ -1,16 +1,19 @@
-import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup } from "framer-motion";
+
+import { OptionChainModalActions } from "src/state/types";
 
 import { AssetPriceInfo } from "./AssetPriceInfo";
 import { Chain } from "./Chain";
-import { CloseOptionModal } from "./CloseOptionModal";
 import { ExpiryDatePicker } from "./ExpiryDatePicker";
 import { Filters } from "./Filters/Filters";
-import { useCloseModal } from "./hooks/useCloseModal";
+import { useModal } from "./hooks/useModal";
+import { BuyOptionModal } from "./Modals/BuyOptionModal";
+import { CloseOptionModal } from "./Modals/CloseOptionModal";
 import { Purchase } from "./Purchase";
 import { Tutorial } from "./Tutorial";
 
 export const OptionsTradingContent = () => {
-  const [closeModalOpen] = useCloseModal();
+  const [modalType] = useModal();
 
   return (
     <section className="col-start-1 col-end-17 -mt-16">
@@ -26,10 +29,11 @@ export const OptionsTradingContent = () => {
         </div>
       </LayoutGroup>
 
-      <Purchase />
+      {/* <Purchase /> */}
 
       <AnimatePresence mode="wait">
-        {closeModalOpen && <CloseOptionModal />}
+        {modalType === OptionChainModalActions.CLOSE && <CloseOptionModal />}
+        {modalType === OptionChainModalActions.BUY && <BuyOptionModal />}
       </AnimatePresence>
     </section>
   );

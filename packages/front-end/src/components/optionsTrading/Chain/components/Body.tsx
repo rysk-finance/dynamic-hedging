@@ -60,14 +60,18 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
     <tbody className="relative block w-[150%] lg:w-full font-dm-mono text-sm">
       <AnimatePresence initial={false}>
         {filteredChainRows.map((option) => {
-          const callBidDisabled =
-            option.call.bid.disabled || !option.call.bid.quote;
-          const callAskDisabled =
-            option.call.ask.disabled || !option.call.ask.quote;
-          const putBidDisabled =
-            option.put.bid.disabled || !option.put.bid.quote;
-          const putAskDisabled =
-            option.put.ask.disabled || !option.put.ask.quote;
+          const callSellDisabled =
+            option.call.sell.disabled || !option.call.sell.quote.total;
+          const callBuyDisabled =
+            option.call.buy.disabled || !option.call.buy.quote.total;
+          const callPosDisabled =
+            !option.call.pos || !option.call.sell.quote.total;
+          const putSellDisabled =
+            option.put.sell.disabled || !option.put.sell.quote.total;
+          const putBuyDisabled =
+            option.put.buy.disabled || !option.put.buy.quote.total;
+          const putPosDisabled =
+            !option.put.pos || !option.put.sell.quote.total;
 
           return (
             <motion.tr
@@ -87,13 +91,13 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                   side="call"
                   selectedOption={selectedOption}
                 >
-                  <IV value={option.call.bid.IV} />
+                  <IV value={option.call.sell.IV} />
                 </Cell>
               )}
 
               <Cell
                 cellClasses={`${
-                  callBidDisabled ? "text-gray-600" : "text-red-700"
+                  callSellDisabled ? "text-gray-600" : "text-red-700"
                 } !p-0`}
                 ethPrice={ethPrice}
                 option={option}
@@ -103,17 +107,17 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 <Quote
                   clickFn={setSelectedOption({
                     callOrPut: "call",
-                    bidOrAsk: "bid",
+                    buyOrSell: "sell",
                     strikeOptions: option,
                   })}
-                  disabled={callBidDisabled}
-                  value={option.call.bid.quote}
+                  disabled={callSellDisabled}
+                  value={option.call.sell.quote.total}
                 />
               </Cell>
 
               <Cell
                 cellClasses={`${
-                  callAskDisabled ? "text-gray-600" : "text-green-700"
+                  callBuyDisabled ? "text-gray-600" : "text-green-700"
                 } !p-0`}
                 ethPrice={ethPrice}
                 option={option}
@@ -123,11 +127,11 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 <Quote
                   clickFn={setSelectedOption({
                     callOrPut: "call",
-                    bidOrAsk: "ask",
+                    buyOrSell: "buy",
                     strikeOptions: option,
                   })}
-                  disabled={callAskDisabled}
-                  value={option.call.ask.quote}
+                  disabled={callBuyDisabled}
+                  value={option.call.buy.quote.total}
                 />
               </Cell>
 
@@ -139,7 +143,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                   side="call"
                   selectedOption={selectedOption}
                 >
-                  <IV value={option.call.ask.IV} />
+                  <IV value={option.call.buy.IV} />
                 </Cell>
               )}
 
@@ -157,7 +161,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               {showCol("pos") && (
                 <Cell
-                  cellClasses="!p-0"
+                  cellClasses={`${callPosDisabled ? "text-gray-600" : ""} !p-0`}
                   ethPrice={ethPrice}
                   option={option}
                   side="call"
@@ -165,12 +169,14 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 >
                   <Position
                     clickFn={() => {
-                      setSearchParams({
-                        ref: "close",
-                        token: option.call.tokenID || "",
-                      });
+                      if (option.call.pos > 0) {
+                        setSearchParams({
+                          ref: "close",
+                          token: option.call.tokenID || "",
+                        });
+                      }
                     }}
-                    disabled={!option.call.pos}
+                    disabled={callPosDisabled}
                     value={option.call.pos}
                   />
                 </Cell>
@@ -198,13 +204,13 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                   side="put"
                   selectedOption={selectedOption}
                 >
-                  <IV value={option.put.bid.IV} />
+                  <IV value={option.put.sell.IV} />
                 </Cell>
               )}
 
               <Cell
                 cellClasses={`${
-                  putBidDisabled ? "text-gray-600" : "text-red-700"
+                  putSellDisabled ? "text-gray-600" : "text-red-700"
                 } !p-0`}
                 ethPrice={ethPrice}
                 option={option}
@@ -214,17 +220,17 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 <Quote
                   clickFn={setSelectedOption({
                     callOrPut: "put",
-                    bidOrAsk: "bid",
+                    buyOrSell: "sell",
                     strikeOptions: option,
                   })}
-                  disabled={putBidDisabled}
-                  value={option.put.bid.quote}
+                  disabled={putSellDisabled}
+                  value={option.put.sell.quote.total}
                 />
               </Cell>
 
               <Cell
                 cellClasses={`${
-                  putAskDisabled ? "text-gray-600" : "text-green-700"
+                  putBuyDisabled ? "text-gray-600" : "text-green-700"
                 } !p-0`}
                 ethPrice={ethPrice}
                 option={option}
@@ -234,11 +240,11 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 <Quote
                   clickFn={setSelectedOption({
                     callOrPut: "put",
-                    bidOrAsk: "ask",
+                    buyOrSell: "buy",
                     strikeOptions: option,
                   })}
-                  disabled={putAskDisabled}
-                  value={option.put.ask.quote}
+                  disabled={putBuyDisabled}
+                  value={option.put.buy.quote.total}
                 />
               </Cell>
 
@@ -250,7 +256,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                   side="put"
                   selectedOption={selectedOption}
                 >
-                  <IV value={option.put.ask.IV} />
+                  <IV value={option.put.buy.IV} />
                 </Cell>
               )}
 
@@ -268,7 +274,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               {showCol("pos") && (
                 <Cell
-                  cellClasses="!p-0"
+                  cellClasses={`${putPosDisabled ? "text-gray-600" : ""} !p-0`}
                   ethPrice={ethPrice}
                   option={option}
                   side="put"
@@ -276,12 +282,14 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 >
                   <Position
                     clickFn={() => {
-                      setSearchParams({
-                        ref: "close",
-                        token: option.put.tokenID || "",
-                      });
+                      if (option.put.pos > 0) {
+                        setSearchParams({
+                          ref: "close",
+                          token: option.put.tokenID || "",
+                        });
+                      }
                     }}
-                    disabled={!option.put.pos}
+                    disabled={putPosDisabled}
                     value={option.put.pos}
                   />
                 </Cell>
