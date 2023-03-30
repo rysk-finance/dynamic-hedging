@@ -27,7 +27,7 @@ export const getButtonProps = (
         title: "Transaction pending.",
       };
 
-    case isApproved && handleTransaction:
+    case isApproved && Boolean(handleTransaction):
       return {
         children: capitalise(action),
         key: action,
