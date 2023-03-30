@@ -10,12 +10,13 @@ import type { DHVLensMK1 } from "src/types/DHVLensMK1";
 import type { InitialDataQuery, OptionsTransaction } from "./types";
 
 import { captureException } from "@sentry/react";
-import { readContracts } from "@wagmi/core";
+import { readContract, readContracts } from "@wagmi/core";
 import dayjs from "dayjs";
 import { BigNumber } from "ethers";
 import { getImpliedVolatility } from "implied-volatility";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
+import { NewControllerABI } from "src/abis/NewController_ABI";
 import {
   fromUSDC,
   fromWei,
@@ -228,7 +229,32 @@ const getChainData = async (
   }
 };
 
-export const getInitialData = async (data: InitialDataQuery) => {
+const getOperatorStatus = async (address?: HexString) => {
+  const controllerAddress = getContractAddress("OpynController");
+  const exchangeAddress = getContractAddress("optionExchange");
+
+  if (address) {
+    try {
+      return await readContract({
+        address: controllerAddress,
+        abi: NewControllerABI,
+        functionName: "isOperator",
+        args: [address, exchangeAddress],
+      });
+    } catch (error) {
+      captureException(error);
+
+      return false;
+    }
+  } else {
+    return false;
+  }
+};
+
+export const getInitialData = async (
+  data: InitialDataQuery,
+  address?: HexString
+) => {
   const { expiries, positions } = data;
 
   // Get expiries.
@@ -240,5 +266,8 @@ export const getInitialData = async (data: InitialDataQuery) => {
   // Get chain data.
   const chainData = await getChainData(validExpiries, userPositions);
 
-  return [validExpiries, userPositions, chainData] as const;
+  // Get operator status.
+  const isOperator = await getOperatorStatus(address);
+
+  return [validExpiries, userPositions, chainData, isOperator] as const;
 };
