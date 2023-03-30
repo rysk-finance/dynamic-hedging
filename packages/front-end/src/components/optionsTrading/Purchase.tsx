@@ -90,7 +90,7 @@ export const Purchase = () => {
   const [premium, fees, loadingQuote, quoteError] = useQuoteOptionPrice({
     orderSize: uiOrderSize,
     expiryDate: Number(activeExpiry),
-    selectedOption,
+    selectedOption: selectedOption || null,
   });
 
   if (quoteError) {
