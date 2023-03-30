@@ -17,7 +17,7 @@ library OptionsCompute {
 	using PRBMathSD59x18 for int256;
 
 	uint8 private constant SCALE_DECIMALS = 18;
-	uint256 private constant SCALE_UP = 10**18;
+	uint256 private constant SCALE_UP = 10 ** 18;
 	// oToken decimals
 	uint8 private constant OPYN_DECIMALS = 8;
 	// otoken conversion decimal
@@ -33,7 +33,10 @@ library OptionsCompute {
 	}
 
 	/// @dev converts from specified decimals to e18
-	function convertFromDecimals(uint256 value, uint256 decimals) internal pure returns (uint256 difference) {
+	function convertFromDecimals(
+		uint256 value,
+		uint256 decimals
+	) internal pure returns (uint256 difference) {
 		if (decimals > SCALE_DECIMALS) {
 			revert();
 		}
@@ -42,10 +45,11 @@ library OptionsCompute {
 	}
 
 	/// @dev converts from specified decimalsA to decimalsB
-	function convertFromDecimals(uint256 value, uint8 decimalsA, uint8 decimalsB)
-		internal 
-		pure
-		returns (uint256) {
+	function convertFromDecimals(
+		uint256 value,
+		uint8 decimalsA,
+		uint8 decimalsB
+	) internal pure returns (uint256) {
 		uint8 difference;
 		if (decimalsA > decimalsB) {
 			difference = decimalsA - decimalsB;
@@ -117,12 +121,12 @@ library OptionsCompute {
 	 */
 	function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256) {
 		// convert strike to 1e8 format
-		uint256 price = strikePrice / (10**OPYN_CONVERSION_DECIMAL);
+		uint256 price = strikePrice / (10 ** OPYN_CONVERSION_DECIMAL);
 		uint256 collateralDecimals = ERC20(collateral).decimals();
 		if (collateralDecimals >= OPYN_DECIMALS) return price;
 		uint256 difference = OPYN_DECIMALS - collateralDecimals;
 		// round floor strike to prevent errors in Gamma protocol
-		return (price / (10**difference)) * (10**difference);
+		return (price / (10 ** difference)) * (10 ** difference);
 	}
 
 	/**
