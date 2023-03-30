@@ -6,6 +6,7 @@ import type { AddressesRequired } from "../types";
 import { prepareWriteContract, writeContract } from "@wagmi/core";
 import { BigNumber } from "ethers";
 import { erc20ABI } from "src/abis/erc20_ABI";
+import { NewControllerABI } from "src/abis/NewController_ABI";
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import {
   EMPTY_SERIES,
@@ -15,6 +16,7 @@ import {
 import OperationType from "src/enums/OperationType";
 import RyskActionType from "src/enums/RyskActionType";
 import { fetchSimulation } from "src/hooks/useTenderlySimulator";
+import { getContractAddress } from "src/utils/helpers";
 
 export const approveAllowance = async (
   addresses: AddressesRequired,
@@ -172,4 +174,19 @@ export const buy = async (
       throw new Error("Tenderly simulation failed.");
     }
   }
+};
+
+export const setOperator = async (isOperator: boolean) => {
+  const config = await prepareWriteContract({
+    address: getContractAddress("OpynController"),
+    abi: NewControllerABI,
+    functionName: "setOperator",
+    args: [getContractAddress("optionExchange"), !isOperator],
+  });
+
+  const { hash, wait } = await writeContract(config);
+
+  await wait(1);
+
+  return hash;
 };
