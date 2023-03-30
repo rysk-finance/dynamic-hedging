@@ -18,7 +18,7 @@ export const useQuoteOptionPrice = ({
   selectedOption,
   orderSize,
 }: {
-  selectedOption: SelectedOption | undefined;
+  selectedOption: SelectedOption | null;
   expiryDate: number | null;
   orderSize: string;
 }): [BigNumber | null, BigNumber | null, boolean, Error | null] => {

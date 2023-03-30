@@ -189,7 +189,7 @@ const getChainData = async (
 
     return data.reduce(
       (
-        acc,
+        chainData,
         { callOptionDrill, expiration, putOptionDrill, underlyingPrice }
       ) => {
         const expiry = expiration.toNumber();
@@ -200,7 +200,7 @@ const getChainData = async (
           new Set([...Object.keys(calls), ...Object.keys(puts)])
         );
 
-        acc[expiry] = strikes.reduce(
+        chainData[expiry] = strikes.reduce(
           (strikeData, currentStrike) => {
             const strike = Number(currentStrike);
 
@@ -217,7 +217,7 @@ const getChainData = async (
           }
         );
 
-        return acc;
+        return chainData;
       },
       {} as ChainData
     );

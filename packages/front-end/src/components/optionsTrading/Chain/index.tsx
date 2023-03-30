@@ -40,6 +40,7 @@ export const Chain = () => {
             "Evaluating IV...",
           ]}
           key="loading"
+          stringSpeed={500}
         />
       )}
     </AnimatePresence>
