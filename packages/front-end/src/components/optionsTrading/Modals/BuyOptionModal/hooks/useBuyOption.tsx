@@ -105,7 +105,7 @@ export const useBuyOption = (amountToBuy: string) => {
           const fee = tFormatUSDC(totalFees) / Number(amountToBuy);
           const premium = tFormatUSDC(totalPremium) / Number(amountToBuy);
           const quote = tFormatUSDC(totalFees.add(totalPremium));
-          const remainingBalance = balance ? balanceInt - quote : 0;
+          const remainingBalance = balance.isZero() ? 0 : balanceInt - quote;
 
           const requiredApproval = String(toTwoDecimalPlaces(quote * 1.05));
           const approved = toUSDC(requiredApproval).lte(allowance.amount);
