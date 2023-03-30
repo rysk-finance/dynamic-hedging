@@ -325,7 +325,7 @@ describe("Lens", async () => {
                         vaultId: 0,
                         amount: 0,
                         optionSeries: proposedSeries,
-                        index: 0,
+                        indexOrAcceptablePremium: 0,
                         data: "0x"
                     }, {
                         actionType: 1,
@@ -335,7 +335,7 @@ describe("Lens", async () => {
                         vaultId: 0,
                         amount: amount,
                         optionSeries: proposedSeries,
-                        index: 0,
+                        indexOrAcceptablePremium: toWei("10"),
                         data: "0x"
                     }]
                 }])
@@ -405,7 +405,7 @@ describe("Lens", async () => {
                             vaultId: vaultId,
                             amount: 0,
                             optionSeries: emptySeries,
-                            index: 0,
+                            indexOrAcceptablePremium: 0,
                             data: abiCode.encode(["uint256"], [1])
                         },
                         {
@@ -416,7 +416,7 @@ describe("Lens", async () => {
                             vaultId: vaultId,
                             amount: marginRequirement,
                             optionSeries: emptySeries,
-                            index: 0,
+                            indexOrAcceptablePremium: 0,
                             data: ZERO_ADDRESS
                         },
                         {
@@ -427,7 +427,7 @@ describe("Lens", async () => {
                             vaultId: vaultId,
                             amount: amount.div(ethers.utils.parseUnits("1", 10)),
                             optionSeries: emptySeries,
-                            index: 0,
+                            indexOrAcceptablePremium: 0,
                             data: ZERO_ADDRESS
                         }
                     ]
@@ -443,7 +443,7 @@ describe("Lens", async () => {
                             vaultId: 0,
                             amount: amount,
                             optionSeries: proposedSeries,
-                            index: 0,
+                            indexOrAcceptablePremium: 0,
                             data: "0x"
                         }
                     ]
@@ -474,7 +474,7 @@ describe("Lens", async () => {
                         vaultId: 0,
                         amount: 0,
                         optionSeries: proposedSeries,
-                        index: 0,
+                        indexOrAcceptablePremium: 0,
                         data: "0x"
                     }, {
                         actionType: 1,
@@ -484,7 +484,7 @@ describe("Lens", async () => {
                         vaultId: 0,
                         amount: amount,
                         optionSeries: proposedSeries,
-                        index: 0,
+                        indexOrAcceptablePremium: toWei("10"),
                         data: "0x"
                     }]
                 }])
@@ -492,24 +492,24 @@ describe("Lens", async () => {
         describe("Hit the Lens", async () => {
             it("ping the lens contract", async () => {
                 const lensVals = await lens.getOptionChain()
-                console.log({lensVals})
-                console.log("c0")
-                console.log(lensVals.optionExpirationDrills[0].callOptionDrill)
-                console.log("p0")
-                console.log(lensVals.optionExpirationDrills[0].putOptionDrill)
-                console.log("c1")
-                console.log(lensVals.optionExpirationDrills[1].callOptionDrill)
-                console.log("c2")
-                console.log(lensVals.optionExpirationDrills[2].callOptionDrill)
-                console.log("c3")
-                console.log(lensVals.optionExpirationDrills[3].callOptionDrill)
+                // console.log({lensVals})
+                // console.log("c0")
+                // console.log(lensVals.optionExpirationDrills[0].callOptionDrill)
+                // console.log("p0")
+                // console.log(lensVals.optionExpirationDrills[0].putOptionDrill)
+                // console.log("c1")
+                // console.log(lensVals.optionExpirationDrills[1].callOptionDrill)
+                // console.log("c2")
+                // console.log(lensVals.optionExpirationDrills[2].callOptionDrill)
+                // console.log("c3")
+                // console.log(lensVals.optionExpirationDrills[3].callOptionDrill)
 
             })
             it("ping the lens contract", async () => {
                 const lensVals = await lens.getExpirations()
                 for (let i=0; i < lensVals.length; i++) {
                     const con = await lens.getOptionExpirationDrill(lensVals[i])
-                    console.log(con)
+                    // console.log(con)
                 }
 
             })
