@@ -103,9 +103,9 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	 * @notice Executes once when a contract is created to initialize state variables
 	 *		   Make sure the protocol is configured after deployment
 	 */
-	constructor(address _authority, uint256 _maxNetDhvExposure) AccessControl(IAuthority(_authority)) {		
+	constructor(address _authority, uint256 _maxNetDhvExposure) AccessControl(IAuthority(_authority)) {
 		maxNetDhvExposure = _maxNetDhvExposure;
-		}
+	}
 
 	///////////////
 	/// setters ///
@@ -245,7 +245,9 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 			storesForAddress[_seriesAddress].longExposure += longExposure;
 		}
 		// get the hash of the option (how the option is stored on the books)
-		bytes32 oHash = keccak256(abi.encodePacked(_optionSeries.expiration, _optionSeries.strike, _optionSeries.isPut));
+		bytes32 oHash = keccak256(
+			abi.encodePacked(_optionSeries.expiration, _optionSeries.strike, _optionSeries.isPut)
+		);
 		netDhvExposure[oHash] -= shortExposure;
 		netDhvExposure[oHash] += longExposure;
 		if (uint256(netDhvExposure[oHash].abs()) > maxNetDhvExposure) revert MaxNetDhvExposureExceeded();
@@ -389,11 +391,10 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	/// non-complex getters ///
 	///////////////////////////
 
-	function getPortfolioValues(address underlying, address strike)
-		external
-		view
-		returns (Types.PortfolioValues memory)
-	{
+	function getPortfolioValues(
+		address underlying,
+		address strike
+	) external view returns (Types.PortfolioValues memory) {
 		return portfolioValues[underlying][strike];
 	}
 
@@ -452,11 +453,10 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	 * @param _strikeAsset the asset that the underlying value is denominated in
 	 * @return the underlying price
 	 */
-	function _getUnderlyingPrice(address underlying, address _strikeAsset)
-		internal
-		view
-		returns (uint256)
-	{
+	function _getUnderlyingPrice(
+		address underlying,
+		address _strikeAsset
+	) internal view returns (uint256) {
 		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
 }

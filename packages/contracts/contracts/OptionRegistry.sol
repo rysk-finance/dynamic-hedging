@@ -68,7 +68,7 @@ contract OptionRegistry is AccessControl {
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
 	// used to convert e18 to e8
-	uint256 private constant SCALE_FROM = 10**10;
+	uint256 private constant SCALE_FROM = 10 ** 10;
 	// scale decimals
 	uint8 private constant SCALE = 18;
 
@@ -95,8 +95,13 @@ contract OptionRegistry is AccessControl {
 	event OperatorUpdated(address operator, bool isOperator);
 	event KeeperUpdated(address target, bool auth);
 	event LiquidityPoolUpdated(address newLiquidityPool);
-	event HealthThresholdsUpdated(uint64 putLower, uint64 putUpper, uint64 callLower, uint64 callUpper);
-	
+	event HealthThresholdsUpdated(
+		uint64 putLower,
+		uint64 putUpper,
+		uint64 callLower,
+		uint64 callUpper
+	);
+
 	error NoVault();
 	error NotKeeper();
 	error NotExpired();
@@ -188,7 +193,11 @@ contract OptionRegistry is AccessControl {
 		vaultIds[_seriesAddress] = _id;
 	}
 
-	function setSeriesInfoAndAddress(Types.OptionSeries memory _optionSeries, address _seriesAddress, bytes32 _issuanceHash) external {
+	function setSeriesInfoAndAddress(
+		Types.OptionSeries memory _optionSeries,
+		address _seriesAddress,
+		bytes32 _issuanceHash
+	) external {
 		if (!IController(addressBook.getController()).isOperator(address(this), msg.sender)) {
 			revert NotOperator();
 		}
@@ -351,15 +360,7 @@ contract OptionRegistry is AccessControl {
 	 * @return  number of oTokens that the vault was short
 	 * @dev callable by the liquidityPool so that local variables can also be updated
 	 */
-	function settle(address _series)
-		external
-		returns (
-			bool,
-			uint256,
-			uint256,
-			uint256
-		)
-	{
+	function settle(address _series) external returns (bool, uint256, uint256, uint256) {
 		_isLiquidityPool();
 		Types.OptionSeries memory series = seriesInfo[_series];
 		// strike will be in e8
@@ -561,11 +562,10 @@ contract OptionRegistry is AccessControl {
 	 * @param  amount amount of options to mint always in e18
 	 * @return amount transferred
 	 */
-	function getCollateral(Types.OptionSeries memory series, uint256 amount)
-		external
-		view
-		returns (uint256)
-	{
+	function getCollateral(
+		Types.OptionSeries memory series,
+		uint256 amount
+	) external view returns (uint256) {
 		IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
 		uint256 collateralAmount = marginCalc.getNakedMarginRequired(
 			series.underlying,
@@ -626,7 +626,9 @@ contract OptionRegistry is AccessControl {
 	 * @return collatRequired the amount of collateral required to return the vault back to normal
 	 * @return collatAsset the address of the collateral asset
 	 */
-	function checkVaultHealth(uint256 vaultId)
+	function checkVaultHealth(
+		uint256 vaultId
+	)
 		public
 		view
 		returns (
