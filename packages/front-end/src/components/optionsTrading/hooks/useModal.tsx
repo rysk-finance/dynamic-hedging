@@ -25,7 +25,7 @@ export const useModal = () => {
 
   const {
     state: {
-      options: { activeExpiry, userPositions },
+      options: { activeExpiry, isOperator, userPositions },
     },
   } = useGlobalContext();
 
@@ -50,6 +50,11 @@ export const useModal = () => {
         dispatch({
           type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.BUY,
+        });
+      } else if (selectedOption?.buyOrSell === "sell" && !isOperator) {
+        dispatch({
+          type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          visible: OptionChainModalActions.OPERATOR,
         });
       }
     }
