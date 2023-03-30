@@ -22,6 +22,27 @@ import type {
   OnEvent,
 } from "./common";
 
+export declare namespace BeyondPricer {
+  export type DeltaBorrowRatesStruct = {
+    sellLong: BigNumberish;
+    sellShort: BigNumberish;
+    buyLong: BigNumberish;
+    buyShort: BigNumberish;
+  };
+
+  export type DeltaBorrowRatesStructOutput = [
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber
+  ] & {
+    sellLong: BigNumber;
+    sellShort: BigNumber;
+    buyLong: BigNumber;
+    buyShort: BigNumber;
+  };
+}
+
 export declare namespace Types {
   export type OptionSeriesStruct = {
     expiration: BigNumberish;
@@ -59,11 +80,11 @@ export interface BeyondPricerInterface extends utils.Interface {
     "collateralAsset()": FunctionFragment;
     "collateralLendingRate()": FunctionFragment;
     "deltaBandWidth()": FunctionFragment;
+    "deltaBorrowRates()": FunctionFragment;
     "feePerContract()": FunctionFragment;
     "getCallSlippageGradientMultipliers()": FunctionFragment;
     "getPutSlippageGradientMultipliers()": FunctionFragment;
     "liquidityPool()": FunctionFragment;
-    "longDeltaBorrowRate()": FunctionFragment;
     "protocol()": FunctionFragment;
     "putSlippageGradientMultipliers(uint256)": FunctionFragment;
     "quoteOptionPrice((uint64,uint128,bool,address,address,address),uint256,bool,int256)": FunctionFragment;
@@ -72,13 +93,11 @@ export interface BeyondPricerInterface extends utils.Interface {
     "setBidAskIVSpread(uint256)": FunctionFragment;
     "setCollateralLendingRate(uint256)": FunctionFragment;
     "setDeltaBandWidth(uint256,uint256[],uint256[])": FunctionFragment;
+    "setDeltaBorrowRates((int256,int256,int256,int256))": FunctionFragment;
     "setFeePerContract(uint256)": FunctionFragment;
-    "setLongDeltaBorrowRate(uint256)": FunctionFragment;
     "setRiskFreeRate(uint256)": FunctionFragment;
-    "setShortDeltaBorrowRate(uint256)": FunctionFragment;
     "setSlippageGradient(uint256)": FunctionFragment;
     "setSlippageGradientMultipliers(uint256[],uint256[])": FunctionFragment;
-    "shortDeltaBorrowRate()": FunctionFragment;
     "slippageGradient()": FunctionFragment;
     "strikeAsset()": FunctionFragment;
     "underlyingAsset()": FunctionFragment;
@@ -110,6 +129,10 @@ export interface BeyondPricerInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "deltaBorrowRates",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "feePerContract",
     values?: undefined
   ): string;
@@ -123,10 +146,6 @@ export interface BeyondPricerInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "liquidityPool",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "longDeltaBorrowRate",
     values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "protocol", values?: undefined): string;
@@ -159,19 +178,15 @@ export interface BeyondPricerInterface extends utils.Interface {
     values: [BigNumberish, BigNumberish[], BigNumberish[]]
   ): string;
   encodeFunctionData(
+    functionFragment: "setDeltaBorrowRates",
+    values: [BeyondPricer.DeltaBorrowRatesStruct]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setFeePerContract",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "setLongDeltaBorrowRate",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setRiskFreeRate",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setShortDeltaBorrowRate",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
@@ -181,10 +196,6 @@ export interface BeyondPricerInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "setSlippageGradientMultipliers",
     values: [BigNumberish[], BigNumberish[]]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "shortDeltaBorrowRate",
-    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "slippageGradient",
@@ -225,6 +236,10 @@ export interface BeyondPricerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "deltaBorrowRates",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "feePerContract",
     data: BytesLike
   ): Result;
@@ -238,10 +253,6 @@ export interface BeyondPricerInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "liquidityPool",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "longDeltaBorrowRate",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "protocol", data: BytesLike): Result;
@@ -274,19 +285,15 @@ export interface BeyondPricerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "setDeltaBorrowRates",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "setFeePerContract",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setLongDeltaBorrowRate",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "setRiskFreeRate",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setShortDeltaBorrowRate",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -295,10 +302,6 @@ export interface BeyondPricerInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setSlippageGradientMultipliers",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "shortDeltaBorrowRate",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -319,10 +322,9 @@ export interface BeyondPricerInterface extends utils.Interface {
     "BidAskIVSpreadChanged(uint256,uint256)": EventFragment;
     "CollateralLendingRateChanged(uint256,uint256)": EventFragment;
     "DeltaBandWidthChanged(uint256,uint256)": EventFragment;
+    "DeltaBorrowRatesChanged(tuple,tuple)": EventFragment;
     "FeePerContractChanged(uint256,uint256)": EventFragment;
-    "LongDeltaBorrowRateChanged(uint256,uint256)": EventFragment;
     "RiskFreeRateChanged(uint256,uint256)": EventFragment;
-    "ShortDeltaBorrowRateChanged(uint256,uint256)": EventFragment;
     "SlippageGradientChanged(uint256,uint256)": EventFragment;
     "SlippageGradientMultipliersChanged()": EventFragment;
   };
@@ -333,12 +335,9 @@ export interface BeyondPricerInterface extends utils.Interface {
     nameOrSignatureOrTopic: "CollateralLendingRateChanged"
   ): EventFragment;
   getEvent(nameOrSignatureOrTopic: "DeltaBandWidthChanged"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "DeltaBorrowRatesChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "FeePerContractChanged"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "LongDeltaBorrowRateChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RiskFreeRateChanged"): EventFragment;
-  getEvent(
-    nameOrSignatureOrTopic: "ShortDeltaBorrowRateChanged"
-  ): EventFragment;
   getEvent(nameOrSignatureOrTopic: "SlippageGradientChanged"): EventFragment;
   getEvent(
     nameOrSignatureOrTopic: "SlippageGradientMultipliersChanged"
@@ -374,6 +373,20 @@ export type DeltaBandWidthChangedEvent = TypedEvent<
 export type DeltaBandWidthChangedEventFilter =
   TypedEventFilter<DeltaBandWidthChangedEvent>;
 
+export type DeltaBorrowRatesChangedEvent = TypedEvent<
+  [
+    BeyondPricer.DeltaBorrowRatesStructOutput,
+    BeyondPricer.DeltaBorrowRatesStructOutput
+  ],
+  {
+    newDeltaBorrowRates: BeyondPricer.DeltaBorrowRatesStructOutput;
+    oldDeltaBorrowRates: BeyondPricer.DeltaBorrowRatesStructOutput;
+  }
+>;
+
+export type DeltaBorrowRatesChangedEventFilter =
+  TypedEventFilter<DeltaBorrowRatesChangedEvent>;
+
 export type FeePerContractChangedEvent = TypedEvent<
   [BigNumber, BigNumber],
   { newFeePerContract: BigNumber; oldFeePerContract: BigNumber }
@@ -382,14 +395,6 @@ export type FeePerContractChangedEvent = TypedEvent<
 export type FeePerContractChangedEventFilter =
   TypedEventFilter<FeePerContractChangedEvent>;
 
-export type LongDeltaBorrowRateChangedEvent = TypedEvent<
-  [BigNumber, BigNumber],
-  { newLongDeltaBorrowRate: BigNumber; oldLongDeltaBorrowRate: BigNumber }
->;
-
-export type LongDeltaBorrowRateChangedEventFilter =
-  TypedEventFilter<LongDeltaBorrowRateChangedEvent>;
-
 export type RiskFreeRateChangedEvent = TypedEvent<
   [BigNumber, BigNumber],
   { newRiskFreeRate: BigNumber; oldRiskFreeRate: BigNumber }
@@ -397,14 +402,6 @@ export type RiskFreeRateChangedEvent = TypedEvent<
 
 export type RiskFreeRateChangedEventFilter =
   TypedEventFilter<RiskFreeRateChangedEvent>;
-
-export type ShortDeltaBorrowRateChangedEvent = TypedEvent<
-  [BigNumber, BigNumber],
-  { newShortDeltaBorrowRate: BigNumber; oldShortDeltaBorrowRate: BigNumber }
->;
-
-export type ShortDeltaBorrowRateChangedEventFilter =
-  TypedEventFilter<ShortDeltaBorrowRateChangedEvent>;
 
 export type SlippageGradientChangedEvent = TypedEvent<
   [BigNumber, BigNumber],
@@ -464,6 +461,17 @@ export interface BeyondPricer extends BaseContract {
 
     deltaBandWidth(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    deltaBorrowRates(
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber, BigNumber, BigNumber] & {
+        sellLong: BigNumber;
+        sellShort: BigNumber;
+        buyLong: BigNumber;
+        buyShort: BigNumber;
+      }
+    >;
+
     feePerContract(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     getCallSlippageGradientMultipliers(
@@ -475,8 +483,6 @@ export interface BeyondPricer extends BaseContract {
     ): Promise<[BigNumber[]]>;
 
     liquidityPool(overrides?: CallOverrides): Promise<[string]>;
-
-    longDeltaBorrowRate(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     protocol(overrides?: CallOverrides): Promise<[string]>;
 
@@ -523,23 +529,18 @@ export interface BeyondPricer extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    setDeltaBorrowRates(
+      _deltaBorrowRates: BeyondPricer.DeltaBorrowRatesStruct,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     setFeePerContract(
       _feePerContract: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    setLongDeltaBorrowRate(
-      _longDeltaBorrowRate: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
     setRiskFreeRate(
       _riskFreeRate: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    setShortDeltaBorrowRate(
-      _shortDeltaBorrowRate: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -553,8 +554,6 @@ export interface BeyondPricer extends BaseContract {
       _putSlippageGradientMultipliers: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
-
-    shortDeltaBorrowRate(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     slippageGradient(overrides?: CallOverrides): Promise<[BigNumber]>;
 
@@ -580,6 +579,17 @@ export interface BeyondPricer extends BaseContract {
 
   deltaBandWidth(overrides?: CallOverrides): Promise<BigNumber>;
 
+  deltaBorrowRates(
+    overrides?: CallOverrides
+  ): Promise<
+    [BigNumber, BigNumber, BigNumber, BigNumber] & {
+      sellLong: BigNumber;
+      sellShort: BigNumber;
+      buyLong: BigNumber;
+      buyShort: BigNumber;
+    }
+  >;
+
   feePerContract(overrides?: CallOverrides): Promise<BigNumber>;
 
   getCallSlippageGradientMultipliers(
@@ -591,8 +601,6 @@ export interface BeyondPricer extends BaseContract {
   ): Promise<BigNumber[]>;
 
   liquidityPool(overrides?: CallOverrides): Promise<string>;
-
-  longDeltaBorrowRate(overrides?: CallOverrides): Promise<BigNumber>;
 
   protocol(overrides?: CallOverrides): Promise<string>;
 
@@ -639,23 +647,18 @@ export interface BeyondPricer extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  setDeltaBorrowRates(
+    _deltaBorrowRates: BeyondPricer.DeltaBorrowRatesStruct,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   setFeePerContract(
     _feePerContract: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  setLongDeltaBorrowRate(
-    _longDeltaBorrowRate: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   setRiskFreeRate(
     _riskFreeRate: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  setShortDeltaBorrowRate(
-    _shortDeltaBorrowRate: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -669,8 +672,6 @@ export interface BeyondPricer extends BaseContract {
     _putSlippageGradientMultipliers: BigNumberish[],
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
-
-  shortDeltaBorrowRate(overrides?: CallOverrides): Promise<BigNumber>;
 
   slippageGradient(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -696,6 +697,17 @@ export interface BeyondPricer extends BaseContract {
 
     deltaBandWidth(overrides?: CallOverrides): Promise<BigNumber>;
 
+    deltaBorrowRates(
+      overrides?: CallOverrides
+    ): Promise<
+      [BigNumber, BigNumber, BigNumber, BigNumber] & {
+        sellLong: BigNumber;
+        sellShort: BigNumber;
+        buyLong: BigNumber;
+        buyShort: BigNumber;
+      }
+    >;
+
     feePerContract(overrides?: CallOverrides): Promise<BigNumber>;
 
     getCallSlippageGradientMultipliers(
@@ -707,8 +719,6 @@ export interface BeyondPricer extends BaseContract {
     ): Promise<BigNumber[]>;
 
     liquidityPool(overrides?: CallOverrides): Promise<string>;
-
-    longDeltaBorrowRate(overrides?: CallOverrides): Promise<BigNumber>;
 
     protocol(overrides?: CallOverrides): Promise<string>;
 
@@ -755,23 +765,18 @@ export interface BeyondPricer extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setDeltaBorrowRates(
+      _deltaBorrowRates: BeyondPricer.DeltaBorrowRatesStruct,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     setFeePerContract(
       _feePerContract: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setLongDeltaBorrowRate(
-      _longDeltaBorrowRate: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     setRiskFreeRate(
       _riskFreeRate: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    setShortDeltaBorrowRate(
-      _shortDeltaBorrowRate: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -785,8 +790,6 @@ export interface BeyondPricer extends BaseContract {
       _putSlippageGradientMultipliers: BigNumberish[],
       overrides?: CallOverrides
     ): Promise<void>;
-
-    shortDeltaBorrowRate(overrides?: CallOverrides): Promise<BigNumber>;
 
     slippageGradient(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -826,6 +829,15 @@ export interface BeyondPricer extends BaseContract {
       oldDeltaBandWidth?: null
     ): DeltaBandWidthChangedEventFilter;
 
+    "DeltaBorrowRatesChanged(tuple,tuple)"(
+      newDeltaBorrowRates?: null,
+      oldDeltaBorrowRates?: null
+    ): DeltaBorrowRatesChangedEventFilter;
+    DeltaBorrowRatesChanged(
+      newDeltaBorrowRates?: null,
+      oldDeltaBorrowRates?: null
+    ): DeltaBorrowRatesChangedEventFilter;
+
     "FeePerContractChanged(uint256,uint256)"(
       newFeePerContract?: null,
       oldFeePerContract?: null
@@ -835,15 +847,6 @@ export interface BeyondPricer extends BaseContract {
       oldFeePerContract?: null
     ): FeePerContractChangedEventFilter;
 
-    "LongDeltaBorrowRateChanged(uint256,uint256)"(
-      newLongDeltaBorrowRate?: null,
-      oldLongDeltaBorrowRate?: null
-    ): LongDeltaBorrowRateChangedEventFilter;
-    LongDeltaBorrowRateChanged(
-      newLongDeltaBorrowRate?: null,
-      oldLongDeltaBorrowRate?: null
-    ): LongDeltaBorrowRateChangedEventFilter;
-
     "RiskFreeRateChanged(uint256,uint256)"(
       newRiskFreeRate?: null,
       oldRiskFreeRate?: null
@@ -852,15 +855,6 @@ export interface BeyondPricer extends BaseContract {
       newRiskFreeRate?: null,
       oldRiskFreeRate?: null
     ): RiskFreeRateChangedEventFilter;
-
-    "ShortDeltaBorrowRateChanged(uint256,uint256)"(
-      newShortDeltaBorrowRate?: null,
-      oldShortDeltaBorrowRate?: null
-    ): ShortDeltaBorrowRateChangedEventFilter;
-    ShortDeltaBorrowRateChanged(
-      newShortDeltaBorrowRate?: null,
-      oldShortDeltaBorrowRate?: null
-    ): ShortDeltaBorrowRateChangedEventFilter;
 
     "SlippageGradientChanged(uint256,uint256)"(
       newSlippageGradient?: null,
@@ -893,6 +887,8 @@ export interface BeyondPricer extends BaseContract {
 
     deltaBandWidth(overrides?: CallOverrides): Promise<BigNumber>;
 
+    deltaBorrowRates(overrides?: CallOverrides): Promise<BigNumber>;
+
     feePerContract(overrides?: CallOverrides): Promise<BigNumber>;
 
     getCallSlippageGradientMultipliers(
@@ -904,8 +900,6 @@ export interface BeyondPricer extends BaseContract {
     ): Promise<BigNumber>;
 
     liquidityPool(overrides?: CallOverrides): Promise<BigNumber>;
-
-    longDeltaBorrowRate(overrides?: CallOverrides): Promise<BigNumber>;
 
     protocol(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -946,23 +940,18 @@ export interface BeyondPricer extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    setDeltaBorrowRates(
+      _deltaBorrowRates: BeyondPricer.DeltaBorrowRatesStruct,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     setFeePerContract(
       _feePerContract: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    setLongDeltaBorrowRate(
-      _longDeltaBorrowRate: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
     setRiskFreeRate(
       _riskFreeRate: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    setShortDeltaBorrowRate(
-      _shortDeltaBorrowRate: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -976,8 +965,6 @@ export interface BeyondPricer extends BaseContract {
       _putSlippageGradientMultipliers: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
-
-    shortDeltaBorrowRate(overrides?: CallOverrides): Promise<BigNumber>;
 
     slippageGradient(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -1006,6 +993,8 @@ export interface BeyondPricer extends BaseContract {
 
     deltaBandWidth(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    deltaBorrowRates(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     feePerContract(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     getCallSlippageGradientMultipliers(
@@ -1017,10 +1006,6 @@ export interface BeyondPricer extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     liquidityPool(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    longDeltaBorrowRate(
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
 
     protocol(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -1061,23 +1046,18 @@ export interface BeyondPricer extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
+    setDeltaBorrowRates(
+      _deltaBorrowRates: BeyondPricer.DeltaBorrowRatesStruct,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
     setFeePerContract(
       _feePerContract: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    setLongDeltaBorrowRate(
-      _longDeltaBorrowRate: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
     setRiskFreeRate(
       _riskFreeRate: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setShortDeltaBorrowRate(
-      _shortDeltaBorrowRate: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -1090,10 +1070,6 @@ export interface BeyondPricer extends BaseContract {
       _callSlippageGradientMultipliers: BigNumberish[],
       _putSlippageGradientMultipliers: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    shortDeltaBorrowRate(
-      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     slippageGradient(overrides?: CallOverrides): Promise<PopulatedTransaction>;
