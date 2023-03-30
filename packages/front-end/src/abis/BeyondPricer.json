@@ -47,14 +47,31 @@
 				"type": "uint256"
 			},
 			{
-				"internalType": "uint256",
-				"name": "_shortDeltaBorrowRate",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "_longDeltaBorrowRate",
-				"type": "uint256"
+				"components": [
+					{
+						"internalType": "int256",
+						"name": "sellLong",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "sellShort",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "buyLong",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "buyShort",
+						"type": "int256"
+					}
+				],
+				"internalType": "struct BeyondPricer.DeltaBorrowRates",
+				"name": "_deltaBorrowRates",
+				"type": "tuple"
 			}
 		],
 		"stateMutability": "nonpayable",
@@ -267,6 +284,69 @@
 		"anonymous": false,
 		"inputs": [
 			{
+				"components": [
+					{
+						"internalType": "int256",
+						"name": "sellLong",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "sellShort",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "buyLong",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "buyShort",
+						"type": "int256"
+					}
+				],
+				"indexed": false,
+				"internalType": "struct BeyondPricer.DeltaBorrowRates",
+				"name": "newDeltaBorrowRates",
+				"type": "tuple"
+			},
+			{
+				"components": [
+					{
+						"internalType": "int256",
+						"name": "sellLong",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "sellShort",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "buyLong",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "buyShort",
+						"type": "int256"
+					}
+				],
+				"indexed": false,
+				"internalType": "struct BeyondPricer.DeltaBorrowRates",
+				"name": "oldDeltaBorrowRates",
+				"type": "tuple"
+			}
+		],
+		"name": "DeltaBorrowRatesChanged",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
 				"indexed": false,
 				"internalType": "uint256",
 				"name": "newFeePerContract",
@@ -288,25 +368,6 @@
 			{
 				"indexed": false,
 				"internalType": "uint256",
-				"name": "newLongDeltaBorrowRate",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "oldLongDeltaBorrowRate",
-				"type": "uint256"
-			}
-		],
-		"name": "LongDeltaBorrowRateChanged",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "uint256",
 				"name": "newRiskFreeRate",
 				"type": "uint256"
 			},
@@ -318,25 +379,6 @@
 			}
 		],
 		"name": "RiskFreeRateChanged",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "newShortDeltaBorrowRate",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "oldShortDeltaBorrowRate",
-				"type": "uint256"
-			}
-		],
-		"name": "ShortDeltaBorrowRateChanged",
 		"type": "event"
 	},
 	{
@@ -463,6 +505,34 @@
 	},
 	{
 		"inputs": [],
+		"name": "deltaBorrowRates",
+		"outputs": [
+			{
+				"internalType": "int256",
+				"name": "sellLong",
+				"type": "int256"
+			},
+			{
+				"internalType": "int256",
+				"name": "sellShort",
+				"type": "int256"
+			},
+			{
+				"internalType": "int256",
+				"name": "buyLong",
+				"type": "int256"
+			},
+			{
+				"internalType": "int256",
+				"name": "buyShort",
+				"type": "int256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "feePerContract",
 		"outputs": [
 			{
@@ -508,19 +578,6 @@
 				"internalType": "contract ILiquidityPool",
 				"name": "",
 				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "longDeltaBorrowRate",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -712,6 +769,41 @@
 	{
 		"inputs": [
 			{
+				"components": [
+					{
+						"internalType": "int256",
+						"name": "sellLong",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "sellShort",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "buyLong",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "buyShort",
+						"type": "int256"
+					}
+				],
+				"internalType": "struct BeyondPricer.DeltaBorrowRates",
+				"name": "_deltaBorrowRates",
+				"type": "tuple"
+			}
+		],
+		"name": "setDeltaBorrowRates",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "uint256",
 				"name": "_feePerContract",
 				"type": "uint256"
@@ -726,37 +818,11 @@
 		"inputs": [
 			{
 				"internalType": "uint256",
-				"name": "_longDeltaBorrowRate",
-				"type": "uint256"
-			}
-		],
-		"name": "setLongDeltaBorrowRate",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
 				"name": "_riskFreeRate",
 				"type": "uint256"
 			}
 		],
 		"name": "setRiskFreeRate",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_shortDeltaBorrowRate",
-				"type": "uint256"
-			}
-		],
-		"name": "setShortDeltaBorrowRate",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -790,19 +856,6 @@
 		"name": "setSlippageGradientMultipliers",
 		"outputs": [],
 		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "shortDeltaBorrowRate",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
 		"type": "function"
 	},
 	{
