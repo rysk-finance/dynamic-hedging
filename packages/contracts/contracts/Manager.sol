@@ -82,14 +82,6 @@ contract Manager is AccessControl {
 		proxyManager = _proxyManager;
 	}
 
-	function setOptionHandler(address _optionHandler) external {
-		_onlyGovernor();
-		if (_optionHandler == address(0)) {
-			revert CustomErrors.InvalidAddress();
-		}
-		optionHandler = IAlphaOptionHandler(_optionHandler);
-	}
-
 	/**
 	 * @notice set the delta limit on a keeper
 	 */
@@ -280,14 +272,9 @@ contract Manager is AccessControl {
 		beyondPricer.setCollateralLendingRate(_collateralLendingRate);
 	}
 
-	function setShortDeltaBorrowRate(uint256 _shortDeltaBorrowRate) external {
+	function setDeltaBorrowRates(BeyondPricer.DeltaBorrowRates calldata _deltaBorrowRates) external {
 		_isProxyManager();
-		beyondPricer.setShortDeltaBorrowRate(_shortDeltaBorrowRate);
-	}
-
-	function setLongDeltaBorrowRate(uint256 _longDeltaBorrowRate) external {
-		_isProxyManager();
-		beyondPricer.setLongDeltaBorrowRate(_longDeltaBorrowRate);
+		beyondPricer.setDeltaBorrowRates(_deltaBorrowRates);
 	}
 
 	/// @dev must also update delta band arrays to fit the new delta band width
