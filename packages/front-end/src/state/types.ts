@@ -80,6 +80,7 @@ export type GlobalState = {
     data: ChainData;
     error?: ApolloError;
     expiries: Expiries;
+    isOperator: boolean;
     loading: boolean;
     refresh: () => void;
     userPositions: UserPositions;
@@ -147,6 +148,7 @@ export type GlobalAction =
       data?: ChainData;
       error?: ApolloError;
       expiries?: Expiries;
+      isOperator?: boolean;
       loading?: boolean;
       refresh?: () => void;
       userPositions?: UserPositions;
@@ -198,6 +200,7 @@ export type OptionsTradingState = {
 export enum OptionChainModalActions {
   BUY = "buy",
   CLOSE = "close",
+  OPERATOR = "operator",
   SELL = "sell",
 }
 
