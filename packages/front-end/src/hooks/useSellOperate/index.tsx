@@ -138,7 +138,7 @@ const useSellOperate = (): [
               vaultId: vaultId,
               amount: BigNumber.from(0),
               optionSeries: EMPTY_SERIES,
-              index: BigNumber.from(0),
+              indexOrAcceptablePremium: BigNumber.from(0),
               data: abiCode.encode(
                 ["uint256"],
                 [OpenVaultCollateralType.Partially]
@@ -152,7 +152,7 @@ const useSellOperate = (): [
               vaultId: vaultId,
               amount: margin,
               optionSeries: EMPTY_SERIES,
-              index: BigNumber.from(0),
+              indexOrAcceptablePremium: BigNumber.from(0),
               data: ZERO_ADDRESS,
             },
             {
@@ -163,7 +163,7 @@ const useSellOperate = (): [
               vaultId: vaultId,
               amount: amount, // amount needs to be in e8 decimals
               optionSeries: EMPTY_SERIES,
-              index: BigNumber.from(0),
+              indexOrAcceptablePremium: BigNumber.from(0),
               data: ZERO_ADDRESS,
             },
           ],
@@ -184,7 +184,7 @@ const useSellOperate = (): [
                 underlying,
                 ...optionSeries,
               },
-              index: BigNumber.from(0),
+              indexOrAcceptablePremium: BigNumber.from(0),
               data: "0x",
             },
           ],
