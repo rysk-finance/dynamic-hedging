@@ -77,18 +77,21 @@ export const useInitialData = () => {
     if (data && !loading) {
       updatePriceData();
 
-      getInitialData(data).then(([validExpiries, userPositions, chainData]) => {
-        dispatch({
-          type: ActionType.SET_OPTIONS,
-          activeExpiry: activeExpiry || validExpiries[0],
-          data: chainData,
-          error,
-          expiries: validExpiries,
-          loading,
-          refresh,
-          userPositions,
-        });
-      });
+      getInitialData(data, address).then(
+        ([validExpiries, userPositions, chainData, isOperator]) => {
+          dispatch({
+            type: ActionType.SET_OPTIONS,
+            activeExpiry: activeExpiry || validExpiries[0],
+            data: chainData,
+            error,
+            expiries: validExpiries,
+            isOperator,
+            loading,
+            refresh,
+            userPositions,
+          });
+        }
+      );
 
       setSkip(true);
     }

@@ -42,6 +42,7 @@ export const defaultGlobalState: GlobalState = {
     data: {},
     error: undefined,
     expiries: [],
+    isOperator: false,
     loading: true,
     refresh: () => {},
     userPositions: {},
