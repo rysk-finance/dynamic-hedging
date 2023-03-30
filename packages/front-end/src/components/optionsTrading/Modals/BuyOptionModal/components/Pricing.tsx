@@ -2,7 +2,7 @@ import { PricingProps } from "../types";
 
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 
-export const Pricing = ({  positionData }: PricingProps) => {
+export const Pricing = ({ positionData }: PricingProps) => {
   const {
     callOrPut,
     expiry,
@@ -24,16 +24,16 @@ export const Pricing = ({  positionData }: PricingProps) => {
         <span className="flex">
           <p className="mr-auto">{`Premium:`}</p>
           <p className="font-medium">
-            {`$ `}
             <RyskCountUp value={premium} />
+            {` USDC`}
           </p>
         </span>
 
         <span className="flex">
           <p className="mr-auto">{`Fee:`}</p>
           <p className="font-medium">
-            {`$ `}
             <RyskCountUp value={fee} />
+            {` USDC`}
           </p>
         </span>
 
@@ -44,23 +44,22 @@ export const Pricing = ({  positionData }: PricingProps) => {
         <span className="flex py-2 border-gray-600 border-b">
           <p className="mr-auto">{`Total to pay:`}</p>
           <p className="font-medium">
-            {`$ `}
             <RyskCountUp value={quote} />
+            {` USDC`}
           </p>
         </span>
 
         <span className="flex pt-2">
           <p className="mr-auto">{`Balance after:`}</p>
           <p className="font-medium">
-            {`$ `}
             <RyskCountUp value={remainingBalance} />
+            {` USDC`}
           </p>
         </span>
       </div>
 
       <small className="flex flex-col pb-4 text-center leading-6 text-gray-600">
-        <span>{`Figures displayed are in USDC.`}</span>
-        <span>{`Last updated: ${now}`}</span>
+        {`Last updated: ${now}`}
       </small>
     </div>
   );
