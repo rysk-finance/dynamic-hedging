@@ -824,10 +824,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @param  optionRegistry interface for the options issuer
 	 * @return series the address of the option series minted
 	 */
-	function _issue(Types.OptionSeries memory optionSeries, IOptionRegistry optionRegistry)
-		internal
-		returns (address series)
-	{
+	function _issue(
+		Types.OptionSeries memory optionSeries,
+		IOptionRegistry optionRegistry
+	) internal returns (address series) {
 		// make sure option is being issued with correct assets
 		if (optionSeries.collateral != collateralAsset) {
 			revert CustomErrors.CollateralAssetInvalid();
@@ -961,7 +961,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		_isHandler();
 		_adjustVariables(collateralAmount, optionsValue, delta, isSale);
 	}
-	
+
 	/**
 	 * @notice adjust the variables of the pool
 	 * @param  collateralAmount the amount of collateral transferred to change on collateral allocated in collateral decimals
@@ -1028,11 +1028,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @param _strikeAsset the asset that the underlying value is denominated in
 	 * @return the underlying price
 	 */
-	function _getUnderlyingPrice(address underlying, address _strikeAsset)
-		internal
-		view
-		returns (uint256)
-	{
+	function _getUnderlyingPrice(
+		address underlying,
+		address _strikeAsset
+	) internal view returns (uint256) {
 		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
 
