@@ -26,16 +26,10 @@ contract OptionRegistry is AccessControl {
 	/// immutable variables ///
 	///////////////////////////
 
-	// address of the opyn oTokenFactory for oToken minting
-	address internal immutable oTokenFactory;
-	// address of the gammaController for oToken operations
-	address public immutable gammaController;
 	// address of the collateralAsset
 	address public immutable collateralAsset;
 	// address of the opyn addressBook for accessing important opyn modules
 	AddressBookInterface public immutable addressBook;
-	// address of the marginPool, contract for storing options collateral
-	address internal immutable marginPool;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -74,9 +68,9 @@ contract OptionRegistry is AccessControl {
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
 	// used to convert e18 to e8
-	uint256 private constant SCALE_FROM = 10**10;
-	// oToken decimals
-	uint8 private constant OPYN_DECIMALS = 8;
+	uint256 private constant SCALE_FROM = 10 ** 10;
+	// scale decimals
+	uint8 private constant SCALE = 18;
 
 	/////////////////////////////////////
 	/// events && errors && modifiers ///
@@ -98,10 +92,20 @@ contract OptionRegistry is AccessControl {
 		uint256 amountLiquidated,
 		uint256 collateralLiquidated
 	);
+	event OperatorUpdated(address operator, bool isOperator);
+	event KeeperUpdated(address target, bool auth);
+	event LiquidityPoolUpdated(address newLiquidityPool);
+	event HealthThresholdsUpdated(
+		uint64 putLower,
+		uint64 putUpper,
+		uint64 callLower,
+		uint64 callUpper
+	);
 
 	error NoVault();
 	error NotKeeper();
 	error NotExpired();
+	error NotOperator();
 	error HealthyVault();
 	error AlreadyExpired();
 	error NotLiquidityPool();
@@ -109,23 +113,20 @@ contract OptionRegistry is AccessControl {
 	error InvalidCollateral();
 	error VaultNotLiquidated();
 	error InsufficientBalance();
+	error VaultAlreadySet();
+	error SeriesAddressAlreadySet();
+	error SeriesInfoAlreadySet();
 
 	constructor(
 		address _collateralAsset,
-		address _oTokenFactory,
-		address _gammaController,
-		address _marginPool,
 		address _liquidityPool,
 		address _addressBook,
 		address _authority
 	) AccessControl(IAuthority(_authority)) {
 		collateralAsset = _collateralAsset;
-		if (ERC20(_collateralAsset).decimals() > 18) {
+		if (ERC20(_collateralAsset).decimals() > SCALE) {
 			revert CustomErrors.InvalidDecimals();
 		}
-		oTokenFactory = _oTokenFactory;
-		gammaController = _gammaController;
-		marginPool = _marginPool;
 		liquidityPool = _liquidityPool;
 		addressBook = AddressBookInterface(_addressBook);
 	}
@@ -141,6 +142,7 @@ contract OptionRegistry is AccessControl {
 	function setLiquidityPool(address _newLiquidityPool) external {
 		_onlyGovernor();
 		liquidityPool = _newLiquidityPool;
+		emit LiquidityPoolUpdated(_newLiquidityPool);
 	}
 
 	/**
@@ -151,6 +153,7 @@ contract OptionRegistry is AccessControl {
 	function setKeeper(address _target, bool _auth) external {
 		_onlyGovernor();
 		keeper[_target] = _auth;
+		emit KeeperUpdated(_target, _auth);
 	}
 
 	/**
@@ -171,6 +174,41 @@ contract OptionRegistry is AccessControl {
 		putUpperHealthFactor = _putUpper;
 		callLowerHealthFactor = _callLower;
 		callUpperHealthFactor = _callUpper;
+		emit HealthThresholdsUpdated(_putLower, _putUpper, _callLower, _callUpper);
+	}
+
+	function setOperator(address _operator, bool _isOperator) external {
+		_onlyGovernor();
+		IController(addressBook.getController()).setOperator(_operator, _isOperator);
+		emit OperatorUpdated(_operator, _isOperator);
+	}
+
+	function setVaultIds(address _seriesAddress, uint256 _id) external {
+		if (!IController(addressBook.getController()).isOperator(address(this), msg.sender)) {
+			revert NotOperator();
+		}
+		if (vaultIds[_seriesAddress] != 0) {
+			revert VaultAlreadySet();
+		}
+		vaultIds[_seriesAddress] = _id;
+	}
+
+	function setSeriesInfoAndAddress(
+		Types.OptionSeries memory _optionSeries,
+		address _seriesAddress,
+		bytes32 _issuanceHash
+	) external {
+		if (!IController(addressBook.getController()).isOperator(address(this), msg.sender)) {
+			revert NotOperator();
+		}
+		if (seriesAddress[_issuanceHash] != address(0)) {
+			revert SeriesAddressAlreadySet();
+		}
+		seriesAddress[_issuanceHash] = _seriesAddress;
+		if (seriesInfo[_seriesAddress].expiration != 0) {
+			revert SeriesInfoAlreadySet();
+		}
+		seriesInfo[_seriesAddress] = _optionSeries;
 	}
 
 	//////////////////////////////////////////////////////
@@ -190,7 +228,7 @@ contract OptionRegistry is AccessControl {
 		}
 		// assumes strike is passed in e18, converts to e8
 		uint128 formattedStrike = uint128(
-			formatStrikePrice(optionSeries.strike, optionSeries.collateral)
+			OptionsCompute.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
 		);
 		// create option storage hash
 		bytes32 issuanceHash = getIssuanceHash(
@@ -203,7 +241,7 @@ contract OptionRegistry is AccessControl {
 		);
 		// check for an opyn oToken if it doesn't exist deploy it
 		address series = OpynInteractions.getOrDeployOtoken(
-			oTokenFactory,
+			addressBook.getOtokenFactory(),
 			optionSeries.collateral,
 			optionSeries.underlying,
 			optionSeries.strikeAsset,
@@ -249,16 +287,17 @@ contract OptionRegistry is AccessControl {
 		// transfer collateral to this contract, collateral will depend on the option type
 		SafeTransferLib.safeTransferFrom(series.collateral, msg.sender, address(this), collateralAmount);
 		// mint the option token following the opyn interface
-		IController controller = IController(gammaController);
+		IController controller = IController(addressBook.getController());
 		// check if a vault for this option already exists
 		uint256 vaultId_ = vaultIds[_series];
 		if (vaultId_ == 0) {
 			vaultId_ = (controller.getAccountVaultCounter(address(this))) + 1;
 			vaultCount++;
 		}
+		vaultIds[_series] = vaultId_;
 		uint256 mintAmount = OpynInteractions.createShort(
-			gammaController,
-			marginPool,
+			address(controller),
+			addressBook.getMarginPool(),
 			_series,
 			collateralAmount,
 			vaultId_,
@@ -268,7 +307,6 @@ contract OptionRegistry is AccessControl {
 		emit OptionsContractOpened(_series, vaultId_, mintAmount);
 		// transfer the option to the liquidity pool
 		SafeTransferLib.safeTransfer(ERC20(_series), msg.sender, mintAmount);
-		vaultIds[_series] = vaultId_;
 		// returns in collateral decimals
 		return (true, collateralAmount);
 	}
@@ -302,7 +340,7 @@ contract OptionRegistry is AccessControl {
 		SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), convertedAmount);
 		// burn the oToken tracking the amount of collateral returned
 		uint256 collatReturned = OpynInteractions.burnShort(
-			gammaController,
+			addressBook.getController(),
 			_series,
 			convertedAmount,
 			vaultId
@@ -322,15 +360,7 @@ contract OptionRegistry is AccessControl {
 	 * @return  number of oTokens that the vault was short
 	 * @dev callable by the liquidityPool so that local variables can also be updated
 	 */
-	function settle(address _series)
-		external
-		returns (
-			bool,
-			uint256,
-			uint256,
-			uint256
-		)
-	{
+	function settle(address _series) external returns (bool, uint256, uint256, uint256) {
 		_isLiquidityPool();
 		Types.OptionSeries memory series = seriesInfo[_series];
 		// strike will be in e8
@@ -345,7 +375,7 @@ contract OptionRegistry is AccessControl {
 		uint256 vaultId = vaultIds[_series];
 		// settle the vault
 		(uint256 collatReturned, uint256 collatLost, uint256 amountShort) = OpynInteractions.settle(
-			gammaController,
+			addressBook.getController(),
 			vaultId
 		);
 		// transfer the collateral back to the liquidity pool
@@ -375,6 +405,7 @@ contract OptionRegistry is AccessControl {
 		if (!isBelowMin && !isAboveMax) {
 			revert HealthyVault();
 		}
+		address gammaController = addressBook.getController();
 		if (isBelowMin) {
 			LiquidityPool(liquidityPool).adjustCollateral(collateralAmount, false);
 			if (LiquidityPool(liquidityPool).getBalance(collateralAsset) < collateralAmount) {
@@ -390,7 +421,7 @@ contract OptionRegistry is AccessControl {
 			// increase the collateral in the vault (make sure balance change is recorded in the LiquidityPool)
 			OpynInteractions.depositCollat(
 				gammaController,
-				marginPool,
+				addressBook.getMarginPool(),
 				_collateralAsset,
 				collateralAmount,
 				vaultId
@@ -425,8 +456,8 @@ contract OptionRegistry is AccessControl {
 		SafeTransferLib.safeTransferFrom(_collateralAsset, msg.sender, address(this), collateralAmount);
 		// increase the collateral in the vault
 		OpynInteractions.depositCollat(
-			gammaController,
-			marginPool,
+			addressBook.getController(),
+			addressBook.getMarginPool(),
 			_collateralAsset,
 			collateralAmount,
 			vaultId
@@ -440,6 +471,7 @@ contract OptionRegistry is AccessControl {
 	 */
 	function wCollatLiquidatedVault(uint256 vaultId) external {
 		_isKeeper();
+		address gammaController = addressBook.getController();
 		// get the vault details from the vaultId
 		GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
 		require(vault.shortAmounts[0] == 0, "Vault has short positions [amount]");
@@ -469,6 +501,7 @@ contract OptionRegistry is AccessControl {
 	 */
 	function registerLiquidatedVault(uint256 vaultId) external {
 		_isKeeper();
+		address gammaController = addressBook.getController();
 		// get the vault liquidation details from the vaultId
 		(address series, uint256 amount, uint256 collateralLiquidated) = IController(gammaController)
 			.getVaultLiquidationDetails(address(this), vaultId);
@@ -509,8 +542,8 @@ contract OptionRegistry is AccessControl {
 		SafeTransferLib.safeTransferFrom(_series, msg.sender, address(this), seriesBalance);
 		// redeem
 		uint256 collatReturned = OpynInteractions.redeem(
-			gammaController,
-			marginPool,
+			addressBook.getController(),
+			addressBook.getMarginPool(),
 			_series,
 			seriesBalance
 		);
@@ -523,17 +556,16 @@ contract OptionRegistry is AccessControl {
 	///////////////////////
 
 	/**
-	 * @notice Send collateral funds for an option to be minted
+	 * @notice Calculate collateral funds for an option to be minted
 	 * @dev series.strike should be scaled by 1e8.
 	 * @param  series details of the option series
 	 * @param  amount amount of options to mint always in e18
 	 * @return amount transferred
 	 */
-	function getCollateral(Types.OptionSeries memory series, uint256 amount)
-		external
-		view
-		returns (uint256)
-	{
+	function getCollateral(
+		Types.OptionSeries memory series,
+		uint256 amount
+	) external view returns (uint256) {
 		IMarginCalculator marginCalc = IMarginCalculator(addressBook.getMarginCalculator());
 		uint256 collateralAmount = marginCalc.getNakedMarginRequired(
 			series.underlying,
@@ -573,11 +605,11 @@ contract OptionRegistry is AccessControl {
 	) external view returns (address) {
 		// check for an opyn oToken
 		address series = OpynInteractions.getOtoken(
-			oTokenFactory,
+			addressBook.getOtokenFactory(),
 			collateral,
 			underlying,
 			strikeAsset,
-			formatStrikePrice(strike, collateral),
+			OptionsCompute.formatStrikePrice(strike, collateral),
 			expiration,
 			isPut
 		);
@@ -594,7 +626,9 @@ contract OptionRegistry is AccessControl {
 	 * @return collatRequired the amount of collateral required to return the vault back to normal
 	 * @return collatAsset the address of the collateral asset
 	 */
-	function checkVaultHealth(uint256 vaultId)
+	function checkVaultHealth(
+		uint256 vaultId
+	)
 		public
 		view
 		returns (
@@ -606,9 +640,10 @@ contract OptionRegistry is AccessControl {
 			address collatAsset
 		)
 	{
+		IController gammaController = IController(addressBook.getController());
 		// run checks on the vault health
 		// get the vault details from the vaultId
-		GammaTypes.Vault memory vault = IController(gammaController).getVault(address(this), vaultId);
+		GammaTypes.Vault memory vault = gammaController.getVault(address(this), vaultId);
 		// get the series
 		Types.OptionSeries memory series = seriesInfo[vault.shortOtokens[0]];
 		if (series.expiration < block.timestamp) {
@@ -704,22 +739,6 @@ contract OptionRegistry is AccessControl {
 	//////////////////////////
 	/// internal utilities ///
 	//////////////////////////
-
-	/**
-	 * @notice Converts strike price to 1e8 format and floors least significant digits if needed
-	 * @param  strikePrice strikePrice in 1e18 format
-	 * @param  collateral address of collateral asset
-	 * @return if the transaction succeeded
-	 */
-	function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256) {
-		// convert strike to 1e8 format
-		uint256 price = strikePrice / (10**10);
-		uint256 collateralDecimals = ERC20(collateral).decimals();
-		if (collateralDecimals >= OPYN_DECIMALS) return price;
-		uint256 difference = OPYN_DECIMALS - collateralDecimals;
-		// round floor strike to prevent errors in Gamma protocol
-		return (price / (10**difference)) * (10**difference);
-	}
 
 	function _isLiquidityPool() internal view {
 		if (msg.sender != liquidityPool) {

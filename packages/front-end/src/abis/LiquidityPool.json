@@ -536,19 +536,6 @@
 		"type": "function"
 	},
 	{
-		"inputs": [],
-		"name": "_getVolatilityFeed",
-		"outputs": [
-			{
-				"internalType": "contract VolatilityFeed",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [
 			{
 				"internalType": "uint256",
@@ -562,6 +549,34 @@
 			}
 		],
 		"name": "adjustCollateral",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "collateralAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "optionsValue",
+				"type": "uint256"
+			},
+			{
+				"internalType": "int256",
+				"name": "delta",
+				"type": "int256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isSale",
+				"type": "bool"
+			}
+		],
+		"name": "adjustVariables",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -981,6 +996,19 @@
 				"internalType": "int256",
 				"name": "",
 				"type": "int256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getVolatilityFeed",
+		"outputs": [
+			{
+				"internalType": "contract VolatilityFeed",
+				"name": "",
+				"type": "address"
 			}
 		],
 		"stateMutability": "view",

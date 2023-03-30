@@ -53,6 +53,7 @@ contract OptionCatalogue is AccessControl {
 	}
 
 	event SeriesApproved(
+		bytes32 indexed optionHash,
 		uint64 expiration,
 		uint128 strike,
 		bool isPut,
@@ -60,6 +61,7 @@ contract OptionCatalogue is AccessControl {
 		bool isSellable
 	);
 	event SeriesAltered(
+		bytes32 indexed optionHash,
 		uint64 expiration,
 		uint128 strike,
 		bool isPut,
@@ -67,10 +69,7 @@ contract OptionCatalogue is AccessControl {
 		bool isSellable
 	);
 
-	constructor(
-		address _authority,
-		address _collateralAsset
-	) AccessControl(IAuthority(_authority)) {
+	constructor(address _authority, address _collateralAsset) AccessControl(IAuthority(_authority)) {
 		collateralAsset = _collateralAsset;
 	}
 
@@ -90,9 +89,9 @@ contract OptionCatalogue is AccessControl {
 			Types.Option memory o = options[i];
 			// make sure the strike gets formatted properly
 			uint128 strike = uint128(
-				formatStrikePrice(o.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
+				OptionsCompute.formatStrikePrice(o.strike, collateralAsset) * 10 ** (CONVERSION_DECIMALS)
 			);
-			if((o.expiration - 28800) % 86400 != 0) {
+			if ((o.expiration - 28800) % 86400 != 0) {
 				revert CustomErrors.InvalidExpiry();
 			}
 			// get the hash of the option (how the option is stored on the books)
@@ -119,7 +118,7 @@ contract OptionCatalogue is AccessControl {
 			// there shouldnt be any duplicates in the strike array or expiration array
 			optionDetails[o.expiration][o.isPut].push(strike);
 			// emit an event of the series creation, now users can write options on this series
-			emit SeriesApproved(o.expiration, strike, o.isPut, o.isBuyable, o.isSellable);
+			emit SeriesApproved(optionHash, o.expiration, strike, o.isPut, o.isBuyable, o.isSellable);
 		}
 	}
 
@@ -136,7 +135,7 @@ contract OptionCatalogue is AccessControl {
 			// make sure the strike gets formatted properly, we get it to e8 format in the converter
 			// then convert it back to e18
 			uint128 strike = uint128(
-				formatStrikePrice(o.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
+				OptionsCompute.formatStrikePrice(o.strike, collateralAsset) * 10 ** (CONVERSION_DECIMALS)
 			);
 			// get the option hash
 			bytes32 optionHash = keccak256(abi.encodePacked(o.expiration, strike, o.isPut));
@@ -144,7 +143,7 @@ contract OptionCatalogue is AccessControl {
 			if (optionStores[optionHash].approvedOption) {
 				optionStores[optionHash].isBuyable = o.isBuyable;
 				optionStores[optionHash].isSellable = o.isSellable;
-				emit SeriesAltered(o.expiration, strike, o.isPut, o.isBuyable, o.isSellable);
+				emit SeriesAltered(optionHash, o.expiration, strike, o.isPut, o.isBuyable, o.isSellable);
 			} else {
 				revert CustomErrors.UnapprovedSeries();
 			}
@@ -185,25 +184,5 @@ contract OptionCatalogue is AccessControl {
 
 	function approvedOptions(bytes32 oHash) external view returns (bool) {
 		return optionStores[oHash].approvedOption;
-	}
-
-	///////////////////////
-	/// complex getters ///
-	///////////////////////
-
-	/**
-	 * @notice Converts strike price to 1e8 format and floors least significant digits if needed
-	 * @param  strikePrice strikePrice in 1e18 format
-	 * @param  collateral address of collateral asset
-	 * @return if the transaction succeeded
-	 */
-	function formatStrikePrice(uint256 strikePrice, address collateral) public view returns (uint256) {
-		// convert strike to 1e8 format
-		uint256 price = strikePrice / (10**10);
-		uint256 collateralDecimals = ERC20(collateral).decimals();
-		if (collateralDecimals >= OPYN_DECIMALS) return price;
-		uint256 difference = OPYN_DECIMALS - collateralDecimals;
-		// round floor strike to prevent errors in Gamma protocol
-		return (price / (10**difference)) * (10**difference);
 	}
 }

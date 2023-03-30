@@ -35,6 +35,8 @@ contract VolatilityFeed is AccessControl {
 	int256 private constant ONE_YEAR_SECONDS = 31557600;
 	int256 private constant BIPS_SCALE = 1e12;
 	int256 private constant BIPS = 1e6;
+	int256 private constant maxInterestRate = 200e18;
+	int256 private constant minInterestRate = -200e18;
 
 	struct SABRParams {
 		int32 callAlpha; // not bigger or less than an int32 and above 0
@@ -72,6 +74,7 @@ contract VolatilityFeed is AccessControl {
 		int32 putVolvol,
 		int256 interestRate
 	);
+	event KeeperUpdated(address keeper, bool auth);
 
 	/**
 	 * @notice set the sabr volatility params
@@ -103,14 +106,11 @@ contract VolatilityFeed is AccessControl {
 		) {
 			revert RhoError();
 		}
-		if(
-			_sabrParams.interestRate > 200e18 ||
-			_sabrParams.interestRate < -200e18 
-		) {
+		if (_sabrParams.interestRate > maxInterestRate || _sabrParams.interestRate < minInterestRate) {
 			revert InterestRateError();
 		}
 		// if the expiry is not already a registered expiry then add it to the expiry list
-		if(sabrParams[_expiry].callAlpha == 0) {
+		if (sabrParams[_expiry].callAlpha == 0) {
 			expiries.push(_expiry);
 		}
 		sabrParams[_expiry] = _sabrParams;
@@ -132,6 +132,7 @@ contract VolatilityFeed is AccessControl {
 	function setKeeper(address _keeper, bool _auth) external {
 		_onlyGovernor();
 		keeper[_keeper] = _auth;
+		emit KeeperUpdated(_keeper, _auth);
 	}
 
 	///////////////////////
@@ -152,7 +153,7 @@ contract VolatilityFeed is AccessControl {
 		uint256 strikePrice,
 		uint256 expiration
 	) external view returns (uint256 vol) {
-		(vol,) = _getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+		(vol, ) = _getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
 	}
 
 	/**
@@ -197,7 +198,9 @@ contract VolatilityFeed is AccessControl {
 		if (sabrParams_.callAlpha == 0) {
 			revert CustomErrors.IVNotFound();
 		}
-		int256 forwardPrice = int256(underlyingPrice).mul((PRBMathSD59x18.exp(sabrParams_.interestRate.mul(time))));
+		int256 forwardPrice = int256(underlyingPrice).mul(
+			(PRBMathSD59x18.exp(sabrParams_.interestRate.mul(time)))
+		);
 		if (!isPut) {
 			vol = SABR.lognormalVol(
 				int256(strikePrice),

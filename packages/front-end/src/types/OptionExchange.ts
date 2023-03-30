@@ -58,7 +58,7 @@ export declare namespace CombinedActions {
     vaultId: BigNumberish;
     amount: BigNumberish;
     optionSeries: Types.OptionSeriesStruct;
-    index: BigNumberish;
+    indexOrAcceptablePremium: BigNumberish;
     data: BytesLike;
   };
 
@@ -80,7 +80,7 @@ export declare namespace CombinedActions {
     vaultId: BigNumber;
     amount: BigNumber;
     optionSeries: Types.OptionSeriesStructOutput;
-    index: BigNumber;
+    indexOrAcceptablePremium: BigNumber;
     data: string;
   };
 
@@ -110,7 +110,6 @@ export interface OptionExchangeInterface extends utils.Interface {
     "collateralAsset()": FunctionFragment;
     "createOtoken((uint64,uint128,bool,address,address,address))": FunctionFragment;
     "feeRecipient()": FunctionFragment;
-    "formatStrikePrice(uint256,address)": FunctionFragment;
     "getDelta()": FunctionFragment;
     "getOptionDetails(address,(uint64,uint128,bool,address,address,address))": FunctionFragment;
     "getPoolDenominatedValue()": FunctionFragment;
@@ -171,10 +170,6 @@ export interface OptionExchangeInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "feeRecipient",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "formatStrikePrice",
-    values: [BigNumberish, string]
   ): string;
   encodeFunctionData(functionFragment: "getDelta", values?: undefined): string;
   encodeFunctionData(
@@ -293,10 +288,6 @@ export interface OptionExchangeInterface extends utils.Interface {
     functionFragment: "feeRecipient",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "formatStrikePrice",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "getDelta", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getOptionDetails",
@@ -368,26 +359,36 @@ export interface OptionExchangeInterface extends utils.Interface {
 
   events: {
     "AuthorityUpdated(address)": EventFragment;
+    "CatalogueUpdated(address)": EventFragment;
     "CollateralApprovalChanged(address,bool,bool)": EventFragment;
+    "FeeRecipientUpdated(address)": EventFragment;
     "OptionsBought(address,address,uint256,uint256,uint256)": EventFragment;
     "OptionsIssued(address)": EventFragment;
     "OptionsRedeemed(address,uint256,uint256,address)": EventFragment;
     "OptionsSold(address,address,uint256,uint256,uint256)": EventFragment;
     "OtokenMigrated(address,address,uint256)": EventFragment;
     "Paused(address)": EventFragment;
+    "PoolFeeUpdated(address,uint24)": EventFragment;
+    "PricerUpdated(address)": EventFragment;
     "RedemptionSent(uint256,address,address)": EventFragment;
+    "TradeSizeLimitsUpdated(uint256,uint256)": EventFragment;
     "Unpaused(address)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "CatalogueUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "CollateralApprovalChanged"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "FeeRecipientUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OptionsBought"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OptionsIssued"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OptionsRedeemed"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OptionsSold"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "OtokenMigrated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Paused"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "PoolFeeUpdated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "PricerUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RedemptionSent"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TradeSizeLimitsUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Unpaused"): EventFragment;
 }
 
@@ -396,6 +397,11 @@ export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
 export type AuthorityUpdatedEventFilter =
   TypedEventFilter<AuthorityUpdatedEvent>;
 
+export type CatalogueUpdatedEvent = TypedEvent<[string], { catalogue: string }>;
+
+export type CatalogueUpdatedEventFilter =
+  TypedEventFilter<CatalogueUpdatedEvent>;
+
 export type CollateralApprovalChangedEvent = TypedEvent<
   [string, boolean, boolean],
   { collateral: string; isPut: boolean; isApproved: boolean }
@@ -403,6 +409,14 @@ export type CollateralApprovalChangedEvent = TypedEvent<
 
 export type CollateralApprovalChangedEventFilter =
   TypedEventFilter<CollateralApprovalChangedEvent>;
+
+export type FeeRecipientUpdatedEvent = TypedEvent<
+  [string],
+  { feeRecipient: string }
+>;
+
+export type FeeRecipientUpdatedEventFilter =
+  TypedEventFilter<FeeRecipientUpdatedEvent>;
 
 export type OptionsBoughtEvent = TypedEvent<
   [string, string, BigNumber, BigNumber, BigNumber],
@@ -457,12 +471,31 @@ export type PausedEvent = TypedEvent<[string], { account: string }>;
 
 export type PausedEventFilter = TypedEventFilter<PausedEvent>;
 
+export type PoolFeeUpdatedEvent = TypedEvent<
+  [string, number],
+  { asset: string; fee: number }
+>;
+
+export type PoolFeeUpdatedEventFilter = TypedEventFilter<PoolFeeUpdatedEvent>;
+
+export type PricerUpdatedEvent = TypedEvent<[string], { pricer: string }>;
+
+export type PricerUpdatedEventFilter = TypedEventFilter<PricerUpdatedEvent>;
+
 export type RedemptionSentEvent = TypedEvent<
   [BigNumber, string, string],
   { redeemAmount: BigNumber; redeemAsset: string; recipient: string }
 >;
 
 export type RedemptionSentEventFilter = TypedEventFilter<RedemptionSentEvent>;
+
+export type TradeSizeLimitsUpdatedEvent = TypedEvent<
+  [BigNumber, BigNumber],
+  { minTradeSize: BigNumber; maxTradeSize: BigNumber }
+>;
+
+export type TradeSizeLimitsUpdatedEventFilter =
+  TypedEventFilter<TradeSizeLimitsUpdatedEvent>;
 
 export type UnpausedEvent = TypedEvent<[string], { account: string }>;
 
@@ -530,12 +563,6 @@ export interface OptionExchange extends BaseContract {
     ): Promise<ContractTransaction>;
 
     feeRecipient(overrides?: CallOverrides): Promise<[string]>;
-
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
 
     getDelta(
       overrides?: CallOverrides
@@ -682,12 +709,6 @@ export interface OptionExchange extends BaseContract {
 
   feeRecipient(overrides?: CallOverrides): Promise<string>;
 
-  formatStrikePrice(
-    strikePrice: BigNumberish,
-    collateral: string,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
   getDelta(overrides?: CallOverrides): Promise<BigNumber>;
 
   getOptionDetails(
@@ -831,12 +852,6 @@ export interface OptionExchange extends BaseContract {
 
     feeRecipient(overrides?: CallOverrides): Promise<string>;
 
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getDelta(overrides?: CallOverrides): Promise<BigNumber>;
 
     getOptionDetails(
@@ -942,6 +957,9 @@ export interface OptionExchange extends BaseContract {
     "AuthorityUpdated(address)"(authority?: null): AuthorityUpdatedEventFilter;
     AuthorityUpdated(authority?: null): AuthorityUpdatedEventFilter;
 
+    "CatalogueUpdated(address)"(catalogue?: null): CatalogueUpdatedEventFilter;
+    CatalogueUpdated(catalogue?: null): CatalogueUpdatedEventFilter;
+
     "CollateralApprovalChanged(address,bool,bool)"(
       collateral?: string | null,
       isPut?: null,
@@ -952,6 +970,11 @@ export interface OptionExchange extends BaseContract {
       isPut?: null,
       isApproved?: null
     ): CollateralApprovalChangedEventFilter;
+
+    "FeeRecipientUpdated(address)"(
+      feeRecipient?: null
+    ): FeeRecipientUpdatedEventFilter;
+    FeeRecipientUpdated(feeRecipient?: null): FeeRecipientUpdatedEventFilter;
 
     "OptionsBought(address,address,uint256,uint256,uint256)"(
       series?: string | null,
@@ -1013,6 +1036,15 @@ export interface OptionExchange extends BaseContract {
     "Paused(address)"(account?: null): PausedEventFilter;
     Paused(account?: null): PausedEventFilter;
 
+    "PoolFeeUpdated(address,uint24)"(
+      asset?: null,
+      fee?: null
+    ): PoolFeeUpdatedEventFilter;
+    PoolFeeUpdated(asset?: null, fee?: null): PoolFeeUpdatedEventFilter;
+
+    "PricerUpdated(address)"(pricer?: null): PricerUpdatedEventFilter;
+    PricerUpdated(pricer?: null): PricerUpdatedEventFilter;
+
     "RedemptionSent(uint256,address,address)"(
       redeemAmount?: null,
       redeemAsset?: null,
@@ -1023,6 +1055,15 @@ export interface OptionExchange extends BaseContract {
       redeemAsset?: null,
       recipient?: null
     ): RedemptionSentEventFilter;
+
+    "TradeSizeLimitsUpdated(uint256,uint256)"(
+      minTradeSize?: null,
+      maxTradeSize?: null
+    ): TradeSizeLimitsUpdatedEventFilter;
+    TradeSizeLimitsUpdated(
+      minTradeSize?: null,
+      maxTradeSize?: null
+    ): TradeSizeLimitsUpdatedEventFilter;
 
     "Unpaused(address)"(account?: null): UnpausedEventFilter;
     Unpaused(account?: null): UnpausedEventFilter;
@@ -1063,12 +1104,6 @@ export interface OptionExchange extends BaseContract {
     ): Promise<BigNumber>;
 
     feeRecipient(overrides?: CallOverrides): Promise<BigNumber>;
-
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
 
     getDelta(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -1213,12 +1248,6 @@ export interface OptionExchange extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     feeRecipient(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    formatStrikePrice(
-      strikePrice: BigNumberish,
-      collateral: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
 
     getDelta(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 

@@ -90,10 +90,13 @@ describe("Options protocol Vault Health", function () {
 		// deploy libraries
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
 		const interactions = await interactionsFactory.deploy()
+		const computeFactory = await hre.ethers.getContractFactory("contracts/libraries/OptionsCompute.sol:OptionsCompute")
+		const compute = await computeFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
-				OpynInteractions: interactions.address
+				OpynInteractions: interactions.address,
+				OptionsCompute: compute.address
 			}
 		})
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")
@@ -117,9 +120,6 @@ describe("Options protocol Vault Health", function () {
 		await weth.deposit({ value: utils.parseEther("99") })
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
-			OTOKEN_FACTORY[chainId],
-			GAMMA_CONTROLLER[chainId],
-			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId],
 			authority.address
@@ -128,9 +128,6 @@ describe("Options protocol Vault Health", function () {
 		expect(optionRegistry).to.have.property("deployTransaction")
 		const _optionRegistryETH = (await optionRegistryFactory.deploy(
 			WETH_ADDRESS[chainId],
-			OTOKEN_FACTORY[chainId],
-			GAMMA_CONTROLLER[chainId],
-			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId],
 			authority.address

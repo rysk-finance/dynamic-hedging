@@ -16,6 +16,7 @@ import "./interfaces/GammaInterface.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
+import "./interfaces/AddressBookInterface.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
@@ -40,6 +41,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	///////////////////////////
 
 	uint256 constant oTokenDecimals = 8;
+	int256 private constant SCALE = 1e18;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -101,9 +103,9 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	 * @notice Executes once when a contract is created to initialize state variables
 	 *		   Make sure the protocol is configured after deployment
 	 */
-	constructor(address _authority, uint256 _maxNetDhvExposure) AccessControl(IAuthority(_authority)) {		
+	constructor(address _authority, uint256 _maxNetDhvExposure) AccessControl(IAuthority(_authority)) {
 		maxNetDhvExposure = _maxNetDhvExposure;
-		}
+	}
 
 	///////////////
 	/// setters ///
@@ -194,10 +196,10 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 			// calculate the net exposure
 			int256 netExposure = _optionStores.shortExposure - _optionStores.longExposure;
 			// increment the deltas by adding if the option is long and subtracting if the option is short
-			delta -= (_delta * netExposure) / 1e18;
+			delta -= (_delta * netExposure) / SCALE;
 			// increment the values by subtracting if the option is long (as this represents liabilities in the liquidity pool) and adding if the option is short as this value
 			// represents liabilities
-			callPutsValue += (int256(_callPutsValue) * netExposure) / 1e18;
+			callPutsValue += (int256(_callPutsValue) * netExposure) / SCALE;
 		}
 		// update the portfolio values
 		Types.PortfolioValues memory portfolioValue = Types.PortfolioValues({
@@ -243,7 +245,9 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 			storesForAddress[_seriesAddress].longExposure += longExposure;
 		}
 		// get the hash of the option (how the option is stored on the books)
-		bytes32 oHash = keccak256(abi.encodePacked(_optionSeries.expiration, _optionSeries.strike, _optionSeries.isPut));
+		bytes32 oHash = keccak256(
+			abi.encodePacked(_optionSeries.expiration, _optionSeries.strike, _optionSeries.isPut)
+		);
 		netDhvExposure[oHash] -= shortExposure;
 		netDhvExposure[oHash] += longExposure;
 		if (uint256(netDhvExposure[oHash].abs()) > maxNetDhvExposure) revert MaxNetDhvExposureExceeded();
@@ -329,7 +333,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		}
 		// get the vault details and reset the short exposure to whatever it is
 		uint256 shortAmounts = OptionsCompute.convertFromDecimals(
-			IController(optionRegistry.gammaController())
+			IController(AddressBookInterface(optionRegistry.addressBook()).getController())
 				.getVault(address(optionRegistry), vaultId)
 				.shortAmounts[0],
 			oTokenDecimals
@@ -387,11 +391,10 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	/// non-complex getters ///
 	///////////////////////////
 
-	function getPortfolioValues(address underlying, address strike)
-		external
-		view
-		returns (Types.PortfolioValues memory)
-	{
+	function getPortfolioValues(
+		address underlying,
+		address strike
+	) external view returns (Types.PortfolioValues memory) {
 		return portfolioValues[underlying][strike];
 	}
 
@@ -450,11 +453,10 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	 * @param _strikeAsset the asset that the underlying value is denominated in
 	 * @return the underlying price
 	 */
-	function _getUnderlyingPrice(address underlying, address _strikeAsset)
-		internal
-		view
-		returns (uint256)
-	{
+	function _getUnderlyingPrice(
+		address underlying,
+		address _strikeAsset
+	) internal view returns (uint256) {
 		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
 }

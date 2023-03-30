@@ -63,6 +63,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
+	// OPYN DECIMALS
+	uint8 private constant OPYN_DECIMALS = 8;
 	// custom order maximum time for liveness
 	uint256 private constant maxOrderExpiry = 1800;
 
@@ -72,6 +74,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 
 	event OrderCreated(uint256 orderId);
 	event OrderExecuted(uint256 orderId);
+	event FeeRecipientUpdated(address feeRecipient);
+	event FeePerContractUpdated(uint256 feePerContract);
 	event OptionsBought(address indexed series, address indexed buyer, uint256 optionAmount, uint256 premium, uint256 fee);
 	event OptionsSold(address indexed series, address indexed seller, uint256 optionAmount, uint256 premium, uint256 fee);
 
@@ -91,12 +95,14 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	function setFeePerContract(uint256 _feePerContract) external {
 		_onlyGovernor();
 		feePerContract = _feePerContract;
+		emit FeePerContractUpdated(_feePerContract);
 	}
 
 	function setFeeRecipient(address _feeRecipient) external {
 		_onlyGovernor();
 		require(_feeRecipient != address(0));
 		feeRecipient = _feeRecipient;
+		emit FeeRecipientUpdated(_feeRecipient);
 	}
 
 	//////////////////////////////////////////////////////
@@ -271,7 +277,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			order.optionSeries.expiration,
-			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, 8)),
+			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, OPYN_DECIMALS)),
 			order.optionSeries.isPut,
 			underlyingAsset,
 			strikeAsset,
@@ -343,7 +349,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			order.optionSeries.expiration,
-			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, 8)),
+			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, OPYN_DECIMALS)),
 			order.optionSeries.isPut,
 			underlyingAsset,
 			strikeAsset,

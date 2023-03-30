@@ -43,10 +43,13 @@ export async function deploySystem(
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
+	const computeFactory = await hre.ethers.getContractFactory("OptionsCompute")
+	const compute = await computeFactory.deploy()
 	// deploy options registry
 	const optionRegistryFactory = await hre.ethers.getContractFactory("OptionRegistry", {
 		libraries: {
-			OpynInteractions: interactions.address
+			OpynInteractions: interactions.address,
+			OptionsCompute: compute.address
 		}
 	})
 	const authorityFactory = await hre.ethers.getContractFactory("Authority")
@@ -73,9 +76,6 @@ export async function deploySystem(
 	await weth.deposit({ value: utils.parseEther("99") })
 	const _optionRegistry = (await optionRegistryFactory.deploy(
 		USDC_ADDRESS[chainId],
-		OTOKEN_FACTORY[chainId],
-		GAMMA_CONTROLLER[chainId],
-		MARGIN_POOL[chainId],
 		senderAddress,
 		ADDRESS_BOOK[chainId],
 		authority.address
@@ -236,7 +236,13 @@ export async function deployLiquidityPool(
 	const AccountingFactory = await ethers.getContractFactory("Accounting")
 	const Accounting = (await AccountingFactory.deploy(liquidityPool.address)) as Accounting
 	await optionProtocol.changeAccounting(Accounting.address)
-	const catalogueFactory = await ethers.getContractFactory("OptionCatalogue")
+	const computeFactory = await hre.ethers.getContractFactory("OptionsCompute")
+	const compute = await computeFactory.deploy()
+	const catalogueFactory = await ethers.getContractFactory("OptionCatalogue", {
+		libraries: {
+			OptionsCompute: compute.address
+		}
+	})
 	const catalogue = (await catalogueFactory.deploy(
 		authority,
 		usd.address

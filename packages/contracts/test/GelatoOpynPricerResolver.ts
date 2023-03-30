@@ -85,7 +85,7 @@ function hexToUtf8(hexEncodedMessage: any) {
 	)
 }
 
-describe("Options protocol", function () {
+describe("Gelato option registry tests", function () {
 	before(async function () {
 		await hre.network.provider.request({
 			method: "hardhat_reset",
@@ -114,10 +114,13 @@ describe("Options protocol", function () {
 		// deploy libraries
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
 		interactions = (await interactionsFactory.deploy()) as OpynInteractions
+		const computeFactory = await hre.ethers.getContractFactory("contracts/libraries/OptionsCompute.sol:OptionsCompute")
+		const compute = await computeFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 			libraries: {
-				OpynInteractions: interactions.address
+				OpynInteractions: interactions.address,
+				OptionsCompute: compute.address
 			}
 		})
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")
@@ -140,9 +143,6 @@ describe("Options protocol", function () {
 		await weth.deposit({ value: utils.parseEther("99") })
 		const _optionRegistry = (await optionRegistryFactory.deploy(
 			USDC_ADDRESS[chainId],
-			OTOKEN_FACTORY[chainId],
-			controller.address,
-			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId],
 			authority.address
@@ -151,9 +151,6 @@ describe("Options protocol", function () {
 		expect(optionRegistry).to.have.property("deployTransaction")
 		const _optionRegistryETH = (await optionRegistryFactory.deploy(
 			WETH_ADDRESS[chainId],
-			OTOKEN_FACTORY[chainId],
-			controller.address,
-			MARGIN_POOL[chainId],
 			senderAddress,
 			ADDRESS_BOOK[chainId],
 			authority.address
@@ -176,7 +173,6 @@ describe("Options protocol", function () {
 
 		const checkerResult = await resolver.checker()
 		const decodedResult = hexToUtf8(checkerResult.execPayload)
-		console.log({ decodedResult })
 
 		expect(decodedResult).to.eq("Incorrect time")
 	})
@@ -189,12 +185,10 @@ describe("Options protocol", function () {
 		const date = new Date(timestamp * 1000)
 		// time is 19:05 UTC.
 		expect(date.getUTCHours()).to.eq(8)
-		console.log({ timestamp, date, dateHour: date.getUTCHours() })
 		const checkerResult = await resolver.checker()
 		const decodedResult = hexToUtf8(checkerResult.execPayload)
 		expect(decodedResult).to.eq("latest chainlink price before expiry")
 
-		console.log(decodedResult, checkerResult)
 	})
 	it("re-forks network at between 8am and 9am", async () => {
 		// fork network shortly after 8am when a price will have been set already
@@ -229,7 +223,6 @@ describe("Options protocol", function () {
 	})
 	it("returns false due to price already set ", async () => {
 		const oracleOwner = await oracle.owner()
-		console.log({ oracleOwner })
 
 		await hre.network.provider.request({
 			method: "hardhat_impersonateAccount",

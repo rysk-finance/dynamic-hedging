@@ -339,7 +339,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						vaultId: 0,
 						amount: 0,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}, {
 						actionType: 1,
@@ -349,7 +349,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: quote,
 						data: "0x"
 					}]
 				}])
@@ -430,11 +430,81 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: quote,
 						data: "0x"
 					}]
 				}])).to.be.revertedWithCustomError(exchange, "UnapprovedSeries")
 
+		})
+		it("REVERTS: buys the options from the exchange on a series where premium passes slippage limit", async () => {
+			const amount = toWei("5")
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const strikePrice = priceQuote.add(toWei(strike))
+			const proposedSeries = {
+				expiration: expiration,
+				strike: BigNumber.from(strikePrice),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, amount)
+			let quote = quoteResponse[0].add(quoteResponse[2])
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 1,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: quote.sub(1e6),
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "TooMuchSlippage")
+		})
+		it("REVERTS: sells the options to the exchange on a series where premium passes slippage limit", async () => {
+			const amount = toWei("5")
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const strikePrice = priceQuote.add(toWei(strike))
+			const proposedSeries = {
+				expiration: expiration,
+				strike: BigNumber.from(strikePrice),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, amount)
+			let quote = quoteResponse[0]
+			await expect(
+				exchange.operate([
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionToken.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: quote.add(1e6),
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "TooMuchSlippage")
 		})
 		it("SETUP: set maxMetDhvExposure", async () => {
 			await portfolioValuesFeed.setMaxNetDhvExposure(toWei("3"))
@@ -467,7 +537,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						vaultId: 0,
 						amount: 0,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}, {
 						actionType: 1,
@@ -477,7 +547,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: quote,
 						data: "0x"
 					}]
 				}])).to.be.revertedWithCustomError(portfolioValuesFeed, "MaxNetDhvExposureExceeded")
@@ -499,7 +569,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -700,9 +770,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-				ethers.utils.parseUnits("1", 10)
-			)
+			const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
+			).mul(ethers.utils.parseUnits("1", 12))
 			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
@@ -728,7 +797,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -751,7 +820,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: amount,
 								data: "0x"
 							}
 						]
@@ -774,7 +843,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -797,7 +866,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: amount,
 								data: "0x"
 							}
 						]
@@ -820,7 +889,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -831,9 +900,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-				ethers.utils.parseUnits("1", 10)
-			)
+			const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
+			).mul(ethers.utils.parseUnits("1", 12))
 			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
@@ -868,7 +936,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: emptySeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}]
 				}])
@@ -930,7 +998,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: proposedSeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -954,7 +1022,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -965,9 +1033,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		it("SETUP: change option buy or sell on series", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			const strikePrice = priceQuote.add(toWei(strike))
-			const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-				ethers.utils.parseUnits("1", 10)
-			)
+			const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
+			).mul(ethers.utils.parseUnits("1", 12))
 			const tx = await catalogue.changeOptionBuyOrSell([
 				{
 					expiration: expiration,
@@ -1003,7 +1070,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -1115,7 +1182,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: vaultId,
 							amount: 0,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: abiCode.encode(["uint256"], [1])
 						},
 						{
@@ -1126,7 +1193,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: vaultId,
 							amount: marginRequirement,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						},
 						{
@@ -1137,7 +1204,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: vaultId,
 							amount: amount.div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						}
 					]
@@ -1153,7 +1220,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -1238,7 +1305,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1249,7 +1316,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: quote,
 							data: "0x"
 						}
 					]
@@ -1359,7 +1426,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: quote,
 							data: "0x"
 						}
 					]
@@ -1458,7 +1525,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: 0,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: abiCode.encode(["uint256"], [1])
 							},
 							{
@@ -1469,7 +1536,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: marginRequirement,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							},
 							{
@@ -1480,7 +1547,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: amount.div(ethers.utils.parseUnits("1", 10)),
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							}
 						]
@@ -1496,7 +1563,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount.div(2),
 								optionSeries: proposedSeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -1546,7 +1613,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: 0,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: abiCode.encode(["uint256"], [1])
 							},
 							{
@@ -1557,7 +1624,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: marginRequirement,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							},
 							{
@@ -1568,7 +1635,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: amount.div(ethers.utils.parseUnits("1", 10)),
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							}
 						]
@@ -1584,7 +1651,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount.mul(2),
 								optionSeries: proposedSeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -1645,7 +1712,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: vaultId,
 							amount: 0,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: abiCode.encode(["uint256"], [1])
 						},
 						{
@@ -1656,7 +1723,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: vaultId,
 							amount: marginRequirement,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						},
 						{
@@ -1667,7 +1734,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: vaultId,
 							amount: amount.div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						}
 					]
@@ -1683,7 +1750,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount.div(2),
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1694,7 +1761,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount.div(2),
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -1817,7 +1884,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: proposedSeries,
-								index: 0,
+								indexOrAcceptablePremium: quote,
 								data: "0x"
 							}
 						]
@@ -1853,7 +1920,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -1899,7 +1966,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -1956,7 +2023,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -2000,7 +2067,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -2077,7 +2144,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -2088,7 +2155,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: quote,
 							data: "0x"
 						}
 					]
@@ -2185,7 +2252,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -2196,7 +2263,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: quote,
 							data: "0x"
 						}
 					]
@@ -2303,7 +2370,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: vaultId,
 							amount: 0,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: abiCode.encode(["uint256"], [1])
 						},
 						{
@@ -2314,7 +2381,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: vaultId,
 							amount: marginRequirement,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						},
 						{
@@ -2325,7 +2392,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: vaultId,
 							amount: amount.div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: ZERO_ADDRESS
 						}
 					]
@@ -2341,7 +2408,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount.add(toWei("1")),
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -2445,7 +2512,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: proposedSeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -2490,7 +2557,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: proposedSeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -2557,7 +2624,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -2568,7 +2635,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: quote,
 							data: "0x"
 						}
 					]
@@ -2666,7 +2733,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: 0,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: abiCode.encode(["uint256"], [1])
 							},
 							{
@@ -2677,7 +2744,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: marginRequirement,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							},
 							{
@@ -2688,7 +2755,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: amount.div(ethers.utils.parseUnits("1", 10)),
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							}
 						]
@@ -2704,7 +2771,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount.add(toWei("1")),
 								optionSeries: proposedSeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -2738,7 +2805,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -2771,7 +2838,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -2782,7 +2849,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, before.netDhvExposure)
 			await compareQuotes(quoteResponse, liquidityPool, volFeed, priceFeed, proposedSeries, amount, true, exchange, optionRegistry, usd, pricer, before.netDhvExposure)
 			// do not subtract the fee as we expect it to be waived
-			let quote = quoteResponse[0]
+			let quote = quoteResponse[0].sub((quoteResponse[0].mul(toWei("12.5")).div(toWei("100"))))
 			const after = await getExchangeParams(
 				liquidityPool,
 				exchange,
@@ -2853,7 +2920,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -2864,7 +2931,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: quote,
 							data: "0x"
 						}
 					]
@@ -2943,7 +3010,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -3047,7 +3114,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: amount,
 								data: "0x"
 							}
 						]
@@ -3080,7 +3147,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -3232,7 +3299,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -3278,7 +3345,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -3344,7 +3411,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: amount,
 								data: "0x"
 							}
 						]
@@ -3500,7 +3567,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: 0,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: abiCode.encode(["uint256"], [1])
 							},
 							{
@@ -3511,7 +3578,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: marginRequirement,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							},
 							{
@@ -3522,7 +3589,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: amount.div(ethers.utils.parseUnits("1", 10)),
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							}
 						]
@@ -3538,7 +3605,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: "0x"
 							}
 						]
@@ -3747,7 +3814,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 									vaultId: 0,
 									amount: amount,
 									optionSeries: emptySeries,
-									index: 0,
+									indexOrAcceptablePremium: 0,
 									data: "0x"
 								}
 							]
@@ -3834,9 +3901,12 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			it("SUCCEEDS: deploy new option exchange", async () => {
 				const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 				const interactions = await interactionsFactory.deploy()
+				const computeFactory = await hre.ethers.getContractFactory("OptionsCompute")
+				const compute = await computeFactory.deploy()
 				const exchangeFactory = await ethers.getContractFactory("OptionExchange", {
 					libraries: {
-						OpynInteractions: interactions.address
+						OpynInteractions: interactions.address,
+						OptionsCompute: compute.address
 					}
 				})
 				migExchange = (await exchangeFactory.deploy(
@@ -3882,7 +3952,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.pricer()).to.equal(senderAddress)
 			})
 			it("REVERTS: set pricer when non governance calls", async () => {
-				await expect(exchange.connect(signers[1]).setPricer(senderAddress)).to.be.revertedWithCustomError(exchange, 
+				await expect(exchange.connect(signers[1]).setPricer(senderAddress)).to.be.revertedWithCustomError(exchange,
 					"UNAUTHORIZED"
 				)
 				await exchange.setPricer(pricer.address)
@@ -3893,7 +3963,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.catalogue()).to.equal(senderAddress)
 			})
 			it("REVERTS: set catalogue when non governance calls", async () => {
-				await expect(exchange.connect(signers[1]).setOptionCatalogue(senderAddress)).to.be.revertedWithCustomError(exchange, 
+				await expect(exchange.connect(signers[1]).setOptionCatalogue(senderAddress)).to.be.revertedWithCustomError(exchange,
 					"UNAUTHORIZED"
 				)
 				await exchange.setOptionCatalogue(catalogue.address)
@@ -3905,7 +3975,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.minTradeSize()).to.equal(toWei("1000"))
 			})
 			it("REVERTS: set trade size limits when non governance calls", async () => {
-				await expect(exchange.connect(signers[1]).setTradeSizeLimits(0, 0)).to.be.revertedWithCustomError(exchange, 
+				await expect(exchange.connect(signers[1]).setTradeSizeLimits(0, 0)).to.be.revertedWithCustomError(exchange,
 					"UNAUTHORIZED"
 				)
 				await exchange.setTradeSizeLimits(toWei("0.01"), toWei("1000"))
@@ -3917,17 +3987,17 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await pricer.deltaBandWidth()).to.equal(toWei("20"))
 			})
 			it("REVERTS: set delta band width on pricer when non governance calls", async () => {
-				await expect(pricer.connect(signers[1]).setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer, 
+				await expect(pricer.connect(signers[1]).setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer,
 					"UNAUTHORIZED"
 				)
 			})
 			it("REVERTS: set delta band width with incorrect length arrays", async () => {
-				await expect(pricer.setDeltaBandWidth(toWei("5"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer, 
+				await expect(pricer.setDeltaBandWidth(toWei("5"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer,
 					"InvalidSlippageGradientMultipliersArrayLength"
 				)
 			})
 			it("REVERTS: set delta band width with incorrect length arrays", async () => {
-				await expect(pricer.setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer, 
+				await expect(pricer.setDeltaBandWidth(toWei("20"), [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")], [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")])).to.be.revertedWithCustomError(pricer,
 					"InvalidSlippageGradientMultipliersArrayLength"
 				)
 			})
@@ -3968,7 +4038,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.feeRecipient()).to.equal(receiverAddress)
 			})
 			it("REVERTS: set fee recipient", async () => {
-				await expect(exchange.connect(signers[1]).setFeeRecipient(senderAddress)).to.be.revertedWithCustomError(exchange, 
+				await expect(exchange.connect(signers[1]).setFeeRecipient(senderAddress)).to.be.revertedWithCustomError(exchange,
 					"UNAUTHORIZED"
 				)
 				await exchange.setFeeRecipient(senderAddress)

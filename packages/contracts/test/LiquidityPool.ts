@@ -207,9 +207,8 @@ describe("Liquidity Pools", async () => {
 		let receipt = await tx.wait()
 		const events = receipt.events
 		const approveEvents = events?.find(x => x.event == "SeriesApproved")
-		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-			ethers.utils.parseUnits("1", 10)
-		)
+		const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
+		).mul(ethers.utils.parseUnits("1", 12))
 		const oHash = ethers.utils.solidityKeccak256(
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
@@ -228,9 +227,8 @@ describe("Liquidity Pools", async () => {
 	it("SUCCEEDs: change option buy or sell on series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-			ethers.utils.parseUnits("1", 10)
-		)
+		const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
+		).mul(ethers.utils.parseUnits("1", 12))
 		const tx = await catalogue.changeOptionBuyOrSell([
 			{
 				expiration: expiration,
@@ -299,9 +297,8 @@ describe("Liquidity Pools", async () => {
 				isBuyable: true
 			}
 		])
-		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-			ethers.utils.parseUnits("1", 10)
-		)
+		const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
+		).mul(ethers.utils.parseUnits("1", 12))
 		const oHash = ethers.utils.solidityKeccak256(
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
@@ -483,9 +480,8 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-			ethers.utils.parseUnits("1", 10)
-		)
+		const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
+		).mul(ethers.utils.parseUnits("1", 12))
 		const oHash = ethers.utils.solidityKeccak256(
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
@@ -631,7 +627,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -642,7 +638,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -686,7 +682,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries2,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -697,7 +693,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries2,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -758,7 +754,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -769,7 +765,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -801,7 +797,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries2,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -812,7 +808,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries2,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -888,7 +884,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -899,7 +895,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -943,7 +939,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries2,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -954,7 +950,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries2,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -1015,7 +1011,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1026,7 +1022,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -1058,7 +1054,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries2,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1069,7 +1065,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries2,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -1140,7 +1136,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1151,7 +1147,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries1,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -1248,7 +1244,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: 0,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -1259,7 +1255,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: amount,
 						data: "0x"
 					}
 				]
@@ -1297,9 +1293,8 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: change option buy or sell on series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-			ethers.utils.parseUnits("1", 10)
-		)
+		const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
+		).mul(ethers.utils.parseUnits("1", 12))
 		const tx = await catalogue.changeOptionBuyOrSell([
 			{
 				expiration: expiration,
@@ -1354,7 +1349,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -1365,7 +1360,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -1392,7 +1387,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -1419,7 +1414,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -1430,9 +1425,8 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: change option buy or sell on series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const formattedStrikePrice = (await exchange.formatStrikePrice(strikePrice, usd.address)).mul(
-			ethers.utils.parseUnits("1", 10)
-		)
+		const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
+		).mul(ethers.utils.parseUnits("1", 12))
 		const tx = await catalogue.changeOptionBuyOrSell([
 			{
 				expiration: expiration,
@@ -1588,7 +1582,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: quote,
 						data: "0x"
 					}
 				]
@@ -1642,7 +1636,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -1776,7 +1770,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: 0,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					},
 					{
@@ -1787,7 +1781,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: quote,
 						data: "0x"
 					}
 				]
@@ -1929,7 +1923,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}
 				]
@@ -2082,7 +2076,7 @@ describe("Liquidity Pools", async () => {
 						vaultId: 0,
 						amount: amount,
 						optionSeries: proposedSeries,
-						index: 0,
+						indexOrAcceptablePremium: 0,
 						data: "0x"
 					}
 				]
@@ -2192,7 +2186,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: 0,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						},
 						{
@@ -2203,7 +2197,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: amount,
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: amount,
 							data: "0x"
 						}
 					]
@@ -2535,7 +2529,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: toWei("3"),
 							optionSeries: proposedSeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -2557,7 +2551,7 @@ describe("Liquidity Pools", async () => {
 							vaultId: 0,
 							amount: toWei("3"),
 							optionSeries: emptySeries,
-							index: 0,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -2686,3 +2680,4 @@ describe("Liquidity Pools", async () => {
 		expect(await exchange.pricer()).to.equal(pricer.address)
 	})
 })
+

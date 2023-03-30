@@ -47,6 +47,12 @@
 		"anonymous": false,
 		"inputs": [
 			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "optionHash",
+				"type": "bytes32"
+			},
+			{
 				"indexed": false,
 				"internalType": "uint64",
 				"name": "expiration",
@@ -83,6 +89,12 @@
 	{
 		"anonymous": false,
 		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "optionHash",
+				"type": "bytes32"
+			},
 			{
 				"indexed": false,
 				"internalType": "uint64",
@@ -216,30 +228,6 @@
 				"internalType": "uint64",
 				"name": "",
 				"type": "uint64"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "strikePrice",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address",
-				"name": "collateral",
-				"type": "address"
-			}
-		],
-		"name": "formatStrikePrice",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",

@@ -568,7 +568,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 
 	/**
 	 * @notice function for adding liquidity to the options liquidity pool
-	 * @param _amount    amount of the strike asset to deposit
+	 * @param _amount    amount of the collateral asset to deposit
 	 * @return success
 	 * @dev    entry point to provide liquidity to dynamic hedging vault
 	 */
@@ -720,7 +720,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		uint256 strikePrice,
 		uint256 expiration
 	) public view returns (uint256) {
-		return _getVolatilityFeed().getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
+		return getVolatilityFeed().getImpliedVolatility(isPut, underlyingPrice, strikePrice, expiration);
 	}
 
 	function getAssets() external view returns (uint256) {
@@ -824,10 +824,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @param  optionRegistry interface for the options issuer
 	 * @return series the address of the option series minted
 	 */
-	function _issue(Types.OptionSeries memory optionSeries, IOptionRegistry optionRegistry)
-		internal
-		returns (address series)
-	{
+	function _issue(
+		Types.OptionSeries memory optionSeries,
+		IOptionRegistry optionRegistry
+	) internal returns (address series) {
 		// make sure option is being issued with correct assets
 		if (optionSeries.collateral != collateralAsset) {
 			revert CustomErrors.CollateralAssetInvalid();
@@ -952,6 +952,16 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 		return amount;
 	}
 
+	function adjustVariables(
+		uint256 collateralAmount,
+		uint256 optionsValue,
+		int256 delta,
+		bool isSale
+	) external {
+		_isHandler();
+		_adjustVariables(collateralAmount, optionsValue, delta, isSale);
+	}
+
 	/**
 	 * @notice adjust the variables of the pool
 	 * @param  collateralAmount the amount of collateral transferred to change on collateral allocated in collateral decimals
@@ -984,7 +994,7 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @notice get the volatility feed used by the liquidity pool
 	 * @return the volatility feed contract interface
 	 */
-	function _getVolatilityFeed() public view returns (VolatilityFeed) {
+	function getVolatilityFeed() public view returns (VolatilityFeed) {
 		return VolatilityFeed(protocol.volatilityFeed());
 	}
 
@@ -1018,11 +1028,10 @@ contract LiquidityPool is ERC20, AccessControl, ReentrancyGuard, Pausable {
 	 * @param _strikeAsset the asset that the underlying value is denominated in
 	 * @return the underlying price
 	 */
-	function _getUnderlyingPrice(address underlying, address _strikeAsset)
-		internal
-		view
-		returns (uint256)
-	{
+	function _getUnderlyingPrice(
+		address underlying,
+		address _strikeAsset
+	) internal view returns (uint256) {
 		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
 
