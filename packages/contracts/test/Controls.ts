@@ -5,7 +5,6 @@ import hre, { ethers, network } from "hardhat"
 import {
 	AlphaPortfolioValuesFeed,
 	Authority,
-	IReader__factory,
 	MintableERC20,
 	MockChainlinkAggregator,
 	OptionRegistry,
@@ -387,13 +386,12 @@ describe("Authority tests", async () => {
 			await managerContract.setCollateralLendingRate(1000000)
 			expect(await pricer.collateralLendingRate()).to.eq(1000000)
 		})
-		it("SUCCEEDS: sets shortDeltaBorrowRate in beyond pricer", async () => {
-			await managerContract.setShortDeltaBorrowRate(1000000)
-			expect(await pricer.shortDeltaBorrowRate()).to.eq(1000000)
-		})
-		it("SUCCEEDS: sets longDeltaBorrowRate in beyond pricer", async () => {
-			await managerContract.setLongDeltaBorrowRate(1000000)
-			expect(await pricer.longDeltaBorrowRate()).to.eq(1000000)
+		it("SUCCEEDS: sets DeltaBorrowRate in beyond pricer", async () => {
+			await managerContract.setDeltaBorrowRates({sellLong: 1000001, sellShort:1000002, buyLong:1000003, buyShort:1000004})
+			expect((await pricer.deltaBorrowRates()).sellLong).to.eq(1000001)
+			expect((await pricer.deltaBorrowRates()).sellShort).to.eq(1000002)
+			expect((await pricer.deltaBorrowRates()).buyLong).to.eq(1000003)
+			expect((await pricer.deltaBorrowRates()).buyShort).to.eq(1000004)
 		})
 		it("SUCCEEDS: sets deltaBandwidth in beyond pricer", async () => {
 			await managerContract.setDeltaBandWidth(
