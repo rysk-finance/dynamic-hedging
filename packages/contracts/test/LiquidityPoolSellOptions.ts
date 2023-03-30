@@ -3687,7 +3687,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: toWei("10"),
 								data: "0x"
 							}
 						]
@@ -3703,7 +3703,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: amount.div(ethers.utils.parseUnits("1", 10)),
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							},
 							{
@@ -3714,7 +3714,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: vaultId,
 								amount: vaultBalance,
 								optionSeries: emptySeries,
-								index: 0,
+								indexOrAcceptablePremium: 0,
 								data: ZERO_ADDRESS
 							},
 						]

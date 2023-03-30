@@ -3,13 +3,16 @@ pragma solidity >=0.8.0;
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "./interfaces/IAlphaOptionHandler.sol";
-import "./interfaces/ILiquidityPool.sol";
+import "./LiquidityPool.sol";
+import "./OptionExchange.sol";
+import "./OptionCatalogue.sol";
+import "./BeyondPricer.sol";
+
 import "./libraries/AccessControl.sol";
 import "./libraries/CustomErrors.sol";
 
 /**
  *  @title Contract used for all user facing options interactions
- *  @dev Interacts with liquidityPool to write options and quote their prices.
  */
 contract Manager is AccessControl {
 	using PRBMathSD59x18 for int256;
@@ -19,10 +22,16 @@ contract Manager is AccessControl {
 
 	// delta limit for an address
 	mapping(address => uint256) public deltaLimit;
-	// option handler address
+	// option handler
 	IAlphaOptionHandler public optionHandler;
-	// liquidity pool address
-	ILiquidityPool public liquidityPool;
+	// liquidity pool
+	LiquidityPool public liquidityPool;
+	// option catalogue
+	OptionCatalogue public optionCatalogue;
+	// option exchange
+	OptionExchange public optionExchange;
+	// beyond pricer
+	BeyondPricer public beyondPricer;
 
 	// keeper mapping
 	mapping(address => bool) public keeper;
@@ -35,10 +44,16 @@ contract Manager is AccessControl {
 	constructor(
 		address _authority,
 		address _liquidityPool,
-		address _optionHandler
+		address _optionHandler,
+		address _optionCatalogue,
+		address _optionExchange,
+		address _beyondPricer
 	) AccessControl(IAuthority(_authority)) {
-		liquidityPool = ILiquidityPool(_liquidityPool);
+		liquidityPool = LiquidityPool(_liquidityPool);
 		optionHandler = IAlphaOptionHandler(_optionHandler);
+		optionCatalogue = OptionCatalogue(_optionCatalogue);
+		optionExchange = OptionExchange(_optionExchange);
+		beyondPricer = BeyondPricer(_beyondPricer);
 	}
 
 	///////////////
@@ -67,14 +82,6 @@ contract Manager is AccessControl {
 		proxyManager = _proxyManager;
 	}
 
-	function setOptionHandler(address _optionHandler) external {
-		_onlyGovernor();
-		if (_optionHandler == address(0)) {
-			revert CustomErrors.InvalidAddress();
-		}
-		optionHandler = IAlphaOptionHandler(_optionHandler);
-	}
-
 	/**
 	 * @notice set the delta limit on a keeper
 	 */
@@ -85,9 +92,18 @@ contract Manager is AccessControl {
 		}
 	}
 
-	//////////////////////////////////////////////////////
-	/// access-controlled state changing functionality ///
-	//////////////////////////////////////////////////////
+	//////////////
+	/// Config ///
+	//////////////
+
+	function pullManager() external {
+		_onlyGovernor();
+		authority.pullManager();
+	}
+
+	//////////////////////
+	/// Option Handler ///
+	//////////////////////
 
 	/**
 	 * @notice creates an order for a number of options from the pool to a specified user. The function
@@ -163,6 +179,10 @@ contract Manager is AccessControl {
 		);
 	}
 
+	//////////////////////
+	/// Liquidity Pool ///
+	//////////////////////
+
 	/**
 	 * @notice function for hedging portfolio delta through external means
 	 * @param delta the current portfolio delta
@@ -178,9 +198,108 @@ contract Manager is AccessControl {
 		liquidityPool.rebalancePortfolioDelta(delta, reactorIndex);
 	}
 
-	function pullManager() external {
-		_onlyGovernor();
-		authority.pullManager();
+	/**
+	 * @notice update all optionParam variables for max and min strikes and max and
+	 *         min expiries for options that the DHV can issue
+	 */
+	function setNewOptionParams(
+		uint128 _newMinCallStrike,
+		uint128 _newMaxCallStrike,
+		uint128 _newMinPutStrike,
+		uint128 _newMaxPutStrike,
+		uint128 _newMinExpiry,
+		uint128 _newMaxExpiry
+	) external {
+		_isProxyManager();
+		liquidityPool.setNewOptionParams(
+			_newMinCallStrike,
+			_newMaxCallStrike,
+			_newMinPutStrike,
+			_newMaxPutStrike,
+			_newMinExpiry,
+			_newMaxExpiry
+		);
+	}
+
+	///////////////////////
+	/// Option Exchange ///
+	///////////////////////
+
+	/**
+	 * @notice get the dhv to redeem an expired otoken
+	 * @param _series the list of series to redeem
+	 */
+	function redeem(address[] memory _series, uint256[] memory amountOutMinimums) external {
+		_isProxyManager();
+		optionExchange.redeem(_series, amountOutMinimums);
+	}
+
+	////////////////////////
+	/// Option Catalogue ///
+	////////////////////////
+
+	/**
+	 * @notice issue an option series for buying or sale
+	 * @param  options option type to approve - strike in e18
+	 * @dev    only callable by the manager
+	 */
+	function issueNewSeries(Types.Option[] memory options) external {
+		_isProxyManager();
+		optionCatalogue.issueNewSeries(options);
+	}
+
+	/**
+	 * @notice change whether an issued option is for buy or sale
+	 * @param  options option type to change status on - strike in e18
+	 * @dev    only callable by the manager
+	 */
+	function changeOptionBuyOrSell(Types.Option[] memory options) external {
+		_isProxyManager();
+		optionCatalogue.changeOptionBuyOrSell(options);
+	}
+
+	/////////////////////
+	/// Beyond Pricer ///
+	/////////////////////
+
+	function setSlippageGradient(uint256 _slippageGradient) external {
+		_isProxyManager();
+		beyondPricer.setSlippageGradient(_slippageGradient);
+	}
+
+	function setCollateralLendingRate(uint256 _collateralLendingRate) external {
+		_isProxyManager();
+		beyondPricer.setCollateralLendingRate(_collateralLendingRate);
+	}
+
+	function setDeltaBorrowRates(BeyondPricer.DeltaBorrowRates calldata _deltaBorrowRates) external {
+		_isProxyManager();
+		beyondPricer.setDeltaBorrowRates(_deltaBorrowRates);
+	}
+
+	/// @dev must also update delta band arrays to fit the new delta band width
+	function setDeltaBandWidth(
+		uint256 _deltaBandWidth,
+		uint256[] memory _callSlippageGradientMultipliers,
+		uint256[] memory _putSlippageGradientMultipliers
+	) external {
+		_isProxyManager();
+		beyondPricer.setDeltaBandWidth(
+			_deltaBandWidth,
+			_callSlippageGradientMultipliers,
+			_putSlippageGradientMultipliers
+		);
+	}
+
+	function setSlippageGradientMultipliers(
+		uint256[] memory _callSlippageGradientMultipliers,
+		uint256[] memory _putSlippageGradientMultipliers
+	) public {
+		_isProxyManager();
+		beyondPricer.setSlippageGradientMultipliers(
+			_callSlippageGradientMultipliers,
+			_putSlippageGradientMultipliers
+		);
 	}
 
 	/// @dev keepers, managers or governors can access
