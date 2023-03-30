@@ -32,7 +32,7 @@ export const sell = async (
           vaultId: BigNumber.from(0),
           amount,
           optionSeries: EMPTY_SERIES,
-          index: BigNumber.from(0),
+          indexOrAcceptablePremium: BigNumber.from(0),
           data: "0x" as HexString,
         },
       ],
