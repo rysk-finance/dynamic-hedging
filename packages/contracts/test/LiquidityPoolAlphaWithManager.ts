@@ -4,9 +4,9 @@ import utc from "dayjs/plugin/utc"
 import { BigNumber, Contract, Signer, utils } from "ethers"
 import { AbiCoder } from "ethers/lib/utils"
 import hre, { ethers, network } from "hardhat"
-import { AlphaOptionHandler, AlphaPortfolioValuesFeed, Authority, ClearingHouse, LiquidityPool, Manager, MintableERC20, MockChainlinkAggregator, NewController, OptionRegistry, Oracle, Otoken, PerpHedgingReactor, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
+import { AlphaOptionHandler, AlphaPortfolioValuesFeed, Authority, BeyondPricer, ClearingHouse, LiquidityPool, Manager, MintableERC20, MockChainlinkAggregator, NewController, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, Otoken, PerpHedgingReactor, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
 
-import { deployLiquidityPool, deploySystem } from "../utils/alpha-system-deployer"
+import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import {
 	fromOpyn,
 	fromWei,
@@ -58,6 +58,9 @@ let opynAggregator: MockChainlinkAggregator
 let handler: AlphaOptionHandler
 let authority: Authority
 let customOrderId: any
+let catalogue: OptionCatalogue
+let exchange: OptionExchange
+let pricer: BeyondPricer
 
 /* --- variables to change --- */
 
@@ -142,6 +145,9 @@ describe("Liquidity Pool with alpha tests", async () => {
 		)
 		liquidityPool = lpParams.liquidityPool
 		handler = lpParams.handler
+		catalogue = lpParams.catalogue
+		exchange = lpParams.exchange
+		pricer = lpParams.pricer
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
@@ -161,7 +167,10 @@ describe("Liquidity Pool with alpha tests", async () => {
 			manager = (await managerFactory.deploy(
 				authority.address,
 				liquidityPool.address,
-				handler.address
+				handler.address,
+				catalogue.address,
+				exchange.address,
+				pricer.address
 			)) as Manager
 			await authority.pushManager(manager.address)
 			await manager.pullManager()

@@ -76,7 +76,6 @@ const executeDoubleDecreasePosition = async () => {
 	await gmxReactor.executeDecreasePosition(positionKey1)
 	const positionKey2 = logs[logs.length - 2].args[0]
 	await gmxReactor.executeDecreasePosition(positionKey2)
-	console.log({ positionKey1, positionKey2 })
 }
 
 const checkPositionExecutedEvent = async delta => {
@@ -1980,7 +1979,6 @@ describe("multi leg hedges fail resulting in simultaneous long and short", async
 			[wethAddress],
 			[true]
 		)
-		console.log({ longPositionBefore })
 		///////////------------
 		const usdcBalanceBeforeLP = parseFloat(
 			utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6)
@@ -2016,7 +2014,6 @@ describe("multi leg hedges fail resulting in simultaneous long and short", async
 			[wethAddress],
 			[true]
 		)
-		console.log({ longPositionAfter })
 		expect(shortPositionAfter[0]).to.eq(shortPositionBefore[0])
 		// trading fees are taking from collateral
 		expect(shortPositionAfter[1]).to.eq(shortPositionBefore[1])
