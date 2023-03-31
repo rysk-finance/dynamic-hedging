@@ -40,7 +40,7 @@ export const useBuyOption = (amountToBuy: string) => {
   const USDCAddress = getContractAddress("USDC");
   const exchangeAddress = getContractAddress("optionExchange");
 
-  // User allowance state for the oToken.
+  // User allowance state for USDC.
   const [allowance, setAllowance] = useState<AllowanceState>({
     approved: false,
     amount: BigNumber.from(0),
