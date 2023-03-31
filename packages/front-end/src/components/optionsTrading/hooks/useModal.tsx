@@ -58,7 +58,7 @@ export const useModal = () => {
         });
       }
     }
-  }, [activeExpiry, searchParams, selectedOption]);
+  }, [activeExpiry, isOperator, searchParams, selectedOption]);
 
   return [optionChainModalOpen] as const;
 };
