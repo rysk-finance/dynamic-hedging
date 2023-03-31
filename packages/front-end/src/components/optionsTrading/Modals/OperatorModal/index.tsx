@@ -15,7 +15,7 @@ import { useNotifications } from "../Shared/utils/useNotifications";
 export const OperatorModal = () => {
   const {
     state: {
-      options: { isOperator, refresh },
+      options: { isOperator, loading, refresh },
     },
     dispatch,
   } = useGlobalContext();
@@ -60,7 +60,7 @@ export const OperatorModal = () => {
               {...FadeInOut()}
               {...getButtonProps(
                 "sell",
-                transactionPending,
+                transactionPending || loading,
                 isOperator,
                 handleOperatorApproval
               )}
