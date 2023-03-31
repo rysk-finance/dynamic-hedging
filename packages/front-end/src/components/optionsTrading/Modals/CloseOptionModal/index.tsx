@@ -40,12 +40,16 @@ export const CloseOptionModal = () => {
   const [transactionPending, setTransactionPending] = useState(false);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const amount = toTwoDecimalPlaces(Number(event.currentTarget.value));
-    const approved = Boolean(
-      amount && toOpyn(amount.toString()).lte(allowance.amount)
-    );
+    const amount = event.currentTarget.value;
+    const decimals = amount.split(".");
 
-    setAmountToSell(amount.toString());
+    const rounded =
+      decimals.length > 1
+        ? `${decimals[0]}.${decimals[1].slice(0, 2)}`
+        : event.currentTarget.value;
+    const approved = Boolean(amount && toOpyn(rounded).lte(allowance.amount));
+
+    setAmountToSell(rounded);
     setAllowance((currentState) => ({ ...currentState, approved }));
   };
 
