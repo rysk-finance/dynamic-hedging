@@ -45,8 +45,14 @@ export const BuyOptionModal = () => {
     useNotifications();
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const inputAmount = toTwoDecimalPlaces(Number(event.currentTarget.value));
-    setAmountToBuy(inputAmount.toString());
+    const amount = event.currentTarget.value;
+    const decimals = amount.split(".");
+    const rounded =
+      decimals.length > 1
+        ? `${decimals[0]}.${decimals[1].slice(0, 2)}`
+        : event.currentTarget.value;
+
+    setAmountToBuy(rounded);
   };
 
   const handleApprove = async () => {
