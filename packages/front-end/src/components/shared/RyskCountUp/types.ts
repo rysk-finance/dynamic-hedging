@@ -1,4 +1,4 @@
-type Format = "Integer" | "IV" | "USD" | "USDC";
+type Format = "ETH" | "Integer" | "IV" | "USD" | "USDC";
 
 export interface RyskCountUpProps {
   value: number;
