@@ -8,6 +8,7 @@ import { RightArrow } from "./RightArrow";
 import { RyskFavicon } from "./RyskFavicon";
 import { UpChevron } from "./UpChevron";
 import { USDC } from "./USDC";
+import { WETH } from "./WETH";
 
 export {
   Close,
@@ -20,4 +21,5 @@ export {
   RyskFavicon,
   UpChevron,
   USDC,
+  WETH,
 };
