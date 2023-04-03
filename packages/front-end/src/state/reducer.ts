@@ -109,6 +109,18 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           visibleColumns: defaultGlobalState.visibleColumns,
         };
       }
+    case ActionType.SET_COLLATERAL_PREFERENCES:
+      if (action.collateralPreferences) {
+        return {
+          ...state,
+          collateralPreferences: action.collateralPreferences,
+        };
+      } else {
+        return {
+          ...state,
+          collateralPreferences: defaultGlobalState.collateralPreferences,
+        };
+      }
   }
 };
 
