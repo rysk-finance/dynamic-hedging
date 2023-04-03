@@ -34,10 +34,19 @@ export const useNotifications = () => {
   );
 
   const notifyFailure = useCallback((error: unknown) => {
-    captureException(error);
-    toast(
-      "Sorry, but there was a problem completing your transaction. The team has been informed and we will be looking into it."
-    );
+    if (
+      !(
+        error &&
+        typeof error === "object" &&
+        "name" in error &&
+        error.name === "UserRejectedRequestError"
+      )
+    ) {
+      captureException(error);
+      toast(
+        "Sorry, but there was a problem completing your transaction. The team has been informed and we will be looking into it."
+      );
+    }
   }, []);
 
   return [
