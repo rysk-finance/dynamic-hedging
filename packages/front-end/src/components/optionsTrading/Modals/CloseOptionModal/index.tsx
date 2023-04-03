@@ -11,14 +11,12 @@ import FadeInOut from "src/animation/FadeInOut";
 import { Button } from "src/components/shared/Button";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { toOpyn, toRysk } from "src/utils/conversion-helper";
-
-import { toTwoDecimalPlaces } from "src/utils/rounding";
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
+import { useNotifications } from "../Shared/hooks/useNotifications";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { approveAllowance, sell } from "../Shared/utils/transactions";
-import { useNotifications } from "../Shared/utils/useNotifications";
 import { Pricing } from "./components/Pricing";
 import { usePositionData } from "./hooks/usePositionData";
 
