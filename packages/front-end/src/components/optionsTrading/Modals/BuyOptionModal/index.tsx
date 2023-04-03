@@ -13,13 +13,12 @@ import { useGlobalContext } from "src/state/GlobalContext";
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
-import { toTwoDecimalPlaces } from "src/utils/rounding";
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
+import { useNotifications } from "../Shared/hooks/useNotifications";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { approveAllowance, buy } from "../Shared/utils/transactions";
-import { useNotifications } from "../Shared/utils/useNotifications";
 import { Pricing } from "./components/Pricing";
 import { useBuyOption } from "./hooks/useBuyOption";
 

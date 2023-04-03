@@ -10,7 +10,7 @@ import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { setOperator } from "../Shared/utils/transactions";
-import { useNotifications } from "../Shared/utils/useNotifications";
+import { useNotifications } from "../Shared/hooks/useNotifications";
 
 export const OperatorModal = () => {
   const {
