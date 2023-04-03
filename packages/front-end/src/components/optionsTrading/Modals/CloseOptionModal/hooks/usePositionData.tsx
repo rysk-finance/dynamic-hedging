@@ -1,18 +1,19 @@
+import type { Addresses } from "../../Shared/types";
 import type { PositionDataState } from "../types";
-import type { Addresses, AllowanceState } from "../../Shared/types";
 
-import { readContract } from "@wagmi/core";
 import dayjs from "dayjs";
-import { BigNumber } from "ethers";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 
-import { erc20ABI } from "src/abis/erc20_ABI";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { fromOpynToNumber, fromWeiToInt } from "src/utils/conversion-helper";
+import {
+  fromOpynToNumber,
+  fromWeiToInt,
+  renameOtoken,
+} from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
-import { renameOtoken } from "src/utils/conversion-helper";
+import { useAllowance } from "../../Shared/hooks/useAllowance";
 
 export const usePositionData = () => {
   // URL query params.
@@ -31,10 +32,7 @@ export const usePositionData = () => {
   } = useGlobalContext();
 
   // User allowance state for the oToken.
-  const [allowance, setAllowance] = useState<AllowanceState>({
-    approved: false,
-    amount: BigNumber.from(0),
-  });
+  const [allowance, setAllowance] = useAllowance(tokenAddress, address);
 
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
@@ -46,26 +44,6 @@ export const usePositionData = () => {
     inProfit: false,
     title: null,
   });
-
-  /* Effects */
-
-  // Get user oToken allowance.
-  useEffect(() => {
-    const checkApproval = async () => {
-      if (address && tokenAddress) {
-        const amount = await readContract({
-          address: tokenAddress,
-          abi: erc20ABI,
-          functionName: "allowance",
-          args: [address, exchangeAddress],
-        });
-
-        setAllowance((currentState) => ({ ...currentState, amount }));
-      }
-    };
-
-    checkApproval();
-  }, [address, allowance.approved, tokenAddress]);
 
   // Get user position data.
   useEffect(() => {
