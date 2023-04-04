@@ -25,7 +25,15 @@ interface Position {
   optionsSoldTransactions: OptionsTransaction[];
 }
 
+export interface Vault {
+  shortOToken: {
+    id: HexString;
+  };
+  vaultId: string;
+}
+
 export interface InitialDataQuery {
   expiries: Expiry[];
   positions: Position[];
+  vaults: Vault[];
 }
