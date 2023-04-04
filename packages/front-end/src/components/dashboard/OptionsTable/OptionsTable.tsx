@@ -6,13 +6,14 @@ import LoadingOrError from "src/components/shared/LoadingOrError";
 import Disconnected from "./components/Disconnected";
 import NoneFound from "./components/NoneFound";
 import Table from "./components/Table";
-import { usePositions, useRedeem } from "./hooks";
+import { usePositions, useRedeem, useSettle } from "./hooks";
 
 export const UserOptions = () => {
   const { isConnected, isDisconnected } = useAccount();
 
   const [positions, loading, error] = usePositions();
   const [completeRedeem] = useRedeem();
+  const [completeSettle] = useSettle();
 
   return (
     <Card
@@ -38,6 +39,7 @@ export const UserOptions = () => {
                       <Table
                         positions={positions}
                         completeRedeem={completeRedeem}
+                        completeSettle={completeSettle}
                       />
                     ) : (
                       <NoneFound />
