@@ -61,6 +61,9 @@ const usePositions = () => {
                   }
                   createdAt
               }
+              redeemActions {
+                  id
+              }
               optionsBoughtTransactions {
                   amount
                   premium
@@ -148,6 +151,7 @@ const usePositions = () => {
 
           const vault = (rest as ShortPosition)?.vault || { vaultId: "" };
           const settleActions = (rest as ShortPosition)?.settleActions || [];
+          const redeemActions = (rest as LongPosition)?.redeemActions || [];
 
           const expired = timeNow > Number(expiryTimestamp);
 
@@ -188,13 +192,10 @@ const usePositions = () => {
           const inTheMoney = isPut
             ? Number(expiryPrice) <= Number(strikePrice)
             : Number(expiryPrice) >= Number(strikePrice);
-          const isRedeemable = expired && Boolean(netAmount) && inTheMoney;
-          //@todo BUG get this from graph action REDEEM cause if this was traded to another account this would be wrong
-          const hasRedeemed = expired && !netAmount && inTheMoney;
-          //@todo BUG same as above, let's also get this from the graph (optionsSoldTransactions)
-          const hasSoldBack = !netAmount && !hasRedeemed;
-          //@todo FEAT just add a boolean prop settledShort to the graph Position entity
-          const canSettleShort = settleActions.length == 0 && expired;
+          const isRedeemable =
+            expired && redeemActions.length > 0 && inTheMoney;
+          const hasRedeemed = redeemActions.length > 0; // NOTE: User could have manually not redeem all
+          const canSettleShort = expired && settleActions.length == 0;
           const settledShort = settleActions.length > 0;
 
           const getStatusMessage = (short: boolean) => {
@@ -202,8 +203,6 @@ const usePositions = () => {
               switch (true) {
                 case !active:
                   return "Closed";
-                case canSettleShort:
-                  return "Settle";
                 case settledShort:
                   return "Settled";
                 case !expired:
@@ -224,10 +223,6 @@ const usePositions = () => {
                   return "Closed";
                 case hasRedeemed:
                   return "Redeemed";
-
-                case hasSoldBack:
-                  return "Closed";
-
                 case !expired:
                   return (
                     <Link
@@ -237,7 +232,6 @@ const usePositions = () => {
                       {`Close position`}
                     </Link>
                   );
-
                 default:
                   return "Expired";
               }

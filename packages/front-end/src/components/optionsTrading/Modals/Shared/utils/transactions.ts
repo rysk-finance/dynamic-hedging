@@ -370,7 +370,7 @@ export const vaultSell = async (
           secondAddress: addresses.user,
           asset: addresses.token,
           vaultId: addresses.vaultId,
-          amount: amount.div(ethers.utils.parseUnits("1", 10)),
+          amount: amount.div(ethers.utils.parseUnits("1", 10)), // Rysk e18 to Opyn e8
           optionSeries: EMPTY_SERIES,
           indexOrAcceptablePremium: BigNumber.from(0),
           data: "0x" as HexString,

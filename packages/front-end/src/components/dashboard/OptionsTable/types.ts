@@ -23,37 +23,6 @@ interface optionsBoughtTransaction {
   premium: BigNumberish;
 }
 
-interface Position {
-  __typename: string;
-  id: string;
-  vault: {
-    id: string;
-    vaultId: string;
-  };
-  settleActions: {
-    id: string;
-  }[];
-  oToken: {
-    __typename: string;
-    id: string;
-    symbol: string;
-    expiryTimestamp: string;
-    strikePrice: string;
-    isPut: boolean;
-    underlyingAsset: {
-      __typename: string;
-      id: string;
-    };
-    createdAt: string;
-  };
-  optionsSoldTransactions: optionsSoldTransaction[];
-  optionsBoughtTransactions: optionsBoughtTransaction[];
-  account: {
-    __typename: string;
-    balances: Balance[];
-  };
-}
-
 interface LongPosition {
   __typename: string;
   id: string;
@@ -61,6 +30,9 @@ interface LongPosition {
   active: boolean;
   buyAmount: BigNumberish;
   sellAmount: BigNumberish;
+  redeemActions: {
+    id: string;
+  }[];
   oToken: {
     __typename: string;
     id: string;
@@ -139,7 +111,6 @@ interface TableProps {
 export {
   type CompleteRedeem,
   type CompleteSettle,
-  type Position,
   type ParsedPosition,
   type TableProps,
   type LongPosition,

@@ -2,7 +2,7 @@ import { useAccount } from "wagmi";
 import { gql, useQuery } from "@apollo/client";
 import { VaultQueryData } from "../../Shared/types";
 import { BigNumber } from "ethers";
-import { fromOpynToNumber } from "../../../../../utils/conversion-helper";
+import { fromOpynToNumber } from "src/utils/conversion-helper";
 
 export const useVaultData = (vaultId: string | null) => {
   // Global state
