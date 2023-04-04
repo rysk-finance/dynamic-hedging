@@ -5,9 +5,10 @@ import type {
   PutSide,
   StrikeOptions,
   UserPositions,
+  UserVaults,
 } from "src/state/types";
 import type { DHVLensMK1 } from "src/types/DHVLensMK1";
-import type { InitialDataQuery, OptionsTransaction } from "./types";
+import type { InitialDataQuery, OptionsTransaction, Vault } from "./types";
 
 import { captureException } from "@sentry/react";
 import { readContract, readContracts } from "@wagmi/core";
@@ -251,6 +252,18 @@ const getOperatorStatus = async (address?: HexString) => {
   }
 };
 
+const getUserVaults = (vaults: Vault[]) => {
+  return vaults.reduce(
+    (acc, curr) => {
+      acc[curr.shortOToken.id] = curr.vaultId;
+      acc.length++;
+
+      return acc;
+    },
+    { length: 0 } as UserVaults
+  );
+};
+
 export const getInitialData = async (
   data: InitialDataQuery,
   address?: HexString
@@ -269,5 +282,14 @@ export const getInitialData = async (
   // Get operator status.
   const isOperator = await getOperatorStatus(address);
 
-  return [validExpiries, userPositions, chainData, isOperator] as const;
+  // Get all user short position vaults.
+  const userVaults = getUserVaults(data.vaults);
+
+  return [
+    validExpiries,
+    userPositions,
+    chainData,
+    isOperator,
+    userVaults,
+  ] as const;
 };
