@@ -34,6 +34,6 @@ export interface Vault {
 
 export interface InitialDataQuery {
   expiries: Expiry[];
-  positions: Position[];
+  longPositions: Position[];
   vaults: Vault[];
 }
