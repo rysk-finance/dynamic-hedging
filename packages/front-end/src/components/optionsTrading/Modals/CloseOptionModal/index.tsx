@@ -16,7 +16,7 @@ import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
 import { useNotifications } from "../Shared/hooks/useNotifications";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
-import { approveAllowance, sell } from "../Shared/utils/transactions";
+import { approveAllowance, closeLong } from "../Shared/utils/transactions";
 import { Pricing } from "./components/Pricing";
 import { usePositionData } from "./hooks/usePositionData";
 
@@ -82,7 +82,7 @@ export const CloseOptionModal = () => {
       if (addresses.token && addresses.user) {
         const amount = toRysk(amountToSell);
 
-        const hash = await sell(
+        const hash = await closeLong(
           addresses as AddressesRequired,
           amount,
           refresh
