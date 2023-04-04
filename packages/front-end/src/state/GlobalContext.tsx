@@ -52,6 +52,7 @@ export const defaultGlobalState: GlobalState = {
     loading: true,
     refresh: () => {},
     userPositions: {},
+    vaults: { length: 0 },
   },
 
   // Options chain state.

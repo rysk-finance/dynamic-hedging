@@ -65,6 +65,11 @@ export interface CollateralPreferences {
   amount: keyof typeof CollateralAmount;
 }
 
+export interface UserVaults {
+  [oTokenAddress: HexString]: string;
+  length: number;
+}
+
 // Global context
 export type GlobalState = {
   ethPrice: number | null;
@@ -98,6 +103,7 @@ export type GlobalState = {
     loading: boolean;
     refresh: () => void;
     userPositions: UserPositions;
+    vaults: UserVaults;
   };
 
   // Options chain state.
@@ -168,6 +174,7 @@ export type GlobalAction =
       loading?: boolean;
       refresh?: () => void;
       userPositions?: UserPositions;
+      vaults?: UserVaults;
     }
   | {
       type: ActionType.SET_VISIBLE_STRIKE_RANGE;

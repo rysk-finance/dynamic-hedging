@@ -83,6 +83,7 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           loading: action.loading ?? state.options.loading,
           refresh: action.refresh || state.options.refresh,
           userPositions: action.userPositions || state.options.userPositions,
+          vaults: action.vaults || state.options.vaults,
         },
       };
     case ActionType.SET_VISIBLE_STRIKE_RANGE:
