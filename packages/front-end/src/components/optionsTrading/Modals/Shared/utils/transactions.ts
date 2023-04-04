@@ -52,7 +52,7 @@ export const approveAllowance = async (
   }
 };
 
-export const sell = async (
+export const closeLong = async (
   addresses: AddressesRequired,
   amount: BigNumberType,
   refresh: () => void
