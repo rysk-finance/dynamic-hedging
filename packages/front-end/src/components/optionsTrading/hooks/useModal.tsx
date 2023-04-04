@@ -3,7 +3,12 @@ import { useSearchParams } from "react-router-dom";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 
-import { ActionType, OptionChainModalActions, DashboardModalActions } from "src/state/types";
+import {
+  ActionType,
+  OptionChainModalActions,
+  DashboardModalActions,
+} from "src/state/types";
+import { BigNumber } from "ethers";
 
 /**
  * Hook that checks query params and state to determine if
@@ -57,7 +62,9 @@ export const useModal = () => {
       const hasUserPosition = userPositions[activeExpiry]?.tokens.find(
         ({ id, netAmount }) =>
           id === searchParams.get("token") &&
-          (hasVaultCloseRef ? netAmount < 0 : netAmount > 0)
+          (hasVaultCloseRef
+            ? BigNumber.from(netAmount).lt(0)
+            : BigNumber.from(netAmount).gt(0))
       );
 
       if (hasSellRef && hasUserPosition) {
@@ -67,7 +74,7 @@ export const useModal = () => {
         });
       } else if (hasVaultCloseRef && hasUserPosition) {
         dispatch({
-          type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.CLOSE_SHORT,
         });
       } else if (selectedOption?.buyOrSell === "buy") {
