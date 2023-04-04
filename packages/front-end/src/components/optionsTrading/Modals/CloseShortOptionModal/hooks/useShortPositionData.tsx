@@ -78,7 +78,8 @@ export const useShortPositionData = () => {
   useEffect(() => {
     if (activeExpiry && tokenAddress && userPositions) {
       const userPosition = userPositions[activeExpiry]?.tokens.find(
-        ({ id, netAmount }) => id === searchParams.get("token") && netAmount < 0
+        ({ id, netAmount }) =>
+          id === searchParams.get("token") && BigNumber.from(netAmount).lt(0)
       );
 
       if (userPosition) {
