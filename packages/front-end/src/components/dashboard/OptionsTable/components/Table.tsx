@@ -6,7 +6,7 @@ import NumberFormat from "react-number-format";
 
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
-import { renameOtoken } from "src/utils/conversion-helper";
+import { renameOtoken, fromUSDC } from "src/utils/conversion-helper";
 import { fromOpynHumanised } from "src/utils/conversion-helper";
 import { Button } from "src/components/shared/Button";
 
@@ -17,11 +17,15 @@ const tableHeadings = [
   },
   {
     children: "Option",
-    className: "col-span-3",
+    className: "col-span-2",
   },
   {
     children: "Size",
-    className: "col-span-2 text-right",
+    className: "col-span-1 text-right",
+  },
+  {
+    children: "Premium",
+    className: "col-span-1 text-right",
   },
   {
     children: "Entry Price",
@@ -37,7 +41,7 @@ const tableHeadings = [
   },
 ];
 
-const Table = ({ positions, completeRedeem }: TableProps) => (
+const Table = ({ positions, completeRedeem, completeSettle }: TableProps) => (
   <motion.table
     key="table"
     {...FadeInOut()}
@@ -61,9 +65,12 @@ const Table = ({ positions, completeRedeem }: TableProps) => (
             expiryPrice,
             id,
             isRedeemable,
+            isSettleable,
+            vaultId,
             otokenId,
             side,
             symbol,
+            totalPremium,
           },
           index
         ) => (
@@ -72,15 +79,31 @@ const Table = ({ positions, completeRedeem }: TableProps) => (
             {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
             className="w-auto h-16 grid grid-cols-12 gap-4 items-center px-4 ease-in-out duration-100 odd:bg-bone-light  hover:bg-bone-dark"
           >
-            <td className="col-span-1 text-green-700">{side}</td>
-            <td className="col-span-3">{renameOtoken(symbol)}</td>
+            <td
+              className={`col-span-1 ${
+                side === "LONG" ? "text-green-700" : "text-red-500"
+              }`}
+            >
+              {side}
+            </td>
+            <td className="col-span-2">{renameOtoken(symbol)}</td>
             <NumberFormat
               value={fromOpynHumanised(BigNumber.from(amount))}
               displayType={"text"}
               decimalScale={2}
               renderText={(value) => (
-                <td className="col-span-2 text-right">
+                <td className="col-span-1 text-right">
                   {amount ? value : "-"}
+                </td>
+              )}
+            />
+            <NumberFormat
+              value={fromUSDC(BigNumber.from(totalPremium))}
+              displayType={"text"}
+              decimalScale={2}
+              renderText={(value) => (
+                <td className="col-span-1 text-right">
+                  {totalPremium ? value : "-"}
                 </td>
               )}
             />
@@ -104,14 +127,18 @@ const Table = ({ positions, completeRedeem }: TableProps) => (
                 <td className="col-span-2 text-right">{value || "-"}</td>
               )}
             />
-            {isRedeemable ? (
+            {isRedeemable || isSettleable ? (
               <td className="col-span-2 text-center">
                 <Button
-                  onClick={() => completeRedeem(otokenId, amount)}
+                  onClick={() =>
+                    isRedeemable
+                      ? completeRedeem(otokenId, amount)
+                      : completeSettle(vaultId)
+                  }
                   className="min-w-[50%]"
                   title="Click to redeem"
                 >
-                  {`Redeemable`}
+                  {isRedeemable ? `Redeem` : `Settle`}
                 </Button>
               </td>
             ) : (

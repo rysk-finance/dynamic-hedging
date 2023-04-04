@@ -1,10 +1,16 @@
 import type { ApolloError } from "@apollo/client";
-import type { CompleteRedeem, ParsedPosition, Position } from "./types";
+import type {
+  CompleteRedeem,
+  CompleteSettle,
+  LongPosition,
+  ParsedPosition,
+  ShortPosition,
+} from "./types";
 
 import { gql, useQuery } from "@apollo/client";
 import { prepareWriteContract, writeContract } from "@wagmi/core";
 import dayjs from "dayjs";
-import { BigNumber } from "ethers";
+import { BigNumber, BigNumberish } from "ethers";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
@@ -15,8 +21,9 @@ import { OpynActionType } from "src/enums/OpynActionType";
 import { useGraphPolling } from "src/hooks/useGraphPolling";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
-import { DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
+import { BIG_NUMBER_DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
 import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
+import { fromRysk, fromUSDC } from "../../../utils/conversion-helper";
 
 /**
  * Hook using GraphQL to fetch all positions for the user
@@ -32,35 +39,69 @@ const usePositions = () => {
   const [positions, setPositions] = useState<ParsedPosition[] | null>(null);
 
   const { loading, error, data, startPolling } = useQuery<{
-    positions: Position[];
+    longPositions: LongPosition[];
+    shortPositions: ShortPosition[];
   }>(
     gql`
       query ${QueriesEnum.DASHBOARD_USER_POSITIONS} ($account: String) {
-        positions(first: 1000, where: { account: $account }) {
-          id
-          oToken {
-            id
-            symbol
-            expiryTimestamp
-            strikePrice
-            isPut
-            underlyingAsset {
+          longPositions(first: 1000, where: { account: $account }) {
               id
-            }
-            createdAt
-          }
-          writeOptionsTransactions {
-            premium
-          }
-          account {
-            balances {
-              balance
-              token {
-                id
+              netAmount
+              buyAmount
+              sellAmount
+              active
+              oToken {
+                  id
+                  symbol
+                  expiryTimestamp
+                  strikePrice
+                  isPut
+                  underlyingAsset {
+                      id
+                  }
+                  createdAt
               }
-            }
+              optionsBoughtTransactions {
+                  amount
+                  premium
+              }
+              optionsSoldTransactions {
+                  amount
+                  premium
+              }
           }
-        }
+          shortPositions(first: 1000, where: { account: $account }) {
+              id
+              netAmount
+              buyAmount
+              sellAmount
+              active
+              vault {
+                  vaultId
+              }
+              settleActions {
+                  id
+              }
+              oToken {
+                  id
+                  symbol
+                  expiryTimestamp
+                  strikePrice
+                  isPut
+                  underlyingAsset {
+                      id
+                  }
+                  createdAt
+              }
+              optionsBoughtTransactions {
+                  amount
+                  premium
+              }
+              optionsSoldTransactions {
+                  amount
+                  premium
+              }
+          }
       }
     `,
     {
@@ -82,8 +123,21 @@ const usePositions = () => {
     if (data && allOracleAssets) {
       const timeNow = dayjs().unix();
 
-      const parsedPositions = data.positions.map(
-        ({ id, oToken, account, writeOptionsTransactions }) => {
+      const parsedPositions = [
+        ...data.shortPositions,
+        ...data.longPositions,
+      ].map(
+        ({
+          id,
+          oToken,
+          netAmount,
+          optionsSoldTransactions,
+          optionsBoughtTransactions,
+          buyAmount,
+          sellAmount,
+          active,
+          ...rest
+        }) => {
           const {
             id: otokenId,
             expiryTimestamp,
@@ -92,36 +146,35 @@ const usePositions = () => {
             strikePrice,
           } = oToken;
 
+          const vault = (rest as ShortPosition)?.vault || { vaultId: "" };
+          const settleActions = (rest as ShortPosition)?.settleActions || [];
+
           const expired = timeNow > Number(expiryTimestamp);
 
-          // Check for oToken balance.
-          const matchingToken = account.balances.filter(
-            ({ token }) => token.id === otokenId
-          )[0];
-          const otokenBalance =
-            matchingToken && matchingToken.balance
-              ? Number(matchingToken.balance)
-              : 0;
+          const options = vault.vaultId
+            ? optionsSoldTransactions
+            : optionsBoughtTransactions;
 
           // 1e18 - TODO: does not account for sales
-          const totPremium = writeOptionsTransactions.length
-            ? writeOptionsTransactions.reduce(
-                (prev: number, { premium }) => prev + Number(premium),
+          const totPremium = options.length
+            ? options.reduce(
+                (p: number, { premium }: { premium: BigNumberish }) =>
+                  p - Number(premium),
                 0
               )
             : 0;
 
           // Total premium converted to 1e18 - TODO: does not account for sales
-          const totalPremium = totPremium / 10 ** DECIMALS.RYSK;
+          // const totalPremium = totPremium / 10 ** DECIMALS.RYSK;
 
           // per token premium converted to 1e18
-          const entryPrice =
-            otokenBalance > 0 && totPremium > 0
-              ? Number(
-                  totPremium /
-                    (otokenBalance * 10 ** (DECIMALS.RYSK - DECIMALS.OPYN))
-                ).toFixed(2)
-              : "0.00";
+          // average price to 1e18 - TODO: review before merge
+          const entryPrice = (
+            Number(fromUSDC(totPremium.toString())) /
+            Number(
+              fromRysk((vault.vaultId ? sellAmount : buyAmount).toString())
+            )
+          ).toFixed(2);
 
           // Find expiry price
           const asset = allOracleAssets.find(
@@ -135,45 +188,78 @@ const usePositions = () => {
           const inTheMoney = isPut
             ? Number(expiryPrice) <= Number(strikePrice)
             : Number(expiryPrice) >= Number(strikePrice);
-          const isRedeemable = expired && Boolean(otokenBalance) && inTheMoney;
-          const hasRedeemed = expired && !otokenBalance && inTheMoney;
-          const hasSoldBack = !otokenBalance && !hasRedeemed;
+          const isRedeemable = expired && Boolean(netAmount) && inTheMoney;
+          //@todo BUG get this from graph action REDEEM cause if this was traded to another account this would be wrong
+          const hasRedeemed = expired && !netAmount && inTheMoney;
+          //@todo BUG same as above, let's also get this from the graph (optionsSoldTransactions)
+          const hasSoldBack = !netAmount && !hasRedeemed;
+          //@todo FEAT just add a boolean prop settledShort to the graph Position entity
+          const canSettleShort = settleActions.length == 0 && expired;
+          const settledShort = settleActions.length > 0;
 
-          const getStatusMessage = () => {
-            switch (true) {
-              case hasRedeemed:
-                return "Redeemed";
+          const getStatusMessage = (short: boolean) => {
+            if (short) {
+              switch (true) {
+                case !active:
+                  return "Closed";
+                case canSettleShort:
+                  return "Settle";
+                case settledShort:
+                  return "Settled";
+                case !expired:
+                  return (
+                    <Link
+                      className="p-4"
+                      to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&vault=${vault.vaultId}&ref=vault-close`}
+                    >
+                      {`Close position`}
+                    </Link>
+                  );
+                default:
+                  return "Expired";
+              }
+            } else {
+              switch (true) {
+                case !active:
+                  return "Closed";
+                case hasRedeemed:
+                  return "Redeemed";
 
-              case hasSoldBack:
-                return "Closed";
+                case hasSoldBack:
+                  return "Closed";
 
-              case !expired:
-                return (
-                  <Link
-                    className="p-4"
-                    to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&ref=close`}
-                  >
-                    {`Close position`}
-                  </Link>
-                );
+                case !expired:
+                  return (
+                    <Link
+                      className="p-4"
+                      to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&ref=close`}
+                    >
+                      {`Close position`}
+                    </Link>
+                  );
 
-              default:
-                return "Expired";
+                default:
+                  return "Expired";
+              }
             }
           };
 
           return {
             ...oToken,
-            amount: otokenBalance,
+            amount: BigNumber.from(netAmount)
+              .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.OPYN))
+              .toNumber(),
             entryPrice,
             expired,
             expiryPrice,
             id,
             isRedeemable,
+            vaultId: vault.vaultId,
+            isSettleable: vault.vaultId ? canSettleShort : false,
             otokenId,
-            side: "LONG",
-            status: getStatusMessage(),
-            totalPremium,
+            side: vault.vaultId ? "SHORT" : "LONG",
+            status: getStatusMessage(!!vault.vaultId),
+            totalPremium: totPremium,
             underlyingAsset: underlyingAsset.id,
           };
         }
@@ -209,7 +295,7 @@ const usePositions = () => {
 
 /**
  * Simple hook to return a redeem function for
- * expired positions that are redeemable.
+ * expired long positions that are redeemable.
  *
  * @returns [completeRedeem]
  */
@@ -249,4 +335,46 @@ const useRedeem = () => {
   return [completeRedeem] as [CompleteRedeem];
 };
 
-export { usePositions, useRedeem };
+/**
+ * Simple hook to return a settle function for
+ * expired short positions that are settleable.
+ *
+ * @returns [completeSettle]
+ */
+const useSettle = () => {
+  const { address } = useAccount();
+
+  const completeSettle = useCallback(
+    async (vaultId: string) => {
+      const args = [
+        {
+          actionType: OpynActionType.SettleVault,
+          owner: address as HexString,
+          secondAddress: address as HexString,
+          asset: ZERO_ADDRESS as HexString,
+          vaultId: BigNumber.from(vaultId),
+          amount: BigNumber.from(0),
+          index: BigNumber.from(0),
+          data: ZERO_ADDRESS as HexString,
+        },
+      ];
+
+      const config = await prepareWriteContract({
+        address: getContractAddress("OpynController"),
+        abi: NewControllerABI,
+        functionName: "operate",
+        args: [args],
+        overrides: {
+          gasLimit: BigNumber.from("3000000"),
+        },
+      });
+
+      await writeContract(config);
+    },
+    [OpynActionType.SettleVault, address]
+  );
+
+  return [completeSettle] as [CompleteSettle];
+};
+
+export { usePositions, useRedeem, useSettle };
