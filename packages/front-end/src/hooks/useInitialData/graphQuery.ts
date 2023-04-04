@@ -8,7 +8,7 @@ query ${QueriesEnum.INITIAL_DATA} ($address: String, $now: String) {
     timestamp
   }
 
-  positions(
+  longPositions(
     where: { account: $address, active: true, oToken_: { expiryTimestamp_gte: $now } }
   ) {
     netAmount
