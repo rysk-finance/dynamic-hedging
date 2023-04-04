@@ -40,7 +40,7 @@ const getExpiries = (expiries: InitialDataQuery["expiries"]) => {
   }, [] as string[]);
 };
 
-const getUserPositions = (positions: InitialDataQuery["positions"]) => {
+const getUserPositions = (positions: InitialDataQuery["longPositions"]) => {
   return positions.reduce(
     (
       positions,
@@ -335,7 +335,7 @@ export const getInitialData = async (
   data: InitialDataQuery,
   address?: HexString
 ) => {
-  const { expiries, positions } = data;
+  const { expiries, longPositions: positions } = data;
 
   // Get expiries.
   const validExpiries = getExpiries(expiries);
