@@ -51,7 +51,9 @@ export const useModal = () => {
   // Dispatcher for opening modals.
   useEffect(() => {
     if (activeExpiry) {
-      const hasSellRef = searchParams.get("ref") === "close";
+      const hasSellRef =
+        searchParams.get("ref") === "close" ||
+        searchParams.get("ref") === "vault-close";
       const hasUserPosition = userPositions[activeExpiry]?.tokens.find(
         ({ id }) => id === searchParams.get("token")
       );

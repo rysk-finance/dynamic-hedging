@@ -15,3 +15,14 @@ export interface AllowanceState {
   approved: boolean;
   amount: BigNumber;
 }
+
+export interface AddressesRequiredVaultSell extends Addresses {
+  token: HexString;
+  user: HexString;
+  vaultId: BigNumber;
+  collateralAsset: HexString;
+}
+
+export interface VaultQueryData {
+  vault: { id: string; collateralAmount: string; shortAmount: string };
+}
