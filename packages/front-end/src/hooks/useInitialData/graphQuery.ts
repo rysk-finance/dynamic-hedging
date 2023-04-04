@@ -29,5 +29,16 @@ query ${QueriesEnum.INITIAL_DATA} ($address: String, $now: String) {
       premium
     }
   }
+
+  vaults(
+    orderBy: vaultId,
+    orderDirection: desc,
+    where: { owner: $address }
+  ) {
+    vaultId
+    shortOToken {
+      id 
+    }
+  }
 }
 `;
