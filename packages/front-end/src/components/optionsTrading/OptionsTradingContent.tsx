@@ -10,6 +10,7 @@ import { useModal } from "./hooks/useModal";
 import { BuyOptionModal } from "./Modals/BuyOptionModal";
 import { CloseOptionModal } from "./Modals/CloseOptionModal";
 import { OperatorModal } from "./Modals/OperatorModal";
+import { SellOptionModal } from "./Modals/SellOptionModal";
 import { Purchase } from "./Purchase";
 import { Tutorial } from "./Tutorial";
 
@@ -36,6 +37,7 @@ export const OptionsTradingContent = () => {
         {modalType === OptionChainModalActions.BUY && <BuyOptionModal />}
         {modalType === OptionChainModalActions.CLOSE && <CloseOptionModal />}
         {modalType === OptionChainModalActions.OPERATOR && <OperatorModal />}
+        {modalType === OptionChainModalActions.SELL && <SellOptionModal />}
       </AnimatePresence>
     </section>
   );
