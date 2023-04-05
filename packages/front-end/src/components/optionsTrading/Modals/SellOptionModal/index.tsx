@@ -158,8 +158,10 @@ export const SellOptionModal = () => {
             className="w-1/3 !border-0"
             disabled={
               !Number(debouncedAmountToSell) ||
-              positionData.remainingBalanceUSDC <= 0 ||
-              positionData.remainingBalanceWETH <= 0 ||
+              (collateralPreferences.type === "USDC" &&
+                positionData.remainingBalanceUSDC <= 0) ||
+              (collateralPreferences.type === "WETH" &&
+                positionData.remainingBalanceWETH <= 0) ||
               transactionPending ||
               loading
             }
