@@ -3,17 +3,15 @@ import { ChangeEvent } from "react";
 import type { AddressesRequired } from "../Shared/types";
 
 import { BigNumber } from "ethers";
-import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { useDebounce } from "use-debounce";
 
-import FadeInOutQuick from "src/animation/FadeInOutQuick";
-import { Button } from "src/components/shared/Button";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { Disclaimer } from "../Shared/components/Disclaimer";
+import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
 import { useNotifications } from "../Shared/hooks/useNotifications";
@@ -117,45 +115,34 @@ export const BuyOptionModal = () => {
 
       <Pricing positionData={positionData} />
 
-      <div className="flex border-black border-y-2">
-        <label
-          className="grow"
-          title="Enter how many contracts you would like to buy."
-        >
-          <input
-            className="text-center w-full h-12 number-input-hide-arrows border-r-2 border-black"
-            inputMode="numeric"
+      <Wrapper>
+        <Label title="Enter how many contracts you would like to buy.">
+          <Input
             name="sell-amount"
             onChange={handleChange}
             placeholder="How many would you like to buy?"
-            step={0.01}
-            type="number"
             value={amountToBuy}
           />
-        </label>
+        </Label>
 
-        <AnimatePresence mode="wait">
-          <Button
-            className="w-1/3 !border-0"
-            disabled={
-              !Number(amountToBuy) ||
-              !addresses.user ||
-              positionData.remainingBalance < 0 ||
-              transactionPending ||
-              loading
-            }
-            requiresConnection
-            {...FadeInOutQuick}
-            {...getButtonProps(
-              "buy",
-              transactionPending || loading,
-              allowance.approved,
-              handleApprove,
-              handleBuy
-            )}
-          />
-        </AnimatePresence>
-      </div>
+        <Button
+          className="w-1/3 !border-0"
+          disabled={
+            !Number(amountToBuy) ||
+            !addresses.user ||
+            positionData.remainingBalance < 0 ||
+            transactionPending ||
+            loading
+          }
+          {...getButtonProps(
+            "buy",
+            transactionPending || loading,
+            allowance.approved,
+            handleApprove,
+            handleBuy
+          )}
+        />
+      </Wrapper>
 
       <Disclaimer>
         {`You are about to make a trade using your USDC balance to pay for the options premium and fees. Please ensure this is what you want because the action is irreversible.`}
