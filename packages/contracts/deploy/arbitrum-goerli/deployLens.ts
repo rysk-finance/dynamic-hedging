@@ -6,7 +6,7 @@ import { DHVLensMK1 } from "../../types/DHVLensMK1"
 const usdcAddress = "0x6775842ae82bf2f0f987b10526768ad89d79536e"
 const wethAddress = "0x53320bE2A35649E9B2a0f244f9E9474929d3B699"
 const catalogueAddress = "0xFE767C13EB75686817E4be774fAEEaBE93346887"
-const pricerAddress = "0x1b8ffC43aA54e63CDDc0B5df23fb3A128D41A0b1"
+const pricerAddress = "0xd857e2e104D2493CE7EF12Ed04aCEAfD8b833033"
 const optionProtocolAddress = "0x20E97A4fd0633eDa3112392CC0D8BD62a846011f"
 
 export async function deployLens() {
