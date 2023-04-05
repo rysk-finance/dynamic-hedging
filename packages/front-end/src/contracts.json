@@ -56,7 +56,7 @@
     "OpynNewCalculator": "0xcD270e755C2653e806e16dD3f78E16C89B7a1c9e",
     "OpynOptionRegistry": "0xF37D82c5ee757eE05B08ed469d1CC90c301c8636",
     "priceFeed": "0x09650a4268A399c163c2038FC5bfecdd75912ADd",
-    "volFeed": "0xa0bC9BADC8F9489D440C5B16cf5f51273080137E",
+    "volFeed": "0xc23B9e3bF10651ab1a3a3FF0987518C304939a0e",
     "optionProtocol": "0x20E97A4fd0633eDa3112392CC0D8BD62a846011f",
     "liquidityPool": "0xfD93dB0a7c1e373bdfE9b141693a25E4deb79dF2",
     "authority": "0x58a0D5c965F6Cc28a396b8282d0b73DfC99C7Cc1",
