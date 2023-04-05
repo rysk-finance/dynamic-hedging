@@ -23,12 +23,15 @@ import {
 	BeyondPricer,
 	OptionCatalogue,
 	OptionExchange,
-	OpynInteractions
+	OpynInteractions,
+	GmxHedgingReactor
 } from "../../types"
 
 const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
 
 //	Arbitrum mainnet specific contract addresses. Change for other networks
+const usdcAddress = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
+const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
 const chainlinkOracleAddress = "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612"
 const gammaOracleAddress = "0xBA1880CFFE38DD13771CB03De896460baf7dA1E7"
 const opynControllerProxyAddress = "0x594bD4eC29F7900AE29549c140Ac53b5240d4019"
@@ -41,8 +44,12 @@ const sequencerUptimeAddress = "0xFdB631F5EE196F0ed6FAa767959853A9F217697D"
 // rage trade addresses for Arbitrum Mainnet
 const clearingHouseAddress = "0x4521916972A76D5BFA65Fb539Cf7a0C2592050Ac"
 const vETHAddress = "0x7ab08069a6ee445703116E4E09049E88a237af5E"
-const usdcAddress = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
-const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
+
+// gmx contracts on arbitrum mainnet
+const positionRouterAddress = "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868"
+const routerAddress = "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064"
+const readerAddress = "0x22199a49A999c351eF7927602CFB187ec3cae489"
+const vaultAddress = "0x489ee077994B6658eAfA855C308275EAd8097C4A"
 
 // uniswap v3 addresses (SAME FOR ALL CHAINS)
 const uniswapV3SwapRouter = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
@@ -164,6 +171,7 @@ async function main() {
 	const accounting = lpParams.accounting
 	const uniswapV3HedgingReactor = lpParams.uniswapV3HedgingReactor
 	const perpHedgingReactor = lpParams.perpHedgingReactor
+	const gmxHedgingReactor = lpParams.gmxHedgingReactor
 	const catalogue = lpParams.catalogue
 	const pricer = lpParams.pricer
 	const exchange = lpParams.exchange
@@ -175,32 +183,32 @@ async function main() {
 	// 	// @ts-ignore
 	// 	contractAddresses = JSON.parse(fs.readFileSync(addressPath))
 	// } catch {
-	// 	contractAddresses = { localhost: {}, arbitrumGoerli: {} }
+	// 	contractAddresses = { localhost: {}, arbitrum: {} }
 	// }
 
 	// // @ts-ignore
-	// contractAddresses["arbitrumGoerli"]["OpynController"] = opynControllerProxyAddress
-	// contractAddresses["arbitrumGoerli"]["OpynAddressBook"] = opynAddressBookAddress
-	// contractAddresses["arbitrumGoerli"]["OpynOracle"] = gammaOracleAddress
-	// contractAddresses["arbitrumGoerli"]["OpynNewCalculator"] = opynNewCalculatorAddress
-	// contractAddresses["arbitrumGoerli"]["OpynOptionRegistry"] = optionRegistry.address
-	// contractAddresses["arbitrumGoerli"]["priceFeed"] = priceFeed.address
-	// contractAddresses["arbitrumGoerli"]["volFeed"] = volFeed.address
-	// contractAddresses["arbitrumGoerli"]["optionProtocol"] = optionProtocol.address
-	// contractAddresses["arbitrumGoerli"]["liquidityPool"] = liquidityPool.address
-	// contractAddresses["arbitrumGoerli"]["authority"] = authority.address
-	// contractAddresses["arbitrumGoerli"]["portfolioValuesFeed"] = portfolioValuesFeed.address
-	// contractAddresses["arbitrumGoerli"]["alphaOptionHandler"] = handler.address
-	// contractAddresses["arbitrumGoerli"]["opynInteractions"] = interactions.address
-	// contractAddresses["arbitrumGoerli"]["normDist"] = normDist.address
-	// contractAddresses["arbitrumGoerli"]["BlackScholes"] = blackScholes.address
-	// contractAddresses["arbitrumGoerli"]["accounting"] = accounting.address
-	// contractAddresses["arbitrumGoerli"]["uniswapV3HedgingReactor"] = uniswapV3HedgingReactor.address
-	// contractAddresses["arbitrumGoerli"]["perpHedgingReactor"] = perpHedgingReactor.address
-	// contractAddresses["arbitrumGoerli"]["optionsCompute"] = optionsCompute.address
-	// contractAddresses["arbitrumGoerli"]["optionCatalogue"] = catalogue.address
-	// contractAddresses["arbitrumGoerli"]["optionExchange"] = exchange.address
-	// contractAddresses["arbitrumGoerli"]["beyondPricer"] = pricer.address
+	// contractAddresses["arbitrum"]["OpynController"] = opynControllerProxyAddress
+	// contractAddresses["arbitrum"]["OpynAddressBook"] = opynAddressBookAddress
+	// contractAddresses["arbitrum"]["OpynOracle"] = gammaOracleAddress
+	// contractAddresses["arbitrum"]["OpynNewCalculator"] = opynNewCalculatorAddress
+	// contractAddresses["arbitrum"]["OpynOptionRegistry"] = optionRegistry.address
+	// contractAddresses["arbitrum"]["priceFeed"] = priceFeed.address
+	// contractAddresses["arbitrum"]["volFeed"] = volFeed.address
+	// contractAddresses["arbitrum"]["optionProtocol"] = optionProtocol.address
+	// contractAddresses["arbitrum"]["liquidityPool"] = liquidityPool.address
+	// contractAddresses["arbitrum"]["authority"] = authority.address
+	// contractAddresses["arbitrum"]["portfolioValuesFeed"] = portfolioValuesFeed.address
+	// contractAddresses["arbitrum"]["alphaOptionHandler"] = handler.address
+	// contractAddresses["arbitrum"]["opynInteractions"] = interactions.address
+	// contractAddresses["arbitrum"]["normDist"] = normDist.address
+	// contractAddresses["arbitrum"]["BlackScholes"] = blackScholes.address
+	// contractAddresses["arbitrum"]["accounting"] = accounting.address
+	// contractAddresses["arbitrum"]["uniswapV3HedgingReactor"] = uniswapV3HedgingReactor.address
+	// contractAddresses["arbitrum"]["perpHedgingReactor"] = perpHedgingReactor.address
+	// contractAddresses["arbitrum"]["optionsCompute"] = optionsCompute.address
+	// contractAddresses["arbitrum"]["optionCatalogue"] = catalogue.address
+	// contractAddresses["arbitrum"]["optionExchange"] = exchange.address
+	// contractAddresses["arbitrum"]["beyondPricer"] = pricer.address
 
 	// fs.writeFileSync(addressPath, JSON.stringify(contractAddresses, null, 4))
 
@@ -224,6 +232,7 @@ async function main() {
 		accounting: accounting.address,
 		uniswapV3HedgingReactor: uniswapV3HedgingReactor.address,
 		perpHedgingReactor: perpHedgingReactor.address,
+		gmxHedgingReactor: gmxHedgingReactor.address,
 		optionCatalogue: catalogue.address,
 		optionExchange: exchange.address,
 		beyondPricer: pricer.address
@@ -744,8 +753,47 @@ export async function deployLiquidityPool(
 		console.log(err)
 	}
 
+	// deploy GMX hedging reactor
+	const gmxHedgingReactorFactory = await ethers.getContractFactory("GmxHedgingReactor")
+	const gmxHedgingReactor = (await gmxHedgingReactorFactory.deploy(
+		positionRouterAddress,
+		routerAddress,
+		readerAddress,
+		vaultAddress,
+		usdcAddress,
+		wethAddress,
+		liquidityPool.address,
+		priceFeed.address,
+		authority
+	)) as GmxHedgingReactor
+
+	console.log("gmx hedging reactor deployed")
+
+	try {
+		await hre.run("verify:verify", {
+			address: gmxHedgingReactor.address,
+			constructorArguments: [
+				positionRouterAddress,
+				routerAddress,
+				readerAddress,
+				vaultAddress,
+				usdcAddress,
+				wethAddress,
+				liquidityPool.address,
+				priceFeed.address,
+				authority
+			]
+		})
+		console.log("gmx hedging reactor verified")
+	} catch (err: any) {
+		if (err.message.includes("Reason: Already Verified")) {
+			console.log("perp hedging reactor contract already verified")
+		}
+	}
+
 	await liquidityPool.setHedgingReactorAddress(uniswapV3HedgingReactor.address)
 	await liquidityPool.setHedgingReactorAddress(perpHedgingReactor.address)
+	await liquidityPool.setHedgingReactorAddress(gmxHedgingReactor.address)
 	console.log("hedging reactors added to liquidity pool")
 
 	return {
@@ -755,6 +803,7 @@ export async function deployLiquidityPool(
 		accounting,
 		uniswapV3HedgingReactor,
 		perpHedgingReactor,
+		gmxHedgingReactor,
 		catalogue,
 		exchange,
 		pricer
