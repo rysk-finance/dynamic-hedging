@@ -1,6 +1,6 @@
 import "@nomiclabs/hardhat-ethers"
 import hre, { ethers } from "hardhat"
-import { BeyondPricer, BlackScholes, NormalDist } from "../types"
+import { BeyondPricer, BlackScholes, NormalDist, Protocol } from "../types"
 import { scaleNum, toWei } from "../utils/conversion-helper"
 
 // async function main() {
@@ -182,41 +182,34 @@ import { scaleNum, toWei } from "../utils/conversion-helper"
 // 	}
 // }
 
-// main()
-// 	.then(() => process.exit())
-// 	.catch(error => {
-// 		console.error(error)
-// 		process.exit(1)
-// 	})
-
-
 async function main() {
 	try {
 		if (!process.env.DEPLOYER_PRIVATE_KEY) {
 			console.log("can't find private key")
 			process.exit()
 		}
+        const protocol = await hre.ethers.getContractAt(
+			"contracts/Protocol.sol:Protocol",
+			"0x20E97A4fd0633eDa3112392CC0D8BD62a846011f"
+		) as Protocol
+        const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
+        const volFeed = (await volFeedFactory.deploy("0x58a0D5c965F6Cc28a396b8282d0b73DfC99C7Cc1")) as VolatilityFeed
+        console.log("volFeed deployed")
+    
+        try {
+            await hre.run("verify:verify", {
+                address: volFeed.address,
+                constructorArguments: ["0x58a0D5c965F6Cc28a396b8282d0b73DfC99C7Cc1"]
+            })
+        } catch (err: any) {
+            console.log(err)
+        }
+            await protocol.changeVolatilityFeed(volFeed.address)
+            console.log("pricer verified")
+        } catch (err: any) {
+            console.log(err)
+        }
 
-		const pricer = await hre.ethers.getContractAt(
-			"BeyondPricer",
-			"0xd857e2e104D2493CE7EF12Ed04aCEAfD8b833033"
-		)
-        
-        const authority = await hre.ethers.getContractAt(
-            "Authority",
-            "0x58a0D5c965F6Cc28a396b8282d0b73DfC99C7Cc1"
-        )
-        // await authority.pullGovernor()
-		await pricer.setFeePerContract(500000)
-        await pricer.setRiskFreeRate(0)
-        await pricer.setBidAskIVSpread(0)
-        await pricer.setCollateralLendingRate(40000)
-        await pricer.setDeltaBorrowRates({sellLong: 19500, sellShort: 15000, buyLong: 15000, buyShort: 19500})
-		
-
-	} catch (err) {
-		console.log(err)
-	}
 }
 
 main()
@@ -225,6 +218,43 @@ main()
 		console.error(error)
 		process.exit(1)
 	})
+
+
+// async function main() {
+// 	try {
+// 		if (!process.env.DEPLOYER_PRIVATE_KEY) {
+// 			console.log("can't find private key")
+// 			process.exit()
+// 		}
+
+// 		const pricer = await hre.ethers.getContractAt(
+// 			"BeyondPricer",
+// 			"0xd857e2e104D2493CE7EF12Ed04aCEAfD8b833033"
+// 		)
+        
+//         const authority = await hre.ethers.getContractAt(
+//             "Authority",
+//             "0x58a0D5c965F6Cc28a396b8282d0b73DfC99C7Cc1"
+//         )
+//         // await authority.pullGovernor()
+// 		await pricer.setFeePerContract(500000)
+//         await pricer.setRiskFreeRate(0)
+//         await pricer.setBidAskIVSpread(0)
+//         await pricer.setCollateralLendingRate(40000)
+//         await pricer.setDeltaBorrowRates({sellLong: 19500, sellShort: 15000, buyLong: 15000, buyShort: 19500})
+		
+
+// 	} catch (err) {
+// 		console.log(err)
+// 	}
+// }
+
+// main()
+// 	.then(() => process.exit())
+// 	.catch(error => {
+// 		console.error(error)
+// 		process.exit(1)
+// 	})
 
 
 // async function main() {
