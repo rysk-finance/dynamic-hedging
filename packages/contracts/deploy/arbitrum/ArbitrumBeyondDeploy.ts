@@ -24,12 +24,14 @@ import {
 	OptionCatalogue,
 	OptionExchange,
 	OpynInteractions,
-	GmxHedgingReactor
+	GmxHedgingReactor,
+	Manager
 } from "../../types"
 
 const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
 
 //	Arbitrum mainnet specific contract addresses. Change for other networks
+const multisig = "0xFBdE2e477Ed031f54ed5Ad52f35eE43CD82cF2A6"
 const usdcAddress = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
 const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
 const chainlinkOracleAddress = "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612"
@@ -175,7 +177,12 @@ async function main() {
 	const catalogue = lpParams.catalogue
 	const pricer = lpParams.pricer
 	const exchange = lpParams.exchange
+	const manager = lpParams.manager
 	console.log("liquidity pool deployed")
+
+	await authority.pushGovernor(multisig)
+	await authority.pushManager(manager.address)
+	await manager.pullManager()
 
 	// let contractAddresses
 
@@ -235,7 +242,8 @@ async function main() {
 		gmxHedgingReactor: gmxHedgingReactor.address,
 		optionCatalogue: catalogue.address,
 		optionExchange: exchange.address,
-		beyondPricer: pricer.address
+		beyondPricer: pricer.address,
+		manager: manager.address
 	})
 	// console.log(contractAddresses)
 }
@@ -257,12 +265,12 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		console.log(err)
 	}
 	const authorityFactory = await ethers.getContractFactory("Authority")
-	const authority = await authorityFactory.deploy(deployerAddress, deployerAddress, deployerAddress)
+	const authority = await authorityFactory.deploy(deployerAddress, multisig, multisig)
 	console.log("authority deployed")
 	try {
 		await hre.run("verify:verify", {
 			address: authority.address,
-			constructorArguments: [deployerAddress, deployerAddress, deployerAddress]
+			constructorArguments: [deployerAddress, multisig, multisig]
 		})
 		console.log("authority verified")
 	} catch (err: any) {
@@ -353,7 +361,7 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	}
 
 	console.log("volFeed verified")
-	/* ********* Alpha contract - ********* */
+
 	const portfolioValuesFeedFactory = await ethers.getContractFactory("AlphaPortfolioValuesFeed", {
 		libraries: {
 			BlackScholes: blackScholes.address
@@ -685,6 +693,38 @@ export async function deployLiquidityPool(
 	await pvFeed.setHandler(exchange.address, true)
 	console.log("lp handler set")
 
+	// deploy proxy manager contract
+
+	const managerFactory = await ethers.getContractFactory("Manager")
+	const manager = await managerFactory.deploy(
+		authority,
+		liquidityPool.address,
+		handler.address,
+		catalogue.address,
+		exchange.address,
+		pricer.address
+	)
+	console.log("manager deployed")
+	try {
+		await hre.run("verify:verify", {
+			address: manager.address,
+			constructorArguments: [
+				authority,
+				liquidityPool.address,
+				handler.address,
+				catalogue.address,
+				exchange.address,
+				pricer.address
+			]
+		})
+		console.log("manager verified")
+	} catch (err: any) {
+		console.log(err)
+		if (err.message.includes("Reason: Already Verified")) {
+			console.log("Manager contract already verified")
+		}
+	}
+
 	// deploy rage trade perpetual hedging reactor
 
 	const perpHedgingReactorFactory = await ethers.getContractFactory("PerpHedgingReactor")
@@ -806,7 +846,8 @@ export async function deployLiquidityPool(
 		gmxHedgingReactor,
 		catalogue,
 		exchange,
-		pricer
+		pricer,
+		manager
 	}
 }
 
