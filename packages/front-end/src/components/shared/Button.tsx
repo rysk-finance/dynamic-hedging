@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { useGlobalContext } from "../../state/GlobalContext";
 import { ActionType } from "../../state/types";
 
-interface ButtonProps extends HTMLMotionProps<"button"> {
+export interface ButtonProps extends HTMLMotionProps<"button"> {
   color?: "white" | "black";
   requiresConnection?: boolean;
 }
