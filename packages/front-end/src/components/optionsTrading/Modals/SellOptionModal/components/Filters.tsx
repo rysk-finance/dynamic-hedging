@@ -99,8 +99,10 @@ export const Filters = () => {
 
   return (
     <div className="flex flex-col w-3/5 mx-auto pt-4 select-none">
+      <p className="leading-6 border-gray-600 border-b">{`Collateral Preferences`}</p>
+
       <div
-        className="flex items-center justify-center mb-2 cursor-pointer"
+        className="flex items-center justify-center my-2 cursor-pointer"
         onClick={handleCollateralTypeChange}
         title="Click to change the asset you wish to use to collateralize your position."
       >
