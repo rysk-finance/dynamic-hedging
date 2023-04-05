@@ -4,14 +4,12 @@ import type { AddressesRequired } from "../Shared/types";
 
 import dayjs from "dayjs";
 import LocalizedFormat from "dayjs/plugin/localizedFormat";
-import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
-import FadeInOutQuick from "src/animation/FadeInOutQuick";
-import { Button } from "src/components/shared/Button";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { toOpyn, toRysk } from "src/utils/conversion-helper";
 import { Disclaimer } from "../Shared/components/Disclaimer";
+import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
 import { useNotifications } from "../Shared/hooks/useNotifications";
@@ -104,45 +102,33 @@ export const CloseOptionModal = () => {
       <Header>{`Sell Position`}</Header>
       <Pricing positionData={positionData} />
 
-      <div className="flex border-black border-y-2">
-        <label
-          className="grow"
-          title="Enter how much of your position you would like to sell."
-        >
-          <input
-            className="text-center w-full h-12 number-input-hide-arrows border-r-2 border-black"
-            inputMode="numeric"
+      <Wrapper>
+        <Label title="Enter how much of your position you would like to sell.">
+          <Input
             name="sell-amount"
             onChange={handleChange}
             placeholder="How many would you like to sell?"
-            step={0.01}
-            type="number"
             value={amountToSell}
           />
-        </label>
+        </Label>
 
-        <AnimatePresence mode="wait">
-          <Button
-            className="w-1/3 !border-0"
-            disabled={
-              Number(amountToSell) > positionData.totalSize ||
-              !Number(amountToSell) ||
-              !addresses.user ||
-              !addresses.token ||
-              transactionPending
-            }
-            requiresConnection
-            {...FadeInOutQuick}
-            {...getButtonProps(
-              "sell",
-              transactionPending,
-              allowance.approved,
-              handleApprove,
-              handleSell
-            )}
-          />
-        </AnimatePresence>
-      </div>
+        <Button
+          disabled={
+            Number(amountToSell) > positionData.totalSize ||
+            !Number(amountToSell) ||
+            !addresses.user ||
+            !addresses.token ||
+            transactionPending
+          }
+          {...getButtonProps(
+            "sell",
+            transactionPending,
+            allowance.approved,
+            handleApprove,
+            handleSell
+          )}
+        />
+      </Wrapper>
 
       <Disclaimer>
         {`You are about to sell some or all of your position. Please ensure this is what you want because the action is irreversible.`}
