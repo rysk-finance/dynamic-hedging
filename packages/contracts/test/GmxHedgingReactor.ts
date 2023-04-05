@@ -76,7 +76,6 @@ const executeDoubleDecreasePosition = async () => {
 	await gmxReactor.executeDecreasePosition(positionKey1)
 	const positionKey2 = logs[logs.length - 2].args[0]
 	await gmxReactor.executeDecreasePosition(positionKey2)
-	console.log({ positionKey1, positionKey2 })
 }
 
 const checkPositionExecutedEvent = async delta => {
@@ -195,6 +194,15 @@ describe("GMX Hedging Reactor", () => {
 			)
 
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("2000", 8))
+
+		const gmxKeeperAdminAddress = await gmxPositionRouter.admin()
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [gmxKeeperAdminAddress]
+		})
+		await gmxPositionRouter
+			.connect(await ethers.getSigner(gmxKeeperAdminAddress))
+			.setPositionKeeper(await deployer.getAddress(), true)
 	})
 	it("deploys GMX perp hedging reactor", async () => {
 		const reactorFactory = await ethers.getContractFactory("GmxHedgingReactor")
@@ -241,6 +249,8 @@ describe("GMX Hedging Reactor", () => {
 		)
 
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`-${delta}`), 2)
+		const pendingIncreaseCallback = await gmxReactor.pendingIncreaseCallback()
+		expect(pendingIncreaseCallback).to.eq(1)
 
 		// check getPoolDemoninatedvalue is correct during pending position increase
 		const poolDenominatedValueBeforeExecute = parseFloat(
@@ -1725,15 +1735,8 @@ describe("price moves between submitting and executing orders", async () => {
 		// fast forward 3 min
 		await ethers.provider.send("evm_increaseTime", [180])
 		await ethers.provider.send("evm_mine")
-		const admin = await gmxPositionRouter.admin()
-		await network.provider.request({
-			method: "hardhat_impersonateAccount",
-			params: [admin]
-		})
-		await gmxPositionRouter
-			.connect(await ethers.getSigner(admin))
-			.setPositionKeeper(await deployer.getAddress(), true)
-		await gmxPositionRouter.connect(deployer).executeIncreasePositions(50000, admin)
+		await executeIncreasePosition()
+		// await gmxPositionRouter.connect(deployer).executeIncreasePositions(50000, deployerAddress)
 		const usdcBalance3 = parseFloat(utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6))
 		const failedOrderEventsAfter = await gmxReactor.queryFilter(
 			gmxReactor.filters.RebalancePortfolioDeltaFailed(),
@@ -1862,6 +1865,7 @@ describe("multi leg hedges fail resulting in simultaneous long and short", async
 		// change price to something that will be rejected
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1800", 8))
 		await executeDecreasePosition()
+		// await gmxPositionRouter.connect(deployer).executeDecreasePositions(50000, deployerAddress)
 		await checkPositionExecutedEvent(-10)
 
 		// positions after
@@ -1916,7 +1920,8 @@ describe("multi leg hedges fail resulting in simultaneous long and short", async
 	})
 	it("calls update on reactor with equally large short and long open, neuralising both", async () => {
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1950", 8))
-
+		const pendingIncreaseCallback = await gmxReactor.pendingIncreaseCallback()
+		const pendingDecreaseCallback = await gmxReactor.pendingDecreaseCallback()
 		await gmxReactor.update()
 
 		await executeDoubleDecreasePosition()
@@ -1974,7 +1979,6 @@ describe("multi leg hedges fail resulting in simultaneous long and short", async
 			[wethAddress],
 			[true]
 		)
-		console.log({ longPositionBefore })
 		///////////------------
 		const usdcBalanceBeforeLP = parseFloat(
 			utils.formatUnits(await usdc.balanceOf(liquidityPool.address), 6)
@@ -1990,6 +1994,8 @@ describe("multi leg hedges fail resulting in simultaneous long and short", async
 		// change price to something that will be rejected
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("2200", 8))
 		await executeDecreasePosition()
+		// await gmxPositionRouter.connect(deployer).executeDecreasePositions(50000, deployerAddress)
+
 		// close short didnt execute so should still show long increase delta
 		await checkPositionExecutedEvent(5)
 
@@ -2008,7 +2014,6 @@ describe("multi leg hedges fail resulting in simultaneous long and short", async
 			[wethAddress],
 			[true]
 		)
-		console.log({ longPositionAfter })
 		expect(shortPositionAfter[0]).to.eq(shortPositionBefore[0])
 		// trading fees are taking from collateral
 		expect(shortPositionAfter[1]).to.eq(shortPositionBefore[1])

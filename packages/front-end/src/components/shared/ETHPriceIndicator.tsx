@@ -7,18 +7,18 @@ export const ETHPriceIndicator = () => {
   const {
     state: { ethPrice, eth24hChange },
   } = useGlobalContext();
-  const { updatePrice } = useUpdateEthPrice();
+  const { updatePriceData } = useUpdateEthPrice();
 
   useEffect(() => {
-    updatePrice();
-  }, [updatePrice]);
+    updatePriceData();
+  }, [updatePriceData]);
 
   useEffect(() => {
     // Refreshing the price every 60 seconds to force a recalculation of premiums.
     // Would probably be better if we used a websocket once we find an efficient way
     // to query all of the data from the graph.
     const priceCheckInternal = setInterval(() => {
-      updatePrice();
+      updatePriceData();
     }, 60000);
 
     return () => clearInterval(priceCheckInternal);
@@ -26,7 +26,7 @@ export const ETHPriceIndicator = () => {
 
   return (
     <button
-      onClick={updatePrice}
+      onClick={updatePriceData}
       className="py-2 px-4 flex justify-between w-fit cursor-pointer"
     >
       <p className="pr-8">ETH</p>

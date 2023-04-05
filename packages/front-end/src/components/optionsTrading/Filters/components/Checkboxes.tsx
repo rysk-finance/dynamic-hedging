@@ -1,17 +1,17 @@
 import type { ColumNames } from "src/state/types";
 
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import { OptionsTradingActionType } from "src/state/types";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
 
 export const Checkboxes = () => {
   const {
     dispatch,
     state: { visibleColumns },
-  } = useOptionsTradingContext();
+  } = useGlobalContext();
 
   const handleChange = (column: ColumNames) => () => {
     dispatch({
-      type: OptionsTradingActionType.SET_VISIBLE_COLUMNS,
+      type: ActionType.SET_VISIBLE_COLUMNS,
       column,
     });
   };
@@ -20,20 +20,20 @@ export const Checkboxes = () => {
     {
       inputProps: {
         name: "bid-iv-visible",
-        onChange: handleChange("bid iv"),
-        checked: visibleColumns.has("bid iv"),
+        onChange: handleChange("iv sell"),
+        checked: visibleColumns.has("iv sell"),
       },
-      label: "Bid IV",
-      title: "Switch the bid IV column visibility.",
+      label: "IV (Sell)",
+      title: "Switch the IV (Sell) column visibility.",
     },
     {
       inputProps: {
         name: "ask-iv-visible",
-        onChange: handleChange("ask iv"),
-        checked: visibleColumns.has("ask iv"),
+        onChange: handleChange("iv buy"),
+        checked: visibleColumns.has("iv buy"),
       },
-      label: "Ask IV",
-      title: "Switch the ask IV column visibility.",
+      label: "IV (Buy)",
+      title: "Switch the IV (Buy) column visibility.",
     },
     {
       inputProps: {
@@ -65,7 +65,10 @@ export const Checkboxes = () => {
   ];
 
   return (
-    <div className="flex items-center justify-evenly xl:justify-start h-12 px-4 [&>*]:mx-2 [&>*]:p-3 [&_*]:ease-in-out [&_*]:duration-100 [&_label]:whitespace-nowrap" id="filter-checkboxes">
+    <div
+      className="flex items-center justify-evenly xl:justify-start h-12 px-4 [&>*]:mx-2 [&>*]:p-3 [&_*]:ease-in-out [&_*]:duration-100 [&_label]:whitespace-nowrap"
+      id="filter-checkboxes"
+    >
       {checkboxes.map((checkbox) => (
         <label
           className="flex items-center select-none cursor-pointer"

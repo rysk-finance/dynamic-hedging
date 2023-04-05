@@ -6,30 +6,33 @@ import { prepareWriteContract, writeContract } from "@wagmi/core";
 import { BigNumber } from "ethers";
 
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
-import { RyskApolloClient } from "src/clients/Apollo/Apollo";
-import { QueriesEnum } from "src/clients/Apollo/Queries";
-import { EMPTY_SERIES, ZERO_ADDRESS } from "src/config/constants";
+import {
+  EMPTY_SERIES,
+  GAS_MULTIPLIER,
+  ZERO_ADDRESS,
+} from "src/config/constants";
 import OperationType from "src/enums/OperationType";
 import RyskActionType from "src/enums/RyskActionType";
 import { fetchSimulation } from "src/hooks/useTenderlySimulator";
 
 export const sell = async (
   addresses: AddressesRequired,
-  amount: BigNumberType
+  amount: BigNumberType,
+  refresh: () => void
 ) => {
   const txData = [
     {
       operation: OperationType.RyskAction,
       operationQueue: [
         {
-          actionType: BigNumber.from(RyskActionType.SellOption),
+          actionType: BigNumber.from(RyskActionType.CloseOption),
           owner: ZERO_ADDRESS,
           secondAddress: addresses.user,
           asset: addresses.token,
           vaultId: BigNumber.from(0),
           amount,
           optionSeries: EMPTY_SERIES,
-          index: BigNumber.from(0),
+          indexOrAcceptablePremium: BigNumber.from(0),
           data: "0x" as HexString,
         },
       ],
@@ -52,19 +55,14 @@ export const sell = async (
 
     if (simulationResponse.simulation.status) {
       config.request.gasLimit = BigNumber.from(
-        simulationResponse.simulation.gas_used
+        simulationResponse.simulation.gas_used * GAS_MULTIPLIER
       );
 
       const { hash, wait } = await writeContract(config);
 
       await wait(1);
 
-      RyskApolloClient.refetchQueries({
-        include: [
-          QueriesEnum.DASHBOARD_USER_POSITIONS,
-          QueriesEnum.USER_BALANCE_DATA,
-        ],
-      });
+      refresh();
 
       return hash;
     } else {

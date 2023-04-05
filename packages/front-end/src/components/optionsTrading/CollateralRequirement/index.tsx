@@ -13,12 +13,14 @@ const CollateralRequirement = ({
   strike,
   expiry,
   isPut,
+  orderSize,
   onChange,
 }: {
   selectedOption: SelectedOption;
   strike: number;
   expiry: number;
   isPut: boolean;
+  orderSize: string;
   onChange: (value: string) => void;
 }) => {
   // Addresses
@@ -42,7 +44,7 @@ const CollateralRequirement = ({
       const underlyingPrice = await getOraclePrice(underlying);
 
       updateMarginParams({
-        amount: BigNumber.from("100000000"), // TODO - this is hardcoded for now, use the user input amount
+        amount: toOpyn(orderSize),
         underlyingStrikePrice: toOpyn(strike.toString()),
         underlyingCurrentPrice: underlyingPrice as BigNumber,
         expiryTimestamp: BigNumber.from(expiry),
@@ -51,7 +53,7 @@ const CollateralRequirement = ({
     };
 
     fetchMargin().catch(console.log);
-  }, [selectedOption, expiry, isPut, strike, underlying]);
+  }, [selectedOption, expiry, isPut, strike, underlying, orderSize]);
 
   console.log("Collateral Requirement");
 

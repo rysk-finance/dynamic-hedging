@@ -15,7 +15,6 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
     - bufferPercentage [the collateral amount percentage that must be left in the pool]: GOVERNOR
     - hedgingReactors [hedging reactors used for hedging delta with new derivatives]: GOVERNOR
     - collateralCap [max amount of collateral allowed]: GOVERNOR
-    - bidAskIVSpread [the implied volatility difference for when selling options back to the pool]: GOVERNOR, MANAGER
     - optionParams [options value range for options that the pool can write]: GOVERNOR, MANAGER
     - riskFreeRate [rate used for options calculation]: GOVERNOR
     - handler [authorised contracts that can interact with liquidityPool options writing capabilities]: GOVERNOR
@@ -33,14 +32,15 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
 - OptionExchange pause/unpause: GUARDIAN, GOVERNOR
 - OptionExchange setters: GOVERNOR
     - pricer [the contract used for pricing options]: GOVERNOR
+    - optionCatalogue [the contract for storing state about which options are available to trade]: GOVERNOR
     - feeRecipient [the recipient of protocol fees]: GOVERNOR
-    - poolFee [pool fees associated with swapping redeemed assets]
-    - approvedCollateral [mapping for collaterals we are enabling]
+    - poolFee [pool fees associated with swapping redeemed assets]: GOVERNOR
+    - tradeSizeLimits [min and max number of contracts allowed in a tx]: GOVERNOR
+    - approvedCollateral [mapping for collaterals we are enabling]: GOVERNOR
 - OptionExchange: withdraw: LIQUIDITY POOL
     - withdraw [give any loose USDC to the liquidityPool]
 - OptionExchange accessed controlled functions: MANAGER, GOVERNOR
     - redeem [redeem options held by the exchange]: MANAGER, GOVERNOR
-    - changeApprovedCollateral [change collateral allowed for the exchange]: GOVERNOR
     - migrateOtokens [migrate held otokens to a new exchange]: GOVERNOR
 
 
@@ -64,14 +64,15 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
 
 - OptionRegistry setters: GOVERNOR
     - liquidityPool [liquidityPool contract authorised to interact with options capabilitites]: GOVERNOR
+    - keeper [authorised specified function caller]: GOVERNOR
     - healthThresholds [expected health factor ranges of the options vault]: GOVERNOR
-- OptionRegistry adjustCollateral: GOVERNOR, KEEPER
+- OptionRegistry adjustCollateral: GOVERNOR, MANAGER, KEEPER
 - OptionRegistry adjustCollateralCaller: GOVERNOR, GUARDIAN
-- OptionRegistry wCollatLiquidatedVault: GOVERNOR, KEEPER
-- OptionRegistry registerLiquidatedVault: GOVERNOR, KEEPER
+- OptionRegistry wCollatLiquidatedVault: GOVERNOR, MANAGER, KEEPER
+- OptionRegistry registerLiquidatedVault: GOVERNOR, MANAGER, KEEPER
 
 ## AlphaPortfolioValuesFeed
-### (GOVERNOR)
+### (GOVERNOR, KEEPER)
 
 - AlphaPortfolioValuesFeed setters: GOVERNOR
     - liquidityPool [liquidityPool contract authorised to interact with options capabilitites]: GOVERNOR
@@ -81,10 +82,24 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
     - handler [handlers are contracts that can update the options storage]: GOVERNOR
     - maxNetDhvExposure [the maximum netDhvExposure that is allowed for a particular option series]: GOVERNOR
 - AlphaPortfolioValuesFeed updateStores [update the options book of the contract]: HANDLER
-- AlphaPortfolioValuesFeed syncLooper [cleans the array used for storing options of expired options]: KEEPER
-- AlphaPortfolioValuesFeed cleanLooperManually [manually clean the for loop of a specific series]: KEEPER
-- AlphaPortfolioValuesFeed accountLiquidatedSeries [account for a liquidated series in the portfolio]: KEEPER
+- AlphaPortfolioValuesFeed syncLooper [cleans the array used for storing options of expired options]: GOVERNOR, MANAGER, KEEPER
+- AlphaPortfolioValuesFeed cleanLooperManually [manually clean the for loop of a specific series]: GOVERNOR, MANAGER, KEEPER
+- AlphaPortfolioValuesFeed accountLiquidatedSeries [account for a liquidated series in the portfolio]: GOVERNOR, MANAGER, KEEPER
 - AlphaPortfolioValuesFeed migrate [migrate the options storage to a new PortfolioValuesFeed]: GOVERNOR
+
+## BeyondPricer
+
+### (GOVERNOR, MANAGER)
+- BeyondPricer setters: 
+    - riskFreeRate: GOVERNOR
+    - bidAskIVSpread [the implied volatility difference for when selling options back to the pool]: GOVERNOR
+    - feePerContract [fixed fee charged by the protocol per contract traded]: GOVERNOR
+    - slippageGradient [the base value in the exponential slippage function]: MANAGER, GOVERNOR
+    - collateralLendingRate [rate at which to charge our collateral usage for short positions in spread function]: MANAGER, GOVERNOR
+    - shortDeltaBorrowRate [rate at which to charge for protocol's costs of borrowing short delta exposute in spread function]: MANAGER, GOVERNOR
+    - longDeltaBorrowRate [rate at which to charge for protocol's costs of borrowing long delta exposute in spread function]: MANAGER, GOVERNOR
+    - deltaBandWidth [width of the delta bands each element in the slippageGradientMultiplier arrays spans]: MANAGER, GOVERNOR
+    - slippageGradientMultipliers [coefficients for the slippageGradient based on delta of the option being traded]: MANAGER, GOVERNOR
 
 ## PriceFeed
 ### (GOVERNOR)
@@ -99,7 +114,6 @@ All contracts below inherit AccessControl with 3 roles, Governor, Manager and Gu
 
 - VolatilityFeed setters: GOVERNOR, MANAGER, KEEPER
     - sabrParameters [parameters used for the sabr volatility curve]: KEEPER, MANAGER, GOVERNOR
-    - interestRate [used to compute the forward price for volatility]: GOVERNOR
     - keeper [able to update sabr parameters]: GOVERNOR
 
 ## Protocol

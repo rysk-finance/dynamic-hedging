@@ -1,3 +1,5 @@
+import { useSearchParams } from "react-router-dom";
+
 import { Close } from "src/Icons";
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { OptionsTradingActionType } from "src/state/types";
@@ -5,11 +7,14 @@ import { OptionsTradingActionType } from "src/state/types";
 export const Header = () => {
   const { dispatch } = useOptionsTradingContext();
 
+  const [_, setSearchParams] = useSearchParams();
+
   const closeModal = () => {
     dispatch({
       type: OptionsTradingActionType.SET_SELL_MODAL_VISIBLE,
       visible: false,
     });
+    setSearchParams({});
   };
 
   return (

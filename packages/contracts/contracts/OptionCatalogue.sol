@@ -69,10 +69,7 @@ contract OptionCatalogue is AccessControl {
 		bool isSellable
 	);
 
-	constructor(
-		address _authority,
-		address _collateralAsset
-	) AccessControl(IAuthority(_authority)) {
+	constructor(address _authority, address _collateralAsset) AccessControl(IAuthority(_authority)) {
 		collateralAsset = _collateralAsset;
 	}
 
@@ -92,9 +89,9 @@ contract OptionCatalogue is AccessControl {
 			Types.Option memory o = options[i];
 			// make sure the strike gets formatted properly
 			uint128 strike = uint128(
-				OptionsCompute.formatStrikePrice(o.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
+				OptionsCompute.formatStrikePrice(o.strike, collateralAsset) * 10 ** (CONVERSION_DECIMALS)
 			);
-			if((o.expiration - 28800) % 86400 != 0) {
+			if ((o.expiration - 28800) % 86400 != 0) {
 				revert CustomErrors.InvalidExpiry();
 			}
 			// get the hash of the option (how the option is stored on the books)
@@ -138,7 +135,7 @@ contract OptionCatalogue is AccessControl {
 			// make sure the strike gets formatted properly, we get it to e8 format in the converter
 			// then convert it back to e18
 			uint128 strike = uint128(
-				OptionsCompute.formatStrikePrice(o.strike, collateralAsset) * 10**(CONVERSION_DECIMALS)
+				OptionsCompute.formatStrikePrice(o.strike, collateralAsset) * 10 ** (CONVERSION_DECIMALS)
 			);
 			// get the option hash
 			bytes32 optionHash = keccak256(abi.encodePacked(o.expiration, strike, o.isPut));
@@ -188,5 +185,4 @@ contract OptionCatalogue is AccessControl {
 	function approvedOptions(bytes32 oHash) external view returns (bool) {
 		return optionStores[oHash].approvedOption;
 	}
-
 }
