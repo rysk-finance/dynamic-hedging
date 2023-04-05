@@ -11,7 +11,6 @@ import { BuyOptionModal } from "./Modals/BuyOptionModal";
 import { CloseOptionModal } from "./Modals/CloseOptionModal";
 import { OperatorModal } from "./Modals/OperatorModal";
 import { SellOptionModal } from "./Modals/SellOptionModal";
-import { Purchase } from "./Purchase";
 import { Tutorial } from "./Tutorial";
 
 export const OptionsTradingContent = () => {
@@ -30,8 +29,6 @@ export const OptionsTradingContent = () => {
           <Chain />
         </div>
       </LayoutGroup>
-
-      {/* <Purchase /> */}
 
       <AnimatePresence mode="wait">
         {modalType === OptionChainModalActions.BUY && <BuyOptionModal />}
