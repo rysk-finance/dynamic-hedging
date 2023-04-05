@@ -7,7 +7,7 @@ import LocalizedFormat from "dayjs/plugin/localizedFormat";
 import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
-import FadeInOut from "src/animation/FadeInOut";
+import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { Button } from "src/components/shared/Button";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { toOpyn, toRysk } from "src/utils/conversion-helper";
@@ -132,7 +132,7 @@ export const CloseOptionModal = () => {
               transactionPending
             }
             requiresConnection
-            {...FadeInOut()}
+            {...FadeInOutQuick}
             {...getButtonProps(
               "sell",
               transactionPending,
