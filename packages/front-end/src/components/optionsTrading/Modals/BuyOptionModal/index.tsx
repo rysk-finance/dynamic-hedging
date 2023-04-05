@@ -7,7 +7,7 @@ import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { useDebounce } from "use-debounce";
 
-import FadeInOut from "src/animation/FadeInOut";
+import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { Button } from "src/components/shared/Button";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
@@ -145,7 +145,7 @@ export const BuyOptionModal = () => {
               loading
             }
             requiresConnection
-            {...FadeInOut()}
+            {...FadeInOutQuick}
             {...getButtonProps(
               "buy",
               transactionPending || loading,

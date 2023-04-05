@@ -1,7 +1,7 @@
 import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
-import FadeInOut from "src/animation/FadeInOut";
+import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { Button } from "src/components/shared/Button";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
@@ -57,7 +57,7 @@ export const OperatorModal = () => {
               className="w-full h-full !border-0"
               disabled={transactionPending}
               requiresConnection
-              {...FadeInOut()}
+              {...FadeInOutQuick}
               {...getButtonProps(
                 "sell",
                 transactionPending || loading,
