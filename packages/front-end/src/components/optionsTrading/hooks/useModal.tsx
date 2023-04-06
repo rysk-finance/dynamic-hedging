@@ -51,17 +51,23 @@ export const useModal = () => {
   // Dispatcher for opening modals.
   useEffect(() => {
     if (activeExpiry) {
-      const hasSellRef =
-        searchParams.get("ref") === "close" ||
-        searchParams.get("ref") === "vault-close";
+      const hasSellRef = searchParams.get("ref") === "close";
+      const hasVaultCloseRef = searchParams.get("ref") === "vault-close";
       const hasUserPosition = userPositions[activeExpiry]?.tokens.find(
-        ({ id }) => id === searchParams.get("token")
+        ({ id, netAmount }) =>
+          id === searchParams.get("token") &&
+          (hasVaultCloseRef ? netAmount < 0 : netAmount > 0)
       );
 
       if (hasSellRef && hasUserPosition) {
         dispatch({
           type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.CLOSE,
+        });
+      } else if (hasVaultCloseRef && hasUserPosition) {
+        dispatch({
+          type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          visible: OptionChainModalActions.CLOSE_SHORT,
         });
       } else if (selectedOption?.buyOrSell === "buy") {
         dispatch({

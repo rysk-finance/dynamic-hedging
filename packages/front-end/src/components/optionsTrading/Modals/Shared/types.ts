@@ -2,8 +2,10 @@ import type { BigNumber } from "ethers";
 
 export interface Addresses {
   exchange: HexString;
+  collateral?: HexString;
   token?: HexString;
   user?: HexString;
+  vaultID?: string;
 }
 
 export interface AddressesRequired extends Addresses {
@@ -19,10 +21,15 @@ export interface AllowanceState {
 export interface AddressesRequiredVaultSell extends Addresses {
   token: HexString;
   user: HexString;
-  vaultId: BigNumber;
-  collateralAsset: HexString;
+  vaultID: string;
+  collateral: HexString;
 }
 
 export interface VaultQueryData {
-  vault: { id: string; collateralAmount: string; shortAmount: string };
+  vault: {
+    id: string;
+    collateralAmount: string;
+    shortAmount: string;
+    collateralAsset: { id: string };
+  };
 }

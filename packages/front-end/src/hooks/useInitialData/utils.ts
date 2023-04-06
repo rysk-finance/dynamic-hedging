@@ -335,13 +335,13 @@ export const getInitialData = async (
   data: InitialDataQuery,
   address?: HexString
 ) => {
-  const { expiries, longPositions: positions } = data;
+  const { expiries, longPositions, shortPositions } = data;
 
   // Get expiries.
   const validExpiries = getExpiries(expiries);
 
   // Get user positions.
-  const userPositions = getUserPositions(positions);
+  const userPositions = getUserPositions([...longPositions, ...shortPositions]);
 
   // Get chain data.
   const chainData = await getChainData(validExpiries, userPositions);

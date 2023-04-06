@@ -369,7 +369,7 @@ export const vaultSell = async (
           owner: addresses.user,
           secondAddress: addresses.user,
           asset: addresses.token,
-          vaultId: addresses.vaultId,
+          vaultId: BigNumber.from(addresses.vaultID),
           amount: amount.div(ethers.utils.parseUnits("1", 10)), // Rysk e18 to Opyn e8
           optionSeries: EMPTY_SERIES,
           indexOrAcceptablePremium: BigNumber.from(0),
@@ -379,8 +379,8 @@ export const vaultSell = async (
           actionType: BigNumber.from(OpynActionType.WithdrawCollateral),
           owner: addresses.user,
           secondAddress: addresses.user,
-          asset: addresses.collateralAsset,
-          vaultId: addresses.vaultId,
+          asset: addresses.collateral,
+          vaultId: BigNumber.from(addresses.vaultID),
           amount: collateralAmount,
           optionSeries: EMPTY_SERIES,
           indexOrAcceptablePremium: BigNumber.from(0),
@@ -395,9 +395,6 @@ export const vaultSell = async (
     abi: OptionExchangeABI,
     functionName: "operate",
     args: [txData],
-    overrides: {
-      gasLimit: BigNumber.from("3000000"),
-    },
   });
 
   if (config.request.data) {
@@ -409,12 +406,12 @@ export const vaultSell = async (
 
     if (simulationResponse.simulation.status) {
       config.request.gasLimit = BigNumber.from(
-        simulationResponse.simulation.gas_used
+        Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
       );
 
-      const { hash, wait } = await writeContract(config);
+      const { hash } = await writeContract(config);
 
-      await wait(1);
+      await waitForTransaction({ hash, confirmations: 2 });
 
       refresh();
 
