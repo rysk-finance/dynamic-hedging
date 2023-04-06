@@ -297,6 +297,7 @@ export enum OptionChainModalActions {
   CLOSE = "close",
   OPERATOR = "operator",
   SELL = "sell",
+  CLOSE_SHORT = "closeShort",
 }
 
 type OptionChainModal =
