@@ -60,6 +60,10 @@ interface ShortPosition {
   vault: {
     id: string;
     vaultId: string;
+    collateralAmount: string;
+    collateralAsset: {
+      name: string;
+    };
   };
   settleActions: {
     id: string;
@@ -100,6 +104,8 @@ interface ParsedPosition {
   underlyingAsset: string;
   isSettleable: boolean;
   vaultId: string;
+  collateralAsset: string;
+  collateralAmount: string;
 }
 
 interface TableProps {

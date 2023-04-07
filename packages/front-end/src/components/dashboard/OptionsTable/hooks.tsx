@@ -81,6 +81,10 @@ const usePositions = () => {
               active
               vault {
                   vaultId
+                  collateralAmount
+                  collateralAsset {
+                      name
+                  }
               }
               settleActions {
                   id
@@ -211,7 +215,7 @@ const usePositions = () => {
                       className="p-4"
                       to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&vault=${vault.vaultId}&ref=vault-close`}
                     >
-                      {`Close position`}
+                      {`Close`}
                     </Link>
                   );
                 default:
@@ -229,7 +233,7 @@ const usePositions = () => {
                       className="p-4"
                       to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&ref=close`}
                     >
-                      {`Close position`}
+                      {`Close`}
                     </Link>
                   );
                 default:
@@ -249,6 +253,8 @@ const usePositions = () => {
             id,
             isRedeemable,
             vaultId: vault.vaultId,
+            collateralAsset: vault.vaultId ? vault.collateralAsset?.name : "",
+            collateralAmount: vault.vaultId ? vault.collateralAmount : "",
             isSettleable: vault.vaultId ? canSettleShort : false,
             otokenId,
             side: vault.vaultId ? "SHORT" : "LONG",
