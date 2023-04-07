@@ -6,7 +6,7 @@ import NumberFormat from "react-number-format";
 
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
-import { renameOtoken, fromUSDC } from "src/utils/conversion-helper";
+import { renameOtoken, fromUSDC, fromWei } from "src/utils/conversion-helper";
 import { fromOpynHumanised } from "src/utils/conversion-helper";
 import { Button } from "src/components/shared/Button";
 
@@ -28,11 +28,15 @@ const tableHeadings = [
     className: "col-span-1 text-right",
   },
   {
-    children: "Entry Price",
+    children: "Entry",
+    className: "col-span-1 text-right",
+  },
+  {
+    children: "Settlement",
     className: "col-span-2 text-right",
   },
   {
-    children: "Settlement Price",
+    children: "Collateral",
     className: "col-span-2 text-right",
   },
   {
@@ -71,6 +75,8 @@ const Table = ({ positions, completeRedeem, completeSettle }: TableProps) => (
             side,
             symbol,
             totalPremium,
+            collateralAmount,
+            collateralAsset,
           },
           index
         ) => (
@@ -113,7 +119,7 @@ const Table = ({ positions, completeRedeem, completeSettle }: TableProps) => (
               prefix="$"
               decimalScale={2}
               renderText={(value) => (
-                <td className="col-span-2 text-right">
+                <td className="col-span-1 text-right">
                   {Number(entryPrice) ? value : "-"}
                 </td>
               )}
@@ -122,6 +128,22 @@ const Table = ({ positions, completeRedeem, completeSettle }: TableProps) => (
               value={fromOpynHumanised(expiryPrice)}
               displayType={"text"}
               prefix="$"
+              decimalScale={2}
+              renderText={(value) => (
+                <td className="col-span-2 text-right">{value || "-"}</td>
+              )}
+            />
+            <NumberFormat
+              value={
+                collateralAsset
+                  ? {
+                      ["USDC"]: fromUSDC(collateralAmount),
+                      ["WETH"]: fromWei(collateralAmount),
+                    }[collateralAsset]
+                  : null
+              }
+              displayType={"text"}
+              prefix={`${collateralAsset} `}
               decimalScale={2}
               renderText={(value) => (
                 <td className="col-span-2 text-right">{value || "-"}</td>
