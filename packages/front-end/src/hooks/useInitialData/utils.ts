@@ -132,10 +132,13 @@ const getChainData = async (
         ) => {
           const strikeUSDC = Number(fromWei(strike));
 
-          const _getQuote = (buyOrSell: DHVLensMK1.TradingSpecStruct) => {
+          const _getQuote = (
+            buyOrSell: DHVLensMK1.TradingSpecStruct,
+            isSell: boolean
+          ) => {
             const fee = Number(fromUSDC(buyOrSell.fee as BigNumber));
             const quote = Number(fromUSDC(buyOrSell.quote as BigNumber));
-            const total = fee + quote;
+            const total = isSell ? quote - fee : fee + quote;
 
             return total >= 0.01
               ? { fee, total, quote }
@@ -182,12 +185,12 @@ const getChainData = async (
               sell: {
                 disabled: sell.disabled || sell.premiumTooSmall,
                 IV: _getIV(Number(fromUSDC(sell.quote))),
-                quote: _getQuote(sell),
+                quote: _getQuote(sell, true),
               },
               buy: {
                 disabled: buy.disabled,
                 IV: _getIV(Number(fromUSDC(buy.quote))),
-                quote: _getQuote(buy),
+                quote: _getQuote(buy, false),
               },
               delta: toTwoDecimalPlaces(Number(fromWei(delta))),
               pos: positions.netAmount,
