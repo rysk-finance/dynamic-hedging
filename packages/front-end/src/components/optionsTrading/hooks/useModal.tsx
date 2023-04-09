@@ -34,6 +34,26 @@ export const useModal = () => {
     dispatch,
   } = useOptionsTradingContext();
 
+  // Dispatcher for closing modals on escape key press.
+  useEffect(() => {
+    const handleEscapeKeyPressed = (event: KeyboardEvent) => {
+      if (event.code === "Escape") {
+        dispatch({
+          type: OptionsTradingActionType.RESET,
+        });
+      }
+    };
+
+    if (optionChainModalOpen) {
+      window.addEventListener("keydown", handleEscapeKeyPressed);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleEscapeKeyPressed);
+    };
+  }, [optionChainModalOpen]);
+
+  // Dispatcher for opening modals.
   useEffect(() => {
     if (activeExpiry) {
       const hasSellRef = searchParams.get("ref") === "close";
