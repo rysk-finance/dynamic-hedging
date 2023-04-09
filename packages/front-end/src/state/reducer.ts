@@ -1,6 +1,7 @@
-import type {
+import {
   GlobalAction,
   GlobalState,
+  OptionChainModalActions,
   OptionsTradingAction,
   OptionsTradingState,
   VaultAction,
@@ -157,5 +158,23 @@ export const optionsTradingReducer: Reducer<
       };
     case OptionsTradingActionType.RESET:
       return defaultOptionTradingState;
+    case OptionsTradingActionType.CHANGE_FROM_BUYING_OR_SELLING:
+      if (state.selectedOption) {
+        if (action.visible === OptionChainModalActions.BUY) {
+          return {
+            ...state,
+            optionChainModalOpen: action.visible,
+            selectedOption: { ...state.selectedOption, buyOrSell: "buy" },
+          };
+        } else {
+          return {
+            ...state,
+            optionChainModalOpen: action.visible,
+            selectedOption: { ...state.selectedOption, buyOrSell: "sell" },
+          };
+        }
+      } else {
+        return state;
+      }
   }
 };

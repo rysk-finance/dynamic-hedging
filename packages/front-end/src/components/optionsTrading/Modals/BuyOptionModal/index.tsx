@@ -3,7 +3,7 @@ import { ChangeEvent } from "react";
 import type { AddressesRequired } from "../Shared/types";
 
 import { BigNumber } from "ethers";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { useGlobalContext } from "src/state/GlobalContext";
@@ -109,16 +109,25 @@ export const BuyOptionModal = () => {
     }
   };
 
+  const disableChangeButton = useMemo(() => {
+    if (selectedOption) {
+      const sellData =
+        selectedOption.strikeOptions[selectedOption.callOrPut].sell;
+
+      return sellData.disabled || !sellData.quote.total;
+    }
+  }, [selectedOption]);
+
   return (
     <Modal>
-      <Header>{`Buy Position`}</Header>
+      <Header changeVisible={!disableChangeButton}>{`Buy Position`}</Header>
 
       <Pricing positionData={positionData} />
 
       <Wrapper>
         <Label title="Enter how many contracts you would like to buy.">
           <Input
-            name="sell-amount"
+            name="buy-amount"
             onChange={handleChange}
             placeholder="How many would you like to buy?"
             value={amountToBuy}
