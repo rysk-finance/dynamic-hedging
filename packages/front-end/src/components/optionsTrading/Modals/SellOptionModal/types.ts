@@ -11,6 +11,7 @@ export interface PositionDataState {
   remainingBalanceUSDC: number;
   remainingBalanceWETH: number;
   requiredApproval: string;
+  slippage: number;
   strike?: number;
 }
 

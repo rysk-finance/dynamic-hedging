@@ -39,7 +39,7 @@ export const useSellOption = (amountToSell: string) => {
     state: {
       collateralPreferences,
       ethPrice,
-      options: { activeExpiry },
+      options: { activeExpiry, data },
     },
   } = useGlobalContext();
 
@@ -73,6 +73,7 @@ export const useSellOption = (amountToSell: string) => {
     remainingBalanceUSDC: 0,
     remainingBalanceWETH: 0,
     requiredApproval: "",
+    slippage: 0,
     strike: selectedOption?.strikeOptions?.strike,
   });
 
@@ -98,10 +99,16 @@ export const useSellOption = (amountToSell: string) => {
             selectedOption.buyOrSell === "sell",
             collateralPreferences.type
           );
+          const quoteForOne = truncate(
+            data[activeExpiry!][selectedOption.strikeOptions.strike][
+              selectedOption.callOrPut
+            ].sell.quote.total,
+            2
+          );
 
           const fee = tFormatUSDC(totalFees) / Number(amountToSell);
           const premium = tFormatUSDC(totalPremium) / Number(amountToSell);
-          const quote = tFormatUSDC(totalPremium.sub(totalFees));
+          const quote = tFormatUSDC(totalPremium.sub(totalFees), 2);
 
           const _getCollateralAmount = async () => {
             const requiredCollateral = await readContract({
@@ -163,6 +170,10 @@ export const useSellOption = (amountToSell: string) => {
             remainingBalanceUSDC,
             remainingBalanceWETH,
             requiredApproval,
+            slippage: Math.max(
+              0,
+              Math.abs(truncate(quote / amount / quoteForOne - 1))
+            ),
             strike,
           });
           setAllowance((currentState) => ({ ...currentState, approved }));
@@ -178,6 +189,7 @@ export const useSellOption = (amountToSell: string) => {
             remainingBalanceUSDC: balanceUSDCInt,
             remainingBalanceWETH: balanceWETHInt,
             requiredApproval: "",
+            slippage: 0,
             strike: selectedOption?.strikeOptions?.strike,
           });
           setAllowance((currentState) => ({
