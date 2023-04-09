@@ -68,6 +68,7 @@ export const defaultGlobalState: GlobalState = {
     "iv buy",
     "delta",
     "pos",
+    "exposure",
   ] as ColumNames[]),
 };
 
