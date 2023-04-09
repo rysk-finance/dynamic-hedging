@@ -15,12 +15,23 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
     }
   }, [loading]);
 
+  const {
+    collateral,
+    fee,
+    now,
+    premium,
+    quote,
+    remainingBalanceUSDC,
+    remainingBalanceWETH,
+    slippage,
+  } = positionData;
+
   return (
     <div className="w-3/5 mx-auto py-4">
       <span className="flex">
         <p className="mr-auto">{`Premium:`}</p>
         <p className="font-medium">
-          <RyskCountUp value={positionData.premium} />
+          <RyskCountUp value={premium} />
           {` USDC`}
         </p>
       </span>
@@ -28,8 +39,16 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
       <span className="flex">
         <p className="mr-auto">{`Fee:`}</p>
         <p className="font-medium">
-          <RyskCountUp value={positionData.fee} />
+          <RyskCountUp value={fee} />
           {` USDC`}
+        </p>
+      </span>
+
+      <span className="flex">
+        <p className="mr-auto">{`Slippage:`}</p>
+        <p className="font-medium">
+          <RyskCountUp fallback="0.00" value={slippage} />
+          {` %`}
         </p>
       </span>
 
@@ -46,7 +65,7 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
             {...FadeInOutQuick}
           >
             <RyskCountUp
-              value={positionData.collateral}
+              value={collateral}
               format={collateralType === "USDC" ? "USD" : "ETH"}
             />
             {collateralType === "USDC" ? ` USDC` : ` WETH`}
@@ -57,7 +76,7 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
       <span className="flex pb-2 border-gray-600 border-b">
         <p className="mr-auto">{`Premium received:`}</p>
         <p className="font-medium">
-          <RyskCountUp value={positionData.quote} />
+          <RyskCountUp value={quote} />
           {` USDC`}
         </p>
       </span>
@@ -65,7 +84,7 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
       <span className="flex pt-2">
         <p className="mr-auto">{`Balances after:`}</p>
         <p className="font-medium">
-          <RyskCountUp value={positionData.remainingBalanceUSDC} />
+          <RyskCountUp value={remainingBalanceUSDC} />
           {` USDC`}
         </p>
       </span>
@@ -73,13 +92,13 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
       <span className="flex">
         <span className="mr-auto" />
         <p className="font-medium">
-          <RyskCountUp value={positionData.remainingBalanceWETH} format="ETH" />
+          <RyskCountUp value={remainingBalanceWETH} format="ETH" />
           {` WETH`}
         </p>
       </span>
 
       <small className="flex flex-col pt-2 text-center leading-6 text-gray-600">
-        {`Last updated: ${positionData.now}`}
+        {`Last updated: ${now}`}
       </small>
     </div>
   );

@@ -11,6 +11,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
     premium,
     quote,
     remainingBalance,
+    slippage,
     strike,
   } = positionData;
 
@@ -34,6 +35,14 @@ export const Pricing = ({ positionData }: PricingProps) => {
           <p className="font-medium">
             <RyskCountUp value={fee} />
             {` USDC`}
+          </p>
+        </span>
+
+        <span className="flex">
+          <p className="mr-auto">{`Slippage:`}</p>
+          <p className="font-medium">
+            <RyskCountUp fallback="0.00" value={slippage} />
+            {` %`}
           </p>
         </span>
 
