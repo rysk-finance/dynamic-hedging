@@ -19,13 +19,13 @@ export const getColorClasses = (
       return "bg-green-100";
 
     case (callITM && side === "call") || (putITM && side === "put"):
-      return "bg-green-100/25 hover:bg-green-100";
+      return "bg-green-100/25 group-hover/row:bg-green-100";
 
     case (callRowSelected && side === "call") ||
       (putRowSelected && side === "put"):
       return "bg-bone-dark/60";
 
     default:
-      return "hover:bg-bone-dark/50";
+      return "group-hover/row:bg-bone-dark/50";
   }
 };
