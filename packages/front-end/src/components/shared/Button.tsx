@@ -1,9 +1,9 @@
 import type { HTMLMotionProps } from "framer-motion";
 
 import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { motion } from "framer-motion";
 import { useCallback } from "react";
 import { useAccount } from "wagmi";
-import { motion } from "framer-motion";
 
 import { useGlobalContext } from "../../state/GlobalContext";
 import { ActionType } from "../../state/types";
@@ -48,6 +48,7 @@ export const Button = ({
             openConnectModal();
           }
         }}
+        title="Click to connect a wallet."
       >
         {`Click to connect`}
       </motion.button>
