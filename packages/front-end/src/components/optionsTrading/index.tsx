@@ -31,10 +31,14 @@ export const OptionsTradingContent = () => {
       </LayoutGroup>
 
       <AnimatePresence mode="wait">
-        {modalType === OptionChainModalActions.BUY && <BuyOptionModal />}
+        {modalType === OptionChainModalActions.BUY && (
+          <BuyOptionModal key="buy" />
+        )}
         {modalType === OptionChainModalActions.CLOSE && <CloseOptionModal />}
         {modalType === OptionChainModalActions.OPERATOR && <OperatorModal />}
-        {modalType === OptionChainModalActions.SELL && <SellOptionModal />}
+        {modalType === OptionChainModalActions.SELL && (
+          <SellOptionModal key="sell" />
+        )}
       </AnimatePresence>
     </section>
   );
