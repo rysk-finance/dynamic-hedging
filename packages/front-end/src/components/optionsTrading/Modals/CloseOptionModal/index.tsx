@@ -100,12 +100,13 @@ export const CloseOptionModal = () => {
   return (
     <Modal>
       <Header>{`Sell Position`}</Header>
+
       <Pricing positionData={positionData} />
 
       <Wrapper>
         <Label title="Enter how much of your position you would like to sell.">
           <Input
-            name="sell-amount"
+            name="close-amount"
             onChange={handleChange}
             placeholder="How many would you like to sell?"
             value={amountToSell}
