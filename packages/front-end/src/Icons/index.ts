@@ -1,3 +1,4 @@
+import { Change } from "./Change";
 import { Close } from "./Close";
 import { DownChevron } from "./DownChevron";
 import { Ether } from "./Ether";
@@ -11,6 +12,7 @@ import { USDC } from "./USDC";
 import { WETH } from "./WETH";
 
 export {
+  Change,
   Close,
   DownChevron,
   Ether,
