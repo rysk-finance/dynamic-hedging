@@ -26,7 +26,7 @@ export const useBuyOption = (amountToBuy: string) => {
   const {
     state: {
       ethPrice,
-      options: { activeExpiry },
+      options: { activeExpiry, data },
     },
   } = useGlobalContext();
 
@@ -52,6 +52,7 @@ export const useBuyOption = (amountToBuy: string) => {
     quote: 0,
     remainingBalance: 0,
     requiredApproval: "",
+    slippage: 0,
     strike: selectedOption?.strikeOptions?.strike,
   });
 
@@ -77,10 +78,16 @@ export const useBuyOption = (amountToBuy: string) => {
             toWei(amount.toString()),
             selectedOption.buyOrSell === "sell"
           );
+          const quoteForOne = truncate(
+            data[activeExpiry!][selectedOption.strikeOptions.strike][
+              selectedOption.callOrPut
+            ].buy.quote.total,
+            2
+          );
 
           const fee = tFormatUSDC(totalFees) / Number(amountToBuy);
           const premium = tFormatUSDC(totalPremium) / Number(amountToBuy);
-          const quote = tFormatUSDC(totalFees.add(totalPremium));
+          const quote = tFormatUSDC(totalFees.add(totalPremium), 2);
           const remainingBalance = balance.isZero() ? 0 : balanceInt - quote;
 
           const requiredApproval = String(truncate(quote * 1.05, 2));
@@ -95,6 +102,7 @@ export const useBuyOption = (amountToBuy: string) => {
             quote,
             remainingBalance,
             requiredApproval,
+            slippage: Math.max(0, truncate(quote / amount / quoteForOne - 1)),
             strike: selectedOption.strikeOptions.strike,
           });
           setAllowance((currentState) => ({ ...currentState, approved }));
@@ -108,6 +116,7 @@ export const useBuyOption = (amountToBuy: string) => {
             quote: 0,
             remainingBalance: balanceInt,
             requiredApproval: "",
+            slippage: 0,
             strike: selectedOption?.strikeOptions?.strike,
           });
           setAllowance((currentState) => ({
