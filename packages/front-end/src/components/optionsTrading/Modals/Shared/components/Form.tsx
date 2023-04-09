@@ -7,8 +7,13 @@ import { AnimatePresence } from "framer-motion";
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { Button as ConnectButton } from "src/components/shared/Button";
 
-export const Wrapper = ({ children }: HTMLProps<HTMLDivElement>) => (
-  <div className="flex h-12 border-black border-y-2">{children}</div>
+export const Wrapper = ({ children }: HTMLProps<HTMLFormElement>) => (
+  <form
+    className="flex h-12 border-black border-y-2"
+    onSubmit={(event) => event.preventDefault()}
+  >
+    {children}
+  </form>
 );
 
 export const Label = ({ children, ...props }: HTMLProps<HTMLLabelElement>) => (
@@ -33,6 +38,7 @@ export const Button = ({ ...props }: ButtonProps) => (
     <ConnectButton
       className="w-1/3 !border-0"
       requiresConnection
+      type="submit"
       {...FadeInOutQuick}
       {...props}
     />
