@@ -19,6 +19,7 @@ export const Label = ({ children, ...props }: HTMLProps<HTMLLabelElement>) => (
 
 export const Input = ({ ...props }: HTMLProps<HTMLInputElement>) => (
   <input
+    autoFocus
     className="text-center w-full h-full number-input-hide-arrows border-r-2 border-black"
     inputMode="numeric"
     step={0.01}
