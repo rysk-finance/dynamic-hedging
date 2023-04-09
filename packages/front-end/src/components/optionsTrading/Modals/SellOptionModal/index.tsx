@@ -3,7 +3,7 @@ import type { ChangeEvent } from "react";
 import type { AddressesRequired } from "../Shared/types";
 
 import { BigNumber } from "ethers";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { useGlobalContext } from "src/state/GlobalContext";
@@ -118,9 +118,18 @@ export const SellOptionModal = () => {
     }
   };
 
+  const disableChangeButton = useMemo(() => {
+    if (selectedOption) {
+      const buyData =
+        selectedOption.strikeOptions[selectedOption.callOrPut].buy;
+
+      return buyData.disabled || !buyData.quote.total;
+    }
+  }, [selectedOption]);
+
   return (
     <Modal>
-      <Header>{`Sell Position`}</Header>
+      <Header changeVisible={!disableChangeButton}>{`Sell Position`}</Header>
 
       <div className="flex flex-col">
         <Symbol positionData={positionData} />

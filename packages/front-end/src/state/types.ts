@@ -295,6 +295,7 @@ export enum OptionsTradingActionType {
   SET_OPTION_CHAIN_MODAL_VISIBLE,
   SET_TUTORIAL_INDEX,
   RESET,
+  CHANGE_FROM_BUYING_OR_SELLING,
 }
 
 export type OptionsTradingAction =
@@ -312,4 +313,8 @@ export type OptionsTradingAction =
     }
   | {
       type: OptionsTradingActionType.RESET;
+    }
+  | {
+      type: OptionsTradingActionType.CHANGE_FROM_BUYING_OR_SELLING;
+      visible: OptionChainModalActions.BUY | OptionChainModalActions.SELL;
     };
