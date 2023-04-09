@@ -9,6 +9,7 @@ export interface PositionDataState {
   quote: number;
   remainingBalance: number;
   requiredApproval: string;
+  slippage: number;
   strike?: number;
 }
 
