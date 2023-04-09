@@ -2,8 +2,8 @@ import type { OneDayChangeProps } from "../types";
 
 import NumberFormat from "react-number-format";
 
-import { toTwoDecimalPlaces as round } from "src/utils/rounding";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
+import { toTwoDecimalPlaces as round } from "src/utils/rounding";
 
 export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
   const barWidthColor =
@@ -30,6 +30,7 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
               {value}
             </p>
           )}
+          thousandSeparator=","
         />
 
         <p className="text-gray-600 after:content-['%'] after:ml-1">
@@ -46,6 +47,7 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
               {value}
             </p>
           )}
+          thousandSeparator=","
         />
       </div>
 
