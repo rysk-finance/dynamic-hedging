@@ -54,8 +54,8 @@ export const useExpiryDates = () => {
       setExpiryDate(expiries[index]);
     }
 
-    setVisibleRange([0, Math.min(3, expiries.length - 1)]);
-  }, [queryExpiry, expiries]);
+    setVisibleRange([0, Math.min(5, expiries.length - 1)]);
+  }, [expiries, queryExpiry, setExpiryDate]);
 
   return [visibleRange, handleExpirySelection, scrollExpiries] as const;
 };
