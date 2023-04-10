@@ -45,7 +45,12 @@ const tableHeadings = [
   },
 ];
 
-const Table = ({ positions, completeRedeem, completeSettle }: TableProps) => (
+const Table = ({
+  positions,
+  completeRedeem,
+  completeSettle,
+  adjustCollateral,
+}: TableProps) => (
   <motion.table
     key="table"
     {...FadeInOut()}
@@ -146,7 +151,20 @@ const Table = ({ positions, completeRedeem, completeSettle }: TableProps) => (
               prefix={`${collateralAsset} `}
               decimalScale={2}
               renderText={(value) => (
-                <td className="col-span-2 text-right">{value || "-"}</td>
+                <td className="col-span-2 text-right">
+                  {value ? (
+                    <Button
+                      color="white"
+                      onClick={adjustCollateral}
+                      className="min-w-[50%]"
+                      title="Click to adjust"
+                    >
+                      {value}
+                    </Button>
+                  ) : (
+                    "-"
+                  )}
+                </td>
               )}
             />
             {isRedeemable || isSettleable ? (

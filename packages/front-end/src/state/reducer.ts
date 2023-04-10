@@ -110,6 +110,11 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           collateralPreferences: defaultGlobalState.collateralPreferences,
         };
       }
+    case ActionType.SET_DASHBOARD_MODAL_VISIBLE:
+      return {
+        ...state,
+        dashboardModalOpen: action.visible,
+      };
     case ActionType.SET_SELECTED_OPTION:
       return { ...state, selectedOption: action.option };
     case ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE:

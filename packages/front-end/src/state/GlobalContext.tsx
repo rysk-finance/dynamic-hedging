@@ -95,6 +95,7 @@ export const defaultGlobalState: GlobalState = {
     "pos",
     "exposure",
   ] as ColumNames[]),
+  dashboardModalOpen: undefined,
 };
 
 export const GlobalReactContext = createContext<GlobalContext>({

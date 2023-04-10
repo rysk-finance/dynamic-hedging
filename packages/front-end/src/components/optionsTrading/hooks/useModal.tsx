@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 
-import { ActionType, OptionChainModalActions } from "src/state/types";
+import { ActionType, OptionChainModalActions, DashboardModalActions } from "src/state/types";
 
 /**
  * Hook that checks query params and state to determine if
@@ -23,6 +23,7 @@ export const useModal = () => {
   const {
     state: {
       options: { activeExpiry, isOperator, userPositions },
+      dashboardModalOpen,
       optionChainModalOpen,
       selectedOption,
     },
@@ -85,8 +86,16 @@ export const useModal = () => {
           visible: OptionChainModalActions.SELL,
         });
       }
+      return;
+    }
+
+    if (searchParams.get("ref") === "adjust-collateral") {
+      dispatch({
+        type: ActionType.SET_DASHBOARD_MODAL_VISIBLE,
+        visible: DashboardModalActions.ADJUST_COLLATERAL,
+      });
     }
   }, [activeExpiry, isOperator, searchParams, selectedOption]);
 
-  return [optionChainModalOpen] as const;
+  return [optionChainModalOpen, dashboardModalOpen] as const;
 };
