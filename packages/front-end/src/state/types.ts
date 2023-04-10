@@ -139,6 +139,7 @@ export type GlobalState = {
   sellTutorialIndex?: number;
   visibleStrikeRange: StrikeRangeTuple;
   visibleColumns: Set<ColumNames>;
+  dashboardModalOpen?: DashboardModal;
 };
 
 export enum ActionType {
@@ -157,6 +158,7 @@ export enum ActionType {
   SET_VISIBLE_STRIKE_RANGE,
   SET_VISIBLE_COLUMNS,
   SET_COLLATERAL_PREFERENCES,
+  SET_DASHBOARD_MODAL_VISIBLE,
   SET_SELECTED_OPTION,
   SET_OPTION_CHAIN_MODAL_VISIBLE,
   SET_BUY_TUTORIAL_INDEX,
@@ -165,6 +167,13 @@ export enum ActionType {
   RESET_OPTIONS_CHAIN_STATE,
   CHANGE_FROM_BUYING_OR_SELLING,
 }
+
+export enum DashboardModalActions {
+  ADJUST_COLLATERAL = "adjustCollateral",
+}
+
+type DashboardModal =
+  (typeof DashboardModalActions)[keyof typeof DashboardModalActions];
 
 export type GlobalAction =
   | {
@@ -255,6 +264,10 @@ export type GlobalAction =
         | OptionChainModalActions.BUY
         | OptionChainModalActions.SELL
         | OptionChainModalActions.OPERATOR;
+    }
+  | {
+      type: ActionType.SET_DASHBOARD_MODAL_VISIBLE;
+      visible?: DashboardModalActions;
     };
 
 export type GlobalContext = {
