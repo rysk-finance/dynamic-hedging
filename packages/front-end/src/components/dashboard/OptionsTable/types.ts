@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 type CompleteRedeem = (otokenId: string, amount: number) => Promise<void>;
 type CompleteSettle = (vaultId: string) => Promise<void>;
+type AdjustCollateral = () => void;
 
 interface Balance {
   __typename: string;
@@ -112,11 +113,13 @@ interface TableProps {
   positions: ParsedPosition[];
   completeRedeem: CompleteRedeem;
   completeSettle: CompleteSettle;
+  adjustCollateral: AdjustCollateral;
 }
 
 export {
   type CompleteRedeem,
   type CompleteSettle,
+  type AdjustCollateral,
   type ParsedPosition,
   type TableProps,
   type LongPosition,
