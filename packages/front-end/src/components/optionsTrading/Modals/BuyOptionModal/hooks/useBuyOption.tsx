@@ -9,7 +9,6 @@ import { useAccount } from "wagmi";
 
 import { ZERO_ADDRESS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import {
   tFormatUSDC,
   toRysk,
@@ -27,12 +26,9 @@ export const useBuyOption = (amountToBuy: string) => {
     state: {
       ethPrice,
       options: { activeExpiry, data },
+      selectedOption,
     },
   } = useGlobalContext();
-
-  const {
-    state: { selectedOption },
-  } = useOptionsTradingContext();
 
   // Addresses.
   const { address } = useAccount();
@@ -71,26 +67,17 @@ export const useBuyOption = (amountToBuy: string) => {
         const balanceInt = tFormatUSDC(balance);
 
         if (amount > 0 && selectedOption) {
-          const { totalFees, totalPremium } = await getQuote(
+          const { fee, premium, quote, slippage } = await getQuote(
             Number(activeExpiry),
             toRysk(selectedOption.strikeOptions.strike.toString()),
             selectedOption.callOrPut === "put",
-            toWei(amount.toString()),
+            amount,
             selectedOption.buyOrSell === "sell"
           );
-          const quoteForOne = truncate(
-            data[activeExpiry!][selectedOption.strikeOptions.strike][
-              selectedOption.callOrPut
-            ].buy.quote.total,
-            2
-          );
 
-          const fee = tFormatUSDC(totalFees) / Number(amountToBuy);
-          const premium = tFormatUSDC(totalPremium) / Number(amountToBuy);
-          const quote = tFormatUSDC(totalFees.add(totalPremium), 2);
           const remainingBalance = balance.isZero() ? 0 : balanceInt - quote;
 
-          const requiredApproval = String(truncate(quote * 1.05, 2));
+          const requiredApproval = String(truncate(quote * 1.05, 4));
           const approved = toUSDC(requiredApproval).lte(allowance.amount);
 
           setPurchaseData({
@@ -102,7 +89,7 @@ export const useBuyOption = (amountToBuy: string) => {
             quote,
             remainingBalance,
             requiredApproval,
-            slippage: Math.max(0, truncate(quote / amount / quoteForOne - 1)),
+            slippage,
             strike: selectedOption.strikeOptions.strike,
           });
           setAllowance((currentState) => ({ ...currentState, approved }));
@@ -133,7 +120,7 @@ export const useBuyOption = (amountToBuy: string) => {
     };
 
     setPriceData(Number(amountToBuy));
-  }, [amountToBuy, ethPrice]);
+  }, [amountToBuy, ethPrice, selectedOption]);
 
   const addresses: Addresses = {
     exchange: exchangeAddress,
