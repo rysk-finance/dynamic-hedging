@@ -2,11 +2,8 @@ import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useGlobalContext } from "src/state/GlobalContext";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import {
-  OptionChainModalActions,
-  OptionsTradingActionType,
-} from "src/state/types";
+
+import { ActionType, OptionChainModalActions } from "src/state/types";
 
 /**
  * Hook that checks query params and state to determine if
@@ -26,20 +23,18 @@ export const useModal = () => {
   const {
     state: {
       options: { activeExpiry, isOperator, userPositions },
+      optionChainModalOpen,
+      selectedOption,
     },
-  } = useGlobalContext();
-
-  const {
-    state: { optionChainModalOpen, selectedOption },
     dispatch,
-  } = useOptionsTradingContext();
+  } = useGlobalContext();
 
   // Dispatcher for closing modals on escape key press.
   useEffect(() => {
     const handleEscapeKeyPressed = (event: KeyboardEvent) => {
       if (event.code === "Escape") {
         dispatch({
-          type: OptionsTradingActionType.RESET,
+          type: ActionType.RESET_OPTIONS_CHAIN_STATE,
         });
       }
     };
@@ -63,22 +58,22 @@ export const useModal = () => {
 
       if (hasSellRef && hasUserPosition) {
         dispatch({
-          type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.CLOSE,
         });
       } else if (selectedOption?.buyOrSell === "buy") {
         dispatch({
-          type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.BUY,
         });
       } else if (selectedOption?.buyOrSell === "sell" && !isOperator) {
         dispatch({
-          type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.OPERATOR,
         });
       } else if (selectedOption?.buyOrSell === "sell" && isOperator) {
         dispatch({
-          type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.SELL,
         });
       }

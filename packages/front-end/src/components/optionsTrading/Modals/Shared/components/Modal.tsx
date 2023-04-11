@@ -4,15 +4,15 @@ import { motion } from "framer-motion";
 
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import { OptionsTradingActionType } from "src/state/types";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
 
 export const Modal = ({ children }: PropsWithChildren) => {
-  const { dispatch } = useOptionsTradingContext();
+  const { dispatch } = useGlobalContext();
 
   const handleLightBoxClick = () => {
     dispatch({
-      type: OptionsTradingActionType.RESET,
+      type: ActionType.RESET_OPTIONS_CHAIN_STATE,
     });
   };
 

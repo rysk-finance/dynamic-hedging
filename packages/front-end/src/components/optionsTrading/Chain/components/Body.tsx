@@ -5,11 +5,10 @@ import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useDebounce } from "use-debounce";
 
-import FadeInOut from "src/animation/FadeInOut";
 import { Loading } from "src/Icons";
+import FadeInOut from "src/animation/FadeInOut";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import { OptionsTradingActionType } from "src/state/types";
+import { ActionType } from "src/state/types";
 import { useShowColumn } from "../hooks/useShowColumn";
 import { Cell, Delta, Exposure, IV, Position, Quote, Strike } from "./Cells";
 
@@ -18,14 +17,11 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
     state: {
       ethPrice,
       options: { loading },
+      selectedOption,
       visibleStrikeRange,
     },
-  } = useGlobalContext();
-
-  const {
-    state: { selectedOption },
     dispatch,
-  } = useOptionsTradingContext();
+  } = useGlobalContext();
 
   const [, setSearchParams] = useSearchParams();
 
@@ -53,7 +49,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
   );
 
   const setSelectedOption = (option: SelectedOption) => () => {
-    dispatch({ type: OptionsTradingActionType.SET_SELECTED_OPTION, option });
+    dispatch({ type: ActionType.SET_SELECTED_OPTION, option });
   };
 
   return (
