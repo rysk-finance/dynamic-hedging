@@ -1,15 +1,15 @@
 import Joyride, { ACTIONS, STATUS } from "react-joyride";
 import { useNetwork } from "wagmi";
 
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import { OptionsTradingActionType } from "src/state/types";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
 import { kebabToCapital } from "src/utils/caseConvert";
 
 export const Tutorial = () => {
   const {
     dispatch,
     state: { tutorialIndex },
-  } = useOptionsTradingContext();
+  } = useGlobalContext();
 
   const { chain } = useNetwork();
 
@@ -22,7 +22,7 @@ export const Tutorial = () => {
       data.action === ACTIONS.CLOSE
     ) {
       dispatch({
-        type: OptionsTradingActionType.SET_TUTORIAL_INDEX,
+        type: ActionType.SET_TUTORIAL_INDEX,
         index: undefined,
       });
     }
