@@ -113,6 +113,8 @@ const getChainData = async (
       contracts,
     })) as DHVLensMK1.OptionExpirationDrillStructOutput[];
 
+    // console.log(data[5].callOptionDrill[0].buy.iv.toString());
+
     const createSide = (
       drill: readonly DHVLensMK1.OptionStrikeDrillStruct[],
       side: CallOrPut,
@@ -145,20 +147,6 @@ const getChainData = async (
               : { fee: 0, total: 0, quote: 0 };
           };
 
-          const _getIV = (quote: number) => {
-            const IV =
-              getImpliedVolatility(
-                quote,
-                underlyingPrice,
-                strikeUSDC,
-                (expiry - dayjs().unix()) / SECONDS_IN_YEAR,
-                0,
-                side
-              ) * 100;
-
-            return toTwoDecimalPlaces(IV);
-          };
-
           // Longs - each strike side has only one oToken so we pass tokenID for closing.
           // Shorts - each strike side has two tokens (WETH / USDC)
           // This could also include owning long and short positions for a strike side.
@@ -184,12 +172,12 @@ const getChainData = async (
             [side]: {
               sell: {
                 disabled: sell.disabled || sell.premiumTooSmall,
-                IV: _getIV(Number(fromUSDC(sell.quote))),
+                IV: fromWeiToInt(sell.iv) * 100,
                 quote: _getQuote(sell, true),
               },
               buy: {
                 disabled: buy.disabled,
-                IV: _getIV(Number(fromUSDC(buy.quote))),
+                IV: fromWeiToInt(buy.iv) * 100,
                 quote: _getQuote(buy, false),
               },
               delta: toTwoDecimalPlaces(Number(fromWei(delta))),
