@@ -32,6 +32,7 @@ export const useInitialData = () => {
   const {
     state: {
       options: { activeExpiry },
+      selectedOption,
     },
     dispatch,
   } = useGlobalContext();
@@ -91,6 +92,17 @@ export const useInitialData = () => {
             userPositions,
             vaults: userVaults,
           });
+
+          if (activeExpiry && selectedOption) {
+            const strike = selectedOption.strikeOptions.strike;
+            const newStrikeOptions = chainData[activeExpiry][strike];
+            const option = {
+              ...selectedOption,
+              strikeOptions: newStrikeOptions,
+            };
+
+            dispatch({ type: ActionType.SET_SELECTED_OPTION, option });
+          }
         }
       );
 
