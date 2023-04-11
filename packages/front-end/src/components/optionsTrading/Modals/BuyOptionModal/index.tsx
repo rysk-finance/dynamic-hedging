@@ -7,7 +7,6 @@ import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { useGlobalContext } from "src/state/GlobalContext";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -24,12 +23,9 @@ export const BuyOptionModal = () => {
   const {
     state: {
       options: { activeExpiry, refresh },
+      selectedOption,
     },
   } = useGlobalContext();
-
-  const {
-    state: { selectedOption },
-  } = useOptionsTradingContext();
 
   const [amountToBuy, setAmountToBuy] = useState("");
   const [debouncedAmountToBuy] = useDebounce(amountToBuy, 300);
