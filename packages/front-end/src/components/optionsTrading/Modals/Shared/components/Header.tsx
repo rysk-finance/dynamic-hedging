@@ -3,11 +3,8 @@ import type { PropsWithChildren } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { Change, Close } from "src/Icons";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import {
-  OptionChainModalActions,
-  OptionsTradingActionType,
-} from "src/state/types";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType, OptionChainModalActions } from "src/state/types";
 
 interface HeaderProps extends PropsWithChildren {
   changeVisible?: boolean;
@@ -16,26 +13,31 @@ interface HeaderProps extends PropsWithChildren {
 export const Header = ({ children, changeVisible = false }: HeaderProps) => {
   const {
     dispatch,
-    state: { selectedOption },
-  } = useOptionsTradingContext();
+    state: {
+      options: { isOperator },
+      selectedOption,
+    },
+  } = useGlobalContext();
 
   const [_, setSearchParams] = useSearchParams();
 
   const closeModal = () => {
     dispatch({
-      type: OptionsTradingActionType.RESET,
+      type: ActionType.RESET_OPTIONS_CHAIN_STATE,
     });
     setSearchParams({});
   };
 
   const changeModal = () => {
     const visible =
-      selectedOption?.buyOrSell === "buy"
+      selectedOption?.buyOrSell === "buy" && isOperator
         ? OptionChainModalActions.SELL
+        : selectedOption?.buyOrSell === "buy"
+        ? OptionChainModalActions.OPERATOR
         : OptionChainModalActions.BUY;
 
     dispatch({
-      type: OptionsTradingActionType.CHANGE_FROM_BUYING_OR_SELLING,
+      type: ActionType.CHANGE_FROM_BUYING_OR_SELLING,
       visible,
     });
   };

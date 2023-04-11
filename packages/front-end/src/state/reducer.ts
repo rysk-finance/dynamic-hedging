@@ -2,7 +2,6 @@ import {
   GlobalAction,
   GlobalState,
   OptionChainModalActions,
-  OptionsTradingAction,
   OptionsTradingState,
   VaultAction,
   VaultState,
@@ -11,8 +10,7 @@ import {
 import { Reducer } from "react";
 
 import { defaultGlobalState } from "./GlobalContext";
-import { defaultOptionTradingState } from "./OptionsTradingContext";
-import { ActionType, OptionsTradingActionType, VaultActionType } from "./types";
+import { ActionType, VaultActionType } from "./types";
 
 export const globalReducer: Reducer<GlobalState, GlobalAction> = (
   state,
@@ -53,19 +51,6 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
       return {
         ...state,
         settings: { ...state.settings, ...action.settings },
-      };
-    case ActionType.RESET_GLOBAL_STATE:
-      return {
-        ...state,
-        userOptionPositions: [],
-        userPositionValue: null,
-        positionBreakdown: {
-          currentWithdrawSharePrice: null,
-          pendingWithdrawShares: null,
-          redeemedShares: null,
-          unredeemedShares: null,
-          usdcOnHold: null,
-        },
       };
     case ActionType.SET_UNSTOPPABLE_DOMAIN:
       return {
@@ -123,42 +108,26 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           collateralPreferences: defaultGlobalState.collateralPreferences,
         };
       }
-  }
-};
-
-export const vaultReducer: Reducer<VaultState, VaultAction> = (
-  state,
-  action
-) => {
-  switch (action.type) {
-    case VaultActionType.SET:
-      return {
-        ...state,
-        ...action.data,
-      };
-  }
-};
-
-export const optionsTradingReducer: Reducer<
-  OptionsTradingState,
-  OptionsTradingAction
-> = (state, action) => {
-  switch (action.type) {
-    case OptionsTradingActionType.SET_SELECTED_OPTION:
+    case ActionType.SET_SELECTED_OPTION:
       return { ...state, selectedOption: action.option };
-    case OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE:
+    case ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE:
       return {
         ...state,
         optionChainModalOpen: action.visible,
       };
-    case OptionsTradingActionType.SET_TUTORIAL_INDEX:
+    case ActionType.SET_TUTORIAL_INDEX:
       return {
         ...state,
         tutorialIndex: action.index,
       };
-    case OptionsTradingActionType.RESET:
-      return defaultOptionTradingState;
-    case OptionsTradingActionType.CHANGE_FROM_BUYING_OR_SELLING:
+    case ActionType.RESET_OPTIONS_CHAIN_STATE:
+      return {
+        ...state,
+        selectedOption: defaultGlobalState.selectedOption,
+        optionChainModalOpen: defaultGlobalState.optionChainModalOpen,
+        tutorialIndex: defaultGlobalState.tutorialIndex,
+      };
+    case ActionType.CHANGE_FROM_BUYING_OR_SELLING:
       if (state.selectedOption) {
         if (action.visible === OptionChainModalActions.BUY) {
           return {
@@ -176,5 +145,18 @@ export const optionsTradingReducer: Reducer<
       } else {
         return state;
       }
+  }
+};
+
+export const vaultReducer: Reducer<VaultState, VaultAction> = (
+  state,
+  action
+) => {
+  switch (action.type) {
+    case VaultActionType.SET:
+      return {
+        ...state,
+        ...action.data,
+      };
   }
 };
