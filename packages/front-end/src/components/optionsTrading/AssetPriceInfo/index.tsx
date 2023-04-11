@@ -1,10 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
 
-import { Ether, Question, USDC } from "src/Icons";
+import { Question } from "src/Icons";
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
+import { AssetLogos } from "./components/AssetLogos";
 import { CurrentPrice } from "./components/CurrentPrice";
 import { Error } from "./components/Error";
 import { OneDayChange } from "./components/OneDayChange";
@@ -39,12 +40,7 @@ export const AssetPriceInfo = () => {
         onClick={update}
         title="Click to refetch price data."
       >
-        <span className="relative flex min-w-[8rem] py-4 border-r-2 border-black">
-          <div className="absolute left-4 z-10 flex items-center justify-center w-16 h-16 bg-[#ECEFF0]/90 rounded-full">
-            <Ether aria-label="Ethereum logo" className="h-12" />
-          </div>
-          <USDC aria-label="USDC logo" className="absolute right-4 z-0 h-16" />
-        </span>
+        <AssetLogos />
 
         <AnimatePresence mode="wait">
           {ready && (
