@@ -39,7 +39,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
         </span>
 
         <span className="flex">
-          <p className="mr-auto">{`Slippage:`}</p>
+          <p className="mr-auto">{`Price impact:`}</p>
           <p className="font-medium">
             <RyskCountUp value={slippage} />
             {` %`}
