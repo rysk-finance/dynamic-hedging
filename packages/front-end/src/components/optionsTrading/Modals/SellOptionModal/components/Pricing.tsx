@@ -47,7 +47,7 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
       <span className="flex">
         <p className="mr-auto">{`Slippage:`}</p>
         <p className="font-medium">
-          <RyskCountUp fallback="0.00" value={slippage} />
+          <RyskCountUp value={slippage} />
           {` %`}
         </p>
       </span>
