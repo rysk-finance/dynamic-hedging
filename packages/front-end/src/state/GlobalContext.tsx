@@ -60,6 +60,9 @@ export const defaultGlobalState: GlobalState = {
     type: "USDC",
     amount: CollateralAmount["2x"],
   },
+  selectedOption: undefined,
+  optionChainModalOpen: undefined,
+  tutorialIndex: undefined,
   visibleStrikeRange: ["", ""],
   visibleColumns: new Set([
     "sell",

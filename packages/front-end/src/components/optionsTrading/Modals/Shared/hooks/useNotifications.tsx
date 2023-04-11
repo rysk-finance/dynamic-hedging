@@ -4,14 +4,14 @@ import { useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import { OptionsTradingActionType } from "src/state/types";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
 
 export const useNotifications = () => {
   const addRecentTransaction = useAddRecentTransaction();
   const [, setSearchParams] = useSearchParams();
 
-  const { dispatch } = useOptionsTradingContext();
+  const { dispatch } = useGlobalContext();
 
   const notifyApprovalSuccess = useCallback(
     (hash: HexString) => {
@@ -26,7 +26,7 @@ export const useNotifications = () => {
       addRecentTransaction({ hash, description });
       toast(`${description} completed!`);
       dispatch({
-        type: OptionsTradingActionType.RESET,
+        type: ActionType.RESET_OPTIONS_CHAIN_STATE,
       });
       setSearchParams({});
     },
