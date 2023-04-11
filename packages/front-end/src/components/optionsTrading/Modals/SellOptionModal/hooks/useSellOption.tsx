@@ -11,7 +11,6 @@ import { useAccount } from "wagmi";
 import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
 import { DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { CollateralAmount } from "src/state/types";
 import {
   fromRyskToNumber,
@@ -40,12 +39,9 @@ export const useSellOption = (amountToSell: string) => {
       collateralPreferences,
       ethPrice,
       options: { activeExpiry, data },
+      selectedOption,
     },
   } = useGlobalContext();
-
-  const {
-    state: { selectedOption },
-  } = useOptionsTradingContext();
 
   // Collateral type.
   const USDCCollateral = collateralPreferences.type === "USDC";
@@ -91,24 +87,14 @@ export const useSellOption = (amountToSell: string) => {
         if (amount > 0 && ethPrice && selectedOption) {
           const strike = selectedOption.strikeOptions.strike;
 
-          const { totalFees, totalPremium } = await getQuote(
+          const { fee, premium, quote, slippage } = await getQuote(
             Number(activeExpiry),
             toRysk(strike.toString()),
             selectedOption.callOrPut === "put",
-            toWei(amount.toString()),
+            amount,
             selectedOption.buyOrSell === "sell",
             collateralPreferences.type
           );
-          const quoteForOne = truncate(
-            data[activeExpiry!][selectedOption.strikeOptions.strike][
-              selectedOption.callOrPut
-            ].sell.quote.total,
-            2
-          );
-
-          const fee = tFormatUSDC(totalFees) / Number(amountToSell);
-          const premium = tFormatUSDC(totalPremium) / Number(amountToSell);
-          const quote = tFormatUSDC(totalPremium.sub(totalFees), 2);
 
           const _getCollateralAmount = async () => {
             const requiredCollateral = await readContract({
@@ -170,10 +156,7 @@ export const useSellOption = (amountToSell: string) => {
             remainingBalanceUSDC,
             remainingBalanceWETH,
             requiredApproval,
-            slippage: Math.max(
-              0,
-              Math.abs(truncate(quote / amount / quoteForOne - 1))
-            ),
+            slippage,
             strike,
           });
           setAllowance((currentState) => ({ ...currentState, approved }));
