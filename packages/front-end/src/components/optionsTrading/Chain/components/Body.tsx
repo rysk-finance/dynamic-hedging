@@ -60,17 +60,17 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
       <AnimatePresence initial={false}>
         {filteredChainRows.map((option) => {
           const callSellDisabled =
-            option.call.sell.disabled || !option.call.sell.quote.total;
+            option.call.sell.disabled || !option.call.sell.quote.quote;
           const callBuyDisabled =
-            option.call.buy.disabled || !option.call.buy.quote.total;
+            option.call.buy.disabled || !option.call.buy.quote.quote;
           const callPosDisabled =
-            !option.call.pos || !option.call.sell.quote.total;
+            !option.call.pos || !option.call.sell.quote.quote;
           const putSellDisabled =
-            option.put.sell.disabled || !option.put.sell.quote.total;
+            option.put.sell.disabled || !option.put.sell.quote.quote;
           const putBuyDisabled =
-            option.put.buy.disabled || !option.put.buy.quote.total;
+            option.put.buy.disabled || !option.put.buy.quote.quote;
           const putPosDisabled =
-            !option.put.pos || !option.put.sell.quote.total;
+            !option.put.pos || !option.put.sell.quote.quote;
 
           return (
             <motion.tr
@@ -110,7 +110,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                     strikeOptions: option,
                   })}
                   disabled={callSellDisabled}
-                  value={option.call.sell.quote.total}
+                  value={option.call.sell.quote.quote}
                 />
               </Cell>
 
@@ -130,7 +130,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                     strikeOptions: option,
                   })}
                   disabled={callBuyDisabled}
-                  value={option.call.buy.quote.total}
+                  value={option.call.buy.quote.quote}
                 />
               </Cell>
 
@@ -223,7 +223,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                     strikeOptions: option,
                   })}
                   disabled={putSellDisabled}
-                  value={option.put.sell.quote.total}
+                  value={option.put.sell.quote.quote}
                 />
               </Cell>
 
@@ -243,7 +243,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                     strikeOptions: option,
                   })}
                   disabled={putBuyDisabled}
-                  value={option.put.buy.quote.total}
+                  value={option.put.buy.quote.quote}
                 />
               </Cell>
 
