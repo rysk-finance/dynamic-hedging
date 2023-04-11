@@ -14,7 +14,7 @@ export const Header = () => {
   const { pathname } = useLocation();
 
   return (
-    <div className="fixed w-full h-24 t-0 flex items-center px-16 justify-between border-b-2 border-black bg-bone z-10">
+    <div className="fixed w-full h-24 t-0 flex items-center px-16 justify-between border-b-2 border-black bg-bone z-20">
       <Link to={AppPaths.VAULT}>
         <img src={"/logo.png"} alt="logo" className="w-20" />
       </Link>
