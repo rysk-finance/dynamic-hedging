@@ -25,11 +25,11 @@ function App() {
       <WalletProvider>
         <ApolloProvider>
           <Init />
-          <div className="App bg-bone flex flex-col min-h-screen">
+          <div className="bg-bone flex flex-col min-h-screen">
             <Favicon />
             {process.env.REACT_APP_ENV !== "production" && (
               <Helmet>
-                <meta name="robots" content="noindex, nofollow"></meta>
+                <meta name="robots" content="noindex, nofollow" />
               </Helmet>
             )}
 

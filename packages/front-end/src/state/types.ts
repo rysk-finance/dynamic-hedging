@@ -110,7 +110,9 @@ export type GlobalState = {
   collateralPreferences: CollateralPreferences;
   selectedOption?: SelectedOption;
   optionChainModalOpen?: OptionChainModal;
-  tutorialIndex?: number;
+  buyTutorialIndex?: number;
+  chainTutorialIndex?: number;
+  sellTutorialIndex?: number;
   visibleStrikeRange: StrikeRangeTuple;
   visibleColumns: Set<ColumNames>;
 };
@@ -133,7 +135,9 @@ export enum ActionType {
   SET_COLLATERAL_PREFERENCES,
   SET_SELECTED_OPTION,
   SET_OPTION_CHAIN_MODAL_VISIBLE,
-  SET_TUTORIAL_INDEX,
+  SET_BUY_TUTORIAL_INDEX,
+  SET_CHAIN_TUTORIAL_INDEX,
+  SET_SELL_TUTORIAL_INDEX,
   RESET_OPTIONS_CHAIN_STATE,
   CHANGE_FROM_BUYING_OR_SELLING,
 }
@@ -205,7 +209,15 @@ export type GlobalAction =
       visible?: OptionChainModalActions;
     }
   | {
-      type: ActionType.SET_TUTORIAL_INDEX;
+      type: ActionType.SET_BUY_TUTORIAL_INDEX;
+      index?: number;
+    }
+  | {
+      type: ActionType.SET_CHAIN_TUTORIAL_INDEX;
+      index?: number;
+    }
+  | {
+      type: ActionType.SET_SELL_TUTORIAL_INDEX;
       index?: number;
     }
   | {
@@ -251,7 +263,7 @@ export type VaultContext = {
 export type OptionsTradingState = {
   selectedOption?: SelectedOption;
   optionChainModalOpen?: OptionChainModal;
-  tutorialIndex?: number;
+  chainTutorialIndex?: number;
 };
 
 export enum OptionChainModalActions {
