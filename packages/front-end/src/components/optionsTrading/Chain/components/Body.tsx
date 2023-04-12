@@ -48,19 +48,36 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
   );
 
   const [callAtmStrike, putAtmStrike] = useMemo(() => {
-    const index = chainRows.findIndex(
+    const atmIndex = chainRows.findIndex(
       (row) => ethPrice && row.strike >= ethPrice
     );
+    const maxIndex = chainRows.length - 1;
+
+    if (atmIndex === -1) {
+      return [
+        chainRows[maxIndex].strike,
+        chainRows[maxIndex].strike + 1,
+      ] as const;
+    }
+
+    if (atmIndex === 0) {
+      return [
+        chainRows[atmIndex].strike - 1,
+        chainRows[atmIndex].strike,
+      ] as const;
+    }
 
     return [
-      chainRows[Math.max(0, index - 1)].strike,
-      chainRows[Math.max(0, index)].strike,
+      chainRows[atmIndex - 1].strike,
+      chainRows[atmIndex].strike,
     ] as const;
   }, [ethPrice, chainRows]);
 
   const setSelectedOption = (option: SelectedOption) => () => {
     dispatch({ type: ActionType.SET_SELECTED_OPTION, option });
   };
+
+  console.log(callAtmStrike, putAtmStrike);
 
   return (
     <tbody
