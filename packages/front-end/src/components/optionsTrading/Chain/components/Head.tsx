@@ -54,7 +54,7 @@ export const Head = () => {
         </th>
 
         <th className="col-span-1">
-          {activeExpiry && dayjs.unix(Number(activeExpiry)).format("MMM DD")}
+          {activeExpiry && dayjs.unix(Number(activeExpiry)).format("DD MMM YY")}
         </th>
 
         <th style={{ gridColumn: `span ${sideSize} / span ${sideSize}` }}>
