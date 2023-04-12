@@ -62,7 +62,9 @@ export const defaultGlobalState: GlobalState = {
   },
   selectedOption: undefined,
   optionChainModalOpen: undefined,
-  tutorialIndex: undefined,
+  buyTutorialIndex: undefined,
+  chainTutorialIndex: undefined,
+  sellTutorialIndex: undefined,
   visibleStrikeRange: ["", ""],
   visibleColumns: new Set([
     "sell",
