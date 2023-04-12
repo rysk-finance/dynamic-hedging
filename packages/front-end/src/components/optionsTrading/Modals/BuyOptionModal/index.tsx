@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
 import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -25,6 +26,7 @@ export const BuyOptionModal = () => {
       options: { activeExpiry, refresh },
       selectedOption,
     },
+    dispatch,
   } = useGlobalContext();
 
   const [amountToBuy, setAmountToBuy] = useState("");
@@ -111,17 +113,31 @@ export const BuyOptionModal = () => {
         selectedOption.strikeOptions[selectedOption.callOrPut].sell;
 
       return sellData.disabled || !sellData.quote.total;
+    } else {
+      return true;
     }
   }, [selectedOption]);
 
+  const handleTutorialClick = () => {
+    dispatch({ type: ActionType.SET_BUY_TUTORIAL_INDEX, index: 0 });
+  };
+
   return (
     <Modal>
-      <Header changeVisible={!disableChangeButton}>{`Buy Position`}</Header>
+      <Header
+        changeVisible={!disableChangeButton}
+        tutorialVisible={handleTutorialClick}
+      >
+        {`Buy Position`}
+      </Header>
 
       <Pricing positionData={positionData} />
 
       <Wrapper>
-        <Label title="Enter how many contracts you would like to buy.">
+        <Label
+          id="buy-input"
+          title="Enter how many contracts you would like to buy."
+        >
           <Input
             name="buy-amount"
             onChange={handleChange}
@@ -139,6 +155,7 @@ export const BuyOptionModal = () => {
             transactionPending ||
             loading
           }
+          id="buy-button"
           {...getButtonProps(
             "buy",
             transactionPending || loading,
