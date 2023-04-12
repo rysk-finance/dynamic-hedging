@@ -67,7 +67,7 @@ export const DateList = ({
                     className="mx-4 text-sm xl:text-base"
                     dateTime={datetime.format("YYYY-MM-DD")}
                   >
-                    {`${datetime.format("MMM DD")}`}
+                    {`${datetime.format("DD MMM YY")}`}
                   </time>
 
                   <DownChevron
