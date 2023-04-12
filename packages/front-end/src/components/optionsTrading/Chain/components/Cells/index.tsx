@@ -28,7 +28,7 @@ export const Cell = ({
 
   return (
     <td
-      className={`py-4 xl:py-3 px-1 xl:px-2 ${cellClasses} ${tdColorClasses}`}
+      className={`py-4 xl:py-2.5 px-1 xl:px-2 ${cellClasses} ${tdColorClasses}`}
     >
       {children}
     </td>
@@ -49,7 +49,7 @@ export const Quote = ({ clickFn, disabled, value }: QuoteProps) => {
 
   return (
     <button
-      className={`${disabledClasses} ${beforeClasses} py-4 xl:py-3 px-1 xl:px-2 w-full text-right`}
+      className={`${disabledClasses} ${beforeClasses} py-4 xl:py-2.5 px-1 xl:px-2 w-full text-right`}
       onClick={clickFn}
       disabled={disabled}
     >
@@ -71,7 +71,7 @@ export const Position = ({ clickFn, disabled, value }: PositionProps) => {
     <button
       className={`${
         disabled ? "cursor-not-allowed" : "cursor-pointer"
-      } py-4 xl:py-3 px-1 xl:px-2 w-full text-right`}
+      } py-4 xl:py-2.5 px-1 xl:px-2 w-full text-right`}
       onClick={clickFn}
       disabled={disabled}
     >
@@ -90,7 +90,7 @@ export const Exposure = ({ value }: ExposureProps) => {
 
 export const Strike = ({ value }: StrikeProps) => {
   return (
-    <td className="text-center bg-bone-dark !border-0 font-medium py-4 xl:py-3 px-1 xl:px-2">
+    <td className="text-center bg-bone-dark !border-0 font-medium py-4 xl:py-2.5 px-1 xl:px-2">
       <span>
         <RyskCountUp value={value} format="Integer" />
       </span>
