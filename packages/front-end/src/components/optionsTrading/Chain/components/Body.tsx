@@ -183,7 +183,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               {showCol("exposure") && (
                 <Cell
-                  cellClasses=""
+                  cellClasses="!border-r-0"
                   ethPrice={ethPrice}
                   option={option}
                   side="call"
@@ -296,7 +296,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               {showCol("exposure") && (
                 <Cell
-                  cellClasses=""
+                  cellClasses="!border-r-0"
                   ethPrice={ethPrice}
                   option={option}
                   side="put"
