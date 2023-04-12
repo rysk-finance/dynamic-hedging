@@ -27,7 +27,7 @@ export const AssetPriceInfo = () => {
   const [update] = usePrice();
 
   const handleHelpClick = () => {
-    dispatch({ type: ActionType.SET_TUTORIAL_INDEX, index: 0 });
+    dispatch({ type: ActionType.SET_CHAIN_TUTORIAL_INDEX, index: 0 });
   };
 
   const ready = Boolean(!ethPriceError && ethPrice && ethPriceUpdateTime);

@@ -1,43 +1,36 @@
-import Joyride, { ACTIONS, STATUS } from "react-joyride";
+import Joyride from "react-joyride";
 import { useNetwork } from "wagmi";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 import { kebabToCapital } from "src/utils/caseConvert";
+import { useTutorial } from "../Hooks/useTutorial";
+import { styles } from "../Styles";
 
-export const Tutorial = () => {
+export const OptionChainTutorial = () => {
   const {
-    dispatch,
-    state: { tutorialIndex },
+    state: { chainTutorialIndex },
   } = useGlobalContext();
 
   const { chain } = useNetwork();
 
   const network = chain?.name || kebabToCapital(process.env.REACT_APP_NETWORK);
 
-  const handleCallback = (data: any) => {
-    if (
-      data.status === STATUS.FINISHED ||
-      data.status === STATUS.SKIPPED ||
-      data.action === ACTIONS.CLOSE
-    ) {
-      dispatch({
-        type: ActionType.SET_TUTORIAL_INDEX,
-        index: undefined,
-      });
-    }
-  };
+  const [handleCallback] = useTutorial(
+    ActionType.SET_CHAIN_TUTORIAL_INDEX,
+    chainTutorialIndex
+  );
 
   return (
     <Joyride
       callback={handleCallback}
       continuous
       disableScrolling={true}
-      run={tutorialIndex !== undefined}
+      run={chainTutorialIndex !== undefined}
       showProgress
       showSkipButton
       spotlightPadding={8}
-      stepIndex={tutorialIndex}
+      stepIndex={chainTutorialIndex}
       steps={[
         {
           disableBeacon: true,
@@ -80,15 +73,7 @@ export const Tutorial = () => {
             "To further manage your positions and view more information on your transactions with Rysk, you can visit the dashboard by clicking here.",
         },
       ]}
-      styles={{
-        options: {
-          arrowColor: "#F5F3EC",
-          backgroundColor: "#F5F3EC",
-          beaconSize: 44,
-          primaryColor: "#000",
-          textColor: "#000",
-        },
-      }}
+      styles={styles}
     />
   );
 };

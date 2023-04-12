@@ -11,14 +11,18 @@ import { BuyOptionModal } from "./Modals/BuyOptionModal";
 import { CloseOptionModal } from "./Modals/CloseOptionModal";
 import { OperatorModal } from "./Modals/OperatorModal";
 import { SellOptionModal } from "./Modals/SellOptionModal";
-import { Tutorial } from "./Tutorial";
+import { BuyModalTutorial } from "./Tutorials/Buy";
+import { OptionChainTutorial } from "./Tutorials/Chain";
+import { SellModalTutorial } from "./Tutorials/Sell";
 
 export const OptionsTradingContent = () => {
   const [modalType] = useModal();
 
   return (
     <section className="col-start-1 col-end-17 -mt-16">
-      <Tutorial />
+      <BuyModalTutorial />
+      <OptionChainTutorial />
+      <SellModalTutorial />
 
       <AssetPriceInfo />
 

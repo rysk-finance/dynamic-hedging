@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
 import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -28,6 +29,7 @@ export const SellOptionModal = () => {
       options: { activeExpiry, refresh, vaults },
       selectedOption,
     },
+    dispatch,
   } = useGlobalContext();
 
   const [amountToSell, setAmountToSell] = useState("");
@@ -123,9 +125,18 @@ export const SellOptionModal = () => {
     }
   }, [selectedOption]);
 
+  const handleTutorialClick = () => {
+    dispatch({ type: ActionType.SET_SELL_TUTORIAL_INDEX, index: 0 });
+  };
+
   return (
     <Modal>
-      <Header changeVisible={!disableChangeButton}>{`Sell Position`}</Header>
+      <Header
+        changeVisible={!disableChangeButton}
+        tutorialVisible={handleTutorialClick}
+      >
+        {`Sell Position`}
+      </Header>
 
       <div className="flex flex-col">
         <Symbol positionData={positionData} />
@@ -140,7 +151,7 @@ export const SellOptionModal = () => {
       </div>
 
       <Wrapper>
-        <Label title="Enter how many contracts you would like to sell.">
+        <Label id="sell-input" title="Enter how many contracts you would like to sell.">
           <Input
             name="sell-amount"
             onChange={handleAmountChange}
@@ -159,6 +170,7 @@ export const SellOptionModal = () => {
             transactionPending ||
             loading
           }
+          id="sell-button"
           {...getButtonProps(
             "sell",
             transactionPending || loading,
