@@ -9,26 +9,12 @@ import type {
 } from "./types";
 
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
-import { getColorClasses } from "../../utils/getColorClasses";
+import { Triangle } from "src/Icons";
 
-export const Cell = ({
-  children,
-  ethPrice,
-  option,
-  side,
-  selectedOption,
-  cellClasses,
-}: CellProps) => {
-  const tdColorClasses = getColorClasses(
-    option,
-    side,
-    ethPrice,
-    selectedOption
-  );
-
+export const Cell = ({ children, cellClasses }: CellProps) => {
   return (
     <td
-      className={`py-4 xl:py-2.5 px-1 xl:px-2 ${cellClasses} ${tdColorClasses}`}
+      className={`py-4 xl:py-2.5 px-1 xl:px-2 group-hover/row:bg-green-100/50 ${cellClasses}`}
     >
       {children}
     </td>
@@ -88,12 +74,24 @@ export const Exposure = ({ value }: ExposureProps) => {
   );
 };
 
-export const Strike = ({ value }: StrikeProps) => {
+export const Strike = ({
+  callAtTheMoney,
+  putAtTheMoney,
+  value,
+}: StrikeProps) => {
   return (
-    <td className="text-center bg-bone-dark !border-0 font-medium py-4 xl:py-2.5 px-1 xl:px-2">
+    <td className="relative text-center bg-bone-dark !border-0 font-medium py-4 xl:py-2.5 px-1 xl:px-2">
+      {callAtTheMoney && (
+        <Triangle className="absolute bottom-0 left-[-0.625rem] z-10 fill-green-500 w-5" />
+      )}
+
       <span>
         <RyskCountUp value={value} format="Integer" />
       </span>
+
+      {putAtTheMoney && (
+        <Triangle className="absolute top-0 right-[-0.625rem] z-10 fill-green-500 w-5 rotate-180" />
+      )}
     </td>
   );
 };
