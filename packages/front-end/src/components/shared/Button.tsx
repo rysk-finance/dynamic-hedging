@@ -41,6 +41,7 @@ export const Button = ({
     return (
       <motion.button
         className={`border-black border-2 text-md px-2 py-1 !bg-black text-white ${props.className}`}
+        id={props.id}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={() => {
