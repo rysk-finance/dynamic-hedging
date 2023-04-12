@@ -115,17 +115,27 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ...state,
         optionChainModalOpen: action.visible,
       };
-    case ActionType.SET_TUTORIAL_INDEX:
+    case ActionType.SET_BUY_TUTORIAL_INDEX:
       return {
         ...state,
-        tutorialIndex: action.index,
+        buyTutorialIndex: action.index,
+      };
+    case ActionType.SET_CHAIN_TUTORIAL_INDEX:
+      return {
+        ...state,
+        chainTutorialIndex: action.index,
+      };
+    case ActionType.SET_SELL_TUTORIAL_INDEX:
+      return {
+        ...state,
+        sellTutorialIndex: action.index,
       };
     case ActionType.RESET_OPTIONS_CHAIN_STATE:
       return {
         ...state,
         selectedOption: defaultGlobalState.selectedOption,
         optionChainModalOpen: defaultGlobalState.optionChainModalOpen,
-        tutorialIndex: defaultGlobalState.tutorialIndex,
+        chainTutorialIndex: defaultGlobalState.chainTutorialIndex,
       };
     case ActionType.CHANGE_FROM_BUYING_OR_SELLING:
       if (state.selectedOption) {
