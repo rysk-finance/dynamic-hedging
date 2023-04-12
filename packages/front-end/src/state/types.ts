@@ -51,6 +51,25 @@ export type ColumNames =
   | "pos"
   | "exposure";
 
+export type CollateralType = "USDC" | "WETH";
+
+export enum CollateralAmount {
+  "1.5x" = "1.5x",
+  "2x" = "2x",
+  "3x" = "3x",
+  "full" = "full",
+}
+
+export interface CollateralPreferences {
+  type: CollateralType;
+  amount: keyof typeof CollateralAmount;
+}
+
+export interface UserVaults {
+  [oTokenAddress: HexString]: string;
+  length: number;
+}
+
 // Global context
 export type GlobalState = {
   ethPrice: number | null;
@@ -84,9 +103,11 @@ export type GlobalState = {
     loading: boolean;
     refresh: () => void;
     userPositions: UserPositions;
+    vaults: UserVaults;
   };
 
   // Options chain state.
+  collateralPreferences: CollateralPreferences;
   visibleStrikeRange: StrikeRangeTuple;
   visibleColumns: Set<ColumNames>;
 };
@@ -103,6 +124,7 @@ export enum ActionType {
   SET_OPTIONS,
   SET_VISIBLE_STRIKE_RANGE,
   SET_VISIBLE_COLUMNS,
+  SET_COLLATERAL_PREFERENCES,
 }
 
 export type GlobalAction =
@@ -152,6 +174,7 @@ export type GlobalAction =
       loading?: boolean;
       refresh?: () => void;
       userPositions?: UserPositions;
+      vaults?: UserVaults;
     }
   | {
       type: ActionType.SET_VISIBLE_STRIKE_RANGE;
@@ -160,6 +183,10 @@ export type GlobalAction =
   | {
       type: ActionType.SET_VISIBLE_COLUMNS;
       column?: ColumNames;
+    }
+  | {
+      type: ActionType.SET_COLLATERAL_PREFERENCES;
+      collateralPreferences?: CollateralPreferences;
     };
 
 export type GlobalContext = {

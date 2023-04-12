@@ -1,14 +1,12 @@
-import type { Addresses, AllowanceState } from "../../Shared/types";
+import type { Addresses } from "../../Shared/types";
 import type { PositionDataState } from "../types";
 
 import { captureException } from "@sentry/react";
-import { fetchBalance, readContract } from "@wagmi/core";
+import { fetchBalance } from "@wagmi/core";
 import dayjs from "dayjs";
-import { BigNumber } from "ethers";
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
-import { erc20ABI } from "src/abis/erc20_ABI";
 import { ZERO_ADDRESS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
@@ -17,9 +15,10 @@ import {
   toRysk,
   toUSDC,
   toWei,
+  truncate,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
-import { toTwoDecimalPlaces } from "src/utils/rounding";
+import { useAllowance } from "../../Shared/hooks/useAllowance";
 import { getQuote } from "../../Shared/utils/getQuote";
 
 export const useBuyOption = (amountToBuy: string) => {
@@ -40,11 +39,8 @@ export const useBuyOption = (amountToBuy: string) => {
   const USDCAddress = getContractAddress("USDC");
   const exchangeAddress = getContractAddress("optionExchange");
 
-  // User allowance state for the oToken.
-  const [allowance, setAllowance] = useState<AllowanceState>({
-    approved: false,
-    amount: BigNumber.from(0),
-  });
+  // User allowance state for USDC.
+  const [allowance, setAllowance] = useAllowance(USDCAddress, address);
 
   // User position state.
   const [purchaseData, setPurchaseData] = useState<PositionDataState>({
@@ -60,26 +56,6 @@ export const useBuyOption = (amountToBuy: string) => {
   });
 
   const [loading, setLoading] = useState(false);
-
-  /* Effects */
-
-  // Get user oToken allowance.
-  useEffect(() => {
-    const checkApproval = async () => {
-      if (address) {
-        const amount = await readContract({
-          address: USDCAddress,
-          abi: erc20ABI,
-          functionName: "allowance",
-          args: [address, exchangeAddress],
-        });
-
-        setAllowance((currentState) => ({ ...currentState, amount }));
-      }
-    };
-
-    checkApproval();
-  }, [address, allowance.approved, USDCAddress]);
 
   // Get user position price data.
   useEffect(() => {
@@ -107,7 +83,7 @@ export const useBuyOption = (amountToBuy: string) => {
           const quote = tFormatUSDC(totalFees.add(totalPremium));
           const remainingBalance = balance.isZero() ? 0 : balanceInt - quote;
 
-          const requiredApproval = String(toTwoDecimalPlaces(quote * 1.05));
+          const requiredApproval = String(truncate(quote * 1.05, 2));
           const approved = toUSDC(requiredApproval).lte(allowance.amount);
 
           setPurchaseData({

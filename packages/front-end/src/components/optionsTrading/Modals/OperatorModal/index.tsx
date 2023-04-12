@@ -1,7 +1,7 @@
 import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
-import FadeInOut from "src/animation/FadeInOut";
+import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { Button } from "src/components/shared/Button";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
@@ -10,12 +10,12 @@ import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { setOperator } from "../Shared/utils/transactions";
-import { useNotifications } from "../Shared/utils/useNotifications";
+import { useNotifications } from "../Shared/hooks/useNotifications";
 
 export const OperatorModal = () => {
   const {
     state: {
-      options: { isOperator, refresh },
+      options: { isOperator, loading, refresh },
     },
     dispatch,
   } = useGlobalContext();
@@ -57,10 +57,10 @@ export const OperatorModal = () => {
               className="w-full h-full !border-0"
               disabled={transactionPending}
               requiresConnection
-              {...FadeInOut()}
+              {...FadeInOutQuick}
               {...getButtonProps(
                 "sell",
-                transactionPending,
+                transactionPending || loading,
                 isOperator,
                 handleOperatorApproval
               )}

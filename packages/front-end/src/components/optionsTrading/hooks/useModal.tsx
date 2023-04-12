@@ -56,9 +56,14 @@ export const useModal = () => {
           type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.OPERATOR,
         });
+      } else if (selectedOption?.buyOrSell === "sell" && isOperator) {
+        dispatch({
+          type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          visible: OptionChainModalActions.SELL,
+        });
       }
     }
-  }, [activeExpiry, searchParams, selectedOption]);
+  }, [activeExpiry, isOperator, searchParams, selectedOption]);
 
   return [optionChainModalOpen] as const;
 };

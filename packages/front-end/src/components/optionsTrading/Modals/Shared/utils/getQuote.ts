@@ -1,6 +1,7 @@
 import { readContract } from "@wagmi/core";
 
 import { BigNumber } from "ethers";
+
 import { AlphaPortfolioValuesFeedABI } from "src/abis/AlphaPortfolioValuesFeed_ABI";
 import { BeyondPricerABI } from "src/abis/BeyondPricer_ABI";
 import { getContractAddress, getOptionHash } from "src/utils/helpers";
@@ -10,7 +11,8 @@ export const getQuote = async (
   strike: BigNumber,
   isPut: boolean,
   orderSize: BigNumber,
-  isSell: boolean
+  isSell: boolean,
+  collateral: "USDC" | "WETH" = "USDC"
 ) => {
   const exposure = await readContract({
     abi: AlphaPortfolioValuesFeedABI,
@@ -29,7 +31,7 @@ export const getQuote = async (
         strike,
         strikeAsset: getContractAddress("USDC"),
         underlying: getContractAddress("WETH"),
-        collateral: getContractAddress("USDC"),
+        collateral: getContractAddress(collateral),
         isPut,
       },
       orderSize,

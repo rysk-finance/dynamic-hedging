@@ -5,9 +5,10 @@ import type {
   PutSide,
   StrikeOptions,
   UserPositions,
+  UserVaults,
 } from "src/state/types";
 import type { DHVLensMK1 } from "src/types/DHVLensMK1";
-import type { InitialDataQuery, OptionsTransaction } from "./types";
+import type { InitialDataQuery, OptionsTransaction, Vault } from "./types";
 
 import { captureException } from "@sentry/react";
 import { readContract, readContracts } from "@wagmi/core";
@@ -155,10 +156,25 @@ const getChainData = async (
             return toTwoDecimalPlaces(IV);
           };
 
-          const position = userPositions[expiry]?.tokens.find(
-            (position) =>
-              fromWeiToOpyn(strike).eq(position.strikePrice) &&
-              (side === "put") === position.isPut
+          // Longs - each strike side has only one oToken so we pass tokenID for closing.
+          // Shorts - each strike side has two tokens (WETH / USDC)
+          // This could also include owning long and short positions for a strike side.
+          // UI PLAN
+          // Single column UI (net position) --> click to open modal with checkboxes for each possible position.
+          // Pass all token IDs as an array to the chain state.
+          const positions = (userPositions[expiry]?.tokens || []).reduce(
+            (acc, position) => {
+              if (
+                fromWeiToOpyn(strike).eq(position.strikePrice) &&
+                (side === "put") === position.isPut
+              ) {
+                acc.id.push(position.id);
+                acc.netAmount += fromWeiToInt(position.netAmount);
+              }
+
+              return acc;
+            },
+            { id: [], netAmount: 0 } as { id: HexString[]; netAmount: number }
           );
 
           sideData[strikeUSDC] = {
@@ -174,9 +190,9 @@ const getChainData = async (
                 quote: _getQuote(buy),
               },
               delta: toTwoDecimalPlaces(Number(fromWei(delta))),
-              pos: fromWeiToInt(position?.netAmount || 0),
+              pos: positions.netAmount,
               exposure: Number(fromWei(exposure)),
-              tokenID: position?.id,
+              tokenID: positions.id[0], // temp
             },
           } as CallSide | PutSide;
 
@@ -251,6 +267,20 @@ const getOperatorStatus = async (address?: HexString) => {
   }
 };
 
+const getUserVaults = (vaults: Vault[]) => {
+  return vaults.reduce(
+    (acc, curr) => {
+      if (curr.shortOToken) {
+        acc[curr.shortOToken.id] = curr.vaultId;
+      }
+      acc.length++;
+
+      return acc;
+    },
+    { length: 0 } as UserVaults
+  );
+};
+
 export const getInitialData = async (
   data: InitialDataQuery,
   address?: HexString
@@ -269,5 +299,14 @@ export const getInitialData = async (
   // Get operator status.
   const isOperator = await getOperatorStatus(address);
 
-  return [validExpiries, userPositions, chainData, isOperator] as const;
+  // Get all user short position vaults.
+  const userVaults = getUserVaults(data.vaults);
+
+  return [
+    validExpiries,
+    userPositions,
+    chainData,
+    isOperator,
+    userVaults,
+  ] as const;
 };

@@ -4,21 +4,17 @@ import type { AddressesRequired } from "../Shared/types";
 
 import dayjs from "dayjs";
 import LocalizedFormat from "dayjs/plugin/localizedFormat";
-import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
-import FadeInOut from "src/animation/FadeInOut";
-import { Button } from "src/components/shared/Button";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { toOpyn, toRysk } from "src/utils/conversion-helper";
-
-import { toTwoDecimalPlaces } from "src/utils/rounding";
 import { Disclaimer } from "../Shared/components/Disclaimer";
+import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
+import { useNotifications } from "../Shared/hooks/useNotifications";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
-import { approveAllowance, sell } from "../Shared/utils/transactions";
-import { useNotifications } from "../Shared/utils/useNotifications";
+import { approveAllowance, closeLong } from "../Shared/utils/transactions";
 import { Pricing } from "./components/Pricing";
 import { usePositionData } from "./hooks/usePositionData";
 
@@ -40,12 +36,16 @@ export const CloseOptionModal = () => {
   const [transactionPending, setTransactionPending] = useState(false);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const amount = toTwoDecimalPlaces(Number(event.currentTarget.value));
-    const approved = Boolean(
-      amount && toOpyn(amount.toString()).lte(allowance.amount)
-    );
+    const amount = event.currentTarget.value;
+    const decimals = amount.split(".");
 
-    setAmountToSell(amount.toString());
+    const rounded =
+      decimals.length > 1
+        ? `${decimals[0]}.${decimals[1].slice(0, 2)}`
+        : event.currentTarget.value;
+    const approved = Boolean(amount && toOpyn(rounded).lte(allowance.amount));
+
+    setAmountToSell(rounded);
     setAllowance((currentState) => ({ ...currentState, approved }));
   };
 
@@ -80,7 +80,7 @@ export const CloseOptionModal = () => {
       if (addresses.token && addresses.user) {
         const amount = toRysk(amountToSell);
 
-        const hash = await sell(
+        const hash = await closeLong(
           addresses as AddressesRequired,
           amount,
           refresh
@@ -102,45 +102,33 @@ export const CloseOptionModal = () => {
       <Header>{`Sell Position`}</Header>
       <Pricing positionData={positionData} />
 
-      <div className="flex border-black border-y-2">
-        <label
-          className="grow"
-          title="Enter how much of your position you would like to sell."
-        >
-          <input
-            className="text-center w-full h-12 number-input-hide-arrows border-r-2 border-black"
-            inputMode="numeric"
+      <Wrapper>
+        <Label title="Enter how much of your position you would like to sell.">
+          <Input
             name="sell-amount"
             onChange={handleChange}
             placeholder="How many would you like to sell?"
-            step={0.01}
-            type="number"
             value={amountToSell}
           />
-        </label>
+        </Label>
 
-        <AnimatePresence mode="wait">
-          <Button
-            className="w-1/3 !border-0"
-            disabled={
-              Number(amountToSell) > positionData.totalSize ||
-              !Number(amountToSell) ||
-              !addresses.user ||
-              !addresses.token ||
-              transactionPending
-            }
-            requiresConnection
-            {...FadeInOut()}
-            {...getButtonProps(
-              "sell",
-              transactionPending,
-              allowance.approved,
-              handleApprove,
-              handleSell
-            )}
-          />
-        </AnimatePresence>
-      </div>
+        <Button
+          disabled={
+            Number(amountToSell) > positionData.totalSize ||
+            !Number(amountToSell) ||
+            !addresses.user ||
+            !addresses.token ||
+            transactionPending
+          }
+          {...getButtonProps(
+            "sell",
+            transactionPending,
+            allowance.approved,
+            handleApprove,
+            handleSell
+          )}
+        />
+      </Wrapper>
 
       <Disclaimer>
         {`You are about to sell some or all of your position. Please ensure this is what you want because the action is irreversible.`}
