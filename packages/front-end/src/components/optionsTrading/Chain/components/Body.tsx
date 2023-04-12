@@ -17,7 +17,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
     state: {
       ethPrice,
       options: { loading },
-      selectedOption,
       visibleStrikeRange,
     },
     dispatch,
@@ -48,6 +47,17 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
     [chainRows, strikeRange]
   );
 
+  const [callAtmStrike, putAtmStrike] = useMemo(() => {
+    const index = chainRows.findIndex(
+      (row) => ethPrice && row.strike >= ethPrice
+    );
+
+    return [
+      chainRows[Math.max(0, index - 1)].strike,
+      chainRows[Math.max(0, index)].strike,
+    ] as const;
+  }, [ethPrice, chainRows]);
+
   const setSelectedOption = (option: SelectedOption) => () => {
     dispatch({ type: ActionType.SET_SELECTED_OPTION, option });
   };
@@ -72,9 +82,17 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
           const putPosDisabled =
             !option.put.pos || !option.put.sell.quote.quote;
 
+          const callAtTheMoney = option.strike === callAtmStrike;
+          const putAtTheMoney = option.strike === putAtmStrike;
+          const rowClasses = callAtTheMoney
+            ? "border-b"
+            : putAtTheMoney
+            ? "border-t"
+            : "";
+
           return (
             <motion.tr
-              className="group/row grid even:bg-bone odd:bg-bone-light bg-[url('./assets/wave-lines.png')] even:bg-[top_right_-50%] even:lg:bg-[top_right_-15%] even:xl:bg-[top_right_0%] odd:bg-[top_left_-80%] odd:lg:bg-[top_left_-40%] odd:xl:bg-[top_left_-20%] bg-no-repeat bg-contain text-right [&_td]:col-span-1 [&_td]:border [&_td]:border-dashed [&_td]:border-gray-500 [&_td]:ease-in-out [&_td]:duration-100 [&_td]:cursor-default [&_td]:text-2xs [&_td]:xl:text-base ease-in-out duration-100"
+              className={`group/row grid even:bg-bone odd:bg-bone-light bg-[url('./assets/wave-lines.png')] even:bg-[top_right_-50%] even:lg:bg-[top_right_-15%] even:xl:bg-[top_right_0%] odd:bg-[top_left_-80%] odd:lg:bg-[top_left_-40%] odd:xl:bg-[top_left_-20%] bg-no-repeat bg-contain text-right [&_td]:col-span-1 [&_td]:border [&_td]:border-dashed [&_td]:border-gray-500 [&_td]:ease-in-out [&_td]:duration-100 [&_td]:cursor-default [&_td]:text-2xs [&_td]:xl:text-base ease-in-out duration-100 ${rowClasses} border-black border-dashed`}
               key={option.strike}
               style={{
                 gridTemplateColumns: `repeat(${colSize}, minmax(0, 1fr))`,
@@ -83,13 +101,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
               layout="position"
             >
               {showCol("iv sell") && (
-                <Cell
-                  cellClasses="!border-l-0"
-                  ethPrice={ethPrice}
-                  option={option}
-                  side="call"
-                  selectedOption={selectedOption}
-                >
+                <Cell cellClasses="!border-l-0">
                   <IV value={option.call.sell.IV} />
                 </Cell>
               )}
@@ -98,10 +110,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 cellClasses={`${
                   callSellDisabled ? "text-gray-600" : "text-red-700"
                 } !p-0`}
-                ethPrice={ethPrice}
-                option={option}
-                side="call"
-                selectedOption={selectedOption}
               >
                 <Quote
                   clickFn={setSelectedOption({
@@ -118,10 +126,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 cellClasses={`${
                   callBuyDisabled ? "text-gray-600" : "text-green-1100"
                 } !p-0`}
-                ethPrice={ethPrice}
-                option={option}
-                side="call"
-                selectedOption={selectedOption}
               >
                 <Quote
                   clickFn={setSelectedOption({
@@ -135,25 +139,13 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
               </Cell>
 
               {showCol("iv buy") && (
-                <Cell
-                  cellClasses=""
-                  ethPrice={ethPrice}
-                  option={option}
-                  side="call"
-                  selectedOption={selectedOption}
-                >
+                <Cell cellClasses="">
                   <IV value={option.call.buy.IV} />
                 </Cell>
               )}
 
               {showCol("delta") && (
-                <Cell
-                  cellClasses=""
-                  ethPrice={ethPrice}
-                  option={option}
-                  side="call"
-                  selectedOption={selectedOption}
-                >
+                <Cell cellClasses="">
                   <Delta value={option.call.delta} />
                 </Cell>
               )}
@@ -161,10 +153,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
               {showCol("pos") && (
                 <Cell
                   cellClasses={`${callPosDisabled ? "text-gray-600" : ""} !p-0`}
-                  ethPrice={ethPrice}
-                  option={option}
-                  side="call"
-                  selectedOption={selectedOption}
                 >
                   <Position
                     clickFn={() => {
@@ -182,27 +170,19 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
               )}
 
               {showCol("exposure") && (
-                <Cell
-                  cellClasses="!border-r-0"
-                  ethPrice={ethPrice}
-                  option={option}
-                  side="call"
-                  selectedOption={selectedOption}
-                >
+                <Cell cellClasses="!border-r-0">
                   <Exposure value={option.call.exposure} />
                 </Cell>
               )}
 
-              <Strike value={option.strike} />
+              <Strike
+                value={option.strike}
+                callAtTheMoney={callAtTheMoney}
+                putAtTheMoney={putAtTheMoney}
+              />
 
               {showCol("iv sell") && (
-                <Cell
-                  cellClasses="!border-l-0 "
-                  ethPrice={ethPrice}
-                  option={option}
-                  side="put"
-                  selectedOption={selectedOption}
-                >
+                <Cell cellClasses="!border-l-0 ">
                   <IV value={option.put.sell.IV} />
                 </Cell>
               )}
@@ -211,10 +191,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 cellClasses={`${
                   putSellDisabled ? "text-gray-600" : "text-red-700"
                 } !p-0`}
-                ethPrice={ethPrice}
-                option={option}
-                side="put"
-                selectedOption={selectedOption}
               >
                 <Quote
                   clickFn={setSelectedOption({
@@ -231,10 +207,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 cellClasses={`${
                   putBuyDisabled ? "text-gray-600" : "text-green-1100"
                 } !p-0`}
-                ethPrice={ethPrice}
-                option={option}
-                side="put"
-                selectedOption={selectedOption}
               >
                 <Quote
                   clickFn={setSelectedOption({
@@ -248,25 +220,13 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
               </Cell>
 
               {showCol("iv buy") && (
-                <Cell
-                  cellClasses=""
-                  ethPrice={ethPrice}
-                  option={option}
-                  side="put"
-                  selectedOption={selectedOption}
-                >
+                <Cell cellClasses="">
                   <IV value={option.put.buy.IV} />
                 </Cell>
               )}
 
               {showCol("delta") && (
-                <Cell
-                  cellClasses=""
-                  ethPrice={ethPrice}
-                  option={option}
-                  side="put"
-                  selectedOption={selectedOption}
-                >
+                <Cell cellClasses="">
                   <Delta value={option.put.delta} />
                 </Cell>
               )}
@@ -274,10 +234,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
               {showCol("pos") && (
                 <Cell
                   cellClasses={`${putPosDisabled ? "text-gray-600" : ""} !p-0`}
-                  ethPrice={ethPrice}
-                  option={option}
-                  side="put"
-                  selectedOption={selectedOption}
                 >
                   <Position
                     clickFn={() => {
@@ -295,13 +251,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
               )}
 
               {showCol("exposure") && (
-                <Cell
-                  cellClasses="!border-r-0"
-                  ethPrice={ethPrice}
-                  option={option}
-                  side="put"
-                  selectedOption={selectedOption}
-                >
+                <Cell cellClasses="!border-r-0">
                   <Exposure value={option.put.exposure} />
                 </Cell>
               )}
