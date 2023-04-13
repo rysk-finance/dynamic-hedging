@@ -247,57 +247,6 @@
 		"anonymous": false,
 		"inputs": [
 			{
-				"indexed": false,
-				"internalType": "address",
-				"name": "catalogue",
-				"type": "address"
-			}
-		],
-		"name": "CatalogueUpdated",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "collateral",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "bool",
-				"name": "isPut",
-				"type": "bool"
-			},
-			{
-				"indexed": false,
-				"internalType": "bool",
-				"name": "isApproved",
-				"type": "bool"
-			}
-		],
-		"name": "CollateralApprovalChanged",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "address",
-				"name": "feeRecipient",
-				"type": "address"
-			}
-		],
-		"name": "FeeRecipientUpdated",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
 				"indexed": true,
 				"internalType": "address",
 				"name": "series",
@@ -455,38 +404,6 @@
 		"inputs": [
 			{
 				"indexed": false,
-				"internalType": "address",
-				"name": "asset",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint24",
-				"name": "fee",
-				"type": "uint24"
-			}
-		],
-		"name": "PoolFeeUpdated",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "address",
-				"name": "pricer",
-				"type": "address"
-			}
-		],
-		"name": "PricerUpdated",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
 				"internalType": "uint256",
 				"name": "redeemAmount",
 				"type": "uint256"
@@ -505,25 +422,6 @@
 			}
 		],
 		"name": "RedemptionSent",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "minTradeSize",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "maxTradeSize",
-				"type": "uint256"
-			}
-		],
-		"name": "TradeSizeLimitsUpdated",
 		"type": "event"
 	},
 	{
@@ -888,19 +786,6 @@
 		"type": "function"
 	},
 	{
-		"inputs": [],
-		"name": "getPortfolioValuesFeed",
-		"outputs": [
-			{
-				"internalType": "contract IAlphaPortfolioValuesFeed",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [
 			{
 				"internalType": "int256",
@@ -917,30 +802,6 @@
 			}
 		],
 		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			},
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"name": "heldTokens",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
 		"type": "function"
 	},
 	{
