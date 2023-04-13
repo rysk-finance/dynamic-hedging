@@ -86,7 +86,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	// user -> token addresses interacted with in this transaction
 	mapping(address => address[]) internal tempTokenQueue;
 	// user -> token address -> amount
-	mapping(address => mapping(address => uint256)) public heldTokens;
+	mapping(address => mapping(address => uint256)) internal heldTokens;
 
 	//////////////////////////
 	/// constant variables ///
@@ -97,7 +97,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	// oToken decimals
 	uint8 private constant OPYN_DECIMALS = 8;
 	// scale otoken conversion decimals
-	uint8 private constant CONVERSION_DECIMALS = 18 - OPYN_DECIMALS;
+	uint8 private constant CONVERSION_DECIMALS = 10;
 	/// @notice used for unlimited token approval
 	uint256 private constant MAX_UINT = 2 ** 256 - 1;
 
@@ -150,13 +150,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		address redeemAsset
 	);
 	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
-	event CollateralApprovalChanged(address indexed collateral, bool isPut, bool isApproved);
 	event OtokenMigrated(address newOptionExchange, address otoken, uint256 amount);
-	event PricerUpdated(address pricer);
-	event CatalogueUpdated(address catalogue);
-	event FeeRecipientUpdated(address feeRecipient);
-	event PoolFeeUpdated(address asset, uint24 fee);
-	event TradeSizeLimitsUpdated(uint256 minTradeSize, uint256 maxTradeSize);
 
 	error TradeTooSmall();
 	error TradeTooLarge();
@@ -189,16 +183,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		swapRouter = ISwapRouter(_swapRouter);
 		pricer = BeyondPricer(_pricer);
 		catalogue = OptionCatalogue(_catalogue);
-		require(_feeRecipient != address(0));
 		feeRecipient = _feeRecipient;
 		approvedCollateral[collateralAsset][true] = true;
 		approvedCollateral[collateralAsset][false] = true;
 		approvedCollateral[underlyingAsset][true] = true;
 		approvedCollateral[underlyingAsset][false] = true;
-		emit CollateralApprovalChanged(collateralAsset, true, true);
-		emit CollateralApprovalChanged(collateralAsset, false, true);
-		emit CollateralApprovalChanged(underlyingAsset, true, true);
-		emit CollateralApprovalChanged(underlyingAsset, false, true);
 	}
 
 	///////////////
@@ -221,7 +210,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function setPricer(address _pricer) external {
 		_onlyGovernor();
 		pricer = BeyondPricer(_pricer);
-		emit PricerUpdated(_pricer);
 	}
 
 	/**
@@ -230,7 +218,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function setOptionCatalogue(address _catalogue) external {
 		_onlyGovernor();
 		catalogue = OptionCatalogue(_catalogue);
-		emit CatalogueUpdated(_catalogue);
 	}
 
 	/**
@@ -238,9 +225,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 */
 	function setFeeRecipient(address _feeRecipient) external {
 		_onlyGovernor();
-		require(_feeRecipient != address(0));
 		feeRecipient = _feeRecipient;
-		emit FeeRecipientUpdated(_feeRecipient);
 	}
 
 	/// @notice set the uniswap v3 pool fee for a given asset, also give the asset max approval on the uni v3 swap router
@@ -248,7 +233,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_onlyGovernor();
 		poolFees[asset] = fee;
 		SafeTransferLib.safeApprove(ERC20(asset), address(swapRouter), MAX_UINT);
-		emit PoolFeeUpdated(asset, fee);
 	}
 
 	/// @notice set the maximum and minimum trade size
@@ -256,14 +240,12 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_onlyGovernor();
 		minTradeSize = _minTradeSize;
 		maxTradeSize = _maxTradeSize;
-		emit TradeSizeLimitsUpdated(_minTradeSize, _maxTradeSize);
 	}
 
 	/// @notice set whether a collateral is approved for selling to the vault
 	function changeApprovedCollateral(address collateral, bool isPut, bool isApproved) external {
 		_onlyGovernor();
 		approvedCollateral[collateral][isPut] = isApproved;
-		emit CollateralApprovalChanged(collateral, isPut, isApproved);
 	}
 
 	//////////////////////////////////////////////////////
@@ -272,7 +254,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 
 	/// @inheritdoc IHedgingReactor
 	function withdraw(uint256 _amount) external returns (uint256) {
-		require(msg.sender == address(liquidityPool), "!vault");
+		require(msg.sender == address(liquidityPool));
 		address _token = collateralAsset;
 		// check the holdings if enough just lying around then transfer it
 		uint256 balance = ERC20(_token).balanceOf(address(this));
@@ -767,7 +749,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @notice get the portfolio values feed used by the liquidity pool
 	 * @return the portfolio values feed contract
 	 */
-	function getPortfolioValuesFeed() public view returns (IAlphaPortfolioValuesFeed) {
+	function getPortfolioValuesFeed() internal view returns (IAlphaPortfolioValuesFeed) {
 		return IAlphaPortfolioValuesFeed(protocol.portfolioValuesFeed());
 	}
 
