@@ -25,7 +25,8 @@ import {
 	OptionExchange,
 	OpynInteractions,
 	GmxHedgingReactor,
-	Manager
+	Manager,
+	OptionsCompute
 } from "../../types"
 
 const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
@@ -39,8 +40,6 @@ const gammaOracleAddress = "0xBA1880CFFE38DD13771CB03De896460baf7dA1E7"
 const opynControllerProxyAddress = "0x594bD4eC29F7900AE29549c140Ac53b5240d4019"
 const opynAddressBookAddress = "0xCa19F26c52b11186B4b1e76a662a14DA5149EA5a"
 const opynNewCalculatorAddress = "0x749a3624ad2a001F935E3319743f53Ecc7466358"
-const oTokenFactoryAddress = "0xBa1952eCdbA02de66fCf73f29068e8cf072644ec"
-const marginPoolAddress = "0xb9F33349db1d0711d95c1198AcbA9511B8269626"
 const sequencerUptimeAddress = "0xFdB631F5EE196F0ed6FAa767959853A9F217697D"
 
 // rage trade addresses for Arbitrum Mainnet
@@ -147,6 +146,7 @@ async function main() {
 	const interactions = deployParams.opynInteractions
 	const blackScholes = deployParams.blackScholes
 	const normDist = deployParams.normDist
+	const optionsCompute = deployParams.optionsCompute
 
 	let lpParams = await deployLiquidityPool(
 		deployer,
@@ -165,11 +165,11 @@ async function main() {
 		authority.address,
 		priceFeed,
 		blackScholes,
-		interactions
+		interactions,
+		optionsCompute
 	)
 	const liquidityPool = lpParams.liquidityPool
 	const handler = lpParams.handler
-	const optionsCompute = lpParams.optionsCompute
 	const accounting = lpParams.accounting
 	const uniswapV3HedgingReactor = lpParams.uniswapV3HedgingReactor
 	const perpHedgingReactor = lpParams.perpHedgingReactor
@@ -296,6 +296,22 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		console.log(err)
 	}
 
+	const optionsCompFactory = await ethers.getContractFactory("OptionsCompute", {
+		libraries: {}
+	})
+	const optionsCompute = await optionsCompFactory.deploy()
+	console.log("options compute deployed")
+
+	try {
+		await hre.run("verify:verify", {
+			address: optionsCompute.address,
+			constructorArguments: []
+		})
+		console.log("optionsCompute verified")
+	} catch (err: any) {
+		console.log(err)
+	}
+
 	const blackScholesFactory = await ethers.getContractFactory(
 		"contracts/libraries/BlackScholes.sol:BlackScholes",
 		{
@@ -328,7 +344,7 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		usdcAddress
 	)) as MintableERC20
 
-	const priceFeedFactory = await ethers.getContractFactory("PriceFeed")
+	const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
 	const priceFeed = (await priceFeedFactory.deploy(
 		authority.address,
 		sequencerUptimeAddress
@@ -448,7 +464,8 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		authority: authority,
 		opynInteractions: interactions,
 		blackScholes: blackScholes,
-		normDist: normDist
+		normDist: normDist,
+		optionsCompute: optionsCompute
 	}
 }
 
@@ -471,28 +488,10 @@ export async function deployLiquidityPool(
 	authority: string,
 	priceFeed: PriceFeed,
 	blackScholes: BlackScholes,
-	interactions: OpynInteractions
+	interactions: OpynInteractions,
+	optionsCompute: OptionsCompute
 ) {
-	const optionsCompFactory = await ethers.getContractFactory("OptionsCompute", {
-		libraries: {}
-	})
-	const optionsCompute = await optionsCompFactory.deploy()
-	console.log("options compute deployed")
-
-	try {
-		await hre.run("verify:verify", {
-			address: optionsCompute.address,
-			constructorArguments: []
-		})
-		console.log("optionsCompute verified")
-	} catch (err: any) {
-		console.log(err)
-	}
-	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
-		libraries: {
-			OptionsCompute: optionsCompute.address
-		}
-	})
+	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool")
 
 	const liquidityPool = (await liquidityPoolFactory.deploy(
 		optionProtocol.address,
@@ -614,7 +613,11 @@ export async function deployLiquidityPool(
 		console.log(err)
 	}
 
-	const catalogueFactory = await ethers.getContractFactory("OptionCatalogue")
+	const catalogueFactory = await ethers.getContractFactory("OptionCatalogue", {
+		libraries: {
+			OptionsCompute: optionsCompute.address
+		}
+	})
 	const catalogue = (await catalogueFactory.deploy(authority, usd.address)) as OptionCatalogue
 
 	try {
@@ -630,7 +633,8 @@ export async function deployLiquidityPool(
 
 	const exchangeFactory = await ethers.getContractFactory("OptionExchange", {
 		libraries: {
-			OpynInteractions: interactions.address
+			OpynInteractions: interactions.address,
+			OptionsCompute: optionsCompute.address
 		}
 	})
 	const exchange = (await exchangeFactory.deploy(
@@ -641,7 +645,8 @@ export async function deployLiquidityPool(
 		opynAddressBookAddress,
 		uniswapV3SwapRouter,
 		liquidityPool.address,
-		catalogue.address
+		catalogue.address,
+		{ gasLimit: BigNumber.from("500000000") }
 	)) as OptionExchange
 
 	try {
@@ -837,7 +842,6 @@ export async function deployLiquidityPool(
 	console.log("hedging reactors added to liquidity pool")
 
 	return {
-		optionsCompute,
 		liquidityPool: liquidityPool,
 		handler: handler,
 		accounting,
