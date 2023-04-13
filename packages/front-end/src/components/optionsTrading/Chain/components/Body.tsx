@@ -77,8 +77,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
     dispatch({ type: ActionType.SET_SELECTED_OPTION, option });
   };
 
-  console.log(callAtmStrike, putAtmStrike);
-
   return (
     <tbody
       className="relative block w-[150%] lg:w-full font-dm-mono text-sm ease-in-out duration-100 hover:[&>tr]:!opacity-100 [&>tr]:hover:!opacity-40"
