@@ -17,29 +17,33 @@ export const usePrice = () => {
     },
   } = useGlobalContext();
 
+  const [intervalTime, setIntervalTime] = useState(5);
   const [manualUpdateTimestamp, setManualUpdateTimestamp] = useState(
     dayjs().unix()
   );
 
   useEffect(() => {
-    // Check Ether price every five seconds.
+    // Check Ether price in increasing intervals, starting at five seconds.
     const priceCheckInterval = setInterval(async () => {
       const newPrice = await priceFeedGetRate();
 
       if (newPrice !== ethPrice) {
         refresh();
+        setIntervalTime(5);
+      } else {
+        setIntervalTime((currentTime) => ++currentTime);
       }
-    }, 1000 * 5);
+    }, 1000 * intervalTime);
 
     return () => clearInterval(priceCheckInterval);
-  }, [ethPrice, manualUpdateTimestamp, refresh]);
+  }, [ethPrice, intervalTime, manualUpdateTimestamp, refresh]);
 
-  // Rate limit manual updates to every 15 seconds.
+  // Rate limit manual updates to every 30 seconds.
   // Manual update also resets the cycle on the automatic updates.
   const handleManualUpdate = () => {
     const now = dayjs().unix();
 
-    if (now >= manualUpdateTimestamp + 15) {
+    if (now >= manualUpdateTimestamp + 30) {
       refresh();
       setManualUpdateTimestamp(dayjs().unix());
     }
