@@ -79,7 +79,14 @@ export const useInitialData = () => {
       updatePriceData();
 
       getInitialData(data, address).then(
-        ([validExpiries, userPositions, chainData, isOperator, userVaults]) => {
+        ([
+          validExpiries,
+          userPositions,
+          chainData,
+          isOperator,
+          userVaults,
+          liquidationParameters,
+        ]) => {
           dispatch({
             type: ActionType.SET_OPTIONS,
             activeExpiry: activeExpiry || validExpiries[0],
@@ -89,6 +96,8 @@ export const useInitialData = () => {
             isOperator,
             loading,
             refresh,
+            spotShock: liquidationParameters.spotShock,
+            timesToExpiry: liquidationParameters.timesToExpiry,
             userPositions,
             vaults: userVaults,
           });
