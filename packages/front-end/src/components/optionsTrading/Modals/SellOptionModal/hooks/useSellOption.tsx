@@ -58,7 +58,7 @@ export const useSellOption = (amountToSell: string) => {
 
   // User position state.
   const [purchaseData, setPurchaseData] = useState<PositionDataState>({
-    acceptablePremium:BigNumber.from(0),
+    acceptablePremium: BigNumber.from(0),
     callOrPut: selectedOption?.callOrPut,
     collateral: 0,
     expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
@@ -87,14 +87,15 @@ export const useSellOption = (amountToSell: string) => {
         if (amount > 0 && ethPrice && selectedOption) {
           const strike = selectedOption.strikeOptions.strike;
 
-          const {acceptablePremium, fee, premium, quote, slippage } = await getQuote(
-            Number(activeExpiry),
-            toRysk(strike.toString()),
-            selectedOption.callOrPut === "put",
-            amount,
-            selectedOption.buyOrSell === "sell",
-            collateralPreferences.type
-          );
+          const { acceptablePremium, fee, premium, quote, slippage } =
+            await getQuote(
+              Number(activeExpiry),
+              toRysk(strike.toString()),
+              selectedOption.callOrPut === "put",
+              amount,
+              selectedOption.buyOrSell === "sell",
+              collateralPreferences.type
+            );
 
           const _getCollateralAmount = async () => {
             const requiredCollateral = await readContract({
@@ -163,7 +164,7 @@ export const useSellOption = (amountToSell: string) => {
           setAllowance((currentState) => ({ ...currentState, approved }));
         } else {
           setPurchaseData({
-            acceptablePremium:BigNumber.from(0),
+            acceptablePremium: BigNumber.from(0),
             callOrPut: selectedOption?.callOrPut,
             collateral: 0,
             expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
