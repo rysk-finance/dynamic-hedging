@@ -1,13 +1,13 @@
 import type { InitialDataQuery } from "./types";
 
 import { gql, useQuery } from "@apollo/client";
-import { captureException } from "@sentry/react";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
+import { logError } from "src/utils/logError";
 import { useUpdateEthPrice } from "../useUpdateEthPrice";
 import { initialDataQuery } from "./graphQuery";
 import { getInitialData } from "./utils";
@@ -42,7 +42,7 @@ export const useInitialData = () => {
   const { data, error, loading } = useQuery<InitialDataQuery>(
     gql(initialDataQuery),
     {
-      onError: captureException,
+      onError: logError,
       skip: skip,
       variables: {
         address: address?.toLowerCase(),

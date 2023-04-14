@@ -11,7 +11,6 @@ import type {
 import type { DHVLensMK1 } from "src/types/DHVLensMK1";
 import type { InitialDataQuery, OptionsTransaction, Vault } from "./types";
 
-import { captureException } from "@sentry/react";
 import { readContract, readContracts } from "@wagmi/core";
 import dayjs from "dayjs";
 import { BigNumber } from "ethers";
@@ -28,6 +27,7 @@ import {
   tFormatUSDC,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
+import { logError } from "src/utils/logError";
 import { toTwoDecimalPlaces } from "src/utils/rounding";
 
 const getExpiries = (expiries: InitialDataQuery["expiries"]) => {
@@ -231,7 +231,7 @@ const getChainData = async (
       {} as ChainData
     );
   } catch (error) {
-    captureException(error);
+    logError(error);
 
     return {};
   }
@@ -250,7 +250,7 @@ const getOperatorStatus = async (address?: HexString) => {
         args: [address, exchangeAddress],
       });
     } catch (error) {
-      captureException(error);
+      logError(error);
 
       return false;
     }
@@ -337,7 +337,7 @@ const getLiquidationCalculationParameters = async () => {
       },
     };
   } catch (error) {
-    captureException(error);
+    logError(error);
 
     const defaultSpotShock = 0.7;
     const defaultTimesToExpiry = [
