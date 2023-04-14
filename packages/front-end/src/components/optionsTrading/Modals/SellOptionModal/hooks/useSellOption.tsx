@@ -23,6 +23,7 @@ import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
 import { getBalancesAsInteger } from "../../Shared/utils/getBalancesAsInteger";
+import { getLiquidationPrice } from "../../Shared/utils/getLiquidationPrice";
 import { getQuote } from "../../Shared/utils/getQuote";
 
 const multipliers = {
@@ -37,7 +38,7 @@ export const useSellOption = (amountToSell: string) => {
     state: {
       collateralPreferences,
       ethPrice,
-      options: { activeExpiry, data },
+      options: { activeExpiry, spotShock, timesToExpiry },
       selectedOption,
     },
   } = useGlobalContext();
@@ -63,6 +64,7 @@ export const useSellOption = (amountToSell: string) => {
     collateral: 0,
     expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
     fee: 0,
+    liquidationPrice: 0,
     now: dayjs().format("MMM DD, YYYY HH:mm A"),
     premium: 0,
     quote: 0,
@@ -128,8 +130,9 @@ export const useSellOption = (amountToSell: string) => {
               const formatted = USDCCollateral
                 ? tFormatUSDC(multipliedCollateral)
                 : fromRyskToNumber(multipliedCollateral.toString());
+              const maximum = USDCCollateral ? strike * amount : amount;
 
-              return Math.min(formatted, strike * Number(amountToSell));
+              return Math.min(formatted, maximum);
             }
           };
 
@@ -146,12 +149,25 @@ export const useSellOption = (amountToSell: string) => {
             USDCCollateral ? toUSDC(requiredApproval) : toRysk(requiredApproval)
           ).lte(allowance.amount);
 
+          const liquidationPrice = await getLiquidationPrice(
+            amount,
+            selectedOption.callOrPut,
+            collateral,
+            collateralAddress,
+            ethPrice,
+            Number(activeExpiry),
+            spotShock,
+            selectedOption.strikeOptions.strike,
+            timesToExpiry
+          );
+
           setPurchaseData({
             acceptablePremium,
             callOrPut: selectedOption.callOrPut,
             collateral,
             expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
             fee,
+            liquidationPrice,
             now: dayjs().format("MMM DD, YYYY HH:mm A"),
             premium,
             quote,
@@ -169,6 +185,7 @@ export const useSellOption = (amountToSell: string) => {
             collateral: 0,
             expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
             fee: 0,
+            liquidationPrice: 0,
             now: dayjs().format("MMM DD, YYYY HH:mm A"),
             premium: 0,
             quote: 0,
