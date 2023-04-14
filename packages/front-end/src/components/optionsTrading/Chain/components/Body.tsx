@@ -12,7 +12,12 @@ import { ActionType } from "src/state/types";
 import { useShowColumn } from "../hooks/useShowColumn";
 import { Cell, Delta, Exposure, IV, Position, Quote, Strike } from "./Cells";
 
-export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
+interface BodyProps {
+  chainRows: StrikeOptions[];
+  expiry?: string;
+}
+
+export const Body = ({ chainRows, expiry }: BodyProps) => {
   const {
     state: {
       ethPrice,
@@ -74,6 +79,10 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
   }, [ethPrice, chainRows]);
 
   const setSelectedOption = (option: SelectedOption) => () => {
+    if (expiry) {
+      dispatch({ type: ActionType.SET_OPTIONS, activeExpiry: expiry });
+    }
+
     dispatch({ type: ActionType.SET_SELECTED_OPTION, option });
   };
 

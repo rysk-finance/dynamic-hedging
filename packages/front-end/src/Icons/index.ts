@@ -1,5 +1,6 @@
 import { Change } from "./Change";
 import { Close } from "./Close";
+import { Cog } from "./Cog";
 import { DownChevron } from "./DownChevron";
 import { Ether } from "./Ether";
 import { LeftArrow } from "./LeftArrow";
@@ -15,6 +16,7 @@ import { WETH } from "./WETH";
 export {
   Change,
   Close,
+  Cog,
   DownChevron,
   Ether,
   LeftArrow,
@@ -27,3 +29,4 @@ export {
   UpChevron,
   WETH,
 };
+

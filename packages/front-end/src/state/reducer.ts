@@ -157,6 +157,8 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
       } else {
         return state;
       }
+    case ActionType.SET_CALENDAR_MODE:
+      return { ...state, calendarMode: action.enabled };
   }
 };
 

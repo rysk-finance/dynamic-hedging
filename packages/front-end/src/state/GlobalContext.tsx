@@ -76,6 +76,7 @@ export const defaultGlobalState: GlobalState = {
   },
 
   // Options chain state.
+  calendarMode:false,
   collateralPreferences: {
     type: "USDC",
     amount: CollateralAmount["2x"],

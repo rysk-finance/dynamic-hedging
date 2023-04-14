@@ -131,6 +131,7 @@ export type GlobalState = {
   };
 
   // Options chain state.
+  calendarMode: boolean;
   collateralPreferences: CollateralPreferences;
   selectedOption?: SelectedOption;
   optionChainModalOpen?: OptionChainModal;
@@ -164,6 +165,7 @@ export enum ActionType {
   SET_SELL_TUTORIAL_INDEX,
   RESET_OPTIONS_CHAIN_STATE,
   CHANGE_FROM_BUYING_OR_SELLING,
+  SET_CALENDAR_MODE,
 }
 
 export type GlobalAction =
@@ -255,6 +257,10 @@ export type GlobalAction =
         | OptionChainModalActions.BUY
         | OptionChainModalActions.SELL
         | OptionChainModalActions.OPERATOR;
+    }
+  | {
+      type: ActionType.SET_CALENDAR_MODE;
+      enabled: boolean;
     };
 
 export type GlobalContext = {

@@ -13,7 +13,6 @@ import {
   tFormatUSDC,
   toRysk,
   toUSDC,
-  toWei,
   truncate,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
@@ -25,7 +24,7 @@ export const useBuyOption = (amountToBuy: string) => {
   const {
     state: {
       ethPrice,
-      options: { activeExpiry, data },
+      options: { activeExpiry },
       selectedOption,
     },
   } = useGlobalContext();
