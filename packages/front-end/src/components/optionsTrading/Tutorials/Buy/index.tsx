@@ -29,12 +29,12 @@ export const BuyModalTutorial = () => {
         {
           disableBeacon: true,
           target: "#buy-symbol",
-          content: `Here you can see the asset you have selected to buy. This is represented as "underlying asset - expiry date - strike price - option flavor".`,
+          content: `Here you can see the option you have selected to buy. This is represented as "underlying asset - expiry date - strike price - option type (put or call)".`,
         },
         {
           target: "#buy-price-per-option",
           content:
-            "These prices represent the cost per option. The premium and fees are displayed separately for transparency, and you can also see how the price is impacted based on order size.",
+            "These prices represent the total amount you pay for the option. The premium and fees are displayed separately for transparency, and you can also see how the premium is impacted by slippage based on order size.",
         },
         {
           target: "#buy-total-price",
@@ -49,17 +49,17 @@ export const BuyModalTutorial = () => {
         {
           target: "#buy-input",
           content:
-            "You can use this input to specify how many contracts you wish to buy. We allow denominations as small as 0.01.",
+            "You can use this input to specify how many contracts you wish to buy. You can buy denominations as small as 0.01.",
         },
         {
           target: "#buy-button",
           content:
-            "You can click here to approve your spending and complete your purchase. If you do not already have your wallet connected, this button can handle that. Transactions will require two confirmations to be considered complete, and the interface will automatically close once your transaction is complete.",
+            "You can click here to approve your spending and complete your buy trade. If you do not already have your wallet connected, this button can handle that. Transactions will require two confirmations to be considered complete, and the interface will automatically close once your transaction is complete.",
         },
         {
           target: "#quick-switch",
           content:
-            "This handy button will allow you to quickly toggle between buying and selling for the specified strike price and option flavor.",
+            "This handy button will allow you to quickly toggle between buying and selling for the selected option.",
         },
       ]}
       styles={styles}
