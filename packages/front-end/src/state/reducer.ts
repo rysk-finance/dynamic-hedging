@@ -68,6 +68,8 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           isOperator: action.isOperator ?? state.options.isOperator,
           loading: action.loading ?? state.options.loading,
           refresh: action.refresh || state.options.refresh,
+          spotShock: action.spotShock || state.options.spotShock,
+          timesToExpiry: action.timesToExpiry || state.options.timesToExpiry,
           userPositions: action.userPositions || state.options.userPositions,
           vaults: action.vaults || state.options.vaults,
         },

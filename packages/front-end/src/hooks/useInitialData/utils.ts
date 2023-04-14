@@ -2,6 +2,7 @@ import type {
   CallOrPut,
   CallSide,
   ChainData,
+  CollateralType,
   PutSide,
   StrikeOptions,
   UserPositions,
@@ -16,7 +17,9 @@ import { BigNumber } from "ethers";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { NewControllerABI } from "src/abis/NewController_ABI";
+import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
 import {
+  fromE27toInt,
   fromUSDC,
   fromWei,
   fromWeiToInt,
@@ -263,6 +266,102 @@ const getUserVaults = (vaults: Vault[]) => {
   );
 };
 
+const getLiquidationCalculationParameters = async () => {
+  const _getParams = (
+    collateral: CollateralType,
+    functionName: "getSpotShock" | "getTimesToExpiry",
+    isPut: boolean
+  ) => {
+    return {
+      abi: NewMarginCalculatorABI,
+      address: getContractAddress("OpynNewCalculator"),
+      functionName,
+      args: [
+        getContractAddress("WETH"),
+        getContractAddress("USDC"),
+        getContractAddress(collateral),
+        isPut,
+      ],
+    } as const;
+  };
+
+  const _parseResults = (results: BigNumber | readonly BigNumber[]) => {
+    if (results instanceof BigNumber) {
+      return fromE27toInt(results) as number;
+    } else {
+      return results.map((result) => result.toNumber()) as number[];
+    }
+  };
+
+  try {
+    const parameters = await readContracts({
+      contracts: [
+        _getParams("USDC", "getSpotShock", true),
+        _getParams("USDC", "getSpotShock", false),
+        _getParams("WETH", "getSpotShock", true),
+        _getParams("WETH", "getSpotShock", false),
+        _getParams("USDC", "getTimesToExpiry", true),
+        _getParams("USDC", "getTimesToExpiry", false),
+        _getParams("WETH", "getTimesToExpiry", true),
+        _getParams("WETH", "getTimesToExpiry", false),
+      ],
+    });
+
+    return {
+      spotShock: {
+        call: {
+          USDC: _parseResults(parameters[1]) as number,
+          WETH: _parseResults(parameters[3]) as number,
+        },
+        put: {
+          USDC: _parseResults(parameters[0]) as number,
+          WETH: _parseResults(parameters[2]) as number,
+        },
+      },
+      timesToExpiry: {
+        call: {
+          USDC: _parseResults(parameters[5]) as number[],
+          WETH: _parseResults(parameters[7]) as number[],
+        },
+        put: {
+          USDC: _parseResults(parameters[4]) as number[],
+          WETH: _parseResults(parameters[6]) as number[],
+        },
+      },
+    };
+  } catch (error) {
+    logError(error);
+
+    const defaultSpotShock = 0.7;
+    const defaultTimesToExpiry = [
+      604800, 1209600, 2419200, 3628800, 4838400, 6048000, 7257600,
+    ];
+
+    return {
+      spotShock: {
+        call: {
+          USDC: defaultSpotShock,
+          WETH: defaultSpotShock,
+        },
+        put: {
+          USDC: defaultSpotShock,
+          WETH: defaultSpotShock,
+        },
+      },
+      timesToExpiry: {
+        call: {
+          USDC: defaultTimesToExpiry,
+          WETH: defaultTimesToExpiry,
+        },
+        put: {
+          USDC: defaultTimesToExpiry,
+          WETH: defaultTimesToExpiry,
+        },
+      },
+    };
+  }
+};
+
 export const getInitialData = async (
   data: InitialDataQuery,
   address?: HexString
@@ -284,11 +383,15 @@ export const getInitialData = async (
   // Get all user short position vaults.
   const userVaults = getUserVaults(data.vaults);
 
+  // Get required parameters for calculating liquidation price of shorts.
+  const liquidationParameters = await getLiquidationCalculationParameters();
+
   return [
     validExpiries,
     userPositions,
     chainData,
     isOperator,
     userVaults,
+    liquidationParameters,
   ] as const;
 };

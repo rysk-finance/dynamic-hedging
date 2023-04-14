@@ -40,6 +40,28 @@ export type PutSide = {
   put: StrikeSide;
 };
 
+export interface SpotShock {
+  call: {
+    USDC: number;
+    WETH: number;
+  };
+  put: {
+    USDC: number;
+    WETH: number;
+  };
+}
+
+export interface TimesToExpiry {
+  call: {
+    USDC: number[];
+    WETH: number[];
+  };
+  put: {
+    USDC: number[];
+    WETH: number[];
+  };
+}
+
 export type StrikeRangeTuple = [string, string];
 
 export type ColumNames =
@@ -102,6 +124,8 @@ export type GlobalState = {
     isOperator: boolean;
     loading: boolean;
     refresh: () => void;
+    spotShock: SpotShock;
+    timesToExpiry: TimesToExpiry;
     userPositions: UserPositions;
     vaults: UserVaults;
   };
@@ -185,6 +209,8 @@ export type GlobalAction =
       isOperator?: boolean;
       loading?: boolean;
       refresh?: () => void;
+      spotShock?: SpotShock;
+      timesToExpiry?: TimesToExpiry;
       userPositions?: UserPositions;
       vaults?: UserVaults;
     }
