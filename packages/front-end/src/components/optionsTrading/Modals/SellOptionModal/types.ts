@@ -5,6 +5,7 @@ export interface PositionDataState {
   collateral: number;
   expiry: string;
   fee: number;
+  liquidationPrice: number;
   now: string;
   premium: number;
   quote: number;
