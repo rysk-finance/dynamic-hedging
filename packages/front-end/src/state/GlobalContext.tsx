@@ -51,6 +51,26 @@ export const defaultGlobalState: GlobalState = {
     isOperator: false,
     loading: true,
     refresh: () => {},
+    spotShock: {
+      call: {
+        USDC: 0.7,
+        WETH: 0.7,
+      },
+      put: {
+        USDC: 0.7,
+        WETH: 0.7,
+      },
+    },
+    timesToExpiry: {
+      call: {
+        USDC: [604800, 1209600, 2419200, 3628800, 4838400, 6048000, 7257600],
+        WETH: [604800, 1209600, 2419200, 3628800, 4838400, 6048000, 7257600],
+      },
+      put: {
+        USDC: [604800, 1209600, 2419200, 3628800, 4838400, 6048000, 7257600],
+        WETH: [604800, 1209600, 2419200, 3628800, 4838400, 6048000, 7257600],
+      },
+    },
     userPositions: {},
     vaults: { length: 0 },
   },
