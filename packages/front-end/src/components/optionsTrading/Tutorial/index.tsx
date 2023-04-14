@@ -47,7 +47,7 @@ export const Tutorial = () => {
         {
           target: "#chain-price-info",
           content:
-            "Here you can see the current underlying spot price and the 24-hour price change. This data will be refreshed automatically every 5 seconds, or you can manually update it every 15 seconds by clicking this area.",
+            "Here you can see the current underlying spot price and the 24-hour price change. This data will be refreshed automatically, or you can manually update it every 30 seconds by clicking this area.",
         },
         {
           target: "#expiry-data-picker",
