@@ -18,6 +18,7 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
   const {
     collateral,
     fee,
+    liquidationPrice,
     now,
     premium,
     quote,
@@ -73,6 +74,14 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
             {collateralType === "USDC" ? ` USDC` : ` WETH`}
           </motion.p>
         </AnimatePresence>
+      </span>
+
+      <span className="flex" id="sell-total-price">
+        <p className="mr-auto">{`Liquidation Price:`}</p>
+        <p className="font-medium">
+          <RyskCountUp value={liquidationPrice} />
+          {` USDC`}
+        </p>
       </span>
 
       <span
