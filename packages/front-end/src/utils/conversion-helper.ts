@@ -43,6 +43,8 @@ export const fromOpynToNumber = (x: BigNumberish) => Number(fromOpyn(x));
 export const fromOpynNoDecimal = (x: BigNumberish) => fromOpyn(x).split(".")[0];
 export const fromRysk = (x: string) => utils.formatUnits(x, 18);
 export const fromRyskToNumber = (x: string) => Number(fromRysk(x));
+export const fromE27toInt = (value: BigNumberish) =>
+  parseFloat(utils.formatUnits(value, 27));
 export const getDiffSeconds = (now: Dayjs, future: Dayjs) =>
   future.unix() - now.unix();
 export const convertRounded = (x: BigNumberish): number =>
