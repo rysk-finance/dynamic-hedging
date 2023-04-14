@@ -108,6 +108,11 @@ export type GlobalState = {
 
   // Options chain state.
   collateralPreferences: CollateralPreferences;
+  selectedOption?: SelectedOption;
+  optionChainModalOpen?: OptionChainModal;
+  buyTutorialIndex?: number;
+  chainTutorialIndex?: number;
+  sellTutorialIndex?: number;
   visibleStrikeRange: StrikeRangeTuple;
   visibleColumns: Set<ColumNames>;
 };
@@ -119,12 +124,22 @@ export enum ActionType {
   SET_POSITION_BREAKDOWN,
   SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
   SET_SETTINGS,
-  RESET_GLOBAL_STATE,
   SET_UNSTOPPABLE_DOMAIN,
+
+  // Actions related to useInitialData hook.
   SET_OPTIONS,
+
+  // Actions related to options chain state.
   SET_VISIBLE_STRIKE_RANGE,
   SET_VISIBLE_COLUMNS,
   SET_COLLATERAL_PREFERENCES,
+  SET_SELECTED_OPTION,
+  SET_OPTION_CHAIN_MODAL_VISIBLE,
+  SET_BUY_TUTORIAL_INDEX,
+  SET_CHAIN_TUTORIAL_INDEX,
+  SET_SELL_TUTORIAL_INDEX,
+  RESET_OPTIONS_CHAIN_STATE,
+  CHANGE_FROM_BUYING_OR_SELLING,
 }
 
 export type GlobalAction =
@@ -158,9 +173,6 @@ export type GlobalAction =
       settings: Partial<AppSettings>;
     }
   | {
-      type: ActionType.RESET_GLOBAL_STATE;
-    }
-  | {
       type: ActionType.SET_UNSTOPPABLE_DOMAIN;
       unstoppableDomain: string | null;
     }
@@ -187,6 +199,36 @@ export type GlobalAction =
   | {
       type: ActionType.SET_COLLATERAL_PREFERENCES;
       collateralPreferences?: CollateralPreferences;
+    }
+  | {
+      type: ActionType.SET_SELECTED_OPTION;
+      option?: SelectedOption;
+    }
+  | {
+      type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE;
+      visible?: OptionChainModalActions;
+    }
+  | {
+      type: ActionType.SET_BUY_TUTORIAL_INDEX;
+      index?: number;
+    }
+  | {
+      type: ActionType.SET_CHAIN_TUTORIAL_INDEX;
+      index?: number;
+    }
+  | {
+      type: ActionType.SET_SELL_TUTORIAL_INDEX;
+      index?: number;
+    }
+  | {
+      type: ActionType.RESET_OPTIONS_CHAIN_STATE;
+    }
+  | {
+      type: ActionType.CHANGE_FROM_BUYING_OR_SELLING;
+      visible:
+        | OptionChainModalActions.BUY
+        | OptionChainModalActions.SELL
+        | OptionChainModalActions.OPERATOR;
     };
 
 export type GlobalContext = {
@@ -221,7 +263,7 @@ export type VaultContext = {
 export type OptionsTradingState = {
   selectedOption?: SelectedOption;
   optionChainModalOpen?: OptionChainModal;
-  tutorialIndex?: number;
+  chainTutorialIndex?: number;
 };
 
 export enum OptionChainModalActions {
@@ -233,11 +275,6 @@ export enum OptionChainModalActions {
 
 type OptionChainModal =
   (typeof OptionChainModalActions)[keyof typeof OptionChainModalActions];
-
-export type OptionsTradingContext = {
-  state: OptionsTradingState;
-  dispatch: Dispatch<OptionsTradingAction>;
-};
 
 export enum OptionType {
   CALL = "CALL",
@@ -289,27 +326,3 @@ export interface OptionSeries {
   collateral: HexString;
   isPut: boolean;
 }
-
-export enum OptionsTradingActionType {
-  SET_SELECTED_OPTION,
-  SET_OPTION_CHAIN_MODAL_VISIBLE,
-  SET_TUTORIAL_INDEX,
-  RESET,
-}
-
-export type OptionsTradingAction =
-  | {
-      type: OptionsTradingActionType.SET_SELECTED_OPTION;
-      option?: SelectedOption;
-    }
-  | {
-      type: OptionsTradingActionType.SET_OPTION_CHAIN_MODAL_VISIBLE;
-      visible?: OptionChainModalActions;
-    }
-  | {
-      type: OptionsTradingActionType.SET_TUTORIAL_INDEX;
-      index?: number;
-    }
-  | {
-      type: OptionsTradingActionType.RESET;
-    };

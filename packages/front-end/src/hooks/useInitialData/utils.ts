@@ -113,6 +113,8 @@ const getChainData = async (
       contracts,
     })) as DHVLensMK1.OptionExpirationDrillStructOutput[];
 
+    // console.log(data[5].callOptionDrill[0].buy.iv.toString());
+
     const createSide = (
       drill: readonly DHVLensMK1.OptionStrikeDrillStruct[],
       side: CallOrPut,
@@ -132,28 +134,17 @@ const getChainData = async (
         ) => {
           const strikeUSDC = Number(fromWei(strike));
 
-          const _getQuote = (buyOrSell: DHVLensMK1.TradingSpecStruct) => {
+          const _getQuote = (
+            buyOrSell: DHVLensMK1.TradingSpecStruct,
+            isSell: boolean
+          ) => {
             const fee = Number(fromUSDC(buyOrSell.fee as BigNumber));
             const quote = Number(fromUSDC(buyOrSell.quote as BigNumber));
-            const total = fee + quote;
+            const total = isSell ? quote - fee : fee + quote;
 
             return total >= 0.01
               ? { fee, total, quote }
               : { fee: 0, total: 0, quote: 0 };
-          };
-
-          const _getIV = (quote: number) => {
-            const IV =
-              getImpliedVolatility(
-                quote,
-                underlyingPrice,
-                strikeUSDC,
-                (expiry - dayjs().unix()) / SECONDS_IN_YEAR,
-                0,
-                side
-              ) * 100;
-
-            return toTwoDecimalPlaces(IV);
           };
 
           // Longs - each strike side has only one oToken so we pass tokenID for closing.
@@ -181,13 +172,13 @@ const getChainData = async (
             [side]: {
               sell: {
                 disabled: sell.disabled || sell.premiumTooSmall,
-                IV: _getIV(Number(fromUSDC(sell.quote))),
-                quote: _getQuote(sell),
+                IV: fromWeiToInt(sell.iv) * 100,
+                quote: _getQuote(sell, true),
               },
               buy: {
                 disabled: buy.disabled,
-                IV: _getIV(Number(fromUSDC(buy.quote))),
-                quote: _getQuote(buy),
+                IV: fromWeiToInt(buy.iv) * 100,
+                quote: _getQuote(buy, false),
               },
               delta: toTwoDecimalPlaces(Number(fromWei(delta))),
               pos: positions.netAmount,

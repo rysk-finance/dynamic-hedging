@@ -11,7 +11,6 @@ import { useAccount } from "wagmi";
 import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
 import { DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { CollateralAmount } from "src/state/types";
 import {
   fromRyskToNumber,
@@ -39,13 +38,10 @@ export const useSellOption = (amountToSell: string) => {
     state: {
       collateralPreferences,
       ethPrice,
-      options: { activeExpiry },
+      options: { activeExpiry, data },
+      selectedOption,
     },
   } = useGlobalContext();
-
-  const {
-    state: { selectedOption },
-  } = useOptionsTradingContext();
 
   // Collateral type.
   const USDCCollateral = collateralPreferences.type === "USDC";
@@ -73,6 +69,7 @@ export const useSellOption = (amountToSell: string) => {
     remainingBalanceUSDC: 0,
     remainingBalanceWETH: 0,
     requiredApproval: "",
+    slippage: 0,
     strike: selectedOption?.strikeOptions?.strike,
   });
 
@@ -90,18 +87,14 @@ export const useSellOption = (amountToSell: string) => {
         if (amount > 0 && ethPrice && selectedOption) {
           const strike = selectedOption.strikeOptions.strike;
 
-          const { totalFees, totalPremium } = await getQuote(
+          const { fee, premium, quote, slippage } = await getQuote(
             Number(activeExpiry),
             toRysk(strike.toString()),
             selectedOption.callOrPut === "put",
-            toWei(amount.toString()),
+            amount,
             selectedOption.buyOrSell === "sell",
             collateralPreferences.type
           );
-
-          const fee = tFormatUSDC(totalFees) / Number(amountToSell);
-          const premium = tFormatUSDC(totalPremium) / Number(amountToSell);
-          const quote = tFormatUSDC(totalPremium.sub(totalFees));
 
           const _getCollateralAmount = async () => {
             const requiredCollateral = await readContract({
@@ -163,6 +156,7 @@ export const useSellOption = (amountToSell: string) => {
             remainingBalanceUSDC,
             remainingBalanceWETH,
             requiredApproval,
+            slippage,
             strike,
           });
           setAllowance((currentState) => ({ ...currentState, approved }));
@@ -178,6 +172,7 @@ export const useSellOption = (amountToSell: string) => {
             remainingBalanceUSDC: balanceUSDCInt,
             remainingBalanceWETH: balanceWETHInt,
             requiredApproval: "",
+            slippage: 0,
             strike: selectedOption?.strikeOptions?.strike,
           });
           setAllowance((currentState) => ({

@@ -3,11 +3,11 @@ import type { ChangeEvent } from "react";
 import type { AddressesRequired } from "../Shared/types";
 
 import { BigNumber } from "ethers";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { useGlobalContext } from "src/state/GlobalContext";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
+import { ActionType } from "src/state/types";
 import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -27,12 +27,10 @@ export const SellOptionModal = () => {
     state: {
       collateralPreferences,
       options: { activeExpiry, refresh, vaults },
+      selectedOption,
     },
+    dispatch,
   } = useGlobalContext();
-
-  const {
-    state: { selectedOption },
-  } = useOptionsTradingContext();
 
   const [amountToSell, setAmountToSell] = useState("");
   const [debouncedAmountToSell] = useDebounce(amountToSell, 300);
@@ -118,9 +116,27 @@ export const SellOptionModal = () => {
     }
   };
 
+  const disableChangeButton = useMemo(() => {
+    if (selectedOption) {
+      const buyData =
+        selectedOption.strikeOptions[selectedOption.callOrPut].buy;
+
+      return buyData.disabled || !buyData.quote.total;
+    }
+  }, [selectedOption]);
+
+  const handleTutorialClick = () => {
+    dispatch({ type: ActionType.SET_SELL_TUTORIAL_INDEX, index: 0 });
+  };
+
   return (
     <Modal>
-      <Header>{`Sell Position`}</Header>
+      <Header
+        changeVisible={!disableChangeButton}
+        tutorialVisible={handleTutorialClick}
+      >
+        {`Sell Position`}
+      </Header>
 
       <div className="flex flex-col">
         <Symbol positionData={positionData} />
@@ -135,7 +151,7 @@ export const SellOptionModal = () => {
       </div>
 
       <Wrapper>
-        <Label title="Enter how many contracts you would like to sell.">
+        <Label id="sell-input" title="Enter how many contracts you would like to sell.">
           <Input
             name="sell-amount"
             onChange={handleAmountChange}
@@ -154,6 +170,7 @@ export const SellOptionModal = () => {
             transactionPending ||
             loading
           }
+          id="sell-button"
           {...getButtonProps(
             "sell",
             transactionPending || loading,

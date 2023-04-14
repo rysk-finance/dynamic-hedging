@@ -60,6 +60,11 @@ export const defaultGlobalState: GlobalState = {
     type: "USDC",
     amount: CollateralAmount["2x"],
   },
+  selectedOption: undefined,
+  optionChainModalOpen: undefined,
+  buyTutorialIndex: undefined,
+  chainTutorialIndex: undefined,
+  sellTutorialIndex: undefined,
   visibleStrikeRange: ["", ""],
   visibleColumns: new Set([
     "sell",
@@ -68,6 +73,7 @@ export const defaultGlobalState: GlobalState = {
     "iv buy",
     "delta",
     "pos",
+    "exposure",
   ] as ColumNames[]),
 };
 

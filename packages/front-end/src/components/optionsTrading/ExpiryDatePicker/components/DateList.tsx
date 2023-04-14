@@ -1,5 +1,5 @@
-import type { DateListProps, UserExpiryStatusNoTimestamp } from "../types";
 import type { UserPositions } from "src/state/types";
+import type { DateListProps } from "../types";
 
 import dayjs from "dayjs";
 import { AnimatePresence, motion } from "framer-motion";
@@ -35,7 +35,7 @@ export const DateList = ({
   } = useGlobalContext();
 
   return (
-    <ol className="grid grid-cols-4 col-span-10">
+    <ol className="grid grid-cols-6 col-span-10">
       <AnimatePresence initial={false} mode="popLayout">
         {expiries.map((timestamp, index) => {
           const datetime = dayjs.unix(Number(timestamp));
@@ -67,7 +67,7 @@ export const DateList = ({
                     className="mx-4 text-sm xl:text-base"
                     dateTime={datetime.format("YYYY-MM-DD")}
                   >
-                    {`${datetime.format("MMM DD")}`}
+                    {`${datetime.format("DD MMM YY")}`}
                   </time>
 
                   <DownChevron

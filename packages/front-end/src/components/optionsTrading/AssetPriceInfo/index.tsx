@@ -1,20 +1,17 @@
 import { AnimatePresence, motion } from "framer-motion";
 
+import { Question } from "src/Icons";
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";
-import { Question } from "src/Icons";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
-import { OptionsTradingActionType } from "src/state/types";
+import { ActionType } from "src/state/types";
+import { AssetLogos } from "./components/AssetLogos";
 import { CurrentPrice } from "./components/CurrentPrice";
 import { Error } from "./components/Error";
 import { OneDayChange } from "./components/OneDayChange";
 import { usePrice } from "./hooks/usePrice";
-import { Ether, USDC } from "src/Icons";
 
 export const AssetPriceInfo = () => {
-  const { dispatch } = useOptionsTradingContext();
-
   const {
     state: {
       ethPrice,
@@ -24,12 +21,13 @@ export const AssetPriceInfo = () => {
       eth24hChange,
       ethPriceError,
     },
+    dispatch,
   } = useGlobalContext();
 
   const [update] = usePrice();
 
   const handleHelpClick = () => {
-    dispatch({ type: OptionsTradingActionType.SET_TUTORIAL_INDEX, index: 0 });
+    dispatch({ type: ActionType.SET_CHAIN_TUTORIAL_INDEX, index: 0 });
   };
 
   const ready = Boolean(!ethPriceError && ethPrice && ethPriceUpdateTime);
@@ -42,12 +40,7 @@ export const AssetPriceInfo = () => {
         onClick={update}
         title="Click to refetch price data."
       >
-        <span className="relative flex min-w-[8rem] py-4 border-r-2 border-black">
-          <div className="absolute left-4 z-10 flex items-center justify-center w-16 h-16 bg-[#ECEFF0]/90 rounded-full">
-            <Ether aria-label="Ethereum logo" className="h-12" />
-          </div>
-          <USDC aria-label="USDC logo" className="absolute right-4 z-0 h-16" />
-        </span>
+        <AssetLogos />
 
         <AnimatePresence mode="wait">
           {ready && (

@@ -8,18 +8,13 @@ import { useEffect } from "react";
 import { USDC, WETH } from "src/Icons";
 import FadeInOut from "src/animation/FadeInOut";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { useOptionsTradingContext } from "src/state/OptionsTradingContext";
 import { ActionType, CollateralAmount } from "src/state/types";
 
 export const Filters = () => {
   const {
-    state: { collateralPreferences },
+    state: { collateralPreferences, selectedOption },
     dispatch,
   } = useGlobalContext();
-
-  const {
-    state: { selectedOption },
-  } = useOptionsTradingContext();
 
   const fullCollateralNotRequired =
     (collateralPreferences.type === "USDC" &&
@@ -98,7 +93,7 @@ export const Filters = () => {
   }, [fullCollateralNotRequired]);
 
   return (
-    <div className="flex flex-col w-3/5 mx-auto pt-4 select-none">
+    <div className="flex flex-col w-3/5 mx-auto pt-4 select-none" id="sell-collateral">
       <p className="leading-6 border-gray-600 border-b">{`Collateral Preferences`}</p>
 
       <div
