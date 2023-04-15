@@ -2,9 +2,11 @@ import { useAccount } from "wagmi";
 import { gql, useQuery } from "@apollo/client";
 import { VaultQueryData } from "../../Shared/types";
 import { BigNumber } from "ethers";
-import { fromOpynToNumber } from "src/utils/conversion-helper";
+import { BIG_NUMBER_DECIMALS } from "src/config/constants";
 
-export const useVaultData = (vaultId: string | null) => {
+export const useVaultData = (
+  vaultId: string | null
+): [BigNumber, BigNumber, string?] => {
   // Global state
   const { address } = useAccount();
 
@@ -15,6 +17,9 @@ export const useVaultData = (vaultId: string | null) => {
           id
           collateralAmount
           shortAmount
+          collateralAsset {
+            id
+          }
         }
       }
     `,
@@ -26,11 +31,15 @@ export const useVaultData = (vaultId: string | null) => {
     }
   );
 
-  const collateralAmount = BigNumber.from(data?.vault?.collateralAmount || 0);
+  const collateralAmount = BigNumber.from(data?.vault?.collateralAmount || "1");
+  const shortAmount = BigNumber.from(data?.vault?.shortAmount || "0");
 
-  const collateralPerOption = collateralAmount.gt(0)
-    ? collateralAmount.div(fromOpynToNumber(data?.vault?.shortAmount || 1))
-    : BigNumber.from(0);
+  const collateralPerOption =
+    !collateralAmount.isZero() && !shortAmount.isZero()
+      ? collateralAmount.mul(BIG_NUMBER_DECIMALS.OPYN).div(shortAmount)
+      : BigNumber.from(0);
 
-  return [collateralAmount, collateralPerOption];
+  const collateralAsset = data?.vault?.collateralAsset?.id;
+
+  return [collateralAmount, collateralPerOption, collateralAsset];
 };
