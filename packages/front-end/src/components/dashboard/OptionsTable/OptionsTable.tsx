@@ -18,9 +18,10 @@ export const UserOptions = () => {
   const [completeRedeem] = useRedeem();
   const [completeSettle] = useSettle();
 
-  const adjustCollateral = () => {
+  const adjustCollateral = (vaultId: string) => {
     setSearchParams({
       ref: "adjust-collateral",
+      vault: vaultId,
     });
   };
 

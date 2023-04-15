@@ -155,7 +155,7 @@ const Table = ({
                   {value ? (
                     <Button
                       color="white"
-                      onClick={adjustCollateral}
+                      onClick={() => adjustCollateral(vaultId)}
                       className="min-w-[50%]"
                       title="Click to adjust"
                     >
