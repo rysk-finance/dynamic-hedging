@@ -162,7 +162,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	error CloseSizeTooLarge();
 	error UnauthorisedSender();
 	error OperatorNotApproved();
-	error TooMuchSlippage(uint256 actualPremium, uint256 acceptablePremium);
+	error TooMuchSlippage();
 
 	constructor(
 		address _authority,
@@ -184,10 +184,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		pricer = BeyondPricer(_pricer);
 		catalogue = OptionCatalogue(_catalogue);
 		feeRecipient = _feeRecipient;
-		approvedCollateral[collateralAsset][true] = true;
-		approvedCollateral[collateralAsset][false] = true;
-		approvedCollateral[underlyingAsset][true] = true;
-		approvedCollateral[underlyingAsset][false] = true;
 	}
 
 	///////////////
@@ -494,9 +490,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @param _args RyskAction struct containing details on the option to issue
 	 * @return series the address of the option activated for selling by the dhv
 	 */
-	function _issue(
-		RyskActions.IssueArgs memory _args
-	) internal whenNotPaused returns (address series) {
+	function _issue(RyskActions.IssueArgs memory _args) internal returns (address series) {
 		// format the strike correctly
 		uint128 strike = uint128(
 			OptionsCompute.formatStrikePrice(_args.optionSeries.strike, collateralAsset) *
@@ -525,7 +519,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @notice function that allows a user to buy options from the dhv where they pay the dhv using the collateral asset
 	 * @param _args RyskAction struct containing details on the option to buy
 	 */
-	function _buyOption(RyskActions.BuyOptionArgs memory _args) internal whenNotPaused {
+	function _buyOption(RyskActions.BuyOptionArgs memory _args) internal {
 		if (_args.amount < minTradeSize) revert TradeTooSmall();
 		if (_args.amount > maxTradeSize) revert TradeTooLarge();
 		// get the option details in the correct formats
@@ -548,7 +542,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			portfolioValuesFeed.netDhvExposure(oHash)
 		);
 		if (buyParams.premium > _args.acceptablePremium) {
-			revert TooMuchSlippage(buyParams.premium, _args.acceptablePremium);
+			revert TooMuchSlippage();
 		}
 		_handlePremiumTransfer(buyParams.premium, buyParams.fee);
 		// get what the exchange's balance is on this asset, as this can be used instead of the dhv having to lock up collateral
@@ -610,10 +604,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @param _args RyskAction struct containing details on the option to sell
 	 * @param isClose if true then we only close positions the dhv has open, we do not conduct any more sales beyond that
 	 */
-	function _sellOption(
-		RyskActions.SellOptionArgs memory _args,
-		bool isClose
-	) internal whenNotPaused {
+	function _sellOption(RyskActions.SellOptionArgs memory _args, bool isClose) internal {
 		if (_args.amount < minTradeSize) revert TradeTooSmall();
 		if (_args.amount > maxTradeSize) revert TradeTooLarge();
 		IOptionRegistry optionRegistry = getOptionRegistry();
@@ -634,7 +625,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			portfolioValuesFeed.netDhvExposure(oHash)
 		);
 		if (sellParams.premium < _args.acceptablePremium) {
-			revert TooMuchSlippage(sellParams.premium, _args.acceptablePremium);
+			revert TooMuchSlippage();
 		}
 		sellParams.amount = _args.amount;
 		sellParams.tempHoldings = OptionsCompute.min(

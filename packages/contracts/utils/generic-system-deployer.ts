@@ -339,6 +339,11 @@ export async function deployLiquidityPool(
 		liquidityPool.address,
 		catalogue.address
 	)) as OptionExchange
+	await exchange.changeApprovedCollateral(usd.address, true, true)
+	await exchange.changeApprovedCollateral(usd.address, false, true)
+	await exchange.changeApprovedCollateral(weth.address, true, true)
+	await exchange.changeApprovedCollateral(weth.address, false, true)
+
 	await liquidityPool.changeHandler(exchange.address, true)
 	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
 	const handler = (await handlerFactory.deploy(
