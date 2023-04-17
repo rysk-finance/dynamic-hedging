@@ -1,6 +1,9 @@
+import type { BigNumber } from "ethers";
+
 import type { CallOrPut, CollateralType } from "src/state/types";
 
 export interface PositionDataState {
+  acceptablePremium: BigNumber;
   callOrPut?: CallOrPut;
   collateral: number;
   expiry: string;

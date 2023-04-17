@@ -95,6 +95,7 @@ export const SellOptionModal = () => {
         };
 
         const hash = await sell(
+          positionData.acceptablePremium,
           addresses as AddressesRequired,
           toRysk(amountToSell),
           optionSeries,

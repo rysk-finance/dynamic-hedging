@@ -48,29 +48,33 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
   );
 
   const [callAtmStrike, putAtmStrike] = useMemo(() => {
-    const atmIndex = chainRows.findIndex(
-      (row) => ethPrice && row.strike >= ethPrice
-    );
-    const maxIndex = chainRows.length - 1;
+    if (chainRows.length) {
+      const atmIndex = chainRows.findIndex(
+        (row) => ethPrice && row.strike >= ethPrice
+      );
+      const maxIndex = chainRows.length - 1;
 
-    if (atmIndex === -1) {
-      return [
-        chainRows[maxIndex].strike,
-        chainRows[maxIndex].strike + 1,
-      ] as const;
-    }
+      if (atmIndex === -1) {
+        return [
+          chainRows[maxIndex].strike,
+          chainRows[maxIndex].strike + 1,
+        ] as const;
+      }
 
-    if (atmIndex === 0) {
+      if (atmIndex === 0) {
+        return [
+          chainRows[atmIndex].strike - 1,
+          chainRows[atmIndex].strike,
+        ] as const;
+      }
+
       return [
-        chainRows[atmIndex].strike - 1,
+        chainRows[atmIndex - 1].strike,
         chainRows[atmIndex].strike,
       ] as const;
+    } else {
+      return [0, 0];
     }
-
-    return [
-      chainRows[atmIndex - 1].strike,
-      chainRows[atmIndex].strike,
-    ] as const;
   }, [ethPrice, chainRows]);
 
   const setSelectedOption = (option: SelectedOption) => () => {

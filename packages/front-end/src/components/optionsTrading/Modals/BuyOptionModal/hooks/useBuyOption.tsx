@@ -19,6 +19,7 @@ import {
 import { getContractAddress } from "src/utils/helpers";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
 import { getQuote } from "../../Shared/utils/getQuote";
+import { BigNumber } from "ethers";
 
 export const useBuyOption = (amountToBuy: string) => {
   // Global state.
@@ -40,6 +41,7 @@ export const useBuyOption = (amountToBuy: string) => {
 
   // User position state.
   const [purchaseData, setPurchaseData] = useState<PositionDataState>({
+    acceptablePremium:BigNumber.from(0),
     callOrPut: selectedOption?.callOrPut,
     expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
     fee: 0,
@@ -67,13 +69,14 @@ export const useBuyOption = (amountToBuy: string) => {
         const balanceInt = tFormatUSDC(balance);
 
         if (amount > 0 && selectedOption) {
-          const { fee, premium, quote, slippage } = await getQuote(
-            Number(activeExpiry),
-            toRysk(selectedOption.strikeOptions.strike.toString()),
-            selectedOption.callOrPut === "put",
-            amount,
-            selectedOption.buyOrSell === "sell"
-          );
+          const { acceptablePremium, fee, premium, quote, slippage } =
+            await getQuote(
+              Number(activeExpiry),
+              toRysk(selectedOption.strikeOptions.strike.toString()),
+              selectedOption.callOrPut === "put",
+              amount,
+              selectedOption.buyOrSell === "sell"
+            );
 
           const remainingBalance = balance.isZero() ? 0 : balanceInt - quote;
 
@@ -81,6 +84,7 @@ export const useBuyOption = (amountToBuy: string) => {
           const approved = toUSDC(requiredApproval).lte(allowance.amount);
 
           setPurchaseData({
+            acceptablePremium,
             callOrPut: selectedOption.callOrPut,
             expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
             fee,
@@ -95,6 +99,7 @@ export const useBuyOption = (amountToBuy: string) => {
           setAllowance((currentState) => ({ ...currentState, approved }));
         } else {
           setPurchaseData({
+            acceptablePremium:BigNumber.from(0),
             callOrPut: selectedOption?.callOrPut,
             expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
             fee: 0,
