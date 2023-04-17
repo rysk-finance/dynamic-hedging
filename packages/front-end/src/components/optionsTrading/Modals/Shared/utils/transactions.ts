@@ -66,6 +66,7 @@ export const approveAllowance = async (
 };
 
 export const buy = async (
+  acceptablePremium: BigNumberType,
   addresses: AddressesRequired,
   amount: BigNumberType,
   optionSeries: OptionSeries,
@@ -94,7 +95,7 @@ export const buy = async (
           vaultId: BigNumber.from(0),
           amount,
           optionSeries,
-          indexOrAcceptablePremium: BigNumber.from(0),
+          indexOrAcceptablePremium: acceptablePremium,
           data: ZERO_ADDRESS,
         },
       ],
@@ -190,6 +191,7 @@ export const closeLong = async (
 };
 
 export const sell = async (
+  acceptablePremium: BigNumberType,
   addresses: AddressesRequired,
   amount: BigNumberType,
   optionSeries: OptionSeries,
@@ -281,7 +283,7 @@ export const sell = async (
           vaultId: BigNumber.from(0),
           amount,
           optionSeries,
-          indexOrAcceptablePremium: BigNumber.from(0),
+          indexOrAcceptablePremium: acceptablePremium,
           data: ZERO_ADDRESS,
         },
       ],
