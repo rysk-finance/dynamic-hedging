@@ -90,6 +90,7 @@ export const BuyOptionModal = () => {
         };
 
         const hash = await buy(
+          positionData.acceptablePremium,
           addresses as AddressesRequired,
           amount,
           optionSeries,

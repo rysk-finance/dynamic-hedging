@@ -65,6 +65,9 @@ export const getQuote = async (
   );
   const calc = (quote / orderSize / quoteForOne - 1) * 100;
   const slippage = isSell ? Math.min(0, calc) : Math.max(0, calc);
+  const acceptablePremium = isSell
+    ? forOrder.totalPremium.div(100).mul(97)
+    : forOrder.totalPremium.div(100).mul(103);
 
-  return { fee, premium, quote, slippage };
+  return { acceptablePremium, fee, premium, quote, slippage };
 };
