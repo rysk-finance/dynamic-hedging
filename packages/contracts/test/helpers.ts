@@ -1,4 +1,4 @@
-import { AbiCoder } from "ethers/lib/utils"
+import { AbiCoder, keccak256 } from "ethers/lib/utils"
 import hre, { ethers } from "hardhat"
 import {
 	fromUSDC,
@@ -41,12 +41,14 @@ import {
 	Otoken,
 	OtokenFactory,
 	PriceFeed,
+	Protocol,
 	VolatilityFeed,
 	WETH
 } from "../types"
 //@ts-ignore
 import bs from "black-scholes"
 import { expect } from "chai"
+import { protocol } from "@ragetrade/sdk/dist/typechain/core/contracts"
 
 const SIX_DPS = 1000000
 const { provider } = ethers
@@ -88,6 +90,7 @@ export async function getSeriesWithe18Strike(proposedSeries: any, optionRegistry
 export async function compareQuotes(
 	quoteResponse: any,
 	liquidityPool: LiquidityPool,
+	optionProtocol: Protocol,
 	volFeed: VolatilityFeed,
 	priceFeed: PriceFeed,
 	proposedSeries: any,
@@ -105,7 +108,7 @@ export async function compareQuotes(
 	)) as OptionCatalogue
 	const portfolioValuesFeed = (await ethers.getContractAt(
 		"AlphaPortfolioValuesFeed",
-		await exchange.getPortfolioValuesFeed()
+		await optionProtocol.portfolioValuesFeed()
 	)) as AlphaPortfolioValuesFeed
 	const feePerContract = await pricer.feePerContract()
 	const localDelta = await calculateOptionDeltaLocally(
@@ -154,6 +157,7 @@ export async function compareQuotes(
 }
 export async function getExchangeParams(
 	liquidityPool: LiquidityPool,
+	optionProtocol: Protocol,
 	exchange: OptionExchange,
 	usd: any,
 	weth: any,
@@ -164,6 +168,10 @@ export async function getExchangeParams(
 ) {
 	const poolUSDBalance = await usd.balanceOf(liquidityPool.address)
 	const senderUSDBalance = await usd.balanceOf(senderAddress)
+	//
+	// const exchangeTempUSD = await ethers.provider.getStorageAt(exchange.address, keccak256())
+	// console.log({ exchangeTempUSD })
+
 	const exchangeTempUSD = await exchange.heldTokens(senderAddress, usd.address)
 	const senderWethBalance = await weth.balanceOf(senderAddress)
 	const pfList = await portfolioValuesFeed.getAddressSet()
@@ -192,7 +200,7 @@ export async function getExchangeParams(
 			(await ethers.getContractAt("OptionCatalogue", await exchange.catalogue())) as OptionCatalogue,
 			(await ethers.getContractAt(
 				"AlphaPortfolioValuesFeed",
-				await exchange.getPortfolioValuesFeed()
+				await optionProtocol.portfolioValuesFeed()
 			)) as AlphaPortfolioValuesFeed,
 			await optionToken.expiryTimestamp(),
 			await optionToken.isPut()
