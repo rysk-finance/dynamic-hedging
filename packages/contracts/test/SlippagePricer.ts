@@ -5,7 +5,20 @@ import hre, { ethers, network } from "hardhat"
 import { CALL_FLAVOR, PUT_FLAVOR, toUSDC, toWei } from "../utils/conversion-helper"
 //@ts-ignore
 import { expect } from "chai"
-import { AlphaPortfolioValuesFeed, BeyondPricer, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionExchange, OptionRegistry, Oracle, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
+import {
+	AlphaPortfolioValuesFeed,
+	BeyondPricer,
+	LiquidityPool,
+	MintableERC20,
+	MockChainlinkAggregator,
+	OptionExchange,
+	OptionRegistry,
+	Oracle,
+	PriceFeed,
+	Protocol,
+	VolatilityFeed,
+	WETH
+} from "../types"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { CHAINLINK_WETH_PRICER } from "./constants"
@@ -30,7 +43,6 @@ let opynAggregator: MockChainlinkAggregator
 let exchange: OptionExchange
 let pricer: BeyondPricer
 let authority: string
-
 
 /* --- variables to change --- */
 
@@ -199,6 +211,7 @@ describe("Slippage Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				optionProtocol,
 				volFeed,
 				priceFeed,
 				proposedSeries,
@@ -218,6 +231,7 @@ describe("Slippage Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				optionProtocol,
 				volFeed,
 				priceFeed,
 				proposedSeries,
@@ -235,7 +249,9 @@ describe("Slippage Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool, volFeed,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -254,7 +270,9 @@ describe("Slippage Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool, volFeed,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -286,7 +304,9 @@ describe("Slippage Pricer testing", async () => {
 			singleBuyQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool, volFeed,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -304,7 +324,9 @@ describe("Slippage Pricer testing", async () => {
 			singleSellQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool, volFeed,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -321,7 +343,9 @@ describe("Slippage Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool, volFeed,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -339,7 +363,9 @@ describe("Slippage Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool, volFeed,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -377,7 +403,9 @@ describe("Slippage Pricer testing", async () => {
 				)
 				await compareQuotes(
 					quoteResponse,
-					liquidityPool, volFeed,
+					liquidityPool,
+					optionProtocol,
+					volFeed,
 					priceFeed,
 					proposedSeries,
 					amount,
@@ -403,7 +431,9 @@ describe("Slippage Pricer testing", async () => {
 				)
 				await compareQuotes(
 					quoteResponse,
-					liquidityPool, volFeed,
+					liquidityPool,
+					optionProtocol,
+					volFeed,
 					priceFeed,
 					proposedSeries,
 					amount,
@@ -422,7 +452,9 @@ describe("Slippage Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool, volFeed,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -440,7 +472,9 @@ describe("Slippage Pricer testing", async () => {
 			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool, volFeed,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,
@@ -474,7 +508,9 @@ describe("Slippage Pricer testing", async () => {
 			const singleBuyQuote = quoteResponse[0]
 			await compareQuotes(
 				quoteResponse,
-				liquidityPool, volFeed,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
 				priceFeed,
 				proposedSeries,
 				amount,

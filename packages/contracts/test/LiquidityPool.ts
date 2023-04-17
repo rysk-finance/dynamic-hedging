@@ -3,21 +3,61 @@ import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import { BigNumber, Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
-import { AlphaPortfolioValuesFeed, BeyondPricer, LiquidityPool, MintableERC20, MockChainlinkAggregator, NewController, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, Otoken, PriceFeed, Protocol, UniswapV3HedgingReactor, VolatilityFeed, WETH } from "../types"
 import {
-	CALL_FLAVOR, emptySeries, fromOpyn, fromWei,
-	percentDiff, PUT_FLAVOR, tFormatEth, tFormatUSDC, toOpyn, toUSDC, toWei, toWeiFromUSDC, truncate, ZERO_ADDRESS
+	AlphaPortfolioValuesFeed,
+	BeyondPricer,
+	LiquidityPool,
+	MintableERC20,
+	MockChainlinkAggregator,
+	NewController,
+	OptionCatalogue,
+	OptionExchange,
+	OptionRegistry,
+	Oracle,
+	Otoken,
+	PriceFeed,
+	Protocol,
+	UniswapV3HedgingReactor,
+	VolatilityFeed,
+	WETH
+} from "../types"
+import {
+	CALL_FLAVOR,
+	emptySeries,
+	fromOpyn,
+	fromWei,
+	percentDiff,
+	PUT_FLAVOR,
+	tFormatEth,
+	tFormatUSDC,
+	toOpyn,
+	toUSDC,
+	toWei,
+	toWeiFromUSDC,
+	truncate,
+	ZERO_ADDRESS
 } from "../utils/conversion-helper"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { OptionsCompute } from "../types/OptionsCompute"
 import {
-	CHAINLINK_WETH_PRICER, CONTROLLER_OWNER, UNISWAP_V3_SWAP_ROUTER, USDC_ADDRESS,
+	CHAINLINK_WETH_PRICER,
+	CONTROLLER_OWNER,
+	UNISWAP_V3_SWAP_ROUTER,
+	USDC_ADDRESS,
 	WETH_ADDRESS
 } from "./constants"
 import {
 	applySlippageLocally,
-	calculateOptionDeltaLocally, calculateOptionQuoteLocally, compareQuotes, getNetDhvExposure, getSeriesWithe18Strike, localQuoteOptionPrice, setOpynOracleExpiryPrice, setupOracle, setupTestOracle
+	calculateOptionDeltaLocally,
+	calculateOptionQuoteLocally,
+	compareQuotes,
+	getNetDhvExposure,
+	getSeriesWithe18Strike,
+	localQuoteOptionPrice,
+	setOpynOracleExpiryPrice,
+	setupOracle,
+	setupTestOracle
 } from "./helpers"
 
 dayjs.extend(utc)
@@ -207,8 +247,9 @@ describe("Liquidity Pools", async () => {
 		let receipt = await tx.wait()
 		const events = receipt.events
 		const approveEvents = events?.find(x => x.event == "SeriesApproved")
-		const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
-		).mul(ethers.utils.parseUnits("1", 12))
+		const formattedStrikePrice = strikePrice
+			.div(ethers.utils.parseUnits("1", 12))
+			.mul(ethers.utils.parseUnits("1", 12))
 		const oHash = ethers.utils.solidityKeccak256(
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
@@ -227,8 +268,9 @@ describe("Liquidity Pools", async () => {
 	it("SUCCEEDs: change option buy or sell on series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
-		).mul(ethers.utils.parseUnits("1", 12))
+		const formattedStrikePrice = strikePrice
+			.div(ethers.utils.parseUnits("1", 12))
+			.mul(ethers.utils.parseUnits("1", 12))
 		const tx = await catalogue.changeOptionBuyOrSell([
 			{
 				expiration: expiration,
@@ -297,8 +339,9 @@ describe("Liquidity Pools", async () => {
 				isBuyable: true
 			}
 		])
-		const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
-		).mul(ethers.utils.parseUnits("1", 12))
+		const formattedStrikePrice = strikePrice
+			.div(ethers.utils.parseUnits("1", 12))
+			.mul(ethers.utils.parseUnits("1", 12))
 		const oHash = ethers.utils.solidityKeccak256(
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
@@ -378,15 +421,15 @@ describe("Liquidity Pools", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-			parseFloat(fromWei(pendingWithdrawBefore)) *
-			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			totalSupplyBefore.eq(0)
 				? toWei("1")
 				: toWei("1")
-					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-					.div(totalSupplyBefore)
+						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+						.div(totalSupplyBefore)
 		)
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
 		expect(pendingDepositBefore).to.not.eq(0)
@@ -461,7 +504,8 @@ describe("Liquidity Pools", async () => {
 			liquidityPool.setHedgingReactorAddress(uniswapV3HedgingReactor.address)
 		).to.be.revertedWithCustomError(liquidityPool, "ReactorAlreadyExists")
 		await expect(liquidityPool.setHedgingReactorAddress(ZERO_ADDRESS)).to.be.revertedWithCustomError(
-			liquidityPool, "InvalidAddress"
+			liquidityPool,
+			"InvalidAddress"
 		)
 	})
 	it("SETUP: sets the exchange as a hedging reactor", async function () {
@@ -480,8 +524,9 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-		const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
-		).mul(ethers.utils.parseUnits("1", 12))
+		const formattedStrikePrice = strikePrice
+			.div(ethers.utils.parseUnits("1", 12))
+			.mul(ethers.utils.parseUnits("1", 12))
 		const oHash = ethers.utils.solidityKeccak256(
 			["uint64", "uint128", "bool"],
 			[expiration, formattedStrikePrice, PUT_FLAVOR]
@@ -499,6 +544,7 @@ describe("Liquidity Pools", async () => {
 		await compareQuotes(
 			quoteResponse,
 			liquidityPool,
+			optionProtocol,
 			volFeed,
 			priceFeed,
 			optionSeries,
@@ -1262,7 +1308,7 @@ describe("Liquidity Pools", async () => {
 			}
 		])
 		const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
-		putOptionToken = await ethers.getContractAt("Otoken", seriesAddress) as Otoken
+		putOptionToken = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
 		const senderPutBalance = await putOptionToken.balanceOf(senderAddress)
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -1293,8 +1339,9 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: change option buy or sell on series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
-		).mul(ethers.utils.parseUnits("1", 12))
+		const formattedStrikePrice = strikePrice
+			.div(ethers.utils.parseUnits("1", 12))
+			.mul(ethers.utils.parseUnits("1", 12))
 		const tx = await catalogue.changeOptionBuyOrSell([
 			{
 				expiration: expiration,
@@ -1425,8 +1472,9 @@ describe("Liquidity Pools", async () => {
 	it("SETUP: change option buy or sell on series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 		const strikePrice = priceQuote.sub(toWei(strike))
-		const formattedStrikePrice = ((strikePrice.div(ethers.utils.parseUnits("1", 12)))
-		).mul(ethers.utils.parseUnits("1", 12))
+		const formattedStrikePrice = strikePrice
+			.div(ethers.utils.parseUnits("1", 12))
+			.mul(ethers.utils.parseUnits("1", 12))
 		const tx = await catalogue.changeOptionBuyOrSell([
 			{
 				expiration: expiration,
@@ -1789,7 +1837,7 @@ describe("Liquidity Pools", async () => {
 		])
 		const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
 		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
-		putOptionToken2 = await ethers.getContractAt("Otoken", seriesAddress) as Otoken
+		putOptionToken2 = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
 		const putBalance = await putOptionToken2.balanceOf(senderAddress)
 
 		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
@@ -2035,7 +2083,8 @@ describe("Liquidity Pools", async () => {
 		let quote = quoteResponse[0].sub(quoteResponse[2])
 		let expectedDeltaChange = quoteResponse[1]
 		let localQuoteWithSlippage = await localQuoteOptionPrice(
-			liquidityPool, volFeed,
+			liquidityPool,
+			volFeed,
 			optionRegistry,
 			usd,
 			priceFeed,
@@ -2103,7 +2152,7 @@ describe("Liquidity Pools", async () => {
 		// expect liquidity pool's USD balance decreases by correct amount
 		expect(
 			tFormatUSDC(lpUSDBalanceBefore.sub(lpUSDBalanceAfter)) -
-			(tFormatUSDC(quote) - collateralAllocatedDiff)
+				(tFormatUSDC(quote) - collateralAllocatedDiff)
 		).to.be.within(-0.0011, 0.0011)
 		// expect collateral allocated in LP reduces by correct amount
 		expect(collateralAllocatedDiff - expectedCollateralReturned).to.be.within(-0.0011, 0.0011)
@@ -2395,8 +2444,8 @@ describe("Liquidity Pools", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-			parseFloat(fromWei(pendingWithdrawBefore)) *
-			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			toWei("1")
@@ -2481,7 +2530,7 @@ describe("Liquidity Pools", async () => {
 		// check collateral returned to LP is correct
 		expect(
 			tFormatUSDC(collateralReturned) -
-			tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
+				tFormatUSDC(collateralAllocatedToVault.sub(optionITMamount.div(100).mul(amount)))
 		).to.be.within(-0.001, 0.001)
 		// check LP USDC balance increases by correct amount
 		expect(lpBalanceDiff).to.eq(tFormatUSDC(collateralReturned))
@@ -2680,4 +2729,3 @@ describe("Liquidity Pools", async () => {
 		expect(await exchange.pricer()).to.equal(pricer.address)
 	})
 })
-

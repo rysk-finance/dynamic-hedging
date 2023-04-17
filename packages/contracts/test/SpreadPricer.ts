@@ -241,6 +241,7 @@ describe("Spread Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				optionProtocol,
 				volFeed,
 				priceFeed,
 				proposedSeries,
@@ -272,6 +273,7 @@ describe("Spread Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				optionProtocol,
 				volFeed,
 				priceFeed,
 				proposedSeries,
@@ -302,6 +304,7 @@ describe("Spread Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				optionProtocol,
 				volFeed,
 				priceFeed,
 				proposedSeries,
@@ -333,6 +336,7 @@ describe("Spread Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				optionProtocol,
 				volFeed,
 				priceFeed,
 				proposedSeries,
@@ -378,6 +382,7 @@ describe("Spread Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				optionProtocol,
 				volFeed,
 				priceFeed,
 				proposedSeries,
@@ -409,6 +414,7 @@ describe("Spread Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				optionProtocol,
 				volFeed,
 				priceFeed,
 				proposedSeries,
@@ -439,6 +445,7 @@ describe("Spread Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				optionProtocol,
 				volFeed,
 				priceFeed,
 				proposedSeries,
@@ -470,6 +477,7 @@ describe("Spread Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				optionProtocol,
 				volFeed,
 				priceFeed,
 				proposedSeries,
@@ -524,6 +532,7 @@ describe("Spread Pricer testing", async () => {
 				await compareQuotes(
 					quoteResponse,
 					liquidityPool,
+					optionProtocol,
 					volFeed,
 					priceFeed,
 					proposedSeries,
@@ -567,6 +576,7 @@ describe("Spread Pricer testing", async () => {
 				await compareQuotes(
 					quoteResponse,
 					liquidityPool,
+					optionProtocol,
 					volFeed,
 					priceFeed,
 					proposedSeries,
@@ -601,6 +611,7 @@ describe("Spread Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				optionProtocol,
 				volFeed,
 				priceFeed,
 				proposedSeries,
@@ -632,6 +643,7 @@ describe("Spread Pricer testing", async () => {
 			await compareQuotes(
 				quoteResponse,
 				liquidityPool,
+				optionProtocol,
 				volFeed,
 				priceFeed,
 				proposedSeries,
@@ -683,6 +695,7 @@ describe("Spread Pricer testing", async () => {
 				await compareQuotes(
 					quoteResponse,
 					liquidityPool,
+					optionProtocol,
 					volFeed,
 					priceFeed,
 					proposedSeries,
@@ -743,6 +756,7 @@ describe("Spread Pricer testing", async () => {
 				await compareQuotes(
 					quoteResponse,
 					liquidityPool,
+					optionProtocol,
 					volFeed,
 					priceFeed,
 					proposedSeries,
