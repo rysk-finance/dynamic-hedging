@@ -24,7 +24,7 @@ import { approveAllowance, vaultSell } from "../Shared/utils/transactions";
 import { Pricing } from "./components/Pricing";
 import { useShortPositionData } from "./hooks/useShortPositionData";
 import { BigNumber } from "ethers";
-import { getContractAddress } from "../../../../utils/helpers";
+import { getContractAddress } from "src/utils/helpers";
 
 dayjs.extend(LocalizedFormat);
 
