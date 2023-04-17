@@ -97,7 +97,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	// oToken decimals
 	uint8 private constant OPYN_DECIMALS = 8;
 	// scale otoken conversion decimals
-	uint8 private constant CONVERSION_DECIMALS = 18 - OPYN_DECIMALS;
+	uint8 private constant CONVERSION_DECIMALS = 10;
 	/// @notice used for unlimited token approval
 	uint256 private constant MAX_UINT = 2 ** 256 - 1;
 
@@ -150,13 +150,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		address redeemAsset
 	);
 	event RedemptionSent(uint256 redeemAmount, address redeemAsset, address recipient);
-	event CollateralApprovalChanged(address indexed collateral, bool isPut, bool isApproved);
 	event OtokenMigrated(address newOptionExchange, address otoken, uint256 amount);
-	event PricerUpdated(address pricer);
-	event CatalogueUpdated(address catalogue);
-	event FeeRecipientUpdated(address feeRecipient);
-	event PoolFeeUpdated(address asset, uint24 fee);
-	event TradeSizeLimitsUpdated(uint256 minTradeSize, uint256 maxTradeSize);
 
 	error TradeTooSmall();
 	error TradeTooLarge();
@@ -168,7 +162,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	error CloseSizeTooLarge();
 	error UnauthorisedSender();
 	error OperatorNotApproved();
-	error TooMuchSlippage(uint256 actualPremium, uint256 acceptablePremium);
+	error TooMuchSlippage();
 
 	constructor(
 		address _authority,
@@ -189,16 +183,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		swapRouter = ISwapRouter(_swapRouter);
 		pricer = BeyondPricer(_pricer);
 		catalogue = OptionCatalogue(_catalogue);
-		require(_feeRecipient != address(0));
 		feeRecipient = _feeRecipient;
-		approvedCollateral[collateralAsset][true] = true;
-		approvedCollateral[collateralAsset][false] = true;
-		approvedCollateral[underlyingAsset][true] = true;
-		approvedCollateral[underlyingAsset][false] = true;
-		emit CollateralApprovalChanged(collateralAsset, true, true);
-		emit CollateralApprovalChanged(collateralAsset, false, true);
-		emit CollateralApprovalChanged(underlyingAsset, true, true);
-		emit CollateralApprovalChanged(underlyingAsset, false, true);
 	}
 
 	///////////////
@@ -221,7 +206,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function setPricer(address _pricer) external {
 		_onlyGovernor();
 		pricer = BeyondPricer(_pricer);
-		emit PricerUpdated(_pricer);
 	}
 
 	/**
@@ -230,7 +214,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	function setOptionCatalogue(address _catalogue) external {
 		_onlyGovernor();
 		catalogue = OptionCatalogue(_catalogue);
-		emit CatalogueUpdated(_catalogue);
 	}
 
 	/**
@@ -238,9 +221,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 */
 	function setFeeRecipient(address _feeRecipient) external {
 		_onlyGovernor();
-		require(_feeRecipient != address(0));
 		feeRecipient = _feeRecipient;
-		emit FeeRecipientUpdated(_feeRecipient);
 	}
 
 	/// @notice set the uniswap v3 pool fee for a given asset, also give the asset max approval on the uni v3 swap router
@@ -248,7 +229,6 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_onlyGovernor();
 		poolFees[asset] = fee;
 		SafeTransferLib.safeApprove(ERC20(asset), address(swapRouter), MAX_UINT);
-		emit PoolFeeUpdated(asset, fee);
 	}
 
 	/// @notice set the maximum and minimum trade size
@@ -256,14 +236,12 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		_onlyGovernor();
 		minTradeSize = _minTradeSize;
 		maxTradeSize = _maxTradeSize;
-		emit TradeSizeLimitsUpdated(_minTradeSize, _maxTradeSize);
 	}
 
 	/// @notice set whether a collateral is approved for selling to the vault
 	function changeApprovedCollateral(address collateral, bool isPut, bool isApproved) external {
 		_onlyGovernor();
 		approvedCollateral[collateral][isPut] = isApproved;
-		emit CollateralApprovalChanged(collateral, isPut, isApproved);
 	}
 
 	//////////////////////////////////////////////////////
@@ -272,7 +250,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 
 	/// @inheritdoc IHedgingReactor
 	function withdraw(uint256 _amount) external returns (uint256) {
-		require(msg.sender == address(liquidityPool), "!vault");
+		require(msg.sender == address(liquidityPool));
 		address _token = collateralAsset;
 		// check the holdings if enough just lying around then transfer it
 		uint256 balance = ERC20(_token).balanceOf(address(this));
@@ -512,9 +490,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @param _args RyskAction struct containing details on the option to issue
 	 * @return series the address of the option activated for selling by the dhv
 	 */
-	function _issue(
-		RyskActions.IssueArgs memory _args
-	) internal whenNotPaused returns (address series) {
+	function _issue(RyskActions.IssueArgs memory _args) internal returns (address series) {
 		// format the strike correctly
 		uint128 strike = uint128(
 			OptionsCompute.formatStrikePrice(_args.optionSeries.strike, collateralAsset) *
@@ -543,7 +519,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @notice function that allows a user to buy options from the dhv where they pay the dhv using the collateral asset
 	 * @param _args RyskAction struct containing details on the option to buy
 	 */
-	function _buyOption(RyskActions.BuyOptionArgs memory _args) internal whenNotPaused {
+	function _buyOption(RyskActions.BuyOptionArgs memory _args) internal {
 		if (_args.amount < minTradeSize) revert TradeTooSmall();
 		if (_args.amount > maxTradeSize) revert TradeTooLarge();
 		// get the option details in the correct formats
@@ -566,7 +542,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			portfolioValuesFeed.netDhvExposure(oHash)
 		);
 		if (buyParams.premium > _args.acceptablePremium) {
-			revert TooMuchSlippage(buyParams.premium, _args.acceptablePremium);
+			revert TooMuchSlippage();
 		}
 		_handlePremiumTransfer(buyParams.premium, buyParams.fee);
 		// get what the exchange's balance is on this asset, as this can be used instead of the dhv having to lock up collateral
@@ -628,10 +604,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @param _args RyskAction struct containing details on the option to sell
 	 * @param isClose if true then we only close positions the dhv has open, we do not conduct any more sales beyond that
 	 */
-	function _sellOption(
-		RyskActions.SellOptionArgs memory _args,
-		bool isClose
-	) internal whenNotPaused {
+	function _sellOption(RyskActions.SellOptionArgs memory _args, bool isClose) internal {
 		if (_args.amount < minTradeSize) revert TradeTooSmall();
 		if (_args.amount > maxTradeSize) revert TradeTooLarge();
 		IOptionRegistry optionRegistry = getOptionRegistry();
@@ -652,7 +625,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 			portfolioValuesFeed.netDhvExposure(oHash)
 		);
 		if (sellParams.premium < _args.acceptablePremium) {
-			revert TooMuchSlippage(sellParams.premium, _args.acceptablePremium);
+			revert TooMuchSlippage();
 		}
 		sellParams.amount = _args.amount;
 		sellParams.tempHoldings = OptionsCompute.min(
@@ -767,7 +740,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	 * @notice get the portfolio values feed used by the liquidity pool
 	 * @return the portfolio values feed contract
 	 */
-	function getPortfolioValuesFeed() public view returns (IAlphaPortfolioValuesFeed) {
+	function getPortfolioValuesFeed() internal view returns (IAlphaPortfolioValuesFeed) {
 		return IAlphaPortfolioValuesFeed(protocol.portfolioValuesFeed());
 	}
 

@@ -26,6 +26,7 @@ import {
 import { useAccount } from "wagmi";
 
 import { QueriesEnum } from "src/clients/Apollo/Queries";
+import { toTwoDecimalPlaces } from "src/utils/rounding";
 import { BIG_NUMBER_DECIMALS, DECIMALS } from "../../../config/constants";
 import { baseRyskToUsdc } from "../../../utils/conversion-helper";
 import { Card } from "../../shared/Card";
@@ -244,7 +245,7 @@ export const UserEpochPNL = () => {
   );
 
   // we decided to hide the tab completely if there is no PNL
-  if (!historicalPNL || historicalPNL[historicalPNL.length - 1]?.pnl == "0") {
+  if (!historicalPNL || historicalPNL[historicalPNL.length - 1]?.pnl === "0") {
     return null;
   }
 
@@ -275,7 +276,9 @@ export const UserEpochPNL = () => {
                         yAxisId="left"
                         type="monotone"
                         dataKey={({ pnl }) =>
-                          parseFloat(utils.formatUnits(pnl, DECIMALS.USDC))
+                          toTwoDecimalPlaces(
+                            parseFloat(utils.formatUnits(pnl, DECIMALS.USDC))
+                          )
                         }
                         // TODO access color throw Tailwind helpers
                         stroke="black"
@@ -296,7 +299,7 @@ export const UserEpochPNL = () => {
                         yAxisId="right"
                         /** TODO bar size doesn't work with current scale and type on xAxis */
                         barSize={20}
-                        fill={"#64748b"}
+                        fill={"#D1CDBF"}
                         dataKey={({ change }) =>
                           parseFloat(utils.formatUnits(change, DECIMALS.USDC))
                         }

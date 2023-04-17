@@ -265,12 +265,12 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		console.log(err)
 	}
 	const authorityFactory = await ethers.getContractFactory("Authority")
-	const authority = await authorityFactory.deploy(deployerAddress, multisig, multisig)
+	const authority = await authorityFactory.deploy(deployerAddress, deployerAddress, deployerAddress)
 	console.log("authority deployed")
 	try {
 		await hre.run("verify:verify", {
 			address: authority.address,
-			constructorArguments: [deployerAddress, multisig, multisig]
+			constructorArguments: [deployerAddress, deployerAddress, deployerAddress]
 		})
 		console.log("authority verified")
 	} catch (err: any) {
@@ -668,6 +668,11 @@ export async function deployLiquidityPool(
 		console.log(err)
 	}
 	console.log("exchange deployed")
+
+	await exchange.changeApprovedCollateral(usd.address, true, true)
+	await exchange.changeApprovedCollateral(usd.address, false, true)
+	await exchange.changeApprovedCollateral(weth.address, true, true)
+	await exchange.changeApprovedCollateral(weth.address, false, true)
 
 	await liquidityPool.changeHandler(exchange.address, true)
 	await liquidityPool.setHedgingReactorAddress(exchange.address)

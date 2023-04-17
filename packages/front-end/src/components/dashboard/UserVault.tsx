@@ -80,10 +80,11 @@ export const UserVault = () => {
       // TODO(HC): Price oracle is returning 1*10^18 for price so having to adjust price
       // whilst building out to avoid share numbers being too small. Once price oracle is returning
       // more accurate
+
       const newUnredeemedShares = depositReceipt.amount
         .div(BIG_NUMBER_DECIMALS.USDC)
         .mul(BIG_NUMBER_DECIMALS.RYSK)
-        .div(pricePerShareAtEpoch)
+        .div(pricePerShareAtEpoch.isZero() ? 1 : pricePerShareAtEpoch)
         .mul(BIG_NUMBER_DECIMALS.RYSK);
       const sharesToRedeem = previousUnredeemedShares.add(newUnredeemedShares);
       unredeemedShares.add(sharesToRedeem);

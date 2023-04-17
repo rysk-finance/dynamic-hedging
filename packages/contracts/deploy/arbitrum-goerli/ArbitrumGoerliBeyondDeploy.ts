@@ -246,27 +246,27 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	// deploy libraries
 	const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: interactions.address,
-	// 		constructorArguments: []
-	// 	})
-	// 	console.log("opynInterections verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+	try {
+		await hre.run("verify:verify", {
+			address: interactions.address,
+			constructorArguments: []
+		})
+		console.log("opynInterections verified")
+	} catch (err: any) {
+		console.log(err)
+	}
 	const authorityFactory = await ethers.getContractFactory("Authority")
 	const authority = await authorityFactory.deploy(deployerAddress, deployerAddress, deployerAddress)
 	console.log("authority deployed")
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: authority.address,
-	// 		constructorArguments: [deployerAddress, deployerAddress, deployerAddress]
-	// 	})
-	// 	console.log("authority verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+	try {
+		await hre.run("verify:verify", {
+			address: authority.address,
+			constructorArguments: [deployerAddress, deployerAddress, deployerAddress]
+		})
+		console.log("authority verified")
+	} catch (err: any) {
+		console.log(err)
+	}
 
 	const normDistFactory = await ethers.getContractFactory(
 		"contracts/libraries/NormalDist.sol:NormalDist",
@@ -277,15 +277,15 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	const normDist = (await normDistFactory.deploy()) as NormalDist
 	console.log("normal dist deployed")
 
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: normDist.address,
-	// 		constructorArguments: []
-	// 	})
-	// 	console.log("normDist verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+	try {
+		await hre.run("verify:verify", {
+			address: normDist.address,
+			constructorArguments: []
+		})
+		console.log("normDist verified")
+	} catch (err: any) {
+		console.log(err)
+	}
 
 	const optionsCompFactory = await ethers.getContractFactory("OptionsCompute", {
 		libraries: {}
@@ -293,15 +293,15 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	const optionsCompute = await optionsCompFactory.deploy()
 	console.log("options compute deployed")
 
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: optionsCompute.address,
-	// 		constructorArguments: []
-	// 	})
-	// 	console.log("optionsCompute verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+	try {
+		await hre.run("verify:verify", {
+			address: optionsCompute.address,
+			constructorArguments: []
+		})
+		console.log("optionsCompute verified")
+	} catch (err: any) {
+		console.log(err)
+	}
 
 	const blackScholesFactory = await ethers.getContractFactory(
 		"contracts/libraries/BlackScholes.sol:BlackScholes",
@@ -314,15 +314,15 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	const blackScholes = (await blackScholesFactory.deploy()) as BlackScholes
 	console.log("BS deployed")
 
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: blackScholes.address,
-	// 		constructorArguments: []
-	// 	})
-	// 	console.log("blackScholes verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+	try {
+		await hre.run("verify:verify", {
+			address: blackScholes.address,
+			constructorArguments: []
+		})
+		console.log("blackScholes verified")
+	} catch (err: any) {
+		console.log(err)
+	}
 
 	// get weth and usdc contracts
 	const weth = (await ethers.getContractAt(
@@ -342,15 +342,15 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	)) as PriceFeed
 	console.log("priceFeed deployed")
 
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: priceFeed.address,
-	// 		constructorArguments: [authority.address, sequencerUptimeAddress]
-	// 	})
-	// 	console.log("priceFeed verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+	try {
+		await hre.run("verify:verify", {
+			address: priceFeed.address,
+			constructorArguments: [authority.address, sequencerUptimeAddress]
+		})
+		console.log("priceFeed verified")
+	} catch (err: any) {
+		console.log(err)
+	}
 
 	await priceFeed.addPriceFeed(weth.address, usd.address, chainlinkOracleAddress)
 
@@ -358,14 +358,14 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	const volFeed = (await volFeedFactory.deploy(authority.address)) as VolatilityFeed
 	console.log("volFeed deployed")
 
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: volFeed.address,
-	// 		constructorArguments: [authority.address]
-	// 	})
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+	try {
+		await hre.run("verify:verify", {
+			address: volFeed.address,
+			constructorArguments: [authority.address]
+		})
+	} catch (err: any) {
+		console.log(err)
+	}
 
 	console.log("volFeed verified")
 
@@ -380,16 +380,16 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	)) as AlphaPortfolioValuesFeed
 	console.log("alpha portfolio values feed deployed")
 
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: portfolioValuesFeed.address,
-	// 		constructorArguments: [authority.address, toWei("50000")]
-	// 	})
+	try {
+		await hre.run("verify:verify", {
+			address: portfolioValuesFeed.address,
+			constructorArguments: [authority.address, toWei("50000")]
+		})
 
-	// 	console.log("portfolio values feed verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+		console.log("portfolio values feed verified")
+	} catch (err: any) {
+		console.log(err)
+	}
 
 	// deploy options registry
 	const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
@@ -407,15 +407,15 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	)) as OptionRegistry
 	console.log("option registry deployed")
 
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: optionRegistry.address,
-	// 		constructorArguments: [usd.address, deployerAddress, opynAddressBookAddress, authority.address]
-	// 	})
-	// 	console.log("optionRegistry verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+	try {
+		await hre.run("verify:verify", {
+			address: optionRegistry.address,
+			constructorArguments: [usd.address, deployerAddress, opynAddressBookAddress, authority.address]
+		})
+		console.log("optionRegistry verified")
+	} catch (err: any) {
+		console.log(err)
+	}
 
 	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
 	const optionProtocol = (await protocolFactory.deploy(
@@ -426,21 +426,21 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		authority.address
 	)) as Protocol
 	console.log("protocol deployed")
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: optionProtocol.address,
-	// 		constructorArguments: [
-	// 			optionRegistry.address,
-	// 			priceFeed.address,
-	// 			volFeed.address,
-	// 			portfolioValuesFeed.address,
-	// 			authority.address
-	// 		]
-	// 	})
-	// 	console.log("optionProtocol verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+	try {
+		await hre.run("verify:verify", {
+			address: optionProtocol.address,
+			constructorArguments: [
+				optionRegistry.address,
+				priceFeed.address,
+				volFeed.address,
+				portfolioValuesFeed.address,
+				authority.address
+			]
+		})
+		console.log("optionProtocol verified")
+	} catch (err: any) {
+		console.log(err)
+	}
 
 	expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 
@@ -483,11 +483,7 @@ export async function deployLiquidityPool(
 	interactions: OpynInteractions,
 	optionsCompute: OptionsCompute
 ) {
-	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool", {
-		libraries: {
-			OptionsCompute: optionsCompute.address
-		}
-	})
+	const liquidityPoolFactory = await ethers.getContractFactory("LiquidityPool")
 
 	const liquidityPool = (await liquidityPoolFactory.deploy(
 		optionProtocol.address,
@@ -512,32 +508,32 @@ export async function deployLiquidityPool(
 
 	console.log("lp deployed")
 
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: liquidityPool.address,
-	// 		constructorArguments: [
-	// 			optionProtocol.address,
-	// 			usd.address,
-	// 			weth.address,
-	// 			usd.address,
-	// 			toWei(rfr),
-	// 			liquidityPoolTokenName,
-	// 			liquidityPoolTokenTicker,
-	// 			{
-	// 				minCallStrikePrice,
-	// 				maxCallStrikePrice,
-	// 				minPutStrikePrice,
-	// 				maxPutStrikePrice,
-	// 				minExpiry: minExpiry,
-	// 				maxExpiry: maxExpiry
-	// 			},
-	// 			authority
-	// 		]
-	// 	})
-	// 	console.log("liquidityPool verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+	try {
+		await hre.run("verify:verify", {
+			address: liquidityPool.address,
+			constructorArguments: [
+				optionProtocol.address,
+				usd.address,
+				weth.address,
+				usd.address,
+				toWei(rfr),
+				liquidityPoolTokenName,
+				liquidityPoolTokenTicker,
+				{
+					minCallStrikePrice,
+					maxCallStrikePrice,
+					minPutStrikePrice,
+					maxPutStrikePrice,
+					minExpiry: minExpiry,
+					maxExpiry: maxExpiry
+				},
+				authority
+			]
+		})
+		console.log("liquidityPool verified")
+	} catch (err: any) {
+		console.log(err)
+	}
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	console.log("registry lp set")
 
@@ -555,15 +551,15 @@ export async function deployLiquidityPool(
 	const accounting = (await accountingFactory.deploy(liquidityPool.address)) as Accounting
 	console.log("Accounting deployed")
 
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: accounting.address,
-	// 		constructorArguments: [liquidityPool.address]
-	// 	})
-	// 	console.log("Accounting verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+	try {
+		await hre.run("verify:verify", {
+			address: accounting.address,
+			constructorArguments: [liquidityPool.address]
+		})
+		console.log("Accounting verified")
+	} catch (err: any) {
+		console.log(err)
+	}
 
 	const updateAccountingTx = await optionProtocol.changeAccounting(accounting.address)
 	await updateAccountingTx.wait()
@@ -588,26 +584,26 @@ export async function deployLiquidityPool(
 
 	console.log("pricer deployed")
 
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: pricer.address,
-	// 		constructorArguments: [
-	// 			authority,
-	// 			optionProtocol.address,
-	// 			liquidityPool.address,
-	// 			opynAddressBookAddress,
-	// 			slippageGradient,
-	// 			deltaBandWidth,
-	// 			callSlippageGradientMultipliers,
-	// 			putSlippageGradientMultipliers,
-	// 			collateralLendingRate,
-	// 			deltaBorrowRates
-	// 		]
-	// 	})
-	// 	console.log("pricer verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
+	try {
+		await hre.run("verify:verify", {
+			address: pricer.address,
+			constructorArguments: [
+				authority,
+				optionProtocol.address,
+				liquidityPool.address,
+				opynAddressBookAddress,
+				slippageGradient,
+				deltaBandWidth,
+				callSlippageGradientMultipliers,
+				putSlippageGradientMultipliers,
+				collateralLendingRate,
+				deltaBorrowRates
+			]
+		})
+		console.log("pricer verified")
+	} catch (err: any) {
+		console.log(err)
+	}
 
 	const catalogueFactory = await ethers.getContractFactory("OptionCatalogue", {
 		libraries: {
@@ -616,16 +612,16 @@ export async function deployLiquidityPool(
 	})
 	const catalogue = (await catalogueFactory.deploy(authority, usd.address)) as OptionCatalogue
 
-	// try {
-	// 	await hre.run("verify:verify", {
-	// 		address: catalogue.address,
-	// 		constructorArguments: [authority, usd.address]
-	// 	})
-	// 	console.log("catalogue verified")
-	// } catch (err: any) {
-	// 	console.log(err)
-	// }
-	// console.log("catalogue deployed")
+	try {
+		await hre.run("verify:verify", {
+			address: catalogue.address,
+			constructorArguments: [authority, usd.address]
+		})
+		console.log("catalogue verified")
+	} catch (err: any) {
+		console.log(err)
+	}
+	console.log("catalogue deployed")
 
 	const exchangeFactory = await ethers.getContractFactory("OptionExchange", {
 		libraries: {
@@ -665,6 +661,11 @@ export async function deployLiquidityPool(
 		console.log(err)
 	}
 	console.log("exchange deployed")
+
+	await exchange.changeApprovedCollateral(usd.address, true, true)
+	await exchange.changeApprovedCollateral(usd.address, false, true)
+	await exchange.changeApprovedCollateral(weth.address, true, true)
+	await exchange.changeApprovedCollateral(weth.address, false, true)
 
 	await liquidityPool.changeHandler(exchange.address, true)
 	await liquidityPool.setHedgingReactorAddress(exchange.address)

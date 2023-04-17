@@ -113,7 +113,7 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 200,
+						runs: 100,
 						details: {
 							yul: true
 						}
@@ -126,7 +126,7 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 200,
+						runs: 100,
 						details: {
 							yul: true
 						}
@@ -139,7 +139,7 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 200,
+						runs: 100,
 						details: {
 							yul: true
 						}
@@ -152,7 +152,7 @@ module.exports = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 200,
+						runs: 100,
 						details: {
 							yul: true
 						}
