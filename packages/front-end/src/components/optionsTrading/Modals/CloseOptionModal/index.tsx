@@ -8,25 +8,19 @@ import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { useDebounce } from "use-debounce";
 
+import { useSearchParams } from "react-router-dom";
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
-import { Button } from "src/components/shared/Button";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toOpyn, toRysk, tFormatUSDC } from "src/utils/conversion-helper";
-
+import { toOpyn, toRysk } from "src/utils/conversion-helper";
 import { Disclaimer } from "../Shared/components/Disclaimer";
+import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
 import { useNotifications } from "../Shared/hooks/useNotifications";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
-import {
-  approveAllowance,
-  closeLong,
-  vaultSell,
-} from "../Shared/utils/transactions";
+import { approveAllowance, closeLong } from "../Shared/utils/transactions";
 import { Pricing } from "./components/Pricing";
 import { usePositionData } from "./hooks/usePositionData";
-import { useVaultData } from "./hooks/useVaultData";
-import { useSearchParams } from "react-router-dom";
 
 dayjs.extend(LocalizedFormat);
 
@@ -44,10 +38,6 @@ export const CloseOptionModal = () => {
   const [addresses, allowance, setAllowance, positionData, loading] =
     usePositionData(debouncedAmountToClose);
   const [searchParams] = useSearchParams();
-
-  const [collateralAmount, collateralPerOption] = useVaultData(
-    searchParams.get("vault") // @TODO: Add vault ID
-  );
 
   const [notifyApprovalSuccess, handleTransactionSuccess, notifyFailure] =
     useNotifications();
@@ -118,36 +108,21 @@ export const CloseOptionModal = () => {
     }
   };
 
-  const collateralToRemove = collateralPerOption.mul(amountToClose || 0);
-
   return (
     <Modal>
       <Header>{`Sell Position`}</Header>
       <Pricing positionData={positionData} />
-      {!collateralToRemove.isZero() &&
-        collateralToRemove.lte(collateralAmount) && (
-          <div className="flex justify-center mb-5">
-            After sale collateral: $
-            {tFormatUSDC(collateralAmount.sub(collateralToRemove))} $
-            <del>{tFormatUSDC(collateralAmount)}</del>
-          </div>
-        )}
-      <div className="flex border-blackWrapper border-y-2">
-        <label
-          className="grow"
-          title="Enter how much of your position you would like to sell."
-        >
-          <input
-            className="text-center w-full h-12 number-input-hide-arrows border-r-2 border-black"
-            inputMode="numeric"
-            name="sell-amount"
+      <Wrapper>
+        <Label title="Enter how much of your position you would like to sell.">
+          <Input
+            name="close-amount"
             onChange={handleChange}
             placeholder="How many would you like to sell?"
             step={0.01}
             type="number"
             value={amountToClose}
           />
-        </label>
+        </Label>
 
         <AnimatePresence mode="wait">
           <Button
@@ -170,7 +145,7 @@ export const CloseOptionModal = () => {
             )}
           />
         </AnimatePresence>
-      </div>
+      </Wrapper>
 
       <Disclaimer>
         {`You are about to sell some or all of your position. Please ensure this is what you want because the action is irreversible.`}

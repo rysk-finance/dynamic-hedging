@@ -17,7 +17,7 @@ import { useAllowance } from "../../Shared/hooks/useAllowance";
 import { gql, useQuery } from "@apollo/client";
 import { VaultQueryData } from "../../Shared/types";
 import { BigNumber } from "ethers";
-import { BIG_NUMBER_DECIMALS } from "../../../../../config/constants";
+import { BIG_NUMBER_DECIMALS } from "src/config/constants";
 
 export const useShortPositionData = () => {
   // URL query params.

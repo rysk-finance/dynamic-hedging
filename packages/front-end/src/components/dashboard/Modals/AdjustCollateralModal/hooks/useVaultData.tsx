@@ -1,6 +1,6 @@
 import { useAccount } from "wagmi";
 import { gql, useQuery } from "@apollo/client";
-import { VaultQueryData } from "../../Shared/types";
+import { VaultQueryData } from "../../../../optionsTrading/Modals/Shared/types";
 import { BigNumber } from "ethers";
 import { BIG_NUMBER_DECIMALS } from "src/config/constants";
 

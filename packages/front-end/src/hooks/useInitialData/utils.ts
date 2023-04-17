@@ -40,7 +40,9 @@ const getExpiries = (expiries: InitialDataQuery["expiries"]) => {
   }, [] as string[]);
 };
 
-const getUserPositions = (positions: InitialDataQuery["longPositions"]) => {
+const getUserPositions = (
+  positions: InitialDataQuery["longPositions" | "shortPositions"]
+) => {
   return positions.reduce(
     (
       positions,

@@ -1,6 +1,5 @@
-import { Modal } from "src/components/optionsTrading/Modals/Shared/components/Modal";
 import { Header } from "../Shared/components/Header";
-import { useVaultData } from "src/components/optionsTrading/Modals/CloseOptionModal/hooks/useVaultData";
+import { useVaultData } from "./hooks/useVaultData";
 import { useSearchParams } from "react-router-dom";
 import NumberFormat from "react-number-format";
 import { ethers } from "ethers";
@@ -8,19 +7,21 @@ import { DECIMALS } from "src/config/constants";
 import { getContractAddress } from "src/utils/helpers";
 import { toWei, toUSDC } from "src/utils/conversion-helper";
 import { ChangeEvent, useState } from "react";
-import { Disclaimer } from "src/components/optionsTrading/Modals/Shared/components/Disclaimer";
 import { AnimatePresence } from "framer-motion";
 import { Button } from "src/components/shared/Button";
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
-import { getButtonProps } from "src/components/optionsTrading/Modals/Shared/utils/getButtonProps";
-import { approveAllowance } from "src/components/optionsTrading/Modals/Shared/utils/transactions";
-import { AddressesRequired } from "src/components/optionsTrading/Modals/Shared/types";
-import { useAllowance } from "src/components/optionsTrading/Modals/Shared/hooks/useAllowance";
 import { useAccount } from "wagmi";
-import { useNotifications } from "src/components/optionsTrading/Modals/Shared/hooks/useNotifications";
 import { updateCollateral } from "../Shared/utils/transactions";
 import { ActionType } from "src/state/types";
 import { useGlobalContext } from "src/state/GlobalContext";
+
+import { useNotifications } from "src/components/optionsTrading/Modals/Shared/hooks/useNotifications";
+import { getButtonProps } from "src/components/optionsTrading/Modals/Shared/utils/getButtonProps";
+import { approveAllowance } from "src/components/optionsTrading/Modals/Shared/utils/transactions";
+import { AddressesRequired } from "src/components/optionsTrading/Modals/Shared/types";
+import { Disclaimer } from "src/components/optionsTrading/Modals/Shared/components/Disclaimer";
+import { Modal } from "src/components/optionsTrading/Modals/Shared/components/Modal";
+import { useAllowance } from "src/components/optionsTrading/Modals/Shared/hooks/useAllowance";
 
 const AdjustCollateralModal = () => {
   const [searchParams, setSearchParams] = useSearchParams();
