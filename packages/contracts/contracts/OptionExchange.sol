@@ -86,7 +86,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	// user -> token addresses interacted with in this transaction
 	mapping(address => address[]) internal tempTokenQueue;
 	// user -> token address -> amount
-	mapping(address => mapping(address => uint256)) internal heldTokens;
+	mapping(address => mapping(address => uint256)) public heldTokens;
 
 	//////////////////////////
 	/// constant variables ///
