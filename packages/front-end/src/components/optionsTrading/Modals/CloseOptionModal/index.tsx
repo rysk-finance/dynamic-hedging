@@ -5,6 +5,7 @@ import type { AddressesRequired } from "../Shared/types";
 import dayjs from "dayjs";
 import LocalizedFormat from "dayjs/plugin/localizedFormat";
 import { useState } from "react";
+import { useDebounce } from "use-debounce";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 import { toOpyn, toRysk } from "src/utils/conversion-helper";
@@ -27,13 +28,15 @@ export const CloseOptionModal = () => {
     },
   } = useGlobalContext();
 
-  const [addresses, allowance, setAllowance, positionData] = usePositionData();
+  const [amountToClose, setAmountToClose] = useState("");
+  const [debouncedAmountToClose] = useDebounce(amountToClose, 300);
+  const [transactionPending, setTransactionPending] = useState(false);
+
+  const [addresses, allowance, setAllowance, positionData, loading] =
+    usePositionData(debouncedAmountToClose);
 
   const [notifyApprovalSuccess, handleTransactionSuccess, notifyFailure] =
     useNotifications();
-
-  const [amountToSell, setAmountToSell] = useState("");
-  const [transactionPending, setTransactionPending] = useState(false);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const amount = event.currentTarget.value;
@@ -43,10 +46,13 @@ export const CloseOptionModal = () => {
       decimals.length > 1
         ? `${decimals[0]}.${decimals[1].slice(0, 2)}`
         : event.currentTarget.value;
-    const approved = Boolean(amount && toOpyn(rounded).lte(allowance.amount));
 
-    setAmountToSell(rounded);
-    setAllowance((currentState) => ({ ...currentState, approved }));
+    const maxAmount = Math.min(
+      positionData.totalSize,
+      parseFloat(rounded || "0")
+    );
+
+    setAmountToClose(maxAmount ? maxAmount.toString() : amount);
   };
 
   const handleApprove = async () => {
@@ -54,7 +60,7 @@ export const CloseOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user) {
-        const amount = toOpyn(amountToSell);
+        const amount = toOpyn(amountToClose);
 
         const hash = await approveAllowance(
           addresses as AddressesRequired,
@@ -78,7 +84,7 @@ export const CloseOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user) {
-        const amount = toRysk(amountToSell);
+        const amount = toRysk(amountToClose);
 
         const hash = await closeLong(
           addresses as AddressesRequired,
@@ -109,21 +115,22 @@ export const CloseOptionModal = () => {
             name="close-amount"
             onChange={handleChange}
             placeholder="How many would you like to sell?"
-            value={amountToSell}
+            value={amountToClose}
           />
         </Label>
 
         <Button
           disabled={
-            Number(amountToSell) > positionData.totalSize ||
-            !Number(amountToSell) ||
+            Number(amountToClose) > positionData.totalSize ||
+            !Number(amountToClose) ||
             !addresses.user ||
             !addresses.token ||
-            transactionPending
+            transactionPending ||
+            loading
           }
           {...getButtonProps(
             "sell",
-            transactionPending,
+            transactionPending || loading,
             allowance.approved,
             handleApprove,
             handleSell

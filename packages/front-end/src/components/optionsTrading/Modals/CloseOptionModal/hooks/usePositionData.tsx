@@ -1,21 +1,37 @@
 import type { Addresses } from "../../Shared/types";
 import type { PositionDataState } from "../types";
 
+import { captureException } from "@sentry/react";
+import { fetchBalance } from "@wagmi/core";
 import dayjs from "dayjs";
+import { BigNumber } from "ethers";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 
+import { ZERO_ADDRESS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import {
-  fromOpynToNumber,
+  fromOpyn,
   fromWeiToInt,
   renameOtoken,
+  tFormatUSDC,
+  toOpyn,
+  toRysk,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
+import { getQuote } from "../../Shared/utils/getQuote";
 
-export const usePositionData = () => {
+export const usePositionData = (amountToClose: string) => {
+  // Global state.
+  const {
+    state: {
+      ethPrice,
+      options: { activeExpiry, userPositions },
+    },
+  } = useGlobalContext();
+
   // URL query params.
   const [searchParams] = useSearchParams();
 
@@ -24,69 +40,101 @@ export const usePositionData = () => {
   const tokenAddress = (searchParams.get("token") as HexString) || undefined;
   const exchangeAddress = getContractAddress("optionExchange");
 
-  // Context state.
-  const {
-    state: {
-      options: { activeExpiry, data, userPositions },
-    },
-  } = useGlobalContext();
-
   // User allowance state for the oToken.
   const [allowance, setAllowance] = useAllowance(tokenAddress, address);
 
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
-    created: null,
-    now: null,
+    acceptablePremium: BigNumber.from(0),
+    fee: 0,
+    now: dayjs().format("MMM DD, YYYY HH:mm A"),
+    premium: 0,
+    quote: 0,
+    remainingBalance: 0,
+    slippage: 0,
     totalSize: 0,
-    totalValue: 0,
-    totalPaid: 0,
-    inProfit: false,
     title: null,
   });
 
+  const [loading, setLoading] = useState(false);
+
   // Get user position data.
   useEffect(() => {
-    if (activeExpiry && tokenAddress && userPositions) {
-      const userPosition = userPositions[activeExpiry]?.tokens.find(
-        ({ id }) => id === searchParams.get("token")
-      );
+    const setPriceData = async (amount: number) => {
+      setLoading(true);
 
-      if (userPosition) {
-        const created = dayjs
-          .unix(Number(userPosition.createdAt))
-          .format("lll");
-        const now = dayjs().format("lll");
+      try {
+        const { value: balance } = await fetchBalance({
+          address: address || ZERO_ADDRESS,
+          token: getContractAddress("USDC"),
+        });
+        const balanceInt = tFormatUSDC(balance);
 
-        const chainRow =
-          data[userPosition.expiryTimestamp][
-            fromOpynToNumber(userPosition.strikePrice)
-          ];
-        const currentValue =
-          chainRow[userPosition.isPut ? "put" : "call"].sell.quote.quote;
+        if (activeExpiry && tokenAddress && userPositions) {
+          const userPosition = userPositions[activeExpiry]?.tokens.find(
+            ({ id }) => id === searchParams.get("token")
+          );
 
-        if (currentValue >= 0) {
-          const totalSize = fromWeiToInt(userPosition.netAmount);
-          const totalValue = totalSize * currentValue;
-          const totalPaid = userPosition.totalPremium;
-          const inProfit = totalValue > totalPaid;
+          const now = dayjs().format("MMM DD, YYYY HH:mm A");
+
+          const totalSize = fromWeiToInt(userPosition?.netAmount || 0);
           const title = `${renameOtoken(
-            userPosition.symbol
+            userPosition?.symbol || ""
           )} (${totalSize})`.toUpperCase();
 
-          setPositionData({
-            created,
-            now,
-            totalSize,
-            totalValue,
-            totalPaid,
-            inProfit,
-            title,
-          });
+          if (amount > 0 && userPosition) {
+            const { acceptablePremium, fee, premium, quote, slippage } =
+              await getQuote(
+                Number(activeExpiry),
+                toRysk(fromOpyn(userPosition.strikePrice)),
+                userPosition.isPut,
+                amount,
+                true
+              );
+
+            const remainingBalance = balance.isZero() ? 0 : balanceInt + quote;
+            const approved = toOpyn(amountToClose).lte(allowance.amount);
+
+            setPositionData({
+              acceptablePremium,
+              fee,
+              now,
+              premium,
+              quote,
+              remainingBalance,
+              slippage,
+              totalSize,
+              title,
+            });
+            setAllowance((currentState) => ({ ...currentState, approved }));
+          } else {
+            setPositionData({
+              acceptablePremium: BigNumber.from(0),
+              fee: 0,
+              now,
+              premium: 0,
+              quote: 0,
+              remainingBalance: balanceInt,
+              slippage: 0,
+              totalSize,
+              title,
+            });
+            setAllowance((currentState) => ({
+              ...currentState,
+              approved: false,
+            }));
+          }
         }
+
+        setLoading(false);
+      } catch (error) {
+        captureException(error);
+        setLoading(false);
       }
-    }
-  }, [activeExpiry, data, tokenAddress, userPositions]);
+    };
+
+    setPriceData(Number(amountToClose));
+  }, [activeExpiry, amountToClose, ethPrice, tokenAddress, userPositions]);
 
   const addresses: Addresses = {
     exchange: exchangeAddress,
@@ -94,5 +142,5 @@ export const usePositionData = () => {
     user: address,
   };
 
-  return [addresses, allowance, setAllowance, positionData] as const;
+  return [addresses, allowance, setAllowance, positionData, loading] as const;
 };
