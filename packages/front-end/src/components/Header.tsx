@@ -16,7 +16,12 @@ export const Header = () => {
   return (
     <div className="fixed w-full h-24 t-0 flex items-center px-16 justify-between border-b-2 border-black bg-bone z-20">
       <Link to={AppPaths.VAULT}>
-        <img src={"/logo.png"} alt="logo" className="w-20" />
+        <img
+          alt="Rysk logo"
+          className="w-20"
+          src={"/logo-animated.gif"}
+          title="Rysk: Uncorrelated Returns"
+        />
       </Link>
 
       <div className="flex items-center">
