@@ -1,6 +1,7 @@
 import type { MouseEvent, PropsWithChildren } from "react";
 
 import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
@@ -8,12 +9,15 @@ import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 
 export const Modal = ({ children }: PropsWithChildren) => {
+  const [_, setSearchParams] = useSearchParams();
+
   const { dispatch } = useGlobalContext();
 
   const handleLightBoxClick = () => {
     dispatch({
       type: ActionType.RESET_OPTIONS_CHAIN_STATE,
     });
+    setSearchParams({});
   };
 
   const handleModalClick = (event: MouseEvent) => event.stopPropagation();
