@@ -132,7 +132,15 @@ export const useSellOption = (amountToSell: string) => {
                 : fromRyskToNumber(multipliedCollateral.toString());
               const maximum = USDCCollateral ? strike * amount : amount;
 
-              return Math.min(formatted, maximum);
+              if (selectedOption.callOrPut === "put") {
+                return USDCCollateral
+                  ? Math.min(formatted, maximum)
+                  : formatted;
+              } else {
+                return USDCCollateral
+                  ? formatted
+                  : Math.min(formatted, maximum);
+              }
             }
           };
 
