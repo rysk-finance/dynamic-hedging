@@ -76,23 +76,20 @@ export const getLiquidationPrice = async (
   const shock = spotShock[callOrPut][collateralType];
 
   switch (true) {
-    case !isPut && adjustedCollateral / (shock * strikePrice) > maxPrice:
+    case !isPut && adjustedCollateral > maxPrice * shock * strikePrice:
       return truncate(
-        (adjustedCollateral - (maxPrice - 1) * (shock * strikePrice)) 
+        adjustedCollateral + (1 - maxPrice) * shock * strikePrice 
       );
 
-    case !isPut && adjustedCollateral / (shock * strikePrice) < maxPrice:
+    case !isPut && adjustedCollateral <= maxPrice * shock * strikePrice:
       return truncate(adjustedCollateral / maxPrice);
 
-    case !isPut && adjustedCollateral / (shock * strikePrice) === maxPrice:
-      return truncate((shock * strikePrice));
-
-    case isPut && strikePrice * maxPrice < adjustedCollateral:
+    case isPut && adjustedCollateral > strikePrice * maxPrice:
       return truncate(
-        (adjustedCollateral - strikePrice / ((maxPrice - 1) * shock))
+        (strikePrice - adjustedCollateral) / ((1 - maxPrice) * shock)
       );
 
-    case isPut && strikePrice * maxPrice >= adjustedCollateral:
+    case isPut && adjustedCollateral <= strikePrice * maxPrice:
       return strikePrice / shock;
 
     default:
