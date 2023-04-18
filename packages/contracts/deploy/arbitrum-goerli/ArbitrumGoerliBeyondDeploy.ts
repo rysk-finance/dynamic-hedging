@@ -25,7 +25,8 @@ import {
 	OptionExchange,
 	OpynInteractions,
 	Manager,
-	OptionsCompute
+	OptionsCompute,
+	PermissionedMintableERC20
 } from "../../types"
 
 const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
@@ -325,15 +326,55 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	}
 
 	// get weth and usdc contracts
-	const weth = (await ethers.getContractAt(
-		"contracts/interfaces/WETH.sol:WETH",
-		wethAddress
-	)) as WETH
-	const wethERC20 = (await ethers.getContractAt("ERC20Interface", wethAddress)) as ERC20Interface
-	const usd = (await ethers.getContractAt(
-		"contracts/tokens/ERC20.sol:ERC20",
-		usdcAddress
-	)) as MintableERC20
+
+	const wethFactory = await ethers.getContractFactory("PermissionedMintableERC20")
+	const weth = (await wethFactory.deploy(
+		"Wrapped Ether",
+		"WETH",
+		"18",
+		authority.address
+	)) as PermissionedMintableERC20
+
+	console.log("WETH deployed")
+
+	try {
+		await hre.run("verify:verify", {
+			address: weth.address,
+			constructorArguments: ["Wrapped Ether", "WETH", "18", authority.address]
+		})
+		console.log("weth verified")
+	} catch (err: any) {
+		console.log(err)
+	}
+
+	const usdcFactory = await ethers.getContractFactory("PermissionedMintableERC20")
+	const usd = (await usdcFactory.deploy(
+		"USDC",
+		"USDC",
+		"6",
+		authority.address
+	)) as PermissionedMintableERC20
+	console.log("USDC deployed")
+
+	try {
+		await hre.run("verify:verify", {
+			address: usd.address,
+			constructorArguments: ["USDC", "USDC", "6", authority.address]
+		})
+		console.log("usdc verified")
+	} catch (err: any) {
+		console.log(err)
+	}
+
+	// const weth = (await ethers.getContractAt(
+	// 	"contracts/interfaces/WETH.sol:WETH",
+	// 	wethAddress
+	// )) as WETH
+	// const wethERC20 = (await ethers.getContractAt("ERC20Interface", wethAddress)) as ERC20Interface
+	// const usd = (await ethers.getContractAt(
+	// 	"contracts/tokens/ERC20.sol:ERC20",
+	// 	usdcAddress
+	// )) as MintableERC20
 
 	const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
 	const priceFeed = (await priceFeedFactory.deploy(
