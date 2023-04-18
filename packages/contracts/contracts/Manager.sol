@@ -254,7 +254,7 @@ contract Manager is AccessControl {
 	 * @dev    only callable by the manager
 	 */
 	function changeOptionBuyOrSell(Types.Option[] memory options) external {
-		_isProxyManager();
+		_isKeeper();
 		optionCatalogue.changeOptionBuyOrSell(options);
 	}
 
