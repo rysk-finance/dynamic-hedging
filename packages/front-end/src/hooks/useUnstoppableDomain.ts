@@ -1,10 +1,10 @@
-import { captureException } from "@sentry/react";
 import { Resolution } from "@unstoppabledomains/resolution";
 import { getAccount } from "@wagmi/core";
 import { useEffect } from "react";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
+import { logError } from "src/utils/logError";
 
 export const resolution = new Resolution();
 
@@ -28,7 +28,7 @@ export const useUnstoppableDomain = () => {
           }
         }
       } catch (error) {
-        captureException(error);
+        logError(error);
 
         dispatch({
           type: ActionType.SET_UNSTOPPABLE_DOMAIN,

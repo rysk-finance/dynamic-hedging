@@ -1,20 +1,20 @@
 import type { Contract, ContractFunction, ContractInterface } from "ethers";
 
 import { TransactionResponse } from "@ethersproject/abstract-provider";
-import { captureException } from "@sentry/react";
-import { Contract as EthersContract } from "ethers";
 import { useAddRecentTransaction } from "@rainbow-me/rainbowkit";
+import { Contract as EthersContract } from "ethers";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { useAccount, useNetwork, useProvider, useSigner } from "wagmi";
 
+import { capitalise } from "src/utils/caseConvert";
+import { logError } from "src/utils/logError";
 import { TransactionDisplay } from "../components/shared/TransactionDisplay";
 import { GAS_LIMIT_MULTIPLIER_PERCENTAGE } from "../config/constants";
 import addresses from "../contracts.json";
 import { ContractAddresses, ETHNetwork } from "../types";
 import { trackRPCError } from "../utils/fathomEvents";
 import { DEFAULT_ERROR, isRPCError, parseError } from "../utils/parseRPCError";
-import { capitalise } from "src/utils/caseConvert";
 
 type EventName = string;
 type EventData = any[];
@@ -176,14 +176,14 @@ export const useContract = <T extends Record<EventName, EventData> = any>(
             autoClose: 5000,
           });
           trackRPCError(err.code);
-          captureException(new Error(err.message));
+          logError(new Error(err.message));
           return;
         } else {
           toast(`❌ ${DEFAULT_ERROR}`, { autoClose: 5000 });
           if ("code" in err) {
             // Will create an UNTRACKED_ERROR event in fathom.
             trackRPCError(err.code);
-            captureException(new Error(JSON.stringify(err)));
+            logError(new Error(JSON.stringify(err)));
             return;
           }
         }

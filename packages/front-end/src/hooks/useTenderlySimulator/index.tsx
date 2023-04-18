@@ -1,7 +1,9 @@
+import type { SimulationResponse, UseTenderlySimulatorConfig } from "./types";
+
 import { useState } from "react";
 import { useAccount } from "wagmi";
-import { captureException } from "@sentry/react";
-import { SimulationResponse, UseTenderlySimulatorConfig } from "./types";
+
+import { logError } from "src/utils/logError";
 
 const TENDERLY_API = "https://api.tenderly.co/api/v1/account";
 const TENDERLY_USER = process.env.REACT_APP_TENDERLY_USER;
@@ -60,9 +62,17 @@ const useTenderlySimulator = ({ to }: UseTenderlySimulatorConfig) => {
     setLoading(true);
     try {
       return fetchSimulation(address, to, data, gas, gasPrice, value);
-    } catch (e: any) {
-      captureException(e);
-      setError(e.message);
+    } catch (error: unknown) {
+      logError(error);
+
+      if (
+        error &&
+        typeof error === "object" &&
+        "message" in error &&
+        typeof error.message === "string"
+      ) {
+        setError(error.message);
+      }
     }
     setLoading(false);
   };
