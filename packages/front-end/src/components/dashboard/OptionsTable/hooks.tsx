@@ -1,8 +1,7 @@
 import type { ApolloError } from "@apollo/client";
-import type { CompleteRedeem, Position, ParsedPosition } from "./types";
+import type { CompleteRedeem, ParsedPosition, Position } from "./types";
 
 import { gql, useQuery } from "@apollo/client";
-import { captureException } from "@sentry/react";
 import { prepareWriteContract, writeContract } from "@wagmi/core";
 import dayjs from "dayjs";
 import { BigNumber } from "ethers";
@@ -11,12 +10,13 @@ import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
 
 import { NewControllerABI } from "src/abis/NewController_ABI";
+import { QueriesEnum } from "src/clients/Apollo/Queries";
 import { OpynActionType } from "src/enums/OpynActionType";
 import { useGraphPolling } from "src/hooks/useGraphPolling";
 import { getContractAddress } from "src/utils/helpers";
+import { logError } from "src/utils/logError";
 import { DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
 import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
-import { QueriesEnum } from "src/clients/Apollo/Queries";
 
 /**
  * Hook using GraphQL to fetch all positions for the user
@@ -64,10 +64,7 @@ const usePositions = () => {
       }
     `,
     {
-      onError: (err) => {
-        captureException(err);
-        console.error(err);
-      },
+      onError: logError,
       variables: {
         account: address?.toLowerCase(),
       },

@@ -10,11 +10,9 @@ import type {
 import type { DHVLensMK1 } from "src/types/DHVLensMK1";
 import type { InitialDataQuery, OptionsTransaction, Vault } from "./types";
 
-import { captureException } from "@sentry/react";
 import { readContract, readContracts } from "@wagmi/core";
 import dayjs from "dayjs";
 import { BigNumber } from "ethers";
-import { getImpliedVolatility } from "implied-volatility";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { NewControllerABI } from "src/abis/NewController_ABI";
@@ -23,10 +21,10 @@ import {
   fromWei,
   fromWeiToInt,
   fromWeiToOpyn,
-  SECONDS_IN_YEAR,
   tFormatUSDC,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
+import { logError } from "src/utils/logError";
 import { toTwoDecimalPlaces } from "src/utils/rounding";
 
 const getExpiries = (expiries: InitialDataQuery["expiries"]) => {
@@ -113,12 +111,9 @@ const getChainData = async (
       contracts,
     })) as DHVLensMK1.OptionExpirationDrillStructOutput[];
 
-    // console.log(data[5].callOptionDrill[0].buy.iv.toString());
-
     const createSide = (
       drill: readonly DHVLensMK1.OptionStrikeDrillStruct[],
       side: CallOrPut,
-      underlyingPrice: number,
       expiry: number
     ) => {
       return drill.reduce(
@@ -196,14 +191,10 @@ const getChainData = async (
     };
 
     return data.reduce(
-      (
-        chainData,
-        { callOptionDrill, expiration, putOptionDrill, underlyingPrice }
-      ) => {
+      (chainData, { callOptionDrill, expiration, putOptionDrill }) => {
         const expiry = expiration.toNumber();
-        const ethPrice = Number(fromWei(underlyingPrice));
-        const calls = createSide(callOptionDrill, "call", ethPrice, expiry);
-        const puts = createSide(putOptionDrill, "put", ethPrice, expiry);
+        const calls = createSide(callOptionDrill, "call", expiry);
+        const puts = createSide(putOptionDrill, "put", expiry);
         const strikes = Array.from(
           new Set([...Object.keys(calls), ...Object.keys(puts)])
         );
@@ -230,7 +221,7 @@ const getChainData = async (
       {} as ChainData
     );
   } catch (error) {
-    captureException(error);
+    logError(error);
 
     return {};
   }
@@ -249,7 +240,7 @@ const getOperatorStatus = async (address?: HexString) => {
         args: [address, exchangeAddress],
       });
     } catch (error) {
-      captureException(error);
+      logError(error);
 
       return false;
     }
