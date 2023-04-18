@@ -135,6 +135,7 @@ export const buy = async (
 };
 
 export const closeLong = async (
+  acceptablePremium: BigNumberType,
   addresses: AddressesRequired,
   amount: BigNumberType,
   refresh: () => void
@@ -151,7 +152,7 @@ export const closeLong = async (
           vaultId: BigNumber.from(0),
           amount,
           optionSeries: EMPTY_SERIES,
-          indexOrAcceptablePremium: BigNumber.from(0),
+          indexOrAcceptablePremium: acceptablePremium,
           data: "0x" as HexString,
         },
       ],
