@@ -45,8 +45,8 @@ export declare namespace DHVLensMK1 {
 
   export type OptionStrikeDrillStruct = {
     strike: BigNumberish;
-    bid: DHVLensMK1.TradingSpecStruct;
-    ask: DHVLensMK1.TradingSpecStruct;
+    sell: DHVLensMK1.TradingSpecStruct;
+    buy: DHVLensMK1.TradingSpecStruct;
     delta: BigNumberish;
     exposure: BigNumberish;
   };
@@ -59,8 +59,8 @@ export declare namespace DHVLensMK1 {
     BigNumber
   ] & {
     strike: BigNumber;
-    bid: DHVLensMK1.TradingSpecStructOutput;
-    ask: DHVLensMK1.TradingSpecStructOutput;
+    sell: DHVLensMK1.TradingSpecStructOutput;
+    buy: DHVLensMK1.TradingSpecStructOutput;
     delta: BigNumber;
     exposure: BigNumber;
   };

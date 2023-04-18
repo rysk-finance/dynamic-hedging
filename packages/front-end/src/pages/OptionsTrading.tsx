@@ -1,10 +1,3 @@
-import { OptionsTradingContent } from "../components/optionsTrading/OptionsTradingContent";
-import { OptionsTradingProvider } from "../state/OptionsTradingContext";
+import { OptionsTradingContent } from "../components/optionsTrading";
 
-export const OptionsTrading = () => {
-  return (
-    <OptionsTradingProvider>
-      <OptionsTradingContent />
-    </OptionsTradingProvider>
-  );
-};
+export const OptionsTrading = () => <OptionsTradingContent />;

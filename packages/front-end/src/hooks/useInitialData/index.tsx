@@ -32,6 +32,7 @@ export const useInitialData = () => {
   const {
     state: {
       options: { activeExpiry },
+      selectedOption,
     },
     dispatch,
   } = useGlobalContext();
@@ -77,18 +78,33 @@ export const useInitialData = () => {
     if (data && !loading) {
       updatePriceData();
 
-      getInitialData(data).then(([validExpiries, userPositions, chainData]) => {
-        dispatch({
-          type: ActionType.SET_OPTIONS,
-          activeExpiry: activeExpiry || validExpiries[0],
-          data: chainData,
-          error,
-          expiries: validExpiries,
-          loading,
-          refresh,
-          userPositions,
-        });
-      });
+      getInitialData(data, address).then(
+        ([validExpiries, userPositions, chainData, isOperator, userVaults]) => {
+          dispatch({
+            type: ActionType.SET_OPTIONS,
+            activeExpiry: activeExpiry || validExpiries[0],
+            data: chainData,
+            error,
+            expiries: validExpiries,
+            isOperator,
+            loading,
+            refresh,
+            userPositions,
+            vaults: userVaults,
+          });
+
+          if (activeExpiry && selectedOption) {
+            const strike = selectedOption.strikeOptions.strike;
+            const newStrikeOptions = chainData[activeExpiry][strike];
+            const option = {
+              ...selectedOption,
+              strikeOptions: newStrikeOptions,
+            };
+
+            dispatch({ type: ActionType.SET_SELECTED_OPTION, option });
+          }
+        }
+      );
 
       setSkip(true);
     }

@@ -1,16 +1,16 @@
-import type {
+import {
   GlobalAction,
   GlobalState,
-  OptionsTradingAction,
+  OptionChainModalActions,
   OptionsTradingState,
   VaultAction,
-  VaultState
+  VaultState,
 } from "./types";
 
 import { Reducer } from "react";
 
 import { defaultGlobalState } from "./GlobalContext";
-import { ActionType, OptionsTradingActionType, VaultActionType } from "./types";
+import { ActionType, VaultActionType } from "./types";
 
 export const globalReducer: Reducer<GlobalState, GlobalAction> = (
   state,
@@ -52,19 +52,6 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ...state,
         settings: { ...state.settings, ...action.settings },
       };
-    case ActionType.RESET_GLOBAL_STATE:
-      return {
-        ...state,
-        userOptionPositions: [],
-        userPositionValue: null,
-        positionBreakdown: {
-          currentWithdrawSharePrice: null,
-          pendingWithdrawShares: null,
-          redeemedShares: null,
-          unredeemedShares: null,
-          usdcOnHold: null,
-        },
-      };
     case ActionType.SET_UNSTOPPABLE_DOMAIN:
       return {
         ...state,
@@ -78,9 +65,11 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           data: action.data || state.options.data,
           error: action.error || state.options.error,
           expiries: action.expiries || state.options.expiries,
+          isOperator: action.isOperator ?? state.options.isOperator,
           loading: action.loading ?? state.options.loading,
           refresh: action.refresh || state.options.refresh,
           userPositions: action.userPositions || state.options.userPositions,
+          vaults: action.vaults || state.options.vaults,
         },
       };
     case ActionType.SET_VISIBLE_STRIKE_RANGE:
@@ -107,6 +96,65 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           visibleColumns: defaultGlobalState.visibleColumns,
         };
       }
+    case ActionType.SET_COLLATERAL_PREFERENCES:
+      if (action.collateralPreferences) {
+        return {
+          ...state,
+          collateralPreferences: action.collateralPreferences,
+        };
+      } else {
+        return {
+          ...state,
+          collateralPreferences: defaultGlobalState.collateralPreferences,
+        };
+      }
+    case ActionType.SET_SELECTED_OPTION:
+      return { ...state, selectedOption: action.option };
+    case ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE:
+      return {
+        ...state,
+        optionChainModalOpen: action.visible,
+      };
+    case ActionType.SET_BUY_TUTORIAL_INDEX:
+      return {
+        ...state,
+        buyTutorialIndex: action.index,
+      };
+    case ActionType.SET_CHAIN_TUTORIAL_INDEX:
+      return {
+        ...state,
+        chainTutorialIndex: action.index,
+      };
+    case ActionType.SET_SELL_TUTORIAL_INDEX:
+      return {
+        ...state,
+        sellTutorialIndex: action.index,
+      };
+    case ActionType.RESET_OPTIONS_CHAIN_STATE:
+      return {
+        ...state,
+        selectedOption: defaultGlobalState.selectedOption,
+        optionChainModalOpen: defaultGlobalState.optionChainModalOpen,
+        chainTutorialIndex: defaultGlobalState.chainTutorialIndex,
+      };
+    case ActionType.CHANGE_FROM_BUYING_OR_SELLING:
+      if (state.selectedOption) {
+        if (action.visible === OptionChainModalActions.BUY) {
+          return {
+            ...state,
+            optionChainModalOpen: action.visible,
+            selectedOption: { ...state.selectedOption, buyOrSell: "buy" },
+          };
+        } else {
+          return {
+            ...state,
+            optionChainModalOpen: action.visible,
+            selectedOption: { ...state.selectedOption, buyOrSell: "sell" },
+          };
+        }
+      } else {
+        return state;
+      }
   }
 };
 
@@ -119,26 +167,6 @@ export const vaultReducer: Reducer<VaultState, VaultAction> = (
       return {
         ...state,
         ...action.data,
-      };
-  }
-};
-
-export const optionsTradingReducer: Reducer<
-  OptionsTradingState,
-  OptionsTradingAction
-> = (state, action) => {
-  switch (action.type) {
-    case OptionsTradingActionType.SET_SELECTED_OPTION:
-      return { ...state, selectedOption: action.option };
-    case OptionsTradingActionType.SET_SELL_MODAL_VISIBLE:
-      return {
-        ...state,
-        sellModalOpen: action.visible,
-      };
-    case OptionsTradingActionType.SET_TUTORIAL_INDEX:
-      return {
-        ...state,
-        tutorialIndex: action.index,
       };
   }
 };

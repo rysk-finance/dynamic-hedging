@@ -9,10 +9,16 @@ import {
   useEffect,
   useReducer,
 } from "react";
-import { globalReducer } from "./reducer";
-import { ActionType, AppSettings, GlobalContext, GlobalState } from "./types";
-import { useLocalStorage } from "../hooks/useLocalStorage";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../components/dashboard/Settings";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import { globalReducer } from "./reducer";
+import {
+  ActionType,
+  AppSettings,
+  CollateralAmount,
+  GlobalContext,
+  GlobalState,
+} from "./types";
 
 export const defaultGlobalState: GlobalState = {
   ethPrice: null,
@@ -42,20 +48,32 @@ export const defaultGlobalState: GlobalState = {
     data: {},
     error: undefined,
     expiries: [],
+    isOperator: false,
     loading: true,
     refresh: () => {},
     userPositions: {},
+    vaults: { length: 0 },
   },
 
   // Options chain state.
+  collateralPreferences: {
+    type: "USDC",
+    amount: CollateralAmount["2x"],
+  },
+  selectedOption: undefined,
+  optionChainModalOpen: undefined,
+  buyTutorialIndex: undefined,
+  chainTutorialIndex: undefined,
+  sellTutorialIndex: undefined,
   visibleStrikeRange: ["", ""],
   visibleColumns: new Set([
-    "bid",
-    "ask",
+    "sell",
+    "buy",
     "iv sell",
     "iv buy",
     "delta",
     "pos",
+    "exposure",
   ] as ColumNames[]),
 };
 

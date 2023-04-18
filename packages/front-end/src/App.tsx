@@ -25,17 +25,17 @@ function App() {
       <WalletProvider>
         <ApolloProvider>
           <Init />
-          <div className="App bg-bone flex flex-col min-h-screen">
+          <div className="bg-bone flex flex-col min-h-screen">
             <Favicon />
             {process.env.REACT_APP_ENV !== "production" && (
               <Helmet>
-                <meta name="robots" content="noindex, nofollow"></meta>
+                <meta name="robots" content="noindex, nofollow" />
               </Helmet>
             )}
 
             <MobileWarning />
             <Header />
-            <div className="pt-16 px-16">
+            <div className="pt-16 px-16 overflow-hidden">
               <div className="root-grid py-24">
                 <Routes>
                   <Route path={AppPaths.VAULT} element={<Vault />} />

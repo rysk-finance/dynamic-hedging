@@ -43,13 +43,32 @@ export type PutSide = {
 export type StrikeRangeTuple = [string, string];
 
 export type ColumNames =
-  | "bid"
-  | "ask"
+  | "sell"
+  | "buy"
   | "iv sell"
   | "iv buy"
   | "delta"
   | "pos"
   | "exposure";
+
+export type CollateralType = "USDC" | "WETH";
+
+export enum CollateralAmount {
+  "1.5x" = "1.5x",
+  "2x" = "2x",
+  "3x" = "3x",
+  "full" = "full",
+}
+
+export interface CollateralPreferences {
+  type: CollateralType;
+  amount: keyof typeof CollateralAmount;
+}
+
+export interface UserVaults {
+  [oTokenAddress: HexString]: string;
+  length: number;
+}
 
 // Global context
 export type GlobalState = {
@@ -80,12 +99,20 @@ export type GlobalState = {
     data: ChainData;
     error?: ApolloError;
     expiries: Expiries;
+    isOperator: boolean;
     loading: boolean;
     refresh: () => void;
     userPositions: UserPositions;
+    vaults: UserVaults;
   };
 
   // Options chain state.
+  collateralPreferences: CollateralPreferences;
+  selectedOption?: SelectedOption;
+  optionChainModalOpen?: OptionChainModal;
+  buyTutorialIndex?: number;
+  chainTutorialIndex?: number;
+  sellTutorialIndex?: number;
   visibleStrikeRange: StrikeRangeTuple;
   visibleColumns: Set<ColumNames>;
 };
@@ -97,11 +124,22 @@ export enum ActionType {
   SET_POSITION_BREAKDOWN,
   SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
   SET_SETTINGS,
-  RESET_GLOBAL_STATE,
   SET_UNSTOPPABLE_DOMAIN,
+
+  // Actions related to useInitialData hook.
   SET_OPTIONS,
+
+  // Actions related to options chain state.
   SET_VISIBLE_STRIKE_RANGE,
   SET_VISIBLE_COLUMNS,
+  SET_COLLATERAL_PREFERENCES,
+  SET_SELECTED_OPTION,
+  SET_OPTION_CHAIN_MODAL_VISIBLE,
+  SET_BUY_TUTORIAL_INDEX,
+  SET_CHAIN_TUTORIAL_INDEX,
+  SET_SELL_TUTORIAL_INDEX,
+  RESET_OPTIONS_CHAIN_STATE,
+  CHANGE_FROM_BUYING_OR_SELLING,
 }
 
 export type GlobalAction =
@@ -135,9 +173,6 @@ export type GlobalAction =
       settings: Partial<AppSettings>;
     }
   | {
-      type: ActionType.RESET_GLOBAL_STATE;
-    }
-  | {
       type: ActionType.SET_UNSTOPPABLE_DOMAIN;
       unstoppableDomain: string | null;
     }
@@ -147,9 +182,11 @@ export type GlobalAction =
       data?: ChainData;
       error?: ApolloError;
       expiries?: Expiries;
+      isOperator?: boolean;
       loading?: boolean;
       refresh?: () => void;
       userPositions?: UserPositions;
+      vaults?: UserVaults;
     }
   | {
       type: ActionType.SET_VISIBLE_STRIKE_RANGE;
@@ -158,6 +195,40 @@ export type GlobalAction =
   | {
       type: ActionType.SET_VISIBLE_COLUMNS;
       column?: ColumNames;
+    }
+  | {
+      type: ActionType.SET_COLLATERAL_PREFERENCES;
+      collateralPreferences?: CollateralPreferences;
+    }
+  | {
+      type: ActionType.SET_SELECTED_OPTION;
+      option?: SelectedOption;
+    }
+  | {
+      type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE;
+      visible?: OptionChainModalActions;
+    }
+  | {
+      type: ActionType.SET_BUY_TUTORIAL_INDEX;
+      index?: number;
+    }
+  | {
+      type: ActionType.SET_CHAIN_TUTORIAL_INDEX;
+      index?: number;
+    }
+  | {
+      type: ActionType.SET_SELL_TUTORIAL_INDEX;
+      index?: number;
+    }
+  | {
+      type: ActionType.RESET_OPTIONS_CHAIN_STATE;
+    }
+  | {
+      type: ActionType.CHANGE_FROM_BUYING_OR_SELLING;
+      visible:
+        | OptionChainModalActions.BUY
+        | OptionChainModalActions.SELL
+        | OptionChainModalActions.OPERATOR;
     };
 
 export type GlobalContext = {
@@ -190,15 +261,20 @@ export type VaultContext = {
 
 // Options trading context
 export type OptionsTradingState = {
-  selectedOption: SelectedOption | null;
-  sellModalOpen: boolean;
-  tutorialIndex?: number;
+  selectedOption?: SelectedOption;
+  optionChainModalOpen?: OptionChainModal;
+  chainTutorialIndex?: number;
 };
 
-export type OptionsTradingContext = {
-  state: OptionsTradingState;
-  dispatch: Dispatch<OptionsTradingAction>;
-};
+export enum OptionChainModalActions {
+  BUY = "buy",
+  CLOSE = "close",
+  OPERATOR = "operator",
+  SELL = "sell",
+}
+
+type OptionChainModal =
+  (typeof OptionChainModalActions)[keyof typeof OptionChainModalActions];
 
 export enum OptionType {
   CALL = "CALL",
@@ -208,20 +284,26 @@ export enum OptionType {
 export type CallOrPut = "call" | "put";
 
 export interface SelectedOption {
-  bidOrAsk: "bid" | "ask";
+  buyOrSell: "sell" | "buy";
   callOrPut: CallOrPut;
   strikeOptions: StrikeOptions;
 }
 
+export interface Quote {
+  fee: number;
+  quote: number;
+  total: number;
+}
+
 export interface StrikeSide {
-  bid: {
+  sell: {
     IV: number;
-    quote: number;
+    quote: Quote;
     disabled: boolean;
   };
-  ask: {
+  buy: {
     IV: number;
-    quote: number;
+    quote: Quote;
     disabled: boolean;
   };
   delta: number;
@@ -244,24 +326,3 @@ export interface OptionSeries {
   collateral: HexString;
   isPut: boolean;
 }
-
-export enum OptionsTradingActionType {
-  SET_EXPIRY_DATE,
-  SET_SELECTED_OPTION,
-  SET_SELL_MODAL_VISIBLE,
-  SET_TUTORIAL_INDEX,
-}
-
-export type OptionsTradingAction =
-  | {
-      type: OptionsTradingActionType.SET_SELECTED_OPTION;
-      option: SelectedOption | null;
-    }
-  | {
-      type: OptionsTradingActionType.SET_SELL_MODAL_VISIBLE;
-      visible: boolean;
-    }
-  | {
-      type: OptionsTradingActionType.SET_TUTORIAL_INDEX;
-      index?: number;
-    };
