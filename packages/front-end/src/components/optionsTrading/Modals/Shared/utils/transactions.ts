@@ -56,7 +56,7 @@ export const approveAllowance = async (
 
       const { hash } = await writeContract(config);
 
-      await waitForTransaction({ hash, confirmations: 2 });
+      await waitForTransaction({ hash, confirmations: 1 });
 
       return hash;
     } else {
@@ -123,7 +123,7 @@ export const buy = async (
 
       const { hash } = await writeContract(config);
 
-      await waitForTransaction({ hash, confirmations: 2 });
+      await waitForTransaction({ hash, confirmations: 1 });
 
       refresh();
 
@@ -180,7 +180,7 @@ export const closeLong = async (
 
       const { hash } = await writeContract(config);
 
-      await waitForTransaction({ hash, confirmations: 2 });
+      await waitForTransaction({ hash, confirmations: 1 });
 
       refresh();
 
@@ -312,7 +312,7 @@ export const sell = async (
 
       const { hash } = await writeContract(config);
 
-      await waitForTransaction({ hash, confirmations: 2 });
+      await waitForTransaction({ hash, confirmations: 1 });
 
       refresh();
 
