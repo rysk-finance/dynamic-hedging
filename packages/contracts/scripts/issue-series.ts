@@ -14,8 +14,9 @@ export const ADDRESSES = {
         usdc: ""
     },
     [CHAINID.ARBITRUM_GOERLI]: {
-        catalogue: "0xFE767C13EB75686817E4be774fAEEaBE93346887", // on goerli there is no manager
-        exchange: "0xFCc90f3c220cF6637983347f49540E359ec07D8c",
+        manager: "0x45451c486e70c4d17609F441aE4ec1A577925E56",
+        catalogue: "0x5F7350aEA196825C3AAc335D97535e9b4EfCDb45", // on goerli there is no manager
+        exchange: "0x63cE41cA4E30e75Caf9B561E0250c25056B6e2C0",
         usdc: "0x6775842ae82bf2f0f987b10526768ad89d79536e",
         weth: "0x53320bE2A35649E9B2a0f244f9E9474929d3B699",
     },
