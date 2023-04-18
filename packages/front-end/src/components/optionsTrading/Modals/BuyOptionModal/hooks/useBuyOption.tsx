@@ -1,7 +1,6 @@
 import type { Addresses } from "../../Shared/types";
 import type { PositionDataState } from "../types";
 
-import { captureException } from "@sentry/react";
 import { fetchBalance } from "@wagmi/core";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
@@ -16,6 +15,7 @@ import {
   truncate,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
+import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
 import { getQuote } from "../../Shared/utils/getQuote";
 import { BigNumber } from "ethers";
@@ -118,7 +118,7 @@ export const useBuyOption = (amountToBuy: string) => {
 
         setLoading(false);
       } catch (error) {
-        captureException(error);
+        logError(error);
         setLoading(false);
       }
     };

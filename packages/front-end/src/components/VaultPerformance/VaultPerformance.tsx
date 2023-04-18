@@ -1,13 +1,13 @@
 import type { ChartData, QueryData } from "./VaultPerformance.types";
 
 import { gql, useQuery } from "@apollo/client";
-import { captureException } from "@sentry/react";
 import { AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 
 import { toTwoDecimalPlaces } from "src/utils/rounding";
 
 import { QueriesEnum } from "src/clients/Apollo/Queries";
+import { logError } from "src/utils/logError";
 import { Chart } from "./subcomponents/Chart";
 import { Disclaimer } from "./subcomponents/Disclaimer";
 import { Error } from "./subcomponents/Error";
@@ -34,10 +34,7 @@ export const VaultPerformance = () => {
       }
     `,
     {
-      onError: (err) => {
-        captureException(err);
-        console.error(err);
-      },
+      onError: logError,
     }
   );
 
