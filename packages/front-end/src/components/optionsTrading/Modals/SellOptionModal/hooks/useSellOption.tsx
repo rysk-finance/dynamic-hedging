@@ -18,7 +18,6 @@ import {
   toOpyn,
   toRysk,
   toUSDC,
-  toWei,
   truncate,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
