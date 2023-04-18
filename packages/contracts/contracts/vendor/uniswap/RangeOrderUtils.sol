@@ -108,7 +108,7 @@ import {TickMath} from "./TickMath.sol";
     ) pure returns (uint160 sqrtPriceX96){
         if (inversed) {
             uint256 price = uint256(1e18).div(weiPrice);
-            sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(price).mul(2 ** 96).mul(10 ** token0Decimals));
+            sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(price).mul(2 ** 96)) * uint160(10 ** token0Decimals);
         } else {
             sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(weiPrice).mul(2 ** 96));
         }
