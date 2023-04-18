@@ -87,6 +87,7 @@ export const CloseOptionModal = () => {
         const amount = toRysk(amountToClose);
 
         const hash = await closeLong(
+          positionData.acceptablePremium,
           addresses as AddressesRequired,
           amount,
           refresh
