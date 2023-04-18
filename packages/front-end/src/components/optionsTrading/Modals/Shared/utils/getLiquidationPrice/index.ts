@@ -70,25 +70,26 @@ export const getLiquidationPrice = async (
   const maxPrice = fromE27toInt(getMaxPriceResponse);
 
   // Adjust params based on collateral type.
-  const adjustedCollateral =
+  const formattedCollateral =
     collateralType === "USDC" ? collateral : ethPrice * collateral;
+  const adjustedCollateral = formattedCollateral / amount;
   const shock = spotShock[callOrPut][collateralType];
 
   switch (true) {
     case !isPut && adjustedCollateral / (shock * strikePrice) > maxPrice:
       return truncate(
-        (adjustedCollateral - (maxPrice - 1) * (shock * strikePrice)) / amount
+        (adjustedCollateral - (maxPrice - 1) * (shock * strikePrice)) 
       );
 
     case !isPut && adjustedCollateral / (shock * strikePrice) < maxPrice:
-      return truncate(adjustedCollateral / maxPrice / amount);
+      return truncate(adjustedCollateral / maxPrice);
 
     case !isPut && adjustedCollateral / (shock * strikePrice) === maxPrice:
-      return truncate((shock * strikePrice) / amount);
+      return truncate((shock * strikePrice));
 
     case isPut && strikePrice * maxPrice < adjustedCollateral:
       return truncate(
-        (adjustedCollateral - strikePrice / ((maxPrice - 1) * shock)) / amount
+        (adjustedCollateral - strikePrice / ((maxPrice - 1) * shock))
       );
 
     case isPut && strikePrice * maxPrice >= adjustedCollateral:
