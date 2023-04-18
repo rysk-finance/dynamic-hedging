@@ -1,14 +1,14 @@
+import { readContract } from "@wagmi/core";
 import dayjs from "dayjs";
 import { useCallback } from "react";
-import { readContract } from "@wagmi/core";
 
+import { PriceFeedABI } from "src/abis/PriceFeed_ABI";
+import { fromOpynToNumber } from "src/utils/conversion-helper";
+import { getContractAddress } from "src/utils/helpers";
+import { logError } from "src/utils/logError";
 import { CMC_API_KEY, endpoints } from "../config/endpoints";
 import { useGlobalContext } from "../state/GlobalContext";
 import { ActionType } from "../state/types";
-import { PriceFeedABI } from "src/abis/PriceFeed_ABI";
-import { getContractAddress } from "src/utils/helpers";
-import { fromOpynToNumber } from "src/utils/conversion-helper";
-import { captureException } from "@sentry/react";
 
 interface EthPriceResponse {
   current_price: number;
@@ -53,7 +53,7 @@ export const useUpdateEthPrice = () => {
       const data: EthPriceResponse[] = await response.json();
       return data[0];
     } catch (error) {
-      captureException(error);
+      logError(error);
     }
   };
 
@@ -61,7 +61,7 @@ export const useUpdateEthPrice = () => {
     try {
       return await priceFeedGetRate();
     } catch (error) {
-      captureException(error);
+      logError(error);
 
       dispatch({
         type: ActionType.SET_ETH_PRICE_ERROR,
