@@ -1,10 +1,14 @@
+import type { BigNumber } from "ethers";
+
 export interface PositionDataState {
-  created: string | null;
-  now: string | null;
+  acceptablePremium: BigNumber;
+  fee: number;
+  now: string;
+  premium: number;
+  quote: number;
+  remainingBalance: number;
+  slippage: number;
   totalSize: number;
-  totalValue: number;
-  totalPaid: number;
-  inProfit: boolean;
   title: string | null;
 }
 

@@ -13,7 +13,6 @@ import {
   tFormatUSDC,
   toRysk,
   toUSDC,
-  toWei,
   truncate,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
@@ -26,7 +25,7 @@ export const useBuyOption = (amountToBuy: string) => {
   const {
     state: {
       ethPrice,
-      options: { activeExpiry, data },
+      options: { activeExpiry },
       selectedOption,
     },
   } = useGlobalContext();
@@ -41,7 +40,7 @@ export const useBuyOption = (amountToBuy: string) => {
 
   // User position state.
   const [purchaseData, setPurchaseData] = useState<PositionDataState>({
-    acceptablePremium:BigNumber.from(0),
+    acceptablePremium: BigNumber.from(0),
     callOrPut: selectedOption?.callOrPut,
     expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
     fee: 0,
@@ -99,7 +98,7 @@ export const useBuyOption = (amountToBuy: string) => {
           setAllowance((currentState) => ({ ...currentState, approved }));
         } else {
           setPurchaseData({
-            acceptablePremium:BigNumber.from(0),
+            acceptablePremium: BigNumber.from(0),
             callOrPut: selectedOption?.callOrPut,
             expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
             fee: 0,
