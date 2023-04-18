@@ -312,44 +312,48 @@ async function main() {
             day * 84
         ]
 
-        const expiryToValuePuts = [
-            scaleNum("0.13450634965266337", 27),
-            scaleNum("0.1743636615770228", 27),
-            scaleNum("0.239321068989108", 27),
-            scaleNum("0.2674790984983397", 27),
-            scaleNum("0.2974790984983397", 27),
-            scaleNum("0.3465422329949044", 27),
-            scaleNum("0.4300353956191806", 27)
-        ]
-
+        
         const expiryToValueCalls = [
-            scaleNum("0.12669600464771857", 27),
-            scaleNum("0.16068273273671582", 27),
-            scaleNum("0.2160991051547266", 27),
-            scaleNum("0.2628549745250929", 27),
-            scaleNum("0.2928549745250929", 27),
-            scaleNum("0.3133534880128994", 27),
-            scaleNum("0.3861588491865918", 27)
+            scaleNum("0.06450397731816006", 27),
+            scaleNum("0.09231833770011297", 27),
+            scaleNum("0.13579500625405116", 27),
+            scaleNum("0.16946505030414766", 27),
+            scaleNum("0.18966040863879444", 27),
+            scaleNum("0.21712954627555758", 27),
+            scaleNum("0.2334277303931109", 27)
         ]
 
-		// await calculator.setSpotShock("0x53320bE2A35649E9B2a0f244f9E9474929d3B699", "0x6775842ae82bf2f0f987b10526768ad89d79536e", "0x6775842ae82bf2f0f987b10526768ad89d79536e", false, ethers.utils.parseUnits("0.9", 27))
-        // await calculator.setSpotShock("0x53320bE2A35649E9B2a0f244f9E9474929d3B699", "0x6775842ae82bf2f0f987b10526768ad89d79536e", "0x6775842ae82bf2f0f987b10526768ad89d79536e", true, ethers.utils.parseUnits("0.9", 27))
-        await calculator.setUpperBoundValues(
-            "0x53320bE2A35649E9B2a0f244f9E9474929d3B699", 
-            "0x6775842ae82bf2f0f987b10526768ad89d79536e", 
-            "0x6775842ae82bf2f0f987b10526768ad89d79536e", 
-            true, 
-            timeToExpiry,
-            expiryToValuePuts
-            )
-        await calculator.setUpperBoundValues(
-            "0x53320bE2A35649E9B2a0f244f9E9474929d3B699", 
-            "0x6775842ae82bf2f0f987b10526768ad89d79536e", 
-            "0x6775842ae82bf2f0f987b10526768ad89d79536e", 
-            false, 
-            timeToExpiry,
-            expiryToValueCalls
-            )
+        const expiryToValuePuts = [
+            scaleNum("0.07512407679605068", 27),
+            scaleNum("0.10248639549205446", 27),
+            scaleNum("0.13835981996663352", 27),
+            scaleNum("0.17352015118659453", 27),
+            scaleNum("0.201775324051628", 27),
+            scaleNum("0.22504301373228863", 27),
+            scaleNum("0.24491364798591958", 27)
+        ]
+
+		await calculator.setSpotShock("0x53320bE2A35649E9B2a0f244f9E9474929d3B699", "0x6775842ae82bf2f0f987b10526768ad89d79536e", "0x6775842ae82bf2f0f987b10526768ad89d79536e", false, ethers.utils.parseUnits("1", 27))
+        await calculator.setSpotShock("0x53320bE2A35649E9B2a0f244f9E9474929d3B699", "0x6775842ae82bf2f0f987b10526768ad89d79536e", "0x6775842ae82bf2f0f987b10526768ad89d79536e", true, ethers.utils.parseUnits("1", 27))
+
+        for(let i=0; i < timeToExpiry.length; i++) {
+            await calculator.updateUpperBoundValue(
+                "0x53320bE2A35649E9B2a0f244f9E9474929d3B699", 
+                "0x6775842ae82bf2f0f987b10526768ad89d79536e", 
+                "0x6775842ae82bf2f0f987b10526768ad89d79536e", 
+                true, 
+                timeToExpiry[i],
+                expiryToValuePuts[i]
+                )
+            await calculator.updateUpperBoundValue(
+                "0x53320bE2A35649E9B2a0f244f9E9474929d3B699", 
+                "0x6775842ae82bf2f0f987b10526768ad89d79536e", 
+                "0x6775842ae82bf2f0f987b10526768ad89d79536e", 
+                false, 
+                timeToExpiry[i],
+                expiryToValueCalls[i]
+                )
+        }
 
 	} catch (err) {
 		console.log(err)
