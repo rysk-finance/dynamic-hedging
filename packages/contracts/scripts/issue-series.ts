@@ -24,44 +24,72 @@ export const ADDRESSES = {
 
 const seriesToIssue = [
     {
-        expiration: 1683273600,
+        expiration: 1685088000,
         isPut: CALL_FLAVOR,
         strike: toWei("1700"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1683273600,
+        expiration: 1685088000,
         isPut: CALL_FLAVOR,
         strike: toWei("1800"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1683273600,
+        expiration: 1685088000,
         isPut: CALL_FLAVOR,
         strike: toWei("1900"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1683273600,
+        expiration: 1685088000,
         isPut: PUT_FLAVOR,
         strike: toWei("1700"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1683273600,
+        expiration: 1685088000,
         isPut: PUT_FLAVOR,
         strike: toWei("1800"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1683273600,
+        expiration: 1685088000,
         isPut: PUT_FLAVOR,
         strike: toWei("1900"),
+        isSellable: true,
+        isBuyable: true
+    },
+    {
+        expiration: 1685088000,
+        isPut: PUT_FLAVOR,
+        strike: toWei("2000"),
+        isSellable: true,
+        isBuyable: true
+    },
+    {
+        expiration: 1685088000,
+        isPut: PUT_FLAVOR,
+        strike: toWei("2100"),
+        isSellable: true,
+        isBuyable: true
+    },
+    {
+        expiration: 1685088000,
+        isPut: CALL_FLAVOR,
+        strike: toWei("2000"),
+        isSellable: true,
+        isBuyable: true
+    },
+    {
+        expiration: 1685088000,
+        isPut: CALL_FLAVOR,
+        strike: toWei("2100"),
         isSellable: true,
         isBuyable: true
     },
