@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 type CompleteRedeem = (otokenId: string, amount: number) => Promise<void>;
 type CompleteSettle = (vaultId: string) => Promise<void>;
-type AdjustCollateral = (vaultId: string) => void;
+type AdjustCollateral = () => void;
 
 interface Balance {
   __typename: string;

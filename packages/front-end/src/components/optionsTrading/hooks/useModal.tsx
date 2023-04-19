@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { BigNumber } from "ethers";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 
@@ -8,7 +9,6 @@ import {
   OptionChainModalActions,
   DashboardModalActions,
 } from "src/state/types";
-import { BigNumber } from "ethers";
 
 /**
  * Hook that checks query params and state to determine if
