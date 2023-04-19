@@ -25,6 +25,7 @@ import { Pricing } from "./components/Pricing";
 import { useShortPositionData } from "./hooks/useShortPositionData";
 import { BigNumber } from "ethers";
 import { getContractAddress } from "src/utils/helpers";
+import { useDebounce } from "use-debounce";
 
 dayjs.extend(LocalizedFormat);
 
@@ -35,6 +36,16 @@ export const CloseShortOptionModal = () => {
     },
   } = useGlobalContext();
 
+  const [notifyApprovalSuccess, handleTransactionSuccess, notifyFailure] =
+    useNotifications();
+
+  const [amountToSell, setAmountToSell] = useState("");
+  const [debouncedAmountToSell] = useDebounce(amountToSell, 300);
+  const [collateralToRemove, setCollateralToRemove] = useState<BigNumber>(
+    BigNumber.from(0)
+  );
+  const [transactionPending, setTransactionPending] = useState(false);
+
   const [
     addresses,
     allowance,
@@ -42,16 +53,7 @@ export const CloseShortOptionModal = () => {
     positionData,
     collateralAmount,
     collateralPerOption,
-  ] = useShortPositionData();
-
-  const [notifyApprovalSuccess, handleTransactionSuccess, notifyFailure] =
-    useNotifications();
-
-  const [amountToSell, setAmountToSell] = useState("");
-  const [collateralToRemove, setCollateralToRemove] = useState<BigNumber>(
-    BigNumber.from(0)
-  );
-  const [transactionPending, setTransactionPending] = useState(false);
+  ] = useShortPositionData(debouncedAmountToSell);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const amount = event.currentTarget.value;
@@ -111,6 +113,7 @@ export const CloseShortOptionModal = () => {
         const amount = toRysk(amountToSell);
 
         const hash = await vaultSell(
+          positionData.acceptablePremium,
           addresses as AddressesRequiredVaultSell,
           amount,
           refresh,

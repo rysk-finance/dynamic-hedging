@@ -142,8 +142,8 @@ const Table = ({
               value={
                 collateralAsset
                   ? {
-                      ["USDC"]: fromUSDC(collateralAmount),
-                      ["WETH"]: fromWei(collateralAmount),
+                      USDC: fromUSDC(collateralAmount),
+                      WETH: fromWei(collateralAmount),
                     }[collateralAsset]
                   : null
               }
@@ -152,10 +152,10 @@ const Table = ({
               decimalScale={2}
               renderText={(value) => (
                 <td className="col-span-2 text-right">
-                  {value ? (
+                  {value && !isSettleable ? (
                     <Button
                       color="white"
-                      onClick={() => adjustCollateral(vaultId)}
+                      onClick={adjustCollateral}
                       className="min-w-[50%]"
                       title="Click to adjust"
                     >
@@ -176,13 +176,13 @@ const Table = ({
                       : completeSettle(vaultId)
                   }
                   className="min-w-[50%]"
-                  title="Click to redeem"
+                  title={`Click to ${isRedeemable ? "Redeem" : "Settle"}`}
                 >
                   {isRedeemable ? `Redeem` : `Settle`}
                 </Button>
               </td>
             ) : (
-              <td className="col-span-2 text-center text-sm">{status}</td>
+              <td className="col-span-2 text-center">{status}</td>
             )}
           </motion.tr>
         )

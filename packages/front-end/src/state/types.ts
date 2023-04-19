@@ -1,7 +1,7 @@
 import type { ApolloError } from "@apollo/client";
 import type { BigNumber, BigNumberish } from "ethers";
 
-import type { PositionOToken } from "src/hooks/useInitialData/types";
+import type { PositionOToken, Vault } from "src/hooks/useInitialData/types";
 
 import { Dispatch } from "react";
 
@@ -24,6 +24,7 @@ export interface UserPositions {
     isLong: boolean;
     isShort: boolean;
     tokens: UserPositionToken[];
+    vault?: Vault;
   };
 }
 

@@ -1,5 +1,4 @@
 import { Header } from "../Shared/components/Header";
-import { useVaultData } from "./hooks/useVaultData";
 import { useSearchParams } from "react-router-dom";
 import NumberFormat from "react-number-format";
 import { ethers } from "ethers";
@@ -22,6 +21,7 @@ import { AddressesRequired } from "src/components/optionsTrading/Modals/Shared/t
 import { Disclaimer } from "src/components/optionsTrading/Modals/Shared/components/Disclaimer";
 import { Modal } from "src/components/optionsTrading/Modals/Shared/components/Modal";
 import { useAllowance } from "src/components/optionsTrading/Modals/Shared/hooks/useAllowance";
+import { useShortPositionData } from "src/components/optionsTrading/Modals/CloseShortOptionModal/hooks/useShortPositionData";
 
 const AdjustCollateralModal = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -33,9 +33,8 @@ const AdjustCollateralModal = () => {
 
   const { address } = useAccount();
 
-  const [collateralAmount, collateralPerOption, collateralAsset] = useVaultData(
-    searchParams.get("vault")
-  );
+  const [, , , , collateralAmount, collateralPerOption, collateralAsset] =
+    useShortPositionData("");
 
   const [notifyApprovalSuccess, , notifyFailure] = useNotifications();
 
