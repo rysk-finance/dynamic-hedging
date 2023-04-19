@@ -23,13 +23,18 @@ interface Position {
   oToken: PositionOToken;
   optionsBoughtTransactions: OptionsTransaction[];
   optionsSoldTransactions: OptionsTransaction[];
+  vault?: Vault;
 }
 
 export interface Vault {
+  id: string;
   shortOToken: {
     id: HexString;
   };
   vaultId: string;
+  collateralAmount: string;
+  shortAmount: string;
+  collateralAsset: { id: string };
 }
 
 export interface InitialDataQuery {

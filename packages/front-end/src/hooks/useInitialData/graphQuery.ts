@@ -50,6 +50,14 @@ query ${QueriesEnum.INITIAL_DATA} ($address: String, $now: String) {
       fee
       premium
     }
+    vault {
+      id
+      collateralAmount
+      shortAmount
+      collateralAsset {
+        id
+      } 
+    }
   }
 
   vaults(

@@ -46,11 +46,18 @@ const getUserPositions = (
   return positions.reduce(
     (
       positions,
-      { netAmount, oToken, optionsBoughtTransactions, optionsSoldTransactions }
+      {
+        netAmount,
+        oToken,
+        optionsBoughtTransactions,
+        optionsSoldTransactions,
+        vault,
+      }
     ) => {
       const { expiryTimestamp } = oToken;
       const isLong = Number(netAmount) > 0;
       const isShort = Number(netAmount) < 0;
+
       const key = positions[expiryTimestamp];
 
       const _getPremium = (
@@ -84,6 +91,7 @@ const getUserPositions = (
           isLong,
           isShort,
           tokens: [token],
+          vault,
         };
       } else {
         positions[expiryTimestamp] = {
@@ -91,6 +99,7 @@ const getUserPositions = (
           isLong: key.isLong || isLong,
           isShort: key.isShort || isShort,
           tokens: [...key.tokens, token],
+          vault,
         };
       }
 

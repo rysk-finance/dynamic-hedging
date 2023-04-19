@@ -339,6 +339,7 @@ export const setOperator = async (isOperator: boolean) => {
 };
 
 export const vaultSell = async (
+  acceptablePremium: BigNumberType,
   addresses: AddressesRequiredVaultSell,
   amount: BigNumberType,
   refresh: () => void,

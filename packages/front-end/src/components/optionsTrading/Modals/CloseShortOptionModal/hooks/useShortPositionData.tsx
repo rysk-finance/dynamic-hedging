@@ -8,24 +8,29 @@ import { useAccount } from "wagmi";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 import {
-  fromOpynToNumber,
+  fromOpyn,
   fromWeiToInt,
   renameOtoken,
+  tFormatUSDC,
+  toOpyn,
+  toRysk,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
-import { gql, useQuery } from "@apollo/client";
-import { VaultQueryData } from "../../Shared/types";
 import { BigNumber } from "ethers";
-import { BIG_NUMBER_DECIMALS } from "src/config/constants";
+import { BIG_NUMBER_DECIMALS, ZERO_ADDRESS } from "src/config/constants";
+import { getQuote } from "../../Shared/utils/getQuote";
+import { fetchBalance } from "@wagmi/core";
+import { logError } from "src/utils/logError";
 
-export const useShortPositionData = () => {
+export const useShortPositionData = (amountToClose: string) => {
   // URL query params.
   const [searchParams] = useSearchParams();
 
   // Context state.
   const {
     state: {
+      ethPrice,
       options: { activeExpiry, data, userPositions },
     },
   } = useGlobalContext();
@@ -33,103 +38,122 @@ export const useShortPositionData = () => {
   // Addresses.
   const { address } = useAccount();
   const tokenAddress = (searchParams.get("token") as HexString) || undefined;
-  const vaultID = searchParams.get("vault") || undefined;
   const exchangeAddress = getContractAddress("optionExchange");
+
+  const [loading, setLoading] = useState(false);
 
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
-    created: null,
-    now: null,
+    acceptablePremium: BigNumber.from(0),
+    fee: 0,
+    now: dayjs().format("MMM DD, YYYY HH:mm A"),
+    premium: 0,
+    quote: 0,
+    remainingBalance: 0,
+    slippage: 0,
     totalSize: 0,
-    totalValue: 0,
-    totalPaid: 0,
-    inProfit: false,
     title: null,
   });
 
-  const { data: vaultData } = useQuery<VaultQueryData>(
-    gql`
-      query ($vaultId: ID!) {
-        vault(id: $vaultId) {
-          id
-          collateralAmount
-          shortAmount
-          collateralAsset {
-            id
-          }
-        }
-      }
-    `,
-    {
-      variables: {
-        vaultId: `${address?.toLowerCase()}-${vaultID}`,
-      },
-      skip: !vaultID || !address,
-    }
-  );
-
+  const vault =
+    activeExpiry && userPositions
+      ? userPositions?.[activeExpiry]?.vault
+      : undefined;
   // At the moment this is either going to be USDC or WETH.
-  const collateralAsset = vaultData?.vault?.collateralAsset?.id as HexString;
+
+  const collateralAsset = vault?.collateralAsset.id as HexString;
 
   // User allowance state for the oToken.
-  const [allowance, setAllowance] = useAllowance(collateralAsset, address);
+  const [allowance, setAllowance] = useAllowance(collateralAsset);
 
   // Get user position data.
   useEffect(() => {
-    if (activeExpiry && tokenAddress && userPositions) {
-      const userPosition = userPositions[activeExpiry]?.tokens.find(
-        ({ id, netAmount }) =>
-          id === searchParams.get("token") && BigNumber.from(netAmount).lt(0)
-      );
+    const setPriceData = async (amount: number) => {
+      setLoading(true);
+      try {
+        const { value: balance } = await fetchBalance({
+          address: address || ZERO_ADDRESS,
+          token: getContractAddress("USDC"),
+        });
+        const balanceInt = tFormatUSDC(balance);
 
-      if (userPosition) {
-        const created = dayjs
-          .unix(Number(userPosition.createdAt))
-          .format("lll");
-        const now = dayjs().format("lll");
+        if (activeExpiry && tokenAddress && userPositions) {
+          const userPosition = userPositions[activeExpiry]?.tokens.find(
+            ({ id, netAmount }) =>
+              id === searchParams.get("token") &&
+              BigNumber.from(netAmount).lt(0)
+          );
 
-        const chainRow =
-          data[userPosition.expiryTimestamp][
-            fromOpynToNumber(userPosition.strikePrice)
-          ];
-        const currentValue =
-          chainRow[userPosition.isPut ? "put" : "call"].sell.quote.total;
+          const now = dayjs().format("MMM DD, YYYY HH:mm A");
 
-        if (currentValue >= 0) {
-          const totalSize = fromWeiToInt(userPosition.netAmount);
-          const totalValue = Math.abs(totalSize) * currentValue;
-          const totalPaid = Math.abs(userPosition.totalPremium);
-          const inProfit = totalValue < totalPaid;
+          const totalSize = fromWeiToInt(userPosition?.netAmount || 0);
           const title = `${renameOtoken(
-            userPosition.symbol
+            userPosition?.symbol || ""
           )} (${totalSize})`.toUpperCase();
 
-          setPositionData({
-            created,
-            now,
-            totalSize,
-            totalValue,
-            totalPaid,
-            inProfit,
-            title,
-          });
+          if (amount > 0 && userPosition) {
+            const { acceptablePremium, fee, premium, quote, slippage } =
+              await getQuote(
+                Number(activeExpiry),
+                toRysk(fromOpyn(userPosition.strikePrice)),
+                userPosition.isPut,
+                amount,
+                true
+              );
+
+            // closing a short is buying back the oToken, hence the minus USDC.
+            const remainingBalance = balance.isZero() ? 0 : balanceInt - quote;
+            const approved = toOpyn(amountToClose).lte(allowance.amount);
+
+            setPositionData({
+              acceptablePremium,
+              fee,
+              now,
+              premium,
+              quote,
+              remainingBalance,
+              slippage,
+              totalSize,
+              title,
+            });
+          } else {
+            setPositionData({
+              acceptablePremium: BigNumber.from(0),
+              fee: 0,
+              now,
+              premium: 0,
+              quote: 0,
+              remainingBalance: balanceInt,
+              slippage: 0,
+              totalSize,
+              title,
+            });
+          }
         }
+
+        setLoading(false);
+      } catch (error) {
+        logError(error);
+        setLoading(false);
       }
+    };
+
+    // if no amount we only need data below (for adjusting collateral)
+    if (amountToClose) {
+      setPriceData(Number(amountToClose));
     }
-  }, [activeExpiry, data, tokenAddress, userPositions]);
+  }, [activeExpiry, amountToClose, ethPrice, tokenAddress, userPositions]);
 
   const addresses: Addresses = {
     exchange: exchangeAddress,
     collateral: collateralAsset,
     token: tokenAddress,
     user: address,
-    vaultID: vaultID,
+    vaultID: vault?.id,
   };
 
-  const collateralAmount = BigNumber.from(
-    vaultData?.vault?.collateralAmount || "1"
-  );
-  const shortAmount = BigNumber.from(vaultData?.vault?.shortAmount || "0");
+  const collateralAmount = BigNumber.from(vault?.collateralAmount || "1");
+  const shortAmount = BigNumber.from(vault?.shortAmount || "0");
 
   const collateralPerOption =
     !collateralAmount.isZero() && !shortAmount.isZero()
@@ -143,5 +167,6 @@ export const useShortPositionData = () => {
     positionData,
     collateralAmount,
     collateralPerOption,
+    collateralAsset,
   ] as const;
 };
