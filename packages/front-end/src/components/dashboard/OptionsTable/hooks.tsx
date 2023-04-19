@@ -24,6 +24,7 @@ import { logError } from "src/utils/logError";
 import { BIG_NUMBER_DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
 import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
 import { fromRysk, fromUSDC } from "../../../utils/conversion-helper";
+import { Button } from "src/components/shared/Button";
 
 /**
  * Hook using GraphQL to fetch all positions for the user
@@ -212,10 +213,15 @@ const usePositions = () => {
                 case !expired:
                   return (
                     <Link
-                      className="p-4"
-                      to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&vault=${vault.vaultId}&ref=vault-close`}
+                      to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&ref=vault-close`}
                     >
-                      {`Close`}
+                      <Button
+                        color="white"
+                        className="min-w-[50%]"
+                        title="Click to close position"
+                      >
+                        {`Close`}
+                      </Button>
                     </Link>
                   );
                 default:
@@ -230,10 +236,15 @@ const usePositions = () => {
                 case !expired:
                   return (
                     <Link
-                      className="p-4"
                       to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&ref=close`}
                     >
-                      {`Close`}
+                      <Button
+                        color="white"
+                        className="min-w-[50%]"
+                        title="Click to close position"
+                      >
+                        {`Close`}
+                      </Button>
                     </Link>
                   );
                 default:
