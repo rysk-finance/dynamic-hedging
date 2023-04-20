@@ -24,28 +24,33 @@ import {
 	OptionCatalogue,
 	OptionExchange,
 	OpynInteractions,
+	GmxHedgingReactor,
 	Manager,
-	OptionsCompute,
-	PermissionedMintableERC20
+	OptionsCompute
 } from "../../types"
 
 const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
 
-//	Arbitrum Goerli specific contract addresses. Change for other networks
-const usdcAddress = "0x6775842ae82bf2f0f987b10526768ad89d79536e"
-const wethAddress = "0x53320bE2A35649E9B2a0f244f9E9474929d3B699"
-const chainlinkOracleAddress = "0x62CAe0FA2da220f43a51F86Db2EDb36DcA9A5A08"
-const gammaOracleAddress = "0x35578F5A49E1f1Cf34ed780B46A0BdABA23D4C0b"
-const opynControllerProxyAddress = "0x11a602a5F5D823c103bb8b7184e22391Aae5F4C2"
-const opynAddressBookAddress = "0xd6e67bF0b1Cdb34C37f31A2652812CB30746a94A"
-const opynNewCalculatorAddress = "0xcD270e755C2653e806e16dD3f78E16C89B7a1c9e"
-const oTokenFactoryAddress = "0x7595F9c5B93f1478dC0836BdFCb87fF3A8970B10"
-const marginPoolAddress = "0x0E0Ad3eA82EFAeAFb4476f5E8225b4746B88FD9f"
-const sequencerUptimeAddress = "0x4da69F028a5790fCCAfe81a75C0D24f46ceCDd69"
+//	Arbitrum mainnet specific contract addresses. Change for other networks
+const multisig = "0xFBdE2e477Ed031f54ed5Ad52f35eE43CD82cF2A6"
+const usdcAddress = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
+const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
+const chainlinkOracleAddress = "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612"
+const gammaOracleAddress = "0xBA1880CFFE38DD13771CB03De896460baf7dA1E7"
+const opynControllerProxyAddress = "0x594bD4eC29F7900AE29549c140Ac53b5240d4019"
+const opynAddressBookAddress = "0xCa19F26c52b11186B4b1e76a662a14DA5149EA5a"
+const opynNewCalculatorAddress = "0x749a3624ad2a001F935E3319743f53Ecc7466358"
+const sequencerUptimeAddress = "0xFdB631F5EE196F0ed6FAa767959853A9F217697D"
 
-// rage trade addresses for Arbitrum Goerli
-const clearingHouseAddress = "0x7047343e3eF25505263116212EE74430A2A12257"
-const vETHAddress = "0xC85c06FCF9355876DF51a90C2c0290ECa913A04f"
+// rage trade addresses for Arbitrum Mainnet
+const clearingHouseAddress = "0x4521916972A76D5BFA65Fb539Cf7a0C2592050Ac"
+const vETHAddress = "0x7ab08069a6ee445703116E4E09049E88a237af5E"
+
+// gmx contracts on arbitrum mainnet
+const positionRouterAddress = "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868"
+const routerAddress = "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064"
+const readerAddress = "0x22199a49A999c351eF7927602CFB187ec3cae489"
+const vaultAddress = "0x489ee077994B6658eAfA855C308275EAd8097C4A"
 
 // uniswap v3 addresses (SAME FOR ALL CHAINS)
 const uniswapV3SwapRouter = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
@@ -168,12 +173,14 @@ async function main() {
 	const accounting = lpParams.accounting
 	const uniswapV3HedgingReactor = lpParams.uniswapV3HedgingReactor
 	const perpHedgingReactor = lpParams.perpHedgingReactor
+	const gmxHedgingReactor = lpParams.gmxHedgingReactor
 	const catalogue = lpParams.catalogue
 	const pricer = lpParams.pricer
 	const exchange = lpParams.exchange
 	const manager = lpParams.manager
 	console.log("liquidity pool deployed")
 
+	await authority.pushGovernor(multisig)
 	await authority.pushManager(manager.address)
 	await manager.pullManager()
 
@@ -232,6 +239,7 @@ async function main() {
 		accounting: accounting.address,
 		uniswapV3HedgingReactor: uniswapV3HedgingReactor.address,
 		perpHedgingReactor: perpHedgingReactor.address,
+		gmxHedgingReactor: gmxHedgingReactor.address,
 		optionCatalogue: catalogue.address,
 		optionExchange: exchange.address,
 		beyondPricer: pricer.address,
@@ -326,55 +334,15 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	}
 
 	// get weth and usdc contracts
-
-	const wethFactory = await ethers.getContractFactory("PermissionedMintableERC20")
-	const weth = (await wethFactory.deploy(
-		"Wrapped Ether",
-		"WETH",
-		"18",
-		authority.address
-	)) as PermissionedMintableERC20
-
-	console.log("WETH deployed")
-
-	try {
-		await hre.run("verify:verify", {
-			address: weth.address,
-			constructorArguments: ["Wrapped Ether", "WETH", "18", authority.address]
-		})
-		console.log("weth verified")
-	} catch (err: any) {
-		console.log(err)
-	}
-
-	const usdcFactory = await ethers.getContractFactory("PermissionedMintableERC20")
-	const usd = (await usdcFactory.deploy(
-		"USDC",
-		"USDC",
-		"6",
-		authority.address
-	)) as PermissionedMintableERC20
-	console.log("USDC deployed")
-
-	try {
-		await hre.run("verify:verify", {
-			address: usd.address,
-			constructorArguments: ["USDC", "USDC", "6", authority.address]
-		})
-		console.log("usdc verified")
-	} catch (err: any) {
-		console.log(err)
-	}
-
-	// const weth = (await ethers.getContractAt(
-	// 	"contracts/interfaces/WETH.sol:WETH",
-	// 	wethAddress
-	// )) as WETH
-	// const wethERC20 = (await ethers.getContractAt("ERC20Interface", wethAddress)) as ERC20Interface
-	// const usd = (await ethers.getContractAt(
-	// 	"contracts/tokens/ERC20.sol:ERC20",
-	// 	usdcAddress
-	// )) as MintableERC20
+	const weth = (await ethers.getContractAt(
+		"contracts/interfaces/WETH.sol:WETH",
+		wethAddress
+	)) as WETH
+	const wethERC20 = (await ethers.getContractAt("ERC20Interface", wethAddress)) as ERC20Interface
+	const usd = (await ethers.getContractAt(
+		"contracts/tokens/ERC20.sol:ERC20",
+		usdcAddress
+	)) as MintableERC20
 
 	const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
 	const priceFeed = (await priceFeedFactory.deploy(
@@ -435,8 +403,7 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	// deploy options registry
 	const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
 		libraries: {
-			OpynInteractions: interactions.address,
-			OptionsCompute: optionsCompute.address
+			OpynInteractions: interactions.address
 		}
 	})
 	const optionRegistry = (await optionRegistryFactory.deploy(
@@ -670,7 +637,6 @@ export async function deployLiquidityPool(
 			OptionsCompute: optionsCompute.address
 		}
 	})
-	console.log("factory received")
 	const exchange = (await exchangeFactory.deploy(
 		authority,
 		optionProtocol.address,
@@ -682,7 +648,7 @@ export async function deployLiquidityPool(
 		catalogue.address,
 		{ gasLimit: BigNumber.from("500000000") }
 	)) as OptionExchange
-	console.log("exchange deployed")
+
 	try {
 		await hre.run("verify:verify", {
 			address: exchange.address,
@@ -837,8 +803,47 @@ export async function deployLiquidityPool(
 		console.log(err)
 	}
 
+	// deploy GMX hedging reactor
+	const gmxHedgingReactorFactory = await ethers.getContractFactory("GmxHedgingReactor")
+	const gmxHedgingReactor = (await gmxHedgingReactorFactory.deploy(
+		positionRouterAddress,
+		routerAddress,
+		readerAddress,
+		vaultAddress,
+		usdcAddress,
+		wethAddress,
+		liquidityPool.address,
+		priceFeed.address,
+		authority
+	)) as GmxHedgingReactor
+
+	console.log("gmx hedging reactor deployed")
+
+	try {
+		await hre.run("verify:verify", {
+			address: gmxHedgingReactor.address,
+			constructorArguments: [
+				positionRouterAddress,
+				routerAddress,
+				readerAddress,
+				vaultAddress,
+				usdcAddress,
+				wethAddress,
+				liquidityPool.address,
+				priceFeed.address,
+				authority
+			]
+		})
+		console.log("gmx hedging reactor verified")
+	} catch (err: any) {
+		if (err.message.includes("Reason: Already Verified")) {
+			console.log("perp hedging reactor contract already verified")
+		}
+	}
+
 	await liquidityPool.setHedgingReactorAddress(uniswapV3HedgingReactor.address)
 	await liquidityPool.setHedgingReactorAddress(perpHedgingReactor.address)
+	await liquidityPool.setHedgingReactorAddress(gmxHedgingReactor.address)
 	console.log("hedging reactors added to liquidity pool")
 
 	return {
@@ -847,6 +852,7 @@ export async function deployLiquidityPool(
 		accounting,
 		uniswapV3HedgingReactor,
 		perpHedgingReactor,
+		gmxHedgingReactor,
 		catalogue,
 		exchange,
 		pricer,
