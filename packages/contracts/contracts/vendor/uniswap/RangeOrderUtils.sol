@@ -96,6 +96,25 @@ import {TickMath} from "./TickMath.sol";
     }
 
     /**
+     * @dev takes a price quote converts to sqrtPriceX96 token0/token1 format
+     * @param weiPrice the price of in wei
+     * @param inversed true if token0 is the collateral token
+     * @return sqrtPriceX96 the sqrtPriceX96 of the price
+     */
+    function sqrtPriceFromWei(
+        uint256 weiPrice,
+        bool inversed,
+        uint8 token0Decimals
+    ) pure returns (uint160 sqrtPriceX96){
+        if (inversed) {
+            uint256 price = uint256(1e18).div(weiPrice);
+            sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(price).mul(2 ** 96)) * uint160(10 ** token0Decimals);
+        } else {
+            sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(weiPrice).mul(2 ** 96));
+        }
+    }
+
+    /**
      * @param tick the tick of the pool
      * @param token0Decimals the decimals of token0
      * @param inversed whether the pool token0/token1 ordering is inverted to underlying/collateral

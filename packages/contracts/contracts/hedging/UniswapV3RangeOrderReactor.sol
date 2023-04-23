@@ -7,6 +7,7 @@ import { PoolAddress } from "../vendor/uniswap/PoolAddress.sol";
 import { LiquidityAmounts, FullMath } from "../vendor/uniswap/LiquidityAmounts.sol";
 import {
     sqrtPriceX96ToUint,
+    sqrtPriceFromWei,
     encodePriceSqrt,
     RangeOrderDirection,
     getPriceToUse,
@@ -487,11 +488,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         // state transition can be reconstructed from uniswap events emitted
     }
 
-    /// @notice take a price quote in token1/token0 format and convert to sqrtPriceX96 token0/token1 format
-    function _sqrtPriceFromWei(uint256 weiPrice) private view returns (uint160 sqrtPriceX96){
-        uint256 inverse = uint256(1e18).div(weiPrice);
-        sqrtPriceX96 = uint160(PRBMathUD60x18.sqrt(inverse).mul(2 ** 96)) * uint160(10 ** token0.decimals());
-    }
 
     /**
      * @dev returns sqrtPriceX96 as a tick
@@ -504,7 +500,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     /**
-     * @param price the price of token0/token1 in token1/token0 in token1 decimals
+     * @param price the price of token0/token1 in token1 decimals converted to 1e18
      * @param direction the direction of the range order
      * @return params the parameters needed to mint a range order with average price when filled
      */
@@ -512,7 +508,11 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         private
         view
         returns (RangeOrderParams memory) {
-        uint160 sqrtPriceX96 = _sqrtPriceFromWei(price);
+        uint160 sqrtPriceX96;
+        {
+            uint256 convertedPrice = OptionsCompute.convertToDecimals(price, token1.decimals());
+            sqrtPriceX96 = sqrtPriceFromWei(convertedPrice, inversed, token0.decimals());
+        }
         int24 tickSpacing = pool.tickSpacing();
         int24 nearestTick = _sqrtPriceX96ToNearestTick(sqrtPriceX96, tickSpacing);
         int24 lowerTick = direction == RangeOrderDirection.ABOVE ? nearestTick + tickSpacing : nearestTick - (2 * tickSpacing);
