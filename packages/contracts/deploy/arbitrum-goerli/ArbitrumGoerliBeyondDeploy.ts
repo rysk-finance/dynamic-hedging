@@ -111,10 +111,10 @@ const putSlippageGradientMultipliers = [
 ]
 const collateralLendingRate = 40000 // 4%
 const deltaBorrowRates = {
-	sellLong: 150000,
-	sellShort: -100000,
-	buyLong: 150000,
-	buyShort: -100000
+	sellLong: 19500,
+	sellShort: 15000,
+	buyLong: 15000,
+	buyShort: 19500
 }
 
 const liquidityPoolTokenName = "Rysk DHV ETH/USDC"
@@ -130,7 +130,7 @@ async function main() {
 	// deploy system
 	let deployParams = await deploySystem(deployer, chainlinkOracleAddress)
 	console.log("system deployed")
-	const wethERC20 = deployParams.wethERC20
+	const weth = deployParams.weth
 	const usd = deployParams.usd
 	const optionRegistry = deployParams.optionRegistry
 	const priceFeed = deployParams.priceFeed
@@ -147,7 +147,7 @@ async function main() {
 		deployer,
 		optionProtocol,
 		usd,
-		wethERC20,
+		weth,
 		rfr,
 		minCallStrikePrice,
 		minPutStrikePrice,
@@ -235,7 +235,9 @@ async function main() {
 		optionCatalogue: catalogue.address,
 		optionExchange: exchange.address,
 		beyondPricer: pricer.address,
-		manager: manager.address
+		manager: manager.address,
+		weth: weth.address,
+		usdc: usd.address
 	})
 	// console.log(contractAddresses)
 }
@@ -487,7 +489,6 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 
 	return {
 		weth: weth,
-		wethERC20: wethERC20,
 		usd: usd,
 		optionRegistry: optionRegistry,
 		priceFeed: priceFeed,
@@ -507,8 +508,8 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 export async function deployLiquidityPool(
 	deployer: Signer,
 	optionProtocol: Protocol,
-	usd: MintableERC20,
-	weth: ERC20Interface,
+	usd: PermissionedMintableERC20,
+	weth: PermissionedMintableERC20,
 	rfr: string,
 	minCallStrikePrice: any,
 	minPutStrikePrice: any,
