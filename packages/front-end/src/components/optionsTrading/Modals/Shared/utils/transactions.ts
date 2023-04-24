@@ -343,7 +343,8 @@ export const vaultSell = async (
   addresses: AddressesRequiredVaultSell,
   amount: BigNumberType,
   refresh: () => void,
-  collateralAmount: BigNumberType
+  collateralAmount: BigNumberType,
+  vaultId: string
 ) => {
   const txData = [
     {
@@ -357,7 +358,7 @@ export const vaultSell = async (
           vaultId: BigNumber.from(0),
           amount: amount,
           optionSeries: EMPTY_SERIES,
-          indexOrAcceptablePremium: BigNumber.from(0),
+          indexOrAcceptablePremium: acceptablePremium,
           data: "0x" as HexString,
         },
       ],
@@ -370,7 +371,7 @@ export const vaultSell = async (
           owner: addresses.user,
           secondAddress: addresses.user,
           asset: addresses.token,
-          vaultId: BigNumber.from(addresses.vaultID),
+          vaultId: BigNumber.from(vaultId),
           amount: amount.div(ethers.utils.parseUnits("1", 10)), // Rysk e18 to Opyn e8
           optionSeries: EMPTY_SERIES,
           indexOrAcceptablePremium: BigNumber.from(0),
@@ -381,7 +382,7 @@ export const vaultSell = async (
           owner: addresses.user,
           secondAddress: addresses.user,
           asset: addresses.collateral,
-          vaultId: BigNumber.from(addresses.vaultID),
+          vaultId: BigNumber.from(vaultId),
           amount: collateralAmount,
           optionSeries: EMPTY_SERIES,
           indexOrAcceptablePremium: BigNumber.from(0),

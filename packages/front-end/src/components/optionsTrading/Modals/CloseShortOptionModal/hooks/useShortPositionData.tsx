@@ -149,11 +149,12 @@ export const useShortPositionData = (amountToClose: string) => {
     collateral: collateralAsset,
     token: tokenAddress,
     user: address,
-    vaultID: vault?.id,
   };
 
   const collateralAmount = BigNumber.from(vault?.collateralAmount || "1");
   const shortAmount = BigNumber.from(vault?.shortAmount || "0");
+
+  const vaultId = vault?.vaultId;
 
   const collateralPerOption =
     !collateralAmount.isZero() && !shortAmount.isZero()
@@ -168,5 +169,6 @@ export const useShortPositionData = (amountToClose: string) => {
     collateralAmount,
     collateralPerOption,
     collateralAsset,
+    vaultId,
   ] as const;
 };

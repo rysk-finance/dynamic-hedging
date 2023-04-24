@@ -52,6 +52,7 @@ query ${QueriesEnum.INITIAL_DATA} ($address: String, $now: String) {
     }
     vault {
       id
+      vaultId
       collateralAmount
       shortAmount
       collateralAsset {
