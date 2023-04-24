@@ -21,7 +21,6 @@ export interface AllowanceState {
 export interface AddressesRequiredVaultSell extends Addresses {
   token: HexString;
   user: HexString;
-  vaultID: string;
   collateral: HexString;
 }
 

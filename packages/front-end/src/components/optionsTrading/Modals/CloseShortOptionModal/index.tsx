@@ -53,6 +53,8 @@ export const CloseShortOptionModal = () => {
     positionData,
     collateralAmount,
     collateralPerOption,
+    ,
+    vaultId,
   ] = useShortPositionData(debouncedAmountToSell);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -109,7 +111,7 @@ export const CloseShortOptionModal = () => {
     setTransactionPending(true);
 
     try {
-      if (addresses.token && addresses.user) {
+      if (addresses.token && addresses.user && vaultId) {
         const amount = toRysk(amountToSell);
 
         const hash = await vaultSell(
@@ -117,7 +119,8 @@ export const CloseShortOptionModal = () => {
           addresses as AddressesRequiredVaultSell,
           amount,
           refresh,
-          collateralToRemove
+          collateralToRemove,
+          vaultId
         );
 
         if (hash) {
