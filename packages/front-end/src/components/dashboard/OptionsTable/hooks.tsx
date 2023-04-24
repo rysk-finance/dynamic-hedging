@@ -45,13 +45,14 @@ const usePositions = () => {
     ParsedPosition[] | null
   >(null);
 
+  // NOTE: Only getting positions opened after redeploy of contracts
   const { loading, error, data, startPolling } = useQuery<{
     longPositions: LongPosition[];
     shortPositions: ShortPosition[];
   }>(
     gql`
       query ${QueriesEnum.DASHBOARD_USER_POSITIONS} ($account: String) {
-          longPositions(first: 1000, where: { account: $account }) {
+          longPositions(first: 1000, where: { account: $account, oToken_: {expiryTimestamp_gte: "1683273600"} }) {
               id
               netAmount
               buyAmount
@@ -80,7 +81,7 @@ const usePositions = () => {
                   premium
               }
           }
-          shortPositions(first: 1000, where: { account: $account }) {
+          shortPositions(first: 1000, where: { account: $account, oToken_: {expiryTimestamp_gte: "1683273600"} }) {
               id
               netAmount
               buyAmount
