@@ -55,7 +55,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	/// governance settable variables ///
 	/////////////////////////////////////
 
-	uint256 public feePerContract = 1e5;
+	uint256 public feePerContract = 3e5;
 	address public feeRecipient;
 
 	//////////////////////////
@@ -77,8 +77,20 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	event OrderExecuted(uint256 orderId);
 	event FeeRecipientUpdated(address feeRecipient);
 	event FeePerContractUpdated(uint256 feePerContract);
-	event OptionsBought(address indexed series, address indexed buyer, uint256 optionAmount, uint256 premium, uint256 fee);
-	event OptionsSold(address indexed series, address indexed seller, uint256 optionAmount, uint256 premium, uint256 fee);
+	event OptionsBought(
+		address indexed series,
+		address indexed buyer,
+		uint256 optionAmount,
+		uint256 premium,
+		uint256 fee
+	);
+	event OptionsSold(
+		address indexed series,
+		address indexed seller,
+		uint256 optionAmount,
+		uint256 premium,
+		uint256 fee
+	);
 
 	constructor(
 		address _authority,
@@ -465,11 +477,10 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	 * @param _strikeAsset the asset that the underlying value is denominated in
 	 * @return the underlying price
 	 */
-	function _getUnderlyingPrice(address underlying, address _strikeAsset)
-		internal
-		view
-		returns (uint256)
-	{
+	function _getUnderlyingPrice(
+		address underlying,
+		address _strikeAsset
+	) internal view returns (uint256) {
 		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
 	}
 }

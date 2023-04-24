@@ -55,56 +55,61 @@ const minCallStrikePrice = utils.parseEther("500")
 const maxCallStrikePrice = utils.parseEther("5000")
 const minPutStrikePrice = utils.parseEther("500")
 const maxPutStrikePrice = utils.parseEther("5000")
-const bidAskSpread = toWei("0.02")
-const maxNetDhvExposure = toWei("50000")
+// one day in seconds
+const minExpiry = 86400
+// 90 days in seconds
+const maxExpiry = 7776000
+
+const bidAskSpread = toWei("0")
+const maxNetDhvExposure = toWei("5000")
 
 const slippageGradient = toWei("0.0001")
 const deltaBandWidth = toWei("5")
 const callSlippageGradientMultipliers = [
-	toWei("1"),
-	toWei("1.1"),
-	toWei("1.2"),
-	toWei("1.3"),
-	toWei("1.4"),
-	toWei("1.5"),
-	toWei("1.6"),
-	toWei("1.7"),
-	toWei("1.8"),
-	toWei("1.9"),
-	toWei("2"),
-	toWei("2.1"),
-	toWei("2.2"),
-	toWei("2.3"),
-	toWei("2.4"),
-	toWei("2.5"),
-	toWei("2.6"),
-	toWei("2.7"),
-	toWei("2.8"),
-	toWei("2.9")
+	toWei("32.03079203078064"),
+	toWei("31.878274585633"),
+	toWei("31.586021183324043"),
+	toWei("31.154469238517148"),
+	toWei("30.61983012863621"),
+	toWei("30.02751862352724"),
+	toWei("29.767935988773843"),
+	toWei("29.519651037986595"),
+	toWei("29.275896521840654"),
+	toWei("29.158132246914192"),
+	toWei("28.899189048089795"),
+	toWei("28.79395354628805"),
+	toWei("28.59621097502779"),
+	toWei("28.531936098531766"),
+	toWei("28.496474210701045"),
+	toWei("28.672129637088712"),
+	toWei("28.553187694507074"),
+	toWei("28.46149657037454"),
+	toWei("28.409699162604046"),
+	toWei("28.357901754833552")
 ]
 const putSlippageGradientMultipliers = [
-	toWei("1"),
-	toWei("1.1"),
-	toWei("1.2"),
-	toWei("1.3"),
-	toWei("1.4"),
-	toWei("1.5"),
-	toWei("1.6"),
-	toWei("1.7"),
-	toWei("1.8"),
-	toWei("1.9"),
-	toWei("2"),
-	toWei("2.1"),
-	toWei("2.2"),
-	toWei("2.3"),
-	toWei("2.4"),
-	toWei("2.5"),
-	toWei("2.6"),
-	toWei("2.7"),
-	toWei("2.8"),
-	toWei("2.9")
+	toWei("32.062695776005754"),
+	toWei("31.993108078547117"),
+	toWei("31.810983791965135"),
+	toWei("31.43481548633707"),
+	toWei("30.974590543073322"),
+	toWei("30.668836938634346"),
+	toWei("30.604289472424558"),
+	toWei("30.37288983067886"),
+	toWei("30.0304814467131"),
+	toWei("29.992446607725974"),
+	toWei("29.813904329921087"),
+	toWei("29.50780508052873"),
+	toWei("29.31535898140196"),
+	toWei("29.626966203258913"),
+	toWei("30.08913219416901"),
+	toWei("29.09819765692076"),
+	toWei("29.41624225234537"),
+	toWei("29.3254848787627"),
+	toWei("29.080503786931374"),
+	toWei("28.890374184496547")
 ]
-const collateralLendingRate = 100000
+const collateralLendingRate = 40000 // 4%
 const deltaBorrowRates = {
 	sellLong: 150000,
 	sellShort: -100000,
@@ -114,11 +119,6 @@ const deltaBorrowRates = {
 
 const liquidityPoolTokenName = "Rysk DHV ETH/USDC"
 const liquidityPoolTokenTicker = "ryUSDC-ETH"
-
-// one week in seconds
-const minExpiry = 86400 * 1
-// 90 days in seconds
-const maxExpiry = 86400 * 90
 
 async function main() {
 	const [deployer] = await ethers.getSigners()
