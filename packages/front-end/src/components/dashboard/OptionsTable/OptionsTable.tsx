@@ -14,7 +14,7 @@ export const UserOptions = () => {
 
   const [, setSearchParams] = useSearchParams();
 
-  const [positions, loading, error] = usePositions();
+  const [activePositions, inactivePositions, loading, error] = usePositions();
   const [completeRedeem] = useRedeem();
   const [completeSettle] = useSettle();
 
@@ -30,7 +30,7 @@ export const UserOptions = () => {
       tabWidth={280}
       tabs={[
         {
-          label: loading && !positions ? "Loading..." : "RYSK.Options",
+          label: loading && !activePositions ? "Loading Open..." : "RYSK.Open",
           content: (
             <>
               <AnimatePresence initial={false} mode="wait">
@@ -42,11 +42,45 @@ export const UserOptions = () => {
                   />
                 )}
 
-                {isConnected && positions && (
+                {isConnected && activePositions && (
                   <>
-                    {positions.length ? (
+                    {activePositions.length ? (
                       <Table
-                        positions={positions}
+                        positions={activePositions}
+                        completeRedeem={completeRedeem}
+                        adjustCollateral={adjustCollateral}
+                        completeSettle={completeSettle}
+                      />
+                    ) : (
+                      <NoneFound />
+                    )}
+                  </>
+                )}
+
+                {isDisconnected && <Disconnected />}
+              </AnimatePresence>
+            </>
+          ),
+        },
+        {
+          label:
+            loading && !inactivePositions ? "Loading Closed..." : "RYSK.Closed",
+          content: (
+            <>
+              <AnimatePresence initial={false} mode="wait">
+                {(loading || error) && (
+                  <LoadingOrError
+                    key="loading-or-error"
+                    error={error}
+                    extraStrings={["Processing options..."]}
+                  />
+                )}
+
+                {isConnected && inactivePositions && (
+                  <>
+                    {inactivePositions.length ? (
+                      <Table
+                        positions={inactivePositions}
                         completeRedeem={completeRedeem}
                         adjustCollateral={adjustCollateral}
                         completeSettle={completeSettle}

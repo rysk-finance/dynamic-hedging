@@ -37,7 +37,13 @@ const usePositions = () => {
   const { address, isDisconnected } = useAccount();
 
   const { allOracleAssets } = useExpiryPriceData();
-  const [positions, setPositions] = useState<ParsedPosition[] | null>(null);
+
+  const [activePositions, setActivePositions] = useState<
+    ParsedPosition[] | null
+  >(null);
+  const [inactivePositions, setInactivePositions] = useState<
+    ParsedPosition[] | null
+  >(null);
 
   const { loading, error, data, startPolling } = useQuery<{
     longPositions: LongPosition[];
@@ -125,16 +131,17 @@ const usePositions = () => {
 
   useEffect(() => {
     if (isDisconnected) {
-      return setPositions([]);
+      setActivePositions([]);
+      setInactivePositions([]);
     }
 
     if (data && allOracleAssets) {
       const timeNow = dayjs().unix();
 
-      const parsedPositions = [
-        ...data.shortPositions,
-        ...data.longPositions,
-      ].map(
+      const parsedActivePositions = [] as ParsedPosition[];
+      const parsedInactivePositions = [] as ParsedPosition[];
+
+      [...data.shortPositions, ...data.longPositions].forEach(
         ({
           id,
           oToken,
@@ -200,7 +207,7 @@ const usePositions = () => {
           const isRedeemable =
             expired && redeemActions.length > 0 && inTheMoney;
           const hasRedeemed = redeemActions.length > 0; // NOTE: User could have manually not redeem all
-          const canSettleShort = expired && settleActions.length == 0;
+          const canSettleShort = expired && settleActions.length === 0;
           const settledShort = settleActions.length > 0;
 
           const getStatusMessage = (short: boolean) => {
@@ -253,7 +260,7 @@ const usePositions = () => {
             }
           };
 
-          return {
+          const position = {
             ...oToken,
             amount: BigNumber.from(netAmount)
               .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.OPYN))
@@ -273,31 +280,40 @@ const usePositions = () => {
             totalPremium: totPremium,
             underlyingAsset: underlyingAsset.id,
           };
+
+          if (position.amount !== 0) {
+            parsedActivePositions.push(position);
+          } else {
+            parsedInactivePositions.push(position);
+          }
         }
       );
 
-      // Unexpired options sorted closest to furtherest by expiry time.
-      // Expired options sorted most recent to oldest.
+      // Active options sorted closest to furtherest by expiry time.
       // Options with the same expiry date are sorted highest to lowest strike price.
-      parsedPositions.sort((a, b) => {
-        if (!a.expired && !b.expired) {
-          return (
-            a.expiryTimestamp.localeCompare(b.expiryTimestamp) ||
-            a.strikePrice.localeCompare(b.strikePrice)
-          );
-        }
+      parsedActivePositions.sort((a, b) => {
+        return (
+          a.expiryTimestamp.localeCompare(b.expiryTimestamp) ||
+          a.strikePrice.localeCompare(b.strikePrice)
+        );
+      });
 
+      // Inactive options sorted furtherest to closest by expiry time.
+      // Options with the same expiry date are sorted highest to lowest strike price.
+      parsedInactivePositions.sort((a, b) => {
         return (
           b.expiryTimestamp.localeCompare(a.expiryTimestamp) ||
           b.strikePrice.localeCompare(a.strikePrice)
         );
       });
 
-      setPositions(parsedPositions);
+      setActivePositions(parsedActivePositions);
+      setInactivePositions(parsedInactivePositions);
     }
   }, [data, allOracleAssets, isDisconnected]);
 
-  return [positions, loading, error] as [
+  return [activePositions, inactivePositions, loading, error] as [
+    ParsedPosition[] | null,
     ParsedPosition[] | null,
     boolean,
     ApolloError | undefined
