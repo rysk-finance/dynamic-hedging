@@ -176,7 +176,7 @@ const usePositions = () => {
           const totPremium = options.length
             ? options.reduce(
                 (p: number, { premium }: { premium: BigNumberish }) =>
-                  p - Number(premium),
+                  vault.vaultId ? p + Number(premium) : p - Number(premium),
                 0
               )
             : 0;
@@ -263,9 +263,11 @@ const usePositions = () => {
 
           const position = {
             ...oToken,
-            amount: BigNumber.from(netAmount)
-              .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.OPYN))
-              .toNumber(),
+            amount: Math.abs(
+              BigNumber.from(netAmount)
+                .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.OPYN))
+                .toNumber()
+            ),
             entryPrice,
             expired,
             expiryPrice,
