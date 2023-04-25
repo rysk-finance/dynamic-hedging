@@ -293,8 +293,7 @@ const getLiquidationCalculationParameters = async () => {
     }
   };
 
-  try {
-    const parameters = await readContracts({
+   const parameters = await readContracts({
       contracts: [
         _getParams("USDC", "getSpotShock", true),
         _getParams("USDC", "getSpotShock", false),
@@ -329,38 +328,8 @@ const getLiquidationCalculationParameters = async () => {
         },
       },
     };
-  } catch (error) {
-    logError(error);
-
-    const defaultSpotShock = 0.7;
-    const defaultTimesToExpiry = [
-      604800, 1209600, 2419200, 3628800, 4838400, 6048000, 7257600,
-    ];
-
-    return {
-      spotShock: {
-        call: {
-          USDC: defaultSpotShock,
-          WETH: defaultSpotShock,
-        },
-        put: {
-          USDC: defaultSpotShock,
-          WETH: defaultSpotShock,
-        },
-      },
-      timesToExpiry: {
-        call: {
-          USDC: defaultTimesToExpiry,
-          WETH: defaultTimesToExpiry,
-        },
-        put: {
-          USDC: defaultTimesToExpiry,
-          WETH: defaultTimesToExpiry,
-        },
-      },
-    };
-  }
-};
+  };
+    
 
 export const getInitialData = async (
   data: InitialDataQuery,
