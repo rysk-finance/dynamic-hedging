@@ -93,6 +93,7 @@ interface ParsedPosition {
   expired: boolean;
   expiryPrice?: string;
   expiryTimestamp: string;
+  liquidationPrice: number;
   id: string;
   isPut: boolean;
   isRedeemable: boolean;
