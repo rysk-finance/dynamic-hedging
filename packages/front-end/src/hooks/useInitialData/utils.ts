@@ -83,6 +83,7 @@ const getUserPositions = (
         ...oToken,
         netAmount,
         totalPremium,
+        vault,
       };
 
       if (!key) {
@@ -91,7 +92,6 @@ const getUserPositions = (
           isLong,
           isShort,
           tokens: [token],
-          vault,
         };
       } else {
         positions[expiryTimestamp] = {
@@ -99,7 +99,6 @@ const getUserPositions = (
           isLong: key.isLong || isLong,
           isShort: key.isShort || isShort,
           tokens: [...key.tokens, token],
-          vault,
         };
       }
 
