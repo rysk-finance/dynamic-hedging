@@ -16,6 +16,7 @@ export type Expiries = string[];
 interface UserPositionToken extends PositionOToken {
   netAmount: BigNumberish;
   totalPremium: number;
+  vault?: Vault;
 }
 
 export interface UserPositions {
@@ -24,7 +25,6 @@ export interface UserPositions {
     isLong: boolean;
     isShort: boolean;
     tokens: UserPositionToken[];
-    vault?: Vault;
   };
 }
 

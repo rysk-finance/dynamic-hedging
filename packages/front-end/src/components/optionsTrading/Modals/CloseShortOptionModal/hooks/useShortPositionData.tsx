@@ -55,12 +55,17 @@ export const useShortPositionData = (amountToClose: string) => {
     title: null,
   });
 
-  const vault =
+  const userPosition =
     activeExpiry && userPositions
-      ? userPositions?.[activeExpiry]?.vault
+      ? userPositions[activeExpiry]?.tokens.find(
+          ({ id, netAmount }) =>
+            id === searchParams.get("token") && BigNumber.from(netAmount).lt(0)
+        )
       : undefined;
-  // At the moment this is either going to be USDC or WETH.
 
+  const vault = userPosition?.vault;
+
+  // At the moment this is either going to be USDC or WETH.
   const collateralAsset = vault?.collateralAsset.id as HexString;
 
   // User allowance state for the oToken.
@@ -77,13 +82,7 @@ export const useShortPositionData = (amountToClose: string) => {
         });
         const balanceInt = tFormatUSDC(balance);
 
-        if (activeExpiry && tokenAddress && userPositions) {
-          const userPosition = userPositions[activeExpiry]?.tokens.find(
-            ({ id, netAmount }) =>
-              id === searchParams.get("token") &&
-              BigNumber.from(netAmount).lt(0)
-          );
-
+        if (activeExpiry && tokenAddress && userPosition) {
           const now = dayjs().format("MMM DD, YYYY HH:mm A");
 
           const totalSize = fromWeiToInt(userPosition?.netAmount || 0);
@@ -98,7 +97,8 @@ export const useShortPositionData = (amountToClose: string) => {
                 toRysk(fromOpyn(userPosition.strikePrice)),
                 userPosition.isPut,
                 amount,
-                true
+                false,
+                collateralAsset === getContractAddress("USDC") ? "USDC" : "WETH"
               );
 
             // closing a short is buying back the oToken, hence the minus USDC.
