@@ -33,11 +33,15 @@ const tableHeadings = [
   },
   {
     children: "Settlement",
-    className: "col-span-2 text-right",
+    className: "col-span-1 text-right",
   },
   {
     children: "Collateral",
     className: "col-span-2 text-right",
+  },
+  {
+    children: "Liq. price",
+    className: "col-span-1 text-right",
   },
   {
     children: "Status",
@@ -72,6 +76,7 @@ const Table = ({
             amount,
             entryPrice,
             expiryPrice,
+            liquidationPrice,
             id,
             isRedeemable,
             isSettleable,
@@ -110,6 +115,7 @@ const Table = ({
             />
             <NumberFormat
               value={fromUSDC(BigNumber.from(totalPremium))}
+              prefix="$"
               displayType={"text"}
               decimalScale={2}
               renderText={(value) => (
@@ -135,7 +141,7 @@ const Table = ({
               prefix="$"
               decimalScale={2}
               renderText={(value) => (
-                <td className="col-span-2 text-right">{value || "-"}</td>
+                <td className="col-span-1 text-right">{value || "-"}</td>
               )}
             />
             <NumberFormat
@@ -148,7 +154,7 @@ const Table = ({
                   : null
               }
               displayType={"text"}
-              prefix={`${collateralAsset} `}
+              prefix={collateralAsset === "USDC" ? "$" : "Ξ"}
               decimalScale={2}
               renderText={(value) => (
                 <td className="col-span-2 text-right">
@@ -164,6 +170,17 @@ const Table = ({
                   ) : (
                     "-"
                   )}
+                </td>
+              )}
+            />
+            <NumberFormat
+              value={liquidationPrice}
+              displayType={"text"}
+              decimalScale={2}
+              prefix={"$"}
+              renderText={(value) => (
+                <td className="col-span-1 text-right">
+                  {liquidationPrice ? value : "-"}
                 </td>
               )}
             />

@@ -23,8 +23,15 @@ import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { BIG_NUMBER_DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
 import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
-import { fromRysk, fromUSDC } from "../../../utils/conversion-helper";
+import {
+  fromOpyn,
+  fromRysk,
+  fromUSDC,
+  fromWei,
+} from "../../../utils/conversion-helper";
 import { Button } from "src/components/shared/Button";
+import { getLiquidationPrice } from "../../optionsTrading/Modals/Shared/utils/getLiquidationPrice";
+import { useGlobalContext } from "../../../state/GlobalContext";
 
 /**
  * Hook using GraphQL to fetch all positions for the user
@@ -37,6 +44,14 @@ const usePositions = () => {
   const { address, isDisconnected } = useAccount();
 
   const { allOracleAssets } = useExpiryPriceData();
+
+  // Global state.
+  const {
+    state: {
+      ethPrice,
+      options: { spotShock, timesToExpiry },
+    },
+  } = useGlobalContext();
 
   const [activePositions, setActivePositions] = useState<
     ParsedPosition[] | null
@@ -131,19 +146,19 @@ const usePositions = () => {
   useGraphPolling(data, startPolling);
 
   useEffect(() => {
-    if (isDisconnected) {
-      setActivePositions([]);
-      setInactivePositions([]);
-    }
+    const constructPositionsData = async () => {
+      if (isDisconnected) {
+        setActivePositions([]);
+        setInactivePositions([]);
+      }
 
-    if (data && allOracleAssets) {
-      const timeNow = dayjs().unix();
+      if (data && allOracleAssets) {
+        const timeNow = dayjs().unix();
 
-      const parsedActivePositions = [] as ParsedPosition[];
-      const parsedInactivePositions = [] as ParsedPosition[];
+        const parsedActivePositions = [] as ParsedPosition[];
+        const parsedInactivePositions = [] as ParsedPosition[];
 
-      [...data.shortPositions, ...data.longPositions].forEach(
-        ({
+        for (const {
           id,
           oToken,
           netAmount,
@@ -153,7 +168,7 @@ const usePositions = () => {
           sellAmount,
           active,
           ...rest
-        }) => {
+        } of [...data.shortPositions, ...data.longPositions]) {
           const {
             id: otokenId,
             expiryTimestamp,
@@ -261,16 +276,48 @@ const usePositions = () => {
             }
           };
 
+          const amount = Math.abs(
+            BigNumber.from(netAmount)
+              .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.OPYN))
+              .toNumber()
+          );
+
+          const getVaultLiquidationPrice = async () => {
+            const collateralAssetSymbol =
+              vault.collateralAsset?.name === "USDC" ? "USDC" : "WETH";
+
+            if (ethPrice) {
+              const liquidationPrice = await getLiquidationPrice(
+                Number(fromOpyn(amount)),
+                isPut ? "put" : "call",
+                Number(
+                  collateralAssetSymbol === "USDC"
+                    ? fromUSDC(vault.collateralAmount)
+                    : fromWei(vault.collateralAmount)
+                ),
+                getContractAddress(collateralAssetSymbol) as HexString,
+                ethPrice,
+                Number(expiryTimestamp),
+                spotShock,
+                Number(fromOpyn(strikePrice)),
+                timesToExpiry
+              );
+              return liquidationPrice;
+            }
+            return 0;
+          };
+
+          const liquidationPrice = vault.vaultId
+            ? await getVaultLiquidationPrice()
+            : 0;
+
           const position = {
             ...oToken,
-            amount: Math.abs(
-              BigNumber.from(netAmount)
-                .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.OPYN))
-                .toNumber()
-            ),
+            amount,
             entryPrice,
             expired,
             expiryPrice,
+            liquidationPrice,
             id,
             isRedeemable,
             vaultId: vault.vaultId,
@@ -290,30 +337,32 @@ const usePositions = () => {
             parsedInactivePositions.push(position);
           }
         }
-      );
 
-      // Active options sorted closest to furtherest by expiry time.
-      // Options with the same expiry date are sorted highest to lowest strike price.
-      parsedActivePositions.sort((a, b) => {
-        return (
-          a.expiryTimestamp.localeCompare(b.expiryTimestamp) ||
-          a.strikePrice.localeCompare(b.strikePrice)
-        );
-      });
+        // Active options sorted closest to furtherest by expiry time.
+        // Options with the same expiry date are sorted highest to lowest strike price.
+        parsedActivePositions.sort((a, b) => {
+          return (
+            a.expiryTimestamp.localeCompare(b.expiryTimestamp) ||
+            a.strikePrice.localeCompare(b.strikePrice)
+          );
+        });
 
-      // Inactive options sorted furtherest to closest by expiry time.
-      // Options with the same expiry date are sorted highest to lowest strike price.
-      parsedInactivePositions.sort((a, b) => {
-        return (
-          b.expiryTimestamp.localeCompare(a.expiryTimestamp) ||
-          b.strikePrice.localeCompare(a.strikePrice)
-        );
-      });
+        // Inactive options sorted furtherest to closest by expiry time.
+        // Options with the same expiry date are sorted highest to lowest strike price.
+        parsedInactivePositions.sort((a, b) => {
+          return (
+            b.expiryTimestamp.localeCompare(a.expiryTimestamp) ||
+            b.strikePrice.localeCompare(a.strikePrice)
+          );
+        });
 
-      setActivePositions(parsedActivePositions);
-      setInactivePositions(parsedInactivePositions);
-    }
-  }, [data, allOracleAssets, isDisconnected]);
+        setActivePositions(parsedActivePositions);
+        setInactivePositions(parsedInactivePositions);
+      }
+    };
+
+    constructPositionsData();
+  }, [data, allOracleAssets, isDisconnected, ethPrice]);
 
   return [activePositions, inactivePositions, loading, error] as [
     ParsedPosition[] | null,
