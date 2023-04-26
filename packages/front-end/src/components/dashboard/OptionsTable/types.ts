@@ -92,7 +92,6 @@ interface ParsedPosition {
   entryPrice: string;
   expired: boolean;
   expiryPrice?: string;
-  expiryTimestamp: string;
   liquidationPrice: number;
   id: string;
   isPut: boolean;
@@ -108,6 +107,7 @@ interface ParsedPosition {
   vaultId: string;
   collateralAsset: string;
   collateralAmount: string;
+  pnl: number;
 }
 
 interface TableProps {
@@ -115,6 +115,7 @@ interface TableProps {
   completeRedeem: CompleteRedeem;
   completeSettle: CompleteSettle;
   adjustCollateral: AdjustCollateral;
+  active: boolean;
 }
 
 export {

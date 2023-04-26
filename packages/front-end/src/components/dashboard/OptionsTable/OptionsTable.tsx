@@ -50,6 +50,7 @@ export const UserOptions = () => {
                         completeRedeem={completeRedeem}
                         adjustCollateral={adjustCollateral}
                         completeSettle={completeSettle}
+                        active={true}
                       />
                     ) : (
                       <NoneFound />
@@ -84,6 +85,7 @@ export const UserOptions = () => {
                         completeRedeem={completeRedeem}
                         adjustCollateral={adjustCollateral}
                         completeSettle={completeSettle}
+                        active={false}
                       />
                     ) : (
                       <NoneFound />
