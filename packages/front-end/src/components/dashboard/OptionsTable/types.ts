@@ -107,6 +107,7 @@ interface ParsedPosition {
   vaultId: string;
   collateralAsset: string;
   collateralAmount: string;
+  expiryTimestamp: string;
   pnl: number;
 }
 
