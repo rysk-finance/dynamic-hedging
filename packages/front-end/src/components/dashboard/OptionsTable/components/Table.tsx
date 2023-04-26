@@ -32,7 +32,7 @@ const tableHeadings = [
     className: "col-span-1 text-right",
   },
   {
-    children: "Settlement",
+    children: (active: boolean): string => (active ? "P/L" : "Settlement"),
     className: "col-span-1 text-right",
   },
   {
@@ -54,6 +54,7 @@ const Table = ({
   completeRedeem,
   completeSettle,
   adjustCollateral,
+  active,
 }: TableProps) => (
   <motion.table
     key="table"
@@ -62,9 +63,17 @@ const Table = ({
   >
     <thead>
       <tr className="grid grid-cols-12 gap-4 text-left text-lg p-4 border-b-2 border-black ">
-        {tableHeadings.map((heading) => (
-          <th key={heading.children} {...heading} />
-        ))}
+        {tableHeadings.map((heading) => {
+          const thContent =
+            typeof heading.children === "function"
+              ? heading.children(active)
+              : heading.children;
+          return (
+            <th key={thContent} className={heading.className}>
+              {thContent}
+            </th>
+          );
+        })}
       </tr>
     </thead>
 
@@ -87,6 +96,7 @@ const Table = ({
             totalPremium,
             collateralAmount,
             collateralAsset,
+            pnl,
           },
           index
         ) => (
@@ -135,13 +145,20 @@ const Table = ({
                 </td>
               )}
             />
+            {/** P/L if active or Settlement if inactive */}
             <NumberFormat
-              value={fromOpynHumanised(expiryPrice)}
+              value={active ? pnl : fromOpynHumanised(expiryPrice)}
               displayType={"text"}
               prefix="$"
               decimalScale={2}
               renderText={(value) => (
-                <td className="col-span-1 text-right">{value || "-"}</td>
+                <td
+                  className={`col-span-1 ${
+                    active ? (pnl > 0 ? "text-green-700" : "text-red-500") : ""
+                  } text-right`}
+                >
+                  {value || "-"}
+                </td>
               )}
             />
             <NumberFormat
