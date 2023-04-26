@@ -28,10 +28,12 @@ import {
   fromRysk,
   fromUSDC,
   fromWei,
+  toRysk,
 } from "../../../utils/conversion-helper";
 import { Button } from "src/components/shared/Button";
 import { getLiquidationPrice } from "../../optionsTrading/Modals/Shared/utils/getLiquidationPrice";
 import { useGlobalContext } from "../../../state/GlobalContext";
+import { getQuote } from "../../optionsTrading/Modals/Shared/utils/getQuote";
 
 /**
  * Hook using GraphQL to fetch all positions for the user
@@ -282,10 +284,10 @@ const usePositions = () => {
               .toNumber()
           );
 
-          const getVaultLiquidationPrice = async () => {
-            const collateralAssetSymbol =
-              vault.collateralAsset?.name === "USDC" ? "USDC" : "WETH";
+          const collateralAssetSymbol =
+            vault.collateralAsset?.name === "USDC" ? "USDC" : "WETH";
 
+          const getVaultLiquidationPrice = async () => {
             if (ethPrice) {
               const liquidationPrice = await getLiquidationPrice(
                 Number(fromOpyn(amount)),
@@ -311,6 +313,25 @@ const usePositions = () => {
             ? await getVaultLiquidationPrice()
             : 0;
 
+          // pnl
+          const { acceptablePremium, fee, premium, quote, slippage } =
+            amount !== 0
+              ? await getQuote(
+                  Number(expiryTimestamp),
+                  toRysk(fromOpyn(strikePrice)),
+                  isPut,
+                  Number(fromOpyn(amount)),
+                  vault.vaultId ? false : true,
+                  collateralAssetSymbol
+                )
+              : {
+                  acceptablePremium: 0,
+                  fee: 0,
+                  premium: 0,
+                  quote: 0,
+                  slippage: 0,
+                };
+
           const position = {
             ...oToken,
             amount,
@@ -328,6 +349,10 @@ const usePositions = () => {
             side: vault.vaultId ? "SHORT" : "LONG",
             status: getStatusMessage(!!vault.vaultId),
             totalPremium: totPremium,
+            pnl:
+              Number(fromUSDC(acceptablePremium)) -
+              Number(fromUSDC(totPremium)) -
+              fee,
             underlyingAsset: underlyingAsset.id,
           };
 
