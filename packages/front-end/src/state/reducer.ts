@@ -74,6 +74,17 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           vaults: action.vaults || state.options.vaults,
         },
       };
+    case ActionType.SET_DASHBOARD:
+      return {
+        ...state,
+        dashboard: {
+          activePositions:
+            action.activePositions || state.dashboard.activePositions,
+          inactivePositions:
+            action.inactivePositions || state.dashboard.inactivePositions,
+          modalPosition: action.modalPosition || state.dashboard.modalPosition,
+        },
+      };
     case ActionType.SET_VISIBLE_STRIKE_RANGE:
       return {
         ...state,
