@@ -32,6 +32,7 @@ interface LongPosition {
   active: boolean;
   buyAmount: BigNumberish;
   sellAmount: BigNumberish;
+  realizedPnl: BigNumberish;
   redeemActions: {
     id: string;
   }[];
@@ -58,6 +59,7 @@ interface ShortPosition {
   netAmount: BigNumberish;
   buyAmount: BigNumberish;
   sellAmount: BigNumberish;
+  realizedPnl: BigNumberish;
   active: boolean;
   vault: {
     id: string;

@@ -32,7 +32,7 @@ const tableHeadings = [
     className: "col-span-1 text-right",
   },
   {
-    children: (active: boolean): string => (active ? "P/L" : "Settlement"),
+    children: "P/L",
     className: "col-span-1 text-right",
   },
   {
@@ -40,7 +40,8 @@ const tableHeadings = [
     className: "col-span-2 text-right",
   },
   {
-    children: "Liq. price",
+    children: (active: boolean): string =>
+      active ? "Liq. price" : "Settlement",
     className: "col-span-1 text-right",
   },
   {
@@ -147,16 +148,15 @@ const Table = ({
                 </td>
               )}
             />
-            {/** P/L if active or Settlement if inactive */}
             <NumberFormat
-              value={active ? pnl : fromOpynHumanised(expiryPrice)}
+              value={pnl}
               displayType={"text"}
               prefix="$"
               decimalScale={2}
               renderText={(value) => (
                 <td
                   className={`col-span-1 ${
-                    active ? (pnl > 0 ? "text-green-700" : "text-red-500") : ""
+                    pnl > 0 ? "text-green-700" : "text-red-500"
                   } text-right`}
                 >
                   {value || "-"}
@@ -193,7 +193,7 @@ const Table = ({
               )}
             />
             <NumberFormat
-              value={liquidationPrice}
+              value={active ? liquidationPrice : fromOpynHumanised(expiryPrice)}
               displayType={"text"}
               decimalScale={2}
               prefix={"$"}
