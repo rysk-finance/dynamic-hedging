@@ -8,8 +8,12 @@ import NoneFound from "./components/NoneFound";
 import Table from "./components/Table";
 import { usePositions, useRedeem, useSettle } from "./hooks";
 import { useSearchParams } from "react-router-dom";
+import { ActionType, FullPosition } from "src/state/types";
+import { useGlobalContext } from "src/state/GlobalContext";
 
 export const UserOptions = () => {
+  const { dispatch } = useGlobalContext();
+
   const { isConnected, isDisconnected } = useAccount();
 
   const [, setSearchParams] = useSearchParams();
@@ -18,7 +22,9 @@ export const UserOptions = () => {
   const [completeRedeem] = useRedeem();
   const [completeSettle] = useSettle();
 
-  const adjustCollateral = () => {
+  const adjustCollateral = (position: FullPosition) => {
+    dispatch({ type: ActionType.SET_DASHBOARD, modalPosition: position });
+
     setSearchParams({
       ref: "adjust-collateral",
     });

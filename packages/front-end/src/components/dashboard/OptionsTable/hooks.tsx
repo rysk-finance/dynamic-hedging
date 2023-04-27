@@ -29,11 +29,12 @@ import {
   fromUSDC,
   fromWei,
   toRysk,
-} from "../../../utils/conversion-helper";
+} from "src/utils/conversion-helper";
 import { Button } from "src/components/shared/Button";
 import { getLiquidationPrice } from "../../optionsTrading/Modals/Shared/utils/getLiquidationPrice";
-import { useGlobalContext } from "../../../state/GlobalContext";
+import { useGlobalContext } from "src/state/GlobalContext";
 import { getQuote } from "../../optionsTrading/Modals/Shared/utils/getQuote";
+import { ActionType } from "src/state/types";
 
 /**
  * Hook using GraphQL to fetch all positions for the user
@@ -43,6 +44,7 @@ import { getQuote } from "../../optionsTrading/Modals/Shared/utils/getQuote";
  * @returns [positions, loading, error]
  */
 const usePositions = () => {
+  const { dispatch } = useGlobalContext();
   const { address, isDisconnected } = useAccount();
 
   const { allOracleAssets } = useExpiryPriceData();
@@ -383,6 +385,12 @@ const usePositions = () => {
 
         setActivePositions(parsedActivePositions);
         setInactivePositions(parsedInactivePositions);
+
+        dispatch({
+          type: ActionType.SET_DASHBOARD,
+          activePositions: parsedActivePositions,
+          inactivePositions: parsedInactivePositions,
+        });
       }
     };
 
