@@ -3,7 +3,7 @@ import type { BigNumber, BigNumberish } from "ethers";
 
 import type { PositionOToken, Vault } from "src/hooks/useInitialData/types";
 
-import { Dispatch } from "react";
+import { Dispatch, ReactNode } from "react";
 
 export type AppSettings = {
   vaultDepositUnlimitedApproval: boolean;
@@ -26,6 +26,31 @@ export interface UserPositions {
     isShort: boolean;
     tokens: UserPositionToken[];
   };
+}
+
+export interface FullPosition {
+  amount: number;
+  createdAt: string;
+  entryPrice: string;
+  expired: boolean;
+  expiryPrice?: string;
+  liquidationPrice: number;
+  id: string;
+  isPut: boolean;
+  isRedeemable: boolean;
+  otokenId: string;
+  side: string;
+  status: string | ReactNode;
+  strikePrice: string;
+  symbol: string;
+  totalPremium: number;
+  underlyingAsset: string;
+  isSettleable: boolean;
+  vaultId: string;
+  collateralAsset: string;
+  expiryTimestamp: string;
+  collateralAmount: string;
+  pnl: number;
 }
 
 export interface ChainData {
@@ -131,6 +156,12 @@ export type GlobalState = {
     vaults: UserVaults;
   };
 
+  dashboard: {
+    activePositions?: FullPosition[];
+    inactivePositions?: FullPosition[];
+    modalPosition?: FullPosition;
+  };
+
   // Options chain state.
   collateralPreferences: CollateralPreferences;
   selectedOption?: SelectedOption;
@@ -154,6 +185,9 @@ export enum ActionType {
 
   // Actions related to useInitialData hook.
   SET_OPTIONS,
+
+  // Actions related to dashboard state.
+  SET_DASHBOARD,
 
   // Actions related to options chain state.
   SET_VISIBLE_STRIKE_RANGE,
@@ -223,6 +257,12 @@ export type GlobalAction =
       timesToExpiry?: TimesToExpiry;
       userPositions?: UserPositions;
       vaults?: UserVaults;
+    }
+  | {
+      type: ActionType.SET_DASHBOARD;
+      activePositions?: FullPosition[];
+      inactivePositions?: FullPosition[];
+      modalPosition?: FullPosition;
     }
   | {
       type: ActionType.SET_VISIBLE_STRIKE_RANGE;

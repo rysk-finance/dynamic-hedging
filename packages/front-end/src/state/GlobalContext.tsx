@@ -75,6 +75,12 @@ export const defaultGlobalState: GlobalState = {
     vaults: { length: 0 },
   },
 
+  dashboard: {
+    activePositions: [],
+    inactivePositions: [],
+    modalPosition: undefined,
+  },
+
   // Options chain state.
   collateralPreferences: {
     type: "USDC",
