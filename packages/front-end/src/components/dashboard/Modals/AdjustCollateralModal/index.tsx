@@ -1,10 +1,16 @@
 import { Header } from "../Shared/components/Header";
 import { useSearchParams } from "react-router-dom";
 import NumberFormat from "react-number-format";
-import { ethers } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import { DECIMALS } from "src/config/constants";
 import { getContractAddress } from "src/utils/helpers";
-import { toWei, toUSDC } from "src/utils/conversion-helper";
+import {
+  toWei,
+  toUSDC,
+  fromOpyn,
+  fromUSDC,
+  fromWei,
+} from "src/utils/conversion-helper";
 import { ChangeEvent, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Button } from "src/components/shared/Button";
@@ -21,47 +27,69 @@ import { AddressesRequired } from "src/components/optionsTrading/Modals/Shared/t
 import { Disclaimer } from "src/components/optionsTrading/Modals/Shared/components/Disclaimer";
 import { Modal } from "src/components/optionsTrading/Modals/Shared/components/Modal";
 import { useAllowance } from "src/components/optionsTrading/Modals/Shared/hooks/useAllowance";
-import { useShortPositionData } from "src/components/optionsTrading/Modals/CloseShortOptionModal/hooks/useShortPositionData";
+import { getLiquidationPrice } from "src/components/optionsTrading/Modals/Shared/utils/getLiquidationPrice";
 
+const calculateNewCollateralAmount = (
+  symbol: "USDC" | "WETH",
+  collateral: BigNumber,
+  amount: string,
+  isWithdraw: boolean
+) => {
+  const newCollateralAmount = isWithdraw ? -amount : amount;
+  return (
+    Number(symbol === "USDC" ? fromUSDC(collateral) : fromWei(collateral)) +
+    Number(newCollateralAmount)
+  );
+};
 const AdjustCollateralModal = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [, setSearchParams] = useSearchParams();
 
-  const USDCAddress = getContractAddress("USDC");
-  const WETHAddress = getContractAddress("WETH");
-
-  const { dispatch } = useGlobalContext();
-
+  const {
+    state: {
+      ethPrice,
+      options: { spotShock, timesToExpiry },
+      dashboard: { modalPosition },
+    },
+    dispatch,
+  } = useGlobalContext();
   const { address } = useAccount();
-
-  const [, , , , collateralAmount, collateralPerOption, collateralAsset] =
-    useShortPositionData("");
-
   const [notifyApprovalSuccess, , notifyFailure] = useNotifications();
 
-  const isWETHVault = collateralAsset === WETHAddress.toLowerCase();
+  // state current position data
+  const collateralAmount = BigNumber.from(modalPosition?.collateralAmount || 0);
+  const liquidationPrice = modalPosition?.liquidationPrice || 0;
+  const oTokenAmount = modalPosition?.amount || 0;
+  const isPut = modalPosition?.isPut;
+  const collateralAssetSymbol =
+    modalPosition?.collateralAsset === "USDC" ? "USDC" : "WETH";
+  const expiryTimestamp = modalPosition?.expiryTimestamp || "0";
+  const strikePrice = modalPosition?.strikePrice || "0";
+  const vaultId = modalPosition?.vaultId || "0";
+
+  const isWETHVault = collateralAssetSymbol === "WETH";
 
   // User allowance state for USDC.
   const [allowance, setAllowance] = useAllowance(
-    isWETHVault ? WETHAddress : USDCAddress,
-    address
+    getContractAddress(collateralAssetSymbol)
   );
 
   const [isWithdrawCollateral, setIsWithdrawCollateral] = useState(false);
   const [newCollateralAmount, setNewCollateralAmount] = useState("");
   const [transactionPending, setTransactionPending] = useState(false);
+  const [newLiquidationPrice, setNewLiquidationPrice] = useState(0);
 
   const handleApprove = async () => {
     setTransactionPending(true);
 
     try {
-      if (collateralAsset && address) {
+      if (collateralAssetSymbol && address) {
         const amount = isWETHVault
           ? toWei(newCollateralAmount)
           : toUSDC(newCollateralAmount);
 
         const hash = await approveAllowance(
           {
-            token: collateralAsset,
+            token: getContractAddress(collateralAssetSymbol),
             user: address,
             exchange: getContractAddress("optionExchange"),
           } as AddressesRequired,
@@ -84,20 +112,20 @@ const AdjustCollateralModal = () => {
     setTransactionPending(true);
 
     try {
-      if (collateralAsset && address) {
+      if (collateralAssetSymbol && address && vaultId) {
         const amount = isWETHVault
           ? toWei(newCollateralAmount)
           : toUSDC(newCollateralAmount);
 
         const hash = await updateCollateral(
           {
-            token: collateralAsset,
+            token: getContractAddress(collateralAssetSymbol),
             user: address,
             exchange: getContractAddress("optionExchange"),
           } as AddressesRequired,
 
           amount,
-          searchParams.get("vault") as string,
+          vaultId,
           isWithdrawCollateral
         );
 
@@ -115,7 +143,7 @@ const AdjustCollateralModal = () => {
     }
   };
 
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const amount = event.currentTarget.value;
     const decimals = amount.split(".");
     const rounded =
@@ -124,10 +152,31 @@ const AdjustCollateralModal = () => {
         : event.currentTarget.value;
 
     setNewCollateralAmount(rounded);
+
+    const liquidationPrice = await getLiquidationPrice(
+      Number(fromOpyn(oTokenAmount)),
+      isPut ? "put" : "call",
+      calculateNewCollateralAmount(
+        collateralAssetSymbol,
+        collateralAmount,
+        rounded,
+        isWithdrawCollateral
+      ),
+
+      getContractAddress(collateralAssetSymbol) as HexString,
+      ethPrice || 0,
+      Number(expiryTimestamp),
+      spotShock,
+      Number(fromOpyn(strikePrice)),
+      timesToExpiry
+    );
+
+    setNewLiquidationPrice(liquidationPrice);
   };
 
   const handleAddOrRemove = (event: ChangeEvent<HTMLSelectElement>) => {
     setIsWithdrawCollateral(event.currentTarget.value === "REMOVE");
+    setNewCollateralAmount("");
   };
 
   return (
@@ -135,13 +184,34 @@ const AdjustCollateralModal = () => {
       <Header>{`Adjust Collateral`}</Header>
       <div className="flex flex-col">
         <div className="w-3/5 mx-auto py-4">
-          <p>Current:</p>
+          <p>Collateral:</p>
           {collateralAmount && (
             <NumberFormat
               value={ethers.utils.formatUnits(
                 collateralAmount,
                 isWETHVault ? DECIMALS.RYSK : DECIMALS.USDC
               )}
+              displayType={"text"}
+              prefix={isWETHVault ? "Ξ " : "$ "}
+              decimalScale={2}
+              thousandSeparator={true}
+              renderText={(value) => (
+                <td className="col-span-1 text-right">
+                  {collateralAmount ? value : "-"}{" "}
+                  {newCollateralAmount &&
+                    (isWithdrawCollateral ? " - " : " + ")}
+                  {newCollateralAmount && (isWETHVault ? "Ξ " : "$ ")}
+                  {newCollateralAmount}
+                </td>
+              )}
+            />
+          )}
+        </div>
+        <div className="w-3/5 mx-auto pb-4">
+          <p>Liquidation price:</p>
+          {liquidationPrice && (
+            <NumberFormat
+              value={newLiquidationPrice || liquidationPrice}
               displayType={"text"}
               prefix={isWETHVault ? "Ξ " : "$ "}
               decimalScale={2}
@@ -158,14 +228,14 @@ const AdjustCollateralModal = () => {
         </select>
         <label
           className="grow"
-          title="Enter how many contracts you would like to buy."
+          title="Enter how much you'd like to add or remove."
         >
           <input
             className="text-center w-full h-12 number-input-hide-arrows border-r-2 border-black"
             inputMode="numeric"
             name="collateral-amount"
             onChange={handleChange}
-            placeholder="How many would you like to add or remove?"
+            placeholder="How much would you like to add or remove?"
             step={0.01}
             type="number"
             value={newCollateralAmount}

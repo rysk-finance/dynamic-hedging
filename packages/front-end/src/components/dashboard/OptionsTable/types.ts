@@ -1,9 +1,10 @@
 import type { BigNumberish } from "ethers";
 import type { ReactNode } from "react";
+import { FullPosition } from "src/state/types";
 
 type CompleteRedeem = (otokenId: string, amount: number) => Promise<void>;
 type CompleteSettle = (vaultId: string) => Promise<void>;
-type AdjustCollateral = () => void;
+type AdjustCollateral = (position: FullPosition) => void;
 
 interface Balance {
   __typename: string;

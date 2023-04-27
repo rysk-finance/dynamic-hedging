@@ -95,10 +95,12 @@ const Table = ({
             symbol,
             totalPremium,
             collateralAmount,
+            expiryTimestamp,
             collateralAsset,
             pnl,
           },
-          index
+          index,
+          arr
         ) => (
           <motion.tr
             key={id}
@@ -178,7 +180,7 @@ const Table = ({
                   {value && !isSettleable ? (
                     <Button
                       color="white"
-                      onClick={adjustCollateral}
+                      onClick={() => adjustCollateral(arr[index])}
                       className="min-w-[50%]"
                       title="Click to adjust"
                     >
