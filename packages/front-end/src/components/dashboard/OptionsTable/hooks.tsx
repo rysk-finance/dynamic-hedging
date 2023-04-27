@@ -77,6 +77,7 @@ const usePositions = () => {
               buyAmount
               sellAmount
               active
+              realizedPnl
               oToken {
                   id
                   symbol
@@ -106,6 +107,7 @@ const usePositions = () => {
               buyAmount
               sellAmount
               active
+              realizedPnl
               vault {
                   vaultId
                   collateralAmount
@@ -171,6 +173,7 @@ const usePositions = () => {
           buyAmount,
           sellAmount,
           active,
+          realizedPnl,
           ...rest
         } of [...data.shortPositions, ...data.longPositions]) {
           const {
@@ -316,7 +319,8 @@ const usePositions = () => {
             : 0;
 
           // pnl
-          const { acceptablePremium, fee, premium, quote, slippage } =
+          const graphPnl = fromUSDC(realizedPnl);
+          const { acceptablePremium, fee } =
             amount !== 0
               ? await getQuote(
                   Number(expiryTimestamp),
@@ -329,9 +333,6 @@ const usePositions = () => {
               : {
                   acceptablePremium: 0,
                   fee: 0,
-                  premium: 0,
-                  quote: 0,
-                  slippage: 0,
                 };
 
           const position = {
@@ -352,9 +353,17 @@ const usePositions = () => {
             status: getStatusMessage(!!vault.vaultId),
             totalPremium: totPremium,
             pnl:
-              Number(fromUSDC(acceptablePremium)) -
-              Number(fromUSDC(totPremium)) -
-              fee,
+              amount === 0
+                ? Number(graphPnl) // if closed position just use graph data
+                : vault.vaultId // short pnl is opposite of long as totPremium represents the earnings
+                ? Number(fromUSDC(totPremium)) -
+                  Number(fromUSDC(acceptablePremium)) -
+                  fee +
+                  Number(graphPnl) // this accounts for closed positions so far
+                : Number(fromUSDC(acceptablePremium)) -
+                  Math.abs(Number(fromUSDC(totPremium))) - // totPremium is negative for longs
+                  fee +
+                  Number(graphPnl),
             underlyingAsset: underlyingAsset.id,
           };
 
