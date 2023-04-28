@@ -356,14 +356,8 @@ const usePositions = () => {
               amount === 0
                 ? Number(graphPnl) // if closed position just use graph data
                 : vault.vaultId // short pnl is opposite of long as totPremium represents the earnings
-                ? Number(fromUSDC(totPremium)) -
-                  Number(fromUSDC(acceptablePremium)) -
-                  fee +
-                  Number(graphPnl) // this accounts for closed positions so far
-                : Number(fromUSDC(acceptablePremium)) -
-                  Math.abs(Number(fromUSDC(totPremium))) - // totPremium is negative for longs
-                  fee +
-                  Number(graphPnl),
+                ? Number(graphPnl) - Number(fromUSDC(acceptablePremium)) - fee
+                : Number(graphPnl) + Number(fromUSDC(acceptablePremium)) - fee,
             underlyingAsset: underlyingAsset.id,
           };
 
