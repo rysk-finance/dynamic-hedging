@@ -392,7 +392,7 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 	try {
 		await hre.run("verify:verify", {
 			address: portfolioValuesFeed.address,
-			constructorArguments: [authority.address, toWei("50000")]
+			constructorArguments: [authority.address, maxNetDhvExposure]
 		})
 
 		console.log("portfolio values feed verified")
@@ -793,7 +793,7 @@ export async function deployLiquidityPool(
 				usd.address,
 				weth.address,
 				liquidityPool.address,
-				500,
+				3000,
 				priceFeed.address,
 				authority
 			]
