@@ -180,18 +180,7 @@ export const OptionExchangeABI = [
 		"type": "error"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "actualPremium",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "acceptablePremium",
-				"type": "uint256"
-			}
-		],
+		"inputs": [],
 		"name": "TooMuchSlippage",
 		"type": "error"
 	},
@@ -802,6 +791,30 @@ export const OptionExchangeABI = [
 			}
 		],
 		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "heldTokens",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{

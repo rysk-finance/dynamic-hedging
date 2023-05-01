@@ -33,6 +33,7 @@
 		"issue-series:testnet": "npx hardhat run scripts/issue-series.ts --network arbitrumGoerli",
 		"set-vals:testnet": "npx hardhat run scripts/set-vals.ts --network arbitrumGoerli",
 		"set-collat-params:testnet": "npx hardhat run scripts/set-collat-params.ts --network arbitrumGoerli",
+		"deploy-opyn-pricer:testnet": "npx hardhat run scripts/deploy-opyn-pricer.ts --network arbitrumGoerli",
 		"fulfill:testnet": "npx hardhat run scripts/fulfill.ts --network arbitrumGoerli",
 		"hardhat-run": "hardhat run",
 		"test": "hardhat test",
