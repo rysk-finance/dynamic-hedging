@@ -33,7 +33,7 @@ export const updateCollateral = async (
               : OpynActionType.DepositCollateral
           ),
           owner: addresses.user,
-          secondAddress: addresses.exchange,
+          secondAddress: isWithdraw ? addresses.user : addresses.exchange,
           asset: addresses.token,
           vaultId: BigNumber.from(vaultId),
           amount: collateral,
