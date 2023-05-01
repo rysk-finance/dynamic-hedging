@@ -4,7 +4,7 @@ import FadeInOut from "src/animation/FadeInOut";
 
 const NoneFound = () => (
   <motion.p key="none-found" {...FadeInOut()} className="p-4">
-    {`No positions found. Why not contact the Rysk team to open one?`}
+    {`No positions found. Visit the Trade Options page to open positions.`}
   </motion.p>
 );
 
