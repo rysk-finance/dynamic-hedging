@@ -28,6 +28,7 @@ import { Disclaimer } from "src/components/optionsTrading/Modals/Shared/componen
 import { Modal } from "src/components/optionsTrading/Modals/Shared/components/Modal";
 import { useAllowance } from "src/components/optionsTrading/Modals/Shared/hooks/useAllowance";
 import { getLiquidationPrice } from "src/components/optionsTrading/Modals/Shared/utils/getLiquidationPrice";
+import { useDebouncedCallback } from "use-debounce";
 
 const calculateNewCollateralAmount = (
   symbol: "USDC" | "WETH",
@@ -143,13 +144,11 @@ const AdjustCollateralModal = () => {
     }
   };
 
-  const handleChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const amount = event.currentTarget.value;
+  const handleChange = useDebouncedCallback(async (value: string) => {
+    const amount = value;
     const decimals = amount.split(".");
     const rounded =
-      decimals.length > 1
-        ? `${decimals[0]}.${decimals[1].slice(0, 2)}`
-        : event.currentTarget.value;
+      decimals.length > 1 ? `${decimals[0]}.${decimals[1].slice(0, 2)}` : value;
 
     setNewCollateralAmount(rounded);
 
@@ -172,11 +171,10 @@ const AdjustCollateralModal = () => {
     );
 
     setNewLiquidationPrice(liquidationPrice);
-  };
+  }, 1000);
 
   const handleAddOrRemove = (event: ChangeEvent<HTMLSelectElement>) => {
     setIsWithdrawCollateral(event.currentTarget.value === "REMOVE");
-    setNewCollateralAmount("");
   };
 
   return (
@@ -267,11 +265,10 @@ const AdjustCollateralModal = () => {
             className="text-center w-full h-12 number-input-hide-arrows border-r-2 border-black"
             inputMode="numeric"
             name="collateral-amount"
-            onChange={handleChange}
+            onChange={(e) => handleChange(e.target.value)}
             placeholder="How much would you like to add or remove?"
             step={0.01}
             type="number"
-            value={newCollateralAmount}
           />
         </label>
 
