@@ -196,14 +196,32 @@ const AdjustCollateralModal = () => {
               decimalScale={2}
               thousandSeparator={true}
               renderText={(value) => (
-                <td className="col-span-1 text-right">
-                  {collateralAmount ? value : "-"}{" "}
-                  {newCollateralAmount &&
-                    (isWithdrawCollateral ? " - " : " + ")}
-                  {newCollateralAmount && (isWETHVault ? "Ξ " : "$ ")}
-                  {newCollateralAmount}
-                </td>
+                <p className={`${newCollateralAmount ? "line-through" : ""}`}>
+                  {value}
+                </p>
               )}
+            />
+          )}
+          {newCollateralAmount && (
+            <NumberFormat
+              value={
+                Number(
+                  ethers.utils.formatUnits(
+                    collateralAmount,
+                    isWETHVault ? DECIMALS.RYSK : DECIMALS.USDC
+                  )
+                ) +
+                Number(
+                  isWithdrawCollateral
+                    ? "-" + newCollateralAmount
+                    : newCollateralAmount
+                )
+              }
+              displayType={"text"}
+              prefix={isWETHVault ? "Ξ " : "$ "}
+              decimalScale={2}
+              thousandSeparator={true}
+              renderText={(value) => <p>{value}</p>}
             />
           )}
         </div>
@@ -211,11 +229,26 @@ const AdjustCollateralModal = () => {
           <p>Liquidation price:</p>
           {liquidationPrice && (
             <NumberFormat
-              value={newLiquidationPrice || liquidationPrice}
+              value={liquidationPrice}
               displayType={"text"}
               prefix={isWETHVault ? "Ξ " : "$ "}
               decimalScale={2}
               thousandSeparator={true}
+              renderText={(value) => (
+                <p className={`${newCollateralAmount ? "line-through" : ""}`}>
+                  {value}
+                </p>
+              )}
+            />
+          )}
+          {newCollateralAmount && (
+            <NumberFormat
+              value={newLiquidationPrice}
+              displayType={"text"}
+              prefix={isWETHVault ? "Ξ " : "$ "}
+              decimalScale={2}
+              thousandSeparator={true}
+              renderText={(value) => <p>{value}</p>}
             />
           )}
         </div>
