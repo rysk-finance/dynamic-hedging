@@ -26,7 +26,8 @@ import {
 	OpynInteractions,
 	Manager,
 	OptionsCompute,
-	PermissionedMintableERC20
+	PermissionedMintableERC20,
+	DHVLensMK1
 } from "../../types"
 
 const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
@@ -579,11 +580,8 @@ export async function deployLiquidityPool(
 	await optionRegistry.setLiquidityPool(liquidityPool.address)
 	console.log("registry lp set")
 
-	await liquidityPool.setMaxTimeDeviationThreshold(60000)
-	await liquidityPool.setMaxPriceDeviationThreshold(toWei("0.3"))
 	await pvFeed.setLiquidityPool(liquidityPool.address)
 	await pvFeed.setProtocol(optionProtocol.address)
-	await pvFeed.setKeeper(liquidityPool.address, true)
 	console.log("pv feed lp set")
 
 	await pvFeed.fulfill(weth.address, usd.address)
@@ -708,9 +706,11 @@ export async function deployLiquidityPool(
 	await exchange.changeApprovedCollateral(usd.address, false, true)
 	await exchange.changeApprovedCollateral(weth.address, true, true)
 	await exchange.changeApprovedCollateral(weth.address, false, true)
-
+	console.log("exchange collateral approvals set")
+	await exchange.setPoolFee(weth.address, 500)
+	console.log("exchange pool fees set")
 	await liquidityPool.changeHandler(exchange.address, true)
-	await liquidityPool.setHedgingReactorAddress(exchange.address)
+	console.log("exchange set as Liquidity Pool handler")
 
 	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
 	const handler = (await handlerFactory.deploy(
@@ -731,12 +731,11 @@ export async function deployLiquidityPool(
 	}
 
 	await liquidityPool.changeHandler(handler.address, true)
-	await pvFeed.setKeeper(handler.address, true)
-	await pvFeed.setKeeper(exchange.address, true)
-	await pvFeed.setKeeper(liquidityPool.address, true)
+	console.log("option handler set as Liquidity Pool handler")
+
 	await pvFeed.setHandler(handler.address, true)
 	await pvFeed.setHandler(exchange.address, true)
-	console.log("lp handler set")
+	console.log("pvFeed handlers set")
 
 	// deploy proxy manager contract
 
@@ -815,7 +814,7 @@ export async function deployLiquidityPool(
 		usd.address,
 		weth.address,
 		liquidityPool.address,
-		3000,
+		500,
 		priceFeed.address,
 		authority
 	)
@@ -828,7 +827,7 @@ export async function deployLiquidityPool(
 				usd.address,
 				weth.address,
 				liquidityPool.address,
-				3000,
+				500,
 				priceFeed.address,
 				authority
 			]
@@ -840,7 +839,39 @@ export async function deployLiquidityPool(
 
 	await liquidityPool.setHedgingReactorAddress(uniswapV3HedgingReactor.address)
 	await liquidityPool.setHedgingReactorAddress(perpHedgingReactor.address)
+	await liquidityPool.setHedgingReactorAddress(exchange.address)
+
 	console.log("hedging reactors added to liquidity pool")
+
+	const lensFactory = await ethers.getContractFactory("DHVLensMK1")
+	const lens = (await lensFactory.deploy(
+		optionProtocol.address,
+		catalogue.address,
+		pricer.address,
+		usd.address,
+		weth.address,
+		usd.address
+	)) as DHVLensMK1
+
+	console.log("lens contract deployed")
+
+	try {
+		await hre.run("verify:verify", {
+			address: lens.address,
+			constructorArguments: [
+				optionProtocol.address,
+				catalogue.address,
+				pricer.address,
+				usd.address,
+				weth.address,
+				usd.address
+			]
+		})
+		console.log("lens verified")
+	} catch (err: any) {
+		console.log(err)
+		console.log("lens contract already verified")
+	}
 
 	return {
 		liquidityPool: liquidityPool,
@@ -851,7 +882,8 @@ export async function deployLiquidityPool(
 		catalogue,
 		exchange,
 		pricer,
-		manager
+		manager,
+		lens
 	}
 }
 
