@@ -24,70 +24,70 @@ export const ADDRESSES = {
 
 const seriesToIssue = [
     {
-        expiration: 1685088000,
+        expiration: 1688112000,
         isPut: CALL_FLAVOR,
         strike: toWei("1700"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1685088000,
+        expiration: 1688112000,
         isPut: CALL_FLAVOR,
         strike: toWei("1800"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1685088000,
+        expiration: 1688112000,
         isPut: CALL_FLAVOR,
         strike: toWei("1900"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1685088000,
+        expiration: 1688112000,
         isPut: PUT_FLAVOR,
         strike: toWei("1700"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1685088000,
+        expiration: 1688112000,
         isPut: PUT_FLAVOR,
         strike: toWei("1800"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1685088000,
+        expiration: 1688112000,
         isPut: PUT_FLAVOR,
         strike: toWei("1900"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1685088000,
+        expiration: 1688112000,
         isPut: PUT_FLAVOR,
         strike: toWei("2000"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1685088000,
+        expiration: 1688112000,
         isPut: PUT_FLAVOR,
         strike: toWei("2100"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1685088000,
+        expiration: 1688112000,
         isPut: CALL_FLAVOR,
         strike: toWei("2000"),
         isSellable: true,
         isBuyable: true
     },
     {
-        expiration: 1685088000,
+        expiration: 1688112000,
         isPut: CALL_FLAVOR,
         strike: toWei("2100"),
         isSellable: true,
@@ -101,7 +101,11 @@ async function main() {
 			console.log("can't find private key")
 			process.exit()
 		}
-
+        
+        const manager = await hre.ethers.getContractAt(
+            "Manager",
+            ADDRESSES[CHAINID.ARBITRUM_GOERLI].manager
+        )
 		const catalogue = await hre.ethers.getContractAt(
 			"OptionCatalogue",
 			ADDRESSES[CHAINID.ARBITRUM_GOERLI].catalogue
@@ -127,7 +131,7 @@ async function main() {
             }
         }
         // issue the series
-		const mgtx = await catalogue.issueNewSeries(seriesToIssue)
+		const mgtx = await manager.issueNewSeries(seriesToIssue)
 
 		await mgtx.wait()
         
