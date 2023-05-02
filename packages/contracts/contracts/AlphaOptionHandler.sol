@@ -55,7 +55,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	/// governance settable variables ///
 	/////////////////////////////////////
 
-	uint256 public feePerContract = 3e5;
+	uint256 public feePerContract = 5e5;
 	address public feeRecipient;
 
 	//////////////////////////
