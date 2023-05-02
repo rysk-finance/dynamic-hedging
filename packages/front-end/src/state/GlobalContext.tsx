@@ -75,6 +75,12 @@ export const defaultGlobalState: GlobalState = {
     vaults: { length: 0 },
   },
 
+  dashboard: {
+    activePositions: [],
+    inactivePositions: [],
+    modalPosition: undefined,
+  },
+
   // Options chain state.
   collateralPreferences: {
     type: "USDC",
@@ -95,6 +101,7 @@ export const defaultGlobalState: GlobalState = {
     "pos",
     "exposure",
   ] as ColumNames[]),
+  dashboardModalOpen: undefined,
 };
 
 export const GlobalReactContext = createContext<GlobalContext>({

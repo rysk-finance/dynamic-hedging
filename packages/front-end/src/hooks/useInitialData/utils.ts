@@ -40,15 +40,24 @@ const getExpiries = (expiries: InitialDataQuery["expiries"]) => {
   }, [] as string[]);
 };
 
-const getUserPositions = (positions: InitialDataQuery["positions"]) => {
+const getUserPositions = (
+  positions: InitialDataQuery["longPositions" | "shortPositions"]
+) => {
   return positions.reduce(
     (
       positions,
-      { netAmount, oToken, optionsBoughtTransactions, optionsSoldTransactions }
+      {
+        netAmount,
+        oToken,
+        optionsBoughtTransactions,
+        optionsSoldTransactions,
+        vault,
+      }
     ) => {
       const { expiryTimestamp } = oToken;
       const isLong = Number(netAmount) > 0;
       const isShort = Number(netAmount) < 0;
+
       const key = positions[expiryTimestamp];
 
       const _getPremium = (
@@ -74,6 +83,7 @@ const getUserPositions = (positions: InitialDataQuery["positions"]) => {
         ...oToken,
         netAmount,
         totalPremium,
+        vault,
       };
 
       if (!key) {
@@ -335,13 +345,13 @@ export const getInitialData = async (
   data: InitialDataQuery,
   address?: HexString
 ) => {
-  const { expiries, positions } = data;
+  const { expiries, longPositions, shortPositions } = data;
 
   // Get expiries.
   const validExpiries = getExpiries(expiries);
 
   // Get user positions.
-  const userPositions = getUserPositions(positions);
+  const userPositions = getUserPositions([...longPositions, ...shortPositions]);
 
   // Get chain data.
   const chainData = await getChainData(validExpiries, userPositions);

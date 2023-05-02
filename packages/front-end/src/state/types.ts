@@ -1,9 +1,9 @@
 import type { ApolloError } from "@apollo/client";
 import type { BigNumber, BigNumberish } from "ethers";
 
-import type { PositionOToken } from "src/hooks/useInitialData/types";
+import type { PositionOToken, Vault } from "src/hooks/useInitialData/types";
 
-import { Dispatch } from "react";
+import { Dispatch, ReactNode } from "react";
 
 export type AppSettings = {
   vaultDepositUnlimitedApproval: boolean;
@@ -16,6 +16,7 @@ export type Expiries = string[];
 interface UserPositionToken extends PositionOToken {
   netAmount: BigNumberish;
   totalPremium: number;
+  vault?: Vault;
 }
 
 export interface UserPositions {
@@ -25,6 +26,31 @@ export interface UserPositions {
     isShort: boolean;
     tokens: UserPositionToken[];
   };
+}
+
+export interface FullPosition {
+  amount: number;
+  createdAt: string;
+  entryPrice: string;
+  expired: boolean;
+  expiryPrice?: string;
+  liquidationPrice: number;
+  id: string;
+  isPut: boolean;
+  isRedeemable: boolean;
+  otokenId: string;
+  side: string;
+  status: string | ReactNode;
+  strikePrice: string;
+  symbol: string;
+  totalPremium: number;
+  underlyingAsset: string;
+  isSettleable: boolean;
+  vaultId: string;
+  collateralAsset: string;
+  expiryTimestamp: string;
+  collateralAmount: string;
+  pnl: number;
 }
 
 export interface ChainData {
@@ -130,6 +156,12 @@ export type GlobalState = {
     vaults: UserVaults;
   };
 
+  dashboard: {
+    activePositions?: FullPosition[];
+    inactivePositions?: FullPosition[];
+    modalPosition?: FullPosition;
+  };
+
   // Options chain state.
   collateralPreferences: CollateralPreferences;
   selectedOption?: SelectedOption;
@@ -139,6 +171,7 @@ export type GlobalState = {
   sellTutorialIndex?: number;
   visibleStrikeRange: StrikeRangeTuple;
   visibleColumns: Set<ColumNames>;
+  dashboardModalOpen?: DashboardModal;
 };
 
 export enum ActionType {
@@ -153,10 +186,14 @@ export enum ActionType {
   // Actions related to useInitialData hook.
   SET_OPTIONS,
 
+  // Actions related to dashboard state.
+  SET_DASHBOARD,
+
   // Actions related to options chain state.
   SET_VISIBLE_STRIKE_RANGE,
   SET_VISIBLE_COLUMNS,
   SET_COLLATERAL_PREFERENCES,
+  SET_DASHBOARD_MODAL_VISIBLE,
   SET_SELECTED_OPTION,
   SET_OPTION_CHAIN_MODAL_VISIBLE,
   SET_BUY_TUTORIAL_INDEX,
@@ -165,6 +202,13 @@ export enum ActionType {
   RESET_OPTIONS_CHAIN_STATE,
   CHANGE_FROM_BUYING_OR_SELLING,
 }
+
+export enum DashboardModalActions {
+  ADJUST_COLLATERAL = "adjustCollateral",
+}
+
+type DashboardModal =
+  (typeof DashboardModalActions)[keyof typeof DashboardModalActions];
 
 export type GlobalAction =
   | {
@@ -215,6 +259,12 @@ export type GlobalAction =
       vaults?: UserVaults;
     }
   | {
+      type: ActionType.SET_DASHBOARD;
+      activePositions?: FullPosition[];
+      inactivePositions?: FullPosition[];
+      modalPosition?: FullPosition;
+    }
+  | {
       type: ActionType.SET_VISIBLE_STRIKE_RANGE;
       visibleStrikeRange?: StrikeRangeTuple;
     }
@@ -255,6 +305,10 @@ export type GlobalAction =
         | OptionChainModalActions.BUY
         | OptionChainModalActions.SELL
         | OptionChainModalActions.OPERATOR;
+    }
+  | {
+      type: ActionType.SET_DASHBOARD_MODAL_VISIBLE;
+      visible?: DashboardModalActions;
     };
 
 export type GlobalContext = {
@@ -297,6 +351,7 @@ export enum OptionChainModalActions {
   CLOSE = "close",
   OPERATOR = "operator",
   SELL = "sell",
+  CLOSE_SHORT = "closeShort",
 }
 
 type OptionChainModal =

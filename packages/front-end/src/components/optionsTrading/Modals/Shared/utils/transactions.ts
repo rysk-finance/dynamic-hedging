@@ -2,7 +2,7 @@ import { BigNumber as BigNumberType } from "ethers";
 
 import type { UserVaults } from "src/state/types";
 import type { OptionSeries } from "src/types";
-import type { AddressesRequired } from "../types";
+import type { AddressesRequired, AddressesRequiredVaultSell } from "../types";
 
 import {
   getContract,
@@ -11,11 +11,11 @@ import {
   waitForTransaction,
   writeContract,
 } from "@wagmi/core";
-import { BigNumber, utils } from "ethers";
+import { BigNumber, utils, ethers } from "ethers";
 
+import { erc20ABI } from "src/abis/erc20_ABI";
 import { NewControllerABI } from "src/abis/NewController_ABI";
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
-import { erc20ABI } from "src/abis/erc20_ABI";
 import {
   EMPTY_SERIES,
   GAS_MULTIPLIER,
@@ -336,4 +336,90 @@ export const setOperator = async (isOperator: boolean) => {
   await waitForTransaction({ hash, confirmations: 1 });
 
   return hash;
+};
+
+export const vaultSell = async (
+  acceptablePremium: BigNumberType,
+  addresses: AddressesRequiredVaultSell,
+  amount: BigNumberType,
+  refresh: () => void,
+  collateralAmount: BigNumberType,
+  vaultId: string
+) => {
+  const txData = [
+    {
+      operation: OperationType.RyskAction,
+      operationQueue: [
+        {
+          actionType: BigNumber.from(RyskActionType.BuyOption),
+          owner: ZERO_ADDRESS,
+          secondAddress: addresses.user,
+          asset: addresses.token,
+          vaultId: BigNumber.from(0),
+          amount: amount,
+          optionSeries: EMPTY_SERIES,
+          indexOrAcceptablePremium: acceptablePremium,
+          data: "0x" as HexString,
+        },
+      ],
+    },
+    {
+      operation: OperationType.OpynAction,
+      operationQueue: [
+        {
+          actionType: BigNumber.from(OpynActionType.BurnShortOption),
+          owner: addresses.user,
+          secondAddress: addresses.user,
+          asset: addresses.token,
+          vaultId: BigNumber.from(vaultId),
+          amount: amount.div(ethers.utils.parseUnits("1", 10)), // Rysk e18 to Opyn e8
+          optionSeries: EMPTY_SERIES,
+          indexOrAcceptablePremium: BigNumber.from(0),
+          data: "0x" as HexString,
+        },
+        {
+          actionType: BigNumber.from(OpynActionType.WithdrawCollateral),
+          owner: addresses.user,
+          secondAddress: addresses.user,
+          asset: addresses.collateral,
+          vaultId: BigNumber.from(vaultId),
+          amount: collateralAmount,
+          optionSeries: EMPTY_SERIES,
+          indexOrAcceptablePremium: BigNumber.from(0),
+          data: "0x" as HexString,
+        },
+      ],
+    },
+  ];
+
+  const config = await prepareWriteContract({
+    address: addresses.exchange,
+    abi: OptionExchangeABI,
+    functionName: "operate",
+    args: [txData],
+  });
+
+  if (config.request.data) {
+    const simulationResponse = await fetchSimulation(
+      addresses.user,
+      addresses.exchange,
+      config.request.data
+    );
+
+    if (simulationResponse.simulation.status) {
+      config.request.gasLimit = BigNumber.from(
+        Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
+      );
+
+      const { hash } = await writeContract(config);
+
+      await waitForTransaction({ hash, confirmations: 2 });
+
+      refresh();
+
+      return hash;
+    } else {
+      throw new Error("Tenderly simulation failed.");
+    }
+  }
 };

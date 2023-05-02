@@ -1,9 +1,14 @@
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { BigNumber } from "ethers";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 
-import { ActionType, OptionChainModalActions } from "src/state/types";
+import {
+  ActionType,
+  OptionChainModalActions,
+  DashboardModalActions,
+} from "src/state/types";
 
 /**
  * Hook that checks query params and state to determine if
@@ -23,6 +28,7 @@ export const useModal = () => {
   const {
     state: {
       options: { activeExpiry, isOperator, userPositions },
+      dashboardModalOpen,
       optionChainModalOpen,
       selectedOption,
     },
@@ -52,14 +58,24 @@ export const useModal = () => {
   useEffect(() => {
     if (activeExpiry) {
       const hasSellRef = searchParams.get("ref") === "close";
+      const hasVaultCloseRef = searchParams.get("ref") === "vault-close";
       const hasUserPosition = userPositions[activeExpiry]?.tokens.find(
-        ({ id }) => id === searchParams.get("token")
+        ({ id, netAmount }) =>
+          id === searchParams.get("token") &&
+          (hasVaultCloseRef
+            ? BigNumber.from(netAmount).lt(0)
+            : BigNumber.from(netAmount).gt(0))
       );
 
       if (hasSellRef && hasUserPosition) {
         dispatch({
           type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.CLOSE,
+        });
+      } else if (hasVaultCloseRef && hasUserPosition) {
+        dispatch({
+          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          visible: OptionChainModalActions.CLOSE_SHORT,
         });
       } else if (selectedOption?.buyOrSell === "buy") {
         dispatch({
@@ -77,8 +93,16 @@ export const useModal = () => {
           visible: OptionChainModalActions.SELL,
         });
       }
+      return;
+    }
+
+    if (searchParams.get("ref") === "adjust-collateral") {
+      dispatch({
+        type: ActionType.SET_DASHBOARD_MODAL_VISIBLE,
+        visible: DashboardModalActions.ADJUST_COLLATERAL,
+      });
     }
   }, [activeExpiry, isOperator, searchParams, selectedOption]);
 
-  return [optionChainModalOpen] as const;
+  return [optionChainModalOpen, dashboardModalOpen] as const;
 };

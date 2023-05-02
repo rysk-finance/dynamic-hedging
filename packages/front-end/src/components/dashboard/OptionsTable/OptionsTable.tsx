@@ -6,13 +6,29 @@ import LoadingOrError from "src/components/shared/LoadingOrError";
 import Disconnected from "./components/Disconnected";
 import NoneFound from "./components/NoneFound";
 import Table from "./components/Table";
-import { usePositions, useRedeem } from "./hooks";
+import { usePositions, useRedeem, useSettle } from "./hooks";
+import { useSearchParams } from "react-router-dom";
+import { ActionType, FullPosition } from "src/state/types";
+import { useGlobalContext } from "src/state/GlobalContext";
 
 export const UserOptions = () => {
+  const { dispatch } = useGlobalContext();
+
   const { isConnected, isDisconnected } = useAccount();
 
-  const [positions, loading, error] = usePositions();
+  const [, setSearchParams] = useSearchParams();
+
+  const [activePositions, inactivePositions, loading, error] = usePositions();
   const [completeRedeem] = useRedeem();
+  const [completeSettle] = useSettle();
+
+  const adjustCollateral = (position: FullPosition) => {
+    dispatch({ type: ActionType.SET_DASHBOARD, modalPosition: position });
+
+    setSearchParams({
+      ref: "adjust-collateral",
+    });
+  };
 
   return (
     <Card
@@ -20,7 +36,7 @@ export const UserOptions = () => {
       tabWidth={280}
       tabs={[
         {
-          label: loading && !positions ? "Loading..." : "RYSK.Options",
+          label: loading && !activePositions ? "Loading Open..." : "RYSK.Open",
           content: (
             <>
               <AnimatePresence initial={false} mode="wait">
@@ -32,12 +48,52 @@ export const UserOptions = () => {
                   />
                 )}
 
-                {isConnected && positions && (
+                {isConnected && activePositions && (
                   <>
-                    {positions.length ? (
+                    {activePositions.length ? (
                       <Table
-                        positions={positions}
+                        positions={activePositions}
                         completeRedeem={completeRedeem}
+                        adjustCollateral={adjustCollateral}
+                        completeSettle={completeSettle}
+                        active={true}
+                      />
+                    ) : (
+                      <NoneFound />
+                    )}
+                  </>
+                )}
+
+                {isDisconnected && <Disconnected />}
+              </AnimatePresence>
+            </>
+          ),
+        },
+        {
+          label:
+            loading && !inactivePositions
+              ? "Loading Closed..."
+              : "RYSK.Expired",
+          content: (
+            <>
+              <AnimatePresence initial={false} mode="wait">
+                {(loading || error) && (
+                  <LoadingOrError
+                    key="loading-or-error"
+                    error={error}
+                    extraStrings={["Processing options..."]}
+                  />
+                )}
+
+                {isConnected && inactivePositions && (
+                  <>
+                    {inactivePositions.length ? (
+                      <Table
+                        positions={inactivePositions}
+                        completeRedeem={completeRedeem}
+                        adjustCollateral={adjustCollateral}
+                        completeSettle={completeSettle}
+                        active={false}
                       />
                     ) : (
                       <NoneFound />
