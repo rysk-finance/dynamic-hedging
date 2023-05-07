@@ -4,6 +4,7 @@ import { DownChevron } from "./DownChevron";
 import { Ether } from "./Ether";
 import { LeftArrow } from "./LeftArrow";
 import { Loading } from "./Loading";
+import { Podium } from "./Podium";
 import { Question } from "./Question";
 import { RightArrow } from "./RightArrow";
 import { RyskFavicon } from "./RyskFavicon";
@@ -19,6 +20,7 @@ export {
   Ether,
   LeftArrow,
   Loading,
+  Podium,
   Question,
   RightArrow,
   RyskFavicon,
