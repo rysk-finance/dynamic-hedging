@@ -1,8 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion, LayoutGroup } from "framer-motion";
+import { useAccount } from "wagmi";
 
 import { AppPaths } from "../config/appPaths";
 import { Connect } from "src/clients/WalletProvider/components/Connect";
+import { Podium } from "src/Icons";
 
 const links = [
   { id: "header-vault", path: AppPaths.VAULT, label: "Vault" },
@@ -11,6 +13,7 @@ const links = [
 ];
 
 export const Header = () => {
+  const { address } = useAccount();
   const { pathname } = useLocation();
 
   return (
@@ -40,6 +43,19 @@ export const Header = () => {
               </Link>
             ))}
           </motion.div>
+
+          <motion.a
+            className="flex items-center mr-8"
+            href={`https://www.rysk.finance/leaderboard/${
+              address ? `?address=${address.toLowerCase()}` : ""
+            }`}
+            layout="position"
+            rel="noreferrer noopener"
+            target="_blank"
+            title="Click to view the competition leaderboard."
+          >
+            <Podium className="fill-black w-10 h-10" key="leader-board" />
+          </motion.a>
 
           <Connect />
         </LayoutGroup>
