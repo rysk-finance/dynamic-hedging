@@ -13,6 +13,7 @@ import type { InitialDataQuery, OptionsTransaction, Vault } from "./types";
 
 import { readContract, readContracts } from "@wagmi/core";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { BigNumber } from "ethers";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
@@ -29,6 +30,8 @@ import {
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { toTwoDecimalPlaces } from "src/utils/rounding";
+
+dayjs.extend(utc);
 
 const getExpiries = (expiries: InitialDataQuery["expiries"]) => {
   return expiries.reduce((expiryList, { timestamp }) => {
@@ -303,43 +306,42 @@ const getLiquidationCalculationParameters = async () => {
     }
   };
 
-   const parameters = await readContracts({
-      contracts: [
-        _getParams("USDC", "getSpotShock", true),
-        _getParams("USDC", "getSpotShock", false),
-        _getParams("WETH", "getSpotShock", true),
-        _getParams("WETH", "getSpotShock", false),
-        _getParams("USDC", "getTimesToExpiry", true),
-        _getParams("USDC", "getTimesToExpiry", false),
-        _getParams("WETH", "getTimesToExpiry", true),
-        _getParams("WETH", "getTimesToExpiry", false),
-      ],
-    });
+  const parameters = await readContracts({
+    contracts: [
+      _getParams("USDC", "getSpotShock", true),
+      _getParams("USDC", "getSpotShock", false),
+      _getParams("WETH", "getSpotShock", true),
+      _getParams("WETH", "getSpotShock", false),
+      _getParams("USDC", "getTimesToExpiry", true),
+      _getParams("USDC", "getTimesToExpiry", false),
+      _getParams("WETH", "getTimesToExpiry", true),
+      _getParams("WETH", "getTimesToExpiry", false),
+    ],
+  });
 
-    return {
-      spotShock: {
-        call: {
-          USDC: _parseResults(parameters[1]) as number,
-          WETH: _parseResults(parameters[3]) as number,
-        },
-        put: {
-          USDC: _parseResults(parameters[0]) as number,
-          WETH: _parseResults(parameters[2]) as number,
-        },
+  return {
+    spotShock: {
+      call: {
+        USDC: _parseResults(parameters[1]) as number,
+        WETH: _parseResults(parameters[3]) as number,
       },
-      timesToExpiry: {
-        call: {
-          USDC: _parseResults(parameters[5]) as number[],
-          WETH: _parseResults(parameters[7]) as number[],
-        },
-        put: {
-          USDC: _parseResults(parameters[4]) as number[],
-          WETH: _parseResults(parameters[6]) as number[],
-        },
+      put: {
+        USDC: _parseResults(parameters[0]) as number,
+        WETH: _parseResults(parameters[2]) as number,
       },
-    };
+    },
+    timesToExpiry: {
+      call: {
+        USDC: _parseResults(parameters[5]) as number[],
+        WETH: _parseResults(parameters[7]) as number[],
+      },
+      put: {
+        USDC: _parseResults(parameters[4]) as number[],
+        WETH: _parseResults(parameters[6]) as number[],
+      },
+    },
   };
-    
+};
 
 export const getInitialData = async (
   data: InitialDataQuery,
