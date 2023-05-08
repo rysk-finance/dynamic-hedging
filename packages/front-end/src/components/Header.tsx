@@ -7,7 +7,7 @@ import { Connect } from "src/clients/WalletProvider/components/Connect";
 import { Podium } from "src/Icons";
 
 const links = [
-  { id: "header-vault", path: AppPaths.VAULT, label: "Vault" },
+  // { id: "header-vault", path: AppPaths.VAULT, label: "Vault" },
   { id: "header-options", path: AppPaths.TRADE, label: "Trade Options" },
   { id: "header-dashboard", path: AppPaths.DASHBOARD, label: "Dashboard" },
 ];
@@ -18,7 +18,7 @@ export const Header = () => {
 
   return (
     <div className="fixed w-full h-24 t-0 flex items-center px-16 justify-between border-b-2 border-black bg-bone z-20">
-      <Link to={AppPaths.VAULT}>
+      <Link to={AppPaths.TRADE}>
         <img
           alt="Rysk logo"
           className="w-20"

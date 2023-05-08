@@ -224,7 +224,7 @@ export const UserVault = () => {
                 {/*)}*/}
               </div>
               <div className="flex flex-col w-full lg:w-[30%] h-full justify-around items-center">
-                <Link
+                {/* <Link
                   className="w-full"
                   to={{ pathname: AppPaths.VAULT, search: "?type=deposit" }}
                 >
@@ -239,7 +239,7 @@ export const UserVault = () => {
                   }}
                 >
                   <Button className="w-full">Withdraw</Button>
-                </Link>
+                </Link> */}
               </div>
             </div>
           ),
