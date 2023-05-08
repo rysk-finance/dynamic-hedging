@@ -207,6 +207,11 @@ export const sell = async (
     abi: OptionExchangeABI,
     signerOrProvider: provider,
   });
+  const controllerContract = getContract({
+    address: getContractAddress("OpynController"),
+    abi: NewControllerABI,
+    signerOrProvider: provider,
+  });
 
   // OptionExchangeABI is missing `callStatic` so the return type is wrong, hence the conversion to unknown.
   const oTokenAddress = (await contract.callStatic.createOtoken({
@@ -218,13 +223,18 @@ export const sell = async (
     isPut: optionSeries.isPut,
   })) as unknown as HexString;
 
+  // Check to see if the user already has a matching vault.
   const vaultKey = oTokenAddress.toLowerCase() as HexString;
   const hasVault = Boolean(vaults[vaultKey]);
 
-  // Get vaultId from global state or assign next available.
+  // Get vaultId from global state or assign next available based on vault counter.
   const vaultId = hasVault
     ? BigNumber.from(vaults[vaultKey])
-    : BigNumber.from(++vaults.length);
+    : (
+        await controllerContract.callStatic.getAccountVaultCounter(
+          addresses.user
+        )
+      ).add(1);
 
   const openVaultData = {
     actionType: BigNumber.from(OpynActionType.OpenVault),
