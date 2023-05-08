@@ -1,6 +1,6 @@
 export enum AppPaths {
-  VAULT = "/",
-  TRADE = "/options",
+  TRADE = "/",
+  // TRADE = "/options",
   DASHBOARD = "/dashboard",
   OTC = "/otc",
 }
