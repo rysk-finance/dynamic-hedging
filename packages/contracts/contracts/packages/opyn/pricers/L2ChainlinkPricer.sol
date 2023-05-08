@@ -29,7 +29,7 @@ contract L2ChainLinkPricer is OpynPricerInterface {
     /// @notice bot address that is allowed to call setExpiryPriceInOracle
     address public bot;
     // seconds after arbitrum sequencer comes back online that we start accepting price feed data
-    uint32 private constant GRACE_PERIOD_TIME = 1800; // 30 minutes
+    uint32 private constant GRACE_PERIOD_TIME = 30; // 30 minutes
 
     /**
      * @param _bot priveleged address that can call setExpiryPriceInOracle

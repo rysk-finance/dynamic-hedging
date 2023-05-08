@@ -8,7 +8,7 @@ import {NewController} from "../types/NewController"
 
 const lockingPeriod = 60 * 10
 const disputePeriod = 60 * 20
-const chainlinkOracle = "0x5f0423B1a6935dc5596e7A24d98532b67A0AeFd8"
+const chainlinkOracle = "0x62CAe0FA2da220f43a51F86Db2EDb36DcA9A5A08"
 const bot = "0xa7d48256291bcd02656b05e7d38bd5cb617edb29"
 const weth = "0x3b3a1dE07439eeb04492Fa64A889eE25A130CDd3"
 const usdc = "0x408c5755b5c7a0a28D851558eA3636CfC5b5b19d"
@@ -60,129 +60,129 @@ async function main() {
 	const calculator = await ethers.getContractAt("NewMarginCalculator", "0xcD270e755C2653e806e16dD3f78E16C89B7a1c9e") as NewMarginCalculator
 	const controller = await ethers.getContractAt("NewController", "0x11a602a5F5D823c103bb8b7184e22391Aae5F4C2") as NewController
     // deploy pricer
-    const pricer = await(await ethers.getContractFactory("L2ChainLinkPricer")).deploy(bot, weth, chainlinkOracle, oracle.address, sequencerUptimeFeed, { gasLimit: BigNumber.from("500000000") })
+    const pricer = await(await ethers.getContractFactory("L2ChainLinkPricer")).deploy(bot, weth, chainlinkOracle, oracle.address, sequencerUptimeFeed, { gasLimit: BigNumber.from("50000000000") })
     console.log("pricer: " + pricer.address)
     await oracle.setAssetPricer(weth, pricer.address)
     await oracle.setLockingPeriod(pricer.address, lockingPeriod)
     await oracle.setDisputePeriod(pricer.address, disputePeriod)
 
-    await controller.setNakedCap(weth, utils.parseEther('1000000'))
-	await controller.setNakedCap(usdc, utils.parseEther('1000000'))
-    await controller.refreshConfiguration()
+    // await controller.setNakedCap(weth, utils.parseEther('1000000'))
+	// await controller.setNakedCap(usdc, utils.parseEther('1000000'))
+    // await controller.refreshConfiguration()
 
      // whitelist stuff
 
-    await whitelist.whitelistCollateral(weth)
-	await whitelist.whitelistCollateral(usdc)
+    // await whitelist.whitelistCollateral(weth)
+	// await whitelist.whitelistCollateral(usdc)
 
 // whitelist products
 	// normal calls
-	await whitelist.whitelistProduct(
-		weth,
-		usdc,
-		weth,
-		false
-	)
-	// normal puts
-	await whitelist.whitelistProduct(
-		weth,
-		usdc,
-		usdc,
-		true
-	)
-	// usd collateralised calls
-	await whitelist.whitelistProduct(
-		weth,
-		usdc,
-		usdc,
-		false
-	)
-	// eth collateralised puts
-	await whitelist.whitelistProduct(
-		weth,
-		usdc,
-		weth,
-		true
-	)
-	// whitelist vault type 0 collateral
-	await whitelist.whitelistCoveredCollateral(weth, weth, false)
-	await whitelist.whitelistCoveredCollateral(usdc, weth, true)
-	// whitelist vault type 1 collateral
-	await whitelist.whitelistNakedCollateral(usdc, weth, false)
-	await whitelist.whitelistNakedCollateral(weth, weth, true)
+	// await whitelist.whitelistProduct(
+	// 	weth,
+	// 	usdc,
+	// 	weth,
+	// 	false
+	// )
+	// // normal puts
+	// await whitelist.whitelistProduct(
+	// 	weth,
+	// 	usdc,
+	// 	usdc,
+	// 	true
+	// )
+	// // usd collateralised calls
+	// await whitelist.whitelistProduct(
+	// 	weth,
+	// 	usdc,
+	// 	usdc,
+	// 	false
+	// )
+	// // eth collateralised puts
+	// await whitelist.whitelistProduct(
+	// 	weth,
+	// 	usdc,
+	// 	weth,
+	// 	true
+	// )
+	// // whitelist vault type 0 collateral
+	// await whitelist.whitelistCoveredCollateral(weth, weth, false)
+	// await whitelist.whitelistCoveredCollateral(usdc, weth, true)
+	// // whitelist vault type 1 collateral
+	// await whitelist.whitelistNakedCollateral(usdc, weth, false)
+	// await whitelist.whitelistNakedCollateral(weth, weth, true)
 
-    // set product spot shock values
-	// usd collateralised calls
-	await calculator.setSpotShock(
-		weth,
-		usdc,
-		usdc,
-		false,
-		productSpotShockValue
-	)
-	// usd collateralised puts
-	await calculator.setSpotShock(
-		weth,
-		usdc,
-		usdc,
-		true,
-		productSpotShockValue
-	)
-	// eth collateralised calls
-	await calculator.setSpotShock(
-		weth,
-		usdc,
-		weth,
-		false,
-		productSpotShockValue
-	)
-	// eth collateralised puts
-	await calculator.setSpotShock(
-		weth,
-		usdc,
-		weth,
-		true,
-		productSpotShockValue
-	)
-	// set expiry to value values
-	// usd collateralised calls
-	await calculator.setUpperBoundValues(
-		weth,
-		usdc,
-		usdc,
-		false,
-		timeToExpiry,
-		expiryToValueCalls
-	)
-	// usd collateralised puts
-	await calculator.setUpperBoundValues(
-		weth,
-		usdc,
-		usdc,
-		true,
-		timeToExpiry,
-		expiryToValuePuts
-	)
-	// eth collateralised calls
-	await calculator.setUpperBoundValues(
-		weth,
-		usdc,
-		weth,
-		false,
-		timeToExpiry,
-		expiryToValueCalls
-	)
-	// eth collateralised puts
-	await calculator.setUpperBoundValues(
-		weth,
-		usdc,
-		weth,
-		true,
-		timeToExpiry,
-		expiryToValuePuts
-	)
+    // // set product spot shock values
+	// // usd collateralised calls
+	// await calculator.setSpotShock(
+	// 	weth,
+	// 	usdc,
+	// 	usdc,
+	// 	false,
+	// 	productSpotShockValue
+	// )
+	// // usd collateralised puts
+	// await calculator.setSpotShock(
+	// 	weth,
+	// 	usdc,
+	// 	usdc,
+	// 	true,
+	// 	productSpotShockValue
+	// )
+	// // eth collateralised calls
+	// await calculator.setSpotShock(
+	// 	weth,
+	// 	usdc,
+	// 	weth,
+	// 	false,
+	// 	productSpotShockValue
+	// )
+	// // eth collateralised puts
+	// await calculator.setSpotShock(
+	// 	weth,
+	// 	usdc,
+	// 	weth,
+	// 	true,
+	// 	productSpotShockValue
+	// )
+	// // set expiry to value values
+	// // usd collateralised calls
+	// await calculator.setUpperBoundValues(
+	// 	weth,
+	// 	usdc,
+	// 	usdc,
+	// 	false,
+	// 	timeToExpiry,
+	// 	expiryToValueCalls
+	// )
+	// // usd collateralised puts
+	// await calculator.setUpperBoundValues(
+	// 	weth,
+	// 	usdc,
+	// 	usdc,
+	// 	true,
+	// 	timeToExpiry,
+	// 	expiryToValuePuts
+	// )
+	// // eth collateralised calls
+	// await calculator.setUpperBoundValues(
+	// 	weth,
+	// 	usdc,
+	// 	weth,
+	// 	false,
+	// 	timeToExpiry,
+	// 	expiryToValueCalls
+	// )
+	// // eth collateralised puts
+	// await calculator.setUpperBoundValues(
+	// 	weth,
+	// 	usdc,
+	// 	weth,
+	// 	true,
+	// 	timeToExpiry,
+	// 	expiryToValuePuts
+	// )
 
-	await oracle.setStablePrice(usdc, "100000000")
+	// await oracle.setStablePrice(usdc, "100000000")
 	console.log("execution complete")
 }
 main()

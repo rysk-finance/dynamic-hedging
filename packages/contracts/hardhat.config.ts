@@ -188,7 +188,7 @@ module.exports = {
 			gas: 500000000
 		},
 		arbitrumGoerli: {
-			url: `https://goerli-rollup.arbitrum.io/rpc`,
+			url: `https://arbitrum-goerli.infura.io/v3/2ba8724121e242f9be0b366582e57806`,
 			chainId: 421613,
 			saveDeployments: true,
 			accounts: process.env.DEPLOYER_PRIVATE_KEY ? [process.env.DEPLOYER_PRIVATE_KEY] : accounts,
