@@ -34,7 +34,7 @@ export const Card = ({
       <nav className="flex" role="tablist">
         <AnimatePresence
           initial={false}
-          mode={tabs.length > 1 ? "sync" : "wait"}
+          mode={tabs.length > 1 ? "popLayout" : "wait"}
         >
           {tabs.map((tab, index) => (
             <a
