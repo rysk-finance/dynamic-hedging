@@ -72,7 +72,7 @@ export const UserOptions = () => {
         {
           label:
             loading && !inactivePositions
-              ? "Loading Closed..."
+              ? "Loading Expired..."
               : "RYSK.Expired",
           content: (
             <>
