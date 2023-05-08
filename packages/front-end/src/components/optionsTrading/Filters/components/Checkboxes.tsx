@@ -50,7 +50,7 @@ export const Checkboxes = () => {
         onChange: handleChange("pos"),
         checked: visibleColumns.has("pos"),
       },
-      label: "Pos",
+      label: "Position",
       title: "Switch the user position column visibility.",
     },
     {
