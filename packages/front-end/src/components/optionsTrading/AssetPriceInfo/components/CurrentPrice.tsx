@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import { useBlockNumber } from "wagmi";
 
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
+import { CursorRipple } from "src/Icons";
 
 export const CurrentPrice = ({ price, latestUpdate }: CurrentPriceProps) => {
   const { data: blockHeight } = useBlockNumber({ watch: true });
@@ -11,8 +12,9 @@ export const CurrentPrice = ({ price, latestUpdate }: CurrentPriceProps) => {
   return (
     <div className="flex items-center justify-between grow px-4">
       <span className="flex flex-col">
-        <h4 className="font-medium font-dm-mono text-lg lg:text-xl before:content-['Ether:_$'] before:mr-1">
+        <h4 className="flex font-medium font-dm-mono text-lg lg:text-xl before:content-['Ether:_$'] before:mr-1">
           <RyskCountUp value={price || 0} />
+          <CursorRipple className="w-6 h-6 ml-2" />
         </h4>
 
         <small className="text-gray-600 text-xs text-left my-1">
