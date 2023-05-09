@@ -10,6 +10,7 @@ export interface PositionDataState {
   slippage: number;
   totalSize: number;
   title: string | null;
+  requiredApproval: string;
 }
 
 export interface PricingProps {
