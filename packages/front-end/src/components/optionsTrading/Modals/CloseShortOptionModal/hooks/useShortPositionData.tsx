@@ -102,7 +102,9 @@ export const useShortPositionData = (amountToClose: string) => {
                 userPosition.isPut,
                 amount,
                 false,
-                collateralAsset === getContractAddress("USDC") ? "USDC" : "WETH"
+                collateralAsset === getContractAddress("USDC").toLowerCase()
+                  ? "USDC"
+                  : "WETH"
               );
 
             // closing a short is buying back the oToken, hence the minus USDC.
