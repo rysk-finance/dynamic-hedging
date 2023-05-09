@@ -144,7 +144,7 @@ export const CloseShortOptionModal = () => {
       {!collateralToRemove.isZero() &&
         collateralToRemove.lte(collateralAmount) && (
           <div className="flex justify-center mb-5">
-            After sale collateral: {isWeth ? "Ξ" : "$"}
+            Collateral after: {isWeth ? "Ξ" : "$"}
             {isWeth
               ? tFormatEth(collateralAmount.sub(collateralToRemove))
               : tFormatUSDC(collateralAmount.sub(collateralToRemove))}{" "}
@@ -159,14 +159,14 @@ export const CloseShortOptionModal = () => {
       <div className="flex border-black border-y-2">
         <label
           className="grow"
-          title="Enter how much of your position you would like to sell."
+          title="Enter how much of your position you would like to close."
         >
           <input
             className="text-center w-full h-12 number-input-hide-arrows border-r-2 border-black"
             inputMode="numeric"
             name="sell-amount"
             onChange={handleChange}
-            placeholder="How many would you like to sell?"
+            placeholder="How many would you like to close?"
             step={0.01}
             type="number"
             value={amountToSell}
