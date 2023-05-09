@@ -22,6 +22,7 @@ import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
 import { getQuote } from "../../Shared/utils/getQuote";
+import { optionSymbolFromOToken } from "src/utils";
 
 export const usePositionData = (amountToClose: string) => {
   // Global state.
@@ -78,9 +79,15 @@ export const usePositionData = (amountToClose: string) => {
           const now = dayjs().format("MMM DD, YYYY HH:mm A");
 
           const totalSize = fromWeiToInt(userPosition?.netAmount || 0);
-          const title = `${renameOtoken(
-            userPosition?.symbol || ""
-          )} (${totalSize})`.toUpperCase();
+          const title = `${
+            !userPosition?.symbol
+              ? renameOtoken(userPosition?.symbol || "")
+              : optionSymbolFromOToken(
+                  userPosition?.isPut || false,
+                  userPosition?.expiryTimestamp || "0",
+                  userPosition?.strikePrice.toString() || "0"
+                )
+          } (${totalSize})`.toUpperCase();
 
           if (amount > 0 && userPosition) {
             const { acceptablePremium, fee, premium, quote, slippage } =
