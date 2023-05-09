@@ -48,7 +48,7 @@ const AdjustCollateralModal = () => {
   const {
     state: {
       ethPrice,
-      options: { spotShock, timesToExpiry },
+      options: { refresh, spotShock, timesToExpiry },
       dashboard: { modalPosition },
     },
     dispatch,
@@ -124,10 +124,10 @@ const AdjustCollateralModal = () => {
             user: address,
             exchange: getContractAddress("optionExchange"),
           } as AddressesRequired,
-
           amount,
           vaultId,
-          isWithdrawCollateral
+          isWithdrawCollateral,
+          refresh
         );
 
         if (hash) {
