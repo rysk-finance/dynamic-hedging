@@ -9,7 +9,7 @@ import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
 import { renameOtoken, fromUSDC, fromWei } from "src/utils/conversion-helper";
 import { fromOpynHumanised } from "src/utils/conversion-helper";
 import { Button } from "src/components/shared/Button";
-import { optionSymbolFormat } from "src/utils";
+import { optionSymbolFromOToken } from "src/utils";
 
 const tableHeadings = [
   {
@@ -121,7 +121,7 @@ const Table = ({
             <td className="col-span-2">
               {symbol
                 ? renameOtoken(symbol)
-                : optionSymbolFormat(isPut, expiryTimestamp, strikePrice)}
+                : optionSymbolFromOToken(isPut, expiryTimestamp, strikePrice)}
             </td>
             <NumberFormat
               value={fromOpynHumanised(BigNumber.from(amount))}
