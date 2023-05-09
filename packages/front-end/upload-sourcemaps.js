@@ -1,15 +1,12 @@
 const SentryCli = require("@sentry/cli");
-const fs = require("fs");
+const fs = require("node:fs/promises");
+const glob = require("glob");
 
 require("dotenv").config();
 
 const upload = async () => {
   const cli = new SentryCli();
   const release = process.env.REACT_APP_VERCEL_GIT_COMMIT_SHA;
-
-  const jsFiles = fs.readdirSync("./build/static/js");
-  console.log(jsFiles.length);
-  console.log(jsFiles);
 
   if (release) {
     try {
@@ -25,6 +22,26 @@ const upload = async () => {
 
       console.log("Finishing up...");
       await cli.releases.finalize(release);
+
+      console.log("Removing map files...");
+      glob("./build/**/*.js.map", (_err, files) => {
+        files.forEach(fs.unlink);
+      });
+
+      console.log("Removing references to map files...");
+      glob("./build/**/*.js", (_err, files) => {
+        files.forEach(async (filePath) => {
+          try {
+            const fileContent = await fs.readFile(filePath, "utf8");
+            await fs.writeFile(
+              filePath,
+              fileContent.replace(/\/\/# sourceMappingURL=\S+/g, "")
+            );
+          } catch (err) {
+            console.error(err);
+          }
+        });
+      });
     } catch (error) {
       console.error("Upload failed:", error);
     }
