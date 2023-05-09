@@ -13,14 +13,14 @@ import {
   writeContract,
 } from "@wagmi/core";
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
-import { fetchSimulation } from "src/hooks/useTenderlySimulator";
 import { OpynActionType } from "src/enums/OpynActionType";
 
 export const updateCollateral = async (
   addresses: AddressesRequired,
   collateral: BigNumberType,
   vaultId: string,
-  isWithdraw: boolean
+  isWithdraw: boolean,
+  refresh: () => void
 ) => {
   const txData = [
     {
@@ -51,26 +51,17 @@ export const updateCollateral = async (
     functionName: "operate",
     args: [txData],
   });
+  config.request.gasLimit = config.request.gasLimit
+    .mul(GAS_MULTIPLIER * 100)
+    .div(100);
 
   if (config.request.data) {
-    const simulationResponse = await fetchSimulation(
-      addresses.user,
-      addresses.exchange,
-      config.request.data
-    );
+    const { hash } = await writeContract(config);
 
-    if (simulationResponse.simulation?.status) {
-      config.request.gasLimit = BigNumber.from(
-        Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
-      );
+    await waitForTransaction({ hash, confirmations: 1 });
 
-      const { hash } = await writeContract(config);
+    refresh();
 
-      await waitForTransaction({ hash, confirmations: 2 });
-
-      return hash;
-    } else {
-      throw new Error("Tenderly simulation failed.");
-    }
+    return hash;
   }
 };
