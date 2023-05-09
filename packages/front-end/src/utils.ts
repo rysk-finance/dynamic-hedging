@@ -46,3 +46,19 @@ export const optionSymbolFormat = (
 
   return optionSymbol;
 };
+
+export const optionSymbolFromOToken = (
+  isPut: boolean,
+  expiryTimestamp: string,
+  strikePrice: string
+) => {
+  const date = dayjs
+    .unix(Number(expiryTimestamp))
+    .format("DDMMMYY")
+    .toUpperCase();
+  const price = BigNumber.from(strikePrice).div(BIG_NUMBER_DECIMALS.OPYN);
+  const returnType = isPut ? "P" : "C";
+  const optionSymbol = `ETH-${date}-${price}-${returnType}`;
+
+  return optionSymbol;
+};
