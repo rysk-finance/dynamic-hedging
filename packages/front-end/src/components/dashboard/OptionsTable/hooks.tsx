@@ -316,27 +316,22 @@ const usePositions = () => {
           const collateralAssetSymbol =
             vault.collateralAsset?.name === "USDC" ? "USDC" : "WETH";
 
-          const collateralAllVaults: number = data.vaults
+          const collateralAllVaults = data.vaults
             .filter(({ shortOToken }) => shortOToken.id === otokenId)
             .reduce((acc, { collateralAmount, collateralAsset }) => {
-              return (
-                acc +
-                Number(
-                  collateralAsset.name === "USDC"
-                    ? fromUSDC(collateralAmount)
-                    : fromWei(collateralAmount)
-                )
-              );
-            }, 0);
-
-          console.log(otokenId, collateralAllVaults);
+              return acc.add(collateralAmount);
+            }, BigNumber.from(0));
 
           const getVaultLiquidationPrice = async () => {
             if (ethPrice) {
               const liquidationPrice = await getLiquidationPrice(
                 Number(fromOpyn(amount)),
                 isPut ? "put" : "call",
-                collateralAllVaults,
+                Number(
+                  vault?.collateralAsset.name === "USDC"
+                    ? fromUSDC(collateralAllVaults)
+                    : fromWei(collateralAllVaults)
+                ),
                 getContractAddress(collateralAssetSymbol) as HexString,
                 ethPrice,
                 Number(expiryTimestamp),
@@ -382,9 +377,7 @@ const usePositions = () => {
             vaultId: vault.vaultId,
             collateralAsset: vault.vaultId ? vault.collateralAsset?.name : "",
             collateralAmount: vault.vaultId
-              ? vault.collateralAsset?.name === "USDC"
-                ? toUSDC(collateralAllVaults.toString()).toString()
-                : toWei(collateralAllVaults.toString()).toString()
+              ? collateralAllVaults.toString()
               : "",
             isSettleable: vault.vaultId ? canSettleShort : false,
             otokenId,
