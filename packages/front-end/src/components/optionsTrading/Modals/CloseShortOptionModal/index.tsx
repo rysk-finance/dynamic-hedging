@@ -191,7 +191,7 @@ export const CloseShortOptionModal = () => {
             requiresConnection
             {...FadeInOutQuick}
             {...getButtonProps(
-              "sell",
+              "close",
               transactionPending,
               allowance.approved,
               handleApprove,
