@@ -24,6 +24,7 @@ import { BIG_NUMBER_DECIMALS, ZERO_ADDRESS } from "src/config/constants";
 import { getQuote } from "../../Shared/utils/getQuote";
 import { fetchBalance } from "@wagmi/core";
 import { logError } from "src/utils/logError";
+import { optionSymbolFromOToken } from "src/utils";
 
 export const useShortPositionData = (amountToClose: string) => {
   // URL query params.
@@ -90,9 +91,15 @@ export const useShortPositionData = (amountToClose: string) => {
           const now = dayjs().format("MMM DD, YYYY HH:mm A");
 
           const totalSize = fromWeiToInt(userPosition?.netAmount || 0);
-          const title = `${renameOtoken(
-            userPosition?.symbol || ""
-          )} (${totalSize})`.toUpperCase();
+          const title = `${
+            userPosition?.symbol
+              ? renameOtoken(userPosition?.symbol || "")
+              : optionSymbolFromOToken(
+                  userPosition?.isPut || false,
+                  userPosition?.expiryTimestamp || "0",
+                  userPosition?.strikePrice.toString() || "0"
+                )
+          } (${totalSize})`.toUpperCase();
 
           if (amount > 0 && userPosition) {
             const { acceptablePremium, fee, premium, quote, slippage } =
