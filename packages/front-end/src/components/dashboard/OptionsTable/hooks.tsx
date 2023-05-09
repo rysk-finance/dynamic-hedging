@@ -328,7 +328,7 @@ const usePositions = () => {
                 Number(fromOpyn(amount)),
                 isPut ? "put" : "call",
                 Number(
-                  vault?.collateralAsset.name === "USDC"
+                  vault.collateralAsset?.name === "USDC"
                     ? fromUSDC(collateralAllVaults)
                     : fromWei(collateralAllVaults)
                 ),
