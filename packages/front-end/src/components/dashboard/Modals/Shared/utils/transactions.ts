@@ -59,7 +59,7 @@ export const updateCollateral = async (
       config.request.data
     );
 
-    if (simulationResponse.simulation.status) {
+    if (simulationResponse.simulation?.status) {
       config.request.gasLimit = BigNumber.from(
         Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
       );
