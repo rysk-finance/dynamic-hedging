@@ -49,7 +49,7 @@ export const approveAllowance = async (
       config.request.data
     );
 
-    if (simulationResponse.simulation.status) {
+    if (simulationResponse.simulation?.status) {
       config.request.gasLimit = BigNumber.from(
         Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
       );
@@ -116,7 +116,7 @@ export const buy = async (
       config.request.data
     );
 
-    if (simulationResponse.simulation.status) {
+    if (simulationResponse.simulation?.status) {
       config.request.gasLimit = BigNumber.from(
         Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
       );
@@ -173,7 +173,7 @@ export const closeLong = async (
       config.request.data
     );
 
-    if (simulationResponse.simulation.status) {
+    if (simulationResponse.simulation?.status) {
       config.request.gasLimit = BigNumber.from(
         Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
       );
@@ -315,7 +315,7 @@ export const sell = async (
       config.request.data
     );
 
-    if (simulationResponse.simulation.status) {
+    if (simulationResponse.simulation?.status) {
       config.request.gasLimit = BigNumber.from(
         Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
       );
@@ -416,7 +416,7 @@ export const vaultSell = async (
       config.request.data
     );
 
-    if (simulationResponse.simulation.status) {
+    if (simulationResponse.simulation?.status) {
       config.request.gasLimit = BigNumber.from(
         Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
       );
