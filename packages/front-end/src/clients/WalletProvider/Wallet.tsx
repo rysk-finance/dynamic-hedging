@@ -40,7 +40,12 @@ const infura = process.env.REACT_APP_INFURA_KEY
   ? [infuraProvider({ apiKey: process.env.REACT_APP_INFURA_KEY })]
   : [];
 
-const providers = [...alchemy, ...infura, publicProvider()];
+// Rudimentary load balancer.
+const privateProviders = [...infura, ...alchemy].sort(
+  () => Math.random() - Math.random()
+);
+
+const providers = [...privateProviders, publicProvider()];
 
 const { chains, provider } = configureChains(defaultChains, providers, {
   pollingInterval: 60000,
