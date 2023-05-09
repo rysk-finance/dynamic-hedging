@@ -1,10 +1,17 @@
 const webpack = require("webpack");
 
 module.exports = function override(config) {
-  config.plugins = (config.plugins || []).concat([
-    new webpack.ProvidePlugin({
-      Buffer: ["buffer", "Buffer"],
-    }),
-  ]);
-  return config;
+  return {
+    ...config,
+    ignoreWarnings: [
+      {
+        module: /node_modules/,
+      },
+    ],
+    plugins: (config.plugins || []).concat([
+      new webpack.ProvidePlugin({
+        Buffer: ["buffer", "Buffer"],
+      }),
+    ]),
+  };
 };
