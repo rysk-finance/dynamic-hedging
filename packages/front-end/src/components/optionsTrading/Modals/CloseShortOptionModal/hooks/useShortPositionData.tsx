@@ -14,6 +14,8 @@ import {
   tFormatUSDC,
   toOpyn,
   toRysk,
+  toUSDC,
+  truncate,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -37,6 +39,7 @@ export const useShortPositionData = (amountToClose: string) => {
 
   // Addresses.
   const { address } = useAccount();
+  const USDCAddress = getContractAddress("USDC");
   const tokenAddress = (searchParams.get("token") as HexString) || undefined;
   const exchangeAddress = getContractAddress("optionExchange");
 
@@ -53,6 +56,7 @@ export const useShortPositionData = (amountToClose: string) => {
     slippage: 0,
     totalSize: 0,
     title: null,
+    requiredApproval: "",
   });
 
   const userPosition =
@@ -68,8 +72,8 @@ export const useShortPositionData = (amountToClose: string) => {
   // At the moment this is either going to be USDC or WETH.
   const collateralAsset = vault?.collateralAsset.id as HexString;
 
-  // User allowance state for the oToken.
-  const [allowance, setAllowance] = useAllowance(collateralAsset);
+  // User allowance state for usdc.
+  const [allowance, setAllowance] = useAllowance(USDCAddress, address);
 
   // Get user position data.
   useEffect(() => {
@@ -103,7 +107,9 @@ export const useShortPositionData = (amountToClose: string) => {
 
             // closing a short is buying back the oToken, hence the minus USDC.
             const remainingBalance = balance.isZero() ? 0 : balanceInt - quote;
-            const approved = toOpyn(amountToClose).lte(allowance.amount);
+
+            const requiredApproval = String(truncate(quote * 1.05, 4));
+            const approved = toUSDC(requiredApproval).lte(allowance.amount);
 
             setPositionData({
               acceptablePremium,
@@ -115,6 +121,7 @@ export const useShortPositionData = (amountToClose: string) => {
               slippage,
               totalSize,
               title,
+              requiredApproval,
             });
           } else {
             setPositionData({
@@ -127,6 +134,7 @@ export const useShortPositionData = (amountToClose: string) => {
               slippage: 0,
               totalSize,
               title,
+              requiredApproval: "",
             });
           }
         }

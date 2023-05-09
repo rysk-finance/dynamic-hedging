@@ -13,7 +13,12 @@ import { useState } from "react";
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { Button } from "src/components/shared/Button";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toRysk, tFormatUSDC, tFormatEth } from "src/utils/conversion-helper";
+import {
+  toRysk,
+  tFormatUSDC,
+  tFormatEth,
+  toUSDC,
+} from "src/utils/conversion-helper";
 
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Header } from "../Shared/components/Header";
@@ -85,12 +90,12 @@ export const CloseShortOptionModal = () => {
 
     try {
       if (addresses.collateral && addresses.user) {
-        const amount = collateralToRemove;
+        const amount = toUSDC(positionData.requiredApproval);
 
         const hash = await approveAllowance(
           {
             ...addresses,
-            token: addresses.collateral,
+            token: getContractAddress("USDC"),
           } as AddressesRequired,
           amount
         );
