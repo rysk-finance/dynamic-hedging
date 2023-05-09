@@ -29,6 +29,8 @@ import {
   fromUSDC,
   fromWei,
   toRysk,
+  toUSDC,
+  toWei,
 } from "src/utils/conversion-helper";
 import { Button } from "src/components/shared/Button";
 import { getLiquidationPrice } from "../../optionsTrading/Modals/Shared/utils/getLiquidationPrice";
@@ -68,6 +70,17 @@ const usePositions = () => {
   const { loading, error, data, startPolling } = useQuery<{
     longPositions: LongPosition[];
     shortPositions: ShortPosition[];
+    vaults: {
+      vaultId: string;
+      collateralAmount: string;
+      shortOToken: {
+        id: string;
+        symbol: string;
+      };
+      collateralAsset: {
+        name: string;
+      };
+    }[];
   }>(
     gql`
       query ${QueriesEnum.DASHBOARD_USER_POSITIONS} ($account: String) {
@@ -136,6 +149,17 @@ const usePositions = () => {
               optionsSoldTransactions {
                   amount
                   premium
+              }
+          }
+          vaults(first: 1000, where: { owner: $account, shortOToken_: {id_not: null} }) {
+              vaultId
+              collateralAmount
+              collateralAsset {
+                name
+              }
+              shortOToken {
+                  id
+                  symbol
               }
           }
       }
@@ -292,16 +316,27 @@ const usePositions = () => {
           const collateralAssetSymbol =
             vault.collateralAsset?.name === "USDC" ? "USDC" : "WETH";
 
+          const collateralAllVaults: number = data.vaults
+            .filter(({ shortOToken }) => shortOToken.id === otokenId)
+            .reduce((acc, { collateralAmount, collateralAsset }) => {
+              return (
+                acc +
+                Number(
+                  collateralAsset.name === "USDC"
+                    ? fromUSDC(collateralAmount)
+                    : fromWei(collateralAmount)
+                )
+              );
+            }, 0);
+
+          console.log(otokenId, collateralAllVaults);
+
           const getVaultLiquidationPrice = async () => {
             if (ethPrice) {
               const liquidationPrice = await getLiquidationPrice(
                 Number(fromOpyn(amount)),
                 isPut ? "put" : "call",
-                Number(
-                  collateralAssetSymbol === "USDC"
-                    ? fromUSDC(vault.collateralAmount)
-                    : fromWei(vault.collateralAmount)
-                ),
+                collateralAllVaults,
                 getContractAddress(collateralAssetSymbol) as HexString,
                 ethPrice,
                 Number(expiryTimestamp),
@@ -346,7 +381,11 @@ const usePositions = () => {
             isRedeemable,
             vaultId: vault.vaultId,
             collateralAsset: vault.vaultId ? vault.collateralAsset?.name : "",
-            collateralAmount: vault.vaultId ? vault.collateralAmount : "",
+            collateralAmount: vault.vaultId
+              ? vault.collateralAsset?.name === "USDC"
+                ? toUSDC(collateralAllVaults.toString()).toString()
+                : toWei(collateralAllVaults.toString()).toString()
+              : "",
             isSettleable: vault.vaultId ? canSettleShort : false,
             otokenId,
             side: vault.vaultId ? "SHORT" : "LONG",
