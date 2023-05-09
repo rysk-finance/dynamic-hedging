@@ -18,6 +18,7 @@ import {
   tFormatUSDC,
   tFormatEth,
   toUSDC,
+  toOpyn,
 } from "src/utils/conversion-helper";
 
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -31,6 +32,10 @@ import { useShortPositionData } from "./hooks/useShortPositionData";
 import { BigNumber } from "ethers";
 import { getContractAddress } from "src/utils/helpers";
 import { useDebounce } from "use-debounce";
+import { gql, useQuery } from "@apollo/client";
+import { QueriesEnum } from "../../../../clients/Apollo/Queries";
+import { logError } from "../../../../utils/logError";
+import { useAccount } from "wagmi";
 
 dayjs.extend(LocalizedFormat);
 
@@ -49,6 +54,7 @@ export const CloseShortOptionModal = () => {
   const [collateralToRemove, setCollateralToRemove] = useState<BigNumber>(
     BigNumber.from(0)
   );
+  const { address } = useAccount();
   const [transactionPending, setTransactionPending] = useState(false);
 
   const [
@@ -61,6 +67,48 @@ export const CloseShortOptionModal = () => {
     ,
     vaultId,
   ] = useShortPositionData(debouncedAmountToSell);
+
+  // NOTE: Only getting positions opened after redeploy of contracts
+  const { data } = useQuery<{
+    vaults: {
+      vaultId: string;
+      collateralAmount: string;
+      shortAmount: string;
+      shortOToken: {
+        id: string;
+        symbol: string;
+      };
+      collateralAsset: {
+        name: string;
+      };
+    }[];
+  }>(
+    gql`
+        query ${QueriesEnum.DASHBOARD_USER_POSITIONS} ($account: String, $amount: String, $token: String) {
+          vaults(first: 1, where: { owner: $account, shortAmount_gte: $amount, shortOToken_: {id: $token} }) {
+            vaultId
+            collateralAmount
+            shortAmount
+            collateralAsset {
+              name
+            }
+            shortOToken {
+              id
+              symbol
+            }
+          }
+        }
+      `,
+    {
+      onError: logError,
+      variables: {
+        account: address?.toLowerCase(),
+        amount: toOpyn(debouncedAmountToSell || "0").toString(),
+        token: addresses?.token?.toLowerCase(),
+      },
+      skip: !address || !debouncedAmountToSell || !addresses?.token,
+    }
+  );
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const amount = event.currentTarget.value;
@@ -116,6 +164,7 @@ export const CloseShortOptionModal = () => {
     setTransactionPending(true);
 
     try {
+      const vaultId = data?.vaults[0]?.vaultId;
       if (addresses.token && addresses.user && vaultId) {
         const amount = toRysk(amountToSell);
 
