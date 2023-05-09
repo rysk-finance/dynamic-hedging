@@ -168,7 +168,7 @@ const Table = ({
                 collateralAsset
                   ? {
                       USDC: fromUSDC(collateralAmount),
-                      WETH: fromWei(collateralAmount),
+                      "Wrapped Ether": fromWei(collateralAmount),
                     }[collateralAsset]
                   : null
               }
