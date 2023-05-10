@@ -27,10 +27,10 @@ export const fromUSDC = (x: BigNumberish) => utils.formatUnits(x, 6);
 export const tFormatUSDC = (x: BigNumberish, places: number = 3) =>
   truncate(Number(fromUSDC(x)), places);
 export const fmtExpiration = (x: number) => toWei(x.toString());
-export const toUSDC = (x: string) => utils.parseUnits(x, 6);
-export const toOpyn = (x: string) => utils.parseUnits(x, 8);
-export const toRysk = (x: string) => utils.parseUnits(x, 18);
-export const toWeiFromUSDC = (x: string) => utils.parseUnits(x, 12);
+export const toUSDC = (x: string) => utils.parseUnits(x ? x : "0", 6);
+export const toOpyn = (x: string) => utils.parseUnits(x ? x : "0", 8);
+export const toRysk = (x: string) => utils.parseUnits(x ? x : "0", 18);
+export const toWeiFromUSDC = (x: string) => utils.parseUnits(x ? x : "0", 12);
 export const fromWeiToUSDC = (x: string) =>
   utils.parseUnits(utils.formatEther(x), 6);
 export const fromOpyn = (x: BigNumberish) => utils.formatUnits(x, 8);
