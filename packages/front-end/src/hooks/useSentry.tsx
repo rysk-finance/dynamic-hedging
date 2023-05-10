@@ -24,6 +24,14 @@ export const useSentry = () => {
       attachStacktrace: true,
       dsn: process.env.REACT_APP_SENTRY_DSN,
       environment: `${appEnv}: client`,
+      ignoreErrors: [
+        /TypeError: Failed to fetch/,
+        /TypeError: Network request failed/,
+        /TypeError: Load failed/,
+        /ApolloError: Failed to fetch/,
+        /Non-Error exception captured/,
+        /NetworkError when attempting to fetch resource/,
+      ],
       release: process.env.REACT_APP_VERCEL_GIT_COMMIT_SHA,
       tracesSampleRate:
         process.env.REACT_APP_VERCEL_ENV === "production" ? 0.05 : 1,
