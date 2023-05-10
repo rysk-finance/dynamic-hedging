@@ -29,6 +29,7 @@ export const useSentry = () => {
         /TypeError: Network request failed/,
         /TypeError: Load failed/,
         /ApolloError: Failed to fetch/,
+        /ApolloError: Load failed/,
         /Non-Error exception captured/,
         /NetworkError when attempting to fetch resource/,
       ],
