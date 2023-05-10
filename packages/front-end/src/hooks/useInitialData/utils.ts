@@ -210,36 +210,40 @@ const getChainData = async (
       );
     };
 
-    return data.reduce(
-      (chainData, { callOptionDrill, expiration, putOptionDrill }) => {
-        const expiry = expiration.toNumber();
-        const calls = createSide(callOptionDrill, "call", expiry);
-        const puts = createSide(putOptionDrill, "put", expiry);
-        const strikes = Array.from(
-          new Set([...Object.keys(calls), ...Object.keys(puts)])
-        );
+    if (data.length) {
+      return data.reduce(
+        (chainData, { callOptionDrill, expiration, putOptionDrill }) => {
+          const expiry = expiration.toNumber();
+          const calls = createSide(callOptionDrill, "call", expiry);
+          const puts = createSide(putOptionDrill, "put", expiry);
+          const strikes = Array.from(
+            new Set([...Object.keys(calls), ...Object.keys(puts)])
+          );
 
-        chainData[expiry] = strikes.reduce(
-          (strikeData, currentStrike) => {
-            const strike = Number(currentStrike);
+          chainData[expiry] = strikes.reduce(
+            (strikeData, currentStrike) => {
+              const strike = Number(currentStrike);
 
-            strikeData[strike] = {
-              strike: strike,
-              ...(calls[strike] as CallSide),
-              ...(puts[strike] as PutSide),
-            };
+              strikeData[strike] = {
+                strike: strike,
+                ...(calls[strike] as CallSide),
+                ...(puts[strike] as PutSide),
+              };
 
-            return strikeData;
-          },
-          {} as {
-            [strike: number]: StrikeOptions;
-          }
-        );
+              return strikeData;
+            },
+            {} as {
+              [strike: number]: StrikeOptions;
+            }
+          );
 
-        return chainData;
-      },
-      {} as ChainData
-    );
+          return chainData;
+        },
+        {} as ChainData
+      );
+    } else {
+      return {};
+    }
   } catch (error) {
     logError(error);
 
