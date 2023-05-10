@@ -20,6 +20,11 @@ import {
   GlobalState,
 } from "./types";
 
+export const defaultSpotShock = 0.7;
+export const defaultTimesToExpiry = [
+  604800, 1209600, 2419200, 3628800, 4838400, 6048000, 7257600,
+];
+
 export const defaultGlobalState: GlobalState = {
   ethPrice: null,
   eth24hChange: 0,
@@ -53,22 +58,22 @@ export const defaultGlobalState: GlobalState = {
     refresh: () => {},
     spotShock: {
       call: {
-        USDC: 0.7,
-        WETH: 0.7,
+        USDC: defaultSpotShock,
+        WETH: defaultSpotShock,
       },
       put: {
-        USDC: 0.7,
-        WETH: 0.7,
+        USDC: defaultSpotShock,
+        WETH: defaultSpotShock,
       },
     },
     timesToExpiry: {
       call: {
-        USDC: [604800, 1209600, 2419200, 3628800, 4838400, 6048000, 7257600],
-        WETH: [604800, 1209600, 2419200, 3628800, 4838400, 6048000, 7257600],
+        USDC: defaultTimesToExpiry,
+        WETH: defaultTimesToExpiry,
       },
       put: {
-        USDC: [604800, 1209600, 2419200, 3628800, 4838400, 6048000, 7257600],
-        WETH: [604800, 1209600, 2419200, 3628800, 4838400, 6048000, 7257600],
+        USDC: defaultTimesToExpiry,
+        WETH: defaultTimesToExpiry,
       },
     },
     userPositions: {},

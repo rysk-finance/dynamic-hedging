@@ -20,6 +20,10 @@ import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { NewControllerABI } from "src/abis/NewController_ABI";
 import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
 import {
+  defaultSpotShock,
+  defaultTimesToExpiry,
+} from "src/state/GlobalContext";
+import {
   fromE27toInt,
   fromUSDC,
   fromWei,
@@ -298,12 +302,14 @@ const getLiquidationCalculationParameters = async () => {
     } as const;
   };
 
-  const _parseResults = (results: BigNumber | readonly BigNumber[]) => {
-    if (results instanceof BigNumber) {
-      return fromE27toInt(results) as number;
-    } else {
-      return results.map((result) => result.toNumber()) as number[];
-    }
+  const _parseSpotShockResults = (results?: BigNumber) => {
+    return results ? (fromE27toInt(results) as number) : defaultSpotShock;
+  };
+
+  const _parseTimesToExpiry = (results?: readonly BigNumber[]) => {
+    return results
+      ? (results.map((result) => result.toNumber()) as number[])
+      : defaultTimesToExpiry;
   };
 
   const parameters = await readContracts({
@@ -322,22 +328,22 @@ const getLiquidationCalculationParameters = async () => {
   return {
     spotShock: {
       call: {
-        USDC: _parseResults(parameters[1]) as number,
-        WETH: _parseResults(parameters[3]) as number,
+        USDC: _parseSpotShockResults(parameters[1] as BigNumber),
+        WETH: _parseSpotShockResults(parameters[3] as BigNumber),
       },
       put: {
-        USDC: _parseResults(parameters[0]) as number,
-        WETH: _parseResults(parameters[2]) as number,
+        USDC: _parseSpotShockResults(parameters[0] as BigNumber),
+        WETH: _parseSpotShockResults(parameters[2] as BigNumber),
       },
     },
     timesToExpiry: {
       call: {
-        USDC: _parseResults(parameters[5]) as number[],
-        WETH: _parseResults(parameters[7]) as number[],
+        USDC: _parseTimesToExpiry(parameters[5] as BigNumber[]),
+        WETH: _parseTimesToExpiry(parameters[7] as BigNumber[]),
       },
       put: {
-        USDC: _parseResults(parameters[4]) as number[],
-        WETH: _parseResults(parameters[6]) as number[],
+        USDC: _parseTimesToExpiry(parameters[4] as BigNumber[]),
+        WETH: _parseTimesToExpiry(parameters[6] as BigNumber[]),
       },
     },
   };
