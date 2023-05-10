@@ -2,6 +2,7 @@ import type { RyskCountUpProps } from "./types";
 
 import { useEffect, useState } from "react";
 import { CountUp } from "use-count-up";
+import { v4 } from "uuid";
 
 import { RyskCountUpDecimals } from "./constants";
 
@@ -11,14 +12,14 @@ export const RyskCountUp = ({
   format = "USD",
 }: RyskCountUpProps) => {
   const [end, setEnd] = useState(0);
-  const [key, setKey] = useState(crypto.randomUUID());
+  const [key, setKey] = useState(v4());
   const [start, setStart] = useState(0);
 
   useEffect(() => {
     if (value) {
       setStart(end);
       setEnd(value);
-      setKey(crypto.randomUUID());
+      setKey(v4());
     } else {
       setStart(0);
       setEnd(0);
