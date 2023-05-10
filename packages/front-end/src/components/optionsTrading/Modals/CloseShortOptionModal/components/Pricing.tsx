@@ -50,7 +50,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
           className="flex py-2 border-gray-600 border-b"
           id="buy-total-price"
         >
-          <p className="mr-auto">{`Premium received:`}</p>
+          <p className="mr-auto">{`Premium paid:`}</p>
           <p className="font-medium">
             <RyskCountUp value={quote} />
             {` USDC`}
