@@ -126,11 +126,11 @@ const getChainData = async (
     args: [BigNumber.from(expiry)],
   }));
 
-  try {
-    const data = (await readContracts({
-      contracts,
-    })) as DHVLensMK1.OptionExpirationDrillStructOutput[];
+  const data = (await readContracts({
+    contracts,
+  })) as DHVLensMK1.OptionExpirationDrillStructOutput[];
 
+  try {
     const createSide = (
       drill: readonly DHVLensMK1.OptionStrikeDrillStruct[],
       side: CallOrPut,
@@ -210,7 +210,7 @@ const getChainData = async (
       );
     };
 
-    if (data.length) {
+    if (data.length && data.length === expiries.length) {
       return data.reduce(
         (chainData, { callOptionDrill, expiration, putOptionDrill }) => {
           const expiry = expiration.toNumber();
