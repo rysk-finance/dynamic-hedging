@@ -27,7 +27,6 @@ import {
   OpynActionType,
 } from "src/enums/OpynActionType";
 import RyskActionType from "src/enums/RyskActionType";
-import { fetchSimulation } from "src/hooks/useTenderlySimulator";
 import { fromWeiToOpyn } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 
@@ -41,27 +40,16 @@ export const approveAllowance = async (
     functionName: "approve",
     args: [addresses.exchange, amount],
   });
+  config.request.gasLimit = config.request.gasLimit
+    .mul(GAS_MULTIPLIER * 100)
+    .div(100);
 
   if (config.request.data) {
-    const simulationResponse = await fetchSimulation(
-      addresses.user,
-      addresses.token,
-      config.request.data
-    );
+    const { hash } = await writeContract(config);
 
-    if (simulationResponse.simulation?.status) {
-      config.request.gasLimit = BigNumber.from(
-        Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
-      );
+    await waitForTransaction({ hash, confirmations: 1 });
 
-      const { hash } = await writeContract(config);
-
-      await waitForTransaction({ hash, confirmations: 1 });
-
-      return hash;
-    } else {
-      throw new Error("Tenderly simulation failed.");
-    }
+    return hash;
   }
 };
 
@@ -108,29 +96,18 @@ export const buy = async (
     functionName: "operate",
     args: [txData],
   });
+  config.request.gasLimit = config.request.gasLimit
+    .mul(GAS_MULTIPLIER * 100)
+    .div(100);
 
   if (config.request.data) {
-    const simulationResponse = await fetchSimulation(
-      addresses.user,
-      addresses.exchange,
-      config.request.data
-    );
+    const { hash } = await writeContract(config);
 
-    if (simulationResponse.simulation?.status) {
-      config.request.gasLimit = BigNumber.from(
-        Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
-      );
+    await waitForTransaction({ hash, confirmations: 1 });
 
-      const { hash } = await writeContract(config);
+    refresh();
 
-      await waitForTransaction({ hash, confirmations: 1 });
-
-      refresh();
-
-      return hash;
-    } else {
-      throw new Error("Tenderly simulation failed.");
-    }
+    return hash;
   }
 };
 
@@ -165,29 +142,18 @@ export const closeLong = async (
     functionName: "operate",
     args: [txData],
   });
+  config.request.gasLimit = config.request.gasLimit
+    .mul(GAS_MULTIPLIER * 100)
+    .div(100);
 
   if (config.request.data) {
-    const simulationResponse = await fetchSimulation(
-      addresses.user,
-      addresses.exchange,
-      config.request.data
-    );
+    const { hash } = await writeContract(config);
 
-    if (simulationResponse.simulation?.status) {
-      config.request.gasLimit = BigNumber.from(
-        Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
-      );
+    await waitForTransaction({ hash, confirmations: 1 });
 
-      const { hash } = await writeContract(config);
+    refresh();
 
-      await waitForTransaction({ hash, confirmations: 1 });
-
-      refresh();
-
-      return hash;
-    } else {
-      throw new Error("Tenderly simulation failed.");
-    }
+    return hash;
   }
 };
 
@@ -307,29 +273,18 @@ export const sell = async (
     functionName: "operate",
     args: [txData],
   });
+  config.request.gasLimit = config.request.gasLimit
+    .mul(GAS_MULTIPLIER * 100)
+    .div(100);
 
   if (config.request.data) {
-    const simulationResponse = await fetchSimulation(
-      addresses.user,
-      addresses.exchange,
-      config.request.data
-    );
+    const { hash } = await writeContract(config);
 
-    if (simulationResponse.simulation?.status) {
-      config.request.gasLimit = BigNumber.from(
-        Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
-      );
+    await waitForTransaction({ hash, confirmations: 1 });
 
-      const { hash } = await writeContract(config);
+    refresh();
 
-      await waitForTransaction({ hash, confirmations: 1 });
-
-      refresh();
-
-      return hash;
-    } else {
-      throw new Error("Tenderly simulation failed.");
-    }
+    return hash;
   }
 };
 
@@ -408,28 +363,17 @@ export const vaultSell = async (
     functionName: "operate",
     args: [txData],
   });
+  config.request.gasLimit = config.request.gasLimit
+    .mul(GAS_MULTIPLIER * 100)
+    .div(100);
 
   if (config.request.data) {
-    const simulationResponse = await fetchSimulation(
-      addresses.user,
-      addresses.exchange,
-      config.request.data
-    );
+    const { hash } = await writeContract(config);
 
-    if (simulationResponse.simulation?.status) {
-      config.request.gasLimit = BigNumber.from(
-        Math.ceil(simulationResponse.simulation.gas_used * GAS_MULTIPLIER)
-      );
+    await waitForTransaction({ hash, confirmations: 1 });
 
-      const { hash } = await writeContract(config);
+    refresh();
 
-      await waitForTransaction({ hash, confirmations: 2 });
-
-      refresh();
-
-      return hash;
-    } else {
-      throw new Error("Tenderly simulation failed.");
-    }
+    return hash;
   }
 };
