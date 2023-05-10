@@ -43,6 +43,7 @@
     "recharts": "^2.5.0",
     "use-count-up": "^3.0.1",
     "use-debounce": "^9.0.3",
+    "uuid": "^9.0.0",
     "wagmi": "^0.12.2",
     "web-vitals": "^3.3.0"
   },
@@ -53,6 +54,7 @@
     "@types/react-dom": "^18.0.11",
     "@types/react-helmet": "^6.1.6",
     "@types/react-slider": "^1.3.1",
+    "@types/uuid": "^9.0.1",
     "env-cmd": "^10.1.0"
   }
 }
