@@ -156,6 +156,7 @@ export const BuyOptionModal = () => {
             transactionPending ||
             loading
           }
+          requiresConnection
           id="buy-button"
           {...getButtonProps(
             "buy",
