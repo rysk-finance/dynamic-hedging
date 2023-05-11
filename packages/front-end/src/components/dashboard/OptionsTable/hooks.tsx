@@ -381,9 +381,9 @@ const usePositions = () => {
                   fee: 0,
                 };
 
-          let expectedRedeemPayout = 0;
+          let expectedPayout = 0;
 
-          if (isRedeemable || hasRedeemed) {
+          if (isRedeemable || hasRedeemed || canSettleShort || settledShort) {
             const diff = isPut
               ? Number(fromOpyn(strikePrice)) -
                 Number(fromOpyn(expiryPrice || 0))
@@ -391,7 +391,7 @@ const usePositions = () => {
                 Number(fromOpyn(strikePrice));
 
             if (diff > 0) {
-              expectedRedeemPayout = diff * Number(fromWei(netAmount));
+              expectedPayout = diff * Number(fromWei(netAmount));
             }
           }
 
@@ -418,10 +418,13 @@ const usePositions = () => {
               amount === 0
                 ? Number(graphPnl) // if closed position just use graph data
                 : vault.vaultId // short pnl is opposite of long as totPremium represents the earnings
-                ? Number(graphPnl) - Number(fromUSDC(acceptablePremium)) - fee
+                ? Number(graphPnl) -
+                  (expectedPayout
+                    ? expectedPayout
+                    : Number(fromUSDC(acceptablePremium)) - fee)
                 : Number(graphPnl) +
-                  (expectedRedeemPayout
-                    ? expectedRedeemPayout
+                  (expectedPayout
+                    ? expectedPayout
                     : Number(fromUSDC(acceptablePremium)) - fee),
             underlyingAsset: underlyingAsset.id,
           };
