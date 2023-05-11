@@ -1,9 +1,11 @@
 import { Change } from "./Change";
 import { Close } from "./Close";
+import { CursorRipple } from "./CursorRipple";
 import { DownChevron } from "./DownChevron";
 import { Ether } from "./Ether";
 import { LeftArrow } from "./LeftArrow";
 import { Loading } from "./Loading";
+import { Podium } from "./Podium";
 import { Question } from "./Question";
 import { RightArrow } from "./RightArrow";
 import { RyskFavicon } from "./RyskFavicon";
@@ -15,10 +17,12 @@ import { WETH } from "./WETH";
 export {
   Change,
   Close,
+  CursorRipple,
   DownChevron,
   Ether,
   LeftArrow,
   Loading,
+  Podium,
   Question,
   RightArrow,
   RyskFavicon,

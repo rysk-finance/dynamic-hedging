@@ -11,7 +11,7 @@ import { capitalise } from "src/utils/caseConvert";
  * @param handleTransaction - Function to handle the transaction - optional.
  */
 export const getButtonProps = (
-  action: "buy" | "sell",
+  action: "buy" | "sell" | "update" | "close",
   transactionPending: boolean,
   isApproved: boolean,
   handleApprove: () => Promise<void>,

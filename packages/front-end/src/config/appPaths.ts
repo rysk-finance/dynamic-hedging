@@ -1,5 +1,5 @@
 export enum AppPaths {
-  VAULT = "/",
+  HOME = "/",
   TRADE = "/options",
   DASHBOARD = "/dashboard",
   OTC = "/otc",

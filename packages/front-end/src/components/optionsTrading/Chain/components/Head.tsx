@@ -34,7 +34,7 @@ export const Head = () => {
       visible: showCol("delta"),
     },
     {
-      label: "Pos",
+      label: "Position",
       visible: showCol("pos"),
     },
     {

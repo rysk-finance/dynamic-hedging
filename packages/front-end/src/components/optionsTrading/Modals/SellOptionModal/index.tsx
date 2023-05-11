@@ -152,7 +152,10 @@ export const SellOptionModal = () => {
       </div>
 
       <Wrapper>
-        <Label id="sell-input" title="Enter how many contracts you would like to sell.">
+        <Label
+          id="sell-input"
+          title="Enter how many contracts you would like to sell."
+        >
           <Input
             name="sell-amount"
             onChange={handleAmountChange}
@@ -171,6 +174,7 @@ export const SellOptionModal = () => {
             transactionPending ||
             loading
           }
+          requiresConnection
           id="sell-button"
           {...getButtonProps(
             "sell",

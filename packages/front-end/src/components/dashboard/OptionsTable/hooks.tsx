@@ -1,22 +1,40 @@
 import type { ApolloError } from "@apollo/client";
-import type { CompleteRedeem, ParsedPosition, Position } from "./types";
+import type {
+  CompleteRedeem,
+  CompleteSettle,
+  LongPosition,
+  ParsedPosition,
+  ShortPosition,
+} from "./types";
 
 import { gql, useQuery } from "@apollo/client";
 import { prepareWriteContract, writeContract } from "@wagmi/core";
 import dayjs from "dayjs";
-import { BigNumber } from "ethers";
+import { BigNumber, BigNumberish } from "ethers";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAccount } from "wagmi";
 
 import { NewControllerABI } from "src/abis/NewController_ABI";
 import { QueriesEnum } from "src/clients/Apollo/Queries";
+import { Button } from "src/components/shared/Button";
 import { OpynActionType } from "src/enums/OpynActionType";
 import { useGraphPolling } from "src/hooks/useGraphPolling";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
+import {
+  fromOpyn,
+  fromRysk,
+  fromUSDC,
+  fromWei,
+  toRysk,
+} from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
-import { DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
+import { BIG_NUMBER_DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
 import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
+import { getLiquidationPrice } from "../../optionsTrading/Modals/Shared/utils/getLiquidationPrice";
+import { getQuote } from "../../optionsTrading/Modals/Shared/utils/getQuote";
 
 /**
  * Hook using GraphQL to fetch all positions for the user
@@ -26,41 +44,123 @@ import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
  * @returns [positions, loading, error]
  */
 const usePositions = () => {
+  const { dispatch } = useGlobalContext();
   const { address, isDisconnected } = useAccount();
 
   const { allOracleAssets } = useExpiryPriceData();
-  const [positions, setPositions] = useState<ParsedPosition[] | null>(null);
 
-  const { loading, error, data, startPolling } = useQuery<{
-    positions: Position[];
+  // Global state.
+  const {
+    state: {
+      ethPrice,
+      options: { data: chainData, spotShock, timesToExpiry },
+    },
+  } = useGlobalContext();
+
+  const [hookLoading, setHookLoading] = useState(false);
+  const [activePositions, setActivePositions] = useState<
+    ParsedPosition[] | null
+  >(null);
+  const [inactivePositions, setInactivePositions] = useState<
+    ParsedPosition[] | null
+  >(null);
+
+  // NOTE: Only getting positions opened after redeploy of contracts
+  const { error, data, startPolling } = useQuery<{
+    longPositions: LongPosition[];
+    shortPositions: ShortPosition[];
+    vaults: {
+      vaultId: string;
+      collateralAmount: string;
+      shortOToken: {
+        id: string;
+        symbol: string;
+      };
+      collateralAsset: {
+        name: string;
+      };
+    }[];
   }>(
     gql`
       query ${QueriesEnum.DASHBOARD_USER_POSITIONS} ($account: String) {
-        positions(first: 1000, where: { account: $account }) {
-          id
-          oToken {
-            id
-            symbol
-            expiryTimestamp
-            strikePrice
-            isPut
-            underlyingAsset {
+          longPositions(first: 1000, where: { account: $account, oToken_: {expiryTimestamp_gte: "1683273600"} }) {
               id
-            }
-            createdAt
-          }
-          writeOptionsTransactions {
-            premium
-          }
-          account {
-            balances {
-              balance
-              token {
-                id
+              netAmount
+              buyAmount
+              sellAmount
+              active
+              realizedPnl
+              oToken {
+                  id
+                  symbol
+                  expiryTimestamp
+                  strikePrice
+                  isPut
+                  underlyingAsset {
+                      id
+                  }
+                  createdAt
               }
-            }
+              redeemActions {
+                  id
+              }
+              optionsBoughtTransactions {
+                  amount
+                  premium
+              }
+              optionsSoldTransactions {
+                  amount
+                  premium
+              }
           }
-        }
+          shortPositions(first: 1000, where: { account: $account, oToken_: {expiryTimestamp_gte: "1683273600"} }) {
+              id
+              netAmount
+              buyAmount
+              sellAmount
+              active
+              realizedPnl
+              vault {
+                  vaultId
+                  collateralAmount
+                  collateralAsset {
+                      name
+                  }
+              }
+              settleActions {
+                  id
+              }
+              oToken {
+                  id
+                  symbol
+                  expiryTimestamp
+                  strikePrice
+                  isPut
+                  underlyingAsset {
+                      id
+                  }
+                  createdAt
+              }
+              optionsBoughtTransactions {
+                  amount
+                  premium
+              }
+              optionsSoldTransactions {
+                  amount
+                  premium
+              }
+          }
+          vaults(first: 1000, where: { owner: $account, shortOToken_: {id_not: null} }) {
+              vaultId
+              collateralAmount
+              collateralAsset {
+                name
+              }
+              shortOToken {
+                  id
+                  symbol
+              }
+          }
       }
     `,
     {
@@ -75,15 +175,32 @@ const usePositions = () => {
   useGraphPolling(data, startPolling);
 
   useEffect(() => {
-    if (isDisconnected) {
-      return setPositions([]);
-    }
+    const constructPositionsData = async () => {
+      setHookLoading(true);
 
-    if (data && allOracleAssets) {
-      const timeNow = dayjs().unix();
+      if (isDisconnected) {
+        setActivePositions([]);
+        setInactivePositions([]);
+      }
 
-      const parsedPositions = data.positions.map(
-        ({ id, oToken, account, writeOptionsTransactions }) => {
+      if (Object.keys(chainData).length && data && allOracleAssets) {
+        const timeNow = dayjs().unix();
+
+        const parsedActivePositions = [] as ParsedPosition[];
+        const parsedInactivePositions = [] as ParsedPosition[];
+
+        for (const {
+          id,
+          oToken,
+          netAmount,
+          optionsSoldTransactions,
+          optionsBoughtTransactions,
+          buyAmount,
+          sellAmount,
+          active,
+          realizedPnl,
+          ...rest
+        } of [...data.shortPositions, ...data.longPositions]) {
           const {
             id: otokenId,
             expiryTimestamp,
@@ -92,36 +209,47 @@ const usePositions = () => {
             strikePrice,
           } = oToken;
 
+          const humanisedStrikePrice = Number(fromOpyn(strikePrice));
+          const putOrCall = isPut ? "put" : "call";
+
+          const vault = (rest as ShortPosition)?.vault || { vaultId: "" };
+          const settleActions = (rest as ShortPosition)?.settleActions || [];
+          const redeemActions = (rest as LongPosition)?.redeemActions || [];
+
           const expired = timeNow > Number(expiryTimestamp);
 
-          // Check for oToken balance.
-          const matchingToken = account.balances.filter(
-            ({ token }) => token.id === otokenId
-          )[0];
-          const otokenBalance =
-            matchingToken && matchingToken.balance
-              ? Number(matchingToken.balance)
-              : 0;
+          // Check state to see if the series is disabled.
+          const seriesData =
+            chainData[expiryTimestamp][humanisedStrikePrice][putOrCall];
+          const buyDisabled =
+            seriesData.buy.disabled || !seriesData.buy.quote.quote;
+          const sellDisabled =
+            seriesData.sell.disabled || !seriesData.sell.quote.quote;
+
+          const options = vault.vaultId
+            ? optionsSoldTransactions
+            : optionsBoughtTransactions;
 
           // 1e18 - TODO: does not account for sales
-          const totPremium = writeOptionsTransactions.length
-            ? writeOptionsTransactions.reduce(
-                (prev: number, { premium }) => prev + Number(premium),
+          const totPremium = options.length
+            ? options.reduce(
+                (p: number, { premium }: { premium: BigNumberish }) =>
+                  vault.vaultId ? p + Number(premium) : p - Number(premium),
                 0
               )
             : 0;
 
           // Total premium converted to 1e18 - TODO: does not account for sales
-          const totalPremium = totPremium / 10 ** DECIMALS.RYSK;
+          // const totalPremium = totPremium / 10 ** DECIMALS.RYSK;
 
           // per token premium converted to 1e18
-          const entryPrice =
-            otokenBalance > 0 && totPremium > 0
-              ? Number(
-                  totPremium /
-                    (otokenBalance * 10 ** (DECIMALS.RYSK - DECIMALS.OPYN))
-                ).toFixed(2)
-              : "0.00";
+          // average price to 1e18 - TODO: review before merge
+          const entryPrice = (
+            Number(fromUSDC(totPremium.toString())) /
+            Number(
+              fromRysk((vault.vaultId ? sellAmount : buyAmount).toString())
+            )
+          ).toFixed(2);
 
           // Find expiry price
           const asset = allOracleAssets.find(
@@ -135,72 +263,195 @@ const usePositions = () => {
           const inTheMoney = isPut
             ? Number(expiryPrice) <= Number(strikePrice)
             : Number(expiryPrice) >= Number(strikePrice);
-          const isRedeemable = expired && Boolean(otokenBalance) && inTheMoney;
-          const hasRedeemed = expired && !otokenBalance && inTheMoney;
-          const hasSoldBack = !otokenBalance && !hasRedeemed;
+          const isRedeemable =
+            expired && redeemActions.length > 0 && inTheMoney;
+          const hasRedeemed = redeemActions.length > 0; // NOTE: User could have manually not redeem all
+          const canSettleShort = expired && settleActions.length === 0;
+          const settledShort = settleActions.length > 0;
 
-          const getStatusMessage = () => {
-            switch (true) {
-              case hasRedeemed:
-                return "Redeemed";
-
-              case hasSoldBack:
-                return "Closed";
-
-              case !expired:
-                return (
-                  <Link
-                    className="p-4"
-                    to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&ref=close`}
-                  >
-                    {`Close position`}
-                  </Link>
-                );
-
-              default:
-                return "Expired";
+          const getStatusMessage = (short: boolean) => {
+            if (short) {
+              switch (true) {
+                case !active:
+                  return "Closed";
+                case settledShort:
+                  return "Settled";
+                case buyDisabled:
+                  return "Currently Untradeable";
+                case !expired:
+                  return (
+                    <Link
+                      to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&ref=vault-close`}
+                    >
+                      <Button
+                        color="white"
+                        className="min-w-[50%]"
+                        title="Click to close position"
+                      >
+                        {`Close`}
+                      </Button>
+                    </Link>
+                  );
+                default:
+                  return "Expired";
+              }
+            } else {
+              switch (true) {
+                case !active:
+                  return "Closed";
+                case hasRedeemed:
+                  return "Redeemed";
+                case sellDisabled:
+                  return "Currently Untradeable";
+                case !expired:
+                  return (
+                    <Link
+                      to={`/options?expiry=${expiryTimestamp}&token=${otokenId}&ref=close`}
+                    >
+                      <Button
+                        color="white"
+                        className="min-w-[50%]"
+                        title="Click to close position"
+                      >
+                        {`Close`}
+                      </Button>
+                    </Link>
+                  );
+                default:
+                  return "Expired";
+              }
             }
           };
 
-          return {
+          const amount = Math.abs(
+            BigNumber.from(netAmount)
+              .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.OPYN))
+              .toNumber()
+          );
+
+          const collateralAssetSymbol =
+            vault.collateralAsset?.name === "USDC" ? "USDC" : "WETH";
+
+          const collateralAllVaults = data.vaults
+            .filter(({ shortOToken }) => shortOToken.id === otokenId)
+            .reduce((acc, { collateralAmount, collateralAsset }) => {
+              return acc.add(collateralAmount);
+            }, BigNumber.from(0));
+
+          const getVaultLiquidationPrice = async () => {
+            if (ethPrice) {
+              const liquidationPrice = await getLiquidationPrice(
+                Number(fromOpyn(amount)),
+                putOrCall,
+                Number(
+                  vault.collateralAsset?.name === "USDC"
+                    ? fromUSDC(collateralAllVaults)
+                    : fromWei(collateralAllVaults)
+                ),
+                getContractAddress(collateralAssetSymbol) as HexString,
+                ethPrice,
+                Number(expiryTimestamp),
+                spotShock,
+                humanisedStrikePrice,
+                timesToExpiry
+              );
+              return liquidationPrice;
+            }
+            return 0;
+          };
+
+          const liquidationPrice = vault.vaultId
+            ? await getVaultLiquidationPrice()
+            : 0;
+
+          // pnl
+          const graphPnl = fromUSDC(realizedPnl);
+          const { acceptablePremium, fee } =
+            amount !== 0
+              ? await getQuote(
+                  Number(expiryTimestamp),
+                  toRysk(fromOpyn(strikePrice)),
+                  isPut,
+                  Number(fromOpyn(amount)),
+                  vault.vaultId ? false : true,
+                  collateralAssetSymbol
+                )
+              : {
+                  acceptablePremium: 0,
+                  fee: 0,
+                };
+
+          const position = {
             ...oToken,
-            amount: otokenBalance,
+            amount,
             entryPrice,
             expired,
             expiryPrice,
+            liquidationPrice,
             id,
             isRedeemable,
+            vaultId: vault.vaultId,
+            collateralAsset: vault.vaultId ? vault.collateralAsset?.name : "",
+            collateralAmount: vault.vaultId
+              ? collateralAllVaults.toString()
+              : "",
+            isSettleable: vault.vaultId ? canSettleShort : false,
             otokenId,
-            side: "LONG",
-            status: getStatusMessage(),
-            totalPremium,
+            side: vault.vaultId ? "SHORT" : "LONG",
+            status: getStatusMessage(!!vault.vaultId),
+            totalPremium: totPremium,
+            pnl:
+              amount === 0
+                ? Number(graphPnl) // if closed position just use graph data
+                : vault.vaultId // short pnl is opposite of long as totPremium represents the earnings
+                ? Number(graphPnl) - Number(fromUSDC(acceptablePremium)) - fee
+                : Number(graphPnl) + Number(fromUSDC(acceptablePremium)) - fee,
             underlyingAsset: underlyingAsset.id,
           };
-        }
-      );
 
-      // Unexpired options sorted closest to furtherest by expiry time.
-      // Expired options sorted most recent to oldest.
-      // Options with the same expiry date are sorted highest to lowest strike price.
-      parsedPositions.sort((a, b) => {
-        if (!a.expired && !b.expired) {
+          if (position.amount !== 0) {
+            parsedActivePositions.push(position);
+          } else {
+            parsedInactivePositions.push(position);
+          }
+        }
+
+        // Active options sorted closest to furtherest by expiry time.
+        // Options with the same expiry date are sorted highest to lowest strike price.
+        parsedActivePositions.sort((a, b) => {
           return (
             a.expiryTimestamp.localeCompare(b.expiryTimestamp) ||
             a.strikePrice.localeCompare(b.strikePrice)
           );
-        }
+        });
 
-        return (
-          b.expiryTimestamp.localeCompare(a.expiryTimestamp) ||
-          b.strikePrice.localeCompare(a.strikePrice)
-        );
-      });
+        // Inactive options sorted furtherest to closest by expiry time.
+        // Options with the same expiry date are sorted highest to lowest strike price.
+        parsedInactivePositions.sort((a, b) => {
+          return (
+            b.expiryTimestamp.localeCompare(a.expiryTimestamp) ||
+            b.strikePrice.localeCompare(a.strikePrice)
+          );
+        });
 
-      setPositions(parsedPositions);
-    }
-  }, [data, allOracleAssets, isDisconnected]);
+        setActivePositions(parsedActivePositions);
+        setInactivePositions(parsedInactivePositions);
 
-  return [positions, loading, error] as [
+        dispatch({
+          type: ActionType.SET_DASHBOARD,
+          activePositions: parsedActivePositions,
+          inactivePositions: parsedInactivePositions,
+        });
+
+        setHookLoading(false);
+      }
+    };
+
+    constructPositionsData();
+  }, [chainData, data, allOracleAssets, isDisconnected, ethPrice]);
+
+  return [activePositions, inactivePositions, hookLoading, error] as [
+    ParsedPosition[] | null,
     ParsedPosition[] | null,
     boolean,
     ApolloError | undefined
@@ -209,7 +460,7 @@ const usePositions = () => {
 
 /**
  * Simple hook to return a redeem function for
- * expired positions that are redeemable.
+ * expired long positions that are redeemable.
  *
  * @returns [completeRedeem]
  */
@@ -249,4 +500,46 @@ const useRedeem = () => {
   return [completeRedeem] as [CompleteRedeem];
 };
 
-export { usePositions, useRedeem };
+/**
+ * Simple hook to return a settle function for
+ * expired short positions that are settleable.
+ *
+ * @returns [completeSettle]
+ */
+const useSettle = () => {
+  const { address } = useAccount();
+
+  const completeSettle = useCallback(
+    async (vaultId: string) => {
+      const args = [
+        {
+          actionType: OpynActionType.SettleVault,
+          owner: address as HexString,
+          secondAddress: address as HexString,
+          asset: ZERO_ADDRESS as HexString,
+          vaultId: BigNumber.from(vaultId),
+          amount: BigNumber.from(0),
+          index: BigNumber.from(0),
+          data: ZERO_ADDRESS as HexString,
+        },
+      ];
+
+      const config = await prepareWriteContract({
+        address: getContractAddress("OpynController"),
+        abi: NewControllerABI,
+        functionName: "operate",
+        args: [args],
+        overrides: {
+          gasLimit: BigNumber.from("3000000"),
+        },
+      });
+
+      await writeContract(config);
+    },
+    [OpynActionType.SettleVault, address]
+  );
+
+  return [completeSettle] as [CompleteSettle];
+};
+
+export { usePositions, useRedeem, useSettle };

@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "react-app-rewired build",
+    "build": "react-app-rewired build && yarn sourcemaps:inject && yarn sourcemaps:upload",
     "eject": "react-app-rewired eject",
+    "sourcemaps:inject": "sentry-cli sourcemaps inject ./build/static/js",
+    "sourcemaps:upload": "node ./upload-sourcemaps.js",
     "start": "env-cmd -f .env -f .env.local react-app-rewired start",
     "start:arbitrum": "env-cmd -f .env -f .env.arbitrum react-app-rewired start",
     "start:testnet": "env-cmd -f .env -f .env.testnet react-app-rewired start",
@@ -14,8 +16,8 @@
     "@apollo/client": "^3.7.10",
     "@rainbow-me/rainbowkit": "^0.12.1",
     "@ramonak/react-progress-bar": "^5.0.3",
+    "@sentry/cli": "^2.17.5",
     "@sentry/react": "^7.43.0",
-    "@sentry/tracing": "^7.43.0",
     "@unstoppabledomains/resolution": "^8.5.0",
     "fathom-client": "^3.5.0",
     "framer-motion": "^10.6.1",
@@ -41,6 +43,7 @@
     "recharts": "^2.5.0",
     "use-count-up": "^3.0.1",
     "use-debounce": "^9.0.3",
+    "uuid": "^9.0.0",
     "wagmi": "^0.12.2",
     "web-vitals": "^3.3.0"
   },
@@ -51,6 +54,7 @@
     "@types/react-dom": "^18.0.11",
     "@types/react-helmet": "^6.1.6",
     "@types/react-slider": "^1.3.1",
+    "@types/uuid": "^9.0.1",
     "env-cmd": "^10.1.0"
   }
 }

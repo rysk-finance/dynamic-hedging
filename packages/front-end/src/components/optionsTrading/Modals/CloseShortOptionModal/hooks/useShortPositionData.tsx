@@ -1,14 +1,11 @@
 import type { Addresses } from "../../Shared/types";
 import type { PositionDataState } from "../types";
 
-import { fetchBalance } from "@wagmi/core";
 import dayjs from "dayjs";
-import { BigNumber } from "ethers";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 
-import { ZERO_ADDRESS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import {
   fromOpyn,
@@ -17,32 +14,37 @@ import {
   tFormatUSDC,
   toOpyn,
   toRysk,
+  toUSDC,
+  truncate,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
-import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
+import { BigNumber } from "ethers";
+import { BIG_NUMBER_DECIMALS, ZERO_ADDRESS } from "src/config/constants";
 import { getQuote } from "../../Shared/utils/getQuote";
+import { fetchBalance } from "@wagmi/core";
+import { logError } from "src/utils/logError";
 import { optionSymbolFromOToken } from "src/utils";
 
-export const usePositionData = (amountToClose: string) => {
-  // Global state.
-  const {
-    state: {
-      ethPrice,
-      options: { activeExpiry, userPositions },
-    },
-  } = useGlobalContext();
-
+export const useShortPositionData = (amountToClose: string) => {
   // URL query params.
   const [searchParams] = useSearchParams();
 
+  // Context state.
+  const {
+    state: {
+      ethPrice,
+      options: { activeExpiry, data, userPositions },
+    },
+  } = useGlobalContext();
+
   // Addresses.
   const { address } = useAccount();
+  const USDCAddress = getContractAddress("USDC");
   const tokenAddress = (searchParams.get("token") as HexString) || undefined;
   const exchangeAddress = getContractAddress("optionExchange");
 
-  // User allowance state for the oToken.
-  const [allowance, setAllowance] = useAllowance(tokenAddress, address);
+  const [loading, setLoading] = useState(false);
 
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
@@ -55,15 +57,29 @@ export const usePositionData = (amountToClose: string) => {
     slippage: 0,
     totalSize: 0,
     title: null,
+    requiredApproval: "",
   });
 
-  const [loading, setLoading] = useState(false);
+  const userPosition =
+    activeExpiry && userPositions
+      ? userPositions[activeExpiry]?.tokens.find(
+          ({ id, netAmount }) =>
+            id === searchParams.get("token") && BigNumber.from(netAmount).lt(0)
+        )
+      : undefined;
+
+  const vault = userPosition?.vault;
+
+  // At the moment this is either going to be USDC or WETH.
+  const collateralAsset = vault?.collateralAsset.id as HexString;
+
+  // User allowance state for usdc.
+  const [allowance, setAllowance] = useAllowance(USDCAddress, address);
 
   // Get user position data.
   useEffect(() => {
     const setPriceData = async (amount: number) => {
       setLoading(true);
-
       try {
         const { value: balance } = await fetchBalance({
           address: address || ZERO_ADDRESS,
@@ -71,16 +87,12 @@ export const usePositionData = (amountToClose: string) => {
         });
         const balanceInt = tFormatUSDC(balance);
 
-        if (activeExpiry && tokenAddress && userPositions) {
-          const userPosition = userPositions[activeExpiry]?.tokens.find(
-            ({ id }) => id === searchParams.get("token")
-          );
-
+        if (activeExpiry && tokenAddress && userPosition) {
           const now = dayjs().format("MMM DD, YYYY HH:mm A");
 
           const totalSize = fromWeiToInt(userPosition?.netAmount || 0);
           const title = `${
-            !userPosition?.symbol
+            userPosition?.symbol
               ? renameOtoken(userPosition?.symbol || "")
               : optionSymbolFromOToken(
                   userPosition?.isPut || false,
@@ -96,11 +108,17 @@ export const usePositionData = (amountToClose: string) => {
                 toRysk(fromOpyn(userPosition.strikePrice)),
                 userPosition.isPut,
                 amount,
-                true
+                false,
+                collateralAsset === getContractAddress("USDC").toLowerCase()
+                  ? "USDC"
+                  : "WETH"
               );
 
-            const remainingBalance = balance.isZero() ? 0 : balanceInt + quote;
-            const approved = toOpyn(amountToClose).lte(allowance.amount);
+            // closing a short is buying back the oToken, hence the minus USDC.
+            const remainingBalance = balance.isZero() ? 0 : balanceInt - quote;
+
+            const requiredApproval = String(truncate(quote * 1.05, 4));
+            const approved = toUSDC(requiredApproval).lte(allowance.amount);
 
             setPositionData({
               acceptablePremium,
@@ -112,8 +130,8 @@ export const usePositionData = (amountToClose: string) => {
               slippage,
               totalSize,
               title,
+              requiredApproval,
             });
-            setAllowance((currentState) => ({ ...currentState, approved }));
           } else {
             setPositionData({
               acceptablePremium: BigNumber.from(0),
@@ -125,11 +143,8 @@ export const usePositionData = (amountToClose: string) => {
               slippage: 0,
               totalSize,
               title,
+              requiredApproval: "",
             });
-            setAllowance((currentState) => ({
-              ...currentState,
-              approved: false,
-            }));
           }
         }
 
@@ -140,14 +155,37 @@ export const usePositionData = (amountToClose: string) => {
       }
     };
 
-    setPriceData(Number(amountToClose));
+    // if no amount we only need data below (for adjusting collateral)
+    if (amountToClose) {
+      setPriceData(Number(amountToClose));
+    }
   }, [activeExpiry, amountToClose, ethPrice, tokenAddress, userPositions]);
 
   const addresses: Addresses = {
     exchange: exchangeAddress,
+    collateral: collateralAsset,
     token: tokenAddress,
     user: address,
   };
 
-  return [addresses, allowance, setAllowance, positionData, loading] as const;
+  const collateralAmount = BigNumber.from(vault?.collateralAmount || "1");
+  const shortAmount = BigNumber.from(vault?.shortAmount || "0");
+
+  const vaultId = vault?.vaultId;
+
+  const collateralPerOption =
+    !collateralAmount.isZero() && !shortAmount.isZero()
+      ? collateralAmount.mul(BIG_NUMBER_DECIMALS.OPYN).div(shortAmount)
+      : BigNumber.from(0);
+
+  return [
+    addresses,
+    allowance,
+    setAllowance,
+    positionData,
+    collateralAmount,
+    collateralPerOption,
+    collateralAsset,
+    vaultId,
+  ] as const;
 };

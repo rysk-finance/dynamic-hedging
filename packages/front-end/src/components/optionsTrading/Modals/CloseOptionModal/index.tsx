@@ -4,9 +4,12 @@ import type { AddressesRequired } from "../Shared/types";
 
 import dayjs from "dayjs";
 import LocalizedFormat from "dayjs/plugin/localizedFormat";
+import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { useDebounce } from "use-debounce";
 
+import { useSearchParams } from "react-router-dom";
+import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { toOpyn, toRysk } from "src/utils/conversion-helper";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -34,6 +37,7 @@ export const CloseOptionModal = () => {
 
   const [addresses, allowance, setAllowance, positionData, loading] =
     usePositionData(debouncedAmountToClose);
+  const [searchParams] = useSearchParams();
 
   const [notifyApprovalSuccess, handleTransactionSuccess, notifyFailure] =
     useNotifications();
@@ -107,36 +111,40 @@ export const CloseOptionModal = () => {
   return (
     <Modal>
       <Header>{`Sell Position`}</Header>
-
       <Pricing positionData={positionData} />
-
       <Wrapper>
         <Label title="Enter how much of your position you would like to sell.">
           <Input
             name="close-amount"
             onChange={handleChange}
             placeholder="How many would you like to sell?"
+            step={0.01}
+            type="number"
             value={amountToClose}
           />
         </Label>
 
-        <Button
-          disabled={
-            Number(amountToClose) > positionData.totalSize ||
-            !Number(amountToClose) ||
-            !addresses.user ||
-            !addresses.token ||
-            transactionPending ||
-            loading
-          }
-          {...getButtonProps(
-            "sell",
-            transactionPending || loading,
-            allowance.approved,
-            handleApprove,
-            handleSell
-          )}
-        />
+        <AnimatePresence mode="wait">
+          <Button
+            className="w-1/3 !border-0"
+            disabled={
+              Number(amountToClose) > positionData.totalSize ||
+              !Number(amountToClose) ||
+              !addresses.user ||
+              !addresses.token ||
+              transactionPending
+            }
+            requiresConnection
+            {...FadeInOutQuick}
+            {...getButtonProps(
+              "sell",
+              transactionPending,
+              allowance.approved,
+              handleApprove,
+              handleSell
+            )}
+          />
+        </AnimatePresence>
       </Wrapper>
 
       <Disclaimer>

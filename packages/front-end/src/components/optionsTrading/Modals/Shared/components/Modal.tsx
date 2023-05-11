@@ -2,6 +2,7 @@ import type { MouseEvent, PropsWithChildren } from "react";
 
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
 
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
@@ -12,6 +13,14 @@ export const Modal = ({ children }: PropsWithChildren) => {
   const [_, setSearchParams] = useSearchParams();
 
   const { dispatch } = useGlobalContext();
+
+  useEffect(() => {
+    document.body.classList.toggle("overflow-hidden", true);
+
+    return () => {
+      document.body.classList.toggle("overflow-hidden", false);
+    };
+  }, []);
 
   const handleLightBoxClick = () => {
     dispatch({
@@ -24,7 +33,7 @@ export const Modal = ({ children }: PropsWithChildren) => {
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 w-screen h-screen grid grid-cols-12 bg-bone-light/80 cursor-pointer"
+      className="fixed inset-0 z-50 w-screen h-screen grid grid-cols-12 bg-bone-light/80 cursor-pointer overflow-auto"
       onClick={handleLightBoxClick}
       title="Click to close the modal."
       {...FadeInOut(0.1)}

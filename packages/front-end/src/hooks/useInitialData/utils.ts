@@ -13,11 +13,16 @@ import type { InitialDataQuery, OptionsTransaction, Vault } from "./types";
 
 import { readContract, readContracts } from "@wagmi/core";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { BigNumber } from "ethers";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { NewControllerABI } from "src/abis/NewController_ABI";
 import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
+import {
+  defaultSpotShock,
+  defaultTimesToExpiry,
+} from "src/state/GlobalContext";
 import {
   fromE27toInt,
   fromUSDC,
@@ -30,6 +35,8 @@ import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { toTwoDecimalPlaces } from "src/utils/rounding";
 
+dayjs.extend(utc);
+
 const getExpiries = (expiries: InitialDataQuery["expiries"]) => {
   return expiries.reduce((expiryList, { timestamp }) => {
     if (dayjs.unix(Number(timestamp)).utc().hour() === 8) {
@@ -40,15 +47,24 @@ const getExpiries = (expiries: InitialDataQuery["expiries"]) => {
   }, [] as string[]);
 };
 
-const getUserPositions = (positions: InitialDataQuery["positions"]) => {
+const getUserPositions = (
+  positions: InitialDataQuery["longPositions" | "shortPositions"]
+) => {
   return positions.reduce(
     (
       positions,
-      { netAmount, oToken, optionsBoughtTransactions, optionsSoldTransactions }
+      {
+        netAmount,
+        oToken,
+        optionsBoughtTransactions,
+        optionsSoldTransactions,
+        vault,
+      }
     ) => {
       const { expiryTimestamp } = oToken;
       const isLong = Number(netAmount) > 0;
       const isShort = Number(netAmount) < 0;
+
       const key = positions[expiryTimestamp];
 
       const _getPremium = (
@@ -74,6 +90,7 @@ const getUserPositions = (positions: InitialDataQuery["positions"]) => {
         ...oToken,
         netAmount,
         totalPremium,
+        vault,
       };
 
       if (!key) {
@@ -109,11 +126,11 @@ const getChainData = async (
     args: [BigNumber.from(expiry)],
   }));
 
-  try {
-    const data = (await readContracts({
-      contracts,
-    })) as DHVLensMK1.OptionExpirationDrillStructOutput[];
+  const data = (await readContracts({
+    contracts,
+  })) as DHVLensMK1.OptionExpirationDrillStructOutput[];
 
+  try {
     const createSide = (
       drill: readonly DHVLensMK1.OptionStrikeDrillStruct[],
       side: CallOrPut,
@@ -193,36 +210,40 @@ const getChainData = async (
       );
     };
 
-    return data.reduce(
-      (chainData, { callOptionDrill, expiration, putOptionDrill }) => {
-        const expiry = expiration.toNumber();
-        const calls = createSide(callOptionDrill, "call", expiry);
-        const puts = createSide(putOptionDrill, "put", expiry);
-        const strikes = Array.from(
-          new Set([...Object.keys(calls), ...Object.keys(puts)])
-        );
+    if (data.length && data.length === expiries.length) {
+      return data.reduce(
+        (chainData, { callOptionDrill, expiration, putOptionDrill }) => {
+          const expiry = expiration.toNumber();
+          const calls = createSide(callOptionDrill, "call", expiry);
+          const puts = createSide(putOptionDrill, "put", expiry);
+          const strikes = Array.from(
+            new Set([...Object.keys(calls), ...Object.keys(puts)])
+          );
 
-        chainData[expiry] = strikes.reduce(
-          (strikeData, currentStrike) => {
-            const strike = Number(currentStrike);
+          chainData[expiry] = strikes.reduce(
+            (strikeData, currentStrike) => {
+              const strike = Number(currentStrike);
 
-            strikeData[strike] = {
-              strike: strike,
-              ...(calls[strike] as CallSide),
-              ...(puts[strike] as PutSide),
-            };
+              strikeData[strike] = {
+                strike: strike,
+                ...(calls[strike] as CallSide),
+                ...(puts[strike] as PutSide),
+              };
 
-            return strikeData;
-          },
-          {} as {
-            [strike: number]: StrikeOptions;
-          }
-        );
+              return strikeData;
+            },
+            {} as {
+              [strike: number]: StrikeOptions;
+            }
+          );
 
-        return chainData;
-      },
-      {} as ChainData
-    );
+          return chainData;
+        },
+        {} as ChainData
+      );
+    } else {
+      return {};
+    }
   } catch (error) {
     logError(error);
 
@@ -285,63 +306,64 @@ const getLiquidationCalculationParameters = async () => {
     } as const;
   };
 
-  const _parseResults = (results: BigNumber | readonly BigNumber[]) => {
-    if (results instanceof BigNumber) {
-      return fromE27toInt(results) as number;
-    } else {
-      return results.map((result) => result.toNumber()) as number[];
-    }
+  const _parseSpotShockResults = (results?: BigNumber) => {
+    return results ? (fromE27toInt(results) as number) : defaultSpotShock;
   };
 
-   const parameters = await readContracts({
-      contracts: [
-        _getParams("USDC", "getSpotShock", true),
-        _getParams("USDC", "getSpotShock", false),
-        _getParams("WETH", "getSpotShock", true),
-        _getParams("WETH", "getSpotShock", false),
-        _getParams("USDC", "getTimesToExpiry", true),
-        _getParams("USDC", "getTimesToExpiry", false),
-        _getParams("WETH", "getTimesToExpiry", true),
-        _getParams("WETH", "getTimesToExpiry", false),
-      ],
-    });
-
-    return {
-      spotShock: {
-        call: {
-          USDC: _parseResults(parameters[1]) as number,
-          WETH: _parseResults(parameters[3]) as number,
-        },
-        put: {
-          USDC: _parseResults(parameters[0]) as number,
-          WETH: _parseResults(parameters[2]) as number,
-        },
-      },
-      timesToExpiry: {
-        call: {
-          USDC: _parseResults(parameters[5]) as number[],
-          WETH: _parseResults(parameters[7]) as number[],
-        },
-        put: {
-          USDC: _parseResults(parameters[4]) as number[],
-          WETH: _parseResults(parameters[6]) as number[],
-        },
-      },
-    };
+  const _parseTimesToExpiry = (results?: readonly BigNumber[]) => {
+    return results
+      ? (results.map((result) => result.toNumber()) as number[])
+      : defaultTimesToExpiry;
   };
-    
+
+  const parameters = await readContracts({
+    contracts: [
+      _getParams("USDC", "getSpotShock", true),
+      _getParams("USDC", "getSpotShock", false),
+      _getParams("WETH", "getSpotShock", true),
+      _getParams("WETH", "getSpotShock", false),
+      _getParams("USDC", "getTimesToExpiry", true),
+      _getParams("USDC", "getTimesToExpiry", false),
+      _getParams("WETH", "getTimesToExpiry", true),
+      _getParams("WETH", "getTimesToExpiry", false),
+    ],
+  });
+
+  return {
+    spotShock: {
+      call: {
+        USDC: _parseSpotShockResults(parameters[1] as BigNumber),
+        WETH: _parseSpotShockResults(parameters[3] as BigNumber),
+      },
+      put: {
+        USDC: _parseSpotShockResults(parameters[0] as BigNumber),
+        WETH: _parseSpotShockResults(parameters[2] as BigNumber),
+      },
+    },
+    timesToExpiry: {
+      call: {
+        USDC: _parseTimesToExpiry(parameters[5] as BigNumber[]),
+        WETH: _parseTimesToExpiry(parameters[7] as BigNumber[]),
+      },
+      put: {
+        USDC: _parseTimesToExpiry(parameters[4] as BigNumber[]),
+        WETH: _parseTimesToExpiry(parameters[6] as BigNumber[]),
+      },
+    },
+  };
+};
 
 export const getInitialData = async (
   data: InitialDataQuery,
   address?: HexString
 ) => {
-  const { expiries, positions } = data;
+  const { expiries, longPositions, shortPositions } = data;
 
   // Get expiries.
   const validExpiries = getExpiries(expiries);
 
   // Get user positions.
-  const userPositions = getUserPositions(positions);
+  const userPositions = getUserPositions([...longPositions, ...shortPositions]);
 
   // Get chain data.
   const chainData = await getChainData(validExpiries, userPositions);

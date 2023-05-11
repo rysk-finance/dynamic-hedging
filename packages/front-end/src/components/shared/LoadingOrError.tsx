@@ -13,6 +13,8 @@ const loadingStrings = [
   "Fetching data from Subgraph...",
   "Loading...",
 ];
+const timeoutStrings =
+  "This seems to be taking a long time, please be patient or try coming back later.";
 
 interface LoadingOrErrorProps extends HTMLMotionProps<"div"> {
   error?: ApolloError;
@@ -45,6 +47,18 @@ const LoadingOrError = ({
       setVisible((visible) => [...visible, errorString]);
     }
   }, [error, visible]);
+
+  useEffect(() => {
+    const longTimer = setTimeout(() => {
+      if (!visible.includes(timeoutStrings)) {
+        setVisible((visible) => [...visible, timeoutStrings]);
+      }
+    }, 10000);
+
+    return () => {
+      clearTimeout(longTimer);
+    };
+  }, []);
 
   return (
     <motion.div

@@ -11,6 +11,7 @@ import { BuyOptionModal } from "./Modals/BuyOptionModal";
 import { CloseOptionModal } from "./Modals/CloseOptionModal";
 import { OperatorModal } from "./Modals/OperatorModal";
 import { SellOptionModal } from "./Modals/SellOptionModal";
+import { CloseShortOptionModal } from "./Modals/CloseShortOptionModal";
 import { BuyModalTutorial } from "./Tutorials/Buy";
 import { OptionChainTutorial } from "./Tutorials/Chain";
 import { SellModalTutorial } from "./Tutorials/Sell";
@@ -39,6 +40,9 @@ export const OptionsTradingContent = () => {
           <BuyOptionModal key="buy" />
         )}
         {modalType === OptionChainModalActions.CLOSE && <CloseOptionModal />}
+        {modalType === OptionChainModalActions.CLOSE_SHORT && (
+          <CloseShortOptionModal />
+        )}
         {modalType === OptionChainModalActions.OPERATOR && <OperatorModal />}
         {modalType === OptionChainModalActions.SELL && (
           <SellOptionModal key="sell" />

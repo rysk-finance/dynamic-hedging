@@ -13,7 +13,7 @@ import { AppPaths } from "./config/appPaths";
 import { Dashboard } from "./pages/Dashboard";
 import { OptionsTrading } from "./pages/OptionsTrading";
 import { OTC } from "./pages/OTC";
-import { Vault } from "./pages/Vault";
+// import { Vault } from "./pages/Vault";
 import { GlobalContextProvider } from "./state/GlobalContext";
 
 import "react-toastify/dist/ReactToastify.css";
@@ -38,7 +38,8 @@ function App() {
             <div className="pt-16 px-16 overflow-hidden">
               <div className="root-grid py-24">
                 <Routes>
-                  <Route path={AppPaths.VAULT} element={<Vault />} />
+                  {/* <Route path={AppPaths.VAULT} element={<Vault />} /> */}
+                  <Route path={AppPaths.HOME} element={<OptionsTrading />} />
                   <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
                   <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
                   <Route path={AppPaths.OTC} element={<OTC />} />
