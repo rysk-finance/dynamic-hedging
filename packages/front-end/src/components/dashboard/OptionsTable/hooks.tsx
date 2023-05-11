@@ -17,26 +17,24 @@ import { useAccount } from "wagmi";
 
 import { NewControllerABI } from "src/abis/NewController_ABI";
 import { QueriesEnum } from "src/clients/Apollo/Queries";
+import { Button } from "src/components/shared/Button";
 import { OpynActionType } from "src/enums/OpynActionType";
 import { useGraphPolling } from "src/hooks/useGraphPolling";
-import { getContractAddress } from "src/utils/helpers";
-import { logError } from "src/utils/logError";
-import { BIG_NUMBER_DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
-import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
 import {
   fromOpyn,
   fromRysk,
   fromUSDC,
   fromWei,
   toRysk,
-  toUSDC,
-  toWei,
 } from "src/utils/conversion-helper";
-import { Button } from "src/components/shared/Button";
+import { getContractAddress } from "src/utils/helpers";
+import { logError } from "src/utils/logError";
+import { BIG_NUMBER_DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
+import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
 import { getLiquidationPrice } from "../../optionsTrading/Modals/Shared/utils/getLiquidationPrice";
-import { useGlobalContext } from "src/state/GlobalContext";
 import { getQuote } from "../../optionsTrading/Modals/Shared/utils/getQuote";
-import { ActionType } from "src/state/types";
 
 /**
  * Hook using GraphQL to fetch all positions for the user
@@ -55,10 +53,11 @@ const usePositions = () => {
   const {
     state: {
       ethPrice,
-      options: { spotShock, timesToExpiry },
+      options: { data: chainData, spotShock, timesToExpiry },
     },
   } = useGlobalContext();
 
+  const [hookLoading, setHookLoading] = useState(false);
   const [activePositions, setActivePositions] = useState<
     ParsedPosition[] | null
   >(null);
@@ -67,7 +66,7 @@ const usePositions = () => {
   >(null);
 
   // NOTE: Only getting positions opened after redeploy of contracts
-  const { loading, error, data, startPolling } = useQuery<{
+  const { error, data, startPolling } = useQuery<{
     longPositions: LongPosition[];
     shortPositions: ShortPosition[];
     vaults: {
@@ -177,12 +176,14 @@ const usePositions = () => {
 
   useEffect(() => {
     const constructPositionsData = async () => {
+      setHookLoading(true);
+
       if (isDisconnected) {
         setActivePositions([]);
         setInactivePositions([]);
       }
 
-      if (data && allOracleAssets) {
+      if (Object.keys(chainData).length && data && allOracleAssets) {
         const timeNow = dayjs().unix();
 
         const parsedActivePositions = [] as ParsedPosition[];
@@ -208,11 +209,22 @@ const usePositions = () => {
             strikePrice,
           } = oToken;
 
+          const humanisedStrikePrice = Number(fromOpyn(strikePrice));
+          const putOrCall = isPut ? "put" : "call";
+
           const vault = (rest as ShortPosition)?.vault || { vaultId: "" };
           const settleActions = (rest as ShortPosition)?.settleActions || [];
           const redeemActions = (rest as LongPosition)?.redeemActions || [];
 
           const expired = timeNow > Number(expiryTimestamp);
+
+          // Check state to see if the series is disabled.
+          const seriesData =
+            chainData[expiryTimestamp][humanisedStrikePrice][putOrCall];
+          const buyDisabled =
+            seriesData.buy.disabled || !seriesData.buy.quote.quote;
+          const sellDisabled =
+            seriesData.sell.disabled || !seriesData.sell.quote.quote;
 
           const options = vault.vaultId
             ? optionsSoldTransactions
@@ -264,6 +276,8 @@ const usePositions = () => {
                   return "Closed";
                 case settledShort:
                   return "Settled";
+                case buyDisabled:
+                  return "Currently Untradeable";
                 case !expired:
                   return (
                     <Link
@@ -287,6 +301,8 @@ const usePositions = () => {
                   return "Closed";
                 case hasRedeemed:
                   return "Redeemed";
+                case sellDisabled:
+                  return "Currently Untradeable";
                 case !expired:
                   return (
                     <Link
@@ -326,7 +342,7 @@ const usePositions = () => {
             if (ethPrice) {
               const liquidationPrice = await getLiquidationPrice(
                 Number(fromOpyn(amount)),
-                isPut ? "put" : "call",
+                putOrCall,
                 Number(
                   vault.collateralAsset?.name === "USDC"
                     ? fromUSDC(collateralAllVaults)
@@ -336,7 +352,7 @@ const usePositions = () => {
                 ethPrice,
                 Number(expiryTimestamp),
                 spotShock,
-                Number(fromOpyn(strikePrice)),
+                humanisedStrikePrice,
                 timesToExpiry
               );
               return liquidationPrice;
@@ -426,13 +442,15 @@ const usePositions = () => {
           activePositions: parsedActivePositions,
           inactivePositions: parsedInactivePositions,
         });
+
+        setHookLoading(false);
       }
     };
 
     constructPositionsData();
-  }, [data, allOracleAssets, isDisconnected, ethPrice]);
+  }, [chainData, data, allOracleAssets, isDisconnected, ethPrice]);
 
-  return [activePositions, inactivePositions, loading, error] as [
+  return [activePositions, inactivePositions, hookLoading, error] as [
     ParsedPosition[] | null,
     ParsedPosition[] | null,
     boolean,
