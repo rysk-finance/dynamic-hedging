@@ -93,13 +93,17 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
           const callBuyDisabled =
             option.call.buy.disabled || !option.call.buy.quote.quote;
           const callPosDisabled =
-            !option.call.pos || !option.call.sell.quote.quote;
+            !option.call.pos ||
+            (option.call.pos < 0 && callBuyDisabled) ||
+            (option.call.pos > 0 && callSellDisabled);
           const putSellDisabled =
             option.put.sell.disabled || !option.put.sell.quote.quote;
           const putBuyDisabled =
             option.put.buy.disabled || !option.put.buy.quote.quote;
           const putPosDisabled =
-            !option.put.pos || !option.put.sell.quote.quote;
+            !option.put.pos ||
+            (option.put.pos < 0 && putBuyDisabled) ||
+            (option.put.pos > 0 && putSellDisabled);
 
           const callAtTheMoney = option.strike === callAtmStrike;
           const putAtTheMoney = option.strike === putAtmStrike;
