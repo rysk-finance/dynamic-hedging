@@ -263,8 +263,8 @@ const usePositions = () => {
           const inTheMoney = isPut
             ? Number(expiryPrice) <= Number(strikePrice)
             : Number(expiryPrice) >= Number(strikePrice);
-          const isRedeemable =
-            expired && redeemActions.length > 0 && inTheMoney;
+
+          const isRedeemable = expired && redeemActions.length === 0;
           const hasRedeemed = redeemActions.length > 0; // NOTE: User could have manually not redeem all
           const canSettleShort = expired && settleActions.length === 0;
           const settledShort = settleActions.length > 0;
