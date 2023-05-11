@@ -381,6 +381,20 @@ const usePositions = () => {
                   fee: 0,
                 };
 
+          let expectedRedeemPayout = 0;
+
+          if (isRedeemable || hasRedeemed) {
+            const diff = isPut
+              ? Number(fromOpyn(strikePrice)) -
+                Number(fromOpyn(expiryPrice || 0))
+              : Number(fromOpyn(expiryPrice || 0)) -
+                Number(fromOpyn(strikePrice));
+
+            if (diff > 0) {
+              expectedRedeemPayout = diff * Number(fromWei(netAmount));
+            }
+          }
+
           const position = {
             ...oToken,
             amount,
@@ -405,7 +419,10 @@ const usePositions = () => {
                 ? Number(graphPnl) // if closed position just use graph data
                 : vault.vaultId // short pnl is opposite of long as totPremium represents the earnings
                 ? Number(graphPnl) - Number(fromUSDC(acceptablePremium)) - fee
-                : Number(graphPnl) + Number(fromUSDC(acceptablePremium)) - fee,
+                : Number(graphPnl) +
+                  (expectedRedeemPayout
+                    ? expectedRedeemPayout
+                    : Number(fromUSDC(acceptablePremium)) - fee),
             underlyingAsset: underlyingAsset.id,
           };
 
