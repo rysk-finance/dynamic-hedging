@@ -20,7 +20,7 @@ export const getContractAddress = (contractName: keyof ContractAddresses) => {
       ? (chain.network as ETHNetwork)
       : (process.env.REACT_APP_NETWORK as ETHNetwork);
 
-  return typedAddresses[network][contractName] as `0x${string}`;
+  return typedAddresses[network][contractName].toLowerCase() as `0x${string}`;
 };
 
 export const calculateOptionDeltaLocally = async (
