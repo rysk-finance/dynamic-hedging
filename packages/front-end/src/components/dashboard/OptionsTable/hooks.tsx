@@ -266,16 +266,6 @@ const usePositions = () => {
             ? Number(expiryPrice) <= Number(strikePrice)
             : Number(expiryPrice) >= Number(strikePrice);
 
-          const isRedeemable =
-            expired && Boolean(!vault.vaultId) && redeemActions.length === 0;
-          const hasRedeemed = redeemActions.length > 0; // NOTE: User could have manually not redeem all
-          const canSettleShort =
-            expired && Boolean(vault.vaultId) && settleActions.length === 0;
-          const settledShort = settleActions.length > 0;
-
-          const anyExpiredAction =
-            isRedeemable || canSettleShort || settledShort || hasRedeemed;
-
           const getStatusMessage = (short: boolean) => {
             if (short) {
               switch (true) {
@@ -335,6 +325,22 @@ const usePositions = () => {
               .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.OPYN))
               .toNumber()
           );
+
+          const isRedeemable =
+            amount != 0 &&
+            expired &&
+            Boolean(!vault.vaultId) &&
+            redeemActions.length === 0;
+          const hasRedeemed = redeemActions.length > 0; // NOTE: User could have manually not redeem all
+          const canSettleShort =
+            amount != 0 &&
+            expired &&
+            Boolean(vault.vaultId) &&
+            settleActions.length === 0;
+          const settledShort = settleActions.length > 0;
+
+          const anyExpiredAction =
+            isRedeemable || canSettleShort || settledShort || hasRedeemed;
 
           const collateralAssetSymbol =
             vault.collateralAsset?.name === "USDC" ? "USDC" : "WETH";
