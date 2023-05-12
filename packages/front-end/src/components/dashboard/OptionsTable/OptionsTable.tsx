@@ -72,8 +72,8 @@ export const UserOptions = () => {
         {
           label:
             loading && !inactivePositions
-              ? "Loading Expired..."
-              : "RYSK.Expired",
+              ? "Loading Closed..."
+              : "RYSK.Closed",
           content: (
             <>
               <AnimatePresence initial={false} mode="wait">
