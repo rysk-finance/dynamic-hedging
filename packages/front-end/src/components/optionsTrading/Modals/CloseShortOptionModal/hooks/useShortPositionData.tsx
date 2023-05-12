@@ -6,22 +6,23 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 
+import { BigNumber } from "ethers";
+import { BIG_NUMBER_DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { optionSymbolFromOToken } from "src/utils";
 import {
   fromOpyn,
   fromWeiToInt,
   renameOtoken,
+  tFormatEth,
+  tFormatUSDC,
   toRysk,
-  toUSDC,
   truncate,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
-import { useAllowance } from "../../Shared/hooks/useAllowance";
-import { BigNumber } from "ethers";
-import { BIG_NUMBER_DECIMALS } from "src/config/constants";
-import { getQuote } from "../../Shared/utils/getQuote";
 import { logError } from "src/utils/logError";
-import { optionSymbolFromOToken } from "src/utils";
+import { useAllowance } from "../../Shared/hooks/useAllowance";
+import { getQuote } from "../../Shared/utils/getQuote";
 
 export const useShortPositionData = (amountToClose: string) => {
   // URL query params.
@@ -47,11 +48,14 @@ export const useShortPositionData = (amountToClose: string) => {
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
     acceptablePremium: BigNumber.from(0),
+    collateralToRemove: BigNumber.from(0),
     fee: 0,
+    hasRequiredCapital: false,
     now: dayjs().format("MMM DD, YYYY HH:mm A"),
     premium: 0,
     quote: 0,
     remainingBalance: 0,
+    remainingCollateral: 0,
     slippage: 0,
     totalSize: 0,
     title: null,
@@ -67,9 +71,10 @@ export const useShortPositionData = (amountToClose: string) => {
       : undefined;
 
   const vault = userPosition?.vault;
+  const vaultId = vault?.vaultId;
 
   // At the moment this is either going to be USDC or WETH.
-  const collateralAsset = vault?.collateralAsset.id as HexString;
+  const collateralAsset = vault?.collateralAsset.id as HexString | undefined;
 
   // User allowance state for usdc.
   const [allowance, setAllowance] = useAllowance(USDCAddress, address);
@@ -78,6 +83,7 @@ export const useShortPositionData = (amountToClose: string) => {
   useEffect(() => {
     const setPriceData = async (amount: number) => {
       setLoading(true);
+
       try {
         if (activeExpiry && tokenAddress && userPosition) {
           const now = dayjs().format("MMM DD, YYYY HH:mm A");
@@ -106,38 +112,74 @@ export const useShortPositionData = (amountToClose: string) => {
                   : "WETH"
               );
 
-            // closing a short is buying back the oToken, hence the minus USDC.
+            // Closing a short is buying back the oToken, hence the minus USDC.
             const remainingBalance =
               balances.USDC === 0 ? 0 : balances.USDC - quote;
 
+            // Calculate collateral to remove and remaining collateral.
+            const collateralAmount = BigNumber.from(
+              vault?.collateralAmount || "1"
+            );
+            const shortAmount = BigNumber.from(vault?.shortAmount || "0");
+
+            const collateralPerOption =
+              !collateralAmount.isZero() && !shortAmount.isZero()
+                ? collateralAmount
+                    .mul(BIG_NUMBER_DECIMALS.OPYN)
+                    .div(shortAmount)
+                : BigNumber.from(0);
+
+            const collateralToRemove = collateralPerOption
+              .mul(amount * 100)
+              .div(100);
+            const remainingCollateral = collateralToRemove.isZero()
+              ? 0
+              : collateralAsset === getContractAddress("WETH")
+              ? tFormatEth(collateralAmount.sub(collateralToRemove))
+              : tFormatUSDC(collateralAmount.sub(collateralToRemove));
+
+            // Ensure user has sufficient wallet balance to cover premium before collateral is released.
+            const hasRequiredCapital = balances.USDC > quote;
+
             const requiredApproval = String(truncate(quote * 1.05, 4));
-            const approved = toUSDC(requiredApproval).lte(allowance.amount);
+            const approved = collateralToRemove.lte(allowance.amount);
 
             setPositionData({
               acceptablePremium,
+              collateralToRemove,
               fee,
+              hasRequiredCapital,
               now,
               premium,
               quote,
               remainingBalance,
+              remainingCollateral,
               slippage,
               totalSize,
               title,
               requiredApproval,
             });
+            setAllowance((currentState) => ({ ...currentState, approved }));
           } else {
             setPositionData({
               acceptablePremium: BigNumber.from(0),
+              collateralToRemove: BigNumber.from(0),
               fee: 0,
+              hasRequiredCapital: false,
               now,
               premium: 0,
               quote: 0,
               remainingBalance: balances.USDC,
+              remainingCollateral: 0,
               slippage: 0,
               totalSize,
               title,
               requiredApproval: "",
             });
+            setAllowance((currentState) => ({
+              ...currentState,
+              approved: false,
+            }));
           }
         }
 
@@ -148,10 +190,7 @@ export const useShortPositionData = (amountToClose: string) => {
       }
     };
 
-    // if no amount we only need data below (for adjusting collateral)
-    if (amountToClose) {
-      setPriceData(Number(amountToClose));
-    }
+    setPriceData(Number(amountToClose));
   }, [activeExpiry, amountToClose, ethPrice, tokenAddress, userPositions]);
 
   const addresses: Addresses = {
@@ -161,24 +200,12 @@ export const useShortPositionData = (amountToClose: string) => {
     user: address,
   };
 
-  const collateralAmount = BigNumber.from(vault?.collateralAmount || "1");
-  const shortAmount = BigNumber.from(vault?.shortAmount || "0");
-
-  const vaultId = vault?.vaultId;
-
-  const collateralPerOption =
-    !collateralAmount.isZero() && !shortAmount.isZero()
-      ? collateralAmount.mul(BIG_NUMBER_DECIMALS.OPYN).div(shortAmount)
-      : BigNumber.from(0);
-
   return [
     addresses,
     allowance,
     setAllowance,
     positionData,
-    collateralAmount,
-    collateralPerOption,
-    collateralAsset,
     vaultId,
+    loading,
   ] as const;
 };
