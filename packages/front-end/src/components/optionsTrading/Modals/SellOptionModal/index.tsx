@@ -171,6 +171,7 @@ export const SellOptionModal = () => {
               positionData.remainingBalanceUSDC <= 0) ||
             (collateralPreferences.type === "WETH" &&
               positionData.remainingBalanceWETH <= 0) ||
+            !positionData.hasRequiredCapital ||
             transactionPending ||
             loading
           }
