@@ -8,16 +8,12 @@ import { RyskCountUp } from "src/components/shared/RyskCountUp";
 
 export const Pricing = ({ loading, positionData, type }: PricingProps) => {
   const [collateralType, setCollateralType] = useState(type);
-
-  useEffect(() => {
-    if (!loading) {
-      setCollateralType(type);
-    }
-  }, [loading]);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const {
     collateral,
     fee,
+    hasRequiredCapital,
     liquidationPrice,
     now,
     premium,
@@ -26,6 +22,26 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
     remainingBalanceWETH,
     slippage,
   } = positionData;
+
+  useEffect(() => {
+    if (!loading) {
+      setCollateralType(type);
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    const negativeBalance =
+      (collateralType === "USDC" && remainingBalanceUSDC <= 0) ||
+      (collateralType === "WETH" && remainingBalanceWETH <= 0);
+
+    if (!hasRequiredCapital && quote) {
+      setErrorMessage("Insufficient balance to cover collateral.");
+    } else if (negativeBalance && quote) {
+      setErrorMessage("Final balance cannot be negative.");
+    } else {
+      setErrorMessage("");
+    }
+  }, [collateralType, positionData]);
 
   return (
     <div className="w-3/5 mx-auto py-4">
@@ -112,6 +128,17 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
           </p>
         </span>
       </div>
+
+      <AnimatePresence mode="wait">
+        {errorMessage && (
+          <motion.small
+            className="block leading-6 text-red-500 text-right"
+            {...FadeInOutQuick}
+          >
+            {errorMessage}
+          </motion.small>
+        )}
+      </AnimatePresence>
 
       <small className="flex flex-col pt-2 text-center leading-6 text-gray-600">
         {`Last updated: ${now}`}
