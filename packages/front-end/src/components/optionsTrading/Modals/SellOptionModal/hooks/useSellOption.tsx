@@ -64,6 +64,7 @@ export const useSellOption = (amountToSell: string) => {
     collateral: 0,
     expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
     fee: 0,
+    hasRequiredCapital: false,
     liquidationPrice: 0,
     now: dayjs().format("MMM DD, YYYY HH:mm A"),
     premium: 0,
@@ -83,7 +84,7 @@ export const useSellOption = (amountToSell: string) => {
       setLoading(true);
 
       try {
-        const { USDC: balanceUSDCInt, WETH: balanceWETHInt } = balances;
+        const { USDC: balanceUSDC, WETH: balanceWETH } = balances;
 
         if (amount > 0 && ethPrice && selectedOption) {
           const strike = selectedOption.strikeOptions.strike;
@@ -146,10 +147,15 @@ export const useSellOption = (amountToSell: string) => {
           const collateral = await _getCollateralAmount();
 
           const remainingBalanceUSDC =
-            balanceUSDCInt + quote - (USDCCollateral ? collateral : 0);
+            balanceUSDC + quote - (USDCCollateral ? collateral : 0);
           const remainingBalanceWETH = USDCCollateral
-            ? balanceWETHInt
-            : balanceWETHInt - collateral;
+            ? balanceWETH
+            : balanceWETH - collateral;
+
+          // Ensure user has sufficient wallet balance to cover collateral.
+          const hasRequiredCapital = USDCCollateral
+            ? balanceUSDC > collateral
+            : balanceWETH > collateral;
 
           const requiredApproval = String(truncate(collateral * 1.05, 4));
           const approved = (
@@ -174,6 +180,7 @@ export const useSellOption = (amountToSell: string) => {
             collateral,
             expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
             fee,
+            hasRequiredCapital,
             liquidationPrice,
             now: dayjs().format("MMM DD, YYYY HH:mm A"),
             premium,
@@ -192,12 +199,13 @@ export const useSellOption = (amountToSell: string) => {
             collateral: 0,
             expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
             fee: 0,
+            hasRequiredCapital: false,
             liquidationPrice: 0,
             now: dayjs().format("MMM DD, YYYY HH:mm A"),
             premium: 0,
             quote: 0,
-            remainingBalanceUSDC: balanceUSDCInt,
-            remainingBalanceWETH: balanceWETHInt,
+            remainingBalanceUSDC: balanceUSDC,
+            remainingBalanceWETH: balanceWETH,
             requiredApproval: "",
             slippage: 0,
             strike: selectedOption?.strikeOptions?.strike,
