@@ -220,11 +220,13 @@ const usePositions = () => {
 
           // Check state to see if the series is disabled.
           const seriesData =
-            chainData[expiryTimestamp][humanisedStrikePrice][putOrCall];
-          const buyDisabled =
-            seriesData.buy.disabled || !seriesData.buy.quote.quote;
-          const sellDisabled =
-            seriesData.sell.disabled || !seriesData.sell.quote.quote;
+            chainData[expiryTimestamp]?.[humanisedStrikePrice][putOrCall];
+          const buyDisabled = seriesData
+            ? seriesData.buy.disabled || !seriesData.buy.quote.quote
+            : true;
+          const sellDisabled = seriesData
+            ? seriesData.sell.disabled || !seriesData.sell.quote.quote
+            : true;
 
           const options = vault.vaultId
             ? optionsSoldTransactions
@@ -263,11 +265,6 @@ const usePositions = () => {
           const inTheMoney = isPut
             ? Number(expiryPrice) <= Number(strikePrice)
             : Number(expiryPrice) >= Number(strikePrice);
-          const isRedeemable =
-            expired && redeemActions.length > 0 && inTheMoney;
-          const hasRedeemed = redeemActions.length > 0; // NOTE: User could have manually not redeem all
-          const canSettleShort = expired && settleActions.length === 0;
-          const settledShort = settleActions.length > 0;
 
           const getStatusMessage = (short: boolean) => {
             if (short) {
@@ -329,6 +326,22 @@ const usePositions = () => {
               .toNumber()
           );
 
+          const isRedeemable =
+            amount != 0 &&
+            expired &&
+            Boolean(!vault.vaultId) &&
+            redeemActions.length === 0;
+          const hasRedeemed = redeemActions.length > 0; // NOTE: User could have manually not redeem all
+          const canSettleShort =
+            amount != 0 &&
+            expired &&
+            Boolean(vault.vaultId) &&
+            settleActions.length === 0;
+          const settledShort = settleActions.length > 0;
+
+          const anyExpiredAction =
+            isRedeemable || canSettleShort || settledShort || hasRedeemed;
+
           const collateralAssetSymbol =
             vault.collateralAsset?.name === "USDC" ? "USDC" : "WETH";
 
@@ -367,7 +380,7 @@ const usePositions = () => {
           // pnl
           const graphPnl = fromUSDC(realizedPnl);
           const { acceptablePremium, fee } =
-            amount !== 0
+            amount !== 0 && !anyExpiredAction
               ? await getQuote(
                   Number(expiryTimestamp),
                   toRysk(fromOpyn(strikePrice)),
@@ -380,6 +393,15 @@ const usePositions = () => {
                   acceptablePremium: 0,
                   fee: 0,
                 };
+
+          const diff =
+            anyExpiredAction && isPut
+              ? Number(fromOpyn(strikePrice)) -
+                Number(fromOpyn(expiryPrice || 0))
+              : Number(fromOpyn(expiryPrice || 0)) -
+                Number(fromOpyn(strikePrice));
+          const expectedPayout =
+            diff > 0 ? diff * Number(fromWei(netAmount)) : 0;
 
           const position = {
             ...oToken,
@@ -404,8 +426,14 @@ const usePositions = () => {
               amount === 0
                 ? Number(graphPnl) // if closed position just use graph data
                 : vault.vaultId // short pnl is opposite of long as totPremium represents the earnings
-                ? Number(graphPnl) - Number(fromUSDC(acceptablePremium)) - fee
-                : Number(graphPnl) + Number(fromUSDC(acceptablePremium)) - fee,
+                ? Number(graphPnl) -
+                  (expectedPayout
+                    ? expectedPayout
+                    : Number(fromUSDC(acceptablePremium)) - fee)
+                : Number(graphPnl) +
+                  (expectedPayout
+                    ? expectedPayout
+                    : Number(fromUSDC(acceptablePremium)) - fee),
             underlyingAsset: underlyingAsset.id,
           };
 
