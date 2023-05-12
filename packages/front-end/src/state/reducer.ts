@@ -173,6 +173,11 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
       } else {
         return state;
       }
+    case ActionType.SET_USER_BALANCES:
+      return {
+        ...state,
+        balances: action.balances,
+      };
   }
 };
 

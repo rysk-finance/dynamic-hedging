@@ -107,6 +107,13 @@ export const defaultGlobalState: GlobalState = {
     "exposure",
   ] as ColumNames[]),
   dashboardModalOpen: undefined,
+
+  // User balances
+  balances: {
+    ETH: 0,
+    USDC: 0,
+    WETH: 0,
+  },
 };
 
 export const GlobalReactContext = createContext<GlobalContext>({
