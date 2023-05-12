@@ -49,11 +49,16 @@ const getBalances = async (address?: HexString) => {
 export const useBalances = () => {
   const { address } = useAccount();
 
-  const { dispatch } = useGlobalContext();
+  const {
+    dispatch,
+    state: {
+      options: { userPositions },
+    },
+  } = useGlobalContext();
 
   useEffect(() => {
     getBalances(address).then((balances) => {
       dispatch({ type: ActionType.SET_USER_BALANCES, balances });
     });
-  }, [address]);
+  }, [address, userPositions]);
 };
