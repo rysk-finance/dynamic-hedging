@@ -1,13 +1,9 @@
 import { captureException } from "@sentry/react";
 
-export const logError = (error: any) => {
+export const logError = (error: unknown) => {
   console.error(error);
 
   if (process.env.NODE_ENV !== "development") {
-    if (typeof error === "object" && "message" in error) {
-      captureException(error.message);
-    } else {
-      captureException(error);
-    }
+    captureException(error);
   }
 };
