@@ -220,7 +220,7 @@ const usePositions = () => {
 
           // Check state to see if the series is disabled.
           const seriesData =
-            chainData?.[expiryTimestamp]?.[humanisedStrikePrice]?.[putOrCall];
+            chainData[expiryTimestamp]?.[humanisedStrikePrice][putOrCall];
           const buyDisabled = seriesData
             ? seriesData.buy.disabled || !seriesData.buy.quote.quote
             : true;
@@ -394,19 +394,14 @@ const usePositions = () => {
                   fee: 0,
                 };
 
-          let expectedPayout = 0;
-
-          if (anyExpiredAction) {
-            const diff = isPut
+          const diff =
+            anyExpiredAction && isPut
               ? Number(fromOpyn(strikePrice)) -
                 Number(fromOpyn(expiryPrice || 0))
               : Number(fromOpyn(expiryPrice || 0)) -
                 Number(fromOpyn(strikePrice));
-
-            if (diff > 0) {
-              expectedPayout = diff * Number(fromWei(netAmount));
-            }
-          }
+          const expectedPayout =
+            diff > 0 ? diff * Number(fromWei(netAmount)) : 0;
 
           const position = {
             ...oToken,
