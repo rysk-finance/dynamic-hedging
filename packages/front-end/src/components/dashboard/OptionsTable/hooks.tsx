@@ -265,10 +265,10 @@ const usePositions = () => {
           const getStatusMessage = (short: boolean) => {
             if (short) {
               switch (true) {
-                case !active:
-                  return "Closed";
                 case settledShort:
                   return "Settled";
+                case !active:
+                  return "Closed";
                 case buyDisabled:
                   return "Currently Untradeable";
                 case !expired:
@@ -290,10 +290,10 @@ const usePositions = () => {
               }
             } else {
               switch (true) {
-                case !active:
-                  return "Closed";
                 case hasRedeemed:
                   return "Redeemed";
+                case !active:
+                  return "Closed";
                 case sellDisabled:
                   return "Currently Untradeable";
                 case !expired:
