@@ -220,11 +220,13 @@ const usePositions = () => {
 
           // Check state to see if the series is disabled.
           const seriesData =
-            chainData[expiryTimestamp][humanisedStrikePrice][putOrCall];
-          const buyDisabled =
-            seriesData.buy.disabled || !seriesData.buy.quote.quote;
-          const sellDisabled =
-            seriesData.sell.disabled || !seriesData.sell.quote.quote;
+            chainData?.[expiryTimestamp]?.[humanisedStrikePrice]?.[putOrCall];
+          const buyDisabled = seriesData
+            ? seriesData.buy.disabled || !seriesData.buy.quote.quote
+            : true;
+          const sellDisabled = seriesData
+            ? seriesData.sell.disabled || !seriesData.sell.quote.quote
+            : true;
 
           const options = vault.vaultId
             ? optionsSoldTransactions
@@ -268,6 +270,9 @@ const usePositions = () => {
           const hasRedeemed = redeemActions.length > 0; // NOTE: User could have manually not redeem all
           const canSettleShort = expired && settleActions.length === 0;
           const settledShort = settleActions.length > 0;
+
+          const anyExpiredAction =
+            isRedeemable || canSettleShort || settledShort || hasRedeemed;
 
           const getStatusMessage = (short: boolean) => {
             if (short) {
@@ -367,7 +372,7 @@ const usePositions = () => {
           // pnl
           const graphPnl = fromUSDC(realizedPnl);
           const { acceptablePremium, fee } =
-            amount !== 0
+            amount !== 0 && !anyExpiredAction
               ? await getQuote(
                   Number(expiryTimestamp),
                   toRysk(fromOpyn(strikePrice)),
@@ -383,7 +388,7 @@ const usePositions = () => {
 
           let expectedPayout = 0;
 
-          if (isRedeemable || hasRedeemed || canSettleShort || settledShort) {
+          if (anyExpiredAction) {
             const diff = isPut
               ? Number(fromOpyn(strikePrice)) -
                 Number(fromOpyn(expiryPrice || 0))
