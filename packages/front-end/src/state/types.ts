@@ -118,6 +118,12 @@ export interface UserVaults {
   length: number;
 }
 
+export interface Balances {
+  ETH: number;
+  USDC: number;
+  WETH: number;
+}
+
 // Global context
 export type GlobalState = {
   ethPrice: number | null;
@@ -172,6 +178,9 @@ export type GlobalState = {
   visibleStrikeRange: StrikeRangeTuple;
   visibleColumns: Set<ColumNames>;
   dashboardModalOpen?: DashboardModal;
+
+  // User balances
+  balances: Balances;
 };
 
 export enum ActionType {
@@ -201,6 +210,9 @@ export enum ActionType {
   SET_SELL_TUTORIAL_INDEX,
   RESET_OPTIONS_CHAIN_STATE,
   CHANGE_FROM_BUYING_OR_SELLING,
+
+  // User balances
+  SET_USER_BALANCES,
 }
 
 export enum DashboardModalActions {
@@ -309,6 +321,10 @@ export type GlobalAction =
   | {
       type: ActionType.SET_DASHBOARD_MODAL_VISIBLE;
       visible?: DashboardModalActions;
+    }
+  | {
+      type: ActionType.SET_USER_BALANCES;
+      balances: Balances;
     };
 
 export type GlobalContext = {
