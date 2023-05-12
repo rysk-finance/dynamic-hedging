@@ -266,9 +266,11 @@ const usePositions = () => {
             ? Number(expiryPrice) <= Number(strikePrice)
             : Number(expiryPrice) >= Number(strikePrice);
 
-          const isRedeemable = expired && redeemActions.length === 0;
+          const isRedeemable =
+            expired && Boolean(!vault.vaultId) && redeemActions.length === 0;
           const hasRedeemed = redeemActions.length > 0; // NOTE: User could have manually not redeem all
-          const canSettleShort = expired && settleActions.length === 0;
+          const canSettleShort =
+            expired && Boolean(vault.vaultId) && settleActions.length === 0;
           const settledShort = settleActions.length > 0;
 
           const anyExpiredAction =
