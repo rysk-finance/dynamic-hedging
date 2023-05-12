@@ -33,9 +33,9 @@ const getBalances = async (address?: HexString) => {
   });
 
   return {
-    ETH: truncate(fromRyskToNumber(balanceETH.toString()), 4),
+    ETH: truncate(fromRyskToNumber(balanceETH.toString()), 2),
     USDC: truncate(tFormatUSDC(balanceUSDC), 2),
-    WETH: truncate(fromRyskToNumber(balanceWETH.toString()), 4),
+    WETH: truncate(fromRyskToNumber(balanceWETH.toString()), 2),
   };
 };
 
