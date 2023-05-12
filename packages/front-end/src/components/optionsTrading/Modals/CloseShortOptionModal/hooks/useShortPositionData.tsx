@@ -11,8 +11,6 @@ import {
   fromOpyn,
   fromWeiToInt,
   renameOtoken,
-  tFormatUSDC,
-  toOpyn,
   toRysk,
   toUSDC,
   truncate,
@@ -20,9 +18,8 @@ import {
 import { getContractAddress } from "src/utils/helpers";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
 import { BigNumber } from "ethers";
-import { BIG_NUMBER_DECIMALS, ZERO_ADDRESS } from "src/config/constants";
+import { BIG_NUMBER_DECIMALS } from "src/config/constants";
 import { getQuote } from "../../Shared/utils/getQuote";
-import { fetchBalance } from "@wagmi/core";
 import { logError } from "src/utils/logError";
 import { optionSymbolFromOToken } from "src/utils";
 
@@ -33,8 +30,9 @@ export const useShortPositionData = (amountToClose: string) => {
   // Context state.
   const {
     state: {
+      balances,
       ethPrice,
-      options: { activeExpiry, data, userPositions },
+      options: { activeExpiry, userPositions },
     },
   } = useGlobalContext();
 
@@ -81,12 +79,6 @@ export const useShortPositionData = (amountToClose: string) => {
     const setPriceData = async (amount: number) => {
       setLoading(true);
       try {
-        const { value: balance } = await fetchBalance({
-          address: address || ZERO_ADDRESS,
-          token: getContractAddress("USDC"),
-        });
-        const balanceInt = tFormatUSDC(balance);
-
         if (activeExpiry && tokenAddress && userPosition) {
           const now = dayjs().format("MMM DD, YYYY HH:mm A");
 
@@ -115,7 +107,8 @@ export const useShortPositionData = (amountToClose: string) => {
               );
 
             // closing a short is buying back the oToken, hence the minus USDC.
-            const remainingBalance = balance.isZero() ? 0 : balanceInt - quote;
+            const remainingBalance =
+              balances.USDC === 0 ? 0 : balances.USDC - quote;
 
             const requiredApproval = String(truncate(quote * 1.05, 4));
             const approved = toUSDC(requiredApproval).lte(allowance.amount);
@@ -139,7 +132,7 @@ export const useShortPositionData = (amountToClose: string) => {
               now,
               premium: 0,
               quote: 0,
-              remainingBalance: balanceInt,
+              remainingBalance: balances.USDC,
               slippage: 0,
               totalSize,
               title,

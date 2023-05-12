@@ -1,20 +1,17 @@
 import type { Addresses } from "../../Shared/types";
 import type { PositionDataState } from "../types";
 
-import { fetchBalance } from "@wagmi/core";
 import dayjs from "dayjs";
 import { BigNumber } from "ethers";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 
-import { ZERO_ADDRESS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import {
   fromOpyn,
   fromWeiToInt,
   renameOtoken,
-  tFormatUSDC,
   toOpyn,
   toRysk,
 } from "src/utils/conversion-helper";
@@ -28,6 +25,7 @@ export const usePositionData = (amountToClose: string) => {
   // Global state.
   const {
     state: {
+      balances,
       ethPrice,
       options: { activeExpiry, userPositions },
     },
@@ -65,12 +63,6 @@ export const usePositionData = (amountToClose: string) => {
       setLoading(true);
 
       try {
-        const { value: balance } = await fetchBalance({
-          address: address || ZERO_ADDRESS,
-          token: getContractAddress("USDC"),
-        });
-        const balanceInt = tFormatUSDC(balance);
-
         if (activeExpiry && tokenAddress && userPositions) {
           const userPosition = userPositions[activeExpiry]?.tokens.find(
             ({ id }) => id === searchParams.get("token")
@@ -99,7 +91,8 @@ export const usePositionData = (amountToClose: string) => {
                 true
               );
 
-            const remainingBalance = balance.isZero() ? 0 : balanceInt + quote;
+            const remainingBalance =
+              balances.USDC === 0 ? 0 : balances.USDC + quote;
             const approved = toOpyn(amountToClose).lte(allowance.amount);
 
             setPositionData({
@@ -121,7 +114,7 @@ export const usePositionData = (amountToClose: string) => {
               now,
               premium: 0,
               quote: 0,
-              remainingBalance: balanceInt,
+              remainingBalance: balances.USDC,
               slippage: 0,
               totalSize,
               title,
