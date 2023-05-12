@@ -22,7 +22,6 @@ import {
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
-import { getBalancesAsInteger } from "../../Shared/utils/getBalancesAsInteger";
 import { getLiquidationPrice } from "../../Shared/utils/getLiquidationPrice";
 import { getQuote } from "../../Shared/utils/getQuote";
 
@@ -36,6 +35,7 @@ export const useSellOption = (amountToSell: string) => {
   // Global state.
   const {
     state: {
+      balances,
       collateralPreferences,
       ethPrice,
       options: { activeExpiry, spotShock, timesToExpiry },
@@ -83,8 +83,7 @@ export const useSellOption = (amountToSell: string) => {
       setLoading(true);
 
       try {
-        const { USDC: balanceUSDCInt, WETH: balanceWETHInt } =
-          await getBalancesAsInteger(address);
+        const { USDC: balanceUSDCInt, WETH: balanceWETHInt } = balances;
 
         if (amount > 0 && ethPrice && selectedOption) {
           const strike = selectedOption.strikeOptions.strike;

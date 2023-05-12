@@ -1,19 +1,12 @@
 import type { Addresses } from "../../Shared/types";
 import type { PositionDataState } from "../types";
 
-import { fetchBalance } from "@wagmi/core";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
-import { ZERO_ADDRESS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
-import {
-  tFormatUSDC,
-  toRysk,
-  toUSDC,
-  truncate,
-} from "src/utils/conversion-helper";
+import { toRysk, toUSDC, truncate } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -24,6 +17,7 @@ export const useBuyOption = (amountToBuy: string) => {
   // Global state.
   const {
     state: {
+      balances,
       ethPrice,
       options: { activeExpiry },
       selectedOption,
@@ -61,12 +55,6 @@ export const useBuyOption = (amountToBuy: string) => {
       setLoading(true);
 
       try {
-        const { value: balance } = await fetchBalance({
-          address: address || ZERO_ADDRESS,
-          token: getContractAddress("USDC"),
-        });
-        const balanceInt = tFormatUSDC(balance);
-
         if (amount > 0 && selectedOption) {
           const { acceptablePremium, fee, premium, quote, slippage } =
             await getQuote(
@@ -77,7 +65,8 @@ export const useBuyOption = (amountToBuy: string) => {
               selectedOption.buyOrSell === "sell"
             );
 
-          const remainingBalance = balance.isZero() ? 0 : balanceInt - quote;
+          const remainingBalance =
+            balances.USDC === 0 ? 0 : balances.USDC - quote;
 
           const requiredApproval = String(truncate(quote * 1.05, 4));
           const approved = toUSDC(requiredApproval).lte(allowance.amount);
@@ -105,7 +94,7 @@ export const useBuyOption = (amountToBuy: string) => {
             now: dayjs().format("MMM DD, YYYY HH:mm A"),
             premium: 0,
             quote: 0,
-            remainingBalance: balanceInt,
+            remainingBalance: balances.USDC,
             requiredApproval: "",
             slippage: 0,
             strike: selectedOption?.strikeOptions?.strike,
