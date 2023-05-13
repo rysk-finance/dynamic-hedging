@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { WETH, USDC, Ether } from "src/Icons";
 import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { RyskCountUp } from "src/components/shared/RyskCountUp";
 
 const { Custom } = ConnectButton;
 
@@ -69,20 +70,22 @@ const Connect = () => {
                     <span className="flex items-center">
                       <WETH className="w-5 h-5 mr-1" />
                       <p className="mr-2 pr-2 border-r border-white">
-                        {balances.WETH}
+                        <RyskCountUp value={balances.WETH} />
                       </p>
                     </span>
                     <span className="flex items-center">
                       <USDC className="w-5 h-5 mr-1" />
                       <p className="mr-2 pr-2 border-r border-white">
-                        {balances.USDC}
+                        <RyskCountUp value={balances.USDC} />
                       </p>
                     </span>
                     <span className="flex items-center">
                       <div className="flex items-center justify-center w-5 h-5 mr-1 bg-white rounded-full">
                         <Ether className="w-4 h-4" />
                       </div>
-                      <p>{balances.ETH}</p>
+                      <p>
+                        <RyskCountUp value={balances.ETH} />
+                      </p>
                     </span>
                   </motion.div>
                 )}
