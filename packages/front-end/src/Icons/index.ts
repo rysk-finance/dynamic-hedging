@@ -7,6 +7,7 @@ import { LeftArrow } from "./LeftArrow";
 import { Loading } from "./Loading";
 import { Podium } from "./Podium";
 import { Question } from "./Question";
+import { Refresh } from "./Refresh";
 import { RightArrow } from "./RightArrow";
 import { RyskFavicon } from "./RyskFavicon";
 import { Triangle } from "./Triangle";
@@ -24,6 +25,7 @@ export {
   Loading,
   Podium,
   Question,
+  Refresh,
   RightArrow,
   RyskFavicon,
   Triangle,
