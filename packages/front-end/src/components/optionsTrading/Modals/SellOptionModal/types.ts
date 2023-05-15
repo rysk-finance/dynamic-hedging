@@ -8,6 +8,7 @@ export interface PositionDataState {
   collateral: number;
   expiry: string;
   fee: number;
+  hasRequiredCapital: boolean;
   liquidationPrice: number;
   now: string;
   premium: number;
